@@ -17,33 +17,6 @@ spring:
         format_sql: false
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
-  security:
-    oauth2:
-      client:
-        registration:
-          google:
-            client-id: ${GOOGLE_CLIENT_ID:placeholder-google-client-id}
-            client-secret: ${GOOGLE_CLIENT_SECRET:placeholder-google-client-secret}
-            scope: email, profile
-          facebook:
-            client-id: ${FACEBOOK_CLIENT_ID:placeholder-facebook-client-id}
-            client-secret: ${FACEBOOK_CLIENT_SECRET:placeholder-facebook-client-secret}
-            scope: email, public_profile
-          apple:
-            provider: apple
-            client-id: ${APPLE_CLIENT_ID:placeholder-apple-client-id}
-            client-secret: ${APPLE_CLIENT_SECRET:placeholder-apple-client-secret}
-            scope: name, email
-            client-authentication-method: client_secret_post
-            authorization-grant-type: authorization_code
-            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
-        provider:
-          apple:
-            authorization-uri: https://appleid.apple.com/auth/authorize
-            token-uri: https://appleid.apple.com/auth/token
-            jwk-set-uri: https://appleid.apple.com/auth/keys
-            user-name-attribute: sub
-
 jwt:
   secret: ${JWT_SECRET}
   expiration:
