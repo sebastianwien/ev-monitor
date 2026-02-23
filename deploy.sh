@@ -1,27 +1,113 @@
 #!/bin/bash
+
+# EV Monitor Deployment Script
+# This script validates environment variables and deploys the application
+
 set -e
 
-echo "Starting Deployment for ev-monitor..."
+echo "🚀 EV Monitor Deployment"
+echo "========================"
+echo ""
 
-# Load environment variables if present
-if [ -f .env ]; then
-  set -a
-  source .env
-  set +a
+# Check if .env file exists
+if [ ! -f .env ]; then
+  echo "❌ ERROR: .env file missing!"
+  echo ""
+  echo "Please create .env file:"
+  echo "  cp .env.example .env"
+  echo "  nano .env  # Fill in your secrets"
+  echo ""
+  exit 1
 fi
 
-# Set defaults if env not provided
-export DOMAIN=${DOMAIN:-yourdomain.com}
-export POSTGRES_USER=${POSTGRES_USER:-evmonitor}
-export POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-SuperSecretPassword123}
-export POSTGRES_DB=${POSTGRES_DB:-ev_monitor}
+# Source .env file
+set -a
+source .env
+set +a
 
-echo "Updating codebase..."
-git pull origin main || echo "Git pull skipped or failed, proceeding with local files."
+# Validate critical environment variables
+ERRORS=0
 
-echo "Building and starting containers in detached mode..."
-docker compose up -d --build
+echo "🔍 Validating environment variables..."
 
-echo "Deployment finished. Application is starting up."
-echo "Ensure your DNS points to this server IP."
-echo "If this is your first run with SSL, you might need an init-letsencrypt bootstrap script to generate the initial certificates before Nginx can fully start."
+if [ -z "$JWT_SECRET" ]; then
+  echo "❌ JWT_SECRET is missing or empty!"
+  ERRORS=$((ERRORS + 1))
+elif [ "$JWT_SECRET" == "CHANGE_ME_TO_RANDOM_64_CHAR_STRING_USE_OPENSSL_RAND" ]; then
+  echo "❌ JWT_SECRET is not configured (still default value)!"
+  echo "   Generate one: openssl rand -base64 64"
+  ERRORS=$((ERRORS + 1))
+fi
+
+if [ -z "$POSTGRES_PASSWORD" ]; then
+  echo "❌ POSTGRES_PASSWORD is missing or empty!"
+  ERRORS=$((ERRORS + 1))
+elif [ "$POSTGRES_PASSWORD" == "CHANGE_ME_TO_STRONG_PASSWORD_MIN_32_CHARS" ]; then
+  echo "❌ POSTGRES_PASSWORD is not configured (still default value)!"
+  echo "   Generate one: openssl rand -base64 32"
+  ERRORS=$((ERRORS + 1))
+fi
+
+if [ -z "$DOMAIN" ]; then
+  echo "❌ DOMAIN is missing or empty!"
+  ERRORS=$((ERRORS + 1))
+fi
+
+if [ -z "$ALLOWED_ORIGINS" ]; then
+  echo "❌ ALLOWED_ORIGINS is missing or empty!"
+  ERRORS=$((ERRORS + 1))
+fi
+
+if [ $ERRORS -gt 0 ]; then
+  echo ""
+  echo "❌ $ERRORS validation error(s) found. Please fix .env and try again."
+  exit 1
+fi
+
+echo "✅ All required environment variables are set"
+echo ""
+
+# Check if running first time (no SSL cert yet)
+if [ ! -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ] && [ "$DOMAIN" != "localhost" ]; then
+  echo "⚠️  WARNING: No SSL certificate found for $DOMAIN"
+  echo ""
+  echo "After deployment completes, run:"
+  echo "  ./init-letsencrypt.sh"
+  echo ""
+fi
+
+# Deploy
+echo "🐳 Building and deploying containers..."
+docker compose down
+docker compose build --no-cache
+docker compose up -d
+
+echo ""
+echo "⏳ Waiting for services to start..."
+sleep 10
+
+# Check if services are running
+if docker compose ps | grep -q "Up"; then
+  echo "✅ Services are running!"
+  echo ""
+  echo "🌍 Application deployed:"
+
+  if [ "$DOMAIN" == "localhost" ]; then
+    echo "   http://localhost"
+  else
+    echo "   http://$DOMAIN (redirects to HTTPS)"
+    echo "   https://$DOMAIN"
+  fi
+
+  echo ""
+  echo "📊 Check logs:"
+  echo "   docker compose logs -f backend"
+  echo "   docker compose logs -f nginx"
+  echo ""
+  echo "🔄 Restart services:"
+  echo "   docker compose restart"
+else
+  echo "❌ ERROR: Services failed to start. Check logs:"
+  echo "   docker compose logs"
+  exit 1
+fi

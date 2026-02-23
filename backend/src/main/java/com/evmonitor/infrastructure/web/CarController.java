@@ -19,7 +19,6 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/cars")
-@CrossOrigin(origins = "*")
 public class CarController {
 
     private final CarService carService;
