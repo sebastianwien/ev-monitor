@@ -1,0 +1,335 @@
+<script setup lang="ts">
+import { ref, onMounted, watch } from 'vue'
+import api from '../api/axios'
+import CarSelector from './CarSelector.vue'
+
+const selectedCarId = ref<string | null>(null)
+const distanceKm = ref<number>(0)
+const consumptionKwhPer100km = ref<number>(0)
+const outsideTempC = ref<number>(0)
+const drivingStyle = ref<string>('NORMAL')
+const loggedAt = ref<string | null>(null) // Optional: when the drive happened
+
+// Location tracking
+const latitude = ref<number | null>(null)
+const longitude = ref<number | null>(null)
+const locationStatus = ref<'idle' | 'loading' | 'success' | 'error' | 'manual'>('idle')
+const locationSearchQuery = ref('')
+const locationSuggestions = ref<any[]>([])
+const showLocationSuggestions = ref(false)
+const locationErrorMessage = ref<string | null>(null)
+
+const styles = ['ECO', 'NORMAL', 'SPORT']
+
+// Helper to format current datetime for datetime-local input
+const getCurrentDateTimeLocal = () => {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  const hours = String(now.getHours()).padStart(2, '0')
+  const minutes = String(now.getMinutes()).padStart(2, '0')
+  return `${year}-${month}-${day}T${hours}:${minutes}`
+}
+
+const logs = ref<any[]>([])
+const error = ref<string | null>(null)
+
+// Request current location via Geolocation API
+const requestCurrentLocation = () => {
+  if (!navigator.geolocation) {
+    locationStatus.value = 'error'
+    locationErrorMessage.value = 'Geolocation is not supported by your browser'
+    return
+  }
+
+  locationStatus.value = 'loading'
+  locationErrorMessage.value = null
+
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      latitude.value = position.coords.latitude
+      longitude.value = position.coords.longitude
+      locationStatus.value = 'success'
+    },
+    (err) => {
+      console.error('Geolocation error:', err)
+      locationStatus.value = 'error'
+      locationErrorMessage.value = 'Location access denied. You can search for a location manually below.'
+    }
+  )
+}
+
+// Search location via OpenStreetMap Nominatim
+const searchLocation = async (query: string) => {
+  if (!query || query.length < 3) {
+    locationSuggestions.value = []
+    return
+  }
+
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5`
+    )
+    const data = await response.json()
+    locationSuggestions.value = data
+    showLocationSuggestions.value = true
+  } catch (err) {
+    console.error('Failed to search location:', err)
+  }
+}
+
+// Select a location from suggestions
+const selectLocation = (suggestion: any) => {
+  latitude.value = parseFloat(suggestion.lat)
+  longitude.value = parseFloat(suggestion.lon)
+  locationSearchQuery.value = suggestion.display_name
+  locationStatus.value = 'manual'
+  showLocationSuggestions.value = false
+}
+
+// Clear location
+const clearLocation = () => {
+  latitude.value = null
+  longitude.value = null
+  locationStatus.value = 'idle'
+  locationSearchQuery.value = ''
+  locationSuggestions.value = []
+  showLocationSuggestions.value = false
+  locationErrorMessage.value = null
+}
+
+// Watch search query for debounced search
+let searchTimeout: any = null
+watch(locationSearchQuery, (newQuery) => {
+  clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => {
+    searchLocation(newQuery)
+  }, 300)
+})
+
+const fetchLogs = async () => {
+  if (!selectedCarId.value) {
+    logs.value = []
+    return
+  }
+
+  try {
+    const res = await api.get(`/logs?carId=${selectedCarId.value}`)
+    logs.value = res.data
+  } catch (err) {
+    console.error('Failed to fetch logs:', err)
+  }
+}
+
+const submitLog = async () => {
+  if (!selectedCarId.value) {
+    error.value = 'Please select a vehicle'
+    return
+  }
+
+  try {
+    error.value = null
+    const payload: any = {
+      carId: selectedCarId.value,
+      distanceKm: distanceKm.value,
+      consumptionKwhPer100km: Math.round(consumptionKwhPer100km.value * 100) / 100,
+      outsideTempC: outsideTempC.value,
+      drivingStyle: drivingStyle.value
+    }
+
+    // Add location if provided (lat/lon will be converted to geohash on backend)
+    if (latitude.value !== null && longitude.value !== null) {
+      payload.latitude = latitude.value
+      payload.longitude = longitude.value
+    }
+
+    // Add loggedAt if provided (convert from datetime-local format to ISO string)
+    if (loggedAt.value) {
+      payload.loggedAt = new Date(loggedAt.value).toISOString()
+    }
+
+    await api.post('/logs', payload)
+
+    // Reset form (keep car selected)
+    distanceKm.value = 0
+    consumptionKwhPer100km.value = 0
+    outsideTempC.value = 0
+    drivingStyle.value = 'NORMAL'
+    loggedAt.value = null
+    clearLocation()
+
+    await fetchLogs()
+  } catch (err: any) {
+    error.value = err.response?.data?.message || 'Failed to submit log'
+    console.error('Failed to submit log:', err)
+  }
+}
+
+// Watch for car selection changes and refetch logs
+watch(selectedCarId, () => {
+  fetchLogs()
+})
+
+onMounted(() => {
+  fetchLogs()
+})
+</script>
+
+<template>
+  <div class="max-w-2xl mx-auto p-6 bg-white rounded-xl shadow-lg mt-8">
+    <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">EV Monitor Logger</h1>
+
+    <div v-if="error" class="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-md">
+      {{ error }}
+    </div>
+
+    <form @submit.prevent="submitLog" class="space-y-4">
+      <CarSelector v-model="selectedCarId" />
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Distance (km)</label>
+        <input v-model="distanceKm" type="number" step="0.1" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Avg Consumption (kWh/100km)</label>
+        <input v-model="consumptionKwhPer100km" type="number" step="0.1" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Outside Temp (°C)</label>
+        <input v-model="outsideTempC" type="number" step="0.1" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Driving Style</label>
+        <select v-model="drivingStyle" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border">
+          <option v-for="s in styles" :key="s" :value="s">{{ s }}</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Drive Date & Time (optional)</label>
+        <input
+          v-model="loggedAt"
+          type="datetime-local"
+          :max="getCurrentDateTimeLocal()"
+          :placeholder="getCurrentDateTimeLocal()"
+          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
+        <p class="text-xs text-gray-500 mt-1">Leave empty to use current time</p>
+      </div>
+
+      <!-- Location Section -->
+      <div class="border-t pt-4">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Location (optional)</label>
+
+        <!-- Idle State: Show "Use Current Location" button -->
+        <div v-if="locationStatus === 'idle'" class="space-y-2">
+          <button
+            type="button"
+            @click="requestCurrentLocation"
+            class="w-full bg-green-100 text-green-700 p-3 rounded-md shadow hover:bg-green-200 transition font-medium">
+            📍 Use Current Location
+          </button>
+          <p class="text-xs text-gray-500 text-center">Or search manually below</p>
+          <input
+            v-model="locationSearchQuery"
+            @focus="locationStatus = 'error'"
+            type="text"
+            placeholder="Search for a location (e.g., Berlin)"
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
+        </div>
+
+        <!-- Loading State -->
+        <div v-if="locationStatus === 'loading'" class="text-center py-4 text-gray-600">
+          <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+          <p class="mt-2 text-sm">Getting your location...</p>
+        </div>
+
+        <!-- Success State: Location acquired via GPS -->
+        <div v-if="locationStatus === 'success'" class="space-y-2">
+          <div class="p-3 bg-green-50 border border-green-200 rounded-md">
+            <p class="text-sm text-green-800 font-medium">✅ Location captured</p>
+            <p class="text-xs text-green-600 mt-1">
+              🔒 Wir anonymisieren deinen Standort auf einen Umkreis von 5km, bevor er unsere Datenbank berührt. Dein Schlafzimmer bleibt dein Geheimnis!
+            </p>
+          </div>
+          <button
+            type="button"
+            @click="clearLocation"
+            class="w-full text-sm text-indigo-600 hover:text-indigo-700 underline">
+            Clear location
+          </button>
+        </div>
+
+        <!-- Error State / Manual Search -->
+        <div v-if="locationStatus === 'error'" class="space-y-2">
+          <div v-if="locationErrorMessage" class="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+            <p class="text-sm text-yellow-800">{{ locationErrorMessage }}</p>
+          </div>
+          <div class="relative">
+            <input
+              v-model="locationSearchQuery"
+              type="text"
+              placeholder="Search for a location (e.g., Berlin, Munich)"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
+
+            <!-- Suggestions Dropdown -->
+            <div
+              v-if="showLocationSuggestions && locationSuggestions.length > 0"
+              class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
+              <button
+                v-for="suggestion in locationSuggestions"
+                :key="suggestion.place_id"
+                type="button"
+                @click="selectLocation(suggestion)"
+                class="w-full text-left px-3 py-2 hover:bg-indigo-50 border-b last:border-b-0 text-sm">
+                {{ suggestion.display_name }}
+              </button>
+            </div>
+          </div>
+          <p class="text-xs text-gray-500">
+            🔒 Wir anonymisieren deinen Standort auf einen Umkreis von 5km, bevor er unsere Datenbank berührt.
+          </p>
+        </div>
+
+        <!-- Manual State: Location selected from search -->
+        <div v-if="locationStatus === 'manual'" class="space-y-2">
+          <div class="p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <p class="text-sm text-blue-800 font-medium">📍 Location: {{ locationSearchQuery }}</p>
+            <p class="text-xs text-blue-600 mt-1">
+              🔒 Wir anonymisieren deinen Standort auf einen Umkreis von 5km, bevor er unsere Datenbank berührt.
+            </p>
+          </div>
+          <button
+            type="button"
+            @click="clearLocation"
+            class="w-full text-sm text-indigo-600 hover:text-indigo-700 underline">
+            Clear location
+          </button>
+        </div>
+      </div>
+
+      <button type="submit" class="w-full bg-indigo-600 text-white p-3 rounded-md shadow hover:bg-indigo-700 transition">Log Drive</button>
+    </form>
+
+    <div class="mt-10">
+      <h2 class="text-xl font-semibold mb-4 text-gray-800">Recent Logs</h2>
+
+      <div v-if="!selectedCarId" class="text-gray-500 text-center">Please select a vehicle to see logs.</div>
+      <div v-else-if="logs.length === 0" class="text-gray-500 text-center">No logs yet for this vehicle.</div>
+      <ul v-else class="space-y-3">
+        <li v-for="log in logs" :key="log.id" class="p-4 bg-gray-50 border border-gray-200 rounded-lg flex justify-between items-center shadow-sm hover:shadow transition">
+          <div class="space-y-1">
+            <span class="block font-medium text-indigo-700">{{ log.distanceKm }} km</span>
+            <span class="block text-sm text-gray-500">{{ log.consumptionKwhPer100km }} kWh/100km @ {{ log.outsideTempC }}°C</span>
+          </div>
+          <span class="px-3 py-1 bg-white border border-gray-300 text-xs rounded-full shadow-sm text-gray-600 font-medium">
+            {{ log.drivingStyle }}
+          </span>
+        </li>
+      </ul>
+    </div>
+  </div>
+</template>

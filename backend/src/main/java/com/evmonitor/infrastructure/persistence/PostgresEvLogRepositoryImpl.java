@@ -1,0 +1,79 @@
+package com.evmonitor.infrastructure.persistence;
+
+import com.evmonitor.domain.EvLog;
+import com.evmonitor.domain.EvLogRepository;
+import org.springframework.stereotype.Component;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+@Component
+public class PostgresEvLogRepositoryImpl implements EvLogRepository {
+
+    private final JpaEvLogRepository jpaRepository;
+
+    public PostgresEvLogRepositoryImpl(JpaEvLogRepository jpaRepository) {
+        this.jpaRepository = jpaRepository;
+    }
+
+    @Override
+    public EvLog save(EvLog evLog) {
+        EvLogEntity entity = toEntity(evLog);
+        EvLogEntity saved = jpaRepository.save(entity);
+        return toDomain(saved);
+    }
+
+    @Override
+    public Optional<EvLog> findById(UUID id) {
+        return jpaRepository.findById(id).map(this::toDomain);
+    }
+
+    @Override
+    public Optional<EvLog> findByIdAndCarId(UUID id, UUID carId) {
+        return jpaRepository.findByIdAndCarId(id, carId).map(this::toDomain);
+    }
+
+    @Override
+    public List<EvLog> findAll() {
+        return jpaRepository.findAll().stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<EvLog> findAllByCarId(UUID carId) {
+        return jpaRepository.findAllByCarId(carId).stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    private EvLogEntity toEntity(EvLog domain) {
+        return new EvLogEntity(
+                domain.getId(),
+                domain.getCarId(),
+                domain.getDistanceKm(),
+                domain.getConsumptionKwhPer100km(),
+                domain.getOutsideTempC(),
+                domain.getDrivingStyle(),
+                domain.getGeohash(),
+                domain.getLoggedAt(),
+                domain.getCreatedAt(),
+                domain.getUpdatedAt());
+    }
+
+    private EvLog toDomain(EvLogEntity entity) {
+        return new EvLog(
+                entity.getId(),
+                entity.getCarId(),
+                entity.getDistanceKm(),
+                entity.getConsumptionKwhPer100km(),
+                entity.getOutsideTempC(),
+                entity.getDrivingStyle(),
+                entity.getGeohash(),
+                entity.getLoggedAt(),
+                entity.getCreatedAt(),
+                entity.getUpdatedAt());
+    }
+}

@@ -1,0 +1,71 @@
+import api from './axios';
+
+export interface Car {
+    id: string;
+    userId: string;
+    model: string; // CarModel enum name (e.g., "MODEL_3")
+    year: number;
+    licensePlate: string;
+    trim: string | null; // Trim level (e.g., "GTX", "Pro Performance")
+    batteryCapacityKwh: number; // Selected capacity
+    powerKw: number | null; // Power in kW (optional)
+    availableCapacities: number[]; // Available capacities from enum
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface CarRequest {
+    model: string; // CarModel enum name
+    year: number;
+    licensePlate: string;
+    trim: string | null; // Trim level (optional)
+    batteryCapacityKwh: number; // Selected or custom capacity
+    powerKw: number | null; // Power in kW (optional)
+}
+
+export interface BrandInfo {
+    value: string; // CarBrand enum name
+    label: string; // Display name
+}
+
+export interface ModelInfo {
+    value: string; // CarModel enum name (e.g., "MODEL_3")
+    label: string; // Display name (e.g., "Model 3")
+    capacities: number[]; // Available battery capacities
+}
+
+export const carService = {
+    async getCars(): Promise<Car[]> {
+        const response = await api.get('/cars');
+        return response.data;
+    },
+
+    async getCarById(id: string): Promise<Car> {
+        const response = await api.get(`/cars/${id}`);
+        return response.data;
+    },
+
+    async createCar(carData: CarRequest): Promise<Car> {
+        const response = await api.post('/cars', carData);
+        return response.data;
+    },
+
+    async updateCar(id: string, carData: CarRequest): Promise<Car> {
+        const response = await api.put(`/cars/${id}`, carData);
+        return response.data;
+    },
+
+    async deleteCar(id: string): Promise<void> {
+        await api.delete(`/cars/${id}`);
+    },
+
+    async getBrands(): Promise<BrandInfo[]> {
+        const response = await api.get('/cars/brands');
+        return response.data;
+    },
+
+    async getModelsForBrand(brand: string): Promise<ModelInfo[]> {
+        const response = await api.get(`/cars/brands/${brand}/models`);
+        return response.data;
+    }
+};
