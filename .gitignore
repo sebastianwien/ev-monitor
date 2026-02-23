@@ -1,0 +1,26 @@
+# Environment Variables
+.env
+.env.local
+.env.production
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+
+# Logs
+*.log
+logs/
+
+# Certificates (if stored locally)
+*.pem
+*.key
+*.crt

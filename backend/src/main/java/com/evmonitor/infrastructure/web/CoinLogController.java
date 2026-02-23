@@ -13,7 +13,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/coins")
-@CrossOrigin(origins = "*")
 public class CoinLogController {
 
     private final CoinLogService coinLogService;

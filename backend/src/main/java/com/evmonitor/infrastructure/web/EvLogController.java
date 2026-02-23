@@ -15,7 +15,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/logs")
-@CrossOrigin(origins = "*") // Keep open for now, specify later depending on Nginx setup
 public class EvLogController {
 
     private final EvLogService evLogService;
