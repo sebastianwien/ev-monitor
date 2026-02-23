@@ -44,6 +44,8 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/cars/brands", "/api/cars/brands/**").permitAll()
+                        .requestMatchers("/api/vehicle-specifications/lookup").permitAll()
                         // Require Auth for remaining API endpoints
                         .requestMatchers("/api/**").authenticated()
                         // Permit any other endpoints, assuming they are static resources or frontend
