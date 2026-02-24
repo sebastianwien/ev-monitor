@@ -1,0 +1,29 @@
+# Test Profile Configuration
+# Uses H2 in-memory database for tests
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  flyway:
+    enabled: false  # Disable Flyway for tests, use Hibernate schema generation
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop  # Auto-create schema for tests
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        dialect: org.hibernate.dialect.H2Dialect
+
+jwt:
+  secret: test-secret-key-FOR-TESTING-ONLY-MIN-64-CHARS-LONG-HS512-ALGORITHM-1234567890123456789012345678901234567890
+  expiration:
+    ms: 604800000
+
+allowed:
+  origins: http://localhost:8080
