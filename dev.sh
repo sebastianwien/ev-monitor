@@ -56,13 +56,18 @@ DROP TABLE IF EXISTS ev_log CASCADE;
 DROP TABLE IF EXISTS car CASCADE;
 DROP TABLE IF EXISTS coin_log CASCADE;
 DROP TABLE IF EXISTS vehicle_specification CASCADE;
+DROP TABLE IF EXISTS app_user CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS flyway_schema_history CASCADE;
 EOF
     echo -e "${GREEN}✅ Tables dropped${NC}"
 else
     echo -e "${YELLOW}⏭️  Skipping table drop${NC}"
 fi
 echo ""
+
+# Create logs directory if not exists
+mkdir -p logs
 
 # Step 3: Start Backend
 echo -e "${BLUE}⚙️  Step 3/4: Starting Backend (Spring Boot)...${NC}"

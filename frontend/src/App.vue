@@ -1,7 +1,10 @@
 <script setup lang="ts">
+import { ref } from 'vue';
 import { useAuthStore } from './stores/auth';
+import SpritMonitorImport from './components/SpritMonitorImport.vue';
 
 const authStore = useAuthStore();
+const showImportOverlay = ref(false);
 
 const handleLogout = () => {
   authStore.logout();
@@ -35,6 +38,11 @@ const handleLogout = () => {
         </div>
       </div>
       <div class="flex items-center space-x-4">
+        <button
+          @click="showImportOverlay = true"
+          class="px-4 py-2 bg-indigo-700 hover:bg-indigo-800 rounded-lg text-sm font-medium transition shadow-sm">
+          📥 Import
+        </button>
         <span v-if="authStore.user" class="text-sm border border-indigo-400 px-3 py-1 rounded-md bg-indigo-500 bg-opacity-30">
           {{ authStore.user.sub }}
         </span>
@@ -46,5 +54,8 @@ const handleLogout = () => {
     <main :class="{ 'py-10 px-4': authStore.isAuthenticated() }">
       <router-view></router-view>
     </main>
+
+    <!-- Sprit-Monitor Import Overlay -->
+    <SpritMonitorImport v-if="showImportOverlay" @close="showImportOverlay = false" />
   </div>
 </template>

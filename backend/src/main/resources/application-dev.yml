@@ -9,16 +9,12 @@ spring:
     driver-class-name: org.postgresql.Driver
 
   flyway:
-    enabled: true
-    baseline-on-migrate: true
-    baseline-version: 0
-    clean-disabled: false
-    locations: classpath:db/migration
+    enabled: false  # Disable in dev, let Hibernate manage schema
 
   jpa:
     hibernate:
-      ddl-auto: validate
-    show-sql: true  # Enable SQL logging for dev
+      ddl-auto: update  # Auto-create/update tables in dev mode
+    show-sql: false  # Enable SQL logging for dev
     properties:
       hibernate:
         format_sql: true
@@ -35,3 +31,8 @@ server:
 # CORS for local dev (Vue dev server on port 5173)
 allowed:
   origins: http://localhost:5173,http://localhost:5174,http://localhost:8080
+
+# Sprit-Monitor API Integration
+spritmonitor:
+  application:
+    id: 190e3b1080a39777f369a4e9875df3d7
