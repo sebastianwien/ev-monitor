@@ -20,6 +20,11 @@ docker-compose.override.yml
 *.log
 logs/
 
+# Dev Scripts (auto-generated)
+stop-dev.sh
+.backend.pid
+.frontend.pid
+
 # Certificates (if stored locally)
 *.pem
 *.key

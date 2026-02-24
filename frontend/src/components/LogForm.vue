@@ -4,11 +4,10 @@ import api from '../api/axios'
 import CarSelector from './CarSelector.vue'
 
 const selectedCarId = ref<string | null>(null)
-const distanceKm = ref<number>(0)
-const consumptionKwhPer100km = ref<number>(0)
-const outsideTempC = ref<number>(0)
-const drivingStyle = ref<string>('NORMAL')
-const loggedAt = ref<string | null>(null) // Optional: when the drive happened
+const kwhCharged = ref<number>(0)
+const costEur = ref<number>(0)
+const chargeDurationMinutes = ref<number>(0)
+const loggedAt = ref<string | null>(null) // Optional: when the charge happened
 
 // Location tracking
 const latitude = ref<number | null>(null)
@@ -18,8 +17,6 @@ const locationSearchQuery = ref('')
 const locationSuggestions = ref<any[]>([])
 const showLocationSuggestions = ref(false)
 const locationErrorMessage = ref<string | null>(null)
-
-const styles = ['ECO', 'NORMAL', 'SPORT']
 
 // Helper to format current datetime for datetime-local input
 const getCurrentDateTimeLocal = () => {
@@ -132,10 +129,9 @@ const submitLog = async () => {
     error.value = null
     const payload: any = {
       carId: selectedCarId.value,
-      distanceKm: distanceKm.value,
-      consumptionKwhPer100km: Math.round(consumptionKwhPer100km.value * 100) / 100,
-      outsideTempC: outsideTempC.value,
-      drivingStyle: drivingStyle.value
+      kwhCharged: Math.round(kwhCharged.value * 100) / 100,
+      costEur: Math.round(costEur.value * 100) / 100,
+      chargeDurationMinutes: chargeDurationMinutes.value
     }
 
     // Add location if provided (lat/lon will be converted to geohash on backend)
@@ -152,10 +148,9 @@ const submitLog = async () => {
     await api.post('/logs', payload)
 
     // Reset form (keep car selected)
-    distanceKm.value = 0
-    consumptionKwhPer100km.value = 0
-    outsideTempC.value = 0
-    drivingStyle.value = 'NORMAL'
+    kwhCharged.value = 0
+    costEur.value = 0
+    chargeDurationMinutes.value = 0
     loggedAt.value = null
     clearLocation()
 
@@ -188,29 +183,22 @@ onMounted(() => {
       <CarSelector v-model="selectedCarId" />
 
       <div>
-        <label class="block text-sm font-medium text-gray-700">Distance (km)</label>
-        <input v-model="distanceKm" type="number" step="0.1" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
+        <label class="block text-sm font-medium text-gray-700">Energy Charged (kWh)</label>
+        <input v-model="kwhCharged" type="number" step="0.1" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700">Avg Consumption (kWh/100km)</label>
-        <input v-model="consumptionKwhPer100km" type="number" step="0.1" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
+        <label class="block text-sm font-medium text-gray-700">Cost (€)</label>
+        <input v-model="costEur" type="number" step="0.01" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700">Outside Temp (°C)</label>
-        <input v-model="outsideTempC" type="number" step="0.1" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
+        <label class="block text-sm font-medium text-gray-700">Charging Duration (minutes)</label>
+        <input v-model="chargeDurationMinutes" type="number" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700">Driving Style</label>
-        <select v-model="drivingStyle" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border">
-          <option v-for="s in styles" :key="s" :value="s">{{ s }}</option>
-        </select>
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Drive Date & Time (optional)</label>
+        <label class="block text-sm font-medium text-gray-700">Charge Date & Time (optional)</label>
         <input
           v-model="loggedAt"
           type="datetime-local"
@@ -311,22 +299,22 @@ onMounted(() => {
         </div>
       </div>
 
-      <button type="submit" class="w-full bg-indigo-600 text-white p-3 rounded-md shadow hover:bg-indigo-700 transition">Log Drive</button>
+      <button type="submit" class="w-full bg-indigo-600 text-white p-3 rounded-md shadow hover:bg-indigo-700 transition">⚡ Log Charge</button>
     </form>
 
     <div class="mt-10">
-      <h2 class="text-xl font-semibold mb-4 text-gray-800">Recent Logs</h2>
+      <h2 class="text-xl font-semibold mb-4 text-gray-800">Recent Charges</h2>
 
-      <div v-if="!selectedCarId" class="text-gray-500 text-center">Please select a vehicle to see logs.</div>
-      <div v-else-if="logs.length === 0" class="text-gray-500 text-center">No logs yet for this vehicle.</div>
+      <div v-if="!selectedCarId" class="text-gray-500 text-center">Please select a vehicle to see charges.</div>
+      <div v-else-if="logs.length === 0" class="text-gray-500 text-center">No charges logged yet for this vehicle.</div>
       <ul v-else class="space-y-3">
         <li v-for="log in logs" :key="log.id" class="p-4 bg-gray-50 border border-gray-200 rounded-lg flex justify-between items-center shadow-sm hover:shadow transition">
           <div class="space-y-1">
-            <span class="block font-medium text-indigo-700">{{ log.distanceKm }} km</span>
-            <span class="block text-sm text-gray-500">{{ log.consumptionKwhPer100km }} kWh/100km @ {{ log.outsideTempC }}°C</span>
+            <span class="block font-medium text-indigo-700">⚡ {{ log.kwhCharged }} kWh</span>
+            <span class="block text-sm text-gray-500">€{{ log.costEur }} • {{ log.chargeDurationMinutes }}min</span>
           </div>
           <span class="px-3 py-1 bg-white border border-gray-300 text-xs rounded-full shadow-sm text-gray-600 font-medium">
-            {{ log.drivingStyle }}
+            €{{ (log.costEur / log.kwhCharged).toFixed(2) }}/kWh
           </span>
         </li>
       </ul>

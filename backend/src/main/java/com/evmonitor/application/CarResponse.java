@@ -2,8 +2,10 @@ package com.evmonitor.application;
 
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarBrand;
+import com.evmonitor.domain.CarStatus;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -18,6 +20,9 @@ public record CarResponse(
         BigDecimal batteryCapacityKwh,
         BigDecimal powerKw,
         List<Double> availableCapacities,
+        LocalDate registrationDate,
+        LocalDate deregistrationDate,
+        CarStatus status,
         LocalDateTime createdAt,
         LocalDateTime updatedAt) {
 
@@ -32,6 +37,9 @@ public record CarResponse(
                 car.getBatteryCapacityKwh(),
                 car.getPowerKw(),
                 car.getModel().getCapacities(),
+                car.getRegistrationDate(),
+                car.getDeregistrationDate(),
+                car.getStatus(),
                 car.getCreatedAt(),
                 car.getUpdatedAt());
     }

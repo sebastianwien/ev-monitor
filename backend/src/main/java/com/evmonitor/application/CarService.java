@@ -65,6 +65,9 @@ public class CarService {
                 request.trim(),
                 request.batteryCapacityKwh(),
                 request.powerKw(),
+                existingCar.getRegistrationDate(),
+                existingCar.getDeregistrationDate(),
+                existingCar.getStatus(),
                 existingCar.getCreatedAt(),
                 java.time.LocalDateTime.now());
 

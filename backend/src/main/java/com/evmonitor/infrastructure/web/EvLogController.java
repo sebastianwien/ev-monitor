@@ -24,9 +24,9 @@ public class EvLogController {
     }
 
     @PostMapping
-    public ResponseEntity<EvLogResponse> logDrive(@RequestBody EvLogRequest request, Authentication authentication) {
+    public ResponseEntity<EvLogResponse> logCharging(@RequestBody EvLogRequest request, Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        EvLogResponse response = evLogService.logDrive(principal.getUser().getId(), request);
+        EvLogResponse response = evLogService.logCharging(principal.getUser().getId(), request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
@@ -56,9 +56,53 @@ public class EvLogController {
     @GetMapping("/statistics")
     public ResponseEntity<EvLogStatisticsResponse> getStatistics(
             @RequestParam UUID carId,
+            @RequestParam(required = false) String timeRange,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate startDate,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate endDate,
+            @RequestParam(defaultValue = "MONTH") String groupBy,
             Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        EvLogStatisticsResponse stats = evLogService.getStatistics(carId, principal.getUser().getId());
+
+        // Handle predefined time ranges
+        java.time.LocalDate computedStartDate = startDate;
+        java.time.LocalDate computedEndDate = endDate;
+
+        if (timeRange != null && !timeRange.equals("CUSTOM")) {
+            java.time.LocalDate today = java.time.LocalDate.now();
+            computedEndDate = today;
+
+            computedStartDate = switch (timeRange) {
+                case "THIS_MONTH" -> today.withDayOfMonth(1);
+                case "LAST_MONTH" -> today.minusMonths(1).withDayOfMonth(1);
+                case "LAST_3_MONTHS" -> today.minusMonths(3);
+                case "LAST_6_MONTHS" -> today.minusMonths(6);
+                case "LAST_12_MONTHS" -> today.minusMonths(12);
+                case "THIS_YEAR" -> today.withDayOfYear(1);
+                case "ALL_TIME" -> null; // No start date = all time
+                default -> null;
+            };
+
+            // For LAST_MONTH, end date should be last day of that month
+            if ("LAST_MONTH".equals(timeRange)) {
+                computedStartDate = today.minusMonths(1).withDayOfMonth(1);
+                computedEndDate = today.minusMonths(1).withDayOfMonth(
+                        today.minusMonths(1).lengthOfMonth());
+            }
+
+            // For ALL_TIME, no date filters
+            if ("ALL_TIME".equals(timeRange)) {
+                computedStartDate = null;
+                computedEndDate = null;
+            }
+        }
+
+        EvLogStatisticsResponse stats = evLogService.getStatistics(
+                carId,
+                principal.getUser().getId(),
+                computedStartDate,
+                computedEndDate,
+                groupBy
+        );
         return ResponseEntity.ok(stats);
     }
 }

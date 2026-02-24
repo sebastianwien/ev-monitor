@@ -1,6 +1,7 @@
 package com.evmonitor.infrastructure.persistence;
 
 import com.evmonitor.domain.CarBrand;
+import com.evmonitor.domain.CarStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Enumerated;
@@ -9,6 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -40,6 +42,16 @@ public class CarEntity {
 
     @Column(name = "power_kw")
     private BigDecimal powerKw;
+
+    @Column(name = "registration_date")
+    private LocalDate registrationDate;
+
+    @Column(name = "deregistration_date")
+    private LocalDate deregistrationDate;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private CarStatus status;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
@@ -114,6 +126,30 @@ public class CarEntity {
 
     public void setPowerKw(BigDecimal powerKw) {
         this.powerKw = powerKw;
+    }
+
+    public LocalDate getRegistrationDate() {
+        return registrationDate;
+    }
+
+    public void setRegistrationDate(LocalDate registrationDate) {
+        this.registrationDate = registrationDate;
+    }
+
+    public LocalDate getDeregistrationDate() {
+        return deregistrationDate;
+    }
+
+    public void setDeregistrationDate(LocalDate deregistrationDate) {
+        this.deregistrationDate = deregistrationDate;
+    }
+
+    public CarStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(CarStatus status) {
+        this.status = status;
     }
 
     public LocalDateTime getCreatedAt() {

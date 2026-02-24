@@ -1,0 +1,30 @@
+# Development Profile Configuration
+# Activate with: SPRING_PROFILES_ACTIVE=dev
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/ev_monitor
+    username: evmonitor
+    password: evmonitor
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true  # Enable SQL logging for dev
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+jwt:
+  secret: dev-secret-key-CHANGE-IN-PRODUCTION-THIS-MUST-BE-AT-LEAST-64-CHARS-LONG-FOR-HS512-ALGORITHM-12345678901234567890
+  expiration:
+    ms: 604800000  # 7 days
+
+server:
+  port: 8080
+
+# CORS for local dev (Vue dev server on port 5173)
+allowed:
+  origins: http://localhost:5173,http://localhost:5174,http://localhost:8080

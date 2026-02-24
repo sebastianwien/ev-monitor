@@ -6,9 +6,11 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -17,16 +19,13 @@ public class EvLogService {
 
     private final EvLogRepository evLogRepository;
     private final CarRepository carRepository;
-    private final VehicleSpecificationRepository vehicleSpecificationRepository;
 
-    public EvLogService(EvLogRepository evLogRepository, CarRepository carRepository,
-                        VehicleSpecificationRepository vehicleSpecificationRepository) {
+    public EvLogService(EvLogRepository evLogRepository, CarRepository carRepository) {
         this.evLogRepository = evLogRepository;
         this.carRepository = carRepository;
-        this.vehicleSpecificationRepository = vehicleSpecificationRepository;
     }
 
-    public EvLogResponse logDrive(UUID userId, EvLogRequest request) {
+    public EvLogResponse logCharging(UUID userId, EvLogRequest request) {
         Car car = carRepository.findById(request.carId())
                 .orElseThrow(() -> new IllegalArgumentException("Car not found"));
 
@@ -43,10 +42,9 @@ public class EvLogService {
 
         EvLog newLog = EvLog.createNew(
                 request.carId(),
-                request.distanceKm(),
-                request.consumptionKwhPer100km(),
-                request.outsideTempC(),
-                request.drivingStyle(),
+                request.kwhCharged(),
+                request.costEur(),
+                request.chargeDurationMinutes(),
                 geohash,
                 request.loggedAt());
 
@@ -99,9 +97,16 @@ public class EvLogService {
 
     /**
      * Get statistics for a specific car.
-     * Includes key metrics, WLTP comparison, and consumption over time data.
+     * Includes key metrics for charging events and charge over time data.
+     *
+     * @param carId The car ID
+     * @param userId The user ID (for ownership verification)
+     * @param startDate Optional filter: start date (inclusive)
+     * @param endDate Optional filter: end date (inclusive)
+     * @param groupBy Aggregation level: DAY, WEEK, or MONTH
      */
-    public EvLogStatisticsResponse getStatistics(UUID carId, UUID userId) {
+    public EvLogStatisticsResponse getStatistics(UUID carId, UUID userId,
+            java.time.LocalDate startDate, java.time.LocalDate endDate, String groupBy) {
         // Verify ownership
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new IllegalArgumentException("Car not found"));
@@ -113,99 +118,136 @@ public class EvLogService {
         // Get all logs for this car
         List<EvLog> logs = evLogRepository.findAllByCarId(carId);
 
+        // Apply time filter
+        if (startDate != null || endDate != null) {
+            logs = logs.stream()
+                    .filter(log -> {
+                        java.time.LocalDate logDate = log.getLoggedAt().toLocalDate();
+                        boolean afterStart = startDate == null || !logDate.isBefore(startDate);
+                        boolean beforeEnd = endDate == null || !logDate.isAfter(endDate);
+                        return afterStart && beforeEnd;
+                    })
+                    .collect(Collectors.toList());
+        }
+
         if (logs.isEmpty()) {
-            return createEmptyStatistics(car);
+            return createEmptyStatistics();
         }
 
         // Calculate key metrics
-        BigDecimal totalDistance = logs.stream()
-                .map(EvLog::getDistanceKm)
+        BigDecimal totalKwhCharged = logs.stream()
+                .map(EvLog::getKwhCharged)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal avgConsumption = logs.stream()
-                .map(EvLog::getConsumptionKwhPer100km)
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
-                .divide(BigDecimal.valueOf(logs.size()), 2, RoundingMode.HALF_UP);
+        BigDecimal totalCostEur = logs.stream()
+                .map(EvLog::getCostEur)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal bestConsumption = logs.stream()
-                .map(EvLog::getConsumptionKwhPer100km)
+        BigDecimal avgCostPerKwh = totalKwhCharged.compareTo(BigDecimal.ZERO) > 0
+                ? totalCostEur.divide(totalKwhCharged, 2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+
+        BigDecimal cheapestCharge = logs.stream()
+                .map(EvLog::getCostEur)
                 .min(BigDecimal::compareTo)
                 .orElse(BigDecimal.ZERO);
 
-        BigDecimal worstConsumption = logs.stream()
-                .map(EvLog::getConsumptionKwhPer100km)
+        BigDecimal mostExpensiveCharge = logs.stream()
+                .map(EvLog::getCostEur)
                 .max(BigDecimal::compareTo)
                 .orElse(BigDecimal.ZERO);
 
-        // Get WLTP data for comparison
-        String carBrand = car.getModel().name().split("_")[0]; // Extract brand from model enum
-        VehicleSpecification wltpSpec = vehicleSpecificationRepository
-                .findByCarBrandAndModelAndCapacityAndType(
-                        carBrand,
-                        car.getModel().name(),
-                        car.getBatteryCapacityKwh(),
-                        VehicleSpecification.WltpType.COMBINED
-                ).orElse(null);
+        Integer avgChargeDuration = (int) logs.stream()
+                .mapToInt(EvLog::getChargeDurationMinutes)
+                .average()
+                .orElse(0.0);
 
-        BigDecimal wltpRange = wltpSpec != null ? wltpSpec.getWltpRangeKm() : null;
-        BigDecimal wltpConsumption = wltpSpec != null ? wltpSpec.getWltpConsumptionKwhPer100km() : null;
-        BigDecimal wltpDifference = null;
-
-        if (wltpConsumption != null && wltpConsumption.compareTo(BigDecimal.ZERO) > 0) {
-            // Calculate percentage difference: (actual - wltp) / wltp * 100
-            wltpDifference = avgConsumption.subtract(wltpConsumption)
-                    .divide(wltpConsumption, 4, RoundingMode.HALF_UP)
-                    .multiply(BigDecimal.valueOf(100))
-                    .setScale(1, RoundingMode.HALF_UP);
-        }
-
-        // Consumption over time data (sorted by time)
-        List<EvLogStatisticsResponse.ConsumptionDataPoint> consumptionOverTime = logs.stream()
-                .sorted(Comparator.comparing(EvLog::getLoggedAt))
-                .map(log -> new EvLogStatisticsResponse.ConsumptionDataPoint(
-                        log.getLoggedAt(),
-                        log.getConsumptionKwhPer100km(),
-                        log.getOutsideTempC()
-                ))
-                .collect(Collectors.toList());
+        // Charge over time data (grouped and sorted by time)
+        List<EvLogStatisticsResponse.ChargeDataPoint> chargesOverTime =
+                groupChargesByPeriod(logs, groupBy != null ? groupBy : "MONTH");
 
         return new EvLogStatisticsResponse(
-                totalDistance,
-                avgConsumption,
-                bestConsumption,
-                worstConsumption,
+                totalKwhCharged,
+                totalCostEur,
+                avgCostPerKwh,
+                cheapestCharge,
+                mostExpensiveCharge,
+                avgChargeDuration,
                 logs.size(),
-                wltpRange,
-                wltpConsumption,
-                wltpDifference,
-                consumptionOverTime
+                chargesOverTime
         );
     }
 
-    private EvLogStatisticsResponse createEmptyStatistics(Car car) {
-        // Try to get WLTP data even if no logs exist
-        String carBrand = car.getModel().name().split("_")[0];
-        VehicleSpecification wltpSpec = vehicleSpecificationRepository
-                .findByCarBrandAndModelAndCapacityAndType(
-                        carBrand,
-                        car.getModel().name(),
-                        car.getBatteryCapacityKwh(),
-                        VehicleSpecification.WltpType.COMBINED
-                ).orElse(null);
-
-        BigDecimal wltpRange = wltpSpec != null ? wltpSpec.getWltpRangeKm() : null;
-        BigDecimal wltpConsumption = wltpSpec != null ? wltpSpec.getWltpConsumptionKwhPer100km() : null;
-
+    private EvLogStatisticsResponse createEmptyStatistics() {
         return new EvLogStatisticsResponse(
+                BigDecimal.ZERO,
                 BigDecimal.ZERO,
                 BigDecimal.ZERO,
                 BigDecimal.ZERO,
                 BigDecimal.ZERO,
                 0,
-                wltpRange,
-                wltpConsumption,
-                null,
+                0,
                 List.of()
         );
+    }
+
+    /**
+     * Group charges by time period (DAY, WEEK, MONTH) and aggregate metrics.
+     */
+    private List<EvLogStatisticsResponse.ChargeDataPoint> groupChargesByPeriod(
+            List<EvLog> logs, String groupBy) {
+
+        // Group logs by period
+        Map<String, List<EvLog>> groupedLogs = new java.util.LinkedHashMap<>();
+
+        for (EvLog log : logs) {
+            String periodKey = getPeriodKey(log.getLoggedAt(), groupBy);
+            groupedLogs.computeIfAbsent(periodKey, k -> new ArrayList<>()).add(log);
+        }
+
+        // Aggregate each period
+        return groupedLogs.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(entry -> {
+                    List<EvLog> periodLogs = entry.getValue();
+
+                    // Sum up kWh and cost for this period
+                    BigDecimal totalKwh = periodLogs.stream()
+                            .map(EvLog::getKwhCharged)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                    BigDecimal totalCost = periodLogs.stream()
+                            .map(EvLog::getCostEur)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                    // Use first log's timestamp as representative for this period
+                    LocalDateTime periodTimestamp = periodLogs.get(0).getLoggedAt();
+
+                    return new EvLogStatisticsResponse.ChargeDataPoint(
+                            periodTimestamp,
+                            totalCost,
+                            totalKwh
+                    );
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Generate a period key for grouping (e.g., "2025-02", "2025-W08", "2025-02-15").
+     */
+    private String getPeriodKey(LocalDateTime timestamp, String groupBy) {
+        java.time.LocalDate date = timestamp.toLocalDate();
+
+        return switch (groupBy.toUpperCase()) {
+            case "DAY" -> date.toString(); // "2025-02-15"
+            case "WEEK" -> {
+                // ISO week number
+                int year = date.getYear();
+                int week = date.get(java.time.temporal.IsoFields.WEEK_OF_WEEK_BASED_YEAR);
+                yield String.format("%d-W%02d", year, week);
+            }
+            case "MONTH" -> String.format("%d-%02d", date.getYear(), date.getMonthValue());
+            default -> String.format("%d-%02d", date.getYear(), date.getMonthValue());
+        };
     }
 }

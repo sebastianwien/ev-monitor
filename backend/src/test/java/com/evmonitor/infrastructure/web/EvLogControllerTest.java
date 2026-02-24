@@ -3,7 +3,6 @@ package com.evmonitor.infrastructure.web;
 import com.evmonitor.application.EvLogRequest;
 import com.evmonitor.application.EvLogResponse;
 import com.evmonitor.application.EvLogService;
-import com.evmonitor.domain.DrivingStyle;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,35 +39,39 @@ class EvLogControllerTest {
 
     @Test
     @WithMockUser
-    void logDrive_shouldReturnCreated() throws Exception {
+    void logCharging_shouldReturnCreated() throws Exception {
         UUID carId = UUID.randomUUID();
 
         EvLogRequest request = new EvLogRequest(
                 carId,
-                new BigDecimal("50.0"),
-                new BigDecimal("14.5"),
-                new BigDecimal("22.5"),
-                DrivingStyle.ECO);
+                new BigDecimal("50.0"),  // kwhCharged
+                new BigDecimal("18.75"), // costEur
+                45,                       // chargeDurationMinutes
+                null,
+                null,
+                null);
 
         EvLogResponse mockedResponse = new EvLogResponse(
                 UUID.randomUUID(),
                 carId,
-                request.distanceKm(),
-                request.consumptionKwhPer100km(),
-                request.outsideTempC(),
-                request.drivingStyle(),
+                request.kwhCharged(),
+                request.costEur(),
+                request.chargeDurationMinutes(),
+                null,
+                LocalDateTime.now(),
                 LocalDateTime.now(),
                 LocalDateTime.now());
 
-        when(evLogService.logDrive(any(UUID.class), any(EvLogRequest.class))).thenReturn(mockedResponse);
+        when(evLogService.logCharging(any(UUID.class), any(EvLogRequest.class))).thenReturn(mockedResponse);
 
         mockMvc.perform(post("/api/logs")
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.distanceKm").value("50.0"))
-                .andExpect(jsonPath("$.drivingStyle").value("ECO"))
+                .andExpect(jsonPath("$.kwhCharged").value("50.0"))
+                .andExpect(jsonPath("$.costEur").value("18.75"))
+                .andExpect(jsonPath("$.chargeDurationMinutes").value(45))
                 .andExpect(jsonPath("$.carId").exists());
     }
 }
