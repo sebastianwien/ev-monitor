@@ -10,6 +10,9 @@ export interface Car {
     batteryCapacityKwh: number; // Selected capacity
     powerKw: number | null; // Power in kW (optional)
     availableCapacities: number[]; // Available capacities from enum
+    registrationDate: string; // ISO date (YYYY-MM-DD)
+    deregistrationDate: string | null; // ISO date or null if still active
+    status: 'ACTIVE' | 'INACTIVE';
     createdAt: string;
     updatedAt: string;
 }

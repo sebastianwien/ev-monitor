@@ -1,0 +1,68 @@
+# Local Development - Full Stack with Nginx (Production-like)
+# Usage: docker compose -f docker-compose.local.yml up --build
+#
+# This mimics the production setup:
+# - PostgreSQL (auto-creates tables via Hibernate)
+# - Backend (with dev profile + seed data)
+# - Frontend (built static files)
+# - Nginx (serves frontend + proxies backend to /api/*)
+#
+# Access:
+# - Application: http://localhost (Port 80)
+# - Backend API directly: http://localhost:8080 (for debugging)
+# - PostgreSQL: localhost:5432
+#
+# Test Users (created by DevDataSeeder):
+# - test1@ev-monitor.net / Test1234!
+# - test2@ev-monitor.net / Test1234!
+# - test3@ev-monitor.net / Test1234!
+
+services:
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: evmonitor
+      POSTGRES_PASSWORD: evmonitor
+      POSTGRES_DB: ev_monitor
+    volumes:
+      - postgres_data_local:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U evmonitor -d ev_monitor"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/ev_monitor
+      SPRING_DATASOURCE_USERNAME: evmonitor
+      SPRING_DATASOURCE_PASSWORD: evmonitor
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      JWT_SECRET: dev-secret-key-CHANGE-IN-PRODUCTION-THIS-MUST-BE-AT-LEAST-64-CHARS-LONG-FOR-HS512-ALGORITHM-12345678901234567890
+      JWT_EXPIRATION_MS: 604800000
+    depends_on:
+      db:
+        condition: service_healthy
+
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile.local
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data_local:

@@ -1,0 +1,43 @@
+# Local Development - HTTP only on port 80
+# This mimics the production setup without SSL
+
+server {
+    listen 80;
+    server_name localhost;
+    server_tokens off;
+
+    # Serve Frontend PWA
+    location / {
+        root /usr/share/nginx/html;
+        index index.html;
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Proxy API requests to backend
+    location /api/ {
+        proxy_pass http://backend:8080/api/;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_http_version 1.1;
+        proxy_buffering off;
+    }
+
+    # Proxy OAuth2 requests to backend (optional, for future use)
+    location /oauth2/ {
+        proxy_pass http://backend:8080/oauth2/;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /login/oauth2/ {
+        proxy_pass http://backend:8080/login/oauth2/;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}

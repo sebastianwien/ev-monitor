@@ -2,7 +2,6 @@ package com.evmonitor.application;
 
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarRepository;
-import com.evmonitor.domain.DrivingStyle;
 import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.EvLogRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,7 +32,7 @@ class EvLogServiceTest {
     private EvLogService evLogService;
 
     @Test
-    void logDrive_shouldCreateLog() {
+    void logCharging_shouldCreateLog() {
         UUID userId = UUID.randomUUID();
         UUID carId = UUID.randomUUID();
 
@@ -47,26 +46,30 @@ class EvLogServiceTest {
 
         EvLogRequest request = new EvLogRequest(
                 carId,
-                new BigDecimal("100.5"),
-                new BigDecimal("15.2"),
-                new BigDecimal("20.0"),
-                DrivingStyle.NORMAL);
+                new BigDecimal("50.5"),  // kwhCharged
+                new BigDecimal("20.25"), // costEur
+                60,                       // chargeDurationMinutes
+                null,
+                null,
+                null);
 
         EvLog mockedSavedLog = EvLog.createNew(
                 request.carId(),
-                request.distanceKm(),
-                request.consumptionKwhPer100km(),
-                request.outsideTempC(),
-                request.drivingStyle());
+                request.kwhCharged(),
+                request.costEur(),
+                request.chargeDurationMinutes(),
+                null,
+                null);
 
         when(carRepository.findById(carId)).thenReturn(Optional.of(mockCar));
         when(evLogRepository.save(any(EvLog.class))).thenReturn(mockedSavedLog);
 
-        EvLogResponse response = evLogService.logDrive(userId, request);
+        EvLogResponse response = evLogService.logCharging(userId, request);
 
         assertNotNull(response);
-        assertEquals(new BigDecimal("100.5"), response.distanceKm());
-        assertEquals(DrivingStyle.NORMAL, response.drivingStyle());
+        assertEquals(new BigDecimal("50.5"), response.kwhCharged());
+        assertEquals(new BigDecimal("20.25"), response.costEur());
+        assertEquals(60, response.chargeDurationMinutes());
         assertEquals(carId, response.carId());
     }
 }

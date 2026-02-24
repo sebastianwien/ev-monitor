@@ -55,39 +55,71 @@ This file contains references to the planning, tasks, and walkthroughs generated
 
 ---
 
-## Current Status (Phase 5 - COMPLETED ✅)
+## Current Status (Phase 6 - PRODUCTION DEPLOYMENT COMPLETED ✅)
 
-**Phase 5: Statistics & Analytics Dashboard** (2026-02-23)
+**🚀 LIVE ON PRODUCTION: https://ev-monitor.net** (2026-02-23)
+
+### Phase 6: Production Deployment & Security Hardening (2026-02-23) ✅
+**Security Hardening (Phase 1-4):**
+- ✅ **Environment Variables System**: `.env` / `.env.example` / `.gitignore` setup
+- ✅ **Hardcoded Secrets entfernt**: JWT_SECRET, DB-Passwörter, OAuth Credentials
+- ✅ **CORS Security**: Restricted to `ALLOWED_ORIGINS` env var (nur ev-monitor.net)
+- ✅ **SQL Logging disabled**: `show-sql: false` für Production
+- ✅ **OAuth2 optional**: In separates Profile ausgelagert, crasht nicht mehr bei leeren vars
+- ✅ **Public Endpoints**: `/api/cars/brands` und `/api/vehicle-specifications/lookup` public
+- ✅ **Security Headers**: HSTS, X-Frame-Options, CSP, Referrer-Policy in Nginx
+
+**Production Infrastructure (Phase 5):**
+- ✅ **Hetzner Server Setup**: User `ihle`, Docker, Firewall (ufw: 22, 80, 443)
+- ✅ **Nginx HTTPS Config**: HTTP→HTTPS Redirect, SSL/TLS 1.2+1.3, Security Headers
+- ✅ **Let's Encrypt SSL**: Zertifikat erfolgreich installiert, Auto-Renewal aktiv
+- ✅ **DNS Bug Fix**: IPv6 AAAA Record korrigiert (zeigte auf alten Server mit Apache!)
+- ✅ **Docker Compose**: Backend, DB, Nginx, Certbot (healthchecks active)
+- ✅ **Deployment Scripts**: `deploy.sh`, `init-letsencrypt.sh` (mit Validierung)
+- ✅ **Dokumentation**: `SERVER_SETUP.md`, `DEPLOYMENT_CHECKLIST.md`, `SSL_SETUP_MANUAL.md`
+
+**Backend Config Changes:**
+- ✅ `JwtService.java`: Keine Default-Werte mehr (Fail-Fast wenn JWT_SECRET fehlt)
+- ✅ `SecurityConfig.java`: CORS aus `ALLOWED_ORIGINS` env var, OAuth2 entfernt
+- ✅ `application.yml`: `show-sql: false`, JWT config, OAuth2 in `application-oauth.yml`
+- ✅ `docker-compose.yml`: Alle env vars required, DB healthcheck, keine OAuth vars
+
+**Known Issues / Tech Debt:**
+- ⚠️ OAuth2 deaktiviert (kann später via `SPRING_PROFILES_ACTIVE=prod,oauth` aktiviert werden)
+- ⚠️ Frontend nicht getestet (Firmen-VPN blockiert Domain, Testing via privates Gerät pending)
+- ⚠️ WLTP Database leer (Seed-Daten für populäre Modelle fehlen)
+
+### Phase 5: Statistics & Analytics Dashboard ✅
 - ✅ Chart.js + vue-chartjs installiert
 - ✅ `GET /api/logs/statistics?carId=...` API Endpoint
 - ✅ `EvLogStatisticsResponse` DTO mit allen Metriken
-- ✅ `StatisticsView.vue` mit 3 Hauptkomponenten:
-  - **Key Metrics Cards**: Total Distance, Avg Consumption, WLTP Comparison
-  - **Consumption Over Time Chart**: Line Chart mit WLTP-Referenzlinie
-  - **WLTP Comparison**: Farbcodiert (Grün/Gelb/Rot) mit % Differenz
-- ✅ Car-Selector Integration (Filter nach Fahrzeug)
-- ✅ Responsive Design mit Tailwind CSS
-- ✅ Navigation: Neuer "Statistics" Link im Hauptmenü
-- ✅ Route `/statistics` hinzugefügt mit Auth-Guard
+- ✅ `StatisticsView.vue` mit 3 Hauptkomponenten (Key Metrics, Chart, WLTP Comparison)
+- ✅ Car-Selector Integration, Responsive Design, Navigation
 
-**Phase 4: WLTP Vehicle Specifications & Gamification** (2026-02-23)
+### Phase 4: WLTP Vehicle Specifications & Gamification ✅
 - ✅ Neue Tabelle `vehicle_specification` für crowdsourced WLTP-Daten
-- ✅ `VehicleSpecification` Domain + Entity + Repository + Service + Controller
-- ✅ WLTP-Lookup API: Automatische Suche nach Reichweite & Verbrauch
-- ✅ WLTP-Contribution Flow mit Gamification (50 Social Coins pro Beitrag)
-- ✅ Frontend: Overlay-System (Frage "Möchtest du Daten beitragen?" → Form → Toast)
-- ✅ WLTP-Hinweisfeld wenn Daten bereits vorhanden
-- ✅ Validation: Range (km) & Consumption (kWh/100km), beide required
-- ✅ Toast Notification bei erfolgreicher Coin-Vergabe
-- ✅ Backend kompiliert ohne Fehler
-- ✅ WLTP-Type: Immer COMBINED (Highway/City für später geplant)
-- ✅ **Security Audit durchgeführt**: Input Validation, CORS, XSS, Race Conditions gefixt
+- ✅ WLTP-Lookup API + Contribution Flow mit 50 Social Coins
+- ✅ Frontend: Overlay-System, Validation, Toast Notifications
+- ✅ Security Audit durchgeführt
 
-**Nächste Schritte:**
-- Weitere Charts: Temperature Impact, Driving Style Breakdown, Monthly Trends
-- WLTP-Daten Seed (initiale Daten für populäre Modelle hinterlegen)
-- Weitere Coin-Rewards (EvLog creation, Profile completion)
-- OAuth2 SSO produktiv testen
+**Nächste Schritte (Morgen):**
+- 🔲 Frontend Testing von privatem Gerät (Handy/Tablet)
+- 🔲 Feature-Ideen sammeln in `IDEAS.md`
+- 🔲 WLTP-Daten Seed (populäre Modelle befüllen)
+- 🔲 Weitere Coin-Rewards implementieren
+- 🔲 Weitere Charts: Temperature Impact, Driving Style, Monthly Trends
+
+### Neue Dateien (heute erstellt)
+- `.env.example` - Template für Environment Variables
+- `.gitignore` - Root gitignore (blockt .env, certificates)
+- `deploy.sh` - Deployment Script mit Validierung
+- `init-letsencrypt.sh` - SSL Certificate Setup
+- `SERVER_SETUP.md` - Komplette Server Setup Anleitung (Step-by-Step)
+- `DEPLOYMENT_CHECKLIST.md` - Quick Reference für Deployment
+- `SSL_SETUP_MANUAL.md` - Manual SSL Setup (Fallback wenn Script nicht geht)
+- `IDEAS.md` - Feature-Ideen & Roadmap
+- `backend/src/main/resources/application-oauth.yml` - OAuth2 Config (optional)
+- `nginx/conf.d/app.conf.http-only` - HTTP-only Config (für SSL-Bootstrap)
 
 ---
 
@@ -374,16 +406,58 @@ String geohash = GeoHash.withCharacterPrecision(lat, lon, 5).toBase32();
 
 ---
 
+## Deployment Details
+
+### Server Info
+- **Provider**: Hetzner Cloud
+- **Server**: ubuntu-4gb-nbg1-1
+- **IP**: 46.225.210.231 (IPv4), 2a01:4f8:1c19:a28e::1 (IPv6)
+- **Domain**: ev-monitor.net (+ www.ev-monitor.net)
+- **SSL**: Let's Encrypt (auto-renewal every 12h)
+- **User**: ihle (sudo, docker group)
+- **Firewall**: ufw (ports 22, 80, 443)
+
+### Environment Variables (auf Server in `/opt/ev-monitor/ev-monitor/.env`)
+```bash
+DOMAIN=ev-monitor.net
+POSTGRES_USER=evmonitor
+POSTGRES_PASSWORD=<SECRET>
+POSTGRES_DB=ev_monitor
+JWT_SECRET=<SECRET>
+JWT_EXPIRATION_MS=604800000
+ALLOWED_ORIGINS=https://ev-monitor.net,https://www.ev-monitor.net
+SPRING_PROFILES_ACTIVE=prod
+```
+
+### Wichtige Befehle (auf Server)
+```bash
+# Deployment
+cd /opt/ev-monitor/ev-monitor
+git pull origin main
+./deploy.sh
+
+# Logs
+docker compose logs -f backend
+docker compose logs -f nginx
+
+# Restart
+docker compose restart backend
+docker compose restart nginx
+
+# SSL Renewal (automatisch via certbot container, manuell mit:)
+docker compose run --rm --entrypoint certbot certbot renew
+```
+
 ## Bekannte Limitationen & TODOs
 
 ### Aus dem Code erkennbar:
-1. **OAuth2 getestet aber nicht produktiv**: Client IDs als Env-Vars, Frontend ready
-2. **Coin-Rewards noch unvollständig**: Nur WLTP-Contribution implementiert, weitere Trigger fehlen
-3. **Keine API-Paginierung**: Alle logs on-demand geladen (könnte bei >100 Logs problematisch werden)
+1. **OAuth2 deaktiviert**: Kann via `SPRING_PROFILES_ACTIVE=prod,oauth` + env vars aktiviert werden
+2. **Coin-Rewards unvollständig**: Nur WLTP-Contribution, weitere Trigger fehlen
+3. **Keine API-Paginierung**: Alle logs on-demand geladen (>100 Logs könnte problematisch werden)
 4. **Frontend Search nicht gecacht**: Nominatim Suggestions bei jedem Keystroke
 5. **Offline-Support fehlt**: PWA Plugin installiert, Service Worker noch nicht genutzt
-6. **SSL/TLS nicht konfiguriert**: Certbot vorbereitet aber nicht deployed
-7. **WLTP-Daten noch leer**: Keine initialen Seed-Daten, DB startet leer (Community muss befüllen)
+6. **WLTP-Daten leer**: Keine Seed-Daten, Community muss befüllen
+7. **Keine SQL Indices**: Performance-Optimierung fehlt (z.B. auf user_id, car_id)
 
 ---
 

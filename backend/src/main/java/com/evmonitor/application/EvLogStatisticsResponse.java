@@ -6,23 +6,20 @@ import java.util.List;
 
 public record EvLogStatisticsResponse(
         // Key Metrics
-        BigDecimal totalDistanceKm,
-        BigDecimal averageConsumptionKwhPer100km,
-        BigDecimal bestConsumptionKwhPer100km,
-        BigDecimal worstConsumptionKwhPer100km,
-        Integer totalDrives,
+        BigDecimal totalKwhCharged,
+        BigDecimal totalCostEur,
+        BigDecimal avgCostPerKwh,
+        BigDecimal cheapestChargeEur,
+        BigDecimal mostExpensiveChargeEur,
+        Integer avgChargeDurationMinutes,
+        Integer totalCharges,
 
-        // WLTP Comparison
-        BigDecimal wltpRangeKm,
-        BigDecimal wltpConsumptionKwhPer100km,
-        BigDecimal wltpDifferencePercent, // Positive = worse than WLTP, Negative = better
-
-        // Consumption Over Time (for chart)
-        List<ConsumptionDataPoint> consumptionOverTime
+        // Charge Over Time (for chart)
+        List<ChargeDataPoint> chargesOverTime
 ) {
-    public record ConsumptionDataPoint(
+    public record ChargeDataPoint(
             LocalDateTime timestamp,
-            BigDecimal consumptionKwhPer100km,
-            BigDecimal outsideTempC
+            BigDecimal costEur,
+            BigDecimal kwhCharged
     ) {}
 }

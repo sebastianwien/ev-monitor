@@ -1,6 +1,5 @@
 package com.evmonitor.infrastructure.persistence;
 
-import com.evmonitor.domain.DrivingStyle;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -16,18 +15,14 @@ public class EvLogEntity {
     @Column(name = "car_id", nullable = false)
     private UUID carId;
 
-    @Column(name = "distance_km", precision = 10, scale = 2)
-    private BigDecimal distanceKm;
+    @Column(name = "kwh_charged", nullable = false, precision = 10, scale = 2)
+    private BigDecimal kwhCharged;
 
-    @Column(name = "consumption_kwh_per_100km", precision = 10, scale = 2)
-    private BigDecimal consumptionKwhPer100km;
+    @Column(name = "cost_eur", nullable = false, precision = 10, scale = 2)
+    private BigDecimal costEur;
 
-    @Column(name = "outside_temp_c", precision = 10, scale = 2)
-    private BigDecimal outsideTempC;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "driving_style", length = 20)
-    private DrivingStyle drivingStyle;
+    @Column(name = "charge_duration_minutes", nullable = false)
+    private Integer chargeDurationMinutes;
 
     @Column(name = "geohash", length = 5)
     private String geohash;
@@ -44,15 +39,14 @@ public class EvLogEntity {
     public EvLogEntity() {
     }
 
-    public EvLogEntity(UUID id, UUID carId, BigDecimal distanceKm, BigDecimal consumptionKwhPer100km,
-            BigDecimal outsideTempC, DrivingStyle drivingStyle, String geohash, LocalDateTime loggedAt,
+    public EvLogEntity(UUID id, UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
+            Integer chargeDurationMinutes, String geohash, LocalDateTime loggedAt,
             LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.carId = carId;
-        this.distanceKm = distanceKm;
-        this.consumptionKwhPer100km = consumptionKwhPer100km;
-        this.outsideTempC = outsideTempC;
-        this.drivingStyle = drivingStyle;
+        this.kwhCharged = kwhCharged;
+        this.costEur = costEur;
+        this.chargeDurationMinutes = chargeDurationMinutes;
         this.geohash = geohash;
         this.loggedAt = loggedAt;
         this.createdAt = createdAt;
@@ -75,36 +69,28 @@ public class EvLogEntity {
         this.carId = carId;
     }
 
-    public BigDecimal getDistanceKm() {
-        return distanceKm;
+    public BigDecimal getKwhCharged() {
+        return kwhCharged;
     }
 
-    public void setDistanceKm(BigDecimal distanceKm) {
-        this.distanceKm = distanceKm;
+    public void setKwhCharged(BigDecimal kwhCharged) {
+        this.kwhCharged = kwhCharged;
     }
 
-    public BigDecimal getConsumptionKwhPer100km() {
-        return consumptionKwhPer100km;
+    public BigDecimal getCostEur() {
+        return costEur;
     }
 
-    public void setConsumptionKwhPer100km(BigDecimal consumptionKwhPer100km) {
-        this.consumptionKwhPer100km = consumptionKwhPer100km;
+    public void setCostEur(BigDecimal costEur) {
+        this.costEur = costEur;
     }
 
-    public BigDecimal getOutsideTempC() {
-        return outsideTempC;
+    public Integer getChargeDurationMinutes() {
+        return chargeDurationMinutes;
     }
 
-    public void setOutsideTempC(BigDecimal outsideTempC) {
-        this.outsideTempC = outsideTempC;
-    }
-
-    public DrivingStyle getDrivingStyle() {
-        return drivingStyle;
-    }
-
-    public void setDrivingStyle(DrivingStyle drivingStyle) {
-        this.drivingStyle = drivingStyle;
+    public void setChargeDurationMinutes(Integer chargeDurationMinutes) {
+        this.chargeDurationMinutes = chargeDurationMinutes;
     }
 
     public String getGeohash() {

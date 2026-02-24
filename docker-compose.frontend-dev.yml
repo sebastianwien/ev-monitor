@@ -1,0 +1,24 @@
+# Frontend Development Mode - Vite Dev Server with Hot Reload
+# Usage: docker compose -f docker-compose.frontend-dev.yml up
+#
+# Use this when actively developing the frontend and you need hot reload.
+# Backend and DB must already be running (from docker-compose.local.yml or dev.sh)
+#
+# Access:
+# - Frontend Dev Server: http://localhost:5173 (with hot reload)
+# - Make sure Backend is running on http://localhost:8080
+
+services:
+  frontend-dev:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8080
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: npm run dev -- --host 0.0.0.0
