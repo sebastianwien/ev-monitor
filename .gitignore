@@ -33,3 +33,5 @@ wipe-prod-db.sh
 *.pem
 *.key
 *.crt
+frontend/dist/
+frontend/node_modules/
