@@ -30,3 +30,8 @@ jwt:
 
 server:
   port: 8080
+
+# Sprit-Monitor API Integration
+spritmonitor:
+  application:
+    id: ${SPRITMONITOR_APPLICATION_ID:190e3b1080a39777f369a4e9875df3d7}
