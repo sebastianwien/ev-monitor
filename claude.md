@@ -55,9 +55,9 @@ This file contains references to the planning, tasks, and walkthroughs generated
 
 ---
 
-## Current Status (Phase 6 - PRODUCTION DEPLOYMENT COMPLETED ✅)
+## Current Status (Phase 7 - CI/CD & DB MIGRATIONS COMPLETED ✅)
 
-**🚀 LIVE ON PRODUCTION: https://ev-monitor.net** (2026-02-23)
+**🚀 LIVE ON PRODUCTION: https://ev-monitor.net** (2026-02-24)
 
 ### Phase 6: Production Deployment & Security Hardening (2026-02-23) ✅
 **Security Hardening (Phase 1-4):**
@@ -84,10 +84,31 @@ This file contains references to the planning, tasks, and walkthroughs generated
 - ✅ `application.yml`: `show-sql: false`, JWT config, OAuth2 in `application-oauth.yml`
 - ✅ `docker-compose.yml`: Alle env vars required, DB healthcheck, keine OAuth vars
 
+### Phase 7: CI/CD Pipeline & Database Migrations (2026-02-24) ✅
+**Flyway Integration:**
+- ✅ **Flyway Dependencies**: `flyway-core` + `flyway-database-postgresql` 10.8.1 in `build.gradle`
+- ✅ **Baseline Migration**: `V1__baseline.sql` - Complete schema with Foreign Keys & Indices
+- ✅ **Composite Indices**: `V2__add_composite_indices.sql` - Performance optimization
+- ✅ **Application Config**: `ddl-auto: validate` (no more auto-schema-generation!)
+- ✅ **Baseline-on-Migrate**: Works with existing databases
+
+**GitHub Actions CI/CD:**
+- ✅ **Automated Deployment**: Push to `main` → auto-deploy to production
+- ✅ **Test Pipeline**: Backend tests (Gradle) + Frontend build (npm)
+- ✅ **Database Backup**: Automatic backup before each deployment
+- ✅ **Health Check**: Verifies `https://ev-monitor.net` responds HTTP 200
+- ✅ **Flyway Verification**: Checks migration success in logs
+
+**Documentation:**
+- ✅ `GITHUB_ACTIONS_SETUP.md` - How to configure GitHub Secrets
+- ✅ `FLYWAY_MIGRATIONS.md` - Complete migration guide with examples
+- ✅ `.github/workflows/deploy.yml` - CI/CD Workflow
+
 **Known Issues / Tech Debt:**
 - ⚠️ OAuth2 deaktiviert (kann später via `SPRING_PROFILES_ACTIVE=prod,oauth` aktiviert werden)
 - ⚠️ Frontend nicht getestet (Firmen-VPN blockiert Domain, Testing via privates Gerät pending)
 - ⚠️ WLTP Database leer (Seed-Daten für populäre Modelle fehlen)
+- ⚠️ GitHub Secrets noch nicht konfiguriert (siehe `GITHUB_ACTIONS_SETUP.md`)
 
 ### Phase 5: Statistics & Analytics Dashboard ✅
 - ✅ Chart.js + vue-chartjs installiert
@@ -102,14 +123,22 @@ This file contains references to the planning, tasks, and walkthroughs generated
 - ✅ Frontend: Overlay-System, Validation, Toast Notifications
 - ✅ Security Audit durchgeführt
 
-**Nächste Schritte (Morgen):**
+**Nächste Schritte:**
+- 🔲 GitHub Secrets konfigurieren (SERVER_HOST, SERVER_USER, SSH_PRIVATE_KEY)
+- 🔲 CI/CD Pipeline testen (kleiner Commit → auto-deploy)
 - 🔲 Frontend Testing von privatem Gerät (Handy/Tablet)
-- 🔲 Feature-Ideen sammeln in `IDEAS.md`
-- 🔲 WLTP-Daten Seed (populäre Modelle befüllen)
+- 🔲 WLTP-Daten Seed Migration erstellen (V3__seed_popular_vehicles.sql)
 - 🔲 Weitere Coin-Rewards implementieren
 - 🔲 Weitere Charts: Temperature Impact, Driving Style, Monthly Trends
 
-### Neue Dateien (heute erstellt)
+### Neue Dateien (2026-02-24 - Phase 7)
+- `.github/workflows/deploy.yml` - GitHub Actions CI/CD Workflow
+- `backend/src/main/resources/db/migration/V1__baseline.sql` - Baseline Migration
+- `backend/src/main/resources/db/migration/V2__add_composite_indices.sql` - Performance Indices
+- `GITHUB_ACTIONS_SETUP.md` - GitHub Secrets & CI/CD Dokumentation
+- `FLYWAY_MIGRATIONS.md` - Complete Migration Guide mit Best Practices
+
+### Dateien aus Phase 6 (2026-02-23)
 - `.env.example` - Template für Environment Variables
 - `.gitignore` - Root gitignore (blockt .env, certificates)
 - `deploy.sh` - Deployment Script mit Validierung
@@ -457,7 +486,8 @@ docker compose run --rm --entrypoint certbot certbot renew
 4. **Frontend Search nicht gecacht**: Nominatim Suggestions bei jedem Keystroke
 5. **Offline-Support fehlt**: PWA Plugin installiert, Service Worker noch nicht genutzt
 6. **WLTP-Daten leer**: Keine Seed-Daten, Community muss befüllen
-7. **Keine SQL Indices**: Performance-Optimierung fehlt (z.B. auf user_id, car_id)
+7. ~~**Keine SQL Indices**~~ ✅ **FIXED in Phase 7**: Flyway Migrations mit Foreign Keys & Composite Indices
+8. **GitHub Secrets fehlen**: CI/CD Pipeline ist ready, aber Secrets müssen noch konfiguriert werden
 
 ---
 

@@ -25,6 +25,10 @@ stop-dev.sh
 .backend.pid
 .frontend.pid
 
+# Admin Scripts (manual operations)
+seed-prod.sh
+wipe-prod-db.sh
+
 # Certificates (if stored locally)
 *.pem
 *.key
