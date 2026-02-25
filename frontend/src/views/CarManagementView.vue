@@ -58,7 +58,7 @@ const fetchCars = async () => {
     error.value = null
     cars.value = await carService.getCars()
   } catch (err: any) {
-    error.value = err.response?.data?.message || 'Failed to load cars'
+    error.value = err.response?.data?.message || 'Fehler beim Laden der Fahrzeuge'
     console.error('Failed to fetch cars:', err)
   } finally {
     loading.value = false
@@ -69,7 +69,7 @@ const fetchBrands = async () => {
   try {
     brands.value = await carService.getBrands()
   } catch (err: any) {
-    error.value = 'Failed to load brands'
+    error.value = 'Fehler beim Laden der Marken'
     console.error('Failed to fetch brands:', err)
   }
 }
@@ -83,7 +83,7 @@ const loadModelsForBrand = async (brand: string) => {
   try {
     availableModels.value = await carService.getModelsForBrand(brand)
   } catch (err: any) {
-    error.value = 'Failed to load models'
+    error.value = 'Fehler beim Laden der Modelle'
     console.error('Failed to fetch models:', err)
   }
 }
@@ -177,7 +177,7 @@ const submitForm = async () => {
     error.value = null
 
     if (!finalCapacity.value) {
-      error.value = 'Please select or enter a battery capacity'
+      error.value = 'Bitte wähle oder gib eine Batteriekapazität ein'
       return
     }
 
@@ -199,20 +199,20 @@ const submitForm = async () => {
     resetForm()
     await fetchCars()
   } catch (err: any) {
-    error.value = err.response?.data?.message || 'Failed to save car'
+    error.value = err.response?.data?.message || 'Fehler beim Speichern des Fahrzeugs'
     console.error('Failed to save car:', err)
   }
 }
 
 const deleteCar = async (id: string) => {
-  if (!confirm('Delete this car? This action cannot be undone.')) return
+  if (!confirm('Dieses Fahrzeug löschen? Diese Aktion kann nicht rückgängig gemacht werden.')) return
 
   try {
     error.value = null
     await carService.deleteCar(id)
     await fetchCars()
   } catch (err: any) {
-    error.value = err.response?.data?.message || 'Failed to delete car'
+    error.value = err.response?.data?.message || 'Fehler beim Löschen des Fahrzeugs'
     console.error('Failed to delete car:', err)
   }
 }
@@ -269,7 +269,7 @@ const closeWltpForm = () => {
 
 const submitWltpData = async () => {
   if (!wltpRangeKm.value || !wltpConsumptionKwhPer100km.value) {
-    error.value = 'Please fill in all WLTP fields'
+    error.value = 'Bitte fülle alle WLTP-Felder aus'
     return
   }
 
@@ -296,7 +296,7 @@ const submitWltpData = async () => {
     // Reload WLTP data
     wltpData.value = response.specification
   } catch (err: any) {
-    error.value = err.response?.data?.message || 'Failed to save WLTP data'
+    error.value = err.response?.data?.message || 'Fehler beim Speichern der WLTP-Daten'
     console.error('Failed to save WLTP data:', err)
   }
 }
@@ -311,12 +311,12 @@ onMounted(async () => {
   <div class="max-w-4xl mx-auto p-6">
     <div class="bg-white rounded-xl shadow-lg p-6">
       <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold text-gray-800">My Vehicles</h1>
+        <h1 class="text-3xl font-bold text-gray-800">Meine Fahrzeuge</h1>
         <button
           v-if="!showForm"
           @click="openAddForm"
           class="bg-indigo-600 text-white px-4 py-2 rounded-md shadow hover:bg-indigo-700 transition">
-          Add Vehicle
+          Fahrzeug hinzufügen
         </button>
       </div>
 
@@ -327,16 +327,16 @@ onMounted(async () => {
       <!-- Form -->
       <div v-if="showForm" class="mb-8 p-6 bg-gray-50 rounded-lg border border-gray-200">
         <h2 class="text-xl font-semibold mb-4 text-gray-800">
-          {{ editingCar ? 'Edit Vehicle' : 'Add New Vehicle' }}
+          {{ editingCar ? 'Fahrzeug bearbeiten' : 'Neues Fahrzeug hinzufügen' }}
         </h2>
 
         <form @submit.prevent="submitForm" class="space-y-4">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Brand *</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Marke *</label>
               <select v-model="selectedBrand" required
                 class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border">
-                <option value="">Select a brand...</option>
+                <option value="">Marke wählen...</option>
                 <option v-for="brand in sortedBrands" :key="brand.value" :value="brand.value">
                   {{ brand.label }}
                 </option>
@@ -344,10 +344,10 @@ onMounted(async () => {
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Model *</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Modell *</label>
               <select v-model="selectedModel" required :disabled="!selectedBrand"
                 class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border disabled:bg-gray-100">
-                <option value="">{{ selectedBrand ? 'Select a model...' : 'Select brand first...' }}</option>
+                <option value="">{{ selectedBrand ? 'Modell wählen...' : 'Erst Marke wählen...' }}</option>
                 <option v-for="m in availableModels" :key="m.value" :value="m.value">
                   {{ m.label }}
                 </option>
@@ -355,18 +355,18 @@ onMounted(async () => {
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Trim Level (optional)</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Ausstattungslinie (optional)</label>
               <input
                 v-model="trim"
                 type="text"
-                placeholder="e.g., GTX, Pro Performance, Long Range"
+                placeholder="z.B. GTX, Pro Performance, Long Range"
                 class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" />
-              <p class="text-xs text-gray-500 mt-1">Variant/equipment line</p>
+              <p class="text-xs text-gray-500 mt-1">Variante/Ausstattung</p>
             </div>
 
             <!-- Capacity Selection -->
             <div v-if="selectedModel" class="md:col-span-2">
-              <label class="block text-sm font-medium text-gray-700 mb-2">Battery Capacity (kWh) *</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Batteriekapazität (kWh) *</label>
 
               <div v-if="!useCustomCapacity" class="space-y-2">
                 <div class="flex gap-2 flex-wrap">
@@ -388,7 +388,7 @@ onMounted(async () => {
                   type="button"
                   @click="useCustomCapacity = true; selectedCapacity = null"
                   class="text-sm text-indigo-600 hover:text-indigo-700 underline">
-                  Use custom capacity
+                  Eigene Kapazität eingeben
                 </button>
               </div>
 
@@ -399,14 +399,14 @@ onMounted(async () => {
                   step="0.1"
                   min="0"
                   required
-                  placeholder="Enter custom capacity (e.g., 82.5)"
+                  placeholder="Eigene Kapazität eingeben (z.B. 82,5)"
                   class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border"
                 />
                 <button
                   type="button"
                   @click="useCustomCapacity = false; customCapacity = null"
                   class="text-sm text-indigo-600 hover:text-indigo-700 underline">
-                  Choose from available capacities
+                  Aus verfügbaren Kapazitäten wählen
                 </button>
               </div>
             </div>
@@ -430,48 +430,48 @@ onMounted(async () => {
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Year *</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Baujahr *</label>
               <input v-model="year" type="number" required min="2000" :max="new Date().getFullYear() + 1"
                 class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" />
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">License Plate (optional)</label>
-              <input v-model="licensePlate" type="text" placeholder="e.g., ABC-123"
+              <label class="block text-sm font-medium text-gray-700 mb-1">Kennzeichen (optional)</label>
+              <input v-model="licensePlate" type="text" placeholder="z.B. M-EV 123"
                 class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" />
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Power (optional)</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Leistung (optional)</label>
               <input
                 v-model.number="powerKw"
                 type="number"
                 step="0.1"
                 min="0"
-                placeholder="e.g., 150"
+                placeholder="z.B. 150"
                 class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" />
               <p v-if="powerPs" class="text-xs text-gray-500 mt-1">≈ {{ powerPs }} PS</p>
-              <p v-else class="text-xs text-gray-500 mt-1">Enter kW to see PS conversion</p>
+              <p v-else class="text-xs text-gray-500 mt-1">Gib kW ein um PS-Umrechnung zu sehen</p>
             </div>
           </div>
 
           <div class="flex gap-3 pt-2">
             <button type="submit"
               class="bg-indigo-600 text-white px-6 py-2 rounded-md shadow hover:bg-indigo-700 transition">
-              {{ editingCar ? 'Update' : 'Add' }} Vehicle
+              {{ editingCar ? 'Aktualisieren' : 'Hinzufügen' }}
             </button>
             <button type="button" @click="resetForm"
               class="bg-gray-200 text-gray-700 px-6 py-2 rounded-md shadow hover:bg-gray-300 transition">
-              Cancel
+              Abbrechen
             </button>
           </div>
         </form>
       </div>
 
       <!-- Cars List -->
-      <div v-if="loading" class="text-center py-8 text-gray-500">Loading vehicles...</div>
+      <div v-if="loading" class="text-center py-8 text-gray-500">Lade Fahrzeuge...</div>
       <div v-else-if="cars.length === 0" class="text-center py-8 text-gray-500">
-        No vehicles yet. Add your first vehicle to start logging drives!
+        Noch keine Fahrzeuge. Füge dein erstes Fahrzeug hinzu um Ladevorgänge zu erfassen!
       </div>
 
       <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -492,21 +492,21 @@ onMounted(async () => {
 
           <div class="mb-4 space-y-1">
             <p class="text-sm text-gray-600">
-              <span class="font-semibold">Battery:</span> {{ car.batteryCapacityKwh }} kWh
+              <span class="font-semibold">Batterie:</span> {{ car.batteryCapacityKwh }} kWh
             </p>
             <p v-if="car.powerKw" class="text-sm text-gray-600">
-              <span class="font-semibold">Power:</span> {{ car.powerKw }} kW ({{ Math.round(car.powerKw * 1.35962) }} PS)
+              <span class="font-semibold">Leistung:</span> {{ car.powerKw }} kW ({{ Math.round(car.powerKw * 1.35962) }} PS)
             </p>
           </div>
 
           <div class="flex gap-2">
             <button @click="openEditForm(car)"
               class="flex-1 bg-indigo-100 text-indigo-700 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-200 transition">
-              Edit
+              Bearbeiten
             </button>
             <button @click="deleteCar(car.id)"
               class="flex-1 bg-red-100 text-red-700 px-3 py-2 rounded-md text-sm font-medium hover:bg-red-200 transition">
-              Delete
+              Löschen
             </button>
           </div>
         </div>

@@ -21,6 +21,6 @@ onMounted(() => {
 
 <template>
   <div class="flex items-center justify-center min-h-[80vh]">
-    <div class="text-xl text-gray-600">Completing sign in...</div>
+    <div class="text-xl text-gray-600">Anmeldung wird abgeschlossen...</div>
   </div>
 </template>
