@@ -60,6 +60,8 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
                 60,
                 latitude,
                 longitude,
+                null, // odometerKm
+                null, // maxChargingPowerKw
                 LocalDateTime.now()
         );
 
@@ -93,8 +95,8 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
                 new BigDecimal("50.0"),
                 new BigDecimal("12.50"),
                 60,
-                null,
-                null,
+                null, null, // No GPS
+                null, null, // No odometer, no max power
                 LocalDateTime.now()
         );
 
@@ -124,8 +126,8 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
                 new BigDecimal("50.0"),
                 new BigDecimal("12.50"),
                 60,
-                null,
-                null,
+                null, null, // No GPS
+                null, null, // No odometer, no max power
                 LocalDateTime.now()
         );
 

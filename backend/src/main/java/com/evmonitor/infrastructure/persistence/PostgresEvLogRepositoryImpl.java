@@ -57,6 +57,8 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 domain.getCostEur(),
                 domain.getChargeDurationMinutes(),
                 domain.getGeohash(),
+                domain.getOdometerKm(),
+                domain.getMaxChargingPowerKw(),
                 domain.getLoggedAt(),
                 domain.getCreatedAt(),
                 domain.getUpdatedAt());
@@ -70,6 +72,8 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 entity.getCostEur(),
                 entity.getChargeDurationMinutes(),
                 entity.getGeohash(),
+                entity.getOdometerKm(),
+                entity.getMaxChargingPowerKw(),
                 entity.getLoggedAt(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt());

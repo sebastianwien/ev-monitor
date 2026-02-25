@@ -46,6 +46,8 @@ public class EvLogService {
                 request.costEur(),
                 request.chargeDurationMinutes(),
                 geohash,
+                request.odometerKm(),
+                request.maxChargingPowerKw(),
                 request.loggedAt());
 
         EvLog savedLog = evLogRepository.save(newLog);

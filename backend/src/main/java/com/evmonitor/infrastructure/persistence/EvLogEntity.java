@@ -27,6 +27,12 @@ public class EvLogEntity {
     @Column(name = "geohash", length = 5)
     private String geohash;
 
+    @Column(name = "odometer_km")
+    private Integer odometerKm;
+
+    @Column(name = "max_charging_power_kw", precision = 10, scale = 2)
+    private BigDecimal maxChargingPowerKw;
+
     @Column(name = "logged_at")
     private LocalDateTime loggedAt;
 
@@ -40,7 +46,8 @@ public class EvLogEntity {
     }
 
     public EvLogEntity(UUID id, UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
-            Integer chargeDurationMinutes, String geohash, LocalDateTime loggedAt,
+            Integer chargeDurationMinutes, String geohash, Integer odometerKm,
+            BigDecimal maxChargingPowerKw, LocalDateTime loggedAt,
             LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.carId = carId;
@@ -48,6 +55,8 @@ public class EvLogEntity {
         this.costEur = costEur;
         this.chargeDurationMinutes = chargeDurationMinutes;
         this.geohash = geohash;
+        this.odometerKm = odometerKm;
+        this.maxChargingPowerKw = maxChargingPowerKw;
         this.loggedAt = loggedAt;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
@@ -123,5 +132,21 @@ public class EvLogEntity {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public Integer getOdometerKm() {
+        return odometerKm;
+    }
+
+    public void setOdometerKm(Integer odometerKm) {
+        this.odometerKm = odometerKm;
+    }
+
+    public BigDecimal getMaxChargingPowerKw() {
+        return maxChargingPowerKw;
+    }
+
+    public void setMaxChargingPowerKw(BigDecimal maxChargingPowerKw) {
+        this.maxChargingPowerKw = maxChargingPowerKw;
     }
 }
