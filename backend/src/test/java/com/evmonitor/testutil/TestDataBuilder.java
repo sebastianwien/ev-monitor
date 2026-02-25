@@ -20,15 +20,16 @@ public class TestDataBuilder {
      */
     public static User createTestUser(String email) {
         // BCrypt hash of "TestPassword123" (strength 10)
-        String username = email.split("@")[0]; // Use email prefix as username
-        return User.createNewLocalUser(email, username, "$2a$10$N9qo8uLOickgx2ZMRZoMye7JU5qBvJqLzL/MQPVxqNGQqQfqzZ5bC");
+        // Pre-verified so tests don't need to go through email verification flow
+        String username = email.split("@")[0];
+        return User.createVerifiedLocalUser(email, username, "$2a$10$N9qo8uLOickgx2ZMRZoMye7JU5qBvJqLzL/MQPVxqNGQqQfqzZ5bC");
     }
 
     /**
      * Create a test user with custom ID (for testing ownership checks).
      */
     public static User createTestUserWithId(UUID userId, String email, String passwordHash) {
-        String username = email.split("@")[0]; // Use email prefix as username
+        String username = email.split("@")[0];
         return new User(
                 userId,
                 email,
@@ -36,6 +37,7 @@ public class TestDataBuilder {
                 passwordHash,
                 AuthProvider.LOCAL,
                 "USER",
+                true, // emailVerified
                 LocalDateTime.now(),
                 LocalDateTime.now()
         );

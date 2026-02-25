@@ -176,7 +176,7 @@ class CarControllerIntegrationTest extends AbstractIntegrationTest {
         );
 
         // Then: Should be rejected
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     }
 
     @Test
@@ -219,7 +219,7 @@ class CarControllerIntegrationTest extends AbstractIntegrationTest {
         );
 
         // Then: Should be rejected
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
 
         // Verify car still exists
         assertTrue(carRepository.findById(otherUserCar.getId()).isPresent());

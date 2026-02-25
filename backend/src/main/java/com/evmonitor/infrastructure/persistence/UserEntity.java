@@ -41,13 +41,14 @@ public class UserEntity {
     }
 
     public UserEntity(UUID id, String email, String username, String passwordHash, AuthProvider authProvider, String role,
-            LocalDateTime createdAt, LocalDateTime updatedAt) {
+            boolean emailVerified, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.email = email;
         this.username = username;
         this.passwordHash = passwordHash;
         this.authProvider = authProvider;
         this.role = role;
+        this.emailVerified = emailVerified;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -114,5 +115,13 @@ public class UserEntity {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    public boolean isEmailVerified() {
+        return emailVerified;
+    }
+
+    public void setEmailVerified(boolean emailVerified) {
+        this.emailVerified = emailVerified;
     }
 }

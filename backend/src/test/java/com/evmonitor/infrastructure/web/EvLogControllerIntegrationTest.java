@@ -142,7 +142,7 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
         );
 
         // Then: Should be rejected (500 with IllegalArgumentException)
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     }
 
     @Test
@@ -273,7 +273,7 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
         );
 
         // Then: Should be rejected
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     }
 
     @Test

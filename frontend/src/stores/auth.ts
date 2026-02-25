@@ -43,10 +43,9 @@ export const useAuthStore = defineStore('auth', () => {
     };
 
     const register = async (userData: any) => {
+        // Returns { status: "PENDING_VERIFICATION", email } - no JWT yet
         const response = await api.post('/auth/register', userData);
-        if (response.data.token) {
-            setToken(response.data.token);
-        }
+        return response.data;
     };
 
     return { token, user, setToken, logout, login, register, isAuthenticated: () => !!token.value };

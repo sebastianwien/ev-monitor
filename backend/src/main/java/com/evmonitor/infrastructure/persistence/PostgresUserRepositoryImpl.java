@@ -3,6 +3,7 @@ package com.evmonitor.infrastructure.persistence;
 import com.evmonitor.domain.User;
 import com.evmonitor.domain.UserRepository;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -48,6 +49,12 @@ public class PostgresUserRepositoryImpl implements UserRepository {
         return jpaUserRepository.existsByUsername(username);
     }
 
+    @Override
+    @Transactional
+    public void markEmailVerified(UUID userId) {
+        jpaUserRepository.markEmailVerified(userId);
+    }
+
     private UserEntity toEntity(User domain) {
         return new UserEntity(
                 domain.getId(),
@@ -56,6 +63,7 @@ public class PostgresUserRepositoryImpl implements UserRepository {
                 domain.getPasswordHash(),
                 domain.getAuthProvider(),
                 domain.getRole(),
+                domain.isEmailVerified(),
                 domain.getCreatedAt(),
                 domain.getUpdatedAt());
     }
@@ -68,6 +76,7 @@ public class PostgresUserRepositoryImpl implements UserRepository {
                 entity.getPasswordHash(),
                 entity.getAuthProvider(),
                 entity.getRole(),
+                entity.isEmailVerified(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt());
     }
