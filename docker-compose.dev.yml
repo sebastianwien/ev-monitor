@@ -19,5 +19,14 @@ services:
       timeout: 5s
       retries: 5
 
+  mailpit:
+    image: axllent/mailpit
+    restart: unless-stopped
+    ports:
+      - "1025:1025"  # SMTP (backend sendet hier hin)
+      - "8025:8025"  # Web UI: http://localhost:8025
+    environment:
+      MP_MAX_MESSAGES: 100
+
 volumes:
   postgres_data_dev:

@@ -49,9 +49,13 @@ services:
       SPRING_DATASOURCE_PASSWORD: evmonitor
       JWT_SECRET: dev-secret-key-CHANGE-IN-PRODUCTION-THIS-MUST-BE-AT-LEAST-64-CHARS-LONG-FOR-HS512-ALGORITHM-12345678901234567890
       JWT_EXPIRATION_MS: 604800000
+      SPRING_MAIL_HOST: mailpit
+      SPRING_MAIL_PORT: 1025
     depends_on:
       db:
         condition: service_healthy
+      mailpit:
+        condition: service_started
 
   nginx:
     build:
@@ -62,6 +66,14 @@ services:
       - "80:80"
     depends_on:
       - backend
+
+  mailpit:
+    image: axllent/mailpit
+    restart: unless-stopped
+    ports:
+      - "8025:8025"  # Web UI: http://localhost:8025
+    environment:
+      MP_MAX_MESSAGES: 100
 
 volumes:
   postgres_data_local:
