@@ -32,7 +32,7 @@ const fetchCars = async () => {
       selectedCarId.value = cars.value[0].id
     }
   } catch (err: any) {
-    error.value = err.response?.data?.message || 'Failed to load cars'
+    error.value = err.response?.data?.message || 'Fehler beim Laden der Fahrzeuge'
     console.error('Failed to fetch cars:', err)
   } finally {
     loading.value = false
@@ -58,10 +58,10 @@ onMounted(() => {
 
 <template>
   <div>
-    <label class="block text-sm font-medium text-gray-700 mb-1">Vehicle</label>
+    <label class="block text-sm font-medium text-gray-700 mb-1">Fahrzeug</label>
 
     <div v-if="loading" class="text-sm text-gray-500 p-2">
-      Loading vehicles...
+      Lade Fahrzeuge...
     </div>
 
     <div v-else-if="error" class="text-sm text-red-600 p-2">
@@ -70,13 +70,13 @@ onMounted(() => {
 
     <div v-else-if="cars.length === 0" class="space-y-2">
       <p class="text-sm text-gray-600 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
-        You need to add a vehicle first before logging drives.
+        Du musst zuerst ein Fahrzeug hinzufügen um Ladevorgänge zu erfassen.
       </p>
       <button
         @click="goToCarManagement"
         type="button"
         class="w-full bg-indigo-100 text-indigo-700 px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-200 transition">
-        Go to Vehicle Management
+        Zur Fahrzeugverwaltung
       </button>
     </div>
 
@@ -85,7 +85,7 @@ onMounted(() => {
       v-model="selectedCarId"
       required
       class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border">
-      <option :value="null" disabled>Select a vehicle</option>
+      <option :value="null" disabled>Fahrzeug wählen</option>
       <option v-for="car in cars" :key="car.id" :value="car.id">
         {{ getModelLabel(car.model) }} {{ car.batteryCapacityKwh }}kWh ({{ car.licensePlate }})
       </option>

@@ -27,13 +27,13 @@ const handleLogout = () => {
             to="/statistics"
             class="px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-500 transition"
             :class="{ 'bg-indigo-700': $route.path === '/statistics' }">
-            Statistics
+            Statistiken
           </router-link>
           <router-link
             to="/cars"
             class="px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-500 transition"
             :class="{ 'bg-indigo-700': $route.path === '/cars' }">
-            My Vehicles
+            Fahrzeuge
           </router-link>
         </div>
       </div>
@@ -47,7 +47,7 @@ const handleLogout = () => {
           {{ authStore.user.sub }}
         </span>
         <button @click="handleLogout" class="px-4 py-2 bg-indigo-700 hover:bg-indigo-800 rounded-lg text-sm font-medium transition shadow-sm">
-          Logout
+          Abmelden
         </button>
       </div>
     </nav>

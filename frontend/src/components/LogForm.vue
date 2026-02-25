@@ -36,7 +36,7 @@ const error = ref<string | null>(null)
 const requestCurrentLocation = () => {
   if (!navigator.geolocation) {
     locationStatus.value = 'error'
-    locationErrorMessage.value = 'Geolocation is not supported by your browser'
+    locationErrorMessage.value = 'Geolokalisierung wird von deinem Browser nicht unterstützt'
     return
   }
 
@@ -52,7 +52,7 @@ const requestCurrentLocation = () => {
     (err) => {
       console.error('Geolocation error:', err)
       locationStatus.value = 'error'
-      locationErrorMessage.value = 'Location access denied. You can search for a location manually below.'
+      locationErrorMessage.value = 'Standortzugriff verweigert. Du kannst unten manuell nach einem Standort suchen.'
     }
   )
 }
@@ -121,7 +121,7 @@ const fetchLogs = async () => {
 
 const submitLog = async () => {
   if (!selectedCarId.value) {
-    error.value = 'Please select a vehicle'
+    error.value = 'Bitte wähle ein Fahrzeug aus'
     return
   }
 
@@ -156,7 +156,7 @@ const submitLog = async () => {
 
     await fetchLogs()
   } catch (err: any) {
-    error.value = err.response?.data?.message || 'Failed to submit log'
+    error.value = err.response?.data?.message || 'Ladevorgang konnte nicht gespeichert werden'
     console.error('Failed to submit log:', err)
   }
 }
@@ -173,7 +173,7 @@ onMounted(() => {
 
 <template>
   <div class="max-w-2xl mx-auto p-6 bg-white rounded-xl shadow-lg mt-8">
-    <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">EV Monitor Logger</h1>
+    <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">Ladevorgang erfassen</h1>
 
     <div v-if="error" class="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-md">
       {{ error }}
@@ -183,34 +183,34 @@ onMounted(() => {
       <CarSelector v-model="selectedCarId" />
 
       <div>
-        <label class="block text-sm font-medium text-gray-700">Energy Charged (kWh)</label>
+        <label class="block text-sm font-medium text-gray-700">Geladene Energie (kWh)</label>
         <input v-model="kwhCharged" type="number" step="0.1" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700">Cost (€)</label>
+        <label class="block text-sm font-medium text-gray-700">Kosten (€)</label>
         <input v-model="costEur" type="number" step="0.01" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700">Charging Duration (minutes)</label>
+        <label class="block text-sm font-medium text-gray-700">Ladedauer (Minuten)</label>
         <input v-model="chargeDurationMinutes" type="number" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700">Charge Date & Time (optional)</label>
+        <label class="block text-sm font-medium text-gray-700">Ladedatum & -zeit (optional)</label>
         <input
           v-model="loggedAt"
           type="datetime-local"
           :max="getCurrentDateTimeLocal()"
           :placeholder="getCurrentDateTimeLocal()"
           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
-        <p class="text-xs text-gray-500 mt-1">Leave empty to use current time</p>
+        <p class="text-xs text-gray-500 mt-1">Leer lassen für aktuelle Zeit</p>
       </div>
 
       <!-- Location Section -->
       <div class="border-t pt-4">
-        <label class="block text-sm font-medium text-gray-700 mb-2">Location (optional)</label>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Standort (optional)</label>
 
         <!-- Idle State: Show "Use Current Location" button -->
         <div v-if="locationStatus === 'idle'" class="space-y-2">
@@ -218,27 +218,27 @@ onMounted(() => {
             type="button"
             @click="requestCurrentLocation"
             class="w-full bg-green-100 text-green-700 p-3 rounded-md shadow hover:bg-green-200 transition font-medium">
-            📍 Use Current Location
+            📍 Aktuellen Standort verwenden
           </button>
-          <p class="text-xs text-gray-500 text-center">Or search manually below</p>
+          <p class="text-xs text-gray-500 text-center">Oder manuell suchen</p>
           <input
             v-model="locationSearchQuery"
             @focus="locationStatus = 'error'"
             type="text"
-            placeholder="Search for a location (e.g., Berlin)"
+            placeholder="Standort suchen (z.B. Berlin)"
             class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
         </div>
 
         <!-- Loading State -->
         <div v-if="locationStatus === 'loading'" class="text-center py-4 text-gray-600">
           <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
-          <p class="mt-2 text-sm">Getting your location...</p>
+          <p class="mt-2 text-sm">Ermittle deinen Standort...</p>
         </div>
 
         <!-- Success State: Location acquired via GPS -->
         <div v-if="locationStatus === 'success'" class="space-y-2">
           <div class="p-3 bg-green-50 border border-green-200 rounded-md">
-            <p class="text-sm text-green-800 font-medium">✅ Location captured</p>
+            <p class="text-sm text-green-800 font-medium">✅ Standort erfasst</p>
             <p class="text-xs text-green-600 mt-1">
               🔒 Wir anonymisieren deinen Standort auf einen Umkreis von 5km, bevor er unsere Datenbank berührt. Dein Schlafzimmer bleibt dein Geheimnis!
             </p>
@@ -247,7 +247,7 @@ onMounted(() => {
             type="button"
             @click="clearLocation"
             class="w-full text-sm text-indigo-600 hover:text-indigo-700 underline">
-            Clear location
+            Standort löschen
           </button>
         </div>
 
@@ -260,7 +260,7 @@ onMounted(() => {
             <input
               v-model="locationSearchQuery"
               type="text"
-              placeholder="Search for a location (e.g., Berlin, Munich)"
+              placeholder="Standort suchen (z.B. Berlin, München)"
               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
 
             <!-- Suggestions Dropdown -->
@@ -285,7 +285,7 @@ onMounted(() => {
         <!-- Manual State: Location selected from search -->
         <div v-if="locationStatus === 'manual'" class="space-y-2">
           <div class="p-3 bg-blue-50 border border-blue-200 rounded-md">
-            <p class="text-sm text-blue-800 font-medium">📍 Location: {{ locationSearchQuery }}</p>
+            <p class="text-sm text-blue-800 font-medium">📍 Standort: {{ locationSearchQuery }}</p>
             <p class="text-xs text-blue-600 mt-1">
               🔒 Wir anonymisieren deinen Standort auf einen Umkreis von 5km, bevor er unsere Datenbank berührt.
             </p>
@@ -294,19 +294,19 @@ onMounted(() => {
             type="button"
             @click="clearLocation"
             class="w-full text-sm text-indigo-600 hover:text-indigo-700 underline">
-            Clear location
+            Standort löschen
           </button>
         </div>
       </div>
 
-      <button type="submit" class="w-full bg-indigo-600 text-white p-3 rounded-md shadow hover:bg-indigo-700 transition">⚡ Log Charge</button>
+      <button type="submit" class="w-full bg-indigo-600 text-white p-3 rounded-md shadow hover:bg-indigo-700 transition">⚡ Ladevorgang speichern</button>
     </form>
 
     <div class="mt-10">
-      <h2 class="text-xl font-semibold mb-4 text-gray-800">Recent Charges</h2>
+      <h2 class="text-xl font-semibold mb-4 text-gray-800">Letzte Ladevorgänge</h2>
 
-      <div v-if="!selectedCarId" class="text-gray-500 text-center">Please select a vehicle to see charges.</div>
-      <div v-else-if="logs.length === 0" class="text-gray-500 text-center">No charges logged yet for this vehicle.</div>
+      <div v-if="!selectedCarId" class="text-gray-500 text-center">Bitte wähle ein Fahrzeug aus um Ladevorgänge anzuzeigen.</div>
+      <div v-else-if="logs.length === 0" class="text-gray-500 text-center">Noch keine Ladevorgänge für dieses Fahrzeug erfasst.</div>
       <ul v-else class="space-y-3">
         <li v-for="log in logs" :key="log.id" class="p-4 bg-gray-50 border border-gray-200 rounded-lg flex justify-between items-center shadow-sm hover:shadow transition">
           <div class="space-y-1">

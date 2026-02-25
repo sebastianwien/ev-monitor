@@ -52,19 +52,19 @@ const selectedTimeRange = ref<string>('LAST_3_MONTHS')
 const selectedGroupBy = ref<string>('MONTH')
 
 const timeRangeOptions = [
-  { value: 'THIS_MONTH', label: 'This Month' },
-  { value: 'LAST_MONTH', label: 'Last Month' },
-  { value: 'LAST_3_MONTHS', label: 'Last 3 Months' },
-  { value: 'LAST_6_MONTHS', label: 'Last 6 Months' },
-  { value: 'LAST_12_MONTHS', label: 'Last Year' },
-  { value: 'THIS_YEAR', label: 'This Year' },
-  { value: 'ALL_TIME', label: 'All Time' }
+  { value: 'THIS_MONTH', label: 'Dieser Monat' },
+  { value: 'LAST_MONTH', label: 'Letzter Monat' },
+  { value: 'LAST_3_MONTHS', label: 'Letzte 3 Monate' },
+  { value: 'LAST_6_MONTHS', label: 'Letzte 6 Monate' },
+  { value: 'LAST_12_MONTHS', label: 'Letztes Jahr' },
+  { value: 'THIS_YEAR', label: 'Dieses Jahr' },
+  { value: 'ALL_TIME', label: 'Gesamt' }
 ]
 
 const groupByOptions = [
-  { value: 'DAY', label: 'Daily' },
-  { value: 'WEEK', label: 'Weekly' },
-  { value: 'MONTH', label: 'Monthly' }
+  { value: 'DAY', label: 'Täglich' },
+  { value: 'WEEK', label: 'Wöchentlich' },
+  { value: 'MONTH', label: 'Monatlich' }
 ]
 
 const fetchStatistics = async () => {
@@ -86,7 +86,7 @@ const fetchStatistics = async () => {
     const response = await api.get(`/logs/statistics?${params}`)
     stats.value = response.data
   } catch (err: any) {
-    error.value = err.response?.data?.message || 'Failed to load statistics'
+    error.value = err.response?.data?.message || 'Fehler beim Laden der Statistiken'
     console.error('Failed to fetch statistics:', err)
   } finally {
     loading.value = false
@@ -193,7 +193,7 @@ onMounted(() => {
 <template>
   <div class="max-w-6xl mx-auto p-6">
     <div class="bg-white rounded-xl shadow-lg p-6">
-      <h1 class="text-3xl font-bold text-gray-800 mb-6">📊 Statistics & Analytics</h1>
+      <h1 class="text-3xl font-bold text-gray-800 mb-6">📊 Statistiken & Analysen</h1>
 
       <div class="mb-6">
         <CarSelector v-model="selectedCarId" />
@@ -204,7 +204,7 @@ onMounted(() => {
         <div class="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
           <!-- Time Range Filter -->
           <div class="flex-1">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Time Range</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Zeitraum</label>
             <div class="flex flex-wrap gap-2">
               <button
                 v-for="option in timeRangeOptions"
@@ -223,7 +223,7 @@ onMounted(() => {
 
           <!-- Group By Filter -->
           <div class="w-full md:w-auto">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Group by</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Gruppierung</label>
             <select
               v-model="selectedGroupBy"
               class="block w-full md:w-auto px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
@@ -241,15 +241,15 @@ onMounted(() => {
 
       <div v-if="loading" class="text-center py-12 text-gray-500">
         <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
-        <p>Loading statistics...</p>
+        <p>Lade Statistiken...</p>
       </div>
 
       <div v-else-if="!selectedCarId" class="text-center py-12 text-gray-500">
-        <p>Please select a vehicle to see statistics.</p>
+        <p>Bitte wähle ein Fahrzeug aus um Statistiken anzuzeigen.</p>
       </div>
 
       <div v-else-if="stats && stats.totalCharges === 0" class="text-center py-12 text-gray-500">
-        <p>No charges logged yet for this vehicle. Start logging to see statistics!</p>
+        <p>Noch keine Ladevorgänge für dieses Fahrzeug erfasst. Starte mit dem Logging um Statistiken zu sehen!</p>
       </div>
 
       <div v-else-if="stats" class="space-y-6">
@@ -259,28 +259,28 @@ onMounted(() => {
           <div class="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-lg border border-blue-200 shadow-sm">
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-sm text-blue-600 font-medium mb-1">Total Energy</p>
+                <p class="text-sm text-blue-600 font-medium mb-1">Gesamtenergie</p>
                 <p class="text-3xl font-bold text-blue-900">{{ stats.totalKwhCharged.toFixed(1) }}</p>
                 <p class="text-sm text-blue-600 mt-1">kWh</p>
               </div>
               <div class="text-4xl">⚡</div>
             </div>
-            <p class="text-xs text-blue-500 mt-3">{{ stats.totalCharges }} charges logged</p>
+            <p class="text-xs text-blue-500 mt-3">{{ stats.totalCharges }} Ladevorgänge erfasst</p>
           </div>
 
           <!-- Total Cost -->
           <div class="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-lg border border-purple-200 shadow-sm">
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-sm text-purple-600 font-medium mb-1">Total Cost</p>
+                <p class="text-sm text-purple-600 font-medium mb-1">Gesamtkosten</p>
                 <p class="text-3xl font-bold text-purple-900">€{{ stats.totalCostEur.toFixed(2) }}</p>
-                <p class="text-sm text-purple-600 mt-1">Average: €{{ stats.avgCostPerKwh.toFixed(2) }}/kWh</p>
+                <p class="text-sm text-purple-600 mt-1">Durchschnitt: €{{ stats.avgCostPerKwh.toFixed(2) }}/kWh</p>
               </div>
               <div class="text-4xl">💶</div>
             </div>
             <p class="text-xs text-purple-500 mt-3">
-              Best: €{{ stats.cheapestChargeEur.toFixed(2) }} |
-              Worst: €{{ stats.mostExpensiveChargeEur.toFixed(2) }}
+              Günstigste: €{{ stats.cheapestChargeEur.toFixed(2) }} |
+              Teuerste: €{{ stats.mostExpensiveChargeEur.toFixed(2) }}
             </p>
           </div>
 
@@ -288,9 +288,9 @@ onMounted(() => {
           <div class="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-lg border border-green-200 shadow-sm">
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-sm text-green-600 font-medium mb-1">Avg Duration</p>
+                <p class="text-sm text-green-600 font-medium mb-1">Ø Ladedauer</p>
                 <p class="text-3xl font-bold text-green-900">{{ formatDuration(stats.avgChargeDurationMinutes) }}</p>
-                <p class="text-sm text-green-600 mt-1">per charge</p>
+                <p class="text-sm text-green-600 mt-1">pro Ladevorgang</p>
               </div>
               <div class="text-4xl">⏱️</div>
             </div>
@@ -299,12 +299,12 @@ onMounted(() => {
 
         <!-- Cost Over Time Chart -->
         <div class="bg-gray-50 p-6 rounded-lg border border-gray-200">
-          <h2 class="text-xl font-semibold text-gray-800 mb-4">📈 Cost per kWh Over Time</h2>
+          <h2 class="text-xl font-semibold text-gray-800 mb-4">📈 Kosten pro kWh im Zeitverlauf</h2>
           <div v-if="chartData" class="h-80">
             <Line :data="chartData" :options="chartOptions" />
           </div>
           <div v-else class="text-center py-12 text-gray-500">
-            <p>Not enough data to display chart.</p>
+            <p>Nicht genügend Daten um Chart anzuzeigen.</p>
           </div>
         </div>
       </div>
