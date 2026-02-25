@@ -3,6 +3,7 @@ import { useAuthStore } from '../stores/auth';
 import DashboardView from '../views/DashboardView.vue';
 import LoginView from '../views/LoginView.vue';
 import RegisterView from '../views/RegisterView.vue';
+import VerifyEmailView from '../views/VerifyEmailView.vue';
 import OAuth2RedirectHandler from '../views/OAuth2RedirectHandler.vue';
 import CarManagementView from '../views/CarManagementView.vue';
 import StatisticsView from '../views/StatisticsView.vue';
@@ -39,6 +40,12 @@ const router = createRouter({
             name: 'register',
             component: RegisterView,
             meta: { guestOnly: true }
+        },
+        {
+            path: '/verify-email',
+            name: 'verify-email',
+            component: VerifyEmailView
+            // no auth guard - accessible to everyone
         },
         {
             path: '/oauth2/redirect',

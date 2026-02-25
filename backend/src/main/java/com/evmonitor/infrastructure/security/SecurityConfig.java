@@ -43,7 +43,8 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/auth/register", "/api/auth/login",
+                                "/api/auth/verify-email", "/api/auth/resend-verification").permitAll()
                         .requestMatchers("/api/cars/brands", "/api/cars/brands/**").permitAll()
                         .requestMatchers("/api/vehicle-specifications/lookup").permitAll()
                         // Require Auth for remaining API endpoints

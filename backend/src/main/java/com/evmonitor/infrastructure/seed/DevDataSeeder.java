@@ -85,7 +85,7 @@ public class DevDataSeeder implements CommandLineRunner {
     private User createUser(String email) {
         String passwordHash = passwordEncoder.encode("Test1234!");
         String username = email.split("@")[0]; // Use email prefix as username
-        User user = User.createNewLocalUser(email, username, passwordHash);
+        User user = User.createVerifiedLocalUser(email, username, passwordHash);
         return userRepository.save(user);
     }
 

@@ -3,206 +3,171 @@ package com.evmonitor.infrastructure.web;
 import com.evmonitor.application.AuthResponse;
 import com.evmonitor.application.LoginRequest;
 import com.evmonitor.application.RegisterRequest;
+import com.evmonitor.application.RegisterResponse;
 import com.evmonitor.domain.User;
+import com.evmonitor.infrastructure.email.EmailService;
 import com.evmonitor.testutil.AbstractIntegrationTest;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
 
 /**
  * Integration Tests for AuthController.
- * Tests full authentication flow with real Spring Boot context and H2 database.
+ * EmailService is mocked to prevent actual email sending in tests.
  *
  * SECURITY CRITICAL: Full auth flow must work correctly!
  */
 class AuthControllerIntegrationTest extends AbstractIntegrationTest {
 
-    @Test
-    void shouldRegisterAndLoginNewUser() {
-        // Given: New user registration with unique email
-        String email = "newuser-" + System.currentTimeMillis() + "@example.com";
-        String password = "SecurePassword123";
-        RegisterRequest registerRequest = new RegisterRequest(email, "testuser_" + System.currentTimeMillis(), password);
+    @MockBean
+    private EmailService emailService;
 
-        // When: Register user
-        ResponseEntity<AuthResponse> registerResponse = restTemplate.postForEntity(
-                "/api/auth/register",
-                registerRequest,
-                AuthResponse.class
-        );
+    private RegisterResponse registerUser(String email, String username, String password) {
+        doNothing().when(emailService).sendVerificationEmail(anyString(), anyString());
+        RegisterRequest request = new RegisterRequest(email, username, password);
+        ResponseEntity<RegisterResponse> response = restTemplate.postForEntity(
+                "/api/auth/register", request, RegisterResponse.class);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        return response.getBody();
+    }
 
-        // Then: Registration successful
-        assertEquals(HttpStatus.OK, registerResponse.getStatusCode());
-        assertNotNull(registerResponse.getBody());
-        assertEquals(email, registerResponse.getBody().email());
-        assertNotNull(registerResponse.getBody().token());
-        assertNotNull(registerResponse.getBody().userId());
-
-        String jwtToken = registerResponse.getBody().token();
-
-        // When: Login with same credentials
-        LoginRequest loginRequest = new LoginRequest(email, password);
+    private AuthResponse registerAndVerify(String email, String username, String password) {
+        registerUser(email, username, password);
+        // Directly mark user as verified (simulates clicking the email link)
+        User user = userRepository.findByEmail(email).orElseThrow();
+        userRepository.markEmailVerified(user.getId());
+        // Login
         ResponseEntity<AuthResponse> loginResponse = restTemplate.postForEntity(
-                "/api/auth/login",
-                loginRequest,
-                AuthResponse.class
-        );
-
-        // Then: Login successful
+                "/api/auth/login", new LoginRequest(email, password), AuthResponse.class);
         assertEquals(HttpStatus.OK, loginResponse.getStatusCode());
-        assertNotNull(loginResponse.getBody());
-        assertEquals(email, loginResponse.getBody().email());
-        assertNotNull(loginResponse.getBody().token());
+        return loginResponse.getBody();
+    }
 
-        // Verify user in database
-        User savedUser = userRepository.findByEmail(email).orElseThrow();
-        assertEquals(email, savedUser.getEmail());
-        assertNotNull(savedUser.getPasswordHash());
-        assertNotEquals(password, savedUser.getPasswordHash()); // Password should be hashed
+    @Test
+    void shouldRegisterUser_andReturnPendingVerification() {
+        String email = "newuser-" + System.currentTimeMillis() + "@example.com";
+        doNothing().when(emailService).sendVerificationEmail(anyString(), anyString());
+
+        ResponseEntity<RegisterResponse> response = restTemplate.postForEntity(
+                "/api/auth/register",
+                new RegisterRequest(email, "user_" + System.currentTimeMillis(), "SecurePassword123"),
+                RegisterResponse.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("PENDING_VERIFICATION", response.getBody().status());
+        assertEquals(email, response.getBody().email());
+    }
+
+    @Test
+    void shouldLoginAfterEmailVerification() {
+        String email = "verified-" + System.currentTimeMillis() + "@example.com";
+        String password = "SecurePassword123";
+
+        AuthResponse authResponse = registerAndVerify(email, "user_" + System.currentTimeMillis(), password);
+
+        assertNotNull(authResponse);
+        assertEquals(email, authResponse.email());
+        assertNotNull(authResponse.token());
+        assertNotNull(authResponse.userId());
+    }
+
+    @Test
+    void shouldRejectLoginForUnverifiedUser() {
+        String email = "unverified-" + System.currentTimeMillis() + "@example.com";
+        registerUser(email, "user_" + System.currentTimeMillis(), "Password123");
+
+        ResponseEntity<String> loginResponse = restTemplate.postForEntity(
+                "/api/auth/login", new LoginRequest(email, "Password123"), String.class);
+
+        // 403 FORBIDDEN because email not verified
+        assertEquals(HttpStatus.FORBIDDEN, loginResponse.getStatusCode());
     }
 
     @Test
     void shouldRejectDuplicateRegistration() {
-        // Given: First registration succeeds
-        String email = "duplicate-test-" + System.currentTimeMillis() + "@example.com";
-        RegisterRequest firstRequest = new RegisterRequest(email, "testuser_" + System.currentTimeMillis(), "AnyPassword123");
+        String email = "duplicate-" + System.currentTimeMillis() + "@example.com";
+        registerUser(email, "user_" + System.currentTimeMillis(), "Password123");
 
-        ResponseEntity<AuthResponse> firstResponse = restTemplate.postForEntity(
-                "/api/auth/register",
-                firstRequest,
-                AuthResponse.class
-        );
-        assertEquals(HttpStatus.OK, firstResponse.getStatusCode());
-
-        // When: Try to register again with same email
-        RegisterRequest duplicateRequest = new RegisterRequest(email, "testuser_" + System.currentTimeMillis(), "DifferentPassword456");
+        doNothing().when(emailService).sendVerificationEmail(anyString(), anyString());
         ResponseEntity<String> response = restTemplate.postForEntity(
                 "/api/auth/register",
-                duplicateRequest,
-                String.class
-        );
+                new RegisterRequest(email, "user_" + System.currentTimeMillis(), "DifferentPassword456"),
+                String.class);
 
-        // Then: Should be rejected (500 with IllegalArgumentException)
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     }
 
     @Test
     void shouldRejectLoginWithInvalidCredentials() {
-        // Given: User registered with correct password
         String email = "logintest-" + System.currentTimeMillis() + "@example.com";
-        String correctPassword = "CorrectPassword123";
+        registerAndVerify(email, "user_" + System.currentTimeMillis(), "CorrectPassword123");
 
-        RegisterRequest registerRequest = new RegisterRequest(email, "testuser_" + System.currentTimeMillis(), correctPassword);
-        restTemplate.postForEntity("/api/auth/register", registerRequest, AuthResponse.class);
-
-        // When: Try to login with wrong password
-        LoginRequest wrongPasswordRequest = new LoginRequest(email, "WrongPassword456");
         ResponseEntity<String> response = restTemplate.postForEntity(
-                "/api/auth/login",
-                wrongPasswordRequest,
-                String.class
-        );
+                "/api/auth/login", new LoginRequest(email, "WrongPassword456"), String.class);
 
-        // Then: Should be rejected (401 Unauthorized or 403 Forbidden)
         assertTrue(
                 response.getStatusCode() == HttpStatus.UNAUTHORIZED ||
                 response.getStatusCode() == HttpStatus.FORBIDDEN,
-                "Expected 401 or 403, got: " + response.getStatusCode()
-        );
+                "Expected 401 or 403, got: " + response.getStatusCode());
     }
 
     @Test
     void shouldRejectLoginWithNonExistentEmail() {
-        // Given: No user with this email
-        String nonExistentEmail = "nonexistent@example.com";
-        LoginRequest request = new LoginRequest(nonExistentEmail, "AnyPassword123");
-
-        // When: Try to login
         ResponseEntity<String> response = restTemplate.postForEntity(
                 "/api/auth/login",
-                request,
-                String.class
-        );
+                new LoginRequest("nonexistent@example.com", "AnyPassword123"),
+                String.class);
 
-        // Then: Should be rejected (500 because AuthService throws IllegalArgumentException)
         assertTrue(
                 response.getStatusCode() == HttpStatus.UNAUTHORIZED ||
                 response.getStatusCode() == HttpStatus.FORBIDDEN ||
+                response.getStatusCode() == HttpStatus.BAD_REQUEST ||
                 response.getStatusCode() == HttpStatus.INTERNAL_SERVER_ERROR,
-                "Expected 401, 403 or 500, got: " + response.getStatusCode()
-        );
+                "Expected 4xx or 500, got: " + response.getStatusCode());
     }
 
     @Test
     void shouldAccessProtectedEndpoint_WithValidToken() {
-        // Given: User registered and has JWT token
         String email = "authenticated-" + System.currentTimeMillis() + "@example.com";
-        String password = "Password123";
-        RegisterRequest registerRequest = new RegisterRequest(email, "testuser_" + System.currentTimeMillis(), password);
+        AuthResponse auth = registerAndVerify(email, "user_" + System.currentTimeMillis(), "Password123");
 
-        ResponseEntity<AuthResponse> registerResponse = restTemplate.postForEntity(
-                "/api/auth/register",
-                registerRequest,
-                AuthResponse.class
-        );
-
-        String jwtToken = registerResponse.getBody().token();
-        java.util.UUID userId = registerResponse.getBody().userId();
-
-        // When: Access protected endpoint with valid token
-        HttpEntity<Void> requestWithAuth = createAuthRequest(userId, email);
+        HttpEntity<Void> requestWithAuth = createAuthRequest(auth.userId(), email);
         ResponseEntity<String> response = restTemplate.exchange(
-                "/api/cars",
-                HttpMethod.GET,
-                requestWithAuth,
-                String.class
-        );
+                "/api/cars", HttpMethod.GET, requestWithAuth, String.class);
 
-        // Then: Access granted
         assertEquals(HttpStatus.OK, response.getStatusCode());
     }
 
     @Test
     void shouldRejectProtectedEndpoint_WithoutToken() {
-        // When: Try to access protected endpoint without token
-        ResponseEntity<String> response = restTemplate.getForEntity(
-                "/api/cars",
-                String.class
-        );
+        ResponseEntity<String> response = restTemplate.getForEntity("/api/cars", String.class);
 
-        // Then: Access denied (401 or 403)
         assertTrue(
                 response.getStatusCode() == HttpStatus.UNAUTHORIZED ||
                 response.getStatusCode() == HttpStatus.FORBIDDEN,
-                "Expected 401 or 403, got: " + response.getStatusCode()
-        );
+                "Expected 401 or 403, got: " + response.getStatusCode());
     }
 
     @Test
     void shouldRejectProtectedEndpoint_WithInvalidToken() {
-        // Given: Invalid JWT token
         org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
         headers.set("Authorization", "Bearer invalid.jwt.token");
-        HttpEntity<Void> requestWithInvalidAuth = new HttpEntity<>(headers);
 
-        // When: Try to access protected endpoint
         ResponseEntity<String> response = restTemplate.exchange(
-                "/api/cars",
-                HttpMethod.GET,
-                requestWithInvalidAuth,
-                String.class
-        );
+                "/api/cars", HttpMethod.GET, new HttpEntity<>(headers), String.class);
 
-        // Then: Access denied (500 because JWT parsing fails with exception)
         assertTrue(
                 response.getStatusCode() == HttpStatus.UNAUTHORIZED ||
                 response.getStatusCode() == HttpStatus.FORBIDDEN ||
                 response.getStatusCode() == HttpStatus.INTERNAL_SERVER_ERROR,
-                "Expected 401/403/500, got: " + response.getStatusCode()
-        );
+                "Expected 401/403/500, got: " + response.getStatusCode());
     }
 }

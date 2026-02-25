@@ -20,6 +20,12 @@ spring:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
+  # Mailpit – lokaler SMTP-Catcher für Dev (http://localhost:8025 für Web UI)
+  # docker run -d --name mailpit -p 1025:1025 -p 8025:8025 axllent/mailpit
+  mail:
+    host: localhost
+    port: 1025
+
 jwt:
   secret: dev-secret-key-CHANGE-IN-PRODUCTION-THIS-MUST-BE-AT-LEAST-64-CHARS-LONG-FOR-HS512-ALGORITHM-12345678901234567890
   expiration:
@@ -30,6 +36,11 @@ server:
 
 # CORS for local dev (Vue dev server on port 5173)
 allowed-origins: http://localhost:5173,http://localhost:5174,http://localhost:8080
+
+app:
+  base-url: http://localhost:5173
+  mail:
+    from: noreply@ev-monitor.net
 
 # Sprit-Monitor API Integration
 spritmonitor:

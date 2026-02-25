@@ -23,6 +23,18 @@ spring:
         format_sql: false
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${MAIL_SMTP_AUTH:false}
+          starttls:
+            enable: ${MAIL_SMTP_STARTTLS:false}
+
 jwt:
   secret: ${JWT_SECRET}
   expiration:
@@ -30,6 +42,11 @@ jwt:
 
 server:
   port: 8080
+
+app:
+  base-url: ${APP_BASE_URL:http://localhost:5173}
+  mail:
+    from: ${APP_MAIL_FROM:noreply@ev-monitor.net}
 
 # Sprit-Monitor API Integration
 spritmonitor:

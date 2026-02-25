@@ -1,13 +1,19 @@
 package com.evmonitor.application;
 
+import com.evmonitor.domain.EmailVerificationToken;
+import com.evmonitor.domain.EmailVerificationTokenRepository;
 import com.evmonitor.domain.User;
 import com.evmonitor.domain.UserRepository;
+import com.evmonitor.infrastructure.email.EmailService;
 import com.evmonitor.infrastructure.security.JwtService;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 @Service
 public class AuthService {
@@ -16,60 +22,99 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final EmailVerificationTokenRepository tokenRepository;
+    private final EmailService emailService;
 
     public AuthService(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
-            AuthenticationManager authenticationManager) {
+            AuthenticationManager authenticationManager,
+            EmailVerificationTokenRepository tokenRepository,
+            EmailService emailService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
+        this.tokenRepository = tokenRepository;
+        this.emailService = emailService;
     }
 
-    public AuthResponse register(RegisterRequest request) {
+    @Transactional
+    public RegisterResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.email())) {
             throw new IllegalArgumentException("Email is already in use.");
         }
-
         if (userRepository.existsByUsername(request.username())) {
             throw new IllegalArgumentException("Username is already taken.");
         }
 
         String encodedPassword = passwordEncoder.encode(request.password());
         User user = User.createNewLocalUser(request.email(), request.username(), encodedPassword);
-
         User savedUser = userRepository.save(user);
 
-        String jwtToken = jwtService.generateToken(UserPrincipal.create(savedUser));
+        EmailVerificationToken verificationToken = EmailVerificationToken.createFor(savedUser.getId());
+        tokenRepository.save(verificationToken);
 
-        return new AuthResponse(
-                jwtToken,
-                savedUser.getId(),
-                savedUser.getEmail(),
-                savedUser.getRole());
+        emailService.sendVerificationEmail(savedUser.getEmail(), verificationToken.getToken());
+
+        return new RegisterResponse("PENDING_VERIFICATION", savedUser.getEmail());
+    }
+
+    @Transactional
+    public AuthResponse verifyEmail(String token) {
+        EmailVerificationToken verificationToken = tokenRepository.findByToken(token)
+                .orElseThrow(() -> new IllegalArgumentException("INVALID_TOKEN"));
+
+        if (verificationToken.isExpired()) {
+            tokenRepository.deleteById(verificationToken.getId());
+            throw new IllegalArgumentException("TOKEN_EXPIRED");
+        }
+
+        userRepository.markEmailVerified(verificationToken.getUserId());
+        tokenRepository.deleteById(verificationToken.getId());
+
+        User user = userRepository.findById(verificationToken.getUserId())
+                .orElseThrow(() -> new IllegalStateException("User not found after verification"));
+
+        String jwtToken = jwtService.generateToken(UserPrincipal.create(user));
+        return new AuthResponse(jwtToken, user.getId(), user.getEmail(), user.getRole());
+    }
+
+    @Transactional
+    public void resendVerification(String email) {
+        userRepository.findByEmail(email).ifPresent(user -> {
+            if (user.isEmailVerified()) {
+                return;
+            }
+
+            // Rate limit: refuse if last token was created less than 1 minute ago
+            tokenRepository.findMostRecentByUserId(user.getId()).ifPresent(recent -> {
+                if (recent.getCreatedAt().isAfter(LocalDateTime.now().minusMinutes(1))) {
+                    throw new IllegalArgumentException("RATE_LIMITED");
+                }
+            });
+
+            tokenRepository.deleteByUserId(user.getId());
+            EmailVerificationToken newToken = EmailVerificationToken.createFor(user.getId());
+            tokenRepository.save(newToken);
+            emailService.sendVerificationEmail(user.getEmail(), newToken.getToken());
+        });
     }
 
     public AuthResponse login(LoginRequest request) {
-        // Try to find user by email first, then by username
         User user = userRepository.findByEmail(request.email())
-                .or(() -> userRepository.findByUsername(request.email())) // request.email() field is used for username too
+                .or(() -> userRepository.findByUsername(request.email()))
                 .orElseThrow(() -> new IllegalArgumentException("Invalid credentials"));
 
-        // Authenticate the user via Spring Security AuthenticationManager
-        // Use the actual email from the found user for authentication
         authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        user.getEmail(),
-                        request.password()));
+                new UsernamePasswordAuthenticationToken(user.getEmail(), request.password()));
+
+        if (!user.isEmailVerified()) {
+            throw new IllegalArgumentException("EMAIL_NOT_VERIFIED");
+        }
 
         String jwtToken = jwtService.generateToken(UserPrincipal.create(user));
-
-        return new AuthResponse(
-                jwtToken,
-                user.getId(),
-                user.getEmail(),
-                user.getRole());
+        return new AuthResponse(jwtToken, user.getId(), user.getEmail(), user.getRole());
     }
 }

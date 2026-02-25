@@ -1,8 +1,11 @@
 package com.evmonitor.application;
 
 import com.evmonitor.domain.AuthProvider;
+import com.evmonitor.domain.EmailVerificationToken;
+import com.evmonitor.domain.EmailVerificationTokenRepository;
 import com.evmonitor.domain.User;
 import com.evmonitor.domain.UserRepository;
+import com.evmonitor.infrastructure.email.EmailService;
 import com.evmonitor.infrastructure.security.JwtService;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,20 +15,21 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 /**
  * Unit Tests for AuthService.
- * Tests user registration, login, and password hashing.
+ * Tests user registration, login, and email verification flow.
  *
  * SECURITY CRITICAL: Authentication is the first line of defense.
  * Any bug here = unauthorized access!
@@ -33,62 +37,51 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
 
-    @Mock
-    private UserRepository userRepository;
-
-    @Mock
-    private PasswordEncoder passwordEncoder;
-
-    @Mock
-    private JwtService jwtService;
-
-    @Mock
-    private AuthenticationManager authenticationManager;
+    @Mock private UserRepository userRepository;
+    @Mock private PasswordEncoder passwordEncoder;
+    @Mock private JwtService jwtService;
+    @Mock private AuthenticationManager authenticationManager;
+    @Mock private EmailVerificationTokenRepository tokenRepository;
+    @Mock private EmailService emailService;
 
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService(userRepository, passwordEncoder, jwtService, authenticationManager);
+        authService = new AuthService(
+                userRepository, passwordEncoder, jwtService,
+                authenticationManager, tokenRepository, emailService);
     }
 
     @Test
-    void shouldRegisterNewUser() {
+    void shouldRegisterNewUser_andSendVerificationEmail() {
         // Given
         String email = "newuser@example.com";
         String password = "SecurePassword123";
         String hashedPassword = "$2a$10$hashedPasswordExample";
-        String jwtToken = "jwt.token.here";
 
         RegisterRequest request = new RegisterRequest(email, "testuser_" + System.currentTimeMillis(), password);
 
         when(userRepository.existsByEmail(email)).thenReturn(false);
         when(userRepository.existsByUsername(any())).thenReturn(false);
         when(passwordEncoder.encode(password)).thenReturn(hashedPassword);
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
-            User user = invocation.getArgument(0);
-            return user;
-        });
-        when(jwtService.generateToken(any(UserPrincipal.class))).thenReturn(jwtToken);
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(tokenRepository.save(any(EmailVerificationToken.class))).thenAnswer(inv -> inv.getArgument(0));
 
         // When
-        AuthResponse response = authService.register(request);
+        RegisterResponse response = authService.register(request);
 
         // Then
         assertNotNull(response);
+        assertEquals("PENDING_VERIFICATION", response.status());
         assertEquals(email, response.email());
-        assertEquals(jwtToken, response.token());
-        assertEquals("USER", response.role());
 
-        // Verify password was hashed
-        verify(passwordEncoder).encode(password);
+        // Verification email must be sent
+        verify(emailService).sendVerificationEmail(eq(email), anyString());
+        verify(tokenRepository).save(any(EmailVerificationToken.class));
 
-        // Verify user was saved
-        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository).save(userCaptor.capture());
-        User savedUser = userCaptor.getValue();
-        assertEquals(email, savedUser.getEmail());
-        assertEquals(hashedPassword, savedUser.getPasswordHash());
+        // No JWT should be issued yet
+        verify(jwtService, never()).generateToken(any(UserPrincipal.class));
     }
 
     @Test
@@ -98,76 +91,107 @@ class AuthServiceTest {
         RegisterRequest request = new RegisterRequest(email, "testuser_" + System.currentTimeMillis(), "Password123");
 
         when(userRepository.existsByEmail(email)).thenReturn(true);
-        // No need to mock existsByUsername - it won't be called if email already exists
 
         // When & Then
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            authService.register(request);
-        });
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> authService.register(request));
+        assertEquals("Email is already in use.", ex.getMessage());
 
-        assertEquals("Email is already in use.", exception.getMessage());
-
-        // Verify no user was saved
-        verify(userRepository, never()).save(any(User.class));
+        verify(userRepository, never()).save(any());
+        verify(emailService, never()).sendVerificationEmail(any(), any());
     }
 
     @Test
-    void shouldLoginWithValidCredentials() {
+    void shouldLoginWithValidVerifiedCredentials() {
         // Given
         String email = "user@example.com";
         String password = "CorrectPassword";
         String jwtToken = "jwt.token.here";
-
         UUID userId = UUID.randomUUID();
-        User user = new User(
-                userId,
-                email,
-                "testuser", // username
-                "$2a$10$hashedPassword",
-                AuthProvider.LOCAL,
-                "USER",
-                java.time.LocalDateTime.now(),
-                java.time.LocalDateTime.now()
-        );
 
-        LoginRequest request = new LoginRequest(email, password);
+        User user = new User(userId, email, "testuser", "$2a$10$hashedPassword",
+                AuthProvider.LOCAL, "USER", true /* emailVerified */,
+                LocalDateTime.now(), LocalDateTime.now());
 
-        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                .thenReturn(null); // Successful authentication
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(null);
         when(jwtService.generateToken(any(UserPrincipal.class))).thenReturn(jwtToken);
 
         // When
-        AuthResponse response = authService.login(request);
+        AuthResponse response = authService.login(new LoginRequest(email, password));
 
         // Then
         assertNotNull(response);
         assertEquals(email, response.email());
-        assertEquals(userId, response.userId());
         assertEquals(jwtToken, response.token());
         assertEquals("USER", response.role());
-
-        // Verify authentication was attempted
-        verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
     }
 
     @Test
-    void shouldRejectLoginWithInvalidCredentials() {
+    void shouldRejectLoginForUnverifiedEmail() {
         // Given
-        String email = "user@example.com";
-        String password = "WrongPassword";
-        LoginRequest request = new LoginRequest(email, password);
+        String email = "unverified@example.com";
+        UUID userId = UUID.randomUUID();
 
-        when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
-        when(userRepository.findByUsername(email)).thenReturn(Optional.empty());
+        User unverifiedUser = new User(userId, email, "unverified", "$2a$10$hash",
+                AuthProvider.LOCAL, "USER", false /* emailVerified */,
+                LocalDateTime.now(), LocalDateTime.now());
 
-        // When & Then - Now throws IllegalArgumentException because user not found
-        assertThrows(IllegalArgumentException.class, () -> {
-            authService.login(request);
-        });
+        when(userRepository.findByEmail(email)).thenReturn(Optional.of(unverifiedUser));
+        when(authenticationManager.authenticate(any())).thenReturn(null);
 
-        // Verify no JWT was generated
-        verify(jwtService, never()).generateToken(any(UserPrincipal.class));
+        // When & Then
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> authService.login(new LoginRequest(email, "Password123")));
+        assertEquals("EMAIL_NOT_VERIFIED", ex.getMessage());
+
+        verify(jwtService, never()).generateToken(any());
+    }
+
+    @Test
+    void shouldVerifyEmailAndReturnJwt() {
+        // Given
+        UUID userId = UUID.randomUUID();
+        String rawToken = "secure-random-token";
+        String jwtToken = "jwt.token.here";
+
+        EmailVerificationToken verificationToken = new EmailVerificationToken(
+                UUID.randomUUID(), userId, rawToken, LocalDateTime.now().plusHours(24), LocalDateTime.now());
+
+        User user = new User(userId, "user@example.com", "user", "$2a$10$hash",
+                AuthProvider.LOCAL, "USER", true, LocalDateTime.now(), LocalDateTime.now());
+
+        when(tokenRepository.findByToken(rawToken)).thenReturn(Optional.of(verificationToken));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(jwtService.generateToken(any(UserPrincipal.class))).thenReturn(jwtToken);
+
+        // When
+        AuthResponse response = authService.verifyEmail(rawToken);
+
+        // Then
+        assertNotNull(response);
+        assertEquals(jwtToken, response.token());
+        verify(userRepository).markEmailVerified(userId);
+        verify(tokenRepository).deleteById(verificationToken.getId());
+    }
+
+    @Test
+    void shouldRejectExpiredVerificationToken() {
+        // Given
+        String rawToken = "expired-token";
+        EmailVerificationToken expiredToken = new EmailVerificationToken(
+                UUID.randomUUID(), UUID.randomUUID(), rawToken,
+                LocalDateTime.now().minusHours(1), // already expired!
+                LocalDateTime.now().minusHours(25));
+
+        when(tokenRepository.findByToken(rawToken)).thenReturn(Optional.of(expiredToken));
+
+        // When & Then
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> authService.verifyEmail(rawToken));
+        assertEquals("TOKEN_EXPIRED", ex.getMessage());
+
+        verify(userRepository, never()).markEmailVerified(any());
     }
 
     @Test
@@ -175,13 +199,14 @@ class AuthServiceTest {
         // Given
         String plainPassword = "PlainTextPassword123";
         String expectedHash = "$2a$10$hashedPasswordExample";
-        RegisterRequest request = new RegisterRequest("user@example.com", "testuser_" + System.currentTimeMillis(), plainPassword);
+        RegisterRequest request = new RegisterRequest("user@example.com",
+                "testuser_" + System.currentTimeMillis(), plainPassword);
 
         when(userRepository.existsByEmail(any())).thenReturn(false);
         when(userRepository.existsByUsername(any())).thenReturn(false);
         when(passwordEncoder.encode(plainPassword)).thenReturn(expectedHash);
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(jwtService.generateToken(any(UserPrincipal.class))).thenReturn("jwt.token");
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(tokenRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         // When
         authService.register(request);
@@ -190,21 +215,21 @@ class AuthServiceTest {
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(userCaptor.capture());
         User savedUser = userCaptor.getValue();
-
-        // Password should be hashed, not plain text
         assertNotEquals(plainPassword, savedUser.getPasswordHash());
         assertEquals(expectedHash, savedUser.getPasswordHash());
     }
 
     @Test
-    void shouldCreateLocalUserOnRegistration() {
+    void shouldCreateUnverifiedLocalUserOnRegistration() {
         // Given
-        RegisterRequest request = new RegisterRequest("user@example.com", "testuser_" + System.currentTimeMillis(), "Password123");
+        RegisterRequest request = new RegisterRequest("user@example.com",
+                "testuser_" + System.currentTimeMillis(), "Password123");
 
         when(userRepository.existsByEmail(any())).thenReturn(false);
+        when(userRepository.existsByUsername(any())).thenReturn(false);
         when(passwordEncoder.encode(any())).thenReturn("$2a$10$hash");
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(jwtService.generateToken(any(UserPrincipal.class))).thenReturn("jwt.token");
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(tokenRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         // When
         authService.register(request);
@@ -214,8 +239,8 @@ class AuthServiceTest {
         verify(userRepository).save(userCaptor.capture());
         User savedUser = userCaptor.getValue();
 
-        // Should be a local user (no OAuth)
         assertEquals(AuthProvider.LOCAL, savedUser.getAuthProvider());
         assertEquals("USER", savedUser.getRole());
+        assertFalse(savedUser.isEmailVerified(), "Newly registered user should NOT be verified yet");
     }
 }
