@@ -4,6 +4,7 @@ import { useAuthStore } from '../stores/auth';
 import { useRouter } from 'vue-router';
 
 const email = ref('');
+const username = ref('');
 const password = ref('');
 const confirmPassword = ref('');
 const authStore = useAuthStore();
@@ -11,6 +12,17 @@ const router = useRouter();
 const error = ref('');
 
 const handleRegister = async () => {
+  // Validate username format
+  if (!/^[a-zA-Z0-9_]{3,20}$/.test(username.value)) {
+    error.value = 'Username muss 3-20 Zeichen lang sein und darf nur Buchstaben, Zahlen und Unterstriche enthalten';
+    return;
+  }
+
+  if (password.value.length < 8) {
+    error.value = 'Passwort muss mindestens 8 Zeichen lang sein';
+    return;
+  }
+
   if (password.value !== confirmPassword.value) {
     error.value = 'Passwörter stimmen nicht überein';
     return;
@@ -18,7 +30,7 @@ const handleRegister = async () => {
 
   try {
     error.value = '';
-    await authStore.register({ email: email.value, password: password.value });
+    await authStore.register({ email: email.value, username: username.value, password: password.value });
     router.push('/');
   } catch (err: any) {
     error.value = err.response?.data?.message || 'Registrierung fehlgeschlagen';
@@ -34,6 +46,11 @@ const handleRegister = async () => {
         <div>
           <label class="block text-sm font-medium text-gray-700">E-Mail</label>
           <input v-model="email" type="email" required class="block w-full px-4 py-3 mt-1 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Username</label>
+          <input v-model="username" type="text" required pattern="[a-zA-Z0-9_]{3,20}" minlength="3" maxlength="20" class="block w-full px-4 py-3 mt-1 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="z.B. max_mustermann" />
+          <p class="text-xs text-gray-500 mt-1">3-20 Zeichen, nur Buchstaben, Zahlen und Unterstriche</p>
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700">Passwort</label>

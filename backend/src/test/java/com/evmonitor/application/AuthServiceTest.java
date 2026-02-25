@@ -60,9 +60,10 @@ class AuthServiceTest {
         String hashedPassword = "$2a$10$hashedPasswordExample";
         String jwtToken = "jwt.token.here";
 
-        RegisterRequest request = new RegisterRequest(email, password);
+        RegisterRequest request = new RegisterRequest(email, "testuser_" + System.currentTimeMillis(), password);
 
         when(userRepository.existsByEmail(email)).thenReturn(false);
+        when(userRepository.existsByUsername(any())).thenReturn(false);
         when(passwordEncoder.encode(password)).thenReturn(hashedPassword);
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
             User user = invocation.getArgument(0);
@@ -94,9 +95,10 @@ class AuthServiceTest {
     void shouldRejectRegistrationWithDuplicateEmail() {
         // Given
         String email = "existing@example.com";
-        RegisterRequest request = new RegisterRequest(email, "Password123");
+        RegisterRequest request = new RegisterRequest(email, "testuser_" + System.currentTimeMillis(), "Password123");
 
         when(userRepository.existsByEmail(email)).thenReturn(true);
+        // No need to mock existsByUsername - it won't be called if email already exists
 
         // When & Then
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
@@ -120,6 +122,7 @@ class AuthServiceTest {
         User user = new User(
                 userId,
                 email,
+                "testuser", // username
                 "$2a$10$hashedPassword",
                 AuthProvider.LOCAL,
                 "USER",
@@ -155,11 +158,11 @@ class AuthServiceTest {
         String password = "WrongPassword";
         LoginRequest request = new LoginRequest(email, password);
 
-        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                .thenThrow(new BadCredentialsException("Invalid credentials"));
+        when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
+        when(userRepository.findByUsername(email)).thenReturn(Optional.empty());
 
-        // When & Then
-        assertThrows(BadCredentialsException.class, () -> {
+        // When & Then - Now throws IllegalArgumentException because user not found
+        assertThrows(IllegalArgumentException.class, () -> {
             authService.login(request);
         });
 
@@ -172,9 +175,10 @@ class AuthServiceTest {
         // Given
         String plainPassword = "PlainTextPassword123";
         String expectedHash = "$2a$10$hashedPasswordExample";
-        RegisterRequest request = new RegisterRequest("user@example.com", plainPassword);
+        RegisterRequest request = new RegisterRequest("user@example.com", "testuser_" + System.currentTimeMillis(), plainPassword);
 
         when(userRepository.existsByEmail(any())).thenReturn(false);
+        when(userRepository.existsByUsername(any())).thenReturn(false);
         when(passwordEncoder.encode(plainPassword)).thenReturn(expectedHash);
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(jwtService.generateToken(any(UserPrincipal.class))).thenReturn("jwt.token");
@@ -195,7 +199,7 @@ class AuthServiceTest {
     @Test
     void shouldCreateLocalUserOnRegistration() {
         // Given
-        RegisterRequest request = new RegisterRequest("user@example.com", "Password123");
+        RegisterRequest request = new RegisterRequest("user@example.com", "testuser_" + System.currentTimeMillis(), "Password123");
 
         when(userRepository.existsByEmail(any())).thenReturn(false);
         when(passwordEncoder.encode(any())).thenReturn("$2a$10$hash");

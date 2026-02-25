@@ -15,7 +15,7 @@ const handleLogin = async () => {
     await authStore.login({ email: email.value, password: password.value });
     router.push('/');
   } catch (err: any) {
-    error.value = 'Ungültige E-Mail oder Passwort';
+    error.value = 'Ungültige E-Mail/Username oder Passwort';
   }
 };
 
@@ -36,8 +36,8 @@ const loginWithApple = () => {
       <h2 class="text-3xl font-bold text-center text-gray-800 mb-8">Anmelden</h2>
       <form @submit.prevent="handleLogin" class="space-y-6">
         <div>
-          <label class="block text-sm font-medium text-gray-700">E-Mail</label>
-          <input v-model="email" type="email" required class="block w-full px-4 py-3 mt-1 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+          <label class="block text-sm font-medium text-gray-700">E-Mail oder Username</label>
+          <input v-model="email" type="text" required class="block w-full px-4 py-3 mt-1 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="deine@email.de oder username" />
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700">Passwort</label>

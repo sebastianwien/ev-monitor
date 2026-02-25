@@ -33,8 +33,12 @@ public class AuthService {
             throw new IllegalArgumentException("Email is already in use.");
         }
 
+        if (userRepository.existsByUsername(request.username())) {
+            throw new IllegalArgumentException("Username is already taken.");
+        }
+
         String encodedPassword = passwordEncoder.encode(request.password());
-        User user = User.createNewLocalUser(request.email(), encodedPassword);
+        User user = User.createNewLocalUser(request.email(), request.username(), encodedPassword);
 
         User savedUser = userRepository.save(user);
 
@@ -48,14 +52,17 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest request) {
+        // Try to find user by email first, then by username
+        User user = userRepository.findByEmail(request.email())
+                .or(() -> userRepository.findByUsername(request.email())) // request.email() field is used for username too
+                .orElseThrow(() -> new IllegalArgumentException("Invalid credentials"));
+
         // Authenticate the user via Spring Security AuthenticationManager
+        // Use the actual email from the found user for authentication
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        request.email(),
+                        user.getEmail(),
                         request.password()));
-
-        User user = userRepository.findByEmail(request.email())
-                .orElseThrow(); // Shouldn't happen since authentication passed
 
         String jwtToken = jwtService.generateToken(UserPrincipal.create(user));
 
