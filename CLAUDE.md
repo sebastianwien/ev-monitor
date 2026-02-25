@@ -55,110 +55,14 @@ This file contains references to the planning, tasks, and walkthroughs generated
 
 ---
 
-## Current Status (Phase 7 - CI/CD & DB MIGRATIONS COMPLETED ✅)
-
-**🚀 LIVE ON PRODUCTION: https://ev-monitor.net** (2026-02-24)
-
-### Phase 6: Production Deployment & Security Hardening (2026-02-23) ✅
-**Security Hardening (Phase 1-4):**
-- ✅ **Environment Variables System**: `.env` / `.env.example` / `.gitignore` setup
-- ✅ **Hardcoded Secrets entfernt**: JWT_SECRET, DB-Passwörter, OAuth Credentials
-- ✅ **CORS Security**: Restricted to `ALLOWED_ORIGINS` env var (nur ev-monitor.net)
-- ✅ **SQL Logging disabled**: `show-sql: false` für Production
-- ✅ **OAuth2 optional**: In separates Profile ausgelagert, crasht nicht mehr bei leeren vars
-- ✅ **Public Endpoints**: `/api/cars/brands` und `/api/vehicle-specifications/lookup` public
-- ✅ **Security Headers**: HSTS, X-Frame-Options, CSP, Referrer-Policy in Nginx
-
-**Production Infrastructure (Phase 5):**
-- ✅ **Hetzner Server Setup**: User `ihle`, Docker, Firewall (ufw: 22, 80, 443)
-- ✅ **Nginx HTTPS Config**: HTTP→HTTPS Redirect, SSL/TLS 1.2+1.3, Security Headers
-- ✅ **Let's Encrypt SSL**: Zertifikat erfolgreich installiert, Auto-Renewal aktiv
-- ✅ **DNS Bug Fix**: IPv6 AAAA Record korrigiert (zeigte auf alten Server mit Apache!)
-- ✅ **Docker Compose**: Backend, DB, Nginx, Certbot (healthchecks active)
-- ✅ **Deployment Scripts**: `deploy.sh`, `init-letsencrypt.sh` (mit Validierung)
-- ✅ **Dokumentation**: `SERVER_SETUP.md`, `DEPLOYMENT_CHECKLIST.md`, `SSL_SETUP_MANUAL.md`
-
-**Backend Config Changes:**
-- ✅ `JwtService.java`: Keine Default-Werte mehr (Fail-Fast wenn JWT_SECRET fehlt)
-- ✅ `SecurityConfig.java`: CORS aus `ALLOWED_ORIGINS` env var, OAuth2 entfernt
-- ✅ `application.yml`: `show-sql: false`, JWT config, OAuth2 in `application-oauth.yml`
-- ✅ `docker-compose.yml`: Alle env vars required, DB healthcheck, keine OAuth vars
-
-### Phase 7: CI/CD Pipeline & Database Migrations (2026-02-24) ✅
-**Flyway Integration:**
-- ✅ **Flyway Dependencies**: `flyway-core` + `flyway-database-postgresql` 10.8.1 in `build.gradle`
-- ✅ **Baseline Migration**: `V1__baseline.sql` - Complete schema with Foreign Keys & Indices
-- ✅ **Composite Indices**: `V2__add_composite_indices.sql` - Performance optimization
-- ✅ **Application Config**: `ddl-auto: validate` (no more auto-schema-generation!)
-- ✅ **Baseline-on-Migrate**: Works with existing databases
-
-**GitHub Actions CI/CD:**
-- ✅ **Automated Deployment**: Push to `main` → auto-deploy to production
-- ✅ **Test Pipeline**: Backend tests (Gradle) + Frontend build (npm)
-- ✅ **Database Backup**: Automatic backup before each deployment
-- ✅ **Health Check**: Verifies `https://ev-monitor.net` responds HTTP 200
-- ✅ **Flyway Verification**: Checks migration success in logs
-
-**Documentation:**
-- ✅ `GITHUB_ACTIONS_SETUP.md` - How to configure GitHub Secrets
-- ✅ `FLYWAY_MIGRATIONS.md` - Complete migration guide with examples
-- ✅ `.github/workflows/deploy.yml` - CI/CD Workflow
-
-**Known Issues / Tech Debt:**
-- ⚠️ OAuth2 deaktiviert (kann später via `SPRING_PROFILES_ACTIVE=prod,oauth` aktiviert werden)
-- ⚠️ Frontend nicht getestet (Firmen-VPN blockiert Domain, Testing via privates Gerät pending)
-- ⚠️ WLTP Database leer (Seed-Daten für populäre Modelle fehlen)
-- ⚠️ GitHub Secrets noch nicht konfiguriert (siehe `GITHUB_ACTIONS_SETUP.md`)
-
-### Phase 5: Statistics & Analytics Dashboard ✅
-- ✅ Chart.js + vue-chartjs installiert
-- ✅ `GET /api/logs/statistics?carId=...` API Endpoint
-- ✅ `EvLogStatisticsResponse` DTO mit allen Metriken
-- ✅ `StatisticsView.vue` mit 3 Hauptkomponenten (Key Metrics, Chart, WLTP Comparison)
-- ✅ Car-Selector Integration, Responsive Design, Navigation
-
-### Phase 4: WLTP Vehicle Specifications & Gamification ✅
-- ✅ Neue Tabelle `vehicle_specification` für crowdsourced WLTP-Daten
-- ✅ WLTP-Lookup API + Contribution Flow mit 50 Social Coins
-- ✅ Frontend: Overlay-System, Validation, Toast Notifications
-- ✅ Security Audit durchgeführt
-
-**Nächste Schritte:**
-- 🔲 GitHub Secrets konfigurieren (SERVER_HOST, SERVER_USER, SSH_PRIVATE_KEY)
-- 🔲 CI/CD Pipeline testen (kleiner Commit → auto-deploy)
-- 🔲 Frontend Testing von privatem Gerät (Handy/Tablet)
-- 🔲 WLTP-Daten Seed Migration erstellen (V3__seed_popular_vehicles.sql)
-- 🔲 Weitere Coin-Rewards implementieren
-- 🔲 Weitere Charts: Temperature Impact, Driving Style, Monthly Trends
-
-### Neue Dateien (2026-02-24 - Phase 7)
-- `.github/workflows/deploy.yml` - GitHub Actions CI/CD Workflow
-- `backend/src/main/resources/db/migration/V1__baseline.sql` - Baseline Migration
-- `backend/src/main/resources/db/migration/V2__add_composite_indices.sql` - Performance Indices
-- `GITHUB_ACTIONS_SETUP.md` - GitHub Secrets & CI/CD Dokumentation
-- `FLYWAY_MIGRATIONS.md` - Complete Migration Guide mit Best Practices
-
-### Dateien aus Phase 6 (2026-02-23)
-- `.env.example` - Template für Environment Variables
-- `.gitignore` - Root gitignore (blockt .env, certificates)
-- `deploy.sh` - Deployment Script mit Validierung
-- `init-letsencrypt.sh` - SSL Certificate Setup
-- `SERVER_SETUP.md` - Komplette Server Setup Anleitung (Step-by-Step)
-- `DEPLOYMENT_CHECKLIST.md` - Quick Reference für Deployment
-- `SSL_SETUP_MANUAL.md` - Manual SSL Setup (Fallback wenn Script nicht geht)
-- `IDEAS.md` - Feature-Ideen & Roadmap
-- `backend/src/main/resources/application-oauth.yml` - OAuth2 Config (optional)
-- `nginx/conf.d/app.conf.http-only` - HTTP-only Config (für SSL-Bootstrap)
-
----
-
 ## Projekt-Übersicht
 
 **EV Monitor** ist eine Full-Stack Web-App zum Tracken von Elektroauto-Ladevorgängen mit:
 - 📊 Charging Logs (kWh, Kosten, Standort, Dauer)
 - 🚗 Vehicle Management (65+ Marken, 100+ Modelle mit Batterie-Specs)
 - ⚡ WLTP Vehicle Specifications (crowdsourced Reichweite & Verbrauch)
-- 🔐 User Authentication (JWT + OAuth2 SSO ready)
+- 🔐 User Authentication (JWT + Email-Verifizierung + Username + OAuth2 SSO ready)
+- 📧 Email-Verifizierung (Token-basiert, 24h TTL, Resend mit Rate-Limiting)
 - 🌍 Privacy-First Geohashing (keine exakten GPS-Koordinaten gespeichert)
 - 🪙 Gamification (Coin-System mit WLTP-Rewards aktiv)
 - 📱 PWA-Ready (Progressive Web App)
@@ -196,22 +100,27 @@ This file contains references to the planning, tasks, and walkthroughs generated
 ### Backend
 ```
 backend/src/main/java/com/evmonitor/
-├── domain/           # Domain Entities (User, Car, EvLog, CoinLog, VehicleSpecification)
+├── domain/           # Domain Entities
 │   ├── CarBrand.java (68 Marken + nested CarModel enum)
-│   ├── User.java
+│   ├── User.java     (+ username, emailVerified fields)
+│   ├── EmailVerificationToken.java (256-bit SecureRandom, 24h TTL)
+│   ├── EmailVerificationTokenRepository.java
 │   ├── Car.java
 │   ├── EvLog.java
 │   ├── CoinLog.java
-│   └── VehicleSpecification.java (NEU)
+│   └── VehicleSpecification.java
 ├── application/      # Services, DTOs, Use Cases
-│   ├── auth/        (AuthService, JwtService, OAuth2Handler)
+│   ├── AuthService.java  (register/login/verifyEmail/resendVerification)
+│   ├── RegisterRequest.java, RegisterResponse.java, LoginRequest.java, AuthResponse.java
+│   ├── JwtService.java
 │   ├── car/         (CarService, CarDTO)
 │   ├── evlog/       (EvLogService, EvLogDTO)
 │   ├── coinlog/     (CoinLogService)
-│   └── VehicleSpecificationService.java (NEU)
+│   └── VehicleSpecificationService.java
 ├── infrastructure/   # Spring Boot Config, Persistence, Web
-│   ├── web/         (Controllers: AuthController, CarController, VehicleSpecificationController, etc.)
-│   ├── persistence/ (Repositories: UserRepository, CarRepository, VehicleSpecificationRepository, etc.)
+│   ├── email/       (EmailService – sendet HTML-Mails via JavaMail)
+│   ├── web/         (AuthController, CarController, VehicleSpecificationController, GlobalExceptionHandler)
+│   ├── persistence/ (JpaUserRepository, PostgresEmailVerificationTokenRepositoryImpl, etc.)
 │   └── security/    (JwtAuthenticationFilter, SecurityConfig)
 └── EvMonitorApplication.java
 ```
@@ -222,22 +131,23 @@ frontend/src/
 ├── api/             # API Services
 │   ├── axios.ts
 │   ├── carService.ts
-│   ├── vehicleSpecificationService.ts (NEU)
+│   ├── vehicleSpecificationService.ts
 │   └── evLogService.ts
 ├── components/       # Reusable Vue Components
 │   ├── CarSelector.vue
 │   └── LocationSearch.vue
 ├── views/           # Pages
-│   ├── LoginView.vue
-│   ├── RegisterView.vue
-│   ├── DashboardView.vue (Log-Formular)
+│   ├── LoginView.vue         (+ "E-Mail nicht verifiziert" Hinweis + Resend Button)
+│   ├── RegisterView.vue      (+ "Check deine E-Mails" Screen nach Registrierung + Resend)
+│   ├── VerifyEmailView.vue   (loading/success/expired/invalid States)
+│   ├── DashboardView.vue     (Log-Formular)
 │   ├── CarManagementView.vue (mit WLTP-Overlays)
-│   ├── StatisticsView.vue (Charts & Analytics) **NEW Phase 5**
+│   ├── StatisticsView.vue    (Charts & Analytics)
 │   └── OAuth2RedirectHandler.vue
 ├── stores/          # Pinia State Management
 │   └── auth.ts     (JWT token, user state)
 ├── router/          # Vue Router
-│   └── index.ts    (Routes mit requiresAuth/guestOnly guards)
+│   └── index.ts    (Routes: requiresAuth/guestOnly guards, /verify-email ohne Guard)
 └── main.ts
 ```
 
@@ -247,13 +157,22 @@ frontend/src/
 
 ### Tabellen
 
-**users**
+**users** (app_user)
 - `id` (UUID, PK)
 - `email` (VARCHAR, UNIQUE)
+- `username` (VARCHAR(50), UNIQUE, NOT NULL) - 3-20 Zeichen, alphanumerisch + Underscore
 - `password_hash` (VARCHAR) - BCrypt hashed
 - `oauth_provider` (VARCHAR) - GOOGLE | FACEBOOK | APPLE | null
 - `oauth_sub` (VARCHAR) - Provider User ID
+- `email_verified` (BOOLEAN, NOT NULL, DEFAULT FALSE) - Muss vor Login true sein
 - `created_at`, `updated_at`
+
+**email_verification_tokens**
+- `id` (UUID, PK)
+- `user_id` (UUID, FK → app_user ON DELETE CASCADE)
+- `token` (VARCHAR(64), UNIQUE) - 256-bit Base64url-encoded SecureRandom
+- `expires_at` (TIMESTAMP) - 24h nach Erstellung
+- `created_at` (TIMESTAMP)
 
 **cars**
 - `id` (UUID, PK)
@@ -302,9 +221,17 @@ frontend/src/
 ## API Endpoints
 
 ### Authentication
-- `POST /api/auth/register` - User Registration
-- `POST /api/auth/login` - Login → JWT Token
+- `POST /api/auth/register` - User Registration → `{ status: "PENDING_VERIFICATION", email }` (kein JWT!)
+- `POST /api/auth/login` - Login → JWT Token (schlägt fehl wenn E-Mail nicht verifiziert)
+- `GET /api/auth/verify-email?token={token}` - E-Mail verifizieren → JWT Token
+- `POST /api/auth/resend-verification` - Neuen Verifikations-Link anfordern (Rate-Limited: 1/min)
 - `GET /api/auth/me` - Current User Info (JWT required)
+
+**Error Codes (GlobalExceptionHandler):**
+- `TOKEN_EXPIRED` → HTTP 410 Gone
+- `INVALID_TOKEN` → HTTP 400 Bad Request
+- `EMAIL_NOT_VERIFIED` → HTTP 403 Forbidden
+- `RATE_LIMITED` → HTTP 429 Too Many Requests
 
 ### OAuth2 (vorbereitet)
 - `GET /oauth2/authorization/{provider}` - Redirect zu Google/Facebook/Apple
@@ -456,6 +383,15 @@ JWT_SECRET=<SECRET>
 JWT_EXPIRATION_MS=604800000
 ALLOWED_ORIGINS=https://ev-monitor.net,https://www.ev-monitor.net
 SPRING_PROFILES_ACTIVE=prod
+
+# Mail (für Email-Verifizierung – noch nicht konfiguriert!)
+MAIL_HOST=smtp.example.com
+MAIL_PORT=587
+MAIL_USERNAME=<SECRET>
+MAIL_PASSWORD=<SECRET>
+MAIL_SMTP_AUTH=true
+MAIL_SMTP_STARTTLS=true
+APP_MAIL_FROM=noreply@ev-monitor.net
 ```
 
 ### Wichtige Befehle (auf Server)
@@ -477,27 +413,68 @@ docker compose restart nginx
 docker compose run --rm --entrypoint certbot certbot renew
 ```
 
+## Implementierte Features (Phasen-Übersicht)
+
+| Phase | Feature | Status |
+|-------|---------|--------|
+| 1 | Core: Charging Logs, Car Management, JWT Auth | ✅ |
+| 2 | Frontend: Vue.js, Pinia, Axios | ✅ |
+| 3 | Geohashing, Location Search (Nominatim) | ✅ |
+| 4 | WLTP Crowdsourcing + Coin-System | ✅ |
+| 5 | Statistics Dashboard (Chart.js) | ✅ |
+| 6 | Production Deployment (Hetzner, SSL, Docker) | ✅ |
+| 7 | CI/CD (GitHub Actions), Flyway Migrations | ✅ |
+| 8 | Email-Verifizierung, Username, GlobalExceptionHandler | ✅ |
+
 ## Bekannte Limitationen & TODOs
 
-### Aus dem Code erkennbar:
-1. **OAuth2 deaktiviert**: Kann via `SPRING_PROFILES_ACTIVE=prod,oauth` + env vars aktiviert werden
-2. **Coin-Rewards unvollständig**: Nur WLTP-Contribution, weitere Trigger fehlen
-3. **Keine API-Paginierung**: Alle logs on-demand geladen (>100 Logs könnte problematisch werden)
-4. **Frontend Search nicht gecacht**: Nominatim Suggestions bei jedem Keystroke
-5. **Offline-Support fehlt**: PWA Plugin installiert, Service Worker noch nicht genutzt
-6. **WLTP-Daten leer**: Keine Seed-Daten, Community muss befüllen
-7. ~~**Keine SQL Indices**~~ ✅ **FIXED in Phase 7**: Flyway Migrations mit Foreign Keys & Composite Indices
-8. **GitHub Secrets fehlen**: CI/CD Pipeline ist ready, aber Secrets müssen noch konfiguriert werden
+### Nächste Schritte
+1. **Mail-Config auf Server**: MAIL_HOST/USER/PASS in `.env` auf Hetzner eintragen (Mailgun/Brevo empfohlen)
+2. **GitHub Secrets konfigurieren**: Siehe `GITHUB_ACTIONS_SETUP.md` für CI/CD Pipeline
+3. **WLTP-Daten Seed**: `V8__seed_popular_vehicles.sql` für populäre Modelle erstellen
+4. **Weitere Coin-Rewards**: EvLog creation, Streaks, Milestones, Profile completion
+
+### Tech Debt
+- **OAuth2 deaktiviert**: Kann via `SPRING_PROFILES_ACTIVE=prod,oauth` + env vars aktiviert werden
+- **Coin-Rewards unvollständig**: Nur WLTP-Contribution, weitere Trigger fehlen
+- **Keine API-Paginierung**: Alle logs on-demand geladen (>100 Logs könnte langsam werden)
+- **Frontend Search nicht gecacht**: Nominatim Suggestions bei jedem Keystroke (300ms Debounce)
+- **Offline-Support fehlt**: PWA Plugin installiert, Service Worker noch nicht genutzt
+- **WLTP-Daten leer**: Keine Seed-Daten, Community muss befüllen
 
 ---
 
 ## Docker Setup
 
-**Services:**
+### Docker Compose Files
+
+| File | Zweck | Wann nutzen |
+|------|-------|-------------|
+| `docker-compose.yml` | **Production** (Hetzner) – DB + Backend + Nginx + Certbot | CI/CD auf Server |
+| `docker-compose.dev.yml` | **Lokale Dev** – nur DB + Mailpit | Backend/Frontend nativ starten |
+| `docker-compose.local.yml` | **Lokale Full-Stack** – DB + Backend + Nginx + Mailpit | Production-ähnliches Testen |
+| `docker-compose.frontend-dev.yml` | **Vite Hot Reload** – nur Frontend Dev Server | Kombiniert mit dev.yml oder local.yml |
+
+**Typischer Dev-Workflow:**
+```bash
+# 1. Infrastruktur starten
+docker compose -f docker-compose.dev.yml up -d
+
+# 2. Backend nativ (mit Dev-Profil)
+cd backend && ./gradlew bootRun
+
+# 3. Frontend nativ (Hot Reload)
+cd frontend && npm run dev
+
+# 4. E-Mails checken: http://localhost:8025 (Mailpit Web UI)
+```
+
+### Services (Production)
 - `db`: PostgreSQL 15-alpine (Port 5432, Volume: `postgres_data`)
 - `backend`: Java 21 JRE (Port 8080, depends on `db`)
 - `nginx`: Reverse Proxy (Port 80/443, serves frontend + proxies `/api/*`)
 - `certbot`: Let's Encrypt SSL renewal (optional, für Prod)
+- `mailpit`: SMTP Catcher für Dev (Port 1025 SMTP, Port 8025 Web UI)
 
 **Multi-Stage Builds:**
 - Backend: Gradle build → minimal JRE image
