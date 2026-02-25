@@ -15,6 +15,9 @@ public class UserEntity {
     @Column(unique = true, nullable = false)
     private String email;
 
+    @Column(length = 50)
+    private String username;
+
     @Column(name = "password_hash")
     private String passwordHash;
 
@@ -25,6 +28,9 @@ public class UserEntity {
     @Column(nullable = false)
     private String role;
 
+    @Column(name = "email_verified", nullable = false)
+    private boolean emailVerified;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -34,10 +40,11 @@ public class UserEntity {
     public UserEntity() {
     }
 
-    public UserEntity(UUID id, String email, String passwordHash, AuthProvider authProvider, String role,
+    public UserEntity(UUID id, String email, String username, String passwordHash, AuthProvider authProvider, String role,
             LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.email = email;
+        this.username = username;
         this.passwordHash = passwordHash;
         this.authProvider = authProvider;
         this.role = role;
@@ -99,5 +106,13 @@ public class UserEntity {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
     }
 }

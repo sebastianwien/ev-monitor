@@ -16,19 +16,23 @@ public class TestDataBuilder {
     /**
      * Create a test user with default values.
      * Password is "TestPassword123" hashed with BCrypt.
+     * Username is derived from email (part before @).
      */
     public static User createTestUser(String email) {
         // BCrypt hash of "TestPassword123" (strength 10)
-        return User.createNewLocalUser(email, "$2a$10$N9qo8uLOickgx2ZMRZoMye7JU5qBvJqLzL/MQPVxqNGQqQfqzZ5bC");
+        String username = email.split("@")[0]; // Use email prefix as username
+        return User.createNewLocalUser(email, username, "$2a$10$N9qo8uLOickgx2ZMRZoMye7JU5qBvJqLzL/MQPVxqNGQqQfqzZ5bC");
     }
 
     /**
      * Create a test user with custom ID (for testing ownership checks).
      */
     public static User createTestUserWithId(UUID userId, String email, String passwordHash) {
+        String username = email.split("@")[0]; // Use email prefix as username
         return new User(
                 userId,
                 email,
+                username,
                 passwordHash,
                 AuthProvider.LOCAL,
                 "USER",

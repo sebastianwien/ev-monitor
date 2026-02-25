@@ -57,7 +57,13 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                         " account to login.");
             }
         } else {
-            user = User.createNewSsoUser(email, authProvider);
+            // Generate username from email for OAuth users
+            String username = email.split("@")[0];
+            // Ensure uniqueness by adding random suffix if username exists
+            if (userRepository.existsByUsername(username)) {
+                username = username + "_" + System.currentTimeMillis();
+            }
+            user = User.createNewSsoUser(email, username, authProvider);
             user = userRepository.save(user);
         }
 

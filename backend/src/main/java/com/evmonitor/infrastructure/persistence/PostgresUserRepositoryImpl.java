@@ -34,14 +34,25 @@ public class PostgresUserRepositoryImpl implements UserRepository {
     }
 
     @Override
+    public Optional<User> findByUsername(String username) {
+        return jpaUserRepository.findByUsername(username).map(this::toDomain);
+    }
+
+    @Override
     public boolean existsByEmail(String email) {
         return jpaUserRepository.existsByEmail(email);
+    }
+
+    @Override
+    public boolean existsByUsername(String username) {
+        return jpaUserRepository.existsByUsername(username);
     }
 
     private UserEntity toEntity(User domain) {
         return new UserEntity(
                 domain.getId(),
                 domain.getEmail(),
+                domain.getUsername(),
                 domain.getPasswordHash(),
                 domain.getAuthProvider(),
                 domain.getRole(),
@@ -53,6 +64,7 @@ public class PostgresUserRepositoryImpl implements UserRepository {
         return new User(
                 entity.getId(),
                 entity.getEmail(),
+                entity.getUsername(),
                 entity.getPasswordHash(),
                 entity.getAuthProvider(),
                 entity.getRole(),
