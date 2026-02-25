@@ -83,6 +83,8 @@ public class TestDataBuilder {
                 costEur,
                 45,
                 "u33db", // Berlin Mitte geohash (5-char)
+                null, // odometerKm (optional)
+                null, // maxChargingPowerKw (optional)
                 LocalDateTime.now()
         );
     }
@@ -98,6 +100,8 @@ public class TestDataBuilder {
                 costEur,
                 60,
                 "u33dc",
+                null, // odometerKm (optional)
+                null, // maxChargingPowerKw (optional)
                 timestamp
         );
     }

@@ -7,7 +7,10 @@ const selectedCarId = ref<string | null>(null)
 const kwhCharged = ref<number>(0)
 const costEur = ref<number>(0)
 const chargeDurationMinutes = ref<number>(0)
+const odometerKm = ref<number | null>(null) // Optional: odometer reading
+const maxChargingPowerKw = ref<number | null>(null) // Optional: max charging power
 const loggedAt = ref<string | null>(null) // Optional: when the charge happened
+const odometerWarning = ref<string | null>(null) // Warning if odometer is lower than last log
 
 // Location tracking
 const latitude = ref<number | null>(null)
@@ -31,6 +34,18 @@ const getCurrentDateTimeLocal = () => {
 
 const logs = ref<any[]>([])
 const error = ref<string | null>(null)
+
+// Get last odometer reading for validation
+const getLastOdometerReading = (): number | null => {
+  if (logs.value.length === 0) return null
+
+  // Filter logs with odometer data and sort by loggedAt descending
+  const logsWithOdometer = logs.value
+    .filter(log => log.odometerKm !== null && log.odometerKm !== undefined)
+    .sort((a, b) => new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime())
+
+  return logsWithOdometer.length > 0 ? logsWithOdometer[0].odometerKm : null
+}
 
 // Request current location via Geolocation API
 const requestCurrentLocation = () => {
@@ -125,6 +140,16 @@ const submitLog = async () => {
     return
   }
 
+  // Odometer validation: Show warning if lower than last reading
+  odometerWarning.value = null
+  if (odometerKm.value !== null) {
+    const lastOdometer = getLastOdometerReading()
+    if (lastOdometer !== null && odometerKm.value < lastOdometer) {
+      odometerWarning.value = `⚠️ Hinweis: Dein Tachostand (${odometerKm.value} km) ist niedriger als der letzte erfasste Wert (${lastOdometer} km). Bist du sicher?`
+      // Don't block submission, just show warning
+    }
+  }
+
   try {
     error.value = null
     const payload: any = {
@@ -140,6 +165,16 @@ const submitLog = async () => {
       payload.longitude = longitude.value
     }
 
+    // Add odometer if provided
+    if (odometerKm.value !== null) {
+      payload.odometerKm = odometerKm.value
+    }
+
+    // Add max charging power if provided
+    if (maxChargingPowerKw.value !== null) {
+      payload.maxChargingPowerKw = Math.round(maxChargingPowerKw.value * 100) / 100
+    }
+
     // Add loggedAt if provided (convert from datetime-local format to ISO string)
     if (loggedAt.value) {
       payload.loggedAt = new Date(loggedAt.value).toISOString()
@@ -151,7 +186,10 @@ const submitLog = async () => {
     kwhCharged.value = 0
     costEur.value = 0
     chargeDurationMinutes.value = 0
+    odometerKm.value = null
+    maxChargingPowerKw.value = null
     loggedAt.value = null
+    odometerWarning.value = null
     clearLocation()
 
     await fetchLogs()
@@ -179,6 +217,10 @@ onMounted(() => {
       {{ error }}
     </div>
 
+    <div v-if="odometerWarning" class="mb-4 p-4 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-md">
+      {{ odometerWarning }}
+    </div>
+
     <form @submit.prevent="submitLog" class="space-y-4">
       <CarSelector v-model="selectedCarId" />
 
@@ -195,6 +237,18 @@ onMounted(() => {
       <div>
         <label class="block text-sm font-medium text-gray-700">Ladedauer (Minuten)</label>
         <input v-model="chargeDurationMinutes" type="number" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Tachostand (km, optional)</label>
+        <input v-model="odometerKm" type="number" step="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
+        <p class="text-xs text-gray-500 mt-1">Hilft dir Verbrauch pro km zu tracken</p>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Max. Ladeleistung (kW, optional)</label>
+        <input v-model="maxChargingPowerKw" type="number" step="0.1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
+        <p class="text-xs text-gray-500 mt-1">Höchste erreichte Ladeleistung während des Ladevorgangs</p>
       </div>
 
       <div>

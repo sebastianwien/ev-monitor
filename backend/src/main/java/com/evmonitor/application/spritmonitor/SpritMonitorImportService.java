@@ -95,6 +95,6 @@ public class SpritMonitorImportService {
         BigDecimal costEur = fueling.cost() != null ? fueling.cost() : BigDecimal.ZERO;
         Integer durationMinutes = fueling.chargingDuration() != null ? fueling.chargingDuration() : 0;
 
-        return EvLog.createNew(carId, kwhCharged, costEur, durationMinutes, geohash, loggedAt);
+        return EvLog.createNew(carId, kwhCharged, costEur, durationMinutes, geohash, null, null, loggedAt);
     }
 }

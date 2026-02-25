@@ -12,12 +12,15 @@ public class EvLog {
     private final BigDecimal costEur;
     private final Integer chargeDurationMinutes;
     private final String geohash; // 5-character geohash (~5km precision) for privacy
+    private final Integer odometerKm; // Optional: odometer reading in km
+    private final BigDecimal maxChargingPowerKw; // Optional: max charging power in kW
     private final LocalDateTime loggedAt; // When the charge happened (user-provided or now)
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
 
     public EvLog(UUID id, UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
-            Integer chargeDurationMinutes, String geohash, LocalDateTime loggedAt,
+            Integer chargeDurationMinutes, String geohash, Integer odometerKm,
+            BigDecimal maxChargingPowerKw, LocalDateTime loggedAt,
             LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.carId = carId;
@@ -25,16 +28,19 @@ public class EvLog {
         this.costEur = costEur;
         this.chargeDurationMinutes = chargeDurationMinutes;
         this.geohash = geohash;
+        this.odometerKm = odometerKm;
+        this.maxChargingPowerKw = maxChargingPowerKw;
         this.loggedAt = loggedAt != null ? loggedAt : LocalDateTime.now();
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
 
     public static EvLog createNew(UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
-            Integer chargeDurationMinutes, String geohash, LocalDateTime loggedAt) {
+            Integer chargeDurationMinutes, String geohash, Integer odometerKm,
+            BigDecimal maxChargingPowerKw, LocalDateTime loggedAt) {
         LocalDateTime now = LocalDateTime.now();
         return new EvLog(UUID.randomUUID(), carId, kwhCharged, costEur,
-                chargeDurationMinutes, geohash, loggedAt, now, now);
+                chargeDurationMinutes, geohash, odometerKm, maxChargingPowerKw, loggedAt, now, now);
     }
 
     public UUID getId() {
@@ -71,5 +77,13 @@ public class EvLog {
 
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
+    }
+
+    public Integer getOdometerKm() {
+        return odometerKm;
+    }
+
+    public BigDecimal getMaxChargingPowerKw() {
+        return maxChargingPowerKw;
     }
 }

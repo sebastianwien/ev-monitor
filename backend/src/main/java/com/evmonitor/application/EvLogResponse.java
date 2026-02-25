@@ -12,6 +12,8 @@ public record EvLogResponse(
         BigDecimal costEur,
         Integer chargeDurationMinutes,
         String geohash,
+        Integer odometerKm,
+        BigDecimal maxChargingPowerKw,
         LocalDateTime loggedAt,
         LocalDateTime createdAt,
         LocalDateTime updatedAt) {
@@ -23,6 +25,8 @@ public record EvLogResponse(
                 evLog.getCostEur(),
                 evLog.getChargeDurationMinutes(),
                 evLog.getGeohash(),
+                evLog.getOdometerKm(),
+                evLog.getMaxChargingPowerKw(),
                 evLog.getLoggedAt(),
                 evLog.getCreatedAt(),
                 evLog.getUpdatedAt());

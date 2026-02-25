@@ -138,6 +138,8 @@ public class DevDataSeeder implements CommandLineRunner {
                     BigDecimal.valueOf(Math.round(costEur * 100.0) / 100.0),    // 2 decimals
                     minutes,
                     geohash,
+                    null, // odometerKm (not available in seed data)
+                    null, // maxChargingPowerKw (not available in seed data)
                     chargeTime
             );
 

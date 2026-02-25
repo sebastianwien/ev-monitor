@@ -13,5 +13,7 @@ public record EvLogRequest(
                 @NotNull @Positive Integer chargeDurationMinutes,
                 Double latitude,  // Optional: for geolocation (not stored, converted to geohash)
                 Double longitude, // Optional: for geolocation (not stored, converted to geohash)
+                Integer odometerKm, // Optional: odometer reading in km
+                BigDecimal maxChargingPowerKw, // Optional: max charging power in kW
                 LocalDateTime loggedAt) { // Optional: when the charge happened
 }
