@@ -3,6 +3,35 @@
 -- Source: Official manufacturer WLTP figures (COMBINED cycle, rounded)
 -- ON CONFLICT DO NOTHING = safe to re-run, won't overwrite community contributions
 
+-- Ensure named constraint exists (production DBs created by Hibernate may only have unnamed constraints)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'uq_vehicle_spec'
+          AND conrelid = 'vehicle_specification'::regclass
+    ) THEN
+        -- Drop any existing unnamed unique index on these columns first (Hibernate-generated)
+        IF EXISTS (
+            SELECT 1 FROM pg_indexes
+            WHERE tablename = 'vehicle_specification'
+              AND indexdef LIKE '%car_brand%car_model%battery_capacity_kwh%wltp_type%'
+              AND indexname NOT LIKE '%uq_vehicle_spec%'
+        ) THEN
+            EXECUTE (
+                SELECT 'DROP INDEX ' || indexname
+                FROM pg_indexes
+                WHERE tablename = 'vehicle_specification'
+                  AND indexdef LIKE '%car_brand%car_model%battery_capacity_kwh%wltp_type%'
+                  AND indexname NOT LIKE '%uq_vehicle_spec%'
+                LIMIT 1
+            );
+        END IF;
+        ALTER TABLE vehicle_specification
+            ADD CONSTRAINT uq_vehicle_spec UNIQUE (car_brand, car_model, battery_capacity_kwh, wltp_type);
+    END IF;
+END $$;
+
 INSERT INTO vehicle_specification
     (id, car_brand, car_model, battery_capacity_kwh, wltp_range_km, wltp_consumption_kwh_per_100km, wltp_type, created_at, updated_at)
 VALUES
