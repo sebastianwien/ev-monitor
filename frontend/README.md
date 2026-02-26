@@ -1,44 +1,54 @@
 # EV Monitor - Frontend
 
-This directory manages the visual interface encompassing a Progressive Web App (PWA) client for EV Monitor. It delivers an optimized layout catering to logging live telemetry values intuitively.
+The Vue.js PWA client for EV Monitor — charging log management, vehicle tracking, WLTP data crowdsourcing, and statistics.
 
 ## 🤖 AI Assistant Context & Tech Stack
-When operating across this frontend directory and implementing features, continuously synchronize against these explicit technological bindings limiting uncompatible code generation behaviors:
 
-- **Framework Module**: **Vue 3** built upon the Composition API design strictly referencing the concise `<script setup lang="ts">` setup tags.
-- **Build Chain**: **Vite** bundled internally communicating natively with the **Vite PWA Plugin** (`vite-plugin-pwa`).
-- **Typing Framework**: **TypeScript** enforcing explicit type schemas.
-- **Visual Styling Protocol**: **Tailwind CSS v4**.
-  - **CRITICAL COMPLIANCE FIX**: Tailwind v4 executes via `@tailwindcss/postcss` located distinctly within `postcss.config.js`. It explicitly strips the capability to utilize historically aged `@tailwind` directives. As shown within `src/index.css`, components rely only on root-level `@import "tailwindcss";` hooks. Do not generate or interleave legacy Tailwind v3 syntax variants utilizing rigid `@apply` class applications unless fully conforming to v4 implementation guidelines.
+When working in this directory, adhere to these constraints:
 
-## Prerequisites Requirement
+- **Framework**: **Vue 3** with Composition API — use `<script setup lang="ts">` syntax
+- **Build Tool**: **Vite** (with `vite-plugin-pwa` for PWA support)
+- **TypeScript**: Strict typing throughout
+- **Styling**: **Tailwind CSS v4**
+  - Uses `@import "tailwindcss";` in `src/index.css` (NOT legacy `@tailwind` directives)
+  - Config lives in `postcss.config.js` via `@tailwindcss/postcss`
+  - Do not use Tailwind v3 `@apply` syntax
+- **State Management**: Pinia
+- **HTTP Client**: Axios with JWT interceptor (auto-attaches `Authorization: Bearer` header)
+- **Routing**: Vue Router with `requiresAuth` / `guestOnly` guards
 
-- Operating **Node.js** architecture v20+ optimally alongside **NPM**.
+## Prerequisites
 
-## Installation Initialization
+- **Node.js 20+**
+- **npm**
 
-Traverse to the `frontend` origin directory and provision the exact dependencies specified lockfile:
+## Running Locally
+
 ```bash
 npm install
-```
-
-## Running Dev Server Locally
-
-Trigger the rapid localized Vite development server:
-```bash
 npm run dev
 ```
-The application spins up responsively mounted at `http://localhost:5173`. 
-*Functional Note: To guarantee accurate execution of API polling and submissions without encountering CORS drops, ensure your backend server operates cleanly parallel. Direct queries flow against standard URL endpoints expected locally on `localhost:8080` unless proxying overrides intervene.*
 
-## Creating Production Bundles
+The dev server starts at `http://localhost:5173`.
 
-Optimize static file chunk generation encapsulating JavaScript objects perfectly alongside the crucial active configuration bindings to build Service Worker cache maps establishing offline-enabled PWA rules logic:
+For API calls to work, the backend must be running on `http://localhost:8080` (or use `./dev.sh` from the root to start everything at once).
+
+## Building for Production
+
 ```bash
 npm run build
 ```
-The command systematically traverses `vue-tsc` catching strict structural type leaks progressing successfully toward injecting artifacts directly into Vite's optimized `dist/` manifest sequence folder safely preparing them to be directly served structurally statically.
+
+Output goes to `dist/` — served by Nginx in production. Runs `vue-tsc` for type checking before bundling.
+
+## Key Notes
+
+- **Location Search**: OpenStreetMap Nominatim API, debounced (300ms). Users can search or use GPS. Coordinates are sent to the backend which converts them to a geohash — exact GPS is never stored.
+- **WLTP Flow**: When a user selects a car model, the frontend auto-lookups WLTP data. If none exists, an overlay prompts the user to contribute data and earn coins.
+- **Email Verification**: `/verify-email` route has no auth guard — must be accessible without a token.
+- **OAuth2**: `OAuth2RedirectHandler.vue` handles the callback and parses the JWT from the URL fragment.
 
 ## References
-- Return backwards referring sequentially to the [Root README](../README.md).
-- Proceed into checking explicitly [Backend API Specifications](../backend/README.md).
+
+- [Root README](../README.md)
+- [Backend README](../backend/README.md)
