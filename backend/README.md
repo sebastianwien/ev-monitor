@@ -1,53 +1,72 @@
 # EV Monitor - Backend
 
-This directory contains the robust REST API powering the EV Monitor application, built utilizing **Spring Boot 3.5**, **Java 21** and **Gradle**.
+The REST API for EV Monitor, built with **Spring Boot 3.5**, **Java 21**, and **Gradle**.
 
 ## 🤖 AI Assistant Context & Architectural Rules
-This backend strictly adheres to **Clean Architecture** patterns. It is critical to enforce and maintain these boundaries when modifying or adding business features:
+
+This backend strictly adheres to **Clean Architecture** principles. Maintain these layer boundaries when adding or modifying features:
 
 1. **`domain` layer** (`com.evmonitor.domain`)
-   - **Rule**: Must remain completely framework-agnostic. No Spring Boot or JPA imports are permitted here.
-   - **Contains**: Core business Entities (e.g., `EvLog`), Value Objects (e.g., `DrivingStyle`), and primary Repository Interface Ports.
+   - Must remain framework-agnostic — no Spring Boot or JPA imports
+   - Contains: Core entities (`User`, `Car`, `EvLog`, `CoinLog`, `VehicleSpecification`, `EmailVerificationToken`), Repository interface ports
 
 2. **`application` layer** (`com.evmonitor.application`)
-   - **Rule**: Coordinates domain logic acting as the concrete use cases. May utilize standard Java dependencies and minimal Spring dependency injection (`@Service`), but must definitively not have visibility into HTTP request lifecycles, or Database specific entities/table rows.
-   - **Contains**: Application Services, mapping logics, and generic Request/Response DTOs.
+   - Coordinates domain logic as use cases
+   - May use `@Service` and standard Java, but must not depend on HTTP or DB specifics
+   - Contains: Application services, DTOs, request/response objects
 
 3. **`infrastructure` layer** (`com.evmonitor.infrastructure`)
-   - **Rule**: Acts as the system edges containing all framework-specific adapters required to bridge ports into outer-world dependencies. This is the isolated location where Spring Web (`@RestController`) and Spring Data JPA annotations (`@Entity`, `@Table`) must live.
-   - **Contains**: External-facing REST Controllers (`web`), Persistence mapping logic and concrete implementations (`persistence`), Database connections Configuration protocols.
+   - All framework-specific adapters live here
+   - Contains: REST controllers (`web`), JPA persistence (`persistence`), security config, email service
 
 ## Prerequisites
 
-- **Java 21** required natively. Note: The `Dockerfile` specifically isolates Eclipse Temurin 21 within an Ubuntu **Jammy** minimal layer due to Gradle JVM compilation edge-cases that cause Segment Faults alongside Alpine architecture.
-- **Gradle Wrapper** (The project utilizes `gradlew` wrapper version 8.7+ enabling proper compatibility arrays with Java 21 outputs).
+- **Java 21** (required)
+- **Gradle Wrapper** — use `./gradlew`, no global Gradle installation needed
+- **PostgreSQL** running locally (or via Docker — see root `docker-compose.dev.yml`)
 
 ## Running Locally
 
-To run the backend independently of the main orchestrator loop:
-
-1. Ensure a PostgreSQL background instance is functional and matches the declared properties located in `src/main/resources/application.yml`. Alternately, override the required environmental variables globally: `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`.
-2. Run the application instance locally:
+1. Start PostgreSQL:
    ```bash
-   ./gradlew bootRun
+   docker compose -f ../docker-compose.dev.yml up -d
    ```
 
-The application bindings deploy directly to port `8080`.
+2. Start the backend (dev profile includes seed data — 3 test users, 6 cars, ~370 charging logs):
+   ```bash
+   SPRING_PROFILES_ACTIVE=dev ./gradlew bootRun
+   ```
 
-## Testing Structure
+The API runs on `http://localhost:8080`.
 
-Execute the enclosed test suites covering isolated Service layers (Unit with Mockito) alongside WebMvc integration mock-request slices using:
+Alternatively, use `./dev.sh` from the root to start the entire stack at once.
+
+## Testing
+
 ```bash
 ./gradlew test
 ```
 
-## Compilation Build
+Covers unit tests (Mockito) and WebMvc integration slice tests.
 
-To compile a clean state and output a production `app.jar` safely resolving memory structures (skipping runtime tests):
+## Build
+
 ```bash
 ./gradlew clean build -x test
 ```
 
+Produces `build/libs/app.jar` (used by the Docker multi-stage build).
+
+## Key Implementation Notes
+
+- **JWT Auth**: 7-day tokens, validated via `JwtAuthenticationFilter`. Claims include `sub` (userId), `email`, `exp`.
+- **Email Verification**: 256-bit `SecureRandom` tokens, 24h TTL. Login requires verified email.
+- **Geohashing**: `lat/lon` from the client is converted to a 5-char geohash (~5km precision) and the coordinates are immediately discarded. Never stored.
+- **CarBrand Enum**: 68 brands with nested `CarModel` enum. Stored as `STRING` (not ordinal) for safe migrations.
+- **Flyway**: DB migrations in `src/main/resources/db/migration/`.
+- **OAuth2**: Infrastructure is prepared (Google/Facebook/Apple). Activate via `SPRING_PROFILES_ACTIVE=prod,oauth` + provider env vars.
+
 ## References
-- Go back to the [Root README](../README.md)
-- Check the [Frontend Documentation](../frontend/README.md)
+
+- [Root README](../README.md)
+- [Frontend README](../frontend/README.md)
