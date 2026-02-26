@@ -307,6 +307,10 @@ public enum CarBrand {
              .toList();
       }
 
+      public CarBrand getBrand() {
+         return brand;
+      }
+
       public List<Double> getCapacities() {
          return capacities;
       }

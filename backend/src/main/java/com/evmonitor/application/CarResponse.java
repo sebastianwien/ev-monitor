@@ -13,6 +13,7 @@ import java.util.UUID;
 public record CarResponse(
         UUID id,
         UUID userId,
+        CarBrand brand,
         CarBrand.CarModel model,
         Integer year,
         String licensePlate,
@@ -30,6 +31,7 @@ public record CarResponse(
         return new CarResponse(
                 car.getId(),
                 car.getUserId(),
+                car.getModel().getBrand(),
                 car.getModel(),
                 car.getYear(),
                 car.getLicensePlate(),
