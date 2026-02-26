@@ -164,9 +164,34 @@ public class EvLogService {
                 .average()
                 .orElse(0.0);
 
+        // Compute per-log distance from consecutive odometer readings (all logs for this car, sorted)
+        List<EvLog> allLogsForCar = evLogRepository.findAllByCarId(carId).stream()
+                .sorted(Comparator.comparing(EvLog::getLoggedAt))
+                .collect(Collectors.toList());
+        Map<UUID, Integer> distanceByLogId = computeDistanceByLogId(allLogsForCar);
+
         // Charge over time data (grouped and sorted by time)
         List<EvLogStatisticsResponse.ChargeDataPoint> chargesOverTime =
-                groupChargesByPeriod(logs, groupBy != null ? groupBy : "MONTH");
+                groupChargesByPeriod(logs, groupBy != null ? groupBy : "MONTH", distanceByLogId);
+
+        // Total distance and avg consumption (only logs that have distance data)
+        BigDecimal totalDistanceKm = null;
+        BigDecimal avgConsumptionKwhPer100km = null;
+        List<EvLog> filteredLogsWithDistance = logs.stream()
+                .filter(l -> distanceByLogId.containsKey(l.getId()) && distanceByLogId.get(l.getId()) > 0)
+                .collect(Collectors.toList());
+        if (!filteredLogsWithDistance.isEmpty()) {
+            int totalDistanceInt = filteredLogsWithDistance.stream()
+                    .mapToInt(l -> distanceByLogId.get(l.getId())).sum();
+            totalDistanceKm = new BigDecimal(totalDistanceInt);
+            BigDecimal kwhForThoseTrips = filteredLogsWithDistance.stream()
+                    .map(EvLog::getKwhCharged).reduce(BigDecimal.ZERO, BigDecimal::add);
+            if (totalDistanceKm.compareTo(BigDecimal.ZERO) > 0) {
+                avgConsumptionKwhPer100km = kwhForThoseTrips
+                        .multiply(new BigDecimal("100"))
+                        .divide(totalDistanceKm, 2, RoundingMode.HALF_UP);
+            }
+        }
 
         return new EvLogStatisticsResponse(
                 totalKwhCharged,
@@ -176,44 +201,57 @@ public class EvLogService {
                 mostExpensiveCharge,
                 avgChargeDuration,
                 logs.size(),
+                totalDistanceKm,
+                avgConsumptionKwhPer100km,
                 chargesOverTime
         );
     }
 
     private EvLogStatisticsResponse createEmptyStatistics() {
         return new EvLogStatisticsResponse(
-                BigDecimal.ZERO,
-                BigDecimal.ZERO,
-                BigDecimal.ZERO,
-                BigDecimal.ZERO,
-                BigDecimal.ZERO,
-                0,
-                0,
-                List.of()
+                BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+                BigDecimal.ZERO, BigDecimal.ZERO, 0, 0,
+                null, null, List.of()
         );
+    }
+
+    /**
+     * Compute distance driven before each charge from consecutive odometer readings.
+     * Distance for log[i] = log[i].odometer - log[i-1].odometer (if both have odometer data).
+     * Logs must be sorted by loggedAt ascending.
+     */
+    private Map<UUID, Integer> computeDistanceByLogId(List<EvLog> sortedLogs) {
+        Map<UUID, Integer> result = new java.util.HashMap<>();
+        for (int i = 1; i < sortedLogs.size(); i++) {
+            EvLog current = sortedLogs.get(i);
+            EvLog previous = sortedLogs.get(i - 1);
+            if (current.getOdometerKm() != null && previous.getOdometerKm() != null) {
+                int distance = current.getOdometerKm() - previous.getOdometerKm();
+                if (distance > 0) {
+                    result.put(current.getId(), distance);
+                }
+            }
+        }
+        return result;
     }
 
     /**
      * Group charges by time period (DAY, WEEK, MONTH) and aggregate metrics.
      */
     private List<EvLogStatisticsResponse.ChargeDataPoint> groupChargesByPeriod(
-            List<EvLog> logs, String groupBy) {
+            List<EvLog> logs, String groupBy, Map<UUID, Integer> distanceByLogId) {
 
-        // Group logs by period
         Map<String, List<EvLog>> groupedLogs = new java.util.LinkedHashMap<>();
-
         for (EvLog log : logs) {
             String periodKey = getPeriodKey(log.getLoggedAt(), groupBy);
             groupedLogs.computeIfAbsent(periodKey, k -> new ArrayList<>()).add(log);
         }
 
-        // Aggregate each period
         return groupedLogs.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
                 .map(entry -> {
                     List<EvLog> periodLogs = entry.getValue();
 
-                    // Sum up kWh and cost for this period
                     BigDecimal totalKwh = periodLogs.stream()
                             .map(EvLog::getKwhCharged)
                             .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -222,13 +260,29 @@ public class EvLogService {
                             .map(EvLog::getCostEur)
                             .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-                    // Use first log's timestamp as representative for this period
-                    LocalDateTime periodTimestamp = periodLogs.get(0).getLoggedAt();
+                    // Distance and consumption for this period
+                    List<EvLog> logsWithDistance = periodLogs.stream()
+                            .filter(l -> distanceByLogId.containsKey(l.getId()))
+                            .collect(Collectors.toList());
 
+                    BigDecimal periodDistance = null;
+                    BigDecimal periodConsumption = null;
+                    if (!logsWithDistance.isEmpty()) {
+                        int distSum = logsWithDistance.stream()
+                                .mapToInt(l -> distanceByLogId.get(l.getId())).sum();
+                        periodDistance = new BigDecimal(distSum);
+                        BigDecimal kwhForDistance = logsWithDistance.stream()
+                                .map(EvLog::getKwhCharged).reduce(BigDecimal.ZERO, BigDecimal::add);
+                        if (periodDistance.compareTo(BigDecimal.ZERO) > 0) {
+                            periodConsumption = kwhForDistance
+                                    .multiply(new BigDecimal("100"))
+                                    .divide(periodDistance, 2, RoundingMode.HALF_UP);
+                        }
+                    }
+
+                    LocalDateTime periodTimestamp = periodLogs.get(0).getLoggedAt();
                     return new EvLogStatisticsResponse.ChargeDataPoint(
-                            periodTimestamp,
-                            totalCost,
-                            totalKwh
+                            periodTimestamp, totalCost, totalKwh, periodDistance, periodConsumption
                     );
                 })
                 .collect(Collectors.toList());

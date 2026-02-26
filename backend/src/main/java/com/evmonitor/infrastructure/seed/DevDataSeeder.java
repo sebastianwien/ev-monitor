@@ -53,12 +53,12 @@ public class DevDataSeeder implements CommandLineRunner {
     }
 
     private void seedTestData() {
-        // 3 Users (all with password: Test1234!)
-        User user1 = createUser("test1@ev-monitor.net");
-        User user2 = createUser("test2@ev-monitor.net");
-        User user3 = createUser("test3@ev-monitor.net");
+        // 3 Users (all with password: 123!"§)
+        User user1 = createUser("test1@ev-monitor.net", "max_e_driver");
+        User user2 = createUser("test2@ev-monitor.net", "anna_ampere");
+        User user3 = createUser("test3@ev-monitor.net", "kurt_kilowatt");
 
-        System.out.println("👤 Created 3 test users (password: Test1234!)");
+        System.out.println("👤 Created 3 test users (password: 123!\"§)");
 
         // 6 Cars (2 per user, using real CarBrand.CarModel enums with specific capacities)
         Car car1 = createCar(user1, CarBrand.CarModel.MODEL_3, new BigDecimal("75.0"), 2023, "B-EV 1234");
@@ -70,21 +70,20 @@ public class DevDataSeeder implements CommandLineRunner {
 
         System.out.println("🚗 Created 6 cars (2 per user)");
 
-        // Charging logs: ~70 per car (1-2 charges per week over 1 year)
+        // Charging logs with odometer data (typical EV consumption: 15-18 kWh/100km)
         int totalLogs = 0;
-        totalLogs += generateChargingLogs(car1, 70);
-        totalLogs += generateChargingLogs(car2, 60);
-        totalLogs += generateChargingLogs(car3, 80);
-        totalLogs += generateChargingLogs(car4, 50);
-        totalLogs += generateChargingLogs(car5, 70);
-        totalLogs += generateChargingLogs(car6, 40);
+        totalLogs += generateChargingLogs(car1, 70, 22500, 16.0); // Tesla M3: ~16 kWh/100km
+        totalLogs += generateChargingLogs(car2, 60,  8200, 17.0); // VW ID.3: ~17 kWh/100km
+        totalLogs += generateChargingLogs(car3, 80, 14000, 18.0); // Ioniq 5: ~18 kWh/100km
+        totalLogs += generateChargingLogs(car4, 50, 31000, 19.0); // BMW i4: ~19 kWh/100km
+        totalLogs += generateChargingLogs(car5, 70,  5500, 17.5); // Polestar 2: ~17.5 kWh/100km
+        totalLogs += generateChargingLogs(car6, 40, 19000, 16.5); // MG4: ~16.5 kWh/100km
 
         System.out.println("⚡ Created " + totalLogs + " charging logs");
     }
 
-    private User createUser(String email) {
-        String passwordHash = passwordEncoder.encode("Test1234!");
-        String username = email.split("@")[0]; // Use email prefix as username
+    private User createUser(String email, String username) {
+        String passwordHash = passwordEncoder.encode("123!\"§");
         User user = User.createVerifiedLocalUser(email, username, passwordHash);
         return userRepository.save(user);
     }
@@ -105,8 +104,9 @@ public class DevDataSeeder implements CommandLineRunner {
         return carRepository.save(car);
     }
 
-    private int generateChargingLogs(Car car, int count) {
+    private int generateChargingLogs(Car car, int count, int startOdometer, double avgConsumptionKwhPer100km) {
         LocalDate startDate = LocalDate.now().minusYears(1);
+        int currentOdometer = startOdometer;
 
         for (int i = 0; i < count; i++) {
             // 1-2 charges per week: every 3-7 days
@@ -130,17 +130,26 @@ public class DevDataSeeder implements CommandLineRunner {
             int minute = random.nextInt(60);
             LocalDateTime chargeTime = chargeDate.atTime(hour, minute);
 
-            // Random Berlin area geohash (5km precision)
-            String geohash = getRandomBerlinGeohash();
+            // Odometer: advance by distance driven (kWh / consumption * 100km), ±10% variance
+            double consumptionVariance = avgConsumptionKwhPer100km * (0.9 + random.nextDouble() * 0.2);
+            int kmDriven = (int) Math.round(kwhCharged / consumptionVariance * 100.0);
+            currentOdometer += kmDriven;
+
+            // Max charging power: realistic for the car (AC 11kW, DC 50-150kW), occasionally null
+            BigDecimal maxChargingPower = null;
+            if (random.nextDouble() > 0.2) { // 80% of logs have charging power data
+                double[] powerOptions = {11.0, 22.0, 50.0, 100.0, 150.0};
+                maxChargingPower = BigDecimal.valueOf(powerOptions[random.nextInt(powerOptions.length)]);
+            }
 
             EvLog log = EvLog.createNew(
                     car.getId(),
-                    BigDecimal.valueOf(Math.round(kwhCharged * 100.0) / 100.0), // 2 decimals
-                    BigDecimal.valueOf(Math.round(costEur * 100.0) / 100.0),    // 2 decimals
+                    BigDecimal.valueOf(Math.round(kwhCharged * 100.0) / 100.0),
+                    BigDecimal.valueOf(Math.round(costEur * 100.0) / 100.0),
                     minutes,
-                    geohash,
-                    null, // odometerKm (not available in seed data)
-                    null, // maxChargingPowerKw (not available in seed data)
+                    getRandomBerlinGeohash(),
+                    currentOdometer,
+                    maxChargingPower,
                     chargeTime
             );
 

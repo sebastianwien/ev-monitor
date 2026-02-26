@@ -13,6 +13,8 @@ public record EvLogStatisticsResponse(
         BigDecimal mostExpensiveChargeEur,
         Integer avgChargeDurationMinutes,
         Integer totalCharges,
+        BigDecimal totalDistanceKm,            // null if no odometer data
+        BigDecimal avgConsumptionKwhPer100km,  // null if no odometer data
 
         // Charge Over Time (for chart)
         List<ChargeDataPoint> chargesOverTime
@@ -20,6 +22,8 @@ public record EvLogStatisticsResponse(
     public record ChargeDataPoint(
             LocalDateTime timestamp,
             BigDecimal costEur,
-            BigDecimal kwhCharged
+            BigDecimal kwhCharged,
+            BigDecimal distanceKm,             // null if no odometer data
+            BigDecimal consumptionKwhPer100km  // null if no odometer data
     ) {}
 }
