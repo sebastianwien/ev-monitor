@@ -7,6 +7,7 @@ import VerifyEmailView from '../views/VerifyEmailView.vue';
 import OAuth2RedirectHandler from '../views/OAuth2RedirectHandler.vue';
 import CarManagementView from '../views/CarManagementView.vue';
 import StatisticsView from '../views/StatisticsView.vue';
+import PublicModelView from '../views/PublicModelView.vue';
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
@@ -51,6 +52,12 @@ const router = createRouter({
             path: '/oauth2/redirect',
             name: 'oauth2-redirect',
             component: OAuth2RedirectHandler
+        },
+        {
+            path: '/modelle/:brand/:model',
+            name: 'public-model',
+            component: PublicModelView
+            // no auth guard - public page for SEO
         }
     ]
 });

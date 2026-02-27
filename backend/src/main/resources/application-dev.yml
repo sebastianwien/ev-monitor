@@ -1,6 +1,13 @@
 # Development Profile Configuration
 # Activate with: SPRING_PROFILES_ACTIVE=dev
 
+logging:
+  level:
+    org:
+      hibernate:
+        orm:
+          jdbc: TRACE
+
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/ev_monitor
@@ -14,7 +21,8 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update  # Auto-create/update tables in dev mode
-    show-sql: false  # Enable SQL logging for dev
+    show-sql: true  # Enable SQL logging for dev
+
     properties:
       hibernate:
         format_sql: true

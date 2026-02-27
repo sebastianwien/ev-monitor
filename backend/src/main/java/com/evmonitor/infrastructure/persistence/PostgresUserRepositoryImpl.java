@@ -64,6 +64,7 @@ public class PostgresUserRepositoryImpl implements UserRepository {
                 domain.getAuthProvider(),
                 domain.getRole(),
                 domain.isEmailVerified(),
+                domain.isSeedData(),
                 domain.getCreatedAt(),
                 domain.getUpdatedAt());
     }
@@ -77,6 +78,7 @@ public class PostgresUserRepositoryImpl implements UserRepository {
                 entity.getAuthProvider(),
                 entity.getRole(),
                 entity.isEmailVerified(),
+                entity.isSeedData(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt());
     }

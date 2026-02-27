@@ -31,6 +31,9 @@ public class UserEntity {
     @Column(name = "email_verified", nullable = false)
     private boolean emailVerified;
 
+    @Column(name = "is_seed_data", nullable = false)
+    private boolean seedData;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -41,7 +44,7 @@ public class UserEntity {
     }
 
     public UserEntity(UUID id, String email, String username, String passwordHash, AuthProvider authProvider, String role,
-            boolean emailVerified, LocalDateTime createdAt, LocalDateTime updatedAt) {
+            boolean emailVerified, boolean seedData, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.email = email;
         this.username = username;
@@ -49,6 +52,7 @@ public class UserEntity {
         this.authProvider = authProvider;
         this.role = role;
         this.emailVerified = emailVerified;
+        this.seedData = seedData;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -123,5 +127,13 @@ public class UserEntity {
 
     public void setEmailVerified(boolean emailVerified) {
         this.emailVerified = emailVerified;
+    }
+
+    public boolean isSeedData() {
+        return seedData;
+    }
+
+    public void setSeedData(boolean seedData) {
+        this.seedData = seedData;
     }
 }

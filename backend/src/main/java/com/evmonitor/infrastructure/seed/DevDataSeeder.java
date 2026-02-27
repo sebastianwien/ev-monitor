@@ -84,7 +84,7 @@ public class DevDataSeeder implements CommandLineRunner {
 
     private User createUser(String email, String username) {
         String passwordHash = passwordEncoder.encode("123!\"§");
-        User user = User.createVerifiedLocalUser(email, username, passwordHash);
+        User user = User.createSeedUser(email, username, passwordHash);
         return userRepository.save(user);
     }
 
@@ -103,6 +103,29 @@ public class DevDataSeeder implements CommandLineRunner {
         );
         return carRepository.save(car);
     }
+
+    /**
+     * Seasonal consumption multipliers for Germany (month index 1-12).
+     * EV winter penalty: cabin + battery heating, cold cell performance.
+     * EV summer bonus: good battery temps, though AC adds ~5% back.
+     *
+     * Source basis: typical real-world EV data (e.g. ~25-30% more in Jan vs. July)
+     */
+    private static final double[] SEASONAL_MULTIPLIER = {
+        0.0,  // [0] unused (months are 1-based)
+        1.28, // Jan  – cold (-5°C avg), heavy heating
+        1.22, // Feb  – still cold, gradually warming
+        1.10, // Mar  – cool, heating tapering off
+        1.02, // Apr  – mild, minimal HVAC
+        0.95, // May  – warm, AC not yet heavy
+        0.93, // Jun  – warm/hot, slight AC penalty
+        0.92, // Jul  – hottest month, lowest consumption
+        0.93, // Aug  – similar to July
+        0.97, // Sep  – mild, occasional heating starts
+        1.06, // Oct  – cool, heating returns
+        1.17, // Nov  – cold, significant heating load
+        1.24  // Dec  – cold, holiday short trips (less efficient)
+    };
 
     private int generateChargingLogs(Car car, int count, int startOdometer, double avgConsumptionKwhPer100km) {
         LocalDate startDate = LocalDate.now().minusYears(1);
@@ -130,9 +153,16 @@ public class DevDataSeeder implements CommandLineRunner {
             int minute = random.nextInt(60);
             LocalDateTime chargeTime = chargeDate.atTime(hour, minute);
 
-            // Odometer: advance by distance driven (kWh / consumption * 100km), ±10% variance
-            double consumptionVariance = avgConsumptionKwhPer100km * (0.9 + random.nextDouble() * 0.2);
-            int kmDriven = (int) Math.round(kwhCharged / consumptionVariance * 100.0);
+            // Seasonal consumption: winter up to +28%, summer down to -8%
+            int month = chargeDate.getMonthValue();
+            double seasonalFactor = SEASONAL_MULTIPLIER[month];
+
+            // Odometer: advance by distance driven (kWh / consumption * 100km)
+            // ±8% random variance on top of seasonal factor
+            double consumption = avgConsumptionKwhPer100km
+                    * seasonalFactor
+                    * (0.92 + random.nextDouble() * 0.16);
+            int kmDriven = (int) Math.round(kwhCharged / consumption * 100.0);
             currentOdometer += kmDriven;
 
             // Max charging power: realistic for the car (AC 11kW, DC 50-150kW), occasionally null

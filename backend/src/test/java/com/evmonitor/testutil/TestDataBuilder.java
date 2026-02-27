@@ -38,6 +38,7 @@ public class TestDataBuilder {
                 AuthProvider.LOCAL,
                 "USER",
                 true, // emailVerified
+                false, // seedData
                 LocalDateTime.now(),
                 LocalDateTime.now()
         );
