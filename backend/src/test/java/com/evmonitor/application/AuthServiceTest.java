@@ -110,7 +110,7 @@ class AuthServiceTest {
         UUID userId = UUID.randomUUID();
 
         User user = new User(userId, email, "testuser", "$2a$10$hashedPassword",
-                AuthProvider.LOCAL, "USER", true /* emailVerified */,
+                AuthProvider.LOCAL, "USER", true /* emailVerified */, false,
                 LocalDateTime.now(), LocalDateTime.now());
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
@@ -134,7 +134,7 @@ class AuthServiceTest {
         UUID userId = UUID.randomUUID();
 
         User unverifiedUser = new User(userId, email, "unverified", "$2a$10$hash",
-                AuthProvider.LOCAL, "USER", false /* emailVerified */,
+                AuthProvider.LOCAL, "USER", false /* emailVerified */, false,
                 LocalDateTime.now(), LocalDateTime.now());
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(unverifiedUser));
@@ -159,7 +159,7 @@ class AuthServiceTest {
                 UUID.randomUUID(), userId, rawToken, LocalDateTime.now().plusHours(24), LocalDateTime.now());
 
         User user = new User(userId, "user@example.com", "user", "$2a$10$hash",
-                AuthProvider.LOCAL, "USER", true, LocalDateTime.now(), LocalDateTime.now());
+                AuthProvider.LOCAL, "USER", true, false, LocalDateTime.now(), LocalDateTime.now());
 
         when(tokenRepository.findByToken(rawToken)).thenReturn(Optional.of(verificationToken));
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
