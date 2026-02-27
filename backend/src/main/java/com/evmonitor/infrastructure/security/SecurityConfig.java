@@ -47,6 +47,7 @@ public class SecurityConfig {
                                 "/api/auth/verify-email", "/api/auth/resend-verification").permitAll()
                         .requestMatchers("/api/cars/brands", "/api/cars/brands/**").permitAll()
                         .requestMatchers("/api/vehicle-specifications/lookup").permitAll()
+                        .requestMatchers("/api/public/**").permitAll()
                         // Require Auth for remaining API endpoints
                         .requestMatchers("/api/**").authenticated()
                         // Permit any other endpoints, assuming they are static resources or frontend

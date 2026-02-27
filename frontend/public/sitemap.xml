@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+  <!-- Main pages -->
+  <url>
+    <loc>https://ev-monitor.net/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/register</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/login</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <!-- Public model pages (real-world consumption data) -->
+
+  <!-- Tesla -->
+  <url>
+    <loc>https://ev-monitor.net/modelle/TESLA/MODEL_3</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/modelle/TESLA/MODEL_Y</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- VW -->
+  <url>
+    <loc>https://ev-monitor.net/modelle/VW/ID_3</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/modelle/VW/ID_4</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/modelle/VW/ID_5</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/modelle/VW/ID_7</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Hyundai -->
+  <url>
+    <loc>https://ev-monitor.net/modelle/HYUNDAI/IONIQ_5</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/modelle/HYUNDAI/IONIQ_6</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/modelle/HYUNDAI/KONA_ELECTRIC</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Kia -->
+  <url>
+    <loc>https://ev-monitor.net/modelle/KIA/EV_6</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/modelle/KIA/EV_9</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- BMW -->
+  <url>
+    <loc>https://ev-monitor.net/modelle/BMW/I4</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/modelle/BMW/IX3</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Audi -->
+  <url>
+    <loc>https://ev-monitor.net/modelle/AUDI/Q4_E_TRON</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/modelle/AUDI/E_TRON</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Skoda -->
+  <url>
+    <loc>https://ev-monitor.net/modelle/SKODA/ENYAQ</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Polestar -->
+  <url>
+    <loc>https://ev-monitor.net/modelle/POLESTAR/POLESTAR_2</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- MG -->
+  <url>
+    <loc>https://ev-monitor.net/modelle/MG/MG4</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Renault -->
+  <url>
+    <loc>https://ev-monitor.net/modelle/RENAULT/ZOE</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/modelle/RENAULT/MEGANE_E_TECH</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/modelle/RENAULT/RENAULT_5</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Nissan -->
+  <url>
+    <loc>https://ev-monitor.net/modelle/NISSAN/LEAF</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Dacia -->
+  <url>
+    <loc>https://ev-monitor.net/modelle/DACIA/DACIA_SPRING</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- BYD -->
+  <url>
+    <loc>https://ev-monitor.net/modelle/BYD/BYD_SEAL</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Fiat -->
+  <url>
+    <loc>https://ev-monitor.net/modelle/FIAT/FIAT_500E</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+</urlset>
