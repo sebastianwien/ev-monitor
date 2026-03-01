@@ -2,10 +2,13 @@ package com.evmonitor.infrastructure.web;
 
 import com.evmonitor.application.PublicModelService;
 import com.evmonitor.application.PublicModelStatsResponse;
+import com.evmonitor.infrastructure.security.UserPrincipal;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Public, unauthenticated API for car model statistics.
@@ -25,23 +28,47 @@ public class PublicModelController {
     /**
      * GET /api/public/models/{brand}/{model}
      * Returns aggregated real-world statistics for a car model.
-     * Excludes seed/test data. Returns 404 if model doesn't exist.
+     * Excludes seed/test data, UNLESS authenticated user is a seed user (then includes their own data).
+     * Returns 404 if model doesn't exist.
      */
     @GetMapping("/models/{brand}/{model}")
     public ResponseEntity<PublicModelStatsResponse> getModelStats(
             @PathVariable String brand,
-            @PathVariable String model) {
-        return publicModelService.getModelStats(brand, model)
+            @PathVariable String model,
+            @AuthenticationPrincipal UserPrincipal principal) {
+
+        UUID currentUserId = null;
+        boolean isSeedUser = false;
+
+        // Optional JWT: If authenticated, include seed data for seed users
+        if (principal != null) {
+            currentUserId = principal.getUser().getId();
+            isSeedUser = principal.getUser().isSeedData();
+        }
+
+        return publicModelService.getModelStats(brand, model, currentUserId, isSeedUser)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     /**
      * GET /api/public/models
-     * Returns all model names that have WLTP data (for sitemap / index).
+     * Returns all model names that have WLTP data and real community logs.
+     * If authenticated as seed user, includes models with their own seed data.
      */
     @GetMapping("/models")
-    public ResponseEntity<List<String>> getAllModelsWithWltpData() {
-        return ResponseEntity.ok(publicModelService.getModelsWithWltpData());
+    public ResponseEntity<List<String>> getAllModelsWithWltpData(
+            @AuthenticationPrincipal UserPrincipal principal) {
+
+        UUID currentUserId = null;
+        boolean isSeedUser = false;
+
+        // Optional JWT: If authenticated, include seed data for seed users
+        if (principal != null) {
+            currentUserId = principal.getUser().getId();
+            isSeedUser = principal.getUser().isSeedData();
+        }
+
+        return ResponseEntity.ok(publicModelService.getModelsWithWltpData(currentUserId, isSeedUser));
     }
 }

@@ -20,8 +20,9 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     boolean existsByCarIdAndLoggedAtBetween(UUID carId, LocalDateTime start, LocalDateTime end);
 
     /**
-     * Aggregated basic stats for a car model, excluding seed/test users.
+     * Aggregated basic stats for a car model.
      * Returns: [logCount, uniqueContributors, avgCostPerKwh, avgKwhPerSession]
+     * Demo Mode: If isSeedUser=true, includes ALL seed data (from all seed users), not just current user.
      * Uses native SQL because JPQL doesn't support dividing two columns directly in aggregation.
      */
     @Query(value = """
@@ -32,16 +33,19 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
                 AVG(l.kwh_charged)                                     AS avg_kwh_per_session
             FROM ev_log l
             JOIN car c ON c.id = l.car_id
-            JOIN app_user u ON u.id = c.user_id
             WHERE c.model = :model
-              AND u.is_seed_data = false
-              AND l.data_source != 'TESLA_IMPORT'
+              AND (l.include_in_statistics = true
+                   OR (:isSeedUser = true
+                       AND c.user_id IN (SELECT id FROM app_user WHERE is_seed_data = true)))
             """, nativeQuery = true)
-    Object[] findPublicBasicStatsByModel(@Param("model") String model);
+    Object[] findPublicBasicStatsByModel(
+            @Param("model") String model,
+            @Param("isSeedUser") boolean isSeedUser);
 
     /**
      * Average real-world consumption from consecutive odometer readings.
-     * Excludes seed users and uses LAG() window function to compute km driven between charges.
+     * Demo Mode: If isSeedUser=true, includes ALL seed data (from all seed users).
+     * Uses LAG() window function to compute km driven between charges.
      * Sanity filter: only 5–2000 km between consecutive charges (filters outliers).
      */
     @Query(value = """
@@ -52,16 +56,18 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
                     LAG(l.odometer_km) OVER (PARTITION BY l.car_id ORDER BY l.logged_at) AS prev_odometer
                 FROM ev_log l
                 JOIN car c ON c.id = l.car_id
-                JOIN app_user u ON u.id = c.user_id
                 WHERE c.model = :model
-                  AND u.is_seed_data = false
+                  AND (l.include_in_statistics = true
+                       OR (:isSeedUser = true
+                           AND c.user_id IN (SELECT id FROM app_user WHERE is_seed_data = true)))
                   AND l.odometer_km IS NOT NULL
-                  AND l.data_source != 'TESLA_IMPORT'
             )
             SELECT AVG(kwh_charged / (odometer_km - prev_odometer) * 100)
             FROM log_pairs
             WHERE prev_odometer IS NOT NULL
               AND (odometer_km - prev_odometer) BETWEEN 5 AND 2000
             """, nativeQuery = true)
-    BigDecimal findAvgConsumptionByModel(@Param("model") String model);
+    BigDecimal findAvgConsumptionByModel(
+            @Param("model") String model,
+            @Param("isSeedUser") boolean isSeedUser);
 }

@@ -39,6 +39,9 @@ public class EvLogEntity {
     @Column(name = "data_source", length = 50)
     private String dataSource;
 
+    @Column(name = "include_in_statistics", nullable = false)
+    private boolean includeInStatistics;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -51,7 +54,7 @@ public class EvLogEntity {
     public EvLogEntity(UUID id, UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
             Integer chargeDurationMinutes, String geohash, Integer odometerKm,
             BigDecimal maxChargingPowerKw, LocalDateTime loggedAt, String dataSource,
-            LocalDateTime createdAt, LocalDateTime updatedAt) {
+            boolean includeInStatistics, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.carId = carId;
         this.kwhCharged = kwhCharged;
@@ -62,6 +65,7 @@ public class EvLogEntity {
         this.maxChargingPowerKw = maxChargingPowerKw;
         this.loggedAt = loggedAt;
         this.dataSource = dataSource;
+        this.includeInStatistics = includeInStatistics;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -160,5 +164,13 @@ public class EvLogEntity {
 
     public void setDataSource(String dataSource) {
         this.dataSource = dataSource;
+    }
+
+    public boolean isIncludeInStatistics() {
+        return includeInStatistics;
+    }
+
+    public void setIncludeInStatistics(boolean includeInStatistics) {
+        this.includeInStatistics = includeInStatistics;
     }
 }

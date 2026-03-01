@@ -67,6 +67,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 domain.getMaxChargingPowerKw(),
                 domain.getLoggedAt(),
                 domain.getDataSource(),
+                domain.isIncludeInStatistics(),
                 domain.getCreatedAt(),
                 domain.getUpdatedAt());
     }
@@ -83,6 +84,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 entity.getMaxChargingPowerKw(),
                 entity.getLoggedAt(),
                 entity.getDataSource(),
+                entity.isIncludeInStatistics(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt());
     }

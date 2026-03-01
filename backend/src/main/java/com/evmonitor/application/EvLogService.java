@@ -19,10 +19,12 @@ public class EvLogService {
 
     private final EvLogRepository evLogRepository;
     private final CarRepository carRepository;
+    private final UserRepository userRepository;
 
-    public EvLogService(EvLogRepository evLogRepository, CarRepository carRepository) {
+    public EvLogService(EvLogRepository evLogRepository, CarRepository carRepository, UserRepository userRepository) {
         this.evLogRepository = evLogRepository;
         this.carRepository = carRepository;
+        this.userRepository = userRepository;
     }
 
     public EvLogResponse logCharging(UUID userId, EvLogRequest request) {
@@ -117,9 +119,16 @@ public class EvLogService {
             throw new IllegalArgumentException("User does not own the specified car");
         }
 
-        // Get all logs for this car (exclude Tesla imports - incomplete data)
+        // Check if user is a seed user (for demo mode)
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        boolean isSeedUser = user.isSeedData();
+
+        // Get all logs for this car
+        // Demo Mode: Seed users see ALL their logs (including their own seed data)
+        // Regular users: Only see logs marked for statistics
         List<EvLog> logs = evLogRepository.findAllByCarId(carId).stream()
-                .filter(log -> !"TESLA_IMPORT".equals(log.getDataSource()))
+                .filter(log -> isSeedUser || log.isIncludeInStatistics())
                 .collect(Collectors.toList());
 
         // Apply time filter
