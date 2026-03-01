@@ -3,10 +3,10 @@
 
 logging:
   level:
-    org:
-      hibernate:
-        orm:
-          jdbc: TRACE
+    com:
+      evmonitor:
+        infrastructure:
+          external: DEBUG
 
 spring:
   datasource:
@@ -16,12 +16,12 @@ spring:
     driver-class-name: org.postgresql.Driver
 
   flyway:
-    enabled: false  # Disable in dev, let Hibernate manage schema
+    enabled: true  # Enable to run migrations (V9, V10)
 
   jpa:
     hibernate:
-      ddl-auto: update  # Auto-create/update tables in dev mode
-    show-sql: true  # Enable SQL logging for dev
+      ddl-auto: validate  # Validate schema matches entities
+    show-sql: false  # Enable SQL logging for dev
 
     properties:
       hibernate:
@@ -41,6 +41,17 @@ jwt:
 
 server:
   port: 8080
+
+# Actuator – nur health für Dev (kein env, beans, mappings etc.)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
 
 # CORS for local dev (Vue dev server on port 5173)
 allowed-origins: http://localhost:5173,http://localhost:5174,http://localhost:8080
