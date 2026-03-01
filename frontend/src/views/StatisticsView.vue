@@ -15,6 +15,7 @@ import {
 } from 'chart.js'
 import api from '../api/axios'
 import CarSelector from '../components/CarSelector.vue'
+import ChargingHeatMap from '../components/ChargingHeatMap.vue'
 import { vehicleSpecificationService, type VehicleSpecification } from '../api/vehicleSpecificationService'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend, Filler)
@@ -470,6 +471,17 @@ onMounted(fetchStatistics)
           class="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-700">
           📊 Für dieses Fahrzeug sind noch keine WLTP-Daten hinterlegt.
           Du kannst sie in der <router-link to="/cars" class="font-semibold underline">Fahrzeugverwaltung</router-link> ergänzen und dabei 50 Coins verdienen!
+        </div>
+
+        <!-- Charging Heat Map -->
+        <div class="bg-gray-50 p-6 rounded-lg border border-gray-200">
+          <div class="mb-4">
+            <h2 class="text-xl font-semibold text-gray-800">🗺️ Lade-Standorte</h2>
+            <p class="text-sm text-gray-500 mt-1">
+              Geografische Übersicht deiner Ladevorgänge · Farbcodiert nach geladener Energie (kWh)
+            </p>
+          </div>
+          <ChargingHeatMap :car-id="selectedCarId" :time-range="selectedTimeRange" />
         </div>
 
       </div>
