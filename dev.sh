@@ -52,15 +52,12 @@ echo ""
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     echo -e "${YELLOW}🗑️  Dropping all tables...${NC}"
     docker compose -f docker-compose.dev.yml exec -T db psql -U evmonitor -d ev_monitor <<EOF
-DROP TABLE IF EXISTS ev_log CASCADE;
-DROP TABLE IF EXISTS car CASCADE;
-DROP TABLE IF EXISTS coin_log CASCADE;
-DROP TABLE IF EXISTS vehicle_specification CASCADE;
-DROP TABLE IF EXISTS app_user CASCADE;
-DROP TABLE IF EXISTS users CASCADE;
-DROP TABLE IF EXISTS flyway_schema_history CASCADE;
+DROP SCHEMA public CASCADE;
+CREATE SCHEMA public;
+GRANT ALL ON SCHEMA public TO evmonitor;
+GRANT ALL ON SCHEMA public TO public;
 EOF
-    echo -e "${GREEN}✅ Tables dropped${NC}"
+    echo -e "${GREEN}✅ Database reset (all tables dropped)${NC}"
 else
     echo -e "${YELLOW}⏭️  Skipping table drop${NC}"
 fi
@@ -136,9 +133,9 @@ echo -e "${BLUE}🔧 Backend:${NC}   http://localhost:8080"
 echo -e "${BLUE}🗄️  Database:${NC} localhost:5432 (user: evmonitor, pass: evmonitor, db: ev_monitor)"
 echo ""
 echo -e "${YELLOW}👤 Test Users (created by DevDataSeeder):${NC}"
-echo "   - test1@ev-monitor.net / Test1234!"
-echo "   - test2@ev-monitor.net / Test1234!"
-echo "   - test3@ev-monitor.net / Test1234!"
+echo "   - max_e_driver (max@ev-monitor.net) / 123!\"§"
+echo "   - anna_ampere (anna@ev-monitor.net) / 123!\"§"
+echo "   - kurt_kilowatt (kurt@ev-monitor.net) / 123!\"§"
 echo ""
 echo -e "${YELLOW}📊 Each user has 2 cars with ~70-80 charging logs over 1 year${NC}"
 echo ""
