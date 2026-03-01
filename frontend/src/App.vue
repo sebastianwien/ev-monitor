@@ -1,14 +1,30 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import { useAuthStore } from './stores/auth';
-import SpritMonitorImport from './components/SpritMonitorImport.vue';
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from './stores/auth'
+import SpritMonitorImport from './components/SpritMonitorImport.vue'
+import LogFormModal from './components/LogFormModal.vue'
+import FloatingActionButton from './components/FloatingActionButton.vue'
 
-const authStore = useAuthStore();
-const showImportOverlay = ref(false);
+const router = useRouter()
+const authStore = useAuthStore()
+const showImportOverlay = ref(false)
+const showLogFormModal = ref(false)
 
 const handleLogout = () => {
-  authStore.logout();
-};
+  authStore.logout()
+}
+
+const handleNewLog = () => {
+  // Check if desktop (≥768px) or mobile
+  const isDesktop = window.innerWidth >= 768
+
+  if (isDesktop) {
+    showLogFormModal.value = true
+  } else {
+    router.push('/erfassen')
+  }
+}
 </script>
 
 <template>
@@ -17,12 +33,11 @@ const handleLogout = () => {
       <div class="flex items-center space-x-6">
         <div class="text-xl font-bold tracking-wide">EV Monitor</div>
         <div class="flex space-x-4">
-          <router-link
-            to="/dashboard"
-            class="px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-500 transition"
-            :class="{ 'bg-indigo-700': $route.path === '/dashboard' }">
-            Dashboard
-          </router-link>
+          <button
+            @click="handleNewLog"
+            class="px-3 py-2 rounded-md text-sm font-medium bg-green-600 hover:bg-green-700 transition">
+            Ladevorgang erfassen
+          </button>
           <router-link
             to="/statistics"
             class="px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-500 transition"
@@ -81,5 +96,11 @@ const handleLogout = () => {
 
     <!-- Sprit-Monitor Import Overlay -->
     <SpritMonitorImport v-if="showImportOverlay" @close="showImportOverlay = false" />
+
+    <!-- Floating Action Button (only when authenticated) -->
+    <FloatingActionButton v-if="authStore.isAuthenticated()" @click="handleNewLog" />
+
+    <!-- Log Form Modal (Desktop only) -->
+    <LogFormModal v-if="showLogFormModal && authStore.isAuthenticated()" @close="showLogFormModal = false" />
   </div>
 </template>
