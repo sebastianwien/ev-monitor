@@ -8,6 +8,7 @@ import OAuth2RedirectHandler from '../views/OAuth2RedirectHandler.vue';
 import CarManagementView from '../views/CarManagementView.vue';
 import StatisticsView from '../views/StatisticsView.vue';
 import PublicModelView from '../views/PublicModelView.vue';
+import TermsView from '../views/TermsView.vue';
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
@@ -58,6 +59,12 @@ const router = createRouter({
             name: 'public-model',
             component: PublicModelView
             // no auth guard - public page for SEO
+        },
+        {
+            path: '/terms',
+            name: 'terms',
+            component: TermsView
+            // no auth guard - public page for legal info
         }
     ]
 });
