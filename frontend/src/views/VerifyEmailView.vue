@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import api from '../api/axios';
+import { BoltIcon } from '@heroicons/vue/24/outline';
 
 const router = useRouter();
 const route = useRoute();
@@ -54,7 +55,7 @@ const handleResend = async () => {
 
       <!-- Loading -->
       <div v-if="status === 'loading'">
-        <div class="text-5xl mb-4">⚡</div>
+        <BoltIcon class="h-16 w-16 text-green-600 mb-4 mx-auto" />
         <h2 class="text-xl font-semibold text-gray-700">Bestätigung wird geprüft...</h2>
       </div>
 

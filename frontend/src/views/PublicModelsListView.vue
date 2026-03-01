@@ -4,7 +4,8 @@
     <nav v-if="!isAuthenticated" class="bg-white border-b border-gray-200 px-4 py-3">
       <div class="max-w-6xl mx-auto flex items-center justify-between">
         <a href="/" class="flex items-center gap-2 font-bold text-green-600 text-lg">
-          ⚡ EV Monitor
+          <BoltIcon class="h-6 w-6" />
+          EV Monitor
         </a>
         <div class="flex items-center gap-3">
           <a href="/login" class="text-sm text-gray-600 hover:text-gray-900">Anmelden</a>
@@ -19,7 +20,7 @@
       <!-- Hero -->
       <div class="bg-white rounded-2xl border border-gray-200 p-8 mb-8">
         <h1 class="text-3xl font-bold text-gray-900 mb-3">
-          🚗 Elektroauto Verbrauch im Vergleich
+          Elektroauto Verbrauch im Vergleich
         </h1>
         <p class="text-gray-600 text-lg mb-4">
           Reale Verbrauchsdaten von der Community – WLTP vs. Praxis für alle Elektroautos.
@@ -112,12 +113,12 @@
                 {{ model.brand }} {{ model.model }}
               </h3>
             </div>
-            <div class="text-2xl">🚗</div>
+            <TruckIcon class="h-8 w-8 text-gray-400" />
           </div>
 
           <div class="space-y-2 text-sm">
             <div class="flex items-center gap-2 text-gray-600">
-              <span class="text-green-600">📊</span>
+              <ChartBarIcon class="h-4 w-4 text-green-600" />
               <span>Echte Community-Daten</span>
             </div>
             <div class="text-xs text-gray-400">
@@ -129,7 +130,7 @@
 
       <!-- Empty state: No models at all -->
       <div v-else-if="!loading && modelsWithData.length === 0" class="text-center py-20">
-        <div class="text-5xl mb-4">🚗</div>
+        <TruckIcon class="h-16 w-16 text-gray-300 mb-4 mx-auto" />
         <h2 class="text-xl font-bold text-gray-800 mb-2">Noch keine Community-Daten</h2>
         <p class="text-gray-500 mb-6">
           Sei der Erste der echte Verbrauchsdaten beisteuert und der Community hilft!
@@ -156,7 +157,10 @@
 
       <!-- CTA Section -->
       <div v-if="!loading" class="bg-gradient-to-br from-green-600 to-green-700 rounded-2xl p-8 text-white mt-8">
-        <h2 class="text-2xl font-bold mb-3">📈 Dein Fahrzeug fehlt?</h2>
+        <div class="flex items-center gap-2 mb-3">
+          <ArrowTrendingUpIcon class="h-7 w-7" />
+          <h2 class="text-2xl font-bold">Dein Fahrzeug fehlt?</h2>
+        </div>
         <p class="text-green-100 mb-6">
           Registriere dich kostenlos und trage als Erster Verbrauchsdaten für dein Elektroauto ein.
           Hilf der Community mit realen Daten!
@@ -191,6 +195,7 @@ import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useHead } from '@unhead/vue'
 import { useAuthStore } from '../stores/auth'
 import { getAllModelsWithWltpData } from '../api/publicModelService'
+import { BoltIcon, TruckIcon, ChartBarIcon, ArrowTrendingUpIcon } from '@heroicons/vue/24/outline'
 
 const authStore = useAuthStore()
 const loading = ref(true)
