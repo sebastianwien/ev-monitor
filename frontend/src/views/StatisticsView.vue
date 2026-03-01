@@ -13,6 +13,9 @@ import {
   Legend,
   Filler
 } from 'chart.js'
+import {
+  ChartBarIcon
+} from '@heroicons/vue/24/outline'
 import api from '../api/axios'
 import CarSelector from '../components/CarSelector.vue'
 import ChargingHeatMap from '../components/ChargingHeatMap.vue'
@@ -304,7 +307,10 @@ onMounted(fetchStatistics)
 <template>
   <div class="max-w-6xl mx-auto p-6">
     <div class="bg-white rounded-xl shadow-lg p-6">
-      <h1 class="text-3xl font-bold text-gray-800 mb-6">📊 Statistiken & Analysen</h1>
+      <div class="flex items-center gap-3 mb-6">
+        <ChartBarIcon class="h-8 w-8 text-gray-700" />
+        <h1 class="text-3xl font-bold text-gray-800">Statistiken & Analysen</h1>
+      </div>
 
       <div class="mb-6">
         <CarSelector v-model="selectedCarId" />
@@ -396,7 +402,7 @@ onMounted(fetchStatistics)
         <!-- Line Chart: Zeitverlauf -->
         <div class="bg-gray-50 p-6 rounded-lg border border-gray-200">
           <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
-            <h2 class="text-xl font-semibold text-gray-800">📈 Zeitverlauf</h2>
+            <h2 class="text-xl font-semibold text-gray-800">Zeitverlauf</h2>
 
             <!-- Real checkboxes -->
             <div class="flex flex-wrap gap-4">
@@ -453,7 +459,7 @@ onMounted(fetchStatistics)
         <!-- WLTP Delta Bar Chart -->
         <div v-if="wltp && hasDistanceData && wltpChartData" class="bg-gray-50 p-6 rounded-lg border border-gray-200">
           <div class="mb-4">
-            <h2 class="text-xl font-semibold text-gray-800">⚡ Verbrauch vs. WLTP</h2>
+            <h2 class="text-xl font-semibold text-gray-800">Verbrauch vs. WLTP</h2>
             <p class="text-sm text-gray-500 mt-1">
               WLTP-Referenz: <strong>{{ wltp.wltpConsumptionKwhPer100km.toFixed(1) }} kWh/100km</strong>
               ({{ wltp.wltpRangeKm }} km Reichweite, {{ wltp.wltpType }}) ·
@@ -469,14 +475,14 @@ onMounted(fetchStatistics)
         <!-- WLTP missing hint -->
         <div v-else-if="!wltp && hasDistanceData"
           class="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-700">
-          📊 Für dieses Fahrzeug sind noch keine WLTP-Daten hinterlegt.
+          Für dieses Fahrzeug sind noch keine WLTP-Daten hinterlegt.
           Du kannst sie in der <router-link to="/cars" class="font-semibold underline">Fahrzeugverwaltung</router-link> ergänzen und dabei 50 Coins verdienen!
         </div>
 
         <!-- Charging Heat Map -->
         <div class="bg-gray-50 p-6 rounded-lg border border-gray-200">
           <div class="mb-4">
-            <h2 class="text-xl font-semibold text-gray-800">🗺️ Lade-Standorte</h2>
+            <h2 class="text-xl font-semibold text-gray-800">Lade-Standorte</h2>
             <p class="text-sm text-gray-500 mt-1">
               Geografische Übersicht deiner Ladevorgänge · Farbcodiert nach geladener Energie (kWh)
             </p>

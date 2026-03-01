@@ -3,6 +3,7 @@ import { ref, onMounted, watch, computed } from 'vue'
 import { carService, type Car, type CarRequest, type BrandInfo, type ModelInfo } from '../api/carService'
 import { vehicleSpecificationService, type VehicleSpecification } from '../api/vehicleSpecificationService'
 import TeslaIntegration from '../components/TeslaIntegration.vue'
+import { ChartBarIcon } from '@heroicons/vue/24/outline'
 
 const cars = ref<Car[]>([])
 const brands = ref<BrandInfo[]>([])
@@ -428,7 +429,7 @@ onMounted(async () => {
                   <div>
                     <p class="text-sm font-medium text-blue-900">WLTP-Werte verfügbar</p>
                     <p class="text-sm text-blue-700 mt-1">
-                      📊 Reichweite: <span class="font-semibold">{{ wltpData.wltpRangeKm }} km</span>
+                      Reichweite: <span class="font-semibold">{{ wltpData.wltpRangeKm }} km</span>
                       | Verbrauch: <span class="font-semibold">{{ wltpData.wltpConsumptionKwhPer100km }} kWh/100km</span>
                     </p>
                   </div>
@@ -546,7 +547,10 @@ onMounted(async () => {
     <!-- WLTP Form Overlay -->
     <div v-if="showWltpForm" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6">
-        <h3 class="text-xl font-bold text-gray-800 mb-4">📊 WLTP-Werte eingeben</h3>
+        <div class="flex items-center gap-2 mb-4">
+          <ChartBarIcon class="h-6 w-6 text-gray-700" />
+          <h3 class="text-xl font-bold text-gray-800">WLTP-Werte eingeben</h3>
+        </div>
         <p class="text-sm text-gray-600 mb-4">
           Für: <span class="font-semibold">{{ selectedBrand }} {{ getModelLabel(selectedModel) }}</span>
           ({{ finalCapacity }} kWh)

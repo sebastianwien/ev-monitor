@@ -33,7 +33,7 @@ const goBack = () => {
       </h1>
 
       <p class="text-xl text-gray-300 mb-2">
-        Die Seite hat sich wohl selbst entladen... 🔌
+        Die Seite hat sich wohl selbst entladen...
       </p>
 
       <p class="text-gray-400 mb-8">

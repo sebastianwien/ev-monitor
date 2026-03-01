@@ -4,7 +4,8 @@
     <nav v-if="!isAuthenticated" class="bg-white border-b border-gray-200 px-4 py-3">
       <div class="max-w-4xl mx-auto flex items-center justify-between">
         <a href="/" class="flex items-center gap-2 font-bold text-green-600 text-lg">
-          ⚡ EV Monitor
+          <BoltIcon class="h-6 w-6" />
+          EV Monitor
         </a>
         <div class="flex items-center gap-3">
           <a href="/login" class="text-sm text-gray-600 hover:text-gray-900">Anmelden</a>
@@ -82,7 +83,7 @@
           <!-- No data yet notice -->
           <div v-if="stats.logCount === 0" class="mt-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
             <p class="text-gray-600 text-sm">
-              📊 Noch keine Fahrdaten für dieses Modell vorhanden.
+              Noch keine Fahrdaten für dieses Modell vorhanden.
               <a href="/register" class="text-green-600 font-medium hover:underline">Registriere dich</a>
               und trage als Erster deine Ladevorgänge ein!
             </p>
@@ -134,7 +135,10 @@
 
         <!-- What is EV Monitor / CTA -->
         <div class="bg-gradient-to-br from-green-600 to-green-700 rounded-2xl p-6 text-white">
-          <h2 class="text-xl font-bold mb-2">📈 Trage deine Daten bei!</h2>
+          <div class="flex items-center gap-2 mb-2">
+            <ArrowTrendingUpIcon class="h-6 w-6" />
+            <h2 class="text-xl font-bold">Trage deine Daten bei!</h2>
+          </div>
           <p class="text-green-100 mb-4">
             EV Monitor ist eine Community-Plattform für EV-Fahrer. Tracke deine Ladevorgänge,
             vergleiche deinen realen Verbrauch mit WLTP und hilf anderen Fahrern mit deinen Daten.
@@ -286,6 +290,7 @@ import { useRoute } from 'vue-router'
 import { useHead } from '@unhead/vue'
 import { useAuthStore } from '../stores/auth'
 import { getModelStats, type PublicModelStats } from '../api/publicModelService'
+import { BoltIcon, ArrowTrendingUpIcon } from '@heroicons/vue/24/outline'
 
 const route = useRoute()
 const authStore = useAuthStore()
