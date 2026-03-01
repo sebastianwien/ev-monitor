@@ -41,35 +41,40 @@ const closeMobileMenu = () => {
     <nav class="bg-indigo-600 shadow-md text-white" v-if="authStore.isAuthenticated()">
       <div class="px-4 py-3">
         <div class="flex justify-between items-center">
-          <!-- Logo -->
-          <div class="text-xl font-bold tracking-wide">EV Monitor</div>
+          <!-- Left: Logo + Nav Buttons (Desktop) -->
+          <div class="flex items-center space-x-4">
+            <div class="text-xl font-bold tracking-wide">EV Monitor</div>
 
-          <!-- Desktop Navigation -->
+            <div class="hidden md:flex items-center space-x-4">
+              <button
+                @click="handleNewLog"
+                class="px-3 py-2 rounded-md text-sm font-medium bg-green-600 hover:bg-green-700 transition">
+                Ladevorgang erfassen
+              </button>
+              <router-link
+                to="/statistics"
+                class="px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-500 transition"
+                :class="{ 'bg-indigo-700': $route.path === '/statistics' }">
+                Statistiken
+              </router-link>
+              <router-link
+                to="/cars"
+                class="px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-500 transition"
+                :class="{ 'bg-indigo-700': $route.path === '/cars' }">
+                Fahrzeuge
+              </router-link>
+              <button
+                @click="showImportOverlay = true"
+                class="flex items-center gap-2 px-4 py-2 bg-indigo-700 hover:bg-indigo-800 rounded-lg text-sm font-medium transition shadow-sm">
+                <ArrowDownTrayIcon class="h-5 w-5" />
+                <span class="hidden lg:inline">Sprit-Monitor Import</span>
+                <span class="lg:hidden">Import</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Right: User Info + Logout (Desktop) / Hamburger (Mobile) -->
           <div class="hidden md:flex items-center space-x-4">
-            <button
-              @click="handleNewLog"
-              class="px-3 py-2 rounded-md text-sm font-medium bg-green-600 hover:bg-green-700 transition">
-              Ladevorgang erfassen
-            </button>
-            <router-link
-              to="/statistics"
-              class="px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-500 transition"
-              :class="{ 'bg-indigo-700': $route.path === '/statistics' }">
-              Statistiken
-            </router-link>
-            <router-link
-              to="/cars"
-              class="px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-500 transition"
-              :class="{ 'bg-indigo-700': $route.path === '/cars' }">
-              Fahrzeuge
-            </router-link>
-            <button
-              @click="showImportOverlay = true"
-              class="flex items-center gap-2 px-4 py-2 bg-indigo-700 hover:bg-indigo-800 rounded-lg text-sm font-medium transition shadow-sm">
-              <ArrowDownTrayIcon class="h-5 w-5" />
-              <span class="hidden lg:inline">Sprit-Monitor Import</span>
-              <span class="lg:hidden">Import</span>
-            </button>
             <span v-if="authStore.user" class="text-sm border border-indigo-400 px-3 py-1 rounded-md bg-indigo-500 bg-opacity-30">
               {{ authStore.user.sub }}
             </span>
