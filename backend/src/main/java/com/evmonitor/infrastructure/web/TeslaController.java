@@ -3,6 +3,7 @@ package com.evmonitor.infrastructure.web;
 import com.evmonitor.application.tesla.TeslaApiService;
 import com.evmonitor.application.tesla.TeslaConnectionStatus;
 import com.evmonitor.application.tesla.TeslaSyncResult;
+import com.evmonitor.domain.TeslaConnection;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,19 +33,19 @@ public class TeslaController {
         UUID userId = principal.getUser().getId();
 
         try {
-            teslaApiService.saveConnection(
+            TeslaConnection connection = teslaApiService.saveConnection(
                 userId,
                 request.accessToken(),
                 request.vehicleId(),
                 request.vehicleName()
             );
 
-            log.info("Tesla connected for user {}: {}", userId, request.vehicleName());
+            log.info("Tesla connected for user {}: {}", userId, connection.getVehicleName());
 
             return ResponseEntity.ok(new ConnectResponse(
                 true,
                 "Tesla account connected successfully",
-                request.vehicleName()
+                connection.getVehicleName()
             ));
         } catch (Exception e) {
             log.error("Failed to connect Tesla for user {}: {}", userId, e.getMessage());

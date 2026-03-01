@@ -143,7 +143,36 @@ def explore_tesla_api(email, anonymize=True):
 
     print(f"\n✅ Daten gespeichert in: {filepath}")
     print(f"📦 Dateigröße: {filepath.stat().st_size / 1024:.1f} KB")
-    print("\n👉 Schick mir diese JSON-Datei und ich analysiere sie!")
+
+    # Access Token für EV Monitor Integration ausgeben
+    print("\n" + "=" * 60)
+    print("🔑 WICHTIG: Für EV Monitor Integration brauchst du:")
+    print("=" * 60)
+    try:
+        token = tesla.token
+        access_token = token.get('access_token', 'N/A')
+        expires_in = token.get('expires_in', 'N/A')
+
+        print(f"\n📋 Access Token:")
+        print(f"   {access_token[:50]}...{access_token[-20:] if len(access_token) > 70 else ''}")
+        print(f"\n⏰ Token gültig für: {expires_in} Sekunden (~{expires_in/86400:.1f} Tage)")
+        print(f"\n📝 Tesla ID (für API): {vehicles[0]['id'] if vehicles else 'N/A'}")
+        print(f"   (Die lange Zahl - diese brauchst du für EV Monitor!)")
+
+        # Token auch in separate Datei speichern (sicher)
+        token_file = Path.home() / f"tesla_token_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+        with open(token_file, 'w') as f:
+            f.write(f"Access Token:\n{access_token}\n\n")
+            f.write(f"Tesla ID (für EV Monitor API):\n{vehicles[0]['id'] if vehicles else 'N/A'}\n\n")
+            f.write(f"Vehicle ID (legacy, nicht verwenden):\n{vehicles[0]['vehicle_id'] if vehicles else 'N/A'}\n\n")
+            f.write(f"Expires in: {expires_in} seconds\n")
+        print(f"\n💾 Token gespeichert in: {token_file}")
+        print("\n⚠️  WICHTIG: Diese Datei enthält sensible Daten! Nicht teilen!")
+
+    except Exception as e:
+        print(f"\n❌ Konnte Token nicht extrahieren: {e}")
+
+    print("\n👉 Nutze Access Token + Tesla ID im EV Monitor UI!")
 
     return filepath
 

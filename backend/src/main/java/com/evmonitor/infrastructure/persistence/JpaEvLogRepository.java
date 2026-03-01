@@ -35,6 +35,7 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
             JOIN app_user u ON u.id = c.user_id
             WHERE c.model = :model
               AND u.is_seed_data = false
+              AND l.data_source != 'TESLA_IMPORT'
             """, nativeQuery = true)
     Object[] findPublicBasicStatsByModel(@Param("model") String model);
 
@@ -55,6 +56,7 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
                 WHERE c.model = :model
                   AND u.is_seed_data = false
                   AND l.odometer_km IS NOT NULL
+                  AND l.data_source != 'TESLA_IMPORT'
             )
             SELECT AVG(kwh_charged / (odometer_km - prev_odometer) * 100)
             FROM log_pairs

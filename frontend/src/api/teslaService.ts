@@ -30,7 +30,7 @@ const teslaService = {
    * Get Tesla connection status
    */
   async getStatus(): Promise<TeslaConnectionStatus> {
-    const response = await apiClient.get<TeslaConnectionStatus>('/api/tesla/status');
+    const response = await apiClient.get<TeslaConnectionStatus>('/tesla/status');
     return response.data;
   },
 
@@ -38,7 +38,7 @@ const teslaService = {
    * Connect Tesla account
    */
   async connect(request: ConnectRequest): Promise<ConnectResponse> {
-    const response = await apiClient.post<ConnectResponse>('/api/tesla/connect', request);
+    const response = await apiClient.post<ConnectResponse>('/tesla/connect', request);
     return response.data;
   },
 
@@ -46,7 +46,7 @@ const teslaService = {
    * Manual sync - fetch latest charging data
    */
   async sync(): Promise<TeslaSyncResult> {
-    const response = await apiClient.post<TeslaSyncResult>('/api/tesla/sync');
+    const response = await apiClient.post<TeslaSyncResult>('/tesla/sync');
     return response.data;
   },
 
@@ -54,7 +54,7 @@ const teslaService = {
    * Disconnect Tesla account
    */
   async disconnect(): Promise<void> {
-    await apiClient.delete('/api/tesla/disconnect');
+    await apiClient.delete('/tesla/disconnect');
   },
 };
 

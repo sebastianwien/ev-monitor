@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
 import javax.crypto.Cipher;
@@ -36,10 +37,23 @@ public class TeslaApiService {
 
     /**
      * Saves Tesla connection for a user
+     * Fetches vehicle name from Tesla API automatically
      */
+    @Transactional
     public TeslaConnection saveConnection(UUID userId, String accessToken, String vehicleId, String vehicleName) {
         // Delete existing connection if any
         teslaConnectionRepository.findByUserId(userId).ifPresent(teslaConnectionRepository::delete);
+
+        // Fetch vehicle data to validate token and get real vehicle name
+        String realVehicleName = vehicleName; // Fallback to provided name
+        try {
+            TeslaVehicleDataResponse vehicleData = fetchVehicleData(vehicleId, accessToken);
+            realVehicleName = vehicleData.displayName() != null ? vehicleData.displayName() : vehicleName;
+            log.info("Fetched vehicle name from Tesla API: {}", realVehicleName);
+        } catch (Exception e) {
+            log.warn("Failed to fetch vehicle name from Tesla API, using fallback: {}", e.getMessage());
+            // Continue with provided name if API call fails
+        }
 
         // Encrypt token
         String encryptedToken = encryptToken(accessToken);
@@ -48,7 +62,7 @@ public class TeslaApiService {
             .userId(userId)
             .accessToken(encryptedToken)
             .vehicleId(vehicleId)
-            .vehicleName(vehicleName)
+            .vehicleName(realVehicleName)
             .autoImportEnabled(false)
             .build();
 
@@ -58,6 +72,7 @@ public class TeslaApiService {
     /**
      * Fetches vehicle data from Tesla API and creates EvLog entries
      */
+    @Transactional
     public TeslaSyncResult syncChargingData(UUID userId) {
         TeslaConnection connection = teslaConnectionRepository.findByUserId(userId)
             .orElseThrow(() -> new IllegalStateException("No Tesla connection found for user"));
@@ -124,6 +139,7 @@ public class TeslaApiService {
     /**
      * Disconnects Tesla account
      */
+    @Transactional
     public void disconnect(UUID userId) {
         teslaConnectionRepository.deleteByUserId(userId);
         log.info("Disconnected Tesla for user {}", userId);
@@ -154,8 +170,89 @@ public class TeslaApiService {
 
             return response.getBody().response();
         } catch (Exception e) {
-            log.error("Failed to fetch Tesla vehicle data: {}", e.getMessage());
-            throw new IllegalStateException("Failed to fetch data from Tesla API: " + e.getMessage());
+            String errorMsg = e.getMessage();
+
+            // Check if vehicle is asleep
+            if (errorMsg != null && (errorMsg.contains("vehicle is offline or asleep") ||
+                                     errorMsg.contains("vehicle unavailable"))) {
+                log.info("Vehicle is asleep, attempting to wake up...");
+
+                // Try to wake up the vehicle
+                boolean wokeUp = wakeUpVehicle(vehicleId, accessToken);
+
+                if (wokeUp) {
+                    // Retry fetching data after wake-up
+                    log.info("Vehicle is now awake, retrying data fetch...");
+                    try {
+                        ResponseEntity<TeslaApiWrapper> retryResponse = restTemplate.exchange(
+                            url,
+                            HttpMethod.GET,
+                            entity,
+                            TeslaApiWrapper.class
+                        );
+
+                        if (retryResponse.getBody() != null && retryResponse.getBody().response() != null) {
+                            return retryResponse.getBody().response();
+                        }
+                    } catch (Exception retryError) {
+                        log.error("Failed to fetch data after wake-up: {}", retryError.getMessage());
+                    }
+                }
+
+                throw new IllegalStateException("Vehicle is asleep and could not be woken up. Please open the Tesla app and try again.");
+            }
+
+            log.error("Failed to fetch Tesla vehicle data: {}", errorMsg);
+            throw new IllegalStateException("Failed to fetch data from Tesla API: " + errorMsg);
+        }
+    }
+
+    private boolean wakeUpVehicle(String vehicleId, String accessToken) {
+        String wakeUpUrl = TESLA_API_BASE + "/vehicles/" + vehicleId + "/wake_up";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+        try {
+            // Try to wake up (can take up to 30 seconds)
+            log.info("Sending wake_up command to vehicle...");
+            restTemplate.exchange(wakeUpUrl, HttpMethod.POST, entity, Map.class);
+
+            // Wait for vehicle to wake up (poll every 2 seconds, max 30 seconds)
+            for (int i = 0; i < 15; i++) {
+                Thread.sleep(2000); // Wait 2 seconds
+
+                // Check if vehicle is online
+                String statusUrl = TESLA_API_BASE + "/vehicles/" + vehicleId;
+                ResponseEntity<Map> statusResponse = restTemplate.exchange(
+                    statusUrl,
+                    HttpMethod.GET,
+                    entity,
+                    Map.class
+                );
+
+                if (statusResponse.getBody() != null) {
+                    Map<?, ?> body = statusResponse.getBody();
+                    Map<?, ?> response = (Map<?, ?>) body.get("response");
+                    if (response != null) {
+                        String state = (String) response.get("state");
+                        if ("online".equals(state)) {
+                            log.info("Vehicle successfully woken up after {} seconds", (i + 1) * 2);
+                            return true;
+                        }
+                        log.debug("Vehicle state: {} (waiting...)", state);
+                    }
+                }
+            }
+
+            log.warn("Vehicle wake-up timed out after 30 seconds");
+            return false;
+        } catch (Exception e) {
+            log.error("Failed to wake up vehicle: {}", e.getMessage());
+            return false;
         }
     }
 
@@ -196,13 +293,23 @@ public class TeslaApiService {
     private EvLog createEvLogFromTeslaData(UUID carId, TeslaVehicleDataResponse vehicleData) {
         TeslaVehicleDataResponse.ChargeState chargeState = vehicleData.chargeState();
         TeslaVehicleDataResponse.DriveState driveState = vehicleData.driveState();
+        TeslaVehicleDataResponse.VehicleState vehicleState = vehicleData.vehicleState();
 
-        // Use native coordinates if available, fallback to regular
-        Double lat = driveState.nativeLatitude() != null ? driveState.nativeLatitude() : driveState.latitude();
-        Double lon = driveState.nativeLongitude() != null ? driveState.nativeLongitude() : driveState.longitude();
+        // Generate geohash (5 chars = ~5km precision) - only if GPS data available
+        String geohash = null;
+        if (driveState != null) {
+            // Use native coordinates if available, fallback to regular
+            Double lat = driveState.nativeLatitude() != null ? driveState.nativeLatitude() : driveState.latitude();
+            Double lon = driveState.nativeLongitude() != null ? driveState.nativeLongitude() : driveState.longitude();
 
-        // Generate geohash (5 chars = ~5km precision)
-        String geohash = GeoHash.withCharacterPrecision(lat, lon, 5).toBase32();
+            if (lat != null && lon != null) {
+                geohash = GeoHash.withCharacterPrecision(lat, lon, 5).toBase32();
+            } else {
+                log.warn("No GPS coordinates available for charging log - geohash will be null");
+            }
+        } else {
+            log.warn("No drive state available for charging log - geohash will be null");
+        }
 
         // Convert timestamp to LocalDateTime
         LocalDateTime loggedAt = LocalDateTime.ofInstant(
@@ -210,13 +317,23 @@ public class TeslaApiService {
             ZoneOffset.UTC
         );
 
+        // Convert odometer from miles to km
+        // Tesla API returns odometer in miles, need to convert to km
+        Integer odometerKm = null;
+        if (vehicleState != null && vehicleState.odometer() != null) {
+            // 1 mile = 1.609344 km
+            double odometerMiles = vehicleState.odometer();
+            odometerKm = (int) Math.round(odometerMiles * 1.609344);
+            log.debug("Converted odometer: {} miles -> {} km", odometerMiles, odometerKm);
+        }
+
         return EvLog.createNewWithSource(
             carId,
             BigDecimal.valueOf(chargeState.chargeEnergyAdded()),
             null, // costEur - User needs to fill this manually
             null, // chargeDurationMinutes - Not available in current data
             geohash,
-            null, // odometerKm - Could add vehicleState.odometer if needed
+            odometerKm, // Import odometer from vehicle_state
             chargeState.chargerPower() != null ? BigDecimal.valueOf(chargeState.chargerPower()) : null, // maxChargingPowerKw
             loggedAt,
             "TESLA_IMPORT"
