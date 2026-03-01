@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-gray-50">
-    <!-- Navigation -->
-    <nav class="bg-white border-b border-gray-200 px-4 py-3">
+    <!-- Navigation (only show if not authenticated) -->
+    <nav v-if="!isAuthenticated" class="bg-white border-b border-gray-200 px-4 py-3">
       <div class="max-w-4xl mx-auto flex items-center justify-between">
         <a href="/" class="flex items-center gap-2 font-bold text-green-600 text-lg">
           ⚡ EV Monitor
@@ -270,9 +270,12 @@
 
     <footer class="max-w-4xl mx-auto px-4 py-8 mt-6 border-t border-gray-200 text-sm text-gray-500 text-center">
       © {{ currentYear }} EV Monitor ·
-      <a href="/" class="hover:text-gray-700">Startseite</a> ·
-      <a href="/register" class="hover:text-gray-700">Kostenlos registrieren</a> ·
-      <a href="/login" class="hover:text-gray-700">Anmelden</a>
+      <a href="/" class="hover:text-gray-700">{{ isAuthenticated ? 'Dashboard' : 'Startseite' }}</a>
+      <template v-if="!isAuthenticated">
+        ·
+        <a href="/register" class="hover:text-gray-700">Kostenlos registrieren</a> ·
+        <a href="/login" class="hover:text-gray-700">Anmelden</a>
+      </template>
     </footer>
   </div>
 </template>
@@ -281,12 +284,16 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useHead } from '@unhead/vue'
+import { useAuthStore } from '../stores/auth'
 import { getModelStats, type PublicModelStats } from '../api/publicModelService'
 
 const route = useRoute()
+const authStore = useAuthStore()
 const loading = ref(true)
 const notFound = ref(false)
 const stats = ref<PublicModelStats | null>(null)
+
+const isAuthenticated = computed(() => authStore.isAuthenticated())
 
 const brand = route.params.brand as string
 const model = route.params.model as string
@@ -462,23 +469,23 @@ onMounted(async () => {
 })
 
 function consumptionDeltaClass(real: number, wltp: number): string {
-  const delta = real - wltp
-  if (delta <= 0) return 'text-green-600'
-  if (delta <= 2) return 'text-yellow-600'
+  const percentDelta = ((real - wltp) / wltp) * 100
+  if (percentDelta <= 0) return 'text-green-600'
+  if (percentDelta <= 15) return 'text-yellow-600'
   return 'text-red-600'
 }
 
 function deltaLabelClass(real: number, wltp: number): string {
-  const delta = real - wltp
-  if (delta <= 0) return 'bg-green-100 text-green-700'
-  if (delta <= 2) return 'bg-yellow-100 text-yellow-700'
+  const percentDelta = ((real - wltp) / wltp) * 100
+  if (percentDelta <= 0) return 'bg-green-100 text-green-700'
+  if (percentDelta <= 15) return 'bg-yellow-100 text-yellow-700'
   return 'bg-red-100 text-red-700'
 }
 
 function deltaLabel(real: number, wltp: number): string {
-  const delta = real - wltp
-  const sign = delta > 0 ? '+' : ''
-  return `${sign}${delta.toFixed(1)}`
+  const percentDelta = ((real - wltp) / wltp) * 100
+  const sign = percentDelta > 0 ? '+' : ''
+  return `${sign}${percentDelta.toFixed(1)}%`
 }
 
 function toTitleCase(s: string): string {

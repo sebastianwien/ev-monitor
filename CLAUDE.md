@@ -19,25 +19,49 @@ This file is the central overview for the EV Monitor project. For detailed featu
 
 ---
 
-## 🚨 Tesla Import Data Quality Rule
+## 🚨 Data Quality & Statistics Inclusion
 
-**WICHTIG:** Tesla Import Daten sind unvollständig (`cost_eur` und `charge_duration_minutes` sind NULL).
+**Flag-System:** `include_in_statistics` (Boolean)
 
-**Regel für alle Berechnungen:**
-- ✅ **Statistiken** (Durchschnitt, Summen, Charts) → `WHERE data_source != 'TESLA_IMPORT'`
-- ✅ **WLTP-Vergleiche** → `WHERE data_source != 'TESLA_IMPORT'`
-- ✅ **Community-Aggregationen** → `WHERE data_source != 'TESLA_IMPORT'`
-- ✅ **Heatmap** → Tesla Import DARF rein (nur Location-Daten, keine Berechnungen)
-- ✅ **Dashboard-Liste** → Tesla Import DARF rein (User sieht eigene Logs)
+**Regel:** Alle Statistiken, Public Aggregationen und WLTP-Vergleiche nutzen:
+```sql
+WHERE include_in_statistics = true
+```
 
-**Warum?**
-- Tesla API liefert keine Kosten/Dauer → Berechnungen wären falsch
-- Incomplete Daten verfälschen Durchschnitte
-- Community-Vergleiche werden unbrauchbar
+**Was wird excluded (`include_in_statistics = false`):**
+- ❌ **Seed Data** - Test-Daten von `is_seed_data = true` Users
+- ❌ **Tesla Imports** - Incomplete data (keine Kosten/Dauer)
+- ❌ **Test Logs** - `data_source` beginnt mit `TEST_`
 
-**TODO (später):**
-- User kann Tesla Logs manuell vervollständigen → dann `data_source = 'USER_COMPLETED'`
-- Dann dürfen diese Logs in Berechnungen rein
+**Was wird included (`include_in_statistics = true`):**
+- ✅ **USER_LOGGED** - Manuell eingetragene Logs (immer komplett)
+- ✅ **SPRITMONITOR_IMPORT** - Vollständige Import-Daten
+- ✅ **Future**: Tesla Logs wenn User manuell vervollständigt
+
+**Implementation:**
+- Flag wird bei Log-Creation automatisch gesetzt (Domain Logic in `EvLog.shouldIncludeInStatistics()`)
+- Migration V14 setzt Flag für bestehende Daten
+- Index für Performance: `idx_ev_log_include_in_statistics`
+
+**Wo das Flag genutzt wird:**
+- ✅ Public Model Stats (Community-Durchschnitte)
+- ✅ User Statistics (eigene Durchschnitte)
+- ✅ WLTP Consumption Calculations
+- ❌ **NICHT** in: Dashboard Log-Liste, Heatmap (User sieht alle eigenen Logs)
+
+**Demo-Mode für Seed Users:**
+- 🎭 **Public APIs mit Optional JWT** - Seed Users sehen ALLE Test-Daten als Community-Daten
+- **Wie es funktioniert:**
+  - Public Model APIs (`/api/public/models`) akzeptieren optional JWT Token via `@AuthenticationPrincipal`
+  - Wenn als Seed User eingeloggt: Query-Filter wird erweitert: `WHERE (include_in_statistics = true OR (:isSeedUser = true AND c.user_id IN (SELECT id FROM app_user WHERE is_seed_data = true)))`
+  - **Security:** JWT wird validiert, ALLE Seed-User-Daten werden gezeigt (nicht nur eigene)
+  - Frontend nutzt `apiClient` statt raw axios → JWT wird automatisch mitgeschickt
+- **Scope:**
+  - ✅ **Public Models Page** (`/modelle`) - Zeigt alle Modelle mit Seed-Daten
+  - ✅ **Public Model Detail** (`/modelle/:brand/:model`) - Community-Stats inkl. aller Seed-Daten
+  - ✅ **User Statistics** (`/dashboard/statistics`) - Eigene Logs inkl. eigener Seed-Daten
+- **Use Case:** Seed Users können Platform mit vollem Datenumfang testen ohne echte Community-Daten zu benötigen
+- **Implementation:** `PublicModelController`, `PublicModelService`, `EvLogService.getStatistics()`, `JpaEvLogRepository`
 
 ### Feature Documentation
 - [Authentication & Authorization](docs/features/authentication.md) - JWT, Email-Verification, OAuth2

@@ -327,7 +327,7 @@ boolean alreadyExists = evLogRepository.existsByCarIdAndLoggedAtBetween(
 
 ## Statistics Exclusion
 
-**WICHTIG:** Tesla Import Logs werden von folgenden Berechnungen ausgeschlossen:
+**WICHTIG:** Tesla Import Logs haben `include_in_statistics = false` und werden von Berechnungen ausgeschlossen.
 
 ✅ **Ausgeschlossen:**
 - User Statistics (Durchschnittspreis, Ladedauer, Kosten)
@@ -339,6 +339,8 @@ boolean alreadyExists = evLogRepository.existsByCarIdAndLoggedAtBetween(
 - Heatmap (nur Location-Visualisierung, keine Berechnungen)
 
 **Grund:** Incomplete data (`cost_eur` und `charge_duration_minutes` sind NULL) würde Statistiken verfälschen.
+
+**Implementation:** Flag wird bei Log-Creation automatisch gesetzt (`EvLog.shouldIncludeInStatistics()` returnt `false` für `TESLA_IMPORT`).
 
 ## UI Visibility Rule
 

@@ -1,4 +1,4 @@
-import axios from 'axios'
+import apiClient from './axios'
 
 export interface WltpVariant {
     batteryCapacityKwh: number
@@ -18,16 +18,19 @@ export interface PublicModelStats {
     wltpVariants: WltpVariant[]
 }
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api'
-
 export async function getModelStats(brand: string, model: string): Promise<PublicModelStats | null> {
     try {
-        const response = await axios.get<PublicModelStats>(
-            `${API_BASE}/public/models/${brand}/${model}`
+        const response = await apiClient.get<PublicModelStats>(
+            `/public/models/${brand}/${model}`
         )
         return response.data
     } catch (err: any) {
         if (err.response?.status === 404) return null
         throw err
     }
+}
+
+export async function getAllModelsWithWltpData(): Promise<string[]> {
+    const response = await apiClient.get<string[]>('/public/models')
+    return response.data
 }
