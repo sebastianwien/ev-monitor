@@ -1,0 +1,88 @@
+package com.evmonitor.infrastructure.web;
+
+import com.evmonitor.application.user.*;
+import com.evmonitor.infrastructure.security.UserPrincipal;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
+
+@RestController
+@RequestMapping("/api/users")
+@RequiredArgsConstructor
+public class UserController {
+
+    private final UserService userService;
+
+    @GetMapping("/me/stats")
+    public ResponseEntity<UserStatsResponse> getUserStats(
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        UUID userId = UUID.fromString(principal.getUser().getId().toString());
+        UserStatsResponse stats = userService.getUserStats(userId);
+        return ResponseEntity.ok(stats);
+    }
+
+    @PutMapping("/me/email")
+    public ResponseEntity<Void> changeEmail(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @Valid @RequestBody ChangeEmailRequest request
+    ) {
+        UUID userId = UUID.fromString(principal.getUser().getId().toString());
+        userService.changeEmail(userId, request);
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/me/username")
+    public ResponseEntity<Void> changeUsername(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @Valid @RequestBody ChangeUsernameRequest request
+    ) {
+        UUID userId = UUID.fromString(principal.getUser().getId().toString());
+        userService.changeUsername(userId, request);
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/me/password")
+    public ResponseEntity<Void> changePassword(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @Valid @RequestBody ChangePasswordRequest request
+    ) {
+        UUID userId = UUID.fromString(principal.getUser().getId().toString());
+        userService.changePassword(userId, request);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/me/export")
+    public ResponseEntity<Resource> exportUserData(
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        UUID userId = UUID.fromString(principal.getUser().getId().toString());
+        byte[] data = userService.exportUserData(userId);
+
+        ByteArrayResource resource = new ByteArrayResource(data);
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"ev-monitor-export-" + System.currentTimeMillis() + ".json\"")
+                .body(resource);
+    }
+
+    @DeleteMapping("/me")
+    public ResponseEntity<Void> deleteAccount(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @Valid @RequestBody DeleteAccountRequest request
+    ) {
+        UUID userId = UUID.fromString(principal.getUser().getId().toString());
+        userService.deleteAccount(userId, request);
+        return ResponseEntity.ok().build();
+    }
+}

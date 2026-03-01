@@ -55,6 +55,12 @@ public class PostgresUserRepositoryImpl implements UserRepository {
         jpaUserRepository.markEmailVerified(userId);
     }
 
+    @Override
+    @Transactional
+    public void delete(User user) {
+        jpaUserRepository.deleteById(user.getId());
+    }
+
     private UserEntity toEntity(User domain) {
         return new UserEntity(
                 domain.getId(),
