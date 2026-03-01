@@ -18,9 +18,9 @@ const handleLogout = () => {
         <div class="text-xl font-bold tracking-wide">EV Monitor</div>
         <div class="flex space-x-4">
           <router-link
-            to="/"
+            to="/dashboard"
             class="px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-500 transition"
-            :class="{ 'bg-indigo-700': $route.path === '/' }">
+            :class="{ 'bg-indigo-700': $route.path === '/dashboard' }">
             Dashboard
           </router-link>
           <router-link
@@ -61,7 +61,9 @@ const handleLogout = () => {
         <div class="text-center text-sm text-gray-600 space-y-3">
           <p>
             © 2026 EV Monitor ·
-            <router-link to="/terms" class="hover:text-green-600 underline">AGB & Datenschutz</router-link>
+            <router-link to="/datenschutz" class="hover:text-green-600 underline">Datenschutz</router-link> ·
+            <router-link to="/impressum" class="hover:text-green-600 underline">Impressum</router-link> ·
+            <router-link to="/agb" class="hover:text-green-600 underline">AGB</router-link>
           </p>
           <p class="text-xs text-gray-500 flex items-center justify-center gap-2">
             <span>🔌 Datenimport powered by</span>
