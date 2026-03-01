@@ -5,7 +5,7 @@ import { useAuthStore } from './stores/auth'
 import SpritMonitorImport from './components/SpritMonitorImport.vue'
 import LogFormModal from './components/LogFormModal.vue'
 import FloatingActionButton from './components/FloatingActionButton.vue'
-import { Bars3Icon, XMarkIcon, ChartBarIcon, TruckIcon, ArrowDownTrayIcon, UserIcon, ArrowRightOnRectangleIcon } from '@heroicons/vue/24/outline'
+import { Bars3Icon, XMarkIcon, ChartBarIcon, TruckIcon, ArrowDownTrayIcon, UserIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon } from '@heroicons/vue/24/outline'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -75,9 +75,13 @@ const closeMobileMenu = () => {
 
           <!-- Right: User Info + Logout (Desktop) / Hamburger (Mobile) -->
           <div class="hidden md:flex items-center space-x-4">
-            <span v-if="authStore.user" class="text-sm border border-indigo-400 px-3 py-1 rounded-md bg-indigo-500 bg-opacity-30">
-              {{ authStore.user.sub }}
-            </span>
+            <router-link
+              v-if="authStore.user"
+              to="/settings"
+              class="flex items-center gap-2 px-3 py-1.5 text-sm border border-indigo-400 rounded-md bg-indigo-500 bg-opacity-30 hover:bg-opacity-50 transition">
+              <UserIcon class="h-4 w-4" />
+              <span>{{ authStore.user.sub }}</span>
+            </router-link>
             <button @click="handleLogout" class="px-4 py-2 bg-indigo-700 hover:bg-indigo-800 rounded-lg text-sm font-medium transition shadow-sm">
               Abmelden
             </button>
@@ -114,6 +118,14 @@ const closeMobileMenu = () => {
             :class="{ 'bg-indigo-800': $route.path === '/cars' }">
             <TruckIcon class="h-5 w-5" />
             <span>Fahrzeuge</span>
+          </router-link>
+          <router-link
+            to="/settings"
+            @click="closeMobileMenu"
+            class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-600 transition"
+            :class="{ 'bg-indigo-800': $route.path === '/settings' }">
+            <Cog6ToothIcon class="h-5 w-5" />
+            <span>Einstellungen</span>
           </router-link>
           <button
             @click="showImportOverlay = true; mobileMenuOpen = false"

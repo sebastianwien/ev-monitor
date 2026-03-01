@@ -8,6 +8,7 @@ import VerifyEmailView from '../views/VerifyEmailView.vue';
 import OAuth2RedirectHandler from '../views/OAuth2RedirectHandler.vue';
 import CarManagementView from '../views/CarManagementView.vue';
 import StatisticsView from '../views/StatisticsView.vue';
+import SettingsView from '../views/SettingsView.vue';
 import PublicModelsListView from '../views/PublicModelsListView.vue';
 import PublicModelView from '../views/PublicModelView.vue';
 import DatenschutzView from '../views/DatenschutzView.vue';
@@ -54,6 +55,12 @@ const router = createRouter({
             path: '/statistics',
             name: 'statistics',
             component: StatisticsView,
+            meta: { requiresAuth: true }
+        },
+        {
+            path: '/settings',
+            name: 'settings',
+            component: SettingsView,
             meta: { requiresAuth: true }
         },
         {

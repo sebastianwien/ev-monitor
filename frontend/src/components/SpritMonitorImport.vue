@@ -173,7 +173,7 @@ const close = () => {
         <div v-if="importStep === 'token'">
           <p class="text-gray-700 mb-4">
             Gib deinen <strong>Sprit-Monitor API Token</strong> ein um deine Ladevorgänge zu importieren.
-            Der Token wird <strong>nicht gespeichert</strong>!
+            Der Token wird nach dem Import sofort wieder verworfen. Er wird <strong>nicht gespeichert</strong>!
           </p>
           <input
             v-model="token"

@@ -51,6 +51,13 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
+    public List<EvLog> findAllByUserId(UUID userId) {
+        return jpaRepository.findAllByUserId(userId).stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public boolean existsByCarIdAndLoggedAtBetween(UUID carId, LocalDateTime start, LocalDateTime end) {
         return jpaRepository.existsByCarIdAndLoggedAtBetween(carId, start, end);
     }

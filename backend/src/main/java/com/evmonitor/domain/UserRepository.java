@@ -17,4 +17,6 @@ public interface UserRepository {
     boolean existsByUsername(String username);
 
     void markEmailVerified(UUID userId);
+
+    void delete(User user);
 }
