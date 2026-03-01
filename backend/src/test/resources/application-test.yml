@@ -1,15 +1,16 @@
 # Test Profile Configuration
-# Uses H2 in-memory database for tests
+# Uses H2 in-memory database for fast local testing
+# For CI/CD with Testcontainers, add profile 'testcontainers'
 
 spring:
   datasource:
-    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1
     username: sa
     password:
     driver-class-name: org.h2.Driver
 
   flyway:
-    enabled: false  # Disable Flyway for tests, use Hibernate schema generation
+    enabled: false  # Disable Flyway, use Hibernate DDL
 
   jpa:
     hibernate:

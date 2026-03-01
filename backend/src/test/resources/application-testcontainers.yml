@@ -1,0 +1,14 @@
+# Testcontainers Profile - extends 'test' profile
+# Use this on CI/CD where Docker is available: -Dspring.profiles.active=test,testcontainers
+
+spring:
+  flyway:
+    enabled: true  # Use Flyway migrations (same as production)
+    clean-disabled: false
+
+  jpa:
+    hibernate:
+      ddl-auto: validate  # Validate schema, let Flyway create it
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect

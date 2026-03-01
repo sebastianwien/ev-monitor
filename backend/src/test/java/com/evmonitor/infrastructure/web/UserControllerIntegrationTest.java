@@ -5,6 +5,7 @@ import com.evmonitor.domain.User;
 import com.evmonitor.domain.UserRepository;
 import com.evmonitor.infrastructure.persistence.JpaUserRepository;
 import com.evmonitor.infrastructure.persistence.UserEntity;
+import com.evmonitor.infrastructure.security.UserPrincipal;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,6 +14,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
@@ -25,7 +28,7 @@ import java.util.UUID;
 
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -92,10 +95,18 @@ class UserControllerIntegrationTest {
         jpaUserRepository.deleteAll();
     }
 
+    /**
+     * Helper method to create Authentication with UserPrincipal (required by UserController)
+     */
+    private Authentication createAuthentication(User user) {
+        UserPrincipal principal = UserPrincipal.create(user);
+        return new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
+    }
+
     @Test
     void getUserStats_shouldReturnUserStatistics() throws Exception {
         mockMvc.perform(get("/api/users/me/stats")
-                        .with(user(testUser.getEmail()).password(testUser.getPasswordHash())))
+                        .with(authentication(createAuthentication(testUser))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.registeredSince", notNullValue()))
                 .andExpect(jsonPath("$.totalLogs", is(0)))
@@ -109,7 +120,7 @@ class UserControllerIntegrationTest {
         request.put("newEmail", "newemail@example.com");
 
         mockMvc.perform(put("/api/users/me/email")
-                        .with(user(testUser.getEmail()).password(testUser.getPasswordHash()))
+                        .with(authentication(createAuthentication(testUser)))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
@@ -141,7 +152,7 @@ class UserControllerIntegrationTest {
         request.put("newEmail", "existing@example.com");
 
         mockMvc.perform(put("/api/users/me/email")
-                        .with(user(testUser.getEmail()).password(testUser.getPasswordHash()))
+                        .with(authentication(createAuthentication(testUser)))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -153,7 +164,7 @@ class UserControllerIntegrationTest {
         request.put("newUsername", "newusername");
 
         mockMvc.perform(put("/api/users/me/username")
-                        .with(user(testUser.getEmail()).password(testUser.getPasswordHash()))
+                        .with(authentication(createAuthentication(testUser)))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
@@ -169,7 +180,7 @@ class UserControllerIntegrationTest {
         request.put("newUsername", "ab"); // Too short (min 3)
 
         mockMvc.perform(put("/api/users/me/username")
-                        .with(user(testUser.getEmail()).password(testUser.getPasswordHash()))
+                        .with(authentication(createAuthentication(testUser)))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -182,7 +193,7 @@ class UserControllerIntegrationTest {
         request.put("newPassword", "newPassword456");
 
         mockMvc.perform(put("/api/users/me/password")
-                        .with(user(testUser.getEmail()).password(testUser.getPasswordHash()))
+                        .with(authentication(createAuthentication(testUser)))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
@@ -199,7 +210,7 @@ class UserControllerIntegrationTest {
         request.put("newPassword", "newPassword456");
 
         mockMvc.perform(put("/api/users/me/password")
-                        .with(user(testUser.getEmail()).password(testUser.getPasswordHash()))
+                        .with(authentication(createAuthentication(testUser)))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -212,7 +223,7 @@ class UserControllerIntegrationTest {
         request.put("newPassword", "short"); // Too short (min 8)
 
         mockMvc.perform(put("/api/users/me/password")
-                        .with(user(testUser.getEmail()).password(testUser.getPasswordHash()))
+                        .with(authentication(createAuthentication(testUser)))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -221,7 +232,7 @@ class UserControllerIntegrationTest {
     @Test
     void exportUserData_shouldReturnJsonFile() throws Exception {
         mockMvc.perform(get("/api/users/me/export")
-                        .with(user(testUser.getEmail()).password(testUser.getPasswordHash())))
+                        .with(authentication(createAuthentication(testUser))))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(header().string("Content-Disposition", containsString("attachment")))
@@ -234,7 +245,7 @@ class UserControllerIntegrationTest {
         request.put("password", "password123");
 
         mockMvc.perform(delete("/api/users/me")
-                        .with(user(testUser.getEmail()).password(testUser.getPasswordHash()))
+                        .with(authentication(createAuthentication(testUser)))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
@@ -249,7 +260,7 @@ class UserControllerIntegrationTest {
         request.put("password", "wrongPassword");
 
         mockMvc.perform(delete("/api/users/me")
-                        .with(user(testUser.getEmail()).password(testUser.getPasswordHash()))
+                        .with(authentication(createAuthentication(testUser)))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -260,30 +271,31 @@ class UserControllerIntegrationTest {
 
     @Test
     void allEndpoints_shouldReturn401WhenNotAuthenticated() throws Exception {
+        // Spring Security returns 403 Forbidden (not 401 Unauthorized) when no authentication is present
         mockMvc.perform(get("/api/users/me/stats"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
 
         mockMvc.perform(put("/api/users/me/email")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
 
         mockMvc.perform(put("/api/users/me/username")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
 
         mockMvc.perform(put("/api/users/me/password")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
 
         mockMvc.perform(get("/api/users/me/export"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
 
         mockMvc.perform(delete("/api/users/me")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 }
