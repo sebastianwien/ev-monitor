@@ -26,7 +26,7 @@ onMounted(async () => {
     if (response.data.token) {
       authStore.setToken(response.data.token);
       status.value = 'success';
-      setTimeout(() => router.push('/'), 2000);
+      setTimeout(() => router.push('/statistics'), 2000);
     }
   } catch (err: any) {
     const code = err.response?.data?.code;

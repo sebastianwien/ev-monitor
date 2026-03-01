@@ -16,7 +16,7 @@ const handleLogin = async () => {
     error.value = '';
     errorCode.value = '';
     await authStore.login({ email: email.value, password: password.value });
-    router.push('/');
+    router.push('/statistics');
   } catch (err: any) {
     const code = err.response?.data?.code;
     errorCode.value = code || '';
