@@ -6,6 +6,7 @@ import geohash from 'ngeohash'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
+import { MapIcon, MapPinIcon } from '@heroicons/vue/24/outline'
 import api from '../api/axios'
 
 // Import leaflet.heat with proper typing
@@ -300,14 +301,14 @@ onMounted(async () => {
     <!-- Empty state overlays (shown over map container) -->
     <div v-if="!carId" class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-95 z-10 rounded-lg">
       <div class="p-10 text-center text-gray-500">
-        <span class="text-4xl mb-2 block">🗺️</span>
+        <MapIcon class="h-16 w-16 mx-auto mb-3 text-gray-400" />
         <p class="font-medium">Wähle ein Fahrzeug aus um die Lade-Karte anzuzeigen.</p>
       </div>
     </div>
 
     <div v-else-if="chargeCount === 0 && !loading" class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-95 z-10 rounded-lg">
       <div class="p-10 text-center text-gray-500">
-        <span class="text-4xl mb-2 block">📍</span>
+        <MapPinIcon class="h-16 w-16 mx-auto mb-3 text-gray-400" />
         <p class="font-medium">Keine Ladevorgänge mit Standort-Daten gefunden.</p>
         <p class="text-xs text-gray-400 mt-1">Erfasse Ladevorgänge mit GPS-Standort im Dashboard.</p>
       </div>
@@ -316,10 +317,11 @@ onMounted(async () => {
     <!-- Map container (always rendered) -->
     <div>
       <!-- Controls (only shown when we have data) -->
-      <div v-if="chargeCount > 0" class="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-100">
+      <div v-if="chargeCount > 0" class="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-3 md:p-4 bg-gradient-to-r from-indigo-50 to-purple-50 md:rounded-lg border border-indigo-100">
         <div class="flex items-center gap-2">
+          <MapPinIcon class="h-5 w-5 text-indigo-600" />
           <span class="text-sm font-semibold text-gray-700">
-            📍 <strong class="text-indigo-600">{{ chargeCount }}</strong> Ladevorgänge
+            <strong class="text-indigo-600">{{ chargeCount }}</strong> Ladevorgänge
           </span>
         </div>
 
@@ -334,7 +336,7 @@ onMounted(async () => {
                 ? 'bg-indigo-600 text-white shadow-md'
                 : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
             ]">
-            🔥 Heatmap
+            Heatmap
           </button>
           <button
             @click="setViewMode('markers')"
@@ -344,7 +346,7 @@ onMounted(async () => {
                 ? 'bg-indigo-600 text-white shadow-md'
                 : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
             ]">
-            📌 Marker
+            Marker
           </button>
           <button
             @click="setViewMode('both')"
@@ -354,7 +356,7 @@ onMounted(async () => {
                 ? 'bg-indigo-600 text-white shadow-md'
                 : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
             ]">
-            🎯 Beides
+            Beides
           </button>
         </div>
       </div>
@@ -377,7 +379,7 @@ onMounted(async () => {
         <span class="text-gray-400 ml-2">• Klick auf Marker für Details</span>
       </div>
 
-      <div ref="mapContainer" class="w-full h-[550px] rounded-lg border-2 border-gray-300 shadow-lg transition-all duration-300 hover:shadow-xl"></div>
+      <div ref="mapContainer" class="w-full h-[400px] sm:h-[550px] md:rounded-lg border md:border-2 border-gray-300 md:shadow-lg transition-all duration-300 hover:shadow-xl"></div>
     </div>
   </div>
 </template>

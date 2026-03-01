@@ -316,8 +316,8 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="max-w-4xl mx-auto p-6">
-    <div class="bg-white rounded-xl shadow-lg p-6">
+  <div class="md:max-w-4xl md:mx-auto md:p-6">
+    <div class="bg-white md:rounded-xl md:shadow-lg p-4 md:p-6">
       <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-bold text-gray-800">Meine Fahrzeuge</h1>
         <button

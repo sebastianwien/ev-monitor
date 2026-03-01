@@ -217,7 +217,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="max-w-2xl mx-auto p-6 bg-white rounded-xl shadow-lg mt-8">
+  <div class="md:max-w-2xl md:mx-auto p-4 md:p-6 bg-white md:rounded-xl md:shadow-lg md:mt-8">
     <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">Ladevorgang erfassen</h1>
 
     <div v-if="error" class="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-md">
