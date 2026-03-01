@@ -1,5 +1,6 @@
 package com.evmonitor.domain;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -14,4 +15,6 @@ public interface EvLogRepository {
     List<EvLog> findAll();
 
     List<EvLog> findAllByCarId(UUID carId);
+
+    boolean existsByCarIdAndLoggedAtBetween(UUID carId, LocalDateTime start, LocalDateTime end);
 }

@@ -36,6 +36,9 @@ public class EvLogEntity {
     @Column(name = "logged_at")
     private LocalDateTime loggedAt;
 
+    @Column(name = "data_source", length = 50)
+    private String dataSource;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -47,7 +50,7 @@ public class EvLogEntity {
 
     public EvLogEntity(UUID id, UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
             Integer chargeDurationMinutes, String geohash, Integer odometerKm,
-            BigDecimal maxChargingPowerKw, LocalDateTime loggedAt,
+            BigDecimal maxChargingPowerKw, LocalDateTime loggedAt, String dataSource,
             LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.carId = carId;
@@ -58,6 +61,7 @@ public class EvLogEntity {
         this.odometerKm = odometerKm;
         this.maxChargingPowerKw = maxChargingPowerKw;
         this.loggedAt = loggedAt;
+        this.dataSource = dataSource;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -148,5 +152,13 @@ public class EvLogEntity {
 
     public void setMaxChargingPowerKw(BigDecimal maxChargingPowerKw) {
         this.maxChargingPowerKw = maxChargingPowerKw;
+    }
+
+    public String getDataSource() {
+        return dataSource;
+    }
+
+    public void setDataSource(String dataSource) {
+        this.dataSource = dataSource;
     }
 }

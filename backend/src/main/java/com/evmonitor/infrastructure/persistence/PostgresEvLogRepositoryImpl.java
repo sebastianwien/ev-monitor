@@ -4,6 +4,7 @@ import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.EvLogRepository;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -49,6 +50,11 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public boolean existsByCarIdAndLoggedAtBetween(UUID carId, LocalDateTime start, LocalDateTime end) {
+        return jpaRepository.existsByCarIdAndLoggedAtBetween(carId, start, end);
+    }
+
     private EvLogEntity toEntity(EvLog domain) {
         return new EvLogEntity(
                 domain.getId(),
@@ -60,6 +66,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 domain.getOdometerKm(),
                 domain.getMaxChargingPowerKw(),
                 domain.getLoggedAt(),
+                domain.getDataSource(),
                 domain.getCreatedAt(),
                 domain.getUpdatedAt());
     }
@@ -75,6 +82,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 entity.getOdometerKm(),
                 entity.getMaxChargingPowerKw(),
                 entity.getLoggedAt(),
+                entity.getDataSource(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt());
     }
