@@ -35,3 +35,4 @@ wipe-prod-db.sh
 *.crt
 frontend/dist/
 frontend/node_modules/
+cache.json
