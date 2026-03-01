@@ -37,16 +37,6 @@ const handleResendFromLogin = async () => {
     // silently ignore
   }
 };
-
-const loginWithGoogle = () => {
-  window.location.href = 'http://localhost:8080/oauth2/authorization/google';
-};
-const loginWithFacebook = () => {
-  window.location.href = 'http://localhost:8080/oauth2/authorization/facebook';
-};
-const loginWithApple = () => {
-  window.location.href = 'http://localhost:8080/oauth2/authorization/apple';
-};
 </script>
 
 <template>
@@ -78,32 +68,6 @@ const loginWithApple = () => {
 
       <div class="mt-6 text-center text-sm text-gray-500">
         Noch kein Konto? <router-link to="/register" class="font-semibold text-indigo-600 hover:text-indigo-500">Hier registrieren</router-link>
-      </div>
-
-      <div class="mt-8">
-        <div class="relative">
-          <div class="absolute inset-0 flex items-center">
-            <div class="w-full border-t border-gray-300"></div>
-          </div>
-          <div class="relative flex justify-center text-sm">
-            <span class="px-2 text-gray-500 bg-white">Oder anmelden mit</span>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-3 gap-3 mt-6">
-          <button @click="loginWithGoogle" class="flex justify-center w-full px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50">
-            <span class="sr-only">Mit Google anmelden</span>
-            Google
-          </button>
-          <button @click="loginWithFacebook" class="flex justify-center w-full px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50">
-            <span class="sr-only">Mit Facebook anmelden</span>
-            Facebook
-          </button>
-          <button @click="loginWithApple" class="flex justify-center w-full px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50">
-            <span class="sr-only">Mit Apple anmelden</span>
-            Apple
-          </button>
-        </div>
       </div>
     </div>
   </div>
