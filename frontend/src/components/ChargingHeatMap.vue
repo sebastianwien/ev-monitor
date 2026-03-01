@@ -98,7 +98,12 @@ const initMap = () => {
 
 // Render charging locations on map
 const renderCharges = async () => {
-  if (!map) return
+  // If map doesn't exist yet, try to initialize it now
+  if (!map) {
+    await nextTick()
+    initMap()
+    if (!map) return
+  }
 
   // Clear existing layers
   if (heatLayer) {
@@ -222,10 +227,24 @@ const setViewMode = (mode: 'heatmap' | 'markers' | 'both') => {
 
 // Watch for car or time range changes
 watch(() => [props.carId, props.timeRange], async () => {
+  if (!props.carId) return
+
+  // Wait for DOM to update (in case the container just appeared)
+  await nextTick()
+  await nextTick() // Double nextTick to be extra safe
+
+  // Try to initialize map if it doesn't exist yet
+  if (!map && mapContainer.value) {
+    initMap()
+  }
+
   if (props.carId && map) {
     await renderCharges()
   }
-}, { immediate: false })
+}, {
+  immediate: false,
+  flush: 'post' // Run after DOM updates
+})
 
 onMounted(async () => {
   await nextTick()
@@ -249,20 +268,26 @@ onMounted(async () => {
       {{ error }}
     </div>
 
-    <div v-if="!carId" class="p-10 text-center text-gray-500 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg border-2 border-dashed border-gray-300">
-      <span class="text-4xl mb-2 block">🗺️</span>
-      <p class="font-medium">Wähle ein Fahrzeug aus um die Lade-Karte anzuzeigen.</p>
+    <!-- Empty state overlays (shown over map container) -->
+    <div v-if="!carId" class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-95 z-10 rounded-lg">
+      <div class="p-10 text-center text-gray-500">
+        <span class="text-4xl mb-2 block">🗺️</span>
+        <p class="font-medium">Wähle ein Fahrzeug aus um die Lade-Karte anzuzeigen.</p>
+      </div>
     </div>
 
-    <div v-else-if="chargeCount === 0 && !loading" class="p-10 text-center text-gray-500 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg border-2 border-dashed border-gray-300">
-      <span class="text-4xl mb-2 block">📍</span>
-      <p class="font-medium">Keine Ladevorgänge mit Standort-Daten gefunden.</p>
-      <p class="text-xs text-gray-400 mt-1">Erfasse Ladevorgänge mit GPS-Standort im Dashboard.</p>
+    <div v-else-if="chargeCount === 0 && !loading" class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-95 z-10 rounded-lg">
+      <div class="p-10 text-center text-gray-500">
+        <span class="text-4xl mb-2 block">📍</span>
+        <p class="font-medium">Keine Ladevorgänge mit Standort-Daten gefunden.</p>
+        <p class="text-xs text-gray-400 mt-1">Erfasse Ladevorgänge mit GPS-Standort im Dashboard.</p>
+      </div>
     </div>
 
-    <div v-else>
-      <!-- Controls -->
-      <div class="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-100">
+    <!-- Map container (always rendered) -->
+    <div>
+      <!-- Controls (only shown when we have data) -->
+      <div v-if="chargeCount > 0" class="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-100">
         <div class="flex items-center gap-2">
           <span class="text-sm font-semibold text-gray-700">
             📍 <strong class="text-indigo-600">{{ chargeCount }}</strong> Ladevorgänge
@@ -305,8 +330,8 @@ onMounted(async () => {
         </div>
       </div>
 
-      <!-- Legend -->
-      <div class="mb-3 flex flex-wrap items-center gap-4 text-xs text-gray-600 px-2">
+      <!-- Legend (only shown when we have data) -->
+      <div v-if="chargeCount > 0" class="mb-3 flex flex-wrap items-center gap-4 text-xs text-gray-600 px-2">
         <span class="font-semibold text-gray-700">Legende:</span>
         <span class="flex items-center gap-1.5">
           <span class="inline-block w-4 h-4 rounded-full bg-green-500 shadow-sm"></span>
