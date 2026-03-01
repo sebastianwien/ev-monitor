@@ -99,6 +99,9 @@ WHERE include_in_statistics = true
 - [Local Development](docs/deployment/local-development.md) - dev.sh, Docker Compose, Troubleshooting
 - [Production Setup](docs/deployment/production.md) - (TODO) Hetzner, nginx, SSL
 
+### Planning Documentation
+- [Road to Launch](docs/road-to-launch.md) - Beta Release Checklist, Timeline, Launch Strategy
+
 ---
 
 ## 👤 User Preferences & Session Settings

@@ -305,8 +305,8 @@ onMounted(fetchStatistics)
 </script>
 
 <template>
-  <div class="max-w-6xl mx-auto p-6">
-    <div class="bg-white rounded-xl shadow-lg p-6">
+  <div class="md:max-w-6xl md:mx-auto md:p-6">
+    <div class="bg-white md:rounded-xl md:shadow-lg p-4 md:p-6">
       <div class="flex items-center gap-3 mb-6">
         <ChartBarIcon class="h-8 w-8 text-gray-700" />
         <h1 class="text-3xl font-bold text-gray-800">Statistiken & Analysen</h1>
@@ -400,42 +400,42 @@ onMounted(fetchStatistics)
         </div>
 
         <!-- Line Chart: Zeitverlauf -->
-        <div class="bg-gray-50 p-6 rounded-lg border border-gray-200">
+        <div class="md:bg-gray-50 p-4 md:p-6 md:rounded-lg md:border md:border-gray-200">
           <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
             <h2 class="text-xl font-semibold text-gray-800">Zeitverlauf</h2>
 
             <!-- Real checkboxes -->
-            <div class="flex flex-wrap gap-4">
-              <label class="flex items-center gap-2 cursor-pointer">
+            <div class="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm">
+              <label class="flex items-center gap-1 sm:gap-2 cursor-pointer">
                 <input type="checkbox" v-model="showCostPerKwh"
-                  class="w-4 h-4 rounded accent-indigo-600 cursor-pointer" />
-                <span class="text-sm font-medium text-gray-700">
-                  <span class="inline-block w-3 h-0.5 bg-indigo-600 mr-1 align-middle"></span>
+                  class="w-3 h-3 sm:w-4 sm:h-4 rounded accent-indigo-600 cursor-pointer" />
+                <span class="font-medium text-gray-700">
+                  <span class="inline-block w-2 sm:w-3 h-0.5 bg-indigo-600 mr-1 align-middle"></span>
                   €/kWh
                 </span>
               </label>
-              <label class="flex items-center gap-2 cursor-pointer">
+              <label class="flex items-center gap-1 sm:gap-2 cursor-pointer">
                 <input type="checkbox" v-model="showKwh"
-                  class="w-4 h-4 rounded accent-amber-500 cursor-pointer" />
-                <span class="text-sm font-medium text-gray-700">
-                  <span class="inline-block w-3 h-0.5 bg-amber-500 mr-1 align-middle"></span>
-                  kWh geladen
+                  class="w-3 h-3 sm:w-4 sm:h-4 rounded accent-amber-500 cursor-pointer" />
+                <span class="font-medium text-gray-700">
+                  <span class="inline-block w-2 sm:w-3 h-0.5 bg-amber-500 mr-1 align-middle"></span>
+                  kWh
                 </span>
               </label>
               <template v-if="hasDistanceData">
-                <label class="flex items-center gap-2 cursor-pointer">
+                <label class="flex items-center gap-1 sm:gap-2 cursor-pointer">
                   <input type="checkbox" v-model="showDistance"
-                    class="w-4 h-4 rounded accent-emerald-500 cursor-pointer" />
-                  <span class="text-sm font-medium text-gray-700">
-                    <span class="inline-block w-3 h-0.5 bg-emerald-500 mr-1 align-middle"></span>
-                    Strecke km
+                    class="w-3 h-3 sm:w-4 sm:h-4 rounded accent-emerald-500 cursor-pointer" />
+                  <span class="font-medium text-gray-700">
+                    <span class="inline-block w-2 sm:w-3 h-0.5 bg-emerald-500 mr-1 align-middle"></span>
+                    km
                   </span>
                 </label>
-                <label class="flex items-center gap-2 cursor-pointer">
+                <label class="flex items-center gap-1 sm:gap-2 cursor-pointer">
                   <input type="checkbox" v-model="showConsumption"
-                    class="w-4 h-4 rounded accent-red-500 cursor-pointer" />
-                  <span class="text-sm font-medium text-gray-700">
-                    <span class="inline-block w-3 h-0.5 bg-red-500 mr-1 align-middle"></span>
+                    class="w-3 h-3 sm:w-4 sm:h-4 rounded accent-red-500 cursor-pointer" />
+                  <span class="font-medium text-gray-700">
+                    <span class="inline-block w-2 sm:w-3 h-0.5 bg-red-500 mr-1 align-middle"></span>
                     kWh/100km
                   </span>
                 </label>
@@ -443,7 +443,7 @@ onMounted(fetchStatistics)
             </div>
           </div>
 
-          <div v-if="lineChartData && lineChartData.datasets.length > 0" class="h-72">
+          <div v-if="lineChartData && lineChartData.datasets.length > 0" class="h-64 sm:h-72">
             <Line :data="lineChartData" :options="lineChartOptions" />
           </div>
           <div v-else class="text-center py-10 text-gray-400 text-sm">
@@ -457,14 +457,16 @@ onMounted(fetchStatistics)
         </div>
 
         <!-- WLTP Delta Bar Chart -->
-        <div v-if="wltp && hasDistanceData && wltpChartData" class="bg-gray-50 p-6 rounded-lg border border-gray-200">
+        <div v-if="wltp && hasDistanceData && wltpChartData" class="md:bg-gray-50 p-4 md:p-6 md:rounded-lg md:border md:border-gray-200">
           <div class="mb-4">
             <h2 class="text-xl font-semibold text-gray-800">Verbrauch vs. WLTP</h2>
-            <p class="text-sm text-gray-500 mt-1">
-              WLTP-Referenz: <strong>{{ wltp.wltpConsumptionKwhPer100km.toFixed(1) }} kWh/100km</strong>
-              ({{ wltp.wltpRangeKm }} km Reichweite, {{ wltp.wltpType }}) ·
-              <span class="text-emerald-600 font-medium">🟢 grün = effizienter als WLTP</span> ·
-              <span class="text-red-600 font-medium">🔴 rot = mehr Verbrauch</span>
+            <p class="text-xs sm:text-sm text-gray-500 mt-1">
+              WLTP: <strong>{{ wltp.wltpConsumptionKwhPer100km.toFixed(1) }} kWh/100km</strong>
+              ({{ wltp.wltpRangeKm }} km, {{ wltp.wltpType }})
+              <span class="hidden sm:inline">
+                · <span class="text-emerald-600 font-medium">grün = effizienter</span>
+                · <span class="text-red-600 font-medium">rot = mehr Verbrauch</span>
+              </span>
             </p>
           </div>
           <div class="h-64">
@@ -474,13 +476,13 @@ onMounted(fetchStatistics)
 
         <!-- WLTP missing hint -->
         <div v-else-if="!wltp && hasDistanceData"
-          class="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-700">
+          class="bg-amber-50 border border-amber-200 md:rounded-lg p-3 md:p-4 text-sm text-amber-700">
           Für dieses Fahrzeug sind noch keine WLTP-Daten hinterlegt.
           Du kannst sie in der <router-link to="/cars" class="font-semibold underline">Fahrzeugverwaltung</router-link> ergänzen und dabei 50 Coins verdienen!
         </div>
 
         <!-- Charging Heat Map -->
-        <div class="bg-gray-50 p-6 rounded-lg border border-gray-200">
+        <div class="md:bg-gray-50 p-4 md:p-6 md:rounded-lg md:border md:border-gray-200 mb-20 md:mb-0">
           <div class="mb-4">
             <h2 class="text-xl font-semibold text-gray-800">Lade-Standorte</h2>
             <p class="text-sm text-gray-500 mt-1">
