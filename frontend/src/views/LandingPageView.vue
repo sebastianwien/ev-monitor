@@ -48,7 +48,9 @@ onMounted(async () => {
 const goToRegister = () => router.push('/register')
 const goToModels = () => router.push('/modelle')
 const goToModelDetail = (brand: string, model: string) => {
-  router.push(`/modelle/${brand}/${model}`)
+  // Replace spaces with underscores for URL (e.g. "Polestar 2" -> "Polestar_2")
+  const urlModel = model.replace(/ /g, '_')
+  router.push(`/modelle/${brand}/${urlModel}`)
 }
 
 const formatDelta = (real: number | null, wltp: number): string => {
@@ -122,7 +124,7 @@ const formatDelta = (real: number | null, wltp: number): string => {
           <ArrowRightIcon class="h-5 w-5" />
         </button>
         <p class="mt-6 text-sm text-gray-500">
-          1.234 Ladevorgänge • 45 Modelle • 89 Fahrer
+          300+ Ladevorgänge • 250+ Modelle • 20+ Fahrer
         </p>
       </div>
     </section>

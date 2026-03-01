@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -35,15 +34,21 @@ public class PublicModelService {
     public Optional<PublicModelStatsResponse> getModelStats(String brandName, String modelName,
                                                              UUID currentUserId, boolean isSeedUser) {
         // Validate that the model actually exists in our enum
+        // Replace spaces with underscores (e.g. "Polestar 2" -> "POLESTAR_2")
         CarBrand.CarModel carModel;
         try {
-            carModel = CarBrand.CarModel.valueOf(modelName.toUpperCase());
+            String normalizedModelName = modelName.replace(" ", "_").toUpperCase();
+            carModel = CarBrand.CarModel.valueOf(normalizedModelName);
         } catch (IllegalArgumentException e) {
             return Optional.empty();
         }
 
         String modelEnumName = carModel.name();
         String brandEnumName = carModel.getBrand().name();
+
+        // Get proper display names from enum (preserves BMW, VW, MG etc.)
+        String brandDisplay = carModel.getBrand().getDisplayString();
+        String modelDisplay = carModel.getDisplayName();
 
         // Fetch basic aggregated stats (count, cost, kwh)
         // Demo Mode: If seed user, includes ALL seed data (not just current user)
@@ -101,7 +106,7 @@ public class PublicModelService {
                         e.getWltpConsumptionKwhPer100km()))
                 .toList();
 
-        String displayName = buildDisplayName(brandEnumName, modelEnumName);
+        String displayName = brandDisplay + " " + modelDisplay;
 
         return Optional.of(new PublicModelStatsResponse(
                 brandEnumName,
@@ -173,23 +178,5 @@ public class PublicModelService {
         if (value instanceof Double d) return BigDecimal.valueOf(d);
         if (value instanceof Float f) return BigDecimal.valueOf(f);
         return new BigDecimal(value.toString());
-    }
-
-    /**
-     * Converts enum names like TESLA / MODEL_3 to "Tesla Model 3".
-     */
-    private String buildDisplayName(String brand, String model) {
-        String brandDisplay = toTitleCase(brand.replace("_", " "));
-        String modelDisplay = toTitleCase(model.replace("_", " "));
-        return brandDisplay + " " + modelDisplay;
-    }
-
-    private String toTitleCase(String input) {
-        if (input == null || input.isEmpty()) return input;
-        return Arrays.stream(input.split(" "))
-                .map(word -> word.isEmpty() ? word
-                        : Character.toUpperCase(word.charAt(0)) + word.substring(1).toLowerCase())
-                .reduce((a, b) -> a + " " + b)
-                .orElse(input);
     }
 }

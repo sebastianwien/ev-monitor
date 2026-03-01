@@ -103,7 +103,7 @@
         <a
           v-for="model in filteredModels"
           :key="`${model.brand}/${model.model}`"
-          :href="`/modelle/${model.brand}/${model.model}`"
+          :href="`/modelle/${model.brand}/${model.model.replace(/ /g, '_')}`"
           class="bg-white rounded-xl border border-gray-200 p-5 hover:border-green-500 hover:shadow-md transition-all"
         >
           <div class="flex items-start justify-between mb-3">
