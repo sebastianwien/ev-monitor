@@ -2,12 +2,7 @@ package com.evmonitor.infrastructure.persistence;
 
 import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.CarStatus;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;

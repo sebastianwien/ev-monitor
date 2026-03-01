@@ -98,6 +98,7 @@ WHERE include_in_statistics = true
 - [Charging Logs](docs/features/charging-logs.md) - EvLog CRUD, Geohashing, Location Search
 - [Statistics & Heatmap](docs/features/statistics-heatmap.md) - Leaflet Maps, Charts, WLTP Delta
 - [WLTP Crowdsourcing & Coins](docs/features/wltp-crowdsourcing.md) - Vehicle Specs, Coin System
+- [Monetization & Advertising](docs/monetization.md) - Banner Ads, Affiliate, Support, DSGVO-Compliance
 - [Tesla Import](docs/features/tesla-import.md) - Tesla API Integration, Auto-Sync, Token Encryption
 
 ### Architecture Documentation

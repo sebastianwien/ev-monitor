@@ -2,10 +2,14 @@
 import { ref, onMounted, watch } from 'vue'
 import api from '../api/axios'
 import CarSelector from './CarSelector.vue'
+import OcrPhotoCapture from './OcrPhotoCapture.vue'
+import { CameraIcon, PencilSquareIcon } from '@heroicons/vue/24/outline'
 
 const emit = defineEmits<{
   success: []
 }>()
+
+const showOcrCapture = ref(false)
 
 const selectedCarId = ref<string | null>(null)
 const kwhCharged = ref<number>(0)
@@ -214,22 +218,75 @@ watch(selectedCarId, () => {
 onMounted(() => {
   fetchLogs()
 })
+
+// Handle OCR data extraction
+const handleOcrData = (ocrResult: any) => {
+  if (ocrResult.kwh !== null) {
+    kwhCharged.value = ocrResult.kwh
+  }
+  if (ocrResult.cost !== null) {
+    costEur.value = ocrResult.cost
+  }
+  if (ocrResult.durationMinutes !== null) {
+    chargeDurationMinutes.value = ocrResult.durationMinutes
+  }
+
+  // Switch to manual mode so user can see & edit the extracted data
+  showOcrCapture.value = false
+}
 </script>
 
 <template>
   <div class="md:max-w-2xl md:mx-auto p-4 md:p-6 bg-white md:rounded-xl md:shadow-lg md:mt-8">
     <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">Ladevorgang erfassen</h1>
 
-    <div v-if="error" class="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-md">
-      {{ error }}
+    <!-- Mode Toggle: Photo OCR vs Manual Entry -->
+    <div class="flex gap-3 mb-6 border border-gray-200 rounded-lg p-1 bg-gray-50">
+      <button
+        type="button"
+        @click="showOcrCapture = true"
+        :class="[
+          'flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-md font-medium transition',
+          showOcrCapture
+            ? 'bg-white text-indigo-700 shadow'
+            : 'text-gray-600 hover:text-gray-800'
+        ]">
+        <CameraIcon class="h-5 w-5" />
+        <span>Foto scannen</span>
+      </button>
+      <button
+        type="button"
+        @click="showOcrCapture = false"
+        :class="[
+          'flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-md font-medium transition',
+          !showOcrCapture
+            ? 'bg-white text-indigo-700 shadow'
+            : 'text-gray-600 hover:text-gray-800'
+        ]">
+        <PencilSquareIcon class="h-5 w-5" />
+        <span>Manuell eingeben</span>
+      </button>
     </div>
 
-    <div v-if="odometerWarning" class="mb-4 p-4 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-md">
-      {{ odometerWarning }}
-    </div>
+    <!-- OCR Photo Capture Mode -->
+    <OcrPhotoCapture
+      v-if="showOcrCapture"
+      @dataExtracted="handleOcrData"
+      @cancel="showOcrCapture = false"
+    />
 
-    <form @submit.prevent="submitLog" class="space-y-4">
-      <CarSelector v-model="selectedCarId" />
+    <!-- Manual Entry Mode -->
+    <div v-if="!showOcrCapture">
+      <div v-if="error" class="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-md">
+        {{ error }}
+      </div>
+
+      <div v-if="odometerWarning" class="mb-4 p-4 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-md">
+        {{ odometerWarning }}
+      </div>
+
+      <form @submit.prevent="submitLog" class="space-y-4">
+        <CarSelector v-model="selectedCarId" />
 
       <div>
         <label class="block text-sm font-medium text-gray-700">Geladene Energie (kWh)</label>
@@ -360,10 +417,10 @@ onMounted(() => {
         </div>
       </div>
 
-      <button type="submit" class="w-full bg-indigo-600 text-white p-3 rounded-md shadow hover:bg-indigo-700 transition">⚡ Ladevorgang speichern</button>
-    </form>
+        <button type="submit" class="w-full bg-indigo-600 text-white p-3 rounded-md shadow hover:bg-indigo-700 transition">⚡ Ladevorgang speichern</button>
+      </form>
 
-    <div class="mt-10">
+      <div class="mt-10">
       <h2 class="text-xl font-semibold mb-4 text-gray-800">Letzte Ladevorgänge</h2>
 
       <div v-if="!selectedCarId" class="text-gray-500 text-center">Bitte wähle ein Fahrzeug aus um Ladevorgänge anzuzeigen.</div>
@@ -379,6 +436,7 @@ onMounted(() => {
           </span>
         </li>
       </ul>
+      </div>
     </div>
   </div>
 </template>
