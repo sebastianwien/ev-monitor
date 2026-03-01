@@ -1,13 +1,18 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, nextTick } from 'vue'
 import L from 'leaflet'
-import 'leaflet.heat'
 import 'leaflet.markercluster'
 import geohash from 'ngeohash'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 import api from '../api/axios'
+
+// Import leaflet.heat with proper typing
+import 'leaflet.heat'
+declare module 'leaflet' {
+  function heatLayer(latlngs: Array<[number, number, number]>, options?: any): L.Layer
+}
 
 // Fix Leaflet default icon paths (Vite bundler issue)
 import icon from 'leaflet/dist/images/marker-icon.png'
@@ -67,7 +72,9 @@ const fetchLogs = async () => {
 const initMap = () => {
   if (!mapContainer.value || map) return
 
-  map = L.map(mapContainer.value).setView([51.1657, 10.4515], 6) // Germany center
+  map = L.map(mapContainer.value, {
+    preferCanvas: true  // Better performance for many markers
+  }).setView([51.1657, 10.4515], 6) // Germany center
 
   // Add OpenStreetMap tiles
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -118,9 +125,16 @@ const renderCharges = async () => {
   const logs = await fetchLogs()
   const logsWithGeohash = logs.filter(log => log.geohash)
 
+  console.log('📊 ChargingHeatMap Debug:', {
+    totalLogs: logs.length,
+    logsWithGeohash: logsWithGeohash.length,
+    viewMode: viewMode.value
+  })
+
   chargeCount.value = logsWithGeohash.length
 
   if (logsWithGeohash.length === 0) {
+    console.warn('⚠️ Keine Logs mit Geohash gefunden')
     return
   }
 
@@ -189,21 +203,36 @@ const renderCharges = async () => {
 
   // Add layers based on view mode
   if (viewMode.value === 'heatmap' || viewMode.value === 'both') {
-    // @ts-ignore - leaflet.heat types
-    heatLayer = L.heatLayer(heatPoints, {
-      radius: 25,
-      blur: 20,
-      maxZoom: 17,
-      max: 1.0,
-      gradient: {
-        0.0: '#00ff00',
-        0.3: '#ffff00',
-        0.5: '#ff9900',
-        0.7: '#ff4400',
-        1.0: '#ff0000'
+    console.log('🔥 Creating heatmap with', heatPoints.length, 'points')
+    console.log('Sample heatPoint:', heatPoints[0])
+
+    try {
+      // @ts-ignore - leaflet.heat types
+      heatLayer = L.heatLayer(heatPoints, {
+        radius: 35,           // Größerer Radius (war 25)
+        blur: 25,             // Mehr Blur für weichere Übergänge (war 20)
+        maxZoom: 13,          // Niedrigerer maxZoom = sichtbarer bei zoom out (war 17)
+        max: 0.5,             // Niedrigerer max = intensivere Farben (war 1.0)
+        minOpacity: 0.4,      // Minimum Opacity für bessere Sichtbarkeit
+        gradient: {
+          0.0: '#00ff00',     // Grün
+          0.3: '#ffff00',     // Gelb
+          0.5: '#ff9900',     // Orange
+          0.7: '#ff4400',     // Rot-Orange
+          1.0: '#ff0000'      // Rot
+        }
+      })
+
+      if (!heatLayer) {
+        console.error('❌ L.heatLayer returned null/undefined!')
+      } else {
+        console.log('✅ Heatmap layer created, adding to map')
+        map.addLayer(heatLayer)
+        console.log('✅ Heatmap layer added to map')
       }
-    })
-    map.addLayer(heatLayer)
+    } catch (err) {
+      console.error('❌ Error creating heatmap:', err)
+    }
   }
 
   if (viewMode.value === 'markers' || viewMode.value === 'both') {
