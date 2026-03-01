@@ -55,8 +55,8 @@ const handleLogout = () => {
       <router-view></router-view>
     </main>
 
-    <!-- Footer -->
-    <footer class="bg-gray-50 border-t border-gray-200 py-6 mt-auto">
+    <!-- Footer (only for authenticated users) -->
+    <footer v-if="authStore.isAuthenticated()" class="bg-gray-50 border-t border-gray-200 py-6 mt-auto">
       <div class="container mx-auto px-4">
         <div class="text-center text-sm text-gray-600 space-y-3">
           <p>

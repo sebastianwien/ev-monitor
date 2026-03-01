@@ -146,7 +146,7 @@ const formatDelta = (real: number | null, wltp: number): string => {
             <LockClosedIcon class="h-12 w-12 text-gray-400 mb-4" />
             <h3 class="text-xl font-semibold text-gray-900 mb-3">Privacy First</h3>
             <p class="text-gray-600">
-              Keine exakten GPS-Daten. Geohashing statt Tracking.
+              Wir anonymisieren deine Daten. Geohashing statt Tracking.
               Deine Daten gehören dir.
             </p>
           </div>
@@ -239,7 +239,7 @@ const formatDelta = (real: number | null, wltp: number): string => {
         </h2>
         <ul class="text-left inline-block text-gray-600 space-y-2 mb-4">
           <li>• Teile WLTP-Daten deines Fahrzeugs</li>
-          <li>• Verdiene Coins für Beiträge</li>
+          <li>• Verdiene Punkte für Beiträge</li>
           <li>• Erreiche Meilensteine</li>
         </ul>
         <p class="text-sm text-gray-500 mt-6">

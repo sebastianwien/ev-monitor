@@ -63,6 +63,26 @@ WHERE include_in_statistics = true
 - **Use Case:** Seed Users können Platform mit vollem Datenumfang testen ohne echte Community-Daten zu benötigen
 - **Implementation:** `PublicModelController`, `PublicModelService`, `EvLogService.getStatistics()`, `JpaEvLogRepository`
 
+---
+
+## 🏠 Landing Page & Public Pages
+
+**Route:** `/` - Public, SEO-optimiert mit Live Model Preview (Top 3-5 Models mit echten Community-Daten)
+
+**Sections:** Hero ("WLTP vs. Realität") → Feature Cards (Tracking/Privacy/Community) → Live Models → Gamification Teaser → CTA → Footer
+
+**Design:** Minimalistisch, viel Whitespace, Grün nur für CTAs, Heroicons Outline, keine Emojis in Cards
+
+**SEO:** Live-Daten (Fresh Content), Internal Linking zu `/modelle/:brand/:model`, Long-Tail Keywords
+
+**Legal Pages:** `/datenschutz` (DSGVO), `/impressum` (TMG §5), `/agb` (Nutzungsregeln)
+
+**Routing:** `/` public, `/dashboard` auth required, eingeloggte User → `/dashboard` redirect
+
+**Files:** `LandingPageView.vue`, `DatenschutzView.vue`, `ImpressumView.vue`, `AGBView.vue`
+
+---
+
 ### Feature Documentation
 - [Authentication & Authorization](docs/features/authentication.md) - JWT, Email-Verification, OAuth2
 - [Charging Logs](docs/features/charging-logs.md) - EvLog CRUD, Geohashing, Location Search
@@ -136,6 +156,7 @@ WHERE include_in_statistics = true
 **EV Monitor** – Elektroauto Ladetagebuch mit WLTP-Vergleich und Community-Features.
 
 ### Quick Facts
+- 🏠 Landing Page (Public, SEO-optimiert, Live Model Preview)
 - 📊 Charging Logs (kWh, Kosten, Standort, Dauer)
 - 🚗 Vehicle Management (68 Marken, 100+ Modelle mit Battery Specs)
 - ⚡ WLTP Crowdsourcing (Community-Verbrauchsdaten)
@@ -143,6 +164,7 @@ WHERE include_in_statistics = true
 - 🗺️ Interactive Heatmap (Leaflet + Geohashing)
 - 🪙 Gamification (Coin-System mit WLTP-Rewards)
 - 📱 PWA-Ready
+- 📄 Legal Pages (DSGVO-konforme Datenschutzerklärung, Impressum, AGB)
 
 ---
 
@@ -212,7 +234,18 @@ backend/src/main/java/com/evmonitor/
 ### Frontend
 ```
 frontend/src/
-├── views/           # Pages (Login, Dashboard, Statistics, etc.)
+├── views/           # Pages
+│   ├── LandingPageView.vue          # Public Landing Page (/, SEO-optimiert)
+│   ├── LoginView.vue                # Login
+│   ├── RegisterView.vue             # Registrierung
+│   ├── DashboardView.vue            # Dashboard (auth required)
+│   ├── StatisticsView.vue           # Charts & Analytics (auth required)
+│   ├── CarManagementView.vue        # Fahrzeuge verwalten (auth required)
+│   ├── PublicModelsListView.vue     # /modelle - Alle Models (public, SEO)
+│   ├── PublicModelView.vue          # /modelle/:brand/:model (public, SEO)
+│   ├── DatenschutzView.vue          # DSGVO Datenschutzerklärung
+│   ├── ImpressumView.vue            # Impressum (TMG §5)
+│   └── AGBView.vue                  # Allgemeine Geschäftsbedingungen
 ├── components/      # Reusable (CarSelector, LocationSearch, ChargingHeatMap)
 ├── stores/          # Pinia (auth.ts)
 ├── router/          # Vue Router (Guards: requiresAuth, guestOnly)
