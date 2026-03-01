@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
+import LandingPageView from '../views/LandingPageView.vue';
 import DashboardView from '../views/DashboardView.vue';
 import LoginView from '../views/LoginView.vue';
 import RegisterView from '../views/RegisterView.vue';
@@ -9,6 +10,9 @@ import CarManagementView from '../views/CarManagementView.vue';
 import StatisticsView from '../views/StatisticsView.vue';
 import PublicModelsListView from '../views/PublicModelsListView.vue';
 import PublicModelView from '../views/PublicModelView.vue';
+import DatenschutzView from '../views/DatenschutzView.vue';
+import ImpressumView from '../views/ImpressumView.vue';
+import AGBView from '../views/AGBView.vue';
 import TermsView from '../views/TermsView.vue';
 import NotFoundView from '../views/NotFoundView.vue';
 
@@ -17,6 +21,12 @@ const router = createRouter({
     routes: [
         {
             path: '/',
+            name: 'landing',
+            component: LandingPageView
+            // no auth guard - public landing page
+        },
+        {
+            path: '/dashboard',
             name: 'dashboard',
             component: DashboardView,
             meta: { requiresAuth: true }
@@ -69,10 +79,28 @@ const router = createRouter({
             // no auth guard - public page for SEO
         },
         {
+            path: '/datenschutz',
+            name: 'datenschutz',
+            component: DatenschutzView
+            // no auth guard - public page for legal info
+        },
+        {
+            path: '/impressum',
+            name: 'impressum',
+            component: ImpressumView
+            // no auth guard - public page for legal info
+        },
+        {
+            path: '/agb',
+            name: 'agb',
+            component: AGBView
+            // no auth guard - public page for legal info
+        },
+        {
             path: '/terms',
             name: 'terms',
             component: TermsView
-            // no auth guard - public page for legal info
+            // no auth guard - public page for legal info (legacy)
         },
         {
             path: '/:pathMatch(.*)*',
@@ -90,7 +118,7 @@ router.beforeEach((to, _from, next) => {
     if (to.meta.requiresAuth && !isAuthenticated) {
         next('/login');
     } else if (to.meta.guestOnly && isAuthenticated) {
-        next('/');
+        next('/dashboard');
     } else {
         next();
     }
