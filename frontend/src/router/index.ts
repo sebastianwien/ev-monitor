@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import LandingPageView from '../views/LandingPageView.vue';
-import DashboardView from '../views/DashboardView.vue';
+import LogFormView from '../views/LogFormView.vue';
 import LoginView from '../views/LoginView.vue';
 import RegisterView from '../views/RegisterView.vue';
 import VerifyEmailView from '../views/VerifyEmailView.vue';
@@ -26,10 +26,15 @@ const router = createRouter({
             // no auth guard - public landing page
         },
         {
-            path: '/dashboard',
-            name: 'dashboard',
-            component: DashboardView,
+            path: '/erfassen',
+            name: 'log-form',
+            component: LogFormView,
             meta: { requiresAuth: true }
+        },
+        {
+            path: '/dashboard',
+            redirect: '/statistics'
+            // Legacy redirect: /dashboard → /statistics
         },
         {
             path: '/cars',

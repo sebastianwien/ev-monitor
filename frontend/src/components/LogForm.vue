@@ -3,6 +3,10 @@ import { ref, onMounted, watch } from 'vue'
 import api from '../api/axios'
 import CarSelector from './CarSelector.vue'
 
+const emit = defineEmits<{
+  success: []
+}>()
+
 const selectedCarId = ref<string | null>(null)
 const kwhCharged = ref<number>(0)
 const costEur = ref<number>(0)
@@ -193,6 +197,9 @@ const submitLog = async () => {
     clearLocation()
 
     await fetchLogs()
+
+    // Emit success event (for modal close)
+    emit('success')
   } catch (err: any) {
     error.value = err.response?.data?.message || 'Ladevorgang konnte nicht gespeichert werden'
     console.error('Failed to submit log:', err)
