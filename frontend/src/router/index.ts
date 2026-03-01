@@ -7,8 +7,10 @@ import VerifyEmailView from '../views/VerifyEmailView.vue';
 import OAuth2RedirectHandler from '../views/OAuth2RedirectHandler.vue';
 import CarManagementView from '../views/CarManagementView.vue';
 import StatisticsView from '../views/StatisticsView.vue';
+import PublicModelsListView from '../views/PublicModelsListView.vue';
 import PublicModelView from '../views/PublicModelView.vue';
 import TermsView from '../views/TermsView.vue';
+import NotFoundView from '../views/NotFoundView.vue';
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
@@ -55,6 +57,12 @@ const router = createRouter({
             component: OAuth2RedirectHandler
         },
         {
+            path: '/modelle',
+            name: 'public-models-list',
+            component: PublicModelsListView
+            // no auth guard - public page for SEO
+        },
+        {
             path: '/modelle/:brand/:model',
             name: 'public-model',
             component: PublicModelView
@@ -65,6 +73,12 @@ const router = createRouter({
             name: 'terms',
             component: TermsView
             // no auth guard - public page for legal info
+        },
+        {
+            path: '/:pathMatch(.*)*',
+            name: 'not-found',
+            component: NotFoundView
+            // Catch-all route - must be last!
         }
     ]
 });
