@@ -65,13 +65,23 @@ WHERE include_in_statistics = true
 
 ---
 
+## 🎨 Design System
+
+**Icons:** Heroicons Vue 24 Outline (`@heroicons/vue/24/outline`) - KEINE Emojis für UI-Elemente!
+
+**Mobile-First:** Responsive Design mit Tailwind Breakpoints (sm:, md:, lg:)
+- Mobile (<768px): Edge-to-Edge Layout, kein extra Padding/Container
+- Desktop (≥768px): Max-Width Container, Shadow, Rounded Corners
+
+---
+
 ## 🏠 Landing Page & Public Pages
 
 **Route:** `/` - Public, SEO-optimiert mit Live Model Preview (Top 3-5 Models mit echten Community-Daten)
 
 **Sections:** Hero ("WLTP vs. Realität") → Feature Cards (Tracking/Privacy/Community) → Live Models → Gamification Teaser → CTA → Footer
 
-**Design:** Minimalistisch, viel Whitespace, Grün nur für CTAs, Heroicons Outline, keine Emojis in Cards
+**Design:** Minimalistisch, viel Whitespace, Grün nur für CTAs
 
 **SEO:** Live-Daten (Fresh Content), Internal Linking zu `/modelle/:brand/:model`, Long-Tail Keywords
 
