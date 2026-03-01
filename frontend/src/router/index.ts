@@ -22,8 +22,16 @@ const router = createRouter({
         {
             path: '/',
             name: 'landing',
-            component: LandingPageView
-            // no auth guard - public landing page
+            component: LandingPageView,
+            beforeEnter: (_to, _from, next) => {
+                const authStore = useAuthStore();
+                if (authStore.isAuthenticated()) {
+                    next('/statistics');
+                } else {
+                    next();
+                }
+            }
+            // public landing page, but redirects to /statistics if authenticated
         },
         {
             path: '/erfassen',
@@ -123,7 +131,7 @@ router.beforeEach((to, _from, next) => {
     if (to.meta.requiresAuth && !isAuthenticated) {
         next('/login');
     } else if (to.meta.guestOnly && isAuthenticated) {
-        next('/dashboard');
+        next('/statistics');
     } else {
         next();
     }
