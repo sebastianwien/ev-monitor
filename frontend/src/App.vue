@@ -12,7 +12,7 @@ const handleLogout = () => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-100">
+  <div class="min-h-screen bg-gray-100 flex flex-col">
     <nav class="bg-indigo-600 shadow-md p-4 flex justify-between items-center text-white" v-if="authStore.isAuthenticated()">
       <div class="flex items-center space-x-6">
         <div class="text-xl font-bold tracking-wide">EV Monitor</div>
@@ -54,6 +54,28 @@ const handleLogout = () => {
     <main :class="{ 'py-10 px-4': authStore.isAuthenticated() }">
       <router-view></router-view>
     </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-50 border-t border-gray-200 py-6 mt-auto">
+      <div class="container mx-auto px-4">
+        <div class="text-center text-sm text-gray-600 space-y-3">
+          <p>
+            © 2026 EV Monitor ·
+            <router-link to="/terms" class="hover:text-green-600 underline">AGB & Datenschutz</router-link>
+          </p>
+          <p class="text-xs text-gray-500 flex items-center justify-center gap-2">
+            <span>🔌 Datenimport powered by</span>
+            <a
+              href="https://www.spritmonitor.de"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-green-600 hover:text-green-700 hover:underline font-medium">
+              Sprit-Monitor API
+            </a>
+          </p>
+        </div>
+      </div>
+    </footer>
 
     <!-- Sprit-Monitor Import Overlay -->
     <SpritMonitorImport v-if="showImportOverlay" @close="showImportOverlay = false" />
