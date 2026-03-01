@@ -117,8 +117,10 @@ public class EvLogService {
             throw new IllegalArgumentException("User does not own the specified car");
         }
 
-        // Get all logs for this car
-        List<EvLog> logs = evLogRepository.findAllByCarId(carId);
+        // Get all logs for this car (exclude Tesla imports - incomplete data)
+        List<EvLog> logs = evLogRepository.findAllByCarId(carId).stream()
+                .filter(log -> !"TESLA_IMPORT".equals(log.getDataSource()))
+                .collect(Collectors.toList());
 
         // Apply time filter
         if (startDate != null || endDate != null) {

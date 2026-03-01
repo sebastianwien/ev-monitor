@@ -8,11 +8,43 @@ This file is the central overview for the EV Monitor project. For detailed featu
 
 **WICHTIG:** Wenn du ein Feature änderst, **MUSST** du die entsprechende Feature-Doc in `docs/features/` aktualisieren!
 
+**Regel für Feature-Docs:**
+- ✅ **Dokumentiere Features** - Was kann das Feature, wie funktioniert es, wie nutzt man es
+- ❌ **KEINE Problem/Solution History** - Kein "Problem: X, Solution: Y, Bugfix: Z"
+- ❌ **KEINE Debugging-Steps** - Keine detaillierten Error-Messages oder Trial-and-Error
+- ❌ **KEINE Implementation Details** - Keine Code-Zeilen-Nummern, keine internen Algorithmen (außer wenn essentiell für Verständnis)
+- 🎯 **Fokus:** Was der User wissen muss, nicht was während der Entwicklung passiert ist
+
+**Ziel:** Feature-Docs sollen clean, fokussiert und wartbar bleiben - nicht zu Geschichtsbüchern werden!
+
+---
+
+## 🚨 Tesla Import Data Quality Rule
+
+**WICHTIG:** Tesla Import Daten sind unvollständig (`cost_eur` und `charge_duration_minutes` sind NULL).
+
+**Regel für alle Berechnungen:**
+- ✅ **Statistiken** (Durchschnitt, Summen, Charts) → `WHERE data_source != 'TESLA_IMPORT'`
+- ✅ **WLTP-Vergleiche** → `WHERE data_source != 'TESLA_IMPORT'`
+- ✅ **Community-Aggregationen** → `WHERE data_source != 'TESLA_IMPORT'`
+- ✅ **Heatmap** → Tesla Import DARF rein (nur Location-Daten, keine Berechnungen)
+- ✅ **Dashboard-Liste** → Tesla Import DARF rein (User sieht eigene Logs)
+
+**Warum?**
+- Tesla API liefert keine Kosten/Dauer → Berechnungen wären falsch
+- Incomplete Daten verfälschen Durchschnitte
+- Community-Vergleiche werden unbrauchbar
+
+**TODO (später):**
+- User kann Tesla Logs manuell vervollständigen → dann `data_source = 'USER_COMPLETED'`
+- Dann dürfen diese Logs in Berechnungen rein
+
 ### Feature Documentation
 - [Authentication & Authorization](docs/features/authentication.md) - JWT, Email-Verification, OAuth2
 - [Charging Logs](docs/features/charging-logs.md) - EvLog CRUD, Geohashing, Location Search
 - [Statistics & Heatmap](docs/features/statistics-heatmap.md) - Leaflet Maps, Charts, WLTP Delta
 - [WLTP Crowdsourcing & Coins](docs/features/wltp-crowdsourcing.md) - Vehicle Specs, Coin System
+- [Tesla Import](docs/features/tesla-import.md) - Tesla API Integration, Auto-Sync, Token Encryption
 
 ### Architecture Documentation
 - [Database Schema](docs/architecture/database-schema.md) - Tables, Migrations, Constraints
@@ -203,8 +235,8 @@ backend/src/main/resources/db/migration/
 | Interactive Heatmap | ✅ Implementiert (Fixed 2026-03-01) | [Statistics & Heatmap](docs/features/statistics-heatmap.md) |
 | WLTP Crowdsourcing | ✅ Implementiert | [WLTP Crowdsourcing](docs/features/wltp-crowdsourcing.md) |
 | Coin System | 🟡 Teilweise (nur WLTP-Rewards) | [WLTP Crowdsourcing](docs/features/wltp-crowdsourcing.md) |
+| Tesla API Integration | ✅ Implementiert (nur für Tesla-Besitzer sichtbar) | [Tesla Import](docs/features/tesla-import.md) |
 | Sprit-Monitor Import | 🔴 TODO | - |
-| Tesla API Integration | 🔴 TODO | - |
 
 ---
 

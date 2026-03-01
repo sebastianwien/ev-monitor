@@ -53,6 +53,12 @@ const powerPs = computed(() => {
   return Math.round(powerKw.value * 1.35962)
 })
 
+// Check if user owns a Tesla
+const hasTesla = computed(() => {
+  const teslaModels = ['MODEL_3', 'MODEL_Y', 'MODEL_S', 'MODEL_X', 'CYBERTRUCK', 'ROADSTER']
+  return cars.value.some(car => teslaModels.includes(car.model))
+})
+
 const fetchCars = async () => {
   try {
     loading.value = true
@@ -600,8 +606,8 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- Tesla Integration -->
-    <TeslaIntegration />
+    <!-- Tesla Integration (only shown if user owns a Tesla) -->
+    <TeslaIntegration v-if="hasTesla" />
 
     <!-- Toast Notification -->
     <div v-if="showToast" class="fixed bottom-6 right-6 z-50 animate-slide-in">

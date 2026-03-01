@@ -21,41 +21,39 @@
         <div class="bg-yellow-50 border border-yellow-200 rounded p-4 text-sm">
           <p class="font-semibold mb-2">⚠️ So funktioniert's:</p>
           <ol class="list-decimal list-inside space-y-1 text-gray-700">
-            <li>Führe das Script <code class="bg-gray-100 px-1 rounded">tesla_explorer.py</code> aus</li>
-            <li>Logge dich in deinen Tesla Account ein</li>
-            <li>Kopiere den Access Token und Vehicle ID</li>
+            <li>Führe das <code class="bg-gray-100 px-1 rounded">tesla_explorer.py</code> Script im Projektordner aus</li>
+            <li>Das Script öffnet automatisch einen Browser für den Tesla Login</li>
+            <li>Nach erfolgreicher Authentifizierung zeigt das Script beide Werte an:</li>
+            <li class="ml-6">→ <strong>Access Token</strong> (beginnt mit "eyJ...")</li>
+            <li class="ml-6">→ <strong>Tesla ID</strong> (lange Zahl wie 1492931379485066, steht unter "id")</li>
+            <li>Kopiere beide Werte aus der Console oder aus <code class="bg-gray-100 px-1 rounded">~/tesla_token_*.txt</code></li>
             <li>Füge sie hier ein</li>
           </ol>
+          <p class="mt-2 text-xs text-gray-600">
+            💡 Tipp: Der Fahrzeugname wird automatisch von Tesla abgerufen.
+          </p>
         </div>
 
         <div>
-          <label class="block text-sm font-medium mb-1">Access Token</label>
+          <label class="block text-sm font-medium mb-1">Access Token *</label>
           <input
             v-model="tokenInput.accessToken"
-            type="text"
-            placeholder="eyJ..."
-            class="input w-full"
+            type="password"
+            placeholder="eyJhbGciOiJSUzI1NiIs..."
+            class="input w-full font-mono text-xs"
           />
+          <p class="text-xs text-gray-500 mt-1">Langer Token beginnend mit "eyJ..."</p>
         </div>
 
         <div>
-          <label class="block text-sm font-medium mb-1">Vehicle ID</label>
+          <label class="block text-sm font-medium mb-1">Tesla ID *</label>
           <input
             v-model="tokenInput.vehicleId"
             type="text"
-            placeholder="1209811595"
+            placeholder="1492931379485066"
             class="input w-full"
           />
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium mb-1">Fahrzeugname (optional)</label>
-          <input
-            v-model="tokenInput.vehicleName"
-            type="text"
-            placeholder="SKY"
-            class="input w-full"
-          />
+          <p class="text-xs text-gray-500 mt-1">Tesla API ID (lange Zahl, z.B. 1492931379485066) - findest du im tesla_explorer.py Output unter "id"</p>
         </div>
 
         <div class="flex gap-2">
@@ -143,7 +141,6 @@ const showTokenInput = ref(false);
 const tokenInput = ref({
   accessToken: '',
   vehicleId: '',
-  vehicleName: '',
 });
 
 const isLoading = ref(false);
@@ -174,12 +171,12 @@ async function handleConnect() {
     const response = await teslaService.connect({
       accessToken: tokenInput.value.accessToken,
       vehicleId: tokenInput.value.vehicleId,
-      vehicleName: tokenInput.value.vehicleName || 'Tesla',
+      vehicleName: 'Tesla', // Default name, will be updated from API
     });
 
     if (response.success) {
       showTokenInput.value = false;
-      tokenInput.value = { accessToken: '', vehicleId: '', vehicleName: '' };
+      tokenInput.value = { accessToken: '', vehicleId: '' };
       await loadStatus();
     } else {
       error.value = response.message;
@@ -215,7 +212,7 @@ async function handleDisconnect() {
     await teslaService.disconnect();
     await loadStatus();
     showTokenInput.value = false;
-    tokenInput.value = { accessToken: '', vehicleId: '', vehicleName: '' };
+    tokenInput.value = { accessToken: '', vehicleId: '' };
   } catch (err: any) {
     error.value = 'Trennen fehlgeschlagen';
   }
