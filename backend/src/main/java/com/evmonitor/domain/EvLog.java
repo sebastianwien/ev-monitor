@@ -15,12 +15,13 @@ public class EvLog {
     private final Integer odometerKm; // Optional: odometer reading in km
     private final BigDecimal maxChargingPowerKw; // Optional: max charging power in kW
     private final LocalDateTime loggedAt; // When the charge happened (user-provided or now)
+    private final String dataSource; // Source of data: USER_LOGGED, SPRITMONITOR_IMPORT, etc.
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
 
     public EvLog(UUID id, UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
             Integer chargeDurationMinutes, String geohash, Integer odometerKm,
-            BigDecimal maxChargingPowerKw, LocalDateTime loggedAt,
+            BigDecimal maxChargingPowerKw, LocalDateTime loggedAt, String dataSource,
             LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.carId = carId;
@@ -31,6 +32,7 @@ public class EvLog {
         this.odometerKm = odometerKm;
         this.maxChargingPowerKw = maxChargingPowerKw;
         this.loggedAt = loggedAt != null ? loggedAt : LocalDateTime.now();
+        this.dataSource = dataSource != null ? dataSource : "USER_LOGGED";
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -40,7 +42,17 @@ public class EvLog {
             BigDecimal maxChargingPowerKw, LocalDateTime loggedAt) {
         LocalDateTime now = LocalDateTime.now();
         return new EvLog(UUID.randomUUID(), carId, kwhCharged, costEur,
-                chargeDurationMinutes, geohash, odometerKm, maxChargingPowerKw, loggedAt, now, now);
+                chargeDurationMinutes, geohash, odometerKm, maxChargingPowerKw, loggedAt,
+                "USER_LOGGED", now, now);
+    }
+
+    public static EvLog createNewWithSource(UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
+            Integer chargeDurationMinutes, String geohash, Integer odometerKm,
+            BigDecimal maxChargingPowerKw, LocalDateTime loggedAt, String dataSource) {
+        LocalDateTime now = LocalDateTime.now();
+        return new EvLog(UUID.randomUUID(), carId, kwhCharged, costEur,
+                chargeDurationMinutes, geohash, odometerKm, maxChargingPowerKw, loggedAt,
+                dataSource, now, now);
     }
 
     public UUID getId() {
@@ -85,5 +97,9 @@ public class EvLog {
 
     public BigDecimal getMaxChargingPowerKw() {
         return maxChargingPowerKw;
+    }
+
+    public String getDataSource() {
+        return dataSource;
     }
 }

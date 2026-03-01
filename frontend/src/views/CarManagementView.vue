@@ -2,6 +2,7 @@
 import { ref, onMounted, watch, computed } from 'vue'
 import { carService, type Car, type CarRequest, type BrandInfo, type ModelInfo } from '../api/carService'
 import { vehicleSpecificationService, type VehicleSpecification } from '../api/vehicleSpecificationService'
+import TeslaIntegration from '../components/TeslaIntegration.vue'
 
 const cars = ref<Car[]>([])
 const brands = ref<BrandInfo[]>([])
@@ -598,6 +599,9 @@ onMounted(async () => {
         </form>
       </div>
     </div>
+
+    <!-- Tesla Integration -->
+    <TeslaIntegration />
 
     <!-- Toast Notification -->
     <div v-if="showToast" class="fixed bottom-6 right-6 z-50 animate-slide-in">

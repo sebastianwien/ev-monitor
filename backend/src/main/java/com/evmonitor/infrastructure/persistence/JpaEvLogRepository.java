@@ -6,6 +6,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -15,6 +16,8 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     Optional<EvLogEntity> findByIdAndCarId(UUID id, UUID carId);
 
     List<EvLogEntity> findAllByCarId(UUID carId);
+
+    boolean existsByCarIdAndLoggedAtBetween(UUID carId, LocalDateTime start, LocalDateTime end);
 
     /**
      * Aggregated basic stats for a car model, excluding seed/test users.

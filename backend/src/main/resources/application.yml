@@ -43,6 +43,15 @@ jwt:
 server:
   port: 8080
 
+# Actuator Security (Default: DISABLED für Prod)
+# In dev.yml wird health/info enabled
+management:
+  endpoints:
+    enabled-by-default: false
+    web:
+      exposure:
+        include: ""  # Keine Endpoints exposed by default
+
 app:
   base-url: ${APP_BASE_URL:http://localhost:5173}
   mail:
@@ -52,3 +61,8 @@ app:
 spritmonitor:
   application:
     id: ${SPRITMONITOR_APPLICATION_ID:190e3b1080a39777f369a4e9875df3d7}
+
+# Tesla API Integration
+tesla:
+  encryption:
+    key: ${TESLA_ENCRYPTION_KEY:change-this-32-char-secret-key!!}

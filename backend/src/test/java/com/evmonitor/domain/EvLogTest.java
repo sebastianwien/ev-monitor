@@ -36,6 +36,7 @@ class EvLogTest {
         assertEquals(odometerKm, evLog.getOdometerKm());
         assertEquals(maxChargingPowerKw, evLog.getMaxChargingPowerKw());
         assertEquals(loggedAt, evLog.getLoggedAt());
+        assertEquals("USER_LOGGED", evLog.getDataSource()); // Default source
         assertNotNull(evLog.getCreatedAt());
         assertNotNull(evLog.getUpdatedAt());
     }
@@ -79,6 +80,34 @@ class EvLogTest {
     }
 
     @Test
+    void createNewWithSource_shouldSetCustomDataSource() {
+        // Given
+        UUID carId = UUID.randomUUID();
+        BigDecimal kwhCharged = BigDecimal.valueOf(44.9);
+        BigDecimal costEur = null;
+        Integer chargeDurationMinutes = null;
+        String geohash = "u33d1";
+        Integer odometerKm = null;
+        BigDecimal maxChargingPowerKw = BigDecimal.valueOf(11.0);
+        LocalDateTime loggedAt = LocalDateTime.now();
+        String dataSource = "TESLA_IMPORT";
+
+        // When
+        EvLog evLog = EvLog.createNewWithSource(carId, kwhCharged, costEur, chargeDurationMinutes,
+                geohash, odometerKm, maxChargingPowerKw, loggedAt, dataSource);
+
+        // Then
+        assertNotNull(evLog.getId());
+        assertEquals(carId, evLog.getCarId());
+        assertEquals(kwhCharged, evLog.getKwhCharged());
+        assertNull(evLog.getCostEur());
+        assertEquals(geohash, evLog.getGeohash());
+        assertEquals(dataSource, evLog.getDataSource());
+        assertNotNull(evLog.getCreatedAt());
+        assertNotNull(evLog.getUpdatedAt());
+    }
+
+    @Test
     void getters_shouldReturnCorrectValues() {
         // Given
         UUID id = UUID.randomUUID();
@@ -90,12 +119,13 @@ class EvLogTest {
         Integer odometerKm = 75000;
         BigDecimal maxChargingPowerKw = BigDecimal.valueOf(175.5);
         LocalDateTime loggedAt = LocalDateTime.now();
+        String dataSource = "USER_LOGGED";
         LocalDateTime createdAt = LocalDateTime.now();
         LocalDateTime updatedAt = LocalDateTime.now();
 
         // When
         EvLog evLog = new EvLog(id, carId, kwhCharged, costEur, chargeDurationMinutes,
-                geohash, odometerKm, maxChargingPowerKw, loggedAt, createdAt, updatedAt);
+                geohash, odometerKm, maxChargingPowerKw, loggedAt, dataSource, createdAt, updatedAt);
 
         // Then
         assertEquals(id, evLog.getId());
@@ -107,6 +137,7 @@ class EvLogTest {
         assertEquals(odometerKm, evLog.getOdometerKm());
         assertEquals(maxChargingPowerKw, evLog.getMaxChargingPowerKw());
         assertEquals(loggedAt, evLog.getLoggedAt());
+        assertEquals(dataSource, evLog.getDataSource());
         assertEquals(createdAt, evLog.getCreatedAt());
         assertEquals(updatedAt, evLog.getUpdatedAt());
     }
