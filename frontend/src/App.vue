@@ -5,6 +5,7 @@ import { useAuthStore } from './stores/auth'
 import SpritMonitorImport from './components/SpritMonitorImport.vue'
 import LogFormModal from './components/LogFormModal.vue'
 import FloatingActionButton from './components/FloatingActionButton.vue'
+import OnboardingWelcome from './components/OnboardingWelcome.vue'
 import { Bars3Icon, XMarkIcon, ChartBarIcon, TruckIcon, ArrowDownTrayIcon, UserIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon } from '@heroicons/vue/24/outline'
 
 const router = useRouter()
@@ -182,5 +183,8 @@ const closeMobileMenu = () => {
 
     <!-- Log Form Modal (Desktop only) -->
     <LogFormModal v-if="showLogFormModal && authStore.isAuthenticated()" @close="showLogFormModal = false" />
+
+    <!-- Onboarding Welcome (First-time users) -->
+    <OnboardingWelcome v-if="authStore.isAuthenticated()" />
   </div>
 </template>

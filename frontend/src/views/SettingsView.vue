@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import { UserIcon, KeyIcon, TrashIcon, ArrowDownTrayIcon, CurrencyDollarIcon } from '@heroicons/vue/24/outline'
+import { UserIcon, KeyIcon, TrashIcon, ArrowDownTrayIcon, CurrencyDollarIcon, AcademicCapIcon } from '@heroicons/vue/24/outline'
 import api from '../api/axios'
 
 const router = useRouter()
@@ -41,15 +41,18 @@ const message = ref<{ type: 'success' | 'error', text: string } | null>(null)
 // Fetch user data
 const fetchUserData = async () => {
   try {
-    const [userRes, statsRes, coinsRes] = await Promise.all([
-      api.get('/auth/me'),
+    // Get user from JWT token (already decoded in authStore)
+    const user = authStore.user
+    if (user) {
+      email.value = user.email || user.sub || ''
+      username.value = user.username || user.email?.split('@')[0] || ''
+    }
+
+    // Fetch stats and coins from API
+    const [statsRes, coinsRes] = await Promise.all([
       api.get('/users/me/stats'),
       api.get('/coins/balance')
     ])
-
-    const user = userRes.data
-    email.value = user.email
-    username.value = user.username || user.email.split('@')[0]
 
     const stats = statsRes.data
     registeredSince.value = new Date(stats.registeredSince).toLocaleDateString('de-DE')
@@ -73,9 +76,12 @@ const changeEmail = async () => {
   try {
     await api.put('/users/me/email', { newEmail: newEmail.value })
     message.value = { type: 'success', text: 'Email erfolgreich geändert! Bitte bestätige die neue Email-Adresse.' }
+
+    // Update local value immediately
+    email.value = newEmail.value
+
     showEmailForm.value = false
     newEmail.value = ''
-    await fetchUserData()
   } catch (error: any) {
     message.value = { type: 'error', text: error.response?.data?.message || 'Email-Änderung fehlgeschlagen' }
   } finally {
@@ -93,9 +99,12 @@ const changeUsername = async () => {
   try {
     await api.put('/users/me/username', { newUsername: newUsername.value })
     message.value = { type: 'success', text: 'Username erfolgreich geändert!' }
+
+    // Update local value immediately
+    username.value = newUsername.value
+
     showUsernameForm.value = false
     newUsername.value = ''
-    await fetchUserData()
   } catch (error: any) {
     message.value = { type: 'error', text: error.response?.data?.message || 'Username-Änderung fehlgeschlagen' }
   } finally {
@@ -187,6 +196,16 @@ const deleteAccount = async () => {
     message.value = { type: 'error', text: error.response?.data?.message || 'Account-Löschung fehlgeschlagen' }
     loading.value = false
   }
+}
+
+// Restart Onboarding Tutorial
+const restartOnboarding = () => {
+  localStorage.removeItem('onboarding-completed')
+  localStorage.setItem('onboarding-force', 'true')
+  message.value = { type: 'success', text: 'Tutorial wird neu gestartet...' }
+  setTimeout(() => {
+    window.location.reload()
+  }, 1000)
 }
 
 onMounted(() => {
@@ -384,6 +403,30 @@ onMounted(() => {
           <TrashIcon class="h-5 w-5" />
           <span>Account unwiderruflich löschen</span>
         </button>
+      </div>
+
+      <!-- Help & Support Section -->
+      <div class="mb-8">
+        <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+          <AcademicCapIcon class="h-6 w-6" />
+          Hilfe & Support
+        </h2>
+
+        <div class="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg">
+          <h3 class="font-semibold text-gray-800 mb-2 flex items-center gap-2">
+            <span class="text-xl">👋</span>
+            Tutorial erneut ansehen
+          </h3>
+          <p class="text-sm text-gray-600 mb-4">
+            Möchtest du das Willkommens-Tutorial nochmal durchgehen? Perfekt wenn du eine Auffrischung brauchst oder neue Features kennenlernen willst.
+          </p>
+          <button
+            @click="restartOnboarding"
+            class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
+            <AcademicCapIcon class="h-5 w-5" />
+            <span>Tutorial neu starten</span>
+          </button>
+        </div>
       </div>
 
       <!-- Delete Confirmation Modal -->
