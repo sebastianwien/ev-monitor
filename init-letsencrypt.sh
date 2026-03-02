@@ -6,15 +6,15 @@
 set -e
 
 DOMAIN="${DOMAIN:-ev-monitor.net}"
-EMAIL="sebastian.wien@posteo.de"  # IMPORTANT: Change this to your email!
+EMAIL="${CERTBOT_EMAIL:-your@email.com}"  # Set via env var or replace this placeholder
 
 echo "🔐 Requesting SSL certificate for $DOMAIN..."
 echo "📧 Email: $EMAIL"
 echo ""
 
 # Validate email is changed
-if [[ "$EMAIL" == "CHANGE_ME@example.com" ]]; then
-  echo "❌ ERROR: Please change EMAIL in this script to your actual email address!"
+if [[ "$EMAIL" == "your@email.com" ]]; then
+  echo "❌ ERROR: Please set CERTBOT_EMAIL env var or replace the placeholder email in this script!"
   exit 1
 fi
 

@@ -116,31 +116,7 @@ WHERE include_in_statistics = true
 
 ---
 
-## 👤 User Preferences & Session Settings
-
-### Communication Style
-- Sprich mit mir wie ein richtig guter Kumpel
-- Nutze Nerd-Humor (Memes, Tech-Witze, Referenzen willkommen)
-- **WICHTIG**: Sei witzig, ironisch und gerne sarkastisch!
-- Locker und direkt, keine Corporate-Sprache
-- "Du" statt "Sie" (bereits aktiv)
-- Emojis sind erlaubt und erwünscht 🎉
-- Bei doofen Bugs darf gelästert werden
-- Wenn was smooth läuft, darf gefeiert werden
-
-### Cost Management
-- **WICHTIG**: Nach jeder abgeschlossenen Aufgabe die API-Kosten in Euro anzeigen
-- Format: `**💰 Kosten für diese Aufgabe**: ~€X.XX`
-- Am Ende: `**💰 Gesamt bisher**: ~€Y.YY`
-- Arbeite so kosteneffizient wie möglich (bevorzuge leichtere Modelle wenn angemessen)
-- Gib proaktiv Tipps, wie ich bei zukünftigen Tasks Kosten sparen kann
-
-### Allowed Operations
-- Alle `allow-edits` sind standardmäßig aktiviert
-- Du darfst alle Dateien lesen, schreiben, editieren ohne explizite Nachfrage
-- Bei Breaking Changes oder Daten-Löschungen trotzdem kurz Bescheid geben
-
-### Security & Privacy First
+## 🔐 Security & Privacy First
 **WICHTIG**: Bei jeder Code-Änderung OWASP Top 10 Vulnerabilities berücksichtigen!
 
 **Immer prüfen:**
@@ -205,7 +181,7 @@ WHERE include_in_statistics = true
 - **Docker Compose**: Multi-container
 - **Nginx**: Reverse Proxy
 - **Certbot**: Let's Encrypt SSL
-- **Server**: Hetzner Cloud (ubuntu-4gb-nbg1-1, IP: 46.225.210.231)
+- **Server**: Hetzner Cloud
 
 ---
 
@@ -356,13 +332,11 @@ Prüfe `.env.local` und starte Frontend neu (Vite lädt .env nur beim Start!)
 
 ## 🌐 Production Deployment
 
-**Server:** Hetzner Cloud ubuntu-4gb-nbg1-1
+**Hosting:** Hetzner Cloud
 
 **Domain:** ev-monitor.net (+ www.ev-monitor.net)
 
 **SSL:** Let's Encrypt (auto-renewal every 12h)
-
-**User:** ihle (sudo, docker group)
 
 **Details:** Siehe [Production Setup](docs/deployment/production.md) (TODO)
 
