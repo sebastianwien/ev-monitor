@@ -4,6 +4,7 @@ import ch.hsr.geohash.GeoHash;
 import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.EvLogRepository;
 import com.evmonitor.infrastructure.external.SpritMonitorClient;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,8 +16,10 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
+@Slf4j
 public class SpritMonitorImportService {
 
+    public static final DateTimeFormatter DD_MM_YYYY = DateTimeFormatter.ofPattern("dd.MM.yyyy");
     private final SpritMonitorClient client;
     private final EvLogRepository evLogRepository;
 
@@ -62,6 +65,7 @@ public class SpritMonitorImportService {
                     evLogRepository.save(log);
                     result.incrementImported();
                 } catch (Exception e) {
+                    log.error("Failed to import fueling from " + fueling.date() + ": " + e.getMessage(), e);
                     result.addError("Failed to import fueling from " + fueling.date() + ": " + e.getMessage());
                 }
             }
@@ -77,7 +81,7 @@ public class SpritMonitorImportService {
      */
     private EvLog convertToEvLog(SpritMonitorFuelingDTO fueling, UUID carId) {
         // Parse date (format: "2024-01-15")
-        LocalDateTime loggedAt = LocalDate.parse(fueling.date(), DateTimeFormatter.ISO_DATE)
+        LocalDateTime loggedAt = LocalDate.parse(fueling.date(), DD_MM_YYYY)
             .atStartOfDay();
 
         // Convert lat/lon to geohash (privacy-first!)
