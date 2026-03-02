@@ -3,7 +3,7 @@ import { ref, onMounted, watch, computed } from 'vue'
 import { carService, type Car, type CarRequest, type BrandInfo, type ModelInfo } from '../api/carService'
 import { vehicleSpecificationService, type VehicleSpecification } from '../api/vehicleSpecificationService'
 import TeslaIntegration from '../components/TeslaIntegration.vue'
-import { ChartBarIcon, TruckIcon, BoltIcon } from '@heroicons/vue/24/outline'
+import { ChartBarIcon, TruckIcon } from '@heroicons/vue/24/outline'
 
 const cars = ref<Car[]>([])
 const brands = ref<BrandInfo[]>([])
