@@ -53,6 +53,13 @@ public class EvLogController {
         return ResponseEntity.ok(log);
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteLog(@PathVariable UUID id, Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        evLogService.deleteLog(id, principal.getUser().getId());
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/statistics")
     public ResponseEntity<EvLogStatisticsResponse> getStatistics(
             @RequestParam UUID carId,

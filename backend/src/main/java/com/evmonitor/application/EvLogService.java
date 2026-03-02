@@ -85,6 +85,20 @@ public class EvLogService {
         return EvLogResponse.fromDomain(log);
     }
 
+    public void deleteLog(UUID id, UUID userId) {
+        EvLog log = evLogRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Log not found with ID: " + id));
+
+        Car car = carRepository.findById(log.getCarId())
+                .orElseThrow(() -> new IllegalArgumentException("Associated car not found"));
+
+        if (!car.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("Log not found for current user (ownership mismatch).");
+        }
+
+        evLogRepository.deleteById(id);
+    }
+
     public List<EvLogResponse> getLogsForCar(UUID carId, UUID userId) {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new IllegalArgumentException("Car not found"));

@@ -62,6 +62,11 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
         return jpaRepository.existsByCarIdAndLoggedAtBetween(carId, start, end);
     }
 
+    @Override
+    public void deleteById(UUID id) {
+        jpaRepository.deleteById(id);
+    }
+
     private EvLogEntity toEntity(EvLog domain) {
         return new EvLogEntity(
                 domain.getId(),

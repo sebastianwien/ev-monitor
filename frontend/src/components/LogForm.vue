@@ -3,7 +3,7 @@ import { ref, onMounted, watch } from 'vue'
 import api from '../api/axios'
 import CarSelector from './CarSelector.vue'
 import OcrPhotoCapture from './OcrPhotoCapture.vue'
-import { CameraIcon, PencilSquareIcon } from '@heroicons/vue/24/outline'
+import { CameraIcon, PencilSquareIcon, TrashIcon } from '@heroicons/vue/24/outline'
 
 const emit = defineEmits<{
   success: []
@@ -139,6 +139,18 @@ const fetchLogs = async () => {
     logs.value = res.data
   } catch (err) {
     console.error('Failed to fetch logs:', err)
+  }
+}
+
+const deleteLog = async (logId: string) => {
+  if (!confirm('Ladevorgang wirklich löschen?')) return
+
+  try {
+    await api.delete(`/logs/${logId}`)
+    await fetchLogs()
+  } catch (err) {
+    console.error('Failed to delete log:', err)
+    error.value = 'Löschen fehlgeschlagen. Bitte versuche es erneut.'
   }
 }
 
@@ -431,9 +443,18 @@ const handleOcrData = (ocrResult: any) => {
             <span class="block font-medium text-indigo-700">⚡ {{ log.kwhCharged }} kWh</span>
             <span class="block text-sm text-gray-500">€{{ log.costEur }} • {{ log.chargeDurationMinutes }}min</span>
           </div>
-          <span class="px-3 py-1 bg-white border border-gray-300 text-xs rounded-full shadow-sm text-gray-600 font-medium">
-            €{{ (log.costEur / log.kwhCharged).toFixed(2) }}/kWh
-          </span>
+          <div class="flex items-center gap-3">
+            <span class="px-3 py-1 bg-white border border-gray-300 text-xs rounded-full shadow-sm text-gray-600 font-medium">
+              €{{ (log.costEur / log.kwhCharged).toFixed(2) }}/kWh
+            </span>
+            <button
+              type="button"
+              @click="deleteLog(log.id)"
+              class="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition"
+              title="Ladevorgang löschen">
+              <TrashIcon class="w-4 h-4" />
+            </button>
+          </div>
         </li>
       </ul>
       </div>
