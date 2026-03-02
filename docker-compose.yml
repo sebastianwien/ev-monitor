@@ -38,6 +38,7 @@ services:
       SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: ${MAIL_SMTP_STARTTLS:-true}
       APP_BASE_URL: ${APP_BASE_URL:-https://ev-monitor.net}
       APP_MAIL_FROM: ${APP_MAIL_FROM:-noreply@ev-monitor.net}
+      APP_ALERT_EMAIL: ${ALERT_EMAIL:-}
     depends_on:
       db:
         condition: service_healthy
