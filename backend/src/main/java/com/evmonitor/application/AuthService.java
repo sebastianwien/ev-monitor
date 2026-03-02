@@ -78,7 +78,7 @@ public class AuthService {
                 .orElseThrow(() -> new IllegalStateException("User not found after verification"));
 
         String jwtToken = jwtService.generateToken(UserPrincipal.create(user));
-        return new AuthResponse(jwtToken, user.getId(), user.getEmail(), user.getRole());
+        return new AuthResponse(jwtToken, user.getId(), user.getEmail(), user.getRole(), user.isSeedData());
     }
 
     @Transactional
@@ -115,6 +115,6 @@ public class AuthService {
         }
 
         String jwtToken = jwtService.generateToken(UserPrincipal.create(user));
-        return new AuthResponse(jwtToken, user.getId(), user.getEmail(), user.getRole());
+        return new AuthResponse(jwtToken, user.getId(), user.getEmail(), user.getRole(), user.isSeedData());
     }
 }

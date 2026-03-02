@@ -6,5 +6,6 @@ public record AuthResponse(
         String token,
         UUID userId,
         String email,
-        String role) {
+        String role,
+        boolean isDemoAccount) {
 }
