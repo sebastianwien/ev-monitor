@@ -14,8 +14,13 @@ import {
   Filler
 } from 'chart.js'
 import {
-  ChartBarIcon
+  ChartBarIcon,
+  TruckIcon,
+  BoltIcon,
+  CameraIcon,
+  PencilSquareIcon
 } from '@heroicons/vue/24/outline'
+import { useRouter } from 'vue-router'
 import api from '../api/axios'
 import CarSelector from '../components/CarSelector.vue'
 import ChargingHeatMap from '../components/ChargingHeatMap.vue'
@@ -51,12 +56,14 @@ interface CarInfo {
   batteryCapacityKwh: number
 }
 
+const router = useRouter()
 const selectedCarId = ref<string | null>(null)
 const stats = ref<StatisticsData | null>(null)
 const carInfo = ref<CarInfo | null>(null)
 const wltp = ref<VehicleSpecification | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
+const cars = ref<any[]>([]) // Track available cars for empty state
 
 const selectedTimeRange = ref<string>('LAST_3_MONTHS')
 const selectedGroupBy = ref<string>('MONTH')
@@ -87,6 +94,7 @@ const groupByOptions = [
 const fetchCarAndWltp = async (carId: string) => {
   try {
     const carsResponse = await api.get('/cars')
+    cars.value = carsResponse.data // Store for empty state check
     const car = carsResponse.data.find((c: any) => c.id === carId)
     if (!car) return
 
@@ -353,12 +361,50 @@ onMounted(fetchStatistics)
         <p>Lade Statistiken...</p>
       </div>
 
-      <div v-else-if="!selectedCarId" class="text-center py-12 text-gray-500">
-        <p>Bitte wähle ein Fahrzeug aus um Statistiken anzuzeigen.</p>
+      <!-- Empty State: No Cars -->
+      <div v-else-if="cars.length === 0" class="min-h-[60vh] flex items-center justify-center">
+        <div class="text-center max-w-md px-4">
+          <TruckIcon class="h-24 w-24 mx-auto text-gray-300 mb-6" />
+          <h2 class="text-2xl font-bold text-gray-800 mb-3">
+            Noch kein Fahrzeug hinzugefügt
+          </h2>
+          <p class="text-gray-600 mb-8">
+            Füge dein erstes E-Auto hinzu um Ladevorgänge zu tracken und Statistiken zu sehen.
+          </p>
+          <button
+            @click="router.push('/cars')"
+            class="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium shadow-lg hover:shadow-xl transition flex items-center gap-2 mx-auto">
+            <TruckIcon class="h-5 w-5" />
+            Fahrzeug hinzufügen →
+          </button>
+        </div>
       </div>
 
-      <div v-else-if="stats && stats.totalCharges === 0" class="text-center py-12 text-gray-500">
-        <p>Noch keine Ladevorgänge für dieses Fahrzeug erfasst.</p>
+      <!-- Empty State: No Logs -->
+      <div v-else-if="stats && stats.totalCharges === 0" class="min-h-[60vh] flex items-center justify-center">
+        <div class="text-center max-w-md px-4">
+          <BoltIcon class="h-24 w-24 mx-auto text-green-500 mb-6" />
+          <h2 class="text-2xl font-bold text-gray-800 mb-3">
+            Noch keine Ladevorgänge erfasst
+          </h2>
+          <p class="text-gray-600 mb-8">
+            Erfasse deinen ersten Ladevorgang um Statistiken, Charts und WLTP-Vergleiche zu sehen!
+          </p>
+          <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <button
+              @click="router.push('/erfassen')"
+              class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 justify-center shadow-lg hover:shadow-xl transition font-medium">
+              <CameraIcon class="h-5 w-5" />
+              Foto scannen
+            </button>
+            <button
+              @click="router.push('/erfassen')"
+              class="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center gap-2 justify-center transition font-medium">
+              <PencilSquareIcon class="h-5 w-5" />
+              Manuell eingeben
+            </button>
+          </div>
+        </div>
       </div>
 
       <div v-else-if="stats" class="space-y-6">

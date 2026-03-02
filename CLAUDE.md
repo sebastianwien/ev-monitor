@@ -105,6 +105,7 @@ WHERE include_in_statistics = true
 - [Database Schema](docs/architecture/database-schema.md) - Tables, Migrations, Constraints
 - [Backend API](docs/architecture/backend-api.md) - (TODO) All Endpoints, DTOs, Error Codes
 - [Frontend Routing](docs/architecture/frontend-routing.md) - (TODO) Vue Router, Guards
+- [Analytics Setup](docs/analytics-setup.md) - Plausible.io Integration, DSGVO-Compliance, Events
 
 ### Deployment Documentation
 - [Local Development](docs/deployment/local-development.md) - dev.sh, Docker Compose, Troubleshooting

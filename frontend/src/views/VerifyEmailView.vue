@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import api from '../api/axios';
+import { analytics } from '../services/analytics';
 import { BoltIcon } from '@heroicons/vue/24/outline';
 
 const router = useRouter();
@@ -26,6 +27,14 @@ onMounted(async () => {
     if (response.data.token) {
       authStore.setToken(response.data.token);
       status.value = 'success';
+
+      // Track successful email verification
+      analytics.trackEmailVerified();
+
+      // Note: Onboarding flag is NOT reset here!
+      // OnboardingWelcome component will check if user has cars
+      // and only show onboarding for truly new users (no cars yet)
+
       setTimeout(() => router.push('/statistics'), 2000);
     }
   } catch (err: any) {

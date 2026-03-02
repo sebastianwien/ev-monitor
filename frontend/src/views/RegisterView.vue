@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import api from '../api/axios';
+import { analytics } from '../services/analytics';
 
 const email = ref('');
 const username = ref('');
@@ -33,6 +34,9 @@ const handleRegister = async () => {
     });
     if (response.data.status === 'PENDING_VERIFICATION') {
       pendingEmail.value = response.data.email;
+
+      // Track successful registration
+      analytics.trackRegistrationCompleted();
     }
   } catch (err: any) {
     error.value = err.response?.data?.message || 'Registrierung fehlgeschlagen';

@@ -298,19 +298,29 @@ onMounted(async () => {
       {{ error }}
     </div>
 
-    <!-- Empty state overlays (shown over map container) -->
-    <div v-if="!carId" class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-95 z-10 rounded-lg">
-      <div class="p-10 text-center text-gray-500">
-        <MapIcon class="h-16 w-16 mx-auto mb-3 text-gray-400" />
-        <p class="font-medium">Wähle ein Fahrzeug aus um die Lade-Karte anzuzeigen.</p>
+    <!-- Empty State: No Car Selected -->
+    <div v-if="!carId" class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 z-10 rounded-lg">
+      <div class="p-6 md:p-10 text-center">
+        <MapIcon class="h-20 w-20 mx-auto mb-4 text-gray-300" />
+        <p class="text-lg font-semibold text-gray-700 mb-2">Kein Fahrzeug ausgewählt</p>
+        <p class="text-sm text-gray-500">Wähle ein Fahrzeug aus um die Lade-Karte anzuzeigen.</p>
       </div>
     </div>
 
-    <div v-else-if="chargeCount === 0 && !loading" class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-95 z-10 rounded-lg">
-      <div class="p-10 text-center text-gray-500">
-        <MapPinIcon class="h-16 w-16 mx-auto mb-3 text-gray-400" />
-        <p class="font-medium">Keine Ladevorgänge mit Standort-Daten gefunden.</p>
-        <p class="text-xs text-gray-400 mt-1">Erfasse Ladevorgänge mit GPS-Standort im Dashboard.</p>
+    <!-- Empty State: No Locations -->
+    <div v-else-if="chargeCount === 0 && !loading" class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 z-10 rounded-lg">
+      <div class="p-6 md:p-10 text-center max-w-sm">
+        <MapPinIcon class="h-20 w-20 mx-auto mb-4 text-indigo-300" />
+        <p class="text-lg font-semibold text-gray-800 mb-2">Noch keine Standorte erfasst</p>
+        <p class="text-sm text-gray-600 mb-4">
+          Füge Standorte zu deinen Ladevorgängen hinzu, um sie hier auf der Karte zu sehen!
+        </p>
+        <div class="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 border border-blue-200 rounded-lg text-xs text-blue-800">
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>Standorte werden auf 5km anonymisiert (DSGVO)</span>
+        </div>
       </div>
     </div>
 

@@ -3,7 +3,7 @@ import { ref, onMounted, watch, computed } from 'vue'
 import { carService, type Car, type CarRequest, type BrandInfo, type ModelInfo } from '../api/carService'
 import { vehicleSpecificationService, type VehicleSpecification } from '../api/vehicleSpecificationService'
 import TeslaIntegration from '../components/TeslaIntegration.vue'
-import { ChartBarIcon } from '@heroicons/vue/24/outline'
+import { ChartBarIcon, TruckIcon, BoltIcon } from '@heroicons/vue/24/outline'
 
 const cars = ref<Car[]>([])
 const brands = ref<BrandInfo[]>([])
@@ -478,8 +478,37 @@ onMounted(async () => {
 
       <!-- Cars List -->
       <div v-if="loading" class="text-center py-8 text-gray-500">Lade Fahrzeuge...</div>
-      <div v-else-if="cars.length === 0" class="text-center py-8 text-gray-500">
-        Noch keine Fahrzeuge. Füge dein erstes Fahrzeug hinzu um Ladevorgänge zu erfassen!
+
+      <!-- Empty State: No Cars -->
+      <div v-else-if="cars.length === 0 && !showForm" class="text-center py-16 px-4">
+        <TruckIcon class="h-24 w-24 mx-auto text-gray-300 mb-6" />
+        <h3 class="text-2xl font-bold text-gray-800 mb-3">Noch keine Fahrzeuge</h3>
+        <p class="text-gray-600 mb-8 max-w-md mx-auto">
+          Füge dein erstes E-Auto hinzu um Ladevorgänge zu erfassen und Statistiken zu sehen!
+        </p>
+        <button
+          @click="openAddForm"
+          class="inline-flex items-center gap-2 px-8 py-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium shadow-lg hover:shadow-xl transition">
+          <TruckIcon class="h-5 w-5" />
+          Erstes Fahrzeug hinzufügen
+        </button>
+        <div class="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl mx-auto text-left">
+          <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div class="text-blue-600 mb-2">📊</div>
+            <p class="text-sm font-semibold text-gray-800 mb-1">100+ Modelle</p>
+            <p class="text-xs text-gray-600">68 Marken in unserer Datenbank</p>
+          </div>
+          <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div class="text-green-600 mb-2">⚡</div>
+            <p class="text-sm font-semibold text-gray-800 mb-1">WLTP-Daten</p>
+            <p class="text-xs text-gray-600">Automatischer Verbrauchsvergleich</p>
+          </div>
+          <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+            <div class="text-purple-600 mb-2">🔒</div>
+            <p class="text-sm font-semibold text-gray-800 mb-1">Privat</p>
+            <p class="text-xs text-gray-600">Deine Daten bleiben bei dir</p>
+          </div>
+        </div>
       </div>
 
       <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
