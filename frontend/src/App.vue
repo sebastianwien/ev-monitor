@@ -159,7 +159,8 @@ const closeMobileMenu = () => {
             © 2026 EV Monitor ·
             <router-link to="/datenschutz" class="hover:text-green-600 underline">Datenschutz</router-link> ·
             <router-link to="/impressum" class="hover:text-green-600 underline">Impressum</router-link> ·
-            <router-link to="/agb" class="hover:text-green-600 underline">AGB</router-link>
+            <router-link to="/agb" class="hover:text-green-600 underline">AGB</router-link> ·
+            <a href="https://github.com/sebastianwien/ev-monitor" target="_blank" rel="noopener noreferrer" class="hover:text-green-600 underline">GitHub</a>
           </p>
           <p class="text-xs text-gray-500 text-center">
             Datenimport powered by

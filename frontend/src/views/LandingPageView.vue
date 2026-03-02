@@ -281,7 +281,7 @@ const formatDelta = (real: number | null, wltp: number): string => {
             <router-link to="/datenschutz" class="hover:text-gray-900">Datenschutz</router-link>
             <router-link to="/impressum" class="hover:text-gray-900">Impressum</router-link>
             <router-link to="/agb" class="hover:text-gray-900">AGB</router-link>
-            <a href="https://github.com/yourusername/ev-monitor" target="_blank" class="hover:text-gray-900">GitHub</a>
+            <a href="https://github.com/sebastianwien/ev-monitor" target="_blank" rel="noopener noreferrer" class="hover:text-gray-900">GitHub</a>
           </div>
         </div>
         <div class="mt-8 text-center text-sm text-gray-500">
