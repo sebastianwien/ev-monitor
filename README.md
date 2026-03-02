@@ -135,12 +135,6 @@ APP_BASE_URL=https://your-domain.com
 
 The script validates all required env vars, builds multi-stage Docker images, and starts the stack in detached mode.
 
-### First-Time SSL Setup
-
-```bash
-./init-letsencrypt.sh
-```
-
 ### Useful Commands
 
 ```bash
