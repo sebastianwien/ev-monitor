@@ -6,6 +6,7 @@ import SpritMonitorImport from './components/SpritMonitorImport.vue'
 import LogFormModal from './components/LogFormModal.vue'
 import FloatingActionButton from './components/FloatingActionButton.vue'
 import OnboardingWelcome from './components/OnboardingWelcome.vue'
+import DemoBanner from './components/DemoBanner.vue'
 import { Bars3Icon, XMarkIcon, ChartBarIcon, TruckIcon, ArrowDownTrayIcon, UserIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon } from '@heroicons/vue/24/outline'
 
 const router = useRouter()
@@ -147,6 +148,8 @@ const closeMobileMenu = () => {
         </div>
       </div>
     </nav>
+    <!-- Demo Banner (shown for seed/demo accounts) -->
+    <DemoBanner v-if="authStore.isDemoAccount" />
     <main :class="{ 'md:py-10 md:px-4': authStore.isAuthenticated() }">
       <router-view></router-view>
     </main>

@@ -6,7 +6,11 @@ import {
   BoltIcon,
   CameraIcon,
   PencilSquareIcon,
-  TruckIcon
+  TruckIcon,
+  DevicePhoneMobileIcon,
+  ArrowUpOnSquareIcon,
+  EllipsisVerticalIcon,
+  PlusCircleIcon
 } from '@heroicons/vue/24/outline'
 import { analytics } from '../services/analytics'
 import api from '../api/axios'
@@ -15,6 +19,23 @@ const router = useRouter()
 const showWelcome = ref(false)
 const step = ref(1)
 const direction = ref<'forward' | 'backward'>('forward')
+
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+const isAndroid = /Android/.test(navigator.userAgent)
+const isAlreadyInstalled = window.matchMedia('(display-mode: standalone)').matches
+const deferredInstallPrompt = ref<any>(null)
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault()
+  deferredInstallPrompt.value = e
+})
+
+const triggerInstall = async () => {
+  if (!deferredInstallPrompt.value) return
+  deferredInstallPrompt.value.prompt()
+  await deferredInstallPrompt.value.userChoice
+  deferredInstallPrompt.value = null
+}
 
 onMounted(async () => {
   const forceOnboarding = localStorage.getItem('onboarding-force') === 'true'
@@ -104,7 +125,7 @@ const complete = () => {
               <!-- Progress Dots -->
               <div class="flex justify-center gap-2 mb-6">
                 <div
-                  v-for="i in 3"
+                  v-for="i in 4"
                   :key="i"
                   :class="i === step ? 'w-8 bg-indigo-600' : i < step ? 'w-2 bg-indigo-300' : 'w-2 bg-gray-300'"
                   class="h-2 rounded-full transition-all duration-400" />
@@ -231,10 +252,97 @@ const complete = () => {
                       ← Zurück
                     </button>
                     <button
+                      @click="next"
+                      class="px-8 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium transition shadow-lg hover:shadow-xl flex items-center gap-2">
+                      Weiter →
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Step 4: PWA Install -->
+                <div v-else-if="step === 4" key="4" class="px-8 pb-8 text-center space-y-6">
+                  <DevicePhoneMobileIcon class="h-20 w-20 mx-auto text-indigo-600" />
+                  <h2 class="text-2xl font-bold text-gray-800">Direkt vom Handy nutzen</h2>
+                  <p class="text-gray-600 max-w-md mx-auto">
+                    Füge EV Monitor zum Homescreen hinzu – kein App Store nötig, startet wie eine native App.
+                  </p>
+
+                  <div v-if="isAlreadyInstalled" class="bg-green-50 border border-green-200 rounded-xl p-5 max-w-md mx-auto">
+                    <p class="text-green-800 font-medium">Bereits installiert! Du nutzt EV Monitor schon als App.</p>
+                  </div>
+
+                  <template v-else>
+                    <!-- Android mit Install-Prompt -->
+                    <div v-if="deferredInstallPrompt" class="max-w-md mx-auto space-y-4">
+                      <button
+                        @click="triggerInstall"
+                        class="w-full px-6 py-4 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-medium transition shadow-lg flex items-center justify-center gap-3">
+                        <PlusCircleIcon class="h-6 w-6" />
+                        Zum Homescreen hinzufügen
+                      </button>
+                    </div>
+
+                    <!-- iOS -->
+                    <div v-else-if="isIOS" class="bg-blue-50 border border-blue-200 rounded-xl p-5 text-left max-w-md mx-auto space-y-3">
+                      <p class="font-semibold text-blue-900 text-sm">In Safari:</p>
+                      <ol class="text-sm text-blue-800 space-y-2">
+                        <li class="flex items-center gap-2">
+                          <span class="font-bold">1.</span>
+                          <ArrowUpOnSquareIcon class="h-5 w-5 flex-shrink-0" />
+                          Teilen-Button antippen
+                        </li>
+                        <li class="flex items-center gap-2">
+                          <span class="font-bold">2.</span>
+                          <PlusCircleIcon class="h-5 w-5 flex-shrink-0" />
+                          „Zum Home-Bildschirm" wählen
+                        </li>
+                        <li class="flex items-center gap-2">
+                          <span class="font-bold">3.</span>
+                          <BoltIcon class="h-5 w-5 flex-shrink-0 text-green-600" />
+                          „Hinzufügen" bestätigen – fertig!
+                        </li>
+                      </ol>
+                    </div>
+
+                    <!-- Android ohne Prompt / Desktop -->
+                    <div v-else-if="isAndroid" class="bg-blue-50 border border-blue-200 rounded-xl p-5 text-left max-w-md mx-auto space-y-3">
+                      <p class="font-semibold text-blue-900 text-sm">In Chrome:</p>
+                      <ol class="text-sm text-blue-800 space-y-2">
+                        <li class="flex items-center gap-2">
+                          <span class="font-bold">1.</span>
+                          <EllipsisVerticalIcon class="h-5 w-5 flex-shrink-0" />
+                          Menü (drei Punkte) antippen
+                        </li>
+                        <li class="flex items-center gap-2">
+                          <span class="font-bold">2.</span>
+                          <PlusCircleIcon class="h-5 w-5 flex-shrink-0" />
+                          „App installieren" oder „Zum Startbildschirm"
+                        </li>
+                        <li class="flex items-center gap-2">
+                          <span class="font-bold">3.</span>
+                          <BoltIcon class="h-5 w-5 flex-shrink-0 text-green-600" />
+                          Bestätigen – fertig!
+                        </li>
+                      </ol>
+                    </div>
+
+                    <!-- Desktop -->
+                    <div v-else class="bg-gray-50 border border-gray-200 rounded-xl p-5 text-sm text-gray-600 max-w-md mx-auto">
+                      Auf dem Smartphone: Öffne <strong>ev-monitor.net</strong> in Safari (iOS) oder Chrome (Android) und füge die Seite zum Homescreen hinzu.
+                    </div>
+                  </template>
+
+                  <div class="flex gap-4 justify-center">
+                    <button
+                      @click="back"
+                      class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition">
+                      ← Zurück
+                    </button>
+                    <button
                       @click="complete"
                       class="px-8 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition shadow-lg hover:shadow-xl flex items-center gap-2">
                       <BoltIcon class="h-5 w-5" />
-                      Los geht's! →
+                      Los geht's!
                     </button>
                   </div>
                 </div>

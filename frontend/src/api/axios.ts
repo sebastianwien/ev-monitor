@@ -26,6 +26,9 @@ api.interceptors.response.use(
             const authStore = useAuthStore();
             authStore.logout();
         }
+        if (error.response?.status === 403 && error.response?.data?.error === 'DEMO_ACCOUNT_READONLY') {
+            window.dispatchEvent(new CustomEvent('demo-account-blocked'));
+        }
         return Promise.reject(error);
     }
 );

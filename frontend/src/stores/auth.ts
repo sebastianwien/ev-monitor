@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import api from '../api/axios';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { jwtDecode } from 'jwt-decode';
 
@@ -48,5 +48,7 @@ export const useAuthStore = defineStore('auth', () => {
         return response.data;
     };
 
-    return { token, user, setToken, logout, login, register, isAuthenticated: () => !!token.value };
+    const isDemoAccount = computed(() => (user.value as any)?.demoAccount === true);
+
+    return { token, user, isDemoAccount, setToken, logout, login, register, isAuthenticated: () => !!token.value };
 });
