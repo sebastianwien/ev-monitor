@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 /**
@@ -113,7 +113,7 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
 
         List<SpritMonitorFuelingDTO> mockFuelings = List.of(
                 new SpritMonitorFuelingDTO(
-                        "2024-01-15",
+                        "15.01.2024",
                         new BigDecimal("50.0"),
                         new BigDecimal("12.50"),
                         60,
@@ -162,7 +162,7 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
         // Given: Fueling without GPS coordinates (null position)
         List<SpritMonitorFuelingDTO> mockFuelings = List.of(
                 new SpritMonitorFuelingDTO(
-                        "2024-01-15",
+                        "15.01.2024",
                         new BigDecimal("50.0"),
                         new BigDecimal("12.50"),
                         60,
@@ -208,7 +208,7 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
 
         List<SpritMonitorFuelingDTO> mockFuelings = List.of(
                 new SpritMonitorFuelingDTO(
-                        "2024-01-15",
+                        "15.01.2024",
                         new BigDecimal("50.0"),
                         new BigDecimal("12.50"),
                         60,
@@ -308,9 +308,9 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
         );
 
         List<SpritMonitorFuelingDTO> mockFuelings = List.of(
-                new SpritMonitorFuelingDTO("2024-01-15", new BigDecimal("50.0"), new BigDecimal("12.50"), 60, position, null, null),
-                new SpritMonitorFuelingDTO("2024-01-20", new BigDecimal("30.0"), new BigDecimal("9.00"), 45, position, null, null),
-                new SpritMonitorFuelingDTO("2024-01-25", new BigDecimal("40.0"), new BigDecimal("10.00"), 50, position, null, null)
+                new SpritMonitorFuelingDTO("15.01.2024", new BigDecimal("50.0"), new BigDecimal("12.50"), 60, position, null, null),
+                new SpritMonitorFuelingDTO("20.01.2024", new BigDecimal("30.0"), new BigDecimal("9.00"), 45, position, null, null),
+                new SpritMonitorFuelingDTO("25.01.2024", new BigDecimal("40.0"), new BigDecimal("10.00"), 50, position, null, null)
         );
 
         when(spritMonitorClient.getFuelings(eq(validToken), eq(123))).thenReturn(mockFuelings);
