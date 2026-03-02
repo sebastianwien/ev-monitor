@@ -2,12 +2,18 @@ package com.evmonitor.infrastructure.persistence;
 
 import com.evmonitor.domain.AuthProvider;
 import com.evmonitor.domain.CarBrand;
-import org.junit.jupiter.api.AfterEach;
+import com.evmonitor.domain.CarStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.TestPropertySource;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -16,12 +22,32 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Integration test to verify CASCADE DELETE behavior when User is deleted.
- * DSGVO Requirement: Deleting a user must delete ALL associated data.
+ * DSGVO Compliance Test: Verifies that deleting a user CASCADE deletes ALL associated data.
+ *
+ * Uses a real PostgreSQL container (Testcontainers) with the actual Flyway migrations,
+ * so this test proves that CASCADE DELETE works exactly as it does on production.
+ *
+ * If Docker is not available, these tests are automatically skipped.
  */
 @DataJpaTest
-@ActiveProfiles("test")
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@Testcontainers(disabledWithoutDocker = true)
+@TestPropertySource(properties = {
+        "spring.flyway.enabled=true",
+        "spring.flyway.clean-disabled=false",
+        "spring.jpa.hibernate.ddl-auto=validate"
+})
 class UserDeletionCascadeTest {
+
+    @Container
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15-alpine");
+
+    @DynamicPropertySource
+    static void configureProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", postgres::getJdbcUrl);
+        registry.add("spring.datasource.username", postgres::getUsername);
+        registry.add("spring.datasource.password", postgres::getPassword);
+    }
 
     @Autowired
     private JpaUserRepository userRepository;
@@ -34,15 +60,16 @@ class UserDeletionCascadeTest {
 
     private UUID userId;
     private UUID carId;
-    private UUID logId;
 
     @BeforeEach
     void setUp() {
+        evLogRepository.deleteAll();
+        carRepository.deleteAll();
+        userRepository.deleteAll();
+
         userId = UUID.randomUUID();
         carId = UUID.randomUUID();
-        logId = UUID.randomUUID();
 
-        // Create User
         UserEntity user = new UserEntity();
         user.setId(userId);
         user.setEmail("cascade-test@example.com");
@@ -56,7 +83,6 @@ class UserDeletionCascadeTest {
         user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
 
-        // Create Car
         CarEntity car = new CarEntity();
         car.setId(carId);
         car.setUserId(userId);
@@ -66,14 +92,13 @@ class UserDeletionCascadeTest {
         car.setTrim("Long Range");
         car.setBatteryCapacityKwh(new BigDecimal("75.0"));
         car.setPowerKw(new BigDecimal("283"));
-        car.setStatus(com.evmonitor.domain.CarStatus.ACTIVE);
+        car.setStatus(CarStatus.ACTIVE);
         car.setCreatedAt(LocalDateTime.now());
         car.setUpdatedAt(LocalDateTime.now());
         carRepository.save(car);
 
-        // Create EvLog
         EvLogEntity log = new EvLogEntity();
-        log.setId(logId);
+        log.setId(UUID.randomUUID());
         log.setCarId(carId);
         log.setKwhCharged(new BigDecimal("45.5"));
         log.setCostEur(new BigDecimal("18.20"));
@@ -87,36 +112,22 @@ class UserDeletionCascadeTest {
         evLogRepository.save(log);
     }
 
-    @AfterEach
-    void tearDown() {
-        evLogRepository.deleteAll();
-        carRepository.deleteAll();
-        userRepository.deleteAll();
-    }
-
     @Test
     void deletingUser_shouldCascadeDeleteCarsAndEvLogs() {
-        // Verify initial state
         assertTrue(userRepository.existsById(userId));
         assertTrue(carRepository.existsById(carId));
         assertEquals(1, evLogRepository.findAllByUserId(userId).size());
 
-        // Delete in correct order (EvLogs -> Cars -> User)
-        // This mimics CASCADE DELETE behavior for H2 tests
-        // On production PostgreSQL, CASCADE is handled by DB constraints
-        evLogRepository.findAllByUserId(userId).forEach(log -> evLogRepository.deleteById(log.getId()));
-        carRepository.findAllByUserId(userId).forEach(car -> carRepository.deleteById(car.getId()));
+        // Only delete the user - DB CASCADE handles the rest (like production)
         userRepository.deleteById(userId);
 
-        // Verify everything was deleted
         assertFalse(userRepository.existsById(userId), "User should be deleted");
-        assertFalse(carRepository.existsById(carId), "Car should be deleted");
-        assertEquals(0, evLogRepository.findAllByUserId(userId).size(), "EvLogs should be deleted");
+        assertFalse(carRepository.existsById(carId), "Car should be CASCADE deleted");
+        assertEquals(0, evLogRepository.findAllByUserId(userId).size(), "EvLogs should be CASCADE deleted");
     }
 
     @Test
     void deletingUser_withMultipleCarsAndLogs_shouldDeleteEverything() {
-        // Create another car
         UUID car2Id = UUID.randomUUID();
         CarEntity car2 = new CarEntity();
         car2.setId(car2Id);
@@ -127,15 +138,13 @@ class UserDeletionCascadeTest {
         car2.setTrim("Pro");
         car2.setBatteryCapacityKwh(new BigDecimal("58.0"));
         car2.setPowerKw(new BigDecimal("204"));
-        car2.setStatus(com.evmonitor.domain.CarStatus.ACTIVE);
+        car2.setStatus(CarStatus.ACTIVE);
         car2.setCreatedAt(LocalDateTime.now());
         car2.setUpdatedAt(LocalDateTime.now());
         carRepository.save(car2);
 
-        // Create another log for the second car
-        UUID log2Id = UUID.randomUUID();
         EvLogEntity log2 = new EvLogEntity();
-        log2.setId(log2Id);
+        log2.setId(UUID.randomUUID());
         log2.setCarId(car2Id);
         log2.setKwhCharged(new BigDecimal("30.0"));
         log2.setCostEur(new BigDecimal("12.50"));
@@ -148,24 +157,19 @@ class UserDeletionCascadeTest {
         log2.setUpdatedAt(LocalDateTime.now());
         evLogRepository.save(log2);
 
-        // Verify initial state
         assertEquals(2, carRepository.findAllByUserId(userId).size());
         assertEquals(2, evLogRepository.findAllByUserId(userId).size());
 
-        // Delete in correct order
-        evLogRepository.findAllByUserId(userId).forEach(log -> evLogRepository.deleteById(log.getId()));
-        carRepository.findAllByUserId(userId).forEach(car -> carRepository.deleteById(car.getId()));
+        // Only delete the user - DB CASCADE handles the rest
         userRepository.deleteById(userId);
 
-        // Verify everything was deleted
         assertFalse(userRepository.existsById(userId));
-        assertEquals(0, carRepository.findAllByUserId(userId).size());
-        assertEquals(0, evLogRepository.findAllByUserId(userId).size());
+        assertEquals(0, carRepository.findAllByUserId(userId).size(), "All cars should be CASCADE deleted");
+        assertEquals(0, evLogRepository.findAllByUserId(userId).size(), "All EvLogs should be CASCADE deleted");
     }
 
     @Test
     void deletingUser_shouldNotAffectOtherUsers() {
-        // Create another user with car and log
         UUID otherUserId = UUID.randomUUID();
         UserEntity otherUser = new UserEntity();
         otherUser.setId(otherUserId);
@@ -190,22 +194,18 @@ class UserDeletionCascadeTest {
         otherCar.setTrim("AWD");
         otherCar.setBatteryCapacityKwh(new BigDecimal("75.0"));
         otherCar.setPowerKw(new BigDecimal("384"));
-        otherCar.setStatus(com.evmonitor.domain.CarStatus.ACTIVE);
+        otherCar.setStatus(CarStatus.ACTIVE);
         otherCar.setCreatedAt(LocalDateTime.now());
         otherCar.setUpdatedAt(LocalDateTime.now());
         carRepository.save(otherCar);
 
-        // Delete first user in correct order
-        evLogRepository.findAllByUserId(userId).forEach(log -> evLogRepository.deleteById(log.getId()));
-        carRepository.findAllByUserId(userId).forEach(car -> carRepository.deleteById(car.getId()));
+        // Only delete the first user
         userRepository.deleteById(userId);
 
-        // Verify first user and their data is deleted
-        assertFalse(userRepository.existsById(userId));
-        assertFalse(carRepository.existsById(carId));
+        assertFalse(userRepository.existsById(userId), "Deleted user should be gone");
+        assertFalse(carRepository.existsById(carId), "Deleted user's car should be CASCADE deleted");
 
-        // Verify other user and their data still exists
-        assertTrue(userRepository.existsById(otherUserId));
-        assertTrue(carRepository.existsById(otherCarId));
+        assertTrue(userRepository.existsById(otherUserId), "Other user should still exist");
+        assertTrue(carRepository.existsById(otherCarId), "Other user's car should still exist");
     }
 }
