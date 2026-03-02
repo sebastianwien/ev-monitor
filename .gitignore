@@ -3,6 +3,10 @@
 .env.local
 .env.production
 .env.*.local
+.envrc
+
+# Claude personal preferences (public project settings stay tracked)
+.claude/preferences.md
 
 # IDE
 .idea/
@@ -36,3 +40,5 @@ wipe-prod-db.sh
 frontend/dist/
 frontend/node_modules/
 cache.json
+
+tesla_explorer.py
