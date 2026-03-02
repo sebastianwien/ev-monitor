@@ -24,26 +24,26 @@ import { BoltIcon } from '@heroicons/vue/24/outline'
         <section>
           <h2 class="text-2xl font-semibold text-gray-900 mb-4">Angaben gemäß § 5 TMG</h2>
           <p>
-            [Dein vollständiger Name / Firmenname]<br />
-            [Straße und Hausnummer]<br />
-            [PLZ und Ort]<br />
-            [Land]
+            Sebastian Wien<br />
+            Cotheniusstrasse 5<br />
+            10407 Berlin<br />
+            Deutschland
           </p>
         </section>
 
         <section>
           <h2 class="text-2xl font-semibold text-gray-900 mb-4">Kontakt</h2>
           <p>
-            E-Mail: [deine@email.de]<br />
-            Telefon: [Optional]
+            E-Mail: impressum@ev-monitor.net<br />
           </p>
         </section>
 
         <section>
           <h2 class="text-2xl font-semibold text-gray-900 mb-4">Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV</h2>
           <p>
-            [Dein vollständiger Name]<br />
-            [Adresse wie oben]
+            Sebastian Wien<br />
+            Cotheniusstrasse 5
+            10407 Berlin
           </p>
         </section>
 
