@@ -8,11 +8,11 @@ import com.evmonitor.domain.User;
 import com.evmonitor.infrastructure.email.EmailService;
 import com.evmonitor.testutil.AbstractIntegrationTest;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -26,7 +26,7 @@ import static org.mockito.Mockito.doNothing;
  */
 class AuthControllerIntegrationTest extends AbstractIntegrationTest {
 
-    @MockBean
+    @MockitoBean
     private EmailService emailService;
 
     private RegisterResponse registerUser(String email, String username, String password) {
