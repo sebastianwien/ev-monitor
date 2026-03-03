@@ -80,6 +80,11 @@ export const carService = {
         return response.data;
     },
 
+    async updateCarImageVisibility(carId: string, isPublic: boolean): Promise<Car> {
+        const response = await api.patch(`/cars/${carId}/image?isPublic=${isPublic}`);
+        return response.data;
+    },
+
     async uploadCarImage(carId: string, file: File, isPublic: boolean): Promise<Car> {
         const formData = new FormData();
         formData.append('file', file);

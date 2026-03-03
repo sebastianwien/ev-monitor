@@ -12,7 +12,7 @@ const emit = defineEmits<{
   success: []
 }>()
 
-const showOcrCapture = ref(false)
+const showOcrCapture = ref(window.innerWidth < 768)
 const ocrUsed = ref(false)
 
 // Toast notification

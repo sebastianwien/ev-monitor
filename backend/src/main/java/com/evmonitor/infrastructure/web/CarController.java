@@ -107,6 +107,16 @@ public class CarController {
                 .body(resource.get());
     }
 
+    @PatchMapping("/{id}/image")
+    public ResponseEntity<CarResponse> updateCarImageVisibility(
+            @PathVariable UUID id,
+            @RequestParam boolean isPublic,
+            Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        CarResponse response = carService.updateCarImageVisibility(principal.getUser().getId(), id, isPublic);
+        return ResponseEntity.ok(response);
+    }
+
     @DeleteMapping("/{id}/image")
     public ResponseEntity<Void> deleteCarImage(@PathVariable UUID id, Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();

@@ -202,6 +202,54 @@ class CarImageControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     // -------------------------------------------------------------------------
+    // PATCH image — update visibility
+    // -------------------------------------------------------------------------
+
+    @Test
+    void ownerCanUpdateImageVisibility() throws IOException {
+        uploadImage(owner, ownerCar, false); // uploaded as private
+
+        HttpEntity<Void> request = createAuthRequest(owner.getId(), owner.getEmail());
+        ResponseEntity<CarResponse> response = restTemplate.exchange(
+                "/api/cars/" + ownerCar.getId() + "/image?isPublic=true",
+                HttpMethod.PATCH, request, CarResponse.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().imagePublic(), "imagePublic must be true after PATCH");
+
+        Car carInDb = carRepository.findById(ownerCar.getId()).orElseThrow();
+        assertTrue(carInDb.isImagePublic(), "imagePublic must be persisted in DB");
+        assertNotNull(carInDb.getImagePath(), "imagePath must not be cleared by visibility update");
+    }
+
+    @Test
+    void nonOwnerCannotUpdateImageVisibility_Returns400() throws IOException {
+        uploadImage(owner, ownerCar, false);
+
+        HttpEntity<Void> request = createAuthRequest(otherUser.getId(), otherUser.getEmail());
+        ResponseEntity<String> response = restTemplate.exchange(
+                "/api/cars/" + ownerCar.getId() + "/image?isPublic=true",
+                HttpMethod.PATCH, request, String.class);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+
+        Car carInDb = carRepository.findById(ownerCar.getId()).orElseThrow();
+        assertFalse(carInDb.isImagePublic(), "imagePublic must not be changed by non-owner");
+    }
+
+    @Test
+    void patchVisibility_WithoutImage_Returns400() {
+        // No image on ownerCar
+        HttpEntity<Void> request = createAuthRequest(owner.getId(), owner.getEmail());
+        ResponseEntity<String> response = restTemplate.exchange(
+                "/api/cars/" + ownerCar.getId() + "/image?isPublic=true",
+                HttpMethod.PATCH, request, String.class);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+    }
+
+    // -------------------------------------------------------------------------
     // DELETE image
     // -------------------------------------------------------------------------
 
