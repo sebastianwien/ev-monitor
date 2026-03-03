@@ -116,13 +116,22 @@ const formatDelta = (real: number | null, wltp: number): string => {
           Echte Reichweiten, echte Verbräuche, echte Ladekosten – von echten Fahrern.
           Vergleiche Herstellerangaben mit Community-Daten.
         </p>
-        <button
-          @click="goToRegister"
-          class="bg-green-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-green-700 transition inline-flex items-center space-x-2"
-        >
-          <span>Kostenlos starten</span>
-          <ArrowRightIcon class="h-5 w-5" />
-        </button>
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <button
+            @click="goToRegister"
+            class="bg-green-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-green-700 transition inline-flex items-center space-x-2"
+          >
+            <span>Kostenlos starten</span>
+            <ArrowRightIcon class="h-5 w-5" />
+          </button>
+          <router-link
+            to="/modelle"
+            class="border border-gray-300 text-gray-700 px-8 py-4 rounded-lg text-lg font-semibold hover:border-green-500 hover:text-green-700 transition inline-flex items-center space-x-2"
+          >
+            <span>Modelle entdecken und vergleichen</span>
+            <ArrowRightIcon class="h-5 w-5" />
+          </router-link>
+        </div>
         <p class="mt-6 text-sm text-gray-500">
           300+ Ladevorgänge • 250+ Modelle • 20+ Fahrer
         </p>
@@ -217,13 +226,13 @@ const formatDelta = (real: number | null, wltp: number): string => {
 
           <!-- View All Button -->
           <div class="text-center mt-8">
-            <button
-              @click="goToModels"
-              class="text-green-600 font-medium hover:text-green-700 inline-flex items-center space-x-2"
+            <router-link
+              to="/modelle"
+              class="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition inline-flex items-center space-x-2"
             >
-              <span>Alle 45 Modelle</span>
+              <span>Alle Modelle im Vergleich</span>
               <ArrowRightIcon class="h-5 w-5" />
-            </button>
+            </router-link>
           </div>
         </div>
 
@@ -278,6 +287,7 @@ const formatDelta = (real: number | null, wltp: number): string => {
             <span class="font-semibold text-gray-900">EV Monitor</span>
           </div>
           <div class="flex flex-wrap justify-center gap-6 text-sm text-gray-600">
+            <router-link to="/modelle" class="hover:text-gray-900 font-medium">Modelle</router-link>
             <router-link to="/datenschutz" class="hover:text-gray-900">Datenschutz</router-link>
             <router-link to="/impressum" class="hover:text-gray-900">Impressum</router-link>
             <router-link to="/agb" class="hover:text-gray-900">AGB</router-link>
