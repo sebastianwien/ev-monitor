@@ -66,7 +66,7 @@ const error = ref<string | null>(null)
 const cars = ref<any[]>([]) // Track available cars for empty state
 
 const selectedTimeRange = ref<string>('LAST_3_MONTHS')
-const selectedGroupBy = ref<string>('MONTH')
+const selectedGroupBy = ref<string>('DAY')
 
 // Dataset toggles
 const showCostPerKwh = ref(true)
