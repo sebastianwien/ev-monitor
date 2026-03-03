@@ -1,19 +1,33 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from './stores/auth'
+import { useCoinStore } from './stores/coins'
 import SpritMonitorImport from './components/SpritMonitorImport.vue'
 import LogFormModal from './components/LogFormModal.vue'
 import FloatingActionButton from './components/FloatingActionButton.vue'
 import OnboardingWelcome from './components/OnboardingWelcome.vue'
 import DemoBanner from './components/DemoBanner.vue'
-import { Bars3Icon, XMarkIcon, ChartBarIcon, TruckIcon, ArrowDownTrayIcon, UserIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon } from '@heroicons/vue/24/outline'
+import { Bars3Icon, XMarkIcon, ChartBarIcon, TruckIcon, ArrowDownTrayIcon, UserIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon, BoltIcon } from '@heroicons/vue/24/outline'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const coinStore = useCoinStore()
 const showImportOverlay = ref(false)
 const showLogFormModal = ref(false)
 const mobileMenuOpen = ref(false)
+
+// Load coin balance when user is authenticated
+if (authStore.isAuthenticated()) {
+  coinStore.fetchBalance()
+}
+
+// Refresh balance when auth state changes (login/logout)
+watch(() => authStore.token, (newToken) => {
+  if (newToken) {
+    coinStore.fetchBalance()
+  }
+})
 
 const handleLogout = () => {
   authStore.logout()
@@ -75,8 +89,15 @@ const closeMobileMenu = () => {
             </div>
           </div>
 
-          <!-- Right: User Info + Logout (Desktop) / Hamburger (Mobile) -->
+          <!-- Right: Coin Balance + User Info + Logout (Desktop) / Hamburger (Mobile) -->
           <div class="hidden md:flex items-center space-x-4">
+            <router-link
+              to="/coins/history"
+              class="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-indigo-500 bg-opacity-30 border border-indigo-400 rounded-md hover:bg-opacity-50 transition font-medium"
+              title="Watt-Verlauf">
+              <BoltIcon class="h-4 w-4" />
+              <span>{{ coinStore.balance }}</span>
+            </router-link>
             <router-link
               v-if="authStore.user"
               to="/settings"
@@ -128,6 +149,14 @@ const closeMobileMenu = () => {
             :class="{ 'bg-indigo-800': $route.path === '/settings' }">
             <Cog6ToothIcon class="h-5 w-5" />
             <span>Einstellungen</span>
+          </router-link>
+          <router-link
+            to="/coins/history"
+            @click="closeMobileMenu"
+            class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-600 transition"
+            :class="{ 'bg-indigo-800': $route.path === '/coins/history' }">
+            <BoltIcon class="h-5 w-5" />
+            <span>Watt ({{ coinStore.balance }})</span>
           </router-link>
           <button
             @click="showImportOverlay = true; mobileMenuOpen = false"

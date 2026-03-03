@@ -11,5 +11,7 @@ public interface CarRepository {
 
     List<Car> findAllByUserId(UUID userId);
 
+    long countByUserId(UUID userId);
+
     void deleteById(UUID id);
 }

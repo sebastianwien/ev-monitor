@@ -230,15 +230,15 @@ onMounted(() => {
         {{ message.text }}
       </div>
 
-      <!-- Coin Balance -->
+      <!-- Watt Balance -->
       <div class="mb-8 bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-lg p-6">
         <div class="flex items-center gap-3 mb-2">
           <CurrencyDollarIcon class="h-6 w-6 text-amber-600" />
-          <h2 class="text-xl font-bold text-gray-800">Deine Coins</h2>
+          <h2 class="text-xl font-bold text-gray-800">Dein Watt-Konto</h2>
         </div>
         <p class="text-3xl font-bold text-amber-600">{{ coinBalance }}</p>
         <router-link to="/coins/history" class="text-sm text-amber-700 hover:text-amber-800 underline mt-2 inline-block">
-          Coin-Historie ansehen →
+          Watt-Verlauf ansehen →
         </router-link>
       </div>
 
@@ -438,7 +438,7 @@ onMounted(() => {
           <h3 class="text-2xl font-bold text-red-600 mb-4">Account löschen?</h3>
           <p class="text-gray-700 mb-4">
             Diese Aktion kann <strong>nicht rückgängig</strong> gemacht werden.
-            Alle deine Daten (Ladevorgänge, Fahrzeuge, Coins) werden permanent gelöscht.
+            Alle deine Daten (Ladevorgänge, Fahrzeuge, Watt) werden permanent gelöscht.
           </p>
 
           <input

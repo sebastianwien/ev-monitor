@@ -1,5 +1,6 @@
 package com.evmonitor.infrastructure.web;
 
+import com.evmonitor.application.CarCreateResponse;
 import com.evmonitor.application.CarRequest;
 import com.evmonitor.application.CarResponse;
 import com.evmonitor.domain.Car;
@@ -53,24 +54,23 @@ class CarControllerIntegrationTest extends AbstractIntegrationTest {
         HttpEntity<CarRequest> requestWithAuth = createAuthRequest(request, userId, testUser.getEmail());
 
         // When: POST /api/cars
-        ResponseEntity<CarResponse> response = restTemplate.exchange(
+        ResponseEntity<CarCreateResponse> response = restTemplate.exchange(
                 "/api/cars",
                 HttpMethod.POST,
                 requestWithAuth,
-                CarResponse.class
+                CarCreateResponse.class
         );
 
-        // Then: Car created successfully
-        assertTrue(response.getStatusCode() == HttpStatus.OK ||
-                response.getStatusCode() == HttpStatus.CREATED,
-                "Expected 200 or 201, got: " + response.getStatusCode());
+        // Then: Car created successfully with coins awarded
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals(CarBrand.CarModel.MODEL_3, response.getBody().model());
-        assertEquals(2024, response.getBody().year());
-        assertEquals("TEST-123", response.getBody().licensePlate());
+        assertEquals(CarBrand.CarModel.MODEL_3, response.getBody().car().model());
+        assertEquals(2024, response.getBody().car().year());
+        assertEquals("TEST-123", response.getBody().car().licensePlate());
+        assertEquals(20, response.getBody().coinsAwarded(), "First car must award 20 coins");
 
         // Verify car is in database
-        Car savedCar = carRepository.findById(response.getBody().id()).orElseThrow();
+        Car savedCar = carRepository.findById(response.getBody().car().id()).orElseThrow();
         assertEquals(userId, savedCar.getUserId(), "Car must be owned by user");
     }
 

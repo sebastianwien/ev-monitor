@@ -282,7 +282,7 @@ backend/src/main/resources/db/migration/
 | Statistics & Charts | ✅ Implementiert | [Statistics & Heatmap](docs/features/statistics-heatmap.md) |
 | Interactive Heatmap | ✅ Implementiert (Fixed 2026-03-01) | [Statistics & Heatmap](docs/features/statistics-heatmap.md) |
 | WLTP Crowdsourcing | ✅ Implementiert | [WLTP Crowdsourcing](docs/features/wltp-crowdsourcing.md) |
-| Coin System | 🟡 Teilweise (nur WLTP-Rewards) | [WLTP Crowdsourcing](docs/features/wltp-crowdsourcing.md) |
+| Coin System | ✅ Implementiert (Car, Log, WLTP, OCR-Bonus) | [WLTP Crowdsourcing](docs/features/wltp-crowdsourcing.md) |
 | Tesla API Integration | ✅ Implementiert (nur für Tesla-Besitzer sichtbar) | [Tesla Import](docs/features/tesla-import.md) |
 | Sprit-Monitor Import | 🔴 TODO | - |
 

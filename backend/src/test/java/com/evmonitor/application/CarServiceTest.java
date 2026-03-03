@@ -11,6 +11,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
@@ -32,6 +33,9 @@ class CarServiceTest {
     @Mock
     private CarRepository carRepository;
 
+    @Mock
+    private CoinLogService coinLogService;
+
     private CarService carService;
 
     private UUID userId;
@@ -39,7 +43,7 @@ class CarServiceTest {
 
     @BeforeEach
     void setUp() {
-        carService = new CarService(carRepository);
+        carService = new CarService(carRepository, coinLogService);
         userId = UUID.randomUUID();
         carId = UUID.randomUUID();
     }
@@ -57,14 +61,18 @@ class CarServiceTest {
         );
 
         when(carRepository.save(any(Car.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        // Simulate: user has never received a car-creation coin before → first-time bonus
+        when(coinLogService.hasEverReceivedCoinForAction(userId, CoinLogService.ACTION_CAR_CREATED))
+                .thenReturn(false);
 
         // When
-        CarResponse response = carService.createCar(userId, request);
+        CarCreateResponse response = carService.createCar(userId, request);
 
         // Then
         assertNotNull(response);
-        assertEquals(CarBrand.CarModel.MODEL_3, response.model());
-        assertEquals(2024, response.year());
+        assertEquals(CarBrand.CarModel.MODEL_3, response.car().model());
+        assertEquals(2024, response.car().year());
+        assertEquals(20, response.coinsAwarded(), "First car must award 20 coins");
 
         // Verify ownership link
         ArgumentCaptor<Car> carCaptor = ArgumentCaptor.forClass(Car.class);

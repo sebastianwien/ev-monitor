@@ -1,5 +1,6 @@
 package com.evmonitor.infrastructure.web;
 
+import com.evmonitor.application.EvLogCreateResponse;
 import com.evmonitor.application.EvLogRequest;
 import com.evmonitor.application.EvLogResponse;
 import com.evmonitor.application.EvLogStatisticsResponse;
@@ -62,27 +63,29 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
                 longitude,
                 null, // odometerKm
                 null, // maxChargingPowerKw
-                LocalDateTime.now()
+                LocalDateTime.now(),
+                null  // ocrUsed
         );
 
         HttpEntity<EvLogRequest> requestWithAuth = createAuthRequest(request, userId, testUser.getEmail());
 
         // When: POST /api/logs
-        ResponseEntity<EvLogResponse> response = restTemplate.exchange(
+        ResponseEntity<EvLogCreateResponse> response = restTemplate.exchange(
                 "/api/logs",
                 HttpMethod.POST,
                 requestWithAuth,
-                EvLogResponse.class
+                EvLogCreateResponse.class
         );
 
-        // Then: Log created successfully
+        // Then: Log created successfully with coins awarded
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals(carId, response.getBody().carId());
-        assertEquals(new BigDecimal("50.0"), response.getBody().kwhCharged());
+        assertEquals(carId, response.getBody().log().carId());
+        assertEquals(new BigDecimal("50.0"), response.getBody().log().kwhCharged());
+        assertEquals(25, response.getBody().coinsAwarded(), "First log must award 25 coins");
 
         // PRIVACY CHECK: Verify geohash is stored in database (not lat/lon)
-        EvLog savedLog = evLogRepository.findById(response.getBody().id()).orElseThrow();
+        EvLog savedLog = evLogRepository.findById(response.getBody().log().id()).orElseThrow();
         assertNotNull(savedLog.getGeohash());
         assertEquals(5, savedLog.getGeohash().length(), "Geohash must be 5 characters");
     }
@@ -97,7 +100,8 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
                 60,
                 null, null, // No GPS
                 null, null, // No odometer, no max power
-                LocalDateTime.now()
+                LocalDateTime.now(),
+                null  // ocrUsed
         );
 
         // When: POST /api/logs without auth
@@ -128,7 +132,8 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
                 60,
                 null, null, // No GPS
                 null, null, // No odometer, no max power
-                LocalDateTime.now()
+                LocalDateTime.now(),
+                null  // ocrUsed
         );
 
         HttpEntity<EvLogRequest> requestWithAuth = createAuthRequest(request, userId, testUser.getEmail());

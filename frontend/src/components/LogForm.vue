@@ -3,13 +3,27 @@ import { ref, onMounted, watch } from 'vue'
 import api from '../api/axios'
 import CarSelector from './CarSelector.vue'
 import OcrPhotoCapture from './OcrPhotoCapture.vue'
-import { CameraIcon, PencilSquareIcon, TrashIcon } from '@heroicons/vue/24/outline'
+import { CameraIcon, PencilSquareIcon, TrashIcon, BoltIcon } from '@heroicons/vue/24/outline'
+import { useCoinStore } from '../stores/coins'
+
+const coinStore = useCoinStore()
 
 const emit = defineEmits<{
   success: []
 }>()
 
 const showOcrCapture = ref(false)
+const ocrUsed = ref(false)
+
+// Toast notification
+const showToast = ref(false)
+const toastMessage = ref('')
+
+const showCoinToast = (coins: number) => {
+  toastMessage.value = `+${coins} Watt erhalten!`
+  showToast.value = true
+  setTimeout(() => { showToast.value = false }, 4000)
+}
 
 const selectedCarId = ref<string | null>(null)
 const kwhCharged = ref<number>(0)
@@ -200,7 +214,16 @@ const submitLog = async () => {
       payload.loggedAt = new Date(loggedAt.value).toISOString()
     }
 
-    await api.post('/logs', payload)
+    // Add ocrUsed flag if OCR was used to fill in data
+    if (ocrUsed.value) {
+      payload.ocrUsed = true
+    }
+
+    const res = await api.post('/logs', payload)
+
+    // Show coin toast and refresh balance
+    showCoinToast(res.data.coinsAwarded)
+    coinStore.refresh()
 
     // Reset form (keep car selected)
     kwhCharged.value = 0
@@ -210,6 +233,7 @@ const submitLog = async () => {
     maxChargingPowerKw.value = null
     loggedAt.value = null
     odometerWarning.value = null
+    ocrUsed.value = false
     clearLocation()
 
     await fetchLogs()
@@ -242,6 +266,9 @@ const handleOcrData = (ocrResult: any) => {
   if (ocrResult.durationMinutes !== null) {
     chargeDurationMinutes.value = ocrResult.durationMinutes
   }
+
+  // Mark that OCR was used to fill in data (awards +2 bonus coins)
+  ocrUsed.value = true
 
   // Switch to manual mode so user can see & edit the extracted data
   showOcrCapture.value = false
@@ -432,6 +459,14 @@ const handleOcrData = (ocrResult: any) => {
         <button type="submit" class="w-full bg-indigo-600 text-white p-3 rounded-md shadow hover:bg-indigo-700 transition">⚡ Ladevorgang speichern</button>
       </form>
 
+      <!-- Watt Toast -->
+      <div v-if="showToast" class="fixed bottom-6 right-6 z-50 animate-slide-in">
+        <div class="bg-green-600 text-white px-5 py-3 rounded-lg shadow-2xl flex items-center gap-2">
+          <BoltIcon class="h-5 w-5 flex-shrink-0" />
+          <span class="font-medium text-sm">{{ toastMessage }}</span>
+        </div>
+      </div>
+
       <div class="mt-10">
       <h2 class="text-xl font-semibold mb-4 text-gray-800">Letzte Ladevorgänge</h2>
 
@@ -461,3 +496,11 @@ const handleOcrData = (ocrResult: any) => {
     </div>
   </div>
 </template>
+
+<style scoped>
+@keyframes slide-in {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+.animate-slide-in { animation: slide-in 0.3s ease-out; }
+</style>

@@ -39,6 +39,11 @@ public class PostgresCarRepositoryImpl implements CarRepository {
     }
 
     @Override
+    public long countByUserId(UUID userId) {
+        return jpaCarRepository.countByUserId(userId);
+    }
+
+    @Override
     public void deleteById(UUID id) {
         jpaCarRepository.deleteById(id);
     }

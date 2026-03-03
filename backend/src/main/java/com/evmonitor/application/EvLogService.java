@@ -3,6 +3,7 @@ package com.evmonitor.application;
 import ch.hsr.geohash.GeoHash;
 import com.evmonitor.domain.*;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -20,14 +21,17 @@ public class EvLogService {
     private final EvLogRepository evLogRepository;
     private final CarRepository carRepository;
     private final UserRepository userRepository;
+    private final CoinLogService coinLogService;
 
-    public EvLogService(EvLogRepository evLogRepository, CarRepository carRepository, UserRepository userRepository) {
+    public EvLogService(EvLogRepository evLogRepository, CarRepository carRepository, UserRepository userRepository, CoinLogService coinLogService) {
         this.evLogRepository = evLogRepository;
         this.carRepository = carRepository;
         this.userRepository = userRepository;
+        this.coinLogService = coinLogService;
     }
 
-    public EvLogResponse logCharging(UUID userId, EvLogRequest request) {
+    @Transactional
+    public EvLogCreateResponse logCharging(UUID userId, EvLogRequest request) {
         Car car = carRepository.findById(request.carId())
                 .orElseThrow(() -> new IllegalArgumentException("Car not found"));
 
@@ -53,7 +57,20 @@ public class EvLogService {
                 request.loggedAt());
 
         EvLog savedLog = evLogRepository.save(newLog);
-        return EvLogResponse.fromDomain(savedLog);
+
+        // Award coins: 25 for first log ever, 5 for each subsequent one; +2 if OCR was used.
+        // Check coin history instead of current log count to prevent delete-and-recreate farming.
+        // NOTE: ocrUsed is client-supplied and not server-verifiable — the +2 bonus is accepted risk
+        // (low value, requires conscious manipulation, not worth server-side OCR session tracking).
+        boolean firstLogEver = !coinLogService.hasEverReceivedCoinForAction(
+                userId, CoinLogService.ACTION_LOG_CREATED);
+        int coins = firstLogEver ? 25 : 5;
+        if (Boolean.TRUE.equals(request.ocrUsed())) {
+            coins += 2;
+        }
+        coinLogService.awardCoins(userId, CoinType.ACHIEVEMENT_COIN, coins, CoinLogService.ACTION_LOG_CREATED);
+
+        return new EvLogCreateResponse(EvLogResponse.fromDomain(savedLog), coins);
     }
 
     public List<EvLogResponse> getAllLogsForUser(UUID userId) {

@@ -16,6 +16,7 @@ import ImpressumView from '../views/ImpressumView.vue';
 import AGBView from '../views/AGBView.vue';
 import TermsView from '../views/TermsView.vue';
 import NotFoundView from '../views/NotFoundView.vue';
+import CoinHistoryView from '../views/CoinHistoryView.vue';
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
@@ -59,6 +60,12 @@ const router = createRouter({
             path: '/settings',
             name: 'settings',
             component: SettingsView,
+            meta: { requiresAuth: true }
+        },
+        {
+            path: '/coins/history',
+            name: 'coin-history',
+            component: CoinHistoryView,
             meta: { requiresAuth: true }
         },
         {

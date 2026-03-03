@@ -1,7 +1,7 @@
 # WLTP Crowdsourcing & Coin System
 
-**Status:** ✅ Implementiert (Coin-Rewards teilweise)
-**Last Updated:** 2026-03-01
+**Status:** ✅ Implementiert
+**Last Updated:** 2026-03-03
 
 ## Overview
 
@@ -115,10 +115,17 @@ Community-basierte Datenbank für offizielle WLTP-Werte (Reichweite, Verbrauch) 
 - ✅ `CoinLogController` mit `/api/coins/balance` + `/api/coins/history`
 
 ### Implemented Rewards
-- ✅ **WLTP Data Contribution:** 50 SOCIAL_COIN (bei neuem WLTP-Datensatz)
+
+| Aktion | Coins | Typ |
+|--------|-------|-----|
+| 1. Auto anlegen | 20 | ACHIEVEMENT_COIN |
+| Weiteres Auto anlegen | 5 | ACHIEVEMENT_COIN |
+| 1. Ladevorgang | 25 | ACHIEVEMENT_COIN |
+| Weiterer Ladevorgang | 5 | ACHIEVEMENT_COIN |
+| WLTP beitragen | 50 | SOCIAL_COIN |
+| OCR-Bonus (bei Ladevorgang) | +2 | ACHIEVEMENT_COIN |
 
 ### TODO: Weitere Rewards
-- ❌ **EvLog Creation:** 5 GREEN_COIN pro Log
 - ❌ **Streak Rewards:** 10 STREAK_COIN bei 7 Tagen in Folge geloggt
 - ❌ **Milestone Rewards:** 100 ACHIEVEMENT_COIN bei 100. Log
 - ❌ **Profile Completion:** 25 SOCIAL_COIN bei vollständigem Profil
@@ -149,15 +156,9 @@ delta = realConsumption - wltpConsumption
 
 ## Seed Data
 
-**Migration:** `V8__seed_wltp_data.sql`
+**Migration:** `V8__seed_wltp_data.sql` (50 Einträge), `V15__fix_wltp_tesla_model3.sql`
 
-**Status:** Leer (Community muss befüllen)
-
-**TODO:** Seed mit populären Modellen:
-- Tesla Model 3 (57.5, 75.0, 79.0 kWh)
-- VW ID.3 (58.0, 77.0 kWh)
-- Hyundai Ioniq 5 (58.0, 77.4 kWh)
-- BMW i4 (80.7 kWh)
+**Korrektur (V15):** Tesla Model 3 75 kWh korrigiert auf offizielle WLTP-Werte: 576 km, 14.0 kWh/100km
 
 ## Known Issues
 

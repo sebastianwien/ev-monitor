@@ -1,5 +1,6 @@
 package com.evmonitor.infrastructure.web;
 
+import com.evmonitor.application.EvLogCreateResponse;
 import com.evmonitor.application.EvLogRequest;
 import com.evmonitor.application.EvLogResponse;
 import com.evmonitor.application.EvLogStatisticsResponse;
@@ -24,9 +25,9 @@ public class EvLogController {
     }
 
     @PostMapping
-    public ResponseEntity<EvLogResponse> logCharging(@RequestBody EvLogRequest request, Authentication authentication) {
+    public ResponseEntity<EvLogCreateResponse> logCharging(@RequestBody EvLogRequest request, Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        EvLogResponse response = evLogService.logCharging(principal.getUser().getId(), request);
+        EvLogCreateResponse response = evLogService.logCharging(principal.getUser().getId(), request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 

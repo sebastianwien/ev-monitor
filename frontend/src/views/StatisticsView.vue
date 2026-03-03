@@ -524,7 +524,7 @@ onMounted(fetchStatistics)
         <div v-else-if="!wltp && hasDistanceData"
           class="bg-amber-50 border border-amber-200 md:rounded-lg p-3 md:p-4 text-sm text-amber-700">
           Für dieses Fahrzeug sind noch keine WLTP-Daten hinterlegt.
-          Du kannst sie in der <router-link to="/cars" class="font-semibold underline">Fahrzeugverwaltung</router-link> ergänzen und dabei 50 Coins verdienen!
+          Du kannst sie in der <router-link to="/cars" class="font-semibold underline">Fahrzeugverwaltung</router-link> ergänzen und dabei 50 Watt verdienen!
         </div>
 
         <!-- Charging Heat Map -->

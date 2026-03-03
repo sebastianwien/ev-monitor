@@ -14,10 +14,23 @@ import java.util.stream.Collectors;
 @Service
 public class CoinLogService {
 
+    /** Canonical action description constants — used for both awarding and first-time checks. */
+    public static final String ACTION_CAR_CREATED  = "Fahrzeug hinzugefügt";
+    public static final String ACTION_LOG_CREATED  = "Ladevorgang erfasst";
+
     private final CoinLogRepository coinLogRepository;
 
     public CoinLogService(CoinLogRepository coinLogRepository) {
         this.coinLogRepository = coinLogRepository;
+    }
+
+    /**
+     * Returns true if the user has EVER received a coin for this action.
+     * Used to prevent first-time bonuses from being re-farmed via delete-and-recreate.
+     * CoinLogs are never deleted, so the history is a reliable source of truth.
+     */
+    public boolean hasEverReceivedCoinForAction(UUID userId, String actionDescription) {
+        return coinLogRepository.existsByUserIdAndActionDescription(userId, actionDescription);
     }
 
     /**

@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from 'vue'
-import { carService, type Car, type CarRequest, type BrandInfo, type ModelInfo } from '../api/carService'
+import { carService, type Car, type CarRequest, type BrandInfo, type ModelInfo, type CarCreateResponse } from '../api/carService'
 import { vehicleSpecificationService, type VehicleSpecification } from '../api/vehicleSpecificationService'
 import TeslaIntegration from '../components/TeslaIntegration.vue'
 import { ChartBarIcon, TruckIcon } from '@heroicons/vue/24/outline'
+import { useCoinStore } from '../stores/coins'
+
+const coinStore = useCoinStore()
 
 const cars = ref<Car[]>([])
 const brands = ref<BrandInfo[]>([])
@@ -199,12 +202,20 @@ const submitForm = async () => {
 
     if (editingCar.value) {
       await carService.updateCar(editingCar.value.id, carData)
+      resetForm()
+      await fetchCars()
     } else {
-      await carService.createCar(carData)
+      const result: CarCreateResponse = await carService.createCar(carData)
+      resetForm()
+      await fetchCars()
+      coinStore.refresh()
+      const isFirst = result.coinsAwarded === 20
+      toastMessage.value = isFirst
+        ? `Dein erstes Fahrzeug! +${result.coinsAwarded} Watt erhalten!`
+        : `+${result.coinsAwarded} Watt erhalten!`
+      showToast.value = true
+      setTimeout(() => { showToast.value = false }, 5000)
     }
-
-    resetForm()
-    await fetchCars()
   } catch (err: any) {
     error.value = err.response?.data?.message || 'Fehler beim Speichern des Fahrzeugs'
     console.error('Failed to save car:', err)
@@ -292,7 +303,7 @@ const submitWltpData = async () => {
 
     // Close form and show toast
     closeWltpForm()
-    toastMessage.value = `🎉 Danke! ${response.coinsAwarded} Coins erhalten! Die Community profitiert von deinen Daten.`
+    toastMessage.value = `🎉 Danke! ${response.coinsAwarded} Watt erhalten! Die Community profitiert von deinen Daten.`
     showToast.value = true
 
     // Auto-hide toast after 5 seconds
@@ -625,7 +636,7 @@ onMounted(async () => {
             <button
               type="submit"
               class="flex-1 bg-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-indigo-700 transition shadow-md">
-              Speichern & Coins erhalten 🎉
+              Speichern & Watt erhalten 🎉
             </button>
             <button
               type="button"
