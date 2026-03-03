@@ -5,6 +5,7 @@ import com.evmonitor.domain.CoinLogRepository;
 import com.evmonitor.domain.CoinType;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -58,6 +59,11 @@ public class PostgresCoinLogRepositoryImpl implements CoinLogRepository {
     @Override
     public Integer getTotalCoinsByUserIdAndCoinType(UUID userId, CoinType coinType) {
         return jpaRepository.getTotalCoinsByUserIdAndCoinType(userId, coinType);
+    }
+
+    @Override
+    public Integer getTotalCoinsByUserIdSince(UUID userId, LocalDateTime since) {
+        return jpaRepository.getTotalCoinsByUserIdSince(userId, since);
     }
 
     private CoinLogEntity toEntity(CoinLog domain) {

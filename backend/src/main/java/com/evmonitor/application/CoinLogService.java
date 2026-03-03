@@ -5,6 +5,8 @@ import com.evmonitor.domain.CoinLogRepository;
 import com.evmonitor.domain.CoinType;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -67,12 +69,15 @@ public class CoinLogService {
     public CoinBalanceResponse getCoinBalance(UUID userId) {
         Integer totalCoins = coinLogRepository.getTotalCoinsByUserId(userId);
 
+        LocalDateTime startOfMonth = LocalDate.now().withDayOfMonth(1).atStartOfDay();
+        Integer coinsThisMonth = coinLogRepository.getTotalCoinsByUserIdSince(userId, startOfMonth);
+
         Map<CoinType, Integer> coinsByType = Arrays.stream(CoinType.values())
                 .collect(Collectors.toMap(
                         coinType -> coinType,
                         coinType -> coinLogRepository.getTotalCoinsByUserIdAndCoinType(userId, coinType)
                 ));
 
-        return new CoinBalanceResponse(totalCoins, coinsByType);
+        return new CoinBalanceResponse(totalCoins, coinsThisMonth, coinsByType);
     }
 }
