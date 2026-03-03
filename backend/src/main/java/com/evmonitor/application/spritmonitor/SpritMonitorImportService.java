@@ -1,6 +1,8 @@
 package com.evmonitor.application.spritmonitor;
 
 import ch.hsr.geohash.GeoHash;
+import com.evmonitor.application.CoinLogService;
+import com.evmonitor.domain.CoinType;
 import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.EvLogRepository;
 import com.evmonitor.infrastructure.external.SpritMonitorClient;
@@ -20,12 +22,18 @@ import java.util.UUID;
 public class SpritMonitorImportService {
 
     public static final DateTimeFormatter DD_MM_YYYY = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+    private static final String DATA_SOURCE = "SPRITMONITOR_IMPORT";
+    private static final int IMPORT_COINS = 50;
+
     private final SpritMonitorClient client;
     private final EvLogRepository evLogRepository;
+    private final CoinLogService coinLogService;
 
-    public SpritMonitorImportService(SpritMonitorClient client, EvLogRepository evLogRepository) {
+    public SpritMonitorImportService(SpritMonitorClient client, EvLogRepository evLogRepository,
+                                     CoinLogService coinLogService) {
         this.client = client;
         this.evLogRepository = evLogRepository;
+        this.coinLogService = coinLogService;
     }
 
     /**
@@ -61,8 +69,16 @@ public class SpritMonitorImportService {
 
             for (SpritMonitorFuelingDTO fueling : fuelings) {
                 try {
-                    EvLog log = convertToEvLog(fueling, evMonitorCarId);
-                    evLogRepository.save(log);
+                    LocalDateTime loggedAt = LocalDate.parse(fueling.date(), DD_MM_YYYY).atStartOfDay();
+
+                    // Skip if already imported (same car + date + source)
+                    if (evLogRepository.existsByCarIdAndLoggedAtAndDataSource(evMonitorCarId, loggedAt, DATA_SOURCE)) {
+                        result.incrementSkipped();
+                        continue;
+                    }
+
+                    EvLog evLog = convertToEvLog(fueling, evMonitorCarId, loggedAt);
+                    evLogRepository.save(evLog);
                     result.incrementImported();
                 } catch (Exception e) {
                     log.error("Failed to import fueling from " + fueling.date() + ": " + e.getMessage(), e);
@@ -73,16 +89,21 @@ public class SpritMonitorImportService {
             result.addError("Failed to fetch fuelings: " + e.getMessage());
         }
 
+        // Award one-time 50 Watt for first-ever Sprit-Monitor import
+        if (result.getImported() > 0
+                && !coinLogService.hasEverReceivedCoinForAction(userId, CoinLogService.ACTION_SPRITMONITOR_IMPORTED)) {
+            coinLogService.awardCoins(userId, CoinType.ACHIEVEMENT_COIN, IMPORT_COINS,
+                    CoinLogService.ACTION_SPRITMONITOR_IMPORTED);
+            result.addCoinsAwarded(IMPORT_COINS);
+        }
+
         return result;
     }
 
     /**
      * Converts Sprit-Monitor fueling to EV Monitor EvLog
      */
-    private EvLog convertToEvLog(SpritMonitorFuelingDTO fueling, UUID carId) {
-        // Parse date (format: "2024-01-15")
-        LocalDateTime loggedAt = LocalDate.parse(fueling.date(), DD_MM_YYYY)
-            .atStartOfDay();
+    private EvLog convertToEvLog(SpritMonitorFuelingDTO fueling, UUID carId, LocalDateTime loggedAt) {
 
         // Convert lat/lon to geohash (privacy-first!)
         String geohash = null;
@@ -108,7 +129,7 @@ public class SpritMonitorImportService {
             null,
             null,
             loggedAt,
-            "SPRITMONITOR_IMPORT"
+            DATA_SOURCE
         );
     }
 }

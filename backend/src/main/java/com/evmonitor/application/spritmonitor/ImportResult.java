@@ -6,6 +6,7 @@ import java.util.List;
 public class ImportResult {
     private int imported = 0;
     private int skipped = 0;
+    private int coinsAwarded = 0;
     private List<String> errors = new ArrayList<>();
 
     public void incrementImported() {
@@ -14,6 +15,10 @@ public class ImportResult {
 
     public void incrementSkipped() {
         skipped++;
+    }
+
+    public void addCoinsAwarded(int coins) {
+        coinsAwarded += coins;
     }
 
     public void addError(String error) {
@@ -26,6 +31,10 @@ public class ImportResult {
 
     public int getSkipped() {
         return skipped;
+    }
+
+    public int getCoinsAwarded() {
+        return coinsAwarded;
     }
 
     public List<String> getErrors() {

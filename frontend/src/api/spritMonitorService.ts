@@ -10,6 +10,7 @@ export interface SpritMonitorVehicle {
 export interface ImportResult {
   imported: number;
   skipped: number;
+  coinsAwarded: number;
   errors: string[];
 }
 
