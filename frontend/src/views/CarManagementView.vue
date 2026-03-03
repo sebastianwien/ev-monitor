@@ -96,7 +96,13 @@ const loadModelsForBrand = async (brand: string) => {
   }
 }
 
+let suppressNextBrandWatch = false
+
 watch(selectedBrand, (newBrand) => {
+  if (suppressNextBrandWatch) {
+    suppressNextBrandWatch = false
+    return
+  }
   if (newBrand) {
     loadModelsForBrand(newBrand)
   } else {
@@ -152,25 +158,18 @@ const openAddForm = () => {
 
 const openEditForm = async (car: Car) => {
   editingCar.value = car
+  suppressNextBrandWatch = true
+  selectedBrand.value = car.brand
+  await loadModelsForBrand(car.brand)
+  selectedModel.value = car.model
 
-  for (const brand of brands.value) {
-    const models = await carService.getModelsForBrand(brand.value)
-    const foundModel = models.find(m => m.value === car.model)
-    if (foundModel) {
-      selectedBrand.value = brand.value
-      await loadModelsForBrand(brand.value)
-      selectedModel.value = car.model
-
-      // Check if capacity is in available list
-      if (foundModel.capacities.includes(car.batteryCapacityKwh)) {
-        selectedCapacity.value = car.batteryCapacityKwh
-        useCustomCapacity.value = false
-      } else {
-        customCapacity.value = car.batteryCapacityKwh
-        useCustomCapacity.value = true
-      }
-      break
-    }
+  const foundModel = availableModels.value.find(m => m.value === car.model)
+  if (foundModel && foundModel.capacities.includes(car.batteryCapacityKwh)) {
+    selectedCapacity.value = car.batteryCapacityKwh
+    useCustomCapacity.value = false
+  } else {
+    customCapacity.value = car.batteryCapacityKwh
+    useCustomCapacity.value = true
   }
 
   year.value = car.year
