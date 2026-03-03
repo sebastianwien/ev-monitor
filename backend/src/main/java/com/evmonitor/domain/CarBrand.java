@@ -115,6 +115,7 @@ public enum CarBrand {
       I7(CarBrand.BMW, "i7", 101.7),
       IX(CarBrand.BMW, "iX", 76.6, 105.2),
       IX1(CarBrand.BMW, "iX1", 64.7),
+      IX2(CarBrand.BMW, "iX2", 64.7),
       IX3(CarBrand.BMW, "iX3", 74.0, 80.0),
       IX3_NEUE_KLASSE(CarBrand.BMW, "iX3 (Neue Klasse)", 85.0, 100.0), // Welcome to 2026
 
@@ -144,6 +145,7 @@ public enum CarBrand {
       EQV(CarBrand.MERCEDES, "EQV", 90.0),
 
       // --- AUDI (Vorsprung durch E-Technik) ---
+      A6_E_TRON(CarBrand.AUDI, "A6 e-tron", 83.0, 100.0),
       E_TRON(CarBrand.AUDI, "e-tron", 71.0, 95.0),
       E_TRON_GT(CarBrand.AUDI, "e-tron GT", 93.4),
       Q4_E_TRON(CarBrand.AUDI, "Q4 e-tron", 52.0, 77.0, 82.0),
