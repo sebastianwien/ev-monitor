@@ -15,6 +15,9 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
             <BoltIcon class="h-8 w-8 text-green-600" />
             <span class="text-xl font-bold text-gray-900">EV Monitor</span>
           </router-link>
+          <router-link to="/modelle" class="text-sm font-medium text-gray-600 hover:text-green-700 transition">
+            Modelle
+          </router-link>
         </div>
       </div>
     </nav>
