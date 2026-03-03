@@ -19,11 +19,13 @@ public class Car {
     private final CarStatus status;
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
+    private final String imagePath;
+    private final boolean imagePublic;
 
     public Car(UUID id, UUID userId, CarBrand.CarModel model, Integer year, String licensePlate,
             String trim, BigDecimal batteryCapacityKwh, BigDecimal powerKw,
             LocalDate registrationDate, LocalDate deregistrationDate, CarStatus status,
-            LocalDateTime createdAt, LocalDateTime updatedAt) {
+            LocalDateTime createdAt, LocalDateTime updatedAt, String imagePath, boolean imagePublic) {
         this.id = id;
         this.userId = userId;
         this.model = model;
@@ -37,6 +39,8 @@ public class Car {
         this.status = status;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+        this.imagePath = imagePath;
+        this.imagePublic = imagePublic;
     }
 
     public static Car createNew(UUID userId, CarBrand.CarModel model, Integer year, String licensePlate,
@@ -44,12 +48,19 @@ public class Car {
         LocalDateTime now = LocalDateTime.now();
         LocalDate registrationDate = LocalDate.of(year, 1, 1); // Default: Jan 1st of car year
         return new Car(UUID.randomUUID(), userId, model, year, licensePlate, trim,
-                batteryCapacityKwh, powerKw, registrationDate, null, CarStatus.ACTIVE, now, now);
+                batteryCapacityKwh, powerKw, registrationDate, null, CarStatus.ACTIVE, now, now, null, false);
     }
 
     public Car deregister(LocalDate deregistrationDate) {
         return new Car(id, userId, model, year, licensePlate, trim, batteryCapacityKwh, powerKw,
-                registrationDate, deregistrationDate, CarStatus.INACTIVE, createdAt, LocalDateTime.now());
+                registrationDate, deregistrationDate, CarStatus.INACTIVE, createdAt, LocalDateTime.now(),
+                imagePath, imagePublic);
+    }
+
+    public Car withImage(String imagePath, boolean imagePublic) {
+        return new Car(id, userId, model, year, licensePlate, trim, batteryCapacityKwh, powerKw,
+                registrationDate, deregistrationDate, status, createdAt, LocalDateTime.now(),
+                imagePath, imagePublic);
     }
 
     public UUID getId() {
@@ -102,5 +113,13 @@ public class Car {
 
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
+    }
+
+    public String getImagePath() {
+        return imagePath;
+    }
+
+    public boolean isImagePublic() {
+        return imagePublic;
     }
 }

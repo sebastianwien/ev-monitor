@@ -28,3 +28,7 @@ jwt:
 
 allowed:
   origins: http://localhost:8080
+
+app:
+  car-images:
+    directory: ${java.io.tmpdir}/ev-monitor-test-images

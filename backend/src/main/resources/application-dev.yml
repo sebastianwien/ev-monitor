@@ -60,6 +60,8 @@ app:
   base-url: http://localhost:5173
   mail:
     from: noreply@ev-monitor.net
+  car-images:
+    directory: ./car-images-dev
 
 # Sprit-Monitor API Integration
 spritmonitor:

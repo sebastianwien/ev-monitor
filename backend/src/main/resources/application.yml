@@ -58,6 +58,8 @@ app:
     from: ${APP_MAIL_FROM:noreply@ev-monitor.net}
   alert:
     email: ${APP_ALERT_EMAIL:}
+  car-images:
+    directory: ${CAR_IMAGES_DIR:/app/car-images}
 
 # Sprit-Monitor API Integration
 spritmonitor:

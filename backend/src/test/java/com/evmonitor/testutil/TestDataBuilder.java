@@ -76,7 +76,9 @@ public class TestDataBuilder {
                 null,
                 CarStatus.ACTIVE,
                 LocalDateTime.now(),
-                LocalDateTime.now()
+                LocalDateTime.now(),
+                null,   // imagePath
+                false   // imagePublic
         );
     }
 

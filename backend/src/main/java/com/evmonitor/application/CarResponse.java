@@ -25,9 +25,12 @@ public record CarResponse(
         LocalDate deregistrationDate,
         CarStatus status,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt) {
+        LocalDateTime updatedAt,
+        String imageUrl,
+        boolean imagePublic) {
 
     public static CarResponse fromDomain(Car car) {
+        String imageUrl = car.getImagePath() != null ? "/api/cars/" + car.getId() + "/image" : null;
         return new CarResponse(
                 car.getId(),
                 car.getUserId(),
@@ -43,6 +46,8 @@ public record CarResponse(
                 car.getDeregistrationDate(),
                 car.getStatus(),
                 car.getCreatedAt(),
-                car.getUpdatedAt());
+                car.getUpdatedAt(),
+                imageUrl,
+                car.isImagePublic());
     }
 }

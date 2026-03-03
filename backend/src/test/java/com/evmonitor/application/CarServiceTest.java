@@ -36,6 +36,9 @@ class CarServiceTest {
     @Mock
     private CoinLogService coinLogService;
 
+    @Mock
+    private CarImageService carImageService;
+
     private CarService carService;
 
     private UUID userId;
@@ -43,7 +46,7 @@ class CarServiceTest {
 
     @BeforeEach
     void setUp() {
-        carService = new CarService(carRepository, coinLogService);
+        carService = new CarService(carRepository, coinLogService, carImageService);
         userId = UUID.randomUUID();
         carId = UUID.randomUUID();
     }

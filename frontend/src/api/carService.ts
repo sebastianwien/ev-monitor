@@ -16,6 +16,8 @@ export interface Car {
     status: 'ACTIVE' | 'INACTIVE';
     createdAt: string;
     updatedAt: string;
+    imageUrl: string | null; // Relative URL to image, e.g. /api/cars/{id}/image
+    imagePublic: boolean;
 }
 
 export interface CarRequest {
@@ -76,5 +78,23 @@ export const carService = {
     async getModelsForBrand(brand: string): Promise<ModelInfo[]> {
         const response = await api.get(`/cars/brands/${brand}/models`);
         return response.data;
+    },
+
+    async uploadCarImage(carId: string, file: File, isPublic: boolean): Promise<Car> {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await api.post(`/cars/${carId}/image?isPublic=${isPublic}`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data;
+    },
+
+    async deleteCarImage(carId: string): Promise<void> {
+        await api.delete(`/cars/${carId}/image`);
+    },
+
+    async getCarImageBlobUrl(carId: string): Promise<string> {
+        const response = await api.get(`/cars/${carId}/image`, { responseType: 'blob' });
+        return URL.createObjectURL(response.data);
     }
 };
