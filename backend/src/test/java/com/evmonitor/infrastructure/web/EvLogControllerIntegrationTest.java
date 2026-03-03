@@ -282,6 +282,57 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void shouldDeleteLog_OnlyIfOwner() {
+        // Given: User owns a charging log
+        EvLog ownedLog = TestDataBuilder.createTestEvLog(carId, new BigDecimal("50.0"), new BigDecimal("12.50"));
+        evLogRepository.save(ownedLog);
+        UUID logId = ownedLog.getId();
+
+        HttpEntity<Void> requestWithAuth = createAuthRequest(userId, testUser.getEmail());
+
+        // When: DELETE /api/logs/{id}
+        ResponseEntity<Void> response = restTemplate.exchange(
+                "/api/logs/" + logId,
+                HttpMethod.DELETE,
+                requestWithAuth,
+                Void.class
+        );
+
+        // Then: Log deleted successfully
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+
+        // Verify log is gone from database
+        assertFalse(evLogRepository.findById(logId).isPresent());
+    }
+
+    @Test
+    void shouldRejectDelete_IfLogBelongsToOtherUser() {
+        // Given: Another user's car and log
+        User otherUser = createAndSaveUser("other-delete-log-" + System.nanoTime() + "@example.com");
+        Car otherUserCar = createAndSaveCar(otherUser.getId(), CarBrand.CarModel.I4);
+        EvLog otherUserLog = TestDataBuilder.createTestEvLog(
+                otherUserCar.getId(), new BigDecimal("50.0"), new BigDecimal("12.50"));
+        evLogRepository.save(otherUserLog);
+        UUID logId = otherUserLog.getId();
+
+        HttpEntity<Void> requestWithAuth = createAuthRequest(userId, testUser.getEmail());
+
+        // When: Try to delete another user's log
+        ResponseEntity<String> response = restTemplate.exchange(
+                "/api/logs/" + logId,
+                HttpMethod.DELETE,
+                requestWithAuth,
+                String.class
+        );
+
+        // Then: Rejected
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+
+        // Verify log still exists in database
+        assertTrue(evLogRepository.findById(logId).isPresent());
+    }
+
+    @Test
     void shouldReturnEmptyStatistics_WhenNoLogs() {
         // Given: Car exists but has no logs
         HttpEntity<Void> requestWithAuth = createAuthRequest(userId, testUser.getEmail());
