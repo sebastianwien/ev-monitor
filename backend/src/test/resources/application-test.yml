@@ -32,3 +32,6 @@ allowed:
 app:
   car-images:
     directory: ${java.io.tmpdir}/ev-monitor-test-images
+  security:
+    rate-limiting:
+      enabled: false  # Disabled in tests — all tests share 127.0.0.1, which would exhaust the bucket
