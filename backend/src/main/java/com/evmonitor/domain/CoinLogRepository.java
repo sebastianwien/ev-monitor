@@ -14,6 +14,12 @@ public interface CoinLogRepository {
     List<CoinLog> findAllByUserIdAndCoinType(UUID userId, CoinType coinType);
 
     /**
+     * Returns true if any coin log entry exists for this user with the given action description.
+     * Used to prevent first-time bonuses from being re-farmed via delete-and-recreate attacks.
+     */
+    boolean existsByUserIdAndActionDescription(UUID userId, String actionDescription);
+
+    /**
      * Get total coin balance for a user, optionally filtered by coin type.
      */
     Integer getTotalCoinsByUserId(UUID userId);

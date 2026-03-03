@@ -20,5 +20,7 @@ public interface EvLogRepository {
 
     boolean existsByCarIdAndLoggedAtBetween(UUID carId, LocalDateTime start, LocalDateTime end);
 
+    long countByUserId(UUID userId);
+
     void deleteById(UUID id);
 }

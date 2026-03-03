@@ -159,7 +159,7 @@ const formatDelta = (real: number | null, wltp: number): string => {
             <h3 class="text-xl font-semibold text-gray-900 mb-3">Community</h3>
             <p class="text-gray-600">
               Vergleiche mit WLTP & echten Fahrer-Daten.
-              Trage bei und verdiene Coins.
+              Trage bei und verdiene Watt.
             </p>
           </div>
         </div>

@@ -2,7 +2,9 @@ package com.evmonitor.application;
 
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarRepository;
+import com.evmonitor.domain.CoinType;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -11,12 +13,15 @@ import java.util.UUID;
 public class CarService {
 
     private final CarRepository carRepository;
+    private final CoinLogService coinLogService;
 
-    public CarService(CarRepository carRepository) {
+    public CarService(CarRepository carRepository, CoinLogService coinLogService) {
         this.carRepository = carRepository;
+        this.coinLogService = coinLogService;
     }
 
-    public CarResponse createCar(UUID userId, CarRequest request) {
+    @Transactional
+    public CarCreateResponse createCar(UUID userId, CarRequest request) {
         Car newCar = Car.createNew(
                 userId,
                 request.model(),
@@ -27,7 +32,15 @@ public class CarService {
                 request.powerKw());
 
         Car savedCar = carRepository.save(newCar);
-        return CarResponse.fromDomain(savedCar);
+
+        // Award coins: 20 for first car ever, 5 for each subsequent one.
+        // Check coin history instead of current car count to prevent delete-and-recreate farming.
+        boolean firstCarEver = !coinLogService.hasEverReceivedCoinForAction(
+                userId, CoinLogService.ACTION_CAR_CREATED);
+        int coins = firstCarEver ? 20 : 5;
+        coinLogService.awardCoins(userId, CoinType.ACHIEVEMENT_COIN, coins, CoinLogService.ACTION_CAR_CREATED);
+
+        return new CarCreateResponse(CarResponse.fromDomain(savedCar), coins);
     }
 
     public List<CarResponse> getCarsForUser(UUID userId) {

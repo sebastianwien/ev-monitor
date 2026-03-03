@@ -9,4 +9,6 @@ import java.util.UUID;
 @Repository
 public interface JpaCarRepository extends JpaRepository<CarEntity, UUID> {
     List<CarEntity> findAllByUserId(UUID userId);
+
+    long countByUserId(UUID userId);
 }

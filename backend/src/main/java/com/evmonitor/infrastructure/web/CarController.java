@@ -1,5 +1,6 @@
 package com.evmonitor.infrastructure.web;
 
+import com.evmonitor.application.CarCreateResponse;
 import com.evmonitor.application.CarRequest;
 import com.evmonitor.application.CarResponse;
 import com.evmonitor.application.CarService;
@@ -28,9 +29,9 @@ public class CarController {
     }
 
     @PostMapping
-    public ResponseEntity<CarResponse> createCar(@Valid @RequestBody CarRequest request, Authentication authentication) {
+    public ResponseEntity<CarCreateResponse> createCar(@Valid @RequestBody CarRequest request, Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        CarResponse response = carService.createCar(principal.getUser().getId(), request);
+        CarCreateResponse response = carService.createCar(principal.getUser().getId(), request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 

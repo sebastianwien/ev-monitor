@@ -14,6 +14,8 @@ public interface JpaCoinLogRepository extends JpaRepository<CoinLogEntity, UUID>
 
     List<CoinLogEntity> findAllByUserIdAndCoinType(UUID userId, CoinType coinType);
 
+    boolean existsByUserIdAndActionDescription(UUID userId, String actionDescription);
+
     @Query("SELECT COALESCE(SUM(c.amount), 0) FROM CoinLogEntity c WHERE c.userId = :userId")
     Integer getTotalCoinsByUserId(@Param("userId") UUID userId);
 

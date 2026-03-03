@@ -15,5 +15,6 @@ public record EvLogRequest(
                 Double longitude, // Optional: for geolocation (not stored, converted to geohash)
                 Integer odometerKm, // Optional: odometer reading in km
                 BigDecimal maxChargingPowerKw, // Optional: max charging power in kW
-                LocalDateTime loggedAt) { // Optional: when the charge happened
+                LocalDateTime loggedAt, // Optional: when the charge happened
+                Boolean ocrUsed) { // Optional: whether OCR was used to fill in data (+2 bonus coins)
 }

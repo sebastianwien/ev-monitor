@@ -38,6 +38,11 @@ export interface ModelInfo {
     capacities: number[]; // Available battery capacities
 }
 
+export interface CarCreateResponse {
+    car: Car;
+    coinsAwarded: number;
+}
+
 export const carService = {
     async getCars(): Promise<Car[]> {
         const response = await api.get('/cars');
@@ -49,7 +54,7 @@ export const carService = {
         return response.data;
     },
 
-    async createCar(carData: CarRequest): Promise<Car> {
+    async createCar(carData: CarRequest): Promise<CarCreateResponse> {
         const response = await api.post('/cars', carData);
         return response.data;
     },

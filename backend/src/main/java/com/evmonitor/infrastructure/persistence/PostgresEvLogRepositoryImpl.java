@@ -63,6 +63,11 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
+    public long countByUserId(UUID userId) {
+        return jpaRepository.countByUserId(userId);
+    }
+
+    @Override
     public void deleteById(UUID id) {
         jpaRepository.deleteById(id);
     }
