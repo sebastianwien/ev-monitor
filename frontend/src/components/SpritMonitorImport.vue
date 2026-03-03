@@ -125,8 +125,8 @@ const startImport = async () => {
           licensePlate: '', // Empty string (user can add later)
           trim: null,
         });
-        carId = created.id;
-        myCars.value.push(created);
+        carId = created.car.id;
+        myCars.value.push(created.car);
       } else {
         carId = mapping;
       }
