@@ -1,5 +1,8 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { BoltIcon } from '@heroicons/vue/24/outline'
+
+const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
 </script>
 
 <template>
@@ -34,7 +37,7 @@ import { BoltIcon } from '@heroicons/vue/24/outline'
         <section>
           <h2 class="text-2xl font-semibold text-gray-900 mb-4">Kontakt</h2>
           <p>
-            E-Mail: impressum@ev-monitor.net<br />
+            E-Mail: <a :href="`mailto:${email}`" class="text-green-600 hover:text-green-700">{{ email }}</a><br />
           </p>
         </section>
 
