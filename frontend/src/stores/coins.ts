@@ -8,7 +8,7 @@ export const useCoinStore = defineStore('coins', () => {
     const fetchBalance = async () => {
         try {
             const response = await api.get('/coins/balance');
-            balance.value = response.data.total || 0;
+            balance.value = response.data.totalCoins || 0;
         } catch {
             // Silently fail - balance stays at 0
         }

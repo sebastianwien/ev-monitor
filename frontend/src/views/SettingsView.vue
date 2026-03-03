@@ -60,7 +60,7 @@ const fetchUserData = async () => {
     totalKwh.value = stats.totalKwh
     totalCostEur.value = stats.totalCostEur
 
-    coinBalance.value = coinsRes.data.total || 0
+    coinBalance.value = coinsRes.data.totalCoins || 0
   } catch (error: any) {
     console.error('Failed to fetch user data:', error)
   }
