@@ -112,7 +112,7 @@ public class CarService {
     }
 
     @Transactional
-    public CarResponse updateCarImageVisibility(UUID userId, UUID carId, boolean isPublic) {
+    public CarImageResponse updateCarImageVisibility(UUID userId, UUID carId, boolean isPublic) {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new IllegalArgumentException("Car not found with ID: " + carId));
         if (!car.getUserId().equals(userId)) {
@@ -121,11 +121,19 @@ public class CarService {
         if (car.getImagePath() == null) {
             throw new IllegalArgumentException("Car has no image");
         }
-        return CarResponse.fromDomain(carRepository.save(car.withImage(car.getImagePath(), isPublic)));
+        Car saved = carRepository.save(car.withImage(car.getImagePath(), isPublic));
+
+        // Award public-image bonus (once ever, regardless of upload path)
+        int coinsAwarded = 0;
+        if (isPublic && !coinLogService.hasEverReceivedCoinForAction(userId, CoinLogService.ACTION_IMAGE_PUBLIC)) {
+            coinLogService.awardCoins(userId, CoinType.ACHIEVEMENT_COIN, 10, CoinLogService.ACTION_IMAGE_PUBLIC);
+            coinsAwarded = 10;
+        }
+        return new CarImageResponse(CarResponse.fromDomain(saved), coinsAwarded);
     }
 
     @Transactional
-    public CarResponse uploadCarImage(UUID userId, UUID carId, MultipartFile file, boolean isPublic) throws IOException {
+    public CarImageResponse uploadCarImage(UUID userId, UUID carId, MultipartFile file, boolean isPublic) throws IOException {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new IllegalArgumentException("Car not found with ID: " + carId));
 
@@ -134,9 +142,20 @@ public class CarService {
         }
 
         String imagePath = carImageService.uploadImage(carId, file);
-        Car updated = car.withImage(imagePath, isPublic);
-        Car saved = carRepository.save(updated);
-        return CarResponse.fromDomain(saved);
+        Car saved = carRepository.save(car.withImage(imagePath, isPublic));
+
+        // Award first-ever image upload bonus
+        int coinsAwarded = 0;
+        if (!coinLogService.hasEverReceivedCoinForAction(userId, CoinLogService.ACTION_IMAGE_UPLOADED)) {
+            coinLogService.awardCoins(userId, CoinType.ACHIEVEMENT_COIN, 15, CoinLogService.ACTION_IMAGE_UPLOADED);
+            coinsAwarded += 15;
+        }
+        // Award public-image bonus (once ever, regardless of upload path)
+        if (isPublic && !coinLogService.hasEverReceivedCoinForAction(userId, CoinLogService.ACTION_IMAGE_PUBLIC)) {
+            coinLogService.awardCoins(userId, CoinType.ACHIEVEMENT_COIN, 10, CoinLogService.ACTION_IMAGE_PUBLIC);
+            coinsAwarded += 10;
+        }
+        return new CarImageResponse(CarResponse.fromDomain(saved), coinsAwarded);
     }
 
     @Transactional

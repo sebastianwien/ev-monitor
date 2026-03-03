@@ -45,6 +45,11 @@ export interface CarCreateResponse {
     coinsAwarded: number;
 }
 
+export interface CarImageResponse {
+    car: Car;
+    coinsAwarded: number;
+}
+
 export const carService = {
     async getCars(): Promise<Car[]> {
         const response = await api.get('/cars');
@@ -80,12 +85,12 @@ export const carService = {
         return response.data;
     },
 
-    async updateCarImageVisibility(carId: string, isPublic: boolean): Promise<Car> {
+    async updateCarImageVisibility(carId: string, isPublic: boolean): Promise<CarImageResponse> {
         const response = await api.patch(`/cars/${carId}/image?isPublic=${isPublic}`);
         return response.data;
     },
 
-    async uploadCarImage(carId: string, file: File, isPublic: boolean): Promise<Car> {
+    async uploadCarImage(carId: string, file: File, isPublic: boolean): Promise<CarImageResponse> {
         const formData = new FormData();
         formData.append('file', file);
         const response = await api.post(`/cars/${carId}/image?isPublic=${isPublic}`, formData, {

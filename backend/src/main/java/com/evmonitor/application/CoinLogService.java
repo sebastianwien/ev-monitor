@@ -20,6 +20,8 @@ public class CoinLogService {
     public static final String ACTION_CAR_CREATED           = "Fahrzeug hinzugefügt";
     public static final String ACTION_LOG_CREATED           = "Ladevorgang erfasst";
     public static final String ACTION_SPRITMONITOR_IMPORTED = "Sprit-Monitor Import";
+    public static final String ACTION_IMAGE_UPLOADED        = "Erstes Auto-Bild hochgeladen";
+    public static final String ACTION_IMAGE_PUBLIC          = "Auto-Bild öffentlich geteilt";
 
     private final CoinLogRepository coinLogRepository;
 
