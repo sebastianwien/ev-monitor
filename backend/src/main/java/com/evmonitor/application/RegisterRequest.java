@@ -8,6 +8,8 @@ import jakarta.validation.constraints.Size;
 public record RegisterRequest(
         @NotBlank(message = "Email is required")
         @Email(message = "Invalid email format")
+        @Pattern(regexp = "^[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}$",
+                 message = "Email address must contain a valid domain (e.g. name@example.com)")
         String email,
 
         @NotBlank(message = "Username is required")
