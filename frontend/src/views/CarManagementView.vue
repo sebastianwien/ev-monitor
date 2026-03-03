@@ -40,6 +40,7 @@ const toastMessage = ref('')
 const imageBlobUrls = ref<Record<string, string>>({})
 const imageUploading = ref<Record<string, boolean>>({})
 const imagePublicForUpload = ref<Record<string, boolean>>({})
+const visibilityTimers: Record<string, ReturnType<typeof setTimeout>> = {}
 
 const sortedBrands = computed(() => {
   return [...brands.value].sort((a, b) => a.label.localeCompare(b.label))
@@ -91,6 +92,10 @@ const fetchCars = async () => {
     error.value = null
     revokeAllBlobUrls()
     cars.value = await carService.getCars()
+    // Init checkbox state from server (shows current visibility per car)
+    const visibility: Record<string, boolean> = {}
+    cars.value.forEach(c => { visibility[c.id] = c.imagePublic })
+    imagePublicForUpload.value = visibility
     await loadCarImages(cars.value)
   } catch (err: any) {
     error.value = err.response?.data?.message || 'Fehler beim Laden der Fahrzeuge'
@@ -343,6 +348,24 @@ const submitWltpData = async () => {
   }
 }
 
+const handleVisibilityChange = (carId: string, isPublic: boolean) => {
+  imagePublicForUpload.value = { ...imagePublicForUpload.value, [carId]: isPublic }
+
+  const car = cars.value.find(c => c.id === carId)
+  if (!car?.imageUrl) return // No image yet — just store preference for next upload
+
+  // Debounce: cancel pending request, wait 500ms before sending
+  clearTimeout(visibilityTimers[carId])
+  visibilityTimers[carId] = setTimeout(async () => {
+    try {
+      const updatedCar = await carService.updateCarImageVisibility(carId, isPublic)
+      cars.value = cars.value.map(c => c.id === carId ? updatedCar : c)
+    } catch (err: any) {
+      error.value = err.response?.data?.message || 'Fehler beim Aktualisieren der Sichtbarkeit'
+    }
+  }, 500)
+}
+
 const handleImageUpload = async (carId: string, event: Event) => {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
@@ -391,6 +414,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   revokeAllBlobUrls()
+  Object.values(visibilityTimers).forEach(clearTimeout)
 })
 </script>
 
@@ -403,7 +427,7 @@ onUnmounted(() => {
           v-if="!showForm"
           @click="openAddForm"
           class="bg-indigo-600 text-white px-4 py-2 rounded-md shadow hover:bg-indigo-700 transition">
-          Fahrzeug hinzufügen
+          + Fahrzeug hinzufügen
         </button>
       </div>
 
@@ -411,11 +435,9 @@ onUnmounted(() => {
         {{ error }}
       </div>
 
-      <!-- Form -->
-      <div v-if="showForm" class="mb-8 p-6 bg-gray-50 rounded-lg border border-gray-200">
-        <h2 class="text-xl font-semibold mb-4 text-gray-800">
-          {{ editingCar ? 'Fahrzeug bearbeiten' : 'Neues Fahrzeug hinzufügen' }}
-        </h2>
+      <!-- Add form (inline) -->
+      <div v-if="showForm && !editingCar" class="mb-8 p-6 bg-gray-50 rounded-lg border border-gray-200">
+        <h2 class="text-xl font-semibold mb-4 text-gray-800">Neues Fahrzeug hinzufügen</h2>
 
         <form @submit.prevent="submitForm" class="space-y-4">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -633,7 +655,9 @@ onUnmounted(() => {
           <!-- Upload controls -->
           <div class="px-5 pt-3 pb-1 flex items-center gap-3">
             <label class="flex items-center gap-1.5 cursor-pointer">
-              <input type="checkbox" v-model="imagePublicForUpload[car.id]"
+              <input type="checkbox"
+                :checked="imagePublicForUpload[car.id] ?? false"
+                @change="handleVisibilityChange(car.id, ($event.target as HTMLInputElement).checked)"
                 class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
               <span class="text-xs text-gray-600">Öffentlich sichtbar</span>
             </label>
@@ -690,6 +714,110 @@ onUnmounted(() => {
             </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Edit Car Modal -->
+    <div v-if="editingCar" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="resetForm">
+      <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100">
+          <h2 class="text-xl font-semibold text-gray-800">Fahrzeug bearbeiten</h2>
+          <button @click="resetForm" class="text-gray-400 hover:text-gray-600 transition">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <form @submit.prevent="submitForm" class="p-6 space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Marke *</label>
+              <select v-model="selectedBrand" required
+                class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border">
+                <option value="">Marke wählen...</option>
+                <option v-for="brand in sortedBrands" :key="brand.value" :value="brand.value">
+                  {{ brand.label }}
+                </option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Modell *</label>
+              <select v-model="selectedModel" required :disabled="!selectedBrand"
+                class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border disabled:bg-gray-100">
+                <option value="">{{ selectedBrand ? 'Modell wählen...' : 'Erst Marke wählen...' }}</option>
+                <option v-for="m in availableModels" :key="m.value" :value="m.value">
+                  {{ m.label }}
+                </option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Ausstattungslinie (optional)</label>
+              <input v-model="trim" type="text" placeholder="z.B. GTX, Pro Performance, Long Range"
+                class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" />
+            </div>
+
+            <div v-if="selectedModel" class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Batteriekapazität (kWh) *</label>
+              <div v-if="!useCustomCapacity" class="space-y-2">
+                <div class="flex gap-2 flex-wrap">
+                  <button v-for="capacity in selectedModelCapacities" :key="capacity" type="button"
+                    @click="selectedCapacity = capacity"
+                    :class="['px-4 py-2 rounded-md text-sm font-medium transition',
+                      selectedCapacity === capacity ? 'bg-indigo-600 text-white shadow-md' : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200']">
+                    {{ capacity }} kWh
+                  </button>
+                </div>
+                <button type="button" @click="useCustomCapacity = true; selectedCapacity = null"
+                  class="text-sm text-indigo-600 hover:text-indigo-700 underline">
+                  Eigene Kapazität eingeben
+                </button>
+              </div>
+              <div v-else class="space-y-2">
+                <input v-model.number="customCapacity" type="number" step="0.1" min="0" required
+                  placeholder="Eigene Kapazität eingeben (z.B. 82,5)"
+                  class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" />
+                <button type="button" @click="useCustomCapacity = false; customCapacity = null"
+                  class="text-sm text-indigo-600 hover:text-indigo-700 underline">
+                  Aus verfügbaren Kapazitäten wählen
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Baujahr *</label>
+              <input v-model="year" type="number" required min="2000" :max="new Date().getFullYear() + 1"
+                class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Kennzeichen (optional)</label>
+              <input v-model="licensePlate" type="text" placeholder="z.B. M-EV 123"
+                class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Leistung (optional)</label>
+              <input v-model.number="powerKw" type="number" step="0.1" min="0" placeholder="z.B. 150"
+                class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" />
+              <p v-if="powerPs" class="text-xs text-gray-500 mt-1">≈ {{ powerPs }} PS</p>
+              <p v-else class="text-xs text-gray-500 mt-1">Gib kW ein um PS-Umrechnung zu sehen</p>
+            </div>
+          </div>
+
+          <div class="flex gap-3 pt-2">
+            <button type="submit"
+              class="bg-indigo-600 text-white px-6 py-2 rounded-md shadow hover:bg-indigo-700 transition">
+              Aktualisieren
+            </button>
+            <button type="button" @click="resetForm"
+              class="bg-gray-200 text-gray-700 px-6 py-2 rounded-md shadow hover:bg-gray-300 transition">
+              Abbrechen
+            </button>
+          </div>
+        </form>
       </div>
     </div>
 

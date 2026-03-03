@@ -24,6 +24,9 @@ docker-compose.override.yml
 *.log
 logs/
 
+# Car image uploads (dev)
+backend/car-images-dev/
+
 # Dev Scripts (auto-generated)
 stop-dev.sh
 .backend.pid

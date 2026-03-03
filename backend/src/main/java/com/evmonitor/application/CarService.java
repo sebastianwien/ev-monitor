@@ -112,6 +112,19 @@ public class CarService {
     }
 
     @Transactional
+    public CarResponse updateCarImageVisibility(UUID userId, UUID carId, boolean isPublic) {
+        Car car = carRepository.findById(carId)
+                .orElseThrow(() -> new IllegalArgumentException("Car not found with ID: " + carId));
+        if (!car.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("User does not own the specified car");
+        }
+        if (car.getImagePath() == null) {
+            throw new IllegalArgumentException("Car has no image");
+        }
+        return CarResponse.fromDomain(carRepository.save(car.withImage(car.getImagePath(), isPublic)));
+    }
+
+    @Transactional
     public CarResponse uploadCarImage(UUID userId, UUID carId, MultipartFile file, boolean isPublic) throws IOException {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new IllegalArgumentException("Car not found with ID: " + carId));
