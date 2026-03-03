@@ -1,5 +1,6 @@
 package com.evmonitor.domain;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -25,4 +26,6 @@ public interface CoinLogRepository {
     Integer getTotalCoinsByUserId(UUID userId);
 
     Integer getTotalCoinsByUserIdAndCoinType(UUID userId, CoinType coinType);
+
+    Integer getTotalCoinsByUserIdSince(UUID userId, LocalDateTime since);
 }

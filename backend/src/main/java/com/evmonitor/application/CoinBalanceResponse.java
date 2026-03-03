@@ -10,6 +10,7 @@ import java.util.Map;
  */
 public record CoinBalanceResponse(
         Integer totalCoins,
+        Integer coinsThisMonth,
         Map<CoinType, Integer> coinsByType
 ) {
 }

@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -21,4 +22,7 @@ public interface JpaCoinLogRepository extends JpaRepository<CoinLogEntity, UUID>
 
     @Query("SELECT COALESCE(SUM(c.amount), 0) FROM CoinLogEntity c WHERE c.userId = :userId AND c.coinType = :coinType")
     Integer getTotalCoinsByUserIdAndCoinType(@Param("userId") UUID userId, @Param("coinType") CoinType coinType);
+
+    @Query("SELECT COALESCE(SUM(c.amount), 0) FROM CoinLogEntity c WHERE c.userId = :userId AND c.createdAt >= :since")
+    Integer getTotalCoinsByUserIdSince(@Param("userId") UUID userId, @Param("since") LocalDateTime since);
 }

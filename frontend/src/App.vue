@@ -17,24 +17,25 @@ const showImportOverlay = ref(false)
 const showLogFormModal = ref(false)
 const mobileMenuOpen = ref(false)
 const balanceBumping = ref(false)
+const balanceInitialized = ref(false)
 
-// Load coin balance when user is authenticated
-if (authStore.isAuthenticated()) {
-  coinStore.fetchBalance()
-}
-
-// Refresh balance when auth state changes (login/logout)
+// Fetch balance on load and whenever token changes (login/logout)
 watch(() => authStore.token, (newToken) => {
   if (newToken) {
+    balanceInitialized.value = false
     coinStore.fetchBalance()
   }
-})
+}, { immediate: true })
 
-// Animate badge when balance increases
+// Animate badge when balance increases — skip the initial fetch (0 → actual value)
 watch(() => coinStore.balance, (newVal, oldVal) => {
+  if (!balanceInitialized.value) {
+    balanceInitialized.value = true
+    return
+  }
   if (newVal > oldVal) {
     balanceBumping.value = true
-    setTimeout(() => { balanceBumping.value = false }, 600)
+    setTimeout(() => { balanceBumping.value = false }, 750)
   }
 })
 
@@ -63,7 +64,7 @@ const closeMobileMenu = () => {
 <template>
   <div class="min-h-screen bg-gray-100 flex flex-col">
     <!-- Navigation -->
-    <nav class="bg-indigo-600 shadow-md text-white" v-if="authStore.isAuthenticated()">
+    <nav class="bg-indigo-600 shadow-md text-white sticky top-0 z-40" v-if="authStore.isAuthenticated()">
       <div class="px-4 py-3">
         <div class="flex justify-between items-center">
           <!-- Left: Logo + Nav Buttons (Desktop) -->
@@ -100,14 +101,28 @@ const closeMobileMenu = () => {
 
           <!-- Right: Coin Balance + User Info + Logout (Desktop) / Hamburger (Mobile) -->
           <div class="hidden md:flex items-center space-x-4">
-            <router-link
-              to="/coins/history"
-              class="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-indigo-500 bg-opacity-30 border border-indigo-400 rounded-md hover:bg-opacity-50 transition font-medium"
-              :class="{ 'watt-bump': balanceBumping }"
-              title="Watt-Verlauf">
-              <BoltIcon class="h-4 w-4" />
-              <span>{{ coinStore.balance }}</span>
-            </router-link>
+            <div class="relative group">
+              <router-link
+                to="/coins/history"
+                class="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-indigo-500 bg-opacity-30 border border-indigo-400 rounded-md hover:bg-opacity-50 transition font-medium"
+                :class="{ 'watt-bump': balanceBumping }">
+                <BoltIcon class="h-4 w-4" />
+                <span>{{ coinStore.balance }}</span>
+              </router-link>
+              <!-- Tooltip -->
+              <div class="absolute right-0 top-full mt-2 w-48 bg-gray-900 text-white text-xs rounded-lg shadow-xl p-3 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50">
+                <div class="flex justify-between mb-1.5">
+                  <span class="text-gray-400">Gesamt</span>
+                  <span class="font-semibold">{{ coinStore.balance }} Watt</span>
+                </div>
+                <div class="flex justify-between border-t border-gray-700 pt-1.5">
+                  <span class="text-gray-400">Diesen Monat</span>
+                  <span class="font-semibold text-yellow-400">+{{ coinStore.coinsThisMonth }} Watt</span>
+                </div>
+                <!-- Arrow -->
+                <div class="absolute -top-1.5 right-4 w-3 h-3 bg-gray-900 rotate-45"></div>
+              </div>
+            </div>
             <router-link
               v-if="authStore.user"
               to="/settings"
@@ -234,12 +249,13 @@ const closeMobileMenu = () => {
 
 <style scoped>
 @keyframes watt-bump {
-  0%   { transform: scale(1); }
-  35%  { transform: scale(1.25); background-color: rgba(250, 204, 21, 0.35); border-color: rgba(250, 204, 21, 0.8); }
-  100% { transform: scale(1); }
+  0%   { transform: scale(1);    box-shadow: none; background-color: transparent; border-color: rgba(129, 140, 248, 0.5); }
+  25%  { transform: scale(1.45); box-shadow: 0 0 0 4px rgba(250, 204, 21, 0.4), 0 0 16px rgba(250, 204, 21, 0.6); background-color: rgba(250, 204, 21, 0.25); border-color: rgba(250, 204, 21, 0.9); color: #fef08a; }
+  60%  { transform: scale(0.95); box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.2); }
+  100% { transform: scale(1);    box-shadow: none; background-color: transparent; border-color: rgba(129, 140, 248, 0.5); color: inherit; }
 }
 
 .watt-bump {
-  animation: watt-bump 0.6s ease-out;
+  animation: watt-bump 0.75s cubic-bezier(0.36, 0.07, 0.19, 0.97);
 }
 </style>
