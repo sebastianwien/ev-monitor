@@ -1,5 +1,6 @@
 package com.evmonitor.infrastructure.seed;
 
+import com.evmonitor.application.CoinLogService;
 import com.evmonitor.domain.*;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
@@ -9,9 +10,11 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 /**
  * Seeds the database with test data for development.
@@ -20,23 +23,27 @@ import java.util.UUID;
  * Creates:
  * - 3 test users (test1@ev-monitor.net, test2@ev-monitor.net, test3@ev-monitor.net)
  * - 6 cars (2 per user, various EV models with realistic battery capacities)
- * - ~210 charging logs (70 per active car, distributed over 1 year)
+ * - ~370 charging logs (distributed over 1 year)
+ * - Matching Watt history for each user (car creation + log coins + WLTP contributions)
  */
 @Component
-@Profile("dev")
+@Profile({"dev", "seed"})
 public class DevDataSeeder implements CommandLineRunner {
 
     private final UserRepository userRepository;
     private final CarRepository carRepository;
     private final EvLogRepository evLogRepository;
+    private final CoinLogRepository coinLogRepository;
     private final PasswordEncoder passwordEncoder;
     private final Random random = new Random();
 
     public DevDataSeeder(UserRepository userRepository, CarRepository carRepository,
-                         EvLogRepository evLogRepository, PasswordEncoder passwordEncoder) {
+                         EvLogRepository evLogRepository, CoinLogRepository coinLogRepository,
+                         PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.carRepository = carRepository;
         this.evLogRepository = evLogRepository;
+        this.coinLogRepository = coinLogRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -70,16 +77,70 @@ public class DevDataSeeder implements CommandLineRunner {
 
         System.out.println("🚗 Created 6 cars (2 per user)");
 
-        // Charging logs with odometer data (typical EV consumption: 15-18 kWh/100km)
-        int totalLogs = 0;
-        totalLogs += generateChargingLogs(car1, 70, 22500, 16.0); // Tesla M3: ~16 kWh/100km
-        totalLogs += generateChargingLogs(car2, 60,  8200, 17.0); // VW ID.3: ~17 kWh/100km
-        totalLogs += generateChargingLogs(car3, 80, 14000, 18.0); // Ioniq 5: ~18 kWh/100km
-        totalLogs += generateChargingLogs(car4, 50, 31000, 19.0); // BMW i4: ~19 kWh/100km
-        totalLogs += generateChargingLogs(car5, 70,  5500, 17.5); // Polestar 2: ~17.5 kWh/100km
-        totalLogs += generateChargingLogs(car6, 40, 19000, 16.5); // MG4: ~16.5 kWh/100km
+        // Charging logs with odometer data (typical EV consumption: 15-19 kWh/100km)
+        List<LocalDateTime> times1a = generateChargingLogs(car1, 70, 22500, 16.0); // Tesla M3
+        List<LocalDateTime> times1b = generateChargingLogs(car2, 60,  8200, 17.0); // VW ID.3
+        List<LocalDateTime> times2a = generateChargingLogs(car3, 80, 14000, 18.0); // Ioniq 5
+        List<LocalDateTime> times2b = generateChargingLogs(car4, 50, 31000, 19.0); // BMW i4
+        List<LocalDateTime> times3a = generateChargingLogs(car5, 70,  5500, 17.5); // Polestar 2
+        List<LocalDateTime> times3b = generateChargingLogs(car6, 40, 19000, 16.5); // MG4
 
+        int totalLogs = times1a.size() + times1b.size() + times2a.size()
+                      + times2b.size() + times3a.size() + times3b.size();
         System.out.println("⚡ Created " + totalLogs + " charging logs");
+
+        // Watt history matching the actual actions — cars added a few days before first charge
+        seedCoinLogs(user1, merge(times1a, times1b),
+                "WLTP data contribution: TESLA MODEL_3 (75.0 kWh)");
+        seedCoinLogs(user2, merge(times2a, times2b),
+                "WLTP data contribution: HYUNDAI IONIQ_5 (77.4 kWh)");
+        seedCoinLogs(user3, merge(times3a, times3b),
+                "WLTP data contribution: MG MG4 (64.0 kWh)");
+
+        System.out.println("🪙 Created Watt history for all users");
+    }
+
+    /**
+     * Creates coin logs for a user that match their actual activity:
+     * - +20 Watt for first car (3 days before first charge)
+     * - +5  Watt for second car (1 day before first charge)
+     * - +25 Watt for first charging session
+     * - +5  Watt for each subsequent session
+     * - +50 Watt (SOCIAL_COIN) for one WLTP community contribution ~3 months in
+     */
+    private void seedCoinLogs(User user, List<LocalDateTime> chargingTimes, String wltpDescription) {
+        UUID userId = user.getId();
+        LocalDateTime firstCharge = chargingTimes.get(0);
+
+        // Car creation coins — happened a few days before the user's first charge
+        awardCoinAt(userId, CoinType.ACHIEVEMENT_COIN, 20,
+                CoinLogService.ACTION_CAR_CREATED, firstCharge.minusDays(3));
+        awardCoinAt(userId, CoinType.ACHIEVEMENT_COIN, 5,
+                CoinLogService.ACTION_CAR_CREATED, firstCharge.minusDays(1));
+
+        // One coin entry per charging session
+        for (int i = 0; i < chargingTimes.size(); i++) {
+            int coins = (i == 0) ? 25 : 5;
+            awardCoinAt(userId, CoinType.ACHIEVEMENT_COIN, coins,
+                    CoinLogService.ACTION_LOG_CREATED, chargingTimes.get(i).plusMinutes(5));
+        }
+
+        // WLTP community contribution — roughly 3 months into usage
+        LocalDateTime wltpTime = firstCharge.plusDays(90);
+        awardCoinAt(userId, CoinType.SOCIAL_COIN, 50, wltpDescription, wltpTime);
+    }
+
+    private void awardCoinAt(UUID userId, CoinType coinType, int amount,
+                              String actionDescription, LocalDateTime at) {
+        CoinLog log = new CoinLog(UUID.randomUUID(), userId, coinType, amount, actionDescription, at);
+        coinLogRepository.save(log);
+    }
+
+    /** Merges two timestamp lists and returns them in chronological order. */
+    private List<LocalDateTime> merge(List<LocalDateTime> a, List<LocalDateTime> b) {
+        return Stream.concat(a.stream(), b.stream())
+                .sorted()
+                .toList();
     }
 
     private User createUser(String email, String username) {
@@ -127,9 +188,15 @@ public class DevDataSeeder implements CommandLineRunner {
         1.24  // Dec  – cold, holiday short trips (less efficient)
     };
 
-    private int generateChargingLogs(Car car, int count, int startOdometer, double avgConsumptionKwhPer100km) {
+    /**
+     * Generates charging logs for a car and returns the timestamp of each log.
+     * Timestamps are used to back-date matching Watt coin entries.
+     */
+    private List<LocalDateTime> generateChargingLogs(Car car, int count, int startOdometer,
+                                                      double avgConsumptionKwhPer100km) {
         LocalDate startDate = LocalDate.now().minusYears(1);
         int currentOdometer = startOdometer;
+        List<LocalDateTime> timestamps = new ArrayList<>(count);
 
         for (int i = 0; i < count; i++) {
             // 1-2 charges per week: every 3-7 days
@@ -152,6 +219,7 @@ public class DevDataSeeder implements CommandLineRunner {
             int hour = 8 + random.nextInt(14);
             int minute = random.nextInt(60);
             LocalDateTime chargeTime = chargeDate.atTime(hour, minute);
+            timestamps.add(chargeTime);
 
             // Seasonal consumption: winter up to +28%, summer down to -8%
             int month = chargeDate.getMonthValue();
@@ -186,7 +254,7 @@ public class DevDataSeeder implements CommandLineRunner {
             evLogRepository.save(log);
         }
 
-        return count;
+        return timestamps;
     }
 
     /**
