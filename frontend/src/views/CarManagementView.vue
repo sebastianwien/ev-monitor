@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, computed } from 'vue'
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { carService, type Car, type CarRequest, type BrandInfo, type ModelInfo, type CarCreateResponse } from '../api/carService'
 import { vehicleSpecificationService, type VehicleSpecification } from '../api/vehicleSpecificationService'
 import TeslaIntegration from '../components/TeslaIntegration.vue'
@@ -36,6 +36,11 @@ const wltpConsumptionKwhPer100km = ref<number | null>(null)
 const showToast = ref(false)
 const toastMessage = ref('')
 
+// Image state
+const imageBlobUrls = ref<Record<string, string>>({})
+const imageUploading = ref<Record<string, boolean>>({})
+const imagePublicForUpload = ref<Record<string, boolean>>({})
+
 const sortedBrands = computed(() => {
   return [...brands.value].sort((a, b) => a.label.localeCompare(b.label))
 })
@@ -63,11 +68,30 @@ const hasTesla = computed(() => {
   return cars.value.some(car => teslaModels.includes(car.model))
 })
 
+const revokeAllBlobUrls = () => {
+  Object.values(imageBlobUrls.value).forEach(url => URL.revokeObjectURL(url))
+  imageBlobUrls.value = {}
+}
+
+const loadCarImages = async (carList: Car[]) => {
+  const carsWithImages = carList.filter(c => c.imageUrl)
+  for (const car of carsWithImages) {
+    try {
+      const blobUrl = await carService.getCarImageBlobUrl(car.id)
+      imageBlobUrls.value = { ...imageBlobUrls.value, [car.id]: blobUrl }
+    } catch {
+      // Image might not be accessible (e.g. private) — ignore silently
+    }
+  }
+}
+
 const fetchCars = async () => {
   try {
     loading.value = true
     error.value = null
+    revokeAllBlobUrls()
     cars.value = await carService.getCars()
+    await loadCarImages(cars.value)
   } catch (err: any) {
     error.value = err.response?.data?.message || 'Fehler beim Laden der Fahrzeuge'
     console.error('Failed to fetch cars:', err)
@@ -319,9 +343,54 @@ const submitWltpData = async () => {
   }
 }
 
+const handleImageUpload = async (carId: string, event: Event) => {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  imageUploading.value = { ...imageUploading.value, [carId]: true }
+  try {
+    error.value = null
+    const isPublic = imagePublicForUpload.value[carId] ?? false
+    const updatedCar = await carService.uploadCarImage(carId, file, isPublic)
+    // Update car in list
+    cars.value = cars.value.map(c => c.id === carId ? updatedCar : c)
+    // Revoke old blob and load new one
+    if (imageBlobUrls.value[carId]) URL.revokeObjectURL(imageBlobUrls.value[carId])
+    const blobUrl = await carService.getCarImageBlobUrl(carId)
+    imageBlobUrls.value = { ...imageBlobUrls.value, [carId]: blobUrl }
+  } catch (err: any) {
+    error.value = err.response?.data?.message || 'Fehler beim Hochladen des Bildes'
+    console.error('Failed to upload image:', err)
+  } finally {
+    imageUploading.value = { ...imageUploading.value, [carId]: false }
+    input.value = ''
+  }
+}
+
+const handleDeleteImage = async (carId: string) => {
+  if (!confirm('Foto löschen?')) return
+  try {
+    error.value = null
+    await carService.deleteCarImage(carId)
+    if (imageBlobUrls.value[carId]) URL.revokeObjectURL(imageBlobUrls.value[carId])
+    const { [carId]: _, ...rest } = imageBlobUrls.value
+    imageBlobUrls.value = rest
+    // Update car in list
+    cars.value = cars.value.map(c => c.id === carId ? { ...c, imageUrl: null, imagePublic: false } : c)
+  } catch (err: any) {
+    error.value = err.response?.data?.message || 'Fehler beim Löschen des Bildes'
+    console.error('Failed to delete image:', err)
+  }
+}
+
 onMounted(async () => {
   await fetchBrands()
   await fetchCars()
+})
+
+onUnmounted(() => {
+  revokeAllBlobUrls()
 })
 </script>
 
@@ -523,38 +592,102 @@ onMounted(async () => {
 
       <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div v-for="car in cars" :key="car.id"
-          class="p-5 bg-gray-50 border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition">
-          <div class="flex justify-between items-start mb-3">
-            <div>
-              <h3 class="text-xl font-bold text-indigo-700">
-                {{ getModelLabel(car.model) }}
-                <span v-if="car.trim" class="text-base font-normal text-indigo-600">{{ car.trim }}</span>
-              </h3>
-              <p class="text-sm text-gray-600">{{ car.year }}</p>
+          class="bg-gray-50 border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition overflow-hidden">
+
+          <!-- Car Image -->
+          <div class="relative bg-gray-100 h-40 flex items-center justify-center">
+            <img
+              v-if="imageBlobUrls[car.id]"
+              :src="imageBlobUrls[car.id]"
+              :alt="getModelLabel(car.model)"
+              class="w-full h-full object-cover" />
+            <div v-else class="flex flex-col items-center text-gray-400">
+              <svg class="w-12 h-12 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span class="text-xs">Kein Foto</span>
             </div>
-            <span class="px-3 py-1 bg-white border border-gray-300 text-xs rounded-full shadow-sm text-gray-600 font-medium">
-              {{ car.licensePlate }}
+
+            <!-- Delete image button -->
+            <button v-if="imageBlobUrls[car.id]"
+              @click="handleDeleteImage(car.id)"
+              class="absolute top-2 right-2 bg-white bg-opacity-80 rounded-full p-1 hover:bg-opacity-100 text-red-600 hover:text-red-700 transition"
+              title="Foto löschen">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            <!-- Public badge -->
+            <span v-if="car.imageUrl && car.imagePublic"
+              class="absolute top-2 left-2 bg-green-600 text-white text-xs px-2 py-0.5 rounded-full">
+              Öffentlich
+            </span>
+            <span v-else-if="car.imageUrl && !car.imagePublic"
+              class="absolute top-2 left-2 bg-gray-600 text-white text-xs px-2 py-0.5 rounded-full">
+              Privat
             </span>
           </div>
 
-          <div class="mb-4 space-y-1">
-            <p class="text-sm text-gray-600">
-              <span class="font-semibold">Batterie:</span> {{ car.batteryCapacityKwh }} kWh
-            </p>
-            <p v-if="car.powerKw" class="text-sm text-gray-600">
-              <span class="font-semibold">Leistung:</span> {{ car.powerKw }} kW ({{ Math.round(car.powerKw * 1.35962) }} PS)
-            </p>
+          <!-- Upload controls -->
+          <div class="px-5 pt-3 pb-1 flex items-center gap-3">
+            <label class="flex items-center gap-1.5 cursor-pointer">
+              <input type="checkbox" v-model="imagePublicForUpload[car.id]"
+                class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+              <span class="text-xs text-gray-600">Öffentlich sichtbar</span>
+            </label>
+            <label class="ml-auto cursor-pointer">
+              <span :class="[
+                'text-xs px-3 py-1.5 rounded-md font-medium transition',
+                imageUploading[car.id]
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
+              ]">
+                {{ imageUploading[car.id] ? 'Lädt...' : (car.imageUrl ? 'Foto ändern' : 'Foto hochladen') }}
+              </span>
+              <input
+                type="file"
+                accept="image/jpeg,image/png"
+                class="hidden"
+                :disabled="imageUploading[car.id]"
+                @change="handleImageUpload(car.id, $event)" />
+            </label>
           </div>
 
-          <div class="flex gap-2">
-            <button @click="openEditForm(car)"
-              class="flex-1 bg-indigo-100 text-indigo-700 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-200 transition">
-              Bearbeiten
-            </button>
-            <button @click="deleteCar(car.id)"
-              class="flex-1 bg-red-100 text-red-700 px-3 py-2 rounded-md text-sm font-medium hover:bg-red-200 transition">
-              Löschen
-            </button>
+          <div class="px-5 pt-2 pb-5">
+            <div class="flex justify-between items-start mb-3">
+              <div>
+                <h3 class="text-xl font-bold text-indigo-700">
+                  {{ getModelLabel(car.model) }}
+                  <span v-if="car.trim" class="text-base font-normal text-indigo-600">{{ car.trim }}</span>
+                </h3>
+                <p class="text-sm text-gray-600">{{ car.year }}</p>
+              </div>
+              <span class="px-3 py-1 bg-white border border-gray-300 text-xs rounded-full shadow-sm text-gray-600 font-medium">
+                {{ car.licensePlate }}
+              </span>
+            </div>
+
+            <div class="mb-4 space-y-1">
+              <p class="text-sm text-gray-600">
+                <span class="font-semibold">Batterie:</span> {{ car.batteryCapacityKwh }} kWh
+              </p>
+              <p v-if="car.powerKw" class="text-sm text-gray-600">
+                <span class="font-semibold">Leistung:</span> {{ car.powerKw }} kW ({{ Math.round(car.powerKw * 1.35962) }} PS)
+              </p>
+            </div>
+
+            <div class="flex gap-2">
+              <button @click="openEditForm(car)"
+                class="flex-1 bg-indigo-100 text-indigo-700 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-200 transition">
+                Bearbeiten
+              </button>
+              <button @click="deleteCar(car.id)"
+                class="flex-1 bg-red-100 text-red-700 px-3 py-2 rounded-md text-sm font-medium hover:bg-red-200 transition">
+                Löschen
+              </button>
+            </div>
           </div>
         </div>
       </div>

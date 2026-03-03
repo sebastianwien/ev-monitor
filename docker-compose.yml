@@ -39,6 +39,8 @@ services:
       APP_BASE_URL: ${APP_BASE_URL:-https://ev-monitor.net}
       APP_MAIL_FROM: ${APP_MAIL_FROM:-noreply@ev-monitor.net}
       APP_ALERT_EMAIL: ${ALERT_EMAIL:-}
+    volumes:
+      - car_images:/app/car-images
     depends_on:
       db:
         condition: service_healthy
@@ -71,6 +73,7 @@ services:
 
 volumes:
   postgres_data:
+  car_images:
   certbot_etc:
   certbot_var:
   certbot_webroot:

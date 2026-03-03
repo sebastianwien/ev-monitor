@@ -1,21 +1,28 @@
 package com.evmonitor.infrastructure.web;
 
 import com.evmonitor.application.CarCreateResponse;
+import com.evmonitor.application.CarImageService;
 import com.evmonitor.application.CarRequest;
 import com.evmonitor.application.CarResponse;
 import com.evmonitor.application.CarService;
 import com.evmonitor.domain.CarBrand;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import jakarta.validation.Valid;
+import org.springframework.core.io.Resource;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @RestController
@@ -23,9 +30,11 @@ import java.util.stream.Collectors;
 public class CarController {
 
     private final CarService carService;
+    private final CarImageService carImageService;
 
-    public CarController(CarService carService) {
+    public CarController(CarService carService, CarImageService carImageService) {
         this.carService = carService;
+        this.carImageService = carImageService;
     }
 
     @PostMapping
@@ -61,6 +70,47 @@ public class CarController {
     public ResponseEntity<Void> deleteCar(@PathVariable UUID id, Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         carService.deleteCar(id, principal.getUser().getId());
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/image")
+    public ResponseEntity<CarResponse> uploadCarImage(
+            @PathVariable UUID id,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "isPublic", defaultValue = "false") boolean isPublic,
+            Authentication authentication) throws IOException {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        CarResponse response = carService.uploadCarImage(principal.getUser().getId(), id, file, isPublic);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/{id}/image")
+    public ResponseEntity<Resource> getCarImage(@PathVariable UUID id, Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        UUID requestingUserId = principal.getUser().getId();
+
+        com.evmonitor.domain.Car car = carService.getCarById(id);
+
+        // Private images are only visible to the owner
+        if (!car.isImagePublic() && !car.getUserId().equals(requestingUserId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        Optional<Resource> resource = carImageService.getImageResource(id);
+        if (resource.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.IMAGE_JPEG)
+                .cacheControl(CacheControl.maxAge(1, TimeUnit.HOURS))
+                .body(resource.get());
+    }
+
+    @DeleteMapping("/{id}/image")
+    public ResponseEntity<Void> deleteCarImage(@PathVariable UUID id, Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        carService.deleteCarImage(principal.getUser().getId(), id);
         return ResponseEntity.noContent().build();
     }
 

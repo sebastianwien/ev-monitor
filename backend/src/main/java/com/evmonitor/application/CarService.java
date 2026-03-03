@@ -5,7 +5,9 @@ import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.CoinType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
@@ -14,10 +16,12 @@ public class CarService {
 
     private final CarRepository carRepository;
     private final CoinLogService coinLogService;
+    private final CarImageService carImageService;
 
-    public CarService(CarRepository carRepository, CoinLogService coinLogService) {
+    public CarService(CarRepository carRepository, CoinLogService coinLogService, CarImageService carImageService) {
         this.carRepository = carRepository;
         this.coinLogService = coinLogService;
+        this.carImageService = carImageService;
     }
 
     @Transactional
@@ -82,7 +86,9 @@ public class CarService {
                 existingCar.getDeregistrationDate(),
                 existingCar.getStatus(),
                 existingCar.getCreatedAt(),
-                java.time.LocalDateTime.now());
+                java.time.LocalDateTime.now(),
+                existingCar.getImagePath(),
+                existingCar.isImagePublic());
 
         Car savedCar = carRepository.save(updatedCar);
         return CarResponse.fromDomain(savedCar);
@@ -97,5 +103,40 @@ public class CarService {
         }
 
         carRepository.deleteById(carId);
+        carImageService.deleteImage(carId);
+    }
+
+    public Car getCarById(UUID carId) {
+        return carRepository.findById(carId)
+                .orElseThrow(() -> new IllegalArgumentException("Car not found with ID: " + carId));
+    }
+
+    @Transactional
+    public CarResponse uploadCarImage(UUID userId, UUID carId, MultipartFile file, boolean isPublic) throws IOException {
+        Car car = carRepository.findById(carId)
+                .orElseThrow(() -> new IllegalArgumentException("Car not found with ID: " + carId));
+
+        if (!car.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("User does not own the specified car");
+        }
+
+        String imagePath = carImageService.uploadImage(carId, file);
+        Car updated = car.withImage(imagePath, isPublic);
+        Car saved = carRepository.save(updated);
+        return CarResponse.fromDomain(saved);
+    }
+
+    @Transactional
+    public void deleteCarImage(UUID userId, UUID carId) {
+        Car car = carRepository.findById(carId)
+                .orElseThrow(() -> new IllegalArgumentException("Car not found with ID: " + carId));
+
+        if (!car.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("User does not own the specified car");
+        }
+
+        carImageService.deleteImage(carId);
+        Car updated = car.withImage(null, false);
+        carRepository.save(updated);
     }
 }

@@ -63,6 +63,8 @@ public class PostgresCarRepositoryImpl implements CarRepository {
         entity.setStatus(domain.getStatus());
         entity.setCreatedAt(domain.getCreatedAt());
         entity.setUpdatedAt(domain.getUpdatedAt());
+        entity.setImagePath(domain.getImagePath());
+        entity.setImagePublic(domain.isImagePublic());
         return entity;
     }
 
@@ -80,6 +82,8 @@ public class PostgresCarRepositoryImpl implements CarRepository {
                 entity.getDeregistrationDate(),
                 entity.getStatus(),
                 entity.getCreatedAt(),
-                entity.getUpdatedAt());
+                entity.getUpdatedAt(),
+                entity.getImagePath(),
+                entity.isImagePublic());
     }
 }

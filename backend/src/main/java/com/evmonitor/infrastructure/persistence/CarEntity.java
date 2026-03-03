@@ -54,6 +54,12 @@ public class CarEntity {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(name = "image_path")
+    private String imagePath;
+
+    @Column(name = "image_public", nullable = false)
+    private boolean imagePublic;
+
     public CarEntity() {
     }
 
@@ -161,5 +167,21 @@ public class CarEntity {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getImagePath() {
+        return imagePath;
+    }
+
+    public void setImagePath(String imagePath) {
+        this.imagePath = imagePath;
+    }
+
+    public boolean isImagePublic() {
+        return imagePublic;
+    }
+
+    public void setImagePublic(boolean imagePublic) {
+        this.imagePublic = imagePublic;
     }
 }
