@@ -5,9 +5,13 @@ import com.evmonitor.application.AuthService;
 import com.evmonitor.application.LoginRequest;
 import com.evmonitor.application.RegisterRequest;
 import com.evmonitor.application.RegisterResponse;
+import com.evmonitor.infrastructure.security.RateLimitService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,18 +22,28 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
+    private final RateLimitService rateLimitService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, RateLimitService rateLimitService) {
         this.authService = authService;
+        this.rateLimitService = rateLimitService;
     }
 
     @PostMapping("/register")
-    public ResponseEntity<RegisterResponse> register(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request,
+                                      HttpServletRequest httpRequest) {
+        if (!rateLimitService.tryConsumeRegister(clientIp(httpRequest))) {
+            return tooManyRequests(600);
+        }
         return ResponseEntity.ok(authService.register(request));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<?> login(@RequestBody LoginRequest request,
+                                   HttpServletRequest httpRequest) {
+        if (!rateLimitService.tryConsumeLogin(clientIp(httpRequest))) {
+            return tooManyRequests(300);
+        }
         return ResponseEntity.ok(authService.login(request));
     }
 
@@ -46,4 +60,26 @@ public class AuthController {
 
     record ResendVerificationRequest(
             @NotBlank @Email String email) {}
+
+    // -------------------------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------------------------
+
+    /** Reads the real client IP, respecting X-Forwarded-For set by nginx. */
+    private static String clientIp(HttpServletRequest request) {
+        String forwarded = request.getHeader("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isBlank()) {
+            return forwarded.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
+    }
+
+    private static ResponseEntity<Map<String, String>> tooManyRequests(int retryAfterSeconds) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Retry-After", String.valueOf(retryAfterSeconds));
+        return ResponseEntity
+                .status(HttpStatus.TOO_MANY_REQUESTS)
+                .headers(headers)
+                .body(Map.of("error", "Too many requests. Please try again later."));
+    }
 }
