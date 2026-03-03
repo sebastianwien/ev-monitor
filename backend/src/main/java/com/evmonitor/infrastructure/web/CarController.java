@@ -1,6 +1,7 @@
 package com.evmonitor.infrastructure.web;
 
 import com.evmonitor.application.CarCreateResponse;
+import com.evmonitor.application.CarImageResponse;
 import com.evmonitor.application.CarImageService;
 import com.evmonitor.application.CarRequest;
 import com.evmonitor.application.CarResponse;
@@ -74,13 +75,13 @@ public class CarController {
     }
 
     @PostMapping("/{id}/image")
-    public ResponseEntity<CarResponse> uploadCarImage(
+    public ResponseEntity<CarImageResponse> uploadCarImage(
             @PathVariable UUID id,
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "isPublic", defaultValue = "false") boolean isPublic,
             Authentication authentication) throws IOException {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        CarResponse response = carService.uploadCarImage(principal.getUser().getId(), id, file, isPublic);
+        CarImageResponse response = carService.uploadCarImage(principal.getUser().getId(), id, file, isPublic);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -108,12 +109,12 @@ public class CarController {
     }
 
     @PatchMapping("/{id}/image")
-    public ResponseEntity<CarResponse> updateCarImageVisibility(
+    public ResponseEntity<CarImageResponse> updateCarImageVisibility(
             @PathVariable UUID id,
             @RequestParam boolean isPublic,
             Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        CarResponse response = carService.updateCarImageVisibility(principal.getUser().getId(), id, isPublic);
+        CarImageResponse response = carService.updateCarImageVisibility(principal.getUser().getId(), id, isPublic);
         return ResponseEntity.ok(response);
     }
 

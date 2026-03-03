@@ -358,8 +358,14 @@ const handleVisibilityChange = (carId: string, isPublic: boolean) => {
   clearTimeout(visibilityTimers[carId])
   visibilityTimers[carId] = setTimeout(async () => {
     try {
-      const updatedCar = await carService.updateCarImageVisibility(carId, isPublic)
-      cars.value = cars.value.map(c => c.id === carId ? updatedCar : c)
+      const result = await carService.updateCarImageVisibility(carId, isPublic)
+      cars.value = cars.value.map(c => c.id === carId ? result.car : c)
+      if (result.coinsAwarded > 0) {
+        coinStore.refresh()
+        toastMessage.value = `Bild öffentlich geteilt! +${result.coinsAwarded} Watt erhalten!`
+        showToast.value = true
+        setTimeout(() => { showToast.value = false }, 5000)
+      }
     } catch (err: any) {
       error.value = err.response?.data?.message || 'Fehler beim Aktualisieren der Sichtbarkeit'
     }
@@ -375,9 +381,15 @@ const handleImageUpload = async (carId: string, event: Event) => {
   try {
     error.value = null
     const isPublic = imagePublicForUpload.value[carId] ?? false
-    const updatedCar = await carService.uploadCarImage(carId, file, isPublic)
+    const result = await carService.uploadCarImage(carId, file, isPublic)
     // Update car in list
-    cars.value = cars.value.map(c => c.id === carId ? updatedCar : c)
+    cars.value = cars.value.map(c => c.id === carId ? result.car : c)
+    if (result.coinsAwarded > 0) {
+      coinStore.refresh()
+      toastMessage.value = `Foto hochgeladen! +${result.coinsAwarded} Watt erhalten!`
+      showToast.value = true
+      setTimeout(() => { showToast.value = false }, 5000)
+    }
     // Revoke old blob and load new one
     if (imageBlobUrls.value[carId]) URL.revokeObjectURL(imageBlobUrls.value[carId])
     const blobUrl = await carService.getCarImageBlobUrl(carId)

@@ -1,5 +1,6 @@
 package com.evmonitor.infrastructure.web;
 
+import com.evmonitor.application.CarImageResponse;
 import com.evmonitor.application.CarResponse;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarBrand;
@@ -55,17 +56,18 @@ class CarImageControllerIntegrationTest extends AbstractIntegrationTest {
         HttpEntity<MultiValueMap<String, Object>> request = buildUploadRequest(
                 owner, createMinimalJpeg(), "image/jpeg", false);
 
-        ResponseEntity<CarResponse> response = restTemplate.exchange(
+        ResponseEntity<CarImageResponse> response = restTemplate.exchange(
                 "/api/cars/" + ownerCar.getId() + "/image?isPublic=false",
                 HttpMethod.POST,
                 request,
-                CarResponse.class);
+                CarImageResponse.class);
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertNotNull(response.getBody().imageUrl(), "imageUrl must be set after upload");
-        assertEquals("/api/cars/" + ownerCar.getId() + "/image", response.getBody().imageUrl());
-        assertFalse(response.getBody().imagePublic());
+        assertNotNull(response.getBody().car().imageUrl(), "imageUrl must be set after upload");
+        assertEquals("/api/cars/" + ownerCar.getId() + "/image", response.getBody().car().imageUrl());
+        assertFalse(response.getBody().car().imagePublic());
+        assertEquals(15, response.getBody().coinsAwarded(), "First-ever upload must award 15 coins");
     }
 
     @Test
@@ -129,13 +131,15 @@ class CarImageControllerIntegrationTest extends AbstractIntegrationTest {
         // Second upload (same car, different isPublic)
         HttpEntity<MultiValueMap<String, Object>> second = buildUploadRequest(
                 owner, createMinimalJpeg(), "image/jpeg", true);
-        ResponseEntity<CarResponse> response = restTemplate.exchange(
+        ResponseEntity<CarImageResponse> response = restTemplate.exchange(
                 "/api/cars/" + ownerCar.getId() + "/image?isPublic=true",
-                HttpMethod.POST, second, CarResponse.class);
+                HttpMethod.POST, second, CarImageResponse.class);
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertTrue(response.getBody().imagePublic(), "isPublic flag must be updated on re-upload");
+        assertTrue(response.getBody().car().imagePublic(), "isPublic flag must be updated on re-upload");
+        // Re-upload itself earns no coins (upload bonus already claimed), but first-ever public image does
+        assertEquals(10, response.getBody().coinsAwarded(), "First-ever public image must award 10 coins even on re-upload");
 
         // Only one file should exist — same path (UUID-based, no versioning)
         String pathAfterSecondUpload = carRepository.findById(ownerCar.getId())
@@ -210,13 +214,14 @@ class CarImageControllerIntegrationTest extends AbstractIntegrationTest {
         uploadImage(owner, ownerCar, false); // uploaded as private
 
         HttpEntity<Void> request = createAuthRequest(owner.getId(), owner.getEmail());
-        ResponseEntity<CarResponse> response = restTemplate.exchange(
+        ResponseEntity<CarImageResponse> response = restTemplate.exchange(
                 "/api/cars/" + ownerCar.getId() + "/image?isPublic=true",
-                HttpMethod.PATCH, request, CarResponse.class);
+                HttpMethod.PATCH, request, CarImageResponse.class);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertTrue(response.getBody().imagePublic(), "imagePublic must be true after PATCH");
+        assertTrue(response.getBody().car().imagePublic(), "imagePublic must be true after PATCH");
+        assertEquals(10, response.getBody().coinsAwarded(), "First-ever public image must award 10 coins");
 
         Car carInDb = carRepository.findById(ownerCar.getId()).orElseThrow();
         assertTrue(carInDb.isImagePublic(), "imagePublic must be persisted in DB");
@@ -320,7 +325,7 @@ class CarImageControllerIntegrationTest extends AbstractIntegrationTest {
                 user, createMinimalJpeg(), "image/jpeg", isPublic);
         restTemplate.exchange(
                 "/api/cars/" + car.getId() + "/image?isPublic=" + isPublic,
-                HttpMethod.POST, request, CarResponse.class);
+                HttpMethod.POST, request, CarImageResponse.class);
     }
 
     private HttpEntity<MultiValueMap<String, Object>> buildUploadRequest(
