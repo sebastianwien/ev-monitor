@@ -3,6 +3,7 @@ import api from './axios';
 export interface Car {
     id: string;
     userId: string;
+    brand: string; // CarBrand enum name (e.g., "TESLA")
     model: string; // CarModel enum name (e.g., "MODEL_3")
     year: number;
     licensePlate: string;
