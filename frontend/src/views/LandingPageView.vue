@@ -46,7 +46,6 @@ onMounted(async () => {
 })
 
 const goToRegister = () => router.push('/register')
-const goToModels = () => router.push('/modelle')
 const goToModelDetail = (brand: string, model: string) => {
   // Replace spaces with underscores for URL (e.g. "Polestar 2" -> "Polestar_2")
   const urlModel = model.replace(/ /g, '_')
