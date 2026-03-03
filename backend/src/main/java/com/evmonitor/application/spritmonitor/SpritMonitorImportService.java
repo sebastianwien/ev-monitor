@@ -2,6 +2,8 @@ package com.evmonitor.application.spritmonitor;
 
 import ch.hsr.geohash.GeoHash;
 import com.evmonitor.application.CoinLogService;
+import com.evmonitor.domain.Car;
+import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.CoinType;
 import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.EvLogRepository;
@@ -27,12 +29,14 @@ public class SpritMonitorImportService {
 
     private final SpritMonitorClient client;
     private final EvLogRepository evLogRepository;
+    private final CarRepository carRepository;
     private final CoinLogService coinLogService;
 
     public SpritMonitorImportService(SpritMonitorClient client, EvLogRepository evLogRepository,
-                                     CoinLogService coinLogService) {
+                                     CarRepository carRepository, CoinLogService coinLogService) {
         this.client = client;
         this.evLogRepository = evLogRepository;
+        this.carRepository = carRepository;
         this.coinLogService = coinLogService;
     }
 
@@ -62,6 +66,12 @@ public class SpritMonitorImportService {
         Integer spritMonitorVehicleId,
         UUID evMonitorCarId
     ) {
+        Car car = carRepository.findById(evMonitorCarId)
+                .orElseThrow(() -> new IllegalArgumentException("Car not found with ID: " + evMonitorCarId));
+        if (!car.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("User does not own the specified car");
+        }
+
         ImportResult result = new ImportResult();
 
         try {

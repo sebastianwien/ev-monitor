@@ -28,6 +28,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'io.jsonwebtoken:jjwt-api:0.12.5'
 	implementation 'ch.hsr:geohash:1.4.0'
+	implementation 'com.bucket4j:bucket4j_jdk17-core:8.16.1'
 	implementation 'org.flywaydb:flyway-core:10.8.1'
 	implementation 'org.flywaydb:flyway-database-postgresql:10.8.1'
 	compileOnly 'org.projectlombok:lombok'

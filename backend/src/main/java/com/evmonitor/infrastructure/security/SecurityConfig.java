@@ -86,12 +86,9 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Parse comma-separated origins from environment variable and trim whitespace
-        System.out.println("🔍 DEBUG: allowedOrigins value = [" + allowedOrigins + "]");
         List<String> origins = Arrays.stream(allowedOrigins.split(","))
                 .map(String::trim)
                 .toList();
-        System.out.println("🔍 DEBUG: parsed origins = " + origins);
         configuration.setAllowedOrigins(origins);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));

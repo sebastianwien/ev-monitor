@@ -60,6 +60,9 @@ app:
     email: ${APP_ALERT_EMAIL:}
   car-images:
     directory: ${CAR_IMAGES_DIR:/app/car-images}
+  security:
+    rate-limiting:
+      enabled: ${RATE_LIMITING_ENABLED:true}  # Set to false to disable (emergency kill-switch)
 
 # Sprit-Monitor API Integration
 spritmonitor:
