@@ -2,10 +2,13 @@
 import { ref, onMounted } from 'vue';
 import { spritMonitorService, SpritMonitorVehicle, ImportResult } from '../api/spritMonitorService';
 import { carService, Car, BrandInfo, ModelInfo } from '../api/carService';
+import { useCoinStore } from '../stores/coins';
 
 const emit = defineEmits<{
   (e: 'close'): void;
 }>();
+
+const coinStore = useCoinStore()
 
 type ImportStep = 'token' | 'mapping' | 'importing' | 'done';
 
@@ -19,6 +22,7 @@ const newCarData = ref<Record<number, { brand: string; model: string; year: numb
 const importResults = ref<Record<number, ImportResult>>({});
 const totalImported = ref(0);
 const totalSkipped = ref(0);
+const totalCoinsAwarded = ref(0);
 const totalErrors = ref<string[]>([]);
 const currentVehicle = ref(0);
 const totalVehicles = ref(0);
@@ -83,6 +87,7 @@ const startImport = async () => {
   error.value = '';
   totalImported.value = 0;
   totalSkipped.value = 0;
+  totalCoinsAwarded.value = 0;
   totalErrors.value = [];
   importResults.value = {};
 
@@ -136,6 +141,7 @@ const startImport = async () => {
       importResults.value[vehicle.id] = result;
       totalImported.value += result.imported;
       totalSkipped.value += result.skipped;
+      totalCoinsAwarded.value += result.coinsAwarded ?? 0;
       totalErrors.value.push(...result.errors);
     } catch (e: any) {
       const errorMsg = `${vehicle.make} ${vehicle.model}: ${e.response?.data?.error || e.message}`;
@@ -144,6 +150,7 @@ const startImport = async () => {
   }
 
   importStep.value = 'done';
+  if (totalCoinsAwarded.value > 0) coinStore.refresh();
 };
 
 const close = () => {
@@ -285,7 +292,10 @@ const close = () => {
               <strong class="text-green-600">{{ totalImported }}</strong> Ladevorgänge importiert
             </p>
             <p v-if="totalSkipped > 0" class="text-lg mb-2">
-              <strong class="text-yellow-600">{{ totalSkipped }}</strong> übersprungen (Duplikate?)
+              <strong class="text-yellow-600">{{ totalSkipped }}</strong> bereits vorhanden, übersprungen
+            </p>
+            <p v-if="totalCoinsAwarded > 0" class="text-lg mb-2">
+              <strong class="text-indigo-600">+{{ totalCoinsAwarded }} Watt</strong> erhalten!
             </p>
             <div v-if="totalErrors.length > 0" class="mt-3">
               <p class="text-red-600 font-semibold mb-2">Fehler:</p>

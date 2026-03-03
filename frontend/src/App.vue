@@ -16,6 +16,7 @@ const coinStore = useCoinStore()
 const showImportOverlay = ref(false)
 const showLogFormModal = ref(false)
 const mobileMenuOpen = ref(false)
+const balanceBumping = ref(false)
 
 // Load coin balance when user is authenticated
 if (authStore.isAuthenticated()) {
@@ -26,6 +27,14 @@ if (authStore.isAuthenticated()) {
 watch(() => authStore.token, (newToken) => {
   if (newToken) {
     coinStore.fetchBalance()
+  }
+})
+
+// Animate badge when balance increases
+watch(() => coinStore.balance, (newVal, oldVal) => {
+  if (newVal > oldVal) {
+    balanceBumping.value = true
+    setTimeout(() => { balanceBumping.value = false }, 600)
   }
 })
 
@@ -94,6 +103,7 @@ const closeMobileMenu = () => {
             <router-link
               to="/coins/history"
               class="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-indigo-500 bg-opacity-30 border border-indigo-400 rounded-md hover:bg-opacity-50 transition font-medium"
+              :class="{ 'watt-bump': balanceBumping }"
               title="Watt-Verlauf">
               <BoltIcon class="h-4 w-4" />
               <span>{{ coinStore.balance }}</span>
@@ -221,3 +231,15 @@ const closeMobileMenu = () => {
     <OnboardingWelcome v-if="authStore.isAuthenticated()" />
   </div>
 </template>
+
+<style scoped>
+@keyframes watt-bump {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.25); background-color: rgba(250, 204, 21, 0.35); border-color: rgba(250, 204, 21, 0.8); }
+  100% { transform: scale(1); }
+}
+
+.watt-bump {
+  animation: watt-bump 0.6s ease-out;
+}
+</style>

@@ -63,6 +63,11 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
+    public boolean existsByCarIdAndLoggedAtAndDataSource(UUID carId, LocalDateTime loggedAt, String dataSource) {
+        return jpaRepository.existsByCarIdAndLoggedAtAndDataSource(carId, loggedAt, dataSource);
+    }
+
+    @Override
     public long countByUserId(UUID userId) {
         return jpaRepository.countByUserId(userId);
     }

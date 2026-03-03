@@ -15,8 +15,9 @@ import java.util.stream.Collectors;
 public class CoinLogService {
 
     /** Canonical action description constants — used for both awarding and first-time checks. */
-    public static final String ACTION_CAR_CREATED  = "Fahrzeug hinzugefügt";
-    public static final String ACTION_LOG_CREATED  = "Ladevorgang erfasst";
+    public static final String ACTION_CAR_CREATED           = "Fahrzeug hinzugefügt";
+    public static final String ACTION_LOG_CREATED           = "Ladevorgang erfasst";
+    public static final String ACTION_SPRITMONITOR_IMPORTED = "Sprit-Monitor Import";
 
     private final CoinLogRepository coinLogRepository;
 
