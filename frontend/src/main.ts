@@ -29,6 +29,9 @@ if (import.meta.env.PROD) {
     }
 
     window.addEventListener('unhandledrejection', (event) => {
+        // Ignore service worker registration failures — not app errors
+        const stack = event.reason instanceof Error ? (event.reason.stack ?? '') : ''
+        if (stack.includes('ServiceWorker') || stack.includes('registerSW')) return
         reportError(event.reason, 'unhandledrejection')
     })
 }
