@@ -154,14 +154,32 @@ const closeMobileMenu = () => {
             </a>
           </div>
 
-          <!-- Mobile Hamburger Button -->
-          <button
-            @click="mobileMenuOpen = !mobileMenuOpen"
-            class="md:hidden p-2 rounded-md hover:bg-indigo-700 transition"
-            aria-label="Menu">
-            <Bars3Icon v-if="!mobileMenuOpen" class="h-6 w-6" />
-            <XMarkIcon v-else class="h-6 w-6" />
-          </button>
+          <!-- Mobile: Icons + Hamburger Button -->
+          <div class="md:hidden flex items-center gap-3">
+            <a
+              href="https://forms.gle/w4qkLLEv6nYGK3LWA"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-indigo-300 hover:text-white transition"
+              title="Feedback geben">
+              <ChatBubbleLeftEllipsisIcon class="h-5 w-5" />
+            </a>
+            <a
+              href="https://ko-fi.com/ev_monitor"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-red-400 hover:text-red-300 transition"
+              title="EV Monitor unterstützen">
+              <HeartIcon class="h-5 w-5" />
+            </a>
+            <button
+              @click="mobileMenuOpen = !mobileMenuOpen"
+              class="p-2 rounded-md hover:bg-indigo-700 transition"
+              aria-label="Menu">
+              <Bars3Icon v-if="!mobileMenuOpen" class="h-6 w-6" />
+              <XMarkIcon v-else class="h-6 w-6" />
+            </button>
+          </div>
         </div>
       </div>
 
