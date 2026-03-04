@@ -264,6 +264,20 @@ const deleteCar = async (id: string) => {
   }
 }
 
+const setActiveCar = async (id: string) => {
+  try {
+    error.value = null
+    const updatedCar = await carService.setActiveCar(id)
+    cars.value = cars.value.map(c => ({
+      ...c,
+      isPrimary: c.id === updatedCar.id
+    }))
+  } catch (err: any) {
+    error.value = err.response?.data?.message || 'Fehler beim Aktivieren des Fahrzeugs'
+    console.error('Failed to set active car:', err)
+  }
+}
+
 const getModelLabel = (modelValue: string): string => {
   const model = availableModels.value.find(m => m.value === modelValue)
   if (model) return model.label
@@ -694,10 +708,16 @@ onUnmounted(() => {
           <div class="px-5 pt-2 pb-5">
             <div class="flex justify-between items-start mb-3">
               <div>
-                <h3 class="text-xl font-bold text-indigo-700">
-                  {{ getModelLabel(car.model) }}
-                  <span v-if="car.trim" class="text-base font-normal text-indigo-600">{{ car.trim }}</span>
-                </h3>
+                <div class="flex items-center gap-2">
+                  <h3 class="text-xl font-bold text-indigo-700">
+                    {{ getModelLabel(car.model) }}
+                    <span v-if="car.trim" class="text-base font-normal text-indigo-600">{{ car.trim }}</span>
+                  </h3>
+                  <span v-if="car.isPrimary"
+                    class="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium border border-green-200">
+                    Aktiv
+                  </span>
+                </div>
                 <p class="text-sm text-gray-600">{{ car.year }}</p>
               </div>
               <span class="px-3 py-1 bg-white border border-gray-300 text-xs rounded-full shadow-sm text-gray-600 font-medium">
@@ -715,6 +735,10 @@ onUnmounted(() => {
             </div>
 
             <div class="flex gap-2">
+              <button v-if="!car.isPrimary" @click="setActiveCar(car.id)"
+                class="flex-1 bg-green-100 text-green-700 px-3 py-2 rounded-md text-sm font-medium hover:bg-green-200 transition">
+                Als aktiv setzen
+              </button>
               <button @click="openEditForm(car)"
                 class="flex-1 bg-indigo-100 text-indigo-700 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-200 transition">
                 Bearbeiten

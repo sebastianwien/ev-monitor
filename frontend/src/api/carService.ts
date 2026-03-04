@@ -18,6 +18,7 @@ export interface Car {
     updatedAt: string;
     imageUrl: string | null; // Relative URL to image, e.g. /api/cars/{id}/image
     imagePublic: boolean;
+    isPrimary: boolean;
 }
 
 export interface CarRequest {
@@ -106,5 +107,10 @@ export const carService = {
     async getCarImageBlobUrl(carId: string): Promise<string> {
         const response = await api.get(`/cars/${carId}/image`, { responseType: 'blob' });
         return URL.createObjectURL(response.data);
+    },
+
+    async setActiveCar(carId: string): Promise<Car> {
+        const response = await api.put(`/cars/${carId}/activate`);
+        return response.data;
     }
 };

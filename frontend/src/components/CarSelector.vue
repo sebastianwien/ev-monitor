@@ -27,9 +27,10 @@ const fetchCars = async () => {
     error.value = null
     cars.value = await carService.getCars()
 
-    // If no car is selected and we have cars, select the first one
+    // If no car is selected and we have cars, select the primary car (or first as fallback)
     if (!selectedCarId.value && cars.value.length > 0) {
-      selectedCarId.value = cars.value[0].id
+      const primaryCar = cars.value.find(c => c.isPrimary)
+      selectedCarId.value = primaryCar ? primaryCar.id : cars.value[0].id
     }
   } catch (err: any) {
     error.value = err.response?.data?.message || 'Fehler beim Laden der Fahrzeuge'

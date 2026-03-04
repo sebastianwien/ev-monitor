@@ -60,6 +60,9 @@ public class CarEntity {
     @Column(name = "image_public", nullable = false)
     private boolean imagePublic;
 
+    @Column(name = "is_primary", nullable = false)
+    private boolean isPrimary;
+
     public CarEntity() {
     }
 
@@ -183,5 +186,13 @@ public class CarEntity {
 
     public void setImagePublic(boolean imagePublic) {
         this.imagePublic = imagePublic;
+    }
+
+    public boolean isPrimary() {
+        return isPrimary;
+    }
+
+    public void setPrimary(boolean isPrimary) {
+        this.isPrimary = isPrimary;
     }
 }

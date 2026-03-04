@@ -79,6 +79,7 @@ class UserDeletionCascadeTest {
         user.setRole("USER");
         user.setEmailVerified(true);
         user.setSeedData(false);
+        user.setReferralCode("CASC0001");
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
@@ -180,6 +181,7 @@ class UserDeletionCascadeTest {
         otherUser.setRole("USER");
         otherUser.setEmailVerified(true);
         otherUser.setSeedData(false);
+        otherUser.setReferralCode("CASC0002");
         otherUser.setCreatedAt(LocalDateTime.now());
         otherUser.setUpdatedAt(LocalDateTime.now());
         userRepository.save(otherUser);
