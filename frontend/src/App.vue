@@ -8,7 +8,7 @@ import LogFormModal from './components/LogFormModal.vue'
 import FloatingActionButton from './components/FloatingActionButton.vue'
 import OnboardingWelcome from './components/OnboardingWelcome.vue'
 import DemoBanner from './components/DemoBanner.vue'
-import { Bars3Icon, XMarkIcon, ChartBarIcon, TruckIcon, ArrowDownTrayIcon, UserIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon, BoltIcon } from '@heroicons/vue/24/outline'
+import { Bars3Icon, XMarkIcon, ChartBarIcon, TruckIcon, ArrowDownTrayIcon, UserIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon, BoltIcon, ChatBubbleLeftEllipsisIcon } from '@heroicons/vue/24/outline'
 import { HeartIcon } from '@heroicons/vue/24/solid'
 
 const router = useRouter()
@@ -134,6 +134,15 @@ const closeMobileMenu = () => {
             <button @click="handleLogout" class="px-4 py-2 bg-indigo-700 hover:bg-indigo-800 rounded-lg text-sm font-medium transition shadow-sm">
               Abmelden
             </button>
+            <a
+              href="https://forms.gle/w4qkLLEv6nYGK3LWA"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-indigo-300 hover:text-white transition"
+              title="Feedback geben"
+            >
+              <ChatBubbleLeftEllipsisIcon class="h-5 w-5" />
+            </a>
             <a
               href="https://ko-fi.com/ev_monitor"
               target="_blank"
