@@ -39,6 +39,7 @@ public class TestDataBuilder {
                 "USER",
                 true, // emailVerified
                 false, // seedData
+                true, // emailNotificationsEnabled
                 LocalDateTime.now(),
                 LocalDateTime.now()
         );

@@ -70,6 +70,7 @@ class UserControllerIntegrationTest {
                 "USER",
                 true,
                 false,
+                true,
                 now,
                 now
         );
@@ -85,6 +86,7 @@ class UserControllerIntegrationTest {
                 testUserEntity.getRole(),
                 testUserEntity.isEmailVerified(),
                 testUserEntity.isSeedData(),
+                testUserEntity.isEmailNotificationsEnabled(),
                 testUserEntity.getCreatedAt(),
                 testUserEntity.getUpdatedAt()
         );
@@ -143,6 +145,7 @@ class UserControllerIntegrationTest {
                 "USER",
                 true,
                 false,
+                true,
                 LocalDateTime.now(),
                 LocalDateTime.now()
         );

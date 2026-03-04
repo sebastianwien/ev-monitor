@@ -148,4 +148,5 @@ public class UserEntity {
     public void setEmailNotificationsEnabled(boolean emailNotificationsEnabled) {
         this.emailNotificationsEnabled = emailNotificationsEnabled;
     }
+
 }

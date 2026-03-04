@@ -60,47 +60,15 @@ public class User {
         return new User(UUID.randomUUID(), email, username, null, authProvider, "USER", true, false, true, now, now);
     }
 
-    public UUID getId() {
-        return id;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public String getPasswordHash() {
-        return passwordHash;
-    }
-
-    public AuthProvider getAuthProvider() {
-        return authProvider;
-    }
-
-    public String getRole() {
-        return role;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public boolean isEmailVerified() {
-        return emailVerified;
-    }
-
-    public boolean isSeedData() {
-        return seedData;
-    }
-
-    public boolean isEmailNotificationsEnabled() {
-        return emailNotificationsEnabled;
-    }
+    public UUID getId() { return id; }
+    public String getEmail() { return email; }
+    public String getPasswordHash() { return passwordHash; }
+    public AuthProvider getAuthProvider() { return authProvider; }
+    public String getRole() { return role; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public String getUsername() { return username; }
+    public boolean isEmailVerified() { return emailVerified; }
+    public boolean isSeedData() { return seedData; }
+    public boolean isEmailNotificationsEnabled() { return emailNotificationsEnabled; }
 }

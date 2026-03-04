@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -26,6 +28,9 @@ public interface JpaUserRepository extends JpaRepository<UserEntity, UUID> {
     @Modifying
     @Query("UPDATE UserEntity u SET u.emailNotificationsEnabled = false WHERE u.id = :userId")
     void disableEmailNotifications(@Param("userId") UUID userId);
+
+    @Query("SELECT u FROM UserEntity u WHERE u.emailVerified = true AND u.emailNotificationsEnabled = true AND u.seedData = false AND cast(u.createdAt as LocalDate) = :day")
+    List<UserEntity> findRegisteredOnDay(@Param("day") LocalDate day);
 
     long countBySeedDataFalseAndEmailVerifiedTrue();
 }
