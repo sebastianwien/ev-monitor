@@ -34,3 +34,13 @@ export async function getAllModelsWithWltpData(): Promise<string[]> {
     const response = await apiClient.get<string[]>('/public/models')
     return response.data
 }
+
+export interface PlatformStats {
+    modelCount: number
+    userCount: number
+}
+
+export async function getPlatformStats(): Promise<PlatformStats> {
+    const response = await apiClient.get<PlatformStats>('/public/stats')
+    return response.data
+}

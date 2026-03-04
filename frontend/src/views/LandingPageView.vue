@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import { getAllModelsWithWltpData, getModelStats, type PublicModelStats } from '../api/publicModelService'
+import { getAllModelsWithWltpData, getModelStats, getPlatformStats, type PublicModelStats } from '../api/publicModelService'
 import {
   ChartBarIcon,
   LockClosedIcon,
@@ -23,8 +23,30 @@ interface ModelPreview {
 
 const topModels = ref<ModelPreview[]>([])
 const loading = ref(true)
+const displayModels = ref(0)
+const displayUsers = ref(0)
+
+function animateCount(target: number, setter: (v: number) => void, duration = 1400) {
+  const start = Date.now()
+  const tick = () => {
+    const progress = Math.min((Date.now() - start) / duration, 1)
+    const eased = 1 - Math.pow(1 - progress, 3) // ease-out cubic
+    setter(Math.round(eased * target))
+    if (progress < 1) requestAnimationFrame(tick)
+  }
+  requestAnimationFrame(tick)
+}
 
 onMounted(async () => {
+  // Load platform stats and animate counters
+  try {
+    const stats = await getPlatformStats()
+    animateCount(stats.modelCount, v => displayModels.value = v)
+    animateCount(stats.userCount, v => displayUsers.value = v)
+  } catch {
+    // fallback: leave at 0
+  }
+
   // Load top models with community data for SEO
   try {
     const allModels = await getAllModelsWithWltpData()
@@ -132,8 +154,10 @@ const formatDelta = (real: number | null, wltp: number): string => {
             <ArrowRightIcon class="h-5 w-5" />
           </router-link>
         </div>
-        <p class="mt-6 text-sm text-gray-500">
-          <!--300+ Ladevorgänge • -->250+ Modelle • 9 Fahrer
+        <p class="mt-6 text-sm text-gray-500 tabular-nums">
+          <span>{{ displayModels }}+ Modelle</span>
+          <span class="mx-2">•</span>
+          <span>{{ displayUsers }} Fahrer</span>
         </p>
       </div>
     </section>

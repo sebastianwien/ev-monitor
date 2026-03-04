@@ -1,5 +1,6 @@
 package com.evmonitor.infrastructure.web;
 
+import com.evmonitor.application.PlatformStatsResponse;
 import com.evmonitor.application.PublicModelService;
 import com.evmonitor.application.PublicModelStatsResponse;
 import com.evmonitor.infrastructure.security.UserPrincipal;
@@ -23,6 +24,15 @@ public class PublicModelController {
 
     public PublicModelController(PublicModelService publicModelService) {
         this.publicModelService = publicModelService;
+    }
+
+    /**
+     * GET /api/public/stats
+     * Returns platform-wide stats: total supported models and real user count.
+     */
+    @GetMapping("/stats")
+    public ResponseEntity<PlatformStatsResponse> getPlatformStats() {
+        return ResponseEntity.ok(publicModelService.getPlatformStats());
     }
 
     /**

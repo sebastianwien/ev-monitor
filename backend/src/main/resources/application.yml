@@ -8,6 +8,15 @@ spring:
     password: ${DB_PASSWORD:ev_password}
     driver-class-name: org.postgresql.Driver
 
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=500,expireAfterWrite=15m
+    cache-names:
+      - platformStats
+      - modelsWithData
+      - modelStats
+
   flyway:
     enabled: true
     baseline-on-migrate: true

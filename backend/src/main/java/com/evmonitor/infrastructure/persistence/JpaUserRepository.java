@@ -22,4 +22,6 @@ public interface JpaUserRepository extends JpaRepository<UserEntity, UUID> {
     @Modifying
     @Query("UPDATE UserEntity u SET u.emailVerified = true WHERE u.id = :userId")
     void markEmailVerified(@Param("userId") UUID userId);
+
+    long countBySeedDataFalseAndEmailVerifiedTrue();
 }
