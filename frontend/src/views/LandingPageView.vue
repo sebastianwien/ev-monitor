@@ -283,6 +283,24 @@ const formatDelta = (real: number | null, wltp: number): string => {
       </div>
     </section>
 
+    <!-- Coming Soon: Wallbox Integration -->
+    <section class="py-16 px-4 sm:px-6 lg:px-8 border-t border-gray-100">
+      <div class="max-w-3xl mx-auto text-center">
+        <span class="inline-block bg-amber-100 text-amber-800 text-xs font-semibold px-3 py-1 rounded-full mb-4 uppercase tracking-wide">
+          In Entwicklung
+        </span>
+        <h2 class="text-2xl font-semibold text-gray-900 mb-4">
+          Wallbox-Integration — kein manuelles Eintragen mehr
+        </h2>
+        <p class="text-gray-600 mb-6 max-w-xl mx-auto">
+          Bald kannst du deine Heimwallbox direkt verbinden. Ladevorgänge werden automatisch importiert — inklusive intelligenter Kilometerstand-Schätzung auf Basis deines eigenen Verbrauchsprofils.
+        </p>
+        <p class="text-sm text-gray-500">
+          go-e Charger als erster Anbieter · Weitere folgen
+        </p>
+      </div>
+    </section>
+
     <!-- Final CTA -->
     <section class="py-20 px-4 sm:px-6 lg:px-8">
       <div class="max-w-3xl mx-auto text-center">
