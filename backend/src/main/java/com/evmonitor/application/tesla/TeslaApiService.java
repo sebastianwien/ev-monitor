@@ -336,7 +336,7 @@ public class TeslaApiService {
             odometerKm, // Import odometer from vehicle_state
             chargeState.chargerPower() != null ? BigDecimal.valueOf(chargeState.chargerPower()) : null, // maxChargingPowerKw
             loggedAt,
-            "TESLA_IMPORT"
+            DataSource.TESLA_IMPORT
         );
     }
 

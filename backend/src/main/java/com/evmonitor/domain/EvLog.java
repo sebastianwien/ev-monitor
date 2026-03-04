@@ -15,14 +15,14 @@ public class EvLog {
     private final Integer odometerKm; // Optional: odometer reading in km
     private final BigDecimal maxChargingPowerKw; // Optional: max charging power in kW
     private final LocalDateTime loggedAt; // When the charge happened (user-provided or now)
-    private final String dataSource; // Source of data: USER_LOGGED, SPRITMONITOR_IMPORT, etc.
+    private final DataSource dataSource;
     private final boolean includeInStatistics; // Whether to include in public stats/aggregations
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
 
     public EvLog(UUID id, UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
             Integer chargeDurationMinutes, String geohash, Integer odometerKm,
-            BigDecimal maxChargingPowerKw, LocalDateTime loggedAt, String dataSource,
+            BigDecimal maxChargingPowerKw, LocalDateTime loggedAt, DataSource dataSource,
             boolean includeInStatistics, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.carId = carId;
@@ -33,7 +33,7 @@ public class EvLog {
         this.odometerKm = odometerKm;
         this.maxChargingPowerKw = maxChargingPowerKw;
         this.loggedAt = loggedAt != null ? loggedAt : LocalDateTime.now();
-        this.dataSource = dataSource != null ? dataSource : "USER_LOGGED";
+        this.dataSource = dataSource != null ? dataSource : DataSource.USER_LOGGED;
         this.includeInStatistics = includeInStatistics;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
@@ -45,26 +45,17 @@ public class EvLog {
         LocalDateTime now = LocalDateTime.now();
         return new EvLog(UUID.randomUUID(), carId, kwhCharged, costEur,
                 chargeDurationMinutes, geohash, odometerKm, maxChargingPowerKw, loggedAt,
-                "USER_LOGGED", true, now, now); // USER_LOGGED always included in stats
+                DataSource.USER_LOGGED, true, now, now);
     }
 
     public static EvLog createNewWithSource(UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
             Integer chargeDurationMinutes, String geohash, Integer odometerKm,
-            BigDecimal maxChargingPowerKw, LocalDateTime loggedAt, String dataSource) {
+            BigDecimal maxChargingPowerKw, LocalDateTime loggedAt, DataSource dataSource) {
         LocalDateTime now = LocalDateTime.now();
-        // Determine if should be included in statistics based on data source
-        boolean includeInStats = shouldIncludeInStatistics(dataSource);
+        boolean includeInStats = dataSource.includeInStatistics();
         return new EvLog(UUID.randomUUID(), carId, kwhCharged, costEur,
                 chargeDurationMinutes, geohash, odometerKm, maxChargingPowerKw, loggedAt,
                 dataSource, includeInStats, now, now);
-    }
-
-    private static boolean shouldIncludeInStatistics(String dataSource) {
-        // Exclude incomplete/test data sources
-        return dataSource == null ||
-               (!dataSource.equals("TESLA_IMPORT") &&
-                !dataSource.equals("SEED_DATA") &&
-                !dataSource.startsWith("TEST_"));
     }
 
     public UUID getId() {
@@ -111,7 +102,7 @@ public class EvLog {
         return maxChargingPowerKw;
     }
 
-    public String getDataSource() {
+    public DataSource getDataSource() {
         return dataSource;
     }
 

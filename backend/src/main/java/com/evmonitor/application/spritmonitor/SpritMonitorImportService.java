@@ -5,6 +5,7 @@ import com.evmonitor.application.CoinLogService;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.CoinType;
+import com.evmonitor.domain.DataSource;
 import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.EvLogRepository;
 import com.evmonitor.infrastructure.external.SpritMonitorClient;
@@ -24,7 +25,7 @@ import java.util.UUID;
 public class SpritMonitorImportService {
 
     public static final DateTimeFormatter DD_MM_YYYY = DateTimeFormatter.ofPattern("dd.MM.yyyy");
-    private static final String DATA_SOURCE = "SPRITMONITOR_IMPORT";
+    private static final DataSource DATA_SOURCE = DataSource.SPRITMONITOR_IMPORT;
     private static final int IMPORT_COINS = 50;
 
     private final SpritMonitorClient client;
