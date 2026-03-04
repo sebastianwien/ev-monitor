@@ -2,9 +2,11 @@ package com.evmonitor.application;
 
 import com.evmonitor.domain.CarBrand;
 import com.evmonitor.infrastructure.persistence.JpaEvLogRepository;
+import com.evmonitor.infrastructure.persistence.JpaUserRepository;
 import com.evmonitor.infrastructure.persistence.JpaVehicleSpecificationRepository;
 import com.evmonitor.infrastructure.persistence.VehicleSpecificationEntity;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -19,11 +21,23 @@ public class PublicModelService {
 
     private final JpaEvLogRepository evLogRepository;
     private final JpaVehicleSpecificationRepository vehicleSpecificationRepository;
+    private final JpaUserRepository userRepository;
 
     public PublicModelService(JpaEvLogRepository evLogRepository,
-                              JpaVehicleSpecificationRepository vehicleSpecificationRepository) {
+                              JpaVehicleSpecificationRepository vehicleSpecificationRepository,
+                              JpaUserRepository userRepository) {
         this.evLogRepository = evLogRepository;
         this.vehicleSpecificationRepository = vehicleSpecificationRepository;
+        this.userRepository = userRepository;
+    }
+
+    @Cacheable("platformStats")
+    public PlatformStatsResponse getPlatformStats() {
+        int modelCount = (int) java.util.Arrays.stream(CarBrand.CarModel.values())
+                .filter(m -> m != CarBrand.CarModel.UNKNOWN)
+                .count();
+        long userCount = userRepository.countBySeedDataFalseAndEmailVerifiedTrue();
+        return new PlatformStatsResponse(modelCount, userCount);
     }
 
     /**
@@ -31,6 +45,7 @@ public class PublicModelService {
      * Excludes all data from seed/test users.
      * Returns Optional.empty() if the model enum doesn't exist.
      */
+    @Cacheable("modelStats")
     public Optional<PublicModelStatsResponse> getModelStats(String brandName, String modelName,
                                                              UUID currentUserId, boolean isSeedUser) {
         // Validate that the model actually exists in our enum
@@ -127,6 +142,7 @@ public class PublicModelService {
      * If authenticated as seed user, includes models with their own seed data.
      * Returns format: "BRAND/MODEL" (e.g., "TESLA/MODEL_3")
      */
+    @Cacheable("modelsWithData")
     public List<String> getModelsWithWltpData(UUID currentUserId, boolean isSeedUser) {
         // Get all models with WLTP data
         List<String> modelsWithWltp = vehicleSpecificationRepository.findAll().stream()
