@@ -1,5 +1,6 @@
 package com.evmonitor.application;
 
+import com.evmonitor.domain.CoinType;
 import com.evmonitor.domain.EmailVerificationToken;
 import com.evmonitor.domain.EmailVerificationTokenRepository;
 import com.evmonitor.domain.User;
@@ -18,12 +19,15 @@ import java.time.LocalDateTime;
 @Service
 public class AuthService {
 
+    private static final int MAX_REFERRALS = 20;
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final EmailVerificationTokenRepository tokenRepository;
     private final EmailService emailService;
+    private final CoinLogService coinLogService;
 
     public AuthService(
             UserRepository userRepository,
@@ -31,13 +35,15 @@ public class AuthService {
             JwtService jwtService,
             AuthenticationManager authenticationManager,
             EmailVerificationTokenRepository tokenRepository,
-            EmailService emailService) {
+            EmailService emailService,
+            CoinLogService coinLogService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
         this.tokenRepository = tokenRepository;
         this.emailService = emailService;
+        this.coinLogService = coinLogService;
     }
 
     @Transactional
@@ -50,7 +56,19 @@ public class AuthService {
         }
 
         String encodedPassword = passwordEncoder.encode(request.password());
-        User user = User.createNewLocalUser(request.email(), request.username(), encodedPassword);
+
+        User user;
+        if (request.referralCode() != null && !request.referralCode().isBlank()) {
+            User referrer = userRepository.findByReferralCode(request.referralCode().toUpperCase())
+                    .filter(r -> userRepository.countVerifiedReferrals(r.getId()) < MAX_REFERRALS)
+                    .orElse(null);
+            user = referrer != null
+                    ? User.createNewLocalUserWithReferrer(request.email(), request.username(), encodedPassword, referrer.getId())
+                    : User.createNewLocalUser(request.email(), request.username(), encodedPassword);
+        } else {
+            user = User.createNewLocalUser(request.email(), request.username(), encodedPassword);
+        }
+
         User savedUser = userRepository.save(user);
 
         EmailVerificationToken verificationToken = EmailVerificationToken.createFor(savedUser.getId());
@@ -76,6 +94,14 @@ public class AuthService {
 
         User user = userRepository.findById(verificationToken.getUserId())
                 .orElseThrow(() -> new IllegalStateException("User not found after verification"));
+
+        if (user.getReferredByUserId() != null) {
+            long referralCount = userRepository.countVerifiedReferrals(user.getReferredByUserId());
+            if (referralCount <= MAX_REFERRALS) {
+                coinLogService.awardCoins(user.getReferredByUserId(), CoinType.SOCIAL_COIN, 100, CoinLogService.ACTION_REFERRAL_INVITED);
+            }
+            coinLogService.awardCoins(user.getId(), CoinType.SOCIAL_COIN, 25, CoinLogService.ACTION_REFERRAL_WELCOME);
+        }
 
         String jwtToken = jwtService.generateToken(UserPrincipal.create(user));
         return new AuthResponse(jwtToken, user.getId(), user.getEmail(), user.getRole(), user.isSeedData());

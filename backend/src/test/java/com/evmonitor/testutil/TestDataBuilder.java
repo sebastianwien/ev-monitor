@@ -40,6 +40,8 @@ public class TestDataBuilder {
                 true, // emailVerified
                 false, // seedData
                 true, // emailNotificationsEnabled
+                UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase(),
+                null, // referredByUserId
                 LocalDateTime.now(),
                 LocalDateTime.now()
         );

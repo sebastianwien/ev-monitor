@@ -33,4 +33,8 @@ public interface JpaUserRepository extends JpaRepository<UserEntity, UUID> {
     List<UserEntity> findRegisteredOnDay(@Param("day") LocalDate day);
 
     long countBySeedDataFalseAndEmailVerifiedTrue();
+
+    Optional<UserEntity> findByReferralCode(String referralCode);
+
+    long countByReferredByUserIdAndEmailVerifiedTrue(UUID referredByUserId);
 }

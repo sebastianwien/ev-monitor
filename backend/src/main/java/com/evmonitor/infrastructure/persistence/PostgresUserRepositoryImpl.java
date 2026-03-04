@@ -75,6 +75,16 @@ public class PostgresUserRepositoryImpl implements UserRepository {
         jpaUserRepository.deleteById(user.getId());
     }
 
+    @Override
+    public Optional<User> findByReferralCode(String referralCode) {
+        return jpaUserRepository.findByReferralCode(referralCode).map(this::toDomain);
+    }
+
+    @Override
+    public long countVerifiedReferrals(UUID referrerId) {
+        return jpaUserRepository.countByReferredByUserIdAndEmailVerifiedTrue(referrerId);
+    }
+
     private UserEntity toEntity(User domain) {
         return new UserEntity(
                 domain.getId(),
@@ -86,6 +96,8 @@ public class PostgresUserRepositoryImpl implements UserRepository {
                 domain.isEmailVerified(),
                 domain.isSeedData(),
                 domain.isEmailNotificationsEnabled(),
+                domain.getReferralCode(),
+                domain.getReferredByUserId(),
                 domain.getCreatedAt(),
                 domain.getUpdatedAt());
     }
@@ -101,6 +113,8 @@ public class PostgresUserRepositoryImpl implements UserRepository {
                 entity.isEmailVerified(),
                 entity.isSeedData(),
                 entity.isEmailNotificationsEnabled(),
+                entity.getReferralCode(),
+                entity.getReferredByUserId(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt());
     }

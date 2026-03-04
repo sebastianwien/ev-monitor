@@ -22,6 +22,8 @@ public class CoinLogService {
     public static final String ACTION_SPRITMONITOR_IMPORTED = "Sprit-Monitor Import";
     public static final String ACTION_IMAGE_UPLOADED        = "Erstes Auto-Bild hochgeladen";
     public static final String ACTION_IMAGE_PUBLIC          = "Auto-Bild öffentlich geteilt";
+    public static final String ACTION_REFERRAL_INVITED      = "Freund eingeladen";
+    public static final String ACTION_REFERRAL_WELCOME      = "Willkommensbonus (eingeladen)";
 
     private final CoinLogRepository coinLogRepository;
 

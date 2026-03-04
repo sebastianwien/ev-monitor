@@ -25,4 +25,8 @@ public interface UserRepository {
     List<User> findRegisteredOnDay(LocalDate day);
 
     void delete(User user);
+
+    Optional<User> findByReferralCode(String referralCode);
+
+    long countVerifiedReferrals(UUID referrerId);
 }

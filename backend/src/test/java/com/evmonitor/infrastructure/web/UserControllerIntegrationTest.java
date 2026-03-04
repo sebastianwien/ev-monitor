@@ -71,6 +71,8 @@ class UserControllerIntegrationTest {
                 true,
                 false,
                 true,
+                "TESTCODE1",
+                null,
                 now,
                 now
         );
@@ -87,6 +89,8 @@ class UserControllerIntegrationTest {
                 testUserEntity.isEmailVerified(),
                 testUserEntity.isSeedData(),
                 testUserEntity.isEmailNotificationsEnabled(),
+                testUserEntity.getReferralCode(),
+                testUserEntity.getReferredByUserId(),
                 testUserEntity.getCreatedAt(),
                 testUserEntity.getUpdatedAt()
         );
@@ -146,6 +150,8 @@ class UserControllerIntegrationTest {
                 true,
                 false,
                 true,
+                "TESTCODE2",
+                null,
                 LocalDateTime.now(),
                 LocalDateTime.now()
         );

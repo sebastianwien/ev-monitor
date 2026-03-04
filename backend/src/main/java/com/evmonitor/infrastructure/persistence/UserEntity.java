@@ -37,6 +37,12 @@ public class UserEntity {
     @Column(name = "email_notifications_enabled", nullable = false)
     private boolean emailNotificationsEnabled;
 
+    @Column(name = "referral_code", nullable = false, unique = true)
+    private String referralCode;
+
+    @Column(name = "referred_by_user_id")
+    private UUID referredByUserId;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -47,7 +53,9 @@ public class UserEntity {
     }
 
     public UserEntity(UUID id, String email, String username, String passwordHash, AuthProvider authProvider, String role,
-            boolean emailVerified, boolean seedData, boolean emailNotificationsEnabled, LocalDateTime createdAt, LocalDateTime updatedAt) {
+            boolean emailVerified, boolean seedData, boolean emailNotificationsEnabled,
+            String referralCode, UUID referredByUserId,
+            LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.email = email;
         this.username = username;
@@ -57,6 +65,8 @@ public class UserEntity {
         this.emailVerified = emailVerified;
         this.seedData = seedData;
         this.emailNotificationsEnabled = emailNotificationsEnabled;
+        this.referralCode = referralCode;
+        this.referredByUserId = referredByUserId;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -147,6 +157,22 @@ public class UserEntity {
 
     public void setEmailNotificationsEnabled(boolean emailNotificationsEnabled) {
         this.emailNotificationsEnabled = emailNotificationsEnabled;
+    }
+
+    public String getReferralCode() {
+        return referralCode;
+    }
+
+    public void setReferralCode(String referralCode) {
+        this.referralCode = referralCode;
+    }
+
+    public UUID getReferredByUserId() {
+        return referredByUserId;
+    }
+
+    public void setReferredByUserId(UUID referredByUserId) {
+        this.referredByUserId = referredByUserId;
     }
 
 }
