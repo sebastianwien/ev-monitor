@@ -90,7 +90,7 @@ class EvLogTest {
         Integer odometerKm = null;
         BigDecimal maxChargingPowerKw = BigDecimal.valueOf(11.0);
         LocalDateTime loggedAt = LocalDateTime.now();
-        String dataSource = "TESLA_IMPORT";
+        DataSource dataSource = DataSource.TESLA_IMPORT;
 
         // When
         EvLog evLog = EvLog.createNewWithSource(carId, kwhCharged, costEur, chargeDurationMinutes,
@@ -119,7 +119,7 @@ class EvLogTest {
         Integer odometerKm = 75000;
         BigDecimal maxChargingPowerKw = BigDecimal.valueOf(175.5);
         LocalDateTime loggedAt = LocalDateTime.now();
-        String dataSource = "USER_LOGGED";
+        DataSource dataSource = DataSource.USER_LOGGED;
         LocalDateTime createdAt = LocalDateTime.now();
         LocalDateTime updatedAt = LocalDateTime.now();
 
