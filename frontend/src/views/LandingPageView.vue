@@ -154,7 +154,7 @@ const formatDelta = (real: number | null, wltp: number): string => {
             <ArrowRightIcon class="h-5 w-5" />
           </router-link>
         </div>
-        <p class="mt-6 text-sm text-gray-500 tabular-nums">
+        <p class="mt-6 text-base font-semibold text-gray-600 tabular-nums">
           <span>{{ displayModels }}+ Modelle</span>
           <span class="mx-2">•</span>
           <span>{{ displayUsers }} Fahrer</span>
