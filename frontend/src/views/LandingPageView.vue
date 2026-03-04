@@ -133,7 +133,7 @@ const formatDelta = (real: number | null, wltp: number): string => {
           </router-link>
         </div>
         <p class="mt-6 text-sm text-gray-500">
-          300+ Ladevorgänge • 250+ Modelle • 20+ Fahrer
+          <!--300+ Ladevorgänge • -->250+ Modelle • 9 Fahrer
         </p>
       </div>
     </section>

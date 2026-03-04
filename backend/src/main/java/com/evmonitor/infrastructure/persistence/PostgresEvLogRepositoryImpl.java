@@ -1,5 +1,6 @@
 package com.evmonitor.infrastructure.persistence;
 
+import com.evmonitor.domain.DataSource;
 import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.EvLogRepository;
 import org.springframework.stereotype.Component;
@@ -63,8 +64,8 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
-    public boolean existsByCarIdAndLoggedAtAndDataSource(UUID carId, LocalDateTime loggedAt, String dataSource) {
-        return jpaRepository.existsByCarIdAndLoggedAtAndDataSource(carId, loggedAt, dataSource);
+    public boolean existsByCarIdAndLoggedAtAndDataSource(UUID carId, LocalDateTime loggedAt, DataSource dataSource) {
+        return jpaRepository.existsByCarIdAndLoggedAtAndDataSource(carId, loggedAt, dataSource.name());
     }
 
     @Override
@@ -88,7 +89,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 domain.getOdometerKm(),
                 domain.getMaxChargingPowerKw(),
                 domain.getLoggedAt(),
-                domain.getDataSource(),
+                domain.getDataSource().name(),
                 domain.isIncludeInStatistics(),
                 domain.getCreatedAt(),
                 domain.getUpdatedAt());
@@ -105,7 +106,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 entity.getOdometerKm(),
                 entity.getMaxChargingPowerKw(),
                 entity.getLoggedAt(),
-                entity.getDataSource(),
+                DataSource.valueOf(entity.getDataSource()),
                 entity.isIncludeInStatistics(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt());

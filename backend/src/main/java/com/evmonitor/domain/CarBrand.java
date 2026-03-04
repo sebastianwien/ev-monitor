@@ -55,16 +55,6 @@ public enum CarBrand {
    XPENG("Xpeng"),
    ZEEKR("Zeekr"),
    ORA("ORA"),
-   WEY("WEY"),
-   AIWAYS("Aiways"),
-   MAXUS("Maxus"),
-   VOYAH("Voyah"),
-   HONGI("Hongqi"),
-   AVATR("Avatr"),
-   LEAPMOTOR("Leapmotor"),
-   SERES("Seres"),
-   GEELY("Geely"),
-   CHERY("Chery"),
 
    // Sonstige
    SONSTIGE("Andere Marke");

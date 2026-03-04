@@ -240,16 +240,16 @@ public class DevDataSeeder implements CommandLineRunner {
                 maxChargingPower = BigDecimal.valueOf(powerOptions[random.nextInt(powerOptions.length)]);
             }
 
-            EvLog log = EvLog.createNew(
-                    car.getId(),
-                    BigDecimal.valueOf(Math.round(kwhCharged * 100.0) / 100.0),
-                    BigDecimal.valueOf(Math.round(costEur * 100.0) / 100.0),
-                    minutes,
-                    getRandomBerlinGeohash(),
-                    currentOdometer,
-                    maxChargingPower,
-                    chargeTime
-            );
+            EvLog log = EvLog.createNewWithSource(
+                car.getId(),
+                BigDecimal.valueOf(Math.round(kwhCharged * 100.0) / 100.0),
+                BigDecimal.valueOf(Math.round(costEur * 100.0) / 100.0),
+                minutes,
+                getRandomBerlinGeohash(),
+                currentOdometer,
+                maxChargingPower,
+                chargeTime,
+                DataSource.SEED_DATA);
 
             evLogRepository.save(log);
         }
