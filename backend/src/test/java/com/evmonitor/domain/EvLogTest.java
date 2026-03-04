@@ -36,7 +36,7 @@ class EvLogTest {
         assertEquals(odometerKm, evLog.getOdometerKm());
         assertEquals(maxChargingPowerKw, evLog.getMaxChargingPowerKw());
         assertEquals(loggedAt, evLog.getLoggedAt());
-        assertEquals("USER_LOGGED", evLog.getDataSource()); // Default source
+        assertEquals(DataSource.USER_LOGGED, evLog.getDataSource()); // Default source
         assertNotNull(evLog.getCreatedAt());
         assertNotNull(evLog.getUpdatedAt());
     }
