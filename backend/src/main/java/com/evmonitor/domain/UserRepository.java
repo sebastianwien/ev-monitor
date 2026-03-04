@@ -1,5 +1,7 @@
 package com.evmonitor.domain;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -19,6 +21,8 @@ public interface UserRepository {
     void markEmailVerified(UUID userId);
 
     void disableEmailNotifications(UUID userId);
+
+    List<User> findRegisteredOnDay(LocalDate day);
 
     void delete(User user);
 }

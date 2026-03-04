@@ -58,6 +58,7 @@ class UserServiceTest {
                 "USER",
                 true,
                 false,
+                true,
                 LocalDateTime.now(),
                 LocalDateTime.now()
         );
@@ -71,6 +72,7 @@ class UserServiceTest {
                 "USER",
                 true,
                 false,
+                true,
                 LocalDateTime.now(),
                 LocalDateTime.now()
         );

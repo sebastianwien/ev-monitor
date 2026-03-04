@@ -5,6 +5,8 @@ import com.evmonitor.domain.UserRepository;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -59,6 +61,12 @@ public class PostgresUserRepositoryImpl implements UserRepository {
     @Transactional
     public void disableEmailNotifications(UUID userId) {
         jpaUserRepository.disableEmailNotifications(userId);
+    }
+
+    @Override
+    public List<User> findRegisteredOnDay(LocalDate day) {
+        return jpaUserRepository.findRegisteredOnDay(day)
+                .stream().map(this::toDomain).toList();
     }
 
     @Override

@@ -3,9 +3,14 @@ package com.evmonitor.infrastructure.email;
 import com.evmonitor.infrastructure.security.JwtService;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 @Service
 public class EmailService {
@@ -31,45 +36,45 @@ public class EmailService {
 
     public void sendVerificationEmail(String toEmail, String token) {
         String verificationUrl = baseUrl + "/verify-email?token=" + token;
+        String html = loadTemplate("verification.html", Map.of(
+                "verificationUrl", verificationUrl
+        ));
+        sendHtmlEmail(toEmail, "EV Monitor – E-Mail bestätigen", html);
+    }
+
+    public void sendOnboardingReminderEmail(String toEmail, String username) {
+        String html = loadTemplate("onboarding-reminder.html", Map.of(
+                "username", username,
+                "dashboardUrl", baseUrl + "/dashboard",
+                "unsubscribeUrl", buildUnsubscribeUrl(toEmail)
+        ));
+        sendHtmlEmail(toEmail, "EV Monitor – Alles bereit für dein erstes Ladetagebuch?", html);
+    }
+
+    private void sendHtmlEmail(String toEmail, String subject, String html) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
             helper.setFrom(fromAddress);
             helper.setTo(toEmail);
-            helper.setSubject("EV Monitor – E-Mail bestätigen");
-            helper.setText(buildHtml(verificationUrl), true);
+            helper.setSubject(subject);
+            helper.setText(html, true);
             mailSender.send(message);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to send verification email to " + toEmail, e);
+            throw new RuntimeException("Failed to send email '" + subject + "' to " + toEmail, e);
         }
     }
 
-    private String buildHtml(String verificationUrl) {
-        return """
-                <!DOCTYPE html>
-                <html lang="de">
-                <body style="font-family: Arial, sans-serif; background-color: #f3f4f6; margin: 0; padding: 20px;">
-                  <div style="max-width: 600px; margin: 40px auto; background: #ffffff; border-radius: 12px; padding: 40px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-                    <h1 style="color: #4f46e5; font-size: 26px; margin-bottom: 4px;">⚡ EV Monitor</h1>
-                    <h2 style="color: #1f2937; font-size: 20px; margin-top: 0; font-weight: 600;">Fast geschafft! Bestätige deine E-Mail.</h2>
-                    <p style="color: #6b7280; line-height: 1.7; font-size: 15px;">
-                      Klick auf den Button unten, um dein Konto zu aktivieren.<br>
-                      Der Link ist <strong>24 Stunden</strong> gültig.
-                    </p>
-                    <div style="text-align: center; margin: 36px 0;">
-                      <a href="%s"
-                         style="display: inline-block; background-color: #4f46e5; color: #ffffff; padding: 14px 36px;
-                                border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px;
-                                letter-spacing: 0.3px;">
-                        E-Mail bestätigen
-                      </a>
-                    </div>
-                    <p style="color: #9ca3af; font-size: 13px; margin-top: 32px; border-top: 1px solid #e5e7eb; padding-top: 16px;">
-                      Falls du dich nicht bei EV Monitor registriert hast, kannst du diese E-Mail einfach ignorieren.
-                    </p>
-                  </div>
-                </body>
-                </html>
-                """.formatted(verificationUrl);
+    private String loadTemplate(String templateName, Map<String, String> variables) {
+        try {
+            ClassPathResource resource = new ClassPathResource("email-templates/" + templateName);
+            String template = resource.getContentAsString(StandardCharsets.UTF_8);
+            for (Map.Entry<String, String> entry : variables.entrySet()) {
+                template = template.replace("{{" + entry.getKey() + "}}", entry.getValue());
+            }
+            return template;
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to load email template: " + templateName, e);
+        }
     }
 }
