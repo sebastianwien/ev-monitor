@@ -538,6 +538,21 @@ onMounted(fetchStatistics)
           <ChargingHeatMap :car-id="selectedCarId" :time-range="selectedTimeRange" />
         </div>
 
+        <!-- Support -->
+        <div class="px-4 md:px-0 py-6 text-center">
+          <p class="text-sm text-gray-400">
+            EV Monitor ist kostenlos.
+            <a
+              href="https://ko-fi.com/ev_monitor"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-gray-400 hover:text-amber-600 transition underline underline-offset-2"
+            >
+              Unterstütze die Entwicklung auf Ko-fi →
+            </a>
+          </p>
+        </div>
+
       </div>
     </div>
   </div>

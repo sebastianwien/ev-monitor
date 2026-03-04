@@ -150,7 +150,9 @@ const fetchLogs = async () => {
 
   try {
     const res = await api.get(`/logs?carId=${selectedCarId.value}`)
-    logs.value = res.data
+    logs.value = res.data.sort((a: any, b: any) =>
+      new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime()
+    )
   } catch (err) {
     console.error('Failed to fetch logs:', err)
   }

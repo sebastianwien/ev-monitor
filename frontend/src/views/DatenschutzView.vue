@@ -1,5 +1,8 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { BoltIcon } from '@heroicons/vue/24/outline'
+
+const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
 </script>
 
 <template>
@@ -28,9 +31,9 @@ import { BoltIcon } from '@heroicons/vue/24/outline'
           <h2 class="text-2xl font-semibold text-gray-900 mb-4">1. Verantwortlicher</h2>
           <p>
             Verantwortlich für die Datenverarbeitung auf dieser Website ist:<br />
-            [Dein Name / Firmenname]<br />
-            [Adresse]<br />
-            [E-Mail]
+            Sebastian Wien<br />
+            Cotheniusstrasse 5, 10407 Berlin<br />
+            E-Mail: <a :href="`mailto:${email}`" class="text-green-600 hover:text-green-700">{{ email }}</a>
           </p>
         </section>
 
@@ -157,7 +160,8 @@ import { BoltIcon } from '@heroicons/vue/24/outline'
             <li><strong>Widerspruch:</strong> Widerspruch gegen die Verarbeitung</li>
           </ul>
           <p class="mt-4">
-            Zur Ausübung Ihrer Rechte kontaktieren Sie uns unter: [E-Mail]
+            Zur Ausübung Ihrer Rechte kontaktieren Sie uns unter:
+            <a :href="`mailto:${email}`" class="text-green-600 hover:text-green-700">{{ email }}</a>
           </p>
         </section>
 
@@ -185,7 +189,25 @@ import { BoltIcon } from '@heroicons/vue/24/outline'
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 mb-4">10. Änderungen dieser Datenschutzerklärung</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 mb-4">10. Externe Dienste: Ko-fi</h2>
+          <p>
+            Auf unserer Website befindet sich ein Link zur Plattform Ko-fi
+            (<a href="https://ko-fi.com" target="_blank" rel="noopener noreferrer" class="text-green-600 hover:text-green-700">ko-fi.com</a>),
+            über die Sie die Entwicklung von EV Monitor freiwillig unterstützen können.
+          </p>
+          <p class="mt-4">
+            Der Link öffnet die externe Website von Ko-fi. EV Monitor bettet keinen Ko-fi-Code oder externe Scripts ein.
+            Es werden durch den Klick auf den Link keine Daten von uns an Ko-fi übertragen.
+            Erst wenn Sie die Ko-fi-Website besuchen, gelten deren Datenschutzbestimmungen:
+            <a href="https://more.ko-fi.com/privacy" target="_blank" rel="noopener noreferrer" class="text-green-600 hover:text-green-700">https://more.ko-fi.com/privacy</a>.
+          </p>
+          <p class="mt-4">
+            Die Nutzung von Ko-fi ist vollständig freiwillig und hat keinen Einfluss auf die Nutzung von EV Monitor.
+          </p>
+        </section>
+
+        <section>
+          <h2 class="text-2xl font-semibold text-gray-900 mb-4">11. Änderungen dieser Datenschutzerklärung</h2>
           <p>
             Wir behalten uns vor, diese Datenschutzerklärung anzupassen, um sie an geänderte Rechtslagen
             oder Änderungen des Services anzupassen.
