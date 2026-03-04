@@ -74,6 +74,13 @@ public class CarController {
         return ResponseEntity.noContent().build();
     }
 
+    @PutMapping("/{id}/activate")
+    public ResponseEntity<CarResponse> activateCar(@PathVariable UUID id, Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        CarResponse response = carService.setActiveCar(id, principal.getUser().getId());
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("/{id}/image")
     public ResponseEntity<CarImageResponse> uploadCarImage(
             @PathVariable UUID id,

@@ -21,11 +21,13 @@ public class Car {
     private final LocalDateTime updatedAt;
     private final String imagePath;
     private final boolean imagePublic;
+    private final boolean isPrimary;
 
     public Car(UUID id, UUID userId, CarBrand.CarModel model, Integer year, String licensePlate,
             String trim, BigDecimal batteryCapacityKwh, BigDecimal powerKw,
             LocalDate registrationDate, LocalDate deregistrationDate, CarStatus status,
-            LocalDateTime createdAt, LocalDateTime updatedAt, String imagePath, boolean imagePublic) {
+            LocalDateTime createdAt, LocalDateTime updatedAt, String imagePath, boolean imagePublic,
+            boolean isPrimary) {
         this.id = id;
         this.userId = userId;
         this.model = model;
@@ -41,6 +43,7 @@ public class Car {
         this.updatedAt = updatedAt;
         this.imagePath = imagePath;
         this.imagePublic = imagePublic;
+        this.isPrimary = isPrimary;
     }
 
     public static Car createNew(UUID userId, CarBrand.CarModel model, Integer year, String licensePlate,
@@ -48,19 +51,31 @@ public class Car {
         LocalDateTime now = LocalDateTime.now();
         LocalDate registrationDate = LocalDate.of(year, 1, 1); // Default: Jan 1st of car year
         return new Car(UUID.randomUUID(), userId, model, year, licensePlate, trim,
-                batteryCapacityKwh, powerKw, registrationDate, null, CarStatus.ACTIVE, now, now, null, false);
+                batteryCapacityKwh, powerKw, registrationDate, null, CarStatus.ACTIVE, now, now, null, false, false);
     }
 
     public Car deregister(LocalDate deregistrationDate) {
         return new Car(id, userId, model, year, licensePlate, trim, batteryCapacityKwh, powerKw,
                 registrationDate, deregistrationDate, CarStatus.INACTIVE, createdAt, LocalDateTime.now(),
-                imagePath, imagePublic);
+                imagePath, imagePublic, isPrimary);
     }
 
     public Car withImage(String imagePath, boolean imagePublic) {
         return new Car(id, userId, model, year, licensePlate, trim, batteryCapacityKwh, powerKw,
                 registrationDate, deregistrationDate, status, createdAt, LocalDateTime.now(),
-                imagePath, imagePublic);
+                imagePath, imagePublic, isPrimary);
+    }
+
+    public Car activate() {
+        return new Car(id, userId, model, year, licensePlate, trim, batteryCapacityKwh, powerKw,
+                registrationDate, deregistrationDate, status, createdAt, LocalDateTime.now(),
+                imagePath, imagePublic, true);
+    }
+
+    public Car deactivate() {
+        return new Car(id, userId, model, year, licensePlate, trim, batteryCapacityKwh, powerKw,
+                registrationDate, deregistrationDate, status, createdAt, LocalDateTime.now(),
+                imagePath, imagePublic, false);
     }
 
     public UUID getId() {
@@ -121,5 +136,9 @@ public class Car {
 
     public boolean isImagePublic() {
         return imagePublic;
+    }
+
+    public boolean isPrimary() {
+        return isPrimary;
     }
 }

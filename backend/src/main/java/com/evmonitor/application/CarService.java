@@ -88,7 +88,8 @@ public class CarService {
                 existingCar.getCreatedAt(),
                 java.time.LocalDateTime.now(),
                 existingCar.getImagePath(),
-                existingCar.isImagePublic());
+                existingCar.isImagePublic(),
+                existingCar.isPrimary());
 
         Car savedCar = carRepository.save(updatedCar);
         return CarResponse.fromDomain(savedCar);
@@ -109,6 +110,27 @@ public class CarService {
     public Car getCarById(UUID carId) {
         return carRepository.findById(carId)
                 .orElseThrow(() -> new IllegalArgumentException("Car not found with ID: " + carId));
+    }
+
+    @Transactional
+    public CarResponse setActiveCar(UUID carId, UUID userId) {
+        Car targetCar = carRepository.findById(carId)
+                .orElseThrow(() -> new IllegalArgumentException("Car not found with ID: " + carId));
+
+        if (!targetCar.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("User does not own the specified car");
+        }
+
+        // Deactivate all cars for this user, then activate the target
+        List<Car> allCars = carRepository.findAllByUserId(userId);
+        for (Car car : allCars) {
+            if (car.isPrimary()) {
+                carRepository.save(car.deactivate());
+            }
+        }
+
+        Car activated = carRepository.save(targetCar.activate());
+        return CarResponse.fromDomain(activated);
     }
 
     @Transactional

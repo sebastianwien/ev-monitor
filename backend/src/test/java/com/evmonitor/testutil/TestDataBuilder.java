@@ -81,7 +81,8 @@ public class TestDataBuilder {
                 LocalDateTime.now(),
                 LocalDateTime.now(),
                 null,   // imagePath
-                false   // imagePublic
+                false,  // imagePublic
+                false   // isPrimary
         );
     }
 

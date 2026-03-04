@@ -281,6 +281,11 @@ const handleOcrData = (ocrResult: any) => {
   <div class="md:max-w-2xl md:mx-auto p-4 md:p-6 bg-white md:rounded-xl md:shadow-lg md:mt-8">
     <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">Ladevorgang erfassen</h1>
 
+    <!-- Car Selector: always visible -->
+    <div class="mb-6">
+      <CarSelector v-model="selectedCarId" />
+    </div>
+
     <!-- Mode Toggle: Photo OCR vs Manual Entry -->
     <div class="flex gap-3 mb-6 border border-gray-200 rounded-lg p-1 bg-gray-50">
       <button
@@ -327,8 +332,6 @@ const handleOcrData = (ocrResult: any) => {
       </div>
 
       <form @submit.prevent="submitLog" class="space-y-4">
-        <CarSelector v-model="selectedCarId" />
-
       <div>
         <label class="block text-sm font-medium text-gray-700">Geladene Energie (kWh)</label>
         <input v-model="kwhCharged" type="number" step="0.1" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />

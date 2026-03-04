@@ -27,7 +27,8 @@ public record CarResponse(
         LocalDateTime createdAt,
         LocalDateTime updatedAt,
         String imageUrl,
-        boolean imagePublic) {
+        boolean imagePublic,
+        boolean isPrimary) {
 
     public static CarResponse fromDomain(Car car) {
         String imageUrl = car.getImagePath() != null ? "/api/cars/" + car.getId() + "/image" : null;
@@ -48,6 +49,7 @@ public record CarResponse(
                 car.getCreatedAt(),
                 car.getUpdatedAt(),
                 imageUrl,
-                car.isImagePublic());
+                car.isImagePublic(),
+                car.isPrimary());
     }
 }
