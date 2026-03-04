@@ -1,5 +1,6 @@
 package com.evmonitor.infrastructure.email;
 
+import com.evmonitor.infrastructure.security.JwtService;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Service;
 public class EmailService {
 
     private final JavaMailSender mailSender;
+    private final JwtService jwtService;
 
     @Value("${app.base-url:http://localhost:5173}")
     private String baseUrl;
@@ -17,8 +19,14 @@ public class EmailService {
     @Value("${app.mail.from:noreply@ev-monitor.net}")
     private String fromAddress;
 
-    public EmailService(JavaMailSender mailSender) {
+    public EmailService(JavaMailSender mailSender, JwtService jwtService) {
         this.mailSender = mailSender;
+        this.jwtService = jwtService;
+    }
+
+    public String buildUnsubscribeUrl(String email) {
+        String token = jwtService.generateUnsubscribeToken(email);
+        return baseUrl + "/api/unsubscribe?token=" + token;
     }
 
     public void sendVerificationEmail(String toEmail, String token) {

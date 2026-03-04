@@ -18,5 +18,7 @@ public interface UserRepository {
 
     void markEmailVerified(UUID userId);
 
+    void disableEmailNotifications(UUID userId);
+
     void delete(User user);
 }

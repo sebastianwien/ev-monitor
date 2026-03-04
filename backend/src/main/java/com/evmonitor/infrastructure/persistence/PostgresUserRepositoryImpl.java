@@ -57,6 +57,12 @@ public class PostgresUserRepositoryImpl implements UserRepository {
 
     @Override
     @Transactional
+    public void disableEmailNotifications(UUID userId) {
+        jpaUserRepository.disableEmailNotifications(userId);
+    }
+
+    @Override
+    @Transactional
     public void delete(User user) {
         jpaUserRepository.deleteById(user.getId());
     }
@@ -71,6 +77,7 @@ public class PostgresUserRepositoryImpl implements UserRepository {
                 domain.getRole(),
                 domain.isEmailVerified(),
                 domain.isSeedData(),
+                domain.isEmailNotificationsEnabled(),
                 domain.getCreatedAt(),
                 domain.getUpdatedAt());
     }
@@ -85,6 +92,7 @@ public class PostgresUserRepositoryImpl implements UserRepository {
                 entity.getRole(),
                 entity.isEmailVerified(),
                 entity.isSeedData(),
+                entity.isEmailNotificationsEnabled(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt());
     }
