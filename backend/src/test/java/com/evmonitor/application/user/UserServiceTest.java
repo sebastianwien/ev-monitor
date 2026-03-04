@@ -59,6 +59,8 @@ class UserServiceTest {
                 true,
                 false,
                 true,
+                "TESTCODE",
+                null,
                 LocalDateTime.now(),
                 LocalDateTime.now()
         );
@@ -73,6 +75,8 @@ class UserServiceTest {
                 true,
                 false,
                 true,
+                "TESTCODE",
+                null,
                 LocalDateTime.now(),
                 LocalDateTime.now()
         );

@@ -13,11 +13,15 @@ public class User {
     private final boolean emailVerified;
     private final boolean seedData;
     private final boolean emailNotificationsEnabled;
+    private final String referralCode;
+    private final UUID referredByUserId;
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
 
     public User(UUID id, String email, String username, String passwordHash, AuthProvider authProvider, String role,
-            boolean emailVerified, boolean seedData, boolean emailNotificationsEnabled, LocalDateTime createdAt, LocalDateTime updatedAt) {
+            boolean emailVerified, boolean seedData, boolean emailNotificationsEnabled,
+            String referralCode, UUID referredByUserId,
+            LocalDateTime createdAt, LocalDateTime updatedAt) {
         if (id == null)
             throw new IllegalArgumentException("User ID cannot be null");
         if (email == null || email.isBlank())
@@ -36,28 +40,39 @@ public class User {
         this.emailVerified = emailVerified;
         this.seedData = seedData;
         this.emailNotificationsEnabled = emailNotificationsEnabled;
+        this.referralCode = referralCode;
+        this.referredByUserId = referredByUserId;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
 
+    private static String generateReferralCode() {
+        return UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
+    }
+
     public static User createNewLocalUser(String email, String username, String passwordHash) {
         LocalDateTime now = LocalDateTime.now();
-        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", false, false, true, now, now);
+        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", false, false, true, generateReferralCode(), null, now, now);
+    }
+
+    public static User createNewLocalUserWithReferrer(String email, String username, String passwordHash, UUID referredByUserId) {
+        LocalDateTime now = LocalDateTime.now();
+        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", false, false, true, generateReferralCode(), referredByUserId, now, now);
     }
 
     public static User createVerifiedLocalUser(String email, String username, String passwordHash) {
         LocalDateTime now = LocalDateTime.now();
-        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", true, false, true, now, now);
+        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", true, false, true, generateReferralCode(), null, now, now);
     }
 
     public static User createSeedUser(String email, String username, String passwordHash) {
         LocalDateTime now = LocalDateTime.now();
-        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", true, true, false, now, now);
+        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", true, true, false, generateReferralCode(), null, now, now);
     }
 
     public static User createNewSsoUser(String email, String username, AuthProvider authProvider) {
         LocalDateTime now = LocalDateTime.now();
-        return new User(UUID.randomUUID(), email, username, null, authProvider, "USER", true, false, true, now, now);
+        return new User(UUID.randomUUID(), email, username, null, authProvider, "USER", true, false, true, generateReferralCode(), null, now, now);
     }
 
     public UUID getId() { return id; }
@@ -71,4 +86,6 @@ public class User {
     public boolean isEmailVerified() { return emailVerified; }
     public boolean isSeedData() { return seedData; }
     public boolean isEmailNotificationsEnabled() { return emailNotificationsEnabled; }
+    public String getReferralCode() { return referralCode; }
+    public UUID getReferredByUserId() { return referredByUserId; }
 }

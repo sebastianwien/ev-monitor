@@ -43,6 +43,7 @@ class AuthServiceTest {
     @Mock private AuthenticationManager authenticationManager;
     @Mock private EmailVerificationTokenRepository tokenRepository;
     @Mock private EmailService emailService;
+    @Mock private CoinLogService coinLogService;
 
     private AuthService authService;
 
@@ -50,7 +51,7 @@ class AuthServiceTest {
     void setUp() {
         authService = new AuthService(
                 userRepository, passwordEncoder, jwtService,
-                authenticationManager, tokenRepository, emailService);
+                authenticationManager, tokenRepository, emailService, coinLogService);
     }
 
     @Test
@@ -60,7 +61,7 @@ class AuthServiceTest {
         String password = "SecurePassword123";
         String hashedPassword = "$2a$10$hashedPasswordExample";
 
-        RegisterRequest request = new RegisterRequest(email, "testuser_" + System.currentTimeMillis(), password);
+        RegisterRequest request = new RegisterRequest(email, "testuser_" + System.currentTimeMillis(), password, null);
 
         when(userRepository.existsByEmail(email)).thenReturn(false);
         when(userRepository.existsByUsername(any())).thenReturn(false);
@@ -88,7 +89,7 @@ class AuthServiceTest {
     void shouldRejectRegistrationWithDuplicateEmail() {
         // Given
         String email = "existing@example.com";
-        RegisterRequest request = new RegisterRequest(email, "testuser_" + System.currentTimeMillis(), "Password123");
+        RegisterRequest request = new RegisterRequest(email, "testuser_" + System.currentTimeMillis(), "Password123", null);
 
         when(userRepository.existsByEmail(email)).thenReturn(true);
 
@@ -111,7 +112,7 @@ class AuthServiceTest {
 
         User user = new User(userId, email, "testuser", "$2a$10$hashedPassword",
                 AuthProvider.LOCAL, "USER", true /* emailVerified */, false, true,
-                LocalDateTime.now(), LocalDateTime.now());
+                "TESTCODE", null, LocalDateTime.now(), LocalDateTime.now());
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(null);
@@ -135,7 +136,7 @@ class AuthServiceTest {
 
         User unverifiedUser = new User(userId, email, "unverified", "$2a$10$hash",
                 AuthProvider.LOCAL, "USER", false /* emailVerified */, false, true,
-                LocalDateTime.now(), LocalDateTime.now());
+                "TESTCODE", null, LocalDateTime.now(), LocalDateTime.now());
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(unverifiedUser));
         when(authenticationManager.authenticate(any())).thenReturn(null);
@@ -159,7 +160,8 @@ class AuthServiceTest {
                 UUID.randomUUID(), userId, rawToken, LocalDateTime.now().plusHours(24), LocalDateTime.now());
 
         User user = new User(userId, "user@example.com", "user", "$2a$10$hash",
-                AuthProvider.LOCAL, "USER", true, false, true, LocalDateTime.now(), LocalDateTime.now());
+                AuthProvider.LOCAL, "USER", true, false, true,
+                "TESTCODE", null, LocalDateTime.now(), LocalDateTime.now());
 
         when(tokenRepository.findByToken(rawToken)).thenReturn(Optional.of(verificationToken));
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
@@ -200,7 +202,7 @@ class AuthServiceTest {
         String plainPassword = "PlainTextPassword123";
         String expectedHash = "$2a$10$hashedPasswordExample";
         RegisterRequest request = new RegisterRequest("user@example.com",
-                "testuser_" + System.currentTimeMillis(), plainPassword);
+                "testuser_" + System.currentTimeMillis(), plainPassword, null);
 
         when(userRepository.existsByEmail(any())).thenReturn(false);
         when(userRepository.existsByUsername(any())).thenReturn(false);
@@ -223,7 +225,7 @@ class AuthServiceTest {
     void shouldCreateUnverifiedLocalUserOnRegistration() {
         // Given
         RegisterRequest request = new RegisterRequest("user@example.com",
-                "testuser_" + System.currentTimeMillis(), "Password123");
+                "testuser_" + System.currentTimeMillis(), "Password123", null);
 
         when(userRepository.existsByEmail(any())).thenReturn(false);
         when(userRepository.existsByUsername(any())).thenReturn(false);
