@@ -70,11 +70,20 @@ public class EmailService {
             ClassPathResource resource = new ClassPathResource("email-templates/" + templateName);
             String template = resource.getContentAsString(StandardCharsets.UTF_8);
             for (Map.Entry<String, String> entry : variables.entrySet()) {
-                template = template.replace("{{" + entry.getKey() + "}}", entry.getValue());
+                template = template.replace("{{" + entry.getKey() + "}}", escapeHtml(entry.getValue()));
             }
             return template;
         } catch (IOException e) {
             throw new RuntimeException("Failed to load email template: " + templateName, e);
         }
+    }
+
+    private String escapeHtml(String value) {
+        return value
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#x27;");
     }
 }
