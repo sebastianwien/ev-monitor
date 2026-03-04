@@ -50,6 +50,24 @@ public class JwtService {
                 .compact();
     }
 
+    public String generateUnsubscribeToken(String email) {
+        return Jwts.builder()
+                .subject(email)
+                .claim("purpose", "unsubscribe")
+                .issuedAt(new Date(System.currentTimeMillis()))
+                .expiration(new Date(System.currentTimeMillis() + 365L * 24 * 60 * 60 * 1000))
+                .signWith(getSigningKey())
+                .compact();
+    }
+
+    public String extractEmailFromUnsubscribeToken(String token) {
+        Claims claims = extractAllClaims(token);
+        if (!"unsubscribe".equals(claims.get("purpose"))) {
+            throw new IllegalArgumentException("Invalid token purpose");
+        }
+        return claims.getSubject();
+    }
+
     public boolean isTokenValid(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
         return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);

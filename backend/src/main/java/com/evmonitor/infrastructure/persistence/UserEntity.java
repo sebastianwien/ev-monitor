@@ -34,6 +34,9 @@ public class UserEntity {
     @Column(name = "is_seed_data", nullable = false)
     private boolean seedData;
 
+    @Column(name = "email_notifications_enabled", nullable = false)
+    private boolean emailNotificationsEnabled;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -44,7 +47,7 @@ public class UserEntity {
     }
 
     public UserEntity(UUID id, String email, String username, String passwordHash, AuthProvider authProvider, String role,
-            boolean emailVerified, boolean seedData, LocalDateTime createdAt, LocalDateTime updatedAt) {
+            boolean emailVerified, boolean seedData, boolean emailNotificationsEnabled, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.email = email;
         this.username = username;
@@ -53,6 +56,7 @@ public class UserEntity {
         this.role = role;
         this.emailVerified = emailVerified;
         this.seedData = seedData;
+        this.emailNotificationsEnabled = emailNotificationsEnabled;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -135,5 +139,13 @@ public class UserEntity {
 
     public void setSeedData(boolean seedData) {
         this.seedData = seedData;
+    }
+
+    public boolean isEmailNotificationsEnabled() {
+        return emailNotificationsEnabled;
+    }
+
+    public void setEmailNotificationsEnabled(boolean emailNotificationsEnabled) {
+        this.emailNotificationsEnabled = emailNotificationsEnabled;
     }
 }

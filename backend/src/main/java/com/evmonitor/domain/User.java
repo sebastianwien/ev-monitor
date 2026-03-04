@@ -12,11 +12,12 @@ public class User {
     private final String role;
     private final boolean emailVerified;
     private final boolean seedData;
+    private final boolean emailNotificationsEnabled;
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
 
     public User(UUID id, String email, String username, String passwordHash, AuthProvider authProvider, String role,
-            boolean emailVerified, boolean seedData, LocalDateTime createdAt, LocalDateTime updatedAt) {
+            boolean emailVerified, boolean seedData, boolean emailNotificationsEnabled, LocalDateTime createdAt, LocalDateTime updatedAt) {
         if (id == null)
             throw new IllegalArgumentException("User ID cannot be null");
         if (email == null || email.isBlank())
@@ -34,29 +35,29 @@ public class User {
         this.role = role == null ? "USER" : role;
         this.emailVerified = emailVerified;
         this.seedData = seedData;
+        this.emailNotificationsEnabled = emailNotificationsEnabled;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
 
     public static User createNewLocalUser(String email, String username, String passwordHash) {
         LocalDateTime now = LocalDateTime.now();
-        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", false, false, now, now);
+        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", false, false, true, now, now);
     }
 
     public static User createVerifiedLocalUser(String email, String username, String passwordHash) {
         LocalDateTime now = LocalDateTime.now();
-        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", true, false, now, now);
+        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", true, false, true, now, now);
     }
 
     public static User createSeedUser(String email, String username, String passwordHash) {
         LocalDateTime now = LocalDateTime.now();
-        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", true, true, now, now);
+        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", true, true, false, now, now);
     }
 
     public static User createNewSsoUser(String email, String username, AuthProvider authProvider) {
         LocalDateTime now = LocalDateTime.now();
-        // SSO emails are already verified by the OAuth provider
-        return new User(UUID.randomUUID(), email, username, null, authProvider, "USER", true, false, now, now);
+        return new User(UUID.randomUUID(), email, username, null, authProvider, "USER", true, false, true, now, now);
     }
 
     public UUID getId() {
@@ -97,5 +98,9 @@ public class User {
 
     public boolean isSeedData() {
         return seedData;
+    }
+
+    public boolean isEmailNotificationsEnabled() {
+        return emailNotificationsEnabled;
     }
 }
