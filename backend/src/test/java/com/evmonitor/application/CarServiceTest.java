@@ -242,4 +242,64 @@ class CarServiceTest {
         // Verify no deletion happened
         verify(carRepository, never()).deleteById(any(UUID.class));
     }
+
+    @Test
+    void shouldSetActiveCar_DeactivatesAllOthers() {
+        // Given: User has two cars; car1 is currently primary, car2 is not
+        UUID carId1 = UUID.randomUUID();
+        UUID carId2 = UUID.randomUUID();
+        Car car1 = TestDataBuilder.createTestCarWithId(carId1, userId, CarBrand.CarModel.MODEL_3).activate();
+        Car car2 = TestDataBuilder.createTestCarWithId(carId2, userId, CarBrand.CarModel.I4);
+
+        when(carRepository.findById(carId2)).thenReturn(Optional.of(car2));
+        when(carRepository.findAllByUserId(userId)).thenReturn(List.of(car1, car2));
+        when(carRepository.save(any(Car.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // When: Set car2 as active
+        CarResponse response = carService.setActiveCar(carId2, userId);
+
+        // Then: car2 is now primary
+        assertTrue(response.isPrimary(), "Target car must be primary after activation");
+
+        // Verify car1 was deactivated and car2 was activated
+        ArgumentCaptor<Car> captor = ArgumentCaptor.forClass(Car.class);
+        verify(carRepository, times(2)).save(captor.capture());
+        List<Car> savedCars = captor.getAllValues();
+
+        Car savedDeactivated = savedCars.stream().filter(c -> c.getId().equals(carId1)).findFirst().orElseThrow();
+        Car savedActivated   = savedCars.stream().filter(c -> c.getId().equals(carId2)).findFirst().orElseThrow();
+
+        assertFalse(savedDeactivated.isPrimary(), "Previously primary car must be deactivated");
+        assertTrue(savedActivated.isPrimary(),    "Target car must be activated");
+    }
+
+    @Test
+    void shouldRejectSetActiveCar_IfNotOwner() {
+        // Given: Car belongs to a different user
+        UUID otherUserId = UUID.randomUUID();
+        Car otherUserCar = TestDataBuilder.createTestCarWithId(carId, otherUserId, CarBrand.CarModel.I4);
+
+        when(carRepository.findById(carId)).thenReturn(Optional.of(otherUserCar));
+
+        // When & Then
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            carService.setActiveCar(carId, userId);
+        });
+
+        assertEquals("User does not own the specified car", exception.getMessage());
+        verify(carRepository, never()).save(any(Car.class));
+    }
+
+    @Test
+    void shouldRejectSetActiveCar_IfNotFound() {
+        // Given: Car doesn't exist
+        when(carRepository.findById(carId)).thenReturn(Optional.empty());
+
+        // When & Then
+        assertThrows(IllegalArgumentException.class, () -> {
+            carService.setActiveCar(carId, userId);
+        });
+
+        verify(carRepository, never()).save(any(Car.class));
+    }
 }

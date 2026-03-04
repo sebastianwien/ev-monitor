@@ -251,4 +251,104 @@ class CarControllerIntegrationTest extends AbstractIntegrationTest {
                 "Expected 401 or 403, got: " + response.getStatusCode()
         );
     }
+
+    @Test
+    void shouldActivateCar_Success() {
+        // Given: User owns a car
+        Car car = createAndSaveCar(userId, CarBrand.CarModel.MODEL_3);
+        HttpEntity<Void> requestWithAuth = createAuthRequest(userId, testUser.getEmail());
+
+        // When: PUT /api/cars/{id}/activate
+        ResponseEntity<CarResponse> response = restTemplate.exchange(
+                "/api/cars/" + car.getId() + "/activate",
+                HttpMethod.PUT,
+                requestWithAuth,
+                CarResponse.class
+        );
+
+        // Then: Car is now primary
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().isPrimary(), "Car must be primary after activation");
+
+        // Verify persisted in database
+        Car saved = carRepository.findById(car.getId()).orElseThrow();
+        assertTrue(saved.isPrimary(), "isPrimary must be persisted in DB");
+    }
+
+    @Test
+    void shouldActivateCar_DeactivatesOtherCars() {
+        // Given: User has two cars; activate car2 after car1
+        Car car1 = createAndSaveCar(userId, CarBrand.CarModel.MODEL_3);
+        Car car2 = createAndSaveCar(userId, CarBrand.CarModel.I4);
+        HttpEntity<Void> requestWithAuth = createAuthRequest(userId, testUser.getEmail());
+
+        // First activate car1
+        restTemplate.exchange(
+                "/api/cars/" + car1.getId() + "/activate",
+                HttpMethod.PUT,
+                requestWithAuth,
+                CarResponse.class
+        );
+
+        // Now activate car2
+        ResponseEntity<CarResponse> response = restTemplate.exchange(
+                "/api/cars/" + car2.getId() + "/activate",
+                HttpMethod.PUT,
+                requestWithAuth,
+                CarResponse.class
+        );
+
+        // Then: car2 is primary
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertTrue(response.getBody().isPrimary(), "car2 must be primary");
+
+        // And car1 is no longer primary
+        Car updatedCar1 = carRepository.findById(car1.getId()).orElseThrow();
+        assertFalse(updatedCar1.isPrimary(), "car1 must no longer be primary");
+    }
+
+    @Test
+    void shouldRejectActivateCar_IfNotOwner() {
+        // Given: Another user's car
+        User otherUser = createAndSaveUser("other-activate-" + System.nanoTime() + "@example.com");
+        Car otherUserCar = createAndSaveCar(otherUser.getId(), CarBrand.CarModel.IONIQ_5);
+        HttpEntity<Void> requestWithAuth = createAuthRequest(userId, testUser.getEmail());
+
+        // When: Try to activate another user's car
+        ResponseEntity<String> response = restTemplate.exchange(
+                "/api/cars/" + otherUserCar.getId() + "/activate",
+                HttpMethod.PUT,
+                requestWithAuth,
+                String.class
+        );
+
+        // Then: Rejected
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+
+        // Verify car was not changed
+        Car notChanged = carRepository.findById(otherUserCar.getId()).orElseThrow();
+        assertFalse(notChanged.isPrimary(), "Other user's car must not be modified");
+    }
+
+    @Test
+    void shouldRejectActivateCar_WithoutAuthentication() {
+        // Given: No JWT token, some car ID
+        UUID randomCarId = UUID.randomUUID();
+
+        // When: Try to activate without auth
+        ResponseEntity<String> response = restTemplate.exchange(
+                "/api/cars/" + randomCarId + "/activate",
+                HttpMethod.PUT,
+                HttpEntity.EMPTY,
+                String.class
+        );
+
+        // Then: Access denied
+        assertTrue(
+                response.getStatusCode() == HttpStatus.UNAUTHORIZED ||
+                response.getStatusCode() == HttpStatus.FORBIDDEN,
+                "Expected 401 or 403, got: " + response.getStatusCode()
+        );
+    }
 }
