@@ -20,10 +20,18 @@ When modifying this codebase, respect Clean Architecture boundaries in the backe
 - ⚡ **WLTP Crowdsourcing** — community-contributed range & consumption data
 - 🔐 **Authentication** — JWT + email verification (24h token) + username
 - 📧 **Email Verification** — token-based with resend + rate limiting
-- 🪙 **Coin System** — earn coins for contributing WLTP data (more rewards planned)
+- 🪙 **Gamification** — earn coins for contributing WLTP data, feeding data, or bringing users to the platform (more rewards planned)
 - 🌍 **Privacy-First Geohashing** — ~5km precision, no exact GPS coordinates stored
 - 📈 **Statistics Dashboard** — charts & analytics (Chart.js)
 - 📱 **PWA-Ready** — Progressive Web App
+
+## Coming Soon: Wallbox Integration (Premium)
+
+A dedicated **Wallbox Integration Service** is currently in development. It will automatically import charging sessions directly from your home wallbox — no manual logging required.
+
+**Planned integrations:** go-e Charger, Easee, Wallbe, Heidelberg, KEBA, and more.
+
+This will be available as a **premium add-on** and runs as a separate closed-source microservice alongside the open-source core. The EV Monitor core (this repository) remains free and open-source under AGPL-3.0.
 
 ## Project Structure
 
