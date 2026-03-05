@@ -89,8 +89,10 @@ class UserControllerIntegrationTest {
                 testUserEntity.isEmailVerified(),
                 testUserEntity.isSeedData(),
                 testUserEntity.isEmailNotificationsEnabled(),
+                testUserEntity.isPremium(),
                 testUserEntity.getReferralCode(),
                 testUserEntity.getReferredByUserId(),
+                testUserEntity.getStripeCustomerId(),
                 testUserEntity.getCreatedAt(),
                 testUserEntity.getUpdatedAt()
         );

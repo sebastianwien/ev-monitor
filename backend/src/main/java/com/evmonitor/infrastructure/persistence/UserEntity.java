@@ -46,6 +46,9 @@ public class UserEntity {
     @Column(name = "referred_by_user_id")
     private UUID referredByUserId;
 
+    @Column(name = "stripe_customer_id")
+    private String stripeCustomerId;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -184,6 +187,14 @@ public class UserEntity {
 
     public void setReferredByUserId(UUID referredByUserId) {
         this.referredByUserId = referredByUserId;
+    }
+
+    public String getStripeCustomerId() {
+        return stripeCustomerId;
+    }
+
+    public void setStripeCustomerId(String stripeCustomerId) {
+        this.stripeCustomerId = stripeCustomerId;
     }
 
 }

@@ -65,8 +65,17 @@ app:
   security:
     rate-limiting:
       enabled: false  # Disabled in dev
+  premium:
+    enabled: ${PREMIUM_ENABLED:false}
 
 # Sprit-Monitor API Integration
 spritmonitor:
   application:
     id: 190e3b1080a39777f369a4e9875df3d7
+
+# Stripe (Dev Placeholders — use real test keys in .env.local)
+stripe:
+  secret-key: ${STRIPE_SECRET_KEY:sk_test_placeholder}
+  webhook-secret: ${STRIPE_WEBHOOK_SECRET:whsec_placeholder}
+  price-id-monthly: ${STRIPE_PRICE_ID_MONTHLY:price_monthly_placeholder}
+  price-id-yearly: ${STRIPE_PRICE_ID_YEARLY:price_yearly_placeholder}

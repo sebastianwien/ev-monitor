@@ -3,10 +3,12 @@ import api from '../api/axios';
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { jwtDecode } from 'jwt-decode';
+import { subscriptionService } from '../api/subscriptionService';
 
 export const useAuthStore = defineStore('auth', () => {
     const token = ref<string | null>(localStorage.getItem('token'));
     const user = ref<any>(null);
+    const isPremium = ref<boolean>(localStorage.getItem('isPremium') === 'true');
     const router = useRouter();
 
     if (token.value) {
@@ -28,10 +30,17 @@ export const useAuthStore = defineStore('auth', () => {
         }
     };
 
+    const setPremium = (value: boolean) => {
+        isPremium.value = value;
+        localStorage.setItem('isPremium', String(value));
+    };
+
     const logout = () => {
         token.value = null;
         user.value = null;
+        isPremium.value = false;
         localStorage.removeItem('token');
+        localStorage.removeItem('isPremium');
         router.push('/login');
     };
 
@@ -40,6 +49,7 @@ export const useAuthStore = defineStore('auth', () => {
         if (response.data.token) {
             setToken(response.data.token);
         }
+        setPremium(response.data.isPremium ?? false);
     };
 
     const register = async (userData: any) => {
@@ -48,7 +58,21 @@ export const useAuthStore = defineStore('auth', () => {
         return response.data;
     };
 
+    const refreshPremiumStatus = async () => {
+        try {
+            const status = await subscriptionService.getStatus();
+            setPremium(status.isPremium);
+        } catch {
+            // Ignore errors — don't disrupt the user
+        }
+    };
+
     const isDemoAccount = computed(() => (user.value as any)?.demoAccount === true);
 
-    return { token, user, isDemoAccount, setToken, logout, login, register, isAuthenticated: () => !!token.value };
+    return {
+        token, user, isDemoAccount, isPremium,
+        setToken, setPremium, logout, login, register,
+        refreshPremiumStatus,
+        isAuthenticated: () => !!token.value
+    };
 });

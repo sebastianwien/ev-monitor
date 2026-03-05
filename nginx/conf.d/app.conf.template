@@ -54,6 +54,31 @@ server {
         proxy_buffering off;
     }
 
+    # Proxy Wallbox REST API
+    location /api/wallbox/ {
+        proxy_pass http://wallbox-service:8090/api/wallbox/;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_http_version 1.1;
+        proxy_buffering off;
+    }
+
+    # Proxy OCPP WebSocket to wallbox-service
+    location /ocpp/ws/ {
+        proxy_pass http://wallbox-service:8090/ocpp/ws/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+    }
+
     # Proxy OAuth2 requests to backend
     location /oauth2/ {
         proxy_pass http://backend:8080/oauth2/;

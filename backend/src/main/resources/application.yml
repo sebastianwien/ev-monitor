@@ -72,6 +72,8 @@ app:
   security:
     rate-limiting:
       enabled: ${RATE_LIMITING_ENABLED:true}  # Set to false to disable (emergency kill-switch)
+  premium:
+    enabled: ${PREMIUM_ENABLED:false}
 
 # Sprit-Monitor API Integration
 spritmonitor:
@@ -86,3 +88,10 @@ tesla:
 # Internal Service Token (used by Wallbox Service to authenticate against Core)
 internal:
   token: ${INTERNAL_SERVICE_TOKEN:dev-internal-token-change-in-prod}
+
+# Stripe Payment Integration
+stripe:
+  secret-key: ${STRIPE_SECRET_KEY:}
+  webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+  price-id-monthly: ${STRIPE_PRICE_ID_MONTHLY:}
+  price-id-yearly: ${STRIPE_PRICE_ID_YEARLY:}

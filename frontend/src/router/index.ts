@@ -18,6 +18,9 @@ import TermsView from '../views/TermsView.vue';
 import NotFoundView from '../views/NotFoundView.vue';
 import CoinHistoryView from '../views/CoinHistoryView.vue';
 import WallboxSetupView from '../views/WallboxSetupView.vue';
+import UpgradeView from '../views/UpgradeView.vue';
+import UpgradeSuccessView from '../views/UpgradeSuccessView.vue';
+import UpgradeCancelView from '../views/UpgradeCancelView.vue';
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
@@ -73,6 +76,24 @@ const router = createRouter({
             path: '/wallbox',
             name: 'wallbox-setup',
             component: WallboxSetupView,
+            meta: { requiresAuth: true }
+        },
+        {
+            path: '/upgrade',
+            name: 'upgrade',
+            component: UpgradeView,
+            meta: { requiresAuth: true }
+        },
+        {
+            path: '/upgrade/success',
+            name: 'upgrade-success',
+            component: UpgradeSuccessView,
+            meta: { requiresAuth: true }
+        },
+        {
+            path: '/upgrade/cancel',
+            name: 'upgrade-cancel',
+            component: UpgradeCancelView,
             meta: { requiresAuth: true }
         },
         {
