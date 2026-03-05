@@ -134,8 +134,34 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
           </p>
           <ul class="list-disc list-inside space-y-2">
             <li><strong>Session-Token (JWT):</strong> Im localStorage gespeichert für Authentifizierung (7 Tage Gültigkeit)</li>
-            <li><strong>Keine Analytics-Tools</strong> wie Google Analytics, Facebook Pixel, etc.</li>
+            <li><strong>Keine Cookies von Drittanbietern</strong> — kein Google Analytics, kein Facebook Pixel</li>
           </ul>
+        </section>
+
+        <section>
+          <h2 class="text-2xl font-semibold text-gray-900 mb-4">5a. Webanalyse (Plausible Analytics)</h2>
+          <p>
+            Wir nutzen <strong>Plausible Analytics</strong>, einen datenschutzfreundlichen Webanalysedienst der Plausible Insights OÜ (Tartu, Estland — EU).
+          </p>
+          <p class="mt-4">
+            Plausible verwendet <strong>keine Cookies</strong> und erhebt <strong>keine personenbezogenen Daten</strong>.
+            Es wird kein Fingerprinting eingesetzt und kein geräteübergreifendes Tracking durchgeführt.
+          </p>
+          <p class="mt-4">Folgende anonymisierte Daten werden erfasst:</p>
+          <ul class="list-disc list-inside space-y-2 mt-2">
+            <li>Aufgerufene Seiten (aggregiert)</li>
+            <li>Herkunft des Besuchs (z.B. Suchmaschine, direkter Aufruf)</li>
+            <li>Land (wird aus der IP-Adresse abgeleitet; die IP-Adresse selbst wird nicht gespeichert)</li>
+            <li>Gerätetyp (Desktop / Mobil)</li>
+            <li>Anonymisierte Nutzungsaktionen (z.B. Registrierung abgeschlossen, Ladevorgang erfasst)</li>
+          </ul>
+          <p class="mt-4">
+            <strong>Rechtsgrundlage:</strong> Berechtigtes Interesse gemäß Art. 6 Abs. 1 lit. f DSGVO.
+            Da keine personenbezogenen Daten erhoben werden, ist kein Cookie-Banner erforderlich.
+          </p>
+          <p class="mt-4">
+            Weitere Informationen: <a href="https://plausible.io/data-policy" class="text-indigo-600 hover:underline" target="_blank" rel="noopener">plausible.io/data-policy</a>
+          </p>
         </section>
 
         <section>
