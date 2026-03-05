@@ -5,6 +5,7 @@ import { vehicleSpecificationService, type VehicleSpecification } from '../api/v
 import { ChartBarIcon, TruckIcon } from '@heroicons/vue/24/outline'
 import { useCoinStore } from '../stores/coins'
 import { analytics } from '../services/analytics'
+import TeslaFleetIntegration from '../components/TeslaFleetIntegration.vue'
 
 const coinStore = useCoinStore()
 
@@ -939,6 +940,11 @@ onUnmounted(() => {
           </div>
         </form>
       </div>
+    </div>
+
+    <!-- Tesla Fleet Integration (all users can connect their Tesla) -->
+    <div class="md:max-w-4xl md:mx-auto px-4 md:px-0 pb-4">
+      <TeslaFleetIntegration />
     </div>
 
     <!-- Toast Notification -->
