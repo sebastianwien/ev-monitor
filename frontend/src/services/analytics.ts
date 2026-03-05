@@ -80,13 +80,43 @@ class AnalyticsService {
     this.track('feature_used', { feature })
   }
 
-  // Conversion Events
+  // Auth Events
+  trackLogin() {
+    this.track('login')
+  }
+
   trackRegistrationCompleted() {
     this.track('registration_completed')
   }
 
   trackEmailVerified() {
     this.track('email_verified')
+  }
+
+  trackPasswordResetRequested() {
+    this.track('password_reset_requested')
+  }
+
+  // Car & Log Events
+  trackCarAdded(isFirst: boolean) {
+    this.track('car_added', { first_car: isFirst })
+  }
+
+  trackLogCreated(source: 'manual' | 'ocr', isFirst: boolean) {
+    this.track('log_created', { source, first_log: isFirst })
+  }
+
+  // Premium Events
+  trackUpgradePageViewed() {
+    this.track('upgrade_page_viewed')
+  }
+
+  trackCheckoutStarted(plan: 'monthly' | 'yearly') {
+    this.track('checkout_started', { plan })
+  }
+
+  trackCheckoutCompleted() {
+    this.track('checkout_completed')
   }
 }
 

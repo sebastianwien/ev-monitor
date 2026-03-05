@@ -5,6 +5,7 @@ import { vehicleSpecificationService, type VehicleSpecification } from '../api/v
 import TeslaIntegration from '../components/TeslaIntegration.vue'
 import { ChartBarIcon, TruckIcon } from '@heroicons/vue/24/outline'
 import { useCoinStore } from '../stores/coins'
+import { analytics } from '../services/analytics'
 
 const coinStore = useCoinStore()
 
@@ -239,6 +240,7 @@ const submitForm = async () => {
       await fetchCars()
       coinStore.refresh()
       const isFirst = result.coinsAwarded === 20
+      analytics.trackCarAdded(isFirst)
       toastMessage.value = isFirst
         ? `Dein erstes Fahrzeug! +${result.coinsAwarded} Watt erhalten!`
         : `+${result.coinsAwarded} Watt erhalten!`

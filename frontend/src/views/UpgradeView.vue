@@ -121,6 +121,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { subscriptionService } from '../api/subscriptionService';
+import { analytics } from '../services/analytics';
 
 const loading = ref(true);
 const premiumEnabled = ref(false);
@@ -134,6 +135,7 @@ onMounted(async () => {
         const status = await subscriptionService.getStatus();
         premiumEnabled.value = status.premiumEnabled;
         isPremium.value = status.isPremium;
+        analytics.trackUpgradePageViewed();
     } finally {
         loading.value = false;
     }
@@ -143,6 +145,7 @@ async function handleCheckout() {
     checkoutLoading.value = true;
     checkoutError.value = '';
     try {
+        analytics.trackCheckoutStarted(selectedPlan.value);
         const result = await subscriptionService.createCheckoutSession(selectedPlan.value);
         window.location.href = result.checkoutUrl;
     } catch {
