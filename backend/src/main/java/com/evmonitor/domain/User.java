@@ -13,13 +13,14 @@ public class User {
     private final boolean emailVerified;
     private final boolean seedData;
     private final boolean emailNotificationsEnabled;
+    private final boolean premium;
     private final String referralCode;
     private final UUID referredByUserId;
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
 
     public User(UUID id, String email, String username, String passwordHash, AuthProvider authProvider, String role,
-            boolean emailVerified, boolean seedData, boolean emailNotificationsEnabled,
+            boolean emailVerified, boolean seedData, boolean emailNotificationsEnabled, boolean premium,
             String referralCode, UUID referredByUserId,
             LocalDateTime createdAt, LocalDateTime updatedAt) {
         if (id == null)
@@ -40,6 +41,7 @@ public class User {
         this.emailVerified = emailVerified;
         this.seedData = seedData;
         this.emailNotificationsEnabled = emailNotificationsEnabled;
+        this.premium = premium;
         this.referralCode = referralCode;
         this.referredByUserId = referredByUserId;
         this.createdAt = createdAt;
@@ -52,27 +54,27 @@ public class User {
 
     public static User createNewLocalUser(String email, String username, String passwordHash) {
         LocalDateTime now = LocalDateTime.now();
-        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", false, false, true, generateReferralCode(), null, now, now);
+        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", false, false, true, false, generateReferralCode(), null, now, now);
     }
 
     public static User createNewLocalUserWithReferrer(String email, String username, String passwordHash, UUID referredByUserId) {
         LocalDateTime now = LocalDateTime.now();
-        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", false, false, true, generateReferralCode(), referredByUserId, now, now);
+        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", false, false, true, false, generateReferralCode(), referredByUserId, now, now);
     }
 
     public static User createVerifiedLocalUser(String email, String username, String passwordHash) {
         LocalDateTime now = LocalDateTime.now();
-        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", true, false, true, generateReferralCode(), null, now, now);
+        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", true, false, true, false, generateReferralCode(), null, now, now);
     }
 
     public static User createSeedUser(String email, String username, String passwordHash) {
         LocalDateTime now = LocalDateTime.now();
-        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", true, true, false, generateReferralCode(), null, now, now);
+        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", true, true, false, false, generateReferralCode(), null, now, now);
     }
 
     public static User createNewSsoUser(String email, String username, AuthProvider authProvider) {
         LocalDateTime now = LocalDateTime.now();
-        return new User(UUID.randomUUID(), email, username, null, authProvider, "USER", true, false, true, generateReferralCode(), null, now, now);
+        return new User(UUID.randomUUID(), email, username, null, authProvider, "USER", true, false, true, false, generateReferralCode(), null, now, now);
     }
 
     public UUID getId() { return id; }
@@ -86,6 +88,7 @@ public class User {
     public boolean isEmailVerified() { return emailVerified; }
     public boolean isSeedData() { return seedData; }
     public boolean isEmailNotificationsEnabled() { return emailNotificationsEnabled; }
+    public boolean isPremium() { return premium; }
     public String getReferralCode() { return referralCode; }
     public UUID getReferredByUserId() { return referredByUserId; }
 }

@@ -1,0 +1,1 @@
+ALTER TABLE app_user ADD COLUMN is_premium BOOLEAN NOT NULL DEFAULT false;

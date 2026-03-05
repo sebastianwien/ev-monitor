@@ -73,6 +73,32 @@ public class EvLogService {
         return new EvLogCreateResponse(EvLogResponse.fromDomain(savedLog), coins);
     }
 
+    /**
+     * Creates a charging log on behalf of a user from an OCPP wallbox session.
+     * Called by the internal Wallbox Service — not user-facing.
+     */
+    @Transactional
+    public EvLogResponse createWallboxLog(InternalEvLogRequest request) {
+        Car car = carRepository.findById(request.carId())
+                .orElseThrow(() -> new IllegalArgumentException("Car not found"));
+
+        if (!car.getUserId().equals(request.userId())) {
+            throw new IllegalArgumentException("Car does not belong to user");
+        }
+
+        EvLog newLog = EvLog.createFromOcpp(
+                request.carId(),
+                request.kwhCharged(),
+                request.chargeDurationMinutes(),
+                request.geohash(),
+                request.loggedAt(),
+                request.odometerSuggestionMinKm(),
+                request.odometerSuggestionMaxKm());
+
+        EvLog savedLog = evLogRepository.save(newLog);
+        return EvLogResponse.fromDomain(savedLog);
+    }
+
     public List<EvLogResponse> getAllLogsForUser(UUID userId) {
         List<Car> cars = carRepository.findAllByUserId(userId);
         List<EvLogResponse> allLogs = new ArrayList<>();

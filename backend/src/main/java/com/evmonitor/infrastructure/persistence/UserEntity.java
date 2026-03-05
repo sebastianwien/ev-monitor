@@ -37,6 +37,9 @@ public class UserEntity {
     @Column(name = "email_notifications_enabled", nullable = false)
     private boolean emailNotificationsEnabled;
 
+    @Column(name = "is_premium", nullable = false)
+    private boolean premium;
+
     @Column(name = "referral_code", nullable = false, unique = true)
     private String referralCode;
 
@@ -157,6 +160,14 @@ public class UserEntity {
 
     public void setEmailNotificationsEnabled(boolean emailNotificationsEnabled) {
         this.emailNotificationsEnabled = emailNotificationsEnabled;
+    }
+
+    public boolean isPremium() {
+        return premium;
+    }
+
+    public void setPremium(boolean premium) {
+        this.premium = premium;
     }
 
     public String getReferralCode() {
