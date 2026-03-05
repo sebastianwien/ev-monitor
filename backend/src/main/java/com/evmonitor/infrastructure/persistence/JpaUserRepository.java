@@ -37,4 +37,14 @@ public interface JpaUserRepository extends JpaRepository<UserEntity, UUID> {
     Optional<UserEntity> findByReferralCode(String referralCode);
 
     long countByReferredByUserIdAndEmailVerifiedTrue(UUID referredByUserId);
+
+    Optional<UserEntity> findByStripeCustomerId(String stripeCustomerId);
+
+    @Modifying
+    @Query("UPDATE UserEntity u SET u.premium = :premium WHERE u.id = :userId")
+    void setPremium(@Param("userId") UUID userId, @Param("premium") boolean premium);
+
+    @Modifying
+    @Query("UPDATE UserEntity u SET u.stripeCustomerId = :customerId WHERE u.id = :userId")
+    void setStripeCustomerId(@Param("userId") UUID userId, @Param("customerId") String customerId);
 }

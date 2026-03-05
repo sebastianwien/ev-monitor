@@ -104,7 +104,7 @@ public class AuthService {
         }
 
         String jwtToken = jwtService.generateToken(UserPrincipal.create(user));
-        return new AuthResponse(jwtToken, user.getId(), user.getEmail(), user.getRole(), user.isSeedData());
+        return new AuthResponse(jwtToken, user.getId(), user.getEmail(), user.getRole(), user.isSeedData(), user.isPremium());
     }
 
     @Transactional
@@ -141,6 +141,6 @@ public class AuthService {
         }
 
         String jwtToken = jwtService.generateToken(UserPrincipal.create(user));
-        return new AuthResponse(jwtToken, user.getId(), user.getEmail(), user.getRole(), user.isSeedData());
+        return new AuthResponse(jwtToken, user.getId(), user.getEmail(), user.getRole(), user.isSeedData(), user.isPremium());
     }
 }

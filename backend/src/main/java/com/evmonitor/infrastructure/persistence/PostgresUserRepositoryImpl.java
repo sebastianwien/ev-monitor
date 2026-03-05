@@ -85,6 +85,23 @@ public class PostgresUserRepositoryImpl implements UserRepository {
         return jpaUserRepository.countByReferredByUserIdAndEmailVerifiedTrue(referrerId);
     }
 
+    @Override
+    public Optional<User> findByStripeCustomerId(String stripeCustomerId) {
+        return jpaUserRepository.findByStripeCustomerId(stripeCustomerId).map(this::toDomain);
+    }
+
+    @Override
+    @Transactional
+    public void setPremium(UUID userId, boolean premium) {
+        jpaUserRepository.setPremium(userId, premium);
+    }
+
+    @Override
+    @Transactional
+    public void setStripeCustomerId(UUID userId, String stripeCustomerId) {
+        jpaUserRepository.setStripeCustomerId(userId, stripeCustomerId);
+    }
+
     private UserEntity toEntity(User domain) {
         UserEntity entity = new UserEntity(
                 domain.getId(),
@@ -101,6 +118,7 @@ public class PostgresUserRepositoryImpl implements UserRepository {
                 domain.getCreatedAt(),
                 domain.getUpdatedAt());
         entity.setPremium(domain.isPremium());
+        entity.setStripeCustomerId(domain.getStripeCustomerId());
         return entity;
     }
 
@@ -118,6 +136,7 @@ public class PostgresUserRepositoryImpl implements UserRepository {
                 entity.isPremium(),
                 entity.getReferralCode(),
                 entity.getReferredByUserId(),
+                entity.getStripeCustomerId(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt());
     }

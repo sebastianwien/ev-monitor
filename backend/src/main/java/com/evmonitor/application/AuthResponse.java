@@ -7,5 +7,6 @@ public record AuthResponse(
         UUID userId,
         String email,
         String role,
-        boolean isDemoAccount) {
+        boolean isDemoAccount,
+        boolean isPremium) {
 }

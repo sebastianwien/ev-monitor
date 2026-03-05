@@ -29,6 +29,7 @@ services:
       POSTGRES_DB: ev_monitor
     volumes:
       - postgres_data_local:/var/lib/postgresql/data
+      - ./db-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U evmonitor -d ev_monitor"]
       interval: 5s
@@ -57,6 +58,28 @@ services:
       mailpit:
         condition: service_started
 
+  wallbox-service:
+    build:
+      context: ../ev-monitor-wallbox
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ev_monitor_wallbox
+      DB_USER: wallbox_user
+      DB_PASSWORD: wallbox_password_change_me
+      EVMONITOR_CORE_URL: http://backend:8080
+      EVMONITOR_INTERNAL_TOKEN: dev-internal-token-change-in-prod
+      JWT_SECRET: dev-secret-key-CHANGE-IN-PRODUCTION-THIS-MUST-BE-AT-LEAST-64-CHARS-LONG-FOR-HS512-ALGORITHM-12345678901234567890
+    depends_on:
+      db:
+        condition: service_healthy
+      backend:
+        condition: service_started
+
   nginx:
     build:
       context: .
@@ -66,6 +89,7 @@ services:
       - "80:80"
     depends_on:
       - backend
+      - wallbox-service
 
   mailpit:
     image: axllent/mailpit

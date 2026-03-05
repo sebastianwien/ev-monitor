@@ -55,6 +55,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/vehicle-specifications/lookup").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
                         .requestMatchers("/api/errors/**").permitAll()
+                        // Stripe webhooks — secured by signature verification, not JWT
+                        .requestMatchers("/api/webhooks/**").permitAll()
                         // Internal service endpoints — secured by InternalAuthFilter, not JWT
                         .requestMatchers("/api/internal/**").permitAll()
                         // Require Auth for remaining API endpoints

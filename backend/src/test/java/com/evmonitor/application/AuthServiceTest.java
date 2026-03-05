@@ -111,8 +111,8 @@ class AuthServiceTest {
         UUID userId = UUID.randomUUID();
 
         User user = new User(userId, email, "testuser", "$2a$10$hashedPassword",
-                AuthProvider.LOCAL, "USER", true /* emailVerified */, false, true,
-                "TESTCODE", null, LocalDateTime.now(), LocalDateTime.now());
+                AuthProvider.LOCAL, "USER", true /* emailVerified */, false, true, false,
+                "TESTCODE", null, null, LocalDateTime.now(), LocalDateTime.now());
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(null);
@@ -135,8 +135,8 @@ class AuthServiceTest {
         UUID userId = UUID.randomUUID();
 
         User unverifiedUser = new User(userId, email, "unverified", "$2a$10$hash",
-                AuthProvider.LOCAL, "USER", false /* emailVerified */, false, true,
-                "TESTCODE", null, LocalDateTime.now(), LocalDateTime.now());
+                AuthProvider.LOCAL, "USER", false /* emailVerified */, false, true, false,
+                "TESTCODE", null, null, LocalDateTime.now(), LocalDateTime.now());
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(unverifiedUser));
         when(authenticationManager.authenticate(any())).thenReturn(null);
@@ -160,8 +160,8 @@ class AuthServiceTest {
                 UUID.randomUUID(), userId, rawToken, LocalDateTime.now().plusHours(24), LocalDateTime.now());
 
         User user = new User(userId, "user@example.com", "user", "$2a$10$hash",
-                AuthProvider.LOCAL, "USER", true, false, true,
-                "TESTCODE", null, LocalDateTime.now(), LocalDateTime.now());
+                AuthProvider.LOCAL, "USER", true, false, true, false,
+                "TESTCODE", null, null, LocalDateTime.now(), LocalDateTime.now());
 
         when(tokenRepository.findByToken(rawToken)).thenReturn(Optional.of(verificationToken));
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));

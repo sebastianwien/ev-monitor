@@ -13,6 +13,7 @@ services:
       POSTGRES_DB: ev_monitor
     volumes:
       - postgres_data_dev:/var/lib/postgresql/data
+      - ./db-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U evmonitor -d ev_monitor"]
       interval: 10s

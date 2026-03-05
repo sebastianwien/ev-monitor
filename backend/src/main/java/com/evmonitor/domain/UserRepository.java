@@ -29,4 +29,10 @@ public interface UserRepository {
     Optional<User> findByReferralCode(String referralCode);
 
     long countVerifiedReferrals(UUID referrerId);
+
+    Optional<User> findByStripeCustomerId(String stripeCustomerId);
+
+    void setPremium(UUID userId, boolean premium);
+
+    void setStripeCustomerId(UUID userId, String stripeCustomerId);
 }

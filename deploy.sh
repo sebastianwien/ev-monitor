@@ -9,6 +9,18 @@ echo "🚀 EV Monitor Deployment"
 echo "========================"
 echo ""
 
+# Pull wallbox service repo if it exists alongside this repo
+WALLBOX_DIR="$(cd "$(dirname "$0")/.." && pwd)/ev-monitor-wallbox"
+if [ -d "$WALLBOX_DIR/.git" ]; then
+  echo "🔄 Pulling Wallbox Service..."
+  git -C "$WALLBOX_DIR" pull origin main
+  echo ""
+else
+  echo "⚠️  Wallbox repo not found at $WALLBOX_DIR — skipping wallbox pull"
+  echo "   Clone it: git clone git@github.com:YOUR_ORG/ev-monitor-wallbox.git $WALLBOX_DIR"
+  echo ""
+fi
+
 # Check if .env file exists
 if [ ! -f .env ]; then
   echo "❌ ERROR: .env file missing!"
@@ -55,6 +67,17 @@ fi
 
 if [ -z "$ALLOWED_ORIGINS" ]; then
   echo "❌ ALLOWED_ORIGINS is missing or empty!"
+  ERRORS=$((ERRORS + 1))
+fi
+
+if [ -z "$WALLBOX_DB_PASSWORD" ] || [ "$WALLBOX_DB_PASSWORD" == "CHANGE_ME_TO_STRONG_PASSWORD" ]; then
+  echo "❌ WALLBOX_DB_PASSWORD is missing or not configured!"
+  ERRORS=$((ERRORS + 1))
+fi
+
+if [ -z "$INTERNAL_SERVICE_TOKEN" ] || [ "$INTERNAL_SERVICE_TOKEN" == "CHANGE_ME_TO_RANDOM_SECRET" ]; then
+  echo "❌ INTERNAL_SERVICE_TOKEN is missing or not configured!"
+  echo "   Generate one: openssl rand -base64 32"
   ERRORS=$((ERRORS + 1))
 fi
 

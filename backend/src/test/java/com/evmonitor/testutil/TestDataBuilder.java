@@ -40,8 +40,10 @@ public class TestDataBuilder {
                 true, // emailVerified
                 false, // seedData
                 true, // emailNotificationsEnabled
+                false, // premium
                 UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase(),
                 null, // referredByUserId
+                null, // stripeCustomerId
                 LocalDateTime.now(),
                 LocalDateTime.now()
         );

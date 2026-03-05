@@ -59,8 +59,10 @@ class UserServiceTest {
                 true,
                 false,
                 true,
+                false, // premium
                 "TESTCODE",
                 null,
+                null, // stripeCustomerId
                 LocalDateTime.now(),
                 LocalDateTime.now()
         );
