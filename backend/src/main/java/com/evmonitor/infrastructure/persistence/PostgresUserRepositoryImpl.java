@@ -102,6 +102,12 @@ public class PostgresUserRepositoryImpl implements UserRepository {
         jpaUserRepository.setStripeCustomerId(userId, stripeCustomerId);
     }
 
+    @Override
+    @Transactional
+    public void updatePassword(UUID userId, String passwordHash) {
+        jpaUserRepository.updatePassword(userId, passwordHash);
+    }
+
     private UserEntity toEntity(User domain) {
         UserEntity entity = new UserEntity(
                 domain.getId(),

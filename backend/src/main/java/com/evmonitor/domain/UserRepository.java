@@ -35,4 +35,6 @@ public interface UserRepository {
     void setPremium(UUID userId, boolean premium);
 
     void setStripeCustomerId(UUID userId, String stripeCustomerId);
+
+    void updatePassword(UUID userId, String passwordHash);
 }

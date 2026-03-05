@@ -21,6 +21,8 @@ import WallboxSetupView from '../views/WallboxSetupView.vue';
 import UpgradeView from '../views/UpgradeView.vue';
 import UpgradeSuccessView from '../views/UpgradeSuccessView.vue';
 import UpgradeCancelView from '../views/UpgradeCancelView.vue';
+import ForgotPasswordView from '../views/ForgotPasswordView.vue';
+import ResetPasswordView from '../views/ResetPasswordView.vue';
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
@@ -101,6 +103,18 @@ const router = createRouter({
             name: 'login',
             component: LoginView,
             meta: { guestOnly: true }
+        },
+        {
+            path: '/forgot-password',
+            name: 'forgot-password',
+            component: ForgotPasswordView,
+            meta: { guestOnly: true }
+        },
+        {
+            path: '/reset-password',
+            name: 'reset-password',
+            component: ResetPasswordView
+            // no auth guard — user is logged out when they click the email link
         },
         {
             path: '/register',

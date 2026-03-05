@@ -42,6 +42,12 @@ public class EmailService {
         sendHtmlEmail(toEmail, "EV Monitor – E-Mail bestätigen", html);
     }
 
+    public void sendPasswordResetEmail(String toEmail, String token) {
+        String resetUrl = baseUrl + "/reset-password?token=" + token;
+        String html = loadTemplate("password-reset.html", Map.of("resetUrl", resetUrl));
+        sendHtmlEmail(toEmail, "EV Monitor – Passwort zurücksetzen", html);
+    }
+
     public void sendOnboardingReminderEmail(String toEmail, String username) {
         String html = loadTemplate("onboarding-reminder.html", Map.of(
                 "username", username,

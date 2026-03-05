@@ -60,7 +60,7 @@ echo -e "${GREEN}✅ PostgreSQL is ready${NC}"
 # Ensure wallbox database exists (idempotent — safe to run every time)
 if [ "$SKIP_WALLBOX" = false ]; then
     docker compose -f docker-compose.dev.yml exec -T db \
-        psql -U evmonitor -c "CREATE DATABASE ev_monitor_wallbox;" 2>/dev/null || true
+        psql -U evmonitor -d postgres -c "CREATE DATABASE ev_monitor_wallbox;" 2>/dev/null || true
 fi
 echo ""
 

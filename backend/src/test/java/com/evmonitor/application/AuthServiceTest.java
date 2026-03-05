@@ -3,6 +3,7 @@ package com.evmonitor.application;
 import com.evmonitor.domain.AuthProvider;
 import com.evmonitor.domain.EmailVerificationToken;
 import com.evmonitor.domain.EmailVerificationTokenRepository;
+import com.evmonitor.domain.PasswordResetTokenRepository;
 import com.evmonitor.domain.User;
 import com.evmonitor.domain.UserRepository;
 import com.evmonitor.infrastructure.email.EmailService;
@@ -42,6 +43,7 @@ class AuthServiceTest {
     @Mock private JwtService jwtService;
     @Mock private AuthenticationManager authenticationManager;
     @Mock private EmailVerificationTokenRepository tokenRepository;
+    @Mock private PasswordResetTokenRepository passwordResetTokenRepository;
     @Mock private EmailService emailService;
     @Mock private CoinLogService coinLogService;
 
@@ -51,7 +53,8 @@ class AuthServiceTest {
     void setUp() {
         authService = new AuthService(
                 userRepository, passwordEncoder, jwtService,
-                authenticationManager, tokenRepository, emailService, coinLogService);
+                authenticationManager, tokenRepository, passwordResetTokenRepository,
+                emailService, coinLogService);
     }
 
     @Test
