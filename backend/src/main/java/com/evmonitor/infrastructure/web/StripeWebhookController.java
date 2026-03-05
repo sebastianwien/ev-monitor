@@ -30,7 +30,11 @@ public class StripeWebhookController {
     @PostMapping("/stripe")
     public ResponseEntity<Map<String, String>> handleStripeWebhook(
             HttpServletRequest request,
-            @RequestHeader("Stripe-Signature") String sigHeader) {
+            @RequestHeader(value = "Stripe-Signature", required = false) String sigHeader) {
+
+        if (sigHeader == null || sigHeader.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Missing Stripe-Signature header"));
+        }
 
         String payload;
         try {

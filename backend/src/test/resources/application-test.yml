@@ -35,3 +35,11 @@ app:
   security:
     rate-limiting:
       enabled: false  # Disabled in tests — all tests share 127.0.0.1, which would exhaust the bucket
+  premium:
+    enabled: false  # Default: beta mode
+
+stripe:
+  secret-key: ""
+  webhook-secret: "test-webhook-secret"
+  price-id-monthly: "price_test_monthly"
+  price-id-yearly: "price_test_yearly"
