@@ -79,7 +79,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     private EvLogEntity toEntity(EvLog domain) {
-        return new EvLogEntity(
+        EvLogEntity entity = new EvLogEntity(
                 domain.getId(),
                 domain.getCarId(),
                 domain.getKwhCharged(),
@@ -93,6 +93,9 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 domain.isIncludeInStatistics(),
                 domain.getCreatedAt(),
                 domain.getUpdatedAt());
+        entity.setOdometerSuggestionMinKm(domain.getOdometerSuggestionMinKm());
+        entity.setOdometerSuggestionMaxKm(domain.getOdometerSuggestionMaxKm());
+        return entity;
     }
 
     private EvLog toDomain(EvLogEntity entity) {
@@ -108,6 +111,8 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 entity.getLoggedAt(),
                 DataSource.valueOf(entity.getDataSource()),
                 entity.isIncludeInStatistics(),
+                entity.getOdometerSuggestionMinKm(),
+                entity.getOdometerSuggestionMaxKm(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt());
     }

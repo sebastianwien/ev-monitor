@@ -16,7 +16,9 @@ public record EvLogResponse(
         BigDecimal maxChargingPowerKw,
         LocalDateTime loggedAt,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt) {
+        LocalDateTime updatedAt,
+        Integer odometerSuggestionMinKm,
+        Integer odometerSuggestionMaxKm) {
     public static EvLogResponse fromDomain(EvLog evLog) {
         return new EvLogResponse(
                 evLog.getId(),
@@ -29,6 +31,8 @@ public record EvLogResponse(
                 evLog.getMaxChargingPowerKw(),
                 evLog.getLoggedAt(),
                 evLog.getCreatedAt(),
-                evLog.getUpdatedAt());
+                evLog.getUpdatedAt(),
+                evLog.getOdometerSuggestionMinKm(),
+                evLog.getOdometerSuggestionMaxKm());
     }
 }

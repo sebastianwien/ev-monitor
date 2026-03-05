@@ -82,3 +82,7 @@ spritmonitor:
 tesla:
   encryption:
     key: ${TESLA_ENCRYPTION_KEY:change-this-32-char-secret-key!!}
+
+# Internal Service Token (used by Wallbox Service to authenticate against Core)
+internal:
+  token: ${INTERNAL_SERVICE_TOKEN:dev-internal-token-change-in-prod}

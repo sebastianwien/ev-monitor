@@ -17,13 +17,16 @@ public class EvLog {
     private final LocalDateTime loggedAt; // When the charge happened (user-provided or now)
     private final DataSource dataSource;
     private final boolean includeInStatistics; // Whether to include in public stats/aggregations
+    private final Integer odometerSuggestionMinKm; // Optional: km estimate min from wallbox service
+    private final Integer odometerSuggestionMaxKm; // Optional: km estimate max from wallbox service
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
 
     public EvLog(UUID id, UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
             Integer chargeDurationMinutes, String geohash, Integer odometerKm,
             BigDecimal maxChargingPowerKw, LocalDateTime loggedAt, DataSource dataSource,
-            boolean includeInStatistics, LocalDateTime createdAt, LocalDateTime updatedAt) {
+            boolean includeInStatistics, Integer odometerSuggestionMinKm, Integer odometerSuggestionMaxKm,
+            LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.carId = carId;
         this.kwhCharged = kwhCharged;
@@ -35,6 +38,8 @@ public class EvLog {
         this.loggedAt = loggedAt != null ? loggedAt : LocalDateTime.now();
         this.dataSource = dataSource != null ? dataSource : DataSource.USER_LOGGED;
         this.includeInStatistics = includeInStatistics;
+        this.odometerSuggestionMinKm = odometerSuggestionMinKm;
+        this.odometerSuggestionMaxKm = odometerSuggestionMaxKm;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -45,7 +50,7 @@ public class EvLog {
         LocalDateTime now = LocalDateTime.now();
         return new EvLog(UUID.randomUUID(), carId, kwhCharged, costEur,
                 chargeDurationMinutes, geohash, odometerKm, maxChargingPowerKw, loggedAt,
-                DataSource.USER_LOGGED, true, now, now);
+                DataSource.USER_LOGGED, true, null, null, now, now);
     }
 
     public static EvLog createNewWithSource(UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
@@ -55,7 +60,16 @@ public class EvLog {
         boolean includeInStats = dataSource.includeInStatistics();
         return new EvLog(UUID.randomUUID(), carId, kwhCharged, costEur,
                 chargeDurationMinutes, geohash, odometerKm, maxChargingPowerKw, loggedAt,
-                dataSource, includeInStats, now, now);
+                dataSource, includeInStats, null, null, now, now);
+    }
+
+    public static EvLog createFromOcpp(UUID carId, BigDecimal kwhCharged,
+            Integer chargeDurationMinutes, String geohash,
+            LocalDateTime loggedAt, Integer odometerSuggestionMinKm, Integer odometerSuggestionMaxKm) {
+        LocalDateTime now = LocalDateTime.now();
+        return new EvLog(UUID.randomUUID(), carId, kwhCharged, null,
+                chargeDurationMinutes, geohash, null, null, loggedAt,
+                DataSource.WALLBOX_OCPP, true, odometerSuggestionMinKm, odometerSuggestionMaxKm, now, now);
     }
 
     public UUID getId() {
@@ -108,5 +122,13 @@ public class EvLog {
 
     public boolean isIncludeInStatistics() {
         return includeInStatistics;
+    }
+
+    public Integer getOdometerSuggestionMinKm() {
+        return odometerSuggestionMinKm;
+    }
+
+    public Integer getOdometerSuggestionMaxKm() {
+        return odometerSuggestionMaxKm;
     }
 }

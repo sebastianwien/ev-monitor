@@ -86,7 +86,7 @@ public class PostgresUserRepositoryImpl implements UserRepository {
     }
 
     private UserEntity toEntity(User domain) {
-        return new UserEntity(
+        UserEntity entity = new UserEntity(
                 domain.getId(),
                 domain.getEmail(),
                 domain.getUsername(),
@@ -100,6 +100,8 @@ public class PostgresUserRepositoryImpl implements UserRepository {
                 domain.getReferredByUserId(),
                 domain.getCreatedAt(),
                 domain.getUpdatedAt());
+        entity.setPremium(domain.isPremium());
+        return entity;
     }
 
     private User toDomain(UserEntity entity) {
@@ -113,6 +115,7 @@ public class PostgresUserRepositoryImpl implements UserRepository {
                 entity.isEmailVerified(),
                 entity.isSeedData(),
                 entity.isEmailNotificationsEnabled(),
+                entity.isPremium(),
                 entity.getReferralCode(),
                 entity.getReferredByUserId(),
                 entity.getCreatedAt(),

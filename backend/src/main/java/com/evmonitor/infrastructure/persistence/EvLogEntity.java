@@ -43,6 +43,12 @@ public class EvLogEntity {
     @Column(name = "include_in_statistics", nullable = false)
     private boolean includeInStatistics;
 
+    @Column(name = "odometer_suggestion_min_km")
+    private Integer odometerSuggestionMinKm;
+
+    @Column(name = "odometer_suggestion_max_km")
+    private Integer odometerSuggestionMaxKm;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -173,5 +179,21 @@ public class EvLogEntity {
 
     public void setIncludeInStatistics(boolean includeInStatistics) {
         this.includeInStatistics = includeInStatistics;
+    }
+
+    public Integer getOdometerSuggestionMinKm() {
+        return odometerSuggestionMinKm;
+    }
+
+    public void setOdometerSuggestionMinKm(Integer odometerSuggestionMinKm) {
+        this.odometerSuggestionMinKm = odometerSuggestionMinKm;
+    }
+
+    public Integer getOdometerSuggestionMaxKm() {
+        return odometerSuggestionMaxKm;
+    }
+
+    public void setOdometerSuggestionMaxKm(Integer odometerSuggestionMaxKm) {
+        this.odometerSuggestionMaxKm = odometerSuggestionMaxKm;
     }
 }

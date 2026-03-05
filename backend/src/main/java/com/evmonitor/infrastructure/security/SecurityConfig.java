@@ -27,14 +27,17 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
+    private final InternalAuthFilter internalAuthFilter;
     private final CustomUserDetailsService userDetailsService;
 
     @Value("${allowed-origins:http://localhost:5173,http://localhost}")
     private String allowedOrigins;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter,
+            InternalAuthFilter internalAuthFilter,
             CustomUserDetailsService userDetailsService) {
         this.jwtAuthFilter = jwtAuthFilter;
+        this.internalAuthFilter = internalAuthFilter;
         this.userDetailsService = userDetailsService;
     }
 
@@ -52,6 +55,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/vehicle-specifications/lookup").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
                         .requestMatchers("/api/errors/**").permitAll()
+                        // Internal service endpoints — secured by InternalAuthFilter, not JWT
+                        .requestMatchers("/api/internal/**").permitAll()
                         // Require Auth for remaining API endpoints
                         .requestMatchers("/api/**").authenticated()
                         // Permit any other endpoints, assuming they are static resources or frontend
@@ -60,6 +65,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider())
+                .addFilterBefore(internalAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
