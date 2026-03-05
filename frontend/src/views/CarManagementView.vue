@@ -2,7 +2,6 @@
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { carService, type Car, type CarRequest, type BrandInfo, type ModelInfo, type CarCreateResponse } from '../api/carService'
 import { vehicleSpecificationService, type VehicleSpecification } from '../api/vehicleSpecificationService'
-import TeslaIntegration from '../components/TeslaIntegration.vue'
 import { ChartBarIcon, TruckIcon } from '@heroicons/vue/24/outline'
 import { useCoinStore } from '../stores/coins'
 import { analytics } from '../services/analytics'
@@ -62,12 +61,6 @@ const finalCapacity = computed(() => {
 const powerPs = computed(() => {
   if (!powerKw.value) return null
   return Math.round(powerKw.value * 1.35962)
-})
-
-// Check if user owns a Tesla
-const hasTesla = computed(() => {
-  const teslaModels = ['MODEL_3', 'MODEL_Y', 'MODEL_S', 'MODEL_X', 'CYBERTRUCK', 'ROADSTER']
-  return cars.value.some(car => teslaModels.includes(car.model))
 })
 
 const revokeAllBlobUrls = () => {
@@ -947,9 +940,6 @@ onUnmounted(() => {
         </form>
       </div>
     </div>
-
-    <!-- Tesla Integration (only shown if user owns a Tesla) -->
-    <TeslaIntegration v-if="hasTesla" />
 
     <!-- Toast Notification -->
     <div v-if="showToast" class="fixed bottom-6 right-6 z-50 animate-slide-in">
