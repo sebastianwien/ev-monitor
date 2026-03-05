@@ -10,6 +10,12 @@ const emit = defineEmits<{
 
 const coinStore = useCoinStore()
 
+const enumToLabel = (v: string) => v.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
+const carLabel = (car: Car) => {
+  const name = `${enumToLabel(car.brand)} ${enumToLabel(car.model)}`
+  return car.licensePlate ? `${name} · ${car.licensePlate}` : name
+}
+
 type ImportStep = 'token' | 'mapping' | 'importing' | 'done';
 
 const importStep = ref<ImportStep>('token');
@@ -214,7 +220,7 @@ const close = () => {
                 <option value="">-- Bitte wählen --</option>
                 <option value="new">➕ Neues Auto anlegen</option>
                 <option v-for="car in myCars" :key="car.id" :value="car.id">
-                  {{ car.model }} ({{ car.year }})
+                  {{ carLabel(car) }}
                 </option>
               </select>
 

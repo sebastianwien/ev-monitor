@@ -40,12 +40,16 @@ const fetchCars = async () => {
   }
 }
 
-const getModelLabel = (modelValue: string): string => {
-  // Convert enum name to readable (e.g., "MODEL_3" -> "Model 3")
-  return modelValue.replace(/_/g, ' ').toLowerCase()
+const enumToLabel = (value: string): string => {
+  return value.replace(/_/g, ' ').toLowerCase()
     .split(' ')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ')
+}
+
+const carLabel = (car: { brand: string; model: string; licensePlate: string }): string => {
+  const name = `${enumToLabel(car.brand)} ${enumToLabel(car.model)}`
+  return car.licensePlate ? `${name} · ${car.licensePlate}` : name
 }
 
 const goToCarManagement = () => {
@@ -88,7 +92,7 @@ onMounted(() => {
       class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border">
       <option :value="null" disabled>Fahrzeug wählen</option>
       <option v-for="car in cars" :key="car.id" :value="car.id">
-        {{ getModelLabel(car.model) }} {{ car.batteryCapacityKwh }}kWh ({{ car.licensePlate }})
+        {{ carLabel(car) }}
       </option>
     </select>
   </div>
