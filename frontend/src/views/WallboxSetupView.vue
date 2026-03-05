@@ -93,10 +93,18 @@ const remove = async (id: string) => {
   }
 }
 
+const enumToLabel = (value: string): string =>
+  value.replace(/_/g, ' ').toLowerCase()
+    .split(' ')
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ')
+
 const carLabel = (carId: string | null) => {
   if (!carId) return null
   const car = cars.value.find(c => c.id === carId)
-  return car ? `${car.brand} ${car.model} (${car.year})` : carId
+  if (!car) return carId
+  const name = `${enumToLabel(car.brand)} ${enumToLabel(car.model)}`
+  return car.licensePlate ? `${name} · ${car.licensePlate}` : name
 }
 
 const copyUrl = (url: string) => {
@@ -228,7 +236,7 @@ onMounted(load)
           >
             <option value="">Kein Fahrzeug zuordnen</option>
             <option v-for="car in cars" :key="car.id" :value="car.id">
-              {{ car.brand }} {{ car.model }} ({{ car.year }})
+              {{ carLabel(car.id) }}
             </option>
           </select>
         </div>
