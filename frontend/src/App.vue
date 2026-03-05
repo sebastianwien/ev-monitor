@@ -9,6 +9,7 @@ import FloatingActionButton from './components/FloatingActionButton.vue'
 import OnboardingWelcome from './components/OnboardingWelcome.vue'
 import DemoBanner from './components/DemoBanner.vue'
 import { Bars3Icon, XMarkIcon, ChartBarIcon, TruckIcon, ArrowDownTrayIcon, UserIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon, BoltIcon, ChatBubbleLeftEllipsisIcon } from '@heroicons/vue/24/outline'
+// Note: showImportOverlay kept for backward compat but SpritMonitor moved to /imports
 import { HeartIcon } from '@heroicons/vue/24/solid'
 
 const router = useRouter()
@@ -91,18 +92,12 @@ const closeMobileMenu = () => {
                 Fahrzeuge
               </router-link>
               <router-link
-                to="/wallbox"
-                class="px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-500 transition"
-                :class="{ 'bg-indigo-700': $route.path === '/wallbox' }">
-                Wallbox
-              </router-link>
-              <button
-                @click="showImportOverlay = true"
-                class="flex items-center gap-2 px-4 py-2 bg-indigo-700 hover:bg-indigo-800 rounded-lg text-sm font-medium transition shadow-sm">
+                to="/imports"
+                class="flex items-center gap-2 px-4 py-2 bg-indigo-700 hover:bg-indigo-800 rounded-lg text-sm font-medium transition shadow-sm"
+                :class="{ 'bg-indigo-900': $route.path === '/imports' }">
                 <ArrowDownTrayIcon class="h-5 w-5" />
-                <span class="hidden lg:inline">Sprit-Monitor Import</span>
-                <span class="lg:hidden">Import</span>
-              </button>
+                Import
+              </router-link>
             </div>
           </div>
 
@@ -211,12 +206,12 @@ const closeMobileMenu = () => {
             <span>Fahrzeuge</span>
           </router-link>
           <router-link
-            to="/wallbox"
+            to="/imports"
             @click="closeMobileMenu"
             class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-600 transition"
-            :class="{ 'bg-indigo-800': $route.path === '/wallbox' }">
-            <BoltIcon class="h-5 w-5" />
-            <span>Wallbox</span>
+            :class="{ 'bg-indigo-800': $route.path === '/imports' }">
+            <ArrowDownTrayIcon class="h-5 w-5" />
+            <span>Import</span>
           </router-link>
           <router-link
             to="/settings"
@@ -234,12 +229,6 @@ const closeMobileMenu = () => {
             <BoltIcon class="h-5 w-5" />
             <span>Watt ({{ coinStore.balance }})</span>
           </router-link>
-          <button
-            @click="showImportOverlay = true; mobileMenuOpen = false"
-            class="w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-600 transition">
-            <ArrowDownTrayIcon class="h-5 w-5" />
-            <span>Sprit-Monitor Import</span>
-          </button>
           <div v-if="authStore.user" class="flex items-center gap-2 px-3 py-2 text-sm text-indigo-200">
             <UserIcon class="h-5 w-5" />
             <span>{{ authStore.user.sub }}</span>

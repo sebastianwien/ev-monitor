@@ -18,7 +18,8 @@ import {
   TruckIcon,
   BoltIcon,
   CameraIcon,
-  PencilSquareIcon
+  PencilSquareIcon,
+  ArrowDownTrayIcon
 } from '@heroicons/vue/24/outline'
 import { useRouter } from 'vue-router'
 import api from '../api/axios'
@@ -319,6 +320,19 @@ onMounted(fetchStatistics)
         <ChartBarIcon class="h-8 w-8 text-gray-700" />
         <h1 class="text-3xl font-bold text-gray-800">Statistiken & Analysen</h1>
       </div>
+
+      <!-- Import Hint Banner -->
+      <router-link
+        to="/imports"
+        class="flex items-center gap-3 bg-green-50 border border-green-200 rounded-lg px-4 py-3 mb-6 hover:bg-green-100 transition group"
+      >
+        <ArrowDownTrayIcon class="h-5 w-5 text-green-600 shrink-0" />
+        <div class="flex-1 min-w-0">
+          <span class="text-sm font-medium text-green-800">Ladevorgänge importieren</span>
+          <span class="text-sm text-green-700 ml-1">— Sprit-Monitor, go-eCharger Cloud, OCPP Wallbox</span>
+        </div>
+        <span class="text-green-600 text-sm group-hover:translate-x-0.5 transition-transform">→</span>
+      </router-link>
 
       <div class="mb-6">
         <CarSelector v-model="selectedCarId" />

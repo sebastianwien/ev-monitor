@@ -2,7 +2,7 @@
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { carService, type Car, type CarRequest, type BrandInfo, type ModelInfo, type CarCreateResponse } from '../api/carService'
 import { vehicleSpecificationService, type VehicleSpecification } from '../api/vehicleSpecificationService'
-import { ChartBarIcon, TruckIcon } from '@heroicons/vue/24/outline'
+import { ChartBarIcon, TruckIcon, ArrowDownTrayIcon } from '@heroicons/vue/24/outline'
 import { useCoinStore } from '../stores/coins'
 import { analytics } from '../services/analytics'
 import TeslaFleetIntegration from '../components/TeslaFleetIntegration.vue'
@@ -943,8 +943,21 @@ onUnmounted(() => {
     </div>
 
     <!-- Tesla Fleet Integration (all users can connect their Tesla) -->
-    <div class="md:max-w-4xl md:mx-auto px-4 md:px-0 pb-4">
+    <div class="md:max-w-4xl md:mx-auto px-4 md:px-0 pb-4 space-y-3">
       <TeslaFleetIntegration />
+
+      <!-- Import Hub Hint -->
+      <router-link
+        to="/imports"
+        class="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 hover:bg-gray-100 transition group"
+      >
+        <ArrowDownTrayIcon class="h-5 w-5 text-gray-500 shrink-0" />
+        <div>
+          <span class="text-sm font-medium text-gray-800">Weitere Importmöglichkeiten</span>
+          <span class="text-sm text-gray-500 ml-1">— Sprit-Monitor, go-eCharger Cloud, OCPP Wallbox</span>
+        </div>
+        <span class="text-gray-400 ml-auto group-hover:translate-x-0.5 transition-transform">→</span>
+      </router-link>
     </div>
 
     <!-- Toast Notification -->
