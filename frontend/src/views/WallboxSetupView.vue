@@ -120,6 +120,19 @@ onMounted(load)
       </p>
     </div>
 
+    <!-- Beta Disclaimer -->
+    <div class="flex items-start gap-3 bg-blue-50 border border-blue-200 rounded-xl p-4 mb-8">
+      <ExclamationTriangleIcon class="h-5 w-5 text-blue-500 mt-0.5 shrink-0" />
+      <div class="text-sm text-blue-800">
+        <p class="font-semibold mb-1">Beta-Funktion</p>
+        <p>
+          Die Wallbox-Integration befindet sich im Beta-Stadium. Sie ist primär dazu gedacht,
+          die OCPP-Schnittstelle mit echten Geräten zu erproben und stabiler zu machen.
+          Fehler und Änderungen sind möglich — Feedback ist willkommen.
+        </p>
+      </div>
+    </div>
+
     <!-- Alerts -->
     <div v-if="success" class="flex items-start gap-2 bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
       <CheckCircleIcon class="h-5 w-5 text-green-600 mt-0.5 shrink-0" />

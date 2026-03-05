@@ -4,6 +4,25 @@ import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
 
 export default defineConfig({
+    server: {
+        proxy: {
+            // Wallbox service — must come before /api to take precedence
+            '/api/wallbox': {
+                target: 'http://localhost:8090',
+                changeOrigin: true
+            },
+            '/ocpp/ws': {
+                target: 'ws://localhost:8090',
+                ws: true,
+                changeOrigin: true
+            },
+            // Core backend
+            '/api': {
+                target: 'http://localhost:8080',
+                changeOrigin: true
+            }
+        }
+    },
     resolve: {
         alias: {
             '@': path.resolve(__dirname, './src')
