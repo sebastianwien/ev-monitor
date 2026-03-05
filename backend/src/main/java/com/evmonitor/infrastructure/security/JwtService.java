@@ -35,6 +35,7 @@ public class JwtService {
     public String generateToken(UserDetails userDetails) {
         Map<String, Object> extraClaims = new HashMap<>();
         if (userDetails instanceof UserPrincipal principal) {
+            extraClaims.put("userId", principal.getUser().getId().toString());
             extraClaims.put("demoAccount", principal.getUser().isSeedData());
         }
         return generateToken(extraClaims, userDetails);
