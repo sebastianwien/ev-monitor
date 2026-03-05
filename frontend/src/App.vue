@@ -90,6 +90,12 @@ const closeMobileMenu = () => {
                 :class="{ 'bg-indigo-700': $route.path === '/cars' }">
                 Fahrzeuge
               </router-link>
+              <router-link
+                to="/wallbox"
+                class="px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-500 transition"
+                :class="{ 'bg-indigo-700': $route.path === '/wallbox' }">
+                Wallbox
+              </router-link>
               <button
                 @click="showImportOverlay = true"
                 class="flex items-center gap-2 px-4 py-2 bg-indigo-700 hover:bg-indigo-800 rounded-lg text-sm font-medium transition shadow-sm">
@@ -203,6 +209,14 @@ const closeMobileMenu = () => {
             :class="{ 'bg-indigo-800': $route.path === '/cars' }">
             <TruckIcon class="h-5 w-5" />
             <span>Fahrzeuge</span>
+          </router-link>
+          <router-link
+            to="/wallbox"
+            @click="closeMobileMenu"
+            class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-600 transition"
+            :class="{ 'bg-indigo-800': $route.path === '/wallbox' }">
+            <BoltIcon class="h-5 w-5" />
+            <span>Wallbox</span>
           </router-link>
           <router-link
             to="/settings"

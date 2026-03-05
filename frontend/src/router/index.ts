@@ -17,6 +17,7 @@ import AGBView from '../views/AGBView.vue';
 import TermsView from '../views/TermsView.vue';
 import NotFoundView from '../views/NotFoundView.vue';
 import CoinHistoryView from '../views/CoinHistoryView.vue';
+import WallboxSetupView from '../views/WallboxSetupView.vue';
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
@@ -66,6 +67,12 @@ const router = createRouter({
             path: '/coins/history',
             name: 'coin-history',
             component: CoinHistoryView,
+            meta: { requiresAuth: true }
+        },
+        {
+            path: '/wallbox',
+            name: 'wallbox-setup',
+            component: WallboxSetupView,
             meta: { requiresAuth: true }
         },
         {
