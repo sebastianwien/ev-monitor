@@ -5,6 +5,7 @@ import CarSelector from './CarSelector.vue'
 import OcrPhotoCapture from './OcrPhotoCapture.vue'
 import { CameraIcon, PencilSquareIcon, TrashIcon, BoltIcon } from '@heroicons/vue/24/outline'
 import { useCoinStore } from '../stores/coins'
+import { analytics } from '../services/analytics'
 
 const coinStore = useCoinStore()
 
@@ -221,11 +222,13 @@ const submitLog = async () => {
       payload.ocrUsed = true
     }
 
+    const isFirstLog = logs.value.length === 0
     const res = await api.post('/logs', payload)
 
     // Show coin toast and refresh balance
     showCoinToast(res.data.coinsAwarded)
     coinStore.refresh()
+    analytics.trackLogCreated(ocrUsed.value ? 'ocr' : 'manual', isFirstLog)
 
     // Reset form (keep car selected)
     kwhCharged.value = 0

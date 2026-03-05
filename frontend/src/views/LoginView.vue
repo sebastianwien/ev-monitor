@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { useRouter } from 'vue-router';
+import { analytics } from '../services/analytics';
 
 const email = ref('');
 const password = ref('');
@@ -16,6 +17,7 @@ const handleLogin = async () => {
     error.value = '';
     errorCode.value = '';
     await authStore.login({ email: email.value, password: password.value });
+    analytics.trackLogin();
     router.push('/statistics');
   } catch (err: any) {
     const code = err.response?.data?.code;

@@ -26,10 +26,12 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import { useAuthStore } from '../stores/auth';
+import { analytics } from '../services/analytics';
 
 const authStore = useAuthStore();
 
 onMounted(async () => {
     await authStore.refreshPremiumStatus();
+    analytics.trackCheckoutCompleted();
 });
 </script>

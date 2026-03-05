@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import api from '../api/axios';
+import { analytics } from '../services/analytics';
 
 const email = ref('');
 const loading = ref(false);
@@ -13,6 +14,7 @@ const handleSubmit = async () => {
   try {
     await api.post('/auth/forgot-password', { email: email.value });
     submitted.value = true;
+    analytics.trackPasswordResetRequested();
   } catch (err: any) {
     if (err.response?.status === 429) {
       error.value = 'Zu viele Versuche. Bitte warte etwas und versuche es erneut.';
