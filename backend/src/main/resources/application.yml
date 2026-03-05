@@ -84,6 +84,10 @@ spritmonitor:
 tesla:
   encryption:
     key: ${TESLA_ENCRYPTION_KEY:change-this-32-char-secret-key!!}
+  fleet:
+    client-id: ${TESLA_FLEET_CLIENT_ID:}
+    client-secret: ${TESLA_FLEET_CLIENT_SECRET:}
+    redirect-uri: ${TESLA_FLEET_REDIRECT_URI:http://localhost:8080/api/tesla/fleet/auth/callback}
 
 # Internal Service Token (used by Wallbox Service to authenticate against Core)
 internal:
