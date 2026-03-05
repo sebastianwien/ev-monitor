@@ -13,7 +13,7 @@ import {
 } from '@heroicons/vue/24/outline'
 
 const authStore = useAuthStore()
-const userId = computed(() => authStore.user?.id || authStore.user?.sub || '')
+const userId = computed(() => authStore.user?.userId || '')
 
 const connections = ref<WallboxConnection[]>([])
 const cars = ref<Car[]>([])

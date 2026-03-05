@@ -74,6 +74,7 @@ services:
       EVMONITOR_CORE_URL: http://backend:8080
       EVMONITOR_INTERNAL_TOKEN: dev-internal-token-change-in-prod
       JWT_SECRET: dev-secret-key-CHANGE-IN-PRODUCTION-THIS-MUST-BE-AT-LEAST-64-CHARS-LONG-FOR-HS512-ALGORITHM-12345678901234567890
+      ALLOWED_ORIGINS: http://localhost:5173,http://localhost
     depends_on:
       db:
         condition: service_healthy

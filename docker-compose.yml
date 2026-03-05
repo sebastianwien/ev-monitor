@@ -60,6 +60,7 @@ services:
       EVMONITOR_CORE_URL: http://backend:8080
       EVMONITOR_INTERNAL_TOKEN: ${INTERNAL_SERVICE_TOKEN}
       JWT_SECRET: ${JWT_SECRET}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://ev-monitor.net,https://www.ev-monitor.net}
     depends_on:
       db:
         condition: service_healthy
