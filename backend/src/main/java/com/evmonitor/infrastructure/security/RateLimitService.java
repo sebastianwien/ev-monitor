@@ -17,8 +17,9 @@ import java.util.concurrent.ConcurrentHashMap;
  *  - false → all requests pass through (development default, emergency kill-switch)
  *
  * Limits:
- *  - Login:    10 attempts / 5 min per IP
- *  - Register:  5 attempts / 10 min per IP
+ *  - Login:          10 attempts / 5 min per IP
+ *  - Register:        5 attempts / 10 min per IP
+ *  - Forgot Password: 3 attempts / 10 min per IP
  */
 @Service
 @Slf4j
@@ -39,8 +40,15 @@ public class RateLimitService {
             .refillIntervally(5, Duration.ofMinutes(10))
             .build();
 
+    // 3 attempts, refilled every 10 minutes
+    private static final Bandwidth FORGOT_PASSWORD_LIMIT = Bandwidth.builder()
+            .capacity(3)
+            .refillIntervally(3, Duration.ofMinutes(10))
+            .build();
+
     private final ConcurrentHashMap<String, Bucket> loginBuckets = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Bucket> registerBuckets = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Bucket> forgotPasswordBuckets = new ConcurrentHashMap<>();
 
     /**
      * @return true if the request may proceed, false if rate limit exceeded
@@ -52,6 +60,17 @@ public class RateLimitService {
                 .tryConsume(1);
         if (!allowed) {
             log.warn("Rate limit exceeded for login from IP: {}", clientIp);
+        }
+        return allowed;
+    }
+
+    public boolean tryConsumeForgotPassword(String clientIp) {
+        if (!enabled) return true;
+        boolean allowed = forgotPasswordBuckets
+                .computeIfAbsent(clientIp, ip -> Bucket.builder().addLimit(FORGOT_PASSWORD_LIMIT).build())
+                .tryConsume(1);
+        if (!allowed) {
+            log.warn("Rate limit exceeded for forgot-password from IP: {}", clientIp);
         }
         return allowed;
     }

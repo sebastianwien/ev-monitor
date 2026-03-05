@@ -3,6 +3,8 @@ package com.evmonitor.application;
 import com.evmonitor.domain.CoinType;
 import com.evmonitor.domain.EmailVerificationToken;
 import com.evmonitor.domain.EmailVerificationTokenRepository;
+import com.evmonitor.domain.PasswordResetToken;
+import com.evmonitor.domain.PasswordResetTokenRepository;
 import com.evmonitor.domain.User;
 import com.evmonitor.domain.UserRepository;
 import com.evmonitor.infrastructure.email.EmailService;
@@ -26,6 +28,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final EmailVerificationTokenRepository tokenRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final EmailService emailService;
     private final CoinLogService coinLogService;
 
@@ -35,6 +38,7 @@ public class AuthService {
             JwtService jwtService,
             AuthenticationManager authenticationManager,
             EmailVerificationTokenRepository tokenRepository,
+            PasswordResetTokenRepository passwordResetTokenRepository,
             EmailService emailService,
             CoinLogService coinLogService) {
         this.userRepository = userRepository;
@@ -42,6 +46,7 @@ public class AuthService {
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
         this.tokenRepository = tokenRepository;
+        this.passwordResetTokenRepository = passwordResetTokenRepository;
         this.emailService = emailService;
         this.coinLogService = coinLogService;
     }
@@ -126,6 +131,32 @@ public class AuthService {
             tokenRepository.save(newToken);
             emailService.sendVerificationEmail(user.getEmail(), newToken.getToken());
         });
+    }
+
+    @Transactional
+    public void forgotPassword(String email) {
+        // Always return silently — never reveal whether email exists (privacy)
+        userRepository.findByEmail(email).ifPresent(user -> {
+            passwordResetTokenRepository.deleteByUserId(user.getId()); // invalidate any old token
+            PasswordResetToken resetToken = PasswordResetToken.createFor(user.getId());
+            passwordResetTokenRepository.save(resetToken);
+            emailService.sendPasswordResetEmail(user.getEmail(), resetToken.getToken());
+        });
+    }
+
+    @Transactional
+    public void resetPassword(String token, String newPassword) {
+        PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token)
+                .orElseThrow(() -> new IllegalArgumentException("INVALID_TOKEN"));
+
+        if (resetToken.isExpired()) {
+            passwordResetTokenRepository.deleteById(resetToken.getId());
+            throw new IllegalArgumentException("TOKEN_EXPIRED");
+        }
+
+        String hashedPassword = passwordEncoder.encode(newPassword);
+        userRepository.updatePassword(resetToken.getUserId(), hashedPassword);
+        passwordResetTokenRepository.deleteById(resetToken.getId());
     }
 
     public AuthResponse login(LoginRequest request) {

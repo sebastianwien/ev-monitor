@@ -249,7 +249,7 @@ backend/src/main/resources/db/migration/
 ├── V1__baseline.sql
 ├── V2__add_composite_indices.sql
 ├── ...
-└── V11__create_tesla_connections.sql  (latest)
+└── V23__add_password_reset_tokens.sql  (latest)
 ```
 
 **Details:** Siehe [Database Schema](docs/architecture/database-schema.md)
@@ -276,6 +276,7 @@ backend/src/main/resources/db/migration/
 |---------|--------|----------|
 | JWT Authentication | ✅ Implementiert | [Authentication](docs/features/authentication.md) |
 | Email Verification | ✅ Implementiert | [Authentication](docs/features/authentication.md) |
+| Password Reset | ✅ Implementiert | [Authentication](docs/features/authentication.md) |
 | OAuth2 SSO | 🟡 Infrastructure Ready | [Authentication](docs/features/authentication.md) |
 | Charging Logs | ✅ Implementiert | [Charging Logs](docs/features/charging-logs.md) |
 | Geohashing (Privacy) | ✅ Implementiert | [Charging Logs](docs/features/charging-logs.md) |
@@ -284,6 +285,8 @@ backend/src/main/resources/db/migration/
 | WLTP Crowdsourcing | ✅ Implementiert | [WLTP Crowdsourcing](docs/features/wltp-crowdsourcing.md) |
 | Coin System | ✅ Implementiert (Car, Log, WLTP, OCR-Bonus) | [WLTP Crowdsourcing](docs/features/wltp-crowdsourcing.md) |
 | Tesla API Integration | ✅ Implementiert (nur für Tesla-Besitzer sichtbar) | [Tesla Import](docs/features/tesla-import.md) |
+| Premium Subscription (Stripe) | 🟡 Implementiert, PREMIUM_ENABLED=false (Beta) | [Monetization](docs/monetization-premium.md) |
+| Wallbox Integration | 🟡 Core-Infrastruktur ready, Service TODO | [Monetization](docs/monetization-premium.md) |
 | Sprit-Monitor Import | 🔴 TODO | - |
 
 ---

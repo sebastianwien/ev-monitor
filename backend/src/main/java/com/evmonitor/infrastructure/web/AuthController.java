@@ -58,8 +58,31 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("message", "Falls diese E-Mail-Adresse registriert und noch nicht verifiziert ist, wurde eine neue E-Mail verschickt."));
     }
 
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Map<String, String>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request,
+                                                               HttpServletRequest httpRequest) {
+        if (!rateLimitService.tryConsumeForgotPassword(clientIp(httpRequest))) {
+            return tooManyRequests(600);
+        }
+        authService.forgotPassword(request.email());
+        return ResponseEntity.ok(Map.of("message", "Falls diese E-Mail-Adresse registriert ist, wurde ein Reset-Link verschickt."));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<Map<String, String>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request.token(), request.newPassword());
+        return ResponseEntity.ok(Map.of("message", "Passwort erfolgreich geändert."));
+    }
+
     record ResendVerificationRequest(
             @NotBlank @Email String email) {}
+
+    record ForgotPasswordRequest(
+            @NotBlank @Email String email) {}
+
+    record ResetPasswordRequest(
+            @NotBlank String token,
+            @NotBlank @jakarta.validation.constraints.Size(min = 8) String newPassword) {}
 
     // -------------------------------------------------------------------------
     // Helpers

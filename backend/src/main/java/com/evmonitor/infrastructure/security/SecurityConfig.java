@@ -50,7 +50,8 @@ public class SecurityConfig {
                         // CORS preflight — must be permitted before any auth check
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/auth/register", "/api/auth/login",
-                                "/api/auth/verify-email", "/api/auth/resend-verification").permitAll()
+                                "/api/auth/verify-email", "/api/auth/resend-verification",
+                                "/api/auth/forgot-password", "/api/auth/reset-password").permitAll()
                         .requestMatchers("/api/cars/brands", "/api/cars/brands/**").permitAll()
                         .requestMatchers("/api/vehicle-specifications/lookup").permitAll()
                         .requestMatchers("/api/public/**").permitAll()

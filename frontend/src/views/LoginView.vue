@@ -66,7 +66,11 @@ const handleResendFromLogin = async () => {
         <button type="submit" class="w-full px-4 py-3 font-semibold text-white bg-indigo-600 rounded-lg shadow hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition">Anmelden</button>
       </form>
 
-      <div class="mt-6 text-center text-sm text-gray-500">
+      <div class="mt-4 text-center">
+        <router-link to="/forgot-password" class="text-sm text-gray-400 hover:text-indigo-600">Passwort vergessen?</router-link>
+      </div>
+
+      <div class="mt-4 text-center text-sm text-gray-500">
         Noch kein Konto? <router-link to="/register" class="font-semibold text-indigo-600 hover:text-indigo-500">Hier registrieren</router-link>
       </div>
     </div>

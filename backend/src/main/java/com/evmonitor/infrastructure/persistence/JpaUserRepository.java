@@ -47,4 +47,8 @@ public interface JpaUserRepository extends JpaRepository<UserEntity, UUID> {
     @Modifying
     @Query("UPDATE UserEntity u SET u.stripeCustomerId = :customerId WHERE u.id = :userId")
     void setStripeCustomerId(@Param("userId") UUID userId, @Param("customerId") String customerId);
+
+    @Modifying
+    @Query("UPDATE UserEntity u SET u.passwordHash = :passwordHash WHERE u.id = :userId")
+    void updatePassword(@Param("userId") UUID userId, @Param("passwordHash") String passwordHash);
 }
