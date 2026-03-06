@@ -67,15 +67,15 @@ public class EvLog {
             Integer chargeDurationMinutes, String geohash,
             LocalDateTime loggedAt, Integer odometerSuggestionMinKm, Integer odometerSuggestionMaxKm) {
         return createFromInternal(carId, kwhCharged, chargeDurationMinutes, geohash,
-                loggedAt, odometerSuggestionMinKm, odometerSuggestionMaxKm, DataSource.WALLBOX_OCPP);
+                loggedAt, odometerSuggestionMinKm, odometerSuggestionMaxKm, DataSource.WALLBOX_OCPP, null);
     }
 
     public static EvLog createFromInternal(UUID carId, BigDecimal kwhCharged,
             Integer chargeDurationMinutes, String geohash,
             LocalDateTime loggedAt, Integer odometerSuggestionMinKm, Integer odometerSuggestionMaxKm,
-            DataSource dataSource) {
+            DataSource dataSource, BigDecimal costEur) {
         LocalDateTime now = LocalDateTime.now();
-        return new EvLog(UUID.randomUUID(), carId, kwhCharged, null,
+        return new EvLog(UUID.randomUUID(), carId, kwhCharged, costEur,
                 chargeDurationMinutes, geohash, null, null, loggedAt,
                 dataSource, dataSource.includeInStatistics(),
                 odometerSuggestionMinKm, odometerSuggestionMaxKm, now, now);

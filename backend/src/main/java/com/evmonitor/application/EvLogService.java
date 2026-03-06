@@ -98,7 +98,8 @@ public class EvLogService {
                 request.loggedAt(),
                 request.odometerSuggestionMinKm(),
                 request.odometerSuggestionMaxKm(),
-                source);
+                source,
+                request.costEur());
 
         EvLog savedLog = evLogRepository.save(newLog);
         return EvLogResponse.fromDomain(savedLog);
@@ -216,6 +217,7 @@ public class EvLogService {
 
         BigDecimal totalCostEur = logs.stream()
                 .map(EvLog::getCostEur)
+                .filter(c -> c != null)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal avgCostPerKwh = totalKwhCharged.compareTo(BigDecimal.ZERO) > 0
@@ -224,11 +226,13 @@ public class EvLogService {
 
         BigDecimal cheapestCharge = logs.stream()
                 .map(EvLog::getCostEur)
+                .filter(c -> c != null)
                 .min(BigDecimal::compareTo)
                 .orElse(BigDecimal.ZERO);
 
         BigDecimal mostExpensiveCharge = logs.stream()
                 .map(EvLog::getCostEur)
+                .filter(c -> c != null)
                 .max(BigDecimal::compareTo)
                 .orElse(BigDecimal.ZERO);
 
@@ -331,6 +335,7 @@ public class EvLogService {
 
                     BigDecimal totalCost = periodLogs.stream()
                             .map(EvLog::getCostEur)
+                            .filter(c -> c != null)
                             .reduce(BigDecimal.ZERO, BigDecimal::add);
 
                     // Distance and consumption for this period
