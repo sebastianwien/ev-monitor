@@ -57,6 +57,13 @@ server {
     # Variable-based proxy_pass prevents nginx crash when connectors-service is not yet running
     set $connectors_upstream http://connectors-service:8081;
 
+    location = /api/connectors/health {
+        proxy_pass $connectors_upstream/actuator/health;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_http_version 1.1;
+    }
+
     location /api/tesla/fleet/ {
         proxy_pass $connectors_upstream/api/tesla/fleet/;
         proxy_set_header Host $http_host;
