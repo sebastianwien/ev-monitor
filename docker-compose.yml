@@ -52,11 +52,9 @@ services:
       dockerfile: Dockerfile
     restart: always
     environment:
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_NAME: ev_connectors
-      DB_USER: ${CONNECTORS_DB_USER:-evmonitor}
-      DB_PASSWORD: ${CONNECTORS_DB_PASSWORD:-${POSTGRES_PASSWORD}}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/ev_connectors
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
       CORE_API_BASE_URL: http://backend:8080
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
