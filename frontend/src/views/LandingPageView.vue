@@ -76,9 +76,6 @@ const goToModelDetail = (brand: string, model: string) => {
   router.push(`/modelle/${brand}/${urlModel}`)
 }
 
-const enumToLabel = (v: string) =>
-  v.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
-
 const formatDelta = (real: number | null, wltp: number): string => {
   if (!real || wltp === 0) return '—'
   const percentDelta = ((real - wltp) / wltp) * 100
