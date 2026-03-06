@@ -86,14 +86,19 @@ public class EvLogService {
             throw new IllegalArgumentException("Car does not belong to user");
         }
 
-        EvLog newLog = EvLog.createFromOcpp(
+        DataSource source = DataSource.WALLBOX_OCPP;
+        if (request.dataSource() != null) {
+            try { source = DataSource.valueOf(request.dataSource()); } catch (IllegalArgumentException ignored) {}
+        }
+        EvLog newLog = EvLog.createFromInternal(
                 request.carId(),
                 request.kwhCharged(),
                 request.chargeDurationMinutes(),
                 request.geohash(),
                 request.loggedAt(),
                 request.odometerSuggestionMinKm(),
-                request.odometerSuggestionMaxKm());
+                request.odometerSuggestionMaxKm(),
+                source);
 
         EvLog savedLog = evLogRepository.save(newLog);
         return EvLogResponse.fromDomain(savedLog);
