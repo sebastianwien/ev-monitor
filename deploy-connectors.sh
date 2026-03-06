@@ -28,15 +28,15 @@ set -a; source "$SCRIPT_DIR/.env"; set +a
 
 # Validate connectors-specific env vars
 ERRORS=0
-[ -z "$CONNECTORS_DB_PASSWORD" ] && echo "❌ CONNECTORS_DB_PASSWORD missing" && ERRORS=$((ERRORS+1))
+[ -z "$POSTGRES_PASSWORD" ] && echo "❌ POSTGRES_PASSWORD missing" && ERRORS=$((ERRORS+1))
 [ -z "$INTERNAL_SERVICE_TOKEN" ] && echo "❌ INTERNAL_SERVICE_TOKEN missing" && ERRORS=$((ERRORS+1))
 [ -z "$JWT_SECRET" ] && echo "❌ JWT_SECRET missing" && ERRORS=$((ERRORS+1))
 if [ $ERRORS -gt 0 ]; then echo "❌ $ERRORS error(s). Aborting."; exit 1; fi
 
-echo "🐳 Rebuilding and restarting connectors-service..."
+echo "🐳 Rebuilding and restarting connectors-service + nginx..."
 cd "$SCRIPT_DIR"
-docker compose build --no-cache connectors-service
-docker compose up -d connectors-service
+docker compose build --no-cache connectors-service nginx
+docker compose up -d connectors-service nginx
 
 echo ""
 echo "⏳ Waiting for connectors-service to start..."
