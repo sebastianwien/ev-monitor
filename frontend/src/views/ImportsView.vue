@@ -1,12 +1,23 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ArrowDownTrayIcon, BoltIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 import SpritMonitorImport from '../components/SpritMonitorImport.vue'
 import GoeIntegration from '../components/GoeIntegration.vue'
+import TeslaFleetIntegration from '../components/TeslaFleetIntegration.vue'
+import { carService, type Car } from '../api/carService'
 
-type Tab = 'spritmonitor' | 'goe' | 'wallbox'
+type Tab = 'spritmonitor' | 'goe' | 'wallbox' | 'tesla'
 const activeTab = ref<Tab>('spritmonitor')
 const showSpritMonitorModal = ref(false)
+const cars = ref<Car[]>([])
+
+onMounted(async () => {
+  try { cars.value = await carService.getCars() } catch { /* ignore */ }
+})
+
+const hasActiveTesla = computed(() =>
+  cars.value.some(c => c.brand?.toLowerCase() === 'tesla' && c.status === 'ACTIVE')
+)
 </script>
 
 <template>
@@ -19,7 +30,6 @@ const showSpritMonitorModal = ref(false)
       </div>
       <p class="text-gray-600 text-sm">
         Importiere deine bisherigen Ladevorgänge oder verbinde eine Heimwallbox für automatischen Import.
-        Tesla-Import findest du unter <router-link to="/cars" class="text-green-600 hover:underline">Fahrzeuge</router-link>.
       </p>
     </div>
 
@@ -57,6 +67,18 @@ const showSpritMonitorModal = ref(false)
         ]"
       >
         OCPP Wallbox
+      </button>
+      <button
+        v-if="hasActiveTesla"
+        @click="activeTab = 'tesla'"
+        :class="[
+          'flex-1 text-sm font-medium px-3 py-2 rounded-lg transition',
+          activeTab === 'tesla'
+            ? 'bg-white shadow text-gray-900'
+            : 'text-gray-600 hover:text-gray-900'
+        ]"
+      >
+        Tesla
       </button>
     </div>
 
@@ -158,6 +180,11 @@ const showSpritMonitorModal = ref(false)
           OCPP Wallbox konfigurieren
         </router-link>
       </div>
+    </div>
+
+    <!-- Tab: Tesla -->
+    <div v-if="activeTab === 'tesla' && hasActiveTesla">
+      <TeslaFleetIntegration />
     </div>
   </div>
 

@@ -5,6 +5,7 @@ export interface TeslaConnectionStatus {
   vehicleName: string | null
   lastSyncAt: string | null
   autoImportEnabled: boolean
+  geocodingInProgress: boolean
 }
 
 export interface TeslaFleetSyncResult {

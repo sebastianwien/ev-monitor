@@ -27,6 +27,8 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
 
     boolean existsByCarIdAndLoggedAtAndDataSource(UUID carId, LocalDateTime loggedAt, String dataSource);
 
+    Optional<EvLogEntity> findByCarIdAndLoggedAt(UUID carId, LocalDateTime loggedAt);
+
     /**
      * Aggregated basic stats for a car model.
      * Returns: [logCount, uniqueContributors, avgCostPerKwh, avgKwhPerSession]

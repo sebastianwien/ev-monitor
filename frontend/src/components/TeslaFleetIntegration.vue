@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { ArrowTopRightOnSquareIcon, ArrowPathIcon, XMarkIcon, CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 import teslaFleetService, { type TeslaConnectionStatus, type TeslaFleetSyncResult } from '@/api/teslaFleetService'
@@ -7,7 +7,7 @@ import { carService, type Car } from '@/api/carService'
 
 const route = useRoute()
 
-const status = ref<TeslaConnectionStatus>({ connected: false, vehicleName: null, lastSyncAt: null, autoImportEnabled: false })
+const status = ref<TeslaConnectionStatus>({ connected: false, vehicleName: null, lastSyncAt: null, autoImportEnabled: false, geocodingInProgress: false })
 const isLoading = ref(false)
 const syncResult = ref<TeslaFleetSyncResult | null>(null)
 const error = ref<string | null>(null)
@@ -15,9 +15,13 @@ const success = ref<string | null>(null)
 const fleetApiConfigured = ref(true)
 const cars = ref<Car[]>([])
 const selectedCarId = ref<string>('')
+let geocodingPollInterval: ReturnType<typeof setInterval> | null = null
 
 onMounted(async () => {
   await Promise.all([loadStatus(), loadCars()])
+  if (status.value.geocodingInProgress) {
+    startGeocodingPoll()
+  }
   if (route.query['tesla-connected']) {
     success.value = 'Tesla erfolgreich verbunden! Du kannst jetzt deine Ladehistorie importieren.'
     await loadStatus()
@@ -30,6 +34,25 @@ onMounted(async () => {
 async function loadStatus() {
   try { status.value = await teslaFleetService.getStatus() } catch { /* ignore */ }
 }
+
+function startGeocodingPoll() {
+  if (geocodingPollInterval) return
+  geocodingPollInterval = setInterval(async () => {
+    await loadStatus()
+    if (!status.value.geocodingInProgress) {
+      stopGeocodingPoll()
+    }
+  }, 3000)
+}
+
+function stopGeocodingPoll() {
+  if (geocodingPollInterval) {
+    clearInterval(geocodingPollInterval)
+    geocodingPollInterval = null
+  }
+}
+
+onUnmounted(() => stopGeocodingPoll())
 
 async function loadCars() {
   try {
@@ -64,6 +87,9 @@ async function handleSyncHistory() {
   try {
     syncResult.value = await teslaFleetService.syncHistory()
     await loadStatus()
+    if (status.value.geocodingInProgress) {
+      startGeocodingPoll()
+    }
   } catch (e: any) {
     error.value = e.response?.data?.message || 'Synchronisierung fehlgeschlagen'
   } finally {
@@ -170,6 +196,10 @@ function formatDate(d: string) {
       <div v-if="syncResult" class="bg-gray-50 rounded-lg p-3 text-sm">
         <p class="font-medium text-gray-800">{{ syncResult.message }}</p>
         <p v-if="syncResult.logsSkipped > 0" class="text-gray-500 text-xs mt-1">{{ syncResult.logsSkipped }} übersprungen</p>
+      </div>
+      <div v-if="status.geocodingInProgress" class="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg p-3">
+        <ArrowPathIcon class="h-4 w-4 text-blue-500 animate-spin shrink-0" />
+        <p class="text-sm text-blue-800">Ladestandorte werden aufgelöst…</p>
       </div>
       <button
         @click="handleSyncHistory"

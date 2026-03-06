@@ -5,7 +5,6 @@ import { vehicleSpecificationService, type VehicleSpecification } from '../api/v
 import { ChartBarIcon, TruckIcon, ArrowDownTrayIcon } from '@heroicons/vue/24/outline'
 import { useCoinStore } from '../stores/coins'
 import { analytics } from '../services/analytics'
-import TeslaFleetIntegration from '../components/TeslaFleetIntegration.vue'
 
 const coinStore = useCoinStore()
 
@@ -46,8 +45,6 @@ const visibilityTimers: Record<string, ReturnType<typeof setTimeout>> = {}
 const sortedBrands = computed(() => {
   return [...brands.value].sort((a, b) => a.label.localeCompare(b.label))
 })
-
-const hasTesla = computed(() => cars.value.some(c => c.brand?.toLowerCase() === 'tesla'))
 
 const selectedModelCapacities = computed(() => {
   if (!selectedModel.value) return []
@@ -945,9 +942,7 @@ onUnmounted(() => {
     </div>
 
     <!-- Tesla Fleet Integration (only shown when user has a Tesla) -->
-    <div class="md:max-w-4xl md:mx-auto px-4 md:px-0 pb-4 space-y-3">
-      <TeslaFleetIntegration v-if="hasTesla" />
-
+    <div class="md:max-w-4xl md:mx-auto px-4 md:px-0 pb-4">
       <!-- Import Hub Hint -->
       <router-link
         to="/imports"
@@ -955,8 +950,8 @@ onUnmounted(() => {
       >
         <ArrowDownTrayIcon class="h-5 w-5 text-gray-500 shrink-0" />
         <div>
-          <span class="text-sm font-medium text-gray-800">Weitere Importmöglichkeiten</span>
-          <span class="text-sm text-gray-500 ml-1">— Sprit-Monitor, go-eCharger Cloud, OCPP Wallbox</span>
+          <span class="text-sm font-medium text-gray-800">Importmöglichkeiten</span>
+          <span class="text-sm text-gray-500 ml-1">— Tesla, Sprit-Monitor, go-eCharger Cloud, OCPP Wallbox</span>
         </div>
         <span class="text-gray-400 ml-auto group-hover:translate-x-0.5 transition-transform">→</span>
       </router-link>
