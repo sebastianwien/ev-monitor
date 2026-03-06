@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { ArrowDownTrayIcon, BoltIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 import SpritMonitorImport from '../components/SpritMonitorImport.vue'
+import GoeIntegration from '../components/GoeIntegration.vue'
 
 type Tab = 'spritmonitor' | 'goe' | 'wallbox'
 const activeTab = ref<Tab>('spritmonitor')
@@ -94,16 +95,13 @@ const showSpritMonitorModal = ref(false)
 
     <!-- Tab: go-eCharger -->
     <div v-if="activeTab === 'goe'">
-      <div class="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
-        <div class="flex items-start gap-4">
+      <div class="bg-white border border-gray-200 rounded-xl p-6">
+        <div class="flex items-start gap-4 mb-5">
           <div class="bg-green-600 rounded-lg p-2 shrink-0">
             <BoltIcon class="h-5 w-5 text-white" />
           </div>
-          <div class="flex-1">
-            <div class="flex items-center gap-2">
-              <h2 class="font-semibold text-gray-900">go-eCharger Cloud</h2>
-              <span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">Kommt bald</span>
-            </div>
+          <div>
+            <h2 class="font-semibold text-gray-900">go-eCharger Cloud</h2>
             <p class="text-sm text-gray-600 mt-1">
               Verbinde deinen go-eCharger über die Cloud API für vollautomatischen Import.
               Alle 30 Sekunden wird der Ladestatus geprüft und abgeschlossene Sessions automatisch eingetragen.
@@ -111,13 +109,15 @@ const showSpritMonitorModal = ref(false)
           </div>
         </div>
 
-        <div class="flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-lg p-3">
-          <ExclamationTriangleIcon class="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
-          <p class="text-xs text-blue-800">
-            Die go-eCharger Cloud Integration lässt sich parallel zu allen anderen go-e Features (PV-Überschussladen,
-            Lastmanagement) nutzen. Keine OCPP-Konfiguration nötig. Dieses Feature wird in Kürze als Premium-Feature verfügbar sein.
+        <div class="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3 mb-5">
+          <ExclamationTriangleIcon class="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+          <p class="text-xs text-amber-800">
+            <strong>Hinweis:</strong> Die Cloud API lässt sich parallel zu allen anderen go-e Features (PV-Überschussladen,
+            Lastmanagement) nutzen. Keine OCPP-Konfiguration nötig.
           </p>
         </div>
+
+        <GoeIntegration />
       </div>
     </div>
 

@@ -46,6 +46,31 @@ services:
       db:
         condition: service_healthy
 
+  connectors-service:
+    build:
+      context: ../ev-monitor-connectors
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ev_connectors
+      DB_USER: ${CONNECTORS_DB_USER:-connectors_user}
+      DB_PASSWORD: ${CONNECTORS_DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      CORE_API_BASE_URL: http://backend:8080
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
+      TESLA_ENCRYPTION_KEY: ${TESLA_ENCRYPTION_KEY}
+      TESLA_FLEET_CLIENT_ID: ${TESLA_FLEET_CLIENT_ID:-}
+      TESLA_FLEET_CLIENT_SECRET: ${TESLA_FLEET_CLIENT_SECRET:-}
+      TESLA_FLEET_REDIRECT_URI: ${TESLA_FLEET_REDIRECT_URI:-https://ev-monitor.net/api/tesla/fleet/auth/callback}
+      GOE_ENCRYPTION_KEY: ${GOE_ENCRYPTION_KEY}
+    depends_on:
+      db:
+        condition: service_healthy
+      backend:
+        condition: service_started
+
   wallbox-service:
     build:
       context: ../ev-monitor-wallbox
@@ -82,6 +107,7 @@ services:
     depends_on:
       - backend
       - wallbox-service
+      - connectors-service
 
   certbot:
     image: certbot/certbot

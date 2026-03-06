@@ -21,6 +21,18 @@ else
   echo ""
 fi
 
+# Pull connectors service repo if it exists alongside this repo
+CONNECTORS_DIR="$(cd "$(dirname "$0")/.." && pwd)/ev-monitor-connectors"
+if [ -d "$CONNECTORS_DIR/.git" ]; then
+  echo "🔄 Pulling Connectors Service..."
+  git -C "$CONNECTORS_DIR" pull origin main
+  echo ""
+else
+  echo "⚠️  Connectors repo not found at $CONNECTORS_DIR — skipping connectors pull"
+  echo "   Clone it: git clone git@github.com:YOUR_ORG/ev-monitor-connectors.git $CONNECTORS_DIR"
+  echo ""
+fi
+
 # Check if .env file exists
 if [ ! -f .env ]; then
   echo "❌ ERROR: .env file missing!"
@@ -72,6 +84,11 @@ fi
 
 if [ -z "$WALLBOX_DB_PASSWORD" ] || [ "$WALLBOX_DB_PASSWORD" == "CHANGE_ME_TO_STRONG_PASSWORD" ]; then
   echo "❌ WALLBOX_DB_PASSWORD is missing or not configured!"
+  ERRORS=$((ERRORS + 1))
+fi
+
+if [ -z "$CONNECTORS_DB_PASSWORD" ] || [ "$CONNECTORS_DB_PASSWORD" == "CHANGE_ME_TO_STRONG_PASSWORD" ]; then
+  echo "❌ CONNECTORS_DB_PASSWORD is missing or not configured!"
   ERRORS=$((ERRORS + 1))
 fi
 
