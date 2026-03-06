@@ -19,5 +19,6 @@ public record InternalEvLogRequest(
         String geohash,
         Integer odometerSuggestionMinKm,
         Integer odometerSuggestionMaxKm,
-        String dataSource) {  // optional: WALLBOX_OCPP | WALLBOX_GOE | TESLA_FLEET (defaults to WALLBOX_OCPP)
+        String dataSource,  // optional: WALLBOX_OCPP | WALLBOX_GOE | TESLA_FLEET (defaults to WALLBOX_OCPP)
+        BigDecimal costEur) {  // optional: only available from sources that report cost (e.g. Tesla Supercharger)
 }
