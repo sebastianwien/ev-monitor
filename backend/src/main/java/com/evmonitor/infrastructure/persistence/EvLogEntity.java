@@ -19,7 +19,7 @@ public class EvLogEntity {
     @Column(name = "kwh_charged", nullable = false, precision = 10, scale = 2)
     private BigDecimal kwhCharged;
 
-    @Column(name = "cost_eur", nullable = false, precision = 10, scale = 2)
+    @Column(name = "cost_eur", nullable = true, precision = 10, scale = 2)
     private BigDecimal costEur;
 
     @Column(name = "charge_duration_minutes", nullable = false)
