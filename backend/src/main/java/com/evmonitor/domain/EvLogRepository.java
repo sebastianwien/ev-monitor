@@ -25,4 +25,6 @@ public interface EvLogRepository {
     long countByUserId(UUID userId);
 
     void deleteById(UUID id);
+
+    boolean updateGeohash(UUID carId, LocalDateTime loggedAt, String geohash);
 }

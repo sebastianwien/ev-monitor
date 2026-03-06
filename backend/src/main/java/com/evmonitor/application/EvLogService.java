@@ -105,6 +105,16 @@ public class EvLogService {
         return EvLogResponse.fromDomain(savedLog);
     }
 
+    @Transactional
+    public boolean updateGeohash(UUID carId, UUID userId, LocalDateTime loggedAt, String geohash) {
+        Car car = carRepository.findById(carId)
+                .orElseThrow(() -> new IllegalArgumentException("Car not found"));
+        if (!car.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("Car does not belong to user");
+        }
+        return evLogRepository.updateGeohash(carId, loggedAt, geohash);
+    }
+
     public List<EvLogResponse> getAllLogsForUser(UUID userId) {
         List<Car> cars = carRepository.findAllByUserId(userId);
         List<EvLogResponse> allLogs = new ArrayList<>();

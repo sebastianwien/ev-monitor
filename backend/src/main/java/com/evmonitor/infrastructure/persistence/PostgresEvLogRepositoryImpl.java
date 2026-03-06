@@ -78,6 +78,15 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
         jpaRepository.deleteById(id);
     }
 
+    @Override
+    public boolean updateGeohash(UUID carId, LocalDateTime loggedAt, String geohash) {
+        return jpaRepository.findByCarIdAndLoggedAt(carId, loggedAt).map(entity -> {
+            entity.setGeohash(geohash);
+            jpaRepository.save(entity);
+            return true;
+        }).orElse(false);
+    }
+
     private EvLogEntity toEntity(EvLog domain) {
         EvLogEntity entity = new EvLogEntity(
                 domain.getId(),
