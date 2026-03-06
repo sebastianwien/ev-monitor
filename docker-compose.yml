@@ -55,8 +55,8 @@ services:
       DB_HOST: db
       DB_PORT: 5432
       DB_NAME: ev_connectors
-      DB_USER: ${CONNECTORS_DB_USER:-connectors_user}
-      DB_PASSWORD: ${CONNECTORS_DB_PASSWORD}
+      DB_USER: ${CONNECTORS_DB_USER:-evmonitor}
+      DB_PASSWORD: ${CONNECTORS_DB_PASSWORD:-${POSTGRES_PASSWORD}}
       JWT_SECRET: ${JWT_SECRET}
       CORE_API_BASE_URL: http://backend:8080
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
