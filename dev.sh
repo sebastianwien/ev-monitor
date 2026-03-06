@@ -5,6 +5,7 @@
 # - PostgreSQL (via Docker)
 # - Backend (Spring Boot with dev profile + seed data)
 # - Wallbox Service (Spring Boot)
+# - Connectors Service (Spring Boot)
 # - Frontend (Vite dev server with hot reload)
 
 set -e
@@ -19,9 +20,10 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-# Resolve wallbox service directory relative to this script
+# Resolve service directories relative to this script
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 WALLBOX_DIR="$SCRIPT_DIR/../ev-monitor-wallbox"
+CONNECTORS_DIR="$SCRIPT_DIR/../ev-monitor-connectors"
 
 # Check if Docker is running
 if ! docker info > /dev/null 2>&1; then
@@ -29,12 +31,19 @@ if ! docker info > /dev/null 2>&1; then
     exit 1
 fi
 
-# Check if wallbox service directory exists
+# Check optional service directories
 if [ ! -d "$WALLBOX_DIR" ]; then
     echo -e "${YELLOW}⚠️  Wallbox service not found at $WALLBOX_DIR — skipping wallbox${NC}"
     SKIP_WALLBOX=true
 else
     SKIP_WALLBOX=false
+fi
+
+if [ ! -d "$CONNECTORS_DIR" ]; then
+    echo -e "${YELLOW}⚠️  Connectors service not found at $CONNECTORS_DIR — skipping connectors${NC}"
+    SKIP_CONNECTORS=true
+else
+    SKIP_CONNECTORS=false
 fi
 
 # Step 1: Start PostgreSQL
@@ -61,6 +70,12 @@ echo -e "${GREEN}✅ PostgreSQL is ready${NC}"
 if [ "$SKIP_WALLBOX" = false ]; then
     docker compose -f docker-compose.dev.yml exec -T db \
         psql -U evmonitor -d postgres -c "CREATE DATABASE ev_monitor_wallbox;" 2>/dev/null || true
+fi
+
+# Ensure connectors database exists
+if [ "$SKIP_CONNECTORS" = false ]; then
+    docker compose -f docker-compose.dev.yml exec -T db \
+        psql -U evmonitor -d postgres -c "CREATE DATABASE ev_connectors;" 2>/dev/null || true
 fi
 echo ""
 
@@ -169,6 +184,56 @@ else
     echo ""
 fi
 
+# Step 4b: Start Connectors Service
+echo -e "${BLUE}🔗 Step 4b: Starting Connectors Service...${NC}"
+if [ "$SKIP_CONNECTORS" = true ]; then
+    echo -e "${YELLOW}⏭️  Connectors service directory not found — skipping${NC}"
+    CONNECTORS_PID=""
+else
+    echo -e "${YELLOW}📝 Connectors Service will start on http://localhost:8081${NC}"
+    echo ""
+
+    cd "$CONNECTORS_DIR"
+    DB_NAME=ev_connectors \
+    DB_USER=evmonitor \
+    DB_PASSWORD=evmonitor \
+    JWT_SECRET=dev-secret-key-CHANGE-IN-PRODUCTION-THIS-MUST-BE-AT-LEAST-64-CHARS-LONG-FOR-HS512-ALGORITHM-12345678901234567890 \
+    INTERNAL_SERVICE_TOKEN=dev-internal-token-change-in-prod \
+    CORE_API_BASE_URL=http://localhost:8080 \
+    TESLA_ENCRYPTION_KEY=dev-tesla-key-CHANGE \
+    GOE_ENCRYPTION_KEY=dev-goe-key--CHANGE \
+    ./gradlew bootRun > "$SCRIPT_DIR/logs/connectors.log" 2>&1 &
+    CONNECTORS_PID=$!
+    cd "$SCRIPT_DIR"
+
+    echo $CONNECTORS_PID > .connectors.pid
+
+    echo -e "${YELLOW}⏳ Waiting for Connectors Service to start...${NC}"
+    max_attempts=60
+    attempt=0
+    until nc -z localhost 8081 2>/dev/null; do
+        attempt=$((attempt + 1))
+        if [ $attempt -ge $max_attempts ]; then
+            echo -e "${YELLOW}⚠️  Connectors Service did not respond after ${max_attempts}s — continuing anyway${NC}"
+            echo -e "${YELLOW}Check logs/connectors.log for details${NC}"
+            break
+        fi
+        if ! kill -0 $CONNECTORS_PID 2>/dev/null; then
+            echo -e "${YELLOW}⚠️  Connectors Service process died — continuing without it${NC}"
+            echo -e "${YELLOW}Check logs/connectors.log for details${NC}"
+            CONNECTORS_PID=""
+            break
+        fi
+        echo -n "."
+        sleep 1
+    done
+    echo ""
+    if [ -n "$CONNECTORS_PID" ] && kill -0 $CONNECTORS_PID 2>/dev/null; then
+        echo -e "${GREEN}✅ Connectors Service is ready${NC}"
+    fi
+    echo ""
+fi
+
 # Step 5: Start Frontend
 echo -e "${BLUE}🎨 Step 5/5: Starting Frontend (Vite Dev Server)...${NC}"
 echo -e "${YELLOW}📝 Frontend will start on http://localhost:5173${NC}"
@@ -195,7 +260,10 @@ echo ""
 echo -e "${BLUE}📱 Frontend:${NC}        http://localhost:5173"
 echo -e "${BLUE}🔧 Backend:${NC}         http://localhost:8080"
 if [ "$SKIP_WALLBOX" = false ]; then
-echo -e "${BLUE}🔌 Wallbox Service:${NC} http://localhost:8090"
+echo -e "${BLUE}🔌 Wallbox Service:${NC}     http://localhost:8090"
+fi
+if [ "$SKIP_CONNECTORS" = false ]; then
+echo -e "${BLUE}🔗 Connectors Service:${NC} http://localhost:8081"
 fi
 echo -e "${BLUE}🗄️  Database:${NC}       localhost:5432 (user: evmonitor, pass: evmonitor)"
 echo -e "${BLUE}📧 Mailpit:${NC}         http://localhost:8025"
@@ -235,6 +303,16 @@ if [ -f .wallbox.pid ]; then
     rm .wallbox.pid
 fi
 
+# Kill connectors service
+if [ -f .connectors.pid ]; then
+    CONNECTORS_PID=$(cat .connectors.pid)
+    if kill -0 $CONNECTORS_PID 2>/dev/null; then
+        echo "⏹️  Stopping Connectors Service (PID: $CONNECTORS_PID)..."
+        kill $CONNECTORS_PID
+    fi
+    rm .connectors.pid
+fi
+
 # Kill frontend
 if [ -f .frontend.pid ]; then
     FRONTEND_PID=$(cat .frontend.pid)
@@ -266,4 +344,5 @@ echo ""
 
 LOG_FILES="logs/backend.log logs/frontend.log"
 [ -f logs/wallbox.log ] && LOG_FILES="$LOG_FILES logs/wallbox.log"
+[ -f logs/connectors.log ] && LOG_FILES="$LOG_FILES logs/connectors.log"
 tail -f $LOG_FILES
