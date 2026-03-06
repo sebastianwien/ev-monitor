@@ -359,8 +359,16 @@ Prüfe `.env.local` und starte Frontend neu (Vite lädt .env nur beim Start!)
 
 ### CI/CD
 - **GitHub Actions:** (TODO) Auto-Deploy on push to main
-- **Testing:** (TODO) Backend JUnit, Frontend Vitest
+- **Testing:** Backend JUnit (Spring Boot Test), Connectors JUnit
+
+### Testing-Regeln
+- **WICHTIG:** Bei jedem neuen Feature oder jeder Änderung an bestehendem Code: Integrationstests anlegen oder aktualisieren
+- **Backend:** JUnit 5 + Spring Boot Test (`@SpringBootTest` für Integrationstests, `@WebMvcTest` für Controller)
+- **Connectors:** JUnit 5 + Spring Boot Test, Mockito für externe APIs (Tesla, Nominatim)
+- **Teststruktur:** Spiegelt `src/main/java` — gleiche Package-Struktur unter `src/test/java`
+- **Was testen:** Service-Logik, Controller-Endpoints (Request/Response), Domain-Regeln, Datenmapping
+- **Was NICHT testen:** Triviale Getter/Setter, reine Konfigurationsklassen
 
 ---
 
-**Last Updated:** 2026-03-01
+**Last Updated:** 2026-03-06
