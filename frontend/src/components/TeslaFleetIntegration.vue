@@ -146,20 +146,22 @@ function formatDate(d: string) {
       <p class="text-sm text-red-800">{{ error }}</p>
     </div>
 
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800 space-y-1">
+      <p class="font-medium">Was importiert wird:</p>
+      <ul class="list-disc list-inside space-y-0.5 text-blue-700">
+        <li>Supercharger-Sessions (historisch + zukünftig)</li>
+        <li>Energie in kWh, Dauer, Standort</li>
+        <li>Kosten (falls Supercharger mit Abrechnung)</li>
+        <li>Kilometerstand (ab jetzt, für zukünftige Sessions)</li>
+      </ul>
+      <p class="text-xs text-blue-600 mt-2">Bisherige Sessions enthalten keinen km-Stand — die Tesla API liefert diesen nur bei aktiven Ladevorgängen.</p>
+    </div>
+
     <template v-if="!status.connected">
       <p class="text-sm text-gray-600">
         Verbinde deinen Tesla Account über das offizielle OAuth2-Verfahren.
         Wir importieren dann deine bisherigen Supercharger-Sessions und prüfen täglich auf neue.
       </p>
-      <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800 space-y-1">
-        <p class="font-medium">Was importiert wird:</p>
-        <ul class="list-disc list-inside space-y-0.5 text-blue-700">
-          <li>Supercharger-Sessions (historisch + zukünftig)</li>
-          <li>Energie in kWh, Dauer, Standort</li>
-          <li>Kosten (falls Supercharger mit Abrechnung)</li>
-        </ul>
-        <p class="text-xs text-blue-600 mt-2">Heimladen erscheint über die go-eCharger oder OCPP Integration.</p>
-      </div>
       <div v-if="cars.length > 0">
         <label class="block text-xs font-medium text-gray-600 mb-1">Welches Fahrzeug ist dein Tesla?</label>
         <select v-model="selectedCarId" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
