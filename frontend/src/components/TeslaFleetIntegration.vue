@@ -80,6 +80,18 @@ async function handleDisconnect() {
   } catch { error.value = 'Trennen fehlgeschlagen' }
 }
 
+function enumToLabel(value: string): string {
+  return value.replace(/_/g, ' ').toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+}
+
+function carLabel(car: Car): string {
+  const name = `${enumToLabel(car.brand)} ${enumToLabel(car.model)}`
+  return car.licensePlate ? `${name} · ${car.licensePlate}` : name
+}
+
 function formatDate(d: string) {
   return new Date(d).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
@@ -126,7 +138,7 @@ function formatDate(d: string) {
         <label class="block text-xs font-medium text-gray-600 mb-1">Welches Fahrzeug ist dein Tesla?</label>
         <select v-model="selectedCarId" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
           <option v-for="car in cars" :key="car.id" :value="car.id">
-            {{ car.label || `${car.brand} ${car.model}` }}
+            {{ carLabel(car) }}
           </option>
         </select>
       </div>

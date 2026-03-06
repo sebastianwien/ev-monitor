@@ -3,9 +3,10 @@ import { ref, onMounted, watch } from 'vue'
 import api from '../api/axios'
 import CarSelector from './CarSelector.vue'
 import OcrPhotoCapture from './OcrPhotoCapture.vue'
-import { CameraIcon, PencilSquareIcon, TrashIcon, BoltIcon } from '@heroicons/vue/24/outline'
+import { CameraIcon, PencilSquareIcon, TrashIcon, BoltIcon, TruckIcon } from '@heroicons/vue/24/outline'
 import { useCoinStore } from '../stores/coins'
 import { analytics } from '../services/analytics'
+import { carService } from '../api/carService'
 
 const coinStore = useCoinStore()
 
@@ -256,7 +257,15 @@ watch(selectedCarId, () => {
   fetchLogs()
 })
 
-onMounted(() => {
+const hasCars = ref<boolean | null>(null) // null = loading
+
+onMounted(async () => {
+  try {
+    const cars = await carService.getCars()
+    hasCars.value = cars.length > 0
+  } catch {
+    hasCars.value = false
+  }
   fetchLogs()
 })
 
@@ -284,6 +293,21 @@ const handleOcrData = (ocrResult: any) => {
   <div class="md:max-w-2xl md:mx-auto p-4 md:p-6 bg-white md:rounded-xl md:shadow-lg md:mt-8">
     <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">Ladevorgang erfassen</h1>
 
+    <!-- No cars yet: prompt to add one first -->
+    <div v-if="hasCars === false" class="text-center py-10 space-y-4">
+      <TruckIcon class="h-14 w-14 mx-auto text-gray-300" />
+      <p class="text-gray-600 font-medium">Noch kein Fahrzeug hinterlegt</p>
+      <p class="text-sm text-gray-400">Lege zuerst ein Fahrzeug an, bevor du einen Ladevorgang erfasst.</p>
+      <router-link
+        to="/cars"
+        class="inline-flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-indigo-700 transition"
+      >
+        <TruckIcon class="h-4 w-4" />
+        Fahrzeug anlegen
+      </router-link>
+    </div>
+
+    <template v-else-if="hasCars === true">
     <!-- Car Selector: always visible -->
     <div class="mb-6">
       <CarSelector v-model="selectedCarId" />
@@ -502,6 +526,7 @@ const handleOcrData = (ocrResult: any) => {
       </ul>
       </div>
     </div>
+    </template> <!-- end v-else-if="hasCars" -->
   </div>
 </template>
 

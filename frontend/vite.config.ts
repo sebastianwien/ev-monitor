@@ -6,6 +6,15 @@ import path from 'path'
 export default defineConfig({
     server: {
         proxy: {
+            // Connectors service — must come before /api to take precedence
+            '/api/tesla': {
+                target: 'http://localhost:8081',
+                changeOrigin: true
+            },
+            '/api/goe': {
+                target: 'http://localhost:8081',
+                changeOrigin: true
+            },
             // Wallbox service — must come before /api to take precedence
             '/api/wallbox': {
                 target: 'http://localhost:8090',

@@ -14,8 +14,15 @@ import {
 } from '@heroicons/vue/24/outline'
 import { analytics } from '../services/analytics'
 import api from '../api/axios'
+import { useAuthStore } from '../stores/auth'
 
 const router = useRouter()
+const authStore = useAuthStore()
+
+function onboardingKey() {
+  const userId = authStore.user?.sub ?? 'anonymous'
+  return `onboarding-completed-${userId}`
+}
 const showWelcome = ref(false)
 const step = ref(1)
 const direction = ref<'forward' | 'backward'>('forward')
@@ -46,7 +53,7 @@ onMounted(async () => {
     return
   }
 
-  const hasSeenOnboarding = localStorage.getItem('onboarding-completed')
+  const hasSeenOnboarding = localStorage.getItem(onboardingKey())
   if (hasSeenOnboarding) return
 
   try {
@@ -57,11 +64,11 @@ onMounted(async () => {
       showWelcome.value = true
       analytics.trackOnboardingStarted()
     } else {
-      localStorage.setItem('onboarding-completed', 'true')
+      localStorage.setItem(onboardingKey(), 'true')
     }
   } catch (err) {
     console.error('Failed to check cars for onboarding:', err)
-    localStorage.setItem('onboarding-completed', 'true')
+    localStorage.setItem(onboardingKey(), 'true')
   }
 })
 
@@ -81,13 +88,13 @@ const back = () => {
 
 const skip = () => {
   analytics.trackOnboardingSkipped(step.value)
-  localStorage.setItem('onboarding-completed', 'true')
+  localStorage.setItem(onboardingKey(), 'true')
   showWelcome.value = false
 }
 
 const complete = () => {
   analytics.trackOnboardingCompleted(step.value)
-  localStorage.setItem('onboarding-completed', 'true')
+  localStorage.setItem(onboardingKey(), 'true')
   showWelcome.value = false
   router.push('/cars')
 }

@@ -64,6 +64,7 @@ services:
       TESLA_FLEET_CLIENT_ID: ${TESLA_FLEET_CLIENT_ID:-}
       TESLA_FLEET_CLIENT_SECRET: ${TESLA_FLEET_CLIENT_SECRET:-}
       TESLA_FLEET_REDIRECT_URI: ${TESLA_FLEET_REDIRECT_URI:-https://ev-monitor.net/api/tesla/fleet/auth/callback}
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-https://ev-monitor.net}
       GOE_ENCRYPTION_KEY: ${GOE_ENCRYPTION_KEY}
     depends_on:
       db:

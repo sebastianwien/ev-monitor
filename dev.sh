@@ -201,6 +201,9 @@ else
     INTERNAL_SERVICE_TOKEN=dev-internal-token-change-in-prod \
     CORE_API_BASE_URL=http://localhost:8080 \
     TESLA_ENCRYPTION_KEY=dev-tesla-key-CHANGE \
+    TESLA_FLEET_CLIENT_ID=${TESLA_FLEET_CLIENT_ID:-} \
+    TESLA_FLEET_CLIENT_SECRET=${TESLA_FLEET_CLIENT_SECRET:-} \
+    TESLA_FLEET_REDIRECT_URI=http://localhost:8081/api/tesla/fleet/auth/callback \
     GOE_ENCRYPTION_KEY=dev-goe-key--CHANGE \
     ./gradlew bootRun > "$SCRIPT_DIR/logs/connectors.log" 2>&1 &
     CONNECTORS_PID=$!
