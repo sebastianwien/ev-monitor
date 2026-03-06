@@ -38,7 +38,7 @@ server {
 
     # Tesla Fleet API public key (required for partner registration)
     location /.well-known/appspecific/ {
-        root /usr/share/nginx/well-known;
+        alias /usr/share/nginx/well-known/appspecific/;
         add_header Content-Type text/plain;
     }
 
