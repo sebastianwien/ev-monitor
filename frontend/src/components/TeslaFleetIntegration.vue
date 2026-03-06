@@ -27,7 +27,7 @@ onMounted(async () => {
     await loadStatus()
   }
   if (route.query['tesla-error']) {
-    error.value = 'Tesla-Verbindung fehlgeschlagen: ' + route.query['tesla-error']
+    error.value = String(route.query['tesla-error'])
   }
 })
 

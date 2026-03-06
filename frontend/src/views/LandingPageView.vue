@@ -9,7 +9,8 @@ import {
   UsersIcon,
   ArrowRightIcon,
   BoltIcon,
-  HeartIcon
+  HeartIcon,
+  ArrowDownTrayIcon
 } from '@heroicons/vue/24/outline'
 
 const router = useRouter()
@@ -74,6 +75,9 @@ const goToModelDetail = (brand: string, model: string) => {
   const urlModel = model.replace(/ /g, '_')
   router.push(`/modelle/${brand}/${urlModel}`)
 }
+
+const enumToLabel = (v: string) =>
+  v.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
 
 const formatDelta = (real: number | null, wltp: number): string => {
   if (!real || wltp === 0) return '—'
@@ -171,8 +175,8 @@ const formatDelta = (real: number | null, wltp: number): string => {
             <ChartBarIcon class="h-12 w-12 text-gray-400 mb-4" />
             <h3 class="text-xl font-semibold text-gray-900 mb-3">Smart Tracking</h3>
             <p class="text-gray-600">
-              Alle Ladevorgänge an einem Ort. Automatischer Tesla Import.
-              Interaktive Heatmap deiner Ladestationen.
+              Alle Ladevorgänge an einem Ort — manuell oder automatisch per Tesla, Wallbox & Sprit-Monitor.
+              Interaktive Heatmap inklusive.
             </p>
           </div>
 
@@ -224,7 +228,7 @@ const formatDelta = (real: number | null, wltp: number): string => {
             @click="goToModelDetail(preview.brand, preview.model)"
           >
             <h3 class="text-2xl font-semibold text-gray-900 mb-4">
-              {{ preview.stats.brand }} {{ preview.stats.model }}
+              {{ preview.stats.modelDisplayName }}
             </h3>
 
             <div class="flex flex-wrap gap-6 text-sm text-gray-600 mb-3">
@@ -283,21 +287,76 @@ const formatDelta = (real: number | null, wltp: number): string => {
       </div>
     </section>
 
-    <!-- Coming Soon: Wallbox Integration -->
+    <!-- Import Hub Teaser -->
     <section class="py-16 px-4 sm:px-6 lg:px-8 border-t border-gray-100">
-      <div class="max-w-3xl mx-auto text-center">
-        <span class="inline-block bg-amber-100 text-amber-800 text-xs font-semibold px-3 py-1 rounded-full mb-4 uppercase tracking-wide">
-          In Entwicklung
-        </span>
-        <h2 class="text-2xl font-semibold text-gray-900 mb-4">
-          Wallbox-Integration — kein manuelles Eintragen mehr
-        </h2>
-        <p class="text-gray-600 mb-6 max-w-xl mx-auto">
-          Bald kannst du deine Heimwallbox direkt verbinden. Ladevorgänge werden automatisch importiert — inklusive intelligenter Kilometerstand-Schätzung auf Basis deines eigenen Verbrauchsprofils.
-        </p>
-        <p class="text-sm text-gray-500">
-          go-e Charger als erster Anbieter · Weitere folgen
-        </p>
+      <div class="max-w-4xl mx-auto">
+        <div class="text-center mb-10">
+          <div class="inline-flex items-center gap-2 mb-3">
+            <ArrowDownTrayIcon class="h-6 w-6 text-green-600" />
+            <h2 class="text-2xl font-semibold text-gray-900">Nie wieder manuell eintippen</h2>
+          </div>
+          <p class="text-gray-600">
+            Verbinde deine Datenquellen — Ladevorgänge kommen automatisch rein.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <!-- Tesla -->
+          <div class="bg-white border border-gray-200 rounded-xl p-5 flex items-start gap-4">
+            <div class="bg-gray-900 rounded-lg p-2 shrink-0">
+              <BoltIcon class="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <span class="font-semibold text-gray-900 text-sm">Tesla Fleet API</span>
+                <span class="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">Verfügbar</span>
+              </div>
+              <p class="text-sm text-gray-500">Ladehistorie automatisch importieren — kein Tippen, kein Kopieren.</p>
+            </div>
+          </div>
+
+          <!-- go-eCharger -->
+          <div class="bg-white border border-gray-200 rounded-xl p-5 flex items-start gap-4">
+            <div class="bg-green-600 rounded-lg p-2 shrink-0">
+              <BoltIcon class="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <span class="font-semibold text-gray-900 text-sm">go-eCharger Cloud</span>
+                <span class="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">Verfügbar</span>
+              </div>
+              <p class="text-sm text-gray-500">Wallbox-Sessions automatisch nach jeder Ladung importieren.</p>
+            </div>
+          </div>
+
+          <!-- Sprit-Monitor -->
+          <div class="bg-white border border-gray-200 rounded-xl p-5 flex items-start gap-4">
+            <div class="bg-indigo-600 rounded-lg p-2 shrink-0">
+              <ArrowDownTrayIcon class="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <span class="font-semibold text-gray-900 text-sm">Sprit-Monitor</span>
+                <span class="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">Verfügbar</span>
+              </div>
+              <p class="text-sm text-gray-500">Komplette Ladehistorie aus Sprit-Monitor einmalig importieren.</p>
+            </div>
+          </div>
+
+          <!-- OCPP -->
+          <div class="bg-white border border-gray-200 rounded-xl p-5 flex items-start gap-4">
+            <div class="bg-gray-700 rounded-lg p-2 shrink-0">
+              <BoltIcon class="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <span class="font-semibold text-gray-900 text-sm">OCPP Wallbox</span>
+                <span class="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">Verfügbar</span>
+              </div>
+              <p class="text-sm text-gray-500">Universelles Protokoll für alle OCPP-fähigen Heimwallboxen.</p>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 

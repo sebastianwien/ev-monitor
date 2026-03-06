@@ -90,6 +90,12 @@ public class EvLogService {
         if (request.dataSource() != null) {
             try { source = DataSource.valueOf(request.dataSource()); } catch (IllegalArgumentException ignored) {}
         }
+
+        // Idempotent: skip if already imported (same car + timestamp + data source)
+        if (evLogRepository.existsByCarIdAndLoggedAtAndDataSource(request.carId(), request.loggedAt(), source)) {
+            return null;
+        }
+
         EvLog newLog = EvLog.createFromInternal(
                 request.carId(),
                 request.kwhCharged(),
