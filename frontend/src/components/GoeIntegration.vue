@@ -54,6 +54,18 @@ async function handleDisconnect(id: string) {
   } catch { error.value = 'Trennen fehlgeschlagen' }
 }
 
+function enumToLabel(value: string): string {
+  return value.replace(/_/g, ' ').toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+}
+
+function carLabel(car: Car): string {
+  const name = `${enumToLabel(car.brand)} ${enumToLabel(car.model)}`
+  return car.licensePlate ? `${name} · ${car.licensePlate}` : name
+}
+
 function carStateBadgeClass(state: number) {
   if (state === 2) return 'bg-green-100 text-green-700'
   if (state === 4) return 'bg-blue-100 text-blue-700'
@@ -103,7 +115,7 @@ function carStateBadgeClass(state: number) {
         <label class="block text-xs text-gray-500 mb-1">Fahrzeug</label>
         <select v-model="form.carId" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
           <option v-for="car in cars" :key="car.id" :value="car.id">
-            {{ car.label || `${car.brand} ${car.model}` }}
+            {{ carLabel(car) }}
           </option>
         </select>
       </div>

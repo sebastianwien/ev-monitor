@@ -20,7 +20,7 @@ export const CAR_STATE_LABELS: Record<number, string> = {
 
 export default {
   async getConnections(): Promise<GoeConnection[]> {
-    const resp = await api.get('/api/goe/connections')
+    const resp = await api.get('/goe/connections')
     return resp.data.map((c: any) => ({
       ...c,
       carStateLabel: CAR_STATE_LABELS[c.carState] ?? 'Unbekannt',
@@ -28,11 +28,11 @@ export default {
   },
 
   async connect(serial: string, apiKey: string, carId: string, displayName: string): Promise<GoeConnection> {
-    const resp = await api.post('/api/goe/connect', { serial, apiKey, carId, displayName })
+    const resp = await api.post('/goe/connect', { serial, apiKey, carId, displayName })
     return { ...resp.data, carStateLabel: CAR_STATE_LABELS[resp.data.carState] ?? 'Unbekannt' }
   },
 
   async disconnect(id: string): Promise<void> {
-    await api.delete(`/api/goe/connections/${id}`)
+    await api.delete(`/goe/connections/${id}`)
   },
 }

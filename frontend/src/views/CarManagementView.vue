@@ -47,6 +47,8 @@ const sortedBrands = computed(() => {
   return [...brands.value].sort((a, b) => a.label.localeCompare(b.label))
 })
 
+const hasTesla = computed(() => cars.value.some(c => c.brand?.toLowerCase() === 'tesla'))
+
 const selectedModelCapacities = computed(() => {
   if (!selectedModel.value) return []
   const model = availableModels.value.find(m => m.value === selectedModel.value)
@@ -942,9 +944,9 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- Tesla Fleet Integration (all users can connect their Tesla) -->
+    <!-- Tesla Fleet Integration (only shown when user has a Tesla) -->
     <div class="md:max-w-4xl md:mx-auto px-4 md:px-0 pb-4 space-y-3">
-      <TeslaFleetIntegration />
+      <TeslaFleetIntegration v-if="hasTesla" />
 
       <!-- Import Hub Hint -->
       <router-link

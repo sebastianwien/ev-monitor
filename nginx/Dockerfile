@@ -16,3 +16,5 @@ COPY --from=build-stage /app/dist /usr/share/nginx/html
 COPY nginx/nginx.conf /etc/nginx/nginx.conf
 # Copy site configuration template
 COPY nginx/conf.d/app.conf.template /etc/nginx/templates/default.conf.template
+# Copy .well-known files (Tesla Fleet API public key etc.)
+COPY nginx/well-known /usr/share/nginx/well-known
