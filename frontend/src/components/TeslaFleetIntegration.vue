@@ -101,7 +101,7 @@ async function handleDisconnect() {
   if (!confirm('Tesla-Verbindung wirklich trennen?')) return
   try {
     await teslaFleetService.disconnect()
-    status.value = { connected: false, vehicleName: null, lastSyncAt: null, autoImportEnabled: false }
+    status.value = { connected: false, vehicleName: null, lastSyncAt: null, autoImportEnabled: false, geocodingInProgress: false }
     syncResult.value = null; success.value = null
   } catch { error.value = 'Trennen fehlgeschlagen' }
 }
