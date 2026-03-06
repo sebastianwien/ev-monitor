@@ -18,5 +18,6 @@ public record InternalEvLogRequest(
         @NotNull LocalDateTime loggedAt,
         String geohash,
         Integer odometerSuggestionMinKm,
-        Integer odometerSuggestionMaxKm) {
+        Integer odometerSuggestionMaxKm,
+        String dataSource) {  // optional: WALLBOX_OCPP | WALLBOX_GOE | TESLA_FLEET (defaults to WALLBOX_OCPP)
 }
