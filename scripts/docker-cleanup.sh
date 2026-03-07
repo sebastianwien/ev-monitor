@@ -1,16 +1,16 @@
 #!/bin/bash
 #
 # Docker Cleanup Script
-# Runs weekly via cron to prevent disk space issues from buildx cache buildup
+# Runs nightly at 3 AM via cron to prevent disk space issues from buildx cache buildup
 #
 
 set -e
 
 echo "[$(date)] Starting Docker cleanup..."
 
-# Remove buildx cache older than 7 days
-echo "Pruning buildx cache (older than 7 days)..."
-docker buildx prune --force --filter until=168h
+# Remove buildx cache older than 48 hours (keeps recent builds cached)
+echo "Pruning buildx cache (older than 48 hours)..."
+docker buildx prune --force --filter until=48h
 
 # Remove dangling images (not tagged, not used by any container)
 echo "Removing dangling images..."
