@@ -13,6 +13,7 @@ import {
   Legend,
   Filler
 } from 'chart.js'
+import ChartDataLabels from 'chartjs-plugin-datalabels'
 import {
   ChartBarIcon,
   TruckIcon,
@@ -27,7 +28,7 @@ import CarSelector from '../components/CarSelector.vue'
 import ChargingHeatMap from '../components/ChargingHeatMap.vue'
 import { vehicleSpecificationService, type VehicleSpecification } from '../api/vehicleSpecificationService'
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend, Filler)
+ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend, Filler, ChartDataLabels)
 
 interface ChargeDataPoint {
   timestamp: string
@@ -221,6 +222,7 @@ const lineChartOptions = computed(() => ({
   interaction: { mode: 'index' as const, intersect: false },
   plugins: {
     legend: { display: false },
+    datalabels: { display: false }, // No labels on line chart
     tooltip: {
       callbacks: {
         label: (ctx: any) => {
@@ -279,15 +281,26 @@ const wltpChartData = computed(() => {
 })
 
 const wltpChartOptions = computed(() => ({
-  indexAxis: 'x' as const, // Vertical bars (default, but explicit)
+  indexAxis: 'y' as const, // Horizontal bars (like demographic pyramid)
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
     legend: { display: false },
+    datalabels: {
+      align: 'end' as const,
+      anchor: 'end' as const,
+      color: '#374151',
+      font: { weight: 'bold' as const, size: 12 },
+      formatter: (value: number) => {
+        const wltpVal = wltp.value?.wltpConsumptionKwhPer100km || 0
+        const percentDiff = ((value / wltpVal) * 100).toFixed(1)
+        return `${percentDiff > 0 ? '+' : ''}${percentDiff}%`
+      }
+    },
     tooltip: {
       callbacks: {
         label: (ctx: any) => {
-          const v = ctx.parsed.y
+          const v = ctx.parsed.x // x for horizontal bars
           const sign = v > 0 ? '+' : ''
           const wltpVal = wltp.value?.wltpConsumptionKwhPer100km || 0
           const percentDiff = ((v / wltpVal) * 100).toFixed(1)
@@ -301,14 +314,14 @@ const wltpChartOptions = computed(() => ({
     }
   },
   scales: {
-    y: {
+    x: {
       title: { display: true, text: 'Δ kWh/100km (+ = mehr als WLTP)' },
       grid: { color: (ctx: any) => ctx.tick.value === 0 ? '#6b7280' : 'rgba(0,0,0,0.06)' },
       ticks: {
         callback: (v: any) => `${v > 0 ? '+' : ''}${v}`
       }
     },
-    x: {
+    y: {
       grid: { display: false }
     }
   }
@@ -319,6 +332,13 @@ const formatDuration = (minutes: number) => {
   const m = minutes % 60
   return h > 0 ? `${h}h ${m}min` : `${m}min`
 }
+
+// Dynamic chart height: 35px per bar, minimum 400px
+const wltpChartHeight = computed(() => {
+  const dataPoints = wltpChartData.value?.labels?.length || 0
+  const dynamicHeight = Math.max(400, dataPoints * 35 + 100)
+  return `${dynamicHeight}px`
+})
 
 onMounted(fetchStatistics)
 </script>
@@ -528,7 +548,7 @@ onMounted(fetchStatistics)
 
         <!-- WLTP Delta Bar Chart -->
         <div v-if="wltp && hasDistanceData && wltpChartData" class="md:bg-gray-50 p-4 md:p-6 md:rounded-lg md:border md:border-gray-200">
-          <div class="mb-4">
+          <div class="mb-4 text-center">
             <h2 class="text-xl font-semibold text-gray-800">Verbrauch vs. WLTP</h2>
             <p class="text-xs sm:text-sm text-gray-500 mt-1">
               WLTP: <strong>{{ wltp.wltpConsumptionKwhPer100km.toFixed(1) }} kWh/100km</strong>
@@ -539,7 +559,7 @@ onMounted(fetchStatistics)
               </span>
             </p>
           </div>
-          <div class="h-64">
+          <div :style="{ height: wltpChartHeight }">
             <Bar :data="wltpChartData" :options="wltpChartOptions" />
           </div>
         </div>
