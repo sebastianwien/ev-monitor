@@ -179,10 +179,14 @@ const hasDistanceData = computed(() =>
 
 const formatLabel = (timestamp: string) => {
   const date = new Date(timestamp)
+  const currentYear = new Date().getFullYear()
+  const year = date.getFullYear()
+  const yearSuffix = year !== currentYear ? ` '${String(year).slice(-2)}` : ''
+
   if (selectedGroupBy.value === 'DAY')
-    return date.toLocaleDateString('de-DE', { month: 'short', day: 'numeric' })
+    return date.toLocaleDateString('de-DE', { month: 'short', day: 'numeric' }) + yearSuffix
   if (selectedGroupBy.value === 'WEEK')
-    return `KW ${Math.ceil(date.getDate() / 7)} ${date.toLocaleDateString('de-DE', { month: 'short' })}`
+    return `KW ${Math.ceil(date.getDate() / 7)} ${date.toLocaleDateString('de-DE', { month: 'short' })}${yearSuffix}`
   return date.toLocaleDateString('de-DE', { month: 'short', year: 'numeric' })
 }
 
