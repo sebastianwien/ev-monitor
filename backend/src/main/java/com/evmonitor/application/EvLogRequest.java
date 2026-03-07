@@ -12,12 +12,12 @@ public record EvLogRequest(
                 @NotNull UUID carId,
                 @NotNull @Positive BigDecimal kwhCharged,
                 @NotNull @Positive BigDecimal costEur,
-                @NotNull @Positive Integer chargeDurationMinutes,
+                @Positive Integer chargeDurationMinutes, // Optional: charging duration in minutes
                 Double latitude,  // Optional: for geolocation (not stored, converted to geohash)
                 Double longitude, // Optional: for geolocation (not stored, converted to geohash)
-                Integer odometerKm, // Optional: odometer reading in km
+                Integer odometerKm, // Optional for imports, required in frontend for manual entry
                 BigDecimal maxChargingPowerKw, // Optional: max charging power in kW
-                @Min(0) @Max(100) Integer socAfterChargePercent, // Optional: State of Charge after charging (0-100%)
+                @Min(0) @Max(100) Integer socAfterChargePercent, // Optional for imports, required in frontend for manual entry
                 LocalDateTime loggedAt, // Optional: when the charge happened
                 Boolean ocrUsed) { // Optional: whether OCR was used to fill in data (+2 bonus coins)
 }

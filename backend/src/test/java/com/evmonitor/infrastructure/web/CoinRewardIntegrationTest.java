@@ -368,8 +368,8 @@ class CoinRewardIntegrationTest extends AbstractIntegrationTest {
                 new BigDecimal("12.50"),
                 60,
                 null, null,   // no GPS
-                null, null,   // no odometer, no max power
-                null, // socAfterChargePercent
+                50000, null,   // odometerKm (required), no max power
+                80, // socAfterChargePercent (required)
                 LocalDateTime.now(),
                 ocrUsed       // OCR flag
         );

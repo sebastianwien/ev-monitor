@@ -98,9 +98,9 @@ public class TestDataBuilder {
                 costEur,
                 45,
                 "u33db", // Berlin Mitte geohash (5-char)
-                null, // odometerKm (optional)
+                50000, // odometerKm (required for tests)
                 null, // maxChargingPowerKw (optional)
-                null, // socAfterChargePercent (optional)
+                80, // socAfterChargePercent (required for tests)
                 LocalDateTime.now()
         );
     }
@@ -116,9 +116,9 @@ public class TestDataBuilder {
                 costEur,
                 60,
                 "u33dc",
-                null, // odometerKm (optional)
+                50000, // odometerKm (required for tests)
                 null, // maxChargingPowerKw (optional)
-                null, // socAfterChargePercent (optional)
+                80, // socAfterChargePercent (required for tests)
                 timestamp
         );
     }
