@@ -16,6 +16,7 @@
     "@unhead/vue": "^2.1.9",
     "axios": "^1.13.5",
     "chart.js": "^4.5.1",
+    "chartjs-plugin-datalabels": "^2.2.0",
     "jwt-decode": "^4.0.0",
     "leaflet": "^1.9.4",
     "leaflet.heat": "^0.2.0",
