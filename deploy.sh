@@ -141,6 +141,29 @@ if docker compose ps | grep -q "Up"; then
   echo ""
   echo "🔄 Restart services:"
   echo "   docker compose restart"
+
+  # Setup automated Docker cleanup cron job
+  echo ""
+  echo "🧹 Setting up automated Docker cleanup..."
+  CLEANUP_SCRIPT="/opt/docker-cleanup.sh"
+  SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+  # Copy cleanup script to /opt
+  if [ -f "$SCRIPT_DIR/scripts/docker-cleanup.sh" ]; then
+    sudo cp "$SCRIPT_DIR/scripts/docker-cleanup.sh" "$CLEANUP_SCRIPT"
+    sudo chmod +x "$CLEANUP_SCRIPT"
+
+    # Add cron job if not already present (runs daily at 3 AM)
+    CRON_JOB="0 3 * * * $CLEANUP_SCRIPT >> /var/log/docker-cleanup.log 2>&1"
+    if ! sudo crontab -l 2>/dev/null | grep -q "$CLEANUP_SCRIPT"; then
+      (sudo crontab -l 2>/dev/null; echo "$CRON_JOB") | sudo crontab -
+      echo "✅ Cron job installed: Daily cleanup at 3 AM"
+    else
+      echo "✅ Cron job already configured"
+    fi
+  else
+    echo "⚠️  Cleanup script not found at $SCRIPT_DIR/scripts/docker-cleanup.sh"
+  fi
 else
   echo "❌ ERROR: Services failed to start. Check logs:"
   echo "   docker compose logs"
