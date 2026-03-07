@@ -112,14 +112,16 @@ if [ ! -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ] && [ "$DOMAIN" != "loc
 fi
 
 # Deploy
-echo "🐳 Building and deploying containers..."
-docker compose down
-docker compose build --no-cache
-docker compose up -d
+echo "🐳 Building containers (old containers still running)..."
+docker compose build
+
+echo ""
+echo "🔄 Switching to new containers..."
+docker compose up -d --force-recreate --remove-orphans
 
 echo ""
 echo "⏳ Waiting for services to start..."
-sleep 10
+sleep 15
 
 # Check if services are running
 if docker compose ps | grep -q "Up"; then

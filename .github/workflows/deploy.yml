@@ -69,16 +69,18 @@ jobs:
 
       - name: Health Check
         run: |
-          echo "⏳ Waiting 30 seconds for services to stabilize..."
-          sleep 30
-
-          response=$(curl -s -o /dev/null -w "%{http_code}" https://ev-monitor.net)
-          if [ $response -eq 200 ]; then
-            echo "✅ Health check passed (HTTP $response)"
-          else
-            echo "❌ Health check failed with status $response"
-            exit 1
-          fi
+          echo "⏳ Waiting for deployment to complete (max 5 minutes)..."
+          for i in {1..30}; do
+            response=$(curl -s -o /dev/null -w "%{http_code}" https://ev-monitor.net)
+            if [ $response -eq 200 ]; then
+              echo "✅ Health check passed after $((i*10)) seconds (HTTP $response)"
+              exit 0
+            fi
+            echo "Attempt $i/30: HTTP $response, retrying in 10s..."
+            sleep 10
+          done
+          echo "❌ Health check failed after 5 minutes"
+          exit 1
 
       - name: Verify Flyway Migrations
         uses: appleboy/ssh-action@v1.0.3
