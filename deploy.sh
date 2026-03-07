@@ -123,6 +123,10 @@ echo ""
 echo "⏳ Waiting for services to start..."
 sleep 15
 
+# Reload nginx to pick up new container IPs after restart
+echo "🔄 Reloading nginx configuration..."
+docker exec ev-monitor-nginx-1 nginx -s reload 2>/dev/null || echo "⚠️  nginx reload skipped (container not ready yet)"
+
 # Check if services are running
 if docker compose ps | grep -q "Up"; then
   echo "✅ Services are running!"

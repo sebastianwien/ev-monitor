@@ -36,15 +36,8 @@ server {
     add_header X-XSS-Protection "1; mode=block" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 
-    # Docker internal DNS resolver (required for variable-based proxy_pass)
-    # Short TTL (10s) to pick up new IPs after container restarts
-    resolver 127.0.0.11 valid=10s ipv6=off;
-
-    # Upstream host variables (forces DNS re-resolution on each request)
-    # NOTE: Only hostname, not full URL - nginx handles URI path rewriting
-    set $backend backend;
-    set $connectors connectors-service;
-    set $wallbox wallbox-service;
+    # Note: Using static hostnames instead of variables for reliable URI path handling
+    # nginx reloads automatically after container restarts via deploy.sh
 
     # Tesla Fleet API public key (required for partner registration)
     location /.well-known/appspecific/ {
@@ -63,14 +56,14 @@ server {
     # Must appear before the generic /api/ block to take precedence
 
     location = /api/connectors/health {
-        proxy_pass http://$connectors:8081/actuator/health;
+        proxy_pass http://connectors-service:8081/actuator/health;
         proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_http_version 1.1;
     }
 
     location /api/tesla/ {
-        proxy_pass http://$connectors:8081/api/tesla/;
+        proxy_pass http://connectors-service:8081/api/tesla/;
         proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -80,7 +73,7 @@ server {
     }
 
     location /api/goe/ {
-        proxy_pass http://$connectors:8081/api/goe/;
+        proxy_pass http://connectors-service:8081/api/goe/;
         proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -91,7 +84,7 @@ server {
 
     # Proxy API requests to backend (must come after specific /api/ blocks)
     location /api/ {
-        proxy_pass http://$backend:8080/api/;
+        proxy_pass http://backend:8080/api/;
         proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -102,7 +95,7 @@ server {
 
     # Proxy Wallbox REST API
     location /api/wallbox/ {
-        proxy_pass http://$wallbox:8090/api/wallbox/;
+        proxy_pass http://wallbox-service:8090/api/wallbox/;
         proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -113,7 +106,7 @@ server {
 
     # Proxy OCPP WebSocket to wallbox-service
     location /ocpp/ws/ {
-        proxy_pass http://$wallbox:8090/ocpp/ws/;
+        proxy_pass http://wallbox-service:8090/ocpp/ws/;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -127,7 +120,7 @@ server {
 
     # Proxy OAuth2 requests to backend
     location /oauth2/ {
-        proxy_pass http://$backend:8080/oauth2/;
+        proxy_pass http://backend:8080/oauth2/;
         proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -135,7 +128,7 @@ server {
     }
 
     location /login/oauth2/ {
-        proxy_pass http://$backend:8080/login/oauth2/;
+        proxy_pass http://backend:8080/login/oauth2/;
         proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
