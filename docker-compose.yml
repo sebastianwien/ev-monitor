@@ -24,6 +24,7 @@ services:
       dockerfile: Dockerfile
     restart: always
     environment:
+      JAVA_OPTS: "-Xmx512m -Xms256m"
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
@@ -53,6 +54,7 @@ services:
       dockerfile: Dockerfile
     restart: always
     environment:
+      JAVA_OPTS: "-Xmx384m -Xms192m"
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/ev_connectors
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
@@ -77,6 +79,7 @@ services:
       dockerfile: Dockerfile
     restart: always
     environment:
+      JAVA_OPTS: "-Xmx384m -Xms192m"
       DB_HOST: db
       DB_PORT: 5432
       DB_NAME: ev_monitor_wallbox
