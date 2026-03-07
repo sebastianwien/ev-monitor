@@ -123,7 +123,7 @@ String geohash = GeoHash.withCharacterPrecision(lat, lon, 5).toBase32();
 User trägt aktuellen Kilometerstand ein (optional).
 
 ### Battery Level (State of Charge)
-**Seit Migration V10:** User kann den **Batteriestand nach dem Laden** erfassen (0-100%, optional).
+**Seit Migration V25:** User kann den **Batteriestand nach dem Laden** erfassen (0-100%, optional).
 
 **UI Label:** "Batteriestand nach dem Laden (%)" - verständlicher als "SoC"
 
