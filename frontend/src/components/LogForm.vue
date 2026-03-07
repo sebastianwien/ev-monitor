@@ -3,7 +3,7 @@ import { ref, onMounted, watch } from 'vue'
 import api from '../api/axios'
 import CarSelector from './CarSelector.vue'
 import OcrPhotoCapture from './OcrPhotoCapture.vue'
-import { CameraIcon, PencilSquareIcon, TrashIcon, BoltIcon, TruckIcon } from '@heroicons/vue/24/outline'
+import { CameraIcon, PencilSquareIcon, TrashIcon, BoltIcon, TruckIcon, ClockIcon } from '@heroicons/vue/24/outline'
 import { useCoinStore } from '../stores/coins'
 import { analytics } from '../services/analytics'
 import { carService } from '../api/carService'
@@ -515,9 +515,30 @@ const handleOcrData = (ocrResult: any) => {
       <div v-else-if="logs.length === 0" class="text-gray-500 text-center">Noch keine Ladevorgänge für dieses Fahrzeug erfasst.</div>
       <ul v-else class="space-y-3">
         <li v-for="log in logs" :key="log.id" class="p-4 bg-gray-50 border border-gray-200 rounded-lg flex justify-between items-center shadow-sm hover:shadow transition">
-          <div class="space-y-1">
-            <span class="block font-medium text-indigo-700">⚡ {{ log.kwhCharged }} kWh</span>
-            <span class="block text-sm text-gray-500">€{{ log.costEur }} • {{ log.chargeDurationMinutes }}min</span>
+          <div class="flex-1 space-y-1">
+            <div class="flex items-center gap-2">
+              <BoltIcon class="w-4 h-4 text-indigo-600" />
+              <span class="font-medium text-indigo-700">{{ log.kwhCharged }} kWh</span>
+            </div>
+            <div class="flex items-center gap-3 text-sm text-gray-500">
+              <span>€{{ log.costEur }}</span>
+              <span v-if="log.chargeDurationMinutes" class="flex items-center gap-1">
+                <ClockIcon class="w-3.5 h-3.5" />
+                {{ log.chargeDurationMinutes }}min
+              </span>
+              <span v-if="log.odometerKm" class="flex items-center gap-1">
+                <TruckIcon class="w-3.5 h-3.5" />
+                {{ log.odometerKm.toLocaleString('de-DE') }} km
+              </span>
+              <span v-if="log.socAfterChargePercent !== null" class="flex items-center gap-1">
+                <BoltIcon class="w-3.5 h-3.5" />
+                {{ log.socAfterChargePercent }}%
+              </span>
+              <span v-if="log.maxChargingPowerKw" class="flex items-center gap-1">
+                <BoltIcon class="w-3.5 h-3.5" />
+                {{ log.maxChargingPowerKw }} kW
+              </span>
+            </div>
           </div>
           <div class="flex items-center gap-3">
             <span class="px-3 py-1 bg-white border border-gray-300 text-xs rounded-full shadow-sm text-gray-600 font-medium">
