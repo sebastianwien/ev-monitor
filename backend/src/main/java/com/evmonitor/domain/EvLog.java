@@ -14,6 +14,7 @@ public class EvLog {
     private final String geohash; // 5-character geohash (~5km precision) for privacy
     private final Integer odometerKm; // Optional: odometer reading in km
     private final BigDecimal maxChargingPowerKw; // Optional: max charging power in kW
+    private final Integer socAfterChargePercent; // Optional: State of Charge after charging (0-100%)
     private final LocalDateTime loggedAt; // When the charge happened (user-provided or now)
     private final DataSource dataSource;
     private final boolean includeInStatistics; // Whether to include in public stats/aggregations
@@ -24,7 +25,7 @@ public class EvLog {
 
     public EvLog(UUID id, UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
             Integer chargeDurationMinutes, String geohash, Integer odometerKm,
-            BigDecimal maxChargingPowerKw, LocalDateTime loggedAt, DataSource dataSource,
+            BigDecimal maxChargingPowerKw, Integer socAfterChargePercent, LocalDateTime loggedAt, DataSource dataSource,
             boolean includeInStatistics, Integer odometerSuggestionMinKm, Integer odometerSuggestionMaxKm,
             LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
@@ -35,6 +36,7 @@ public class EvLog {
         this.geohash = geohash;
         this.odometerKm = odometerKm;
         this.maxChargingPowerKw = maxChargingPowerKw;
+        this.socAfterChargePercent = socAfterChargePercent;
         this.loggedAt = loggedAt != null ? loggedAt : LocalDateTime.now();
         this.dataSource = dataSource != null ? dataSource : DataSource.USER_LOGGED;
         this.includeInStatistics = includeInStatistics;
@@ -46,20 +48,20 @@ public class EvLog {
 
     public static EvLog createNew(UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
             Integer chargeDurationMinutes, String geohash, Integer odometerKm,
-            BigDecimal maxChargingPowerKw, LocalDateTime loggedAt) {
+            BigDecimal maxChargingPowerKw, Integer socAfterChargePercent, LocalDateTime loggedAt) {
         LocalDateTime now = LocalDateTime.now();
         return new EvLog(UUID.randomUUID(), carId, kwhCharged, costEur,
-                chargeDurationMinutes, geohash, odometerKm, maxChargingPowerKw, loggedAt,
+                chargeDurationMinutes, geohash, odometerKm, maxChargingPowerKw, socAfterChargePercent, loggedAt,
                 DataSource.USER_LOGGED, true, null, null, now, now);
     }
 
     public static EvLog createNewWithSource(UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
             Integer chargeDurationMinutes, String geohash, Integer odometerKm,
-            BigDecimal maxChargingPowerKw, LocalDateTime loggedAt, DataSource dataSource) {
+            BigDecimal maxChargingPowerKw, Integer socAfterChargePercent, LocalDateTime loggedAt, DataSource dataSource) {
         LocalDateTime now = LocalDateTime.now();
         boolean includeInStats = dataSource.includeInStatistics();
         return new EvLog(UUID.randomUUID(), carId, kwhCharged, costEur,
-                chargeDurationMinutes, geohash, odometerKm, maxChargingPowerKw, loggedAt,
+                chargeDurationMinutes, geohash, odometerKm, maxChargingPowerKw, socAfterChargePercent, loggedAt,
                 dataSource, includeInStats, null, null, now, now);
     }
 
@@ -76,7 +78,7 @@ public class EvLog {
             DataSource dataSource, BigDecimal costEur) {
         LocalDateTime now = LocalDateTime.now();
         return new EvLog(UUID.randomUUID(), carId, kwhCharged, costEur,
-                chargeDurationMinutes, geohash, null, null, loggedAt,
+                chargeDurationMinutes, geohash, null, null, null, loggedAt,
                 dataSource, dataSource.includeInStatistics(),
                 odometerSuggestionMinKm, odometerSuggestionMaxKm, now, now);
     }
@@ -123,6 +125,10 @@ public class EvLog {
 
     public BigDecimal getMaxChargingPowerKw() {
         return maxChargingPowerKw;
+    }
+
+    public Integer getSocAfterChargePercent() {
+        return socAfterChargePercent;
     }
 
     public DataSource getDataSource() {

@@ -34,6 +34,9 @@ public class EvLogEntity {
     @Column(name = "max_charging_power_kw", precision = 10, scale = 2)
     private BigDecimal maxChargingPowerKw;
 
+    @Column(name = "soc_after_charge_percent")
+    private Integer socAfterChargePercent;
+
     @Column(name = "logged_at")
     private LocalDateTime loggedAt;
 
@@ -60,7 +63,7 @@ public class EvLogEntity {
 
     public EvLogEntity(UUID id, UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
             Integer chargeDurationMinutes, String geohash, Integer odometerKm,
-            BigDecimal maxChargingPowerKw, LocalDateTime loggedAt, String dataSource,
+            BigDecimal maxChargingPowerKw, Integer socAfterChargePercent, LocalDateTime loggedAt, String dataSource,
             boolean includeInStatistics, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.carId = carId;
@@ -70,6 +73,7 @@ public class EvLogEntity {
         this.geohash = geohash;
         this.odometerKm = odometerKm;
         this.maxChargingPowerKw = maxChargingPowerKw;
+        this.socAfterChargePercent = socAfterChargePercent;
         this.loggedAt = loggedAt;
         this.dataSource = dataSource;
         this.includeInStatistics = includeInStatistics;
@@ -163,6 +167,14 @@ public class EvLogEntity {
 
     public void setMaxChargingPowerKw(BigDecimal maxChargingPowerKw) {
         this.maxChargingPowerKw = maxChargingPowerKw;
+    }
+
+    public Integer getSocAfterChargePercent() {
+        return socAfterChargePercent;
+    }
+
+    public void setSocAfterChargePercent(Integer socAfterChargePercent) {
+        this.socAfterChargePercent = socAfterChargePercent;
     }
 
     public String getDataSource() {

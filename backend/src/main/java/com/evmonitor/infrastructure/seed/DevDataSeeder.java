@@ -248,6 +248,7 @@ public class DevDataSeeder implements CommandLineRunner {
                 getRandomBerlinGeohash(),
                 currentOdometer,
                 maxChargingPower,
+                null, // socAfterChargePercent
                 chargeTime,
                 DataSource.SEED_DATA);
 
