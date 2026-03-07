@@ -63,6 +63,7 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
                 longitude,
                 null, // odometerKm
                 null, // maxChargingPowerKw
+                null, // socAfterChargePercent
                 LocalDateTime.now(),
                 null  // ocrUsed
         );
@@ -100,6 +101,7 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
                 60,
                 null, null, // No GPS
                 null, null, // No odometer, no max power
+                null, // socAfterChargePercent
                 LocalDateTime.now(),
                 null  // ocrUsed
         );
@@ -132,6 +134,7 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
                 60,
                 null, null, // No GPS
                 null, null, // No odometer, no max power
+                null, // socAfterChargePercent
                 LocalDateTime.now(),
                 null  // ocrUsed
         );

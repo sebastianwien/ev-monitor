@@ -369,6 +369,7 @@ class CoinRewardIntegrationTest extends AbstractIntegrationTest {
                 60,
                 null, null,   // no GPS
                 null, null,   // no odometer, no max power
+                null, // socAfterChargePercent
                 LocalDateTime.now(),
                 ocrUsed       // OCR flag
         );
