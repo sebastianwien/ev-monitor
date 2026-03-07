@@ -32,6 +32,7 @@ const kwhCharged = ref<number>(0)
 const costEur = ref<number>(0)
 const chargeDurationMinutes = ref<number>(0)
 const odometerKm = ref<number | null>(null) // Optional: odometer reading
+const socAfterChargePercent = ref<number | null>(null) // Optional: battery level after charging (0-100%)
 const maxChargingPowerKw = ref<number | null>(null) // Optional: max charging power
 const loggedAt = ref<string | null>(null) // Optional: when the charge happened
 const odometerWarning = ref<string | null>(null) // Warning if odometer is lower than last log
@@ -213,6 +214,11 @@ const submitLog = async () => {
       payload.maxChargingPowerKw = Math.round(maxChargingPowerKw.value * 100) / 100
     }
 
+    // Add battery level after charging if provided
+    if (socAfterChargePercent.value !== null) {
+      payload.socAfterChargePercent = socAfterChargePercent.value
+    }
+
     // Add loggedAt if provided (convert from datetime-local format to ISO string)
     if (loggedAt.value) {
       payload.loggedAt = new Date(loggedAt.value).toISOString()
@@ -236,6 +242,7 @@ const submitLog = async () => {
     costEur.value = 0
     chargeDurationMinutes.value = 0
     odometerKm.value = null
+    socAfterChargePercent.value = null
     maxChargingPowerKw.value = null
     loggedAt.value = null
     odometerWarning.value = null
@@ -378,6 +385,12 @@ const handleOcrData = (ocrResult: any) => {
         <label class="block text-sm font-medium text-gray-700">Tachostand (km, optional)</label>
         <input v-model="odometerKm" type="number" step="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
         <p class="text-xs text-gray-500 mt-1">Hilft dir Verbrauch pro km zu tracken</p>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Batteriestand nach dem Laden (%, optional)</label>
+        <input v-model="socAfterChargePercent" type="number" min="0" max="100" step="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
+        <p class="text-xs text-gray-500 mt-1">Für präzise Verbrauchsberechnung (zusammen mit Tachostand)</p>
       </div>
 
       <div>

@@ -334,7 +334,8 @@ public class TeslaApiService {
             null, // chargeDurationMinutes - Not available in current data
             geohash,
             odometerKm, // Import odometer from vehicle_state
-            chargeState.chargerPower() != null ? BigDecimal.valueOf(chargeState.chargerPower()) : null, // maxChargingPowerKw
+            chargeState.chargerPower() != null ? BigDecimal.valueOf(chargeState.chargerPower()) : null, // maxChargingPowerKw,
+            null, // socAfterChargePercent
             loggedAt,
             DataSource.TESLA_IMPORT
         );

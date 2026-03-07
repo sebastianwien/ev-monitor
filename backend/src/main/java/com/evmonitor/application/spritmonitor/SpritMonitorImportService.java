@@ -139,6 +139,7 @@ public class SpritMonitorImportService {
             geohash,
             null,
             null,
+            null, // socAfterChargePercent
             loggedAt,
             DATA_SOURCE
         );

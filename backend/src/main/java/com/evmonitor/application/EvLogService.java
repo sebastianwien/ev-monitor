@@ -54,6 +54,7 @@ public class EvLogService {
                 geohash,
                 request.odometerKm(),
                 request.maxChargingPowerKw(),
+                request.socAfterChargePercent(),
                 request.loggedAt());
 
         EvLog savedLog = evLogRepository.save(newLog);
