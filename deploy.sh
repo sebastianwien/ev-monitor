@@ -87,11 +87,6 @@ if [ -z "$WALLBOX_DB_PASSWORD" ] || [ "$WALLBOX_DB_PASSWORD" == "CHANGE_ME_TO_ST
   ERRORS=$((ERRORS + 1))
 fi
 
-if [ -z "$CONNECTORS_DB_PASSWORD" ] || [ "$CONNECTORS_DB_PASSWORD" == "CHANGE_ME_TO_STRONG_PASSWORD" ]; then
-  echo "❌ CONNECTORS_DB_PASSWORD is missing or not configured!"
-  ERRORS=$((ERRORS + 1))
-fi
-
 if [ -z "$INTERNAL_SERVICE_TOKEN" ] || [ "$INTERNAL_SERVICE_TOKEN" == "CHANGE_ME_TO_RANDOM_SECRET" ]; then
   echo "❌ INTERNAL_SERVICE_TOKEN is missing or not configured!"
   echo "   Generate one: openssl rand -base64 32"
