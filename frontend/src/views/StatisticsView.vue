@@ -279,6 +279,7 @@ const wltpChartData = computed(() => {
 })
 
 const wltpChartOptions = computed(() => ({
+  indexAxis: 'x' as const, // Vertical bars (default, but explicit)
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
@@ -288,7 +289,13 @@ const wltpChartOptions = computed(() => ({
         label: (ctx: any) => {
           const v = ctx.parsed.y
           const sign = v > 0 ? '+' : ''
-          return `${sign}${v.toFixed(2)} kWh/100km vs. WLTP (${wltp.value?.wltpConsumptionKwhPer100km.toFixed(1)} kWh/100km)`
+          const wltpVal = wltp.value?.wltpConsumptionKwhPer100km || 0
+          const percentDiff = ((v / wltpVal) * 100).toFixed(1)
+          return [
+            `${sign}${v.toFixed(2)} kWh/100km vs. WLTP`,
+            `WLTP: ${wltpVal.toFixed(1)} kWh/100km`,
+            `Abweichung: ${sign}${percentDiff}%`
+          ]
         }
       }
     }
@@ -300,6 +307,9 @@ const wltpChartOptions = computed(() => ({
       ticks: {
         callback: (v: any) => `${v > 0 ? '+' : ''}${v}`
       }
+    },
+    x: {
+      grid: { display: false }
     }
   }
 }))
