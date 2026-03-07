@@ -61,9 +61,9 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
                 60,
                 latitude,
                 longitude,
-                null, // odometerKm
+                50000, // odometerKm (required)
                 null, // maxChargingPowerKw
-                null, // socAfterChargePercent
+                80, // socAfterChargePercent (required)
                 LocalDateTime.now(),
                 null  // ocrUsed
         );
@@ -100,8 +100,8 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
                 new BigDecimal("12.50"),
                 60,
                 null, null, // No GPS
-                null, null, // No odometer, no max power
-                null, // socAfterChargePercent
+                50000, null, // odometerKm (required), no max power
+                80, // socAfterChargePercent (required)
                 LocalDateTime.now(),
                 null  // ocrUsed
         );
@@ -133,8 +133,8 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
                 new BigDecimal("12.50"),
                 60,
                 null, null, // No GPS
-                null, null, // No odometer, no max power
-                null, // socAfterChargePercent
+                50000, null, // odometerKm (required), no max power
+                80, // socAfterChargePercent (required)
                 LocalDateTime.now(),
                 null  // ocrUsed
         );
