@@ -11,7 +11,7 @@ const coinStore = useCoinStore()
 const cars = ref<Car[]>([])
 const brands = ref<BrandInfo[]>([])
 const availableModels = ref<ModelInfo[]>([])
-const loading = ref(false)
+const loading = ref(true) // Initial true to prevent flicker on mount
 const error = ref<string | null>(null)
 const showForm = ref(false)
 const editingCar = ref<Car | null>(null)
@@ -91,6 +91,8 @@ const fetchCars = async () => {
     cars.value.forEach(c => { visibility[c.id] = c.imagePublic })
     imagePublicForUpload.value = visibility
     await loadCarImages(cars.value)
+    // Small delay to ensure fade-in transition is visible
+    await new Promise(resolve => setTimeout(resolve, 150))
   } catch (err: any) {
     error.value = err.response?.data?.message || 'Fehler beim Laden der Fahrzeuge'
     console.error('Failed to fetch cars:', err)
@@ -441,7 +443,9 @@ onUnmounted(() => {
 
 <template>
   <div class="md:max-w-4xl md:mx-auto md:p-6">
-    <div class="bg-white md:rounded-xl md:shadow-lg p-4 md:p-6">
+    <Transition name="fade" mode="out-in">
+      <div v-if="!loading">
+        <div class="bg-white md:rounded-xl md:shadow-lg p-4 md:p-6">
       <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-bold text-gray-800">Meine Fahrzeuge</h1>
         <button
@@ -598,11 +602,8 @@ onUnmounted(() => {
         </form>
       </div>
 
-      <!-- Cars List -->
-      <div v-if="loading" class="text-center py-8 text-gray-500">Lade Fahrzeuge...</div>
-
       <!-- Empty State: No Cars -->
-      <div v-else-if="cars.length === 0 && !showForm" class="text-center py-16 px-4">
+      <div v-if="cars.length === 0 && !showForm" class="text-center py-16 px-4">
         <TruckIcon class="h-24 w-24 mx-auto text-gray-300 mb-6" />
         <h3 class="text-2xl font-bold text-gray-800 mb-3">Noch keine Fahrzeuge</h3>
         <p class="text-gray-600 mb-8 max-w-md mx-auto">
@@ -956,8 +957,10 @@ onUnmounted(() => {
         <span class="text-gray-400 ml-auto group-hover:translate-x-0.5 transition-transform">→</span>
       </router-link>
     </div>
+      </div>
+    </Transition>
 
-    <!-- Toast Notification -->
+    <!-- Toast Notification (outside Transition) -->
     <div v-if="showToast" class="fixed bottom-6 right-6 z-50 animate-slide-in">
       <div class="bg-green-600 text-white px-6 py-4 rounded-lg shadow-2xl max-w-md">
         <div class="flex items-start">
@@ -970,6 +973,20 @@ onUnmounted(() => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.fade-enter-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from {
+  opacity: 0;
+}
+
+.fade-enter-to {
+  opacity: 1;
+}
+</style>
 
 <style scoped>
 @keyframes slide-in {

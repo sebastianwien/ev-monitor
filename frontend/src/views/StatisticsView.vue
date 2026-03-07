@@ -63,7 +63,9 @@ const selectedCarId = ref<string | null>(null)
 const stats = ref<StatisticsData | null>(null)
 const carInfo = ref<CarInfo | null>(null)
 const wltp = ref<VehicleSpecification | null>(null)
-const loading = ref(false)
+const loading = ref(true) // Initial true to prevent flicker on mount
+const chartsReady = ref(false) // Charts render after fade-in
+const isInitialLoad = ref(true) // Track if this is the first load
 const error = ref<string | null>(null)
 const cars = ref<any[]>([]) // Track available cars for empty state
 
@@ -120,9 +122,18 @@ const fetchCarAndWltp = async (carId: string) => {
 }
 
 const fetchStatistics = async () => {
-  if (!selectedCarId.value) { stats.value = null; return }
+  if (!selectedCarId.value) {
+    stats.value = null
+    loading.value = false
+    chartsReady.value = false
+    return
+  }
   try {
     loading.value = true
+    // Only hide charts on initial load, keep them visible on filter changes
+    if (isInitialLoad.value) {
+      chartsReady.value = false
+    }
     error.value = null
     const params = new URLSearchParams({
       carId: selectedCarId.value,
@@ -135,6 +146,15 @@ const fetchStatistics = async () => {
     error.value = err.response?.data?.message || 'Fehler beim Laden der Statistiken'
   } finally {
     loading.value = false
+    // Delay only on initial load, immediate on filter changes
+    if (isInitialLoad.value) {
+      setTimeout(() => {
+        chartsReady.value = true
+        isInitialLoad.value = false
+      }, 300)
+    } else {
+      chartsReady.value = true
+    }
   }
 }
 
@@ -417,113 +437,110 @@ onMounted(fetchStatistics)
 
 <template>
   <div class="md:max-w-6xl md:mx-auto md:p-6">
-    <div class="bg-white md:rounded-xl md:shadow-lg p-4 md:p-6">
-      <div class="flex items-center gap-3 mb-6">
-        <ChartBarIcon class="h-8 w-8 text-gray-700" />
-        <h1 class="text-3xl font-bold text-gray-800">Statistiken & Analysen</h1>
-      </div>
+    <Transition name="fade" mode="out-in">
+      <div v-if="!loading">
+        <div class="bg-white md:rounded-xl md:shadow-lg p-4 md:p-6">
+          <div class="flex items-center gap-3 mb-6">
+            <ChartBarIcon class="h-8 w-8 text-gray-700" />
+            <h1 class="text-3xl font-bold text-gray-800">Statistiken & Analysen</h1>
+          </div>
 
-      <!-- Import Hint Banner -->
-      <router-link
-        to="/imports"
-        class="flex items-center gap-3 bg-green-50 border border-green-200 rounded-lg px-4 py-3 mb-6 hover:bg-green-100 transition group"
-      >
-        <ArrowDownTrayIcon class="h-5 w-5 text-green-600 shrink-0" />
-        <div class="flex-1 min-w-0">
-          <span class="text-sm font-medium text-green-800">Ladevorgänge importieren</span>
-          <span class="text-sm text-green-700 ml-1">— Sprit-Monitor, go-eCharger Cloud, OCPP Wallbox</span>
-        </div>
-        <span class="text-green-600 text-sm group-hover:translate-x-0.5 transition-transform">→</span>
-      </router-link>
+          <!-- Import Hint Banner -->
+          <router-link
+            to="/imports"
+            class="flex items-center gap-3 bg-green-50 border border-green-200 rounded-lg px-4 py-3 mb-6 hover:bg-green-100 transition group"
+          >
+            <ArrowDownTrayIcon class="h-5 w-5 text-green-600 shrink-0" />
+            <div class="flex-1 min-w-0">
+              <span class="text-sm font-medium text-green-800">Ladevorgänge importieren</span>
+              <span class="text-sm text-green-700 ml-1">— Sprit-Monitor, go-eCharger Cloud, OCPP Wallbox</span>
+            </div>
+            <span class="text-green-600 text-sm group-hover:translate-x-0.5 transition-transform">→</span>
+          </router-link>
 
-      <div class="mb-6">
-        <CarSelector v-model="selectedCarId" />
-      </div>
+          <div class="mb-6">
+            <CarSelector v-model="selectedCarId" />
+          </div>
 
-      <!-- Filters -->
-      <div v-if="selectedCarId" class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-        <div class="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-          <div class="flex-1">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Zeitraum</label>
-            <div class="flex flex-wrap gap-2">
+          <!-- Filters -->
+          <div v-if="selectedCarId" class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <div class="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+              <div class="flex-1">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Zeitraum</label>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    v-for="option in timeRangeOptions"
+                    :key="option.value"
+                    @click="selectedTimeRange = option.value"
+                    :class="[
+                      'px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
+                      selectedTimeRange === option.value
+                        ? 'bg-indigo-600 text-white shadow-md'
+                        : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-100'
+                    ]">
+                    {{ option.label }}
+                  </button>
+                </div>
+              </div>
+              <div class="w-full md:w-auto">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Gruppierung</label>
+                <select v-model="selectedGroupBy"
+                  class="block w-full md:w-auto px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                  <option v-for="opt in groupByOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="error" class="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-md">{{ error }}</div>
+
+          <!-- Empty State: No Cars -->
+          <div v-if="cars.length === 0" class="min-h-[60vh] flex items-center justify-center">
+            <div class="text-center max-w-md px-4">
+              <TruckIcon class="h-24 w-24 mx-auto text-gray-300 mb-6" />
+              <h2 class="text-2xl font-bold text-gray-800 mb-3">
+                Noch kein Fahrzeug hinzugefügt
+              </h2>
+              <p class="text-gray-600 mb-8">
+                Füge dein erstes E-Auto hinzu um Ladevorgänge zu tracken und Statistiken zu sehen.
+              </p>
               <button
-                v-for="option in timeRangeOptions"
-                :key="option.value"
-                @click="selectedTimeRange = option.value"
-                :class="[
-                  'px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
-                  selectedTimeRange === option.value
-                    ? 'bg-indigo-600 text-white shadow-md'
-                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-100'
-                ]">
-                {{ option.label }}
+                @click="router.push('/cars')"
+                class="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium shadow-lg hover:shadow-xl transition flex items-center gap-2 mx-auto">
+                <TruckIcon class="h-5 w-5" />
+                Fahrzeug hinzufügen →
               </button>
             </div>
           </div>
-          <div class="w-full md:w-auto">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Gruppierung</label>
-            <select v-model="selectedGroupBy"
-              class="block w-full md:w-auto px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-              <option v-for="opt in groupByOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-            </select>
+
+          <!-- Empty State: No Logs -->
+          <div v-else-if="stats && stats.totalCharges === 0" class="min-h-[60vh] flex items-center justify-center">
+            <div class="text-center max-w-md px-4">
+              <BoltIcon class="h-24 w-24 mx-auto text-green-500 mb-6" />
+              <h2 class="text-2xl font-bold text-gray-800 mb-3">
+                Noch keine Ladevorgänge erfasst
+              </h2>
+              <p class="text-gray-600 mb-8">
+                Erfasse deinen ersten Ladevorgang um Statistiken, Charts und WLTP-Vergleiche zu sehen!
+              </p>
+              <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <button
+                  @click="router.push('/erfassen')"
+                  class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 justify-center shadow-lg hover:shadow-xl transition font-medium">
+                  <CameraIcon class="h-5 w-5" />
+                  Foto scannen
+                </button>
+                <button
+                  @click="router.push('/erfassen')"
+                  class="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center gap-2 justify-center transition font-medium">
+                  <PencilSquareIcon class="h-5 w-5" />
+                  Manuell eingeben
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
 
-      <div v-if="error" class="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-md">{{ error }}</div>
-
-      <div v-if="loading" class="text-center py-12 text-gray-500">
-        <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
-        <p>Lade Statistiken...</p>
-      </div>
-
-      <!-- Empty State: No Cars -->
-      <div v-else-if="cars.length === 0" class="min-h-[60vh] flex items-center justify-center">
-        <div class="text-center max-w-md px-4">
-          <TruckIcon class="h-24 w-24 mx-auto text-gray-300 mb-6" />
-          <h2 class="text-2xl font-bold text-gray-800 mb-3">
-            Noch kein Fahrzeug hinzugefügt
-          </h2>
-          <p class="text-gray-600 mb-8">
-            Füge dein erstes E-Auto hinzu um Ladevorgänge zu tracken und Statistiken zu sehen.
-          </p>
-          <button
-            @click="router.push('/cars')"
-            class="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium shadow-lg hover:shadow-xl transition flex items-center gap-2 mx-auto">
-            <TruckIcon class="h-5 w-5" />
-            Fahrzeug hinzufügen →
-          </button>
-        </div>
-      </div>
-
-      <!-- Empty State: No Logs -->
-      <div v-else-if="stats && stats.totalCharges === 0" class="min-h-[60vh] flex items-center justify-center">
-        <div class="text-center max-w-md px-4">
-          <BoltIcon class="h-24 w-24 mx-auto text-green-500 mb-6" />
-          <h2 class="text-2xl font-bold text-gray-800 mb-3">
-            Noch keine Ladevorgänge erfasst
-          </h2>
-          <p class="text-gray-600 mb-8">
-            Erfasse deinen ersten Ladevorgang um Statistiken, Charts und WLTP-Vergleiche zu sehen!
-          </p>
-          <div class="flex flex-col sm:flex-row gap-4 justify-center">
-            <button
-              @click="router.push('/erfassen')"
-              class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 justify-center shadow-lg hover:shadow-xl transition font-medium">
-              <CameraIcon class="h-5 w-5" />
-              Foto scannen
-            </button>
-            <button
-              @click="router.push('/erfassen')"
-              class="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center gap-2 justify-center transition font-medium">
-              <PencilSquareIcon class="h-5 w-5" />
-              Manuell eingeben
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div v-else-if="stats" class="space-y-6">
+          <div v-else-if="stats" class="space-y-6">
 
         <!-- Key Metrics -->
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -566,7 +583,9 @@ onMounted(fetchStatistics)
 
           <!-- Chart 1: Charging & Costs -->
           <div class="md:bg-gray-50 p-4 md:p-6 md:rounded-lg md:border md:border-gray-200">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-center gap-4 sm:gap-6 mb-4">
+            <div v-if="!chartsReady && isInitialLoad" class="h-64 sm:h-72 bg-gray-100 animate-pulse rounded"></div>
+            <template v-else>
+              <div class="flex flex-col sm:flex-row sm:items-center justify-center gap-4 sm:gap-6 mb-4">
               <h2 class="text-xl font-semibold text-gray-800 text-center">Laden & Kosten</h2>
 
               <!-- Checkboxes Chart 1 -->
@@ -597,14 +616,17 @@ onMounted(fetchStatistics)
               Kein Datensatz ausgewählt oder nicht genügend Daten.
             </div>
 
-            <div class="flex flex-wrap gap-x-6 gap-y-1 mt-3 text-xs text-gray-400">
-              <span>Linke Achse: €/kWh</span>
-              <span>Rechte Achse: kWh</span>
-            </div>
+              <div class="flex flex-wrap gap-x-6 gap-y-1 mt-3 text-xs text-gray-400">
+                <span>Linke Achse: €/kWh</span>
+                <span>Rechte Achse: kWh</span>
+              </div>
+            </template>
           </div>
 
           <!-- Chart 2: Range & Efficiency (only if distance data exists) -->
           <div v-if="hasDistanceData" class="md:bg-gray-50 p-4 md:p-6 md:rounded-lg md:border md:border-gray-200">
+            <div v-if="!chartsReady && isInitialLoad" class="h-64 sm:h-72 bg-gray-100 animate-pulse rounded"></div>
+            <template v-else>
             <div class="flex flex-col sm:flex-row sm:items-center justify-center gap-4 sm:gap-6 mb-4">
               <h2 class="text-xl font-semibold text-gray-800 text-center">Reichweite & Effizienz</h2>
 
@@ -636,16 +658,19 @@ onMounted(fetchStatistics)
               Kein Datensatz ausgewählt oder nicht genügend Daten.
             </div>
 
-            <div class="flex flex-wrap gap-x-6 gap-y-1 mt-3 text-xs text-gray-400">
-              <span>Linke Achse: kWh/100km</span>
-              <span>Rechte Achse: km</span>
-            </div>
+              <div class="flex flex-wrap gap-x-6 gap-y-1 mt-3 text-xs text-gray-400">
+                <span>Linke Achse: kWh/100km</span>
+                <span>Rechte Achse: km</span>
+              </div>
+            </template>
           </div>
 
         </div>
 
         <!-- WLTP Delta Bar Chart -->
         <div v-if="wltp && hasDistanceData && wltpChartData" class="md:bg-gray-50 p-4 md:p-6 md:rounded-lg md:border md:border-gray-200">
+          <div v-if="!chartsReady && isInitialLoad" :style="{ height: wltpChartHeight }" class="bg-gray-100 animate-pulse rounded"></div>
+          <template v-else>
           <div class="mb-4 text-center">
             <h2 class="text-xl font-semibold text-gray-800">Verbrauch vs. WLTP</h2>
             <p class="text-xs sm:text-sm text-gray-500 mt-1">
@@ -657,9 +682,10 @@ onMounted(fetchStatistics)
               </span>
             </p>
           </div>
-          <div :class="wltpChartScrollable ? 'overflow-y-auto' : ''" :style="{ height: wltpChartHeight }">
-            <Bar :data="wltpChartData" :options="wltpChartOptions" />
-          </div>
+            <div :class="wltpChartScrollable ? 'overflow-y-auto' : ''" :style="{ height: wltpChartHeight }">
+              <Bar :data="wltpChartData" :options="wltpChartOptions" />
+            </div>
+          </template>
         </div>
 
         <!-- WLTP missing hint -->
@@ -671,13 +697,16 @@ onMounted(fetchStatistics)
 
         <!-- Charging Heat Map -->
         <div class="md:bg-gray-50 p-4 md:p-6 md:rounded-lg md:border md:border-gray-200 mb-20 md:mb-0">
-          <div class="mb-4">
-            <h2 class="text-xl font-semibold text-gray-800">Lade-Standorte</h2>
-            <p class="text-sm text-gray-500 mt-1">
-              Geografische Übersicht deiner Ladevorgänge · Farbcodiert nach geladener Energie (kWh)
-            </p>
-          </div>
-          <ChargingHeatMap :car-id="selectedCarId" :time-range="selectedTimeRange" />
+          <div v-if="!chartsReady && isInitialLoad" class="h-96 bg-gray-100 animate-pulse rounded"></div>
+          <template v-else>
+            <div class="mb-4">
+              <h2 class="text-xl font-semibold text-gray-800">Lade-Standorte</h2>
+              <p class="text-sm text-gray-500 mt-1">
+                Geografische Übersicht deiner Ladevorgänge · Farbcodiert nach geladener Energie (kWh)
+              </p>
+            </div>
+            <ChargingHeatMap :car-id="selectedCarId" :time-range="selectedTimeRange" />
+          </template>
         </div>
 
         <!-- Support -->
@@ -695,7 +724,23 @@ onMounted(fetchStatistics)
           </p>
         </div>
 
+        </div>
       </div>
-    </div>
+      </div>
+    </Transition>
   </div>
 </template>
+
+<style scoped>
+.fade-enter-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from {
+  opacity: 0;
+}
+
+.fade-enter-to {
+  opacity: 1;
+}
+</style>
