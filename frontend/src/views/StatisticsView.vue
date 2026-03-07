@@ -70,9 +70,11 @@ const cars = ref<any[]>([]) // Track available cars for empty state
 const selectedTimeRange = ref<string>('LAST_3_MONTHS')
 const selectedGroupBy = ref<string>('DAY')
 
-// Dataset toggles
+// Dataset toggles - Chart 1 (Charging & Costs)
 const showCostPerKwh = ref(true)
 const showKwh = ref(true)
+
+// Dataset toggles - Chart 2 (Range & Efficiency)
 const showDistance = ref(true)
 const showConsumption = ref(true)
 
@@ -164,8 +166,8 @@ const formatLabel = (timestamp: string) => {
   return date.toLocaleDateString('de-DE', { month: 'short', year: 'numeric' })
 }
 
-// ── Main line chart ──────────────────────────────────────────────────────────
-const lineChartData = computed(() => {
+// ── Chart 1: Charging & Costs ───────────────────────────────────────────────
+const chargingChartData = computed(() => {
   if (!stats.value || stats.value.chargesOverTime.length === 0) return null
 
   const labels = stats.value.chargesOverTime.map(d => formatLabel(d.timestamp))
@@ -193,17 +195,55 @@ const lineChartData = computed(() => {
     })
   }
 
-  if (showDistance.value && hasDistanceData.value) {
-    datasets.push({
-      label: 'Strecke (km)',
-      data: stats.value.chargesOverTime.map(d => d.distanceKm),
-      borderColor: '#10b981',
-      backgroundColor: 'rgba(16,185,129,0.08)',
-      tension: 0.3, fill: false, pointRadius: 4, pointHoverRadius: 6, yAxisID: 'y1'
-    })
-  }
+  return { labels, datasets }
+})
 
-  if (showConsumption.value && hasDistanceData.value) {
+const chargingChartOptions = computed(() => ({
+  responsive: true,
+  maintainAspectRatio: false,
+  interaction: { mode: 'index' as const, intersect: false },
+  plugins: {
+    legend: { display: false },
+    datalabels: { display: false },
+    tooltip: {
+      callbacks: {
+        label: (ctx: any) => {
+          const lbl = ctx.dataset.label
+          const v = ctx.parsed.y
+          if (v == null) return `${lbl}: –`
+          if (lbl.includes('€/kWh')) return `${lbl}: €${v.toFixed(2)}`
+          if (lbl.includes('kWh')) return `${lbl}: ${v.toFixed(1)} kWh`
+          return `${lbl}: ${v}`
+        }
+      }
+    }
+  },
+  scales: {
+    y: {
+      type: 'linear' as const,
+      position: 'left' as const,
+      title: { display: true, text: '€/kWh' },
+      beginAtZero: false,
+      grid: { color: 'rgba(0,0,0,0.06)' }
+    },
+    y1: {
+      type: 'linear' as const,
+      position: 'right' as const,
+      title: { display: true, text: 'kWh' },
+      beginAtZero: true,
+      grid: { drawOnChartArea: false }
+    }
+  }
+}))
+
+// ── Chart 2: Range & Efficiency ──────────────────────────────────────────────
+const efficiencyChartData = computed(() => {
+  if (!stats.value || stats.value.chargesOverTime.length === 0 || !hasDistanceData.value) return null
+
+  const labels = stats.value.chargesOverTime.map(d => formatLabel(d.timestamp))
+  const datasets: any[] = []
+
+  if (showConsumption.value) {
     datasets.push({
       label: 'Verbrauch (kWh/100km)',
       data: stats.value.chargesOverTime.map(d => d.consumptionKwhPer100km),
@@ -213,25 +253,33 @@ const lineChartData = computed(() => {
     })
   }
 
+  if (showDistance.value) {
+    datasets.push({
+      label: 'Strecke (km)',
+      data: stats.value.chargesOverTime.map(d => d.distanceKm),
+      borderColor: '#10b981',
+      backgroundColor: 'rgba(16,185,129,0.08)',
+      tension: 0.3, fill: false, pointRadius: 4, pointHoverRadius: 6, yAxisID: 'y1'
+    })
+  }
+
   return { labels, datasets }
 })
 
-const lineChartOptions = computed(() => ({
+const efficiencyChartOptions = computed(() => ({
   responsive: true,
   maintainAspectRatio: false,
   interaction: { mode: 'index' as const, intersect: false },
   plugins: {
     legend: { display: false },
-    datalabels: { display: false }, // No labels on line chart
+    datalabels: { display: false },
     tooltip: {
       callbacks: {
         label: (ctx: any) => {
           const lbl = ctx.dataset.label
           const v = ctx.parsed.y
           if (v == null) return `${lbl}: –`
-          if (lbl.includes('€/kWh')) return `${lbl}: €${v.toFixed(2)}`
           if (lbl.includes('kWh/100km')) return `${lbl}: ${v.toFixed(1)}`
-          if (lbl.includes('kWh')) return `${lbl}: ${v.toFixed(1)} kWh`
           if (lbl.includes('km')) return `${lbl}: ${Math.round(v).toLocaleString('de-DE')} km`
           return `${lbl}: ${v}`
         }
@@ -242,14 +290,14 @@ const lineChartOptions = computed(() => ({
     y: {
       type: 'linear' as const,
       position: 'left' as const,
-      title: { display: true, text: '€/kWh  |  kWh/100km' },
+      title: { display: true, text: 'kWh/100km' },
       beginAtZero: false,
       grid: { color: 'rgba(0,0,0,0.06)' }
     },
     y1: {
       type: 'linear' as const,
       position: 'right' as const,
-      title: { display: true, text: 'kWh  |  km' },
+      title: { display: true, text: 'km' },
       beginAtZero: true,
       grid: { drawOnChartArea: false }
     }
@@ -280,52 +328,70 @@ const wltpChartData = computed(() => {
   }
 })
 
-const wltpChartOptions = computed(() => ({
-  indexAxis: 'y' as const, // Horizontal bars (like demographic pyramid)
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: {
-    legend: { display: false },
-    datalabels: {
-      align: 'end' as const,
-      anchor: 'end' as const,
-      color: '#374151',
-      font: { weight: 'bold' as const, size: 12 },
-      formatter: (value: number) => {
-        const wltpVal = wltp.value?.wltpConsumptionKwhPer100km || 0
-        const percentDiff = ((value / wltpVal) * 100).toFixed(1)
-        return `${percentDiff > 0 ? '+' : ''}${percentDiff}%`
-      }
+const wltpChartOptions = computed(() => {
+  const dataPoints = wltpChartData.value?.labels?.length || 0
+  // Dynamic bar thickness: thinner as more data points
+  let barPercentage = 0.8
+  let categoryPercentage = 0.9
+
+  if (dataPoints >= 20) {
+    barPercentage = 0.6
+    categoryPercentage = 0.8
+  } else if (dataPoints >= 10) {
+    barPercentage = 0.7
+    categoryPercentage = 0.85
+  }
+
+  return {
+    indexAxis: 'y' as const, // Horizontal bars (like demographic pyramid)
+    responsive: true,
+    maintainAspectRatio: false,
+    datasets: {
+      bar: { barPercentage, categoryPercentage }
     },
-    tooltip: {
-      callbacks: {
-        label: (ctx: any) => {
-          const v = ctx.parsed.x // x for horizontal bars
-          const sign = v > 0 ? '+' : ''
+    plugins: {
+      legend: { display: false },
+      datalabels: {
+        align: 'end' as const,
+        anchor: 'end' as const,
+        color: '#374151',
+        font: { weight: 'bold' as const, size: 12 },
+        formatter: (value: number) => {
           const wltpVal = wltp.value?.wltpConsumptionKwhPer100km || 0
-          const percentDiff = ((v / wltpVal) * 100).toFixed(1)
-          return [
-            `${sign}${v.toFixed(2)} kWh/100km vs. WLTP`,
-            `WLTP: ${wltpVal.toFixed(1)} kWh/100km`,
-            `Abweichung: ${sign}${percentDiff}%`
-          ]
+          const percentDiff = (value / wltpVal) * 100
+          return `${percentDiff > 0 ? '+' : ''}${percentDiff.toFixed(1)}%`
+        }
+      },
+      tooltip: {
+        callbacks: {
+          label: (ctx: any) => {
+            const v = ctx.parsed.x // x for horizontal bars
+            const sign = v > 0 ? '+' : ''
+            const wltpVal = wltp.value?.wltpConsumptionKwhPer100km || 0
+            const percentDiff = ((v / wltpVal) * 100).toFixed(1)
+            return [
+              `${sign}${v.toFixed(2)} kWh/100km vs. WLTP`,
+              `WLTP: ${wltpVal.toFixed(1)} kWh/100km`,
+              `Abweichung: ${sign}${percentDiff}%`
+            ]
+          }
         }
       }
-    }
-  },
-  scales: {
-    x: {
-      title: { display: true, text: 'Δ kWh/100km (+ = mehr als WLTP)' },
-      grid: { color: (ctx: any) => ctx.tick.value === 0 ? '#6b7280' : 'rgba(0,0,0,0.06)' },
-      ticks: {
-        callback: (v: any) => `${v > 0 ? '+' : ''}${v}`
-      }
     },
-    y: {
-      grid: { display: false }
+    scales: {
+      x: {
+        title: { display: true, text: 'Δ kWh/100km (+ = mehr als WLTP)' },
+        grid: { color: (ctx: any) => ctx.tick.value === 0 ? '#6b7280' : 'rgba(0,0,0,0.06)' },
+        ticks: {
+          callback: (v: any) => `${v > 0 ? '+' : ''}${v}`
+        }
+      },
+      y: {
+        grid: { display: false }
+      }
     }
   }
-}))
+})
 
 const formatDuration = (minutes: number) => {
   const h = Math.floor(minutes / 60)
@@ -333,11 +399,17 @@ const formatDuration = (minutes: number) => {
   return h > 0 ? `${h}h ${m}min` : `${m}min`
 }
 
-// Dynamic chart height: 35px per bar, minimum 400px
+// Dynamic chart height: 35px per bar, minimum 400px, max 1150px (30 bars) then scroll
 const wltpChartHeight = computed(() => {
   const dataPoints = wltpChartData.value?.labels?.length || 0
   const dynamicHeight = Math.max(400, dataPoints * 35 + 100)
-  return `${dynamicHeight}px`
+  const maxHeight = 1150 // ~30 bars
+  return `${Math.min(dynamicHeight, maxHeight)}px`
+})
+
+const wltpChartScrollable = computed(() => {
+  const dataPoints = wltpChartData.value?.labels?.length || 0
+  return dataPoints >= 30
 })
 
 onMounted(fetchStatistics)
@@ -489,38 +561,55 @@ onMounted(fetchStatistics)
           </div>
         </div>
 
-        <!-- Line Chart: Zeitverlauf -->
-        <div class="md:bg-gray-50 p-4 md:p-6 md:rounded-lg md:border md:border-gray-200">
-          <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
-            <h2 class="text-xl font-semibold text-gray-800">Zeitverlauf</h2>
+        <!-- Dual Charts: Charging & Costs | Range & Efficiency -->
+        <div class="grid grid-cols-1 gap-6">
 
-            <!-- Real checkboxes -->
-            <div class="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm">
-              <label class="flex items-center gap-1 sm:gap-2 cursor-pointer">
-                <input type="checkbox" v-model="showCostPerKwh"
-                  class="w-3 h-3 sm:w-4 sm:h-4 rounded accent-indigo-600 cursor-pointer" />
-                <span class="font-medium text-gray-700">
-                  <span class="inline-block w-2 sm:w-3 h-0.5 bg-indigo-600 mr-1 align-middle"></span>
-                  €/kWh
-                </span>
-              </label>
-              <label class="flex items-center gap-1 sm:gap-2 cursor-pointer">
-                <input type="checkbox" v-model="showKwh"
-                  class="w-3 h-3 sm:w-4 sm:h-4 rounded accent-amber-500 cursor-pointer" />
-                <span class="font-medium text-gray-700">
-                  <span class="inline-block w-2 sm:w-3 h-0.5 bg-amber-500 mr-1 align-middle"></span>
-                  kWh
-                </span>
-              </label>
-              <template v-if="hasDistanceData">
+          <!-- Chart 1: Charging & Costs -->
+          <div class="md:bg-gray-50 p-4 md:p-6 md:rounded-lg md:border md:border-gray-200">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-center gap-4 sm:gap-6 mb-4">
+              <h2 class="text-xl font-semibold text-gray-800 text-center">Laden & Kosten</h2>
+
+              <!-- Checkboxes Chart 1 -->
+              <div class="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm justify-center">
                 <label class="flex items-center gap-1 sm:gap-2 cursor-pointer">
-                  <input type="checkbox" v-model="showDistance"
-                    class="w-3 h-3 sm:w-4 sm:h-4 rounded accent-emerald-500 cursor-pointer" />
+                  <input type="checkbox" v-model="showCostPerKwh"
+                    class="w-3 h-3 sm:w-4 sm:h-4 rounded accent-indigo-600 cursor-pointer" />
                   <span class="font-medium text-gray-700">
-                    <span class="inline-block w-2 sm:w-3 h-0.5 bg-emerald-500 mr-1 align-middle"></span>
-                    km
+                    <span class="inline-block w-2 sm:w-3 h-0.5 bg-indigo-600 mr-1 align-middle"></span>
+                    €/kWh
                   </span>
                 </label>
+                <label class="flex items-center gap-1 sm:gap-2 cursor-pointer">
+                  <input type="checkbox" v-model="showKwh"
+                    class="w-3 h-3 sm:w-4 sm:h-4 rounded accent-amber-500 cursor-pointer" />
+                  <span class="font-medium text-gray-700">
+                    <span class="inline-block w-2 sm:w-3 h-0.5 bg-amber-500 mr-1 align-middle"></span>
+                    kWh
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <div v-if="chargingChartData && chargingChartData.datasets.length > 0" class="h-64 sm:h-72">
+              <Line :data="chargingChartData" :options="chargingChartOptions" />
+            </div>
+            <div v-else class="text-center py-10 text-gray-400 text-sm">
+              Kein Datensatz ausgewählt oder nicht genügend Daten.
+            </div>
+
+            <div class="flex flex-wrap gap-x-6 gap-y-1 mt-3 text-xs text-gray-400">
+              <span>Linke Achse: €/kWh</span>
+              <span>Rechte Achse: kWh</span>
+            </div>
+          </div>
+
+          <!-- Chart 2: Range & Efficiency (only if distance data exists) -->
+          <div v-if="hasDistanceData" class="md:bg-gray-50 p-4 md:p-6 md:rounded-lg md:border md:border-gray-200">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-center gap-4 sm:gap-6 mb-4">
+              <h2 class="text-xl font-semibold text-gray-800 text-center">Reichweite & Effizienz</h2>
+
+              <!-- Checkboxes Chart 2 -->
+              <div class="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm justify-center">
                 <label class="flex items-center gap-1 sm:gap-2 cursor-pointer">
                   <input type="checkbox" v-model="showConsumption"
                     class="w-3 h-3 sm:w-4 sm:h-4 rounded accent-red-500 cursor-pointer" />
@@ -529,21 +618,30 @@ onMounted(fetchStatistics)
                     kWh/100km
                   </span>
                 </label>
-              </template>
+                <label class="flex items-center gap-1 sm:gap-2 cursor-pointer">
+                  <input type="checkbox" v-model="showDistance"
+                    class="w-3 h-3 sm:w-4 sm:h-4 rounded accent-emerald-500 cursor-pointer" />
+                  <span class="font-medium text-gray-700">
+                    <span class="inline-block w-2 sm:w-3 h-0.5 bg-emerald-500 mr-1 align-middle"></span>
+                    km
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <div v-if="efficiencyChartData && efficiencyChartData.datasets.length > 0" class="h-64 sm:h-72">
+              <Line :data="efficiencyChartData" :options="efficiencyChartOptions" />
+            </div>
+            <div v-else class="text-center py-10 text-gray-400 text-sm">
+              Kein Datensatz ausgewählt oder nicht genügend Daten.
+            </div>
+
+            <div class="flex flex-wrap gap-x-6 gap-y-1 mt-3 text-xs text-gray-400">
+              <span>Linke Achse: kWh/100km</span>
+              <span>Rechte Achse: km</span>
             </div>
           </div>
 
-          <div v-if="lineChartData && lineChartData.datasets.length > 0" class="h-64 sm:h-72">
-            <Line :data="lineChartData" :options="lineChartOptions" />
-          </div>
-          <div v-else class="text-center py-10 text-gray-400 text-sm">
-            Kein Datensatz ausgewählt oder nicht genügend Daten.
-          </div>
-
-          <div class="flex flex-wrap gap-x-6 gap-y-1 mt-3 text-xs text-gray-400">
-            <span>Linke Achse: €/kWh · kWh/100km</span>
-            <span>Rechte Achse: kWh · km</span>
-          </div>
         </div>
 
         <!-- WLTP Delta Bar Chart -->
@@ -559,7 +657,7 @@ onMounted(fetchStatistics)
               </span>
             </p>
           </div>
-          <div :style="{ height: wltpChartHeight }">
+          <div :class="wltpChartScrollable ? 'overflow-y-auto' : ''" :style="{ height: wltpChartHeight }">
             <Bar :data="wltpChartData" :options="wltpChartOptions" />
           </div>
         </div>
