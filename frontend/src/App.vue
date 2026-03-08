@@ -349,16 +349,6 @@ const closeMobileMenu = () => {
             <router-link to="/agb" class="hover:text-green-600 underline">AGB</router-link> ·
             <a href="https://github.com/sebastianwien/ev-monitor" target="_blank" rel="noopener noreferrer" class="hover:text-green-600 underline">GitHub</a>
           </p>
-          <p class="text-xs text-gray-500 text-center">
-            Datenimport powered by
-            <a
-              href="https://www.spritmonitor.de"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="text-green-600 hover:text-green-700 hover:underline font-medium">
-              Sprit-Monitor API
-            </a>
-          </p>
         </div>
       </div>
     </footer>
