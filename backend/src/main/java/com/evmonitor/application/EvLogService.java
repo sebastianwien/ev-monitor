@@ -8,11 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -234,7 +230,7 @@ public class EvLogService {
 
         BigDecimal totalCostEur = logs.stream()
                 .map(EvLog::getCostEur)
-                .filter(c -> c != null)
+                .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal avgCostPerKwh = totalKwhCharged.compareTo(BigDecimal.ZERO) > 0
@@ -243,13 +239,13 @@ public class EvLogService {
 
         BigDecimal cheapestCharge = logs.stream()
                 .map(EvLog::getCostEur)
-                .filter(c -> c != null)
+                .filter(Objects::nonNull)
                 .min(BigDecimal::compareTo)
                 .orElse(BigDecimal.ZERO);
 
         BigDecimal mostExpensiveCharge = logs.stream()
                 .map(EvLog::getCostEur)
-                .filter(c -> c != null)
+                .filter(Objects::nonNull)
                 .max(BigDecimal::compareTo)
                 .orElse(BigDecimal.ZERO);
 
@@ -268,7 +264,7 @@ public class EvLogService {
         List<EvLogStatisticsResponse.ChargeDataPoint> chargesOverTime =
                 groupChargesByPeriod(logs, groupBy != null ? groupBy : "MONTH", distanceByLogId);
 
-        // Total distance and avg consumption (only logs that have distance data)
+        // Total distance and avg consumption (using SoC-based calculation if available)
         BigDecimal totalDistanceKm = null;
         BigDecimal avgConsumptionKwhPer100km = null;
         List<EvLog> filteredLogsWithDistance = logs.stream()
@@ -278,12 +274,13 @@ public class EvLogService {
             int totalDistanceInt = filteredLogsWithDistance.stream()
                     .mapToInt(l -> distanceByLogId.get(l.getId())).sum();
             totalDistanceKm = new BigDecimal(totalDistanceInt);
-            BigDecimal kwhForThoseTrips = filteredLogsWithDistance.stream()
-                    .map(EvLog::getKwhCharged).reduce(BigDecimal.ZERO, BigDecimal::add);
-            if (totalDistanceKm.compareTo(BigDecimal.ZERO) > 0) {
-                avgConsumptionKwhPer100km = kwhForThoseTrips
-                        .multiply(new BigDecimal("100"))
-                        .divide(totalDistanceKm, 2, RoundingMode.HALF_UP);
+
+            // Try SoC-based calculation first (more accurate for partial charging)
+            avgConsumptionKwhPer100km = calculateConsumptionWithSoc(allLogsForCar, filteredLogsWithDistance, car.getBatteryCapacityKwh());
+
+            // Fallback to kWh-based calculation if SoC data is missing
+            if (avgConsumptionKwhPer100km == null) {
+                avgConsumptionKwhPer100km = calculateConsumptionFallback(filteredLogsWithDistance, totalDistanceKm);
             }
         }
 
@@ -310,16 +307,212 @@ public class EvLogService {
     }
 
     /**
+     * Calculate avg consumption using SoC data if available (more accurate for partial charging).
+     *
+     * General formula for consumption between two anchor points (logs with odometer):
+     * 1. Find anchor Y (previous log with odometer) and anchor X (current log with odometer)
+     * 2. Distance = odometerX - odometerY
+     * 3. Energy consumed = socY_after + Σ(kWh charged between Y and X) - socX_before
+     * 4. Consumption = (Energy consumed / Distance) × 100
+     *
+     * This handles logs without odometer by including their charged energy in the calculation.
+     *
+     * @param allLogs All logs sorted by time
+     * @param logsWithDistance Filtered logs that have distance data (anchor points)
+     * @param batteryCapacityKwh Battery capacity of the car
+     * @return Avg consumption in kWh/100km, or null if SoC data missing
+     */
+    private BigDecimal calculateConsumptionWithSoc(List<EvLog> allLogs, List<EvLog> logsWithDistance, BigDecimal batteryCapacityKwh) {
+        if (batteryCapacityKwh == null || batteryCapacityKwh.compareTo(BigDecimal.ZERO) <= 0) {
+            return null; // Can't calculate without battery capacity
+        }
+
+        BigDecimal totalEnergyConsumed = BigDecimal.ZERO;
+        int totalDistance = 0;
+        int validTrips = 0;
+
+        for (EvLog anchorX : logsWithDistance) {
+            // Find previous anchor point (log with odometer)
+            EvLog anchorY = findPreviousLog(allLogs, anchorX);
+            if (anchorY == null) {
+                continue; // First log, no previous anchor
+            }
+
+            // Check if both anchors have required SoC data
+            if (anchorX.getSocAfterChargePercent() == null || anchorY.getSocAfterChargePercent() == null) {
+                continue; // Missing SoC data, skip this trip
+            }
+            if (anchorX.getKwhCharged() == null || anchorY.getKwhCharged() == null) {
+                continue; // Missing kWh data, skip this trip
+            }
+
+            // Calculate distance between anchors
+            if (anchorX.getOdometerKm() == null || anchorY.getOdometerKm() == null) {
+                continue;
+            }
+            int distance = anchorX.getOdometerKm() - anchorY.getOdometerKm();
+            if (distance <= 0) {
+                continue; // Invalid distance
+            }
+
+            // Find all logs between the two anchors (excl. both ends)
+            List<EvLog> logsBetween = findLogsBetween(allLogs, anchorY, anchorX);
+
+            // Check if all logs between have required data
+            boolean allHaveData = logsBetween.stream()
+                .allMatch(log -> log.getKwhCharged() != null && log.getSocAfterChargePercent() != null);
+            if (!allHaveData) {
+                continue; // Missing data in logs between, skip this trip
+            }
+
+            // Sum all charged energy between anchors (excl. both ends)
+            BigDecimal kwhChargedBetween = logsBetween.stream()
+                .map(EvLog::getKwhCharged)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            // Calculate energy consumed:
+            // Start (anchor Y after charge) + Loaded between - End (anchor X before charge)
+            BigDecimal socYAfterKwh = new BigDecimal(anchorY.getSocAfterChargePercent())
+                .multiply(batteryCapacityKwh)
+                .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+
+            BigDecimal socXBeforePercent = calculateSocBeforeCharge(
+                anchorX.getSocAfterChargePercent(),
+                anchorX.getKwhCharged(),
+                batteryCapacityKwh
+            );
+            BigDecimal socXBeforeKwh = socXBeforePercent
+                .multiply(batteryCapacityKwh)
+                .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+
+            BigDecimal energyConsumedKwh = socYAfterKwh
+                .add(kwhChargedBetween)
+                .subtract(socXBeforeKwh);
+
+            // Skip if energy consumed is negative (invalid data)
+            if (energyConsumedKwh.compareTo(BigDecimal.ZERO) <= 0) {
+                continue;
+            }
+
+            totalEnergyConsumed = totalEnergyConsumed.add(energyConsumedKwh);
+            totalDistance += distance;
+            validTrips++;
+        }
+
+        // Calculate average consumption if we have valid data
+        if (validTrips == 0 || totalDistance == 0) {
+            return null; // Not enough SoC data
+        }
+
+        return totalEnergyConsumed
+            .multiply(new BigDecimal("100"))
+            .divide(new BigDecimal(totalDistance), 2, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Fallback consumption calculation when SoC data is missing.
+     * Simple formula: (total kWh charged / total distance) × 100
+     * Less accurate for partial charging but works when SoC is unavailable.
+     * Package-private for testing.
+     */
+    BigDecimal calculateConsumptionFallback(List<EvLog> logs, BigDecimal totalDistanceKm) {
+        if (totalDistanceKm == null || totalDistanceKm.compareTo(BigDecimal.ZERO) <= 0) {
+            return null;
+        }
+        BigDecimal totalKwh = logs.stream()
+            .map(EvLog::getKwhCharged)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return totalKwh
+            .multiply(new BigDecimal("100"))
+            .divide(totalDistanceKm, 2, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Calculate SoC before charging based on kWh charged and battery capacity.
+     */
+    private BigDecimal calculateSocBeforeCharge(int socAfterCharge, BigDecimal kwhCharged, BigDecimal batteryCapacityKwh) {
+        BigDecimal socDelta = kwhCharged
+            .divide(batteryCapacityKwh, 4, RoundingMode.HALF_UP)
+            .multiply(new BigDecimal("100"));
+        return new BigDecimal(socAfterCharge).subtract(socDelta);
+    }
+
+    /**
+     * Find the previous log before the given log that has odometer data.
+     * Skips logs without odometer to find the actual previous trip.
+     */
+    private EvLog findPreviousLog(List<EvLog> sortedLogs, EvLog currentLog) {
+        boolean foundCurrent = false;
+        for (int i = 0; i < sortedLogs.size(); i++) {
+            if (sortedLogs.get(i).getId().equals(currentLog.getId())) {
+                foundCurrent = true;
+                // Search backwards for log with odometer data
+                for (int j = i - 1; j >= 0; j--) {
+                    if (sortedLogs.get(j).getOdometerKm() != null) {
+                        return sortedLogs.get(j);
+                    }
+                }
+                return null; // No previous log with odometer found
+            }
+        }
+        return null; // Current log not found in list
+    }
+
+    /**
+     * Find all logs between two anchor logs (exclusive of both ends).
+     * Used to include charged energy from logs without odometer data.
+     *
+     * @param sortedLogs All logs sorted by time
+     * @param anchorY Earlier anchor (with odometer)
+     * @param anchorX Later anchor (with odometer)
+     * @return List of logs between the two anchors (empty if none)
+     */
+    private List<EvLog> findLogsBetween(List<EvLog> sortedLogs, EvLog anchorY, EvLog anchorX) {
+        List<EvLog> result = new java.util.ArrayList<>();
+        boolean foundY = false;
+
+        for (EvLog log : sortedLogs) {
+            if (log.getId().equals(anchorY.getId())) {
+                foundY = true;
+                continue; // Skip anchor Y itself
+            }
+
+            if (log.getId().equals(anchorX.getId())) {
+                break; // Stop at anchor X (don't include it)
+            }
+
+            if (foundY) {
+                result.add(log); // Add all logs between Y and X
+            }
+        }
+
+        return result;
+    }
+
+    /**
      * Compute distance driven before each charge from consecutive odometer readings.
-     * Distance for log[i] = log[i].odometer - log[i-1].odometer (if both have odometer data).
+     * Distance for log[i] = log[i].odometer - log[j].odometer where j is the most recent log with odometer data.
+     * Skips logs without odometer data to find the actual previous trip.
      * Logs must be sorted by loggedAt ascending.
      */
     private Map<UUID, Integer> computeDistanceByLogId(List<EvLog> sortedLogs) {
         Map<UUID, Integer> result = new java.util.HashMap<>();
         for (int i = 1; i < sortedLogs.size(); i++) {
             EvLog current = sortedLogs.get(i);
-            EvLog previous = sortedLogs.get(i - 1);
-            if (current.getOdometerKm() != null && previous.getOdometerKm() != null) {
+            if (current.getOdometerKm() == null) {
+                continue; // Skip logs without odometer
+            }
+
+            // Find previous log with odometer data (search backwards)
+            EvLog previous = null;
+            for (int j = i - 1; j >= 0; j--) {
+                if (sortedLogs.get(j).getOdometerKm() != null) {
+                    previous = sortedLogs.get(j);
+                    break;
+                }
+            }
+
+            if (previous != null) {
                 int distance = current.getOdometerKm() - previous.getOdometerKm();
                 if (distance > 0) {
                     result.put(current.getId(), distance);
