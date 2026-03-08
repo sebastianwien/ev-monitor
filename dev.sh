@@ -83,6 +83,7 @@ echo ""
 echo -e "${BLUE}🗄️  Step 2/5: Database Setup${NC}"
 read -p "Do you want to drop all tables for a fresh start? (y/N): " -n 1 -r
 echo ""
+FRESH_START=false
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     echo -e "${YELLOW}🗑️  Dropping all tables...${NC}"
     docker compose -f docker-compose.dev.yml exec -T db psql -U evmonitor -d ev_monitor <<EOF
@@ -92,6 +93,7 @@ GRANT ALL ON SCHEMA public TO evmonitor;
 GRANT ALL ON SCHEMA public TO public;
 EOF
     echo -e "${GREEN}✅ Database reset (all tables dropped)${NC}"
+    FRESH_START=true
 else
     echo -e "${YELLOW}⏭️  Skipping table drop${NC}"
 fi
@@ -103,7 +105,9 @@ mkdir -p logs
 # Step 3: Start Backend
 echo -e "${BLUE}⚙️  Step 3/5: Starting Backend (Spring Boot)...${NC}"
 echo -e "${YELLOW}📝 Backend will start on http://localhost:8080${NC}"
-echo -e "${YELLOW}📝 DevDataSeeder will create 3 test users + 6 cars + ~370 charging logs${NC}"
+if [ "$FRESH_START" = true ]; then
+    echo -e "${YELLOW}📝 DevDataSeeder will create 3 test users + 6 cars + ~370 charging logs${NC}"
+fi
 echo ""
 
 cd backend
@@ -271,13 +275,15 @@ fi
 echo -e "${BLUE}🗄️  Database:${NC}       localhost:5432 (user: evmonitor, pass: evmonitor)"
 echo -e "${BLUE}📧 Mailpit:${NC}         http://localhost:8025"
 echo ""
-echo -e "${YELLOW}👤 Test Users (created by DevDataSeeder):${NC}"
-echo "   - max_e_driver (max@ev-monitor.net) / 123!\"§"
-echo "   - anna_ampere (anna@ev-monitor.net) / 123!\"§"
-echo "   - kurt_kilowatt (kurt@ev-monitor.net) / 123!\"§"
-echo ""
-echo -e "${YELLOW}📊 Each user has 2 cars with ~70-80 charging logs over 1 year${NC}"
-echo ""
+if [ "$FRESH_START" = true ]; then
+    echo -e "${YELLOW}👤 Test Users (created by DevDataSeeder):${NC}"
+    echo "   - max_e_driver (max@ev-monitor.net) / 123!\"§"
+    echo "   - anna_ampere (anna@ev-monitor.net) / 123!\"§"
+    echo "   - kurt_kilowatt (kurt@ev-monitor.net) / 123!\"§"
+    echo ""
+    echo -e "${YELLOW}📊 Each user has 2 cars with ~70-80 charging logs over 1 year${NC}"
+    echo ""
+fi
 echo -e "${RED}🛑 To stop: Run ./stop-dev.sh or press Ctrl+C${NC}"
 echo ""
 
