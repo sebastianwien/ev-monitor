@@ -80,7 +80,7 @@ const handleRegister = async () => {
       analytics.trackRegistrationCompleted();
 
       // Track Reddit conversion if user came from Reddit ad
-      trackRedditSignup(email.value);
+      trackRedditSignup();
 
       // Clear stored UTM params after successful registration
       clearStoredUtmParams();
