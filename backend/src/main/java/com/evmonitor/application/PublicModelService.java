@@ -49,12 +49,17 @@ public class PublicModelService {
     public Optional<PublicModelStatsResponse> getModelStats(String brandName, String modelName,
                                                              UUID currentUserId, boolean isSeedUser) {
         // Validate that the model actually exists in our enum
-        // Replace spaces with underscores (e.g. "Polestar 2" -> "POLESTAR_2")
-        CarBrand.CarModel carModel;
-        try {
-            String normalizedModelName = modelName.replace(" ", "_").toUpperCase();
-            carModel = CarBrand.CarModel.valueOf(normalizedModelName);
-        } catch (IllegalArgumentException e) {
+        // Match by brand displayString + model displayName (case-insensitive)
+        CarBrand.CarModel carModel = null;
+        for (CarBrand.CarModel model : CarBrand.CarModel.values()) {
+            if (model.getBrand().getDisplayString().equalsIgnoreCase(brandName) &&
+                model.getDisplayName().replace(" ", "_").equalsIgnoreCase(modelName.replace(" ", "_"))) {
+                carModel = model;
+                break;
+            }
+        }
+
+        if (carModel == null) {
             return Optional.empty();
         }
 
