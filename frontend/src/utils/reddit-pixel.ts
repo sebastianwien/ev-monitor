@@ -145,10 +145,11 @@ export function initRedditPixel() {
     useDecimalCurrencyValues: true
   })
 
+  console.log('[Reddit Pixel] Initialized with ID:', REDDIT_PIXEL_ID)
+
   // Track initial page visit
   window.rdt!('track', 'PageVisit')
-
-  console.log('[Reddit Pixel] Initialized with ID:', REDDIT_PIXEL_ID)
+  console.log('[Reddit Pixel] PageVisit tracked')
 }
 
 /**
