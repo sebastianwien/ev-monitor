@@ -31,7 +31,7 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
 
     private RegisterResponse registerUser(String email, String username, String password) {
         doNothing().when(emailService).sendVerificationEmail(anyString(), anyString());
-        RegisterRequest request = new RegisterRequest(email, username, password, null);
+        RegisterRequest request = new RegisterRequest(email, username, password, null, null, null, null);
         ResponseEntity<RegisterResponse> response = restTemplate.postForEntity(
                 "/api/auth/register", request, RegisterResponse.class);
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -57,7 +57,7 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
 
         ResponseEntity<RegisterResponse> response = restTemplate.postForEntity(
                 "/api/auth/register",
-                new RegisterRequest(email, "user_" + System.currentTimeMillis(), "SecurePassword123", null),
+                new RegisterRequest(email, "user_" + System.currentTimeMillis(), "SecurePassword123", null, null, null, null),
                 RegisterResponse.class);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -99,7 +99,7 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
         doNothing().when(emailService).sendVerificationEmail(anyString(), anyString());
         ResponseEntity<String> response = restTemplate.postForEntity(
                 "/api/auth/register",
-                new RegisterRequest(email, "user_" + System.currentTimeMillis(), "DifferentPassword456", null),
+                new RegisterRequest(email, "user_" + System.currentTimeMillis(), "DifferentPassword456", null, null, null, null),
                 String.class);
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());

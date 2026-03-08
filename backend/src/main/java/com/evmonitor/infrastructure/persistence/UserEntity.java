@@ -49,6 +49,15 @@ public class UserEntity {
     @Column(name = "stripe_customer_id")
     private String stripeCustomerId;
 
+    @Column(name = "utm_source", length = 100)
+    private String utmSource;
+
+    @Column(name = "utm_medium", length = 100)
+    private String utmMedium;
+
+    @Column(name = "utm_campaign", length = 100)
+    private String utmCampaign;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -195,6 +204,30 @@ public class UserEntity {
 
     public void setStripeCustomerId(String stripeCustomerId) {
         this.stripeCustomerId = stripeCustomerId;
+    }
+
+    public String getUtmSource() {
+        return utmSource;
+    }
+
+    public void setUtmSource(String utmSource) {
+        this.utmSource = utmSource;
+    }
+
+    public String getUtmMedium() {
+        return utmMedium;
+    }
+
+    public void setUtmMedium(String utmMedium) {
+        this.utmMedium = utmMedium;
+    }
+
+    public String getUtmCampaign() {
+        return utmCampaign;
+    }
+
+    public void setUtmCampaign(String utmCampaign) {
+        this.utmCampaign = utmCampaign;
     }
 
 }

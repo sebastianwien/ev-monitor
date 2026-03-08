@@ -64,7 +64,7 @@ class AuthServiceTest {
         String password = "SecurePassword123";
         String hashedPassword = "$2a$10$hashedPasswordExample";
 
-        RegisterRequest request = new RegisterRequest(email, "testuser_" + System.currentTimeMillis(), password, null);
+        RegisterRequest request = new RegisterRequest(email, "testuser_" + System.currentTimeMillis(), password, null, null, null, null);
 
         when(userRepository.existsByEmail(email)).thenReturn(false);
         when(userRepository.existsByUsername(any())).thenReturn(false);
@@ -92,7 +92,7 @@ class AuthServiceTest {
     void shouldRejectRegistrationWithDuplicateEmail() {
         // Given
         String email = "existing@example.com";
-        RegisterRequest request = new RegisterRequest(email, "testuser_" + System.currentTimeMillis(), "Password123", null);
+        RegisterRequest request = new RegisterRequest(email, "testuser_" + System.currentTimeMillis(), "Password123", null, null, null, null);
 
         when(userRepository.existsByEmail(email)).thenReturn(true);
 
@@ -115,7 +115,7 @@ class AuthServiceTest {
 
         User user = new User(userId, email, "testuser", "$2a$10$hashedPassword",
                 AuthProvider.LOCAL, "USER", true /* emailVerified */, false, true, false,
-                "TESTCODE", null, null, LocalDateTime.now(), LocalDateTime.now());
+                "TESTCODE", null, null, null, null, null, LocalDateTime.now(), LocalDateTime.now());
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(null);
@@ -139,7 +139,7 @@ class AuthServiceTest {
 
         User unverifiedUser = new User(userId, email, "unverified", "$2a$10$hash",
                 AuthProvider.LOCAL, "USER", false /* emailVerified */, false, true, false,
-                "TESTCODE", null, null, LocalDateTime.now(), LocalDateTime.now());
+                "TESTCODE", null, null, null, null, null, LocalDateTime.now(), LocalDateTime.now());
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(unverifiedUser));
         when(authenticationManager.authenticate(any())).thenReturn(null);
@@ -164,7 +164,7 @@ class AuthServiceTest {
 
         User user = new User(userId, "user@example.com", "user", "$2a$10$hash",
                 AuthProvider.LOCAL, "USER", true, false, true, false,
-                "TESTCODE", null, null, LocalDateTime.now(), LocalDateTime.now());
+                "TESTCODE", null, null, null, null, null, LocalDateTime.now(), LocalDateTime.now());
 
         when(tokenRepository.findByToken(rawToken)).thenReturn(Optional.of(verificationToken));
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
@@ -205,7 +205,7 @@ class AuthServiceTest {
         String plainPassword = "PlainTextPassword123";
         String expectedHash = "$2a$10$hashedPasswordExample";
         RegisterRequest request = new RegisterRequest("user@example.com",
-                "testuser_" + System.currentTimeMillis(), plainPassword, null);
+                "testuser_" + System.currentTimeMillis(), plainPassword, null, null, null, null);
 
         when(userRepository.existsByEmail(any())).thenReturn(false);
         when(userRepository.existsByUsername(any())).thenReturn(false);
@@ -228,7 +228,7 @@ class AuthServiceTest {
     void shouldCreateUnverifiedLocalUserOnRegistration() {
         // Given
         RegisterRequest request = new RegisterRequest("user@example.com",
-                "testuser_" + System.currentTimeMillis(), "Password123", null);
+                "testuser_" + System.currentTimeMillis(), "Password123", null, null, null, null);
 
         when(userRepository.existsByEmail(any())).thenReturn(false);
         when(userRepository.existsByUsername(any())).thenReturn(false);
@@ -247,5 +247,118 @@ class AuthServiceTest {
         assertEquals(AuthProvider.LOCAL, savedUser.getAuthProvider());
         assertEquals("USER", savedUser.getRole());
         assertFalse(savedUser.isEmailVerified(), "Newly registered user should NOT be verified yet");
+    }
+
+    @Test
+    void shouldCaptureCampaignTrackingDataOnRegistration() {
+        // Given
+        String email = "campaign@example.com";
+        String password = "Password123";
+        String utmSource = "reddit";
+        String utmMedium = "cpc";
+        String utmCampaign = "launch_march_2026";
+
+        RegisterRequest request = new RegisterRequest(
+                email,
+                "campaign_user_" + System.currentTimeMillis(),
+                password,
+                null, // no referralCode
+                utmSource,
+                utmMedium,
+                utmCampaign
+        );
+
+        when(userRepository.existsByEmail(any())).thenReturn(false);
+        when(userRepository.existsByUsername(any())).thenReturn(false);
+        when(passwordEncoder.encode(any())).thenReturn("$2a$10$hash");
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(tokenRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        // When
+        authService.register(request);
+
+        // Then
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(userCaptor.capture());
+        User savedUser = userCaptor.getValue();
+
+        assertEquals(utmSource, savedUser.getUtmSource());
+        assertEquals(utmMedium, savedUser.getUtmMedium());
+        assertEquals(utmCampaign, savedUser.getUtmCampaign());
+    }
+
+    @Test
+    void shouldAllowNullCampaignData() {
+        // Given - User registers without UTM parameters (organic)
+        RegisterRequest request = new RegisterRequest(
+                "organic@example.com",
+                "organic_user_" + System.currentTimeMillis(),
+                "Password123",
+                null,
+                null, // no utm_source
+                null, // no utm_medium
+                null  // no utm_campaign
+        );
+
+        when(userRepository.existsByEmail(any())).thenReturn(false);
+        when(userRepository.existsByUsername(any())).thenReturn(false);
+        when(passwordEncoder.encode(any())).thenReturn("$2a$10$hash");
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(tokenRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        // When
+        authService.register(request);
+
+        // Then
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(userCaptor.capture());
+        User savedUser = userCaptor.getValue();
+
+        assertNull(savedUser.getUtmSource());
+        assertNull(savedUser.getUtmMedium());
+        assertNull(savedUser.getUtmCampaign());
+    }
+
+    @Test
+    void shouldCombineReferralCodeAndCampaignTracking() {
+        // Given - User comes via referral AND campaign (e.g. referred friend clicks Reddit ad)
+        String referralCode = "ABC12345";
+        UUID referrerId = UUID.randomUUID();
+
+        RegisterRequest request = new RegisterRequest(
+                "referred_campaign@example.com",
+                "test_user_" + System.currentTimeMillis(),
+                "Password123",
+                referralCode,
+                "reddit",
+                "cpc",
+                "referral_boost_2026"
+        );
+
+        User referrer = new User(referrerId, "referrer@example.com", "referrer", "$2a$10$hash",
+                AuthProvider.LOCAL, "USER", true, false, true, false,
+                referralCode, null, null, null, null, null, LocalDateTime.now(), LocalDateTime.now());
+
+        when(userRepository.existsByEmail(any())).thenReturn(false);
+        when(userRepository.existsByUsername(any())).thenReturn(false);
+        when(userRepository.findByReferralCode(referralCode.toUpperCase())).thenReturn(Optional.of(referrer));
+        when(userRepository.countVerifiedReferrals(referrerId)).thenReturn(5L); // below MAX_REFERRALS
+        when(passwordEncoder.encode(any())).thenReturn("$2a$10$hash");
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(tokenRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        // When
+        authService.register(request);
+
+        // Then
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(userCaptor.capture());
+        User savedUser = userCaptor.getValue();
+
+        // Both referral AND campaign tracking should be captured
+        assertEquals(referrerId, savedUser.getReferredByUserId());
+        assertEquals("reddit", savedUser.getUtmSource());
+        assertEquals("cpc", savedUser.getUtmMedium());
+        assertEquals("referral_boost_2026", savedUser.getUtmCampaign());
     }
 }
