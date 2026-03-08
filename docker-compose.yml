@@ -97,6 +97,8 @@ services:
     build:
       context: .
       dockerfile: nginx/Dockerfile
+      args:
+        VITE_REDDIT_PIXEL_ID: ${VITE_REDDIT_PIXEL_ID:-}
     restart: always
     ports:
       - "80:80"

@@ -37,8 +37,6 @@ jobs:
           npm ci
 
       - name: Build Frontend
-        env:
-          VITE_REDDIT_PIXEL_ID: ${{ secrets.VITE_REDDIT_PIXEL_ID }}
         run: |
           cd frontend
           npm run build
