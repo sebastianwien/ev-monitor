@@ -6,6 +6,15 @@ export interface WltpVariant {
     wltpConsumptionKwhPer100km: number
 }
 
+export interface SeasonalDistribution {
+    summerPercentage: number
+    winterPercentage: number
+    summerConsumptionKwhPer100km: number | null
+    winterConsumptionKwhPer100km: number | null
+    summerLogCount: number
+    winterLogCount: number
+}
+
 export interface PublicModelStats {
     brand: string
     model: string
@@ -16,6 +25,7 @@ export interface PublicModelStats {
     avgKwhPerSession: number | null
     avgConsumptionKwhPer100km: number | null
     wltpVariants: WltpVariant[]
+    seasonalDistribution: SeasonalDistribution | null
 }
 
 export async function getModelStats(brand: string, model: string): Promise<PublicModelStats | null> {

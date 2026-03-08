@@ -88,12 +88,69 @@
               und trage als Erster deine Ladevorgänge ein!
             </p>
           </div>
+
+          <!-- Seasonal Consumption Breakdown -->
+          <div v-if="showSeasonalBreakdown" class="mt-4 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl">
+            <div class="flex items-start gap-3">
+              <InformationCircleIcon class="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+              <div class="flex-1">
+                <p class="text-sm font-bold text-blue-900 mb-3">
+                  📊 Verbrauch nach Jahreszeit
+                </p>
+
+                <!-- Summer Stats -->
+                <div class="flex items-center justify-between mb-2 text-sm">
+                  <div class="flex items-center gap-2">
+                    <span class="text-orange-600 font-medium">🌞 Sommer (Apr–Sep)</span>
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <span v-if="stats.seasonalDistribution!.summerConsumptionKwhPer100km"
+                          class="font-bold text-orange-700">
+                      {{ stats.seasonalDistribution!.summerConsumptionKwhPer100km.toFixed(1) }} kWh/100km
+                    </span>
+                    <span v-else class="text-gray-400 text-xs">—</span>
+                    <span class="text-xs text-gray-500">({{ stats.seasonalDistribution!.summerLogCount }} Logs)</span>
+                  </div>
+                </div>
+
+                <!-- Winter Stats -->
+                <div class="flex items-center justify-between mb-3 text-sm">
+                  <div class="flex items-center gap-2">
+                    <span class="text-blue-700 font-medium">❄️ Winter (Okt–Mär)</span>
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <span v-if="stats.seasonalDistribution!.winterConsumptionKwhPer100km"
+                          class="font-bold text-blue-800">
+                      {{ stats.seasonalDistribution!.winterConsumptionKwhPer100km.toFixed(1) }} kWh/100km
+                    </span>
+                    <span v-else class="text-gray-400 text-xs">—</span>
+                    <span class="text-xs text-gray-500">({{ stats.seasonalDistribution!.winterLogCount }} Logs)</span>
+                  </div>
+                </div>
+
+                <!-- Weighted Average (Overall) -->
+                <div class="pt-2 border-t border-blue-200">
+                  <div class="flex items-center justify-between text-sm">
+                    <span class="text-gray-700 font-medium">Ø Gewichtet (Gesamt)</span>
+                    <span class="font-bold text-gray-900">
+                      {{ stats.avgConsumptionKwhPer100km ? stats.avgConsumptionKwhPer100km.toFixed(1) + ' kWh/100km' : '—' }}
+                    </span>
+                  </div>
+                  <p class="text-xs text-gray-500 mt-1">
+                    {{ stats.seasonalDistribution!.summerPercentage }}% Sommer,
+                    {{ stats.seasonalDistribution!.winterPercentage }}% Winter (nach gefahrenen km)
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- WLTP vs Real Comparison -->
         <div v-if="stats.wltpVariants.length > 0" class="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
-          <h2 class="text-xl font-bold text-gray-900 mb-4">
-            📋 Offizielle WLTP-Daten nach Batterievariante
+          <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <ClipboardDocumentListIcon class="h-6 w-6 text-gray-700" />
+            Offizielle WLTP-Daten nach Batterievariante
           </h2>
           <div class="overflow-x-auto">
             <table class="w-full text-sm">
@@ -290,7 +347,7 @@ import { useRoute } from 'vue-router'
 import { useHead } from '@unhead/vue'
 import { useAuthStore } from '../stores/auth'
 import { getModelStats, type PublicModelStats } from '../api/publicModelService'
-import { BoltIcon, ArrowTrendingUpIcon } from '@heroicons/vue/24/outline'
+import { BoltIcon, ArrowTrendingUpIcon, InformationCircleIcon, ClipboardDocumentListIcon } from '@heroicons/vue/24/outline'
 
 const route = useRoute()
 const authStore = useAuthStore()
@@ -311,6 +368,11 @@ const bestWltpRange = computed(() => {
 const worstWltpConsumption = computed(() => {
   if (!stats.value?.wltpVariants.length) return null
   return Math.max(...stats.value.wltpVariants.map(v => v.wltpConsumptionKwhPer100km))
+})
+
+const showSeasonalBreakdown = computed(() => {
+  // Always show seasonal breakdown if data exists
+  return !!stats.value?.seasonalDistribution
 })
 
 const faqItems = computed(() => {
