@@ -33,9 +33,7 @@ public class PublicModelService {
 
     @Cacheable("platformStats")
     public PlatformStatsResponse getPlatformStats() {
-        int modelCount = (int) java.util.Arrays.stream(CarBrand.CarModel.values())
-                .filter(m -> m != CarBrand.CarModel.UNKNOWN)
-                .count();
+        int modelCount = CarBrand.CarModel.values().length;
         long userCount = userRepository.countBySeedDataFalseAndEmailVerifiedTrue();
         return new PlatformStatsResponse(modelCount, userCount);
     }
