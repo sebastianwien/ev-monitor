@@ -10,7 +10,8 @@ import {
   DevicePhoneMobileIcon,
   ArrowUpOnSquareIcon,
   EllipsisVerticalIcon,
-  PlusCircleIcon
+  PlusCircleIcon,
+  ChatBubbleLeftEllipsisIcon
 } from '@heroicons/vue/24/outline'
 import { analytics } from '../services/analytics'
 import api from '../api/axios'
@@ -338,6 +339,20 @@ const complete = () => {
                       Auf dem Smartphone: Öffne <strong>ev-monitor.net</strong> in Safari (iOS) oder Chrome (Android) und füge die Seite zum Homescreen hinzu.
                     </div>
                   </template>
+
+                  <!-- Feedback Hinweis -->
+                  <div class="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-5 max-w-md mx-auto">
+                    <div class="flex items-start gap-3">
+                      <ChatBubbleLeftEllipsisIcon class="h-6 w-6 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <div class="text-left">
+                        <p class="font-semibold text-purple-900 mb-1">Deine Meinung zählt!</p>
+                        <p class="text-sm text-purple-800">
+                          Oben rechts findest du den <strong>Feedback-Button</strong> 💬 —
+                          Ideen, Bugs oder Wünsche sind jederzeit willkommen!
+                        </p>
+                      </div>
+                    </div>
+                  </div>
 
                   <div class="flex gap-4 justify-center">
                     <button

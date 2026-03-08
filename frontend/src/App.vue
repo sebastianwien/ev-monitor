@@ -73,7 +73,39 @@ const closeMobileMenu = () => {
           <div class="flex items-center space-x-4">
             <div class="text-xl font-bold tracking-wide">EV Monitor</div>
 
-            <div class="hidden md:flex items-center space-x-4">
+            <!-- Compact Icon Nav (768px - 1024px) -->
+            <div class="hidden md:flex lg:hidden items-center space-x-2">
+              <button
+                @click="handleNewLog"
+                class="p-2 rounded-md bg-green-600 hover:bg-green-700 transition"
+                title="Ladevorgang erfassen">
+                <BoltIcon class="h-5 w-5" />
+              </button>
+              <router-link
+                to="/statistics"
+                class="p-2 rounded-md hover:bg-indigo-500 transition"
+                :class="{ 'bg-indigo-700': $route.path === '/statistics' }"
+                title="Statistiken">
+                <ChartBarIcon class="h-5 w-5" />
+              </router-link>
+              <router-link
+                to="/cars"
+                class="p-2 rounded-md hover:bg-indigo-500 transition"
+                :class="{ 'bg-indigo-700': $route.path === '/cars' }"
+                title="Fahrzeuge">
+                <TruckIcon class="h-5 w-5" />
+              </router-link>
+              <router-link
+                to="/imports"
+                class="p-2 rounded-md bg-indigo-700 hover:bg-indigo-800 transition"
+                :class="{ 'bg-indigo-900': $route.path === '/imports' }"
+                title="Import">
+                <ArrowDownTrayIcon class="h-5 w-5" />
+              </router-link>
+            </div>
+
+            <!-- Full Nav (1024px+) -->
+            <div class="hidden lg:flex items-center space-x-4">
               <button
                 @click="handleNewLog"
                 class="px-3 py-2 rounded-md text-sm font-medium bg-green-600 hover:bg-green-700 transition">
@@ -102,7 +134,50 @@ const closeMobileMenu = () => {
           </div>
 
           <!-- Right: Coin Balance + User Info + Logout (Desktop) / Hamburger (Mobile) -->
-          <div class="hidden md:flex items-center space-x-4">
+
+          <!-- Compact Right Nav (768px - 1024px) -->
+          <div class="hidden md:flex lg:hidden items-center space-x-2">
+            <router-link
+              to="/coins/history"
+              class="flex items-center gap-1 px-2 py-1 text-sm bg-indigo-500 bg-opacity-30 border border-indigo-400 rounded-md hover:bg-opacity-50 transition font-medium"
+              :class="{ 'watt-bump': balanceBumping }"
+              title="Watt-Guthaben">
+              <BoltIcon class="h-4 w-4" />
+              <span>{{ coinStore.balance }}</span>
+            </router-link>
+            <router-link
+              v-if="authStore.user"
+              to="/settings"
+              class="p-2 border border-indigo-400 rounded-md bg-indigo-500 bg-opacity-30 hover:bg-opacity-50 transition"
+              title="Einstellungen">
+              <UserIcon class="h-5 w-5" />
+            </router-link>
+            <button
+              @click="handleLogout"
+              class="p-2 bg-indigo-700 hover:bg-indigo-800 rounded-md transition"
+              title="Abmelden">
+              <ArrowRightOnRectangleIcon class="h-5 w-5" />
+            </button>
+            <a
+              href="https://forms.gle/w4qkLLEv6nYGK3LWA"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="p-2 text-indigo-300 hover:text-white transition"
+              title="Feedback geben">
+              <ChatBubbleLeftEllipsisIcon class="h-5 w-5" />
+            </a>
+            <a
+              href="https://ko-fi.com/ev_monitor"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="p-2 text-red-400 hover:text-red-300 transition"
+              title="Unterstützen">
+              <HeartIcon class="h-5 w-5" />
+            </a>
+          </div>
+
+          <!-- Full Right Nav (1024px+) -->
+          <div class="hidden lg:flex items-center space-x-4">
             <div class="relative group">
               <router-link
                 to="/coins/history"
@@ -130,7 +205,7 @@ const closeMobileMenu = () => {
               to="/settings"
               class="flex items-center gap-2 px-3 py-1.5 text-sm border border-indigo-400 rounded-md bg-indigo-500 bg-opacity-30 hover:bg-opacity-50 transition">
               <UserIcon class="h-4 w-4" />
-              <span>{{ authStore.user.sub }}</span>
+              <span>{{ authStore.user.username || authStore.user.sub }}</span>
             </router-link>
             <button @click="handleLogout" class="px-4 py-2 bg-indigo-700 hover:bg-indigo-800 rounded-lg text-sm font-medium transition shadow-sm">
               Abmelden
@@ -157,6 +232,14 @@ const closeMobileMenu = () => {
 
           <!-- Mobile: Icons + Hamburger Button -->
           <div class="md:hidden flex items-center gap-3">
+            <router-link
+              to="/coins/history"
+              class="flex items-center gap-1 px-2 py-1 text-sm bg-indigo-500 bg-opacity-30 border border-indigo-400 rounded-md hover:bg-opacity-50 transition font-medium"
+              :class="{ 'watt-bump': balanceBumping }"
+              title="Watt-Guthaben">
+              <BoltIcon class="h-4 w-4" />
+              <span>{{ coinStore.balance }}</span>
+            </router-link>
             <a
               href="https://forms.gle/w4qkLLEv6nYGK3LWA"
               target="_blank"
@@ -231,7 +314,7 @@ const closeMobileMenu = () => {
           </router-link>
           <div v-if="authStore.user" class="flex items-center gap-2 px-3 py-2 text-sm text-indigo-200">
             <UserIcon class="h-5 w-5" />
-            <span>{{ authStore.user.sub }}</span>
+            <span>{{ authStore.user.username || authStore.user.sub }}</span>
           </div>
           <button
             @click="handleLogout"
