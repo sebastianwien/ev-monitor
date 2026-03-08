@@ -4,7 +4,6 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { getAllModelsWithWltpData, getModelStats, getPlatformStats, type PublicModelStats } from '../api/publicModelService'
 import {
-  ChartBarIcon,
   LockClosedIcon,
   UsersIcon,
   ArrowRightIcon,
