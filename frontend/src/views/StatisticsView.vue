@@ -466,8 +466,8 @@ onMounted(fetchStatistics)
             <CarSelector v-model="selectedCarId" />
           </div>
 
-          <!-- Filters -->
-          <div v-if="selectedCarId" class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+          <!-- Filters (only show if there are logs) -->
+          <div v-if="selectedCarId && stats && stats.totalCharges > 0" class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
             <div class="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
               <div class="flex-1">
                 <label class="block text-sm font-medium text-gray-700 mb-2">Zeitraum</label>

@@ -106,8 +106,8 @@ public enum CarBrand {
       IX(CarBrand.BMW, "iX", 76.6, 105.2),
       IX1(CarBrand.BMW, "iX1", 64.7),
       IX2(CarBrand.BMW, "iX2", 64.7),
-      IX3(CarBrand.BMW, "iX3", 74.0, 80.0),
-      IX3_NEUE_KLASSE(CarBrand.BMW, "iX3 (Neue Klasse)", 85.0, 100.0), // Welcome to 2026
+      IX3(CarBrand.BMW, "iX3", 74.0),
+      IX3_NEUE_KLASSE(CarBrand.BMW, "iX3 (Neue Klasse)", 108.7), // Welcome to 2026
 
       // --- POLESTAR & VOLVO ---
       POLESTAR_2(CarBrand.POLESTAR, "Polestar 2", 67.0, 75.0, 78.0, 82.0),
@@ -278,9 +278,7 @@ public enum CarBrand {
       XPENG_G9(CarBrand.XPENG, "G9", 78.2, 98.0),
       ZEEKR_001(CarBrand.ZEEKR, "001", 86.0, 100.0),
       ZEEKR_X(CarBrand.ZEEKR, "X", 64.0),
-      ORA_FUNKY_CAT(CarBrand.ORA, "Funky Cat", 48.0, 63.0),
-
-      UNKNOWN(CarBrand.SONSTIGE, "Unbekannt", 50.0);
+      ORA_FUNKY_CAT(CarBrand.ORA, "Funky Cat", 48.0, 63.0);
 
       private final CarBrand brand;
       private final String displayName;

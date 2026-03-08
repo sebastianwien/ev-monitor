@@ -274,64 +274,74 @@ const closeMobileMenu = () => {
         </div>
       </div>
 
-      <!-- Mobile Menu -->
+    </nav>
+
+    <!-- Mobile Menu Overlay -->
+    <Transition name="mobile-menu">
       <div
         v-if="mobileMenuOpen"
-        class="md:hidden border-t border-indigo-500 bg-indigo-700">
-        <div class="px-4 py-3 space-y-2">
-          <router-link
-            to="/statistics"
-            @click="closeMobileMenu"
-            class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-600 transition"
-            :class="{ 'bg-indigo-800': $route.path === '/statistics' }">
-            <ChartBarIcon class="h-5 w-5" />
-            <span>Statistiken</span>
-          </router-link>
-          <router-link
-            to="/cars"
-            @click="closeMobileMenu"
-            class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-600 transition"
-            :class="{ 'bg-indigo-800': $route.path === '/cars' }">
-            <TruckIcon class="h-5 w-5" />
-            <span>Fahrzeuge</span>
-          </router-link>
-          <router-link
-            to="/imports"
-            @click="closeMobileMenu"
-            class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-600 transition"
-            :class="{ 'bg-indigo-800': $route.path === '/imports' }">
-            <ArrowDownTrayIcon class="h-5 w-5" />
-            <span>Import</span>
-          </router-link>
-          <router-link
-            to="/settings"
-            @click="closeMobileMenu"
-            class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-600 transition"
-            :class="{ 'bg-indigo-800': $route.path === '/settings' }">
-            <Cog6ToothIcon class="h-5 w-5" />
-            <span>Einstellungen</span>
-          </router-link>
-          <router-link
-            to="/coins/history"
-            @click="closeMobileMenu"
-            class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-600 transition"
-            :class="{ 'bg-indigo-800': $route.path === '/coins/history' }">
-            <BoltIcon class="h-5 w-5" />
-            <span>Watt ({{ coinStore.balance }})</span>
-          </router-link>
-          <div v-if="authStore.user" class="flex items-center gap-2 px-3 py-2 text-sm text-indigo-200">
-            <UserIcon class="h-5 w-5" />
-            <span>{{ authStore.user.username || authStore.user.sub }}</span>
+        class="fixed inset-0 z-50 md:hidden"
+        @click.self="closeMobileMenu">
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-black bg-opacity-50" @click="closeMobileMenu"></div>
+
+        <!-- Menu Panel (slides in from top) -->
+        <div class="absolute top-0 left-0 right-0 bg-indigo-700 shadow-2xl overflow-y-auto max-h-[70vh]">
+          <div class="px-4 py-4 space-y-2">
+            <router-link
+              to="/statistics"
+              @click="closeMobileMenu"
+              class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-600 transition"
+              :class="{ 'bg-indigo-800': $route.path === '/statistics' }">
+              <ChartBarIcon class="h-5 w-5" />
+              <span>Statistiken</span>
+            </router-link>
+            <router-link
+              to="/cars"
+              @click="closeMobileMenu"
+              class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-600 transition"
+              :class="{ 'bg-indigo-800': $route.path === '/cars' }">
+              <TruckIcon class="h-5 w-5" />
+              <span>Fahrzeuge</span>
+            </router-link>
+            <router-link
+              to="/imports"
+              @click="closeMobileMenu"
+              class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-600 transition"
+              :class="{ 'bg-indigo-800': $route.path === '/imports' }">
+              <ArrowDownTrayIcon class="h-5 w-5" />
+              <span>Import</span>
+            </router-link>
+            <router-link
+              to="/settings"
+              @click="closeMobileMenu"
+              class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-600 transition"
+              :class="{ 'bg-indigo-800': $route.path === '/settings' }">
+              <Cog6ToothIcon class="h-5 w-5" />
+              <span>Einstellungen</span>
+            </router-link>
+            <router-link
+              to="/coins/history"
+              @click="closeMobileMenu"
+              class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-600 transition"
+              :class="{ 'bg-indigo-800': $route.path === '/coins/history' }">
+              <BoltIcon class="h-5 w-5" />
+              <span>Watt ({{ coinStore.balance }})</span>
+            </router-link>
+            <div v-if="authStore.user" class="flex items-center gap-2 px-3 py-2 text-sm text-indigo-200">
+              <UserIcon class="h-5 w-5" />
+              <span>{{ authStore.user.username || authStore.user.sub }}</span>
+            </div>
+            <button
+              @click="handleLogout"
+              class="w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-600 transition text-red-300">
+              <ArrowRightOnRectangleIcon class="h-5 w-5" />
+              <span>Abmelden</span>
+            </button>
           </div>
-          <button
-            @click="handleLogout"
-            class="w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-600 transition text-red-300">
-            <ArrowRightOnRectangleIcon class="h-5 w-5" />
-            <span>Abmelden</span>
-          </button>
         </div>
       </div>
-    </nav>
+    </Transition>
     <!-- Demo Banner (shown for seed/demo accounts) -->
     <DemoBanner v-if="authStore.isDemoAccount" />
     <main :class="{ 'md:py-10 md:px-4': authStore.isAuthenticated() }">
@@ -380,5 +390,29 @@ const closeMobileMenu = () => {
 
 .watt-bump {
   animation: watt-bump 0.75s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+/* Mobile Menu Slide-In Animation */
+.mobile-menu-enter-active,
+.mobile-menu-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.mobile-menu-enter-active > div:last-child,
+.mobile-menu-leave-active > div:last-child {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mobile-menu-enter-from,
+.mobile-menu-leave-to {
+  opacity: 0;
+}
+
+.mobile-menu-enter-from > div:last-child {
+  transform: translateY(-100%);
+}
+
+.mobile-menu-leave-to > div:last-child {
+  transform: translateY(-100%);
 }
 </style>
