@@ -8,6 +8,7 @@ import LogFormModal from './components/LogFormModal.vue'
 import FloatingActionButton from './components/FloatingActionButton.vue'
 import OnboardingWelcome from './components/OnboardingWelcome.vue'
 import DemoBanner from './components/DemoBanner.vue'
+import RedditConsentBanner from './components/RedditConsentBanner.vue'
 import { Bars3Icon, XMarkIcon, ChartBarIcon, TruckIcon, ArrowDownTrayIcon, UserIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon, BoltIcon, ChatBubbleLeftEllipsisIcon } from '@heroicons/vue/24/outline'
 // Note: showImportOverlay kept for backward compat but SpritMonitor moved to /imports
 import { HeartIcon } from '@heroicons/vue/24/solid'
@@ -367,6 +368,9 @@ const closeMobileMenu = () => {
 
     <!-- Onboarding Welcome (First-time users) -->
     <OnboardingWelcome v-if="authStore.isAuthenticated()" />
+
+    <!-- Reddit Consent Banner (only for paid Reddit traffic) -->
+    <RedditConsentBanner />
   </div>
 </template>
 
