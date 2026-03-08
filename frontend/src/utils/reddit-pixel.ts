@@ -6,9 +6,15 @@
  */
 
 // Global rdt function declaration
+interface RedditPixelFunction {
+  (command: string, ...args: any[]): void;
+  sendEvent?: (command: string, ...args: any[]) => void;
+  callQueue: any[];
+}
+
 declare global {
   interface Window {
-    rdt?: (...args: any[]) => void;
+    rdt?: RedditPixelFunction;
   }
 }
 
@@ -77,9 +83,9 @@ export function initRedditPixel() {
   // Reddit Pixel Loader (official code from Reddit Ads Manager)
   !function(w: any, d: Document) {
     if (!w.rdt) {
-      var p = w.rdt = function() {
+      var p: any = w.rdt = function() {
         p.sendEvent ? p.sendEvent.apply(p, arguments) : p.callQueue.push(arguments)
-      }
+      } as RedditPixelFunction
       p.callQueue = []
       var t = d.createElement("script")
       t.src = "https://www.redditstatic.com/ads/pixel.js"
