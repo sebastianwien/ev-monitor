@@ -180,7 +180,7 @@ const formatDelta = (real: number | null, wltp: number): string => {
             <h3 class="text-xl font-semibold text-gray-900 mb-3">100% Open Source</h3>
             <p class="text-gray-600">
               Vollständig transparent auf GitHub. Keine Vendor Lock-ins, keine versteckten Features.
-              Community-getrieben und für immer kostenlos.
+              Community-getrieben.
             </p>
             <a
               href="https://github.com/sebastianwien/ev-monitor"
