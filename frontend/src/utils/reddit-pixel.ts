@@ -153,16 +153,13 @@ export function initRedditPixel() {
 
 /**
  * Trackt SignUp Conversion (nur mit Consent).
- * Sendet Email als Advanced Matching für bessere Attribution.
  */
-export function trackRedditSignup(email: string) {
+export function trackRedditSignup() {
   if (!hasRedditConsent() || !window.rdt) {
     return
   }
 
-  window.rdt!('track', 'SignUp', {
-    email: email  // Reddit hasht dies automatisch client-side
-  })
+  window.rdt!('track', 'SignUp')
   console.log('[Reddit Pixel] SignUp conversion tracked')
 }
 
