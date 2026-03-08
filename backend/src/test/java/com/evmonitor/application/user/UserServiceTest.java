@@ -63,6 +63,9 @@ class UserServiceTest {
                 "TESTCODE",
                 null,
                 null, // stripeCustomerId
+                null, // utmSource
+                null, // utmMedium
+                null, // utmCampaign
                 LocalDateTime.now(),
                 LocalDateTime.now()
         );

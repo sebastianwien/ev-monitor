@@ -125,6 +125,9 @@ public class PostgresUserRepositoryImpl implements UserRepository {
                 domain.getUpdatedAt());
         entity.setPremium(domain.isPremium());
         entity.setStripeCustomerId(domain.getStripeCustomerId());
+        entity.setUtmSource(domain.getUtmSource());
+        entity.setUtmMedium(domain.getUtmMedium());
+        entity.setUtmCampaign(domain.getUtmCampaign());
         return entity;
     }
 
@@ -143,6 +146,9 @@ public class PostgresUserRepositoryImpl implements UserRepository {
                 entity.getReferralCode(),
                 entity.getReferredByUserId(),
                 entity.getStripeCustomerId(),
+                entity.getUtmSource(),
+                entity.getUtmMedium(),
+                entity.getUtmCampaign(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt());
     }

@@ -93,6 +93,9 @@ class UserControllerIntegrationTest {
                 testUserEntity.getReferralCode(),
                 testUserEntity.getReferredByUserId(),
                 testUserEntity.getStripeCustomerId(),
+                testUserEntity.getUtmSource(),
+                testUserEntity.getUtmMedium(),
+                testUserEntity.getUtmCampaign(),
                 testUserEntity.getCreatedAt(),
                 testUserEntity.getUpdatedAt()
         );

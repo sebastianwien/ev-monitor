@@ -44,6 +44,9 @@ public class TestDataBuilder {
                 UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase(),
                 null, // referredByUserId
                 null, // stripeCustomerId
+                null, // utmSource
+                null, // utmMedium
+                null, // utmCampaign
                 LocalDateTime.now(),
                 LocalDateTime.now()
         );

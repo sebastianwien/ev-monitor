@@ -62,14 +62,34 @@ public class AuthService {
 
         String encodedPassword = passwordEncoder.encode(request.password());
 
-        User user;
+        // Check if user has referral code
+        java.util.UUID referrerId = null;
         if (request.referralCode() != null && !request.referralCode().isBlank()) {
             User referrer = userRepository.findByReferralCode(request.referralCode().toUpperCase())
                     .filter(r -> userRepository.countVerifiedReferrals(r.getId()) < MAX_REFERRALS)
                     .orElse(null);
-            user = referrer != null
-                    ? User.createNewLocalUserWithReferrer(request.email(), request.username(), encodedPassword, referrer.getId())
-                    : User.createNewLocalUser(request.email(), request.username(), encodedPassword);
+            if (referrer != null) {
+                referrerId = referrer.getId();
+            }
+        }
+
+        // Check if user has campaign tracking data (utm_*)
+        boolean hasCampaignData = (request.utmSource() != null && !request.utmSource().isBlank())
+                               || (request.utmMedium() != null && !request.utmMedium().isBlank())
+                               || (request.utmCampaign() != null && !request.utmCampaign().isBlank());
+
+        User user;
+        if (hasCampaignData) {
+            user = User.createNewLocalUserWithCampaign(
+                    request.email(),
+                    request.username(),
+                    encodedPassword,
+                    referrerId,
+                    request.utmSource(),
+                    request.utmMedium(),
+                    request.utmCampaign());
+        } else if (referrerId != null) {
+            user = User.createNewLocalUserWithReferrer(request.email(), request.username(), encodedPassword, referrerId);
         } else {
             user = User.createNewLocalUser(request.email(), request.username(), encodedPassword);
         }

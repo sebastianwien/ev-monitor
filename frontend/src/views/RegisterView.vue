@@ -11,11 +11,24 @@ const username = ref('');
 const password = ref('');
 const confirmPassword = ref('');
 const referralCode = ref('');
+const utmSource = ref('');
+const utmMedium = ref('');
+const utmCampaign = ref('');
 const error = ref('');
 
 onMounted(() => {
   if (route.query.ref) {
     referralCode.value = String(route.query.ref);
+  }
+  // Capture UTM parameters for campaign tracking
+  if (route.query.utm_source) {
+    utmSource.value = String(route.query.utm_source);
+  }
+  if (route.query.utm_medium) {
+    utmMedium.value = String(route.query.utm_medium);
+  }
+  if (route.query.utm_campaign) {
+    utmCampaign.value = String(route.query.utm_campaign);
   }
 });
 const pendingEmail = ref('');
@@ -48,6 +61,9 @@ const handleRegister = async () => {
       username: username.value,
       password: password.value,
       referralCode: referralCode.value || undefined,
+      utmSource: utmSource.value || undefined,
+      utmMedium: utmMedium.value || undefined,
+      utmCampaign: utmCampaign.value || undefined,
     });
     if (response.data.status === 'PENDING_VERIFICATION') {
       pendingEmail.value = response.data.email;

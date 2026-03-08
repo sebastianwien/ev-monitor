@@ -21,5 +21,14 @@ public record RegisterRequest(
         @Size(min = 8, message = "Password must be at least 8 characters")
         String password,
 
-        String referralCode) {
+        String referralCode,
+
+        @Size(max = 100, message = "UTM source must be max 100 characters")
+        String utmSource,
+
+        @Size(max = 100, message = "UTM medium must be max 100 characters")
+        String utmMedium,
+
+        @Size(max = 100, message = "UTM campaign must be max 100 characters")
+        String utmCampaign) {
 }
