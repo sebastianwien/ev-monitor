@@ -88,23 +88,23 @@ const formatDelta = (real: number | null, wltp: number): string => {
   <div class="min-h-screen bg-white">
     <!-- Navbar -->
     <nav class="border-b border-gray-200">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
         <div class="flex justify-between items-center h-16">
-          <div class="flex items-center space-x-2">
-            <BoltIcon class="h-8 w-8 text-green-600" />
-            <span class="text-xl font-bold text-gray-900">EV Monitor</span>
+          <div class="flex items-center gap-2">
+            <BoltIcon class="h-6 w-6 text-green-600" />
+            <span class="text-base font-bold text-gray-900 whitespace-nowrap">EV Monitor</span>
           </div>
-          <div class="flex items-center space-x-4">
+          <div class="flex items-center gap-2 sm:gap-3">
             <router-link
               to="/modelle"
-              class="text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium"
+              class="text-gray-600 hover:text-gray-900 px-2 sm:px-3 py-2 text-sm font-medium"
             >
               Modelle
             </router-link>
             <template v-if="authStore.isAuthenticated()">
               <router-link
                 to="/dashboard"
-                class="text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium"
+                class="text-gray-600 hover:text-gray-900 px-2 sm:px-3 py-2 text-sm font-medium"
               >
                 Dashboard
               </router-link>
@@ -112,13 +112,13 @@ const formatDelta = (real: number | null, wltp: number): string => {
             <template v-else>
               <router-link
                 to="/login"
-                class="text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium"
+                class="text-gray-600 hover:text-gray-900 px-2 sm:px-3 py-2 text-sm font-medium"
               >
                 Login
               </router-link>
               <router-link
                 to="/register"
-                class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition"
+                class="bg-green-600 text-white px-3 sm:px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition whitespace-nowrap"
               >
                 Registrieren
               </router-link>
@@ -129,9 +129,9 @@ const formatDelta = (real: number | null, wltp: number): string => {
     </nav>
 
     <!-- Hero Section -->
-    <section class="py-20 px-4 sm:px-6 lg:px-8">
-      <div class="max-w-4xl mx-auto text-center">
-        <h1 class="text-5xl sm:text-6xl font-bold text-gray-900 leading-tight mb-6">
+    <section class="pt-12 pb-6 sm:pt-16 sm:pb-8">
+      <div class="max-w-4xl mx-auto text-center px-6 sm:px-8 lg:px-12">
+        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6">
           WLTP vs. Realität:<br />
           Was dein E-Auto wirklich kann.
         </h1>
@@ -139,23 +139,23 @@ const formatDelta = (real: number | null, wltp: number): string => {
           Echte Reichweiten, echte Verbräuche, echte Ladekosten – von echten Fahrern.
           Vergleiche Herstellerangaben mit Community-Daten.
         </p>
-        <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4">
           <button
             @click="goToRegister"
-            class="bg-green-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-green-700 transition inline-flex items-center space-x-2"
+            class="bg-green-600 text-white px-6 py-3 sm:px-8 sm:py-4 rounded-lg text-base sm:text-lg font-semibold hover:bg-green-700 transition inline-flex items-center justify-center space-x-2"
           >
             <span>Kostenlos starten</span>
             <ArrowRightIcon class="h-5 w-5" />
           </button>
           <router-link
             to="/modelle"
-            class="border border-gray-300 text-gray-700 px-8 py-4 rounded-lg text-lg font-semibold hover:border-green-500 hover:text-green-700 transition inline-flex items-center space-x-2"
+            class="border border-gray-300 text-gray-700 px-6 py-3 sm:px-8 sm:py-4 rounded-lg text-base sm:text-lg font-semibold hover:border-green-500 hover:text-green-700 transition inline-flex items-center justify-center space-x-2"
           >
-            <span>Modelle entdecken und vergleichen</span>
+            <span>Modelle entdecken</span>
             <ArrowRightIcon class="h-5 w-5" />
           </router-link>
         </div>
-        <p class="mt-6 text-base font-semibold text-gray-600 tabular-nums">
+        <p class="mt-4 text-sm sm:text-base font-semibold text-gray-600 tabular-nums">
           <span>{{ displayModels }}+ Modelle</span>
           <span class="mx-2">•</span>
           <span>{{ displayUsers }} Fahrer</span>
@@ -164,8 +164,8 @@ const formatDelta = (real: number | null, wltp: number): string => {
     </section>
 
     <!-- Feature Highlights -->
-    <section class="py-16 px-4 sm:px-6 lg:px-8 bg-gray-50">
-      <div class="max-w-7xl mx-auto">
+    <section class="pt-8 pb-12 sm:pt-12 sm:pb-16 bg-gray-50">
+      <div class="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
           <!-- Feature 1: Smart Tracking -->
           <div class="bg-white border border-gray-200 rounded-xl p-8 hover:border-green-500 transition">
@@ -312,20 +312,6 @@ const formatDelta = (real: number | null, wltp: number): string => {
             </div>
           </div>
 
-          <!-- go-eCharger -->
-          <div class="bg-white border border-gray-200 rounded-xl p-5 flex items-start gap-4">
-            <div class="bg-green-600 rounded-lg p-2 shrink-0">
-              <BoltIcon class="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <div class="flex items-center gap-2 mb-1">
-                <span class="font-semibold text-gray-900 text-sm">go-eCharger Cloud</span>
-                <span class="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">Verfügbar</span>
-              </div>
-              <p class="text-sm text-gray-500">Wallbox-Sessions automatisch nach jeder Ladung importieren.</p>
-            </div>
-          </div>
-
           <!-- Sprit-Monitor -->
           <div class="bg-white border border-gray-200 rounded-xl p-5 flex items-start gap-4">
             <div class="bg-indigo-600 rounded-lg p-2 shrink-0">
@@ -340,6 +326,21 @@ const formatDelta = (real: number | null, wltp: number): string => {
             </div>
           </div>
 
+          <!-- go-eCharger -->
+          <div class="bg-white border border-gray-200 rounded-xl p-5 flex items-start gap-4">
+            <div class="bg-green-600 rounded-lg p-2 shrink-0">
+              <BoltIcon class="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <span class="font-semibold text-gray-900 text-sm">go-eCharger Cloud</span>
+                <span class="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">Verfügbar</span>
+                <span class="text-xs bg-blue-100 text-blue-800 font-medium px-2 py-0.5 rounded-full">BETA</span>
+              </div>
+              <p class="text-sm text-gray-500">Wallbox-Sessions automatisch nach jeder Ladung importieren.</p>
+            </div>
+          </div>
+
           <!-- OCPP -->
           <div class="bg-white border border-gray-200 rounded-xl p-5 flex items-start gap-4">
             <div class="bg-gray-700 rounded-lg p-2 shrink-0">
@@ -349,6 +350,7 @@ const formatDelta = (real: number | null, wltp: number): string => {
               <div class="flex items-center gap-2 mb-1">
                 <span class="font-semibold text-gray-900 text-sm">OCPP Wallbox</span>
                 <span class="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">Verfügbar</span>
+                <span class="text-xs bg-blue-100 text-blue-800 font-medium px-2 py-0.5 rounded-full">BETA</span>
               </div>
               <p class="text-sm text-gray-500">Universelles Protokoll für alle OCPP-fähigen Heimwallboxen.</p>
             </div>
