@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import api from '../api/axios';
 import { analytics } from '../services/analytics';
+import { getStoredUtmParams, clearStoredUtmParams, trackRedditSignup } from '../utils/reddit-pixel';
 
 const route = useRoute();
 
@@ -20,15 +21,22 @@ onMounted(() => {
   if (route.query.ref) {
     referralCode.value = String(route.query.ref);
   }
-  // Capture UTM parameters for campaign tracking
-  if (route.query.utm_source) {
-    utmSource.value = String(route.query.utm_source);
+
+  // Capture UTM parameters from URL (direct link) or localStorage (landing page navigation)
+  const urlParams = {
+    source: route.query.utm_source ? String(route.query.utm_source) : '',
+    medium: route.query.utm_medium ? String(route.query.utm_medium) : '',
+    campaign: route.query.utm_campaign ? String(route.query.utm_campaign) : ''
   }
-  if (route.query.utm_medium) {
-    utmMedium.value = String(route.query.utm_medium);
-  }
-  if (route.query.utm_campaign) {
-    utmCampaign.value = String(route.query.utm_campaign);
+
+  // Prefer URL params over stored params (URL is more recent)
+  const storedParams = getStoredUtmParams()
+  const finalParams = (urlParams.source || urlParams.medium || urlParams.campaign) ? urlParams : storedParams
+
+  if (finalParams) {
+    utmSource.value = finalParams.source
+    utmMedium.value = finalParams.medium
+    utmCampaign.value = finalParams.campaign
   }
 });
 const pendingEmail = ref('');
@@ -70,6 +78,12 @@ const handleRegister = async () => {
 
       // Track successful registration
       analytics.trackRegistrationCompleted();
+
+      // Track Reddit conversion if user came from Reddit ad
+      trackRedditSignup(email.value);
+
+      // Clear stored UTM params after successful registration
+      clearStoredUtmParams();
     }
   } catch (err: any) {
     error.value = err.response?.data?.message || 'Registrierung fehlgeschlagen';

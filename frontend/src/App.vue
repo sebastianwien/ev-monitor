@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from './stores/auth'
 import { useCoinStore } from './stores/coins'
@@ -12,6 +12,7 @@ import RedditConsentBanner from './components/RedditConsentBanner.vue'
 import { Bars3Icon, XMarkIcon, ChartBarIcon, TruckIcon, ArrowDownTrayIcon, UserIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon, BoltIcon, ChatBubbleLeftEllipsisIcon } from '@heroicons/vue/24/outline'
 // Note: showImportOverlay kept for backward compat but SpritMonitor moved to /imports
 import { HeartIcon } from '@heroicons/vue/24/solid'
+import { captureUtmParams } from './utils/reddit-pixel'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -40,6 +41,11 @@ watch(() => coinStore.balance, (newVal, oldVal) => {
     balanceBumping.value = true
     setTimeout(() => { balanceBumping.value = false }, 750)
   }
+})
+
+// Capture UTM parameters on first page load for campaign tracking
+onMounted(() => {
+  captureUtmParams()
 })
 
 const handleLogout = () => {

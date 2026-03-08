@@ -18,6 +18,47 @@ declare global {
 
 const REDDIT_PIXEL_ID = import.meta.env.VITE_REDDIT_PIXEL_ID || ''
 const CONSENT_KEY = 'reddit-pixel-consent'
+const UTM_PARAMS_KEY = 'utm-params'
+
+/**
+ * Speichert UTM-Parameter in localStorage wenn vorhanden.
+ * Muss beim ersten PageLoad aufgerufen werden (z.B. in App.vue).
+ */
+export function captureUtmParams() {
+  const params = new URLSearchParams(window.location.search)
+  const utmSource = params.get('utm_source')
+  const utmMedium = params.get('utm_medium')
+  const utmCampaign = params.get('utm_campaign')
+
+  if (utmSource || utmMedium || utmCampaign) {
+    const utmData = {
+      source: utmSource || '',
+      medium: utmMedium || '',
+      campaign: utmCampaign || ''
+    }
+    localStorage.setItem(UTM_PARAMS_KEY, JSON.stringify(utmData))
+  }
+}
+
+/**
+ * Holt gespeicherte UTM-Parameter aus localStorage.
+ */
+export function getStoredUtmParams(): { source: string; medium: string; campaign: string } | null {
+  const stored = localStorage.getItem(UTM_PARAMS_KEY)
+  if (!stored) return null
+  try {
+    return JSON.parse(stored)
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Löscht gespeicherte UTM-Parameter (nach erfolgreicher Registrierung).
+ */
+export function clearStoredUtmParams() {
+  localStorage.removeItem(UTM_PARAMS_KEY)
+}
 
 /**
  * Prüft ob Cookie-Banner angezeigt werden soll.
@@ -29,6 +70,11 @@ export function shouldShowCookieBanner(): boolean {
   // Nur bei Reddit Paid Ads (nicht bei organischen Reddit-Links)
   const isRedditAd = params.get('utm_source') === 'reddit'
                   && params.get('utm_medium') === 'cpc'
+
+  // UTM-Parameter speichern für spätere Registrierung
+  if (isRedditAd) {
+    captureUtmParams()
+  }
 
   return isRedditAd && !hasConsentDecision()
 }
@@ -107,13 +153,16 @@ export function initRedditPixel() {
 
 /**
  * Trackt SignUp Conversion (nur mit Consent).
+ * Sendet Email als Advanced Matching für bessere Attribution.
  */
-export function trackRedditSignup() {
+export function trackRedditSignup(email: string) {
   if (!hasRedditConsent() || !window.rdt) {
     return
   }
 
-  window.rdt!('track', 'SignUp')
+  window.rdt!('track', 'SignUp', {
+    email: email  // Reddit hasht dies automatisch client-side
+  })
   console.log('[Reddit Pixel] SignUp conversion tracked')
 }
 
