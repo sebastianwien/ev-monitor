@@ -257,7 +257,9 @@ public class EvLogService {
                 .orElse(BigDecimal.ZERO);
 
         Integer avgChargeDuration = (int) logs.stream()
-                .mapToInt(EvLog::getChargeDurationMinutes)
+                .map(EvLog::getChargeDurationMinutes)
+                .filter(Objects::nonNull)
+                .mapToInt(Integer::intValue)
                 .average()
                 .orElse(0.0);
 

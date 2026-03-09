@@ -9,7 +9,7 @@ import FloatingActionButton from './components/FloatingActionButton.vue'
 import OnboardingWelcome from './components/OnboardingWelcome.vue'
 import DemoBanner from './components/DemoBanner.vue'
 import RedditConsentBanner from './components/RedditConsentBanner.vue'
-import { Bars3Icon, XMarkIcon, ChartBarIcon, TruckIcon, ArrowDownTrayIcon, UserIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon, BoltIcon, ChatBubbleLeftEllipsisIcon } from '@heroicons/vue/24/outline'
+import { Bars3Icon, XMarkIcon, ChartBarIcon, TruckIcon, ArrowDownTrayIcon, UserIcon, ArrowRightOnRectangleIcon, BoltIcon, ChatBubbleLeftEllipsisIcon, ArrowsRightLeftIcon, Battery0Icon } from '@heroicons/vue/24/outline'
 // Note: showImportOverlay kept for backward compat but SpritMonitor moved to /imports
 import { HeartIcon } from '@heroicons/vue/24/solid'
 import { captureUtmParams } from './utils/reddit-pixel'
@@ -78,7 +78,10 @@ const closeMobileMenu = () => {
         <div class="flex justify-between items-center">
           <!-- Left: Logo + Nav Buttons (Desktop) -->
           <div class="flex items-center space-x-4">
-            <div class="text-xl font-bold tracking-wide">EV Monitor</div>
+            <div class="flex items-center gap-1.5 text-xl font-bold tracking-wide">
+              <Battery0Icon class="h-6 w-6" />
+              EV Monitor
+            </div>
 
             <!-- Compact Icon Nav (768px - 1024px) -->
             <div class="hidden md:flex lg:hidden items-center space-x-2">
@@ -280,7 +283,7 @@ const closeMobileMenu = () => {
     <Transition name="mobile-menu">
       <div
         v-if="mobileMenuOpen"
-        class="fixed inset-0 z-50 md:hidden"
+        class="fixed inset-0 z-30 md:hidden"
         @click.self="closeMobileMenu">
         <!-- Backdrop -->
         <div class="absolute inset-0 bg-black bg-opacity-50" @click="closeMobileMenu"></div>
@@ -288,6 +291,21 @@ const closeMobileMenu = () => {
         <!-- Menu Panel (slides in from top) -->
         <div class="absolute top-0 left-0 right-0 bg-indigo-700 shadow-2xl overflow-y-auto max-h-[70vh]">
           <div class="px-4 py-4 space-y-2">
+            <!-- Header -->
+            <div class="flex items-center justify-between px-3 py-2">
+              <div class="flex items-center gap-2">
+                <BoltIcon class="h-5 w-5 text-yellow-400" />
+                <span class="text-base font-bold tracking-wide text-white">EV-Monitor</span>
+              </div>
+              <button
+                @click="closeMobileMenu"
+                class="p-1.5 rounded-full bg-indigo-500 hover:bg-indigo-400 transition"
+                aria-label="Menü schließen">
+                <XMarkIcon class="h-5 w-5 text-white" />
+              </button>
+            </div>
+            <div class="border-t border-indigo-500 mb-2"></div>
+
             <router-link
               to="/statistics"
               @click="closeMobileMenu"
@@ -313,25 +331,22 @@ const closeMobileMenu = () => {
               <span>Import</span>
             </router-link>
             <router-link
+              to="/modelle"
+              @click="closeMobileMenu"
+              class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-600 transition"
+              :class="{ 'bg-indigo-800': $route.path.startsWith('/modelle') }">
+              <ArrowsRightLeftIcon class="h-5 w-5" />
+              <span>Modelle vergleichen</span>
+            </router-link>
+            <router-link
+              v-if="authStore.user"
               to="/settings"
               @click="closeMobileMenu"
               class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-600 transition"
               :class="{ 'bg-indigo-800': $route.path === '/settings' }">
-              <Cog6ToothIcon class="h-5 w-5" />
-              <span>Einstellungen</span>
-            </router-link>
-            <router-link
-              to="/coins/history"
-              @click="closeMobileMenu"
-              class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-600 transition"
-              :class="{ 'bg-indigo-800': $route.path === '/coins/history' }">
-              <BoltIcon class="h-5 w-5" />
-              <span>Watt ({{ coinStore.balance }})</span>
-            </router-link>
-            <div v-if="authStore.user" class="flex items-center gap-2 px-3 py-2 text-sm text-indigo-200">
               <UserIcon class="h-5 w-5" />
               <span>{{ authStore.user.username || authStore.user.sub }}</span>
-            </div>
+            </router-link>
             <button
               @click="handleLogout"
               class="w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-600 transition text-red-300">
