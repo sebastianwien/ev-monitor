@@ -7,5 +7,7 @@ public record SpritMonitorVehicleDTO(
     String make,
     String model,
     @JsonProperty("maintanktype")
-    Integer mainTankType
+    Integer mainTankType,
+    @JsonProperty("maintank")
+    Integer mainTank
 ) {}

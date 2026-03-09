@@ -44,7 +44,8 @@ public class UserService {
                 user.getCreatedAt(),
                 totalLogs,
                 totalKwh,
-                totalCostEur
+                totalCostEur,
+                user.getReferralCode()
         );
     }
 

@@ -65,6 +65,7 @@ public class SpritMonitorImportService {
         UUID userId,
         String token,
         Integer spritMonitorVehicleId,
+        Integer spritMonitorMainTankId,
         UUID evMonitorCarId
     ) {
         Car car = carRepository.findById(evMonitorCarId)
@@ -76,10 +77,19 @@ public class SpritMonitorImportService {
         ImportResult result = new ImportResult();
 
         try {
-            List<SpritMonitorFuelingDTO> fuelings = client.getFuelings(token, spritMonitorVehicleId);
+            int tankId = spritMonitorMainTankId != null ? spritMonitorMainTankId : 1;
+            List<SpritMonitorFuelingDTO> fuelings = client.getFuelings(token, spritMonitorVehicleId, tankId);
 
             for (SpritMonitorFuelingDTO fueling : fuelings) {
                 try {
+                    // Skip entries not in kWh — could be liters, kg, etc. from non-EV tanks
+                    if (!fueling.isKwh()) {
+                        log.debug("Skipping fueling on {} — not in kWh (quantityunitid={})",
+                                fueling.date(), fueling.quantityUnitId());
+                        result.incrementSkipped();
+                        continue;
+                    }
+
                     LocalDateTime loggedAt = LocalDate.parse(fueling.date(), DD_MM_YYYY).atStartOfDay();
 
                     // Skip if already imported (same car + date + source)
@@ -130,6 +140,7 @@ public class SpritMonitorImportService {
         BigDecimal kwhCharged = fueling.quantity() != null ? fueling.quantity() : BigDecimal.ZERO;
         BigDecimal costEur = fueling.cost() != null ? fueling.cost() : BigDecimal.ZERO;
         Integer durationMinutes = fueling.chargingDuration() != null ? fueling.chargingDuration() : 0;
+        Integer odometerKm = fueling.odometer() != null ? fueling.odometer().intValue() : null;
 
         return EvLog.createNewWithSource(
             carId,
@@ -137,7 +148,7 @@ public class SpritMonitorImportService {
             costEur,
             durationMinutes,
             geohash,
-            null,
+            odometerKm,
             null,
             null, // socAfterChargePercent
             loggedAt,

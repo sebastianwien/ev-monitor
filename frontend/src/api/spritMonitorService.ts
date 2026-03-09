@@ -5,6 +5,7 @@ export interface SpritMonitorVehicle {
   make: string;
   model: string;
   mainTankType: number;
+  mainTank: number;
 }
 
 export interface ImportResult {
@@ -35,11 +36,13 @@ export const spritMonitorService = {
   async importFuelings(
     token: string,
     vehicleId: number,
+    mainTankId: number,
     carId: string
   ): Promise<ImportResult> {
     const response = await axiosInstance.post('/import/sprit-monitor/fuelings', {
       token,
       vehicleId,
+      mainTankId,
       carId,
     });
     return response.data;

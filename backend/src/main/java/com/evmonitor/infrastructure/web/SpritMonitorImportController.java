@@ -92,6 +92,7 @@ public class SpritMonitorImportController {
                 principal.getUser().getId(),
                 request.token,
                 request.vehicleId,
+                request.mainTankId,
                 request.carId
             );
             return ResponseEntity.ok(result);
@@ -104,6 +105,7 @@ public class SpritMonitorImportController {
     private record ImportRequest(
         String token,
         Integer vehicleId,
+        Integer mainTankId,
         UUID carId
     ) {}
 }

@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import { UserIcon, KeyIcon, TrashIcon, ArrowDownTrayIcon, CurrencyDollarIcon, AcademicCapIcon } from '@heroicons/vue/24/outline'
+import { UserIcon, KeyIcon, TrashIcon, ArrowDownTrayIcon, CurrencyDollarIcon, AcademicCapIcon, ShareIcon, ClipboardDocumentIcon, CheckIcon } from '@heroicons/vue/24/outline'
 import api from '../api/axios'
 
 const router = useRouter()
@@ -18,6 +18,22 @@ const totalCostEur = ref(0)
 
 // Coin Balance
 const coinBalance = ref(0)
+
+// Referral
+const referralCode = ref('')
+const referralCopied = ref(false)
+
+const referralLink = () => `${window.location.origin}/register?ref=${referralCode.value}`
+
+const copyReferralLink = async () => {
+  try {
+    await navigator.clipboard.writeText(referralLink())
+    referralCopied.value = true
+    setTimeout(() => { referralCopied.value = false }, 2000)
+  } catch {
+    // fallback: select the input text
+  }
+}
 
 // Forms
 const showEmailForm = ref(false)
@@ -59,6 +75,7 @@ const fetchUserData = async () => {
     totalLogs.value = stats.totalLogs
     totalKwh.value = stats.totalKwh
     totalCostEur.value = stats.totalCostEur
+    referralCode.value = stats.referralCode || ''
 
     coinBalance.value = coinsRes.data.totalCoins || 0
   } catch (error: any) {
@@ -240,6 +257,34 @@ onMounted(() => {
         <router-link to="/coins/history" class="text-sm text-amber-700 hover:text-amber-800 underline mt-2 inline-block">
           Watt-Verlauf ansehen →
         </router-link>
+      </div>
+
+      <!-- Referral Section -->
+      <div v-if="referralCode" class="mb-8 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg p-6">
+        <div class="flex items-center gap-3 mb-2">
+          <ShareIcon class="h-6 w-6 text-indigo-600" />
+          <h2 class="text-xl font-bold text-gray-800">Freunde einladen</h2>
+        </div>
+        <p class="text-sm text-gray-600 mb-4">
+          Teile deinen persönlichen Einladungslink. Du erhältst <strong>100 Watt</strong> für jeden Freund,
+          der sich registriert und seine E-Mail-Adresse bestätigt. Dein Freund bekommt <strong>25 Watt</strong> als Willkommensbonus.
+        </p>
+        <div class="flex gap-2">
+          <input
+            :value="referralLink()"
+            readonly
+            class="flex-1 min-w-0 px-3 py-2 text-sm bg-white border border-indigo-200 rounded-lg text-gray-700 focus:outline-none cursor-default select-all" />
+          <button
+            @click="copyReferralLink"
+            class="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition"
+            :class="referralCopied
+              ? 'bg-green-600 text-white'
+              : 'bg-indigo-600 text-white hover:bg-indigo-700'">
+            <CheckIcon v-if="referralCopied" class="h-4 w-4" />
+            <ClipboardDocumentIcon v-else class="h-4 w-4" />
+            {{ referralCopied ? 'Kopiert!' : 'Kopieren' }}
+          </button>
+        </div>
       </div>
 
       <!-- Account Section -->

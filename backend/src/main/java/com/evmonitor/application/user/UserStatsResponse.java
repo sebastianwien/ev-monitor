@@ -6,6 +6,7 @@ public record UserStatsResponse(
         LocalDateTime registeredSince,
         int totalLogs,
         double totalKwh,
-        double totalCostEur
+        double totalCostEur,
+        String referralCode
 ) {
 }

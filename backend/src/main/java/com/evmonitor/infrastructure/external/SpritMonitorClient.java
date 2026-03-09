@@ -64,22 +64,24 @@ public class SpritMonitorClient {
     }
 
     /**
-     * Fetches all fuelings for a specific vehicle with pagination
+     * Fetches all fuelings for a specific vehicle with pagination.
+     * Uses the vehicle's main electric tank ID (not hardcoded tank 1).
      *
      * @param token Bearer token for Sprit-Monitor API
      * @param vehicleId Sprit-Monitor vehicle ID
+     * @param tankId Sprit-Monitor tank ID (the electric main tank)
      * @return List of all fuelings for this vehicle
      * @throws RestClientException if API call fails
      */
-    public List<SpritMonitorFuelingDTO> getFuelings(String token, Integer vehicleId) {
+    public List<SpritMonitorFuelingDTO> getFuelings(String token, Integer vehicleId, Integer tankId) {
         List<SpritMonitorFuelingDTO> allFuelings = new ArrayList<>();
         int offset = 0;
         int limit = 100;
         boolean hasMore = true;
 
         while (hasMore) {
-            String url = String.format("%s/vehicle/%d/tank/1/fuelings.json?offset=%d&limit=%d",
-                BASE_URL, vehicleId, offset, limit);
+            String url = String.format("%s/vehicle/%d/tank/%d/fuelings.json?offset=%d&limit=%d",
+                BASE_URL, vehicleId, tankId, offset, limit);
 
             HttpHeaders headers = createHeaders(token);
             HttpEntity<String> entity = new HttpEntity<>(headers);

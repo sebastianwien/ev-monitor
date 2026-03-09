@@ -81,6 +81,7 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
             FROM log_pairs
             WHERE prev_odometer IS NOT NULL
               AND (odometer_km - prev_odometer) BETWEEN 5 AND 2000
+              AND (kwh_charged / (odometer_km - prev_odometer) * 100) BETWEEN 10 AND 40
             """, nativeQuery = true)
     BigDecimal findAvgConsumptionByModel(
             @Param("model") String model,
@@ -118,6 +119,7 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
                 FROM log_pairs
                 WHERE prev_odometer IS NOT NULL
                   AND (odometer_km - prev_odometer) BETWEEN 5 AND 2000
+                  AND (kwh_charged / (odometer_km - prev_odometer) * 100) BETWEEN 10 AND 40
             )
             SELECT
                 COALESCE(SUM(CASE WHEN season = 'SUMMER' THEN km_driven ELSE 0 END), 0) AS summer_km,
