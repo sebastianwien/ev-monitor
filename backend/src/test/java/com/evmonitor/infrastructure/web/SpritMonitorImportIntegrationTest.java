@@ -294,7 +294,7 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
         );
 
         // Then: Error response
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, response.getStatusCode());
         assertNotNull(response.getBody());
         assertTrue(response.getBody().containsKey("error"));
     }
