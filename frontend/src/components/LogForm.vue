@@ -7,6 +7,7 @@ import { CameraIcon, PencilSquareIcon, TrashIcon, BoltIcon, TruckIcon, ClockIcon
 import { useCoinStore } from '../stores/coins'
 import { analytics } from '../services/analytics'
 import { carService } from '../api/carService'
+import { tempBadgeClass } from '../utils/temperatureColor'
 
 const coinStore = useCoinStore()
 
@@ -536,7 +537,8 @@ const handleOcrData = (ocrResult: any) => {
               <span class="text-xs text-gray-400 whitespace-nowrap">{{ new Date(log.loggedAt).toLocaleDateString('de-DE') }}</span>
             </div>
             <div class="flex items-center gap-1.5 flex-shrink-0">
-              <span v-if="log.temperatureCelsius != null" class="inline-flex items-center gap-0.5 px-2 py-0.5 bg-white border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
+              <span v-if="log.temperatureCelsius != null"
+                :class="['inline-flex items-center gap-0.5 px-2 py-0.5 border rounded-full text-xs whitespace-nowrap', tempBadgeClass(log.temperatureCelsius)]">
                 <SunIcon class="w-3 h-3" />{{ log.temperatureCelsius.toFixed(1) }}°C
               </span>
               <span class="hidden min-[475px]:inline-block px-2 py-0.5 bg-indigo-50 border border-indigo-200 text-xs rounded-full text-indigo-700 font-medium whitespace-nowrap">
