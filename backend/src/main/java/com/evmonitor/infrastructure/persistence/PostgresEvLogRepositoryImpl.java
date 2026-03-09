@@ -87,6 +87,21 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
         }).orElse(false);
     }
 
+    @Override
+    public List<EvLog> findAllWithGeohashAndNoTemperature() {
+        return jpaRepository.findAllWithGeohashAndNoTemperature().stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public void updateTemperature(UUID id, Double temperatureCelsius) {
+        jpaRepository.findById(id).ifPresent(entity -> {
+            entity.setTemperatureCelsius(temperatureCelsius);
+            jpaRepository.save(entity);
+        });
+    }
+
     private EvLogEntity toEntity(EvLog domain) {
         EvLogEntity entity = new EvLogEntity(
                 domain.getId(),
@@ -105,6 +120,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 domain.getUpdatedAt());
         entity.setOdometerSuggestionMinKm(domain.getOdometerSuggestionMinKm());
         entity.setOdometerSuggestionMaxKm(domain.getOdometerSuggestionMaxKm());
+        entity.setTemperatureCelsius(domain.getTemperatureCelsius());
         return entity;
     }
 
@@ -124,6 +140,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 entity.isIncludeInStatistics(),
                 entity.getOdometerSuggestionMinKm(),
                 entity.getOdometerSuggestionMaxKm(),
+                entity.getTemperatureCelsius(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt());
     }

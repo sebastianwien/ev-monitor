@@ -60,6 +60,10 @@ management:
     web:
       exposure:
         include: ""  # Keine Endpoints exposed by default
+  metrics:
+    web:
+      client:
+        max-uri-tags: 500  # Höheres Limit für HTTP-Client-Metrics (Open-Meteo Backfill)
 
 app:
   base-url: ${APP_BASE_URL:http://localhost:5173}

@@ -52,6 +52,9 @@ public class EvLogEntity {
     @Column(name = "odometer_suggestion_max_km")
     private Integer odometerSuggestionMaxKm;
 
+    @Column(name = "temperature_celsius")
+    private Double temperatureCelsius;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -207,5 +210,13 @@ public class EvLogEntity {
 
     public void setOdometerSuggestionMaxKm(Integer odometerSuggestionMaxKm) {
         this.odometerSuggestionMaxKm = odometerSuggestionMaxKm;
+    }
+
+    public Double getTemperatureCelsius() {
+        return temperatureCelsius;
+    }
+
+    public void setTemperatureCelsius(Double temperatureCelsius) {
+        this.temperatureCelsius = temperatureCelsius;
     }
 }

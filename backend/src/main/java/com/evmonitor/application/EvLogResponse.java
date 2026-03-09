@@ -19,7 +19,8 @@ public record EvLogResponse(
         LocalDateTime createdAt,
         LocalDateTime updatedAt,
         Integer odometerSuggestionMinKm,
-        Integer odometerSuggestionMaxKm) {
+        Integer odometerSuggestionMaxKm,
+        Double temperatureCelsius) {
     public static EvLogResponse fromDomain(EvLog evLog) {
         return new EvLogResponse(
                 evLog.getId(),
@@ -35,6 +36,7 @@ public record EvLogResponse(
                 evLog.getCreatedAt(),
                 evLog.getUpdatedAt(),
                 evLog.getOdometerSuggestionMinKm(),
-                evLog.getOdometerSuggestionMaxKm());
+                evLog.getOdometerSuggestionMaxKm(),
+                evLog.getTemperatureCelsius());
     }
 }

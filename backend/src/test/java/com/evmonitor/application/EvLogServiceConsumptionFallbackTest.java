@@ -1,6 +1,7 @@
 package com.evmonitor.application;
 
 import com.evmonitor.domain.*;
+import com.evmonitor.infrastructure.weather.TemperatureEnrichmentService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,13 +31,15 @@ class EvLogServiceConsumptionFallbackTest {
     private UserRepository userRepository;
     @Mock
     private CoinLogService coinLogService;
+    @Mock
+    private TemperatureEnrichmentService temperatureEnrichmentService;
 
     private EvLogService evLogService;
     private UUID carId;
 
     @BeforeEach
     void setUp() {
-        evLogService = new EvLogService(evLogRepository, carRepository, userRepository, coinLogService);
+        evLogService = new EvLogService(evLogRepository, carRepository, userRepository, coinLogService, temperatureEnrichmentService);
         carId = UUID.randomUUID();
     }
 

@@ -20,6 +20,7 @@ public class EvLog {
     private final boolean includeInStatistics; // Whether to include in public stats/aggregations
     private final Integer odometerSuggestionMinKm; // Optional: km estimate min from wallbox service
     private final Integer odometerSuggestionMaxKm; // Optional: km estimate max from wallbox service
+    private final Double temperatureCelsius; // Optional: ambient temperature at charging time/location (Open-Meteo)
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
 
@@ -27,7 +28,7 @@ public class EvLog {
             Integer chargeDurationMinutes, String geohash, Integer odometerKm,
             BigDecimal maxChargingPowerKw, Integer socAfterChargePercent, LocalDateTime loggedAt, DataSource dataSource,
             boolean includeInStatistics, Integer odometerSuggestionMinKm, Integer odometerSuggestionMaxKm,
-            LocalDateTime createdAt, LocalDateTime updatedAt) {
+            Double temperatureCelsius, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.carId = carId;
         this.kwhCharged = kwhCharged;
@@ -42,6 +43,7 @@ public class EvLog {
         this.includeInStatistics = includeInStatistics;
         this.odometerSuggestionMinKm = odometerSuggestionMinKm;
         this.odometerSuggestionMaxKm = odometerSuggestionMaxKm;
+        this.temperatureCelsius = temperatureCelsius;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -52,7 +54,7 @@ public class EvLog {
         LocalDateTime now = LocalDateTime.now();
         return new EvLog(UUID.randomUUID(), carId, kwhCharged, costEur,
                 chargeDurationMinutes, geohash, odometerKm, maxChargingPowerKw, socAfterChargePercent, loggedAt,
-                DataSource.USER_LOGGED, true, null, null, now, now);
+                DataSource.USER_LOGGED, true, null, null, null, now, now);
     }
 
     public static EvLog createNewWithSource(UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
@@ -62,7 +64,7 @@ public class EvLog {
         boolean includeInStats = dataSource.includeInStatistics();
         return new EvLog(UUID.randomUUID(), carId, kwhCharged, costEur,
                 chargeDurationMinutes, geohash, odometerKm, maxChargingPowerKw, socAfterChargePercent, loggedAt,
-                dataSource, includeInStats, null, null, now, now);
+                dataSource, includeInStats, null, null, null, now, now);
     }
 
     public static EvLog createFromOcpp(UUID carId, BigDecimal kwhCharged,
@@ -80,7 +82,7 @@ public class EvLog {
         return new EvLog(UUID.randomUUID(), carId, kwhCharged, costEur,
                 chargeDurationMinutes, geohash, null, null, null, loggedAt,
                 dataSource, dataSource.includeInStatistics(),
-                odometerSuggestionMinKm, odometerSuggestionMaxKm, now, now);
+                odometerSuggestionMinKm, odometerSuggestionMaxKm, null, now, now);
     }
 
     public UUID getId() {
@@ -145,5 +147,9 @@ public class EvLog {
 
     public Integer getOdometerSuggestionMaxKm() {
         return odometerSuggestionMaxKm;
+    }
+
+    public Double getTemperatureCelsius() {
+        return temperatureCelsius;
     }
 }

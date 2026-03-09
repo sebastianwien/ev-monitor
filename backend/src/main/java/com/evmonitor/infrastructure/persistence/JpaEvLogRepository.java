@@ -29,6 +29,9 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
 
     Optional<EvLogEntity> findByCarIdAndLoggedAt(UUID carId, LocalDateTime loggedAt);
 
+    @Query("SELECT e FROM EvLogEntity e WHERE e.geohash IS NOT NULL AND e.temperatureCelsius IS NULL")
+    List<EvLogEntity> findAllWithGeohashAndNoTemperature();
+
     /**
      * Aggregated basic stats for a car model.
      * Returns: [logCount, uniqueContributors, avgCostPerKwh, avgKwhPerSession]

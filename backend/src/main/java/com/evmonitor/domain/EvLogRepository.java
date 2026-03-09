@@ -27,4 +27,8 @@ public interface EvLogRepository {
     void deleteById(UUID id);
 
     boolean updateGeohash(UUID carId, LocalDateTime loggedAt, String geohash);
+
+    List<EvLog> findAllWithGeohashAndNoTemperature();
+
+    void updateTemperature(UUID id, Double temperatureCelsius);
 }

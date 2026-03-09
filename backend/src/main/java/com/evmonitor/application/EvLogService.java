@@ -2,6 +2,7 @@ package com.evmonitor.application;
 
 import ch.hsr.geohash.GeoHash;
 import com.evmonitor.domain.*;
+import com.evmonitor.infrastructure.weather.TemperatureEnrichmentService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,12 +19,15 @@ public class EvLogService {
     private final CarRepository carRepository;
     private final UserRepository userRepository;
     private final CoinLogService coinLogService;
+    private final TemperatureEnrichmentService temperatureEnrichmentService;
 
-    public EvLogService(EvLogRepository evLogRepository, CarRepository carRepository, UserRepository userRepository, CoinLogService coinLogService) {
+    public EvLogService(EvLogRepository evLogRepository, CarRepository carRepository, UserRepository userRepository,
+            CoinLogService coinLogService, TemperatureEnrichmentService temperatureEnrichmentService) {
         this.evLogRepository = evLogRepository;
         this.carRepository = carRepository;
         this.userRepository = userRepository;
         this.coinLogService = coinLogService;
+        this.temperatureEnrichmentService = temperatureEnrichmentService;
     }
 
     @Transactional
@@ -54,6 +58,9 @@ public class EvLogService {
                 request.loggedAt());
 
         EvLog savedLog = evLogRepository.save(newLog);
+
+        // Async: enrich with temperature from Open-Meteo (fire-and-forget, nullable result)
+        temperatureEnrichmentService.enrichLog(savedLog.getId(), savedLog.getGeohash(), savedLog.getLoggedAt());
 
         // Award coins: 25 for first log ever, 5 for each subsequent one; +2 if OCR was used.
         // Check coin history instead of current log count to prevent delete-and-recreate farming.

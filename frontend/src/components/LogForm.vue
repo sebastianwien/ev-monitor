@@ -64,12 +64,25 @@ const error = ref<string | null>(null)
 const getLastOdometerReading = (): number | null => {
   if (logs.value.length === 0) return null
 
-  // Filter logs with odometer data and sort by loggedAt descending
   const logsWithOdometer = logs.value
     .filter(log => log.odometerKm !== null && log.odometerKm !== undefined)
     .sort((a, b) => new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime())
 
   return logsWithOdometer.length > 0 ? logsWithOdometer[0].odometerKm : null
+}
+
+const getLastOdometerPlaceholder = (): string => {
+  if (logs.value.length === 0) return 'Tachostand (km)'
+
+  const logsWithOdometer = logs.value
+    .filter(log => log.odometerKm !== null && log.odometerKm !== undefined)
+    .sort((a, b) => new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime())
+
+  if (logsWithOdometer.length === 0) return 'Tachostand (km)'
+
+  const last = logsWithOdometer[0]
+  const date = new Date(last.loggedAt).toLocaleDateString('de-DE')
+  return `zuletzt: ${last.odometerKm.toLocaleString('de-DE')} km vom ${date}`
 }
 
 // Request current location via Geolocation API
@@ -379,7 +392,7 @@ const handleOcrData = (ocrResult: any) => {
 
       <div>
         <label class="block text-sm font-medium text-gray-700">Tachostand (km)</label>
-        <input v-model="odometerKm" type="number" step="1" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
+        <input v-model="odometerKm" type="number" step="1" required :placeholder="getLastOdometerPlaceholder()" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
         <p class="text-xs text-gray-500 mt-1">Hilft dir Verbrauch pro km zu tracken</p>
       </div>
 
