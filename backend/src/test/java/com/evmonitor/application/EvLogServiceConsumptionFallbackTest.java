@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
 
 /**
  * Unit Tests for EvLogService.calculateConsumptionFallback()
@@ -39,7 +40,7 @@ class EvLogServiceConsumptionFallbackTest {
 
     @BeforeEach
     void setUp() {
-        evLogService = new EvLogService(evLogRepository, carRepository, userRepository, coinLogService, temperatureEnrichmentService);
+        evLogService = new EvLogService(evLogRepository, carRepository, userRepository, coinLogService, temperatureEnrichmentService, mock(VehicleSpecificationRepository.class), new PlausibilityProperties());
         carId = UUID.randomUUID();
     }
 

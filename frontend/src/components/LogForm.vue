@@ -8,6 +8,7 @@ import { useCoinStore } from '../stores/coins'
 import { analytics } from '../services/analytics'
 import { carService } from '../api/carService'
 import { tempBadgeClass } from '../utils/temperatureColor'
+import ConsumptionInfoBox from './ConsumptionInfoBox.vue'
 
 const coinStore = useCoinStore()
 
@@ -357,6 +358,9 @@ const handleOcrData = (ocrResult: any) => {
         <span>Manuell eingeben</span>
       </button>
     </div>
+
+    <!-- Consumption info: always visible regardless of entry mode -->
+    <ConsumptionInfoBox :min-trips="5" class="mb-6" />
 
     <!-- OCR Photo Capture Mode -->
     <OcrPhotoCapture

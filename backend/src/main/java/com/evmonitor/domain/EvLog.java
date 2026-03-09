@@ -152,4 +152,27 @@ public class EvLog {
     public Double getTemperatureCelsius() {
         return temperatureCelsius;
     }
+
+    /**
+     * A log is complete when all fields required to act as logY in a consumption
+     * calculation are present: odometer, kwhCharged, and socAfterChargePercent.
+     */
+    public boolean isComplete() {
+        return odometerKm != null && kwhCharged != null && socAfterChargePercent != null;
+    }
+
+    /**
+     * A log can act as logX (the trip starting point) when odometer and
+     * socAfterChargePercent are present. kwhCharged is not required for this role.
+     */
+    public boolean canBeUsedAsLogX() {
+        return odometerKm != null && socAfterChargePercent != null;
+    }
+
+    /**
+     * True if kwhCharged is present — the minimum required for any energy accounting.
+     */
+    public boolean hasKwhCharged() {
+        return kwhCharged != null;
+    }
 }

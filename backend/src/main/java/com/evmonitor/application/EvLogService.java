@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -20,14 +21,19 @@ public class EvLogService {
     private final UserRepository userRepository;
     private final CoinLogService coinLogService;
     private final TemperatureEnrichmentService temperatureEnrichmentService;
+    private final VehicleSpecificationRepository vehicleSpecificationRepository;
+    private final PlausibilityProperties plausibility;
 
     public EvLogService(EvLogRepository evLogRepository, CarRepository carRepository, UserRepository userRepository,
-            CoinLogService coinLogService, TemperatureEnrichmentService temperatureEnrichmentService) {
+            CoinLogService coinLogService, TemperatureEnrichmentService temperatureEnrichmentService,
+            VehicleSpecificationRepository vehicleSpecificationRepository, PlausibilityProperties plausibility) {
         this.evLogRepository = evLogRepository;
         this.carRepository = carRepository;
         this.userRepository = userRepository;
         this.coinLogService = coinLogService;
         this.temperatureEnrichmentService = temperatureEnrichmentService;
+        this.vehicleSpecificationRepository = vehicleSpecificationRepository;
+        this.plausibility = plausibility;
     }
 
     @Transactional
@@ -184,11 +190,24 @@ public class EvLogService {
             throw new IllegalArgumentException("User does not own the specified car");
         }
 
-        List<EvLog> logs = (limit != null && limit > 0)
-                ? evLogRepository.findLatestByCarId(carId, limit, page)
-                : evLogRepository.findAllByCarId(carId);
+        // All logs sorted ascending — needed for consumption context (logX lookups)
+        List<EvLog> allLogsSorted = evLogRepository.findAllByCarId(carId).stream()
+                .sorted(Comparator.comparing(EvLog::getLoggedAt))
+                .collect(Collectors.toList());
 
-        return logs.stream().map(EvLogResponse::fromDomain).toList();
+        // Compute per-log consumption + plausibility on the full dataset
+        Map<UUID, ConsumptionResult> consumptionByLog = car.getBatteryCapacityKwh() != null
+                ? calculateConsumptionPerLog(allLogsSorted, car.getBatteryCapacityKwh(), lookupWltp(car))
+                : Map.of();
+
+        // Return the requested page, enriched with consumption data
+        List<EvLog> page_logs = (limit != null && limit > 0)
+                ? evLogRepository.findLatestByCarId(carId, limit, page)
+                : allLogsSorted.reversed();
+
+        return page_logs.stream()
+                .map(log -> EvLogResponse.fromDomain(log, consumptionByLog.get(log.getId())))
+                .toList();
     }
 
     /**
@@ -294,7 +313,7 @@ public class EvLogService {
             totalDistanceKm = new BigDecimal(totalDistanceInt);
 
             // Try SoC-based calculation first (more accurate for partial charging)
-            avgConsumptionKwhPer100km = calculateConsumptionWithSoc(allLogsForCar, filteredLogsWithDistance, car.getBatteryCapacityKwh());
+            avgConsumptionKwhPer100km = calculateConsumptionWithSoc(allLogsForCar, filteredLogsWithDistance, car.getBatteryCapacityKwh(), lookupWltp(car));
 
             // Fallback to kWh-based calculation if SoC data is missing
             if (avgConsumptionKwhPer100km == null) {
@@ -325,106 +344,185 @@ public class EvLogService {
     }
 
     /**
-     * Calculate avg consumption using SoC data if available (more accurate for partial charging).
+     * Calculates consumption (kWh/100km) for the trip from logX to logY.
      *
-     * General formula for consumption between two anchor points (logs with odometer):
-     * 1. Find anchor Y (previous log with odometer) and anchor X (current log with odometer)
-     * 2. Distance = odometerX - odometerY
-     * 3. Energy consumed = socY_after + Σ(kWh charged between Y and X) - socX_before
-     * 4. Consumption = (Energy consumed / Distance) × 100
+     * logX (trip start): logX.canBeUsedAsLogX() must be true
+     *                    requires: odometer + socAfterChargePercent
+     * logY (trip end):   logY.isComplete() must be true
+     *                    requires: odometer + kwhCharged + socAfterChargePercent
      *
-     * This handles logs without odometer by including their charged energy in the calculation.
+     * Formula:
+     *   socBefore(logY)  = socAfter(logY) - kwhCharged(logY) / batteryCapacity * 100
+     *   energyConsumed   = (socAfter(logX) - socBefore(logY)) * batteryCapacity / 100
+     *   consumption      = energyConsumed / distance * 100
      *
-     * @param allLogs All logs sorted by time
-     * @param logsWithDistance Filtered logs that have distance data (anchor points)
-     * @param batteryCapacityKwh Battery capacity of the car
-     * @return Avg consumption in kWh/100km, or null if SoC data missing
+     * Package-private for unit testing.
+     *
+     * @return consumption in kWh/100km, or empty if data is insufficient or result is invalid
      */
-    private BigDecimal calculateConsumptionWithSoc(List<EvLog> allLogs, List<EvLog> logsWithDistance, BigDecimal batteryCapacityKwh) {
-        if (batteryCapacityKwh == null || batteryCapacityKwh.compareTo(BigDecimal.ZERO) <= 0) {
-            return null; // Can't calculate without battery capacity
-        }
+    Optional<BigDecimal> calculateConsumption(EvLog logX, EvLog logY, BigDecimal batteryCapacityKwh) {
+        if (!logX.canBeUsedAsLogX() || !logY.isComplete()) return Optional.empty();
+        if (batteryCapacityKwh == null || batteryCapacityKwh.compareTo(BigDecimal.ZERO) <= 0) return Optional.empty();
 
-        BigDecimal totalEnergyConsumed = BigDecimal.ZERO;
+        int distance = logY.getOdometerKm() - logX.getOdometerKm();
+        if (distance <= 0) return Optional.empty();
+
+        // socBefore(logY) = socAfter(logY) - kwhCharged(logY) / batteryCapacity * 100
+        BigDecimal socBeforeLogYPercent = new BigDecimal(logY.getSocAfterChargePercent())
+                .subtract(logY.getKwhCharged()
+                        .divide(batteryCapacityKwh, 4, RoundingMode.HALF_UP)
+                        .multiply(new BigDecimal("100")));
+
+        // energyConsumed = (socAfter(logX) - socBefore(logY)) * batteryCapacity / 100
+        BigDecimal energyConsumedKwh = new BigDecimal(logX.getSocAfterChargePercent())
+                .subtract(socBeforeLogYPercent)
+                .multiply(batteryCapacityKwh)
+                .divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
+
+        if (energyConsumedKwh.compareTo(BigDecimal.ZERO) <= 0) return Optional.empty();
+
+        return Optional.of(energyConsumedKwh
+                .multiply(new BigDecimal("100"))
+                .divide(new BigDecimal(distance), 2, RoundingMode.HALF_UP));
+    }
+
+    /**
+     * Calculates average consumption across all valid trips using the SoC-based method.
+     * Delegates to calculateConsumptionPerLog() for raw values + plausibility verdicts.
+     * Only plausible trips contribute to the distance-weighted average.
+     *
+     * @return avg consumption in kWh/100km, or null if no plausible trips found
+     */
+    private BigDecimal calculateConsumptionWithSoc(List<EvLog> allLogs, List<EvLog> logsWithDistance, BigDecimal batteryCapacityKwh, BigDecimal wltpKwh) {
+        Map<UUID, ConsumptionResult> perLog = calculateConsumptionPerLog(allLogs, batteryCapacityKwh, wltpKwh);
+
+        BigDecimal totalWeightedConsumption = BigDecimal.ZERO;
         int totalDistance = 0;
-        int validTrips = 0;
 
-        for (EvLog anchorX : logsWithDistance) {
-            // Find previous anchor point (log with odometer)
-            EvLog anchorY = findPreviousLog(allLogs, anchorX);
-            if (anchorY == null) {
-                continue; // First log, no previous anchor
-            }
+        for (EvLog logY : logsWithDistance) {
+            ConsumptionResult cr = perLog.get(logY.getId());
+            if (cr == null || !cr.plausible()) continue;
 
-            // Check if both anchors have required SoC data
-            if (anchorX.getSocAfterChargePercent() == null || anchorY.getSocAfterChargePercent() == null) {
-                continue; // Missing SoC data, skip this trip
-            }
-            if (anchorX.getKwhCharged() == null || anchorY.getKwhCharged() == null) {
-                continue; // Missing kWh data, skip this trip
-            }
+            totalWeightedConsumption = totalWeightedConsumption
+                    .add(cr.value().multiply(new BigDecimal(cr.distanceKm())));
+            totalDistance += cr.distanceKm();
+        }
 
-            // Calculate distance between anchors
-            if (anchorX.getOdometerKm() == null || anchorY.getOdometerKm() == null) {
-                continue;
-            }
-            int distance = anchorX.getOdometerKm() - anchorY.getOdometerKm();
-            if (distance <= 0) {
-                continue; // Invalid distance
-            }
+        if (totalDistance == 0) return null;
 
-            // Find all logs between the two anchors (excl. both ends)
-            List<EvLog> logsBetween = findLogsBetween(allLogs, anchorY, anchorX);
+        return totalWeightedConsumption
+                .divide(new BigDecimal(totalDistance), 2, RoundingMode.HALF_UP);
+    }
 
-            // Check if all logs between have required data
-            boolean allHaveData = logsBetween.stream()
-                .allMatch(log -> log.getKwhCharged() != null && log.getSocAfterChargePercent() != null);
-            if (!allHaveData) {
-                continue; // Missing data in logs between, skip this trip
+    /**
+     * Calculates per-log consumption (kWh/100km) for each complete log, with plausibility verdict.
+     *
+     * Two-pass algorithm:
+     *   Pass 1 — compute raw consumption for every complete log (isComplete + previous log with odometer).
+     *            Trips shorter than minTripDistanceKm are excluded (unreliable odometer data).
+     *   Pass 2 — check each value against the full distribution + WLTP reference via isConsumptionPlausible().
+     *
+     * @return map of logId (logY) → ConsumptionResult(value, plausible, distanceKm)
+     */
+    Map<UUID, ConsumptionResult> calculateConsumptionPerLog(List<EvLog> allLogs, BigDecimal batteryCapacityKwh, BigDecimal wltpKwh) {
+        // Always sort — correctness must not depend on caller discipline
+        List<EvLog> sorted = allLogs.stream()
+                .sorted(Comparator.comparing(EvLog::getLoggedAt))
+                .collect(Collectors.toList());
+
+        // Pass 1: raw consumptions
+        List<UUID> ids = new ArrayList<>();
+        List<BigDecimal> values = new ArrayList<>();
+        List<Integer> distances = new ArrayList<>();
+
+        sorted.stream()
+                .filter(EvLog::isComplete)
+                .forEach(logY -> {
+                    EvLog logX = findPreviousLog(sorted, logY);
+                    if (logX == null) return;
+                    int dist = logY.getOdometerKm() - logX.getOdometerKm();
+                    if (dist < plausibility.getMinTripDistanceKm()) return;
+                    calculateConsumption(logX, logY, batteryCapacityKwh).ifPresent(c -> {
+                        ids.add(logY.getId());
+                        values.add(c);
+                        distances.add(dist);
+                    });
+                });
+
+        // Pass 2: plausibility check — absolute bounds + statistical/WLTP reference
+        Map<UUID, ConsumptionResult> result = new LinkedHashMap<>();
+        for (int i = 0; i < ids.size(); i++) {
+            boolean plausible = isConsumptionPlausible(values.get(i), values, wltpKwh);
+            result.put(ids.get(i), new ConsumptionResult(values.get(i), plausible, distances.get(i)));
+        }
+        return result;
+    }
+
+    /**
+     * Checks whether a calculated consumption value is plausible for this car.
+     *
+     * Three layers:
+     *   Layer 1 — Absolute sanity bounds: [absoluteMin, absoluteMax] kWh/100km (always applied).
+     *   Layer 2a — Statistical check (≥ minTripsForStatistical trips):
+     *              mean(history) ± sigmaMultiplier × stdDev(history).
+     *   Layer 2b — WLTP bootstrap (< minTripsForStatistical, WLTP available):
+     *              [WLTP × wltpLowerFactor, WLTP × wltpUpperFactor].
+     *   Layer 2c — Only absolute bounds apply (no history, no WLTP).
+     *
+     * Implausible values likely indicate a missing charging session between logX and logY.
+     *
+     * @param consumptionKwhPer100km     the calculated value to check
+     * @param historicalConsumptions     all computed consumptions for this car (may include self)
+     * @param wltpConsumptionKwhPer100km the car's WLTP reference value (nullable)
+     */
+    boolean isConsumptionPlausible(BigDecimal consumptionKwhPer100km,
+                                   List<BigDecimal> historicalConsumptions,
+                                   BigDecimal wltpConsumptionKwhPer100km) {
+        // Layer 1: absolute sanity bounds
+        BigDecimal absMin = BigDecimal.valueOf(plausibility.getAbsoluteMinKwhPer100km());
+        BigDecimal absMax = BigDecimal.valueOf(plausibility.getAbsoluteMaxKwhPer100km());
+        if (consumptionKwhPer100km.compareTo(absMin) < 0) return false;
+        if (consumptionKwhPer100km.compareTo(absMax) > 0) return false;
+
+        List<BigDecimal> history = historicalConsumptions != null ? historicalConsumptions : List.of();
+
+        // Layer 2a: statistical check
+        if (history.size() >= plausibility.getMinTripsForStatistical()) {
+            BigDecimal mean = computeMean(history);
+            BigDecimal stdDev = computeStdDev(history, mean);
+            if (stdDev.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal margin = stdDev.multiply(BigDecimal.valueOf(plausibility.getSigmaMultiplier()));
+                return consumptionKwhPer100km.compareTo(mean.subtract(margin)) >= 0
+                        && consumptionKwhPer100km.compareTo(mean.add(margin)) <= 0;
             }
+            // stdDev == 0: all values identical — accept only if within 10% of mean
+            BigDecimal tolerance = mean.multiply(new BigDecimal("0.10"));
+            return consumptionKwhPer100km.subtract(mean).abs().compareTo(tolerance) <= 0;
+        }
 
-            // Sum all charged energy between anchors (excl. both ends)
-            BigDecimal kwhChargedBetween = logsBetween.stream()
-                .map(EvLog::getKwhCharged)
+        // Layer 2b: WLTP bootstrap
+        if (wltpConsumptionKwhPer100km != null && wltpConsumptionKwhPer100km.compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal lower = wltpConsumptionKwhPer100km.multiply(BigDecimal.valueOf(plausibility.getWltpLowerFactor()));
+            BigDecimal upper = wltpConsumptionKwhPer100km.multiply(BigDecimal.valueOf(plausibility.getWltpUpperFactor()));
+            return consumptionKwhPer100km.compareTo(lower) >= 0
+                    && consumptionKwhPer100km.compareTo(upper) <= 0;
+        }
+
+        // Layer 2c: only absolute bounds (already passed above)
+        return true;
+    }
+
+    private BigDecimal computeMean(List<BigDecimal> values) {
+        BigDecimal sum = values.stream().reduce(BigDecimal.ZERO, BigDecimal::add);
+        return sum.divide(new BigDecimal(values.size()), 6, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal computeStdDev(List<BigDecimal> values, BigDecimal mean) {
+        BigDecimal sumSquares = values.stream()
+                .map(v -> v.subtract(mean).pow(2))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-            // Calculate energy consumed:
-            // Start (anchor Y after charge) + Loaded between - End (anchor X before charge)
-            BigDecimal socYAfterKwh = new BigDecimal(anchorY.getSocAfterChargePercent())
-                .multiply(batteryCapacityKwh)
-                .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
-
-            BigDecimal socXBeforePercent = calculateSocBeforeCharge(
-                anchorX.getSocAfterChargePercent(),
-                anchorX.getKwhCharged(),
-                batteryCapacityKwh
-            );
-            BigDecimal socXBeforeKwh = socXBeforePercent
-                .multiply(batteryCapacityKwh)
-                .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
-
-            BigDecimal energyConsumedKwh = socYAfterKwh
-                .add(kwhChargedBetween)
-                .subtract(socXBeforeKwh);
-
-            // Skip if energy consumed is negative (invalid data)
-            if (energyConsumedKwh.compareTo(BigDecimal.ZERO) <= 0) {
-                continue;
-            }
-
-            totalEnergyConsumed = totalEnergyConsumed.add(energyConsumedKwh);
-            totalDistance += distance;
-            validTrips++;
-        }
-
-        // Calculate average consumption if we have valid data
-        if (validTrips == 0 || totalDistance == 0) {
-            return null; // Not enough SoC data
-        }
-
-        return totalEnergyConsumed
-            .multiply(new BigDecimal("100"))
-            .divide(new BigDecimal(totalDistance), 2, RoundingMode.HALF_UP);
+        BigDecimal variance = sumSquares.divide(new BigDecimal(values.size()), 10, RoundingMode.HALF_UP);
+        return variance.sqrt(new MathContext(10, RoundingMode.HALF_UP));
     }
 
     /**
@@ -446,65 +544,42 @@ public class EvLogService {
     }
 
     /**
-     * Calculate SoC before charging based on kWh charged and battery capacity.
+     * Looks up the WLTP combined consumption for the given car via VehicleSpecification.
+     * Returns null if no spec exists (e.g. model not yet in the database).
      */
-    private BigDecimal calculateSocBeforeCharge(int socAfterCharge, BigDecimal kwhCharged, BigDecimal batteryCapacityKwh) {
-        BigDecimal socDelta = kwhCharged
-            .divide(batteryCapacityKwh, 4, RoundingMode.HALF_UP)
-            .multiply(new BigDecimal("100"));
-        return new BigDecimal(socAfterCharge).subtract(socDelta);
+    BigDecimal lookupWltp(Car car) {
+        if (car.getModel() == null || car.getBatteryCapacityKwh() == null) return null;
+        return vehicleSpecificationRepository
+                .findByCarBrandAndModelAndCapacityAndType(
+                        car.getModel().getBrand().name(),
+                        car.getModel().name(),
+                        car.getBatteryCapacityKwh(),
+                        VehicleSpecification.WltpType.COMBINED)
+                .map(VehicleSpecification::getWltpConsumptionKwhPer100km)
+                .orElse(null);
     }
 
     /**
-     * Find the previous log before the given log that has odometer data.
-     * Skips logs without odometer to find the actual previous trip.
-     */
-    private EvLog findPreviousLog(List<EvLog> sortedLogs, EvLog currentLog) {
-        boolean foundCurrent = false;
-        for (int i = 0; i < sortedLogs.size(); i++) {
-            if (sortedLogs.get(i).getId().equals(currentLog.getId())) {
-                foundCurrent = true;
-                // Search backwards for log with odometer data
-                for (int j = i - 1; j >= 0; j--) {
-                    if (sortedLogs.get(j).getOdometerKm() != null) {
-                        return sortedLogs.get(j);
-                    }
-                }
-                return null; // No previous log with odometer found
-            }
-        }
-        return null; // Current log not found in list
-    }
-
-    /**
-     * Find all logs between two anchor logs (exclusive of both ends).
-     * Used to include charged energy from logs without odometer data.
+     * Returns the immediately preceding log (by loggedAt) as a candidate for logX.
+     * Returns null if the directly previous log does not satisfy canBeUsedAsLogX().
      *
-     * @param sortedLogs All logs sorted by time
-     * @param anchorY Earlier anchor (with odometer)
-     * @param anchorX Later anchor (with odometer)
-     * @return List of logs between the two anchors (empty if none)
+     * Strict-by-design: any log between logX and logY — even an incomplete one —
+     * represents an unknown energy event. Skipping over it would silently corrupt
+     * the SoC-delta calculation. If the direct predecessor isn't usable, the trip
+     * cannot be calculated at all.
+     *
+     * Callers must pass a list sorted ascending by loggedAt.
+     * calculateConsumptionPerLog() guarantees this internally.
      */
-    private List<EvLog> findLogsBetween(List<EvLog> sortedLogs, EvLog anchorY, EvLog anchorX) {
-        List<EvLog> result = new java.util.ArrayList<>();
-        boolean foundY = false;
-
-        for (EvLog log : sortedLogs) {
-            if (log.getId().equals(anchorY.getId())) {
-                foundY = true;
-                continue; // Skip anchor Y itself
-            }
-
-            if (log.getId().equals(anchorX.getId())) {
-                break; // Stop at anchor X (don't include it)
-            }
-
-            if (foundY) {
-                result.add(log); // Add all logs between Y and X
+    private EvLog findPreviousLog(List<EvLog> sortedLogs, EvLog logY) {
+        for (int i = 0; i < sortedLogs.size(); i++) {
+            if (sortedLogs.get(i).getId().equals(logY.getId())) {
+                if (i == 0) return null;
+                EvLog candidate = sortedLogs.get(i - 1);
+                return candidate.canBeUsedAsLogX() ? candidate : null;
             }
         }
-
-        return result;
+        return null;
     }
 
     /**

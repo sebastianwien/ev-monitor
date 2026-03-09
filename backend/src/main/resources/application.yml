@@ -70,6 +70,17 @@ management:
       client:
         max-uri-tags: 500  # Höheres Limit für HTTP-Client-Metrics (Open-Meteo Backfill)
 
+evmonitor:
+  consumption:
+    plausibility:
+      absolute-min-kwh-per-100km: 10.0
+      absolute-max-kwh-per-100km: 40.0
+      wltp-lower-factor: 0.75
+      wltp-upper-factor: 2.2
+      sigma-multiplier: 2.5
+      min-trips-for-statistical: 5
+      min-trip-distance-km: 20
+
 app:
   base-url: ${APP_BASE_URL:http://localhost:5173}
   mail:

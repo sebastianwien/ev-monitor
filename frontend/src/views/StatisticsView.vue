@@ -28,10 +28,14 @@ import {
   ChevronRightIcon,
   ListBulletIcon,
   TrashIcon,
+  ExclamationTriangleIcon,
 } from '@heroicons/vue/24/outline'
 import { useRouter } from 'vue-router'
 import api from '../api/axios'
 import { tempBadgeClass } from '../utils/temperatureColor'
+import { consumptionBadgeClass } from '../utils/consumptionColor'
+import ConsumptionInfoBox from '../components/ConsumptionInfoBox.vue'
+import { costBadgeClass } from '../utils/costColor'
 import CarSelector from '../components/CarSelector.vue'
 import ChargingHeatMap from '../components/ChargingHeatMap.vue'
 import { vehicleSpecificationService, type VehicleSpecification } from '../api/vehicleSpecificationService'
@@ -445,7 +449,20 @@ const wltpChartScrollable = computed(() => {
   return dataPoints >= 30
 })
 
-onMounted(fetchStatistics)
+const enumToLabel = (value: string): string =>
+  value.replace(/_/g, ' ').toLowerCase()
+    .split(' ')
+    .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ')
+
+onMounted(async () => {
+  // Pre-fetch cars so the desktop card selector is populated before CarSelector emits
+  try {
+    const r = await api.get('/cars')
+    cars.value = r.data
+  } catch { /* non-critical */ }
+  fetchStatistics()
+})
 
 // ── Log List with Pagination ─────────────────────────────────────────────────
 const PAGE_SIZE = 20
@@ -495,6 +512,13 @@ const deleteLog = async (id: string) => {
           <div class="flex items-center gap-3 mb-6">
             <ChartBarIcon class="h-8 w-8 text-gray-700" />
             <h1 class="text-3xl font-bold text-gray-800">Statistiken & Analysen</h1>
+            <button v-if="stats && stats.totalCharges > 0"
+              @click="scrollToLogs"
+              class="ml-auto hidden md:flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium shadow-sm hover:bg-indigo-700 active:scale-95 transition">
+              <ListBulletIcon class="w-4 h-4" />
+              Deine Ladevorgänge
+              <ChevronRightIcon class="w-3.5 h-3.5 opacity-75" />
+            </button>
           </div>
 
           <!-- Import Hint Banner -->
@@ -510,8 +534,51 @@ const deleteLog = async (id: string) => {
             <span class="text-green-600 text-sm group-hover:translate-x-0.5 transition-transform">→</span>
           </router-link>
 
-          <div class="mb-6">
+          <!-- Mobile: dropdown -->
+          <div class="lg:hidden mb-6">
             <CarSelector v-model="selectedCarId" />
+          </div>
+
+          <!-- Desktop (≥1024px): card selector -->
+          <div v-if="cars.length > 0" class="hidden lg:block mb-6">
+            <p class="text-sm font-medium text-gray-700 mb-2">Fahrzeug</p>
+            <div class="flex flex-wrap gap-3">
+              <button
+                v-for="car in cars"
+                :key="car.id"
+                @click="selectedCarId = car.id"
+                :class="[
+                  'flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition',
+                  selectedCarId === car.id
+                    ? 'border-indigo-500 bg-indigo-50 shadow-sm'
+                    : 'border-gray-200 bg-white hover:border-indigo-300 hover:bg-gray-50'
+                ]">
+                <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
+                  <TruckIcon class="w-5 h-5 text-gray-400" />
+                </div>
+                <div class="min-w-0">
+                  <div class="flex items-center gap-2">
+                    <span class="font-semibold text-gray-800">
+                      {{ enumToLabel(car.brand) }} {{ enumToLabel(car.model) }}
+                    </span>
+                    <span v-if="car.trim" class="text-sm text-gray-500">{{ car.trim }}</span>
+                    <span v-if="car.isPrimary"
+                      class="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded-full border border-green-200 font-medium">
+                      Aktiv
+                    </span>
+                  </div>
+                  <div class="flex items-center gap-2 mt-0.5">
+                    <span class="text-xs text-gray-500">{{ car.batteryCapacityKwh }} kWh</span>
+                    <span class="text-xs px-2 py-0.5 bg-white border border-gray-300 rounded-full text-gray-600">
+                      {{ car.licensePlate }}
+                    </span>
+                  </div>
+                </div>
+                <div v-if="selectedCarId === car.id" class="ml-auto flex-shrink-0">
+                  <div class="w-2 h-2 rounded-full bg-indigo-500"></div>
+                </div>
+              </button>
+            </div>
           </div>
 
           <!-- Filters (only show if there are logs) -->
@@ -594,6 +661,15 @@ const deleteLog = async (id: string) => {
 
           <div v-else-if="stats" class="space-y-0">
 
+        <!-- Mobile: Deine Ladevorgänge CTA — above stats cards, below filters -->
+        <button v-if="stats && stats.totalCharges > 0"
+          @click="scrollToLogs"
+          class="md:hidden w-full flex items-center justify-center gap-2 px-4 py-3 mb-4 rounded-xl bg-indigo-600 text-white text-sm font-semibold shadow-sm hover:bg-indigo-700 active:scale-95 transition">
+          <ListBulletIcon class="w-4 h-4" />
+          Deine Ladevorgänge
+          <ChevronRightIcon class="w-3.5 h-3.5 opacity-75" />
+        </button>
+
         <!-- Key Metrics -->
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 pb-6 mb-0">
           <div class="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
@@ -628,16 +704,6 @@ const deleteLog = async (id: string) => {
               </span>
             </p>
           </div>
-          <!-- Teaser: Log List -->
-          <button
-            @click="scrollToLogs"
-            class="bg-gradient-to-br from-gray-50 to-gray-100 p-4 rounded-lg border border-gray-200 text-left hover:border-indigo-300 hover:from-indigo-50 hover:to-indigo-100 transition group">
-            <p class="text-xs text-gray-500 font-medium mb-1 group-hover:text-indigo-600">Meine Ladevorgänge</p>
-            <div class="flex items-center gap-1">
-              <ListBulletIcon class="w-6 h-6 text-gray-700 group-hover:text-indigo-700" />
-              <ChevronRightIcon class="w-4 h-4 text-gray-400 group-hover:text-indigo-500" />
-            </div>
-          </button>
         </div>
 
         <!-- Chart 1: Charging & Costs -->
@@ -753,7 +819,7 @@ const deleteLog = async (id: string) => {
 
         <!-- Charging Heat Map -->
         <div class="border-t border-gray-100 pt-6">
-          <div class="md:bg-gray-50 py-4 md:p-6 -mx-4 md:mx-0 md:rounded-lg md:border md:border-gray-200 mb-20 md:mb-0">
+          <div class="md:bg-gray-50 py-4 md:p-6 -mx-4 md:mx-0 md:rounded-lg md:border md:border-gray-200 mb-4 md:mb-0">
             <div v-if="!chartsReady && isInitialLoad" class="h-96 bg-gray-100 animate-pulse rounded mx-4 md:mx-0"></div>
             <template v-else>
               <div class="mb-4 px-4 md:px-0">
@@ -768,11 +834,14 @@ const deleteLog = async (id: string) => {
         </div>
 
         <!-- Log List -->
-        <div ref="logsSection" class="border-t border-gray-100 pt-6 scroll-mt-4 pb-6">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-xl font-semibold text-gray-800">Meine Ladevorgänge</h2>
+        <div ref="logsSection" class="border-t border-gray-100 pt-3 scroll-mt-4 pb-6">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-xl font-semibold text-gray-800">Deine Ladevorgänge</h2>
             <span v-if="!logsLoading" class="text-sm text-gray-400">Seite {{ logsPage + 1 }}</span>
           </div>
+
+          <!-- Consumption info accordion -->
+          <ConsumptionInfoBox :min-trips="5" class="mb-4" />
           <div class="space-y-2">
             <div v-if="logsLoading && logs.length === 0" class="py-8 text-center text-gray-400 text-sm">Lade...</div>
             <template v-else-if="logs.length === 0">
@@ -793,9 +862,6 @@ const deleteLog = async (id: string) => {
                       :class="['inline-flex items-center gap-0.5 px-2 py-0.5 border rounded-full text-xs whitespace-nowrap', tempBadgeClass(log.temperatureCelsius)]">
                       <SunIcon class="w-3 h-3" />{{ log.temperatureCelsius.toFixed(1) }}°C
                     </span>
-                    <span class="hidden min-[475px]:inline-block px-2 py-0.5 bg-indigo-50 border border-indigo-200 text-xs rounded-full text-indigo-700 font-medium whitespace-nowrap">
-                      €{{ (log.costEur / log.kwhCharged).toFixed(2) }}/kWh
-                    </span>
                     <button @click="deleteLog(log.id)"
                       class="p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition flex-shrink-0">
                       <TrashIcon class="w-3.5 h-3.5" />
@@ -804,8 +870,19 @@ const deleteLog = async (id: string) => {
                 </div>
                 <!-- Badges -->
                 <div class="flex flex-wrap gap-1.5">
-                  <span class="inline-flex min-[475px]:hidden items-center gap-1 px-2 py-0.5 bg-indigo-50 border border-indigo-200 rounded-full text-xs text-indigo-700 font-medium whitespace-nowrap">
+                  <span v-if="log.costEur != null && log.kwhCharged"
+                    :class="['inline-flex items-center px-2 py-0.5 border text-xs rounded-full font-medium whitespace-nowrap',
+                             costBadgeClass(log.costEur, log.kwhCharged) ?? 'bg-indigo-50 border-indigo-200 text-indigo-700']">
                     €{{ (log.costEur / log.kwhCharged).toFixed(2) }}/kWh
+                  </span>
+                  <span v-if="log.consumptionKwhPer100km != null"
+                    :class="['inline-flex items-center gap-1 px-2 py-0.5 border rounded-full text-xs font-medium whitespace-nowrap',
+                             log.consumptionImplausible
+                               ? 'animate-pulse bg-red-100 border-red-400 text-red-700'
+                               : consumptionBadgeClass(log.consumptionKwhPer100km, stats?.avgConsumptionKwhPer100km ?? null)]"
+                    :title="log.consumptionImplausible ? 'Dieser Verbrauch weicht stark vom Muster ab. Möglicherweise fehlt ein Ladevorgang in der Lücke davor.' : undefined">
+                    <ExclamationTriangleIcon v-if="log.consumptionImplausible" class="w-3 h-3 flex-shrink-0" />
+                    {{ log.consumptionKwhPer100km }} kWh/100km
                   </span>
                   <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
                     €{{ log.costEur }}

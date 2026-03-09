@@ -20,8 +20,15 @@ public record EvLogResponse(
         LocalDateTime updatedAt,
         Integer odometerSuggestionMinKm,
         Integer odometerSuggestionMaxKm,
-        Double temperatureCelsius) {
+        Double temperatureCelsius,
+        BigDecimal consumptionKwhPer100km,   // null when no previous log with odometer+SoC
+        Boolean consumptionImplausible) {    // null when consumption not computed, true when flagged
+
     public static EvLogResponse fromDomain(EvLog evLog) {
+        return fromDomain(evLog, null);
+    }
+
+    public static EvLogResponse fromDomain(EvLog evLog, ConsumptionResult consumption) {
         return new EvLogResponse(
                 evLog.getId(),
                 evLog.getCarId(),
@@ -37,6 +44,8 @@ public record EvLogResponse(
                 evLog.getUpdatedAt(),
                 evLog.getOdometerSuggestionMinKm(),
                 evLog.getOdometerSuggestionMaxKm(),
-                evLog.getTemperatureCelsius());
+                evLog.getTemperatureCelsius(),
+                consumption != null ? consumption.value() : null,
+                consumption != null ? !consumption.plausible() : null);
     }
 }

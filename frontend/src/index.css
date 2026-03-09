@@ -7,6 +7,20 @@
     max-height: none;
 }
 
+/* Gold shimmer badge for excellent charging prices (< €0.20/kWh) */
+@keyframes gold-shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
+.cost-badge-gold {
+  background: linear-gradient(90deg, #fde68a, #fef9c3, #fbbf24, #fef9c3, #fde68a);
+  background-size: 200% auto;
+  animation: gold-shimmer 2.5s linear infinite;
+  border-color: #f59e0b;
+  color: #78350f;
+}
+
 body {
     background-color: var(--color-gray-50, #f9fafb);
     color: var(--color-gray-900, #111827);

@@ -256,14 +256,17 @@ class EvLogServiceSocIntegrationTest extends AbstractIntegrationTest {
         // When
         EvLogStatisticsResponse stats = evLogService.getStatistics(carId, userId, null, null, null);
 
-        // Then: Should calculate consumption between log2 and log4, including log3's charge
-        // Start (log2 after): 80% = 60.0 kWh
-        // Charged between: 25 kWh (log3)
-        // End (log4 before): 85% - (45/75×100) = 25% = 18.75 kWh
-        // Energy consumed = 60.0 + 25.0 - 18.75 = 66.25 kWh over 350km
-        // Consumption = 66.25 / 350 × 100 = 18.93 kWh/100km
+        // Then: findPreviousLog() is strict — only the DIRECTLY preceding log (by loggedAt) may
+        // be used as logX. Any log in between, even if incomplete, represents an unknown energy
+        // event that would corrupt the SoC-delta calculation.
+        //
+        // For log2 (isComplete): directly preceding = log1 (no odometer) → canBeUsedAsLogX=false → skip
+        // For log4 (isComplete): directly preceding = log3 (no odometer) → canBeUsedAsLogX=false → skip
+        //
+        // → SoC-based calculation returns null → fallback (kWh/km) with only log4 in distance set:
+        //   45 kWh / 350 km × 100 = 12.86 kWh/100km
         assertNotNull(stats.avgConsumptionKwhPer100km());
-        assertEquals(new BigDecimal("18.93"), stats.avgConsumptionKwhPer100km());
+        assertEquals(new BigDecimal("12.86"), stats.avgConsumptionKwhPer100km());
         assertEquals(new BigDecimal("350"), stats.totalDistanceKm());
     }
 
