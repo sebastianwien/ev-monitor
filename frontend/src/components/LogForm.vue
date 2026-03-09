@@ -3,7 +3,7 @@ import { ref, onMounted, watch } from 'vue'
 import api from '../api/axios'
 import CarSelector from './CarSelector.vue'
 import OcrPhotoCapture from './OcrPhotoCapture.vue'
-import { CameraIcon, PencilSquareIcon, TrashIcon, BoltIcon, TruckIcon, ClockIcon } from '@heroicons/vue/24/outline'
+import { CameraIcon, PencilSquareIcon, TrashIcon, BoltIcon, TruckIcon, ClockIcon, Battery0Icon } from '@heroicons/vue/24/outline'
 import { useCoinStore } from '../stores/coins'
 import { analytics } from '../services/analytics'
 import { carService } from '../api/carService'
@@ -527,43 +527,43 @@ const handleOcrData = (ocrResult: any) => {
       <div v-if="!selectedCarId" class="text-gray-500 text-center">Bitte wähle ein Fahrzeug aus um Ladevorgänge anzuzeigen.</div>
       <div v-else-if="logs.length === 0" class="text-gray-500 text-center">Noch keine Ladevorgänge für dieses Fahrzeug erfasst.</div>
       <ul v-else class="space-y-3">
-        <li v-for="log in logs" :key="log.id" class="p-4 bg-gray-50 border border-gray-200 rounded-lg flex justify-between items-center shadow-sm hover:shadow transition">
-          <div class="flex-1 space-y-1">
-            <div class="flex items-center gap-2">
-              <BoltIcon class="w-4 h-4 text-indigo-600" />
-              <span class="font-medium text-indigo-700">{{ log.kwhCharged }} kWh</span>
+        <li v-for="log in logs" :key="log.id" class="p-3 bg-gray-50 border border-gray-200 rounded-lg shadow-sm hover:shadow transition space-y-2">
+          <!-- Header row: kWh + price badge + delete -->
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-1.5">
+              <BoltIcon class="w-4 h-4 text-indigo-600 flex-shrink-0" />
+              <span class="font-semibold text-indigo-700">{{ log.kwhCharged }} kWh</span>
             </div>
-            <div class="flex items-center gap-3 text-sm text-gray-500">
-              <span>€{{ log.costEur }}</span>
-              <span v-if="log.chargeDurationMinutes" class="flex items-center gap-1">
-                <ClockIcon class="w-3.5 h-3.5" />
-                {{ log.chargeDurationMinutes }}min
+            <div class="flex items-center gap-2 flex-shrink-0">
+              <span class="px-2 py-0.5 bg-indigo-50 border border-indigo-200 text-xs rounded-full text-indigo-700 font-medium whitespace-nowrap">
+                €{{ (log.costEur / log.kwhCharged).toFixed(2) }}/kWh
               </span>
-              <span v-if="log.odometerKm" class="flex items-center gap-1">
-                <TruckIcon class="w-3.5 h-3.5" />
-                {{ log.odometerKm.toLocaleString('de-DE') }} km
-              </span>
-              <span v-if="log.socAfterChargePercent !== null" class="flex items-center gap-1">
-                <BoltIcon class="w-3.5 h-3.5" />
-                {{ log.socAfterChargePercent }}%
-              </span>
-              <span v-if="log.maxChargingPowerKw" class="flex items-center gap-1">
-                <BoltIcon class="w-3.5 h-3.5" />
-                {{ log.maxChargingPowerKw }} kW
-              </span>
+              <button
+                type="button"
+                @click="deleteLog(log.id)"
+                class="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition"
+                title="Ladevorgang löschen">
+                <TrashIcon class="w-4 h-4" />
+              </button>
             </div>
           </div>
-          <div class="flex items-center gap-3">
-            <span class="px-3 py-1 bg-white border border-gray-300 text-xs rounded-full shadow-sm text-gray-600 font-medium">
-              €{{ (log.costEur / log.kwhCharged).toFixed(2) }}/kWh
+          <!-- Badge row: metadata as pills -->
+          <div class="flex flex-wrap gap-1.5">
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
+              €{{ log.costEur }}
             </span>
-            <button
-              type="button"
-              @click="deleteLog(log.id)"
-              class="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition"
-              title="Ladevorgang löschen">
-              <TrashIcon class="w-4 h-4" />
-            </button>
+            <span v-if="log.chargeDurationMinutes" class="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
+              <ClockIcon class="w-3 h-3" />{{ log.chargeDurationMinutes }}min
+            </span>
+            <span v-if="log.odometerKm" class="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
+              <TruckIcon class="w-3 h-3" />{{ log.odometerKm.toLocaleString('de-DE') }} km
+            </span>
+            <span v-if="log.socAfterChargePercent !== null" class="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
+              <Battery0Icon class="w-3 h-3" />{{ log.socAfterChargePercent }}%
+            </span>
+            <span v-if="log.maxChargingPowerKw" class="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
+              <BoltIcon class="w-3 h-3" />{{ log.maxChargingPowerKw }} kW
+            </span>
           </div>
         </li>
       </ul>
