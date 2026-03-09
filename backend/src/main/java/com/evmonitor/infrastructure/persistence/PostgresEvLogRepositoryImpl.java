@@ -3,6 +3,7 @@ package com.evmonitor.infrastructure.persistence;
 import com.evmonitor.domain.DataSource;
 import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.EvLogRepository;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -85,6 +86,14 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
             jpaRepository.save(entity);
             return true;
         }).orElse(false);
+    }
+
+    @Override
+    public List<EvLog> findLatestByCarId(UUID carId, int limit, int page) {
+        return jpaRepository.findAllByCarIdOrderByLoggedAtDesc(carId, PageRequest.of(page, limit))
+                .stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
     }
 
     @Override

@@ -17,6 +17,8 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
 
     List<EvLogEntity> findAllByCarId(UUID carId);
 
+    List<EvLogEntity> findAllByCarIdOrderByLoggedAtDesc(UUID carId, org.springframework.data.domain.Pageable pageable);
+
     @Query("SELECT e FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id WHERE c.userId = :userId")
     List<EvLogEntity> findAllByUserId(@Param("userId") UUID userId);
 

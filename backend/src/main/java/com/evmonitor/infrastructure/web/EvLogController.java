@@ -34,12 +34,17 @@ public class EvLogController {
     @GetMapping
     public ResponseEntity<List<EvLogResponse>> getAllLogs(
             @RequestParam(required = false) UUID carId,
+            @RequestParam(required = false) Integer limit,
+            @RequestParam(defaultValue = "0") int page,
             Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        List<EvLogResponse> logs;
 
+        // Hard cap: never return more than 50 logs per request
+        int effectiveLimit = Math.min(limit != null ? limit : 50, 50);
+
+        List<EvLogResponse> logs;
         if (carId != null) {
-            logs = evLogService.getLogsForCar(carId, principal.getUser().getId());
+            logs = evLogService.getLogsForCar(carId, principal.getUser().getId(), effectiveLimit, page);
         } else {
             logs = evLogService.getAllLogsForUser(principal.getUser().getId());
         }

@@ -169,6 +169,14 @@ public class EvLogService {
     }
 
     public List<EvLogResponse> getLogsForCar(UUID carId, UUID userId) {
+        return getLogsForCar(carId, userId, null);
+    }
+
+    public List<EvLogResponse> getLogsForCar(UUID carId, UUID userId, Integer limit) {
+        return getLogsForCar(carId, userId, limit, 0);
+    }
+
+    public List<EvLogResponse> getLogsForCar(UUID carId, UUID userId, Integer limit, int page) {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new IllegalArgumentException("Car not found"));
 
@@ -176,10 +184,11 @@ public class EvLogService {
             throw new IllegalArgumentException("User does not own the specified car");
         }
 
-        return evLogRepository.findAllByCarId(carId)
-                .stream()
-                .map(EvLogResponse::fromDomain)
-                .toList();
+        List<EvLog> logs = (limit != null && limit > 0)
+                ? evLogRepository.findLatestByCarId(carId, limit, page)
+                : evLogRepository.findAllByCarId(carId);
+
+        return logs.stream().map(EvLogResponse::fromDomain).toList();
     }
 
     /**

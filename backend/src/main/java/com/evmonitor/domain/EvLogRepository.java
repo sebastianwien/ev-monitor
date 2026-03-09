@@ -16,6 +16,8 @@ public interface EvLogRepository {
 
     List<EvLog> findAllByCarId(UUID carId);
 
+    List<EvLog> findLatestByCarId(UUID carId, int limit, int page);
+
     List<EvLog> findAllByUserId(UUID userId);
 
     boolean existsByCarIdAndLoggedAtBetween(UUID carId, LocalDateTime start, LocalDateTime end);

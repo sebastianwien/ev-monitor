@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, computed } from 'vue'
+import { ref, onMounted, watch, computed, nextTick } from 'vue'
 import { Line, Bar } from 'vue-chartjs'
 import {
   Chart as ChartJS,
@@ -20,7 +20,14 @@ import {
   BoltIcon,
   CameraIcon,
   PencilSquareIcon,
-  ArrowDownTrayIcon
+  ArrowDownTrayIcon,
+  ClockIcon,
+  Battery0Icon,
+  SunIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ListBulletIcon,
+  TrashIcon,
 } from '@heroicons/vue/24/outline'
 import { useRouter } from 'vue-router'
 import api from '../api/axios'
@@ -162,6 +169,7 @@ watch(selectedCarId, async (newId) => {
   if (newId) {
     await fetchCarAndWltp(newId)
     await fetchStatistics()
+    fetchLogs(0)
   } else {
     stats.value = null
     carInfo.value = null
@@ -437,6 +445,45 @@ const wltpChartScrollable = computed(() => {
 })
 
 onMounted(fetchStatistics)
+
+// ── Log List with Pagination ─────────────────────────────────────────────────
+const PAGE_SIZE = 20
+const logs = ref<any[]>([])
+const logsPage = ref(0)
+const logsLoading = ref(false)
+const hasMoreLogs = ref(false)
+const logsSection = ref<HTMLElement | null>(null)
+
+const fetchLogs = async (page = 0) => {
+  if (!selectedCarId.value) return
+  logsLoading.value = true
+  try {
+    const res = await api.get(`/logs?carId=${selectedCarId.value}&limit=${PAGE_SIZE}&page=${page}`)
+    logs.value = res.data
+    logsPage.value = page
+    hasMoreLogs.value = res.data.length === PAGE_SIZE
+  } finally {
+    logsLoading.value = false
+  }
+}
+
+const scrollToLogs = async () => {
+  await fetchLogs(0)
+  await nextTick()
+  logsSection.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+watch(selectedCarId, () => {
+  logs.value = []
+  logsPage.value = 0
+  hasMoreLogs.value = false
+})
+
+const deleteLog = async (id: string) => {
+  if (!confirm('Ladevorgang wirklich löschen?')) return
+  await api.delete(`/logs/${id}`)
+  await fetchLogs(logsPage.value)
+}
 </script>
 
 <template>
@@ -544,10 +591,10 @@ onMounted(fetchStatistics)
             </div>
           </div>
 
-          <div v-else-if="stats" class="space-y-6">
+          <div v-else-if="stats" class="space-y-0">
 
         <!-- Key Metrics -->
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 pb-6 mb-0">
           <div class="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
             <p class="text-xs text-blue-600 font-medium mb-1">Gesamtenergie</p>
             <p class="text-2xl font-bold text-blue-900">{{ stats.totalKwhCharged.toFixed(1) }}</p>
@@ -580,102 +627,105 @@ onMounted(fetchStatistics)
               </span>
             </p>
           </div>
+          <!-- Teaser: Log List -->
+          <button
+            @click="scrollToLogs"
+            class="bg-gradient-to-br from-gray-50 to-gray-100 p-4 rounded-lg border border-gray-200 text-left hover:border-indigo-300 hover:from-indigo-50 hover:to-indigo-100 transition group">
+            <p class="text-xs text-gray-500 font-medium mb-1 group-hover:text-indigo-600">Ladevorgänge</p>
+            <div class="flex items-center gap-1">
+              <ListBulletIcon class="w-6 h-6 text-gray-700 group-hover:text-indigo-700" />
+              <ChevronRightIcon class="w-4 h-4 text-gray-400 group-hover:text-indigo-500" />
+            </div>
+            <p class="text-xs text-gray-400 mt-0.5 group-hover:text-indigo-500">{{ stats.totalCharges }} Einträge</p>
+          </button>
         </div>
 
-        <!-- Dual Charts: Charging & Costs | Range & Efficiency -->
-        <div class="grid grid-cols-1 gap-6">
-
-          <!-- Chart 1: Charging & Costs -->
-          <div class="md:bg-gray-50 p-4 md:p-6 md:rounded-lg md:border md:border-gray-200">
-            <div v-if="!chartsReady && isInitialLoad" class="h-64 sm:h-72 bg-gray-100 animate-pulse rounded"></div>
+        <!-- Chart 1: Charging & Costs -->
+        <div class="border-t border-gray-100 pt-6">
+          <div class="md:bg-gray-50 py-4 md:p-6 -mx-4 md:mx-0 md:rounded-lg md:border md:border-gray-200">
+            <div v-if="!chartsReady && isInitialLoad" class="h-64 sm:h-72 bg-gray-100 animate-pulse rounded mx-4 md:mx-0"></div>
             <template v-else>
-              <div class="flex flex-col sm:flex-row sm:items-center justify-center gap-4 sm:gap-6 mb-4">
-              <h2 class="text-xl font-semibold text-gray-800 text-center">Laden & Kosten</h2>
-
-              <!-- Checkboxes Chart 1 -->
-              <div class="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm justify-center">
-                <label class="flex items-center gap-1 sm:gap-2 cursor-pointer">
-                  <input type="checkbox" v-model="showCostPerKwh"
-                    class="w-3 h-3 sm:w-4 sm:h-4 rounded accent-indigo-600 cursor-pointer" />
-                  <span class="font-medium text-gray-700">
-                    <span class="inline-block w-2 sm:w-3 h-0.5 bg-indigo-600 mr-1 align-middle"></span>
-                    €/kWh
-                  </span>
-                </label>
-                <label class="flex items-center gap-1 sm:gap-2 cursor-pointer">
-                  <input type="checkbox" v-model="showKwh"
-                    class="w-3 h-3 sm:w-4 sm:h-4 rounded accent-amber-500 cursor-pointer" />
-                  <span class="font-medium text-gray-700">
-                    <span class="inline-block w-2 sm:w-3 h-0.5 bg-amber-500 mr-1 align-middle"></span>
-                    kWh
-                  </span>
-                </label>
+              <div class="flex flex-col sm:flex-row sm:items-center justify-center gap-4 sm:gap-6 mb-4 px-4 md:px-0">
+                <h2 class="text-xl font-semibold text-gray-800 text-center">Laden & Kosten</h2>
+                <div class="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm justify-center">
+                  <label class="flex items-center gap-1 sm:gap-2 cursor-pointer">
+                    <input type="checkbox" v-model="showCostPerKwh"
+                      class="w-3 h-3 sm:w-4 sm:h-4 rounded accent-indigo-600 cursor-pointer" />
+                    <span class="font-medium text-gray-700">
+                      <span class="inline-block w-2 sm:w-3 h-0.5 bg-indigo-600 mr-1 align-middle"></span>
+                      €/kWh
+                    </span>
+                  </label>
+                  <label class="flex items-center gap-1 sm:gap-2 cursor-pointer">
+                    <input type="checkbox" v-model="showKwh"
+                      class="w-3 h-3 sm:w-4 sm:h-4 rounded accent-amber-500 cursor-pointer" />
+                    <span class="font-medium text-gray-700">
+                      <span class="inline-block w-2 sm:w-3 h-0.5 bg-amber-500 mr-1 align-middle"></span>
+                      kWh
+                    </span>
+                  </label>
+                </div>
               </div>
-            </div>
-
-            <div v-if="chargingChartData && chargingChartData.datasets.length > 0" class="h-64 sm:h-72">
-              <Line :data="chargingChartData" :options="chargingChartOptions" />
-            </div>
-            <div v-else class="text-center py-10 text-gray-400 text-sm">
-              Kein Datensatz ausgewählt oder nicht genügend Daten.
-            </div>
-
-              <div class="flex flex-wrap gap-x-6 gap-y-1 mt-3 text-xs text-gray-400">
+              <div v-if="chargingChartData && chargingChartData.datasets.length > 0" class="h-64 sm:h-72">
+                <Line :data="chargingChartData" :options="chargingChartOptions" />
+              </div>
+              <div v-else class="text-center py-10 text-gray-400 text-sm px-4 md:px-0">
+                Kein Datensatz ausgewählt oder nicht genügend Daten.
+              </div>
+              <div class="flex flex-wrap gap-x-6 gap-y-1 mt-3 text-xs text-gray-400 px-4 md:px-0">
                 <span>Linke Achse: €/kWh</span>
                 <span>Rechte Achse: kWh</span>
               </div>
             </template>
           </div>
+        </div>
 
-          <!-- Chart 2: Range & Efficiency (only if distance data exists) -->
-          <div v-if="hasDistanceData" class="md:bg-gray-50 p-4 md:p-6 md:rounded-lg md:border md:border-gray-200">
-            <div v-if="!chartsReady && isInitialLoad" class="h-64 sm:h-72 bg-gray-100 animate-pulse rounded"></div>
+        <!-- Chart 2: Range & Efficiency (only if distance data exists) -->
+        <div v-if="hasDistanceData" class="border-t border-gray-100 pt-6">
+          <div class="md:bg-gray-50 py-4 md:p-6 -mx-4 md:mx-0 md:rounded-lg md:border md:border-gray-200">
+            <div v-if="!chartsReady && isInitialLoad" class="h-64 sm:h-72 bg-gray-100 animate-pulse rounded mx-4 md:mx-0"></div>
             <template v-else>
-            <div class="flex flex-col sm:flex-row sm:items-center justify-center gap-4 sm:gap-6 mb-4">
-              <h2 class="text-xl font-semibold text-gray-800 text-center">Reichweite & Effizienz</h2>
-
-              <!-- Checkboxes Chart 2 -->
-              <div class="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm justify-center">
-                <label class="flex items-center gap-1 sm:gap-2 cursor-pointer">
-                  <input type="checkbox" v-model="showConsumption"
-                    class="w-3 h-3 sm:w-4 sm:h-4 rounded accent-red-500 cursor-pointer" />
-                  <span class="font-medium text-gray-700">
-                    <span class="inline-block w-2 sm:w-3 h-0.5 bg-red-500 mr-1 align-middle"></span>
-                    kWh/100km
-                  </span>
-                </label>
-                <label class="flex items-center gap-1 sm:gap-2 cursor-pointer">
-                  <input type="checkbox" v-model="showDistance"
-                    class="w-3 h-3 sm:w-4 sm:h-4 rounded accent-emerald-500 cursor-pointer" />
-                  <span class="font-medium text-gray-700">
-                    <span class="inline-block w-2 sm:w-3 h-0.5 bg-emerald-500 mr-1 align-middle"></span>
-                    km
-                  </span>
-                </label>
+              <div class="flex flex-col sm:flex-row sm:items-center justify-center gap-4 sm:gap-6 mb-4 px-4 md:px-0">
+                <h2 class="text-xl font-semibold text-gray-800 text-center">Reichweite & Effizienz</h2>
+                <div class="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm justify-center">
+                  <label class="flex items-center gap-1 sm:gap-2 cursor-pointer">
+                    <input type="checkbox" v-model="showConsumption"
+                      class="w-3 h-3 sm:w-4 sm:h-4 rounded accent-red-500 cursor-pointer" />
+                    <span class="font-medium text-gray-700">
+                      <span class="inline-block w-2 sm:w-3 h-0.5 bg-red-500 mr-1 align-middle"></span>
+                      kWh/100km
+                    </span>
+                  </label>
+                  <label class="flex items-center gap-1 sm:gap-2 cursor-pointer">
+                    <input type="checkbox" v-model="showDistance"
+                      class="w-3 h-3 sm:w-4 sm:h-4 rounded accent-emerald-500 cursor-pointer" />
+                    <span class="font-medium text-gray-700">
+                      <span class="inline-block w-2 sm:w-3 h-0.5 bg-emerald-500 mr-1 align-middle"></span>
+                      km
+                    </span>
+                  </label>
+                </div>
               </div>
-            </div>
-
-            <div v-if="efficiencyChartData && efficiencyChartData.datasets.length > 0" class="h-64 sm:h-72">
-              <Line :data="efficiencyChartData" :options="efficiencyChartOptions" />
-            </div>
-            <div v-else class="text-center py-10 text-gray-400 text-sm">
-              Kein Datensatz ausgewählt oder nicht genügend Daten.
-            </div>
-
-              <div class="flex flex-wrap gap-x-6 gap-y-1 mt-3 text-xs text-gray-400">
+              <div v-if="efficiencyChartData && efficiencyChartData.datasets.length > 0" class="h-64 sm:h-72">
+                <Line :data="efficiencyChartData" :options="efficiencyChartOptions" />
+              </div>
+              <div v-else class="text-center py-10 text-gray-400 text-sm px-4 md:px-0">
+                Kein Datensatz ausgewählt oder nicht genügend Daten.
+              </div>
+              <div class="flex flex-wrap gap-x-6 gap-y-1 mt-3 text-xs text-gray-400 px-4 md:px-0">
                 <span>Linke Achse: kWh/100km</span>
                 <span>Rechte Achse: km</span>
               </div>
             </template>
           </div>
-
         </div>
 
         <!-- WLTP Delta Bar Chart -->
-        <div v-if="wltp && hasDistanceData && wltpChartData" class="md:bg-gray-50 p-4 md:p-6 md:rounded-lg md:border md:border-gray-200">
-          <div v-if="!chartsReady && isInitialLoad" :style="{ height: wltpChartHeight }" class="bg-gray-100 animate-pulse rounded"></div>
+        <div v-if="wltp && hasDistanceData && wltpChartData" class="border-t border-gray-100 pt-6">
+          <div class="md:bg-gray-50 py-4 md:p-6 -mx-4 md:mx-0 md:rounded-lg md:border md:border-gray-200">
+          <div v-if="!chartsReady && isInitialLoad" :style="{ height: wltpChartHeight }" class="bg-gray-100 animate-pulse rounded mx-4 md:mx-0"></div>
           <template v-else>
-          <div class="mb-4 text-center">
+          <div class="mb-4 text-center px-4 md:px-0">
             <h2 class="text-xl font-semibold text-gray-800">Verbrauch vs. WLTP</h2>
             <p class="text-xs sm:text-sm text-gray-500 mt-1">
               WLTP: <strong>{{ wltp.wltpConsumptionKwhPer100km.toFixed(1) }} kWh/100km</strong>
@@ -690,27 +740,106 @@ onMounted(fetchStatistics)
               <Bar :data="wltpChartData" :options="wltpChartOptions" />
             </div>
           </template>
+          </div>
         </div>
 
         <!-- WLTP missing hint -->
-        <div v-else-if="!wltp && hasDistanceData"
-          class="bg-amber-50 border border-amber-200 md:rounded-lg p-3 md:p-4 text-sm text-amber-700">
-          Für dieses Fahrzeug sind noch keine WLTP-Daten hinterlegt.
-          Du kannst sie in der <router-link to="/cars" class="font-semibold underline">Fahrzeugverwaltung</router-link> ergänzen und dabei 50 Watt verdienen!
+        <div v-else-if="!wltp && hasDistanceData" class="border-t border-gray-100 pt-6">
+          <div class="bg-amber-50 border border-amber-200 md:rounded-lg p-3 md:p-4 text-sm text-amber-700">
+            Für dieses Fahrzeug sind noch keine WLTP-Daten hinterlegt.
+            Du kannst sie in der <router-link to="/cars" class="font-semibold underline">Fahrzeugverwaltung</router-link> ergänzen und dabei 50 Watt verdienen!
+          </div>
         </div>
 
         <!-- Charging Heat Map -->
-        <div class="md:bg-gray-50 p-4 md:p-6 md:rounded-lg md:border md:border-gray-200 mb-20 md:mb-0">
-          <div v-if="!chartsReady && isInitialLoad" class="h-96 bg-gray-100 animate-pulse rounded"></div>
-          <template v-else>
-            <div class="mb-4">
-              <h2 class="text-xl font-semibold text-gray-800">Lade-Standorte</h2>
-              <p class="text-sm text-gray-500 mt-1">
-                Geografische Übersicht deiner Ladevorgänge · Farbcodiert nach geladener Energie (kWh)
-              </p>
-            </div>
-            <ChargingHeatMap :car-id="selectedCarId" :time-range="selectedTimeRange" />
-          </template>
+        <div class="border-t border-gray-100 pt-6">
+          <div class="md:bg-gray-50 py-4 md:p-6 -mx-4 md:mx-0 md:rounded-lg md:border md:border-gray-200 mb-20 md:mb-0">
+            <div v-if="!chartsReady && isInitialLoad" class="h-96 bg-gray-100 animate-pulse rounded mx-4 md:mx-0"></div>
+            <template v-else>
+              <div class="mb-4 px-4 md:px-0">
+                <h2 class="text-xl font-semibold text-gray-800">Lade-Standorte</h2>
+                <p class="text-sm text-gray-500 mt-1">
+                  Geografische Übersicht deiner Ladevorgänge · Farbcodiert nach geladener Energie (kWh)
+                </p>
+              </div>
+              <ChargingHeatMap :car-id="selectedCarId" :time-range="selectedTimeRange" />
+            </template>
+          </div>
+        </div>
+
+        <!-- Log List -->
+        <div ref="logsSection" class="border-t border-gray-100 pt-6 scroll-mt-4 pb-6">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-semibold text-gray-800">Deine Ladevorgänge</h2>
+            <span v-if="!logsLoading" class="text-sm text-gray-400">Seite {{ logsPage + 1 }}</span>
+          </div>
+          <div class="space-y-2">
+            <div v-if="logsLoading && logs.length === 0" class="py-8 text-center text-gray-400 text-sm">Lade...</div>
+            <template v-else-if="logs.length === 0">
+              <p class="py-8 text-center text-gray-400 text-sm">Keine Ladevorgänge vorhanden.</p>
+            </template>
+            <template v-else>
+              <div v-for="log in logs" :key="log.id"
+                class="p-3 bg-white border border-gray-200 rounded-lg space-y-2">
+                <!-- Header -->
+                <div class="flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <BoltIcon class="w-4 h-4 text-indigo-600 flex-shrink-0" />
+                    <span class="font-semibold text-indigo-700 whitespace-nowrap">{{ log.kwhCharged }} kWh</span>
+                    <span class="text-xs text-gray-400 whitespace-nowrap">{{ new Date(log.loggedAt).toLocaleDateString('de-DE') }}</span>
+                  </div>
+                  <div class="flex items-center gap-1.5 flex-shrink-0">
+                    <span v-if="log.temperatureCelsius != null" class="inline-flex items-center gap-0.5 px-2 py-0.5 bg-white border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
+                      <SunIcon class="w-3 h-3" />{{ log.temperatureCelsius.toFixed(1) }}°C
+                    </span>
+                    <span class="hidden min-[475px]:inline-block px-2 py-0.5 bg-indigo-50 border border-indigo-200 text-xs rounded-full text-indigo-700 font-medium whitespace-nowrap">
+                      €{{ (log.costEur / log.kwhCharged).toFixed(2) }}/kWh
+                    </span>
+                    <button @click="deleteLog(log.id)"
+                      class="p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition flex-shrink-0">
+                      <TrashIcon class="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+                <!-- Badges -->
+                <div class="flex flex-wrap gap-1.5">
+                  <span class="inline-flex min-[475px]:hidden items-center gap-1 px-2 py-0.5 bg-indigo-50 border border-indigo-200 rounded-full text-xs text-indigo-700 font-medium whitespace-nowrap">
+                    €{{ (log.costEur / log.kwhCharged).toFixed(2) }}/kWh
+                  </span>
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
+                    €{{ log.costEur }}
+                  </span>
+                  <span v-if="log.chargeDurationMinutes" class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
+                    <ClockIcon class="w-3 h-3" />{{ log.chargeDurationMinutes }}min
+                  </span>
+                  <span v-if="log.odometerKm" class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
+                    {{ log.odometerKm.toLocaleString('de-DE') }} km
+                  </span>
+                  <span v-if="log.socAfterChargePercent != null" class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
+                    <Battery0Icon class="w-3 h-3" />{{ log.socAfterChargePercent }}%
+                  </span>
+                  <span v-if="log.maxChargingPowerKw" class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
+                    <BoltIcon class="w-3 h-3" />{{ log.maxChargingPowerKw }} kW
+                  </span>
+                </div>
+              </div>
+            </template>
+          </div>
+          <!-- Pagination -->
+          <div class="flex items-center justify-between mt-4">
+            <button
+              @click="fetchLogs(logsPage - 1)"
+              :disabled="logsPage === 0"
+              class="flex items-center gap-1 px-3 py-2 text-sm rounded-lg border border-gray-200 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition">
+              <ChevronLeftIcon class="w-4 h-4" />Zurück
+            </button>
+            <button
+              @click="fetchLogs(logsPage + 1)"
+              :disabled="!hasMoreLogs"
+              class="flex items-center gap-1 px-3 py-2 text-sm rounded-lg border border-gray-200 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition">
+              Weiter<ChevronRightIcon class="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         <!-- Support -->

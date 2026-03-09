@@ -3,7 +3,7 @@ import { ref, onMounted, watch } from 'vue'
 import api from '../api/axios'
 import CarSelector from './CarSelector.vue'
 import OcrPhotoCapture from './OcrPhotoCapture.vue'
-import { CameraIcon, PencilSquareIcon, TrashIcon, BoltIcon, TruckIcon, ClockIcon, Battery0Icon } from '@heroicons/vue/24/outline'
+import { CameraIcon, PencilSquareIcon, TrashIcon, BoltIcon, TruckIcon, ClockIcon, Battery0Icon, SunIcon } from '@heroicons/vue/24/outline'
 import { useCoinStore } from '../stores/coins'
 import { analytics } from '../services/analytics'
 import { carService } from '../api/carService'
@@ -165,7 +165,7 @@ const fetchLogs = async () => {
   }
 
   try {
-    const res = await api.get(`/logs?carId=${selectedCarId.value}`)
+    const res = await api.get(`/logs?carId=${selectedCarId.value}&limit=5`)
     logs.value = res.data.sort((a: any, b: any) =>
       new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime()
     )
@@ -522,20 +522,24 @@ const handleOcrData = (ocrResult: any) => {
       </div>
 
       <div class="mt-10">
-      <h2 class="text-xl font-semibold mb-4 text-gray-800">Letzte Ladevorgänge</h2>
+      <h2 class="text-xl font-semibold mb-4 text-gray-800">Letzte 5 Ladevorgänge</h2>
 
       <div v-if="!selectedCarId" class="text-gray-500 text-center">Bitte wähle ein Fahrzeug aus um Ladevorgänge anzuzeigen.</div>
       <div v-else-if="logs.length === 0" class="text-gray-500 text-center">Noch keine Ladevorgänge für dieses Fahrzeug erfasst.</div>
       <ul v-else class="space-y-3">
         <li v-for="log in logs" :key="log.id" class="p-3 bg-gray-50 border border-gray-200 rounded-lg shadow-sm hover:shadow transition space-y-2">
-          <!-- Header row: kWh + price badge + delete -->
+          <!-- Header row: kWh + date | temp + price + delete -->
           <div class="flex items-center justify-between gap-2">
-            <div class="flex items-center gap-1.5">
+            <div class="flex items-center gap-2 min-w-0">
               <BoltIcon class="w-4 h-4 text-indigo-600 flex-shrink-0" />
-              <span class="font-semibold text-indigo-700">{{ log.kwhCharged }} kWh</span>
+              <span class="font-semibold text-indigo-700 whitespace-nowrap">{{ log.kwhCharged }} kWh</span>
+              <span class="text-xs text-gray-400 whitespace-nowrap">{{ new Date(log.loggedAt).toLocaleDateString('de-DE') }}</span>
             </div>
-            <div class="flex items-center gap-2 flex-shrink-0">
-              <span class="px-2 py-0.5 bg-indigo-50 border border-indigo-200 text-xs rounded-full text-indigo-700 font-medium whitespace-nowrap">
+            <div class="flex items-center gap-1.5 flex-shrink-0">
+              <span v-if="log.temperatureCelsius != null" class="inline-flex items-center gap-0.5 px-2 py-0.5 bg-white border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
+                <SunIcon class="w-3 h-3" />{{ log.temperatureCelsius.toFixed(1) }}°C
+              </span>
+              <span class="hidden min-[475px]:inline-block px-2 py-0.5 bg-indigo-50 border border-indigo-200 text-xs rounded-full text-indigo-700 font-medium whitespace-nowrap">
                 €{{ (log.costEur / log.kwhCharged).toFixed(2) }}/kWh
               </span>
               <button
@@ -552,10 +556,13 @@ const handleOcrData = (ocrResult: any) => {
             <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
               €{{ log.costEur }}
             </span>
-            <span v-if="log.chargeDurationMinutes" class="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
+            <span class="inline-flex min-[475px]:hidden items-center gap-1 px-2 py-0.5 bg-indigo-50 border border-indigo-200 rounded-full text-xs text-indigo-700 font-medium whitespace-nowrap">
+              €{{ (log.costEur / log.kwhCharged).toFixed(2) }}/kWh
+            </span>
+            <span v-if="log.chargeDurationMinutes" class="hidden min-[475px]:inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
               <ClockIcon class="w-3 h-3" />{{ log.chargeDurationMinutes }}min
             </span>
-            <span v-if="log.odometerKm" class="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
+            <span v-if="log.odometerKm" class="hidden min-[475px]:inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
               <TruckIcon class="w-3 h-3" />{{ log.odometerKm.toLocaleString('de-DE') }} km
             </span>
             <span v-if="log.socAfterChargePercent !== null" class="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">

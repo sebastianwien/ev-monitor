@@ -286,7 +286,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="relative">
+  <div class="relative isolate">
     <div v-if="loading" class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-90 z-10 rounded-lg backdrop-blur-sm">
       <div class="text-center">
         <div class="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 mb-3"></div>
