@@ -2,6 +2,11 @@ spring:
   application:
     name: ev-monitor
 
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 5MB
+
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:ev_monitor}
     username: ${DB_USER:ev_user}
