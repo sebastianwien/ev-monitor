@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.HttpClientErrorException;
 
 import java.util.List;
 import java.util.Map;
@@ -43,9 +44,15 @@ public class SpritMonitorImportController {
         try {
             List<SpritMonitorVehicleDTO> vehicles = importService.fetchVehicles(token);
             return ResponseEntity.ok(vehicles);
+        } catch (HttpClientErrorException.Unauthorized e) {
+            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                .body(Map.of("error", "Token ungültig. Bitte prüfe deinen Sprit-Monitor API Token."));
+        } catch (HttpClientErrorException e) {
+            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                .body(Map.of("error", "Sprit-Monitor API Fehler (" + e.getStatusCode().value() + "). Bitte versuche es später erneut."));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(Map.of("error", "Failed to fetch vehicles. Check your token: " + e.getMessage()));
+            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                .body(Map.of("error", "Sprit-Monitor nicht erreichbar. Bitte versuche es später erneut."));
         }
     }
 

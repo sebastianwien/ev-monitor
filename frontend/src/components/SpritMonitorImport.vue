@@ -192,7 +192,12 @@ const close = () => {
             v-model="token"
             type="text"
             placeholder="z.B. abc123xyz..."
-            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 mb-4" />
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 mb-2" />
+          <p class="text-sm text-gray-500 mb-4">
+            Den Token findest du auf Sprit-Monitor unter
+            <a href="https://www.spritmonitor.de/de/mein_account/passwort_aendern.html" target="_blank" rel="noopener noreferrer"
+              class="text-indigo-600 underline hover:text-indigo-800">Mein Konto → Passwort ändern</a>.
+          </p>
           <button
             @click="fetchVehicles"
             class="w-full px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition">
