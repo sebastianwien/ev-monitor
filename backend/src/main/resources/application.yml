@@ -99,6 +99,10 @@ app:
 spritmonitor:
   application:
     id: ${SPRITMONITOR_APPLICATION_ID:190e3b1080a39777f369a4e9875df3d7}
+  proxy:
+    enabled: ${SPRITMONITOR_PROXY_ENABLED:false}
+    host: ${SPRITMONITOR_PROXY_HOST:localhost}
+    port: ${SPRITMONITOR_PROXY_PORT:1080}
 
 # Tesla API Integration
 tesla:

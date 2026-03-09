@@ -7,8 +7,10 @@ import com.evmonitor.infrastructure.security.UserPrincipal;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.ResourceAccessException;
 
 import java.util.List;
 import java.util.Map;
@@ -16,6 +18,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/import/sprit-monitor")
+@Slf4j
 public class SpritMonitorImportController {
 
     private final SpritMonitorImportService importService;
@@ -48,9 +51,15 @@ public class SpritMonitorImportController {
             return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
                 .body(Map.of("error", "Token ungültig. Bitte prüfe deinen Sprit-Monitor API Token."));
         } catch (HttpClientErrorException e) {
+            log.warn("Sprit-Monitor API error: {} {}", e.getStatusCode().value(), e.getMessage());
             return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
                 .body(Map.of("error", "Sprit-Monitor API Fehler (" + e.getStatusCode().value() + "). Bitte versuche es später erneut."));
+        } catch (ResourceAccessException e) {
+            log.error("Sprit-Monitor not reachable (connection/timeout): {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                .body(Map.of("error", "Sprit-Monitor nicht erreichbar. Bitte versuche es später erneut."));
         } catch (Exception e) {
+            log.error("Unexpected error during Sprit-Monitor vehicle fetch", e);
             return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
                 .body(Map.of("error", "Sprit-Monitor nicht erreichbar. Bitte versuche es später erneut."));
         }

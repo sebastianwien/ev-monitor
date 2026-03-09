@@ -2,6 +2,7 @@ package com.evmonitor.infrastructure.external;
 
 import com.evmonitor.application.spritmonitor.SpritMonitorFuelingDTO;
 import com.evmonitor.application.spritmonitor.SpritMonitorVehicleDTO;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
@@ -25,7 +26,7 @@ public class SpritMonitorClient {
     private final String applicationId;
 
     public SpritMonitorClient(
-        RestTemplate restTemplate,
+        @Qualifier("spritMonitorRestTemplate") RestTemplate restTemplate,
         @Value("${spritmonitor.application.id:190e3b1080a39777f369a4e9875df3d7}") String applicationId
     ) {
         this.restTemplate = restTemplate;
