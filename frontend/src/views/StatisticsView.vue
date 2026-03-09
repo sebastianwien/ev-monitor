@@ -631,12 +631,11 @@ const deleteLog = async (id: string) => {
           <button
             @click="scrollToLogs"
             class="bg-gradient-to-br from-gray-50 to-gray-100 p-4 rounded-lg border border-gray-200 text-left hover:border-indigo-300 hover:from-indigo-50 hover:to-indigo-100 transition group">
-            <p class="text-xs text-gray-500 font-medium mb-1 group-hover:text-indigo-600">Ladevorgänge</p>
+            <p class="text-xs text-gray-500 font-medium mb-1 group-hover:text-indigo-600">Meine Ladevorgänge</p>
             <div class="flex items-center gap-1">
               <ListBulletIcon class="w-6 h-6 text-gray-700 group-hover:text-indigo-700" />
               <ChevronRightIcon class="w-4 h-4 text-gray-400 group-hover:text-indigo-500" />
             </div>
-            <p class="text-xs text-gray-400 mt-0.5 group-hover:text-indigo-500">{{ stats.totalCharges }} Einträge</p>
           </button>
         </div>
 
@@ -770,7 +769,7 @@ const deleteLog = async (id: string) => {
         <!-- Log List -->
         <div ref="logsSection" class="border-t border-gray-100 pt-6 scroll-mt-4 pb-6">
           <div class="flex items-center justify-between mb-4">
-            <h2 class="text-xl font-semibold text-gray-800">Deine Ladevorgänge</h2>
+            <h2 class="text-xl font-semibold text-gray-800">Meine Ladevorgänge</h2>
             <span v-if="!logsLoading" class="text-sm text-gray-400">Seite {{ logsPage + 1 }}</span>
           </div>
           <div class="space-y-2">
