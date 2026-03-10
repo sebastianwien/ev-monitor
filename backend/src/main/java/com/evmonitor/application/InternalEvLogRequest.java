@@ -1,20 +1,20 @@
 package com.evmonitor.application;
 
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * Request DTO for log creation by internal services (e.g., Wallbox OCPP Service).
- * Unlike the user-facing EvLogRequest, cost is optional (wallbox doesn't know tariff).
+ * Request DTO for log creation by internal services (e.g., Wallbox OCPP Service, go-e, Tesla).
+ * No @Positive constraints — we prefer storing potentially wrong data over losing it entirely.
+ * carId, userId and loggedAt remain required since without them the record is unassignable.
  */
 public record InternalEvLogRequest(
         @NotNull UUID carId,
         @NotNull UUID userId,
-        @NotNull @Positive BigDecimal kwhCharged,
-        @NotNull @Positive Integer chargeDurationMinutes,
+        BigDecimal kwhCharged,
+        Integer chargeDurationMinutes,
         @NotNull LocalDateTime loggedAt,
         String geohash,
         Integer odometerSuggestionMinKm,

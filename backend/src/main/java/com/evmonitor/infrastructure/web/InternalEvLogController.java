@@ -25,7 +25,7 @@ public class InternalEvLogController {
     }
 
     @PostMapping("/logs")
-    public ResponseEntity<EvLogResponse> createWallboxLog(@Valid @RequestBody InternalEvLogRequest request) {
+    public ResponseEntity<EvLogResponse> createWallboxLog(@RequestBody InternalEvLogRequest request) {
         EvLogResponse response = evLogService.createWallboxLog(request);
         if (response == null) {
             return ResponseEntity.ok().build(); // already imported — idempotent
