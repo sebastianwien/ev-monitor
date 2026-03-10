@@ -11,6 +11,7 @@ export interface SeasonalDistribution {
     winterPercentage: number
     summerConsumptionKwhPer100km: number | null
     winterConsumptionKwhPer100km: number | null
+    totalConsumptionKwhPer100km: number | null
     summerLogCount: number
     winterLogCount: number
 }

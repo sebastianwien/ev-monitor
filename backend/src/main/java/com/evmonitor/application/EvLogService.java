@@ -415,7 +415,7 @@ public class EvLogService {
     }
 
     /**
-     * Calculates per-log consumption (kWh/100km) for each complete log, with plausibility verdict.
+     * Calculates per-log consumption (kWh/100km) for each complete log, with a plausibility verdict.
      *
      * Two-pass algorithm:
      *   Pass 1 — compute raw consumption for every complete log (isComplete + previous log with odometer).
@@ -690,6 +690,106 @@ public class EvLogService {
 
         return totalWeightedConsumption
                 .divide(new BigDecimal(totalDistance), 2, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Result type for calculateSeasonalConsumption().
+     * Distances in km, consumptions in kWh/100km (null if no data for that season).
+     */
+    public record SeasonalConsumptionResult(
+            BigDecimal summerConsumptionKwhPer100km,
+            BigDecimal winterConsumptionKwhPer100km,
+            BigDecimal totalConsumptionKwhPer100km,  // distance-weighted total, consistent with seasonal values
+            int summerKm,
+            int winterKm,
+            int summerLogCount,
+            int winterLogCount
+    ) {}
+
+    /**
+     * Calculates seasonal (summer/winter) community consumption for a list of cars.
+     * Summer: April–September (months 4–9), Winter: October–March (months 1–3, 10–12).
+     *
+     * Uses the same SoC-based logic as calculateCommunityAvgConsumption(), bucketed by season.
+     * Fallback (kWh/distance) is applied per-car when no SoC data is available.
+     *
+     * @return SeasonalConsumptionResult with nullable consumptions if no data for a season
+     */
+    public SeasonalConsumptionResult calculateSeasonalConsumption(List<Car> cars, boolean isSeedUser) {
+        BigDecimal summerWeighted = BigDecimal.ZERO;
+        BigDecimal winterWeighted = BigDecimal.ZERO;
+        int summerKm = 0, winterKm = 0, summerLogCount = 0, winterLogCount = 0;
+
+        for (Car car : cars) {
+            List<EvLog> allLogs = evLogRepository.findAllByCarId(car.getId()).stream()
+                    .sorted(Comparator.comparing(EvLog::getLoggedAt))
+                    .collect(Collectors.toList());
+
+            List<EvLog> statsLogs = allLogs.stream()
+                    .filter(l -> isSeedUser || l.isIncludeInStatistics())
+                    .toList();
+
+            if (statsLogs.isEmpty()) continue;
+
+            // SoC path
+            Map<UUID, ConsumptionResult> perLog = calculateConsumptionPerLog(
+                    allLogs, car.getBatteryCapacityKwh(), lookupWltp(car));
+
+            boolean hasSocResult = false;
+            for (EvLog log : statsLogs) {
+                ConsumptionResult cr = perLog.get(log.getId());
+                if (cr == null || !cr.plausible()) continue;
+                hasSocResult = true;
+                int month = log.getLoggedAt().getMonthValue();
+                if (month >= 4 && month <= 9) {
+                    summerWeighted = summerWeighted.add(cr.value().multiply(new BigDecimal(cr.distanceKm())));
+                    summerKm += cr.distanceKm();
+                    summerLogCount++;
+                } else {
+                    winterWeighted = winterWeighted.add(cr.value().multiply(new BigDecimal(cr.distanceKm())));
+                    winterKm += cr.distanceKm();
+                    winterLogCount++;
+                }
+            }
+
+            // Fallback path: only used when the car has no SoC data at all
+            if (!hasSocResult) {
+                Map<UUID, Integer> distanceByLogId = computeDistanceByLogId(allLogs);
+                for (EvLog log : statsLogs) {
+                    Integer dist = distanceByLogId.get(log.getId());
+                    if (dist == null || dist <= 0) continue;
+                    double c = log.getKwhCharged().doubleValue() / dist * 100;
+                    if (c < plausibility.getAbsoluteMinKwhPer100km() || c > plausibility.getAbsoluteMaxKwhPer100km()) continue;
+                    BigDecimal consumption = BigDecimal.valueOf(c);
+                    int month = log.getLoggedAt().getMonthValue();
+                    if (month >= 4 && month <= 9) {
+                        summerWeighted = summerWeighted.add(consumption.multiply(new BigDecimal(dist)));
+                        summerKm += dist;
+                        summerLogCount++;
+                    } else {
+                        winterWeighted = winterWeighted.add(consumption.multiply(new BigDecimal(dist)));
+                        winterKm += dist;
+                        winterLogCount++;
+                    }
+                }
+            }
+        }
+
+        BigDecimal summerConsumption = summerKm > 0
+                ? summerWeighted.divide(new BigDecimal(summerKm), 2, RoundingMode.HALF_UP)
+                : null;
+        BigDecimal winterConsumption = winterKm > 0
+                ? winterWeighted.divide(new BigDecimal(winterKm), 2, RoundingMode.HALF_UP)
+                : null;
+        int totalKm = summerKm + winterKm;
+        BigDecimal totalConsumption = totalKm > 0
+                ? summerWeighted.add(winterWeighted).divide(new BigDecimal(totalKm), 2, RoundingMode.HALF_UP)
+                : null;
+
+        return new SeasonalConsumptionResult(
+                summerConsumption, winterConsumption, totalConsumption,
+                summerKm, winterKm,
+                summerLogCount, winterLogCount);
     }
 
     /**

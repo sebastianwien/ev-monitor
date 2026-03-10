@@ -40,6 +40,7 @@ public record PublicModelStatsResponse(
             int winterPercentage,      // % of driven km in winter (0-100)
             BigDecimal summerConsumptionKwhPer100km,  // avg consumption in summer (nullable)
             BigDecimal winterConsumptionKwhPer100km,  // avg consumption in winter (nullable)
+            BigDecimal totalConsumptionKwhPer100km,   // distance-weighted total across both seasons (nullable)
             int summerLogCount,        // number of logs in summer
             int winterLogCount         // number of logs in winter
     ) {}

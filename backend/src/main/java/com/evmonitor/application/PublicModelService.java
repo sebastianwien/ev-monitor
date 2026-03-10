@@ -26,20 +26,17 @@ public class PublicModelService {
     private final JpaUserRepository userRepository;
     private final CarRepository carRepository;
     private final EvLogService evLogService;
-    private final PlausibilityProperties plausibilityProperties;
 
     public PublicModelService(JpaEvLogRepository evLogRepository,
                               JpaVehicleSpecificationRepository vehicleSpecificationRepository,
                               JpaUserRepository userRepository,
                               CarRepository carRepository,
-                              EvLogService evLogService,
-                              PlausibilityProperties plausibilityProperties) {
+                              EvLogService evLogService) {
         this.evLogRepository = evLogRepository;
         this.vehicleSpecificationRepository = vehicleSpecificationRepository;
         this.userRepository = userRepository;
         this.carRepository = carRepository;
         this.evLogService = evLogService;
-        this.plausibilityProperties = plausibilityProperties;
     }
 
     @Cacheable("platformStats")
@@ -124,43 +121,23 @@ public class PublicModelService {
             avgConsumption = avgConsumption.setScale(2, RoundingMode.HALF_UP);
         }
 
-        // Fetch seasonal distribution (may be null if no odometer data)
+        // Fetch seasonal distribution via EvLogService (same SoC-based logic as overall consumption)
         // Demo Mode: If seed user, includes ALL seed data
         PublicModelStatsResponse.SeasonalDistribution seasonalDistribution = null;
-        Object[] seasonalStats = evLogRepository.findSeasonalDistributionByModel(
-                modelEnumName, isSeedUser,
-                plausibilityProperties.getAbsoluteMinKwhPer100km(),
-                plausibilityProperties.getAbsoluteMaxKwhPer100km());
-
-        if (seasonalStats != null && seasonalStats.length > 0) {
-            try {
-                // Unwrap nested array if needed (same as basicStats)
-                Object firstElement = seasonalStats[0];
-                if (firstElement instanceof Object[]) {
-                    seasonalStats = (Object[]) firstElement;
-                }
-
-                if (seasonalStats.length == 6) {
-                    long summerKm = seasonalStats[0] != null ? ((Number) seasonalStats[0]).longValue() : 0;
-                    long winterKm = seasonalStats[1] != null ? ((Number) seasonalStats[1]).longValue() : 0;
-                    BigDecimal summerConsumption = seasonalStats[2] != null ? toBigDecimal(seasonalStats[2]).setScale(1, RoundingMode.HALF_UP) : null;
-                    BigDecimal winterConsumption = seasonalStats[3] != null ? toBigDecimal(seasonalStats[3]).setScale(1, RoundingMode.HALF_UP) : null;
-                    int summerLogCount = seasonalStats[4] != null ? ((Number) seasonalStats[4]).intValue() : 0;
-                    int winterLogCount = seasonalStats[5] != null ? ((Number) seasonalStats[5]).intValue() : 0;
-
-                    long totalKm = summerKm + winterKm;
-
-                    if (totalKm > 0) {
-                        int summerPct = (int) Math.round((summerKm * 100.0) / totalKm);
-                        int winterPct = (int) Math.round((winterKm * 100.0) / totalKm);
-                        seasonalDistribution = new PublicModelStatsResponse.SeasonalDistribution(
-                                summerPct, winterPct, summerConsumption, winterConsumption,
-                                summerLogCount, winterLogCount);
-                    }
-                }
-            } catch (Exception e) {
-                log.error("Failed to parse seasonal distribution for model {}: {}", modelEnumName, e.getMessage());
-            }
+        EvLogService.SeasonalConsumptionResult seasonal = evLogService.calculateSeasonalConsumption(carsForModel, isSeedUser);
+        long totalKm = (long) seasonal.summerKm() + seasonal.winterKm();
+        if (totalKm > 0) {
+            int summerPct = (int) Math.round((seasonal.summerKm() * 100.0) / totalKm);
+            int winterPct = (int) Math.round((seasonal.winterKm() * 100.0) / totalKm);
+            seasonalDistribution = new PublicModelStatsResponse.SeasonalDistribution(
+                    summerPct, winterPct,
+                    seasonal.summerConsumptionKwhPer100km() != null
+                            ? seasonal.summerConsumptionKwhPer100km().setScale(1, RoundingMode.HALF_UP) : null,
+                    seasonal.winterConsumptionKwhPer100km() != null
+                            ? seasonal.winterConsumptionKwhPer100km().setScale(1, RoundingMode.HALF_UP) : null,
+                    seasonal.totalConsumptionKwhPer100km() != null
+                            ? seasonal.totalConsumptionKwhPer100km().setScale(1, RoundingMode.HALF_UP) : null,
+                    seasonal.summerLogCount(), seasonal.winterLogCount());
         }
 
         // Fetch WLTP variants for this model

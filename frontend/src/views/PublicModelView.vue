@@ -133,7 +133,7 @@
                   <div class="flex items-center justify-between text-sm">
                     <span class="text-gray-700 font-medium">Ø Gewichtet (Gesamt)</span>
                     <span class="font-bold text-gray-900">
-                      {{ stats.avgConsumptionKwhPer100km ? stats.avgConsumptionKwhPer100km.toFixed(1) + ' kWh/100km' : '—' }}
+                      {{ stats.seasonalDistribution!.totalConsumptionKwhPer100km != null ? stats.seasonalDistribution!.totalConsumptionKwhPer100km.toFixed(1) + ' kWh/100km' : '—' }}
                     </span>
                   </div>
                   <p class="text-xs text-gray-500 mt-1">
@@ -374,6 +374,7 @@ const showSeasonalBreakdown = computed(() => {
   // Always show seasonal breakdown if data exists
   return !!stats.value?.seasonalDistribution
 })
+
 
 const faqItems = computed(() => {
   if (!stats.value) return []
