@@ -114,6 +114,11 @@ services:
       - certbot_etc:/etc/letsencrypt
       - certbot_var:/var/lib/letsencrypt
       - certbot_webroot:/var/www/certbot
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "7"
     depends_on:
       - backend
       - wallbox-service
