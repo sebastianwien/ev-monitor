@@ -23,7 +23,8 @@ public record EvLogResponse(
         Double temperatureCelsius,
         BigDecimal consumptionKwhPer100km,   // null when no previous log with odometer+SoC
         Boolean consumptionImplausible,      // null when consumption not computed, true when flagged
-        Integer distanceSinceLastChargeKm) { // null when no previous log with odometer data
+        Integer distanceSinceLastChargeKm,   // null when no previous log with odometer data
+        Boolean consumptionIsEstimated) {    // true when calculated via kWh/distance fallback (no SoC)
 
     public static EvLogResponse fromDomain(EvLog evLog) {
         return fromDomain(evLog, null, null);
@@ -52,6 +53,7 @@ public record EvLogResponse(
                 evLog.getTemperatureCelsius(),
                 consumption != null ? consumption.value() : null,
                 consumption != null ? !consumption.plausible() : null,
-                distanceKm);
+                distanceKm,
+                consumption != null ? consumption.estimated() : null);
     }
 }

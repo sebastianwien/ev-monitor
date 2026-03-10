@@ -198,13 +198,26 @@ public class EvLogService {
                 .sorted(Comparator.comparing(EvLog::getLoggedAt))
                 .collect(Collectors.toList());
 
-        // Compute per-log consumption + plausibility on the full dataset
-        Map<UUID, ConsumptionResult> consumptionByLog = car.getBatteryCapacityKwh() != null
+        // Compute per-log consumption + plausibility on the full dataset (SoC-based)
+        Map<UUID, ConsumptionResult> consumptionByLog = new LinkedHashMap<>(car.getBatteryCapacityKwh() != null
                 ? calculateConsumptionPerLog(allLogsSorted, car.getBatteryCapacityKwh(), lookupWltp(car))
-                : Map.of();
+                : Map.of());
 
         // Distance since last charge — covers logs with odometer regardless of SoC availability
         Map<UUID, Integer> distanceByLogId = computeDistanceByLogId(allLogsSorted);
+
+        // Fallback: for logs with distance but no SoC-based consumption, estimate via kWh_charged/distance.
+        // Marked as estimated=true so the frontend can display it differently (e.g. "~16.35 kWh/100km").
+        // Less accurate than SoC-based (kWh_charged ≠ kWh_consumed), but useful when no SoC is available.
+        for (EvLog log : allLogsSorted) {
+            if (consumptionByLog.containsKey(log.getId())) continue;
+            Integer dist = distanceByLogId.get(log.getId());
+            if (dist == null || dist < plausibility.getMinTripDistanceKm()) continue;
+            double c = log.getKwhCharged().doubleValue() / dist * 100.0;
+            if (c < plausibility.getAbsoluteMinKwhPer100km() || c > plausibility.getAbsoluteMaxKwhPer100km()) continue;
+            consumptionByLog.put(log.getId(), new ConsumptionResult(
+                    BigDecimal.valueOf(c).setScale(2, RoundingMode.HALF_UP), true, dist, true));
+        }
 
         // Return the requested page, enriched with consumption and distance data
         List<EvLog> page_logs = (limit != null && limit > 0)

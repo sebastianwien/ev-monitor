@@ -898,10 +898,12 @@ const deleteLog = async (id: string) => {
                     :class="['inline-flex items-center gap-1 px-2 py-0.5 border rounded-full text-xs font-medium whitespace-nowrap',
                              log.consumptionImplausible
                                ? 'animate-pulse bg-red-100 border-red-400 text-red-700'
-                               : consumptionBadgeClass(log.consumptionKwhPer100km, stats?.avgConsumptionKwhPer100km ?? null)]"
-                    :title="log.consumptionImplausible ? 'Dieser Verbrauch weicht stark vom Muster ab. Möglicherweise fehlt ein Ladevorgang in der Lücke davor.' : undefined">
+                               : log.consumptionIsEstimated
+                                 ? 'bg-gray-50 border-gray-300 text-gray-500'
+                                 : consumptionBadgeClass(log.consumptionKwhPer100km, stats?.avgConsumptionKwhPer100km ?? null)]"
+                    :title="log.consumptionImplausible ? 'Dieser Verbrauch weicht stark vom Muster ab. Möglicherweise fehlt ein Ladevorgang in der Lücke davor.' : log.consumptionIsEstimated ? 'Schätzwert: berechnet aus geladener Energie ÷ Distanz, da kein SoC-Wert vorhanden.' : undefined">
                     <ExclamationTriangleIcon v-if="log.consumptionImplausible" class="w-3 h-3 flex-shrink-0" />
-                    {{ log.consumptionKwhPer100km }} kWh/100km
+                    {{ log.consumptionIsEstimated ? '~' : '' }}{{ log.consumptionKwhPer100km }} kWh/100km
                   </span>
                   <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
                     €{{ log.costEur }}
