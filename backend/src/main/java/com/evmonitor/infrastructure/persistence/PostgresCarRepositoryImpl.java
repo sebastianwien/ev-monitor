@@ -1,6 +1,7 @@
 package com.evmonitor.infrastructure.persistence;
 
 import com.evmonitor.domain.Car;
+import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.CarRepository;
 import org.springframework.stereotype.Component;
 
@@ -41,6 +42,13 @@ public class PostgresCarRepositoryImpl implements CarRepository {
     @Override
     public long countByUserId(UUID userId) {
         return jpaCarRepository.countByUserId(userId);
+    }
+
+    @Override
+    public List<Car> findAllByModel(CarBrand.CarModel model) {
+        return jpaCarRepository.findAllByModel(model).stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
     }
 
     @Override

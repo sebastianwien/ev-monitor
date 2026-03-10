@@ -37,6 +37,7 @@ import { consumptionBadgeClass } from '../utils/consumptionColor'
 import ConsumptionInfoBox from '../components/ConsumptionInfoBox.vue'
 import { costBadgeClass } from '../utils/costColor'
 import CarSelector from '../components/CarSelector.vue'
+import { carService } from '../api/carService'
 import ChargingHeatMap from '../components/ChargingHeatMap.vue'
 import { vehicleSpecificationService, type VehicleSpecification } from '../api/vehicleSpecificationService'
 
@@ -80,6 +81,7 @@ const chartsReady = ref(false) // Charts render after fade-in
 const isInitialLoad = ref(true) // Track if this is the first load
 const error = ref<string | null>(null)
 const cars = ref<any[]>([]) // Track available cars for empty state
+const carImageUrls = ref<Record<string, string>>({})
 
 const selectedTimeRange = ref<string>('LAST_3_MONTHS')
 const selectedGroupBy = ref<string>('DAY')
@@ -460,6 +462,12 @@ onMounted(async () => {
   try {
     const r = await api.get('/cars')
     cars.value = r.data
+    // Load images in background — non-critical
+    for (const car of r.data.filter((c: any) => c.imageUrl)) {
+      carService.getCarImageBlobUrl(car.id)
+        .then(url => { carImageUrls.value = { ...carImageUrls.value, [car.id]: url } })
+        .catch(() => {})
+    }
   } catch { /* non-critical */ }
   fetchStatistics()
 })
@@ -553,8 +561,13 @@ const deleteLog = async (id: string) => {
                     ? 'border-indigo-500 bg-indigo-50 shadow-sm'
                     : 'border-gray-200 bg-white hover:border-indigo-300 hover:bg-gray-50'
                 ]">
-                <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
-                  <TruckIcon class="w-5 h-5 text-gray-400" />
+                <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden">
+                  <img
+                    v-if="carImageUrls[car.id]"
+                    :src="carImageUrls[car.id]"
+                    :alt="car.model"
+                    class="w-full h-full object-cover" />
+                  <TruckIcon v-else class="w-5 h-5 text-gray-400" />
                 </div>
                 <div class="min-w-0">
                   <div class="flex items-center gap-2">

@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
@@ -44,9 +45,12 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
     private UUID carId;
     private String validToken;
 
+    // mainTank=1 is the default electric tank ID used in tests
+    private static final int MAIN_TANK_ID = 1;
+    private static final int QUANTITY_UNIT_KWH = 5;
+
     @BeforeEach
     void setUpTestData() {
-        // Create test user and car with unique email
         testUser = createAndSaveUser("sprit-test-" + System.nanoTime() + "@example.com");
         userId = testUser.getId();
 
@@ -60,8 +64,8 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
     void shouldFetchVehicles_FromSpritMonitor() {
         // Given: Sprit-Monitor returns electric vehicles
         List<SpritMonitorVehicleDTO> mockVehicles = List.of(
-                new SpritMonitorVehicleDTO(123, "Tesla", "Model 3", 5),
-                new SpritMonitorVehicleDTO(456, "BMW", "i4", 5)
+                new SpritMonitorVehicleDTO(123, "Tesla", "Model 3", 5, 1),
+                new SpritMonitorVehicleDTO(456, "BMW", "i4", 5, 1)
         );
 
         when(spritMonitorClient.getVehicles(validToken)).thenReturn(mockVehicles);
@@ -115,6 +119,8 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
                 new SpritMonitorFuelingDTO(
                         "15.01.2024",
                         new BigDecimal("50.0"),
+                        QUANTITY_UNIT_KWH,
+                        null,
                         new BigDecimal("12.50"),
                         60,
                         position,
@@ -123,12 +129,13 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
                 )
         );
 
-        when(spritMonitorClient.getFuelings(eq(validToken), eq(123))).thenReturn(mockFuelings);
+        when(spritMonitorClient.getFuelings(eq(validToken), eq(123), any())).thenReturn(mockFuelings);
 
         // When: POST /api/import/sprit-monitor/fuelings
         Map<String, Object> request = Map.of(
                 "token", validToken,
                 "vehicleId", 123,
+                "mainTankId", MAIN_TANK_ID,
                 "carId", carId.toString()
         );
         HttpEntity<Map<String, Object>> requestWithAuth = createAuthRequest(request, userId, testUser.getEmail());
@@ -152,7 +159,6 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
         EvLog importedLog = importedLogs.get(0);
         assertNotNull(importedLog.getGeohash(), "Geohash must be set");
         assertEquals(5, importedLog.getGeohash().length(), "Geohash must be 5 characters");
-        // Use compareTo for BigDecimal to ignore scale differences
         assertEquals(0, new BigDecimal("50.0").compareTo(importedLog.getKwhCharged()));
         assertEquals(0, new BigDecimal("12.50").compareTo(importedLog.getCostEur()));
     }
@@ -164,6 +170,8 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
                 new SpritMonitorFuelingDTO(
                         "15.01.2024",
                         new BigDecimal("50.0"),
+                        QUANTITY_UNIT_KWH,
+                        null,
                         new BigDecimal("12.50"),
                         60,
                         null, // No GPS position
@@ -172,12 +180,13 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
                 )
         );
 
-        when(spritMonitorClient.getFuelings(eq(validToken), eq(123))).thenReturn(mockFuelings);
+        when(spritMonitorClient.getFuelings(eq(validToken), eq(123), any())).thenReturn(mockFuelings);
 
         // When: Import fuelings
         Map<String, Object> request = Map.of(
                 "token", validToken,
                 "vehicleId", 123,
+                "mainTankId", MAIN_TANK_ID,
                 "carId", carId.toString()
         );
         HttpEntity<Map<String, Object>> requestWithAuth = createAuthRequest(request, userId, testUser.getEmail());
@@ -199,50 +208,52 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void shouldSkipFuelings_WithNonKwhUnit() {
+        // Given: Fuelings with non-kWh unit (e.g. liters) must be skipped
+        List<SpritMonitorFuelingDTO> mockFuelings = List.of(
+                new SpritMonitorFuelingDTO("15.01.2024", new BigDecimal("50.0"), 1 /* Liter */, null, new BigDecimal("12.50"), 60, null, null, null),
+                new SpritMonitorFuelingDTO("20.01.2024", new BigDecimal("30.0"), QUANTITY_UNIT_KWH, null, new BigDecimal("9.00"), 45, null, null, null)
+        );
+
+        when(spritMonitorClient.getFuelings(eq(validToken), eq(123), any())).thenReturn(mockFuelings);
+
+        Map<String, Object> request = Map.of("token", validToken, "vehicleId", 123, "mainTankId", MAIN_TANK_ID, "carId", carId.toString());
+        HttpEntity<Map<String, Object>> requestWithAuth = createAuthRequest(request, userId, testUser.getEmail());
+
+        ResponseEntity<ImportResult> response = restTemplate.exchange(
+                "/api/import/sprit-monitor/fuelings", HttpMethod.POST, requestWithAuth, ImportResult.class);
+
+        // Then: Only kWh entry imported, liter entry skipped
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(1, response.getBody().getImported());
+        assertEquals(1, response.getBody().getSkipped());
+    }
+
+    @Test
     void shouldHandlePartialImportFailure() {
-        // Given: Some fuelings are valid, some are invalid
+        // Given: One valid fueling, one with invalid date
         SpritMonitorFuelingDTO.Position position = new SpritMonitorFuelingDTO.Position(
                 new BigDecimal("52.5200"),
                 new BigDecimal("13.4050")
         );
 
         List<SpritMonitorFuelingDTO> mockFuelings = List.of(
-                new SpritMonitorFuelingDTO(
-                        "15.01.2024",
-                        new BigDecimal("50.0"),
-                        new BigDecimal("12.50"),
-                        60,
-                        position,
-                        null,
-                        null
-                ),
-                new SpritMonitorFuelingDTO(
-                        "invalid-date-format", // Invalid date!
-                        new BigDecimal("30.0"),
-                        new BigDecimal("9.00"),
-                        45,
-                        position,
-                        null,
-                        null
-                )
+                new SpritMonitorFuelingDTO("15.01.2024", new BigDecimal("50.0"), QUANTITY_UNIT_KWH, null, new BigDecimal("12.50"), 60, position, null, null),
+                new SpritMonitorFuelingDTO("invalid-date-format", new BigDecimal("30.0"), QUANTITY_UNIT_KWH, null, new BigDecimal("9.00"), 45, position, null, null)
         );
 
-        when(spritMonitorClient.getFuelings(eq(validToken), eq(123))).thenReturn(mockFuelings);
+        when(spritMonitorClient.getFuelings(eq(validToken), eq(123), any())).thenReturn(mockFuelings);
 
-        // When: Import fuelings
         Map<String, Object> request = Map.of(
                 "token", validToken,
                 "vehicleId", 123,
+                "mainTankId", MAIN_TANK_ID,
                 "carId", carId.toString()
         );
         HttpEntity<Map<String, Object>> requestWithAuth = createAuthRequest(request, userId, testUser.getEmail());
 
         ResponseEntity<ImportResult> response = restTemplate.exchange(
-                "/api/import/sprit-monitor/fuelings",
-                HttpMethod.POST,
-                requestWithAuth,
-                ImportResult.class
-        );
+                "/api/import/sprit-monitor/fuelings", HttpMethod.POST, requestWithAuth, ImportResult.class);
 
         // Then: Partial import (1 success, 1 error)
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -258,6 +269,7 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
         Map<String, Object> request = Map.of(
                 "token", validToken,
                 "vehicleId", 123,
+                "mainTankId", MAIN_TANK_ID,
                 "carId", carId.toString()
         );
 
@@ -301,40 +313,35 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void shouldImportMultipleFuelings() {
-        // Given: Multiple fuelings
+        // Given: Multiple fuelings in kWh
         SpritMonitorFuelingDTO.Position position = new SpritMonitorFuelingDTO.Position(
                 new BigDecimal("52.5200"),
                 new BigDecimal("13.4050")
         );
 
         List<SpritMonitorFuelingDTO> mockFuelings = List.of(
-                new SpritMonitorFuelingDTO("15.01.2024", new BigDecimal("50.0"), new BigDecimal("12.50"), 60, position, null, null),
-                new SpritMonitorFuelingDTO("20.01.2024", new BigDecimal("30.0"), new BigDecimal("9.00"), 45, position, null, null),
-                new SpritMonitorFuelingDTO("25.01.2024", new BigDecimal("40.0"), new BigDecimal("10.00"), 50, position, null, null)
+                new SpritMonitorFuelingDTO("15.01.2024", new BigDecimal("50.0"), QUANTITY_UNIT_KWH, null, new BigDecimal("12.50"), 60, position, null, null),
+                new SpritMonitorFuelingDTO("20.01.2024", new BigDecimal("30.0"), QUANTITY_UNIT_KWH, null, new BigDecimal("9.00"), 45, position, null, null),
+                new SpritMonitorFuelingDTO("25.01.2024", new BigDecimal("40.0"), QUANTITY_UNIT_KWH, null, new BigDecimal("10.00"), 50, position, null, null)
         );
 
-        when(spritMonitorClient.getFuelings(eq(validToken), eq(123))).thenReturn(mockFuelings);
+        when(spritMonitorClient.getFuelings(eq(validToken), eq(123), any())).thenReturn(mockFuelings);
 
-        // When: Import fuelings
         Map<String, Object> request = Map.of(
                 "token", validToken,
                 "vehicleId", 123,
+                "mainTankId", MAIN_TANK_ID,
                 "carId", carId.toString()
         );
         HttpEntity<Map<String, Object>> requestWithAuth = createAuthRequest(request, userId, testUser.getEmail());
 
         ResponseEntity<ImportResult> response = restTemplate.exchange(
-                "/api/import/sprit-monitor/fuelings",
-                HttpMethod.POST,
-                requestWithAuth,
-                ImportResult.class
-        );
+                "/api/import/sprit-monitor/fuelings", HttpMethod.POST, requestWithAuth, ImportResult.class);
 
         // Then: All fuelings imported
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(3, response.getBody().getImported());
 
-        // Verify all logs in database
         List<EvLog> importedLogs = evLogRepository.findAllByCarId(carId);
         assertEquals(3, importedLogs.size());
     }

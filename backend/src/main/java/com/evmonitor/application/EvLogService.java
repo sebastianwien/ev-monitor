@@ -616,6 +616,83 @@ public class EvLogService {
     }
 
     /**
+     * Calculates the community average consumption (kWh/100km) for a list of cars.
+     *
+     * Uses the same logic as per-user statistics (SoC-based → fallback), applied per car.
+     * Results are distance-weighted across all cars to give a fair community average.
+     *
+     * isSeedUser=true: includes all logs (for demo mode).
+     * isSeedUser=false: only logs with includeInStatistics=true.
+     *
+     * Trips with implausible consumption (outside absoluteMin/Max) are excluded
+     * in the fallback path via per-trip filtering with PlausibilityProperties.
+     *
+     * @return distance-weighted avg kWh/100km, or null if no valid data
+     */
+    public BigDecimal calculateCommunityAvgConsumption(List<Car> cars, boolean isSeedUser) {
+        BigDecimal totalWeightedConsumption = BigDecimal.ZERO;
+        int totalDistance = 0;
+
+        for (Car car : cars) {
+            List<EvLog> allLogs = evLogRepository.findAllByCarId(car.getId()).stream()
+                    .sorted(Comparator.comparing(EvLog::getLoggedAt))
+                    .collect(Collectors.toList());
+
+            List<EvLog> statsLogs = allLogs.stream()
+                    .filter(l -> isSeedUser || l.isIncludeInStatistics())
+                    .toList();
+
+            if (statsLogs.isEmpty()) continue;
+
+            Map<UUID, Integer> distanceByLogId = computeDistanceByLogId(allLogs);
+
+            List<EvLog> logsWithDistance = statsLogs.stream()
+                    .filter(l -> distanceByLogId.containsKey(l.getId()))
+                    .collect(Collectors.toList());
+
+            if (logsWithDistance.isEmpty()) continue;
+
+            int carDistance = logsWithDistance.stream()
+                    .mapToInt(l -> distanceByLogId.get(l.getId())).sum();
+
+            // SoC-based calculation (most accurate, requires socAfterChargePercent)
+            BigDecimal carConsumption = calculateConsumptionWithSoc(
+                    allLogs, logsWithDistance, car.getBatteryCapacityKwh(), lookupWltp(car));
+
+            // Fallback: simple kWh/distance, but filter implausible trips first
+            if (carConsumption == null) {
+                List<EvLog> plausibleLogs = logsWithDistance.stream()
+                        .filter(l -> {
+                            int dist = distanceByLogId.get(l.getId());
+                            double consumption = l.getKwhCharged().doubleValue() / dist * 100;
+                            return consumption >= plausibility.getAbsoluteMinKwhPer100km()
+                                    && consumption <= plausibility.getAbsoluteMaxKwhPer100km();
+                        })
+                        .collect(Collectors.toList());
+
+                if (plausibleLogs.isEmpty()) continue;
+
+                int plausibleDistance = plausibleLogs.stream()
+                        .mapToInt(l -> distanceByLogId.get(l.getId())).sum();
+                carConsumption = calculateConsumptionFallback(
+                        plausibleLogs, new BigDecimal(plausibleDistance));
+                carDistance = plausibleDistance;
+            }
+
+            if (carConsumption != null && carDistance > 0) {
+                totalWeightedConsumption = totalWeightedConsumption
+                        .add(carConsumption.multiply(new BigDecimal(carDistance)));
+                totalDistance += carDistance;
+            }
+        }
+
+        if (totalDistance == 0) return null;
+
+        return totalWeightedConsumption
+                .divide(new BigDecimal(totalDistance), 2, RoundingMode.HALF_UP);
+    }
+
+    /**
      * Group charges by time period (DAY, WEEK, MONTH) and aggregate metrics.
      */
     private List<EvLogStatisticsResponse.ChargeDataPoint> groupChargesByPeriod(

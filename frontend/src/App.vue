@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from './stores/auth'
 import { useCoinStore } from './stores/coins'
@@ -48,7 +48,16 @@ onMounted(() => {
   captureUtmParams()
 })
 
+// Impersonation
+const impersonatingAs = computed(() => sessionStorage.getItem('impersonating'))
+
+const stopImpersonation = () => {
+  sessionStorage.removeItem('impersonating')
+  authStore.logout()
+}
+
 const handleLogout = () => {
+  sessionStorage.removeItem('impersonating')
   authStore.logout()
   mobileMenuOpen.value = false
 }
@@ -357,6 +366,18 @@ const closeMobileMenu = () => {
         </div>
       </div>
     </Transition>
+    <!-- Impersonation Banner -->
+    <div
+      v-if="impersonatingAs"
+      class="sticky top-0 z-50 flex items-center justify-between px-4 py-2 bg-amber-400 text-amber-900 text-sm font-medium">
+      <span>Impersonation aktiv: <strong>{{ impersonatingAs }}</strong> · Token läuft in 1h ab</span>
+      <button
+        @click="stopImpersonation"
+        class="px-3 py-1 bg-amber-900 text-amber-100 rounded-md hover:bg-amber-800 transition text-xs font-semibold">
+        Beenden
+      </button>
+    </div>
+
     <!-- Demo Banner (shown for seed/demo accounts) -->
     <DemoBanner v-if="authStore.isDemoAccount" />
     <main :class="{ 'md:py-10 md:px-4': authStore.isAuthenticated() }">

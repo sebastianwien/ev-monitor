@@ -52,6 +52,24 @@ public class JwtService {
                 .compact();
     }
 
+    public String generateImpersonationToken(UserDetails userDetails) {
+        Map<String, Object> claims = new HashMap<>();
+        if (userDetails instanceof UserPrincipal principal) {
+            claims.put("userId", principal.getUser().getId().toString());
+            claims.put("username", principal.getUser().getUsername());
+            claims.put("demoAccount", principal.getUser().isSeedData());
+        }
+        claims.put("impersonatedBy", "admin");
+        long oneHourMs = 3_600_000L;
+        return Jwts.builder()
+                .claims(claims)
+                .subject(userDetails.getUsername())
+                .issuedAt(new Date(System.currentTimeMillis()))
+                .expiration(new Date(System.currentTimeMillis() + oneHourMs))
+                .signWith(getSigningKey())
+                .compact();
+    }
+
     public String generateUnsubscribeToken(String email) {
         return Jwts.builder()
                 .subject(email)

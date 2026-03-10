@@ -24,6 +24,7 @@ import UpgradeSuccessView from '../views/UpgradeSuccessView.vue';
 import UpgradeCancelView from '../views/UpgradeCancelView.vue';
 import ForgotPasswordView from '../views/ForgotPasswordView.vue';
 import ResetPasswordView from '../views/ResetPasswordView.vue';
+import AdminImpersonateView from '../views/AdminImpersonateView.vue';
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
@@ -175,6 +176,12 @@ const router = createRouter({
             name: 'terms',
             component: TermsView
             // no auth guard - public page for legal info (legacy)
+        },
+        {
+            path: '/admin',
+            name: 'admin-impersonate',
+            component: AdminImpersonateView
+            // no auth guard - secured by internal token in the form
         },
         {
             path: '/:pathMatch(.*)*',

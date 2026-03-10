@@ -1,6 +1,8 @@
 package com.evmonitor.application;
 
+import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarBrand;
+import com.evmonitor.domain.CarRepository;
 import com.evmonitor.infrastructure.persistence.JpaEvLogRepository;
 import com.evmonitor.infrastructure.persistence.JpaUserRepository;
 import com.evmonitor.infrastructure.persistence.JpaVehicleSpecificationRepository;
@@ -22,13 +24,22 @@ public class PublicModelService {
     private final JpaEvLogRepository evLogRepository;
     private final JpaVehicleSpecificationRepository vehicleSpecificationRepository;
     private final JpaUserRepository userRepository;
+    private final CarRepository carRepository;
+    private final EvLogService evLogService;
+    private final PlausibilityProperties plausibilityProperties;
 
     public PublicModelService(JpaEvLogRepository evLogRepository,
                               JpaVehicleSpecificationRepository vehicleSpecificationRepository,
-                              JpaUserRepository userRepository) {
+                              JpaUserRepository userRepository,
+                              CarRepository carRepository,
+                              EvLogService evLogService,
+                              PlausibilityProperties plausibilityProperties) {
         this.evLogRepository = evLogRepository;
         this.vehicleSpecificationRepository = vehicleSpecificationRepository;
         this.userRepository = userRepository;
+        this.carRepository = carRepository;
+        this.evLogService = evLogService;
+        this.plausibilityProperties = plausibilityProperties;
     }
 
     @Cacheable("platformStats")
@@ -105,10 +116,10 @@ public class PublicModelService {
             }
         }
 
-        // Fetch consumption (may be null if no odometer data)
+        // Fetch consumption via EvLogService (authoritative calculation, same logic as user stats)
         // Demo Mode: If seed user, includes ALL seed data
-        BigDecimal avgConsumption = evLogRepository.findAvgConsumptionByModel(
-                modelEnumName, isSeedUser);
+        List<Car> carsForModel = carRepository.findAllByModel(carModel);
+        BigDecimal avgConsumption = evLogService.calculateCommunityAvgConsumption(carsForModel, isSeedUser);
         if (avgConsumption != null) {
             avgConsumption = avgConsumption.setScale(2, RoundingMode.HALF_UP);
         }
@@ -117,7 +128,9 @@ public class PublicModelService {
         // Demo Mode: If seed user, includes ALL seed data
         PublicModelStatsResponse.SeasonalDistribution seasonalDistribution = null;
         Object[] seasonalStats = evLogRepository.findSeasonalDistributionByModel(
-                modelEnumName, isSeedUser);
+                modelEnumName, isSeedUser,
+                plausibilityProperties.getAbsoluteMinKwhPer100km(),
+                plausibilityProperties.getAbsoluteMaxKwhPer100km());
 
         if (seasonalStats != null && seasonalStats.length > 0) {
             try {

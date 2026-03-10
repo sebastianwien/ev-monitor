@@ -5,7 +5,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -58,36 +57,6 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
             @Param("isSeedUser") boolean isSeedUser);
 
     /**
-     * Average real-world consumption from consecutive odometer readings.
-     * Demo Mode: If isSeedUser=true, includes ALL seed data (from all seed users).
-     * Uses LAG() window function to compute km driven between charges.
-     * Sanity filter: only 5–2000 km between consecutive charges (filters outliers).
-     */
-    @Query(value = """
-            WITH log_pairs AS (
-                SELECT
-                    l.kwh_charged,
-                    l.odometer_km,
-                    LAG(l.odometer_km) OVER (PARTITION BY l.car_id ORDER BY l.logged_at) AS prev_odometer
-                FROM ev_log l
-                JOIN car c ON c.id = l.car_id
-                WHERE c.model = :model
-                  AND (l.include_in_statistics = true
-                       OR (:isSeedUser = true
-                           AND c.user_id IN (SELECT id FROM app_user WHERE is_seed_data = true)))
-                  AND l.odometer_km IS NOT NULL
-            )
-            SELECT AVG(kwh_charged / (odometer_km - prev_odometer) * 100)
-            FROM log_pairs
-            WHERE prev_odometer IS NOT NULL
-              AND (odometer_km - prev_odometer) BETWEEN 5 AND 2000
-              AND (kwh_charged / (odometer_km - prev_odometer) * 100) BETWEEN 10 AND 40
-            """, nativeQuery = true)
-    BigDecimal findAvgConsumptionByModel(
-            @Param("model") String model,
-            @Param("isSeedUser") boolean isSeedUser);
-
-    /**
      * Seasonal breakdown: km driven, consumption, and log count per season.
      * Returns: [summerKm, winterKm, summerConsumption, winterConsumption, summerLogCount, winterLogCount]
      * Summer: Apr-Sep (months 4-9), Winter: Oct-Mar (months 1-3, 10-12)
@@ -119,7 +88,7 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
                 FROM log_pairs
                 WHERE prev_odometer IS NOT NULL
                   AND (odometer_km - prev_odometer) BETWEEN 5 AND 2000
-                  AND (kwh_charged / (odometer_km - prev_odometer) * 100) BETWEEN 10 AND 40
+                  AND (kwh_charged / (odometer_km - prev_odometer) * 100) BETWEEN :minKwhPer100km AND :maxKwhPer100km
             )
             SELECT
                 COALESCE(SUM(CASE WHEN season = 'SUMMER' THEN km_driven ELSE 0 END), 0) AS summer_km,
@@ -132,5 +101,7 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
             """, nativeQuery = true)
     Object[] findSeasonalDistributionByModel(
             @Param("model") String model,
-            @Param("isSeedUser") boolean isSeedUser);
+            @Param("isSeedUser") boolean isSeedUser,
+            @Param("minKwhPer100km") double minKwhPer100km,
+            @Param("maxKwhPer100km") double maxKwhPer100km);
 }
