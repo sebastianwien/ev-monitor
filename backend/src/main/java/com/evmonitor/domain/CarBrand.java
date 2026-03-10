@@ -122,7 +122,7 @@ public enum CarBrand {
       BYD_DOLPHIN(CarBrand.BYD, "Dolphin", 44.9, 60.4),
       MG4(CarBrand.MG, "MG4", 51.0, 64.0, 77.0),
       NIO_ET5(CarBrand.NIO, "ET5", 75.0, 100.0, 150.0), // 150 kWh Solid-State!
-      XPENG_G6(CarBrand.XPENG, "G6", 66.0, 87.5),
+      XPENG_G6(CarBrand.XPENG, "G6", 66.0, 80.0, 87.5), // 80.0 = chinesische Variante
 
       // --- MERCEDES (Luxus-Kapazitäten) ---
       EQA(CarBrand.MERCEDES, "EQA", 66.5, 70.5),
