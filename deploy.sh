@@ -9,30 +9,6 @@ echo "🚀 EV Monitor Deployment"
 echo "========================"
 echo ""
 
-# Pull wallbox service repo if it exists alongside this repo
-WALLBOX_DIR="$(cd "$(dirname "$0")/.." && pwd)/ev-monitor-wallbox"
-if [ -d "$WALLBOX_DIR/.git" ]; then
-  echo "🔄 Pulling Wallbox Service..."
-  git -C "$WALLBOX_DIR" pull origin main
-  echo ""
-else
-  echo "⚠️  Wallbox repo not found at $WALLBOX_DIR — skipping wallbox pull"
-  echo "   Clone it: git clone git@github.com:YOUR_ORG/ev-monitor-wallbox.git $WALLBOX_DIR"
-  echo ""
-fi
-
-# Pull connectors service repo if it exists alongside this repo
-CONNECTORS_DIR="$(cd "$(dirname "$0")/.." && pwd)/ev-monitor-connectors"
-if [ -d "$CONNECTORS_DIR/.git" ]; then
-  echo "🔄 Pulling Connectors Service..."
-  git -C "$CONNECTORS_DIR" pull origin main
-  echo ""
-else
-  echo "⚠️  Connectors repo not found at $CONNECTORS_DIR — skipping connectors pull"
-  echo "   Clone it: git clone git@github.com:YOUR_ORG/ev-monitor-connectors.git $CONNECTORS_DIR"
-  echo ""
-fi
-
 # Check if .env file exists
 if [ ! -f .env ]; then
   echo "❌ ERROR: .env file missing!"
