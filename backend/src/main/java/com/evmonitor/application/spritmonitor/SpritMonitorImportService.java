@@ -141,6 +141,7 @@ public class SpritMonitorImportService {
         BigDecimal costEur = fueling.cost() != null ? fueling.cost() : BigDecimal.ZERO;
         Integer durationMinutes = fueling.chargingDuration() != null ? fueling.chargingDuration() : 0;
         Integer odometerKm = fueling.odometer() != null ? fueling.odometer().intValue() : null;
+        Integer socAfterChargePercent = fueling.percent() != null ? fueling.percent().intValue() : null;
 
         return EvLog.createNewWithSource(
             carId,
@@ -149,8 +150,8 @@ public class SpritMonitorImportService {
             durationMinutes,
             geohash,
             odometerKm,
-            null,
-            null, // socAfterChargePercent
+            fueling.chargingPower(),
+            socAfterChargePercent,
             loggedAt,
             DATA_SOURCE
         );

@@ -13,6 +13,9 @@ public record SpritMonitorFuelingDTO(
     BigDecimal cost,
     @JsonProperty("charging_duration")
     Integer chargingDuration,
+    BigDecimal percent,          // SoC after charging in % (0-100), EV only
+    @JsonProperty("charging_power")
+    BigDecimal chargingPower,    // max charging power in kW, EV only
     Position position,
     String stationname,
     String note

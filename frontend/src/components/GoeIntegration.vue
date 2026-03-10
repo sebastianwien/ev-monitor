@@ -105,7 +105,7 @@ function carStateBadgeClass(state: number) {
           <ExclamationTriangleIcon class="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
           <p class="text-xs text-amber-800">
             Cloud API nicht aktiviert. Aktiviere sie in der go-e App unter
-            <strong>Einstellungen → Internet → Cloud API</strong> — danach verbindet sich der Charger automatisch innerhalb von 5 Minuten.
+            <strong>Einstellungen → Internet → Cloud API</strong> — danach verbindet sich der Charger automatisch innerhalb weniger Minuten.
           </p>
         </div>
         <!-- Other poll errors -->
