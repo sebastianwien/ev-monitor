@@ -18,6 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import java.math.BigDecimal;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -464,14 +465,15 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void shouldImportMultipleChargings_OnSameDay() {
-        // Given: Two charges on the same day — the classic "ecocad156 bug"
-        // Before the fix, both got loggedAt = 00:00:00 → second charge was skipped as duplicate
+    void shouldImportMultipleChargings_OnSameDay_InOdometerAscOrder() {
+        // Given: Two charges on the same day — SpritMonitor returns them newest-first (odometer DESC)
+        // The fix must sort them ASC so that lower odometer (= earlier charge) gets 00:00:00
         List<SpritMonitorFuelingDTO> mockFuelings = List.of(
+                // SpritMonitor order: higher odometer first (newest-first)
                 new SpritMonitorFuelingDTO("15.11.2025", new BigDecimal("27.0"), QUANTITY_UNIT_KWH,
-                        null, new BigDecimal("8.00"), 30, null, null, null, null, null),
-                new SpritMonitorFuelingDTO("15.11.2025", new BigDecimal("45.0"), QUANTITY_UNIT_KWH,
-                        null, new BigDecimal("13.00"), 60, null, null, null, null, null)
+                        new BigDecimal("13978"), new BigDecimal("10.50"), 30, null, null, null, null, null),
+                new SpritMonitorFuelingDTO("15.11.2025", new BigDecimal("79.0"), QUANTITY_UNIT_KWH,
+                        new BigDecimal("13703"), new BigDecimal("30.71"), 60, null, null, null, null, null)
         );
 
         when(spritMonitorClient.getFuelings(eq(validToken), eq(123), any())).thenReturn(mockFuelings);
@@ -495,12 +497,14 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
         List<EvLog> importedLogs = evLogRepository.findAllByCarId(carId);
         assertEquals(2, importedLogs.size(), "Both same-day charges must be persisted");
 
-        // Timestamps must be distinct (00:00:00 and 00:00:01)
-        long distinctTimestamps = importedLogs.stream()
-                .map(EvLog::getLoggedAt)
-                .distinct()
-                .count();
-        assertEquals(2, distinctTimestamps, "Same-day charges must have unique timestamps");
+        // THE CRITICAL ASSERTION: lower odometer (earlier charge) must get 00:00:00
+        List<EvLog> sorted = importedLogs.stream()
+                .sorted(Comparator.comparing(EvLog::getLoggedAt))
+                .toList();
+        assertEquals(13703, sorted.get(0).getOdometerKm(),
+                "Earlier charge (lower odometer) must be at 00:00:00");
+        assertEquals(13978, sorted.get(1).getOdometerKm(),
+                "Later charge (higher odometer) must be at 00:00:01");
     }
 
     @Test

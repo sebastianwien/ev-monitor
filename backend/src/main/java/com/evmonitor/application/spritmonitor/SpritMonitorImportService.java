@@ -17,6 +17,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -82,11 +84,27 @@ public class SpritMonitorImportService {
             int tankId = spritMonitorMainTankId != null ? spritMonitorMainTankId : 1;
             List<SpritMonitorFuelingDTO> fuelings = client.getFuelings(token, spritMonitorVehicleId, tankId);
 
+            // Sort by date ASC, then by odometer ASC (nulls last) so that same-day charges
+            // are processed in chronological order. SpritMonitor returns them newest-first,
+            // which would produce reversed timestamps without this sort.
+            // Defensive: unparseable dates sort to the end so the per-fueling error handler catches them.
+            List<SpritMonitorFuelingDTO> sortedFuelings = fuelings.stream()
+                    .sorted(Comparator
+                            .comparing((SpritMonitorFuelingDTO f) -> {
+                                try {
+                                    return LocalDate.parse(f.date(), DD_MM_YYYY);
+                                } catch (Exception e) {
+                                    return LocalDate.MAX;
+                                }
+                            })
+                            .thenComparing(f -> f.odometer() != null ? f.odometer() : new BigDecimal(Long.MAX_VALUE)))
+                    .toList();
+
             // Track how many kWh fuelings we've seen per date to make timestamps unique
             // (multiple charges on the same day → 00:00:00, 00:00:01, 00:00:02 …)
             Map<String, Integer> perDateCounter = new HashMap<>();
 
-            for (SpritMonitorFuelingDTO fueling : fuelings) {
+            for (SpritMonitorFuelingDTO fueling : sortedFuelings) {
                 try {
                     // Skip entries not in kWh — could be liters, kg, etc. from non-EV tanks
                     if (!fueling.isKwh()) {
