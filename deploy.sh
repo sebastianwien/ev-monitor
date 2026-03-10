@@ -88,12 +88,18 @@ if [ ! -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ] && [ "$DOMAIN" != "loc
 fi
 
 # Deploy
-echo "🐳 Building containers (old containers still running)..."
-docker compose build
+# Note: only build and recreate services owned by this repo.
+# connectors-service and wallbox-service have their own deploy pipelines.
+echo "🐳 Building backend + nginx..."
+docker compose build backend nginx
 
 echo ""
-echo "🔄 Switching to new containers..."
-docker compose up -d --force-recreate --remove-orphans
+echo "🔄 Ensuring db + certbot are running..."
+docker compose up -d db certbot
+
+echo ""
+echo "🔄 Switching to new backend + nginx containers..."
+docker compose up -d --force-recreate backend nginx
 
 echo ""
 echo "⏳ Waiting for services to start..."
