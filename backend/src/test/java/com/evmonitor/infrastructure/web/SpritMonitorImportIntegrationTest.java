@@ -25,6 +25,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -309,6 +310,109 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, response.getStatusCode());
         assertNotNull(response.getBody());
         assertTrue(response.getBody().containsKey("error"));
+    }
+
+    @Test
+    void shouldImportOdometerValue() {
+        // Given: Fueling with odometer value — this was the bug: odometer was always null before the fix
+        List<SpritMonitorFuelingDTO> mockFuelings = List.of(
+                new SpritMonitorFuelingDTO(
+                        "15.01.2024",
+                        new BigDecimal("55.0"),
+                        QUANTITY_UNIT_KWH,
+                        new BigDecimal("42350.7"), // 42350 km on the odometer
+                        new BigDecimal("14.00"),
+                        75,
+                        null,
+                        null,
+                        null
+                )
+        );
+
+        when(spritMonitorClient.getFuelings(eq(validToken), eq(123), any())).thenReturn(mockFuelings);
+
+        Map<String, Object> request = Map.of(
+                "token", validToken,
+                "vehicleId", 123,
+                "mainTankId", MAIN_TANK_ID,
+                "carId", carId.toString()
+        );
+        HttpEntity<Map<String, Object>> requestWithAuth = createAuthRequest(request, userId, testUser.getEmail());
+
+        ResponseEntity<ImportResult> response = restTemplate.exchange(
+                "/api/import/sprit-monitor/fuelings", HttpMethod.POST, requestWithAuth, ImportResult.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(1, response.getBody().getImported());
+
+        // THE CRITICAL ASSERTION: odometer must not be null after the fix
+        List<EvLog> importedLogs = evLogRepository.findAllByCarId(carId);
+        assertEquals(1, importedLogs.size());
+        assertEquals(42350, importedLogs.get(0).getOdometerKm(),
+                "Odometer must be mapped from SpritMonitor (was always null before the fix)");
+    }
+
+    @Test
+    void shouldForwardCorrectTankIdToClient() {
+        // Given: User has EV tank with ID=3 (not the default tank 1)
+        int electricTankId = 3;
+        List<SpritMonitorFuelingDTO> mockFuelings = List.of(
+                new SpritMonitorFuelingDTO("15.01.2024", new BigDecimal("50.0"), QUANTITY_UNIT_KWH,
+                        null, new BigDecimal("12.50"), 60, null, null, null)
+        );
+
+        when(spritMonitorClient.getFuelings(eq(validToken), eq(123), eq(electricTankId))).thenReturn(mockFuelings);
+
+        Map<String, Object> request = Map.of(
+                "token", validToken,
+                "vehicleId", 123,
+                "mainTankId", electricTankId,
+                "carId", carId.toString()
+        );
+        HttpEntity<Map<String, Object>> requestWithAuth = createAuthRequest(request, userId, testUser.getEmail());
+
+        ResponseEntity<ImportResult> response = restTemplate.exchange(
+                "/api/import/sprit-monitor/fuelings", HttpMethod.POST, requestWithAuth, ImportResult.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(1, response.getBody().getImported(), "Fueling must be imported via tank ID 3");
+
+        // Verify client was called with the correct non-default tank ID
+        verify(spritMonitorClient).getFuelings(eq(validToken), eq(123), eq(electricTankId));
+    }
+
+    @Test
+    void shouldSkipDuplicateFuelings_OnReimport() {
+        // Given: One fueling already imported
+        List<SpritMonitorFuelingDTO> mockFuelings = List.of(
+                new SpritMonitorFuelingDTO("15.01.2024", new BigDecimal("50.0"), QUANTITY_UNIT_KWH,
+                        null, new BigDecimal("12.50"), 60, null, null, null)
+        );
+
+        when(spritMonitorClient.getFuelings(eq(validToken), eq(123), any())).thenReturn(mockFuelings);
+
+        Map<String, Object> request = Map.of(
+                "token", validToken,
+                "vehicleId", 123,
+                "mainTankId", MAIN_TANK_ID,
+                "carId", carId.toString()
+        );
+        HttpEntity<Map<String, Object>> requestWithAuth = createAuthRequest(request, userId, testUser.getEmail());
+
+        // First import
+        restTemplate.exchange("/api/import/sprit-monitor/fuelings", HttpMethod.POST, requestWithAuth, ImportResult.class);
+
+        // When: Re-import same data
+        ResponseEntity<ImportResult> secondResponse = restTemplate.exchange(
+                "/api/import/sprit-monitor/fuelings", HttpMethod.POST, requestWithAuth, ImportResult.class);
+
+        // Then: Second import skips the already-imported entry
+        assertEquals(HttpStatus.OK, secondResponse.getStatusCode());
+        assertEquals(0, secondResponse.getBody().getImported(), "Re-import must not create duplicates");
+        assertEquals(1, secondResponse.getBody().getSkipped(), "Already-imported entry must be counted as skipped");
+
+        List<EvLog> logs = evLogRepository.findAllByCarId(carId);
+        assertEquals(1, logs.size(), "Only one log should exist after re-import");
     }
 
     @Test

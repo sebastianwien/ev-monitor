@@ -203,13 +203,16 @@ public class EvLogService {
                 ? calculateConsumptionPerLog(allLogsSorted, car.getBatteryCapacityKwh(), lookupWltp(car))
                 : Map.of();
 
-        // Return the requested page, enriched with consumption data
+        // Distance since last charge — covers logs with odometer regardless of SoC availability
+        Map<UUID, Integer> distanceByLogId = computeDistanceByLogId(allLogsSorted);
+
+        // Return the requested page, enriched with consumption and distance data
         List<EvLog> page_logs = (limit != null && limit > 0)
                 ? evLogRepository.findLatestByCarId(carId, limit, page)
                 : allLogsSorted.reversed();
 
         return page_logs.stream()
-                .map(log -> EvLogResponse.fromDomain(log, consumptionByLog.get(log.getId())))
+                .map(log -> EvLogResponse.fromDomain(log, consumptionByLog.get(log.getId()), distanceByLogId.get(log.getId())))
                 .toList();
     }
 

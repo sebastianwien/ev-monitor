@@ -909,8 +909,9 @@ const deleteLog = async (id: string) => {
                   <span v-if="log.chargeDurationMinutes" class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
                     <ClockIcon class="w-3 h-3" />{{ log.chargeDurationMinutes }}min
                   </span>
-                  <span v-if="log.odometerKm" class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
-                    {{ log.odometerKm.toLocaleString('de-DE') }} km
+                  <span v-if="log.distanceSinceLastChargeKm != null || log.odometerKm" class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
+                    <template v-if="log.distanceSinceLastChargeKm != null">+{{ log.distanceSinceLastChargeKm.toLocaleString('de-DE') }} km</template>
+                    <template v-else>{{ log.odometerKm.toLocaleString('de-DE') }} km</template>
                   </span>
                   <span v-if="log.socAfterChargePercent != null" class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
                     <Battery0Icon class="w-3 h-3" />{{ log.socAfterChargePercent }}%
