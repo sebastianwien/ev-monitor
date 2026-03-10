@@ -488,6 +488,8 @@ const fetchLogs = async (page = 0) => {
     logs.value = res.data
     logsPage.value = page
     hasMoreLogs.value = res.data.length === PAGE_SIZE
+  } catch {
+    // Network error — keep existing log list, don't crash
   } finally {
     logsLoading.value = false
   }
@@ -507,8 +509,12 @@ watch(selectedCarId, () => {
 
 const deleteLog = async (id: string) => {
   if (!confirm('Ladevorgang wirklich löschen?')) return
-  await api.delete(`/logs/${id}`)
-  await fetchLogs(logsPage.value)
+  try {
+    await api.delete(`/logs/${id}`)
+    await fetchLogs(logsPage.value)
+  } catch {
+    // Network error — ignore, log list stays unchanged
+  }
 }
 </script>
 
