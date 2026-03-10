@@ -10,6 +10,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -223,6 +225,58 @@ class EvLogServiceCalculateConsumptionTest {
                 80);                     // socAfter=80% → socBefore=73.3% → energy = (10-73.3)*75/100 < 0
 
         assertTrue(service.calculateConsumption(logX, logY, BATTERY_75).isEmpty());
+    }
+
+    // -------------------------------------------------------------------------
+    // calculateConsumptionPerLog — minTripDistanceKm filter
+    // -------------------------------------------------------------------------
+
+    /**
+     * Trips shorter than minTripDistanceKm (default 20km) must be silently excluded.
+     * They produce unreliable odometer deltas and would skew the consumption distribution.
+     */
+    @Test
+    void perLog_tripBelowMinDistance_isExcluded() {
+        // 15km trip — below the 20km minimum
+        EvLog logX = logX(10000, 80);
+        EvLog logY = logY(10015, new BigDecimal("3.0"), 85); // 15km
+
+        Map<UUID, ConsumptionResult> result =
+                service.calculateConsumptionPerLog(List.of(logX, logY), BATTERY_75, null);
+
+        assertTrue(result.isEmpty(), "Trip < minTripDistanceKm should be excluded");
+    }
+
+    @Test
+    void perLog_tripAtExactMinDistance_isIncluded() {
+        // 20km trip — exactly at the minimum (boundary: included)
+        EvLog logX = logX(10000, 80);
+        EvLog logY = logY(10020, new BigDecimal("4.0"), 85); // 20km
+
+        Map<UUID, ConsumptionResult> result =
+                service.calculateConsumptionPerLog(List.of(logX, logY), BATTERY_75, null);
+
+        assertFalse(result.isEmpty(), "Trip == minTripDistanceKm should be included");
+    }
+
+    @Test
+    void perLog_shortTripExcluded_longTripIncluded() {
+        // Three logs: logX → logY1 (10km, too short) → logY2 (300km, ok)
+        // logY1's direct predecessor is logX → short trip, excluded
+        // logY2's direct predecessor is logY1 → canBeUsedAsLogX? yes (has odometer + soc) → trip ok
+        LocalDateTime t1 = LocalDateTime.of(2026, 1, 1, 10, 0);
+        LocalDateTime t2 = LocalDateTime.of(2026, 1, 2, 10, 0);
+        LocalDateTime t3 = LocalDateTime.of(2026, 1, 3, 10, 0);
+
+        EvLog logX  = evLog(UUID.randomUUID(), 10000, null,                   80, t1);
+        EvLog logY1 = evLog(UUID.randomUUID(), 10010, new BigDecimal("2.0"),  85, t2); // 10km
+        EvLog logY2 = evLog(UUID.randomUUID(), 10310, new BigDecimal("50.0"), 90, t3); // 300km from logY1
+
+        Map<UUID, ConsumptionResult> result =
+                service.calculateConsumptionPerLog(List.of(logX, logY1, logY2), BATTERY_75, null);
+
+        assertFalse(result.containsKey(logY1.getId()), "10km trip should be excluded");
+        assertTrue(result.containsKey(logY2.getId()),  "300km trip should be included");
     }
 
     // -------------------------------------------------------------------------

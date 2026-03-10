@@ -53,6 +53,14 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
+    public List<EvLog> findAllByCarIds(List<UUID> carIds) {
+        if (carIds.isEmpty()) return List.of();
+        return jpaRepository.findAllByCarIdIn(carIds).stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public List<EvLog> findAllByUserId(UUID userId) {
         return jpaRepository.findAllByUserId(userId).stream()
                 .map(this::toDomain)

@@ -175,4 +175,15 @@ public class EvLog {
     public boolean hasKwhCharged() {
         return kwhCharged != null;
     }
+
+    /**
+     * True if this log falls within the given date range (both bounds inclusive, both nullable).
+     * A null startDate means no lower bound; a null endDate means no upper bound.
+     */
+    public boolean isLoggedWithin(java.time.LocalDate startDate, java.time.LocalDate endDate) {
+        java.time.LocalDate logDate = loggedAt.toLocalDate();
+        boolean afterStart = startDate == null || !logDate.isBefore(startDate);
+        boolean beforeEnd = endDate == null || !logDate.isAfter(endDate);
+        return afterStart && beforeEnd;
+    }
 }

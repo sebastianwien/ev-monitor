@@ -13,8 +13,20 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ *   calculateConsumption()              ← atomare SoC-Formel (ein Log-Paar)
+ *     └── aufgerufen von
+ *   calculateConsumptionPerLog()        ← zwei-Pass: Rohwerte + Plausibilität
+ *     ├── getLogsForCar()               → Dashboard-Log-Liste (pro Log)
+ *     ├── getStatistics()               → User-Statistiken
+ *     └── getPlausibleEntriesForCar()   ← SoC→Fallback-Kapselung (neu)
+ *           ├── calculateCommunityAvgConsumption()   → Public Model Page
+ *           └── calculateSeasonalConsumption()       → Saisonal
+ */
 @Service
 public class EvLogService {
+
+    private static final BigDecimal HUNDRED = new BigDecimal("100");
 
     private final EvLogRepository evLogRepository;
     private final CarRepository carRepository;
@@ -122,28 +134,19 @@ public class EvLogService {
     }
 
     @Transactional
-    public boolean updateGeohash(UUID carId, UUID userId, LocalDateTime loggedAt, String geohash) {
+    public void updateGeohash(UUID carId, UUID userId, LocalDateTime loggedAt, String geohash) {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new IllegalArgumentException("Car not found"));
         if (!car.getUserId().equals(userId)) {
             throw new IllegalArgumentException("Car does not belong to user");
         }
-        return evLogRepository.updateGeohash(carId, loggedAt, geohash);
+        evLogRepository.updateGeohash(carId, loggedAt, geohash);
     }
 
     public List<EvLogResponse> getAllLogsForUser(UUID userId) {
-        List<Car> cars = carRepository.findAllByUserId(userId);
-        List<EvLogResponse> allLogs = new ArrayList<>();
-
-        for (Car car : cars) {
-            List<EvLogResponse> logsForCar = evLogRepository.findAllByCarId(car.getId())
-                    .stream()
-                    .map(EvLogResponse::fromDomain)
-                    .toList();
-            allLogs.addAll(logsForCar);
-        }
-
-        return allLogs;
+        return evLogRepository.findAllByUserId(userId).stream()
+                .map(EvLogResponse::fromDomain)
+                .toList();
     }
 
     public EvLogResponse getLogByIdForUser(UUID id, UUID userId) {
@@ -235,28 +238,26 @@ public class EvLogService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
         boolean isSeedUser = user.isSeedData();
 
-        // Get all logs for this car
-        // Demo Mode: Seed users see ALL their logs (including their own seed data)
-        // Regular users: Only see logs marked for statistics
-        List<EvLog> logs = evLogRepository.findAllByCarId(carId).stream()
-                .filter(log -> isSeedUser || log.isIncludeInStatistics())
+        // Load all logs once, sorted — needed as full context for consumption calculations
+        List<EvLog> allLogsForCar = evLogRepository.findAllByCarId(carId).stream()
+                .sorted(Comparator.comparing(EvLog::getLoggedAt))
                 .collect(Collectors.toList());
 
-        // Apply time filter
-        if (startDate != null || endDate != null) {
-            logs = logs.stream()
-                    .filter(log -> {
-                        java.time.LocalDate logDate = log.getLoggedAt().toLocalDate();
-                        boolean afterStart = startDate == null || !logDate.isBefore(startDate);
-                        boolean beforeEnd = endDate == null || !logDate.isAfter(endDate);
-                        return afterStart && beforeEnd;
-                    })
-                    .collect(Collectors.toList());
-        }
+        // Derive stats-filtered + time-filtered view without a second DB call
+        // Demo Mode: Seed users see ALL their logs (including their own seed data)
+        List<EvLog> logs = allLogsForCar.stream()
+                .filter(log -> isSeedUser || log.isIncludeInStatistics())
+                .filter(log -> log.isLoggedWithin(startDate, endDate))
+                .collect(Collectors.toList());
 
         if (logs.isEmpty()) {
             return createEmptyStatistics();
         }
+
+        // Compute per-log consumption once — used for both chart data and overall average
+        Map<UUID, ConsumptionResult> consumptionByLog = car.getBatteryCapacityKwh() != null
+                ? calculateConsumptionPerLog(allLogsForCar, car.getBatteryCapacityKwh(), lookupWltp(car))
+                : Map.of();
 
         // Calculate key metrics
         BigDecimal totalKwhCharged = logs.stream()
@@ -291,33 +292,32 @@ public class EvLogService {
                 .average()
                 .orElse(0.0);
 
-        // Compute per-log distance from consecutive odometer readings (all logs for this car, sorted)
-        List<EvLog> allLogsForCar = evLogRepository.findAllByCarId(carId).stream()
-                .sorted(Comparator.comparing(EvLog::getLoggedAt))
-                .collect(Collectors.toList());
-        Map<UUID, Integer> distanceByLogId = computeDistanceByLogId(allLogsForCar);
-
         // Charge over time data (grouped and sorted by time)
         List<EvLogStatisticsResponse.ChargeDataPoint> chargesOverTime =
-                groupChargesByPeriod(logs, groupBy != null ? groupBy : "MONTH", distanceByLogId);
+                groupChargesByPeriod(logs, groupBy != null ? groupBy : "MONTH", consumptionByLog);
 
-        // Total distance and avg consumption (using SoC-based calculation if available)
-        BigDecimal totalDistanceKm = null;
-        BigDecimal avgConsumptionKwhPer100km = null;
-        List<EvLog> filteredLogsWithDistance = logs.stream()
-                .filter(l -> distanceByLogId.containsKey(l.getId()) && distanceByLogId.get(l.getId()) > 0)
-                .collect(Collectors.toList());
-        if (!filteredLogsWithDistance.isEmpty()) {
-            int totalDistanceInt = filteredLogsWithDistance.stream()
-                    .mapToInt(l -> distanceByLogId.get(l.getId())).sum();
-            totalDistanceKm = new BigDecimal(totalDistanceInt);
+        // Total distance and avg consumption — SoC-based from pre-computed consumptionByLog
+        BigDecimal totalWeighted = BigDecimal.ZERO;
+        int totalDist = 0;
+        for (EvLog log : logs) {
+            ConsumptionResult cr = consumptionByLog.get(log.getId());
+            if (cr == null || !cr.plausible()) continue;
+            totalWeighted = totalWeighted.add(cr.value().multiply(BigDecimal.valueOf(cr.distanceKm())));
+            totalDist += cr.distanceKm();
+        }
+        BigDecimal totalDistanceKm = totalDist > 0 ? BigDecimal.valueOf(totalDist) : null;
+        BigDecimal avgConsumptionKwhPer100km = weightedAverage(totalWeighted, totalDist);
 
-            // Try SoC-based calculation first (more accurate for partial charging)
-            avgConsumptionKwhPer100km = calculateConsumptionWithSoc(allLogsForCar, filteredLogsWithDistance, car.getBatteryCapacityKwh(), lookupWltp(car));
-
-            // Fallback to kWh-based calculation if SoC data is missing
-            if (avgConsumptionKwhPer100km == null) {
-                avgConsumptionKwhPer100km = calculateConsumptionFallback(filteredLogsWithDistance, totalDistanceKm);
+        // Fallback: if no SoC data available, use kWh/distance
+        if (avgConsumptionKwhPer100km == null) {
+            Map<UUID, Integer> distanceByLogId = computeDistanceByLogId(allLogsForCar);
+            List<EvLog> logsWithDistance = logs.stream()
+                    .filter(l -> distanceByLogId.containsKey(l.getId()) && distanceByLogId.get(l.getId()) > 0)
+                    .collect(Collectors.toList());
+            if (!logsWithDistance.isEmpty()) {
+                int totalDistInt = logsWithDistance.stream().mapToInt(l -> distanceByLogId.get(l.getId())).sum();
+                totalDistanceKm = BigDecimal.valueOf(totalDistInt);
+                avgConsumptionKwhPer100km = calculateConsumptionFallback(logsWithDistance, totalDistanceKm);
             }
         }
 
@@ -368,50 +368,22 @@ public class EvLogService {
         if (distance <= 0) return Optional.empty();
 
         // socBefore(logY) = socAfter(logY) - kwhCharged(logY) / batteryCapacity * 100
-        BigDecimal socBeforeLogYPercent = new BigDecimal(logY.getSocAfterChargePercent())
+        BigDecimal socBeforeLogYPercent = BigDecimal.valueOf(logY.getSocAfterChargePercent())
                 .subtract(logY.getKwhCharged()
                         .divide(batteryCapacityKwh, 4, RoundingMode.HALF_UP)
-                        .multiply(new BigDecimal("100")));
+                        .multiply(HUNDRED));
 
         // energyConsumed = (socAfter(logX) - socBefore(logY)) * batteryCapacity / 100
-        BigDecimal energyConsumedKwh = new BigDecimal(logX.getSocAfterChargePercent())
+        BigDecimal energyConsumedKwh = BigDecimal.valueOf(logX.getSocAfterChargePercent())
                 .subtract(socBeforeLogYPercent)
                 .multiply(batteryCapacityKwh)
-                .divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
+                .divide(HUNDRED, 4, RoundingMode.HALF_UP);
 
         if (energyConsumedKwh.compareTo(BigDecimal.ZERO) <= 0) return Optional.empty();
 
         return Optional.of(energyConsumedKwh
-                .multiply(new BigDecimal("100"))
-                .divide(new BigDecimal(distance), 2, RoundingMode.HALF_UP));
-    }
-
-    /**
-     * Calculates average consumption across all valid trips using the SoC-based method.
-     * Delegates to calculateConsumptionPerLog() for raw values + plausibility verdicts.
-     * Only plausible trips contribute to the distance-weighted average.
-     *
-     * @return avg consumption in kWh/100km, or null if no plausible trips found
-     */
-    private BigDecimal calculateConsumptionWithSoc(List<EvLog> allLogs, List<EvLog> logsWithDistance, BigDecimal batteryCapacityKwh, BigDecimal wltpKwh) {
-        Map<UUID, ConsumptionResult> perLog = calculateConsumptionPerLog(allLogs, batteryCapacityKwh, wltpKwh);
-
-        BigDecimal totalWeightedConsumption = BigDecimal.ZERO;
-        int totalDistance = 0;
-
-        for (EvLog logY : logsWithDistance) {
-            ConsumptionResult cr = perLog.get(logY.getId());
-            if (cr == null || !cr.plausible()) continue;
-
-            totalWeightedConsumption = totalWeightedConsumption
-                    .add(cr.value().multiply(new BigDecimal(cr.distanceKm())));
-            totalDistance += cr.distanceKm();
-        }
-
-        if (totalDistance == 0) return null;
-
-        return totalWeightedConsumption
-                .divide(new BigDecimal(totalDistance), 2, RoundingMode.HALF_UP);
+                .multiply(HUNDRED)
+                .divide(BigDecimal.valueOf(distance), 2, RoundingMode.HALF_UP));
     }
 
     /**
@@ -536,11 +508,11 @@ public class EvLogService {
             return null;
         }
         BigDecimal totalKwh = logs.stream()
-            .map(EvLog::getKwhCharged)
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
+                .map(EvLog::getKwhCharged)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
         return totalKwh
-            .multiply(new BigDecimal("100"))
-            .divide(totalDistanceKm, 2, RoundingMode.HALF_UP);
+                .multiply(HUNDRED)
+                .divide(totalDistanceKm, 2, RoundingMode.HALF_UP);
     }
 
     /**
@@ -615,6 +587,44 @@ public class EvLogService {
         return result;
     }
 
+    /** Distance-weighted average, null if no data. */
+    private BigDecimal weightedAverage(BigDecimal totalWeighted, int totalKm) {
+        if (totalKm == 0) return null;
+        return totalWeighted.divide(BigDecimal.valueOf(totalKm), 2, RoundingMode.HALF_UP);
+    }
+
+    private record PlausibleEntry(EvLog log, BigDecimal consumptionKwhPer100km, int distanceKm) {}
+
+    /**
+     * Returns all plausible consumption entries for a car: SoC-based first, fallback if no SoC data.
+     * Encapsulates the two-path logic shared by community avg and seasonal calculations.
+     */
+    private List<PlausibleEntry> getPlausibleEntriesForCar(Car car, List<EvLog> allLogs, List<EvLog> statsLogs) {
+        Map<UUID, ConsumptionResult> perLog = calculateConsumptionPerLog(
+                allLogs, car.getBatteryCapacityKwh(), lookupWltp(car));
+
+        List<PlausibleEntry> entries = new ArrayList<>();
+        boolean hasSocResult = false;
+        for (EvLog log : statsLogs) {
+            ConsumptionResult cr = perLog.get(log.getId());
+            if (cr == null || !cr.plausible()) continue;
+            hasSocResult = true;
+            entries.add(new PlausibleEntry(log, cr.value(), cr.distanceKm()));
+        }
+        if (hasSocResult) return entries;
+
+        // Fallback: simple kWh/distance when no SoC data available
+        Map<UUID, Integer> distanceByLogId = computeDistanceByLogId(allLogs);
+        for (EvLog log : statsLogs) {
+            Integer dist = distanceByLogId.get(log.getId());
+            if (dist == null || dist <= 0) continue;
+            double c = log.getKwhCharged().doubleValue() / dist * 100;
+            if (c < plausibility.getAbsoluteMinKwhPer100km() || c > plausibility.getAbsoluteMaxKwhPer100km()) continue;
+            entries.add(new PlausibleEntry(log, BigDecimal.valueOf(c), dist));
+        }
+        return entries;
+    }
+
     /**
      * Calculates the community average consumption (kWh/100km) for a list of cars.
      *
@@ -630,66 +640,30 @@ public class EvLogService {
      * @return distance-weighted avg kWh/100km, or null if no valid data
      */
     public BigDecimal calculateCommunityAvgConsumption(List<Car> cars, boolean isSeedUser) {
-        BigDecimal totalWeightedConsumption = BigDecimal.ZERO;
+        if (cars.isEmpty()) return null;
+
+        List<UUID> carIds = cars.stream().map(Car::getId).toList();
+        Map<UUID, List<EvLog>> logsByCarId = evLogRepository.findAllByCarIds(carIds).stream()
+                .sorted(Comparator.comparing(EvLog::getLoggedAt))
+                .collect(Collectors.groupingBy(EvLog::getCarId));
+
+        BigDecimal totalWeighted = BigDecimal.ZERO;
         int totalDistance = 0;
 
         for (Car car : cars) {
-            List<EvLog> allLogs = evLogRepository.findAllByCarId(car.getId()).stream()
-                    .sorted(Comparator.comparing(EvLog::getLoggedAt))
-                    .collect(Collectors.toList());
-
+            List<EvLog> allLogs = logsByCarId.getOrDefault(car.getId(), List.of());
             List<EvLog> statsLogs = allLogs.stream()
                     .filter(l -> isSeedUser || l.isIncludeInStatistics())
                     .toList();
-
             if (statsLogs.isEmpty()) continue;
 
-            Map<UUID, Integer> distanceByLogId = computeDistanceByLogId(allLogs);
-
-            List<EvLog> logsWithDistance = statsLogs.stream()
-                    .filter(l -> distanceByLogId.containsKey(l.getId()))
-                    .collect(Collectors.toList());
-
-            if (logsWithDistance.isEmpty()) continue;
-
-            int carDistance = logsWithDistance.stream()
-                    .mapToInt(l -> distanceByLogId.get(l.getId())).sum();
-
-            // SoC-based calculation (most accurate, requires socAfterChargePercent)
-            BigDecimal carConsumption = calculateConsumptionWithSoc(
-                    allLogs, logsWithDistance, car.getBatteryCapacityKwh(), lookupWltp(car));
-
-            // Fallback: simple kWh/distance, but filter implausible trips first
-            if (carConsumption == null) {
-                List<EvLog> plausibleLogs = logsWithDistance.stream()
-                        .filter(l -> {
-                            int dist = distanceByLogId.get(l.getId());
-                            double consumption = l.getKwhCharged().doubleValue() / dist * 100;
-                            return consumption >= plausibility.getAbsoluteMinKwhPer100km()
-                                    && consumption <= plausibility.getAbsoluteMaxKwhPer100km();
-                        })
-                        .collect(Collectors.toList());
-
-                if (plausibleLogs.isEmpty()) continue;
-
-                int plausibleDistance = plausibleLogs.stream()
-                        .mapToInt(l -> distanceByLogId.get(l.getId())).sum();
-                carConsumption = calculateConsumptionFallback(
-                        plausibleLogs, new BigDecimal(plausibleDistance));
-                carDistance = plausibleDistance;
-            }
-
-            if (carConsumption != null && carDistance > 0) {
-                totalWeightedConsumption = totalWeightedConsumption
-                        .add(carConsumption.multiply(new BigDecimal(carDistance)));
-                totalDistance += carDistance;
+            for (PlausibleEntry e : getPlausibleEntriesForCar(car, allLogs, statsLogs)) {
+                totalWeighted = totalWeighted.add(e.consumptionKwhPer100km().multiply(BigDecimal.valueOf(e.distanceKm())));
+                totalDistance += e.distanceKm();
             }
         }
 
-        if (totalDistance == 0) return null;
-
-        return totalWeightedConsumption
-                .divide(new BigDecimal(totalDistance), 2, RoundingMode.HALF_UP);
+        return weightedAverage(totalWeighted, totalDistance);
     }
 
     /**
@@ -716,87 +690,53 @@ public class EvLogService {
      * @return SeasonalConsumptionResult with nullable consumptions if no data for a season
      */
     public SeasonalConsumptionResult calculateSeasonalConsumption(List<Car> cars, boolean isSeedUser) {
+        if (cars.isEmpty()) return new SeasonalConsumptionResult(null, null, null, 0, 0, 0, 0);
+
+        List<UUID> carIds = cars.stream().map(Car::getId).toList();
+        Map<UUID, List<EvLog>> logsByCarId = evLogRepository.findAllByCarIds(carIds).stream()
+                .sorted(Comparator.comparing(EvLog::getLoggedAt))
+                .collect(Collectors.groupingBy(EvLog::getCarId));
+
         BigDecimal summerWeighted = BigDecimal.ZERO;
         BigDecimal winterWeighted = BigDecimal.ZERO;
         int summerKm = 0, winterKm = 0, summerLogCount = 0, winterLogCount = 0;
 
         for (Car car : cars) {
-            List<EvLog> allLogs = evLogRepository.findAllByCarId(car.getId()).stream()
-                    .sorted(Comparator.comparing(EvLog::getLoggedAt))
-                    .collect(Collectors.toList());
-
+            List<EvLog> allLogs = logsByCarId.getOrDefault(car.getId(), List.of());
             List<EvLog> statsLogs = allLogs.stream()
                     .filter(l -> isSeedUser || l.isIncludeInStatistics())
                     .toList();
-
             if (statsLogs.isEmpty()) continue;
 
-            // SoC path
-            Map<UUID, ConsumptionResult> perLog = calculateConsumptionPerLog(
-                    allLogs, car.getBatteryCapacityKwh(), lookupWltp(car));
-
-            boolean hasSocResult = false;
-            for (EvLog log : statsLogs) {
-                ConsumptionResult cr = perLog.get(log.getId());
-                if (cr == null || !cr.plausible()) continue;
-                hasSocResult = true;
-                int month = log.getLoggedAt().getMonthValue();
+            for (PlausibleEntry e : getPlausibleEntriesForCar(car, allLogs, statsLogs)) {
+                BigDecimal weighted = e.consumptionKwhPer100km().multiply(BigDecimal.valueOf(e.distanceKm()));
+                int month = e.log().getLoggedAt().getMonthValue();
                 if (month >= 4 && month <= 9) {
-                    summerWeighted = summerWeighted.add(cr.value().multiply(new BigDecimal(cr.distanceKm())));
-                    summerKm += cr.distanceKm();
+                    summerWeighted = summerWeighted.add(weighted);
+                    summerKm += e.distanceKm();
                     summerLogCount++;
                 } else {
-                    winterWeighted = winterWeighted.add(cr.value().multiply(new BigDecimal(cr.distanceKm())));
-                    winterKm += cr.distanceKm();
+                    winterWeighted = winterWeighted.add(weighted);
+                    winterKm += e.distanceKm();
                     winterLogCount++;
-                }
-            }
-
-            // Fallback path: only used when the car has no SoC data at all
-            if (!hasSocResult) {
-                Map<UUID, Integer> distanceByLogId = computeDistanceByLogId(allLogs);
-                for (EvLog log : statsLogs) {
-                    Integer dist = distanceByLogId.get(log.getId());
-                    if (dist == null || dist <= 0) continue;
-                    double c = log.getKwhCharged().doubleValue() / dist * 100;
-                    if (c < plausibility.getAbsoluteMinKwhPer100km() || c > plausibility.getAbsoluteMaxKwhPer100km()) continue;
-                    BigDecimal consumption = BigDecimal.valueOf(c);
-                    int month = log.getLoggedAt().getMonthValue();
-                    if (month >= 4 && month <= 9) {
-                        summerWeighted = summerWeighted.add(consumption.multiply(new BigDecimal(dist)));
-                        summerKm += dist;
-                        summerLogCount++;
-                    } else {
-                        winterWeighted = winterWeighted.add(consumption.multiply(new BigDecimal(dist)));
-                        winterKm += dist;
-                        winterLogCount++;
-                    }
                 }
             }
         }
 
-        BigDecimal summerConsumption = summerKm > 0
-                ? summerWeighted.divide(new BigDecimal(summerKm), 2, RoundingMode.HALF_UP)
-                : null;
-        BigDecimal winterConsumption = winterKm > 0
-                ? winterWeighted.divide(new BigDecimal(winterKm), 2, RoundingMode.HALF_UP)
-                : null;
-        int totalKm = summerKm + winterKm;
-        BigDecimal totalConsumption = totalKm > 0
-                ? summerWeighted.add(winterWeighted).divide(new BigDecimal(totalKm), 2, RoundingMode.HALF_UP)
-                : null;
-
         return new SeasonalConsumptionResult(
-                summerConsumption, winterConsumption, totalConsumption,
-                summerKm, winterKm,
-                summerLogCount, winterLogCount);
+                weightedAverage(summerWeighted, summerKm),
+                weightedAverage(winterWeighted, winterKm),
+                weightedAverage(summerWeighted.add(winterWeighted), summerKm + winterKm),
+                summerKm, winterKm, summerLogCount, winterLogCount);
     }
 
     /**
      * Group charges by time period (DAY, WEEK, MONTH) and aggregate metrics.
+     * Uses pre-computed SoC-based ConsumptionResult values for distance and consumption per period,
+     * consistent with the overall statistics calculation.
      */
     private List<EvLogStatisticsResponse.ChargeDataPoint> groupChargesByPeriod(
-            List<EvLog> logs, String groupBy, Map<UUID, Integer> distanceByLogId) {
+            List<EvLog> logs, String groupBy, Map<UUID, ConsumptionResult> consumptionByLog) {
 
         Map<String, List<EvLog>> groupedLogs = new java.util.LinkedHashMap<>();
         for (EvLog log : logs) {
@@ -815,28 +755,21 @@ public class EvLogService {
 
                     BigDecimal totalCost = periodLogs.stream()
                             .map(EvLog::getCostEur)
-                            .filter(c -> c != null)
+                            .filter(Objects::nonNull)
                             .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-                    // Distance and consumption for this period
-                    List<EvLog> logsWithDistance = periodLogs.stream()
-                            .filter(l -> distanceByLogId.containsKey(l.getId()))
-                            .collect(Collectors.toList());
-
-                    BigDecimal periodDistance = null;
-                    BigDecimal periodConsumption = null;
-                    if (!logsWithDistance.isEmpty()) {
-                        int distSum = logsWithDistance.stream()
-                                .mapToInt(l -> distanceByLogId.get(l.getId())).sum();
-                        periodDistance = new BigDecimal(distSum);
-                        BigDecimal kwhForDistance = logsWithDistance.stream()
-                                .map(EvLog::getKwhCharged).reduce(BigDecimal.ZERO, BigDecimal::add);
-                        if (periodDistance.compareTo(BigDecimal.ZERO) > 0) {
-                            periodConsumption = kwhForDistance
-                                    .multiply(new BigDecimal("100"))
-                                    .divide(periodDistance, 2, RoundingMode.HALF_UP);
-                        }
+                    // Distance and consumption: SoC-based, plausible logs only
+                    BigDecimal periodWeighted = BigDecimal.ZERO;
+                    int periodDist = 0;
+                    for (EvLog log : periodLogs) {
+                        ConsumptionResult cr = consumptionByLog.get(log.getId());
+                        if (cr == null || !cr.plausible()) continue;
+                        periodWeighted = periodWeighted.add(cr.value().multiply(BigDecimal.valueOf(cr.distanceKm())));
+                        periodDist += cr.distanceKm();
                     }
+
+                    BigDecimal periodDistance = periodDist > 0 ? BigDecimal.valueOf(periodDist) : null;
+                    BigDecimal periodConsumption = weightedAverage(periodWeighted, periodDist);
 
                     LocalDateTime periodTimestamp = periodLogs.get(0).getLoggedAt();
                     return new EvLogStatisticsResponse.ChargeDataPoint(
