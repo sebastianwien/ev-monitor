@@ -38,6 +38,7 @@ import ConsumptionInfoBox from '../components/ConsumptionInfoBox.vue'
 import { costBadgeClass } from '../utils/costColor'
 import CarSelector from '../components/CarSelector.vue'
 import { carService } from '../api/carService'
+import LicensePlate from '../components/LicensePlate.vue'
 import ChargingHeatMap from '../components/ChargingHeatMap.vue'
 import { vehicleSpecificationService, type VehicleSpecification } from '../api/vehicleSpecificationService'
 
@@ -588,9 +589,7 @@ const deleteLog = async (id: string) => {
                   </div>
                   <div class="flex items-center gap-2 mt-0.5">
                     <span class="text-xs text-gray-500">{{ car.batteryCapacityKwh }} kWh</span>
-                    <span class="text-xs px-2 py-0.5 bg-white border border-gray-300 rounded-full text-gray-600">
-                      {{ car.licensePlate }}
-                    </span>
+                    <LicensePlate v-if="car.licensePlate" :plate="car.licensePlate" />
                   </div>
                 </div>
                 <div v-if="selectedCarId === car.id" class="ml-auto flex-shrink-0">

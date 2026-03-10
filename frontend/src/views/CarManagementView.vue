@@ -4,6 +4,7 @@ import { carService, type Car, type CarRequest, type BrandInfo, type ModelInfo, 
 import { vehicleSpecificationService, type VehicleSpecification } from '../api/vehicleSpecificationService'
 import { ChartBarIcon, TruckIcon, ArrowDownTrayIcon } from '@heroicons/vue/24/outline'
 import { useCoinStore } from '../stores/coins'
+import LicensePlate from '../components/LicensePlate.vue'
 import { analytics } from '../services/analytics'
 
 const coinStore = useCoinStore()
@@ -716,9 +717,7 @@ onUnmounted(() => {
                 </div>
                 <p class="text-sm text-gray-600">{{ car.year }}</p>
               </div>
-              <span class="px-3 py-1 bg-white border border-gray-300 text-xs rounded-full shadow-sm text-gray-600 font-medium">
-                {{ car.licensePlate }}
-              </span>
+              <LicensePlate :plate="car.licensePlate" />
             </div>
 
             <div class="mb-4 space-y-1">

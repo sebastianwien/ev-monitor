@@ -133,6 +133,15 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
             Alle Angaben ohne Gewähr. Für die Richtigkeit der Daten übernehmen wir keine Haftung.
           </p>
         </section>
+
+        <section>
+          <h2 class="text-2xl font-semibold text-gray-900 mb-4">Open-Source-Komponenten</h2>
+          <p>
+            Die Darstellung der Kraftfahrzeugkennzeichen verwendet den Schriftsatz
+            <a href="https://github.com/Gutenberg-Labo/GL-Nummernschild" target="_blank" rel="noopener noreferrer" class="text-green-600 hover:underline">GL-Nummernschild</a>
+            von Gutenberg-Labo (FE-Schrift-Klon), veröffentlicht als freie Schrift.
+          </p>
+        </section>
       </div>
 
       <div class="mt-12 pt-8 border-t border-gray-200">
