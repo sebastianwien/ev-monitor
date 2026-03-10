@@ -116,10 +116,9 @@ public class PublicModelService {
         // Fetch consumption via EvLogService (authoritative calculation, same logic as user stats)
         // Demo Mode: If seed user, includes ALL seed data
         List<Car> carsForModel = carRepository.findAllByModel(carModel);
-        BigDecimal avgConsumption = evLogService.calculateCommunityAvgConsumption(carsForModel, isSeedUser);
-        if (avgConsumption != null) {
-            avgConsumption = avgConsumption.setScale(2, RoundingMode.HALF_UP);
-        }
+        CommunityConsumptionResult communityResult = evLogService.calculateCommunityAvgConsumption(carsForModel, isSeedUser);
+        BigDecimal avgConsumption = communityResult.value() != null
+                ? communityResult.value().setScale(2, RoundingMode.HALF_UP) : null;
 
         // Fetch seasonal distribution via EvLogService (same SoC-based logic as overall consumption)
         // Demo Mode: If seed user, includes ALL seed data
@@ -150,16 +149,17 @@ public class PublicModelService {
                             .filter(c -> c.getBatteryCapacityKwh() != null
                                     && c.getBatteryCapacityKwh().compareTo(e.getBatteryCapacityKwh()) == 0)
                             .toList();
-                    BigDecimal variantConsumption = carsForVariant.isEmpty() ? null
+                    CommunityConsumptionResult variantResult = carsForVariant.isEmpty()
+                            ? CommunityConsumptionResult.EMPTY
                             : evLogService.calculateCommunityAvgConsumption(carsForVariant, isSeedUser);
-                    if (variantConsumption != null) {
-                        variantConsumption = variantConsumption.setScale(1, RoundingMode.HALF_UP);
-                    }
+                    BigDecimal variantConsumption = variantResult.value() != null
+                            ? variantResult.value().setScale(1, RoundingMode.HALF_UP) : null;
                     return new PublicModelStatsResponse.WltpVariant(
                             e.getBatteryCapacityKwh(),
                             e.getWltpRangeKm(),
                             e.getWltpConsumptionKwhPer100km(),
-                            variantConsumption);
+                            variantConsumption,
+                            variantResult.tripCount() > 0 ? variantResult.tripCount() : null);
                 })
                 .toList();
 

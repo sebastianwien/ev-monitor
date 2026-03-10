@@ -464,6 +464,80 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void shouldImportMultipleChargings_OnSameDay() {
+        // Given: Two charges on the same day — the classic "ecocad156 bug"
+        // Before the fix, both got loggedAt = 00:00:00 → second charge was skipped as duplicate
+        List<SpritMonitorFuelingDTO> mockFuelings = List.of(
+                new SpritMonitorFuelingDTO("15.11.2025", new BigDecimal("27.0"), QUANTITY_UNIT_KWH,
+                        null, new BigDecimal("8.00"), 30, null, null, null, null, null),
+                new SpritMonitorFuelingDTO("15.11.2025", new BigDecimal("45.0"), QUANTITY_UNIT_KWH,
+                        null, new BigDecimal("13.00"), 60, null, null, null, null, null)
+        );
+
+        when(spritMonitorClient.getFuelings(eq(validToken), eq(123), any())).thenReturn(mockFuelings);
+
+        Map<String, Object> request = Map.of(
+                "token", validToken,
+                "vehicleId", 123,
+                "mainTankId", MAIN_TANK_ID,
+                "carId", carId.toString()
+        );
+        HttpEntity<Map<String, Object>> requestWithAuth = createAuthRequest(request, userId, testUser.getEmail());
+
+        ResponseEntity<ImportResult> response = restTemplate.exchange(
+                "/api/import/sprit-monitor/fuelings", HttpMethod.POST, requestWithAuth, ImportResult.class);
+
+        // Then: Both charges on the same day must be imported
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(2, response.getBody().getImported(), "Both charges on the same day must be imported");
+        assertEquals(0, response.getBody().getSkipped());
+
+        List<EvLog> importedLogs = evLogRepository.findAllByCarId(carId);
+        assertEquals(2, importedLogs.size(), "Both same-day charges must be persisted");
+
+        // Timestamps must be distinct (00:00:00 and 00:00:01)
+        long distinctTimestamps = importedLogs.stream()
+                .map(EvLog::getLoggedAt)
+                .distinct()
+                .count();
+        assertEquals(2, distinctTimestamps, "Same-day charges must have unique timestamps");
+    }
+
+    @Test
+    void shouldSkipSameDayDuplicates_OnReimport() {
+        // Given: Two charges on the same day, imported once
+        List<SpritMonitorFuelingDTO> mockFuelings = List.of(
+                new SpritMonitorFuelingDTO("15.11.2025", new BigDecimal("27.0"), QUANTITY_UNIT_KWH,
+                        null, new BigDecimal("8.00"), 30, null, null, null, null, null),
+                new SpritMonitorFuelingDTO("15.11.2025", new BigDecimal("45.0"), QUANTITY_UNIT_KWH,
+                        null, new BigDecimal("13.00"), 60, null, null, null, null, null)
+        );
+
+        when(spritMonitorClient.getFuelings(eq(validToken), eq(123), any())).thenReturn(mockFuelings);
+
+        Map<String, Object> request = Map.of(
+                "token", validToken,
+                "vehicleId", 123,
+                "mainTankId", MAIN_TANK_ID,
+                "carId", carId.toString()
+        );
+        HttpEntity<Map<String, Object>> requestWithAuth = createAuthRequest(request, userId, testUser.getEmail());
+
+        // First import
+        restTemplate.exchange("/api/import/sprit-monitor/fuelings", HttpMethod.POST, requestWithAuth, ImportResult.class);
+
+        // When: Re-import same data
+        ResponseEntity<ImportResult> secondResponse = restTemplate.exchange(
+                "/api/import/sprit-monitor/fuelings", HttpMethod.POST, requestWithAuth, ImportResult.class);
+
+        // Then: No duplicates created
+        assertEquals(0, secondResponse.getBody().getImported(), "Re-import must not create duplicates");
+        assertEquals(2, secondResponse.getBody().getSkipped(), "Both same-day charges must be detected as already imported");
+
+        assertEquals(2, evLogRepository.findAllByCarId(carId).size(), "Still exactly 2 logs after re-import");
+    }
+
+    @Test
     void shouldImportMultipleFuelings() {
         // Given: Multiple fuelings in kWh
         SpritMonitorFuelingDTO.Position position = new SpritMonitorFuelingDTO.Position(

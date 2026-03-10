@@ -655,8 +655,8 @@ public class EvLogService {
      *
      * @return distance-weighted avg kWh/100km, or null if no valid data
      */
-    public BigDecimal calculateCommunityAvgConsumption(List<Car> cars, boolean isSeedUser) {
-        if (cars.isEmpty()) return null;
+    public CommunityConsumptionResult calculateCommunityAvgConsumption(List<Car> cars, boolean isSeedUser) {
+        if (cars.isEmpty()) return CommunityConsumptionResult.EMPTY;
 
         List<UUID> carIds = cars.stream().map(Car::getId).toList();
         Map<UUID, List<EvLog>> logsByCarId = evLogRepository.findAllByCarIds(carIds).stream()
@@ -665,6 +665,7 @@ public class EvLogService {
 
         BigDecimal totalWeighted = BigDecimal.ZERO;
         int totalDistance = 0;
+        int tripCount = 0;
 
         for (Car car : cars) {
             List<EvLog> allLogs = logsByCarId.getOrDefault(car.getId(), List.of());
@@ -673,13 +674,15 @@ public class EvLogService {
                     .toList();
             if (statsLogs.isEmpty()) continue;
 
-            for (PlausibleEntry e : getPlausibleEntriesForCar(car, allLogs, statsLogs)) {
+            List<PlausibleEntry> entries = getPlausibleEntriesForCar(car, allLogs, statsLogs);
+            for (PlausibleEntry e : entries) {
                 totalWeighted = totalWeighted.add(e.consumptionKwhPer100km().multiply(BigDecimal.valueOf(e.distanceKm())));
                 totalDistance += e.distanceKm();
             }
+            tripCount += entries.size();
         }
 
-        return weightedAverage(totalWeighted, totalDistance);
+        return new CommunityConsumptionResult(weightedAverage(totalWeighted, totalDistance), tripCount);
     }
 
     /**

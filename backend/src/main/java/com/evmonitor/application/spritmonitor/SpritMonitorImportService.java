@@ -17,7 +17,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -80,6 +82,10 @@ public class SpritMonitorImportService {
             int tankId = spritMonitorMainTankId != null ? spritMonitorMainTankId : 1;
             List<SpritMonitorFuelingDTO> fuelings = client.getFuelings(token, spritMonitorVehicleId, tankId);
 
+            // Track how many kWh fuelings we've seen per date to make timestamps unique
+            // (multiple charges on the same day → 00:00:00, 00:00:01, 00:00:02 …)
+            Map<String, Integer> perDateCounter = new HashMap<>();
+
             for (SpritMonitorFuelingDTO fueling : fuelings) {
                 try {
                     // Skip entries not in kWh — could be liters, kg, etc. from non-EV tanks
@@ -90,9 +96,11 @@ public class SpritMonitorImportService {
                         continue;
                     }
 
-                    LocalDateTime loggedAt = LocalDate.parse(fueling.date(), DD_MM_YYYY).atStartOfDay();
+                    // Assign a per-day index so multiple charges on the same day get unique timestamps
+                    int dayIndex = perDateCounter.merge(fueling.date(), 1, Integer::sum) - 1;
+                    LocalDateTime loggedAt = LocalDate.parse(fueling.date(), DD_MM_YYYY).atStartOfDay().plusSeconds(dayIndex);
 
-                    // Skip if already imported (same car + date + source)
+                    // Skip if already imported (same car + timestamp + source)
                     if (evLogRepository.existsByCarIdAndLoggedAtAndDataSource(evMonitorCarId, loggedAt, DATA_SOURCE)) {
                         result.incrementSkipped();
                         continue;

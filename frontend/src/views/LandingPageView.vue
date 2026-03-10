@@ -259,7 +259,7 @@ const formatDelta = (real: number | null, wltp: number): string => {
               <span>•</span>
               <span>{{ preview.stats.avgCostPerKwh?.toFixed(2) || '—' }}€/kWh</span>
               <span>•</span>
-              <span>{{ preview.stats.logCount }} Logs</span>
+              <span>{{ preview.stats.logCount }} Fahrten</span>
             </div>
 
             <div v-if="preview.stats.avgConsumptionKwhPer100km && preview.stats.wltpVariants.length > 0" class="text-sm text-gray-700">

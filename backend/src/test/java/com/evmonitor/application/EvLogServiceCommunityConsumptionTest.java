@@ -50,10 +50,11 @@ class EvLogServiceCommunityConsumptionTest extends AbstractIntegrationTest {
         saveLog(car.getId(), 10000, new BigDecimal("45.0"), 80, LocalDateTime.now().minusDays(2));
         saveLog(car.getId(), 10300, new BigDecimal("52.5"), 85, LocalDateTime.now().minusDays(1));
 
-        BigDecimal result = evLogService.calculateCommunityAvgConsumption(List.of(car), false);
+        CommunityConsumptionResult result = evLogService.calculateCommunityAvgConsumption(List.of(car), false);
 
-        assertNotNull(result);
-        assertEquals(new BigDecimal("16.25"), result);
+        assertNotNull(result.value());
+        assertEquals(new BigDecimal("16.25"), result.value());
+        assertEquals(1, result.tripCount());
     }
 
     @Test
@@ -69,11 +70,12 @@ class EvLogServiceCommunityConsumptionTest extends AbstractIntegrationTest {
         saveLog(carB.getId(), 15000, new BigDecimal("45.0"), 80, LocalDateTime.now().minusDays(2));
         saveLog(carB.getId(), 15150, new BigDecimal("30.0"), 90, LocalDateTime.now().minusDays(1));
 
-        BigDecimal result = evLogService.calculateCommunityAvgConsumption(List.of(carA, carB), false);
+        CommunityConsumptionResult result = evLogService.calculateCommunityAvgConsumption(List.of(carA, carB), false);
 
         // (16.25 * 300 + 15.00 * 150) / 450 = 7125 / 450 = 15.83
-        assertNotNull(result);
-        assertEquals(new BigDecimal("15.83"), result);
+        assertNotNull(result.value());
+        assertEquals(new BigDecimal("15.83"), result.value());
+        assertEquals(2, result.tripCount());
     }
 
     @Test
@@ -83,22 +85,27 @@ class EvLogServiceCommunityConsumptionTest extends AbstractIntegrationTest {
         saveLogNoSoc(car.getId(), 10000, new BigDecimal("20.0"), LocalDateTime.now().minusDays(2));
         saveLogNoSoc(car.getId(), 10100, new BigDecimal("20.0"), LocalDateTime.now().minusDays(1));
 
-        BigDecimal result = evLogService.calculateCommunityAvgConsumption(List.of(car), false);
+        CommunityConsumptionResult result = evLogService.calculateCommunityAvgConsumption(List.of(car), false);
 
         // 20 kWh / 100km * 100 = 20 kWh/100km
-        assertNotNull(result);
-        assertEquals(new BigDecimal("20.00"), result);
+        assertNotNull(result.value());
+        assertEquals(new BigDecimal("20.00"), result.value());
+        assertEquals(1, result.tripCount());
     }
 
     @Test
-    void communityAvg_emptyCarList_returnsNull() {
-        assertNull(evLogService.calculateCommunityAvgConsumption(List.of(), false));
+    void communityAvg_emptyCarList_returnsEmpty() {
+        CommunityConsumptionResult result = evLogService.calculateCommunityAvgConsumption(List.of(), false);
+        assertNull(result.value());
+        assertEquals(0, result.tripCount());
     }
 
     @Test
-    void communityAvg_carWithNoLogs_returnsNull() {
+    void communityAvg_carWithNoLogs_returnsEmpty() {
         Car car = carWithBattery(new BigDecimal("75.0"));
-        assertNull(evLogService.calculateCommunityAvgConsumption(List.of(car), false));
+        CommunityConsumptionResult result = evLogService.calculateCommunityAvgConsumption(List.of(car), false);
+        assertNull(result.value());
+        assertEquals(0, result.tripCount());
     }
 
     // -------------------------------------------------------------------------

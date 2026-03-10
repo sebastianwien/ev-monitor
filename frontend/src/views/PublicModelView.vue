@@ -109,7 +109,7 @@
                       {{ stats.seasonalDistribution!.summerConsumptionKwhPer100km.toFixed(1) }} kWh/100km
                     </span>
                     <span v-else class="text-gray-400 text-xs">—</span>
-                    <span class="text-xs text-gray-500">({{ stats.seasonalDistribution!.summerLogCount }} Logs)</span>
+                    <span class="text-xs text-gray-500">({{ stats.seasonalDistribution!.summerLogCount }} Fahrten)</span>
                   </div>
                 </div>
 
@@ -124,7 +124,7 @@
                       {{ stats.seasonalDistribution!.winterConsumptionKwhPer100km.toFixed(1) }} kWh/100km
                     </span>
                     <span v-else class="text-gray-400 text-xs">—</span>
-                    <span class="text-xs text-gray-500">({{ stats.seasonalDistribution!.winterLogCount }} Logs)</span>
+                    <span class="text-xs text-gray-500">({{ stats.seasonalDistribution!.winterLogCount }} Fahrten)</span>
                   </div>
                 </div>
 
@@ -169,7 +169,7 @@
                   <td class="py-3 pr-4 text-gray-700">{{ variant.wltpRangeKm }} km</td>
                   <td class="py-3 pr-4 text-gray-700">{{ variant.wltpConsumptionKwhPer100km }} kWh/100km</td>
                   <td class="py-3">
-                    <span v-if="variant.realConsumptionKwhPer100km" class="flex items-center gap-1">
+                    <span v-if="variant.realConsumptionKwhPer100km" class="flex items-center gap-2 flex-wrap">
                       <span :class="consumptionDeltaClass(variant.realConsumptionKwhPer100km, variant.wltpConsumptionKwhPer100km)"
                             class="font-medium">
                         {{ variant.realConsumptionKwhPer100km.toFixed(1) }} kWh/100km
@@ -177,6 +177,16 @@
                       <span :class="deltaLabelClass(variant.realConsumptionKwhPer100km, variant.wltpConsumptionKwhPer100km)"
                             class="text-xs px-1.5 py-0.5 rounded-full">
                         {{ deltaLabel(variant.realConsumptionKwhPer100km, variant.wltpConsumptionKwhPer100km) }}
+                      </span>
+                      <span v-if="variant.realConsumptionTripCount != null && variant.realConsumptionTripCount < 10"
+                            class="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-600"
+                            :title="`Basiert auf nur ${variant.realConsumptionTripCount} ${variant.realConsumptionTripCount === 1 ? 'Fahrt' : 'Fahrten'} – Wert noch nicht repräsentativ`">
+                        ⚠ {{ variant.realConsumptionTripCount }} {{ variant.realConsumptionTripCount === 1 ? 'Fahrt' : 'Fahrten' }}
+                      </span>
+                      <span v-else-if="variant.realConsumptionTripCount != null && variant.realConsumptionTripCount < 50"
+                            class="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-yellow-50 border border-yellow-200 text-yellow-700"
+                            :title="`Basiert auf ${variant.realConsumptionTripCount} Fahrten – Wert wird mit mehr Daten genauer`">
+                        {{ variant.realConsumptionTripCount }} Fahrten
                       </span>
                     </span>
                     <span v-else class="text-gray-400">noch keine Daten</span>
