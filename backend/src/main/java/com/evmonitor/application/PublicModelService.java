@@ -145,10 +145,22 @@ public class PublicModelService {
                 vehicleSpecificationRepository.findByCarModelOrderByBatteryCapacityKwhAsc(modelEnumName);
 
         List<PublicModelStatsResponse.WltpVariant> wltpVariants = wltpEntities.stream()
-                .map(e -> new PublicModelStatsResponse.WltpVariant(
-                        e.getBatteryCapacityKwh(),
-                        e.getWltpRangeKm(),
-                        e.getWltpConsumptionKwhPer100km()))
+                .map(e -> {
+                    List<Car> carsForVariant = carsForModel.stream()
+                            .filter(c -> c.getBatteryCapacityKwh() != null
+                                    && c.getBatteryCapacityKwh().compareTo(e.getBatteryCapacityKwh()) == 0)
+                            .toList();
+                    BigDecimal variantConsumption = carsForVariant.isEmpty() ? null
+                            : evLogService.calculateCommunityAvgConsumption(carsForVariant, isSeedUser);
+                    if (variantConsumption != null) {
+                        variantConsumption = variantConsumption.setScale(1, RoundingMode.HALF_UP);
+                    }
+                    return new PublicModelStatsResponse.WltpVariant(
+                            e.getBatteryCapacityKwh(),
+                            e.getWltpRangeKm(),
+                            e.getWltpConsumptionKwhPer100km(),
+                            variantConsumption);
+                })
                 .toList();
 
         String displayName = brandDisplay + " " + modelDisplay;

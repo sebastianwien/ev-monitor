@@ -28,7 +28,8 @@ public record PublicModelStatsResponse(
     public record WltpVariant(
             BigDecimal batteryCapacityKwh,
             BigDecimal wltpRangeKm,
-            BigDecimal wltpConsumptionKwhPer100km
+            BigDecimal wltpConsumptionKwhPer100km,
+            BigDecimal realConsumptionKwhPer100km  // null if no user data for this battery size
     ) {}
 
     /**

@@ -4,6 +4,7 @@ export interface WltpVariant {
     batteryCapacityKwh: number
     wltpRangeKm: number
     wltpConsumptionKwhPer100km: number
+    realConsumptionKwhPer100km: number | null
 }
 
 export interface SeasonalDistribution {

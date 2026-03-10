@@ -169,14 +169,14 @@
                   <td class="py-3 pr-4 text-gray-700">{{ variant.wltpRangeKm }} km</td>
                   <td class="py-3 pr-4 text-gray-700">{{ variant.wltpConsumptionKwhPer100km }} kWh/100km</td>
                   <td class="py-3">
-                    <span v-if="stats.avgConsumptionKwhPer100km" class="flex items-center gap-1">
-                      <span :class="consumptionDeltaClass(stats.avgConsumptionKwhPer100km, variant.wltpConsumptionKwhPer100km)"
+                    <span v-if="variant.realConsumptionKwhPer100km" class="flex items-center gap-1">
+                      <span :class="consumptionDeltaClass(variant.realConsumptionKwhPer100km, variant.wltpConsumptionKwhPer100km)"
                             class="font-medium">
-                        {{ stats.avgConsumptionKwhPer100km.toFixed(1) }} kWh/100km
+                        {{ variant.realConsumptionKwhPer100km.toFixed(1) }} kWh/100km
                       </span>
-                      <span :class="deltaLabelClass(stats.avgConsumptionKwhPer100km, variant.wltpConsumptionKwhPer100km)"
+                      <span :class="deltaLabelClass(variant.realConsumptionKwhPer100km, variant.wltpConsumptionKwhPer100km)"
                             class="text-xs px-1.5 py-0.5 rounded-full">
-                        {{ deltaLabel(stats.avgConsumptionKwhPer100km, variant.wltpConsumptionKwhPer100km) }}
+                        {{ deltaLabel(variant.realConsumptionKwhPer100km, variant.wltpConsumptionKwhPer100km) }}
                       </span>
                     </span>
                     <span v-else class="text-gray-400">noch keine Daten</span>
