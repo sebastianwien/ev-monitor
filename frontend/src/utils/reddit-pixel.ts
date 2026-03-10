@@ -20,6 +20,18 @@ const REDDIT_PIXEL_ID = import.meta.env.VITE_REDDIT_PIXEL_ID || ''
 const CONSENT_KEY = 'reddit-pixel-consent'
 const UTM_PARAMS_KEY = 'utm-params'
 
+function lsGet(key: string): string | null {
+  try { return localStorage.getItem(key) } catch { return null }
+}
+
+function lsSet(key: string, value: string): void {
+  try { localStorage.setItem(key, value) } catch { /* localStorage blocked */ }
+}
+
+function lsRemove(key: string): void {
+  try { localStorage.removeItem(key) } catch { /* localStorage blocked */ }
+}
+
 /**
  * Speichert UTM-Parameter in localStorage wenn vorhanden.
  * Muss beim ersten PageLoad aufgerufen werden (z.B. in App.vue).
@@ -36,7 +48,7 @@ export function captureUtmParams() {
       medium: utmMedium || '',
       campaign: utmCampaign || ''
     }
-    localStorage.setItem(UTM_PARAMS_KEY, JSON.stringify(utmData))
+    lsSet(UTM_PARAMS_KEY, JSON.stringify(utmData))
   }
 }
 
@@ -44,7 +56,7 @@ export function captureUtmParams() {
  * Holt gespeicherte UTM-Parameter aus localStorage.
  */
 export function getStoredUtmParams(): { source: string; medium: string; campaign: string } | null {
-  const stored = localStorage.getItem(UTM_PARAMS_KEY)
+  const stored = lsGet(UTM_PARAMS_KEY)
   if (!stored) return null
   try {
     return JSON.parse(stored)
@@ -57,7 +69,7 @@ export function getStoredUtmParams(): { source: string; medium: string; campaign
  * Löscht gespeicherte UTM-Parameter (nach erfolgreicher Registrierung).
  */
 export function clearStoredUtmParams() {
-  localStorage.removeItem(UTM_PARAMS_KEY)
+  lsRemove(UTM_PARAMS_KEY)
 }
 
 /**
@@ -83,7 +95,7 @@ export function shouldShowCookieBanner(): boolean {
  * Prüft ob User bereits eine Consent-Entscheidung getroffen hat.
  */
 function hasConsentDecision(): boolean {
-  const consent = localStorage.getItem(CONSENT_KEY)
+  const consent = lsGet(CONSENT_KEY)
   return consent === 'true' || consent === 'false'
 }
 
@@ -91,14 +103,14 @@ function hasConsentDecision(): boolean {
  * Prüft ob User Consent gegeben hat.
  */
 export function hasRedditConsent(): boolean {
-  return localStorage.getItem(CONSENT_KEY) === 'true'
+  return lsGet(CONSENT_KEY) === 'true'
 }
 
 /**
  * Setzt Consent und initialisiert ggf. Pixel.
  */
 export function setRedditConsent(accepted: boolean) {
-  localStorage.setItem(CONSENT_KEY, String(accepted))
+  lsSet(CONSENT_KEY, String(accepted))
 
   if (accepted) {
     initRedditPixel()

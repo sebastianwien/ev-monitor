@@ -5,10 +5,18 @@ import { useRouter } from 'vue-router';
 import { jwtDecode } from 'jwt-decode';
 import { subscriptionService } from '../api/subscriptionService';
 
+function safeLocalStorage(op: () => void): void {
+    try { op() } catch { /* localStorage blocked (Private Mode, strict tracking protection) */ }
+}
+
+function safeLocalStorageGet(key: string): string | null {
+    try { return localStorage.getItem(key) } catch { return null }
+}
+
 export const useAuthStore = defineStore('auth', () => {
-    const token = ref<string | null>(localStorage.getItem('token'));
+    const token = ref<string | null>(safeLocalStorageGet('token'));
     const user = ref<any>(null);
-    const isPremium = ref<boolean>(localStorage.getItem('isPremium') === 'true');
+    const isPremium = ref<boolean>(safeLocalStorageGet('isPremium') === 'true');
     const router = useRouter();
 
     if (token.value) {
@@ -16,13 +24,13 @@ export const useAuthStore = defineStore('auth', () => {
             user.value = jwtDecode(token.value);
         } catch (e) {
             token.value = null;
-            localStorage.removeItem('token');
+            safeLocalStorage(() => localStorage.removeItem('token'));
         }
     }
 
     const setToken = (newToken: string) => {
         token.value = newToken;
-        localStorage.setItem('token', newToken);
+        safeLocalStorage(() => localStorage.setItem('token', newToken));
         try {
             user.value = jwtDecode(newToken);
         } catch (e) {
@@ -32,15 +40,15 @@ export const useAuthStore = defineStore('auth', () => {
 
     const setPremium = (value: boolean) => {
         isPremium.value = value;
-        localStorage.setItem('isPremium', String(value));
+        safeLocalStorage(() => localStorage.setItem('isPremium', String(value)));
     };
 
     const logout = () => {
         token.value = null;
         user.value = null;
         isPremium.value = false;
-        localStorage.removeItem('token');
-        localStorage.removeItem('isPremium');
+        safeLocalStorage(() => localStorage.removeItem('token'));
+        safeLocalStorage(() => localStorage.removeItem('isPremium'));
         router.push('/login');
     };
 
