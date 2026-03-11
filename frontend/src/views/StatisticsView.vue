@@ -571,23 +571,21 @@ const deleteLog = async (id: string) => {
                 @click="selectedCarId = car.id"
                 :class="[
                   cars.length === 1
-                    ? 'flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition w-full'
+                    ? 'flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition w-full md:w-auto'
                     : 'flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition flex-shrink-0 min-w-[200px] max-w-[280px] lg:flex-shrink lg:min-w-0 lg:max-w-none',
                   selectedCarId === car.id
                     ? 'border-indigo-500 bg-indigo-50 shadow-sm'
                     : 'border-gray-200 bg-white hover:border-indigo-300 hover:bg-gray-50'
                 ]">
-                <div :class="cars.length === 1
-                  ? 'flex-shrink-0 w-16 h-16 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden'
-                  : 'flex-shrink-0 w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden'">
+                <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden">
                   <img
                     v-if="carImageUrls[car.id]"
                     :src="carImageUrls[car.id]"
                     :alt="car.model"
                     class="w-full h-full object-cover" />
-                  <TruckIcon v-else :class="cars.length === 1 ? 'w-8 h-8 text-gray-400' : 'w-5 h-5 text-gray-400'" />
+                  <TruckIcon v-else class="w-5 h-5 text-gray-400" />
                 </div>
-                <div :class="cars.length === 1 ? 'min-w-0 ml-2' : 'min-w-0'">
+                <div class="min-w-0">
                   <div class="flex items-center gap-2 flex-wrap">
                     <span class="font-semibold text-gray-800">
                       {{ enumToLabel(car.brand) }} {{ enumToLabel(car.model) }}
