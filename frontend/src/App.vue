@@ -12,7 +12,7 @@ import OnboardingWelcome from './components/OnboardingWelcome.vue'
 import DemoBanner from './components/DemoBanner.vue'
 import RedditConsentBanner from './components/RedditConsentBanner.vue'
 import FeedbackToast from './components/FeedbackToast.vue'
-import { Bars3Icon, XMarkIcon, TruckIcon, ArrowDownTrayIcon, UserIcon, ArrowRightOnRectangleIcon, BoltIcon, ChatBubbleLeftEllipsisIcon, ArrowsRightLeftIcon, Battery0Icon } from '@heroicons/vue/24/outline'
+import { Bars3Icon, XMarkIcon, ChartBarIcon, TruckIcon, ArrowDownTrayIcon, UserIcon, ArrowRightOnRectangleIcon, BoltIcon, ChatBubbleLeftEllipsisIcon, ArrowsRightLeftIcon, Battery0Icon } from '@heroicons/vue/24/outline'
 // Note: showImportOverlay kept for backward compat but SpritMonitor moved to /imports
 import { HeartIcon } from '@heroicons/vue/24/solid'
 import { captureUtmParams } from './utils/reddit-pixel'
@@ -361,6 +361,14 @@ const closeMobileMenu = () => {
             </div>
             <div class="border-t border-indigo-500 mb-2"></div>
 
+            <router-link
+              to="/dashboard"
+              @click="closeMobileMenu"
+              class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-600 transition"
+              :class="{ 'bg-indigo-800': $route.path === '/dashboard' }">
+              <ChartBarIcon class="h-5 w-5" />
+              <span>Dashboard</span>
+            </router-link>
             <router-link
               to="/cars"
               @click="closeMobileMenu"

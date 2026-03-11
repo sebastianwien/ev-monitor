@@ -536,7 +536,7 @@ const deleteLog = async (id: string) => {
         <div class="bg-white md:rounded-xl md:shadow-lg p-4 md:p-6">
           <div class="flex items-center gap-3 mb-6">
             <ChartBarIcon class="h-8 w-8 text-gray-700" />
-            <h1 class="text-3xl font-bold text-gray-800">Statistiken & Analysen</h1>
+            <h1 class="text-3xl font-bold text-gray-800">Dashboard</h1>
             <button v-if="stats && stats.totalCharges > 0"
               @click="scrollToLogs"
               class="ml-auto hidden md:flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium shadow-sm hover:bg-indigo-700 active:scale-95 transition">
