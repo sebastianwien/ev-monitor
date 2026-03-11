@@ -623,7 +623,7 @@ onUnmounted(() => {
         <div class="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl mx-auto text-left">
           <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div class="text-blue-600 mb-2">📊</div>
-            <p class="text-sm font-semibold text-gray-800 mb-1">100+ Modelle</p>
+            <p class="text-sm font-semibold text-gray-800 mb-1">140+ Modelle</p>
             <p class="text-xs text-gray-600">68 Marken in unserer Datenbank</p>
           </div>
           <div class="bg-green-50 border border-green-200 rounded-lg p-4">

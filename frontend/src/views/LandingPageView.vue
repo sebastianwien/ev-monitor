@@ -25,6 +25,7 @@ const topModels = ref<ModelPreview[]>([])
 const loading = ref(true)
 const displayModels = ref(0)
 const displayUsers = ref(0)
+const displayTrips = ref(0)
 
 function animateCount(target: number, setter: (v: number) => void, duration = 1400) {
   const start = Date.now()
@@ -43,6 +44,7 @@ onMounted(async () => {
     const stats = await getPlatformStats()
     animateCount(stats.modelCount, v => displayModels.value = v)
     animateCount(stats.userCount, v => displayUsers.value = v)
+    animateCount(stats.validTripCount, v => displayTrips.value = v)
   } catch {
     // fallback: leave at 0
   }
@@ -184,7 +186,9 @@ const formatDelta = (real: number | null, wltp: number): string => {
           – kein Account nötig.
         </p>
         <p class="mt-4 text-sm sm:text-base font-semibold text-gray-600 tabular-nums">
-          <span>{{ displayModels }}+ Modelle</span>
+          <span>{{ displayTrips }}+ Fahrten</span>
+          <span class="mx-2">•</span>
+          <span>{{ displayModels }} Modelle</span>
           <span class="mx-2">•</span>
           <span>{{ displayUsers }} Fahrer</span>
         </p>

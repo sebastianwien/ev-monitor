@@ -43,7 +43,8 @@ public class PublicModelService {
     public PlatformStatsResponse getPlatformStats() {
         int modelCount = CarBrand.CarModel.values().length;
         long userCount = userRepository.countBySeedDataFalseAndEmailVerifiedTrue();
-        return new PlatformStatsResponse(modelCount, userCount);
+        long validTripCount = evLogRepository.countValidTrips();
+        return new PlatformStatsResponse(modelCount, userCount, validTripCount);
     }
 
     /**

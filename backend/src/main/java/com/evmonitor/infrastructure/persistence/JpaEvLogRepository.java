@@ -43,6 +43,27 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
      * Uses native SQL because JPQL doesn't support dividing two columns directly in aggregation.
      */
     @Query(value = """
+            WITH ranked AS (
+                SELECT
+                    odometer_km,
+                    kwh_charged,
+                    soc_after_charge_percent,
+                    LAG(odometer_km)              OVER (PARTITION BY car_id ORDER BY logged_at) AS prev_odometer,
+                    LAG(soc_after_charge_percent) OVER (PARTITION BY car_id ORDER BY logged_at) AS prev_soc
+                FROM ev_log
+                WHERE include_in_statistics = true
+            )
+            SELECT COUNT(*) FROM ranked
+            WHERE odometer_km IS NOT NULL
+              AND kwh_charged IS NOT NULL
+              AND soc_after_charge_percent IS NOT NULL
+              AND prev_odometer IS NOT NULL
+              AND prev_soc IS NOT NULL
+              AND (odometer_km - prev_odometer) >= 20
+            """, nativeQuery = true)
+    long countValidTrips();
+
+    @Query(value = """
             SELECT
                 COUNT(l.id)                                            AS log_count,
                 COUNT(DISTINCT c.user_id)                              AS unique_contributors,

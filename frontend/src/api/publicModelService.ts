@@ -51,6 +51,7 @@ export async function getAllModelsWithWltpData(): Promise<string[]> {
 export interface PlatformStats {
     modelCount: number
     userCount: number
+    validTripCount: number
 }
 
 export async function getPlatformStats(): Promise<PlatformStats> {
