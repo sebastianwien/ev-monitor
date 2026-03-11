@@ -35,7 +35,7 @@ onMounted(async () => {
       // OnboardingWelcome component will check if user has cars
       // and only show onboarding for truly new users (no cars yet)
 
-      setTimeout(() => router.push('/statistics'), 2000);
+      setTimeout(() => router.push('/dashboard'), 2000);
     }
   } catch (err: any) {
     const code = err.response?.data?.code;

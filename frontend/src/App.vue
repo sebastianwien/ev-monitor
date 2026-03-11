@@ -12,7 +12,7 @@ import OnboardingWelcome from './components/OnboardingWelcome.vue'
 import DemoBanner from './components/DemoBanner.vue'
 import RedditConsentBanner from './components/RedditConsentBanner.vue'
 import FeedbackToast from './components/FeedbackToast.vue'
-import { Bars3Icon, XMarkIcon, ChartBarIcon, TruckIcon, ArrowDownTrayIcon, UserIcon, ArrowRightOnRectangleIcon, BoltIcon, ChatBubbleLeftEllipsisIcon, ArrowsRightLeftIcon, Battery0Icon } from '@heroicons/vue/24/outline'
+import { Bars3Icon, XMarkIcon, TruckIcon, ArrowDownTrayIcon, UserIcon, ArrowRightOnRectangleIcon, BoltIcon, ChatBubbleLeftEllipsisIcon, ArrowsRightLeftIcon, Battery0Icon } from '@heroicons/vue/24/outline'
 // Note: showImportOverlay kept for backward compat but SpritMonitor moved to /imports
 import { HeartIcon } from '@heroicons/vue/24/solid'
 import { captureUtmParams } from './utils/reddit-pixel'
@@ -104,10 +104,10 @@ const closeMobileMenu = () => {
         <div class="flex justify-between items-center">
           <!-- Left: Logo + Nav Buttons (Desktop) -->
           <div class="flex items-center space-x-4">
-            <div class="flex items-center gap-1.5 text-xl font-bold tracking-wide">
+            <router-link to="/dashboard" class="flex items-center gap-1.5 text-xl font-bold tracking-wide hover:opacity-80 transition">
               <Battery0Icon class="h-6 w-6" />
               EV Monitor
-            </div>
+            </router-link>
 
             <!-- Compact Icon Nav (768px - 1024px) -->
             <div class="hidden md:flex lg:hidden items-center space-x-2">
@@ -117,13 +117,6 @@ const closeMobileMenu = () => {
                 title="Ladevorgang erfassen">
                 <BoltIcon class="h-5 w-5" />
               </button>
-              <router-link
-                to="/statistics"
-                class="p-2 rounded-md hover:bg-indigo-500 transition"
-                :class="{ 'bg-indigo-700': $route.path === '/statistics' }"
-                title="Statistiken">
-                <ChartBarIcon class="h-5 w-5" />
-              </router-link>
               <router-link
                 to="/cars"
                 class="p-2 rounded-md hover:bg-indigo-500 transition"
@@ -147,12 +140,6 @@ const closeMobileMenu = () => {
                 class="px-3 py-2 rounded-md text-sm font-medium bg-green-600 hover:bg-green-700 transition">
                 Ladevorgang erfassen
               </button>
-              <router-link
-                to="/statistics"
-                class="px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-500 transition"
-                :class="{ 'bg-indigo-700': $route.path === '/statistics' }">
-                Statistiken
-              </router-link>
               <router-link
                 to="/cars"
                 class="px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-500 transition"
@@ -374,14 +361,6 @@ const closeMobileMenu = () => {
             </div>
             <div class="border-t border-indigo-500 mb-2"></div>
 
-            <router-link
-              to="/statistics"
-              @click="closeMobileMenu"
-              class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-600 transition"
-              :class="{ 'bg-indigo-800': $route.path === '/statistics' }">
-              <ChartBarIcon class="h-5 w-5" />
-              <span>Statistiken</span>
-            </router-link>
             <router-link
               to="/cars"
               @click="closeMobileMenu"

@@ -36,10 +36,10 @@ const router = createRouter({
             beforeEnter: () => {
                 const authStore = useAuthStore();
                 if (authStore.isAuthenticated()) {
-                    return '/statistics';
+                    return '/dashboard';
                 }
             }
-            // public landing page, but redirects to /statistics if authenticated
+            // public landing page, but redirects to /dashboard if authenticated
         },
         {
             path: '/erfassen',
@@ -49,19 +49,19 @@ const router = createRouter({
         },
         {
             path: '/dashboard',
-            redirect: '/statistics'
-            // Legacy redirect: /dashboard → /statistics
+            name: 'statistics',
+            component: StatisticsView,
+            meta: { requiresAuth: true }
+        },
+        {
+            path: '/statistics',
+            redirect: '/dashboard'
+            // Legacy redirect: /statistics → /dashboard
         },
         {
             path: '/cars',
             name: 'cars',
             component: CarManagementView,
-            meta: { requiresAuth: true }
-        },
-        {
-            path: '/statistics',
-            name: 'statistics',
-            component: StatisticsView,
             meta: { requiresAuth: true }
         },
         {
@@ -199,7 +199,7 @@ router.beforeEach((to, _from) => {
     if (to.meta.requiresAuth && !isAuthenticated) {
         return '/login';
     } else if (to.meta.guestOnly && isAuthenticated) {
-        return '/statistics';
+        return '/dashboard';
     }
 });
 

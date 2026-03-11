@@ -19,7 +19,7 @@ const handleLogin = async () => {
     errorCode.value = '';
     await authStore.login({ email: email.value, password: password.value });
     analytics.trackLogin();
-    router.push('/statistics');
+    router.push('/dashboard');
   } catch (err: any) {
     const code = err.response?.data?.code;
     errorCode.value = code || '';

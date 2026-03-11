@@ -31,7 +31,7 @@ const impersonate = async () => {
 
     authStore.setToken(response.data.token)
     sessionStorage.setItem('impersonating', email.value)
-    router.push('/statistics')
+    router.push('/dashboard')
   } catch (e: any) {
     error.value = e.response?.data?.error || 'Fehler beim Impersonieren.'
   } finally {

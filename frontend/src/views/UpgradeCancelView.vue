@@ -15,7 +15,7 @@
                 Zurück zu Premium
             </router-link>
             <div class="mt-4">
-                <router-link to="/statistics" class="text-sm text-gray-400 hover:text-gray-600">
+                <router-link to="/dashboard" class="text-sm text-gray-400 hover:text-gray-600">
                     Zum Dashboard
                 </router-link>
             </div>

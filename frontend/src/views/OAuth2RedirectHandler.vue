@@ -11,7 +11,7 @@ onMounted(() => {
   const token = route.query.token as string;
   if (token) {
     authStore.setToken(token);
-    router.push('/statistics');
+    router.push('/dashboard');
   } else {
     // No token found, maybe redirect to login with error
     router.push('/login');
