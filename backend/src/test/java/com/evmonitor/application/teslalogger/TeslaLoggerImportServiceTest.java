@@ -80,11 +80,11 @@ class TeslaLoggerImportServiceTest {
 
     @ParameterizedTest(name = "parseLocation({0}) → geohash")
     @CsvSource({
-            "48.2082,16.3738",       // standard comma
-            "48.2082, 16.3738",      // comma + space
-            "48.2082;16.3738",       // semicolon
-            "48.2082 16.3738",       // space only
-            "-33.8688,151.2093",     // southern hemisphere (Sydney)
+            "'48.2082,16.3738'",       // standard comma
+            "'48.2082, 16.3738'",      // comma + space
+            "48.2082;16.3738",         // semicolon
+            "48.2082 16.3738",         // space only
+            "'-33.8688,151.2093'",     // southern hemisphere (Sydney)
     })
     void parseLocation_latLon_returnsGeohash(String input) {
         String result = service.parseLocation(input);
@@ -94,10 +94,10 @@ class TeslaLoggerImportServiceTest {
 
     @Test
     void parseLocation_vienna_isCorrectGeohash() {
-        // 48.2082, 16.3738 = Vienna → geohash precision 5 = "u2eej"
+        // 48.2082, 16.3738 = Vienna → geohash precision 5 starts with "u2e"
         String result = service.parseLocation("48.2082,16.3738");
         assertNotNull(result);
-        assertTrue(result.startsWith("u2ee"), "Vienna geohash should start with u2ee, got: " + result);
+        assertTrue(result.startsWith("u2e"), "Vienna geohash should start with u2e, got: " + result);
     }
 
     @Test

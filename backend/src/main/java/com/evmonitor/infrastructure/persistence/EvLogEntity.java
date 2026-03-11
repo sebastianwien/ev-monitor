@@ -22,7 +22,7 @@ public class EvLogEntity {
     @Column(name = "cost_eur", nullable = true, precision = 10, scale = 2)
     private BigDecimal costEur;
 
-    @Column(name = "charge_duration_minutes", nullable = false)
+    @Column(name = "charge_duration_minutes")
     private Integer chargeDurationMinutes;
 
     @Column(name = "geohash", length = 5)

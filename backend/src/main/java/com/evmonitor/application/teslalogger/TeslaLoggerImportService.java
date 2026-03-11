@@ -180,8 +180,8 @@ public class TeslaLoggerImportService {
 
         for (DateTimeFormatter fmt : DATE_FORMATTERS) {
             try {
-                // Try OffsetDateTime first so timezone info is consumed, then convert to local
-                return OffsetDateTime.parse(s, fmt).toLocalDateTime();
+                // Offset-aware: convert to UTC for consistent storage
+                return OffsetDateTime.parse(s, fmt).withOffsetSameInstant(ZoneOffset.UTC).toLocalDateTime();
             } catch (DateTimeParseException ignored) {}
             try {
                 return LocalDateTime.parse(s, fmt);
