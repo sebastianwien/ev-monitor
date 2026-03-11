@@ -319,6 +319,94 @@ class AuthServiceTest {
         assertNull(savedUser.getUtmCampaign());
     }
 
+    // --- resolveUsername tests ---
+
+    @Test
+    void shouldAutoGenerateUsername_fromEmailPrefix_whenNotProvided() {
+        RegisterRequest request = new RegisterRequest("max@example.com", null, "Password123", null, null, null, null);
+
+        when(userRepository.existsByEmail(any())).thenReturn(false);
+        when(userRepository.existsByUsername("max")).thenReturn(false);
+        when(passwordEncoder.encode(any())).thenReturn("$2a$10$hash");
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(tokenRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        authService.register(request);
+
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(captor.capture());
+        assertEquals("max", captor.getValue().getUsername());
+    }
+
+    @Test
+    void shouldAutoGenerateUsername_withNumericSuffix_whenPrefixAlreadyTaken() {
+        RegisterRequest request = new RegisterRequest("max@example.com", null, "Password123", null, null, null, null);
+
+        when(userRepository.existsByEmail(any())).thenReturn(false);
+        when(userRepository.existsByUsername("max")).thenReturn(true);
+        when(userRepository.existsByUsername("max1")).thenReturn(true);
+        when(userRepository.existsByUsername("max2")).thenReturn(false);
+        when(passwordEncoder.encode(any())).thenReturn("$2a$10$hash");
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(tokenRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        authService.register(request);
+
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(captor.capture());
+        assertEquals("max2", captor.getValue().getUsername());
+    }
+
+    @Test
+    void shouldSanitizeEmailPrefix_replacingSpecialCharsWithUnderscore() {
+        RegisterRequest request = new RegisterRequest("test.user+extra@example.com", null, "Password123", null, null, null, null);
+
+        when(userRepository.existsByEmail(any())).thenReturn(false);
+        when(userRepository.existsByUsername(any())).thenReturn(false);
+        when(passwordEncoder.encode(any())).thenReturn("$2a$10$hash");
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(tokenRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        authService.register(request);
+
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(captor.capture());
+        // dots and plus signs replaced with underscores
+        assertTrue(captor.getValue().getUsername().matches("^[a-zA-Z0-9_]+$"),
+                "Username should only contain alphanumeric chars and underscores");
+    }
+
+    @Test
+    void shouldUseExplicitUsername_whenProvidedAndAvailable() {
+        RegisterRequest request = new RegisterRequest("user@example.com", "mywantedname", "Password123", null, null, null, null);
+
+        when(userRepository.existsByEmail(any())).thenReturn(false);
+        when(userRepository.existsByUsername("mywantedname")).thenReturn(false);
+        when(passwordEncoder.encode(any())).thenReturn("$2a$10$hash");
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(tokenRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        authService.register(request);
+
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(captor.capture());
+        assertEquals("mywantedname", captor.getValue().getUsername());
+    }
+
+    @Test
+    void shouldRejectExplicitUsername_whenAlreadyTaken() {
+        RegisterRequest request = new RegisterRequest("user@example.com", "takenname", "Password123", null, null, null, null);
+
+        when(userRepository.existsByEmail(any())).thenReturn(false);
+        when(userRepository.existsByUsername("takenname")).thenReturn(true);
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> authService.register(request));
+        assertEquals("Username is already taken.", ex.getMessage());
+
+        verify(userRepository, never()).save(any());
+    }
+
     @Test
     void shouldCombineReferralCodeAndCampaignTracking() {
         // Given - User comes via referral AND campaign (e.g. referred friend clicks Reddit ad)

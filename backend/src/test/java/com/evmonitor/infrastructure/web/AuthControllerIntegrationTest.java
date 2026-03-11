@@ -38,6 +38,10 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
         return response.getBody();
     }
 
+    private RegisterResponse registerUser(String email, String password) {
+        return registerUser(email, null, password);
+    }
+
     private AuthResponse registerAndVerify(String email, String username, String password) {
         registerUser(email, username, password);
         // Directly mark user as verified (simulates clicking the email link)
@@ -154,6 +158,36 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
                 response.getStatusCode() == HttpStatus.UNAUTHORIZED ||
                 response.getStatusCode() == HttpStatus.FORBIDDEN,
                 "Expected 401 or 403, got: " + response.getStatusCode());
+    }
+
+    @Test
+    void shouldRegisterWithoutUsername_andAutoGenerateFromEmailPrefix() {
+        String email = "autoname-" + System.currentTimeMillis() + "@example.com";
+        String expectedPrefix = "autoname_" + System.currentTimeMillis(); // won't match exactly, just check non-null
+
+        registerUser(email, "Password123");
+
+        User saved = userRepository.findByEmail(email).orElseThrow();
+        assertNotNull(saved.getUsername(), "Username should be auto-generated");
+        assertFalse(saved.getUsername().isBlank());
+        assertTrue(saved.getUsername().matches("^[a-zA-Z0-9_]{3,20}$"),
+                "Auto-generated username must be valid: " + saved.getUsername());
+    }
+
+    @Test
+    void shouldRegisterTwoUsers_withSameEmailPrefix_andGetUniqueUsernames() {
+        long ts = System.currentTimeMillis();
+        String email1 = "twin" + ts + "@gmail.com";
+        String email2 = "twin" + ts + "@yahoo.com";
+
+        registerUser(email1, "Password123");
+        registerUser(email2, "Password123");
+
+        User user1 = userRepository.findByEmail(email1).orElseThrow();
+        User user2 = userRepository.findByEmail(email2).orElseThrow();
+
+        assertNotEquals(user1.getUsername(), user2.getUsername(),
+                "Two users with identical email prefix must get different usernames");
     }
 
     @Test
