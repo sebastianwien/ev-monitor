@@ -577,45 +577,66 @@ const deleteLog = async (id: string) => {
                     ? 'border-indigo-500 bg-indigo-50 shadow-sm'
                     : 'border-gray-200 bg-white hover:border-indigo-300 hover:bg-gray-50'
                 ]">
-                <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden">
+                <div class="flex-shrink-0 w-16 h-16 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden">
                   <img
                     v-if="carImageUrls[car.id]"
                     :src="carImageUrls[car.id]"
                     :alt="car.model"
                     class="w-full h-full object-cover" />
-                  <TruckIcon v-else class="w-5 h-5 text-gray-400" />
+                  <TruckIcon v-else class="w-8 h-8 text-gray-400" />
                 </div>
-                <div class="min-w-0">
-                  <div class="flex items-center gap-2 flex-wrap">
-                    <span class="font-semibold text-gray-800">
-                      {{ enumToLabel(car.brand) }} {{ enumToLabel(car.model) }}
-                    </span>
+                <div class="min-w-0 flex-1">
+                  <!-- Mobile single-car: alles in einer Zeile -->
+                  <div v-if="cars.length === 1" class="flex items-center gap-2 flex-wrap lg:hidden">
+                    <span class="font-semibold text-gray-800">{{ enumToLabel(car.brand) }} {{ enumToLabel(car.model) }}</span>
                     <span v-if="car.trim" class="text-sm text-gray-500">{{ car.trim }}</span>
+                    <LicensePlate v-if="car.licensePlate" :plate="car.licensePlate" />
                     <span v-if="car.isPrimary"
                       class="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded-full border border-green-200 font-medium">
                       Aktiv
                     </span>
-                    <!-- Tesla vehicle state badge -->
                     <template v-if="car.brand?.toLowerCase() === 'tesla' && teslaStatus?.connected && (teslaStatus.carId === car.id || teslaStatus.carId === null)">
                       <span v-if="teslaStatus.vehicleState === 'charging'"
                         class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium border border-green-200">
-                        <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                        Lädt
+                        <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>Lädt
                       </span>
                       <span v-else-if="teslaStatus.vehicleState === 'online'"
                         class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 text-blue-600 text-xs rounded-full font-medium border border-blue-200">
-                        <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
-                        Online
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>Online
                       </span>
                       <span v-else-if="teslaStatus.vehicleState === 'asleep'"
                         class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 text-gray-500 text-xs rounded-full font-medium border border-gray-200">
-                        <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
-                        Schläft
+                        <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>Schläft
                       </span>
                     </template>
                   </div>
-                  <div class="mt-1.5 flex justify-center">
-                    <LicensePlate v-if="car.licensePlate" :plate="car.licensePlate" />
+                  <!-- Desktop oder mehrere Autos: zweizeiliges Layout -->
+                  <div :class="cars.length === 1 ? 'hidden lg:block' : ''">
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <span class="font-semibold text-gray-800">{{ enumToLabel(car.brand) }} {{ enumToLabel(car.model) }}</span>
+                      <span v-if="car.trim" class="text-sm text-gray-500">{{ car.trim }}</span>
+                      <span v-if="car.isPrimary"
+                        class="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded-full border border-green-200 font-medium">
+                        Aktiv
+                      </span>
+                      <template v-if="car.brand?.toLowerCase() === 'tesla' && teslaStatus?.connected && (teslaStatus.carId === car.id || teslaStatus.carId === null)">
+                        <span v-if="teslaStatus.vehicleState === 'charging'"
+                          class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium border border-green-200">
+                          <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>Lädt
+                        </span>
+                        <span v-else-if="teslaStatus.vehicleState === 'online'"
+                          class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 text-blue-600 text-xs rounded-full font-medium border border-blue-200">
+                          <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>Online
+                        </span>
+                        <span v-else-if="teslaStatus.vehicleState === 'asleep'"
+                          class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 text-gray-500 text-xs rounded-full font-medium border border-gray-200">
+                          <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>Schläft
+                        </span>
+                      </template>
+                    </div>
+                    <div class="mt-1.5 flex justify-center">
+                      <LicensePlate v-if="car.licensePlate" :plate="car.licensePlate" />
+                    </div>
                   </div>
                 </div>
               </button>
