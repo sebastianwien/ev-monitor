@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { PlusIcon, TrashIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
-import goeService, { type GoeConnection, CAR_STATE_LABELS } from '@/api/goeService'
+import { PlusIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
+import goeService, { type GoeConnection } from '@/api/goeService'
 import { carService, type Car } from '@/api/carService'
+import GoeStatusCard from './GoeStatusCard.vue'
 
 const connections = ref<GoeConnection[]>([])
 const cars = ref<Car[]>([])
@@ -66,12 +67,6 @@ function carLabel(car: Car): string {
   return car.licensePlate ? `${name} · ${car.licensePlate}` : name
 }
 
-function carStateBadgeClass(state: number) {
-  if (state === 2) return 'bg-green-100 text-green-700'
-  if (state === 4) return 'bg-blue-100 text-blue-700'
-  if (state === 5) return 'bg-red-100 text-red-700'
-  return 'bg-gray-100 text-gray-600'
-}
 </script>
 
 <template>
@@ -82,39 +77,14 @@ function carStateBadgeClass(state: number) {
     </div>
 
     <!-- Connected devices -->
-    <div v-if="connections.length > 0" class="space-y-2">
+    <div v-if="connections.length > 0" class="space-y-3">
       <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Verbundene Geräte</p>
-      <div v-for="conn in connections" :key="conn.id" class="rounded-lg border border-gray-200 overflow-hidden">
-        <div class="flex items-center justify-between bg-gray-50 px-4 py-3">
-          <div>
-            <p class="text-sm font-medium text-gray-900">{{ conn.displayName || conn.serial }}</p>
-            <p class="text-xs text-gray-500">Serial: {{ conn.serial }}</p>
-          </div>
-          <div class="flex items-center gap-3">
-            <span :class="['text-xs px-2 py-0.5 rounded-full font-medium', carStateBadgeClass(conn.carState)]">
-              {{ CAR_STATE_LABELS[conn.carState] ?? 'Unbekannt' }}
-            </span>
-            <button @click="handleDisconnect(conn.id)" class="text-red-400 hover:text-red-600 transition">
-              <TrashIcon class="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-        <!-- Cloud API not enabled -->
-        <div v-if="conn.lastPollError?.includes('cloud api not enabled')"
-          class="flex items-start gap-2 bg-amber-50 border-t border-amber-200 px-4 py-2.5">
-          <ExclamationTriangleIcon class="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
-          <p class="text-xs text-amber-800">
-            Cloud API nicht aktiviert. Aktiviere sie in der go-e App unter
-            <strong>Einstellungen → Internet → Cloud API</strong> — danach verbindet sich der Charger automatisch innerhalb weniger Minuten.
-          </p>
-        </div>
-        <!-- Other poll errors -->
-        <div v-else-if="conn.lastPollError"
-          class="flex items-start gap-2 bg-red-50 border-t border-red-200 px-4 py-2.5">
-          <ExclamationTriangleIcon class="h-4 w-4 text-red-400 mt-0.5 shrink-0" />
-          <p class="text-xs text-red-700">Verbindungsfehler: {{ conn.lastPollError }}</p>
-        </div>
-      </div>
+      <GoeStatusCard
+        v-for="conn in connections"
+        :key="conn.id"
+        :connection-id="conn.id"
+        @disconnect="handleDisconnect"
+      />
     </div>
 
     <!-- Add form -->

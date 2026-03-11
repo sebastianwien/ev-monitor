@@ -8,6 +8,7 @@ export interface GoeConnection {
   carState: number
   lastPollError: string | null
   carStateLabel: string
+  tariffCentsPerKwh: number
 }
 
 export const CAR_STATE_LABELS: Record<number, string> = {
@@ -34,5 +35,10 @@ export default {
 
   async disconnect(id: string): Promise<void> {
     await api.delete(`/goe/connections/${id}`)
+  },
+
+  async updateTariff(id: string, tariffCentsPerKwh: number): Promise<GoeConnection> {
+    const resp = await api.patch(`/goe/connections/${id}/tariff`, { tariffCentsPerKwh })
+    return { ...resp.data, carStateLabel: CAR_STATE_LABELS[resp.data.carState] ?? 'Unbekannt' }
   },
 }
