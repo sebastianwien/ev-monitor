@@ -29,6 +29,15 @@ export default defineConfig({
             '/api': {
                 target: 'http://localhost:8080',
                 changeOrigin: true
+            },
+            // OAuth2 (Spring Security endpoints, not under /api)
+            '/oauth2': {
+                target: 'http://localhost:8080',
+                changeOrigin: true
+            },
+            '/login/oauth2': {
+                target: 'http://localhost:8080',
+                changeOrigin: true
             }
         }
     },

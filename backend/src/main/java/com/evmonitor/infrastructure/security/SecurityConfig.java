@@ -1,5 +1,6 @@
 package com.evmonitor.infrastructure.security;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -31,6 +32,9 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final InternalAuthFilter internalAuthFilter;
     private final CustomUserDetailsService userDetailsService;
+
+    @Autowired(required = false)
+    private OAuth2AuthenticationSuccessHandler oauth2SuccessHandler;
 
     @Value("${allowed-origins:http://localhost:5173,http://localhost}")
     private String allowedOrigins;
@@ -72,6 +76,10 @@ public class SecurityConfig {
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(internalAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+
+        if (oauth2SuccessHandler != null) {
+            http.oauth2Login(oauth2 -> oauth2.successHandler(oauth2SuccessHandler));
+        }
 
         return http.build();
     }
