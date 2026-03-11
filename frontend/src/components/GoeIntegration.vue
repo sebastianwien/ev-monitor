@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { PlusIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
+import { ref, onMounted, watch } from 'vue'
+import { PlusIcon, ExclamationTriangleIcon, InformationCircleIcon, ChevronRightIcon } from '@heroicons/vue/24/outline'
 import goeService from '@/api/goeService'
 import { carService, type Car } from '@/api/carService'
 import GoeStatusCard from './GoeStatusCard.vue'
@@ -16,6 +16,11 @@ const error = ref<string | null>(null)
 const showForm = ref(false)
 
 const form = ref({ serial: '', apiKey: '', carId: '', displayName: '' })
+
+const infoExpanded = ref(!wallboxStore.hasConnections)
+watch(() => wallboxStore.hasConnections, (hasConnections) => {
+  if (hasConnections) infoExpanded.value = false
+})
 
 onMounted(async () => {
   await loadCars()
@@ -73,6 +78,36 @@ function carLabel(car: Car): string {
     <div v-if="error" class="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg p-3">
       <ExclamationTriangleIcon class="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
       <p class="text-sm text-red-800">{{ error }}</p>
+    </div>
+
+    <!-- Info Box -->
+    <div class="border border-gray-200 rounded-lg overflow-hidden">
+      <button
+        type="button"
+        @click="infoExpanded = !infoExpanded"
+        class="w-full flex items-center justify-between px-3 py-2.5 text-sm text-gray-500 hover:bg-gray-50 transition text-left">
+        <span class="flex items-center gap-1.5">
+          <InformationCircleIcon class="w-4 h-4 text-indigo-400 flex-shrink-0" />
+          Wie funktioniert der go-eCharger Import?
+        </span>
+        <ChevronRightIcon class="w-4 h-4 flex-shrink-0 transition-transform duration-200"
+          :class="infoExpanded ? 'rotate-90' : ''" />
+      </button>
+      <div v-if="infoExpanded" class="px-3 pb-3 text-sm text-gray-600 space-y-2 border-t border-gray-100 pt-2.5">
+        <p>
+          Nach einmaliger Einrichtung läuft alles <strong>vollautomatisch</strong>: EV Monitor fragt
+          alle paar Minuten bei der go-e Cloud an, ob gerade geladen wird.
+        </p>
+        <p>
+          Sobald du das Kabel einsteckst, merkt sich das System Startzeitpunkt und Energiezählerstand.
+          Wenn du fertig bist, wird daraus automatisch ein <strong>Ladeeintrag</strong> in deinem
+          Dashboard angelegt — mit Datum, kWh und optional den Kosten.
+        </p>
+        <p>
+          Den <strong>Strompreis</strong> kannst du direkt bei der Wallbox-Verbindung hinterlegen —
+          dann rechnet EV Monitor die Kosten für jede Session automatisch aus.
+        </p>
+      </div>
     </div>
 
     <!-- Connected devices -->
