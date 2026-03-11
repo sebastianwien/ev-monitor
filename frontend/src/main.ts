@@ -32,6 +32,9 @@ if (import.meta.env.PROD) {
         // Ignore service worker registration failures — not app errors
         const stack = event.reason instanceof Error ? (event.reason.stack ?? '') : ''
         if (stack.includes('ServiceWorker') || stack.includes('registerSW')) return
+        // Ignore browser extension errors (e.g. chrome.runtime.sendMessage from ad blockers, password managers)
+        const message = event.reason instanceof Error ? event.reason.message : String(event.reason)
+        if (message.includes('runtime.sendMessage') || message.includes('extension')) return
         reportError(event.reason, 'unhandledrejection')
     })
 }
