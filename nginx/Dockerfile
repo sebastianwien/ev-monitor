@@ -9,6 +9,9 @@ ENV VITE_API_BASE_URL=/api
 # Set Reddit Pixel ID (passed as build arg from .env)
 ARG VITE_REDDIT_PIXEL_ID
 ENV VITE_REDDIT_PIXEL_ID=${VITE_REDDIT_PIXEL_ID}
+# Google OAuth2 (set to true when GOOGLE_CLIENT_ID/SECRET are configured)
+ARG VITE_GOOGLE_OAUTH_ENABLED=false
+ENV VITE_GOOGLE_OAUTH_ENABLED=${VITE_GOOGLE_OAUTH_ENABLED}
 RUN npm run build
 
 # Stage 2: Serve with Nginx

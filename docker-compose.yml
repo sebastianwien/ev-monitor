@@ -44,6 +44,8 @@ services:
       APP_BASE_URL: ${APP_BASE_URL:-https://ev-monitor.net}
       APP_MAIL_FROM: ${APP_MAIL_FROM:-noreply@ev-monitor.net}
       APP_ALERT_EMAIL: ${ALERT_EMAIL:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       SPRITMONITOR_PROXY_ENABLED: ${SPRITMONITOR_PROXY_ENABLED:-false}
       SPRITMONITOR_PROXY_HOST: ${SPRITMONITOR_PROXY_HOST:-127.0.0.1}
       SPRITMONITOR_PROXY_PORT: ${SPRITMONITOR_PROXY_PORT:-1080}
@@ -104,6 +106,7 @@ services:
       dockerfile: nginx/Dockerfile
       args:
         VITE_REDDIT_PIXEL_ID: ${VITE_REDDIT_PIXEL_ID:-}
+        VITE_GOOGLE_OAUTH_ENABLED: ${VITE_GOOGLE_OAUTH_ENABLED:-false}
     restart: always
     ports:
       - "80:80"
