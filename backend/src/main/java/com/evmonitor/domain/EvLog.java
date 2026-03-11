@@ -15,6 +15,7 @@ public class EvLog {
     private final Integer odometerKm; // Optional: odometer reading in km
     private final BigDecimal maxChargingPowerKw; // Optional: max charging power in kW
     private final Integer socAfterChargePercent; // Optional: State of Charge after charging (0-100%)
+    private final Integer socBeforeChargePercent; // Optional: State of Charge before charging (0-100%)
     private final LocalDateTime loggedAt; // When the charge happened (user-provided or now)
     private final DataSource dataSource;
     private final boolean includeInStatistics; // Whether to include in public stats/aggregations
@@ -26,7 +27,8 @@ public class EvLog {
 
     public EvLog(UUID id, UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
             Integer chargeDurationMinutes, String geohash, Integer odometerKm,
-            BigDecimal maxChargingPowerKw, Integer socAfterChargePercent, LocalDateTime loggedAt, DataSource dataSource,
+            BigDecimal maxChargingPowerKw, Integer socAfterChargePercent, Integer socBeforeChargePercent,
+            LocalDateTime loggedAt, DataSource dataSource,
             boolean includeInStatistics, Integer odometerSuggestionMinKm, Integer odometerSuggestionMaxKm,
             Double temperatureCelsius, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
@@ -38,6 +40,7 @@ public class EvLog {
         this.odometerKm = odometerKm;
         this.maxChargingPowerKw = maxChargingPowerKw;
         this.socAfterChargePercent = socAfterChargePercent;
+        this.socBeforeChargePercent = socBeforeChargePercent;
         this.loggedAt = loggedAt != null ? loggedAt : LocalDateTime.now();
         this.dataSource = dataSource != null ? dataSource : DataSource.USER_LOGGED;
         this.includeInStatistics = includeInStatistics;
@@ -53,7 +56,7 @@ public class EvLog {
             BigDecimal maxChargingPowerKw, Integer socAfterChargePercent, LocalDateTime loggedAt) {
         LocalDateTime now = LocalDateTime.now();
         return new EvLog(UUID.randomUUID(), carId, kwhCharged, costEur,
-                chargeDurationMinutes, geohash, odometerKm, maxChargingPowerKw, socAfterChargePercent, loggedAt,
+                chargeDurationMinutes, geohash, odometerKm, maxChargingPowerKw, socAfterChargePercent, null, loggedAt,
                 DataSource.USER_LOGGED, true, null, null, null, now, now);
     }
 
@@ -63,8 +66,19 @@ public class EvLog {
         LocalDateTime now = LocalDateTime.now();
         boolean includeInStats = dataSource.includeInStatistics();
         return new EvLog(UUID.randomUUID(), carId, kwhCharged, costEur,
-                chargeDurationMinutes, geohash, odometerKm, maxChargingPowerKw, socAfterChargePercent, loggedAt,
+                chargeDurationMinutes, geohash, odometerKm, maxChargingPowerKw, socAfterChargePercent, null, loggedAt,
                 dataSource, includeInStats, null, null, null, now, now);
+    }
+
+    public static EvLog createNewWithSourceAndSocBefore(UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
+            Integer chargeDurationMinutes, String geohash, Integer odometerKm,
+            BigDecimal maxChargingPowerKw, Integer socAfterChargePercent, Integer socBeforeChargePercent,
+            LocalDateTime loggedAt, DataSource dataSource) {
+        LocalDateTime now = LocalDateTime.now();
+        return new EvLog(UUID.randomUUID(), carId, kwhCharged, costEur,
+                chargeDurationMinutes, geohash, odometerKm, maxChargingPowerKw, socAfterChargePercent,
+                socBeforeChargePercent, loggedAt, dataSource, dataSource.includeInStatistics(),
+                null, null, null, now, now);
     }
 
     public static EvLog createFromOcpp(UUID carId, BigDecimal kwhCharged,
@@ -80,7 +94,7 @@ public class EvLog {
             DataSource dataSource, BigDecimal costEur) {
         LocalDateTime now = LocalDateTime.now();
         return new EvLog(UUID.randomUUID(), carId, kwhCharged, costEur,
-                chargeDurationMinutes, geohash, null, null, null, loggedAt,
+                chargeDurationMinutes, geohash, null, null, null, null, loggedAt,
                 dataSource, dataSource.includeInStatistics(),
                 odometerSuggestionMinKm, odometerSuggestionMaxKm, null, now, now);
     }
@@ -131,6 +145,10 @@ public class EvLog {
 
     public Integer getSocAfterChargePercent() {
         return socAfterChargePercent;
+    }
+
+    public Integer getSocBeforeChargePercent() {
+        return socBeforeChargePercent;
     }
 
     public DataSource getDataSource() {

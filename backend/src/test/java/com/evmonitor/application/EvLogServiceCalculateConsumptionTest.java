@@ -325,6 +325,7 @@ class EvLogServiceCalculateConsumptionTest {
                 odometerKm,
                 new BigDecimal("11.0"),      // maxChargingPowerKw
                 socAfterChargePercent,
+                null,                        // socBeforeChargePercent
                 loggedAt,
                 DataSource.USER_LOGGED,
                 true,

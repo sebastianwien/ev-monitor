@@ -4,6 +4,7 @@ import com.evmonitor.application.EvLogCreateResponse;
 import com.evmonitor.application.EvLogRequest;
 import com.evmonitor.application.EvLogResponse;
 import com.evmonitor.application.EvLogStatisticsResponse;
+import com.evmonitor.application.EvLogUpdateRequest;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.EvLog;
@@ -353,5 +354,138 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
         assertNotNull(response.getBody());
         assertEquals(0, response.getBody().totalCharges());
         assertEquals(BigDecimal.ZERO, response.getBody().totalKwhCharged());
+    }
+
+    // ── PUT /api/logs/{id} — updateLog ─────────────────────────────────────────
+
+    @Test
+    void updateLog_updatesEditableFields() {
+        EvLog existing = evLogRepository.save(EvLog.createNew(
+                carId, new BigDecimal("30.0"), new BigDecimal("9.00"),
+                60, null, 12000, null, 75, LocalDateTime.parse("2025-08-20T10:00:00")));
+
+        EvLogUpdateRequest update = new EvLogUpdateRequest(
+                new BigDecimal("35.5"),   // kwhCharged
+                new BigDecimal("11.00"),  // costEur
+                90,                       // chargeDurationMinutes
+                null, null,               // no new location
+                13000,                    // odometerKm
+                null,                     // maxChargingPowerKw
+                80,                       // socAfterChargePercent
+                20,                       // socBeforeChargePercent
+                LocalDateTime.parse("2025-08-20T11:00:00")
+        );
+
+        ResponseEntity<EvLogResponse> response = restTemplate.exchange(
+                "/api/logs/" + existing.getId(),
+                HttpMethod.PUT,
+                createAuthRequest(update, userId, testUser.getEmail()),
+                EvLogResponse.class
+        );
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        EvLogResponse body = response.getBody();
+        assertNotNull(body);
+        assertEquals(0, new BigDecimal("35.5").compareTo(body.kwhCharged()));
+        assertEquals(0, new BigDecimal("11.00").compareTo(body.costEur()));
+        assertEquals(90, body.chargeDurationMinutes());
+        assertEquals(13000, body.odometerKm());
+        assertEquals(80, body.socAfterChargePercent());
+        assertEquals(20, body.socBeforeChargePercent());
+        assertEquals(LocalDateTime.parse("2025-08-20T11:00:00"), body.loggedAt());
+    }
+
+    @Test
+    void updateLog_nullFields_keepExistingValues() {
+        EvLog existing = evLogRepository.save(EvLog.createNew(
+                carId, new BigDecimal("30.0"), new BigDecimal("9.00"),
+                60, "u33d1", 12000, null, 75, LocalDateTime.parse("2025-08-20T10:00:00")));
+
+        // Only update kwhCharged, everything else null → keep existing
+        EvLogUpdateRequest update = new EvLogUpdateRequest(
+                new BigDecimal("40.0"), null, null, null, null, null, null, null, null, null);
+
+        ResponseEntity<EvLogResponse> response = restTemplate.exchange(
+                "/api/logs/" + existing.getId(),
+                HttpMethod.PUT,
+                createAuthRequest(update, userId, testUser.getEmail()),
+                EvLogResponse.class
+        );
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        EvLogResponse body = response.getBody();
+        assertEquals(0, new BigDecimal("40.0").compareTo(body.kwhCharged()));
+        assertEquals(0, new BigDecimal("9.00").compareTo(body.costEur()));   // unchanged
+        assertEquals(12000, body.odometerKm());                              // unchanged
+        assertEquals(75, body.socAfterChargePercent());                      // unchanged
+        assertEquals("u33d1", body.geohash());                               // unchanged
+    }
+
+    @Test
+    void updateLog_withLatLon_updatesGeohash() {
+        EvLog existing = evLogRepository.save(EvLog.createNew(
+                carId, new BigDecimal("20.0"), new BigDecimal("6.00"),
+                45, null, 10000, null, 60, LocalDateTime.parse("2025-07-15T09:00:00")));
+
+        EvLogUpdateRequest update = new EvLogUpdateRequest(
+                null, null, null,
+                48.2082, 16.3738,   // Vienna lat/lon
+                null, null, null, null, null);
+
+        ResponseEntity<EvLogResponse> response = restTemplate.exchange(
+                "/api/logs/" + existing.getId(),
+                HttpMethod.PUT,
+                createAuthRequest(update, userId, testUser.getEmail()),
+                EvLogResponse.class
+        );
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody().geohash());
+        assertEquals(5, response.getBody().geohash().length());
+        // Vienna (48.2082, 16.3738) at precision 5 → geohash starts with "u2ed" or "u2ee"
+        assertTrue(response.getBody().geohash().startsWith("u2e"),
+                "Vienna geohash should start with u2e, got: " + response.getBody().geohash());
+    }
+
+    @Test
+    void updateLog_otherUsersCar_returns404() {
+        User other = createAndSaveUser("update-other-" + System.nanoTime() + "@example.com");
+        Car otherCar = createAndSaveCar(other.getId(), CarBrand.CarModel.MODEL_3);
+        EvLog otherLog = evLogRepository.save(EvLog.createNew(
+                otherCar.getId(), new BigDecimal("20.0"), new BigDecimal("5.00"),
+                30, null, 5000, null, 50, LocalDateTime.now()));
+
+        EvLogUpdateRequest update = new EvLogUpdateRequest(
+                new BigDecimal("99.0"), null, null, null, null, null, null, null, null, null);
+
+        ResponseEntity<EvLogResponse> response = restTemplate.exchange(
+                "/api/logs/" + otherLog.getId(),
+                HttpMethod.PUT,
+                createAuthRequest(update, userId, testUser.getEmail()),
+                EvLogResponse.class
+        );
+
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+    }
+
+    @Test
+    void updateLog_unauthenticated_returns401() {
+        EvLog existing = evLogRepository.save(EvLog.createNew(
+                carId, new BigDecimal("20.0"), new BigDecimal("5.00"),
+                30, null, 5000, null, 50, LocalDateTime.now()));
+
+        EvLogUpdateRequest update = new EvLogUpdateRequest(
+                new BigDecimal("99.0"), null, null, null, null, null, null, null, null, null);
+
+        ResponseEntity<String> response = restTemplate.exchange(
+                "/api/logs/" + existing.getId(),
+                HttpMethod.PUT,
+                new HttpEntity<>(update),
+                String.class
+        );
+
+        // Spring Security returns 403 when no credentials are provided (no WWW-Authenticate header)
+        assertTrue(response.getStatusCode() == HttpStatus.UNAUTHORIZED
+                || response.getStatusCode() == HttpStatus.FORBIDDEN);
     }
 }

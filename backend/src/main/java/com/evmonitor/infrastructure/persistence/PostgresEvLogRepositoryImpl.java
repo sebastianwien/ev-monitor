@@ -135,6 +135,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 domain.isIncludeInStatistics(),
                 domain.getCreatedAt(),
                 domain.getUpdatedAt());
+        entity.setSocBeforeChargePercent(domain.getSocBeforeChargePercent());
         entity.setOdometerSuggestionMinKm(domain.getOdometerSuggestionMinKm());
         entity.setOdometerSuggestionMaxKm(domain.getOdometerSuggestionMaxKm());
         entity.setTemperatureCelsius(domain.getTemperatureCelsius());
@@ -152,6 +153,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 entity.getOdometerKm(),
                 entity.getMaxChargingPowerKw(),
                 entity.getSocAfterChargePercent(),
+                entity.getSocBeforeChargePercent(),
                 entity.getLoggedAt(),
                 DataSource.valueOf(entity.getDataSource()),
                 entity.isIncludeInStatistics(),

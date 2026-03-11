@@ -131,7 +131,7 @@ class EvLogTest {
 
         // When
         EvLog evLog = new EvLog(id, carId, kwhCharged, costEur, chargeDurationMinutes,
-                geohash, odometerKm, maxChargingPowerKw, socAfterChargePercent, loggedAt, dataSource, true, null, null, null, createdAt, updatedAt);
+                geohash, odometerKm, maxChargingPowerKw, socAfterChargePercent, null, loggedAt, dataSource, true, null, null, null, createdAt, updatedAt);
 
         // Then
         assertEquals(id, evLog.getId());

@@ -5,6 +5,7 @@ import { ArrowDownTrayIcon, BoltIcon, ExclamationTriangleIcon } from '@heroicons
 import SpritMonitorImport from '../components/SpritMonitorImport.vue'
 import GoeIntegration from '../components/GoeIntegration.vue'
 import TeslaFleetIntegration from '../components/TeslaFleetIntegration.vue'
+import TeslaLoggerImportModal from '../components/TeslaLoggerImportModal.vue'
 import { carService, type Car } from '../api/carService'
 
 const route = useRoute()
@@ -15,6 +16,7 @@ const activeTab = ref<Tab>(
   VALID_TABS.includes(route.query.tab as Tab) ? (route.query.tab as Tab) : 'spritmonitor'
 )
 const showSpritMonitorModal = ref(false)
+const teslaLoggerCarId = ref<string | null>(null)
 const cars = ref<Car[]>([])
 const loading = ref(true)
 
@@ -30,6 +32,10 @@ onMounted(async () => {
 
 const hasActiveTesla = computed(() =>
   cars.value.some(c => c.brand?.toLowerCase() === 'tesla' && c.status === 'ACTIVE')
+)
+
+const teslaCars = computed(() =>
+  cars.value.filter(c => c.brand?.toLowerCase() === 'tesla' && c.status === 'ACTIVE')
 )
 </script>
 
@@ -212,8 +218,53 @@ const hasActiveTesla = computed(() =>
         </div>
 
         <!-- Tab: Tesla -->
-        <div v-if="activeTab === 'tesla' && hasActiveTesla">
+        <div v-if="activeTab === 'tesla' && hasActiveTesla" class="space-y-4">
           <TeslaFleetIntegration />
+
+          <!-- TeslaLogger Manual Import -->
+          <div class="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
+            <div class="flex items-start gap-4">
+              <div class="bg-gray-700 rounded-lg p-2 shrink-0">
+                <ArrowDownTrayIcon class="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h2 class="font-semibold text-gray-900">Manueller Datenlogger-Import</h2>
+                <p class="text-sm text-gray-600 mt-1">
+                  Importiere vergangene Ladevorgänge aus <strong>TeslaMate</strong>, <strong>TeslaLogger</strong>,
+                  <strong>TeslaFi</strong> oder einer anderen Quelle — als CSV oder JSON in unserem Format.
+                </p>
+              </div>
+            </div>
+
+            <ul class="text-sm text-gray-600 space-y-1 list-disc list-inside">
+              <li>Vergangene Sessions inklusive Tachostand</li>
+              <li>CSV oder JSON — Format wird vorgegeben</li>
+              <li>Datum-Erkennung: ISO 8601, deutsch, US, Unix-Timestamp</li>
+              <li>Standort: Koordinaten (Lat/Lon) oder Ortsname</li>
+            </ul>
+
+            <div v-if="teslaCars.length > 1" class="space-y-1.5">
+              <label class="block text-sm font-medium text-gray-700">Fahrzeug auswählen</label>
+              <select
+                v-model="teslaLoggerCarId"
+                class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              >
+                <option value="" disabled>Fahrzeug auswählen…</option>
+                <option v-for="car in teslaCars" :key="car.id" :value="car.id">
+                  {{ car.brand }} {{ car.model }}
+                </option>
+              </select>
+            </div>
+
+            <button
+              @click="teslaLoggerCarId = teslaCars.length === 1 ? teslaCars[0].id : (teslaLoggerCarId || null)"
+              :disabled="teslaCars.length > 1 && !teslaLoggerCarId"
+              class="flex items-center gap-2 bg-gray-800 text-white px-5 py-2.5 rounded-lg font-medium text-sm hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            >
+              <ArrowDownTrayIcon class="h-4 w-4" />
+              Import starten
+            </button>
+          </div>
         </div>
       </div>
     </Transition>
@@ -221,6 +272,14 @@ const hasActiveTesla = computed(() =>
 
   <!-- Sprit-Monitor Import Modal -->
   <SpritMonitorImport v-if="showSpritMonitorModal" @close="showSpritMonitorModal = false" />
+
+  <!-- TeslaLogger Import Modal -->
+  <TeslaLoggerImportModal
+    v-if="teslaLoggerCarId"
+    :car-id="teslaLoggerCarId"
+    @close="teslaLoggerCarId = null"
+    @imported="teslaLoggerCarId = null"
+  />
 </template>
 
 <style scoped>

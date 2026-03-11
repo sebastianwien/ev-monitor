@@ -6,6 +6,7 @@ public enum DataSource {
     TESLA_IMPORT,       // legacy Owner API
     TESLA_FLEET,        // Fleet API Supercharger history via ev-monitor-connectors
     TESLA_HOME,         // Fleet API home/third-party charging via real-time polling
+    TESLA_LOGGER_IMPORT, // Manual import from TeslaMate / TeslaLogger / TeslaFi
     WALLBOX_OCPP,
     WALLBOX_GOE,        // go-eCharger Cloud via ev-monitor-connectors
     SEED_DATA;
@@ -13,6 +14,7 @@ public enum DataSource {
     public boolean includeInStatistics() {
         return this == USER_LOGGED || this == SPRITMONITOR_IMPORT
                 || this == WALLBOX_OCPP || this == WALLBOX_GOE
-                || this == TESLA_FLEET || this == TESLA_HOME;
+                || this == TESLA_FLEET || this == TESLA_HOME
+                || this == TESLA_LOGGER_IMPORT;
     }
 }

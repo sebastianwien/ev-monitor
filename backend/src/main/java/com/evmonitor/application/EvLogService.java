@@ -163,6 +163,48 @@ public class EvLogService {
         return EvLogResponse.fromDomain(log);
     }
 
+    @Transactional
+    public EvLogResponse updateLog(UUID id, UUID userId, EvLogUpdateRequest request) {
+        EvLog existing = evLogRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Log not found with ID: " + id));
+
+        Car car = carRepository.findById(existing.getCarId())
+                .orElseThrow(() -> new IllegalArgumentException("Associated car not found"));
+
+        if (!car.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("Log not found for current user (ownership mismatch).");
+        }
+
+        // Compute new geohash from lat/lon if provided; otherwise keep existing
+        String geohash = existing.getGeohash();
+        if (request.latitude() != null && request.longitude() != null) {
+            geohash = GeoHash.withCharacterPrecision(request.latitude(), request.longitude(), 5).toBase32();
+        }
+
+        EvLog updated = new EvLog(
+                existing.getId(),
+                existing.getCarId(),
+                request.kwhCharged()             != null ? request.kwhCharged()             : existing.getKwhCharged(),
+                request.costEur()                != null ? request.costEur()                : existing.getCostEur(),
+                request.chargeDurationMinutes()  != null ? request.chargeDurationMinutes()  : existing.getChargeDurationMinutes(),
+                geohash,
+                request.odometerKm()             != null ? request.odometerKm()             : existing.getOdometerKm(),
+                request.maxChargingPowerKw()     != null ? request.maxChargingPowerKw()     : existing.getMaxChargingPowerKw(),
+                request.socAfterChargePercent()  != null ? request.socAfterChargePercent()  : existing.getSocAfterChargePercent(),
+                request.socBeforeChargePercent() != null ? request.socBeforeChargePercent() : existing.getSocBeforeChargePercent(),
+                request.loggedAt()               != null ? request.loggedAt()               : existing.getLoggedAt(),
+                existing.getDataSource(),
+                existing.isIncludeInStatistics(),
+                existing.getOdometerSuggestionMinKm(),
+                existing.getOdometerSuggestionMaxKm(),
+                existing.getTemperatureCelsius(),
+                existing.getCreatedAt(),
+                LocalDateTime.now()
+        );
+
+        return EvLogResponse.fromDomain(evLogRepository.save(updated));
+    }
+
     public void deleteLog(UUID id, UUID userId) {
         EvLog log = evLogRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Log not found with ID: " + id));

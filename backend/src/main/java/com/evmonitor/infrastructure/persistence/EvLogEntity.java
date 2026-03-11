@@ -37,6 +37,9 @@ public class EvLogEntity {
     @Column(name = "soc_after_charge_percent")
     private Integer socAfterChargePercent;
 
+    @Column(name = "soc_start_percent")
+    private Integer socBeforeChargePercent;
+
     @Column(name = "logged_at")
     private LocalDateTime loggedAt;
 
@@ -178,6 +181,14 @@ public class EvLogEntity {
 
     public void setSocAfterChargePercent(Integer socAfterChargePercent) {
         this.socAfterChargePercent = socAfterChargePercent;
+    }
+
+    public Integer getSocBeforeChargePercent() {
+        return socBeforeChargePercent;
+    }
+
+    public void setSocBeforeChargePercent(Integer socBeforeChargePercent) {
+        this.socBeforeChargePercent = socBeforeChargePercent;
     }
 
     public String getDataSource() {

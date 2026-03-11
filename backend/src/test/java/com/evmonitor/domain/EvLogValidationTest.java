@@ -118,6 +118,7 @@ class EvLogValidationTest {
                 odometerKm,
                 new BigDecimal("11.0"),      // maxChargingPowerKw
                 socAfterChargePercent,
+                null,                        // socBeforeChargePercent
                 NOW,
                 DataSource.USER_LOGGED,
                 true,

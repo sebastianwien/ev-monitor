@@ -19,7 +19,8 @@ public class CoinLogService {
     /** Canonical action description constants — used for both awarding and first-time checks. */
     public static final String ACTION_CAR_CREATED           = "Fahrzeug hinzugefügt";
     public static final String ACTION_LOG_CREATED           = "Ladevorgang erfasst";
-    public static final String ACTION_SPRITMONITOR_IMPORTED = "Sprit-Monitor Import";
+    public static final String ACTION_SPRITMONITOR_IMPORTED  = "Sprit-Monitor Import";
+    public static final String ACTION_TESLA_LOGGER_IMPORTED  = "TeslaLogger Import";
     public static final String ACTION_IMAGE_UPLOADED        = "Erstes Auto-Bild hochgeladen";
     public static final String ACTION_IMAGE_PUBLIC          = "Auto-Bild öffentlich geteilt";
     public static final String ACTION_REFERRAL_INVITED      = "Freund eingeladen";

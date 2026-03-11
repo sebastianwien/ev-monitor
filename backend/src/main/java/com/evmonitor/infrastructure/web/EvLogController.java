@@ -4,6 +4,7 @@ import com.evmonitor.application.EvLogCreateResponse;
 import com.evmonitor.application.EvLogRequest;
 import com.evmonitor.application.EvLogResponse;
 import com.evmonitor.application.EvLogStatisticsResponse;
+import com.evmonitor.application.EvLogUpdateRequest;
 import com.evmonitor.application.EvLogService;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import org.springframework.http.HttpStatus;
@@ -57,6 +58,20 @@ public class EvLogController {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         EvLogResponse log = evLogService.getLogByIdForUser(id, principal.getUser().getId());
         return ResponseEntity.ok(log);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<EvLogResponse> updateLog(
+            @PathVariable UUID id,
+            @RequestBody EvLogUpdateRequest request,
+            Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        try {
+            EvLogResponse updated = evLogService.updateLog(id, principal.getUser().getId(), request);
+            return ResponseEntity.ok(updated);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @DeleteMapping("/{id}")

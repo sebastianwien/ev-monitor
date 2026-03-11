@@ -9,6 +9,7 @@ import { analytics } from '../services/analytics'
 import { carService } from '../api/carService'
 import { tempBadgeClass } from '../utils/temperatureColor'
 import ConsumptionInfoBox from './ConsumptionInfoBox.vue'
+import EditLogModal from './EditLogModal.vue'
 
 const coinStore = useCoinStore()
 
@@ -175,6 +176,8 @@ const fetchLogs = async () => {
     console.error('Failed to fetch logs:', err)
   }
 }
+
+const editingLog = ref<any | null>(null)
 
 const deleteLog = async (logId: string) => {
   if (!confirm('Ladevorgang wirklich löschen?')) return
@@ -550,6 +553,13 @@ const handleOcrData = (ocrResult: any) => {
               </span>
               <button
                 type="button"
+                @click="editingLog = log"
+                class="p-1 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded transition"
+                title="Ladevorgang bearbeiten">
+                <PencilSquareIcon class="w-4 h-4" />
+              </button>
+              <button
+                type="button"
                 @click="deleteLog(log.id)"
                 class="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition"
                 title="Ladevorgang löschen">
@@ -584,6 +594,13 @@ const handleOcrData = (ocrResult: any) => {
     </div>
     </template> <!-- end v-else-if="hasCars" -->
   </div>
+
+  <EditLogModal
+    v-if="editingLog"
+    :log="editingLog"
+    @close="editingLog = null"
+    @saved="() => { editingLog = null; fetchLogs() }"
+  />
 </template>
 
 <style scoped>
