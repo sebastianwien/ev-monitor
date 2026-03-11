@@ -87,6 +87,8 @@ const carImageUrls = ref<Record<string, string>>({})
 const selectedTimeRange = ref<string>('LAST_3_MONTHS')
 const selectedGroupBy = ref<string>('DAY')
 
+const showOdometer = ref(false)
+
 // Dataset toggles - Chart 1 (Charging & Costs)
 const showCostPerKwh = ref(true)
 const showKwh = ref(true)
@@ -508,6 +510,11 @@ watch(selectedCarId, () => {
   hasMoreLogs.value = false
 })
 
+const toggleOdometerDisplay = (distanceKm: number | null, odometerKm: number | null) => {
+  if (distanceKm == null || odometerKm == null) return
+  showOdometer.value = !showOdometer.value
+}
+
 const deleteLog = async (id: string) => {
   if (!confirm('Ladevorgang wirklich löschen?')) return
   try {
@@ -910,9 +917,14 @@ const deleteLog = async (id: string) => {
                   <span v-if="log.chargeDurationMinutes" class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
                     <ClockIcon class="w-3 h-3" />{{ log.chargeDurationMinutes }}min
                   </span>
-                  <span v-if="log.distanceSinceLastChargeKm != null || log.odometerKm" class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
-                    <template v-if="log.distanceSinceLastChargeKm != null">+{{ log.distanceSinceLastChargeKm.toLocaleString('de-DE') }} km</template>
-                    <template v-else>{{ log.odometerKm.toLocaleString('de-DE') }} km</template>
+                  <span
+                    v-if="log.distanceSinceLastChargeKm != null || log.odometerKm"
+                    class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap"
+                    :class="{ 'cursor-pointer hover:bg-gray-100': log.distanceSinceLastChargeKm != null && log.odometerKm }"
+                    @click="toggleOdometerDisplay(log.distanceSinceLastChargeKm, log.odometerKm)"
+                  >
+                    <template v-if="log.distanceSinceLastChargeKm != null && !showOdometer">+{{ log.distanceSinceLastChargeKm.toLocaleString('de-DE') }} km</template>
+                    <template v-else>{{ log.odometerKm?.toLocaleString('de-DE') }} km</template>
                   </span>
                   <span v-if="log.socAfterChargePercent != null" class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
                     <Battery0Icon class="w-3 h-3" />{{ log.socAfterChargePercent }}%

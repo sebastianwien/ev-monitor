@@ -9,6 +9,7 @@ import FloatingActionButton from './components/FloatingActionButton.vue'
 import OnboardingWelcome from './components/OnboardingWelcome.vue'
 import DemoBanner from './components/DemoBanner.vue'
 import RedditConsentBanner from './components/RedditConsentBanner.vue'
+import FeedbackToast from './components/FeedbackToast.vue'
 import { Bars3Icon, XMarkIcon, ChartBarIcon, TruckIcon, ArrowDownTrayIcon, UserIcon, ArrowRightOnRectangleIcon, BoltIcon, ChatBubbleLeftEllipsisIcon, ArrowsRightLeftIcon, Battery0Icon } from '@heroicons/vue/24/outline'
 // Note: showImportOverlay kept for backward compat but SpritMonitor moved to /imports
 import { HeartIcon } from '@heroicons/vue/24/solid'
@@ -413,6 +414,9 @@ const closeMobileMenu = () => {
 
     <!-- Reddit Consent Banner (only for paid Reddit traffic) -->
     <RedditConsentBanner />
+
+    <!-- Feedback Toast (delayed, dismissible) -->
+    <FeedbackToast />
   </div>
 </template>
 

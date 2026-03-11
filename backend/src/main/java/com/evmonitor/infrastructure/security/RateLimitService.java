@@ -46,9 +46,16 @@ public class RateLimitService {
             .refillIntervally(3, Duration.ofMinutes(10))
             .build();
 
+    // 5 demo logins per 10 minutes per IP
+    private static final Bandwidth DEMO_LOGIN_LIMIT = Bandwidth.builder()
+            .capacity(5)
+            .refillIntervally(5, Duration.ofMinutes(10))
+            .build();
+
     private final ConcurrentHashMap<String, Bucket> loginBuckets = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Bucket> registerBuckets = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Bucket> forgotPasswordBuckets = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Bucket> demoLoginBuckets = new ConcurrentHashMap<>();
 
     /**
      * @return true if the request may proceed, false if rate limit exceeded
@@ -85,6 +92,17 @@ public class RateLimitService {
                 .tryConsume(1);
         if (!allowed) {
             log.warn("Rate limit exceeded for register from IP: {}", clientIp);
+        }
+        return allowed;
+    }
+
+    public boolean tryConsumeDemoLogin(String clientIp) {
+        if (!enabled) return true;
+        boolean allowed = demoLoginBuckets
+                .computeIfAbsent(clientIp, ip -> Bucket.builder().addLimit(DEMO_LOGIN_LIMIT).build())
+                .tryConsume(1);
+        if (!allowed) {
+            log.warn("Rate limit exceeded for demo-login from IP: {}", clientIp);
         }
         return allowed;
     }

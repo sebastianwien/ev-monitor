@@ -38,6 +38,14 @@ public class AuthController {
         return ResponseEntity.ok(authService.register(request));
     }
 
+    @PostMapping("/demo-login")
+    public ResponseEntity<?> demoLogin(HttpServletRequest httpRequest) {
+        if (!rateLimitService.tryConsumeDemoLogin(clientIp(httpRequest))) {
+            return tooManyRequests(600);
+        }
+        return ResponseEntity.ok(authService.demoLogin());
+    }
+
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request,
                                    HttpServletRequest httpRequest) {

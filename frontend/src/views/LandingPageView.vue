@@ -69,6 +69,21 @@ onMounted(async () => {
 })
 
 const goToRegister = () => router.push('/register')
+
+const demoLoading = ref(false)
+const demoLogin = async () => {
+  demoLoading.value = true
+  try {
+    const response = await import('../api/axios').then(m => m.default.post('/auth/demo-login'))
+    authStore.setToken(response.data.token)
+    router.push('/dashboard')
+  } catch {
+    router.push('/login')
+  } finally {
+    demoLoading.value = false
+  }
+}
+
 const goToModelDetail = (brand: string, model: string) => {
   // Replace spaces with underscores for URL (e.g. "Polestar 2" -> "Polestar_2")
   const urlModel = model.replace(/ /g, '_')
@@ -159,6 +174,15 @@ const formatDelta = (real: number | null, wltp: number): string => {
             <ArrowRightIcon class="h-5 w-5" />
           </router-link>
         </div>
+        <p class="mt-4 text-sm text-gray-500">
+          Noch unsicher?
+          <button
+            @click="demoLogin"
+            :disabled="demoLoading"
+            class="text-indigo-600 hover:text-indigo-800 font-medium underline underline-offset-2 transition disabled:opacity-50"
+          >{{ demoLoading ? 'Wird geladen…' : 'Demo-Account ausprobieren' }}</button>
+          – kein Account nötig.
+        </p>
         <p class="mt-4 text-sm sm:text-base font-semibold text-gray-600 tabular-nums">
           <span>{{ displayModels }}+ Modelle</span>
           <span class="mx-2">•</span>

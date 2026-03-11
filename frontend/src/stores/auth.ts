@@ -33,6 +33,10 @@ export const useAuthStore = defineStore('auth', () => {
         safeLocalStorage(() => localStorage.setItem('token', newToken));
         try {
             user.value = jwtDecode(newToken);
+            // Mark browser as "was real user" so feedback toast is suppressed after logout
+            if (!(user.value as any)?.demoAccount) {
+                safeLocalStorage(() => localStorage.setItem('wasRealUser', '1'));
+            }
         } catch (e) {
             user.value = null;
         }

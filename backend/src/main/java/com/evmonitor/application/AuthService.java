@@ -179,6 +179,16 @@ public class AuthService {
         passwordResetTokenRepository.deleteById(resetToken.getId());
     }
 
+    private static final String DEMO_ACCOUNT_EMAIL = "test1@ev-monitor.net";
+
+    public AuthResponse demoLogin() {
+        User user = userRepository.findByEmail(DEMO_ACCOUNT_EMAIL)
+                .filter(User::isSeedData)
+                .orElseThrow(() -> new IllegalStateException("Demo account not available"));
+        String jwtToken = jwtService.generateDemoToken(UserPrincipal.create(user));
+        return new AuthResponse(jwtToken, user.getId(), user.getEmail(), user.getRole(), true, false);
+    }
+
     public AuthResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.email())
                 .or(() -> userRepository.findByUsername(request.email()))

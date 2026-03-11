@@ -85,6 +85,7 @@ public class PostgresUserRepositoryImpl implements UserRepository {
         return jpaUserRepository.countByReferredByUserIdAndEmailVerifiedTrue(referrerId);
     }
 
+
     @Override
     public Optional<User> findByStripeCustomerId(String stripeCustomerId) {
         return jpaUserRepository.findByStripeCustomerId(stripeCustomerId).map(this::toDomain);
