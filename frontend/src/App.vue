@@ -109,8 +109,8 @@ const closeMobileMenu = () => {
               EV Monitor
             </router-link>
 
-            <!-- Compact Icon Nav (768px - 1280px) -->
-            <div class="hidden md:flex xl:hidden items-center space-x-2">
+            <!-- Compact Icon Nav (768px - 1024px) -->
+            <div class="hidden md:flex lg:hidden items-center space-x-2">
               <button
                 @click="handleNewLog"
                 class="p-2 rounded-md bg-green-600 hover:bg-green-700 transition"
@@ -133,8 +133,8 @@ const closeMobileMenu = () => {
               </router-link>
             </div>
 
-            <!-- Full Nav (1280px+) -->
-            <div class="hidden xl:flex items-center space-x-4">
+            <!-- Full Nav (1024px+) -->
+            <div class="hidden lg:flex items-center space-x-4">
               <button
                 @click="handleNewLog"
                 class="px-3 py-2 rounded-md text-sm font-medium bg-green-600 hover:bg-green-700 transition">
