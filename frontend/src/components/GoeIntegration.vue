@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { PlusIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
-import goeService, { type GoeConnection } from '@/api/goeService'
+import goeService from '@/api/goeService'
 import { carService, type Car } from '@/api/carService'
 import GoeStatusCard from './GoeStatusCard.vue'
+import { useAuthStore } from '@/stores/auth'
+import { useWallboxStore } from '@/stores/wallbox'
 
-const connections = ref<GoeConnection[]>([])
+const authStore = useAuthStore()
+const wallboxStore = useWallboxStore()
+
 const cars = ref<Car[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
@@ -14,12 +18,8 @@ const showForm = ref(false)
 const form = ref({ serial: '', apiKey: '', carId: '', displayName: '' })
 
 onMounted(async () => {
-  await Promise.all([loadConnections(), loadCars()])
+  await loadCars()
 })
-
-async function loadConnections() {
-  try { connections.value = await goeService.getConnections() } catch { /* ignore */ }
-}
 
 async function loadCars() {
   try {
@@ -39,7 +39,7 @@ async function handleConnect() {
     await goeService.connect(form.value.serial, form.value.apiKey, form.value.carId, form.value.displayName)
     form.value = { serial: '', apiKey: '', carId: cars.value[0]?.id ?? '', displayName: '' }
     showForm.value = false
-    await loadConnections()
+    await wallboxStore.refresh()
   } catch (e: any) {
     error.value = e.response?.data?.message || 'Verbindung fehlgeschlagen'
   } finally {
@@ -51,7 +51,7 @@ async function handleDisconnect(id: string) {
   if (!confirm('go-eCharger Verbindung wirklich trennen?')) return
   try {
     await goeService.disconnect(id)
-    await loadConnections()
+    await wallboxStore.refresh()
   } catch { error.value = 'Trennen fehlgeschlagen' }
 }
 
@@ -66,7 +66,6 @@ function carLabel(car: Car): string {
   const name = `${enumToLabel(car.brand)} ${enumToLabel(car.model)}`
   return car.licensePlate ? `${name} · ${car.licensePlate}` : name
 }
-
 </script>
 
 <template>
@@ -77,52 +76,55 @@ function carLabel(car: Car): string {
     </div>
 
     <!-- Connected devices -->
-    <div v-if="connections.length > 0" class="space-y-3">
+    <div v-if="wallboxStore.hasConnections" class="space-y-3">
       <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Verbundene Geräte</p>
       <GoeStatusCard
-        v-for="conn in connections"
+        v-for="conn in wallboxStore.connections"
         :key="conn.id"
         :connection-id="conn.id"
+        :mock-connection="conn.id === 'demo' ? conn : undefined"
         @disconnect="handleDisconnect"
       />
     </div>
 
-    <!-- Add form -->
-    <div v-if="showForm" class="border border-gray-200 rounded-lg p-4 space-y-3">
-      <p class="text-sm font-medium text-gray-800">go-eCharger verbinden</p>
-      <div>
-        <label class="block text-xs text-gray-500 mb-1">Serial-Nummer</label>
-        <input v-model="form.serial" type="text" placeholder="z.B. A0123456" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+    <!-- Add form (hidden for demo users) -->
+    <template v-if="!authStore.isDemoAccount">
+      <div v-if="showForm" class="border border-gray-200 rounded-lg p-4 space-y-3">
+        <p class="text-sm font-medium text-gray-800">go-eCharger verbinden</p>
+        <div>
+          <label class="block text-xs text-gray-500 mb-1">Serial-Nummer</label>
+          <input v-model="form.serial" type="text" placeholder="z.B. A0123456" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+        </div>
+        <div>
+          <label class="block text-xs text-gray-500 mb-1">Cloud API Key</label>
+          <input v-model="form.apiKey" type="password" placeholder="aus der go-e App" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+        </div>
+        <div v-if="cars.length > 0">
+          <label class="block text-xs text-gray-500 mb-1">Fahrzeug</label>
+          <select v-model="form.carId" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+            <option v-for="car in cars" :key="car.id" :value="car.id">
+              {{ carLabel(car) }}
+            </option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs text-gray-500 mb-1">Name (optional)</label>
+          <input v-model="form.displayName" type="text" placeholder="z.B. Heimlader Garage" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+        </div>
+        <div class="flex gap-2">
+          <button @click="handleConnect" :disabled="loading" class="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 transition">
+            {{ loading ? 'Verbinde...' : 'Verbinden' }}
+          </button>
+          <button @click="showForm = false" class="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition">
+            Abbrechen
+          </button>
+        </div>
       </div>
-      <div>
-        <label class="block text-xs text-gray-500 mb-1">Cloud API Key</label>
-        <input v-model="form.apiKey" type="password" placeholder="aus der go-e App" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
-      </div>
-      <div v-if="cars.length > 0">
-        <label class="block text-xs text-gray-500 mb-1">Fahrzeug</label>
-        <select v-model="form.carId" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
-          <option v-for="car in cars" :key="car.id" :value="car.id">
-            {{ carLabel(car) }}
-          </option>
-        </select>
-      </div>
-      <div>
-        <label class="block text-xs text-gray-500 mb-1">Name (optional)</label>
-        <input v-model="form.displayName" type="text" placeholder="z.B. Heimlader Garage" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
-      </div>
-      <div class="flex gap-2">
-        <button @click="handleConnect" :disabled="loading" class="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 transition">
-          {{ loading ? 'Verbinde...' : 'Verbinden' }}
-        </button>
-        <button @click="showForm = false" class="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition">
-          Abbrechen
-        </button>
-      </div>
-    </div>
 
-    <button v-if="!showForm" @click="showForm = true" class="flex items-center gap-2 text-sm text-green-600 hover:text-green-700 font-medium">
-      <PlusIcon class="h-4 w-4" />
-      go-eCharger hinzufügen
-    </button>
+      <button v-if="!showForm" @click="showForm = true" class="flex items-center gap-2 text-sm text-green-600 hover:text-green-700 font-medium">
+        <PlusIcon class="h-4 w-4" />
+        go-eCharger hinzufügen
+      </button>
+    </template>
   </div>
 </template>

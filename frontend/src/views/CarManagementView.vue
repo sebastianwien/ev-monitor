@@ -6,8 +6,11 @@ import { ChartBarIcon, TruckIcon, ArrowDownTrayIcon } from '@heroicons/vue/24/ou
 import { useCoinStore } from '../stores/coins'
 import LicensePlate from '../components/LicensePlate.vue'
 import { analytics } from '../services/analytics'
+import { useTeslaStatus } from '../composables/useTeslaStatus'
 
 const coinStore = useCoinStore()
+
+const { teslaStatus, start: startTeslaPolling } = useTeslaStatus()
 
 const cars = ref<Car[]>([])
 const brands = ref<BrandInfo[]>([])
@@ -92,6 +95,7 @@ const fetchCars = async () => {
     cars.value.forEach(c => { visibility[c.id] = c.imagePublic })
     imagePublicForUpload.value = visibility
     await loadCarImages(cars.value)
+    await startTeslaPolling(cars.value.some((c: any) => c.brand?.toLowerCase() === 'tesla'))
     // Small delay to ensure fade-in transition is visible
     await new Promise(resolve => setTimeout(resolve, 150))
   } catch (err: any) {
@@ -705,7 +709,7 @@ onUnmounted(() => {
           <div class="px-5 pt-2 pb-5">
             <div class="flex justify-between items-start mb-3">
               <div>
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 flex-wrap">
                   <h3 class="text-xl font-bold text-indigo-700">
                     {{ getModelLabel(car.model) }}
                     <span v-if="car.trim" class="text-base font-normal text-indigo-600">{{ car.trim }}</span>
@@ -714,6 +718,24 @@ onUnmounted(() => {
                     class="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium border border-green-200">
                     Aktiv
                   </span>
+                  <!-- Tesla vehicle state badge -->
+                  <template v-if="car.brand?.toLowerCase() === 'tesla' && teslaStatus?.connected && (teslaStatus.carId === car.id || teslaStatus.carId === null)">
+                    <span v-if="teslaStatus.vehicleState === 'charging'"
+                      class="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium border border-green-200">
+                      <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                      Lädt
+                    </span>
+                    <span v-else-if="teslaStatus.vehicleState === 'online'"
+                      class="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-600 text-xs rounded-full font-medium border border-blue-200">
+                      <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                      Online
+                    </span>
+                    <span v-else-if="teslaStatus.vehicleState === 'asleep'"
+                      class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-500 text-xs rounded-full font-medium border border-gray-200">
+                      <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
+                      Schläft
+                    </span>
+                  </template>
                 </div>
                 <p class="text-sm text-gray-600">{{ car.year }}</p>
               </div>

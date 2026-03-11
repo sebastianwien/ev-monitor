@@ -3,9 +3,11 @@ import api from './axios'
 export interface TeslaConnectionStatus {
   connected: boolean
   vehicleName: string | null
+  carId: string | null
   lastSyncAt: string | null
   autoImportEnabled: boolean
   geocodingInProgress: boolean
+  vehicleState: 'asleep' | 'online' | 'charging' | null
 }
 
 export interface TeslaFleetSyncResult {

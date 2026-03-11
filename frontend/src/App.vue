@@ -3,6 +3,8 @@ import { ref, watch, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from './stores/auth'
 import { useCoinStore } from './stores/coins'
+import { storeToRefs } from 'pinia'
+import { useWallboxStore } from './stores/wallbox'
 import SpritMonitorImport from './components/SpritMonitorImport.vue'
 import LogFormModal from './components/LogFormModal.vue'
 import FloatingActionButton from './components/FloatingActionButton.vue'
@@ -18,17 +20,22 @@ import { captureUtmParams } from './utils/reddit-pixel'
 const router = useRouter()
 const authStore = useAuthStore()
 const coinStore = useCoinStore()
+const wallboxStore = useWallboxStore()
+const { activeConnection: wallboxConn, hasConnections: wallboxHasConnections } = storeToRefs(wallboxStore)
 const showImportOverlay = ref(false)
 const showLogFormModal = ref(false)
 const mobileMenuOpen = ref(false)
 const balanceBumping = ref(false)
 const balanceInitialized = ref(false)
 
-// Fetch balance on load and whenever token changes (login/logout)
+// Fetch balance + init wallbox store on load and whenever token changes (login/logout)
 watch(() => authStore.token, (newToken) => {
   if (newToken) {
     balanceInitialized.value = false
     coinStore.fetchBalance()
+    wallboxStore.init(!!(authStore.user as any)?.demoAccount)
+  } else {
+    wallboxStore.reset()
   }
 }, { immediate: true })
 
@@ -51,6 +58,15 @@ onMounted(() => {
 
 // Impersonation
 const impersonatingAs = computed(() => sessionStorage.getItem('impersonating'))
+
+// Wallbox navbar chip
+const wallboxChipColor = computed(() => {
+  const s = wallboxConn.value?.carState
+  if (s === 2) return 'bg-green-500'
+  if (s === 5 || wallboxConn.value?.lastPollError) return 'bg-red-400'
+  if (s === 4) return 'bg-blue-400'
+  return 'bg-gray-400'
+})
 
 const stopImpersonation = () => {
   sessionStorage.removeItem('impersonating')
@@ -157,6 +173,18 @@ const closeMobileMenu = () => {
 
           <!-- Compact Right Nav (768px - 1024px) -->
           <div class="hidden md:flex lg:hidden items-center space-x-2">
+            <!-- Wallbox dot -->
+            <router-link
+              v-if="wallboxHasConnections"
+              to="/imports?tab=goe"
+              :title="`${wallboxConn?.displayName || 'Wallbox'} · ${wallboxConn?.carStateLabel}`"
+              class="p-2 rounded-md hover:bg-indigo-500 transition flex items-center justify-center"
+            >
+              <span
+                :class="['w-2.5 h-2.5 rounded-full', wallboxChipColor,
+                         wallboxConn?.carState === 2 ? 'animate-pulse' : '']"
+              />
+            </router-link>
             <router-link
               to="/coins/history"
               class="flex items-center gap-1 px-2 py-1 text-sm bg-indigo-500 bg-opacity-30 border border-indigo-400 rounded-md hover:bg-opacity-50 transition font-medium"
@@ -198,6 +226,24 @@ const closeMobileMenu = () => {
 
           <!-- Full Right Nav (1024px+) -->
           <div class="hidden lg:flex items-center space-x-4">
+            <!-- Wallbox chip -->
+            <router-link
+              v-if="wallboxHasConnections"
+              to="/imports?tab=goe"
+              class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition hover:opacity-80"
+              :class="wallboxConn?.carState === 2
+                ? 'bg-green-500 bg-opacity-20 border-green-400 text-green-200'
+                : wallboxConn?.carState === 5 || wallboxConn?.lastPollError
+                  ? 'bg-red-500 bg-opacity-20 border-red-400 text-red-200'
+                  : 'bg-indigo-500 bg-opacity-20 border-indigo-400 text-indigo-200'"
+            >
+              <span
+                :class="['w-2 h-2 rounded-full flex-shrink-0', wallboxChipColor,
+                         wallboxConn?.carState === 2 ? 'animate-pulse' : '']"
+              />
+              <span class="truncate max-w-[120px]">{{ wallboxConn?.displayName || 'Wallbox' }}</span>
+              <span class="opacity-70">· {{ wallboxConn?.carStateLabel }}</span>
+            </router-link>
             <div class="relative group">
               <router-link
                 to="/coins/history"
@@ -252,6 +298,18 @@ const closeMobileMenu = () => {
 
           <!-- Mobile: Icons + Hamburger Button -->
           <div class="md:hidden flex items-center gap-3">
+            <!-- Wallbox dot -->
+            <router-link
+              v-if="wallboxHasConnections"
+              to="/imports?tab=goe"
+              :title="`${wallboxConn?.displayName || 'Wallbox'} · ${wallboxConn?.carStateLabel}`"
+              class="flex items-center justify-center"
+            >
+              <span
+                :class="['w-2.5 h-2.5 rounded-full', wallboxChipColor,
+                         wallboxConn?.carState === 2 ? 'animate-pulse' : '']"
+              />
+            </router-link>
             <router-link
               to="/coins/history"
               class="flex items-center gap-1 px-2 py-1 text-sm bg-indigo-500 bg-opacity-30 border border-indigo-400 rounded-md hover:bg-opacity-50 transition font-medium"

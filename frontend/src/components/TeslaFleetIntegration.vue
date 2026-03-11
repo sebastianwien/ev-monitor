@@ -7,7 +7,7 @@ import { carService, type Car } from '@/api/carService'
 
 const route = useRoute()
 
-const status = ref<TeslaConnectionStatus>({ connected: false, vehicleName: null, lastSyncAt: null, autoImportEnabled: false, geocodingInProgress: false })
+const status = ref<TeslaConnectionStatus>({ connected: false, vehicleName: null, carId: null, lastSyncAt: null, autoImportEnabled: false, geocodingInProgress: false, vehicleState: null })
 const isLoading = ref(false)
 const syncResult = ref<TeslaFleetSyncResult | null>(null)
 const error = ref<string | null>(null)
@@ -101,7 +101,7 @@ async function handleDisconnect() {
   if (!confirm('Tesla-Verbindung wirklich trennen?')) return
   try {
     await teslaFleetService.disconnect()
-    status.value = { connected: false, vehicleName: null, lastSyncAt: null, autoImportEnabled: false, geocodingInProgress: false }
+    status.value = { connected: false, vehicleName: null, carId: null, lastSyncAt: null, autoImportEnabled: false, geocodingInProgress: false, vehicleState: null }
     syncResult.value = null; success.value = null
   } catch { error.value = 'Trennen fehlgeschlagen' }
 }

@@ -2,12 +2,15 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { BoltIcon, ClockIcon, CheckCircleIcon, ExclamationTriangleIcon, XMarkIcon, PencilIcon, CheckIcon } from '@heroicons/vue/24/outline'
 import goeService, { type GoeConnection } from '@/api/goeService'
+import { useWallboxStore } from '@/stores/wallbox'
 
-const props = defineProps<{ connectionId: string }>()
+const wallboxStore = useWallboxStore()
+
+const props = defineProps<{ connectionId: string; mockConnection?: GoeConnection }>()
 const emit = defineEmits<{ disconnect: [id: string] }>()
 
-const conn = ref<GoeConnection | null>(null)
-const loading = ref(true)
+const conn = ref<GoeConnection | null>(props.mockConnection ?? null)
+const loading = ref(props.mockConnection == null)
 
 const POLL_CHARGING_MS  = 2 * 60 * 1000
 const POLL_IDLE_MS      = 4 * 60 * 1000
@@ -48,8 +51,8 @@ const colors = computed(() => colorMap[stateConfig.value.color])
 
 async function fetchStatus() {
   try {
-    const all = await goeService.getConnections()
-    const found = all.find(c => c.id === props.connectionId)
+    await wallboxStore.refresh()
+    const found = wallboxStore.connections.find(c => c.id === props.connectionId)
     if (found) conn.value = found
   } finally {
     loading.value = false
@@ -72,13 +75,17 @@ function onVisibilityChange() {
 }
 
 onMounted(() => {
-  fetchStatus()
-  document.addEventListener('visibilitychange', onVisibilityChange)
+  if (!props.mockConnection) {
+    fetchStatus()
+    document.addEventListener('visibilitychange', onVisibilityChange)
+  }
 })
 
 onUnmounted(() => {
   if (pollTimer) clearTimeout(pollTimer)
-  document.removeEventListener('visibilitychange', onVisibilityChange)
+  if (!props.mockConnection) {
+    document.removeEventListener('visibilitychange', onVisibilityChange)
+  }
 })
 
 // ── Actions ──────────────────────────────────────────────────────────────────

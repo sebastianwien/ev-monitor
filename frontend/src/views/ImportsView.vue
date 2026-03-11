@@ -1,13 +1,19 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { ArrowDownTrayIcon, BoltIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 import SpritMonitorImport from '../components/SpritMonitorImport.vue'
 import GoeIntegration from '../components/GoeIntegration.vue'
 import TeslaFleetIntegration from '../components/TeslaFleetIntegration.vue'
 import { carService, type Car } from '../api/carService'
 
+const route = useRoute()
+
 type Tab = 'spritmonitor' | 'goe' | 'wallbox' | 'tesla'
-const activeTab = ref<Tab>('spritmonitor')
+const VALID_TABS: Tab[] = ['spritmonitor', 'goe', 'wallbox', 'tesla']
+const activeTab = ref<Tab>(
+  VALID_TABS.includes(route.query.tab as Tab) ? (route.query.tab as Tab) : 'spritmonitor'
+)
 const showSpritMonitorModal = ref(false)
 const cars = ref<Car[]>([])
 const loading = ref(true)

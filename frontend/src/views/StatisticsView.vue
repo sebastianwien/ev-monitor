@@ -39,6 +39,7 @@ import { costBadgeClass } from '../utils/costColor'
 import CarSelector from '../components/CarSelector.vue'
 import { carService } from '../api/carService'
 import LicensePlate from '../components/LicensePlate.vue'
+import { useTeslaStatus } from '../composables/useTeslaStatus'
 import ChargingHeatMap from '../components/ChargingHeatMap.vue'
 import { vehicleSpecificationService, type VehicleSpecification } from '../api/vehicleSpecificationService'
 
@@ -88,6 +89,7 @@ const selectedTimeRange = ref<string>('LAST_3_MONTHS')
 const selectedGroupBy = ref<string>('DAY')
 
 const showOdometer = ref(false)
+const { teslaStatus, start: startTeslaPolling } = useTeslaStatus()
 
 // Dataset toggles - Chart 1 (Charging & Costs)
 const showCostPerKwh = ref(true)
@@ -471,6 +473,7 @@ onMounted(async () => {
         .then(url => { carImageUrls.value = { ...carImageUrls.value, [car.id]: url } })
         .catch(() => {})
     }
+    startTeslaPolling(r.data.some((c: any) => c.brand?.toLowerCase() === 'tesla'))
   } catch { /* non-critical */ }
   fetchStatistics()
 })
@@ -584,7 +587,7 @@ const deleteLog = async (id: string) => {
                   <TruckIcon v-else class="w-5 h-5 text-gray-400" />
                 </div>
                 <div class="min-w-0">
-                  <div class="flex items-center gap-2">
+                  <div class="flex items-center gap-2 flex-wrap">
                     <span class="font-semibold text-gray-800">
                       {{ enumToLabel(car.brand) }} {{ enumToLabel(car.model) }}
                     </span>
@@ -593,6 +596,24 @@ const deleteLog = async (id: string) => {
                       class="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded-full border border-green-200 font-medium">
                       Aktiv
                     </span>
+                    <!-- Tesla vehicle state badge -->
+                    <template v-if="car.brand?.toLowerCase() === 'tesla' && teslaStatus?.connected && (teslaStatus.carId === car.id || teslaStatus.carId === null)">
+                      <span v-if="teslaStatus.vehicleState === 'charging'"
+                        class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium border border-green-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                        Lädt
+                      </span>
+                      <span v-else-if="teslaStatus.vehicleState === 'online'"
+                        class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 text-blue-600 text-xs rounded-full font-medium border border-blue-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                        Online
+                      </span>
+                      <span v-else-if="teslaStatus.vehicleState === 'asleep'"
+                        class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 text-gray-500 text-xs rounded-full font-medium border border-gray-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
+                        Schläft
+                      </span>
+                    </template>
                   </div>
                   <div class="flex items-center gap-2 mt-0.5">
                     <span class="text-xs text-gray-500">{{ car.batteryCapacityKwh }} kWh</span>
