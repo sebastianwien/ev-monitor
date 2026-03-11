@@ -56,9 +56,8 @@ public class AuthService {
         if (userRepository.existsByEmail(request.email())) {
             throw new IllegalArgumentException("Email is already in use.");
         }
-        if (userRepository.existsByUsername(request.username())) {
-            throw new IllegalArgumentException("Username is already taken.");
-        }
+
+        String username = resolveUsername(request.username(), request.email());
 
         String encodedPassword = passwordEncoder.encode(request.password());
 
@@ -82,16 +81,16 @@ public class AuthService {
         if (hasCampaignData) {
             user = User.createNewLocalUserWithCampaign(
                     request.email(),
-                    request.username(),
+                    username,
                     encodedPassword,
                     referrerId,
                     request.utmSource(),
                     request.utmMedium(),
                     request.utmCampaign());
         } else if (referrerId != null) {
-            user = User.createNewLocalUserWithReferrer(request.email(), request.username(), encodedPassword, referrerId);
+            user = User.createNewLocalUserWithReferrer(request.email(), username, encodedPassword, referrerId);
         } else {
-            user = User.createNewLocalUser(request.email(), request.username(), encodedPassword);
+            user = User.createNewLocalUser(request.email(), username, encodedPassword);
         }
 
         User savedUser = userRepository.save(user);
@@ -203,5 +202,26 @@ public class AuthService {
 
         String jwtToken = jwtService.generateToken(UserPrincipal.create(user));
         return new AuthResponse(jwtToken, user.getId(), user.getEmail(), user.getRole(), user.isSeedData(), user.isPremium());
+    }
+
+    private String resolveUsername(String requested, String email) {
+        // Use provided username if valid and available
+        if (requested != null && !requested.isBlank() && requested.matches("^[a-zA-Z0-9_]{3,20}$")) {
+            if (userRepository.existsByUsername(requested)) {
+                throw new IllegalArgumentException("Username is already taken.");
+            }
+            return requested;
+        }
+        // Auto-generate from email prefix
+        String base = email.split("@")[0].replaceAll("[^a-zA-Z0-9_]", "_");
+        if (base.length() < 3) base = base + "___";
+        if (base.length() > 20) base = base.substring(0, 20);
+        String candidate = base;
+        int suffix = 1;
+        while (userRepository.existsByUsername(candidate)) {
+            String s = String.valueOf(suffix++);
+            candidate = base.substring(0, Math.min(base.length(), 20 - s.length())) + s;
+        }
+        return candidate;
     }
 }

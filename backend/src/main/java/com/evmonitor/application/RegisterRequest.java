@@ -12,9 +12,7 @@ public record RegisterRequest(
                  message = "Email address must contain a valid domain (e.g. name@example.com)")
         String email,
 
-        @NotBlank(message = "Username is required")
-        @Size(min = 3, max = 20, message = "Username must be between 3 and 20 characters")
-        @Pattern(regexp = "^[a-zA-Z0-9_]{3,20}$", message = "Username must contain only alphanumeric characters and underscores")
+        // Optional — auto-generated from email prefix if absent
         String username,
 
         @NotBlank(message = "Password is required")

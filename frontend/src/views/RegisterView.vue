@@ -10,9 +10,7 @@ const route = useRoute();
 const googleOauthEnabled = import.meta.env.VITE_GOOGLE_OAUTH_ENABLED === 'true'
 
 const email = ref('');
-const username = ref('');
 const password = ref('');
-const confirmPassword = ref('');
 const referralCode = ref('');
 const utmSource = ref('');
 const utmMedium = ref('');
@@ -52,23 +50,14 @@ const handleRegister = async () => {
     error.value = 'Bitte gib eine gültige E-Mail-Adresse ein (z.B. name@example.com)';
     return;
   }
-  if (!/^[a-zA-Z0-9_]{3,20}$/.test(username.value)) {
-    error.value = 'Username muss 3-20 Zeichen lang sein und darf nur Buchstaben, Zahlen und Unterstriche enthalten';
-    return;
-  }
   if (password.value.length < 8) {
     error.value = 'Passwort muss mindestens 8 Zeichen lang sein';
-    return;
-  }
-  if (password.value !== confirmPassword.value) {
-    error.value = 'Passwörter stimmen nicht überein';
     return;
   }
   try {
     error.value = '';
     const response = await api.post('/auth/register', {
       email: email.value,
-      username: username.value,
       password: password.value,
       referralCode: referralCode.value || undefined,
       utmSource: utmSource.value || undefined,
@@ -149,21 +138,9 @@ const handleResend = async () => {
             <input v-model="email" type="email" required autocomplete="email" class="block w-full px-4 py-3 mt-1 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700">Username</label>
-            <input v-model="username" type="text" required autocomplete="username" pattern="[a-zA-Z0-9_]{3,20}" minlength="3" maxlength="20" class="block w-full px-4 py-3 mt-1 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="z.B. max_mustermann" />
-            <p class="text-xs text-gray-500 mt-1">3-20 Zeichen, nur Buchstaben, Zahlen und Unterstriche</p>
-          </div>
-          <div>
             <label class="block text-sm font-medium text-gray-700">Passwort</label>
             <input v-model="password" type="password" required autocomplete="new-password" class="block w-full px-4 py-3 mt-1 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Passwort bestätigen</label>
-            <input v-model="confirmPassword" type="password" required autocomplete="new-password" class="block w-full px-4 py-3 mt-1 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Einladungscode <span class="text-gray-400 font-normal">(optional)</span></label>
-            <input v-model="referralCode" type="text" autocomplete="off" maxlength="8" class="block w-full px-4 py-3 mt-1 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 uppercase" placeholder="z.B. AB12CD34" />
+            <p class="text-xs text-gray-500 mt-1">Mindestens 8 Zeichen</p>
           </div>
           <div v-if="error" class="text-sm font-medium text-red-600 bg-red-50 p-3 rounded-lg">{{ error }}</div>
           <button type="submit" class="w-full px-4 py-3 font-semibold text-white bg-indigo-600 rounded-lg shadow hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition">Konto erstellen</button>
