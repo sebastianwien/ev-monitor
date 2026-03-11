@@ -23,7 +23,7 @@
 
           <div class="flex gap-2">
             <button
-              v-for="fmt in ['csv', 'json']"
+              v-for="fmt in (['csv', 'json'] as const)"
               :key="fmt"
               @click="activeFormatTab = fmt"
               :class="['text-xs px-3 py-1 rounded-lg font-medium transition-colors',
