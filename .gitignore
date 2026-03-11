@@ -27,10 +27,20 @@ logs/
 # Car image uploads (dev)
 backend/car-images-dev/
 
-# Dev Scripts (auto-generated)
+# Dev Scripts (local only — not for repo)
+dev.sh
 stop-dev.sh
 .backend.pid
 .frontend.pid
+
+# Local Docker Compose variants
+docker-compose.dev.yml
+docker-compose.local.yml
+docker-compose.frontend-dev.yml
+
+# Server/Deployment Scripts (stored on server, not in repo)
+backup.sh
+init-letsencrypt.sh
 
 # Admin Scripts (manual operations)
 seed-prod.sh
