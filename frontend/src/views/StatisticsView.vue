@@ -36,7 +36,6 @@ import { tempBadgeClass } from '../utils/temperatureColor'
 import { consumptionBadgeClass } from '../utils/consumptionColor'
 import ConsumptionInfoBox from '../components/ConsumptionInfoBox.vue'
 import { costBadgeClass } from '../utils/costColor'
-import CarSelector from '../components/CarSelector.vue'
 import { carService } from '../api/carService'
 import LicensePlate from '../components/LicensePlate.vue'
 import { useTeslaStatus } from '../composables/useTeslaStatus'
@@ -467,6 +466,9 @@ onMounted(async () => {
   try {
     const r = await api.get('/cars')
     cars.value = r.data
+    // Auto-select: primary car, fallback to first
+    const primary = r.data.find((c: any) => c.isPrimary) ?? r.data[0]
+    if (primary) selectedCarId.value = primary.id
     // Load images in background — non-critical
     for (const car of r.data.filter((c: any) => c.imageUrl)) {
       carService.getCarImageBlobUrl(car.id)
@@ -559,21 +561,18 @@ const deleteLog = async (id: string) => {
             <span class="text-green-600 text-sm group-hover:translate-x-0.5 transition-transform">→</span>
           </router-link>
 
-          <!-- Mobile: dropdown -->
-          <div class="lg:hidden mb-6">
-            <CarSelector v-model="selectedCarId" />
-          </div>
-
-          <!-- Desktop (≥1024px): card selector -->
-          <div v-if="cars.length > 0" class="hidden lg:block mb-6">
+          <!-- Car card selector (all breakpoints) -->
+          <div v-if="cars.length > 0" class="mb-6">
             <p class="text-sm font-medium text-gray-700 mb-2">Fahrzeug</p>
-            <div class="flex flex-wrap gap-3">
+            <div class="flex gap-3 overflow-x-auto pb-1 lg:flex-wrap lg:overflow-x-visible">
               <button
                 v-for="car in cars"
                 :key="car.id"
                 @click="selectedCarId = car.id"
                 :class="[
-                  'flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition',
+                  cars.length === 1
+                    ? 'flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition w-full'
+                    : 'flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition flex-shrink-0 min-w-[200px] max-w-[280px] lg:flex-shrink lg:min-w-0 lg:max-w-none',
                   selectedCarId === car.id
                     ? 'border-indigo-500 bg-indigo-50 shadow-sm'
                     : 'border-gray-200 bg-white hover:border-indigo-300 hover:bg-gray-50'
@@ -615,13 +614,12 @@ const deleteLog = async (id: string) => {
                       </span>
                     </template>
                   </div>
-                  <div class="flex items-center gap-2 mt-0.5">
+                  <div v-if="cars.length === 1" class="flex items-center gap-2 mt-0.5">
                     <span class="text-xs text-gray-500">{{ car.batteryCapacityKwh }} kWh</span>
+                  </div>
+                  <div class="mt-1.5 flex justify-center">
                     <LicensePlate v-if="car.licensePlate" :plate="car.licensePlate" />
                   </div>
-                </div>
-                <div v-if="selectedCarId === car.id" class="ml-auto flex-shrink-0">
-                  <div class="w-2 h-2 rounded-full bg-indigo-500"></div>
                 </div>
               </button>
             </div>
