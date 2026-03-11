@@ -219,17 +219,17 @@ const closeMobileMenu = () => {
               to="/imports?tab=goe"
               class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition hover:opacity-80"
               :class="wallboxConn?.carState === 2
-                ? 'bg-green-500 bg-opacity-20 border-green-400 text-green-200'
+                ? 'bg-green-500 bg-opacity-30 border-green-400 text-white'
                 : wallboxConn?.carState === 5 || wallboxConn?.lastPollError
-                  ? 'bg-red-500 bg-opacity-20 border-red-400 text-red-200'
-                  : 'bg-indigo-500 bg-opacity-20 border-indigo-400 text-indigo-200'"
+                  ? 'bg-red-500 bg-opacity-30 border-red-400 text-white'
+                  : 'bg-indigo-500 bg-opacity-30 border-indigo-400 text-white'"
             >
               <span
                 :class="['w-2 h-2 rounded-full flex-shrink-0', wallboxChipColor,
                          wallboxConn?.carState === 2 ? 'animate-pulse' : '']"
               />
               <span class="truncate max-w-[120px]">{{ wallboxConn?.displayName || 'Wallbox' }}</span>
-              <span class="opacity-70">· {{ wallboxConn?.carStateLabel }}</span>
+              <span class="opacity-90">· {{ wallboxConn?.carStateLabel }}</span>
             </router-link>
             <div class="relative group">
               <router-link
