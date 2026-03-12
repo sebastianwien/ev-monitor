@@ -206,9 +206,10 @@ const rangeWindows = [
   { label: '80 → 20 %',  socMax: 80,  socMin: 20, recommended: false },
 ]
 
-const calcRange = (batteryKwh: number, socMax: number, socMin: number, consumptionKwhPer100km: number): number => {
+const calcRange = (batteryKwh: number, socMax: number, socMin: number, consumptionKwhPer100km: number): string => {
   const usableKwh = batteryKwh * (socMax - socMin) / 100
-  return Math.round(usableKwh / consumptionKwhPer100km * 100)
+  const km = Math.floor(usableKwh / consumptionKwhPer100km * 100 / 10) * 10
+  return `~${km}`
 }
 
 const formatLabel = (timestamp: string) => {
