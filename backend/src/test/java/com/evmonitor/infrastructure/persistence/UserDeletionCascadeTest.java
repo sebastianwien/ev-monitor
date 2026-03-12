@@ -108,6 +108,8 @@ class UserDeletionCascadeTest {
         log.setLoggedAt(LocalDateTime.now());
         log.setDataSource("USER_LOGGED");
         log.setIncludeInStatistics(true);
+        log.setChargingType("AC");
+        log.setRawImportData(null);
         log.setCreatedAt(LocalDateTime.now());
         log.setUpdatedAt(LocalDateTime.now());
         evLogRepository.save(log);
@@ -154,6 +156,8 @@ class UserDeletionCascadeTest {
         log2.setLoggedAt(LocalDateTime.now());
         log2.setDataSource("USER_LOGGED");
         log2.setIncludeInStatistics(true);
+        log2.setChargingType("DC");
+        log2.setRawImportData(null);
         log2.setCreatedAt(LocalDateTime.now());
         log2.setUpdatedAt(LocalDateTime.now());
         evLogRepository.save(log2);
