@@ -9,6 +9,7 @@ export interface GoeConnection {
   lastPollError: string | null
   carStateLabel: string
   tariffCentsPerKwh: number
+  geohash: string | null
 }
 
 export const CAR_STATE_LABELS: Record<number, string> = {
@@ -28,8 +29,8 @@ export default {
     }))
   },
 
-  async connect(serial: string, apiKey: string, carId: string, displayName: string): Promise<GoeConnection> {
-    const resp = await api.post('/goe/connect', { serial, apiKey, carId, displayName })
+  async connect(serial: string, apiKey: string, carId: string, displayName: string, geohash: string | null = null): Promise<GoeConnection> {
+    const resp = await api.post('/goe/connect', { serial, apiKey, carId, displayName, geohash })
     return { ...resp.data, carStateLabel: CAR_STATE_LABELS[resp.data.carState] ?? 'Unbekannt' }
   },
 
