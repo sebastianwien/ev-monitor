@@ -29,6 +29,7 @@ import {
   ListBulletIcon,
   TrashIcon,
   ExclamationTriangleIcon,
+  CloudIcon,
 } from '@heroicons/vue/24/outline'
 import { useRouter } from 'vue-router'
 import api from '../api/axios'
@@ -63,6 +64,8 @@ interface StatisticsData {
   totalCharges: number
   totalDistanceKm: number | null
   avgConsumptionKwhPer100km: number | null
+  summerConsumptionKwhPer100km: number | null
+  winterConsumptionKwhPer100km: number | null
   chargesOverTime: ChargeDataPoint[]
 }
 
@@ -196,6 +199,17 @@ watch([selectedTimeRange, selectedGroupBy], () => {
 const hasDistanceData = computed(() =>
   stats.value?.chargesOverTime.some(d => d.distanceKm != null) ?? false
 )
+
+const rangeWindows = [
+  { label: '100 → 0 %', socMax: 100, socMin: 0,  recommended: false },
+  { label: '90 → 10 %',  socMax: 90,  socMin: 10, recommended: true  },
+  { label: '80 → 20 %',  socMax: 80,  socMin: 20, recommended: false },
+]
+
+const calcRange = (batteryKwh: number, socMax: number, socMin: number, consumptionKwhPer100km: number): number => {
+  const usableKwh = batteryKwh * (socMax - socMin) / 100
+  return Math.round(usableKwh / consumptionKwhPer100km * 100)
+}
 
 const formatLabel = (timestamp: string) => {
   const date = new Date(timestamp)
@@ -642,6 +656,38 @@ const deleteLog = async (id: string) => {
                   </div>
                 </div>
               </button>
+            </div>
+          </div>
+
+          <!-- Echte Reichweite -->
+          <div v-if="carInfo?.batteryCapacityKwh && (stats?.summerConsumptionKwhPer100km || stats?.winterConsumptionKwhPer100km)"
+            class="mb-6 bg-gray-50 rounded-lg border border-gray-200 p-4">
+            <h3 class="text-sm font-semibold text-gray-700 mb-3">Deine echte Reichweite</h3>
+            <div class="overflow-x-auto -mx-4 px-4">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="text-xs text-gray-500">
+                  <th class="text-left pb-2 font-medium">Ladefenster</th>
+                  <th v-if="stats?.summerConsumptionKwhPer100km" class="text-right pb-2 font-medium text-amber-600 whitespace-nowrap pl-4">
+                    <span class="inline-flex items-center gap-1"><SunIcon class="w-4 h-4" /><span class="font-normal">({{ stats.summerConsumptionKwhPer100km.toFixed(1) }} kWh)</span></span>
+                  </th>
+                  <th v-if="stats?.winterConsumptionKwhPer100km" class="text-right pb-2 font-medium text-blue-600 whitespace-nowrap pl-4">
+                    <span class="inline-flex items-center gap-1"><CloudIcon class="w-4 h-4" /><span class="font-normal">({{ stats.winterConsumptionKwhPer100km.toFixed(1) }} kWh)</span></span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100">
+                <tr v-for="window in rangeWindows" :key="window.label">
+                  <td class="py-2 pr-4 whitespace-nowrap font-medium text-gray-800">{{ window.label }}</td>
+                  <td v-if="stats?.summerConsumptionKwhPer100km" class="py-2 text-right font-bold text-amber-700">
+                    {{ calcRange(carInfo.batteryCapacityKwh, window.socMax, window.socMin, stats.summerConsumptionKwhPer100km) }} km
+                  </td>
+                  <td v-if="stats?.winterConsumptionKwhPer100km" class="py-2 text-right font-bold text-blue-700">
+                    {{ calcRange(carInfo.batteryCapacityKwh, window.socMax, window.socMin, stats.winterConsumptionKwhPer100km) }} km
+                  </td>
+                </tr>
+              </tbody>
+            </table>
             </div>
           </div>
 

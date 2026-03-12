@@ -16,6 +16,10 @@ public record EvLogStatisticsResponse(
         BigDecimal totalDistanceKm,            // null if no odometer data
         BigDecimal avgConsumptionKwhPer100km,  // null if no odometer data
 
+        // Seasonal consumption (null if insufficient data for that season)
+        BigDecimal summerConsumptionKwhPer100km,
+        BigDecimal winterConsumptionKwhPer100km,
+
         // Charge Over Time (for chart)
         List<ChargeDataPoint> chargesOverTime
 ) {

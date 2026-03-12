@@ -382,6 +382,9 @@ public class EvLogService {
             }
         }
 
+        // Seasonal consumption — uses ALL logs (not time-filtered) for best signal
+        SeasonalConsumptionResult seasonal = calculateSeasonalConsumption(List.of(car), isSeedUser);
+
         return new EvLogStatisticsResponse(
                 totalKwhCharged,
                 totalCostEur,
@@ -392,6 +395,8 @@ public class EvLogService {
                 logs.size(),
                 totalDistanceKm,
                 avgConsumptionKwhPer100km,
+                seasonal.summerConsumptionKwhPer100km(),
+                seasonal.winterConsumptionKwhPer100km(),
                 chargesOverTime
         );
     }
@@ -400,7 +405,7 @@ public class EvLogService {
         return new EvLogStatisticsResponse(
                 BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
                 BigDecimal.ZERO, BigDecimal.ZERO, 0, 0,
-                null, null, List.of()
+                null, null, null, null, List.of()
         );
     }
 

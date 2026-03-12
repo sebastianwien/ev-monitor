@@ -203,14 +203,12 @@ const closeMobileMenu = () => {
               title="Abmelden">
               <ArrowRightOnRectangleIcon class="h-5 w-5" />
             </button>
-            <a
-              href="https://forms.gle/w4qkLLEv6nYGK3LWA"
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              data-tally-open="vGB8XA" data-tally-emoji-text="👋" data-tally-emoji-animation="wave"
               class="p-2 text-indigo-300 hover:text-white transition"
               title="Feedback geben">
               <ChatBubbleLeftEllipsisIcon class="h-5 w-5" />
-            </a>
+            </button>
             <a
               href="https://ko-fi.com/ev_monitor"
               target="_blank"
@@ -273,15 +271,13 @@ const closeMobileMenu = () => {
             <button @click="handleLogout" class="px-4 py-2 bg-indigo-700 hover:bg-indigo-800 rounded-lg text-sm font-medium transition shadow-sm">
               Abmelden
             </button>
-            <a
-              href="https://forms.gle/w4qkLLEv6nYGK3LWA"
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              data-tally-open="vGB8XA" data-tally-emoji-text="👋" data-tally-emoji-animation="wave"
               class="text-indigo-300 hover:text-white transition"
               title="Feedback geben"
             >
               <ChatBubbleLeftEllipsisIcon class="h-5 w-5" />
-            </a>
+            </button>
             <a
               href="https://ko-fi.com/ev_monitor"
               target="_blank"
@@ -315,14 +311,12 @@ const closeMobileMenu = () => {
               <BoltIcon class="h-4 w-4" />
               <span>{{ coinStore.balance }}</span>
             </router-link>
-            <a
-              href="https://forms.gle/w4qkLLEv6nYGK3LWA"
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              data-tally-open="vGB8XA" data-tally-emoji-text="👋" data-tally-emoji-animation="wave"
               class="text-indigo-300 hover:text-white transition"
               title="Feedback geben">
               <ChatBubbleLeftEllipsisIcon class="h-5 w-5" />
-            </a>
+            </button>
             <a
               href="https://ko-fi.com/ev_monitor"
               target="_blank"
