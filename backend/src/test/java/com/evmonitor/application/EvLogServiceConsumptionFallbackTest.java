@@ -254,7 +254,8 @@ class EvLogServiceConsumptionFallbackTest {
             null,
             BigDecimal.TEN,
             null,
-            LocalDateTime.now()
+            LocalDateTime.now(),
+            ChargingType.UNKNOWN
         );
     }
 }

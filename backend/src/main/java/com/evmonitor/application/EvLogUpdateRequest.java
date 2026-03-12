@@ -1,5 +1,6 @@
 package com.evmonitor.application;
 
+import com.evmonitor.domain.ChargingType;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
@@ -22,5 +23,6 @@ public record EvLogUpdateRequest(
         BigDecimal maxChargingPowerKw,
         @Min(0) @Max(100) Integer socAfterChargePercent,
         @Min(0) @Max(100) Integer socBeforeChargePercent,
-        LocalDateTime loggedAt) {
+        LocalDateTime loggedAt,
+        ChargingType chargingType) {
 }

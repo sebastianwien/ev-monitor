@@ -250,7 +250,9 @@ public class DevDataSeeder implements CommandLineRunner {
                 maxChargingPower,
                 null, // socAfterChargePercent
                 chargeTime,
-                DataSource.SEED_DATA);
+                DataSource.SEED_DATA,
+                com.evmonitor.domain.ChargingType.UNKNOWN,
+                null);
 
             evLogRepository.save(log);
         }

@@ -4,11 +4,14 @@ import ch.hsr.geohash.GeoHash;
 import com.evmonitor.application.CoinLogService;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarRepository;
+import com.evmonitor.domain.ChargingType;
 import com.evmonitor.domain.CoinType;
 import com.evmonitor.domain.DataSource;
 import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.EvLogRepository;
 import com.evmonitor.infrastructure.external.SpritMonitorClient;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,13 +39,16 @@ public class SpritMonitorImportService {
     private final EvLogRepository evLogRepository;
     private final CarRepository carRepository;
     private final CoinLogService coinLogService;
+    private final ObjectMapper objectMapper;
 
     public SpritMonitorImportService(SpritMonitorClient client, EvLogRepository evLogRepository,
-                                     CarRepository carRepository, CoinLogService coinLogService) {
+                                     CarRepository carRepository, CoinLogService coinLogService,
+                                     ObjectMapper objectMapper) {
         this.client = client;
         this.evLogRepository = evLogRepository;
         this.carRepository = carRepository;
         this.coinLogService = coinLogService;
+        this.objectMapper = objectMapper;
     }
 
     /**
@@ -169,6 +175,15 @@ public class SpritMonitorImportService {
         Integer odometerKm = fueling.odometer() != null ? fueling.odometer().intValue() : null;
         Integer socAfterChargePercent = fueling.percent() != null ? fueling.percent().intValue() : null;
 
+        ChargingType chargingType = fueling.parseChargingType();
+
+        String rawImportData = null;
+        try {
+            rawImportData = objectMapper.writeValueAsString(fueling);
+        } catch (JsonProcessingException e) {
+            log.warn("Failed to serialize SpritMonitor fueling to JSON for rawImportData: {}", e.getMessage());
+        }
+
         return EvLog.createNewWithSource(
             carId,
             kwhCharged,
@@ -179,7 +194,9 @@ public class SpritMonitorImportService {
             fueling.chargingPower(),
             socAfterChargePercent,
             loggedAt,
-            DATA_SOURCE
+            DATA_SOURCE,
+            chargingType,
+            rawImportData
         );
     }
 }

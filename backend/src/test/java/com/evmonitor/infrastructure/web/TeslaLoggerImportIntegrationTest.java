@@ -129,7 +129,7 @@ class TeslaLoggerImportIntegrationTest extends AbstractIntegrationTest {
         evLogRepository.save(EvLog.createNewWithSource(
                 car.getId(), new BigDecimal("24.5"), null, null, null,
                 12345, null, 80, LocalDateTime.parse("2025-08-20T10:56:48"),
-                DataSource.TESLA_LOGGER_IMPORT
+                DataSource.TESLA_LOGGER_IMPORT, com.evmonitor.domain.ChargingType.UNKNOWN, null
         ));
 
         // Import same session (exact same time)
@@ -149,7 +149,7 @@ class TeslaLoggerImportIntegrationTest extends AbstractIntegrationTest {
         evLogRepository.save(EvLog.createNewWithSource(
                 car.getId(), new BigDecimal("24.5"), null, null, null,
                 12345, null, 80, LocalDateTime.parse("2025-08-20T10:56:48"),
-                DataSource.TESLA_LOGGER_IMPORT
+                DataSource.TESLA_LOGGER_IMPORT, com.evmonitor.domain.ChargingType.UNKNOWN, null
         ));
 
         // 3 hours later — outside ±1h window

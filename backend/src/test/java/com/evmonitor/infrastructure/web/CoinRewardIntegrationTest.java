@@ -371,7 +371,8 @@ class CoinRewardIntegrationTest extends AbstractIntegrationTest {
                 50000, null,   // odometerKm (required), no max power
                 80, // socAfterChargePercent (required)
                 LocalDateTime.now(),
-                ocrUsed       // OCR flag
+                ocrUsed,      // OCR flag
+                null          // chargingType
         );
         HttpEntity<EvLogRequest> entity = createAuthRequest(request, uid, email);
         return restTemplate.exchange("/api/logs", HttpMethod.POST, entity, EvLogCreateResponse.class);

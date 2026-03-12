@@ -331,6 +331,8 @@ class EvLogServiceCalculateConsumptionTest {
                 true,
                 null, null,
                 null,
+                ChargingType.UNKNOWN,
+                null,
                 loggedAt, loggedAt
         );
     }

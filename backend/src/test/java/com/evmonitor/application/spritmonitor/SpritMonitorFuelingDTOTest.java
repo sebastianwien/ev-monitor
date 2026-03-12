@@ -1,0 +1,125 @@
+package com.evmonitor.application.spritmonitor;
+
+import com.evmonitor.domain.ChargingType;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * Tests for SpritMonitorFuelingDTO.parseChargingType() to ensure robust AC/DC detection
+ * without false positives from partial string matches (e.g., "ADVANCE" contains "AC").
+ */
+class SpritMonitorFuelingDTOTest {
+
+    @Test
+    void parseChargingType_nullChargeInfo_returnsUnknown() {
+        var dto = new SpritMonitorFuelingDTO(null, null, null, null, null, null, null, null, null, null, null, null);
+        assertEquals(ChargingType.UNKNOWN, dto.parseChargingType());
+    }
+
+    @Test
+    void parseChargingType_emptyChargeInfo_returnsUnknown() {
+        var dto = new SpritMonitorFuelingDTO(null, null, null, null, null, null, null, null, null, null, null, "");
+        assertEquals(ChargingType.UNKNOWN, dto.parseChargingType());
+    }
+
+    @Test
+    void parseChargingType_blankChargeInfo_returnsUnknown() {
+        var dto = new SpritMonitorFuelingDTO(null, null, null, null, null, null, null, null, null, null, null, "   ");
+        assertEquals(ChargingType.UNKNOWN, dto.parseChargingType());
+    }
+
+    @Test
+    void parseChargingType_standaloneAC_returnsAC() {
+        var dto = new SpritMonitorFuelingDTO(null, null, null, null, null, null, null, null, null, null, null, "AC");
+        assertEquals(ChargingType.AC, dto.parseChargingType());
+    }
+
+    @Test
+    void parseChargingType_standaloneDC_returnsDC() {
+        var dto = new SpritMonitorFuelingDTO(null, null, null, null, null, null, null, null, null, null, null, "DC");
+        assertEquals(ChargingType.DC, dto.parseChargingType());
+    }
+
+    @Test
+    void parseChargingType_acLowerCase_returnsAC() {
+        var dto = new SpritMonitorFuelingDTO(null, null, null, null, null, null, null, null, null, null, null, "ac");
+        assertEquals(ChargingType.AC, dto.parseChargingType());
+    }
+
+    @Test
+    void parseChargingType_dcMixedCase_returnsDC() {
+        var dto = new SpritMonitorFuelingDTO(null, null, null, null, null, null, null, null, null, null, null, "Dc");
+        assertEquals(ChargingType.DC, dto.parseChargingType());
+    }
+
+    @Test
+    void parseChargingType_acWithPower_returnsAC() {
+        var dto = new SpritMonitorFuelingDTO(null, null, null, null, null, null, null, null, null, null, null, "AC 11 kW");
+        assertEquals(ChargingType.AC, dto.parseChargingType());
+    }
+
+    @Test
+    void parseChargingType_dcWithPower_returnsDC() {
+        var dto = new SpritMonitorFuelingDTO(null, null, null, null, null, null, null, null, null, null, null, "DC 50kW");
+        assertEquals(ChargingType.DC, dto.parseChargingType());
+    }
+
+    @Test
+    void parseChargingType_commaSeparated_acType2_returnsAC() {
+        var dto = new SpritMonitorFuelingDTO(null, null, null, null, null, null, null, null, null, null, null, "AC, Type 2, 11 kW");
+        assertEquals(ChargingType.AC, dto.parseChargingType());
+    }
+
+    @Test
+    void parseChargingType_commaSeparated_dcCcs_returnsDC() {
+        var dto = new SpritMonitorFuelingDTO(null, null, null, null, null, null, null, null, null, null, null, "DC, CCS, 50 kW");
+        assertEquals(ChargingType.DC, dto.parseChargingType());
+    }
+
+    @Test
+    void parseChargingType_commaSeparated_dcTakesPrecedence() {
+        // Both DC and AC present - DC takes precedence
+        var dto = new SpritMonitorFuelingDTO(null, null, null, null, null, null, null, null, null, null, null, "DC 50kW, AC backup");
+        assertEquals(ChargingType.DC, dto.parseChargingType());
+    }
+
+    @Test
+    void parseChargingType_falsePositive_advance_returnsUnknown() {
+        // "ADVANCE" contains "AC" but should not match
+        var dto = new SpritMonitorFuelingDTO(null, null, null, null, null, null, null, null, null, null, null, "ADVANCE");
+        assertEquals(ChargingType.UNKNOWN, dto.parseChargingType());
+    }
+
+    @Test
+    void parseChargingType_falsePositive_redcar_returnsUnknown() {
+        // "REDCAR" contains "DC" but should not match
+        var dto = new SpritMonitorFuelingDTO(null, null, null, null, null, null, null, null, null, null, null, "REDCAR");
+        assertEquals(ChargingType.UNKNOWN, dto.parseChargingType());
+    }
+
+    @Test
+    void parseChargingType_falsePositive_dacia_returnsUnknown() {
+        // "DACIA" contains "AC" but should not match
+        var dto = new SpritMonitorFuelingDTO(null, null, null, null, null, null, null, null, null, null, null, "DACIA Spring");
+        assertEquals(ChargingType.UNKNOWN, dto.parseChargingType());
+    }
+
+    @Test
+    void parseChargingType_realWorld_ionityDC_returnsDC() {
+        var dto = new SpritMonitorFuelingDTO(null, null, null, null, null, null, null, null, null, null, null, "IONITY, DC 350kW, CCS");
+        assertEquals(ChargingType.DC, dto.parseChargingType());
+    }
+
+    @Test
+    void parseChargingType_realWorld_wallboxAC_returnsAC() {
+        var dto = new SpritMonitorFuelingDTO(null, null, null, null, null, null, null, null, null, null, null, "Wallbox, AC 11kW, Type 2");
+        assertEquals(ChargingType.AC, dto.parseChargingType());
+    }
+
+    @Test
+    void parseChargingType_noAcDcKeyword_returnsUnknown() {
+        var dto = new SpritMonitorFuelingDTO(null, null, null, null, null, null, null, null, null, null, null, "Type 2, 11 kW");
+        assertEquals(ChargingType.UNKNOWN, dto.parseChargingType());
+    }
+}

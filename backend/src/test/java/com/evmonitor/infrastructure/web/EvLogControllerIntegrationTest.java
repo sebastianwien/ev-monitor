@@ -7,6 +7,7 @@ import com.evmonitor.application.EvLogStatisticsResponse;
 import com.evmonitor.application.EvLogUpdateRequest;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarBrand;
+import com.evmonitor.domain.ChargingType;
 import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.User;
 import com.evmonitor.testutil.AbstractIntegrationTest;
@@ -66,7 +67,8 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
                 null, // maxChargingPowerKw
                 80, // socAfterChargePercent (required)
                 LocalDateTime.now(),
-                null  // ocrUsed
+                null,  // ocrUsed
+                null   // chargingType
         );
 
         HttpEntity<EvLogRequest> requestWithAuth = createAuthRequest(request, userId, testUser.getEmail());
@@ -104,7 +106,8 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
                 50000, null, // odometerKm (required), no max power
                 80, // socAfterChargePercent (required)
                 LocalDateTime.now(),
-                null  // ocrUsed
+                null,  // ocrUsed
+                null   // chargingType
         );
 
         // When: POST /api/logs without auth
@@ -137,7 +140,8 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
                 50000, null, // odometerKm (required), no max power
                 80, // socAfterChargePercent (required)
                 LocalDateTime.now(),
-                null  // ocrUsed
+                null,  // ocrUsed
+                null   // chargingType
         );
 
         HttpEntity<EvLogRequest> requestWithAuth = createAuthRequest(request, userId, testUser.getEmail());
@@ -362,7 +366,7 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
     void updateLog_updatesEditableFields() {
         EvLog existing = evLogRepository.save(EvLog.createNew(
                 carId, new BigDecimal("30.0"), new BigDecimal("9.00"),
-                60, null, 12000, null, 75, LocalDateTime.parse("2025-08-20T10:00:00")));
+                60, null, 12000, null, 75, LocalDateTime.parse("2025-08-20T10:00:00"), ChargingType.UNKNOWN));
 
         EvLogUpdateRequest update = new EvLogUpdateRequest(
                 new BigDecimal("35.5"),   // kwhCharged
@@ -373,7 +377,8 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
                 null,                     // maxChargingPowerKw
                 80,                       // socAfterChargePercent
                 20,                       // socBeforeChargePercent
-                LocalDateTime.parse("2025-08-20T11:00:00")
+                LocalDateTime.parse("2025-08-20T11:00:00"),
+                null  // chargingType
         );
 
         ResponseEntity<EvLogResponse> response = restTemplate.exchange(
@@ -399,11 +404,11 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
     void updateLog_nullFields_keepExistingValues() {
         EvLog existing = evLogRepository.save(EvLog.createNew(
                 carId, new BigDecimal("30.0"), new BigDecimal("9.00"),
-                60, "u33d1", 12000, null, 75, LocalDateTime.parse("2025-08-20T10:00:00")));
+                60, "u33d1", 12000, null, 75, LocalDateTime.parse("2025-08-20T10:00:00"), ChargingType.UNKNOWN));
 
         // Only update kwhCharged, everything else null → keep existing
         EvLogUpdateRequest update = new EvLogUpdateRequest(
-                new BigDecimal("40.0"), null, null, null, null, null, null, null, null, null);
+                new BigDecimal("40.0"), null, null, null, null, null, null, null, null, null, null);
 
         ResponseEntity<EvLogResponse> response = restTemplate.exchange(
                 "/api/logs/" + existing.getId(),
@@ -425,12 +430,12 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
     void updateLog_withLatLon_updatesGeohash() {
         EvLog existing = evLogRepository.save(EvLog.createNew(
                 carId, new BigDecimal("20.0"), new BigDecimal("6.00"),
-                45, null, 10000, null, 60, LocalDateTime.parse("2025-07-15T09:00:00")));
+                45, null, 10000, null, 60, LocalDateTime.parse("2025-07-15T09:00:00"), ChargingType.UNKNOWN));
 
         EvLogUpdateRequest update = new EvLogUpdateRequest(
                 null, null, null,
                 48.2082, 16.3738,   // Vienna lat/lon
-                null, null, null, null, null);
+                null, null, null, null, null, null);
 
         ResponseEntity<EvLogResponse> response = restTemplate.exchange(
                 "/api/logs/" + existing.getId(),
@@ -453,10 +458,10 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
         Car otherCar = createAndSaveCar(other.getId(), CarBrand.CarModel.MODEL_3);
         EvLog otherLog = evLogRepository.save(EvLog.createNew(
                 otherCar.getId(), new BigDecimal("20.0"), new BigDecimal("5.00"),
-                30, null, 5000, null, 50, LocalDateTime.now()));
+                30, null, 5000, null, 50, LocalDateTime.now(), ChargingType.UNKNOWN));
 
         EvLogUpdateRequest update = new EvLogUpdateRequest(
-                new BigDecimal("99.0"), null, null, null, null, null, null, null, null, null);
+                new BigDecimal("99.0"), null, null, null, null, null, null, null, null, null, null);
 
         ResponseEntity<EvLogResponse> response = restTemplate.exchange(
                 "/api/logs/" + otherLog.getId(),
@@ -472,10 +477,10 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
     void updateLog_unauthenticated_returns401() {
         EvLog existing = evLogRepository.save(EvLog.createNew(
                 carId, new BigDecimal("20.0"), new BigDecimal("5.00"),
-                30, null, 5000, null, 50, LocalDateTime.now()));
+                30, null, 5000, null, 50, LocalDateTime.now(), ChargingType.UNKNOWN));
 
         EvLogUpdateRequest update = new EvLogUpdateRequest(
-                new BigDecimal("99.0"), null, null, null, null, null, null, null, null, null);
+                new BigDecimal("99.0"), null, null, null, null, null, null, null, null, null, null);
 
         ResponseEntity<String> response = restTemplate.exchange(
                 "/api/logs/" + existing.getId(),

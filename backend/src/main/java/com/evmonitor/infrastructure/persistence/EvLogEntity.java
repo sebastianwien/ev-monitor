@@ -58,6 +58,12 @@ public class EvLogEntity {
     @Column(name = "temperature_celsius")
     private Double temperatureCelsius;
 
+    @Column(name = "charging_type", length = 10)
+    private String chargingType;
+
+    @Column(name = "raw_import_data", columnDefinition = "jsonb")
+    private String rawImportData;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -229,5 +235,21 @@ public class EvLogEntity {
 
     public void setTemperatureCelsius(Double temperatureCelsius) {
         this.temperatureCelsius = temperatureCelsius;
+    }
+
+    public String getChargingType() {
+        return chargingType;
+    }
+
+    public void setChargingType(String chargingType) {
+        this.chargingType = chargingType;
+    }
+
+    public String getRawImportData() {
+        return rawImportData;
+    }
+
+    public void setRawImportData(String rawImportData) {
+        this.rawImportData = rawImportData;
     }
 }

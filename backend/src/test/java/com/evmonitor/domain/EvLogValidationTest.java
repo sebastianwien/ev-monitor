@@ -124,6 +124,8 @@ class EvLogValidationTest {
                 true,
                 null, null,                  // odometerSuggestions
                 null,                        // temperatureCelsius
+                ChargingType.UNKNOWN,
+                null,                        // rawImportData
                 NOW, NOW
         );
     }

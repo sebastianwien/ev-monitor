@@ -156,7 +156,7 @@ public class TeslaLoggerImportService {
 
         evLogRepository.save(EvLog.createNewWithSource(
                 carId, kwh, costEur, durationMin, geohash, odometerRaw.intValue(),
-                null, socForLog, loggedAt, DATA_SOURCE
+                null, socForLog, loggedAt, DATA_SOURCE, com.evmonitor.domain.ChargingType.UNKNOWN, null
         ));
         result.incrementImported();
     }

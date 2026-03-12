@@ -1,5 +1,6 @@
 package com.evmonitor.application;
 
+import com.evmonitor.domain.ChargingType;
 import com.evmonitor.domain.EvLog;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -25,7 +26,8 @@ public record EvLogResponse(
         BigDecimal consumptionKwhPer100km,   // null when no previous log with odometer+SoC
         Boolean consumptionImplausible,      // null when consumption not computed, true when flagged
         Integer distanceSinceLastChargeKm,   // null when no previous log with odometer data
-        Boolean consumptionIsEstimated) {    // true when calculated via kWh/distance fallback (no SoC)
+        Boolean consumptionIsEstimated,      // true when calculated via kWh/distance fallback (no SoC)
+        ChargingType chargingType) {         // AC, DC, or UNKNOWN
 
     public static EvLogResponse fromDomain(EvLog evLog) {
         return fromDomain(evLog, null, null);
@@ -56,6 +58,7 @@ public record EvLogResponse(
                 consumption != null ? consumption.value() : null,
                 consumption != null ? !consumption.plausible() : null,
                 distanceKm,
-                consumption != null ? consumption.estimated() : null);
+                consumption != null ? consumption.estimated() : null,
+                evLog.getChargingType());
     }
 }

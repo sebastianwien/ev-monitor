@@ -129,6 +129,7 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
                         null, // chargingPower
                         position,
                         null,
+                        null,
                         null
                 )
         );
@@ -182,6 +183,7 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
                         null, // chargingPower
                         null, // No GPS position
                         null,
+                        null,
                         null
                 )
         );
@@ -217,8 +219,8 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
     void shouldSkipFuelings_WithNonKwhUnit() {
         // Given: Fuelings with non-kWh unit (e.g. liters) must be skipped
         List<SpritMonitorFuelingDTO> mockFuelings = List.of(
-                new SpritMonitorFuelingDTO("15.01.2024", new BigDecimal("50.0"), 1 /* Liter */, null, new BigDecimal("12.50"), 60, null, null, null, null, null),
-                new SpritMonitorFuelingDTO("20.01.2024", new BigDecimal("30.0"), QUANTITY_UNIT_KWH, null, new BigDecimal("9.00"), 45, null, null, null, null, null)
+                new SpritMonitorFuelingDTO("15.01.2024", new BigDecimal("50.0"), 1 /* Liter */, null, new BigDecimal("12.50"), 60, null, null, null, null, null, null),
+                new SpritMonitorFuelingDTO("20.01.2024", new BigDecimal("30.0"), QUANTITY_UNIT_KWH, null, new BigDecimal("9.00"), 45, null, null, null, null, null, null)
         );
 
         when(spritMonitorClient.getFuelings(eq(validToken), eq(123), any())).thenReturn(mockFuelings);
@@ -244,8 +246,8 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
         );
 
         List<SpritMonitorFuelingDTO> mockFuelings = List.of(
-                new SpritMonitorFuelingDTO("15.01.2024", new BigDecimal("50.0"), QUANTITY_UNIT_KWH, null, new BigDecimal("12.50"), 60, null, null, position, null, null),
-                new SpritMonitorFuelingDTO("invalid-date-format", new BigDecimal("30.0"), QUANTITY_UNIT_KWH, null, new BigDecimal("9.00"), 45, null, null, position, null, null)
+                new SpritMonitorFuelingDTO("15.01.2024", new BigDecimal("50.0"), QUANTITY_UNIT_KWH, null, new BigDecimal("12.50"), 60, null, null, position, null, null, null),
+                new SpritMonitorFuelingDTO("invalid-date-format", new BigDecimal("30.0"), QUANTITY_UNIT_KWH, null, new BigDecimal("9.00"), 45, null, null, position, null, null, null)
         );
 
         when(spritMonitorClient.getFuelings(eq(validToken), eq(123), any())).thenReturn(mockFuelings);
@@ -332,6 +334,7 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
                         null, // chargingPower
                         null,
                         null,
+                        null,
                         null
                 )
         );
@@ -365,7 +368,7 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
         int electricTankId = 3;
         List<SpritMonitorFuelingDTO> mockFuelings = List.of(
                 new SpritMonitorFuelingDTO("15.01.2024", new BigDecimal("50.0"), QUANTITY_UNIT_KWH,
-                        null, new BigDecimal("12.50"), 60, null, null, null, null, null)
+                        null, new BigDecimal("12.50"), 60, null, null, null, null, null, null)
         );
 
         when(spritMonitorClient.getFuelings(eq(validToken), eq(123), eq(electricTankId))).thenReturn(mockFuelings);
@@ -393,7 +396,7 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
         // Given: One fueling already imported
         List<SpritMonitorFuelingDTO> mockFuelings = List.of(
                 new SpritMonitorFuelingDTO("15.01.2024", new BigDecimal("50.0"), QUANTITY_UNIT_KWH,
-                        null, new BigDecimal("12.50"), 60, null, null, null, null, null)
+                        null, new BigDecimal("12.50"), 60, null, null, null, null, null, null)
         );
 
         when(spritMonitorClient.getFuelings(eq(validToken), eq(123), any())).thenReturn(mockFuelings);
@@ -437,6 +440,7 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
                         new BigDecimal("11.0"),  // charging power: 11 kW
                         null,
                         null,
+                        null,
                         null
                 )
         );
@@ -471,9 +475,9 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
         List<SpritMonitorFuelingDTO> mockFuelings = List.of(
                 // SpritMonitor order: higher odometer first (newest-first)
                 new SpritMonitorFuelingDTO("15.11.2025", new BigDecimal("27.0"), QUANTITY_UNIT_KWH,
-                        new BigDecimal("13978"), new BigDecimal("10.50"), 30, null, null, null, null, null),
+                        new BigDecimal("13978"), new BigDecimal("10.50"), 30, null, null, null, null, null, null),
                 new SpritMonitorFuelingDTO("15.11.2025", new BigDecimal("79.0"), QUANTITY_UNIT_KWH,
-                        new BigDecimal("13703"), new BigDecimal("30.71"), 60, null, null, null, null, null)
+                        new BigDecimal("13703"), new BigDecimal("30.71"), 60, null, null, null, null, null, null)
         );
 
         when(spritMonitorClient.getFuelings(eq(validToken), eq(123), any())).thenReturn(mockFuelings);
@@ -512,9 +516,9 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
         // Given: Two charges on the same day, imported once
         List<SpritMonitorFuelingDTO> mockFuelings = List.of(
                 new SpritMonitorFuelingDTO("15.11.2025", new BigDecimal("27.0"), QUANTITY_UNIT_KWH,
-                        null, new BigDecimal("8.00"), 30, null, null, null, null, null),
+                        null, new BigDecimal("8.00"), 30, null, null, null, null, null, null),
                 new SpritMonitorFuelingDTO("15.11.2025", new BigDecimal("45.0"), QUANTITY_UNIT_KWH,
-                        null, new BigDecimal("13.00"), 60, null, null, null, null, null)
+                        null, new BigDecimal("13.00"), 60, null, null, null, null, null, null)
         );
 
         when(spritMonitorClient.getFuelings(eq(validToken), eq(123), any())).thenReturn(mockFuelings);
@@ -550,9 +554,9 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
         );
 
         List<SpritMonitorFuelingDTO> mockFuelings = List.of(
-                new SpritMonitorFuelingDTO("15.01.2024", new BigDecimal("50.0"), QUANTITY_UNIT_KWH, null, new BigDecimal("12.50"), 60, null, null, position, null, null),
-                new SpritMonitorFuelingDTO("20.01.2024", new BigDecimal("30.0"), QUANTITY_UNIT_KWH, null, new BigDecimal("9.00"), 45, null, null, position, null, null),
-                new SpritMonitorFuelingDTO("25.01.2024", new BigDecimal("40.0"), QUANTITY_UNIT_KWH, null, new BigDecimal("10.00"), 50, null, null, position, null, null)
+                new SpritMonitorFuelingDTO("15.01.2024", new BigDecimal("50.0"), QUANTITY_UNIT_KWH, null, new BigDecimal("12.50"), 60, null, null, position, null, null, null),
+                new SpritMonitorFuelingDTO("20.01.2024", new BigDecimal("30.0"), QUANTITY_UNIT_KWH, null, new BigDecimal("9.00"), 45, null, null, position, null, null, null),
+                new SpritMonitorFuelingDTO("25.01.2024", new BigDecimal("40.0"), QUANTITY_UNIT_KWH, null, new BigDecimal("10.00"), 50, null, null, position, null, null, null)
         );
 
         when(spritMonitorClient.getFuelings(eq(validToken), eq(123), any())).thenReturn(mockFuelings);

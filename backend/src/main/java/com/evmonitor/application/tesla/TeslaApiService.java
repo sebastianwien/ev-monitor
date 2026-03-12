@@ -337,7 +337,9 @@ public class TeslaApiService {
             chargeState.chargerPower() != null ? BigDecimal.valueOf(chargeState.chargerPower()) : null, // maxChargingPowerKw,
             null, // socAfterChargePercent
             loggedAt,
-            DataSource.TESLA_IMPORT
+            DataSource.TESLA_IMPORT,
+            com.evmonitor.domain.ChargingType.UNKNOWN,
+            null
         );
     }
 

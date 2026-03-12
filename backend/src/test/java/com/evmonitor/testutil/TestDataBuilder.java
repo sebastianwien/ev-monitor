@@ -104,7 +104,8 @@ public class TestDataBuilder {
                 50000, // odometerKm (required for tests)
                 null, // maxChargingPowerKw (optional)
                 80, // socAfterChargePercent (required for tests)
-                LocalDateTime.now()
+                LocalDateTime.now(),
+                ChargingType.UNKNOWN
         );
     }
 
@@ -122,7 +123,8 @@ public class TestDataBuilder {
                 50000, // odometerKm (required for tests)
                 null, // maxChargingPowerKw (optional)
                 80, // socAfterChargePercent (required for tests)
-                timestamp
+                timestamp,
+                ChargingType.UNKNOWN
         );
     }
 

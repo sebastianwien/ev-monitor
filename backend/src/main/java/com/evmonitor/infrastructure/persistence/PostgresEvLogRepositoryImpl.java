@@ -1,5 +1,6 @@
 package com.evmonitor.infrastructure.persistence;
 
+import com.evmonitor.domain.ChargingType;
 import com.evmonitor.domain.DataSource;
 import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.EvLogRepository;
@@ -139,6 +140,8 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
         entity.setOdometerSuggestionMinKm(domain.getOdometerSuggestionMinKm());
         entity.setOdometerSuggestionMaxKm(domain.getOdometerSuggestionMaxKm());
         entity.setTemperatureCelsius(domain.getTemperatureCelsius());
+        entity.setChargingType(domain.getChargingType() != null ? domain.getChargingType().name() : null);
+        entity.setRawImportData(domain.getRawImportData());
         return entity;
     }
 
@@ -160,6 +163,8 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 entity.getOdometerSuggestionMinKm(),
                 entity.getOdometerSuggestionMaxKm(),
                 entity.getTemperatureCelsius(),
+                entity.getChargingType() != null ? ChargingType.valueOf(entity.getChargingType()) : ChargingType.UNKNOWN,
+                entity.getRawImportData(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt());
     }

@@ -64,7 +64,8 @@ class EvLogServiceSocVerificationTest extends AbstractIntegrationTest {
             10000,                          // odometer
             new BigDecimal("11.0"),         // max power
             80,                             // SoC AFTER charge
-            LocalDateTime.now().minusDays(2)
+            LocalDateTime.now().minusDays(2),
+            ChargingType.UNKNOWN
         );
         evLogRepository.save(log1);
 
@@ -85,7 +86,8 @@ class EvLogServiceSocVerificationTest extends AbstractIntegrationTest {
             10300,                          // odometer (300km driven!)
             new BigDecimal("150.0"),        // max power
             85,                             // SoC AFTER charge
-            LocalDateTime.now().minusDays(1)
+            LocalDateTime.now().minusDays(1),
+            ChargingType.UNKNOWN
         );
         evLogRepository.save(log2);
 
@@ -141,7 +143,8 @@ class EvLogServiceSocVerificationTest extends AbstractIntegrationTest {
             15000,
             new BigDecimal("11.0"),
             80,
-            LocalDateTime.now().minusDays(2)
+            LocalDateTime.now().minusDays(2),
+            ChargingType.UNKNOWN
         );
         evLogRepository.save(log1);
 
@@ -160,7 +163,8 @@ class EvLogServiceSocVerificationTest extends AbstractIntegrationTest {
             15150,
             new BigDecimal("150.0"),
             90,
-            LocalDateTime.now().minusDays(1)
+            LocalDateTime.now().minusDays(1),
+            ChargingType.UNKNOWN
         );
         evLogRepository.save(log2);
 
@@ -208,7 +212,8 @@ class EvLogServiceSocVerificationTest extends AbstractIntegrationTest {
             20000,
             new BigDecimal("11.0"),
             80,
-            LocalDateTime.now().minusDays(2)
+            LocalDateTime.now().minusDays(2),
+            ChargingType.UNKNOWN
         );
         evLogRepository.save(log1);
 
@@ -221,7 +226,8 @@ class EvLogServiceSocVerificationTest extends AbstractIntegrationTest {
             20200,
             new BigDecimal("11.0"),
             85,
-            LocalDateTime.now().minusDays(1)
+            LocalDateTime.now().minusDays(1),
+            ChargingType.UNKNOWN
         );
         evLogRepository.save(log2);
 

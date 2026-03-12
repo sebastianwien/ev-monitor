@@ -39,6 +39,7 @@ const socAfterChargePercent = ref<number | null>(null) // Required: battery leve
 const maxChargingPowerKw = ref<number | null>(null) // Optional: max charging power
 const loggedAt = ref<string | null>(null) // Optional: when the charge happened
 const odometerWarning = ref<string | null>(null) // Warning if odometer is lower than last log
+const chargingType = ref<'AC' | 'DC' | null>(null) // Optional: AC or DC charging
 
 // Location tracking
 const latitude = ref<number | null>(null)
@@ -243,6 +244,11 @@ const submitLog = async () => {
       payload.ocrUsed = true
     }
 
+    // Add chargingType if selected
+    if (chargingType.value) {
+      payload.chargingType = chargingType.value
+    }
+
     const isFirstLog = logs.value.length === 0
     const res = await api.post('/logs', payload)
 
@@ -261,6 +267,7 @@ const submitLog = async () => {
     loggedAt.value = null
     odometerWarning.value = null
     ocrUsed.value = false
+    chargingType.value = null
     clearLocation()
 
     await fetchLogs()
@@ -414,6 +421,35 @@ const handleOcrData = (ocrResult: any) => {
         <label class="block text-sm font-medium text-gray-700">Max. Ladeleistung (kW, optional)</label>
         <input v-model="maxChargingPowerKw" type="number" step="0.1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
         <p class="text-xs text-gray-500 mt-1">Höchste erreichte Ladeleistung während des Ladevorgangs</p>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Ladetyp (optional)</label>
+        <div class="flex gap-2">
+          <button
+            type="button"
+            @click="chargingType = chargingType === 'AC' ? null : 'AC'"
+            :class="[
+              'flex-1 py-2 px-3 rounded-md border text-sm font-medium transition',
+              chargingType === 'AC'
+                ? 'bg-blue-600 text-white border-blue-600'
+                : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'
+            ]">
+            AC
+          </button>
+          <button
+            type="button"
+            @click="chargingType = chargingType === 'DC' ? null : 'DC'"
+            :class="[
+              'flex-1 py-2 px-3 rounded-md border text-sm font-medium transition',
+              chargingType === 'DC'
+                ? 'bg-orange-500 text-white border-orange-500'
+                : 'bg-white text-gray-600 border-gray-300 hover:border-orange-400'
+            ]">
+            DC
+          </button>
+        </div>
+        <p class="text-xs text-gray-500 mt-1">AC = Wallbox/Haushalt, DC = Schnelllader</p>
       </div>
 
       <div>
@@ -586,6 +622,16 @@ const handleOcrData = (ocrResult: any) => {
             </span>
             <span v-if="log.maxChargingPowerKw" class="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
               <BoltIcon class="w-3 h-3" />{{ log.maxChargingPowerKw }} kW
+            </span>
+            <span
+              v-if="log.chargingType && log.chargingType !== 'UNKNOWN'"
+              :class="[
+                'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap',
+                log.chargingType === 'DC'
+                  ? 'bg-orange-50 border border-orange-200 text-orange-700'
+                  : 'bg-blue-50 border border-blue-200 text-blue-700'
+              ]">
+              {{ log.chargingType }}
             </span>
           </div>
         </li>

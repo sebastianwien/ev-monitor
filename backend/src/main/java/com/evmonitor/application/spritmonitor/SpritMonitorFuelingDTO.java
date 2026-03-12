@@ -18,12 +18,46 @@ public record SpritMonitorFuelingDTO(
     BigDecimal chargingPower,    // max charging power in kW, EV only
     Position position,
     String stationname,
-    String note
+    String note,
+    @JsonProperty("charge_info")
+    String chargeInfo    // Free-text field that may contain "AC", "DC", connector types, etc.
 ) {
     private static final int UNIT_KWH = 5;
 
     public boolean isKwh() {
         return quantityUnitId != null && quantityUnitId == UNIT_KWH;
+    }
+
+    /**
+     * Parses charge_info for AC/DC. The field is comma-separated (e.g., "AC, Type 2, 11 kW")
+     * and may contain connector types or power levels. We split by comma and search for
+     * standalone "AC" or "DC" tokens to avoid false positives (e.g., "ADVANCE", "REDCAR").
+     * "DC" takes precedence since a false positive there is worse for data quality.
+     */
+    public com.evmonitor.domain.ChargingType parseChargingType() {
+        if (chargeInfo == null || chargeInfo.isBlank()) {
+            return com.evmonitor.domain.ChargingType.UNKNOWN;
+        }
+
+        // Split by comma and trim each token
+        String[] tokens = chargeInfo.split(",");
+        for (String token : tokens) {
+            String trimmed = token.trim().toUpperCase();
+            // Check for exact match or starts with (e.g., "DC 50kW" or "AC 11kW")
+            if (trimmed.equals("DC") || trimmed.startsWith("DC ")) {
+                return com.evmonitor.domain.ChargingType.DC;
+            }
+        }
+
+        // Second pass for AC (lower priority to avoid false positives)
+        for (String token : tokens) {
+            String trimmed = token.trim().toUpperCase();
+            if (trimmed.equals("AC") || trimmed.startsWith("AC ")) {
+                return com.evmonitor.domain.ChargingType.AC;
+            }
+        }
+
+        return com.evmonitor.domain.ChargingType.UNKNOWN;
     }
 
     public record Position(

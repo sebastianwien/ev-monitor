@@ -73,7 +73,8 @@ public class EvLogService {
                 request.odometerKm(),
                 request.maxChargingPowerKw(),
                 request.socAfterChargePercent(),
-                request.loggedAt());
+                request.loggedAt(),
+                request.chargingType());
 
         EvLog savedLog = evLogRepository.save(newLog);
 
@@ -198,6 +199,8 @@ public class EvLogService {
                 existing.getOdometerSuggestionMinKm(),
                 existing.getOdometerSuggestionMaxKm(),
                 existing.getTemperatureCelsius(),
+                request.chargingType() != null ? request.chargingType() : existing.getChargingType(),
+                existing.getRawImportData(),
                 existing.getCreatedAt(),
                 LocalDateTime.now()
         );
