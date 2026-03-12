@@ -669,10 +669,18 @@ const deleteLog = async (id: string) => {
                 <tr class="text-xs text-gray-500">
                   <th class="text-left pb-2 font-medium">Ladefenster</th>
                   <th v-if="stats?.summerConsumptionKwhPer100km" class="text-right pb-2 font-medium text-amber-600 whitespace-nowrap pl-4">
-                    <span class="inline-flex items-center gap-1"><SunIcon class="w-4 h-4" /><span class="font-normal">({{ stats.summerConsumptionKwhPer100km.toFixed(1) }} kWh)</span></span>
+                    <span class="inline-flex items-center justify-end gap-1">
+                      <SunIcon class="w-4 h-4" />
+                      <span class="hidden sm:inline">Sommer</span>
+                      <span class="font-normal">({{ stats.summerConsumptionKwhPer100km.toFixed(1) }}<span class="hidden sm:inline"> kWh/100km</span><span class="sm:hidden"> kWh</span>)</span>
+                    </span>
                   </th>
                   <th v-if="stats?.winterConsumptionKwhPer100km" class="text-right pb-2 font-medium text-blue-600 whitespace-nowrap pl-4">
-                    <span class="inline-flex items-center gap-1"><CloudIcon class="w-4 h-4" /><span class="font-normal">({{ stats.winterConsumptionKwhPer100km.toFixed(1) }} kWh)</span></span>
+                    <span class="inline-flex items-center justify-end gap-1">
+                      <CloudIcon class="w-4 h-4" />
+                      <span class="hidden sm:inline">Winter</span>
+                      <span class="font-normal">({{ stats.winterConsumptionKwhPer100km.toFixed(1) }}<span class="hidden sm:inline"> kWh/100km</span><span class="sm:hidden"> kWh</span>)</span>
+                    </span>
                   </th>
                 </tr>
               </thead>
