@@ -57,7 +57,8 @@ jobs:
           script: |
             cd /opt/ev-monitor/ev-monitor
             echo "🔄 Pulling latest changes..."
-            git pull origin main
+            git fetch origin main
+            git reset --hard origin/main
 
             echo "🗄️  Creating database backup..."
             docker compose exec -T db pg_dump -U evmonitor ev_monitor > backup-$(date +%Y%m%d-%H%M%S).sql || echo "⚠️  Backup failed (DB might not be running yet)"
