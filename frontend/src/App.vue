@@ -2,6 +2,7 @@
 import { ref, watch, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useImportsTab } from './composables/useImportsTab'
+import { useOnboardingState } from './composables/useOnboardingState'
 import { useAuthStore } from './stores/auth'
 import { useCoinStore } from './stores/coins'
 import { storeToRefs } from 'pinia'
@@ -21,6 +22,7 @@ import { captureUtmParams } from './utils/reddit-pixel'
 const router = useRouter()
 const route = useRoute()
 const { activeTab: importsActiveTab } = useImportsTab()
+const { isOnboardingVisible } = useOnboardingState()
 
 function goToGoeTab() {
   importsActiveTab.value = 'goe'
@@ -457,7 +459,7 @@ const closeMobileMenu = () => {
     <SpritMonitorImport v-if="showImportOverlay" @close="showImportOverlay = false" />
 
     <!-- Floating Action Button (only when authenticated) -->
-    <FloatingActionButton v-if="authStore.isAuthenticated()" @click="handleNewLog" />
+    <FloatingActionButton v-if="authStore.isAuthenticated() && !isOnboardingVisible" @click="handleNewLog" />
 
     <!-- Log Form Modal (Desktop only) -->
     <LogFormModal v-if="showLogFormModal && authStore.isAuthenticated()" @close="showLogFormModal = false" />
