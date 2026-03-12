@@ -356,14 +356,17 @@ public class EvLogService {
 
         // Total distance and avg consumption — SoC-based from pre-computed consumptionByLog
         BigDecimal totalWeighted = BigDecimal.ZERO;
-        int totalDist = 0;
+        int totalDist = 0;        // only plausible, for avg consumption calculation
+        int totalDistAll = 0;     // all logs with distance, for display
         for (EvLog log : logs) {
             ConsumptionResult cr = consumptionByLog.get(log.getId());
-            if (cr == null || !cr.plausible()) continue;
+            if (cr == null) continue;
+            if (cr.distanceKm() > 0) totalDistAll += cr.distanceKm();
+            if (!cr.plausible()) continue;
             totalWeighted = totalWeighted.add(cr.value().multiply(BigDecimal.valueOf(cr.distanceKm())));
             totalDist += cr.distanceKm();
         }
-        BigDecimal totalDistanceKm = totalDist > 0 ? BigDecimal.valueOf(totalDist) : null;
+        BigDecimal totalDistanceKm = totalDistAll > 0 ? BigDecimal.valueOf(totalDistAll) : null;
         BigDecimal avgConsumptionKwhPer100km = weightedAverage(totalWeighted, totalDist);
 
         // Fallback: if no SoC data available, use kWh/distance

@@ -233,9 +233,9 @@ const submitLog = async () => {
       payload.maxChargingPowerKw = Math.round(maxChargingPowerKw.value * 100) / 100
     }
 
-    // Add loggedAt if provided (convert from datetime-local format to ISO string)
+    // Add loggedAt if provided — send as-is (no timezone conversion, backend stores LocalDateTime)
     if (loggedAt.value) {
-      payload.loggedAt = new Date(loggedAt.value).toISOString()
+      payload.loggedAt = loggedAt.value + ':00'
     }
 
     // Add ocrUsed flag if OCR was used to fill in data

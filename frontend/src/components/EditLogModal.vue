@@ -209,7 +209,7 @@ async function save() {
       maxChargingPowerKw: form.value.maxChargingPowerKw || null,
       socAfterChargePercent: form.value.socAfterChargePercent || null,
       socBeforeChargePercent: form.value.socBeforeChargePercent || null,
-      loggedAt: new Date(form.value.loggedAt).toISOString(),
+      loggedAt: form.value.loggedAt + ':00',
     }
     if (newLatitude.value !== null && newLongitude.value !== null) {
       payload.latitude = newLatitude.value

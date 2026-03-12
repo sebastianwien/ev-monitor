@@ -35,6 +35,7 @@ import api from '../api/axios'
 import { tempBadgeClass } from '../utils/temperatureColor'
 import { consumptionBadgeClass } from '../utils/consumptionColor'
 import ConsumptionInfoBox from '../components/ConsumptionInfoBox.vue'
+import EditLogModal from '../components/EditLogModal.vue'
 import { costBadgeClass } from '../utils/costColor'
 import { carService } from '../api/carService'
 import LicensePlate from '../components/LicensePlate.vue'
@@ -487,6 +488,7 @@ const logsPage = ref(0)
 const logsLoading = ref(false)
 const hasMoreLogs = ref(false)
 const logsSection = ref<HTMLElement | null>(null)
+const editingLog = ref<any | null>(null)
 
 const fetchLogs = async (page = 0) => {
   if (!selectedCarId.value) return
@@ -924,6 +926,11 @@ const deleteLog = async (id: string) => {
                       :class="['inline-flex items-center gap-0.5 px-2 py-0.5 border rounded-full text-xs whitespace-nowrap', tempBadgeClass(log.temperatureCelsius)]">
                       <SunIcon class="w-3 h-3" />{{ log.temperatureCelsius.toFixed(1) }}°C
                     </span>
+                    <button @click="editingLog = log"
+                      class="p-1 rounded text-gray-300 hover:text-blue-500 hover:bg-blue-50 transition flex-shrink-0"
+                      title="Ladevorgang bearbeiten">
+                      <PencilSquareIcon class="w-3.5 h-3.5" />
+                    </button>
                     <button @click="deleteLog(log.id)"
                       class="p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition flex-shrink-0">
                       <TrashIcon class="w-3.5 h-3.5" />
@@ -1010,6 +1017,13 @@ const deleteLog = async (id: string) => {
       </div>
     </Transition>
   </div>
+
+  <EditLogModal
+    v-if="editingLog"
+    :log="editingLog"
+    @close="editingLog = null"
+    @saved="() => { editingLog = null; fetchLogs(logsPage) }"
+  />
 </template>
 
 <style scoped>
