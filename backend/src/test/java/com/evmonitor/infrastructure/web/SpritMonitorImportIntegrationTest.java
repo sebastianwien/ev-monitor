@@ -579,4 +579,63 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
         List<EvLog> importedLogs = evLogRepository.findAllByCarId(carId);
         assertEquals(3, importedLogs.size());
     }
+
+    @Test
+    void shouldPersistRawImportDataAsJsonb() {
+        // Given: Fueling with all fields populated (complex JSON structure)
+        SpritMonitorFuelingDTO.Position position = new SpritMonitorFuelingDTO.Position(
+                new BigDecimal("52.5200"),
+                new BigDecimal("13.4050")
+        );
+
+        List<SpritMonitorFuelingDTO> mockFuelings = List.of(
+                new SpritMonitorFuelingDTO(
+                        "15.01.2024",
+                        new BigDecimal("55.5"),
+                        QUANTITY_UNIT_KWH,
+                        new BigDecimal("42350.7"),
+                        new BigDecimal("14.50"),
+                        75,
+                        new BigDecimal("85.0"), // percent (SoC)
+                        new BigDecimal("11.0"), // charging power
+                        position,
+                        "Supercharger Berlin", // station name
+                        "Test note from SpritMonitor",
+                        "AC, Type 2, 11 kW" // charge_info
+                )
+        );
+
+        when(spritMonitorClient.getFuelings(eq(validToken), eq(123), any())).thenReturn(mockFuelings);
+
+        Map<String, Object> request = Map.of(
+                "token", validToken,
+                "vehicleId", 123,
+                "mainTankId", MAIN_TANK_ID,
+                "carId", carId.toString()
+        );
+        HttpEntity<Map<String, Object>> requestWithAuth = createAuthRequest(request, userId, testUser.getEmail());
+
+        // When: Import fueling
+        ResponseEntity<ImportResult> response = restTemplate.exchange(
+                "/api/import/sprit-monitor/fuelings", HttpMethod.POST, requestWithAuth, ImportResult.class);
+
+        // Then: Import successful
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(1, response.getBody().getImported());
+
+        // Verify raw_import_data was persisted as JSONB
+        List<EvLog> importedLogs = evLogRepository.findAllByCarId(carId);
+        assertEquals(1, importedLogs.size());
+
+        EvLog log = importedLogs.get(0);
+        assertNotNull(log.getRawImportData(), "raw_import_data should be persisted");
+
+        // Verify it's valid JSON containing the original DTO data
+        String rawJson = log.getRawImportData();
+        assertTrue(rawJson.contains("\"date\":\"15.01.2024\""), "Should contain original date");
+        assertTrue(rawJson.contains("\"quantity\":55.5"), "Should contain original quantity");
+        assertTrue(rawJson.contains("\"odometer\":42350.7"), "Should contain original odometer");
+        assertTrue(rawJson.contains("\"lat\":52.52"), "Should contain position data");
+        assertTrue(rawJson.contains("\"charge_info\":\"AC"), "Should contain charge info with AC");
+    }
 }

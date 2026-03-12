@@ -61,7 +61,8 @@ public class EvLogEntity {
     @Column(name = "charging_type", length = 10)
     private String chargingType;
 
-    @Column(name = "raw_import_data", columnDefinition = "jsonb")
+    @Column(name = "raw_import_data")
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
     private String rawImportData;
 
     @Column(name = "created_at")
