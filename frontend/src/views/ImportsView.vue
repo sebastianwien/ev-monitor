@@ -1,20 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
 import { ArrowDownTrayIcon, BoltIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 import SpritMonitorImport from '../components/SpritMonitorImport.vue'
 import GoeIntegration from '../components/GoeIntegration.vue'
 import TeslaFleetIntegration from '../components/TeslaFleetIntegration.vue'
 import TeslaLoggerImportModal from '../components/TeslaLoggerImportModal.vue'
 import { carService, type Car } from '../api/carService'
+import { useImportsTab } from '../composables/useImportsTab'
 
-const route = useRoute()
-
-type Tab = 'spritmonitor' | 'goe' | 'wallbox' | 'tesla'
-const VALID_TABS: Tab[] = ['spritmonitor', 'goe', 'wallbox', 'tesla']
-const activeTab = ref<Tab>(
-  VALID_TABS.includes(route.query.tab as Tab) ? (route.query.tab as Tab) : 'spritmonitor'
-)
+const { activeTab } = useImportsTab()
 const showSpritMonitorModal = ref(false)
 const teslaLoggerCarId = ref<string | null>(null)
 const cars = ref<Car[]>([])
@@ -90,7 +84,6 @@ const teslaCars = computed(() =>
             OCPP Wallbox
           </button>
           <button
-            v-if="hasActiveTesla"
             @click="activeTab = 'tesla'"
             :class="[
               'flex-1 text-sm font-medium px-3 py-2 rounded-lg transition',
@@ -218,7 +211,22 @@ const teslaCars = computed(() =>
         </div>
 
         <!-- Tab: Tesla -->
-        <div v-if="activeTab === 'tesla' && hasActiveTesla" class="space-y-4">
+        <div v-if="activeTab === 'tesla' && !hasActiveTesla" class="bg-white border border-gray-200 rounded-xl p-6">
+          <div class="flex items-start gap-4">
+            <div class="bg-gray-700 rounded-lg p-2 shrink-0">
+              <BoltIcon class="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h2 class="font-semibold text-gray-900">Tesla Integration</h2>
+              <p class="text-sm text-gray-600 mt-2">
+                Um die Tesla-Integration zu nutzen, musst du zuerst ein Tesla-Fahrzeug in deiner
+                <router-link to="/cars" class="text-indigo-600 hover:underline font-medium">Fahrzeugverwaltung</router-link>
+                anlegen.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div v-else-if="activeTab === 'tesla' && hasActiveTesla" class="space-y-4">
           <TeslaFleetIntegration />
 
           <!-- TeslaLogger Manual Import -->

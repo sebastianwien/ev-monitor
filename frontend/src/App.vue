@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
+import { useImportsTab } from './composables/useImportsTab'
 import { useAuthStore } from './stores/auth'
 import { useCoinStore } from './stores/coins'
 import { storeToRefs } from 'pinia'
@@ -18,6 +19,13 @@ import { HeartIcon } from '@heroicons/vue/24/solid'
 import { captureUtmParams } from './utils/reddit-pixel'
 
 const router = useRouter()
+const route = useRoute()
+const { activeTab: importsActiveTab } = useImportsTab()
+
+function goToGoeTab() {
+  importsActiveTab.value = 'goe'
+  if (route.path !== '/imports') router.push('/imports')
+}
 const authStore = useAuthStore()
 const coinStore = useCoinStore()
 const wallboxStore = useWallboxStore()
@@ -126,8 +134,8 @@ const closeMobileMenu = () => {
               </router-link>
               <router-link
                 to="/imports"
-                class="p-2 rounded-md bg-indigo-700 hover:bg-indigo-800 transition"
-                :class="{ 'bg-indigo-900': $route.path === '/imports' }"
+                class="p-2 rounded-md hover:bg-indigo-500 transition"
+                :class="{ 'bg-indigo-700': $route.path === '/imports' }"
                 title="Import">
                 <ArrowDownTrayIcon class="h-5 w-5" />
               </router-link>
@@ -148,8 +156,8 @@ const closeMobileMenu = () => {
               </router-link>
               <router-link
                 to="/imports"
-                class="flex items-center gap-2 px-4 py-2 bg-indigo-700 hover:bg-indigo-800 rounded-lg text-sm font-medium transition shadow-sm"
-                :class="{ 'bg-indigo-900': $route.path === '/imports' }">
+                class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-500 transition"
+                :class="{ 'bg-indigo-700': $route.path === '/imports' }">
                 <ArrowDownTrayIcon class="h-5 w-5" />
                 Import
               </router-link>
@@ -161,9 +169,9 @@ const closeMobileMenu = () => {
           <!-- Compact Right Nav (768px - 1280px) -->
           <div class="hidden md:flex xl:hidden items-center space-x-2">
             <!-- Wallbox dot -->
-            <router-link
+            <button
               v-if="wallboxHasConnections"
-              to="/imports?tab=goe"
+              @click="goToGoeTab"
               :title="`${wallboxConn?.displayName || 'Wallbox'} · ${wallboxConn?.carStateLabel}`"
               class="p-2 rounded-md hover:bg-indigo-500 transition flex items-center justify-center"
             >
@@ -171,7 +179,7 @@ const closeMobileMenu = () => {
                 :class="['w-2.5 h-2.5 rounded-full', wallboxChipColor,
                          wallboxConn?.carState === 2 ? 'animate-pulse' : '']"
               />
-            </router-link>
+            </button>
             <router-link
               to="/coins/history"
               class="flex items-center gap-1 px-2 py-1 text-sm bg-indigo-500 bg-opacity-30 border border-indigo-400 rounded-md hover:bg-opacity-50 transition font-medium"
@@ -214,9 +222,9 @@ const closeMobileMenu = () => {
           <!-- Full Right Nav (1280px+) -->
           <div class="hidden xl:flex items-center space-x-4">
             <!-- Wallbox chip -->
-            <router-link
+            <button
               v-if="wallboxHasConnections"
-              to="/imports?tab=goe"
+              @click="goToGoeTab"
               class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition hover:opacity-80"
               :class="wallboxConn?.carState === 2
                 ? 'bg-green-500 bg-opacity-30 border-green-400 text-white'
@@ -230,7 +238,7 @@ const closeMobileMenu = () => {
               />
               <span class="truncate max-w-[120px]">{{ wallboxConn?.displayName || 'Wallbox' }}</span>
               <span class="opacity-90">· {{ wallboxConn?.carStateLabel }}</span>
-            </router-link>
+            </button>
             <div class="relative group">
               <router-link
                 to="/coins/history"
@@ -286,9 +294,9 @@ const closeMobileMenu = () => {
           <!-- Mobile: Icons + Hamburger Button -->
           <div class="md:hidden flex items-center gap-3">
             <!-- Wallbox dot -->
-            <router-link
+            <button
               v-if="wallboxHasConnections"
-              to="/imports?tab=goe"
+              @click="goToGoeTab"
               :title="`${wallboxConn?.displayName || 'Wallbox'} · ${wallboxConn?.carStateLabel}`"
               class="flex items-center justify-center"
             >
@@ -296,7 +304,7 @@ const closeMobileMenu = () => {
                 :class="['w-2.5 h-2.5 rounded-full', wallboxChipColor,
                          wallboxConn?.carState === 2 ? 'animate-pulse' : '']"
               />
-            </router-link>
+            </button>
             <router-link
               to="/coins/history"
               class="flex items-center gap-1 px-2 py-1 text-sm bg-indigo-500 bg-opacity-30 border border-indigo-400 rounded-md hover:bg-opacity-50 transition font-medium"
