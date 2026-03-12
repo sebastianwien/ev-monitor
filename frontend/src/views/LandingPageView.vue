@@ -159,8 +159,8 @@ const formatDelta = (real: number | null, wltp: number): string => {
     <section class="pt-12 pb-6 sm:pt-16 sm:pb-8">
       <div class="max-w-4xl mx-auto text-center px-6 sm:px-8 lg:px-12">
         <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6">
-          Wie weit kommst du wirklich —<br />
-          im Winter?
+          Wie weit kommst du wirklich?<br />
+          Und im Winter?
         </h1>
         <p class="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
           Kein Marketing, keine WLTP-Traumwerte. Für Käufer die wissen wollen worauf sie sich einlassen. <br/> Für Besitzer die ihren echten Verbrauch und ihre Ladekosten im Blick behalten wollen.
