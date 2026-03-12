@@ -80,6 +80,10 @@ class AnalyticsService {
     this.track('feature_used', { feature })
   }
 
+  trackDemoLoginClicked(source: 'hero' | 'models_section') {
+    this.track('demo_login_clicked', { source })
+  }
+
   // Auth Events
   trackLogin() {
     this.track('login')

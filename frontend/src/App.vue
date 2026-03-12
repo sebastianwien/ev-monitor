@@ -114,8 +114,8 @@ const closeMobileMenu = () => {
         <div class="flex justify-between items-center">
           <!-- Left: Logo + Nav Buttons (Desktop) -->
           <div class="flex items-center space-x-4">
-            <router-link to="/dashboard" class="flex items-center gap-1.5 text-xl font-bold tracking-wide hover:opacity-80 transition whitespace-nowrap">
-              <Battery0Icon class="h-6 w-6" />
+            <router-link to="/dashboard" class="flex items-center gap-1.5 text-2xl font-bold tracking-wide hover:opacity-80 transition whitespace-nowrap">
+              <Battery0Icon class="h-7 w-7" />
               EV Monitor
             </router-link>
 

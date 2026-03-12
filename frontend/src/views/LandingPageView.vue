@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { analytics } from '../services/analytics'
 import { getAllModelsWithWltpData, getModelStats, getPlatformStats, type PublicModelStats } from '../api/publicModelService'
 import {
   LockClosedIcon,
@@ -73,8 +74,9 @@ onMounted(async () => {
 const goToRegister = () => router.push('/register')
 
 const demoLoading = ref(false)
-const demoLogin = async () => {
+const demoLogin = async (source: 'hero' | 'models_section' = 'hero') => {
   demoLoading.value = true
+  analytics.trackDemoLoginClicked(source)
   try {
     const response = await import('../api/axios').then(m => m.default.post('/auth/demo-login'))
     authStore.setToken(response.data.token)
@@ -107,8 +109,8 @@ const formatDelta = (real: number | null, wltp: number): string => {
       <div class="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
         <div class="flex justify-between items-center h-16">
           <div class="flex items-center gap-2">
-            <BoltIcon class="h-6 w-6 text-green-600" />
-            <span class="text-base font-bold text-gray-900 whitespace-nowrap">EV Monitor</span>
+            <BoltIcon class="h-7 w-7 text-green-600" />
+            <span class="text-xl font-bold text-gray-900 whitespace-nowrap">EV Monitor</span>
           </div>
           <div class="flex items-center gap-2 sm:gap-3">
             <a
@@ -176,15 +178,20 @@ const formatDelta = (real: number | null, wltp: number): string => {
             <ArrowRightIcon class="h-5 w-5" />
           </router-link>
         </div>
-        <p class="mt-4 text-sm text-gray-500">
-          Noch unsicher?
+        <div class="mt-5 flex items-center justify-center gap-3 text-sm text-gray-400">
+          <div class="h-px w-12 bg-gray-200"></div>
+          <span>oder</span>
+          <div class="h-px w-12 bg-gray-200"></div>
+        </div>
+        <div class="mt-4">
           <button
-            @click="demoLogin"
+            @click="demoLogin('hero')"
             :disabled="demoLoading"
-            class="text-indigo-600 hover:text-indigo-800 font-medium underline underline-offset-2 transition disabled:opacity-50"
-          >{{ demoLoading ? 'Wird geladen…' : 'Demo-Account ausprobieren' }}</button>
-          – kein Account nötig.
-        </p>
+            class="demo-shimmer cursor-pointer w-full sm:w-auto border border-green-400 text-gray-900 px-6 py-3 rounded-lg text-base font-semibold disabled:opacity-50 inline-flex items-center justify-center gap-2"
+          >
+            {{ demoLoading ? 'Wird geladen…' : 'App live testen – kein Account, keine Registrierung.' }}
+          </button>
+        </div>
         <p class="mt-4 text-sm sm:text-base font-semibold text-gray-600 tabular-nums">
           <span>{{ displayTrips }}+ Fahrten</span>
           <span class="mx-2">•</span>
@@ -304,7 +311,7 @@ const formatDelta = (real: number | null, wltp: number): string => {
           </div>
 
           <!-- View All Button -->
-          <div class="text-center mt-8">
+          <div class="text-center mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
             <router-link
               to="/modelle"
               class="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition inline-flex items-center space-x-2"
@@ -312,6 +319,13 @@ const formatDelta = (real: number | null, wltp: number): string => {
               <span>Alle Modelle im Vergleich</span>
               <ArrowRightIcon class="h-5 w-5" />
             </router-link>
+            <button
+              @click="demoLogin('models_section')"
+              :disabled="demoLoading"
+              class="border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:border-green-500 hover:text-green-700 transition disabled:opacity-50 inline-flex items-center space-x-2"
+            >
+              <span>{{ demoLoading ? 'Wird geladen…' : 'Demo ausprobieren' }}</span>
+            </button>
           </div>
         </div>
 
@@ -467,3 +481,34 @@ const formatDelta = (real: number | null, wltp: number): string => {
     </footer>
   </div>
 </template>
+
+
+<style scoped>
+/* 3D press effect for buttons in sections (not nav) */
+section a[class*="rounded"], section button[class*="rounded"] {
+  box-shadow: 0 4px 0 0 rgba(0,0,0,0.15);
+  transform: translateY(0);
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+
+section a[class*="rounded"]:active, section button[class*="rounded"]:active {
+  box-shadow: 0 1px 0 0 rgba(0,0,0,0.15);
+  transform: translateY(3px);
+  transition: transform 0.05s ease, box-shadow 0.05s ease;
+}
+
+.demo-shimmer {
+  background: linear-gradient(120deg, #f0fdf4 0%, #dcfce7 40%, #bbf7d0 50%, #dcfce7 60%, #f0fdf4 100%);
+  background-size: 200% 100%;
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+.demo-shimmer:hover {
+  background-position: 100% 0;
+}
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+</style>
