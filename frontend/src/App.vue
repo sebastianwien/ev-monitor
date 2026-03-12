@@ -4,6 +4,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useImportsTab } from './composables/useImportsTab'
 import { useOnboardingState } from './composables/useOnboardingState'
 import { useAuthStore } from './stores/auth'
+import { analytics } from './services/analytics'
 import { useCoinStore } from './stores/coins'
 import { storeToRefs } from 'pinia'
 import { useWallboxStore } from './stores/wallbox'
@@ -39,6 +40,10 @@ const balanceBumping = ref(false)
 const balanceInitialized = ref(false)
 
 // Fetch balance + init wallbox store on load and whenever token changes (login/logout)
+watch(() => route.path, (path) => {
+  if (path === '/dashboard') analytics.track('dashboard_viewed')
+})
+
 watch(() => authStore.token, (newToken) => {
   if (newToken) {
     balanceInitialized.value = false

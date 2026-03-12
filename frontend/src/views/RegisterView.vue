@@ -18,6 +18,7 @@ const utmCampaign = ref('');
 const error = ref('');
 
 onMounted(() => {
+  analytics.track('register_page_viewed')
   if (route.query.ref) {
     referralCode.value = String(route.query.ref);
   }

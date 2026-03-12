@@ -41,6 +41,8 @@ function animateCount(target: number, setter: (v: number) => void, duration = 14
 }
 
 onMounted(async () => {
+  analytics.track('landing_page_viewed')
+
   // Load platform stats and animate counters
   try {
     const stats = await getPlatformStats()
@@ -266,7 +268,7 @@ const formatDelta = (real: number | null, wltp: number): string => {
           Lade Fahrzeugdaten...
         </div>
 
-        <div v-else-if="topModels.length > 0" class="space-y-6">
+        <div v-else-if="topModels.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           <!-- Model Cards -->
           <div
             v-for="preview in topModels"
@@ -296,34 +298,60 @@ const formatDelta = (real: number | null, wltp: number): string => {
             </div>
           </div>
 
-          <!-- Next 4 models teaser -->
-          <div v-if="nextModels.length > 0" class="flex flex-wrap gap-2">
-            <router-link
-              v-for="m in nextModels"
-              :key="`${m.brand}-${m.model}`"
-              :to="`/modelle/${m.brand}/${m.model.replace(/ /g, '_')}`"
-              class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-medium rounded-full transition"
-            >
-              {{ m.stats.modelDisplayName }}
-            </router-link>
-          </div>
-
-          <!-- View All Button -->
-          <div class="text-center mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <router-link
-              to="/modelle"
-              class="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition inline-flex items-center space-x-2"
-            >
-              <span>Alle Modelle im Vergleich</span>
-              <ArrowRightIcon class="h-5 w-5" />
-            </router-link>
-            <button
-              @click="demoLogin('models_section')"
-              :disabled="demoLoading"
-              class="border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:border-green-500 hover:text-green-700 transition disabled:opacity-50 inline-flex items-center space-x-2"
-            >
-              <span>{{ demoLoading ? 'Wird geladen…' : 'Demo ausprobieren' }}</span>
-            </button>
+          <!-- Next 4 models teaser + CTAs — span full grid width -->
+          <div class="col-span-full mt-2 space-y-4">
+            <div v-if="nextModels.length > 0">
+              <!-- Mobile: pills -->
+              <div class="flex flex-wrap gap-2 sm:hidden">
+                <router-link
+                  v-for="m in nextModels"
+                  :key="`${m.brand}-${m.model}`"
+                  :to="`/modelle/${m.brand}/${m.model.replace(/ /g, '_')}`"
+                  class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-medium rounded-full transition"
+                >
+                  {{ m.stats.modelDisplayName }}
+                </router-link>
+              </div>
+              <!-- sm+: cards -->
+              <div class="hidden sm:grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <router-link
+                  v-for="m in nextModels"
+                  :key="`${m.brand}-${m.model}`"
+                  :to="`/modelle/${m.brand}/${m.model.replace(/ /g, '_')}`"
+                  class="bg-white border border-gray-200 rounded-xl p-4 hover:border-green-500 transition"
+                >
+                  <div class="flex items-start justify-between gap-2 mb-2">
+                    <h3 class="text-sm font-semibold text-gray-900">{{ m.stats.modelDisplayName }}</h3>
+                    <span class="text-xs text-gray-400 whitespace-nowrap mt-0.5">{{ m.stats.logCount }} Fahrten</span>
+                  </div>
+                  <div class="flex items-center gap-3 text-xs text-gray-600 mb-2">
+                    <span>Ø {{ m.stats.avgKwhPerSession?.toFixed(1) || '—' }} kWh</span>
+                    <span class="text-gray-300">|</span>
+                    <span>{{ m.stats.avgCostPerKwh?.toFixed(2) || '—' }}€/kWh</span>
+                  </div>
+                  <div v-if="m.stats.avgConsumptionKwhPer100km && m.stats.wltpVariants.length > 0" class="text-xs text-gray-700">
+                    Real: <span class="font-medium">{{ m.stats.avgConsumptionKwhPer100km.toFixed(1) }} kWh/100km</span>
+                    <span class="text-gray-400 ml-1">({{ formatDelta(m.stats.avgConsumptionKwhPer100km, m.stats.wltpVariants[0].wltpConsumptionKwhPer100km) }} vs WLTP)</span>
+                  </div>
+                </router-link>
+              </div>
+            </div>
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 mt-4 sm:mt-6">
+              <router-link
+                to="/modelle"
+                class="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition inline-flex items-center justify-center space-x-2"
+              >
+                <span>Alle Modelle im Vergleich</span>
+                <ArrowRightIcon class="h-5 w-5" />
+              </router-link>
+              <button
+                @click="demoLogin('models_section')"
+                :disabled="demoLoading"
+                class="border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:border-green-500 hover:text-green-700 transition disabled:opacity-50 inline-flex items-center justify-center space-x-2"
+              >
+                <span>{{ demoLoading ? 'Wird geladen…' : 'Demo ausprobieren' }}</span>
+              </button>
+            </div>
           </div>
         </div>
 
