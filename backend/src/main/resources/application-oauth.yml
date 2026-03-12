@@ -32,4 +32,4 @@ spring:
 
 app:
   oauth2:
-    authorized-redirect-uris: ${APP_BASE_URL:http://localhost:5173}/oauth2/redirect
+    authorized-redirect-uris: ${APP_BASE_URL:http://localhost:5173}/auth/callback

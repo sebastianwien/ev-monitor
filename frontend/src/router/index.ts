@@ -137,7 +137,7 @@ const router = createRouter({
             // no auth guard - accessible to everyone
         },
         {
-            path: '/oauth2/redirect',
+            path: '/auth/callback',
             name: 'oauth2-redirect',
             component: OAuth2RedirectHandler
         },
