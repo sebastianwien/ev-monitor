@@ -139,7 +139,10 @@ public class SpritMonitorImportService {
                 }
             }
         } catch (Exception e) {
+            log.error("Failed to fetch fuelings: " + e.getMessage(), e);
             result.addError("Failed to fetch fuelings: " + e.getMessage());
+            // Return early to avoid coin check on aborted transaction
+            return result;
         }
 
         // Award one-time 50 Watt for first-ever Sprit-Monitor import
