@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { analytics } from '../services/analytics'
@@ -28,6 +28,9 @@ const loading = ref(true)
 const displayModels = ref(0)
 const displayUsers = ref(0)
 const displayTrips = ref(0)
+
+// Round trips to nearest 10 for cleaner display with "+"
+const displayTripsRounded = computed(() => Math.floor(displayTrips.value / 10) * 10)
 
 function animateCount(target: number, setter: (v: number) => void, duration = 1400) {
   const start = Date.now()
@@ -198,7 +201,7 @@ const formatDelta = (real: number | null, wltp: number): string => {
           </button>
         </div>
         <p class="mt-4 text-sm sm:text-base font-semibold text-gray-600 tabular-nums">
-          <span>{{ displayTrips }}+ Fahrten</span>
+          <span>{{ displayTripsRounded.toLocaleString('de-DE') }}+ Fahrten</span>
           <span class="mx-2">•</span>
           <span>{{ displayModels }} Modelle</span>
           <span class="mx-2">•</span>

@@ -175,6 +175,7 @@ public class PublicModelService {
                 avgCostPerKwh,
                 avgKwhPerSession,
                 avgConsumption,
+                communityResult.estimatedTripCount(),
                 wltpVariants,
                 seasonalDistribution
         ));

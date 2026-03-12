@@ -18,6 +18,7 @@ public record PublicModelStatsResponse(
         BigDecimal avgCostPerKwh,
         BigDecimal avgKwhPerSession,
         BigDecimal avgConsumptionKwhPer100km, // null if no odometer data
+        int estimatedConsumptionCount,         // count of trips where consumption is estimated (kWh/distance fallback)
 
         // WLTP official data (all known variants for this model)
         List<WltpVariant> wltpVariants,

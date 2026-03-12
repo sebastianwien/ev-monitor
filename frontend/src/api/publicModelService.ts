@@ -27,6 +27,7 @@ export interface PublicModelStats {
     avgCostPerKwh: number | null
     avgKwhPerSession: number | null
     avgConsumptionKwhPer100km: number | null
+    estimatedConsumptionCount: number
     wltpVariants: WltpVariant[]
     seasonalDistribution: SeasonalDistribution | null
 }

@@ -666,7 +666,7 @@ public class EvLogService {
         return totalWeighted.divide(BigDecimal.valueOf(totalKm), 2, RoundingMode.HALF_UP);
     }
 
-    private record PlausibleEntry(EvLog log, BigDecimal consumptionKwhPer100km, int distanceKm) {}
+    private record PlausibleEntry(EvLog log, BigDecimal consumptionKwhPer100km, int distanceKm, boolean estimated) {}
 
     /**
      * Returns all plausible consumption entries for a car: SoC-based first, fallback if no SoC data.
@@ -682,7 +682,7 @@ public class EvLogService {
         for (EvLog log : statsLogs) {
             ConsumptionResult cr = perLog.get(log.getId());
             if (cr == null || !cr.plausible()) continue;
-            entries.add(new PlausibleEntry(log, cr.value(), cr.distanceKm()));
+            entries.add(new PlausibleEntry(log, cr.value(), cr.distanceKm(), false));
         }
 
         // Pass 2: Fallback kWh/distance for logs without SoC result (hybrid approach)
@@ -699,7 +699,7 @@ public class EvLogService {
             double c = log.getKwhCharged().doubleValue() / dist * 100;
             if (c < plausibility.getAbsoluteMinKwhPer100km() || c > plausibility.getAbsoluteMaxKwhPer100km()) continue;
 
-            entries.add(new PlausibleEntry(log, BigDecimal.valueOf(c).setScale(2, RoundingMode.HALF_UP), dist));
+            entries.add(new PlausibleEntry(log, BigDecimal.valueOf(c).setScale(2, RoundingMode.HALF_UP), dist, true));
         }
         return entries;
     }
@@ -729,6 +729,7 @@ public class EvLogService {
         BigDecimal totalWeighted = BigDecimal.ZERO;
         int totalDistance = 0;
         int tripCount = 0;
+        int estimatedTripCount = 0;
 
         for (Car car : cars) {
             List<EvLog> allLogs = logsByCarId.getOrDefault(car.getId(), List.of());
@@ -741,11 +742,12 @@ public class EvLogService {
             for (PlausibleEntry e : entries) {
                 totalWeighted = totalWeighted.add(e.consumptionKwhPer100km().multiply(BigDecimal.valueOf(e.distanceKm())));
                 totalDistance += e.distanceKm();
+                if (e.estimated()) estimatedTripCount++;
             }
             tripCount += entries.size();
         }
 
-        return new CommunityConsumptionResult(weightedAverage(totalWeighted, totalDistance), tripCount);
+        return new CommunityConsumptionResult(weightedAverage(totalWeighted, totalDistance), tripCount, estimatedTripCount);
     }
 
     /**

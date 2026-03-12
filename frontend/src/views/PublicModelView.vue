@@ -71,6 +71,9 @@
                 {{ stats.avgConsumptionKwhPer100km ? stats.avgConsumptionKwhPer100km.toFixed(1) + ' kWh' : '–' }}
               </div>
               <div class="text-sm text-purple-600 mt-1">Ø Verbrauch / 100km</div>
+              <div v-if="stats.estimatedConsumptionCount > 0" class="text-xs text-purple-500 mt-2 italic">
+                {{ stats.estimatedConsumptionCount }} geschätzt (ohne SoC)
+              </div>
             </div>
             <div class="bg-yellow-50 rounded-xl p-4 text-center">
               <div class="text-2xl font-bold text-yellow-700">
