@@ -30,6 +30,11 @@ const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
     routes: [
         {
+            path: '/landing',
+            name: 'landing-preview',
+            component: LandingPageView,
+        },
+        {
             path: '/',
             name: 'landing',
             component: LandingPageView,

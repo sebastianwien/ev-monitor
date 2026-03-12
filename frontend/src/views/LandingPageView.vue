@@ -23,6 +23,7 @@ interface ModelPreview {
 }
 
 const topModels = ref<ModelPreview[]>([])
+const nextModels = ref<ModelPreview[]>([])
 const loading = ref(true)
 const displayModels = ref(0)
 const displayUsers = ref(0)
@@ -54,16 +55,19 @@ onMounted(async () => {
   try {
     const allModels = await getAllModelsWithWltpData()
 
-    // Fetch stats for first 3 models
+    // Fetch stats for first 10 models, then sort by logCount and take top 4
     const previews = await Promise.all(
-      allModels.slice(0, 3).map(async (modelPath) => {
+      allModels.slice(0, 12).map(async (modelPath) => {
         const [brand, model] = modelPath.split('/')
         const stats = await getModelStats(brand, model)
         return stats ? { brand, model, stats } : null
       })
     )
 
-    topModels.value = previews.filter(p => p !== null) as ModelPreview[]
+    const sorted = (previews.filter(p => p !== null) as ModelPreview[])
+      .sort((a, b) => (b.stats.logCount ?? 0) - (a.stats.logCount ?? 0))
+    topModels.value = sorted.slice(0, 4)
+    nextModels.value = sorted.slice(4, 8)
   } catch (error) {
     console.error('Failed to load model previews:', error)
   } finally {
@@ -141,7 +145,7 @@ const formatDelta = (real: number | null, wltp: number): string => {
               </router-link>
               <router-link
                 to="/register"
-                class="bg-green-600 text-white px-3 sm:px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition whitespace-nowrap"
+                class="hidden sm:inline-flex bg-green-600 text-white px-3 sm:px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition whitespace-nowrap"
               >
                 Registrieren
               </router-link>
@@ -155,12 +159,11 @@ const formatDelta = (real: number | null, wltp: number): string => {
     <section class="pt-12 pb-6 sm:pt-16 sm:pb-8">
       <div class="max-w-4xl mx-auto text-center px-6 sm:px-8 lg:px-12">
         <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6">
-          WLTP vs. Realität:<br />
-          Was dein E-Auto wirklich kann.
+          Wie weit kommst du wirklich —<br />
+          im Winter?
         </h1>
         <p class="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-          Echte Reichweiten, echte Verbräuche, echte Ladekosten – von echten Fahrern.
-          Vergleiche Herstellerangaben mit Community-Daten.
+          Kein Marketing, keine WLTP-Traumwerte. Für Käufer die wissen wollen worauf sie sich einlassen. <br/> Für Besitzer die ihren echten Verbrauch und ihre Ladekosten im Blick behalten wollen.
         </p>
         <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4">
           <button
@@ -203,66 +206,52 @@ const formatDelta = (real: number | null, wltp: number): string => {
     </section>
 
     <!-- Feature Highlights -->
-    <section class="pt-8 pb-12 sm:pt-12 sm:pb-16 bg-gray-50">
+    <section class="pt-6 pb-8 sm:pt-12 sm:pb-16 bg-gray-50">
       <div class="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
           <!-- Feature 1: Open Source -->
-          <div class="bg-white border border-green-200 rounded-xl p-6 hover:border-green-500 transition">
-            <svg class="h-10 w-10 text-green-600 mb-3" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <div class="bg-white border border-green-200 rounded-xl p-3 sm:p-6 hover:border-green-500 transition">
+            <svg class="h-6 w-6 sm:h-10 sm:w-10 text-green-600 mb-2 sm:mb-3" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" />
             </svg>
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">100% Open Source</h3>
-            <p class="text-sm text-gray-600 mb-3">
-              Vollständig transparent auf GitHub. Keine Vendor Lock-ins.
-            </p>
-            <a
-              href="https://github.com/sebastianwien/ev-monitor"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="inline-flex items-center gap-1 text-green-600 hover:text-green-700 text-xs font-medium"
-            >
-              <span>View Source →</span>
+            <h3 class="text-sm sm:text-lg font-semibold text-gray-900 mb-1 sm:mb-2">100% Open Source</h3>
+            <p class="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">Vollständig transparent auf GitHub. Keine Vendor Lock-ins.</p>
+            <a href="https://github.com/sebastianwien/ev-monitor" target="_blank" rel="noopener noreferrer"
+              class="inline-flex items-center gap-1 text-green-600 hover:text-green-700 text-xs font-medium">
+              View Source →
             </a>
           </div>
 
           <!-- Feature 2: Auto-Import -->
-          <div class="bg-white border border-gray-200 rounded-xl p-6 hover:border-green-500 transition">
-            <ArrowDownTrayIcon class="h-10 w-10 text-gray-400 mb-3" />
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">Auto-Import</h3>
-            <p class="text-sm text-gray-600 mb-2">
-              Tesla Fleet API, Sprit-Monitor, go-eCharger & OCPP Wallboxen – deine Daten fließen automatisch.
-            </p>
-            <div class="flex gap-1.5">
-              <span class="text-xs bg-blue-100 text-blue-800 font-medium px-2 py-0.5 rounded-full">go-e BETA</span>
-              <span class="text-xs bg-blue-100 text-blue-800 font-medium px-2 py-0.5 rounded-full">OCPP BETA</span>
+          <div class="bg-white border border-gray-200 rounded-xl p-3 sm:p-6 hover:border-green-500 transition">
+            <ArrowDownTrayIcon class="h-6 w-6 sm:h-10 sm:w-10 text-gray-400 mb-2 sm:mb-3" />
+            <h3 class="text-sm sm:text-lg font-semibold text-gray-900 mb-1 sm:mb-2">Auto-Import</h3>
+            <p class="text-xs sm:text-sm text-gray-600 mb-2">Tesla, Sprit-Monitor, go-eCharger & OCPP Wallboxen.</p>
+            <div class="flex flex-wrap gap-1">
+              <span class="text-xs bg-blue-100 text-blue-800 font-medium px-1.5 py-0.5 rounded-full">go-e BETA</span>
+              <span class="text-xs bg-blue-100 text-blue-800 font-medium px-1.5 py-0.5 rounded-full">OCPP BETA</span>
             </div>
           </div>
 
           <!-- Feature 3: Privacy First -->
-          <div class="bg-white border border-gray-200 rounded-xl p-6 hover:border-green-500 transition">
-            <LockClosedIcon class="h-10 w-10 text-gray-400 mb-3" />
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">Privacy First</h3>
-            <p class="text-sm text-gray-600">
-              Wir anonymisieren deine Daten. Geohashing statt Tracking.
-              Deine Daten gehören dir.
-            </p>
+          <div class="bg-white border border-gray-200 rounded-xl p-3 sm:p-6 hover:border-green-500 transition">
+            <LockClosedIcon class="h-6 w-6 sm:h-10 sm:w-10 text-gray-400 mb-2 sm:mb-3" />
+            <h3 class="text-sm sm:text-lg font-semibold text-gray-900 mb-1 sm:mb-2">Privacy First</h3>
+            <p class="text-xs sm:text-sm text-gray-600">Geohashing statt Tracking. Deine Daten gehören dir.</p>
           </div>
 
           <!-- Feature 4: Community -->
-          <div class="bg-white border border-gray-200 rounded-xl p-6 hover:border-green-500 transition">
-            <UsersIcon class="h-10 w-10 text-gray-400 mb-3" />
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">Community-Daten</h3>
-            <p class="text-sm text-gray-600">
-              Vergleiche WLTP mit echten Fahrer-Daten.
-              Trage bei, verdiene Coins.
-            </p>
+          <div class="bg-white border border-gray-200 rounded-xl p-3 sm:p-6 hover:border-green-500 transition">
+            <UsersIcon class="h-6 w-6 sm:h-10 sm:w-10 text-gray-400 mb-2 sm:mb-3" />
+            <h3 class="text-sm sm:text-lg font-semibold text-gray-900 mb-1 sm:mb-2">Community-Daten</h3>
+            <p class="text-xs sm:text-sm text-gray-600">WLTP vs. Realität von echten Fahrern. Beitragen, Coins verdienen.</p>
           </div>
         </div>
       </div>
     </section>
 
     <!-- Model Preview Section -->
-    <section class="py-16 px-4 sm:px-6 lg:px-8">
+    <section class="py-8 sm:py-16 px-4 sm:px-6 lg:px-8">
       <div class="max-w-7xl mx-auto">
         <div class="text-center mb-12">
           <h2 class="text-3xl font-semibold text-gray-900 mb-4">
@@ -282,32 +271,41 @@ const formatDelta = (real: number | null, wltp: number): string => {
           <div
             v-for="preview in topModels"
             :key="`${preview.brand}-${preview.model}`"
-            class="bg-white border border-gray-200 rounded-xl p-6 hover:border-green-500 transition cursor-pointer"
+            class="bg-white border border-gray-200 rounded-xl p-4 hover:border-green-500 transition cursor-pointer"
             @click="goToModelDetail(preview.brand, preview.model)"
           >
-            <h3 class="text-2xl font-semibold text-gray-900 mb-4">
-              {{ preview.stats.modelDisplayName }}
-            </h3>
+            <div class="flex items-start justify-between gap-2 mb-2">
+              <h3 class="text-lg font-semibold text-gray-900">{{ preview.stats.modelDisplayName }}</h3>
+              <span class="text-xs text-gray-400 whitespace-nowrap mt-1">{{ preview.stats.logCount }} Fahrten</span>
+            </div>
 
-            <div class="flex flex-wrap gap-6 text-sm text-gray-600 mb-3">
-              <span>{{ preview.stats.avgKwhPerSession?.toFixed(1) || '—' }} kWh</span>
-              <span>•</span>
+            <div class="flex items-center gap-3 text-sm text-gray-600 mb-2">
+              <span>Ø {{ preview.stats.avgKwhPerSession?.toFixed(1) || '—' }} kWh</span>
+              <span class="text-gray-300">|</span>
               <span>{{ preview.stats.avgCostPerKwh?.toFixed(2) || '—' }}€/kWh</span>
-              <span>•</span>
-              <span>{{ preview.stats.logCount }} Fahrten</span>
             </div>
 
-            <div v-if="preview.stats.avgConsumptionKwhPer100km && preview.stats.wltpVariants.length > 0" class="text-sm text-gray-700">
-              Real: {{ preview.stats.avgConsumptionKwhPer100km.toFixed(1) }} kWh/100km
-              <span class="text-gray-500">
-                ({{ formatDelta(preview.stats.avgConsumptionKwhPer100km, preview.stats.wltpVariants[0].wltpConsumptionKwhPer100km) }} vs WLTP)
-              </span>
+            <div v-if="preview.stats.avgConsumptionKwhPer100km && preview.stats.wltpVariants.length > 0" class="text-sm text-gray-700 mb-3">
+              Real: <span class="font-medium">{{ preview.stats.avgConsumptionKwhPer100km.toFixed(1) }} kWh/100km</span>
+              <span class="text-gray-400 ml-1">({{ formatDelta(preview.stats.avgConsumptionKwhPer100km, preview.stats.wltpVariants[0].wltpConsumptionKwhPer100km) }} vs WLTP)</span>
             </div>
 
-            <div class="mt-4 text-green-600 font-medium inline-flex items-center space-x-1">
+            <div class="text-green-600 font-medium inline-flex items-center gap-1 text-sm">
               <span>Details ansehen</span>
               <ArrowRightIcon class="h-4 w-4" />
             </div>
+          </div>
+
+          <!-- Next 4 models teaser -->
+          <div v-if="nextModels.length > 0" class="flex flex-wrap gap-2">
+            <router-link
+              v-for="m in nextModels"
+              :key="`${m.brand}-${m.model}`"
+              :to="`/modelle/${m.brand}/${m.model.replace(/ /g, '_')}`"
+              class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-medium rounded-full transition"
+            >
+              {{ m.stats.modelDisplayName }}
+            </router-link>
           </div>
 
           <!-- View All Button -->
@@ -336,7 +334,7 @@ const formatDelta = (real: number | null, wltp: number): string => {
     </section>
 
     <!-- Gamification Teaser -->
-    <section class="py-16 px-4 sm:px-6 lg:px-8 bg-gray-50">
+    <section class="py-8 sm:py-16 px-4 sm:px-6 lg:px-8 bg-gray-50">
       <div class="max-w-3xl mx-auto text-center">
         <h2 class="text-2xl font-semibold text-gray-900 mb-6">
           Belohnungen für Community-Beiträge
@@ -353,7 +351,7 @@ const formatDelta = (real: number | null, wltp: number): string => {
     </section>
 
     <!-- Import Hub Teaser -->
-    <section class="py-16 px-4 sm:px-6 lg:px-8 border-t border-gray-100">
+    <section class="py-8 sm:py-16 px-4 sm:px-6 lg:px-8 border-t border-gray-100">
       <div class="max-w-4xl mx-auto">
         <div class="text-center mb-10">
           <div class="inline-flex items-center gap-2 mb-3">
@@ -428,7 +426,7 @@ const formatDelta = (real: number | null, wltp: number): string => {
     </section>
 
     <!-- Final CTA -->
-    <section class="py-20 px-4 sm:px-6 lg:px-8">
+    <section class="py-10 sm:py-20 px-4 sm:px-6 lg:px-8">
       <div class="max-w-3xl mx-auto text-center">
         <h2 class="text-4xl font-bold text-gray-900 mb-4">
           Bereit für transparente Ladekosten?
