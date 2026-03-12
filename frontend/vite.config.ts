@@ -52,7 +52,7 @@ export default defineConfig({
             registerType: 'autoUpdate',
             includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
             workbox: {
-                navigateFallbackDenylist: [/^\/sitemap\.xml$/, /^\/robots\.txt$/],
+                navigateFallbackDenylist: [/^\/sitemap\.xml$/, /^\/robots\.txt$/, /^\/oauth2\//, /^\/login\/oauth2\//],
             },
             manifest: {
                 name: 'EV Monitor',
