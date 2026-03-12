@@ -15,6 +15,7 @@ public record EvLogStatisticsResponse(
         Integer totalCharges,
         BigDecimal totalDistanceKm,            // null if no odometer data
         BigDecimal avgConsumptionKwhPer100km,  // null if no odometer data
+        Integer estimatedConsumptionCount,     // count of logs where consumption is estimated (kWh/distance fallback)
 
         // Seasonal consumption (null if insufficient data for that season)
         BigDecimal summerConsumptionKwhPer100km,

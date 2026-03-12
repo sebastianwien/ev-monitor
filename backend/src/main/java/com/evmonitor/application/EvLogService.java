@@ -361,11 +361,13 @@ public class EvLogService {
         BigDecimal totalWeighted = BigDecimal.ZERO;
         int totalDist = 0;        // only plausible, for avg consumption calculation
         int totalDistAll = 0;     // all logs with distance, for display
+        int estimatedCount = 0;   // count logs with estimated consumption (kWh/distance fallback)
         for (EvLog log : logs) {
             ConsumptionResult cr = consumptionByLog.get(log.getId());
             if (cr == null) continue;
             if (cr.distanceKm() > 0) totalDistAll += cr.distanceKm();
             if (!cr.plausible()) continue;
+            if (cr.estimated()) estimatedCount++;
             totalWeighted = totalWeighted.add(cr.value().multiply(BigDecimal.valueOf(cr.distanceKm())));
             totalDist += cr.distanceKm();
         }
@@ -382,6 +384,7 @@ public class EvLogService {
                 int totalDistInt = logsWithDistance.stream().mapToInt(l -> distanceByLogId.get(l.getId())).sum();
                 totalDistanceKm = BigDecimal.valueOf(totalDistInt);
                 avgConsumptionKwhPer100km = calculateConsumptionFallback(logsWithDistance, totalDistanceKm);
+                estimatedCount = logsWithDistance.size(); // all are estimated in pure fallback mode
             }
         }
 
@@ -398,6 +401,7 @@ public class EvLogService {
                 logs.size(),
                 totalDistanceKm,
                 avgConsumptionKwhPer100km,
+                estimatedCount,
                 seasonal.summerConsumptionKwhPer100km(),
                 seasonal.winterConsumptionKwhPer100km(),
                 chargesOverTime
@@ -408,7 +412,7 @@ public class EvLogService {
         return new EvLogStatisticsResponse(
                 BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
                 BigDecimal.ZERO, BigDecimal.ZERO, 0, 0,
-                null, null, null, null, List.of()
+                null, null, 0, null, null, List.of()
         );
     }
 
@@ -673,23 +677,29 @@ public class EvLogService {
                 allLogs, car.getBatteryCapacityKwh(), lookupWltp(car));
 
         List<PlausibleEntry> entries = new ArrayList<>();
-        boolean hasSocResult = false;
+
+        // Pass 1: SoC-based consumption (plausible only)
         for (EvLog log : statsLogs) {
             ConsumptionResult cr = perLog.get(log.getId());
             if (cr == null || !cr.plausible()) continue;
-            hasSocResult = true;
             entries.add(new PlausibleEntry(log, cr.value(), cr.distanceKm()));
         }
-        if (hasSocResult) return entries;
 
-        // Fallback: simple kWh/distance when no SoC data available
+        // Pass 2: Fallback kWh/distance for logs without SoC result (hybrid approach)
+        // This allows using old Sprit-Monitor imports without SoC data alongside newer logs with SoC.
+        // Marked as estimated (less accurate, but better than nothing).
         Map<UUID, Integer> distanceByLogId = computeDistanceByLogId(allLogs);
         for (EvLog log : statsLogs) {
+            // Skip if already computed via SoC (plausible)
+            if (perLog.containsKey(log.getId()) && perLog.get(log.getId()).plausible()) continue;
+
             Integer dist = distanceByLogId.get(log.getId());
-            if (dist == null || dist <= 0) continue;
+            if (dist == null || dist < plausibility.getMinTripDistanceKm()) continue;
+
             double c = log.getKwhCharged().doubleValue() / dist * 100;
             if (c < plausibility.getAbsoluteMinKwhPer100km() || c > plausibility.getAbsoluteMaxKwhPer100km()) continue;
-            entries.add(new PlausibleEntry(log, BigDecimal.valueOf(c), dist));
+
+            entries.add(new PlausibleEntry(log, BigDecimal.valueOf(c).setScale(2, RoundingMode.HALF_UP), dist));
         }
         return entries;
     }

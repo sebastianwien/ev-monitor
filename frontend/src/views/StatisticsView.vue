@@ -64,6 +64,7 @@ interface StatisticsData {
   totalCharges: number
   totalDistanceKm: number | null
   avgConsumptionKwhPer100km: number | null
+  estimatedConsumptionCount: number
   summerConsumptionKwhPer100km: number | null
   winterConsumptionKwhPer100km: number | null
   chargesOverTime: ChargeDataPoint[]
@@ -821,6 +822,9 @@ const deleteLog = async (id: string) => {
               <span v-if="wltp" class="font-medium">
                 (WLTP: {{ wltp.wltpConsumptionKwhPer100km.toFixed(1) }})
               </span>
+            </p>
+            <p v-if="stats.estimatedConsumptionCount > 0" class="text-xs text-red-500 mt-2 italic">
+              {{ stats.estimatedConsumptionCount }} Ladung{{ stats.estimatedConsumptionCount > 1 ? 'en' : '' }} geschätzt (ohne SoC)
             </p>
           </div>
         </div>

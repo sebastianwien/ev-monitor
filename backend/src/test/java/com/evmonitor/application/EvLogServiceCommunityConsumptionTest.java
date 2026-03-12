@@ -94,6 +94,31 @@ class EvLogServiceCommunityConsumptionTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void communityAvg_hybridPath_combinesSocAndFallback() {
+        // Hybrid scenario: Car has BOTH SoC-based logs (newer) AND logs without SoC (older, fallback)
+        // This simulates Sprit-Monitor imports before/after SoC field was added (Nov 2023)
+        Car car = carWithBattery(new BigDecimal("75.0"));
+
+        // Older logs WITHOUT SoC (before Nov 2023): 10000-10100km = 100km, 20 kWh → 20 kWh/100km (fallback)
+        saveLogNoSoc(car.getId(), 10000, new BigDecimal("20.0"), LocalDateTime.now().minusDays(10));
+        saveLogNoSoc(car.getId(), 10100, new BigDecimal("20.0"), LocalDateTime.now().minusDays(9));
+
+        // Newer logs WITH SoC (after Nov 2023): 10100-10400km = 300km → 16.25 kWh/100km (SoC-based)
+        // socBefore(logY) = 85 - (52.5/75*100) = 15%
+        // energyConsumed  = (80 - 15) * 75/100 = 48.75 kWh
+        // consumption     = 48.75/300*100 = 16.25 kWh/100km
+        saveLog(car.getId(), 10100, new BigDecimal("45.0"), 80, LocalDateTime.now().minusDays(2));
+        saveLog(car.getId(), 10400, new BigDecimal("52.5"), 85, LocalDateTime.now().minusDays(1));
+
+        CommunityConsumptionResult result = evLogService.calculateCommunityAvgConsumption(List.of(car), false);
+
+        // Distance-weighted average: (20*100 + 16.25*300) / 400 = (2000 + 4875) / 400 = 6875 / 400 = 17.19
+        assertNotNull(result.value());
+        assertEquals(new BigDecimal("17.19"), result.value());
+        assertEquals(2, result.tripCount(), "Both SoC-based and fallback trips should be counted");
+    }
+
+    @Test
     void communityAvg_emptyCarList_returnsEmpty() {
         CommunityConsumptionResult result = evLogService.calculateCommunityAvgConsumption(List.of(), false);
         assertNull(result.value());
