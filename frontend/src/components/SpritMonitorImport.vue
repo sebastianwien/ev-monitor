@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue';
 import { spritMonitorService, SpritMonitorVehicle, ImportResult } from '../api/spritMonitorService';
 import { carService, Car, BrandInfo, ModelInfo } from '../api/carService';
 import { useCoinStore } from '../stores/coins';
+import { TrashIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline';
 
 const emit = defineEmits<{
   (e: 'close'): void;
@@ -34,6 +35,9 @@ const currentVehicle = ref(0);
 const totalVehicles = ref(0);
 const error = ref('');
 const loading = ref(false);
+const showDeleteConfirm = ref(false);
+const deleteLoading = ref(false);
+const deleteError = ref('');
 
 onMounted(async () => {
   try {
@@ -163,6 +167,21 @@ const startImport = async () => {
   if (totalCoinsAwarded.value > 0) coinStore.refresh();
 };
 
+const deleteAllImports = async () => {
+  deleteError.value = '';
+  deleteLoading.value = true;
+  try {
+    await spritMonitorService.deleteAllImports();
+    showDeleteConfirm.value = false;
+    // Reload page or emit event to parent
+    window.location.reload();
+  } catch (e: any) {
+    deleteError.value = e.response?.data?.error || 'Löschen fehlgeschlagen. Bitte versuche es erneut.';
+  } finally {
+    deleteLoading.value = false;
+  }
+};
+
 const close = () => {
   emit('close');
 };
@@ -212,6 +231,23 @@ const close = () => {
             </svg>
             {{ loading ? 'Wird geladen…' : 'Fahrzeuge laden' }}
           </button>
+
+          <!-- Danger Zone: Delete Imports -->
+          <div class="mt-8 pt-6 border-t border-gray-200">
+            <div class="flex items-center gap-2 mb-2">
+              <TrashIcon class="w-5 h-5 text-red-600" />
+              <h3 class="text-lg font-semibold text-red-600">Bisherige Importe löschen</h3>
+            </div>
+            <p class="text-sm text-gray-600 mb-3">
+              Wenn du alle bisherigen Sprit-Monitor Importe löschen möchtest, klicke hier.
+              <strong>Manuell eingetragene Ladevorgänge werden NICHT gelöscht.</strong>
+            </p>
+            <button
+              @click="showDeleteConfirm = true"
+              class="px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition">
+              Alle Sprit-Monitor Importe löschen
+            </button>
+          </div>
         </div>
 
         <!-- Step 2: Vehicle Mapping -->
@@ -328,6 +364,53 @@ const close = () => {
             @click="close"
             class="w-full px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition">
             Fertig
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div
+      v-if="showDeleteConfirm"
+      class="fixed inset-0 flex items-center justify-center z-[60] p-4"
+      style="backdrop-filter: blur(12px); background-color: rgba(0, 0, 0, 0.5);"
+      @click.self="showDeleteConfirm = false">
+      <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6" @click.stop>
+        <div class="flex items-center gap-2 mb-4">
+          <ExclamationTriangleIcon class="w-8 h-8 text-red-600" />
+          <h3 class="text-2xl font-bold text-red-600">Alle Importe löschen?</h3>
+        </div>
+        <p class="text-gray-700 mb-4">
+          Du bist dabei, <strong>ALLE bisherigen Sprit-Monitor Importe</strong> zu löschen.
+          Dieser Vorgang kann <strong>nicht rückgängig gemacht werden</strong>.
+        </p>
+
+        <!-- Error Message -->
+        <div v-if="deleteError" class="mb-4 p-3 bg-red-100 text-red-800 rounded-lg border border-red-300 text-sm">
+          <ExclamationTriangleIcon class="w-4 h-4 inline-block mr-1" />
+          {{ deleteError }}
+        </div>
+
+        <p class="text-sm text-gray-700 mb-4">
+          Ich habe verstanden, dass all meine bisher importierten Sprit-Monitor Ladevorgänge gelöscht werden.
+        </p>
+
+        <div class="flex gap-3">
+          <button
+            @click="showDeleteConfirm = false"
+            :disabled="deleteLoading"
+            class="flex-1 px-4 py-3 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 transition disabled:opacity-50">
+            Abbrechen
+          </button>
+          <button
+            @click="deleteAllImports"
+            :disabled="deleteLoading"
+            class="flex-1 px-4 py-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition disabled:opacity-50 flex items-center justify-center gap-2">
+            <svg v-if="deleteLoading" class="animate-spin h-5 w-5 text-white flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            {{ deleteLoading ? 'Wird gelöscht…' : 'Ja, alle löschen' }}
           </button>
         </div>
       </div>

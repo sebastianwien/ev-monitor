@@ -154,6 +154,18 @@ public class SpritMonitorImportService {
     }
 
     /**
+     * Deletes all Sprit-Monitor imports for the authenticated user.
+     * Only deletes entries with data_source = SPRITMONITOR_IMPORT.
+     * Does NOT delete USER_LOGGED entries or other import sources.
+     *
+     * @param userId EV Monitor user ID (ownership enforced by repository query)
+     */
+    @Transactional
+    public void deleteAllImports(UUID userId) {
+        evLogRepository.deleteAllByUserIdAndDataSource(userId, DATA_SOURCE);
+    }
+
+    /**
      * Converts Sprit-Monitor fueling to EV Monitor EvLog
      */
     private EvLog convertToEvLog(SpritMonitorFuelingDTO fueling, UUID carId, LocalDateTime loggedAt) {

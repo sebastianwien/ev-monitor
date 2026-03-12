@@ -102,6 +102,23 @@ public class SpritMonitorImportController {
         }
     }
 
+    /**
+     * Deletes all Sprit-Monitor imports for the authenticated user
+     *
+     * DELETE /api/import/sprit-monitor/delete-all
+     * Response: 200 OK (no body)
+     */
+    @DeleteMapping("/delete-all")
+    public ResponseEntity<Void> deleteAllImports(@AuthenticationPrincipal UserPrincipal principal) {
+        try {
+            importService.deleteAllImports(principal.getUser().getId());
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            log.error("Failed to delete Sprit-Monitor imports for user {}", principal.getUser().getId(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
     private record ImportRequest(
         String token,
         Integer vehicleId,

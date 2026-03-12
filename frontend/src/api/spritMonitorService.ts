@@ -47,4 +47,13 @@ export const spritMonitorService = {
     });
     return response.data;
   },
+
+  /**
+   * Deletes all Sprit-Monitor imports for the authenticated user.
+   * Only deletes entries with data_source = SPRITMONITOR_IMPORT.
+   * Does NOT delete USER_LOGGED entries or other import sources.
+   */
+  async deleteAllImports(): Promise<void> {
+    await axiosInstance.delete('/import/sprit-monitor/delete-all');
+  },
 };

@@ -1,6 +1,7 @@
 package com.evmonitor.infrastructure.persistence;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -35,6 +36,10 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
 
     @Query("SELECT e FROM EvLogEntity e WHERE e.geohash IS NOT NULL AND e.temperatureCelsius IS NULL")
     List<EvLogEntity> findAllWithGeohashAndNoTemperature();
+
+    @Modifying
+    @Query("DELETE FROM EvLogEntity e WHERE e.carId IN (SELECT c.id FROM CarEntity c WHERE c.userId = :userId) AND e.dataSource = :dataSource")
+    void deleteAllByUserIdAndDataSource(@Param("userId") UUID userId, @Param("dataSource") String dataSource);
 
     /**
      * Aggregated basic stats for a car model.
