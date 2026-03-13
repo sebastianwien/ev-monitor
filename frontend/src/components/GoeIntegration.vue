@@ -99,7 +99,8 @@ async function handleDisconnect(id: string) {
   } catch { error.value = 'Trennen fehlgeschlagen' }
 }
 
-function enumToLabel(value: string): string {
+function enumToLabel(value: string | null | undefined): string {
+  if (!value) return ''
   return value.replace(/_/g, ' ').toLowerCase()
     .split(' ')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))

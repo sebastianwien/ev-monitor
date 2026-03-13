@@ -40,7 +40,8 @@ const fetchCars = async () => {
   }
 }
 
-const enumToLabel = (value: string): string => {
+const enumToLabel = (value: string | null | undefined): string => {
+  if (!value) return ''
   return value.replace(/_/g, ' ').toLowerCase()
     .split(' ')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
