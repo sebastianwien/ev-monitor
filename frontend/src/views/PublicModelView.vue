@@ -445,10 +445,12 @@ const currentYear = new Date().getFullYear()
 
 // Dynamic SEO meta tags
 useHead(computed(() => {
-  if (!stats.value) {
+  if (!stats.value || notFound.value) {
     return {
       title: 'Fahrzeugmodell – EV Monitor',
-      meta: [{ name: 'robots', content: 'noindex' }]
+      meta: [
+        { name: 'robots', content: 'noindex, nofollow' }
+      ]
     }
   }
   const name = stats.value.modelDisplayName
@@ -510,6 +512,30 @@ useHead(computed(() => {
     })
   }
 
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'EV Monitor',
+        item: 'https://ev-monitor.net'
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: 'Modelle',
+        item: 'https://ev-monitor.net/modelle'
+      },
+      {
+        '@type': 'ListItem',
+        position: 3,
+        name: name
+      }
+    ]
+  }
+
   return {
     title: `${name} Verbrauch & Reichweite (${currentYear}) – EV Monitor`,
     meta: [
@@ -526,6 +552,7 @@ useHead(computed(() => {
       { rel: 'canonical', href: `https://ev-monitor.net/modelle/${brand}/${model}` }
     ],
     script: [
+      { type: 'application/ld+json', children: JSON.stringify(breadcrumbJsonLd) },
       { type: 'application/ld+json', children: JSON.stringify(productJsonLd) },
       ...(faqItems.value.length > 0
         ? [{ type: 'application/ld+json', children: JSON.stringify(faqJsonLd) }]
