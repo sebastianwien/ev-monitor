@@ -146,15 +146,6 @@ const searchLocation = async (query: string) => {
   }
 }
 
-// Select a location from suggestions
-const selectLocation = (suggestion: any) => {
-  latitude.value = parseFloat(suggestion.lat)
-  longitude.value = parseFloat(suggestion.lon)
-  locationSearchQuery.value = suggestion.display_name
-  locationStatus.value = 'manual'
-  showLocationSuggestions.value = false
-}
-
 // Clear location
 const clearLocation = () => {
   latitude.value = null
