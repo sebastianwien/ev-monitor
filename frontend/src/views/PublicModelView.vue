@@ -77,9 +77,14 @@
             </div>
             <div class="bg-yellow-50 rounded-xl p-4 text-center">
               <div class="text-2xl font-bold text-yellow-700">
-                {{ stats.avgCostPerKwh ? (stats.avgCostPerKwh * 100).toFixed(1) + ' ct' : '–' }}
+                {{ stats.avgCostPerKwh && stats.avgConsumptionKwhPer100km
+                  ? (stats.avgCostPerKwh * stats.avgConsumptionKwhPer100km).toFixed(2) + ' €'
+                  : stats.avgCostPerKwh ? (stats.avgCostPerKwh * 100).toFixed(1) + ' ct' : '–' }}
               </div>
-              <div class="text-sm text-yellow-600 mt-1">Ø Preis / kWh</div>
+              <div class="text-sm text-yellow-600 mt-1">Ø Kosten / 100km</div>
+              <div v-if="stats.avgCostPerKwh" class="text-xs text-yellow-500 mt-1">
+                {{ (stats.avgCostPerKwh * 100).toFixed(1) }} ct/kWh
+              </div>
             </div>
           </div>
 
@@ -239,18 +244,18 @@
                 <template v-if="consumptionDataQuality === 'good'">
                   Laut realen Messdaten von EV Monitor Nutzern liegt der Durchschnittsverbrauch
                   bei <strong>{{ stats.avgConsumptionKwhPer100km.toFixed(1) }} kWh/100km</strong> –
-                  ermittelt aus <strong>{{ consumptionDataCount }} Fahrten mit Verbrauchsmessung</strong>
-                  ({{ stats.logCount }} Ladevorgänge gesamt).
+                  ermittelt aus <strong>{{ stats.logCount }} Ladevorgängen</strong>
+                  ({{ Math.min(consumptionDataCount, stats.logCount) }} davon mit Verbrauchsmessung).
                 </template>
                 <template v-else-if="consumptionDataQuality === 'low'">
                   Laut bisherigen Nutzerdaten liegt der Verbrauch bei
                   <strong>{{ stats.avgConsumptionKwhPer100km.toFixed(1) }} kWh/100km</strong> –
-                  basierend auf <strong>{{ consumptionDataCount }} Fahrten mit Verbrauchsmessung</strong>.
+                  basierend auf <strong>{{ Math.min(consumptionDataCount, stats.logCount) }} Fahrten mit Verbrauchsmessung</strong>.
                   Der Wert wird repräsentativer, je mehr Fahrer ihre Daten beitragen.
                 </template>
                 <template v-else>
                   Erste Messwerte liegen vor: <strong>{{ stats.avgConsumptionKwhPer100km.toFixed(1) }} kWh/100km</strong>
-                  aus <strong>{{ consumptionDataCount }} Fahrten mit Verbrauchsdaten</strong> –
+                  aus <strong>{{ Math.min(consumptionDataCount, stats.logCount) }} Fahrten mit Verbrauchsdaten</strong> –
                   noch zu wenig für eine belastbare Aussage. Je mehr Fahrer beitragen, desto genauer wird der Wert.
                 </template>
               </template>
@@ -281,9 +286,7 @@
                 tatsächlichen Energieverbrauch des {{ stats.modelDisplayName }}.
                 <template v-if="stats.avgConsumptionKwhPer100km && worstWltpConsumption">
                   Im Community-Durchschnitt liegt der Realverbrauch
-                  <strong>{{ (stats.avgConsumptionKwhPer100km - worstWltpConsumption).toFixed(1) >= '0'
-                    ? '+' + (stats.avgConsumptionKwhPer100km - worstWltpConsumption).toFixed(1)
-                    : (stats.avgConsumptionKwhPer100km - worstWltpConsumption).toFixed(1) }} kWh/100km</strong>
+                  <strong>{{ wltpDeltaPercent }}</strong>
                   gegenüber dem WLTP-Wert.
                 </template>
               </p>
@@ -396,6 +399,13 @@ const model = route.params.model as string
 const bestWltpRange = computed(() => {
   if (!stats.value?.wltpVariants.length) return null
   return Math.max(...stats.value.wltpVariants.map(v => v.wltpRangeKm))
+})
+
+const wltpDeltaPercent = computed(() => {
+  if (!stats.value?.avgConsumptionKwhPer100km || !worstWltpConsumption.value) return null
+  const pct = ((stats.value.avgConsumptionKwhPer100km - worstWltpConsumption.value) / worstWltpConsumption.value) * 100
+  const sign = pct > 0 ? '+' : ''
+  return `${sign}${pct.toFixed(0)}%`
 })
 
 const worstWltpConsumption = computed(() => {
