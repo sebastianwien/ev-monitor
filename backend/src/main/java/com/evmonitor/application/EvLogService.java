@@ -127,6 +127,11 @@ public class EvLogService {
             return null;
         }
 
+        ChargingType chargingType = ChargingType.UNKNOWN;
+        if (request.chargingType() != null) {
+            try { chargingType = ChargingType.valueOf(request.chargingType()); } catch (IllegalArgumentException ignored) {}
+        }
+
         EvLog newLog = EvLog.createFromInternal(
                 request.carId(),
                 request.kwhCharged(),
@@ -136,7 +141,8 @@ public class EvLogService {
                 request.odometerSuggestionMinKm(),
                 request.odometerSuggestionMaxKm(),
                 source,
-                request.costEur());
+                request.costEur(),
+                chargingType);
 
         EvLog savedLog = evLogRepository.save(newLog);
 

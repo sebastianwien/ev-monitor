@@ -143,6 +143,7 @@ public class TeslaLoggerImportService {
         BigDecimal costEur = parseBigDecimal(get(row, "cost_eur"));
         Integer durationMin = parseInteger(get(row, "duration_min"));
         String geohash = parseLocation(get(row, "location"));
+        ChargingType chargingType = parseChargingType(get(row, "charging_type"));
 
         // Duplicate check: any log within ±1h for the same car
         if (evLogRepository.existsByCarIdAndLoggedAtBetween(carId, loggedAt.minusHours(1), loggedAt.plusHours(1))) {
@@ -153,7 +154,7 @@ public class TeslaLoggerImportService {
 
         EvLog savedLog = evLogRepository.save(EvLog.createNewWithSource(
                 carId, kwh, costEur, durationMin, geohash, odometerRaw.intValue(),
-                null, socForLog, loggedAt, DATA_SOURCE, com.evmonitor.domain.ChargingType.UNKNOWN, null
+                null, socForLog, loggedAt, DATA_SOURCE, chargingType, null
         ));
         result.incrementImported();
 
@@ -284,5 +285,11 @@ public class TeslaLoggerImportService {
         if (raw == null) return null;
         try { return new BigDecimal(raw.trim()).intValue(); }
         catch (NumberFormatException e) { return null; }
+    }
+
+    ChargingType parseChargingType(String raw) {
+        if (raw == null) return ChargingType.UNKNOWN;
+        try { return ChargingType.valueOf(raw.trim().toUpperCase()); }
+        catch (IllegalArgumentException e) { return ChargingType.UNKNOWN; }
     }
 }

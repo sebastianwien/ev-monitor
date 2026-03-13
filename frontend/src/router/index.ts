@@ -11,6 +11,7 @@ import StatisticsView from '../views/StatisticsView.vue';
 import SettingsView from '../views/SettingsView.vue';
 import PublicModelsListView from '../views/PublicModelsListView.vue';
 import PublicModelView from '../views/PublicModelView.vue';
+import PublicModelsCompareView from '../views/PublicModelsCompareView.vue';
 import DatenschutzView from '../views/DatenschutzView.vue';
 import ImpressumView from '../views/ImpressumView.vue';
 import AGBView from '../views/AGBView.vue';
@@ -151,6 +152,12 @@ const router = createRouter({
             name: 'public-models-list',
             component: PublicModelsListView
             // no auth guard - public page for SEO
+        },
+        {
+            path: '/modelle/vergleich',
+            name: 'public-models-compare',
+            component: PublicModelsCompareView
+            // must be before :brand/:model to avoid "vergleich" matching as brand
         },
         {
             path: '/modelle/:brand/:model',

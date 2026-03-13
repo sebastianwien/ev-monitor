@@ -195,42 +195,30 @@ public class PublicModelService {
                 .distinct()
                 .toList();
 
-        // Filter to only include models that have real community logs
+        // Filter to only include models with real community logs, keep count for sorting
         // Demo Mode: If seed user, includes ALL seed data
+        record ModelWithCount(String modelName, long logCount) {}
+
         return modelsWithWltp.stream()
-                .filter(model -> {
-                    Object[] stats = evLogRepository.findPublicBasicStatsByModel(
-                            model, isSeedUser);
-                    if (stats == null || stats.length == 0) {
-                        return false;
-                    }
-
-                    // Unwrap nested array if needed
+                .map(model -> {
+                    Object[] stats = evLogRepository.findPublicBasicStatsByModel(model, isSeedUser);
+                    if (stats == null || stats.length == 0) return new ModelWithCount(model, 0);
                     Object firstElement = stats[0];
-                    if (firstElement instanceof Object[]) {
-                        stats = (Object[]) firstElement;
-                    }
-
-                    // Check if logCount > 0
-                    if (stats[0] != null) {
-                        long logCount = ((Number) stats[0]).longValue();
-                        return logCount > 0;
-                    }
-                    return false;
+                    if (firstElement instanceof Object[]) stats = (Object[]) firstElement;
+                    long count = stats[0] != null ? ((Number) stats[0]).longValue() : 0;
+                    return new ModelWithCount(model, count);
                 })
-                .map(modelName -> {
-                    // Get brand displayString and model displayName from CarModel enum
+                .filter(m -> m.logCount() > 0)
+                .sorted((a, b) -> Long.compare(b.logCount(), a.logCount()))
+                .map(m -> {
                     try {
-                        CarBrand.CarModel carModel = CarBrand.CarModel.valueOf(modelName);
-                        String brandDisplay = carModel.getBrand().getDisplayString();
-                        String modelDisplay = carModel.getDisplayName();
-                        return brandDisplay + "/" + modelDisplay;
+                        CarBrand.CarModel carModel = CarBrand.CarModel.valueOf(m.modelName());
+                        return carModel.getBrand().getDisplayString() + "/" + carModel.getDisplayName();
                     } catch (IllegalArgumentException e) {
-                        log.warn("Unknown CarModel enum: {}", modelName);
-                        return "Unknown/" + modelName;
+                        log.warn("Unknown CarModel enum: {}", m.modelName());
+                        return "Unknown/" + m.modelName();
                     }
                 })
-                .sorted()
                 .toList();
     }
 

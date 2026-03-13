@@ -141,9 +141,9 @@ const result = ref<TeslaLoggerImportResult | null>(null)
 const errorMsg = ref('')
 const fileInput = ref<HTMLInputElement>()
 
-const csvTemplate = `date,odometer_km,kwh,soc_before,soc_after,cost_eur,location,duration_min
-2025-08-20T10:56:48,12345,24.5,45,80,8.50,"48.2082,16.3738",35
-2025-09-01T14:22:00,13102,18.2,30,72,,IONITY Frankfurt,28`
+const csvTemplate = `date,odometer_km,kwh,soc_before,soc_after,cost_eur,location,duration_min,charging_type
+2025-08-20T10:56:48,12345,24.5,45,80,8.50,"48.2082,16.3738",35,DC
+2025-09-01T14:22:00,13102,18.2,30,72,,IONITY Frankfurt,28,AC`
 
 const jsonTemplate = `[
   {
@@ -154,7 +154,8 @@ const jsonTemplate = `[
     "soc_after": 80,
     "cost_eur": 8.50,
     "location": "48.2082,16.3738",
-    "duration_min": 35
+    "duration_min": 35,
+    "charging_type": "DC"
   }
 ]`
 

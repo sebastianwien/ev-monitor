@@ -147,6 +147,13 @@ const closeMobileMenu = () => {
                 title="Import">
                 <ArrowDownTrayIcon class="h-5 w-5" />
               </router-link>
+              <router-link
+                to="/modelle"
+                class="p-2 rounded-md hover:bg-indigo-500 transition"
+                :class="{ 'bg-indigo-700': $route.path.startsWith('/modelle') }"
+                title="Modelle vergleichen">
+                <ArrowsRightLeftIcon class="h-5 w-5" />
+              </router-link>
             </div>
 
             <!-- Full Nav (1024px+) -->
@@ -168,6 +175,13 @@ const closeMobileMenu = () => {
                 :class="{ 'bg-indigo-700': $route.path === '/imports' }">
                 <ArrowDownTrayIcon class="h-5 w-5" />
                 Import
+              </router-link>
+              <router-link
+                to="/modelle"
+                class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-500 transition"
+                :class="{ 'bg-indigo-700': $route.path.startsWith('/modelle') }">
+                <ArrowsRightLeftIcon class="h-5 w-5" />
+                Modelle
               </router-link>
             </div>
           </div>

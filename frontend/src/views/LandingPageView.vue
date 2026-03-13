@@ -168,7 +168,7 @@ const formatDelta = (real: number | null, wltp: number): string => {
           Und im Winter?
         </h1>
         <p class="text-lg text-gray-600 mb-8 max-w-3xl mx-auto">
-          Kein Marketing, keine WLTP-Traumwerte. Für Käufer die wissen wollen worauf sie sich einlassen. <br/> Für Besitzer die ihren echten Verbrauch und ihre Ladekosten im Blick behalten wollen.
+          Kein Marketing, keine WLTP-Traumwerte. <br/> Für Käufer die wissen wollen worauf sie sich einlassen. <br/> Für Besitzer die ihren echten Verbrauch und ihre Ladekosten im Blick behalten wollen.
         </p>
         <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4">
           <button

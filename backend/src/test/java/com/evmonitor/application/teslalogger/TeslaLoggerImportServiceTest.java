@@ -1,5 +1,6 @@
 package com.evmonitor.application.teslalogger;
 
+import com.evmonitor.domain.ChargingType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -111,5 +112,33 @@ class TeslaLoggerImportServiceTest {
         assertNull(service.parseLocation(null));
         assertNull(service.parseLocation(""));
         assertNull(service.parseLocation("  "));
+    }
+
+    // ── parseChargingType ─────────────────────────────────────────────────────
+
+    @Test
+    void parseChargingType_ac_returnsAC() {
+        assertEquals(ChargingType.AC, service.parseChargingType("AC"));
+    }
+
+    @Test
+    void parseChargingType_dc_returnsDC() {
+        assertEquals(ChargingType.DC, service.parseChargingType("DC"));
+    }
+
+    @Test
+    void parseChargingType_lowercase_isParsed() {
+        assertEquals(ChargingType.AC, service.parseChargingType("ac"));
+        assertEquals(ChargingType.DC, service.parseChargingType("dc"));
+    }
+
+    @Test
+    void parseChargingType_null_returnsUnknown() {
+        assertEquals(ChargingType.UNKNOWN, service.parseChargingType(null));
+    }
+
+    @Test
+    void parseChargingType_garbage_returnsUnknown() {
+        assertEquals(ChargingType.UNKNOWN, service.parseChargingType("Wechselstrom"));
     }
 }

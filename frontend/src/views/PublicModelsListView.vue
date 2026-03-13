@@ -102,33 +102,52 @@
       <!-- Models Grid -->
       <div v-if="filteredModels.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <!-- Real community models -->
-        <a
+        <div
           v-for="model in filteredModels"
           :key="`${model.brand}/${model.model}`"
-          :href="`/modelle/${model.brand}/${model.model.replace(/ /g, '_')}`"
-          class="bg-white rounded-xl border border-gray-200 p-5 hover:border-green-500 hover:shadow-md transition-all"
+          class="flex flex-col bg-white rounded-xl border p-5 hover:shadow-md transition-all"
+          :class="isSelectedForCompare(`${model.brand}/${model.model}`)
+            ? 'border-green-500 ring-2 ring-green-200'
+            : 'border-gray-200 hover:border-green-500'"
         >
-          <div class="flex items-start justify-between mb-3">
-            <div>
+          <a :href="`/modelle/${model.brand}/${model.model.replace(/ /g, '_')}`" class="block">
+            <div class="flex items-start justify-between mb-3">
               <h3 class="font-bold text-gray-900 text-lg">
                 {{ model.brand }} {{ model.model }}
               </h3>
+              <TruckIcon class="h-8 w-8 text-gray-400 flex-shrink-0" />
             </div>
-            <TruckIcon class="h-8 w-8 text-gray-400" />
-          </div>
+            <div class="space-y-2 text-sm">
+              <div class="flex items-center gap-2 text-gray-600">
+                <svg class="h-4 w-4 flex-shrink-0" viewBox="0 0 16 16" fill="none">
+                  <rect x="1" y="9" width="3" height="6" rx="0.75" fill="#86efac"/>
+                  <rect x="6" y="5" width="3" height="10" rx="0.75" fill="#22c55e"/>
+                  <rect x="11" y="2" width="3" height="13" rx="0.75" fill="#15803d"/>
+                </svg>
+                <span>Echte Community-Daten</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-xs text-gray-400">Realer Verbrauch, WLTP-Vergleich & mehr</span>
+                <button
+                  @click.prevent="toggleCompare(`${model.brand}/${model.model}`)"
+                  :disabled="!isSelectedForCompare(`${model.brand}/${model.model}`) && selectedForCompare.length >= MAX_COMPARE"
+                  :title="isSelectedForCompare(`${model.brand}/${model.model}`) ? 'Aus Vergleich entfernen' : 'Zum Vergleich hinzufügen'"
+                  class="p-1.5 rounded-full transition-colors flex-shrink-0"
+                  :class="isSelectedForCompare(`${model.brand}/${model.model}`)
+                    ? 'bg-green-500 text-white'
+                    : selectedForCompare.length >= MAX_COMPARE
+                      ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                      : 'bg-gray-100 text-gray-400 hover:bg-green-100 hover:text-green-600'"
+                >
+                  <CheckIcon v-if="isSelectedForCompare(`${model.brand}/${model.model}`)" class="h-4 w-4" />
+                  <ArrowsRightLeftIcon v-else class="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </a>
+        </div>
 
-          <div class="space-y-2 text-sm">
-            <div class="flex items-center gap-2 text-gray-600">
-              <ChartBarIcon class="h-4 w-4 text-green-600" />
-              <span>Echte Community-Daten</span>
-            </div>
-            <div class="text-xs text-gray-400">
-              Realer Verbrauch, WLTP-Vergleich & mehr
-            </div>
-          </div>
-        </a>
-
-        <!-- Fallback filler models (mobile only, no brand filter active) -->
+        <!-- Fallback filler models (mobile only, no brand filter active) — no compare toggle -->
         <a
           v-for="model in mobileFillModels"
           :key="`fallback/${model.brand}/${model.model}`"
@@ -194,6 +213,32 @@
           </a>
         </div>
       </div>
+
+      <!-- Floating Compare Bar (outside v-if/v-else chain) -->
+      <Transition name="compare-bar">
+        <div
+          v-if="selectedForCompare.length >= 2"
+          class="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 w-full max-w-lg px-4"
+        >
+          <div class="bg-gray-900 text-white rounded-2xl shadow-2xl px-4 py-3 flex items-center gap-3">
+            <ArrowsRightLeftIcon class="h-5 w-5 text-green-400 flex-shrink-0" />
+            <div class="flex-1 min-w-0">
+              <div class="text-xs text-gray-400 mb-0.5">Vergleich ({{ selectedForCompare.length }}/{{ MAX_COMPARE }})</div>
+              <div class="text-sm font-medium truncate">
+                {{ selectedForCompare.map(compareLabel).join(' · ') }}
+              </div>
+            </div>
+            <button
+              @click="startCompare"
+              class="flex-shrink-0 bg-green-500 hover:bg-green-400 text-white text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors">
+              Vergleichen
+            </button>
+            <button @click="clearCompare" class="flex-shrink-0 p-1 text-gray-400 hover:text-white transition-colors">
+              <XMarkIcon class="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+      </Transition>
     </main>
 
     <footer class="max-w-6xl mx-auto px-4 py-8 mt-6 border-t border-gray-200 text-sm text-gray-500 text-center">
@@ -211,15 +256,48 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useHead } from '@unhead/vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { getAllModelsWithWltpData } from '../api/publicModelService'
-import { BoltIcon, TruckIcon, ChartBarIcon, ArrowTrendingUpIcon } from '@heroicons/vue/24/outline'
+import { BoltIcon, TruckIcon, ChartBarIcon, ArrowTrendingUpIcon, ArrowsRightLeftIcon, XMarkIcon, CheckIcon } from '@heroicons/vue/24/outline'
+
+const router = useRouter()
 
 const authStore = useAuthStore()
 const loading = ref(true)
 const modelsList = ref<string[]>([])
 const selectedBrands = ref<string[]>([])
 const dropdownOpen = ref(false)
+
+// ── Comparison selection ───────────────────────────────────────────────────
+const MAX_COMPARE = 3
+const selectedForCompare = ref<string[]>([])
+
+function isSelectedForCompare(key: string) {
+  return selectedForCompare.value.includes(key)
+}
+
+function toggleCompare(key: string) {
+  const idx = selectedForCompare.value.indexOf(key)
+  if (idx > -1) {
+    selectedForCompare.value.splice(idx, 1)
+  } else if (selectedForCompare.value.length < MAX_COMPARE) {
+    selectedForCompare.value.push(key)
+  }
+}
+
+function clearCompare() {
+  selectedForCompare.value = []
+}
+
+function startCompare() {
+  router.push(`/modelle/vergleich?models=${selectedForCompare.value.join(',')}`)
+}
+
+function compareLabel(key: string): string {
+  const [brand, model] = key.split('/')
+  return `${brand} ${model}`.replace(/_/g, ' ')
+}
 
 const isAuthenticated = computed(() => authStore.isAuthenticated())
 const currentYear = new Date().getFullYear()
@@ -346,3 +424,15 @@ function clearAllBrands() {
   dropdownOpen.value = false
 }
 </script>
+
+<style scoped>
+.compare-bar-enter-active,
+.compare-bar-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.compare-bar-enter-from,
+.compare-bar-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(16px);
+}
+</style>
