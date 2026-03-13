@@ -1,0 +1,133 @@
+name: Claude Auto-Fix
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  claude-fix:
+    if: github.event.label.name == 'auto-fix'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Configure git
+        run: |
+          git config user.name "claude-fix[bot]"
+          git config user.email "claude-fix[bot]@users.noreply.github.com"
+
+      - name: Create fix branch
+        id: branch
+        run: |
+          BRANCH="fix/auto-issue-${{ github.event.issue.number }}"
+          git checkout -b "$BRANCH"
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+
+      - name: Run Claude Code
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ISSUE_TITLE="${{ github.event.issue.title }}"
+          ISSUE_BODY=$(cat << 'EOF'
+          ${{ github.event.issue.body }}
+          EOF
+          )
+
+          claude --print \
+            --allowedTools "Read,Edit,Write,Glob,Grep,Bash" \
+            --max-turns 20 \
+            "Du bist ein erfahrener Java/Vue.js Entwickler für das EV Monitor Projekt (Spring Boot Backend + Vue 3 Frontend).
+
+          Ein Fehler wurde automatisch gemeldet:
+
+          ## Issue #${{ github.event.issue.number }}: ${ISSUE_TITLE}
+
+          ${ISSUE_BODY}
+
+          ## Deine Aufgabe:
+          1. Analysiere den Fehler anhand des Stacktrace und der Request-Informationen
+          2. Finde die relevanten Dateien im Codebase
+          3. Implementiere einen Fix
+          4. Stelle sicher dass der Fix keine Security-Probleme (OWASP Top 10) einführt
+          5. Mache KEINE unnötigen Änderungen über den Fix hinaus
+
+          Wichtige Regeln:
+          - Nur Änderungen die direkt den Fehler beheben
+          - Kein Refactoring, keine neuen Features
+          - Backend: Clean Architecture (domain → application → infrastructure)
+          - Frontend: Vue 3 Composition API, TypeScript, Mobile-First
+
+          Starte mit dem Lesen der relevanten Dateien, dann implementiere den Fix."
+
+      - name: Check for changes
+        id: changes
+        run: |
+          if git diff --quiet && git diff --cached --quiet; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit and push
+        if: steps.changes.outputs.has_changes == 'true'
+        run: |
+          git add -A
+          git commit -m "fix: auto-fix for issue #${{ github.event.issue.number }}
+
+          Closes #${{ github.event.issue.number }}"
+          git push origin "${{ steps.branch.outputs.branch }}"
+
+      - name: Create Pull Request
+        if: steps.changes.outputs.has_changes == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr create \
+            --title "fix: Auto-Fix für Issue #${{ github.event.issue.number }}" \
+            --body "$(cat << 'EOF'
+          ## Auto-Fix
+
+          Automatisch generierter Fix für Issue #${{ github.event.issue.number }}.
+
+          **Issue:** ${{ github.event.issue.title }}
+
+          **Bitte vor dem Merge prüfen:**
+          - [ ] Fix löst das gemeldete Problem
+          - [ ] Keine unerwünschten Seiteneffekte
+          - [ ] Tests laufen durch (CI)
+
+          > Generiert von Claude Code via `claude-fix` Workflow
+          EOF
+          )" \
+            --base main \
+            --head "${{ steps.branch.outputs.branch }}"
+
+      - name: Comment on issue (no changes)
+        if: steps.changes.outputs.has_changes == 'false'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment ${{ github.event.issue.number }} \
+            --body "🤖 Claude hat den Fehler analysiert, konnte aber keinen automatischen Fix ermitteln. Manuelle Überprüfung erforderlich."

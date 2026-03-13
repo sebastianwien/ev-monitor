@@ -1,9 +1,11 @@
-package com.evmonitor.infrastructure.email;
+package com.evmonitor.infrastructure.scheduling;
 
 import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.EvLogRepository;
 import com.evmonitor.domain.User;
 import com.evmonitor.domain.UserRepository;
+import com.evmonitor.infrastructure.email.EmailService;
+import com.evmonitor.infrastructure.github.GitHubIssueService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -14,25 +16,25 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Component
-public class OnboardingReminderScheduler {
+public class AppScheduler {
 
-    private static final Logger log = LoggerFactory.getLogger(OnboardingReminderScheduler.class);
+    private static final Logger log = LoggerFactory.getLogger(AppScheduler.class);
     private static final int REMINDER_DAYS_AFTER_REGISTRATION = 14;
 
     private final UserRepository userRepository;
     private final CarRepository carRepository;
     private final EvLogRepository evLogRepository;
     private final EmailService emailService;
-    private final AlertEmailService alertEmailService;
+    private final GitHubIssueService gitHubIssueService;
 
-    public OnboardingReminderScheduler(UserRepository userRepository, CarRepository carRepository,
-                                       EvLogRepository evLogRepository, EmailService emailService,
-                                       AlertEmailService alertEmailService) {
+    public AppScheduler(UserRepository userRepository, CarRepository carRepository,
+                        EvLogRepository evLogRepository, EmailService emailService,
+                        GitHubIssueService gitHubIssueService) {
         this.userRepository = userRepository;
         this.carRepository = carRepository;
         this.evLogRepository = evLogRepository;
         this.emailService = emailService;
-        this.alertEmailService = alertEmailService;
+        this.gitHubIssueService = gitHubIssueService;
     }
 
     @Scheduled(cron = "0 0 6 * * *")
@@ -59,44 +61,18 @@ public class OnboardingReminderScheduler {
             }
         } catch (Exception e) {
             log.error("Onboarding reminder scheduler failed", e);
-            alertEmailService.sendAlert(
+            gitHubIssueService.createIssue(
                     "onboarding-reminder-error-" + targetDay,
                     "🚨 [EV Monitor] Onboarding Reminder Scheduler fehlgeschlagen",
-                    "Der Scheduler ist am %s mit einer Exception abgebrochen:\n\n%s: %s"
+                    "## Scheduler-Fehler\n\nDatum: `%s`\n\nException: `%s: %s`"
                             .formatted(targetDay, e.getClass().getSimpleName(), e.getMessage())
             );
             return;
         }
 
         if (!reminded.isEmpty()) {
-            String body = buildReportBody(targetDay, candidates.size(), reminded, skipped);
-            alertEmailService.sendAlert(
-                    "onboarding-reminder-report-" + targetDay,
-                    "[EV Monitor] Onboarding Reminder: %d Mail(s) verschickt".formatted(reminded.size()),
-                    body
-            );
+            log.info("Onboarding reminder report: {} sent, {} skipped — {}",
+                    reminded.size(), skipped.size(), reminded);
         }
-    }
-
-    private String buildReportBody(LocalDate targetDay, int totalCandidates,
-                                   List<String> reminded, List<String> skipped) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("EV Monitor — Onboarding Reminder Report\n");
-        sb.append("========================================\n\n");
-        sb.append("Datum:        ").append(LocalDate.now()).append("\n");
-        sb.append("Zielgruppe:   Registriert am ").append(targetDay).append("\n");
-        sb.append("Kandidaten:   ").append(totalCandidates).append("\n");
-        sb.append("Versendet:    ").append(reminded.size()).append("\n");
-        sb.append("Übersprungen: ").append(skipped.size()).append(" (bereits aktiv)\n\n");
-
-        sb.append("Reminder verschickt an:\n");
-        reminded.forEach(u -> sb.append("  - ").append(u).append("\n"));
-
-        if (!skipped.isEmpty()) {
-            sb.append("\nÜbersprungen (haben Auto oder Log):\n");
-            skipped.forEach(u -> sb.append("  - ").append(u).append("\n"));
-        }
-
-        return sb.toString();
     }
 }

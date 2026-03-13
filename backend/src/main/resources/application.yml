@@ -90,8 +90,6 @@ app:
   base-url: ${APP_BASE_URL:http://localhost:5173}
   mail:
     from: ${APP_MAIL_FROM:noreply@ev-monitor.net}
-  alert:
-    email: ${APP_ALERT_EMAIL:}
   github:
     token: ${GITHUB_ISSUE_TOKEN:}
     repo: ${GITHUB_REPO:}
