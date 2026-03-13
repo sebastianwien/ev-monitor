@@ -807,7 +807,8 @@ public class EvLogService {
 
         BigDecimal summerWeighted = BigDecimal.ZERO;
         BigDecimal winterWeighted = BigDecimal.ZERO;
-        int summerKm = 0, winterKm = 0, summerLogCount = 0, winterLogCount = 0;
+        BigDecimal totalWeighted = BigDecimal.ZERO;
+        int summerKm = 0, winterKm = 0, totalKm = 0, summerLogCount = 0, winterLogCount = 0;
 
         for (Car car : cars) {
             List<EvLog> allLogs = logsByCarId.getOrDefault(car.getId(), List.of());
@@ -819,11 +820,13 @@ public class EvLogService {
             for (PlausibleEntry e : getPlausibleEntriesForCar(car, allLogs, statsLogs)) {
                 BigDecimal weighted = e.consumptionKwhPer100km().multiply(BigDecimal.valueOf(e.distanceKm()));
                 int month = e.log().getLoggedAt().getMonthValue();
-                if (month >= 4 && month <= 9) {
+                totalWeighted = totalWeighted.add(weighted);
+                totalKm += e.distanceKm();
+                if (month >= 5 && month <= 8) {
                     summerWeighted = summerWeighted.add(weighted);
                     summerKm += e.distanceKm();
                     summerLogCount++;
-                } else {
+                } else if (month == 11 || month == 12 || month == 1 || month == 2) {
                     winterWeighted = winterWeighted.add(weighted);
                     winterKm += e.distanceKm();
                     winterLogCount++;
@@ -834,7 +837,7 @@ public class EvLogService {
         return new SeasonalConsumptionResult(
                 weightedAverage(summerWeighted, summerKm),
                 weightedAverage(winterWeighted, winterKm),
-                weightedAverage(summerWeighted.add(winterWeighted), summerKm + winterKm),
+                weightedAverage(totalWeighted, totalKm),
                 summerKm, winterKm, summerLogCount, winterLogCount);
     }
 

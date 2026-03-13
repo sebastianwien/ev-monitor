@@ -123,7 +123,7 @@
                 <!-- Summer Stats -->
                 <div class="flex items-center justify-between mb-2 text-sm">
                   <div class="flex items-center gap-2">
-                    <span class="text-orange-600 font-medium">🌞 Sommer (Apr–Sep)</span>
+                    <span class="text-orange-600 font-medium">🌞 Sommer (Mai–Aug)</span>
                   </div>
                   <div class="flex items-center gap-3">
                     <span v-if="stats.seasonalDistribution!.summerConsumptionKwhPer100km"
@@ -138,7 +138,7 @@
                 <!-- Winter Stats -->
                 <div class="flex items-center justify-between mb-3 text-sm">
                   <div class="flex items-center gap-2">
-                    <span class="text-blue-700 font-medium">❄️ Winter (Okt–Mär)</span>
+                    <span class="text-blue-700 font-medium">❄️ Winter (Nov–Feb)</span>
                   </div>
                   <div class="flex items-center gap-3">
                     <span v-if="stats.seasonalDistribution!.winterConsumptionKwhPer100km"
@@ -178,22 +178,22 @@
           <div class="md:hidden space-y-3">
             <div v-for="variant in stats.wltpVariants" :key="variant.batteryCapacityKwh"
                  class="border border-gray-100 rounded-xl p-4">
-              <div class="flex items-center justify-between mb-3">
+              <div class="relative flex items-center justify-center mb-3">
                 <div class="font-semibold text-gray-900">{{ variant.batteryCapacityKwh }} kWh</div>
                 <span v-if="!variant.realConsumptionKwhPer100km"
-                      class="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-gray-100 border border-gray-200 text-gray-500">
-                  noch keine Fahrten
+                      class="absolute right-0 inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-gray-100 border border-gray-200 text-gray-500">
+                  keine Fahrten
                 </span>
                 <span v-else-if="variant.realConsumptionTripCount != null && variant.realConsumptionTripCount < 10"
-                      class="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-600">
-                  ⚠ nur {{ variant.realConsumptionTripCount }} {{ variant.realConsumptionTripCount === 1 ? 'Fahrt' : 'Fahrten' }} bisher
+                      class="absolute right-0 inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-600">
+                  ⚠ {{ variant.realConsumptionTripCount }} {{ variant.realConsumptionTripCount === 1 ? 'Fahrt' : 'Fahrten' }}
                 </span>
                 <span v-else-if="variant.realConsumptionTripCount != null && variant.realConsumptionTripCount < 50"
-                      class="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-yellow-50 border border-yellow-200 text-yellow-700">
-                  nur {{ variant.realConsumptionTripCount }} Fahrten bisher
+                      class="absolute right-0 inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-yellow-50 border border-yellow-200 text-yellow-700">
+                  {{ variant.realConsumptionTripCount }} Fahrten
                 </span>
                 <span v-else-if="variant.realConsumptionTripCount != null"
-                      class="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-green-50 border border-green-200 text-green-700">
+                      class="absolute right-0 inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-green-50 border border-green-200 text-green-700">
                   {{ variant.realConsumptionTripCount }} Fahrten
                 </span>
               </div>
@@ -391,8 +391,8 @@
               <h3 class="font-semibold text-gray-800 mb-1">Verbrauch im Winter und Sommer</h3>
               <p v-if="showSeasonalBreakdown">
                 Wie alle Elektroautos zeigt der {{ stats.modelDisplayName }} saisonale Verbrauchsschwankungen.
-                Im Winter (Dezember bis Februar) steigt der Verbrauch typischerweise um <strong>20–30%</strong>
-                durch Kabinenheizung und reduzierte Batterieeffizienz bei Kälte. Im Sommer (Juni bis August)
+                Im Winter (November bis Februar) steigt der Verbrauch typischerweise um <strong>20–30%</strong>
+                durch Kabinenheizung und reduzierte Batterieeffizienz bei Kälte. Im Sommer (Mai bis August)
                 wird die maximale Effizienz erreicht. Vorheizen des Fahrzeugs beim Laden schont die Reichweite
                 erheblich.
               </p>
@@ -585,7 +585,7 @@ const faqItems = computed(() => {
   items.push({
     question: `Wie verändert sich der Verbrauch des ${name} im Winter?`,
     answer: hasSeasonalData
-      ? `Laut Community-Daten verbraucht der ${name} im Winter (Okt–Mär) ${seasonal!.winterConsumptionKwhPer100km?.toFixed(1) ?? '–'} kWh/100km und im Sommer (Apr–Sep) ${seasonal!.summerConsumptionKwhPer100km?.toFixed(1) ?? '–'} kWh/100km. Ursachen für den Winteranstieg sind Kabinenheizung, reduzierte Zelleffizienz bei Kälte und Batterie-Vorwärmung. Vorheizen beim Laden (per App) minimiert die Reichweitenverluste.`
+      ? `Laut Community-Daten verbraucht der ${name} im Winter (Nov–Feb) ${seasonal!.winterConsumptionKwhPer100km?.toFixed(1) ?? '–'} kWh/100km und im Sommer (Mai–Aug) ${seasonal!.summerConsumptionKwhPer100km?.toFixed(1) ?? '–'} kWh/100km. Ursachen für den Winteranstieg sind Kabinenheizung, reduzierte Zelleffizienz bei Kälte und Batterie-Vorwärmung. Vorheizen beim Laden (per App) minimiert die Reichweitenverluste.`
       : `Für den ${name} liegen noch nicht genug saisonale Messdaten vor. Allgemein steigt der Verbrauch von Elektroautos im Winter typischerweise um 15–30% – durch Heizung, kältere Batterien und schlechtere Rekuperation. Vorheizen beim Laden spart Reichweite.`
   })
 
