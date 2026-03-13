@@ -16,6 +16,7 @@ export interface TeslaFleetSyncResult {
   logsSkipped: number
   vehicleName: string
   message: string
+  importedLogIds: string[]
 }
 
 export default {
@@ -40,5 +41,13 @@ export default {
 
   async disconnect(): Promise<void> {
     await api.delete('/tesla/fleet/disconnect')
+  },
+
+  async deleteByIds(ids: string[]): Promise<void> {
+    await api.delete('/logs/batch', { data: ids })
+  },
+
+  async deleteAllImports(): Promise<void> {
+    await api.delete('/import/tesla/delete-all')
   },
 }

@@ -41,6 +41,10 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     @Query("DELETE FROM EvLogEntity e WHERE e.carId IN (SELECT c.id FROM CarEntity c WHERE c.userId = :userId) AND e.dataSource = :dataSource")
     void deleteAllByUserIdAndDataSource(@Param("userId") UUID userId, @Param("dataSource") String dataSource);
 
+    @Modifying
+    @Query("DELETE FROM EvLogEntity e WHERE e.carId IN (SELECT c.id FROM CarEntity c WHERE c.userId = :userId) AND e.dataSource IN :dataSources")
+    void deleteAllByUserIdAndDataSourceIn(@Param("userId") UUID userId, @Param("dataSources") List<String> dataSources);
+
     /**
      * Aggregated basic stats for a car model.
      * Returns: [logCount, uniqueContributors, avgCostPerKwh, avgKwhPerSession]

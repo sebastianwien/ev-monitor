@@ -183,10 +183,14 @@ const fetchLogs = async () => {
 }
 
 const editingLog = ref<any | null>(null)
+const pendingDeleteId = ref<string | null>(null)
 
 const deleteLog = async (logId: string) => {
-  if (!confirm('Ladevorgang wirklich löschen?')) return
-
+  if (pendingDeleteId.value !== logId) {
+    pendingDeleteId.value = logId
+    return
+  }
+  pendingDeleteId.value = null
   try {
     await api.delete(`/logs/${logId}`)
     await fetchLogs()
@@ -551,8 +555,11 @@ const handleOcrData = (ocrResult: any) => {
               <button
                 type="button"
                 @click="deleteLog(log.id)"
-                class="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition"
-                title="Ladevorgang löschen">
+                class="p-1 rounded transition"
+                :class="pendingDeleteId === log.id
+                  ? 'text-red-600 bg-red-50 ring-1 ring-red-300'
+                  : 'text-gray-400 hover:text-red-500 hover:bg-red-50'"
+                :title="pendingDeleteId === log.id ? 'Nochmal klicken zum Bestätigen' : 'Ladevorgang löschen'">
                 <TrashIcon class="w-4 h-4" />
               </button>
             </div>

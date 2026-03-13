@@ -94,6 +94,12 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
+    public void deleteAllByUserIdAndDataSourceIn(UUID userId, List<DataSource> dataSources) {
+        List<String> names = dataSources.stream().map(DataSource::name).toList();
+        jpaRepository.deleteAllByUserIdAndDataSourceIn(userId, names);
+    }
+
+    @Override
     public boolean updateGeohash(UUID carId, LocalDateTime loggedAt, String geohash) {
         return jpaRepository.findByCarIdAndLoggedAt(carId, loggedAt).map(entity -> {
             entity.setGeohash(geohash);

@@ -86,6 +86,19 @@ public class EvLogController {
         return ResponseEntity.noContent().build();
     }
 
+    @DeleteMapping("/batch")
+    public ResponseEntity<Void> deleteLogs(@RequestBody List<UUID> ids, Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        for (UUID id : ids) {
+            try {
+                evLogService.deleteLog(id, principal.getUser().getId());
+            } catch (IllegalArgumentException ignored) {
+                // Log not found or not owned by user — skip silently
+            }
+        }
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/statistics")
     public ResponseEntity<EvLogStatisticsResponse> getStatistics(
             @RequestParam UUID carId,

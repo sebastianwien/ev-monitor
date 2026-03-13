@@ -14,6 +14,11 @@ const isLoading = ref(false)
 const syncResult = ref<TeslaFleetSyncResult | null>(null)
 const error = ref<string | null>(null)
 const success = ref<string | null>(null)
+const confirmDisconnect = ref(false)
+const lastImportedIds = ref<string[]>([])
+const showDeleteAllConfirm = ref(false)
+const deleteAllLoading = ref(false)
+const deleteAllError = ref<string | null>(null)
 const fleetApiConfigured = ref(true)
 const cars = ref<Car[]>([])
 const selectedCarId = ref<string>('')
@@ -91,6 +96,9 @@ async function handleSyncHistory() {
   syncResult.value = null
   try {
     syncResult.value = await teslaFleetService.syncHistory()
+    if (syncResult.value.importedLogIds?.length > 0) {
+      lastImportedIds.value = syncResult.value.importedLogIds
+    }
     await loadStatus()
     if (status.value.geocodingInProgress) {
       startGeocodingPoll()
@@ -112,12 +120,43 @@ async function handleUpdateSettings() {
 }
 
 async function handleDisconnect() {
-  if (!confirm('Tesla-Verbindung wirklich trennen?')) return
+  if (!confirmDisconnect.value) { confirmDisconnect.value = true; return }
+  confirmDisconnect.value = false
   try {
     await teslaFleetService.disconnect()
     status.value = { connected: false, vehicleName: null, carId: null, lastSyncAt: null, autoImportEnabled: false, geocodingInProgress: false, vehicleState: null, suspendAfterIdleMinutes: 15 }
     syncResult.value = null; success.value = null
   } catch { error.value = 'Trennen fehlgeschlagen' }
+}
+
+async function handleUndoLastImport() {
+  if (lastImportedIds.value.length === 0) return
+  isLoading.value = true
+  error.value = null
+  try {
+    await teslaFleetService.deleteByIds(lastImportedIds.value)
+    lastImportedIds.value = []
+    syncResult.value = null
+    success.value = 'Letzter Import wurde rückgängig gemacht.'
+  } catch { error.value = 'Rückgängig machen fehlgeschlagen' } finally {
+    isLoading.value = false
+  }
+}
+
+async function handleDeleteAllImports() {
+  deleteAllError.value = null
+  deleteAllLoading.value = true
+  try {
+    await teslaFleetService.deleteAllImports()
+    showDeleteAllConfirm.value = false
+    lastImportedIds.value = []
+    syncResult.value = null
+    success.value = 'Alle Tesla-Importe wurden gelöscht.'
+  } catch (e: any) {
+    deleteAllError.value = e.response?.data?.error || 'Löschen fehlgeschlagen'
+  } finally {
+    deleteAllLoading.value = false
+  }
 }
 
 function enumToLabel(value: string | null | undefined): string {
@@ -205,8 +244,12 @@ function formatDate(d: string) {
             <p class="text-sm font-semibold text-green-800">Verbunden: {{ status.vehicleName || 'Tesla' }}</p>
             <p v-if="status.lastSyncAt" class="text-xs text-gray-500 mt-0.5">Letzter Sync: {{ formatDate(status.lastSyncAt) }}</p>
           </div>
-          <button @click="handleDisconnect" class="text-xs text-red-500 hover:text-red-700">
-            <XMarkIcon class="h-4 w-4" />
+          <button
+            @click="handleDisconnect"
+            class="text-xs px-2 py-1 rounded hover:bg-red-50 transition"
+            :class="confirmDisconnect ? 'text-red-700 font-medium' : 'text-red-400'"
+          >
+            {{ confirmDisconnect ? 'Sicher?' : '' }}<XMarkIcon class="h-4 w-4 inline" />
           </button>
         </div>
       </div>
@@ -259,6 +302,71 @@ function formatDate(d: string) {
           <span class="font-medium">15 Min</span> ist ein guter Kompromiss.
         </p>
       </div>
+
+      <!-- Undo last import -->
+      <div v-if="lastImportedIds.length > 0" class="border-t border-gray-100 pt-4">
+        <button
+          @click="handleUndoLastImport"
+          :disabled="isLoading"
+          class="w-full flex items-center justify-center gap-2 text-sm px-4 py-2 rounded-lg border border-amber-200 text-amber-700 hover:bg-amber-50 transition disabled:opacity-50"
+        >
+          <ArrowPathIcon class="h-4 w-4" />
+          Letzten Import rückgängig machen ({{ lastImportedIds.length }} Ladevorgänge)
+        </button>
+      </div>
+
+      <!-- Delete all imports -->
+      <div class="border-t border-gray-100 pt-4">
+        <button
+          @click="showDeleteAllConfirm = true"
+          class="w-full text-sm px-4 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition"
+        >
+          Alle Tesla-Importe löschen
+        </button>
+      </div>
     </template>
+  </div>
+
+  <!-- Delete all confirmation modal -->
+  <div
+    v-if="showDeleteAllConfirm"
+    class="fixed inset-0 flex items-center justify-center z-50 p-4"
+    style="backdrop-filter: blur(8px); background-color: rgba(0, 0, 0, 0.3);"
+    @click.self="showDeleteAllConfirm = false"
+  >
+    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4" @click.stop>
+      <div class="flex flex-col items-center gap-2 text-center">
+        <ExclamationTriangleIcon class="w-8 h-8 text-red-600" />
+        <h3 class="text-xl font-bold text-red-600">Alle Tesla-Importe löschen?</h3>
+      </div>
+      <p class="text-gray-700 text-sm">
+        Du bist dabei, <strong>ALLE über Tesla Fleet API importierten Ladevorgänge</strong> zu löschen.
+        Manuell angelegte Logs bleiben erhalten. Dieser Vorgang kann <strong>nicht rückgängig gemacht werden</strong>.
+      </p>
+      <div v-if="deleteAllError" class="p-3 bg-red-100 text-red-800 rounded-lg border border-red-300 text-sm">
+        <ExclamationTriangleIcon class="w-4 h-4 inline-block mr-1" />
+        {{ deleteAllError }}
+      </div>
+      <div class="flex gap-3">
+        <button
+          @click="showDeleteAllConfirm = false"
+          :disabled="deleteAllLoading"
+          class="flex-1 px-4 py-3 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 transition disabled:opacity-50"
+        >
+          Abbrechen
+        </button>
+        <button
+          @click="handleDeleteAllImports"
+          :disabled="deleteAllLoading"
+          class="flex-1 px-4 py-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
+        >
+          <svg v-if="deleteAllLoading" class="animate-spin h-5 w-5 text-white flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          {{ deleteAllLoading ? 'Wird gelöscht…' : 'Ja, alle löschen' }}
+        </button>
+      </div>
+    </div>
   </div>
 </template>
