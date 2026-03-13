@@ -92,6 +92,11 @@ app:
     from: ${APP_MAIL_FROM:noreply@ev-monitor.net}
   alert:
     email: ${APP_ALERT_EMAIL:}
+  github:
+    token: ${GITHUB_ISSUE_TOKEN:}
+    repo: ${GITHUB_REPO:}
+    issues:
+      enabled: ${GITHUB_ISSUES_ENABLED:false}
   car-images:
     directory: ${CAR_IMAGES_DIR:/app/car-images}
   security:

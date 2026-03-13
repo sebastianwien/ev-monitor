@@ -54,7 +54,7 @@ export interface CarImageResponse {
 export const carService = {
     async getCars(): Promise<Car[]> {
         const response = await api.get('/cars');
-        return response.data;
+        return Array.isArray(response.data) ? response.data : [];
     },
 
     async getCarById(id: string): Promise<Car> {

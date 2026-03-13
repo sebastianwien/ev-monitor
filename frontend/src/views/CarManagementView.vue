@@ -89,7 +89,7 @@ const fetchCars = async () => {
     loading.value = true
     error.value = null
     revokeAllBlobUrls()
-    cars.value = await carService.getCars()
+    cars.value = await carService.getCars() ?? []
     // Init checkbox state from server (shows current visibility per car)
     const visibility: Record<string, boolean> = {}
     cars.value.forEach(c => { visibility[c.id] = c.imagePublic })
@@ -739,7 +739,7 @@ onUnmounted(() => {
                 </div>
                 <p class="text-sm text-gray-600">{{ car.year }}</p>
               </div>
-              <LicensePlate :plate="car.licensePlate" />
+              <LicensePlate v-if="car.licensePlate" :plate="car.licensePlate" />
             </div>
 
             <div class="mb-4 space-y-1">

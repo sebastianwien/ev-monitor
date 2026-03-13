@@ -21,7 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class AlertEmailService {
 
     private static final Logger log = LoggerFactory.getLogger(AlertEmailService.class);
-    private static final Duration COOLDOWN = Duration.ofHours(1);
+    private static final Duration COOLDOWN = Duration.ofMinutes(10);
 
     private final JavaMailSender mailSender;
     private final Map<String, Instant> lastAlertTime = new ConcurrentHashMap<>();

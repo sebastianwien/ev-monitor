@@ -16,7 +16,7 @@ const loading = ref(true)
 
 onMounted(async () => {
   try {
-    cars.value = await carService.getCars()
+    cars.value = await carService.getCars() ?? []
     // Small delay for smooth fade-in
     await new Promise(resolve => setTimeout(resolve, 100))
   } catch { /* ignore */ } finally {

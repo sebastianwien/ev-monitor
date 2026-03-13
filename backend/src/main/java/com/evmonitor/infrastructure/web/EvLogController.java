@@ -7,12 +7,14 @@ import com.evmonitor.application.EvLogStatisticsResponse;
 import com.evmonitor.application.EvLogUpdateRequest;
 import com.evmonitor.application.EvLogService;
 import com.evmonitor.infrastructure.security.UserPrincipal;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -61,7 +63,7 @@ public class EvLogController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<EvLogResponse> updateLog(
+    public ResponseEntity<?> updateLog(
             @PathVariable UUID id,
             @RequestBody EvLogUpdateRequest request,
             Authentication authentication) {
@@ -71,6 +73,9 @@ public class EvLogController {
             return ResponseEntity.ok(updated);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
+        } catch (DataIntegrityViolationException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("message", "Ein Eintrag mit diesem Datum und dieser Uhrzeit existiert bereits für dieses Fahrzeug. Bitte ändere die Uhrzeit."));
         }
     }
 

@@ -101,6 +101,7 @@
 
       <!-- Models Grid -->
       <div v-if="filteredModels.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Real community models -->
         <a
           v-for="model in filteredModels"
           :key="`${model.brand}/${model.model}`"
@@ -124,6 +125,23 @@
             <div class="text-xs text-gray-400">
               Realer Verbrauch, WLTP-Vergleich & mehr
             </div>
+          </div>
+        </a>
+
+        <!-- Fallback filler models (mobile only, no brand filter active) -->
+        <a
+          v-for="model in mobileFillModels"
+          :key="`fallback/${model.brand}/${model.model}`"
+          :href="`/modelle/${model.brand}/${model.model}`"
+          class="bg-white rounded-xl border border-gray-100 p-4 hover:border-green-400 hover:shadow-sm transition-all opacity-80"
+        >
+          <div class="flex items-start justify-between mb-2">
+            <h3 class="font-semibold text-gray-700 text-base">{{ model.displayName }}</h3>
+            <TruckIcon class="h-6 w-6 text-gray-300" />
+          </div>
+          <div class="flex items-center gap-2 text-xs text-gray-400">
+            <ChartBarIcon class="h-3.5 w-3.5" />
+            <span>WLTP-Daten verfügbar</span>
           </div>
         </a>
       </div>
@@ -211,6 +229,28 @@ interface ModelInfo {
   model: string
 }
 
+interface FallbackModel {
+  brand: string
+  model: string
+  displayName: string
+}
+
+// Popular EV models in Germany by registration numbers (DE slugs matching DB)
+const POPULAR_DE_FALLBACK: FallbackModel[] = [
+  { brand: 'VW', model: 'ID_3', displayName: 'VW ID.3' },
+  { brand: 'TESLA', model: 'MODEL_Y', displayName: 'Tesla Model Y' },
+  { brand: 'TESLA', model: 'MODEL_3', displayName: 'Tesla Model 3' },
+  { brand: 'VW', model: 'ID_4', displayName: 'VW ID.4' },
+  { brand: 'HYUNDAI', model: 'IONIQ_5', displayName: 'Hyundai Ioniq 5' },
+  { brand: 'SKODA', model: 'ENYAQ', displayName: 'Škoda Enyaq' },
+  { brand: 'BMW', model: 'I4', displayName: 'BMW i4' },
+  { brand: 'AUDI', model: 'Q4_E_TRON', displayName: 'Audi Q4 e-tron' },
+  { brand: 'KIA', model: 'EV_6', displayName: 'Kia EV6' },
+  { brand: 'MG', model: 'MG4', displayName: 'MG MG4' },
+  { brand: 'HYUNDAI', model: 'IONIQ_6', displayName: 'Hyundai Ioniq 6' },
+  { brand: 'POLESTAR', model: 'POLESTAR_2', displayName: 'Polestar 2' },
+]
+
 const modelsWithData = computed((): ModelInfo[] => {
   return modelsList.value.map(entry => {
     // Parse format: "BRAND/MODEL" (e.g., "TESLA/MODEL_3")
@@ -232,6 +272,17 @@ const filteredModels = computed(() => {
     return modelsWithData.value
   }
   return modelsWithData.value.filter(m => selectedBrands.value.includes(m.brand))
+})
+
+// Fill up to 12 models on mobile with popular fallbacks (only when no brand filter active)
+const mobileFillModels = computed((): FallbackModel[] => {
+  if (selectedBrands.value.length > 0) return []
+  const needed = 12 - filteredModels.value.length
+  if (needed <= 0) return []
+  const existingSlugs = new Set(filteredModels.value.map(m => `${m.brand}/${m.model}`))
+  return POPULAR_DE_FALLBACK
+    .filter(f => !existingSlugs.has(`${f.brand}/${f.model}`))
+    .slice(0, needed)
 })
 
 useHead({

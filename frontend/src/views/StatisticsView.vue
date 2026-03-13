@@ -473,8 +473,8 @@ const wltpChartScrollable = computed(() => {
   return dataPoints >= 30
 })
 
-const enumToLabel = (value: string): string =>
-  value.replace(/_/g, ' ').toLowerCase()
+const enumToLabel = (value: string | undefined | null): string =>
+  (value ?? '').replace(/_/g, ' ').toLowerCase()
     .split(' ')
     .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(' ')
