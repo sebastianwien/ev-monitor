@@ -64,26 +64,11 @@ jobs:
             docker compose exec -T db pg_dump -U evmonitor ev_monitor > backup-$(date +%Y%m%d-%H%M%S).sql || echo "⚠️  Backup failed (DB might not be running yet)"
 
             echo "🚀 Deploying application..."
-            ./deploy.sh
+            flock -w 180 /tmp/ev-monitor-deploy.lock ./deploy.sh
 
             echo "✅ Deployment completed at $(date)"
 
       - name: Health Check
-        run: |
-          echo "⏳ Waiting for deployment to complete (max 5 minutes)..."
-          for i in {1..30}; do
-            response=$(curl -s -o /dev/null -w "%{http_code}" https://ev-monitor.net)
-            if [ $response -eq 200 ]; then
-              echo "✅ Health check passed after $((i*10)) seconds (HTTP $response)"
-              exit 0
-            fi
-            echo "Attempt $i/30: HTTP $response, retrying in 10s..."
-            sleep 10
-          done
-          echo "❌ Health check failed after 5 minutes"
-          exit 1
-
-      - name: Verify Flyway Migrations
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -91,6 +76,15 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 2222
           script: |
-            cd /opt/ev-monitor/ev-monitor
-            echo "📊 Checking Flyway migration status..."
-            docker compose logs backend | grep -i "flyway" | tail -20
+            echo "⏳ Waiting for backend to become healthy (max 3 minutes)..."
+            for i in $(seq 1 18); do
+              if curl -sf http://localhost:8080/actuator/health > /dev/null 2>&1; then
+                echo "✅ Backend healthy after $((i*10)) seconds"
+                exit 0
+              fi
+              echo "Attempt $i/18 failed, retrying in 10s..."
+              sleep 10
+            done
+            echo "❌ Backend health check failed — dumping logs:"
+            cd /opt/ev-monitor/ev-monitor && docker compose logs backend --tail=50
+            exit 1
