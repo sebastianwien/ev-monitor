@@ -66,6 +66,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/webhooks/**").permitAll()
                         // Internal service endpoints — secured by InternalAuthFilter, not JWT
                         .requestMatchers("/api/internal/**").permitAll()
+                        // Actuator — nur intern erreichbar (kein nginx-Proxy), trotzdem explizit freigeben
+                        .requestMatchers("/actuator/health").permitAll()
                         // Require Auth for remaining API endpoints
                         .requestMatchers("/api/**").authenticated()
                         // Permit any other endpoints, assuming they are static resources or frontend
