@@ -34,6 +34,9 @@ class UserServiceTest {
     private EvLogRepository evLogRepository;
 
     @Mock
+    private CarRepository carRepository;
+
+    @Mock
     private PasswordEncoder passwordEncoder;
 
     @Mock
@@ -221,6 +224,7 @@ class UserServiceTest {
     void exportUserData_shouldReturnJsonBytes() throws Exception {
         // Given
         when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
+        when(carRepository.findAllByUserId(userId)).thenReturn(List.of());
         when(evLogRepository.findAllByUserId(userId)).thenReturn(List.of());
         when(objectMapper.writeValueAsBytes(any())).thenReturn("{}".getBytes());
 
