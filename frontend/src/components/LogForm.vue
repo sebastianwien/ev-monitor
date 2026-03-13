@@ -3,7 +3,7 @@ import { ref, onMounted, watch } from 'vue'
 import api from '../api/axios'
 import CarSelector from './CarSelector.vue'
 import OcrPhotoCapture from './OcrPhotoCapture.vue'
-import { CameraIcon, PencilSquareIcon, TrashIcon, BoltIcon, TruckIcon, ClockIcon, Battery0Icon, SunIcon } from '@heroicons/vue/24/outline'
+import { CameraIcon, PencilSquareIcon, TrashIcon, BoltIcon, TruckIcon, ClockIcon, Battery0Icon, SunIcon, GlobeAltIcon } from '@heroicons/vue/24/outline'
 import { useCoinStore } from '../stores/coins'
 import { analytics } from '../services/analytics'
 import { carService } from '../api/carService'
@@ -33,22 +33,35 @@ const showCoinToast = (coins: number) => {
 const selectedCarId = ref<string | null>(null)
 const kwhCharged = ref<number>(0)
 const costEur = ref<number>(0)
-const chargeDurationMinutes = ref<number>(0)
+const chargeDurationMinutes = ref<number | null>(null)
 const odometerKm = ref<number | null>(null) // Required: odometer reading
 const socAfterChargePercent = ref<number | null>(null) // Required: battery level after charging (0-100%)
 const maxChargingPowerKw = ref<number | null>(null) // Optional: max charging power
 const loggedAt = ref<string | null>(null) // Optional: when the charge happened
 const odometerWarning = ref<string | null>(null) // Warning if odometer is lower than last log
-const chargingType = ref<'AC' | 'DC' | null>(null) // Optional: AC or DC charging
+const chargingType = ref<'AC' | 'DC'>('AC') // AC or DC charging, default AC
 
 // Location tracking
 const latitude = ref<number | null>(null)
 const longitude = ref<number | null>(null)
+const locationEnabled = ref(localStorage.getItem('ev_location_enabled') === 'true')
 const locationStatus = ref<'idle' | 'loading' | 'success' | 'error' | 'manual'>('idle')
 const locationSearchQuery = ref('')
 const locationSuggestions = ref<any[]>([])
 const showLocationSuggestions = ref(false)
 const locationErrorMessage = ref<string | null>(null)
+
+const toggleLocation = () => {
+  if (locationEnabled.value) {
+    locationEnabled.value = false
+    localStorage.setItem('ev_location_enabled', 'false')
+    clearLocation()
+  } else {
+    locationEnabled.value = true
+    localStorage.setItem('ev_location_enabled', 'true')
+    requestCurrentLocation()
+  }
+}
 
 // Helper to format current datetime for datetime-local input
 const getCurrentDateTimeLocal = () => {
@@ -198,7 +211,7 @@ const submitLog = async () => {
     return
   }
 
-  // Odometer validation: Show warning if lower than last reading
+// Odometer validation: Show warning if lower than last reading
   odometerWarning.value = null
   if (odometerKm.value !== null) {
     const lastOdometer = getLastOdometerReading()
@@ -260,14 +273,15 @@ const submitLog = async () => {
     // Reset form (keep car selected)
     kwhCharged.value = 0
     costEur.value = 0
-    chargeDurationMinutes.value = 0
+    chargeDurationMinutes.value = null
     odometerKm.value = null
     socAfterChargePercent.value = null
     maxChargingPowerKw.value = null
     loggedAt.value = null
     odometerWarning.value = null
     ocrUsed.value = false
-    chargingType.value = null
+    chargingType.value = 'AC'
+    locationEnabled.value = false
     clearLocation()
 
     await fetchLogs()
@@ -286,13 +300,21 @@ watch(selectedCarId, () => {
 })
 
 const hasCars = ref<boolean | null>(null) // null = loading
+const carCount = ref(0)
 
 onMounted(async () => {
   try {
     const cars = await carService.getCars()
     hasCars.value = cars.length > 0
+    carCount.value = cars.length
+    if (cars.length === 1) {
+      selectedCarId.value = cars[0].id
+    }
   } catch {
     hasCars.value = false
+  }
+  if (locationEnabled.value) {
+    requestCurrentLocation()
   }
   fetchLogs()
 })
@@ -336,41 +358,37 @@ const handleOcrData = (ocrResult: any) => {
     </div>
 
     <template v-else-if="hasCars === true">
-    <!-- Car Selector: always visible -->
-    <div class="mb-6">
+    <!-- Car Selector: only shown when user has multiple cars -->
+    <div v-if="carCount > 1" class="mb-6">
       <CarSelector v-model="selectedCarId" />
     </div>
 
     <!-- Mode Toggle: Photo OCR vs Manual Entry -->
-    <div class="flex gap-3 mb-6 border border-gray-200 rounded-lg p-1 bg-gray-50">
+    <div class="flex justify-center mb-4">
+    <div class="inline-flex rounded-full border border-gray-200 bg-gray-100 p-0.5">
       <button
         type="button"
         @click="showOcrCapture = true"
         :class="[
-          'flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-md font-medium transition',
-          showOcrCapture
-            ? 'bg-white text-indigo-700 shadow'
-            : 'text-gray-600 hover:text-gray-800'
+          'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition',
+          showOcrCapture ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'
         ]">
-        <CameraIcon class="h-5 w-5" />
-        <span>Foto scannen</span>
+        <CameraIcon class="h-4 w-4" />
+        Foto
       </button>
       <button
         type="button"
         @click="showOcrCapture = false"
         :class="[
-          'flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-md font-medium transition',
-          !showOcrCapture
-            ? 'bg-white text-indigo-700 shadow'
-            : 'text-gray-600 hover:text-gray-800'
+          'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition',
+          !showOcrCapture ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'
         ]">
-        <PencilSquareIcon class="h-5 w-5" />
-        <span>Manuell eingeben</span>
+        <PencilSquareIcon class="h-4 w-4" />
+        Manuell
       </button>
     </div>
+    </div>
 
-    <!-- Consumption info: always visible regardless of entry mode -->
-    <ConsumptionInfoBox :min-trips="5" class="mb-6" />
 
     <!-- OCR Photo Capture Mode -->
     <OcrPhotoCapture
@@ -390,171 +408,116 @@ const handleOcrData = (ocrResult: any) => {
       </div>
 
       <form @submit.prevent="submitLog" class="space-y-4">
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Geladene Energie (kWh)</label>
-        <input v-model="kwhCharged" type="number" step="0.1" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
+
+      <!-- Pflichtfelder-Gruppe -->
+      <div class="bg-gray-100 md:rounded-xl p-3 space-y-3 -mx-4 md:mx-0">
+
+      <!-- Row 1: kWh + Kosten -->
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Energie (kWh)</label>
+          <input v-model="kwhCharged" type="number" step="0.1" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border bg-white" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Kosten (€)</label>
+          <input v-model="costEur" type="number" step="0.01" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border bg-white" />
+        </div>
       </div>
 
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Kosten (€)</label>
-        <input v-model="costEur" type="number" step="0.01" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
+      <!-- Row 2: Tachostand + Batteriestand -->
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Tachostand (km)</label>
+          <input v-model="odometerKm" type="number" step="1" required :placeholder="getLastOdometerPlaceholder()" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border bg-white" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Akku nach Laden (%)</label>
+          <input v-model="socAfterChargePercent" type="number" min="0" max="100" step="1" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border bg-white" />
+        </div>
       </div>
 
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Ladedauer (Minuten, optional)</label>
-        <input v-model="chargeDurationMinutes" type="number" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Tachostand (km)</label>
-        <input v-model="odometerKm" type="number" step="1" required :placeholder="getLastOdometerPlaceholder()" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
-        <p class="text-xs text-gray-500 mt-1">Hilft dir Verbrauch pro km zu tracken</p>
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Batteriestand nach dem Laden (%)</label>
-        <input v-model="socAfterChargePercent" type="number" min="0" max="100" step="1" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
-        <p class="text-xs text-gray-500 mt-1">Für präzise Verbrauchsberechnung (zusammen mit Tachostand)</p>
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Max. Ladeleistung (kW, optional)</label>
-        <input v-model="maxChargingPowerKw" type="number" step="0.1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
-        <p class="text-xs text-gray-500 mt-1">Höchste erreichte Ladeleistung während des Ladevorgangs</p>
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Ladetyp (optional)</label>
-        <div class="flex gap-2">
-          <button
-            type="button"
-            @click="chargingType = chargingType === 'AC' ? null : 'AC'"
+      <!-- Row 3: Toggles nebeneinander, Standort zuerst -->
+      <div class="flex items-center justify-center gap-8">
+        <!-- Location toggle with globe indicator -->
+        <div class="flex items-center gap-1.5">
+          <GlobeAltIcon
             :class="[
-              'flex-1 py-2 px-3 rounded-md border text-sm font-medium transition',
-              chargingType === 'AC'
-                ? 'bg-blue-600 text-white border-blue-600'
-                : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'
-            ]">
-            AC
-          </button>
+              'h-5 w-5 transition-colors duration-300',
+              locationStatus === 'loading' ? 'text-gray-400 animate-pulse' :
+              locationStatus === 'success' || locationStatus === 'manual' ? 'text-green-500' :
+              locationStatus === 'error' ? 'text-red-500' :
+              'text-gray-300'
+            ]"
+          />
           <button
             type="button"
-            @click="chargingType = chargingType === 'DC' ? null : 'DC'"
+            @click="toggleLocation"
             :class="[
-              'flex-1 py-2 px-3 rounded-md border text-sm font-medium transition',
-              chargingType === 'DC'
-                ? 'bg-orange-500 text-white border-orange-500'
-                : 'bg-white text-gray-600 border-gray-300 hover:border-orange-400'
+              'relative inline-flex h-8 w-14 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none',
+              locationEnabled ? 'bg-green-500' : 'bg-gray-300'
             ]">
-            DC
+            <span
+              :class="[
+                'pointer-events-none inline-flex h-7 w-7 transform items-center justify-center rounded-full bg-white shadow text-sm transition duration-200 ease-in-out',
+                locationEnabled ? 'translate-x-6' : 'translate-x-0'
+              ]">
+              📍
+            </span>
           </button>
         </div>
-        <p class="text-xs text-gray-500 mt-1">AC = Wallbox/Haushalt, DC = Schnelllader</p>
-      </div>
 
+        <!-- AC/DC toggle -->
+        <button
+          type="button"
+          @click="chargingType = chargingType === 'AC' ? 'DC' : 'AC'"
+          :class="[
+            'relative inline-flex h-8 w-16 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none',
+            chargingType === 'DC' ? 'bg-orange-500' : 'bg-blue-500'
+          ]">
+          <span
+            :class="[
+              'pointer-events-none inline-flex h-7 w-9 transform items-center justify-center rounded-full bg-white shadow text-xs font-bold transition duration-200 ease-in-out',
+              chargingType === 'DC' ? 'translate-x-6' : 'translate-x-0'
+            ]"
+            :style="{ color: chargingType === 'DC' ? '#f97316' : '#3b82f6' }">
+            {{ chargingType }}
+          </span>
+        </button>
+      </div>
+      </div><!-- end Pflichtfelder-Gruppe -->
+
+      <!-- Optionale Felder -->
       <div>
-        <label class="block text-sm font-medium text-gray-700">Ladedatum & -zeit (optional)</label>
-        <input
-          v-model="loggedAt"
-          type="datetime-local"
-          :max="getCurrentDateTimeLocal()"
-          :placeholder="getCurrentDateTimeLocal()"
-          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
-        <p class="text-xs text-gray-500 mt-1">Leer lassen für aktuelle Zeit</p>
-      </div>
-
-      <!-- Location Section -->
-      <div class="border-t pt-4">
-        <label class="block text-sm font-medium text-gray-700 mb-2">Standort (optional)</label>
-
-        <!-- Idle State: Show "Use Current Location" button -->
-        <div v-if="locationStatus === 'idle'" class="space-y-2">
-          <button
-            type="button"
-            @click="requestCurrentLocation"
-            class="w-full bg-green-100 text-green-700 p-3 rounded-md shadow hover:bg-green-200 transition font-medium">
-            📍 Aktuellen Standort verwenden
-          </button>
-          <p class="text-xs text-gray-500 text-center">Oder manuell suchen</p>
-          <input
-            v-model="locationSearchQuery"
-            @focus="locationStatus = 'error'"
-            type="text"
-            placeholder="Standort suchen (z.B. Berlin)"
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
-        </div>
-
-        <!-- Loading State -->
-        <div v-if="locationStatus === 'loading'" class="text-center py-4 text-gray-600">
-          <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
-          <p class="mt-2 text-sm">Ermittle deinen Standort...</p>
-        </div>
-
-        <!-- Success State: Location acquired via GPS -->
-        <div v-if="locationStatus === 'success'" class="space-y-2">
-          <div class="p-3 bg-green-50 border border-green-200 rounded-md">
-            <p class="text-sm text-green-800 font-medium">✅ Standort erfasst</p>
-            <p class="text-xs text-green-600 mt-1">
-              🔒 Wir anonymisieren deinen Standort auf einen Umkreis von 5km, bevor er unsere Datenbank berührt. Dein Schlafzimmer bleibt dein Geheimnis!
-            </p>
-          </div>
-          <button
-            type="button"
-            @click="clearLocation"
-            class="w-full text-sm text-indigo-600 hover:text-indigo-700 underline">
-            Standort löschen
-          </button>
-        </div>
-
-        <!-- Error State / Manual Search -->
-        <div v-if="locationStatus === 'error'" class="space-y-2">
-          <div v-if="locationErrorMessage" class="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-            <p class="text-sm text-yellow-800">{{ locationErrorMessage }}</p>
-          </div>
-          <div class="relative">
-            <input
-              v-model="locationSearchQuery"
-              type="text"
-              placeholder="Standort suchen (z.B. Berlin, München)"
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
-
-            <!-- Suggestions Dropdown -->
-            <div
-              v-if="showLocationSuggestions && locationSuggestions.length > 0"
-              class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
-              <button
-                v-for="suggestion in locationSuggestions"
-                :key="suggestion.place_id"
-                type="button"
-                @click="selectLocation(suggestion)"
-                class="w-full text-left px-3 py-2 hover:bg-indigo-50 border-b last:border-b-0 text-sm">
-                {{ suggestion.display_name }}
-              </button>
+        <p class="text-xs text-gray-400 text-center mb-2">Optional</p>
+        <div class="space-y-3">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm font-medium text-gray-600">Dauer (min)</label>
+              <input v-model="chargeDurationMinutes" type="number" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-600">Max. Ladeleistung (kW)</label>
+              <input v-model="maxChargingPowerKw" type="number" step="0.1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
             </div>
           </div>
-          <p class="text-xs text-gray-500">
-            🔒 Wir anonymisieren deinen Standort auf einen Umkreis von 5km, bevor er unsere Datenbank berührt.
-          </p>
-        </div>
-
-        <!-- Manual State: Location selected from search -->
-        <div v-if="locationStatus === 'manual'" class="space-y-2">
-          <div class="p-3 bg-blue-50 border border-blue-200 rounded-md">
-            <p class="text-sm text-blue-800 font-medium">📍 Standort: {{ locationSearchQuery }}</p>
-            <p class="text-xs text-blue-600 mt-1">
-              🔒 Wir anonymisieren deinen Standort auf einen Umkreis von 5km, bevor er unsere Datenbank berührt.
-            </p>
+          <div>
+            <label class="block text-sm font-medium text-gray-600">Ladezeitpunkt</label>
+            <input
+              v-model="loggedAt"
+              type="datetime-local"
+              :max="getCurrentDateTimeLocal()"
+              :placeholder="getCurrentDateTimeLocal()"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
+            <p class="text-xs text-gray-400 mt-1">Leer lassen für aktuelle Zeit</p>
           </div>
-          <button
-            type="button"
-            @click="clearLocation"
-            class="w-full text-sm text-indigo-600 hover:text-indigo-700 underline">
-            Standort löschen
-          </button>
         </div>
       </div>
 
         <button type="submit" class="w-full bg-indigo-600 text-white p-3 rounded-md shadow hover:bg-indigo-700 transition">⚡ Ladevorgang speichern</button>
+        <p class="text-xs text-gray-400 text-center mt-2">
+          📍 Der Standort hilft uns, die Außentemperatur beim Laden zu ermitteln — anonymisiert auf ~5km.
+        </p>
+        <ConsumptionInfoBox :min-trips="5" class="mt-4" />
       </form>
 
       <!-- Watt Toast -->

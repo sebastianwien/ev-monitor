@@ -120,12 +120,13 @@ const closeMobileMenu = () => {
           <!-- Left: Logo + Nav Buttons (Desktop) -->
           <div class="flex items-center space-x-4">
             <router-link to="/dashboard" class="flex items-center gap-1.5 text-2xl font-bold tracking-wide hover:opacity-80 transition whitespace-nowrap">
-              <Battery0Icon class="h-7 w-7" />
-              EV Monitor
+              <HomeIcon class="h-7 w-7 sm:hidden" />
+              <Battery0Icon class="hidden sm:block h-7 w-7" />
+              <span class="hidden sm:inline">EV Monitor</span>
             </router-link>
 
-            <!-- Compact Icon Nav (768px - 1024px) -->
-            <div class="hidden md:flex lg:hidden items-center space-x-2">
+            <!-- Compact Icon Nav (640px - 1024px) -->
+            <div class="hidden sm:flex lg:hidden items-center space-x-2">
               <button
                 @click="handleNewLog"
                 class="p-2 rounded-md bg-green-600 hover:bg-green-700 transition"
@@ -458,7 +459,7 @@ const closeMobileMenu = () => {
     <SpritMonitorImport v-if="showImportOverlay" @close="showImportOverlay = false" />
 
     <!-- Floating Action Button (only when authenticated) -->
-    <FloatingActionButton v-if="authStore.isAuthenticated() && !isOnboardingVisible" @click="handleNewLog" />
+    <FloatingActionButton v-if="authStore.isAuthenticated() && !isOnboardingVisible && $route.path !== '/erfassen'" @click="handleNewLog" />
 
     <!-- Log Form Modal (Desktop only) -->
     <LogFormModal v-if="showLogFormModal && authStore.isAuthenticated()" @close="showLogFormModal = false" />
