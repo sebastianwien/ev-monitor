@@ -14,26 +14,34 @@ public class CoinLog {
     private final CoinType coinType;
     private final Integer amount;
     private final String actionDescription; // Human-readable description of what triggered the reward
+    private final UUID sourceEntityId;      // Optional: EvLog ID that triggered this award (for deletion deduction)
     private final LocalDateTime createdAt;
 
     public CoinLog(UUID id, UUID userId, CoinType coinType, Integer amount,
-                   String actionDescription, LocalDateTime createdAt) {
+                   String actionDescription, UUID sourceEntityId, LocalDateTime createdAt) {
         this.id = id;
         this.userId = userId;
         this.coinType = coinType;
         this.amount = amount;
         this.actionDescription = actionDescription;
+        this.sourceEntityId = sourceEntityId;
         this.createdAt = createdAt;
     }
 
     public static CoinLog createNew(UUID userId, CoinType coinType, Integer amount,
                                      String actionDescription) {
+        return createNew(userId, coinType, amount, actionDescription, null);
+    }
+
+    public static CoinLog createNew(UUID userId, CoinType coinType, Integer amount,
+                                     String actionDescription, UUID sourceEntityId) {
         return new CoinLog(
                 UUID.randomUUID(),
                 userId,
                 coinType,
                 amount,
                 actionDescription,
+                sourceEntityId,
                 LocalDateTime.now()
         );
     }
@@ -56,6 +64,10 @@ public class CoinLog {
 
     public String getActionDescription() {
         return actionDescription;
+    }
+
+    public UUID getSourceEntityId() {
+        return sourceEntityId;
     }
 
     public LocalDateTime getCreatedAt() {

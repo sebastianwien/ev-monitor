@@ -26,6 +26,9 @@ public class CoinLogEntity {
     @Column(name = "action_description", length = 500)
     private String actionDescription;
 
+    @Column(name = "source_entity_id")
+    private UUID sourceEntityId;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -33,12 +36,13 @@ public class CoinLogEntity {
     }
 
     public CoinLogEntity(UUID id, UUID userId, CoinType coinType, Integer amount,
-                         String actionDescription, LocalDateTime createdAt) {
+                         String actionDescription, UUID sourceEntityId, LocalDateTime createdAt) {
         this.id = id;
         this.userId = userId;
         this.coinType = coinType;
         this.amount = amount;
         this.actionDescription = actionDescription;
+        this.sourceEntityId = sourceEntityId;
         this.createdAt = createdAt;
     }
 
@@ -80,6 +84,14 @@ public class CoinLogEntity {
 
     public void setActionDescription(String actionDescription) {
         this.actionDescription = actionDescription;
+    }
+
+    public UUID getSourceEntityId() {
+        return sourceEntityId;
+    }
+
+    public void setSourceEntityId(UUID sourceEntityId) {
+        this.sourceEntityId = sourceEntityId;
     }
 
     public LocalDateTime getCreatedAt() {

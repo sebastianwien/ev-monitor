@@ -255,6 +255,48 @@ class CarImageControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     // -------------------------------------------------------------------------
+    // Coin idempotency
+    // -------------------------------------------------------------------------
+
+    @Test
+    void upload_doesNotAwardImageUploadedCoins_OnSecondUpload() throws IOException {
+        // First upload — awards IMAGE_UPLOADED (15)
+        HttpEntity<MultiValueMap<String, Object>> first = buildUploadRequest(owner, createMinimalJpeg(), "image/jpeg", false);
+        restTemplate.exchange("/api/cars/" + ownerCar.getId() + "/image?isPublic=false",
+                HttpMethod.POST, first, CarImageResponse.class);
+
+        // Second upload — IMAGE_UPLOADED already claimed, must return 0
+        HttpEntity<MultiValueMap<String, Object>> second = buildUploadRequest(owner, createMinimalJpeg(), "image/jpeg", false);
+        ResponseEntity<CarImageResponse> response = restTemplate.exchange(
+                "/api/cars/" + ownerCar.getId() + "/image?isPublic=false",
+                HttpMethod.POST, second, CarImageResponse.class);
+
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(0, response.getBody().coinsAwarded(), "Second upload must award 0 coins (IMAGE_UPLOADED already claimed)");
+    }
+
+    @Test
+    void patchVisibility_doesNotAwardImagePublicCoins_WhenAlreadyClaimed() throws IOException {
+        // Upload as private, then PATCH to public → awards IMAGE_PUBLIC (10)
+        uploadImage(owner, ownerCar, false);
+
+        HttpEntity<Void> firstPatch = createAuthRequest(owner.getId(), owner.getEmail());
+        restTemplate.exchange("/api/cars/" + ownerCar.getId() + "/image?isPublic=true",
+                HttpMethod.PATCH, firstPatch, CarImageResponse.class);
+
+        // Second PATCH to public → IMAGE_PUBLIC already claimed, must return 0
+        HttpEntity<Void> secondPatch = createAuthRequest(owner.getId(), owner.getEmail());
+        ResponseEntity<CarImageResponse> response = restTemplate.exchange(
+                "/api/cars/" + ownerCar.getId() + "/image?isPublic=true",
+                HttpMethod.PATCH, secondPatch, CarImageResponse.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(0, response.getBody().coinsAwarded(), "Second public PATCH must award 0 coins (IMAGE_PUBLIC already claimed)");
+    }
+
+    // -------------------------------------------------------------------------
     // DELETE image
     // -------------------------------------------------------------------------
 

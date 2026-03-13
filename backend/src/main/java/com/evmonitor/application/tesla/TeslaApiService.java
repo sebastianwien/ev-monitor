@@ -1,6 +1,7 @@
 package com.evmonitor.application.tesla;
 
 import ch.hsr.geohash.GeoHash;
+import com.evmonitor.application.CoinLogService;
 import com.evmonitor.domain.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +31,7 @@ public class TeslaApiService {
     private final TeslaConnectionRepository teslaConnectionRepository;
     private final EvLogRepository evLogRepository;
     private final CarRepository carRepository;
+    private final CoinLogService coinLogService;
     private final RestTemplate restTemplate = new RestTemplate();
 
     @Value("${tesla.encryption.key:change-this-32-char-secret-key!!}")
@@ -66,7 +68,12 @@ public class TeslaApiService {
             .autoImportEnabled(false)
             .build();
 
-        return teslaConnectionRepository.save(connection);
+        TeslaConnection saved = teslaConnectionRepository.save(connection);
+
+        // One-time bonus for first Tesla connection (idempotency enforced by awardCoinsForEvent)
+        coinLogService.awardCoinsForEvent(userId, CoinLogService.CoinEvent.TESLA_CONNECTED, null);
+
+        return saved;
     }
 
     /**

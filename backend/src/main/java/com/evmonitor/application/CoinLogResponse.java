@@ -12,6 +12,7 @@ public record CoinLogResponse(
         CoinType coinType,
         Integer amount,
         String actionDescription,
+        UUID sourceEntityId,
         LocalDateTime createdAt
 ) {
     public static CoinLogResponse fromDomain(CoinLog coinLog) {
@@ -21,6 +22,7 @@ public record CoinLogResponse(
                 coinLog.getCoinType(),
                 coinLog.getAmount(),
                 coinLog.getActionDescription(),
+                coinLog.getSourceEntityId(),
                 coinLog.getCreatedAt()
         );
     }

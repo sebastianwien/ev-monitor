@@ -5,7 +5,6 @@ import com.evmonitor.application.CoinLogService;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.ChargingType;
-import com.evmonitor.domain.CoinType;
 import com.evmonitor.domain.DataSource;
 import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.EvLogRepository;
@@ -33,7 +32,6 @@ public class SpritMonitorImportService {
 
     public static final DateTimeFormatter DD_MM_YYYY = DateTimeFormatter.ofPattern("dd.MM.yyyy");
     private static final DataSource DATA_SOURCE = DataSource.SPRITMONITOR_IMPORT;
-    private static final int IMPORT_COINS = 50;
 
     private final SpritMonitorClient client;
     private final EvLogRepository evLogRepository;
@@ -131,8 +129,12 @@ public class SpritMonitorImportService {
                     }
 
                     EvLog evLog = convertToEvLog(fueling, evMonitorCarId, loggedAt);
-                    evLogRepository.save(evLog);
+                    EvLog savedLog = evLogRepository.save(evLog);
                     result.incrementImported();
+
+                    // Award 2 coins per imported log, linked to the log for deletion deduction
+                    coinLogService.awardCoinsForEvent(userId, CoinLogService.CoinEvent.SPRITMONITOR_LOG, savedLog.getId());
+                    result.addCoinsAwarded(CoinLogService.CoinEvent.SPRITMONITOR_LOG.getDefaultAmount());
                 } catch (Exception e) {
                     log.error("Failed to import fueling from " + fueling.date() + ": " + e.getMessage(), e);
                     result.addError("Failed to import fueling from " + fueling.date() + ": " + e.getMessage());
@@ -145,12 +147,9 @@ public class SpritMonitorImportService {
             return result;
         }
 
-        // Award one-time 50 Watt for first-ever Sprit-Monitor import
-        if (result.getImported() > 0
-                && !coinLogService.hasEverReceivedCoinForAction(userId, CoinLogService.ACTION_SPRITMONITOR_IMPORTED)) {
-            coinLogService.awardCoins(userId, CoinType.ACHIEVEMENT_COIN, IMPORT_COINS,
-                    CoinLogService.ACTION_SPRITMONITOR_IMPORTED);
-            result.addCoinsAwarded(IMPORT_COINS);
+        // Award one-time bonus for first-ever Sprit-Monitor import (idempotency enforced by awardCoinsForEvent)
+        if (result.getImported() > 0) {
+            result.addCoinsAwarded(coinLogService.awardCoinsForEvent(userId, CoinLogService.CoinEvent.SPRITMONITOR_CONNECTED, null));
         }
 
         return result;

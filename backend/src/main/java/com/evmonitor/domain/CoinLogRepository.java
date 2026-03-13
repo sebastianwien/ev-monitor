@@ -28,4 +28,11 @@ public interface CoinLogRepository {
     Integer getTotalCoinsByUserIdAndCoinType(UUID userId, CoinType coinType);
 
     Integer getTotalCoinsByUserIdSince(UUID userId, LocalDateTime since);
+
+    /**
+     * Returns the sum of all coin amounts linked to a specific source entity (e.g. an EvLog ID).
+     * Used to calculate how many coins to deduct when a log is deleted.
+     * Returns 0 if no coin entries exist for the given sourceEntityId.
+     */
+    int sumCoinsForSourceEntity(UUID sourceEntityId);
 }

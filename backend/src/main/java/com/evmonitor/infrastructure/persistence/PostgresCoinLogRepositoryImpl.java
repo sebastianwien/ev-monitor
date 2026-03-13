@@ -66,6 +66,11 @@ public class PostgresCoinLogRepositoryImpl implements CoinLogRepository {
         return jpaRepository.getTotalCoinsByUserIdSince(userId, since);
     }
 
+    @Override
+    public int sumCoinsForSourceEntity(UUID sourceEntityId) {
+        return jpaRepository.sumAmountBySourceEntityId(sourceEntityId);
+    }
+
     private CoinLogEntity toEntity(CoinLog domain) {
         return new CoinLogEntity(
                 domain.getId(),
@@ -73,6 +78,7 @@ public class PostgresCoinLogRepositoryImpl implements CoinLogRepository {
                 domain.getCoinType(),
                 domain.getAmount(),
                 domain.getActionDescription(),
+                domain.getSourceEntityId(),
                 domain.getCreatedAt()
         );
     }
@@ -84,6 +90,7 @@ public class PostgresCoinLogRepositoryImpl implements CoinLogRepository {
                 entity.getCoinType(),
                 entity.getAmount(),
                 entity.getActionDescription(),
+                entity.getSourceEntityId(),
                 entity.getCreatedAt()
         );
     }

@@ -23,7 +23,6 @@ import java.util.regex.Pattern;
 public class TeslaLoggerImportService {
 
     private static final DataSource DATA_SOURCE = DataSource.TESLA_LOGGER_IMPORT;
-    private static final int IMPORT_COINS = 50;
 
     /**
      * Ordered list of date formats to try — most specific first.
@@ -85,24 +84,22 @@ public class TeslaLoggerImportService {
         for (int i = 0; i < rows.size(); i++) {
             int rowNum = i + 2; // 1-based + header row
             try {
-                processRow(rows.get(i), carId, rowNum, result);
+                processRow(rows.get(i), userId, carId, rowNum, result);
             } catch (Exception e) {
                 log.error("Row {}: import failed — {}", rowNum, e.getMessage());
                 result.addError("Zeile " + rowNum + ": " + e.getMessage());
             }
         }
 
-        if (result.getImported() > 0
-                && !coinLogService.hasEverReceivedCoinForAction(userId, CoinLogService.ACTION_TESLA_LOGGER_IMPORTED)) {
-            coinLogService.awardCoins(userId, CoinType.ACHIEVEMENT_COIN, IMPORT_COINS,
-                    CoinLogService.ACTION_TESLA_LOGGER_IMPORTED);
-            result.addCoinsAwarded(IMPORT_COINS);
+        // One-time bonus for first-ever TeslaLogger import (idempotency enforced by awardCoinsForEvent)
+        if (result.getImported() > 0) {
+            result.addCoinsAwarded(coinLogService.awardCoinsForEvent(userId, CoinLogService.CoinEvent.TESLA_LOGGER_CONNECTED, null));
         }
 
         return result;
     }
 
-    private void processRow(Map<String, String> row, UUID carId, int rowNum, ImportResult result) {
+    private void processRow(Map<String, String> row, UUID userId, UUID carId, int rowNum, ImportResult result) {
         String rawDate = get(row, "date");
         String rawOdometer = get(row, "odometer_km");
         String rawKwh = get(row, "kwh");
@@ -154,11 +151,15 @@ public class TeslaLoggerImportService {
             return;
         }
 
-        evLogRepository.save(EvLog.createNewWithSource(
+        EvLog savedLog = evLogRepository.save(EvLog.createNewWithSource(
                 carId, kwh, costEur, durationMin, geohash, odometerRaw.intValue(),
                 null, socForLog, loggedAt, DATA_SOURCE, com.evmonitor.domain.ChargingType.UNKNOWN, null
         ));
         result.incrementImported();
+
+        // Award 2 coins per imported log, linked for deletion deduction
+        coinLogService.awardCoinsForEvent(userId, CoinLogService.CoinEvent.TESLA_HISTORY_LOG, savedLog.getId());
+        result.addCoinsAwarded(CoinLogService.CoinEvent.TESLA_HISTORY_LOG.getDefaultAmount());
     }
 
     // --- Parsers (package-private for tests) ---

@@ -18,7 +18,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
@@ -65,8 +65,10 @@ class CarServiceTest {
 
         when(carRepository.save(any(Car.class))).thenAnswer(invocation -> invocation.getArgument(0));
         // Simulate: user has never received a car-creation coin before → first-time bonus
-        when(coinLogService.hasEverReceivedCoinForAction(userId, CoinLogService.ACTION_CAR_CREATED))
+        when(coinLogService.hasEverReceivedCoinForAction(userId, CoinLogService.CoinEvent.CAR_CREATED_FIRST.getDescription()))
                 .thenReturn(false);
+        when(coinLogService.awardCoinsForEvent(eq(userId), eq(CoinLogService.CoinEvent.CAR_CREATED_FIRST), isNull()))
+                .thenReturn(CoinLogService.CoinEvent.CAR_CREATED_FIRST.getDefaultAmount());
 
         // When
         CarCreateResponse response = carService.createCar(userId, request);

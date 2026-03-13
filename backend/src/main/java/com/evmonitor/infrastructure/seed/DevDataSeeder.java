@@ -113,16 +113,16 @@ public class DevDataSeeder implements CommandLineRunner {
         LocalDateTime firstCharge = chargingTimes.get(0);
 
         // Car creation coins — happened a few days before the user's first charge
-        awardCoinAt(userId, CoinType.ACHIEVEMENT_COIN, 20,
-                CoinLogService.ACTION_CAR_CREATED, firstCharge.minusDays(3));
-        awardCoinAt(userId, CoinType.ACHIEVEMENT_COIN, 5,
-                CoinLogService.ACTION_CAR_CREATED, firstCharge.minusDays(1));
+        awardCoinAt(userId, CoinType.ACHIEVEMENT_COIN, CoinLogService.CoinEvent.CAR_CREATED_FIRST.getDefaultAmount(),
+                CoinLogService.CoinEvent.CAR_CREATED_FIRST.getDescription(), firstCharge.minusDays(3));
+        awardCoinAt(userId, CoinType.ACHIEVEMENT_COIN, CoinLogService.CoinEvent.CAR_CREATED_SUBSEQUENT.getDefaultAmount(),
+                CoinLogService.CoinEvent.CAR_CREATED_SUBSEQUENT.getDescription(), firstCharge.minusDays(1));
 
         // One coin entry per charging session
         for (int i = 0; i < chargingTimes.size(); i++) {
-            int coins = (i == 0) ? 25 : 5;
-            awardCoinAt(userId, CoinType.ACHIEVEMENT_COIN, coins,
-                    CoinLogService.ACTION_LOG_CREATED, chargingTimes.get(i).plusMinutes(5));
+            CoinLogService.CoinEvent logEvent = (i == 0) ? CoinLogService.CoinEvent.MANUAL_LOG_FIRST : CoinLogService.CoinEvent.MANUAL_LOG_SUBSEQUENT;
+            awardCoinAt(userId, CoinType.ACHIEVEMENT_COIN, logEvent.getDefaultAmount(),
+                    logEvent.getDescription(), chargingTimes.get(i).plusMinutes(5));
         }
 
         // WLTP community contribution — roughly 3 months into usage
@@ -132,7 +132,7 @@ public class DevDataSeeder implements CommandLineRunner {
 
     private void awardCoinAt(UUID userId, CoinType coinType, int amount,
                               String actionDescription, LocalDateTime at) {
-        CoinLog log = new CoinLog(UUID.randomUUID(), userId, coinType, amount, actionDescription, at);
+        CoinLog log = new CoinLog(UUID.randomUUID(), userId, coinType, amount, actionDescription, null, at);
         coinLogRepository.save(log);
     }
 

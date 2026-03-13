@@ -1,6 +1,5 @@
 package com.evmonitor.application;
 
-import com.evmonitor.domain.CoinType;
 import com.evmonitor.domain.EmailVerificationToken;
 import com.evmonitor.domain.EmailVerificationTokenRepository;
 import com.evmonitor.domain.PasswordResetToken;
@@ -122,9 +121,9 @@ public class AuthService {
         if (user.getReferredByUserId() != null) {
             long referralCount = userRepository.countVerifiedReferrals(user.getReferredByUserId());
             if (referralCount <= MAX_REFERRALS) {
-                coinLogService.awardCoins(user.getReferredByUserId(), CoinType.SOCIAL_COIN, 100, CoinLogService.ACTION_REFERRAL_INVITED);
+                coinLogService.awardCoinsForEvent(user.getReferredByUserId(), CoinLogService.CoinEvent.REFERRAL_INVITED, null);
             }
-            coinLogService.awardCoins(user.getId(), CoinType.SOCIAL_COIN, 25, CoinLogService.ACTION_REFERRAL_WELCOME);
+            coinLogService.awardCoinsForEvent(user.getId(), CoinLogService.CoinEvent.REFERRAL_WELCOME, null);
         }
 
         String jwtToken = jwtService.generateToken(UserPrincipal.create(user));

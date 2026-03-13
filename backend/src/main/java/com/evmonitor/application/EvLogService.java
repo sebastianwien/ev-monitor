@@ -81,19 +81,27 @@ public class EvLogService {
         // Async: enrich with temperature from Open-Meteo (fire-and-forget, nullable result)
         temperatureEnrichmentService.enrichLog(savedLog.getId(), savedLog.getGeohash(), savedLog.getLoggedAt());
 
-        // Award coins: 25 for first log ever, 5 for each subsequent one; +2 if OCR was used.
-        // Check coin history instead of current log count to prevent delete-and-recreate farming.
+        // Award coins for this log entry. CoinEvent determines first vs. subsequent, with optional OCR bonus.
+        // First-time detection is via coin history (immutable), not log count — prevents delete-and-recreate farming.
         // NOTE: ocrUsed is client-supplied and not server-verifiable — the +2 bonus is accepted risk
         // (low value, requires conscious manipulation, not worth server-side OCR session tracking).
-        boolean firstLogEver = !coinLogService.hasEverReceivedCoinForAction(
-                userId, CoinLogService.ACTION_LOG_CREATED);
-        int coins = firstLogEver ? 25 : 5;
+        CoinLogService.CoinEvent coinEvent;
         if (Boolean.TRUE.equals(request.ocrUsed())) {
-            coins += 2;
+            boolean firstOcrEver = !coinLogService.hasEverReceivedCoinForAction(
+                    userId, CoinLogService.CoinEvent.MANUAL_LOG_FIRST_OCR.getDescription());
+            coinEvent = firstOcrEver
+                    ? CoinLogService.CoinEvent.MANUAL_LOG_FIRST_OCR
+                    : CoinLogService.CoinEvent.MANUAL_LOG_OCR;
+        } else {
+            boolean firstLogEver = !coinLogService.hasEverReceivedCoinForAction(
+                    userId, CoinLogService.CoinEvent.MANUAL_LOG_FIRST.getDescription());
+            coinEvent = firstLogEver
+                    ? CoinLogService.CoinEvent.MANUAL_LOG_FIRST
+                    : CoinLogService.CoinEvent.MANUAL_LOG_SUBSEQUENT;
         }
-        coinLogService.awardCoins(userId, CoinType.ACHIEVEMENT_COIN, coins, CoinLogService.ACTION_LOG_CREATED);
+        int coinsAwarded = coinLogService.awardCoinsForEvent(userId, coinEvent, savedLog.getId());
 
-        return new EvLogCreateResponse(EvLogResponse.fromDomain(savedLog), coins);
+        return new EvLogCreateResponse(EvLogResponse.fromDomain(savedLog), coinsAwarded);
     }
 
     /**
@@ -131,6 +139,13 @@ public class EvLogService {
                 request.costEur());
 
         EvLog savedLog = evLogRepository.save(newLog);
+
+        // Award per-log coins for Tesla Fleet/Home sync (daily auto-import via ev-monitor-connectors).
+        // go-eCharger and plain OCPP wallbox coins are TBD and intentionally not awarded here yet.
+        if (source == DataSource.TESLA_FLEET || source == DataSource.TESLA_HOME) {
+            coinLogService.awardCoinsForEvent(request.userId(), CoinLogService.CoinEvent.TESLA_DAILY_LOG, savedLog.getId());
+        }
+
         return EvLogResponse.fromDomain(savedLog);
     }
 
@@ -208,6 +223,7 @@ public class EvLogService {
         return EvLogResponse.fromDomain(evLogRepository.save(updated));
     }
 
+    @Transactional
     public void deleteLog(UUID id, UUID userId) {
         EvLog log = evLogRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Log not found with ID: " + id));
@@ -217,6 +233,14 @@ public class EvLogService {
 
         if (!car.getUserId().equals(userId)) {
             throw new IllegalArgumentException("Log not found for current user (ownership mismatch).");
+        }
+
+        // Deduct coins that were awarded for this log (identified via source_entity_id).
+        // Only deduct if coins were actually awarded — prevents creating negative phantom entries.
+        int coinSum = coinLogService.sumCoinsForSourceEntity(id);
+        if (coinSum > 0) {
+            coinLogService.awardCoins(userId, CoinType.ACHIEVEMENT_COIN, -coinSum,
+                    CoinLogService.CoinEvent.LOG_DELETED_DEDUCTION.getDescription(), id);
         }
 
         evLogRepository.deleteById(id);

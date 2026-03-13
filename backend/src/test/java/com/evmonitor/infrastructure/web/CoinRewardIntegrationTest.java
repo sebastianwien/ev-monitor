@@ -7,8 +7,10 @@ import com.evmonitor.application.EvLogCreateResponse;
 import com.evmonitor.application.EvLogRequest;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarBrand;
+import com.evmonitor.domain.ChargingType;
 import com.evmonitor.domain.CoinLog;
 import com.evmonitor.domain.CoinType;
+import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.User;
 import com.evmonitor.testutil.AbstractIntegrationTest;
 import org.junit.jupiter.api.BeforeEach;
@@ -169,18 +171,33 @@ class CoinRewardIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void shouldAward2BonusCoins_WhenOcrUsed_OnSubsequentLog() {
-        // Given: User has a car and an existing log
+    void shouldAward27Coins_WhenOcrUsed_AsFirstOcrLog_AfterNonOcrLog() {
+        // Given: User already has a non-OCR log (25 coins)
         Car car = createAndSaveCar(userId, CarBrand.CarModel.MODEL_3);
-        createLogViaApi(car.getId(), false); // first log, no OCR
+        createLogViaApi(car.getId(), false); // first log, no OCR → 25 coins
 
-        // When: Second log uses OCR
+        // When: Next log uses OCR — but it's the FIRST OCR log ever → MANUAL_LOG_FIRST_OCR
         ResponseEntity<EvLogCreateResponse> response = createLogViaApi(car.getId(), true);
 
-        // Then: 5 base coins + 2 OCR bonus = 7 total
+        // Then: OCR events are independent from non-OCR: first OCR log always gets 27
+        assertNotNull(response.getBody());
+        assertEquals(27, response.getBody().coinsAwarded(),
+                "First log with OCR must award 27 coins regardless of prior non-OCR logs");
+    }
+
+    @Test
+    void shouldAward7Coins_WhenOcrUsed_OnSubsequentOcrLog() {
+        // Given: User already has an OCR log (27 coins)
+        Car car = createAndSaveCar(userId, CarBrand.CarModel.MODEL_3);
+        createLogViaApi(car.getId(), true); // first OCR log → 27 coins
+
+        // When: Second log also uses OCR → MANUAL_LOG_OCR
+        ResponseEntity<EvLogCreateResponse> response = createLogViaApi(car.getId(), true);
+
+        // Then: Subsequent OCR logs get 7 coins
         assertNotNull(response.getBody());
         assertEquals(7, response.getBody().coinsAwarded(),
-                "Subsequent log with OCR must award 5 + 2 = 7 coins");
+                "Subsequent OCR logs must award 7 coins");
     }
 
     @Test
@@ -232,6 +249,129 @@ class CoinRewardIntegrationTest extends AbstractIntegrationTest {
         assertNotNull(secondLog.getBody());
         assertEquals(5, secondLog.getBody().coinsAwarded(),
                 "Second log (on different car) must award only 5 coins");
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // sourceEntityId — coin log is linked to the EvLog that triggered it
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Test
+    void shouldPersistSourceEntityId_WhenChargingLogCreated() {
+        // Given: User has a car
+        Car car = createAndSaveCar(userId, CarBrand.CarModel.MODEL_3);
+
+        // When: User logs a charging session
+        ResponseEntity<EvLogCreateResponse> response = createLogViaApi(car.getId(), false);
+        assertNotNull(response.getBody());
+        UUID logId = response.getBody().log().id();
+
+        // Then: The coin log entry links back to the EvLog via sourceEntityId
+        List<CoinLog> logs = coinLogRepository.findAllByUserId(userId);
+        assertEquals(1, logs.size());
+        assertEquals(logId, logs.get(0).getSourceEntityId(),
+                "Coin log must have sourceEntityId pointing to the created EvLog");
+    }
+
+    @Test
+    void sumCoinsForSourceEntity_returnsCorrectSum_FromDatabase() {
+        // Given: User has a car and creates a log (awards 25 coins)
+        Car car = createAndSaveCar(userId, CarBrand.CarModel.MODEL_3);
+        ResponseEntity<EvLogCreateResponse> response = createLogViaApi(car.getId(), false);
+        assertNotNull(response.getBody());
+        UUID logId = response.getBody().log().id();
+
+        // When: sum is queried directly via repository
+        int sum = coinLogRepository.sumCoinsForSourceEntity(logId);
+
+        // Then: sum matches what was awarded
+        assertEquals(25, sum, "sumCoinsForSourceEntity must return sum of all coins linked to this log");
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Coin deduction on log deletion
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Test
+    void shouldDeductCoins_WhenChargingLogDeleted() {
+        // Given: User creates a first log (25 coins awarded)
+        Car car = createAndSaveCar(userId, CarBrand.CarModel.MODEL_3);
+        ResponseEntity<EvLogCreateResponse> logResponse = createLogViaApi(car.getId(), false);
+        assertNotNull(logResponse.getBody());
+        UUID logId = logResponse.getBody().log().id();
+        assertEquals(25, fetchBalance(), "Pre-condition: 25 coins before deletion");
+
+        // When: Log is deleted via API
+        HttpEntity<Void> auth = createAuthRequest(userId, testUser.getEmail());
+        restTemplate.exchange("/api/logs/" + logId, HttpMethod.DELETE, auth, Void.class);
+
+        // Then: Balance is back to 0 (25 awarded, 25 deducted)
+        assertEquals(0, fetchBalance(),
+                "Deleting a log must deduct the coins that were awarded for it");
+    }
+
+    @Test
+    void shouldDeductCorrectAmount_ForSubsequentLogDeletion() {
+        // Given: First log (25 coins) + second log (5 coins)
+        Car car = createAndSaveCar(userId, CarBrand.CarModel.MODEL_3);
+        createLogViaApi(car.getId(), false); // first: 25 coins
+        ResponseEntity<EvLogCreateResponse> secondResponse = createLogViaApi(car.getId(), false);
+        assertNotNull(secondResponse.getBody());
+        UUID secondLogId = secondResponse.getBody().log().id();
+        assertEquals(30, fetchBalance(), "Pre-condition: 30 coins (25+5) before deletion");
+
+        // When: Second log is deleted
+        HttpEntity<Void> auth = createAuthRequest(userId, testUser.getEmail());
+        restTemplate.exchange("/api/logs/" + secondLogId, HttpMethod.DELETE, auth, Void.class);
+
+        // Then: 5 coins deducted, 25 remain
+        assertEquals(25, fetchBalance(),
+                "Deleting the second log must deduct exactly 5 coins");
+    }
+
+    @Test
+    void shouldCreateNegativeCoinLogEntry_WhenLogDeleted() {
+        // Given: User creates a first log (25 coins)
+        Car car = createAndSaveCar(userId, CarBrand.CarModel.MODEL_3);
+        ResponseEntity<EvLogCreateResponse> logResponse = createLogViaApi(car.getId(), false);
+        assertNotNull(logResponse.getBody());
+        UUID logId = logResponse.getBody().log().id();
+
+        // When: Log is deleted
+        HttpEntity<Void> auth = createAuthRequest(userId, testUser.getEmail());
+        restTemplate.exchange("/api/logs/" + logId, HttpMethod.DELETE, auth, Void.class);
+
+        // Then: Coin history contains both the award (+25) and the deduction (-25)
+        List<CoinLog> allLogs = coinLogRepository.findAllByUserId(userId);
+        assertEquals(2, allLogs.size(), "Coin history must have award + deduction entry");
+        int totalAmount = allLogs.stream().mapToInt(CoinLog::getAmount).sum();
+        assertEquals(0, totalAmount, "Net coins after award + deduction must be 0");
+
+        // And the deduction entry has negative amount and same sourceEntityId
+        CoinLog deduction = allLogs.stream().filter(l -> l.getAmount() < 0).findFirst().orElseThrow();
+        assertEquals(-25, deduction.getAmount());
+        assertEquals("Ladevorgang gelöscht", deduction.getActionDescription());
+        assertEquals(logId, deduction.getSourceEntityId());
+    }
+
+    @Test
+    void shouldNotCreateDeductionEntry_WhenLogHasNoCoinHistory() {
+        // Given: A log that was saved directly (bypassing the service, simulating pre-feature data)
+        Car car = createAndSaveCar(userId, CarBrand.CarModel.MODEL_3);
+        // Save log directly without going through the API (= no coins awarded = no sourceEntityId)
+        EvLog rawLog = EvLog.createNew(
+                car.getId(), new BigDecimal("30"), new BigDecimal("7.50"),
+                45, null, 10000, null, 80, LocalDateTime.now().minusDays(1),
+                ChargingType.AC);
+        EvLog saved = evLogRepository.save(rawLog);
+
+        // When: Log is deleted via API
+        HttpEntity<Void> auth = createAuthRequest(userId, testUser.getEmail());
+        restTemplate.exchange("/api/logs/" + saved.getId(), HttpMethod.DELETE, auth, Void.class);
+
+        // Then: No deduction entry — coin_log remains empty
+        List<CoinLog> logs = coinLogRepository.findAllByUserId(userId);
+        assertEquals(0, logs.size(),
+                "No deduction entry must be created when log had no coins awarded");
     }
 
     // ─────────────────────────────────────────────────────────────────────────

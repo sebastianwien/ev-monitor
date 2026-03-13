@@ -25,4 +25,7 @@ public interface JpaCoinLogRepository extends JpaRepository<CoinLogEntity, UUID>
 
     @Query("SELECT COALESCE(SUM(c.amount), 0) FROM CoinLogEntity c WHERE c.userId = :userId AND c.createdAt >= :since")
     Integer getTotalCoinsByUserIdSince(@Param("userId") UUID userId, @Param("since") LocalDateTime since);
+
+    @Query("SELECT COALESCE(SUM(c.amount), 0) FROM CoinLogEntity c WHERE c.sourceEntityId = :sourceEntityId")
+    int sumAmountBySourceEntityId(@Param("sourceEntityId") UUID sourceEntityId);
 }

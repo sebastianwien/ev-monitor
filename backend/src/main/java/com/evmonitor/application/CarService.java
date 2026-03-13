@@ -2,7 +2,6 @@ package com.evmonitor.application;
 
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarRepository;
-import com.evmonitor.domain.CoinType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -40,11 +39,13 @@ public class CarService {
         // Award coins: 20 for first car ever, 5 for each subsequent one.
         // Check coin history instead of current car count to prevent delete-and-recreate farming.
         boolean firstCarEver = !coinLogService.hasEverReceivedCoinForAction(
-                userId, CoinLogService.ACTION_CAR_CREATED);
-        int coins = firstCarEver ? 20 : 5;
-        coinLogService.awardCoins(userId, CoinType.ACHIEVEMENT_COIN, coins, CoinLogService.ACTION_CAR_CREATED);
+                userId, CoinLogService.CoinEvent.CAR_CREATED_FIRST.getDescription());
+        CoinLogService.CoinEvent carEvent = firstCarEver
+                ? CoinLogService.CoinEvent.CAR_CREATED_FIRST
+                : CoinLogService.CoinEvent.CAR_CREATED_SUBSEQUENT;
+        int coinsAwarded = coinLogService.awardCoinsForEvent(userId, carEvent, null);
 
-        return new CarCreateResponse(CarResponse.fromDomain(savedCar), coins);
+        return new CarCreateResponse(CarResponse.fromDomain(savedCar), coinsAwarded);
     }
 
     public List<CarResponse> getCarsForUser(UUID userId) {
@@ -145,12 +146,10 @@ public class CarService {
         }
         Car saved = carRepository.save(car.withImage(car.getImagePath(), isPublic));
 
-        // Award public-image bonus (once ever, regardless of upload path)
-        int coinsAwarded = 0;
-        if (isPublic && !coinLogService.hasEverReceivedCoinForAction(userId, CoinLogService.ACTION_IMAGE_PUBLIC)) {
-            coinLogService.awardCoins(userId, CoinType.ACHIEVEMENT_COIN, 10, CoinLogService.ACTION_IMAGE_PUBLIC);
-            coinsAwarded = 10;
-        }
+        // Award public-image bonus (once ever — awardCoinsForEvent enforces idempotency)
+        int coinsAwarded = isPublic
+                ? coinLogService.awardCoinsForEvent(userId, CoinLogService.CoinEvent.IMAGE_PUBLIC, null)
+                : 0;
         return new CarImageResponse(CarResponse.fromDomain(saved), coinsAwarded);
     }
 
@@ -166,16 +165,11 @@ public class CarService {
         String imagePath = carImageService.uploadImage(carId, file);
         Car saved = carRepository.save(car.withImage(imagePath, isPublic));
 
-        // Award first-ever image upload bonus
-        int coinsAwarded = 0;
-        if (!coinLogService.hasEverReceivedCoinForAction(userId, CoinLogService.ACTION_IMAGE_UPLOADED)) {
-            coinLogService.awardCoins(userId, CoinType.ACHIEVEMENT_COIN, 15, CoinLogService.ACTION_IMAGE_UPLOADED);
-            coinsAwarded += 15;
-        }
-        // Award public-image bonus (once ever, regardless of upload path)
-        if (isPublic && !coinLogService.hasEverReceivedCoinForAction(userId, CoinLogService.ACTION_IMAGE_PUBLIC)) {
-            coinLogService.awardCoins(userId, CoinType.ACHIEVEMENT_COIN, 10, CoinLogService.ACTION_IMAGE_PUBLIC);
-            coinsAwarded += 10;
+        // Award first-ever image upload bonus and optional public-image bonus
+        // (both are one-time — awardCoinsForEvent enforces idempotency automatically)
+        int coinsAwarded = coinLogService.awardCoinsForEvent(userId, CoinLogService.CoinEvent.IMAGE_UPLOADED, null);
+        if (isPublic) {
+            coinsAwarded += coinLogService.awardCoinsForEvent(userId, CoinLogService.CoinEvent.IMAGE_PUBLIC, null);
         }
         return new CarImageResponse(CarResponse.fromDomain(saved), coinsAwarded);
     }
