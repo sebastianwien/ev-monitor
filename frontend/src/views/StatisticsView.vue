@@ -43,6 +43,7 @@ import LicensePlate from '../components/LicensePlate.vue'
 import { useTeslaStatus } from '../composables/useTeslaStatus'
 import ChargingHeatMap from '../components/ChargingHeatMap.vue'
 import { vehicleSpecificationService, type VehicleSpecification } from '../api/vehicleSpecificationService'
+import RewardSystemUpdateBanner from '../components/RewardSystemUpdateBanner.vue'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend, Filler, ChartDataLabels)
 
@@ -551,6 +552,7 @@ const deleteLog = async (id: string) => {
 
 <template>
   <div class="md:max-w-6xl md:mx-auto md:p-6">
+    <RewardSystemUpdateBanner class="mb-4" />
     <Transition name="fade" mode="out-in">
       <div v-if="!loading">
         <div class="bg-white md:rounded-xl md:shadow-lg p-4 md:p-6">
