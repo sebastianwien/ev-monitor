@@ -68,6 +68,7 @@ management:
         include: "health"
   endpoint:
     health:
+      enabled: true
       show-details: never
   metrics:
     web:
