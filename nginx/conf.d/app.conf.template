@@ -57,13 +57,6 @@ server {
     # Proxy Connectors Service (Tesla Fleet + go-eCharger Cloud)
     # Must appear before the generic /api/ block to take precedence
 
-    location = /api/connectors/health {
-        proxy_pass http://connectors-service:8081/actuator/health;
-        proxy_set_header Host $http_host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_http_version 1.1;
-    }
-
     location /api/tesla/ {
         proxy_pass http://connectors-service:8081/api/tesla/;
         proxy_set_header Host $http_host;

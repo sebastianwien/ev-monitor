@@ -78,7 +78,7 @@ jobs:
           script: |
             echo "⏳ Waiting for backend to become healthy (max 3 minutes)..."
             for i in $(seq 1 18); do
-              if curl -sf http://localhost:8080/actuator/health > /dev/null 2>&1; then
+              if docker compose -f /opt/ev-monitor/ev-monitor/docker-compose.yml exec -T backend curl -sf http://localhost:8080/actuator/health > /dev/null 2>&1; then
                 echo "✅ Backend healthy after $((i*10)) seconds"
                 exit 0
               fi
