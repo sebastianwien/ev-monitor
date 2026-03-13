@@ -59,6 +59,9 @@
                 {{ stats.logCount > 0 ? stats.logCount.toLocaleString('de-DE') : '–' }}
               </div>
               <div class="text-sm text-green-600 mt-1">Ladevorgänge</div>
+              <div v-if="stats.estimatedConsumptionCount > 0" class="text-xs text-green-500 mt-2 italic">
+                {{ stats.estimatedConsumptionCount }} geschätzt (ohne SoC)
+              </div>
             </div>
             <div class="bg-blue-50 rounded-xl p-4 text-center">
               <div class="text-2xl font-bold text-blue-700">
@@ -71,9 +74,6 @@
                 {{ stats.avgConsumptionKwhPer100km ? stats.avgConsumptionKwhPer100km.toFixed(1) + ' kWh' : '–' }}
               </div>
               <div class="text-sm text-purple-600 mt-1">Ø Verbrauch / 100km</div>
-              <div v-if="stats.estimatedConsumptionCount > 0" class="text-xs text-purple-500 mt-2 italic">
-                {{ stats.estimatedConsumptionCount }} geschätzt (ohne SoC)
-              </div>
             </div>
             <div class="bg-yellow-50 rounded-xl p-4 text-center">
               <div class="text-2xl font-bold text-yellow-700">
@@ -236,9 +236,23 @@
               Der <strong>{{ stats.modelDisplayName }}</strong> ist ein Elektrofahrzeug
               <template v-if="bestWltpRange">mit einer offiziellen WLTP-Reichweite von bis zu <strong>{{ bestWltpRange }} km</strong></template>.
               <template v-if="stats.avgConsumptionKwhPer100km">
-                Laut realen Messdaten von EV Monitor Nutzern liegt der tatsächliche Durchschnittsverbrauch
-                bei <strong>{{ stats.avgConsumptionKwhPer100km.toFixed(1) }} kWh/100km</strong> – ermittelt aus
-                {{ stats.logCount }} dokumentierten Ladevorgängen im Alltag.
+                <template v-if="consumptionDataQuality === 'good'">
+                  Laut realen Messdaten von EV Monitor Nutzern liegt der Durchschnittsverbrauch
+                  bei <strong>{{ stats.avgConsumptionKwhPer100km.toFixed(1) }} kWh/100km</strong> –
+                  ermittelt aus <strong>{{ consumptionDataCount }} Fahrten mit Verbrauchsmessung</strong>
+                  ({{ stats.logCount }} Ladevorgänge gesamt).
+                </template>
+                <template v-else-if="consumptionDataQuality === 'low'">
+                  Laut bisherigen Nutzerdaten liegt der Verbrauch bei
+                  <strong>{{ stats.avgConsumptionKwhPer100km.toFixed(1) }} kWh/100km</strong> –
+                  basierend auf <strong>{{ consumptionDataCount }} Fahrten mit Verbrauchsmessung</strong>.
+                  Der Wert wird repräsentativer, je mehr Fahrer ihre Daten beitragen.
+                </template>
+                <template v-else>
+                  Erste Messwerte liegen vor: <strong>{{ stats.avgConsumptionKwhPer100km.toFixed(1) }} kWh/100km</strong>
+                  aus <strong>{{ consumptionDataCount }} Fahrten mit Verbrauchsdaten</strong> –
+                  noch zu wenig für eine belastbare Aussage. Je mehr Fahrer beitragen, desto genauer wird der Wert.
+                </template>
               </template>
               <template v-else>
                 Sei der Erste, der Ladevorgänge für diesen {{ stats.modelDisplayName }} einträgt und der Community hilft!
@@ -259,7 +273,7 @@
               </p>
             </div>
 
-            <div v-if="stats.wltpVariants.length > 0">
+            <div v-if="stats.wltpVariants.length > 0 && consumptionDataCount >= 25">
               <h3 class="font-semibold text-gray-800 mb-1">WLTP vs. realer Verbrauch</h3>
               <p>
                 Der WLTP-Zyklus wird unter standardisierten Laborbedingungen gemessen und weicht im Alltag
@@ -277,12 +291,18 @@
 
             <div>
               <h3 class="font-semibold text-gray-800 mb-1">Verbrauch im Winter und Sommer</h3>
-              <p>
+              <p v-if="showSeasonalBreakdown">
                 Wie alle Elektroautos zeigt der {{ stats.modelDisplayName }} saisonale Verbrauchsschwankungen.
                 Im Winter (Dezember bis Februar) steigt der Verbrauch typischerweise um <strong>20–30%</strong>
                 durch Kabinenheizung und reduzierte Batterieeffizienz bei Kälte. Im Sommer (Juni bis August)
                 wird die maximale Effizienz erreicht. Vorheizen des Fahrzeugs beim Laden schont die Reichweite
                 erheblich.
+              </p>
+              <p v-else>
+                Für den {{ stats.modelDisplayName }} liegen noch nicht genug saisonale Daten vor, um Winter- und
+                Sommerverbrauch zuverlässig zu trennen. Allgemein gilt bei Elektroautos: Im Winter (Frost, Heizung)
+                steigt der Verbrauch typischerweise um <strong>15–30%</strong>, im Sommer wird die beste Effizienz
+                erreicht. Vorheizen beim Laden spart Reichweite.
               </p>
             </div>
           </div>
@@ -383,9 +403,25 @@ const worstWltpConsumption = computed(() => {
   return Math.max(...stats.value.wltpVariants.map(v => v.wltpConsumptionKwhPer100km))
 })
 
+// Number of logs that actually contributed to consumption calculation
+const consumptionDataCount = computed(() => {
+  if (!stats.value) return 0
+  const socCount = stats.value.wltpVariants.reduce((sum, v) => sum + (v.realConsumptionTripCount ?? 0), 0)
+  return socCount + (stats.value.estimatedConsumptionCount ?? 0)
+})
+
+// 'good' >= 100, 'low' 50-99, 'scarce' < 50
+const consumptionDataQuality = computed((): 'good' | 'low' | 'scarce' => {
+  const n = consumptionDataCount.value
+  if (n >= 100) return 'good'
+  if (n >= 50) return 'low'
+  return 'scarce'
+})
+
 const showSeasonalBreakdown = computed(() => {
-  // Always show seasonal breakdown if data exists
-  return !!stats.value?.seasonalDistribution
+  const s = stats.value?.seasonalDistribution
+  if (!s) return false
+  return s.winterLogCount >= 10 && s.summerLogCount >= 10 && s.winterLogCount + s.summerLogCount > 10
 })
 
 
@@ -396,9 +432,16 @@ const faqItems = computed(() => {
 
   // Q1: realer Verbrauch
   if (stats.value.avgConsumptionKwhPer100km) {
+    const n = consumptionDataCount.value
+    const quality = consumptionDataQuality.value
+    const dataNote = quality === 'good'
+      ? `basierend auf ${n} Fahrten mit Verbrauchsmessung`
+      : quality === 'low'
+        ? `basierend auf ${n} Fahrten mit Verbrauchsmessung – Wert wird mit mehr Daten genauer`
+        : `erst ${n} Fahrten mit Verbrauchsdaten – noch nicht repräsentativ`
     items.push({
       question: `Wie hoch ist der reale Verbrauch des ${name}?`,
-      answer: `Laut ${stats.value.logCount} dokumentierten Ladevorgängen von EV Monitor Nutzern liegt der reale Durchschnittsverbrauch des ${name} bei ${stats.value.avgConsumptionKwhPer100km.toFixed(1)} kWh/100km. Der offizielle WLTP-Wert beträgt ${worstWltpConsumption.value?.toFixed(1) ?? '–'} kWh/100km. Im Winter kann der Verbrauch durch Heizung und kältere Batterien um 20–30% höher ausfallen.`
+      answer: `Laut EV Monitor Nutzerdaten liegt der Verbrauch des ${name} bei ${stats.value.avgConsumptionKwhPer100km.toFixed(1)} kWh/100km (${dataNote}). Der offizielle WLTP-Wert beträgt ${worstWltpConsumption.value?.toFixed(1) ?? '–'} kWh/100km. Im Winter kann der Verbrauch durch Heizung und kältere Batterien 15–30% höher ausfallen.`
     })
   }
 
@@ -421,8 +464,8 @@ const faqItems = computed(() => {
     })
   }
 
-  // Q4: WLTP vs Real
-  if (worstWltpConsumption.value && stats.value.avgConsumptionKwhPer100km) {
+  // Q4: WLTP vs Real — nur bei ausreichender Datenbasis
+  if (worstWltpConsumption.value && stats.value.avgConsumptionKwhPer100km && consumptionDataCount.value >= 25) {
     const diff = (stats.value.avgConsumptionKwhPer100km - worstWltpConsumption.value).toFixed(1)
     const pct = Math.round((stats.value.avgConsumptionKwhPer100km / worstWltpConsumption.value - 1) * 100)
     items.push({
@@ -432,9 +475,13 @@ const faqItems = computed(() => {
   }
 
   // Q5: Winter
+  const seasonal = stats.value.seasonalDistribution
+  const hasSeasonalData = seasonal && seasonal.winterLogCount >= 10 && seasonal.summerLogCount >= 10
   items.push({
     question: `Wie verändert sich der Verbrauch des ${name} im Winter?`,
-    answer: `Im Winter steigt der Verbrauch eines Elektroautos wie dem ${name} typischerweise um 20–30% gegenüber dem Sommer. Ursachen sind der Energiebedarf für die Kabinenheizung, die reduzierte Zellchemie-Effizienz bei Kälte und das Vorheizen der Batterie. Bei -10°C kann der Verbrauch bis zu 40% über dem WLTP-Wert liegen. Vorheizen beim Laden (per App) hilft, die Reichweitenverluste zu minimieren.`
+    answer: hasSeasonalData
+      ? `Laut Community-Daten verbraucht der ${name} im Winter (Okt–Mär) ${seasonal!.winterConsumptionKwhPer100km?.toFixed(1) ?? '–'} kWh/100km und im Sommer (Apr–Sep) ${seasonal!.summerConsumptionKwhPer100km?.toFixed(1) ?? '–'} kWh/100km. Ursachen für den Winteranstieg sind Kabinenheizung, reduzierte Zelleffizienz bei Kälte und Batterie-Vorwärmung. Vorheizen beim Laden (per App) minimiert die Reichweitenverluste.`
+      : `Für den ${name} liegen noch nicht genug saisonale Messdaten vor. Allgemein steigt der Verbrauch von Elektroautos im Winter typischerweise um 15–30% – durch Heizung, kältere Batterien und schlechtere Rekuperation. Vorheizen beim Laden spart Reichweite.`
   })
 
   return items
