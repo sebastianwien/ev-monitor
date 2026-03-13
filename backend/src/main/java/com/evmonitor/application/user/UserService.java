@@ -54,7 +54,12 @@ public class UserService {
         UserEntity userEntity = jpaUserRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        // Check if email is already taken
+        // Verify current password before allowing email change
+        if (!passwordEncoder.matches(request.currentPassword(), userEntity.getPasswordHash())) {
+            throw new IllegalArgumentException("Aktuelles Passwort ist falsch");
+        }
+
+        // Check if new email is already taken
         if (userRepository.existsByEmail(request.newEmail())) {
             throw new IllegalArgumentException("Email bereits vergeben");
         }

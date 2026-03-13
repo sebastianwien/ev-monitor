@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useAuthStore } from '../stores/auth';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { analytics } from '../services/analytics';
 import { BoltIcon, ShieldCheckIcon, CurrencyEuroIcon } from '@heroicons/vue/24/outline';
 
@@ -11,9 +11,11 @@ const email = ref('');
 const password = ref('');
 const authStore = useAuthStore();
 const router = useRouter();
+const route = useRoute();
 const error = ref('');
 const errorCode = ref('');
 const resendSent = ref(false);
+const infoMessage = ref(route.query.reason === 'email-changed' ? 'Email erfolgreich geändert. Bitte melde dich mit deiner neuen Email-Adresse an.' : '');
 
 const handleLogin = async () => {
   try {
@@ -63,6 +65,10 @@ const handleResendFromLogin = async () => {
         <!-- Form -->
         <div class="px-8 py-8">
           <h2 class="text-xl font-bold text-gray-800 mb-6 text-center">Willkommen zurück</h2>
+
+          <div v-if="infoMessage" class="mb-4 text-sm font-medium bg-green-50 p-3 rounded-lg border border-green-200 text-green-700">
+            {{ infoMessage }}
+          </div>
 
           <form @submit.prevent="handleLogin" class="space-y-5">
             <div>

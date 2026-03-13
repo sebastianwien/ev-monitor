@@ -9,6 +9,9 @@ public record ChangeEmailRequest(
         @Email(message = "Ungültige Email-Adresse")
         @Pattern(regexp = "^[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}$",
                  message = "Email-Adresse muss eine gültige Domain enthalten (z.B. name@example.com)")
-        String newEmail
+        String newEmail,
+
+        @NotBlank(message = "Aktuelles Passwort darf nicht leer sein")
+        String currentPassword
 ) {
 }

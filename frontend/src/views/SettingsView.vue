@@ -41,6 +41,7 @@ const showUsernameForm = ref(false)
 const showPasswordForm = ref(false)
 
 const newEmail = ref('')
+const emailCurrentPassword = ref('')
 const newUsername = ref('')
 const currentPassword = ref('')
 const newPassword = ref('')
@@ -85,23 +86,18 @@ const fetchUserData = async () => {
 
 // Change Email
 const changeEmail = async () => {
-  if (!newEmail.value) return
+  if (!newEmail.value || !emailCurrentPassword.value) return
 
   loading.value = true
   message.value = null
 
   try {
-    await api.put('/users/me/email', { newEmail: newEmail.value })
-    message.value = { type: 'success', text: 'Email erfolgreich geändert! Bitte bestätige die neue Email-Adresse.' }
-
-    // Update local value immediately
-    email.value = newEmail.value
-
-    showEmailForm.value = false
-    newEmail.value = ''
+    await api.put('/users/me/email', { newEmail: newEmail.value, currentPassword: emailCurrentPassword.value })
+    // JWT is now invalid (email changed) — logout and redirect to login
+    authStore.logout()
+    router.push('/login?reason=email-changed')
   } catch (error: any) {
     message.value = { type: 'error', text: error.response?.data?.message || 'Email-Änderung fehlgeschlagen' }
-  } finally {
     loading.value = false
   }
 }
@@ -308,21 +304,27 @@ onMounted(() => {
             </button>
           </div>
 
-          <div v-if="showEmailForm" class="mt-4 pt-4 border-t border-gray-200">
+          <div v-if="showEmailForm" class="mt-4 pt-4 border-t border-gray-200 space-y-3">
             <input
               v-model="newEmail"
               type="email"
               placeholder="Neue Email-Adresse"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 mb-3">
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+            <input
+              v-model="emailCurrentPassword"
+              type="password"
+              placeholder="Aktuelles Passwort zur Bestätigung"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+            <p class="text-xs text-gray-500">Du wirst danach ausgeloggt und musst dich mit der neuen Email anmelden.</p>
             <div class="flex gap-2">
               <button
                 @click="changeEmail"
-                :disabled="loading"
+                :disabled="loading || !newEmail || !emailCurrentPassword"
                 class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 transition">
                 Speichern
               </button>
               <button
-                @click="showEmailForm = false; newEmail = ''"
+                @click="showEmailForm = false; newEmail = ''; emailCurrentPassword = ''"
                 class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition">
                 Abbrechen
               </button>
