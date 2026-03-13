@@ -686,7 +686,7 @@ onUnmounted(() => {
                 :checked="imagePublicForUpload[car.id] ?? false"
                 @change="handleVisibilityChange(car.id, ($event.target as HTMLInputElement).checked)"
                 class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-              <span class="text-xs text-gray-600">Öffentlich sichtbar</span>
+              <span class="text-xs text-gray-600">Foto öffentlich teilen</span>
             </label>
             <label class="ml-auto cursor-pointer">
               <span :class="[
