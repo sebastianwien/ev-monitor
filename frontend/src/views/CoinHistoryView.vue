@@ -71,6 +71,50 @@ onMounted(() => {
         </div>
       </div>
 
+      <!-- Legende -->
+      <details class="mb-6 rounded-lg border border-gray-200 bg-gray-50 text-sm">
+        <summary class="cursor-pointer px-4 py-3 font-medium text-gray-700 select-none">Wofür gibt es Watt?</summary>
+        <div class="px-4 pb-4 pt-2 space-y-3">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Ladevorgänge</p>
+            <ul class="space-y-1 text-gray-600">
+              <li class="flex justify-between"><span>Erster Ladevorgang erfasst</span><span class="font-semibold text-indigo-600">+25 ⚡</span></li>
+              <li class="flex justify-between"><span>Weiterer Ladevorgang</span><span class="font-semibold text-indigo-600">+5 ⚡</span></li>
+              <li class="flex justify-between"><span>Ladevorgang via OCR (erster)</span><span class="font-semibold text-indigo-600">+27 ⚡</span></li>
+              <li class="flex justify-between"><span>Ladevorgang via OCR</span><span class="font-semibold text-indigo-600">+7 ⚡</span></li>
+              <li class="flex justify-between"><span>Ladevorgang gelöscht</span><span class="font-semibold text-red-500">− ⚡</span></li>
+            </ul>
+          </div>
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Imports (einmalig)</p>
+            <ul class="space-y-1 text-gray-600">
+              <li class="flex justify-between"><span>Sprit-Monitor verbunden</span><span class="font-semibold text-indigo-600">+50 ⚡</span></li>
+              <li class="flex justify-between"><span>Ladevorgang via Sprit-Monitor</span><span class="font-semibold text-indigo-600">+2 ⚡</span></li>
+              <li class="flex justify-between"><span>Tesla verbunden</span><span class="font-semibold text-indigo-600">+50 ⚡</span></li>
+              <li class="flex justify-between"><span>TeslaLogger verbunden</span><span class="font-semibold text-indigo-600">+20 ⚡</span></li>
+              <li class="flex justify-between"><span>Ladevorgang via TeslaLogger (Historie)</span><span class="font-semibold text-indigo-600">+2 ⚡</span></li>
+              <li class="flex justify-between"><span>Ladevorgang via Tesla Sync (täglich)</span><span class="font-semibold text-indigo-600">+5 ⚡</span></li>
+            </ul>
+          </div>
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Fahrzeuge</p>
+            <ul class="space-y-1 text-gray-600">
+              <li class="flex justify-between"><span>Erstes Fahrzeug hinzugefügt</span><span class="font-semibold text-indigo-600">+20 ⚡</span></li>
+              <li class="flex justify-between"><span>Weiteres Fahrzeug</span><span class="font-semibold text-indigo-600">+5 ⚡</span></li>
+              <li class="flex justify-between"><span>Erstes Auto-Bild hochgeladen (einmalig)</span><span class="font-semibold text-indigo-600">+15 ⚡</span></li>
+              <li class="flex justify-between"><span>Bild öffentlich geteilt (einmalig)</span><span class="font-semibold text-indigo-600">+10 ⚡</span></li>
+            </ul>
+          </div>
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Community</p>
+            <ul class="space-y-1 text-gray-600">
+              <li class="flex justify-between"><span>Freund eingeladen</span><span class="font-semibold text-indigo-600">+100 ⚡</span></li>
+              <li class="flex justify-between"><span>Willkommensbonus (eingeladen worden)</span><span class="font-semibold text-indigo-600">+25 ⚡</span></li>
+            </ul>
+          </div>
+        </div>
+      </details>
+
       <!-- Error -->
       <div v-if="error" class="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
         {{ error }}

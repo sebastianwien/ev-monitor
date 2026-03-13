@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { XMarkIcon, TrophyIcon } from '@heroicons/vue/24/outline'
-import { jwtDecode } from 'jwt-decode'
 import { useAuthStore } from '../stores/auth'
 
 const REWARD_UPDATE_DEPLOYMENT_TS = 1773446400000 // 2026-03-14 00:00 UTC
@@ -12,14 +11,9 @@ const dismissed = ref(!!localStorage.getItem(LS_KEY))
 
 const show = computed(() => {
   if (dismissed.value) return false
-  const token = authStore.token
-  if (!token) return false
-  try {
-    const decoded = jwtDecode<{ iat: number }>(token)
-    return decoded.iat * 1000 < REWARD_UPDATE_DEPLOYMENT_TS
-  } catch {
-    return false
-  }
+  const user = authStore.user as any
+  if (!user?.iat) return false
+  return (user.iat as number) * 1000 < REWARD_UPDATE_DEPLOYMENT_TS
 })
 
 function dismiss() {

@@ -167,7 +167,7 @@ const formatDelta = (real: number | null, wltp: number): string => {
           Wie weit kommst du wirklich?<br />
           Und im Winter?
         </h1>
-        <p class="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+        <p class="text-lg text-gray-600 mb-8 max-w-3xl mx-auto">
           Kein Marketing, keine WLTP-Traumwerte. Für Käufer die wissen wollen worauf sie sich einlassen. <br/> Für Besitzer die ihren echten Verbrauch und ihre Ladekosten im Blick behalten wollen.
         </p>
         <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4">
@@ -175,14 +175,14 @@ const formatDelta = (real: number | null, wltp: number): string => {
             @click="goToRegister"
             class="bg-green-600 text-white px-6 py-3 sm:px-8 sm:py-4 rounded-lg text-base sm:text-lg font-semibold hover:bg-green-700 transition inline-flex items-center justify-center space-x-2"
           >
-            <span>Kostenlos starten</span>
+            <span>Hier anmelden</span>
             <ArrowRightIcon class="h-5 w-5" />
           </button>
           <router-link
             to="/modelle"
             class="border border-gray-300 text-gray-700 px-6 py-3 sm:px-8 sm:py-4 rounded-lg text-base sm:text-lg font-semibold hover:border-green-500 hover:text-green-700 transition inline-flex items-center justify-center space-x-2"
           >
-            <span>Modelle vergleichen</span>
+            <span>Elektroautos vergleichen</span>
             <ArrowRightIcon class="h-5 w-5" />
           </router-link>
         </div>
@@ -206,6 +206,10 @@ const formatDelta = (real: number | null, wltp: number): string => {
           <span>{{ displayModels }} Modelle</span>
           <span class="mx-2">•</span>
           <span>{{ displayUsers }} Fahrer</span>
+        </p>
+        <hr class="mt-6 border-gray-200 max-w-xl mx-auto" />
+        <p class="mt-6 text-lg text-gray-600 max-w-xl mx-auto">
+          EV Monitor ist eine Community-getriebene Plattform für eAuto-Fahrende und solche die es werden wollen. Alle deine Ladekosten an einem Fleck — echte Verbräuche tracken.
         </p>
       </div>
     </section>
@@ -284,10 +288,14 @@ const formatDelta = (real: number | null, wltp: number): string => {
               <span class="text-xs text-gray-400 whitespace-nowrap mt-1">{{ preview.stats.logCount }} Fahrten</span>
             </div>
 
-            <div class="flex items-center gap-3 text-sm text-gray-600 mb-2">
-              <span>Ø {{ preview.stats.avgKwhPerSession?.toFixed(1) || '—' }} kWh</span>
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-600 mb-2">
+              <span class="whitespace-nowrap">Ø {{ preview.stats.avgKwhPerSession?.toFixed(1) || '—' }} kWh</span>
+              <template v-if="preview.stats.avgConsumptionKwhPer100km && preview.stats.avgCostPerKwh">
+                <span class="text-gray-300">|</span>
+                <span class="font-medium text-gray-800 whitespace-nowrap">{{ (preview.stats.avgConsumptionKwhPer100km * preview.stats.avgCostPerKwh).toFixed(2) }}€/100km</span>
+              </template>
               <span class="text-gray-300">|</span>
-              <span>{{ preview.stats.avgCostPerKwh?.toFixed(2) || '—' }}€/kWh</span>
+              <span class="whitespace-nowrap">{{ preview.stats.avgCostPerKwh?.toFixed(2) || '—' }}€/kWh</span>
             </div>
 
             <div v-if="preview.stats.avgConsumptionKwhPer100km && preview.stats.wltpVariants.length > 0" class="text-sm text-gray-700 mb-3">
@@ -295,7 +303,7 @@ const formatDelta = (real: number | null, wltp: number): string => {
               <span class="text-gray-400 ml-1">({{ formatDelta(preview.stats.avgConsumptionKwhPer100km, preview.stats.wltpVariants[0].wltpConsumptionKwhPer100km) }} vs WLTP)</span>
             </div>
 
-            <div class="text-green-600 font-medium inline-flex items-center gap-1 text-sm">
+            <div class="text-green-600 font-medium flex justify-center items-center gap-1 text-sm">
               <span>Details ansehen</span>
               <ArrowRightIcon class="h-4 w-4" />
             </div>
@@ -305,7 +313,7 @@ const formatDelta = (real: number | null, wltp: number): string => {
           <div class="col-span-full mt-2 space-y-4">
             <div v-if="nextModels.length > 0">
               <!-- Mobile: pills -->
-              <div class="flex flex-wrap gap-2 sm:hidden">
+              <div class="flex flex-wrap gap-2 justify-center sm:hidden">
                 <router-link
                   v-for="m in nextModels"
                   :key="`${m.brand}-${m.model}`"
@@ -366,18 +374,18 @@ const formatDelta = (real: number | null, wltp: number): string => {
 
     <!-- Gamification Teaser -->
     <section class="py-8 sm:py-16 px-4 sm:px-6 lg:px-8 bg-gray-50">
-      <div class="max-w-3xl mx-auto text-center">
+      <div class="max-w-3xl mx-auto text-center relative overflow-hidden">
+        <BoltIcon class="absolute inset-0 m-auto h-64 w-64 text-green-600 opacity-[0.15] pointer-events-none" />
         <h2 class="text-2xl font-semibold text-gray-900 mb-6">
           Belohnungen für Community-Beiträge
         </h2>
-        <ul class="text-left inline-block text-gray-600 space-y-2 mb-4">
-          <li>• Teile WLTP-Daten deines Fahrzeugs</li>
-          <li>• Verdiene Punkte für Beiträge</li>
-          <li>• Erreiche Meilensteine</li>
+        <ul class="text-left inline-block text-gray-600 space-y-2 mb-4 text-lg">
+          <li>• Ladevorgang erfassen</li>
+          <li>• Fahrzeug hinzufügen</li>
+          <li>• Freund einladen</li>
+          <li>• Daten importieren</li>
         </ul>
-        <p class="text-sm text-gray-500 mt-6">
-          (Weitere Features in Entwicklung)
-        </p>
+        <p class="text-4xl text-gray-400">. . .</p>
       </div>
     </section>
 
@@ -457,7 +465,7 @@ const formatDelta = (real: number | null, wltp: number): string => {
     </section>
 
     <!-- Final CTA -->
-    <section class="py-10 sm:py-20 px-4 sm:px-6 lg:px-8">
+    <section class="py-10 sm:py-20 px-4 sm:px-6 lg:px-8 border-t border-gray-100">
       <div class="max-w-3xl mx-auto text-center">
         <h2 class="text-4xl font-bold text-gray-900 mb-4">
           Bereit für transparente Ladekosten?
