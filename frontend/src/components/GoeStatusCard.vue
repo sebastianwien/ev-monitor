@@ -109,7 +109,7 @@ function startEditTariff() {
 
 async function saveTariff() {
   if (!conn.value) return
-  const n = tariffInput.value === '' ? 0 : parseInt(tariffInput.value, 10)
+  const n = tariffInput.value === '' ? 0 : parseFloat(tariffInput.value)
   if (isNaN(n) || n < 0 || n > 9999) return
   savingTariff.value = true
   try {
@@ -198,7 +198,7 @@ async function saveTariff() {
         <span class="text-xs text-gray-500">
           Tarif:
           <span class="font-medium text-gray-700">
-            {{ conn.tariffCentsPerKwh > 0 ? `${conn.tariffCentsPerKwh} ct/kWh` : 'nicht gesetzt' }}
+            {{ conn.tariffCentsPerKwh > 0 ? `${Number(conn.tariffCentsPerKwh).toLocaleString('de-DE', { maximumFractionDigits: 4 })} ct/kWh` : 'nicht gesetzt' }}
           </span>
         </span>
         <button @click="startEditTariff"
@@ -212,8 +212,9 @@ async function saveTariff() {
           v-model="tariffInput"
           type="number"
           min="0"
-          max="999"
-          placeholder="z.B. 29"
+          max="9999"
+          step="0.0001"
+          placeholder="z.B. 29,5"
           class="flex-1 border border-gray-300 rounded-lg px-2 py-1 text-sm"
           @keyup.enter="saveTariff"
           @keyup.escape="editingTariff = false"
