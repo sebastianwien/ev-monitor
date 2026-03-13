@@ -5,6 +5,9 @@ import CarSelector from './CarSelector.vue'
 import OcrPhotoCapture from './OcrPhotoCapture.vue'
 import { CameraIcon, PencilSquareIcon, TrashIcon, BoltIcon, TruckIcon, ClockIcon, Battery0Icon, SunIcon, GlobeAltIcon } from '@heroicons/vue/24/outline'
 import { useCoinStore } from '../stores/coins'
+import { useHaptic } from '../composables/useHaptic'
+
+const { haptic } = useHaptic()
 import { analytics } from '../services/analytics'
 import { carService } from '../api/carService'
 import { tempBadgeClass } from '../utils/temperatureColor'
@@ -508,7 +511,7 @@ const handleOcrData = (ocrResult: any) => {
         </div>
       </div>
 
-        <button type="submit" class="w-full bg-indigo-600 text-white p-3 rounded-md shadow hover:bg-indigo-700 transition">⚡ Ladevorgang speichern</button>
+        <button type="submit" @click="haptic(20)" class="w-full bg-indigo-600 text-white p-3 rounded-md btn-3d hover:bg-indigo-700 transition">⚡ Ladevorgang speichern</button>
         <p class="text-xs text-gray-400 text-center mt-2">
           📍 Der Standort hilft uns, die Außentemperatur beim Laden zu ermitteln — anonymisiert auf ~5km.
         </p>
@@ -616,4 +619,15 @@ const handleOcrData = (ocrResult: any) => {
   to { transform: translateX(0); opacity: 1; }
 }
 .animate-slide-in { animation: slide-in 0.3s ease-out; }
+
+.btn-3d {
+  box-shadow: 0 4px 0 0 rgba(0,0,0,0.2);
+  transform: translateY(0);
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+.btn-3d:active {
+  box-shadow: 0 1px 0 0 rgba(0,0,0,0.2);
+  transform: translateY(3px);
+  transition: transform 0.05s ease, box-shadow 0.05s ease;
+}
 </style>

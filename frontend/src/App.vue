@@ -19,6 +19,9 @@ import { Bars3Icon, XMarkIcon, HomeIcon, TruckIcon, ArrowDownTrayIcon, UserIcon,
 // Note: showImportOverlay kept for backward compat but SpritMonitor moved to /imports
 import { HeartIcon } from '@heroicons/vue/24/solid'
 import { captureUtmParams } from './utils/reddit-pixel'
+import { useHaptic } from './composables/useHaptic'
+
+const { haptic } = useHaptic()
 
 const router = useRouter()
 const route = useRoute()
@@ -128,28 +131,31 @@ const closeMobileMenu = () => {
             <!-- Compact Icon Nav (640px - 1024px) -->
             <div class="hidden sm:flex lg:hidden items-center space-x-2">
               <button
-                @click="handleNewLog"
-                class="p-2 rounded-md bg-green-600 hover:bg-green-700 transition"
+                @click="handleNewLog(); haptic()"
+                class="nav-3d p-2 rounded-md bg-green-600 hover:bg-green-700 transition"
                 title="Ladevorgang erfassen">
                 <BoltIcon class="h-5 w-5" />
               </button>
               <router-link
                 to="/cars"
-                class="p-2 rounded-md hover:bg-indigo-500 transition"
+                class="nav-3d p-2 rounded-md border border-indigo-500 hover:bg-indigo-500 transition"
+                @click="haptic()"
                 :class="{ 'bg-indigo-700': $route.path === '/cars' }"
                 title="Fahrzeuge">
                 <TruckIcon class="h-5 w-5" />
               </router-link>
               <router-link
                 to="/imports"
-                class="p-2 rounded-md hover:bg-indigo-500 transition"
+                class="nav-3d p-2 rounded-md border border-indigo-500 hover:bg-indigo-500 transition"
+                @click="haptic()"
                 :class="{ 'bg-indigo-700': $route.path === '/imports' }"
                 title="Import">
                 <ArrowDownTrayIcon class="h-5 w-5" />
               </router-link>
               <router-link
                 to="/modelle"
-                class="p-2 rounded-md hover:bg-indigo-500 transition"
+                class="nav-3d p-2 rounded-md border border-indigo-500 hover:bg-indigo-500 transition"
+                @click="haptic()"
                 :class="{ 'bg-indigo-700': $route.path.startsWith('/modelle') }"
                 title="Modelle vergleichen">
                 <ArrowsRightLeftIcon class="h-5 w-5" />
@@ -159,26 +165,29 @@ const closeMobileMenu = () => {
             <!-- Full Nav (1024px+) -->
             <div class="hidden lg:flex items-center space-x-4">
               <button
-                @click="handleNewLog"
-                class="px-3 py-2 rounded-md text-sm font-medium bg-green-600 hover:bg-green-700 transition">
+                @click="handleNewLog(); haptic()"
+                class="nav-3d px-3 py-2 rounded-md text-sm font-medium bg-green-600 hover:bg-green-700 transition">
                 Ladevorgang erfassen
               </button>
               <router-link
                 to="/cars"
-                class="px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-500 transition"
+                class="nav-3d px-3 py-2 rounded-md border border-indigo-500 text-sm font-medium hover:bg-indigo-500 transition"
+                @click="haptic()"
                 :class="{ 'bg-indigo-700': $route.path === '/cars' }">
                 Fahrzeuge
               </router-link>
               <router-link
                 to="/imports"
-                class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-500 transition"
+                class="nav-3d flex items-center gap-2 px-3 py-2 rounded-md border border-indigo-500 text-sm font-medium hover:bg-indigo-500 transition"
+                @click="haptic()"
                 :class="{ 'bg-indigo-700': $route.path === '/imports' }">
                 <ArrowDownTrayIcon class="h-5 w-5" />
                 Import
               </router-link>
               <router-link
                 to="/modelle"
-                class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-500 transition"
+                class="nav-3d flex items-center gap-2 px-3 py-2 rounded-md border border-indigo-500 text-sm font-medium hover:bg-indigo-500 transition"
+                @click="haptic()"
                 :class="{ 'bg-indigo-700': $route.path.startsWith('/modelle') }">
                 <ArrowsRightLeftIcon class="h-5 w-5" />
                 Modelle
@@ -204,7 +213,8 @@ const closeMobileMenu = () => {
             </button>
             <router-link
               to="/coins/history"
-              class="flex items-center gap-1 px-2 py-1 text-sm bg-indigo-500 bg-opacity-30 border border-indigo-400 rounded-md hover:bg-opacity-50 transition font-medium"
+              class="nav-3d flex items-center gap-1 px-2 py-1 text-sm bg-indigo-500 bg-opacity-30 border border-indigo-500 rounded-md hover:bg-opacity-50 transition font-medium"
+              @click="haptic()"
               :class="{ 'watt-bump': balanceBumping }"
               title="Watt-Guthaben">
               <BoltIcon class="h-4 w-4" />
@@ -213,13 +223,14 @@ const closeMobileMenu = () => {
             <router-link
               v-if="authStore.user"
               to="/settings"
-              class="p-2 border border-indigo-400 rounded-md bg-indigo-500 bg-opacity-30 hover:bg-opacity-50 transition"
+              class="nav-3d p-2 border border-indigo-500 rounded-md bg-indigo-500 bg-opacity-30 hover:bg-opacity-50 transition"
+              @click="haptic()"
               title="Einstellungen">
               <UserIcon class="h-5 w-5" />
             </router-link>
             <button
-              @click="handleLogout"
-              class="p-2 bg-indigo-700 hover:bg-indigo-800 rounded-md transition"
+              @click="handleLogout(); haptic()"
+              class="nav-3d p-2 bg-indigo-700 hover:bg-indigo-800 rounded-md transition"
               title="Abmelden">
               <ArrowRightOnRectangleIcon class="h-5 w-5" />
             </button>
@@ -250,7 +261,7 @@ const closeMobileMenu = () => {
                 ? 'bg-green-500 bg-opacity-30 border-green-400 text-white'
                 : wallboxConn?.carState === 5 || wallboxConn?.lastPollError
                   ? 'bg-red-500 bg-opacity-30 border-red-400 text-white'
-                  : 'bg-indigo-500 bg-opacity-30 border-indigo-400 text-white'"
+                  : 'bg-indigo-500 bg-opacity-30 border-indigo-500 text-white'"
             >
               <span
                 :class="['w-2 h-2 rounded-full flex-shrink-0', wallboxChipColor,
@@ -262,7 +273,8 @@ const closeMobileMenu = () => {
             <div class="relative group">
               <router-link
                 to="/coins/history"
-                class="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-indigo-500 bg-opacity-30 border border-indigo-400 rounded-md hover:bg-opacity-50 transition font-medium"
+                class="nav-3d flex items-center gap-1.5 px-3 py-1.5 text-sm bg-indigo-500 bg-opacity-30 border border-indigo-500 rounded-md hover:bg-opacity-50 transition font-medium"
+                @click="haptic()"
                 :class="{ 'watt-bump': balanceBumping }">
                 <BoltIcon class="h-4 w-4" />
                 <span>{{ coinStore.balance }}</span>
@@ -284,11 +296,12 @@ const closeMobileMenu = () => {
             <router-link
               v-if="authStore.user"
               to="/settings"
-              class="flex items-center gap-2 px-3 py-1.5 text-sm border border-indigo-400 rounded-md bg-indigo-500 bg-opacity-30 hover:bg-opacity-50 transition">
+              class="nav-3d flex items-center gap-2 px-3 py-1.5 text-sm border border-indigo-500 rounded-md bg-indigo-500 bg-opacity-30 hover:bg-opacity-50 transition"
+              @click="haptic()">
               <UserIcon class="h-4 w-4" />
               <span>{{ authStore.user.username || authStore.user.sub }}</span>
             </router-link>
-            <button @click="handleLogout" class="px-4 py-2 bg-indigo-700 hover:bg-indigo-800 rounded-lg text-sm font-medium transition shadow-sm">
+            <button @click="handleLogout(); haptic()" class="nav-3d px-4 py-2 bg-indigo-700 hover:bg-indigo-800 rounded-lg text-sm font-medium transition">
               Abmelden
             </button>
             <button
@@ -325,7 +338,7 @@ const closeMobileMenu = () => {
             </button>
             <router-link
               to="/coins/history"
-              class="flex items-center gap-1 px-2 py-1 text-sm bg-indigo-500 bg-opacity-30 border border-indigo-400 rounded-md hover:bg-opacity-50 transition font-medium"
+              class="flex items-center gap-1 px-2 py-1 text-sm bg-indigo-500 bg-opacity-30 border border-indigo-500 rounded-md hover:bg-opacity-50 transition font-medium"
               :class="{ 'watt-bump': balanceBumping }"
               title="Watt-Guthaben">
               <BoltIcon class="h-4 w-4" />
@@ -495,6 +508,21 @@ const closeMobileMenu = () => {
   25%  { transform: scale(1.45); box-shadow: 0 0 0 4px rgba(250, 204, 21, 0.4), 0 0 16px rgba(250, 204, 21, 0.6); background-color: rgba(250, 204, 21, 0.25); border-color: rgba(250, 204, 21, 0.9); color: #fef08a; }
   60%  { transform: scale(0.95); box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.2); }
   100% { transform: scale(1);    box-shadow: none; background-color: transparent; border-color: rgba(129, 140, 248, 0.5); color: inherit; }
+}
+
+/* 3D press effect for navbar buttons */
+.nav-3d {
+  box-shadow: 0 3px 0 0 rgba(0,0,0,0.25);
+  transform: translateY(0);
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+  touch-action: manipulation;
+}
+.nav-3d:active,
+.nav-3d.router-link-active,
+.nav-3d.router-link-exact-active {
+  box-shadow: 0 1px 0 0 rgba(0,0,0,0.25);
+  transform: translateY(2px);
+  transition: transform 0.05s ease, box-shadow 0.05s ease;
 }
 
 .watt-bump {

@@ -105,7 +105,7 @@
         <div
           v-for="model in filteredModels"
           :key="`${model.brand}/${model.model}`"
-          class="flex flex-col bg-white rounded-xl border p-5 hover:shadow-md transition-all"
+          class="model-card flex flex-col bg-white rounded-xl border p-5 hover:shadow-md transition-all"
           :class="isSelectedForCompare(`${model.brand}/${model.model}`)
             ? 'border-green-500 ring-2 ring-green-200'
             : 'border-gray-200 hover:border-green-500'"
@@ -152,7 +152,7 @@
           v-for="model in mobileFillModels"
           :key="`fallback/${model.brand}/${model.model}`"
           :href="`/modelle/${model.brand}/${model.model}`"
-          class="bg-white rounded-xl border border-gray-100 p-4 hover:border-green-400 hover:shadow-sm transition-all opacity-80"
+          class="model-card bg-white rounded-xl border border-gray-100 p-4 hover:border-green-400 hover:shadow-sm transition-all opacity-80"
         >
           <div class="flex items-start justify-between mb-2">
             <h3 class="font-semibold text-gray-700 text-base">{{ model.displayName }}</h3>
@@ -426,6 +426,18 @@ function clearAllBrands() {
 </script>
 
 <style scoped>
+/* 3D press effect for model cards */
+.model-card {
+  box-shadow: 0 4px 0 0 rgba(0,0,0,0.10);
+  transform: translateY(0);
+  transition: transform 0.08s ease, box-shadow 0.08s ease, border-color 0.15s ease;
+}
+.model-card:active {
+  box-shadow: 0 1px 0 0 rgba(0,0,0,0.10);
+  transform: translateY(3px);
+  transition: transform 0.05s ease, box-shadow 0.05s ease;
+}
+
 .compare-bar-enter-active,
 .compare-bar-leave-active {
   transition: opacity 0.2s ease, transform 0.2s ease;

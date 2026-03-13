@@ -456,7 +456,8 @@ onUnmounted(() => {
         <button
           v-if="!showForm"
           @click="openAddForm"
-          class="bg-indigo-600 text-white px-4 py-2 rounded-md shadow hover:bg-indigo-700 transition">
+          v-haptic
+          class="btn-3d bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition">
           + Fahrzeug hinzufügen
         </button>
       </div>
@@ -596,11 +597,13 @@ onUnmounted(() => {
 
           <div class="flex gap-3 pt-2">
             <button type="submit"
-              class="bg-indigo-600 text-white px-6 py-2 rounded-md shadow hover:bg-indigo-700 transition">
+              v-haptic
+              class="btn-3d bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700 transition">
               {{ editingCar ? 'Aktualisieren' : 'Hinzufügen' }}
             </button>
             <button type="button" @click="resetForm"
-              class="bg-gray-200 text-gray-700 px-6 py-2 rounded-md shadow hover:bg-gray-300 transition">
+              v-haptic
+              class="btn-3d bg-gray-200 text-gray-700 px-6 py-2 rounded-md hover:bg-gray-300 transition">
               Abbrechen
             </button>
           </div>
@@ -753,15 +756,18 @@ onUnmounted(() => {
 
             <div class="flex gap-2">
               <button v-if="!car.isPrimary" @click="setActiveCar(car.id)"
-                class="flex-1 bg-green-100 text-green-700 px-3 py-2 rounded-md text-sm font-medium hover:bg-green-200 transition">
+                v-haptic
+                class="btn-3d flex-1 bg-green-100 text-green-700 px-3 py-2 rounded-md text-sm font-medium hover:bg-green-200 transition">
                 Als aktiv setzen
               </button>
               <button @click="openEditForm(car)"
-                class="flex-1 bg-indigo-100 text-indigo-700 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-200 transition">
+                v-haptic
+                class="btn-3d flex-1 bg-indigo-100 text-indigo-700 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-200 transition">
                 Bearbeiten
               </button>
               <button @click="deleteCar(car.id)"
-                class="flex-1 bg-red-100 text-red-700 px-3 py-2 rounded-md text-sm font-medium hover:bg-red-200 transition">
+                v-haptic
+                class="btn-3d flex-1 bg-red-100 text-red-700 px-3 py-2 rounded-md text-sm font-medium hover:bg-red-200 transition">
                 Löschen
               </button>
             </div>
@@ -862,11 +868,13 @@ onUnmounted(() => {
 
           <div class="flex gap-3 pt-2">
             <button type="submit"
-              class="bg-indigo-600 text-white px-6 py-2 rounded-md shadow hover:bg-indigo-700 transition">
+              v-haptic
+              class="btn-3d bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700 transition">
               Aktualisieren
             </button>
             <button type="button" @click="resetForm"
-              class="bg-gray-200 text-gray-700 px-6 py-2 rounded-md shadow hover:bg-gray-300 transition">
+              v-haptic
+              class="btn-3d bg-gray-200 text-gray-700 px-6 py-2 rounded-md hover:bg-gray-300 transition">
               Abbrechen
             </button>
           </div>

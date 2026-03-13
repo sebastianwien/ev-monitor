@@ -97,7 +97,8 @@ const handleResendFromLogin = async () => {
             </div>
 
             <button type="submit"
-              class="w-full px-4 py-3 font-semibold text-white bg-indigo-600 rounded-lg shadow hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition">
+              v-haptic
+              class="btn-3d w-full px-4 py-3 font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition">
               Anmelden
             </button>
           </form>

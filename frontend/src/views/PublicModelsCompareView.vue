@@ -96,9 +96,9 @@
                   <td class="sticky left-0 bg-white z-10 px-4 py-3 text-gray-600 font-medium whitespace-nowrap">
                     Ø Real (kWh/100km)
                   </td>
-                  <td v-for="(m, i) in validModels" :key="i"
+                  <td v-for="(_, i) in validModels" :key="i"
                       class="px-3 py-3 text-center" :class="cellClass(i, realConsumptions)">
-                    {{ m.avgConsumptionKwhPer100km ? m.avgConsumptionKwhPer100km.toFixed(1) : '–' }}
+                    {{ validModels[i].avgConsumptionKwhPer100km ? validModels[i].avgConsumptionKwhPer100km.toFixed(1) : '–' }}
                   </td>
                 </tr>
                 <!-- WLTP consumption -->
@@ -106,7 +106,7 @@
                   <td class="sticky left-0 bg-white z-10 px-4 py-3 text-gray-600 font-medium whitespace-nowrap">
                     WLTP (kWh/100km)
                   </td>
-                  <td v-for="(m, i) in validModels" :key="i"
+                  <td v-for="(_, i) in validModels" :key="i"
                       class="px-3 py-3 text-center text-gray-700">
                     {{ wltpConsumptions[i] ? wltpConsumptions[i]!.toFixed(1) : '–' }}
                   </td>
@@ -116,7 +116,7 @@
                   <td class="sticky left-0 bg-white z-10 px-4 py-3 text-gray-600 font-medium whitespace-nowrap">
                     Abweichung WLTP
                   </td>
-                  <td v-for="(m, i) in validModels" :key="i"
+                  <td v-for="(_, i) in validModels" :key="i"
                       class="px-3 py-3 text-center">
                     <span v-if="wltpDeltas[i] !== null"
                           :class="deltaChipClass(wltpDeltas[i]!)"
@@ -138,7 +138,7 @@
                     <div>Praxis (90→10%)</div>
                     <div class="text-xs text-gray-400 font-normal">bei realem Verbrauch</div>
                   </td>
-                  <td v-for="(m, i) in validModels" :key="i"
+                  <td v-for="(_, i) in validModels" :key="i"
                       class="px-3 py-3 text-center" :class="cellClass(i, realRanges, false)">
                     {{ realRanges[i] ? realRanges[i] + ' km' : '–' }}
                   </td>
@@ -147,7 +147,7 @@
                   <td class="sticky left-0 bg-white z-10 px-4 py-3 text-gray-600 font-medium whitespace-nowrap">
                     WLTP Reichweite
                   </td>
-                  <td v-for="(m, i) in validModels" :key="i"
+                  <td v-for="(_, i) in validModels" :key="i"
                       class="px-3 py-3 text-center text-gray-700">
                     {{ wltpRanges[i] ? wltpRanges[i] + ' km' : '–' }}
                   </td>
@@ -163,7 +163,7 @@
                   <td class="sticky left-0 bg-white z-10 px-4 py-3 text-gray-600 font-medium whitespace-nowrap">
                     Ø Kosten / 100km
                   </td>
-                  <td v-for="(m, i) in validModels" :key="i"
+                  <td v-for="(_, i) in validModels" :key="i"
                       class="px-3 py-3 text-center" :class="cellClass(i, costsPerHundred)">
                     {{ costsPerHundred[i] ? costsPerHundred[i]!.toFixed(2) + ' €' : '–' }}
                   </td>
@@ -172,7 +172,7 @@
                   <td class="sticky left-0 bg-white z-10 px-4 py-3 text-gray-600 font-medium whitespace-nowrap">
                     Ø Ladepreis / kWh
                   </td>
-                  <td v-for="(m, i) in validModels" :key="i"
+                  <td v-for="(_, i) in validModels" :key="i"
                       class="px-3 py-3 text-center" :class="cellClass(i, costsPerKwh)">
                     {{ costsPerKwh[i] ? costsPerKwh[i]!.toFixed(1) + ' ct' : '–' }}
                   </td>
@@ -188,7 +188,7 @@
                   <td class="sticky left-0 bg-white z-10 px-4 py-3 text-gray-600 font-medium whitespace-nowrap">
                     🌞 Sommer (kWh/100km)
                   </td>
-                  <td v-for="(m, i) in validModels" :key="i"
+                  <td v-for="(_, i) in validModels" :key="i"
                       class="px-3 py-3 text-center" :class="cellClass(i, summerConsumptions)">
                     {{ summerConsumptions[i] ? summerConsumptions[i]!.toFixed(1) : '–' }}
                   </td>
@@ -197,7 +197,7 @@
                   <td class="sticky left-0 bg-white z-10 px-4 py-3 text-gray-600 font-medium whitespace-nowrap">
                     ❄️ Winter (kWh/100km)
                   </td>
-                  <td v-for="(m, i) in validModels" :key="i"
+                  <td v-for="(_, i) in validModels" :key="i"
                       class="px-3 py-3 text-center" :class="cellClass(i, winterConsumptions)">
                     {{ winterConsumptions[i] ? winterConsumptions[i]!.toFixed(1) : '–' }}
                   </td>
@@ -213,18 +213,18 @@
                   <td class="sticky left-0 bg-white z-10 px-4 py-3 text-gray-600 font-medium whitespace-nowrap">
                     Ladevorgänge
                   </td>
-                  <td v-for="(m, i) in validModels" :key="i"
+                  <td v-for="(_, i) in validModels" :key="i"
                       class="px-3 py-3 text-center" :class="cellClass(i, logCounts, false)">
-                    {{ m.logCount > 0 ? m.logCount.toLocaleString('de-DE') : '–' }}
+                    {{ validModels[i].logCount > 0 ? validModels[i].logCount.toLocaleString('de-DE') : '–' }}
                   </td>
                 </tr>
                 <tr class="border-t border-gray-50 hover:bg-gray-50 transition-colors">
                   <td class="sticky left-0 bg-white z-10 px-4 py-3 text-gray-600 font-medium whitespace-nowrap">
                     Mitwirkende
                   </td>
-                  <td v-for="(m, i) in validModels" :key="i"
+                  <td v-for="(_, i) in validModels" :key="i"
                       class="px-3 py-3 text-center text-gray-700">
-                    {{ m.uniqueContributors > 0 ? m.uniqueContributors : '–' }}
+                    {{ validModels[i].uniqueContributors > 0 ? validModels[i].uniqueContributors : '–' }}
                   </td>
                 </tr>
               </tbody>

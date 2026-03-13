@@ -144,7 +144,7 @@ const handleResend = async () => {
             <p class="text-xs text-gray-500 mt-1">Mindestens 8 Zeichen</p>
           </div>
           <div v-if="error" class="text-sm font-medium text-red-600 bg-red-50 p-3 rounded-lg">{{ error }}</div>
-          <button type="submit" class="w-full px-4 py-3 font-semibold text-white bg-indigo-600 rounded-lg shadow hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition">Konto erstellen</button>
+          <button type="submit" v-haptic class="btn-3d w-full px-4 py-3 font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition">Konto erstellen</button>
         </form>
 
         <!-- Google SSO -->

@@ -21,6 +21,23 @@
   color: #78350f;
 }
 
+/* Global 3D press effect */
+.btn-3d {
+  box-shadow: 0 4px 0 0 rgba(0,0,0,0.2);
+  transform: translateY(0);
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+  touch-action: manipulation;
+}
+.btn-3d:active {
+  box-shadow: 0 1px 0 0 rgba(0,0,0,0.2);
+  transform: translateY(3px);
+  transition: transform 0.05s ease, box-shadow 0.05s ease;
+}
+.btn-3d:disabled {
+  box-shadow: none;
+  transform: none;
+}
+
 body {
     background-color: var(--color-gray-50, #f9fafb);
     color: var(--color-gray-900, #111827);
