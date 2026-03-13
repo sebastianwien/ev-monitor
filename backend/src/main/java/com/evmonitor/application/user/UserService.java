@@ -1,5 +1,6 @@
 package com.evmonitor.application.user;
 
+import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.User;
 import com.evmonitor.domain.UserRepository;
 import com.evmonitor.domain.EvLogRepository;
@@ -23,6 +24,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final JpaUserRepository jpaUserRepository;
     private final EvLogRepository evLogRepository;
+    private final CarRepository carRepository;
     private final PasswordEncoder passwordEncoder;
     private final ObjectMapper objectMapper;
 
@@ -128,11 +130,13 @@ public class UserService {
             userData.put("updatedAt", user.getUpdatedAt());
             exportData.put("user", userData);
 
+            // Cars
+            var cars = carRepository.findAllByUserId(userId);
+            exportData.put("cars", cars);
+
             // EvLogs
             var logs = evLogRepository.findAllByUserId(userId);
             exportData.put("evLogs", logs);
-
-            // TODO: Add Cars, CoinLogs and VehicleSpecifications
 
             return objectMapper.writeValueAsBytes(exportData);
         } catch (Exception e) {
