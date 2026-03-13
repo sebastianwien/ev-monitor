@@ -54,6 +54,10 @@ public class UserService {
         UserEntity userEntity = jpaUserRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
+        if (userEntity.getAuthProvider() != com.evmonitor.domain.AuthProvider.LOCAL) {
+            throw new IllegalArgumentException("Email-Änderung nur für lokal registrierte Accounts möglich");
+        }
+
         // Verify current password before allowing email change
         if (!passwordEncoder.matches(request.currentPassword(), userEntity.getPasswordHash())) {
             throw new IllegalArgumentException("Aktuelles Passwort ist falsch");

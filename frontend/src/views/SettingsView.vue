@@ -298,10 +298,12 @@ onMounted(() => {
               <p class="font-medium">{{ email }}</p>
             </div>
             <button
+              v-if="(authStore.user as any)?.authProvider === 'LOCAL'"
               @click="showEmailForm = !showEmailForm"
               class="px-3 py-1 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition">
               Ändern
             </button>
+            <span v-else class="text-xs text-gray-400">via {{ (authStore.user as any)?.authProvider }}</span>
           </div>
 
           <div v-if="showEmailForm" class="mt-4 pt-4 border-t border-gray-200 space-y-3">

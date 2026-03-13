@@ -38,6 +38,7 @@ public class JwtService {
             extraClaims.put("userId", principal.getUser().getId().toString());
             extraClaims.put("username", principal.getUser().getUsername());
             extraClaims.put("demoAccount", principal.getUser().isSeedData());
+            extraClaims.put("authProvider", principal.getUser().getAuthProvider().name());
         }
         return generateToken(extraClaims, userDetails);
     }
@@ -58,6 +59,7 @@ public class JwtService {
             claims.put("userId", principal.getUser().getId().toString());
             claims.put("username", principal.getUser().getUsername());
             claims.put("demoAccount", true);
+            claims.put("authProvider", principal.getUser().getAuthProvider().name());
         }
         long oneHourMs = 3_600_000L;
         return Jwts.builder()
@@ -75,6 +77,7 @@ public class JwtService {
             claims.put("userId", principal.getUser().getId().toString());
             claims.put("username", principal.getUser().getUsername());
             claims.put("demoAccount", principal.getUser().isSeedData());
+            claims.put("authProvider", principal.getUser().getAuthProvider().name());
         }
         claims.put("impersonatedBy", "admin");
         long oneHourMs = 3_600_000L;

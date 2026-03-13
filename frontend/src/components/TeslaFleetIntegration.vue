@@ -7,7 +7,9 @@ import { carService, type Car } from '@/api/carService'
 
 const route = useRoute()
 
-const status = ref<TeslaConnectionStatus>({ connected: false, vehicleName: null, carId: null, lastSyncAt: null, autoImportEnabled: false, geocodingInProgress: false, vehicleState: null })
+const status = ref<TeslaConnectionStatus>({ connected: false, vehicleName: null, carId: null, lastSyncAt: null, autoImportEnabled: false, geocodingInProgress: false, vehicleState: null, suspendAfterIdleMinutes: 15 })
+const suspendMinutesInput = ref(15)
+const settingsSaved = ref(false)
 const isLoading = ref(false)
 const syncResult = ref<TeslaFleetSyncResult | null>(null)
 const error = ref<string | null>(null)
@@ -32,7 +34,10 @@ onMounted(async () => {
 })
 
 async function loadStatus() {
-  try { status.value = await teslaFleetService.getStatus() } catch { /* ignore */ }
+  try {
+    status.value = await teslaFleetService.getStatus()
+    suspendMinutesInput.value = status.value.suspendAfterIdleMinutes ?? 15
+  } catch { /* ignore */ }
 }
 
 function startGeocodingPoll() {
@@ -97,11 +102,20 @@ async function handleSyncHistory() {
   }
 }
 
+async function handleUpdateSettings() {
+  try {
+    await teslaFleetService.updateSettings(suspendMinutesInput.value)
+    status.value.suspendAfterIdleMinutes = suspendMinutesInput.value
+    settingsSaved.value = true
+    setTimeout(() => { settingsSaved.value = false }, 2000)
+  } catch { error.value = 'Einstellungen konnten nicht gespeichert werden' }
+}
+
 async function handleDisconnect() {
   if (!confirm('Tesla-Verbindung wirklich trennen?')) return
   try {
     await teslaFleetService.disconnect()
-    status.value = { connected: false, vehicleName: null, carId: null, lastSyncAt: null, autoImportEnabled: false, geocodingInProgress: false, vehicleState: null }
+    status.value = { connected: false, vehicleName: null, carId: null, lastSyncAt: null, autoImportEnabled: false, geocodingInProgress: false, vehicleState: null, suspendAfterIdleMinutes: 15 }
     syncResult.value = null; success.value = null
   } catch { error.value = 'Trennen fehlgeschlagen' }
 }
@@ -212,6 +226,38 @@ function formatDate(d: string) {
         {{ isLoading ? 'Importiere...' : 'Ladehistorie jetzt importieren' }}
       </button>
       <p class="text-xs text-gray-400 text-center">Täglich automatischer Import aktiviert</p>
+
+      <!-- Sleep-Window Setting -->
+      <div class="border-t border-gray-100 pt-4 space-y-2">
+        <p class="text-xs font-medium text-gray-600">Echtzeit-Erkennung</p>
+        <p class="text-xs text-gray-500">
+          Nach einer Fahrt prüfen wir <span class="font-medium">{{ status.suspendAfterIdleMinutes }} Minuten</span> lang,
+          ob du das Auto eingesteckt hast. Danach lassen wir den Tesla schlafen.
+        </p>
+        <div class="flex items-center gap-2">
+          <input
+            v-model.number="suspendMinutesInput"
+            type="range"
+            min="5"
+            max="60"
+            step="5"
+            class="flex-1 accent-gray-900"
+          />
+          <span class="text-sm font-medium text-gray-700 w-16 text-right">{{ suspendMinutesInput }} Min</span>
+          <button
+            @click="handleUpdateSettings"
+            :disabled="suspendMinutesInput === status.suspendAfterIdleMinutes"
+            class="text-xs px-2.5 py-1 rounded-lg bg-gray-900 text-white disabled:opacity-40 transition"
+          >
+            {{ settingsSaved ? 'Gespeichert' : 'Speichern' }}
+          </button>
+        </div>
+        <p class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2">
+          Längere Fenster erkennen Ladesessions zuverlässiger, verhindern aber auch dass der Tesla schläft.
+          Kürzere Fenster schonen die Batterie, können aber Sessions verpassen.
+          <span class="font-medium">15 Min</span> ist ein guter Kompromiss.
+        </p>
+      </div>
     </template>
   </div>
 </template>

@@ -129,6 +129,7 @@ class UserControllerIntegrationTest {
     void changeEmail_shouldUpdateEmailSuccessfully() throws Exception {
         Map<String, String> request = new HashMap<>();
         request.put("newEmail", "newemail@example.com");
+        request.put("currentPassword", "password123");
 
         mockMvc.perform(put("/api/users/me/email")
                         .with(authentication(createAuthentication(testUser)))
@@ -164,12 +165,69 @@ class UserControllerIntegrationTest {
 
         Map<String, String> request = new HashMap<>();
         request.put("newEmail", "existing@example.com");
+        request.put("currentPassword", "password123");
 
         mockMvc.perform(put("/api/users/me/email")
                         .with(authentication(createAuthentication(testUser)))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void changeEmail_shouldReturnBadRequestWhenPasswordIsWrong() throws Exception {
+        Map<String, String> request = new HashMap<>();
+        request.put("newEmail", "newemail@example.com");
+        request.put("currentPassword", "wrongPassword");
+
+        mockMvc.perform(put("/api/users/me/email")
+                        .with(authentication(createAuthentication(testUser)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", is("Aktuelles Passwort ist falsch")));
+
+        // Email must not have changed
+        UserEntity unchanged = jpaUserRepository.findById(testUserId).orElseThrow();
+        assertEquals("integration-test@example.com", unchanged.getEmail());
+    }
+
+    @Test
+    void changeEmail_shouldReturnBadRequestForOAuthUser() throws Exception {
+        LocalDateTime now = LocalDateTime.now();
+        UserEntity oauthUserEntity = new UserEntity(
+                UUID.randomUUID(),
+                "oauth-user@example.com",
+                "oauthuser",
+                null,
+                AuthProvider.GOOGLE,
+                "USER",
+                true,
+                false,
+                true,
+                "OAUTHCODE1",
+                null,
+                now,
+                now
+        );
+        oauthUserEntity = jpaUserRepository.save(oauthUserEntity);
+        User oauthUser = new User(
+                oauthUserEntity.getId(), oauthUserEntity.getEmail(), oauthUserEntity.getUsername(),
+                null, oauthUserEntity.getAuthProvider(), oauthUserEntity.getRole(),
+                true, false, true, false, oauthUserEntity.getReferralCode(), null, null, null, null, null,
+                now, now
+        );
+
+        Map<String, String> request = new HashMap<>();
+        request.put("newEmail", "newemail@example.com");
+        request.put("currentPassword", "irrelevant");
+
+        mockMvc.perform(put("/api/users/me/email")
+                        .with(authentication(createAuthentication(oauthUser)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", containsString("lokal registrierte")));
     }
 
     @Test

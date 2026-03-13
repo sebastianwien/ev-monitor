@@ -107,8 +107,9 @@ class UserServiceTest {
     @Test
     void changeEmail_shouldUpdateEmailAndSetEmailVerifiedToFalse() {
         // Given
-        ChangeEmailRequest request = new ChangeEmailRequest("newemail@example.com");
+        ChangeEmailRequest request = new ChangeEmailRequest("newemail@example.com", "correctPassword");
         when(jpaUserRepository.findById(userId)).thenReturn(Optional.of(testUserEntity));
+        when(passwordEncoder.matches("correctPassword", "hashedPassword")).thenReturn(true);
         when(userRepository.existsByEmail(request.newEmail())).thenReturn(false);
 
         // When
@@ -121,10 +122,27 @@ class UserServiceTest {
     }
 
     @Test
+    void changeEmail_shouldThrowExceptionWhenPasswordIsWrong() {
+        // Given
+        ChangeEmailRequest request = new ChangeEmailRequest("newemail@example.com", "wrongPassword");
+        when(jpaUserRepository.findById(userId)).thenReturn(Optional.of(testUserEntity));
+        when(passwordEncoder.matches("wrongPassword", "hashedPassword")).thenReturn(false);
+
+        // When & Then
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> userService.changeEmail(userId, request)
+        );
+        assertEquals("Aktuelles Passwort ist falsch", exception.getMessage());
+        verify(jpaUserRepository, never()).save(any());
+    }
+
+    @Test
     void changeEmail_shouldThrowExceptionWhenEmailAlreadyExists() {
         // Given
-        ChangeEmailRequest request = new ChangeEmailRequest("existing@example.com");
+        ChangeEmailRequest request = new ChangeEmailRequest("existing@example.com", "correctPassword");
         when(jpaUserRepository.findById(userId)).thenReturn(Optional.of(testUserEntity));
+        when(passwordEncoder.matches("correctPassword", "hashedPassword")).thenReturn(true);
         when(userRepository.existsByEmail(request.newEmail())).thenReturn(true);
 
         // When & Then
