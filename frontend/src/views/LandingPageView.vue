@@ -237,8 +237,9 @@ const formatDelta = (real: number | null, wltp: number): string => {
         </div>
 
         <p class="mt-5 text-sm text-gray-400">
-          Kein Account nötig — oder
-          <button @click="goToRegister" class="text-green-600 hover:text-green-700 font-medium underline underline-offset-2">kostenlos registrieren</button>
+          Oder
+          <button @click="goToRegister" class="text-green-600 hover:text-green-700 font-medium underline underline-offset-2">hier registrieren</button>
+          und direkt loslegen
         </p>
 
         <p class="mt-4 text-sm font-semibold text-gray-500 tabular-nums">
