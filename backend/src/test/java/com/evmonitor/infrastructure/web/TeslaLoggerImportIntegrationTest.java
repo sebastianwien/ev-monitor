@@ -56,16 +56,17 @@ class TeslaLoggerImportIntegrationTest extends AbstractIntegrationTest {
                 .filter(l -> l.getOdometerKm() == 12345)
                 .findFirst().orElseThrow();
         assertEquals(0, new BigDecimal("24.5").compareTo(first.getKwhCharged()));
-        assertEquals(80, first.getSocAfterChargePercent());  // soc_after preferred
+        assertEquals(80, first.getSocAfterChargePercent());
+        assertEquals(45, first.getSocBeforeChargePercent());
         assertEquals(DataSource.TESLA_LOGGER_IMPORT, first.getDataSource());
         assertTrue(first.isIncludeInStatistics());
     }
 
     @Test
-    void csvImport_socBefore_usedWhenSocAfterAbsent() {
+    void csvImport_socBefore_storedSeparatelyFromSocAfter() {
         String csv = """
                 date,odometer_km,kwh,soc_before,soc_after
-                2025-08-20T10:00:00,10000,20.0,40,
+                2025-08-20T10:00:00,10000,20.0,40,80
                 """;
 
         ResponseEntity<ImportResult> response = post(csv, "csv");
@@ -74,7 +75,22 @@ class TeslaLoggerImportIntegrationTest extends AbstractIntegrationTest {
         assertEquals(1, response.getBody().getImported());
 
         EvLog log = evLogRepository.findAllByCarId(car.getId()).getFirst();
-        assertEquals(40, log.getSocAfterChargePercent()); // soc_before used as fallback
+        assertEquals(80, log.getSocAfterChargePercent());
+        assertEquals(40, log.getSocBeforeChargePercent());
+    }
+
+    @Test
+    void csvImport_optionalFields_maxPowerAndTemperature() {
+        String csv = """
+                date,odometer_km,kwh,soc_after,max_charging_power_kw,temperature_celsius
+                2025-08-20T10:00:00,10000,20.0,80,150.0,23.5
+                """;
+
+        post(csv, "csv");
+
+        EvLog log = evLogRepository.findAllByCarId(car.getId()).getFirst();
+        assertEquals(0, new BigDecimal("150.0").compareTo(log.getMaxChargingPowerKw()));
+        assertEquals(23.5, log.getTemperatureCelsius());
     }
 
     @Test
@@ -161,6 +177,21 @@ class TeslaLoggerImportIntegrationTest extends AbstractIntegrationTest {
         ResponseEntity<ImportResult> response = post(csv, "csv");
 
         assertEquals(1, response.getBody().getImported());
+    }
+
+    @Test
+    void csvImport_differentOdometerWithin1h_notDuplicate() {
+        // Two real charging sessions 30 minutes apart with different odometer readings
+        String csv = """
+                date,odometer_km,kwh,soc_before,soc_after
+                2025-08-20T10:57:00,12345,38.64,18,80
+                2025-08-20T10:27:00,12100,13.22,5,26
+                """;
+
+        ResponseEntity<ImportResult> response = post(csv, "csv");
+
+        assertEquals(2, response.getBody().getImported());
+        assertEquals(0, response.getBody().getSkipped());
     }
 
     // ── Validation ────────────────────────────────────────────────────────────

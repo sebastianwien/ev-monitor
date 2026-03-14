@@ -80,12 +80,13 @@ public class EvLog {
     public static EvLog createNewWithSourceAndSocBefore(UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
             Integer chargeDurationMinutes, String geohash, Integer odometerKm,
             BigDecimal maxChargingPowerKw, Integer socAfterChargePercent, Integer socBeforeChargePercent,
-            LocalDateTime loggedAt, DataSource dataSource) {
+            LocalDateTime loggedAt, DataSource dataSource, ChargingType chargingType,
+            Double temperatureCelsius, String rawImportData) {
         LocalDateTime now = LocalDateTime.now();
         return new EvLog(UUID.randomUUID(), carId, kwhCharged, costEur,
                 chargeDurationMinutes, geohash, odometerKm, maxChargingPowerKw, socAfterChargePercent,
                 socBeforeChargePercent, loggedAt, dataSource, dataSource.includeInStatistics(),
-                null, null, null, ChargingType.UNKNOWN, null, now, now);
+                null, null, temperatureCelsius, chargingType, rawImportData, now, now);
     }
 
     public static EvLog createFromOcpp(UUID carId, BigDecimal kwhCharged,

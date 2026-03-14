@@ -136,25 +136,28 @@ public class TeslaLoggerImportService {
             return;
         }
 
-        // soc_after is preferred for consumption calculations; fall back to soc_before
         Integer socAfter = parseInteger(rawSocAfter);
-        Integer socForLog = socAfter != null ? socAfter : parseInteger(rawSocBefore);
+        Integer socBefore = parseInteger(rawSocBefore);
 
         BigDecimal costEur = parseBigDecimal(get(row, "cost_eur"));
         Integer durationMin = parseInteger(get(row, "duration_min"));
         String geohash = parseLocation(get(row, "location"));
         ChargingType chargingType = parseChargingType(get(row, "charging_type"));
+        BigDecimal maxChargingPowerKw = parseBigDecimal(get(row, "max_charging_power_kw"));
+        Double temperatureCelsius = parseDouble(get(row, "temperature_celsius"));
 
-        // Duplicate check: any log within ±1h for the same car
-        if (evLogRepository.existsByCarIdAndLoggedAtBetween(carId, loggedAt.minusHours(1), loggedAt.plusHours(1))) {
-            log.debug("Row {}: duplicate detected near {}, skipping", rowNum, loggedAt);
+        // Duplicate check: same odometer + same car within ±1h (prevents re-importing the same session,
+        // but allows two different charging sessions close in time with different odometer readings)
+        if (evLogRepository.existsByCarIdAndOdometerKmAndLoggedAtBetween(carId, odometerRaw.intValue(), loggedAt.minusHours(1), loggedAt.plusHours(1))) {
+            log.debug("Row {}: duplicate detected (odometer={}, time={}), skipping", rowNum, odometerRaw.intValue(), loggedAt);
             result.incrementSkipped();
             return;
         }
 
-        EvLog savedLog = evLogRepository.save(EvLog.createNewWithSource(
+        EvLog savedLog = evLogRepository.save(EvLog.createNewWithSourceAndSocBefore(
                 carId, kwh, costEur, durationMin, geohash, odometerRaw.intValue(),
-                null, socForLog, loggedAt, DATA_SOURCE, chargingType, null
+                maxChargingPowerKw, socAfter, socBefore, loggedAt, DATA_SOURCE, chargingType,
+                temperatureCelsius, null
         ));
         result.incrementImported();
 
@@ -284,6 +287,12 @@ public class TeslaLoggerImportService {
     private Integer parseInteger(String raw) {
         if (raw == null) return null;
         try { return new BigDecimal(raw.trim()).intValue(); }
+        catch (NumberFormatException e) { return null; }
+    }
+
+    private Double parseDouble(String raw) {
+        if (raw == null) return null;
+        try { return Double.parseDouble(raw.replace(",", ".").trim()); }
         catch (NumberFormatException e) { return null; }
     }
 
