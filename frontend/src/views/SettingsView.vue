@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import { UserIcon, KeyIcon, TrashIcon, ArrowDownTrayIcon, CurrencyDollarIcon, AcademicCapIcon, ShareIcon, ClipboardDocumentIcon, CheckIcon } from '@heroicons/vue/24/outline'
+import { UserIcon, KeyIcon, TrashIcon, ArrowDownTrayIcon, CurrencyDollarIcon, AcademicCapIcon, ShareIcon, ClipboardDocumentIcon, CheckIcon, HeartIcon } from '@heroicons/vue/24/outline'
 import api from '../api/axios'
 
 const router = useRouter()
@@ -219,6 +219,10 @@ const restartOnboarding = () => {
   setTimeout(() => {
     window.location.reload()
   }, 1000)
+}
+
+const openKofi = () => {
+  window.open('https://ko-fi.com/ev_monitor', '_blank', 'noopener,noreferrer,width=550,height=650,left=200,top=100')
 }
 
 onMounted(() => {
@@ -474,6 +478,25 @@ onMounted(() => {
             class="btn-3d w-full flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
             <AcademicCapIcon class="h-5 w-5" />
             <span>Tutorial neu starten</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Support Section -->
+      <div class="mb-8">
+        <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+          <HeartIcon class="h-6 w-6 text-red-500" />
+          EV Monitor unterstützen
+        </h2>
+        <div class="p-4 bg-gradient-to-r from-red-50 to-pink-50 border border-red-200 rounded-lg">
+          <p class="text-sm text-gray-600 mb-4">
+            EV Monitor ist kostenlos und werbefrei. Wenn dir die App hilft, freue ich mich über einen Kaffee ☕
+          </p>
+          <button
+            @click="openKofi()"
+            class="btn-3d w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition font-medium">
+            <HeartIcon class="h-5 w-5" />
+            <span>Einen Kaffee spendieren</span>
           </button>
         </div>
       </div>

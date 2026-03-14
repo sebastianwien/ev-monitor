@@ -112,6 +112,10 @@ const handleNewLog = () => {
 const closeMobileMenu = () => {
   mobileMenuOpen.value = false
 }
+
+const openKofi = () => {
+  window.open('https://ko-fi.com/ev_monitor', '_blank', 'noopener,noreferrer,width=550,height=650,left=200,top=100')
+}
 </script>
 
 <template>
@@ -240,14 +244,12 @@ const closeMobileMenu = () => {
               title="Feedback geben">
               <ChatBubbleLeftEllipsisIcon class="h-5 w-5" />
             </button>
-            <a
-              href="https://ko-fi.com/ev_monitor"
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              @click="openKofi()"
               class="p-2 text-red-400 hover:text-red-300 transition"
-              title="Unterstützen">
+              title="EV Monitor unterstützen">
               <HeartIcon class="h-5 w-5" />
-            </a>
+            </button>
           </div>
 
           <!-- Full Right Nav (1280px+) -->
@@ -311,15 +313,12 @@ const closeMobileMenu = () => {
             >
               <ChatBubbleLeftEllipsisIcon class="h-5 w-5" />
             </button>
-            <a
-              href="https://ko-fi.com/ev_monitor"
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              @click="openKofi()"
               class="text-red-400 hover:text-red-300 transition"
-              title="EV Monitor unterstützen"
-            >
+              title="EV Monitor unterstützen">
               <HeartIcon class="h-5 w-5" />
-            </a>
+            </button>
           </div>
 
           <!-- Mobile: Icons + Hamburger Button -->
@@ -350,14 +349,12 @@ const closeMobileMenu = () => {
               title="Feedback geben">
               <ChatBubbleLeftEllipsisIcon class="h-5 w-5" />
             </button>
-            <a
-              href="https://ko-fi.com/ev_monitor"
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              @click="openKofi()"
               class="text-red-400 hover:text-red-300 transition"
               title="EV Monitor unterstützen">
               <HeartIcon class="h-5 w-5" />
-            </a>
+            </button>
             <button
               @click="mobileMenuOpen = !mobileMenuOpen"
               class="p-2 rounded-md hover:bg-indigo-700 transition"
@@ -477,6 +474,12 @@ const closeMobileMenu = () => {
             <router-link to="/impressum" class="hover:text-green-600 underline">Impressum</router-link> ·
             <router-link to="/agb" class="hover:text-green-600 underline">AGB</router-link> ·
             <a href="https://github.com/sebastianwien/ev-monitor" target="_blank" rel="noopener noreferrer" class="hover:text-green-600 underline">GitHub</a>
+          </p>
+          <p>
+            <button @click="openKofi()" class="inline-flex items-center gap-1.5 text-red-500 hover:text-red-600 transition font-medium">
+              <HeartIcon class="h-4 w-4" />
+              EV Monitor unterstützen
+            </button>
           </p>
         </div>
       </div>
