@@ -610,13 +610,14 @@ const currentYear = new Date().getFullYear()
 
 // Dynamic SEO meta tags
 useHead(computed(() => {
-  if (!stats.value || notFound.value) {
+  if (notFound.value) {
     return {
-      title: 'Fahrzeugmodell – EV Monitor',
-      meta: [
-        { name: 'robots', content: 'noindex, nofollow' }
-      ]
+      title: 'Modell nicht gefunden – EV Monitor',
+      meta: [{ name: 'robots', content: 'noindex, nofollow' }]
     }
+  }
+  if (!stats.value) {
+    return { title: 'EV Monitor' }
   }
   const name = stats.value.modelDisplayName
   const consumption = stats.value.avgConsumptionKwhPer100km

@@ -400,7 +400,7 @@ useHead({
     { rel: 'canonical', href: 'https://ev-monitor.net/modelle' }
   ],
   script: [
-    { type: 'application/ld+json', children: JSON.stringify(itemListJsonLd) }
+    { type: 'application/ld+json', innerHTML: JSON.stringify(itemListJsonLd) }
   ]
 })
 

@@ -198,11 +198,14 @@ onMounted(async () => {
 })
 
 useHead(computed(() => {
-  if (!brand.value) {
+  if (notFound.value) {
     return {
       title: 'Marke nicht gefunden – EV Monitor',
       meta: [{ name: 'robots', content: 'noindex, nofollow' }]
     }
+  }
+  if (!brand.value) {
+    return { title: 'EV Monitor' }
   }
 
   const name = brand.value.brandDisplayName

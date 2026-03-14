@@ -97,11 +97,6 @@ const demoLogin = async (source: 'hero' | 'models_section' = 'hero') => {
   }
 }
 
-const goToModelDetail = (brand: string, model: string) => {
-  // Replace spaces with underscores for URL (e.g. "Polestar 2" -> "Polestar_2")
-  const urlModel = model.replace(/ /g, '_')
-  router.push(`/modelle/${brand}/${urlModel}`)
-}
 
 const formatDelta = (real: number | null, wltp: number): string => {
   if (!real || wltp === 0) return '—'
