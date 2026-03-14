@@ -112,7 +112,7 @@ const formatDelta = (real: number | null, wltp: number): string => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-white">
+  <div class="min-h-screen bg-white overflow-x-hidden">
     <!-- Navbar -->
     <nav class="border-b border-gray-200">
       <div class="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
@@ -163,53 +163,63 @@ const formatDelta = (real: number | null, wltp: number): string => {
     <!-- Hero Section -->
     <section class="pt-12 pb-6 sm:pt-16 sm:pb-8">
       <div class="max-w-4xl mx-auto text-center px-6 sm:px-8 lg:px-12">
-        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6">
-          Wie weit kommst du wirklich?<br />
-          Und im Winter?
+        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-4">
+          Wie weit kommst du wirklich — und was kostet es dich?
         </h1>
-        <p class="text-lg text-gray-600 mb-8 max-w-3xl mx-auto">
-          Kein Marketing, keine WLTP-Traumwerte. <br/> Für Käufer die wissen wollen worauf sie sich einlassen. <br/> Für Besitzer die ihren echten Verbrauch und ihre Ladekosten im Blick behalten wollen.
+        <p class="text-lg text-gray-600 mb-6 max-w-xl mx-auto break-words">
+          Echte Verbräuche und Ladekosten von der Community — kein Marketing, keine Traumwerte.
         </p>
-        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4">
-          <button
-            @click="goToRegister"
-            class="bg-green-600 text-white px-6 py-3 sm:px-8 sm:py-4 rounded-lg text-base sm:text-lg font-semibold hover:bg-green-700 transition inline-flex items-center justify-center space-x-2"
+
+        <!-- Inline model preview — sofort Wert zeigen -->
+        <div v-if="topModels.length > 0" class="mb-6 max-w-sm mx-auto">
+          <div
+            class="bg-white border border-gray-200 rounded-xl p-4 text-left cursor-pointer hover:border-green-500 transition"
+            @click="goToModelDetail(topModels[0].brand, topModels[0].model)"
           >
-            <span>Hier anmelden</span>
-            <ArrowRightIcon class="h-5 w-5" />
-          </button>
+            <div class="flex items-start justify-between gap-2 mb-1">
+              <span class="font-semibold text-gray-900">{{ topModels[0].stats.modelDisplayName }}</span>
+              <span class="text-xs text-gray-400 whitespace-nowrap mt-0.5">{{ topModels[0].stats.logCount }} Fahrten</span>
+            </div>
+            <div v-if="topModels[0].stats.avgConsumptionKwhPer100km && topModels[0].stats.wltpVariants.length > 0" class="text-sm text-gray-700">
+              Real: <span class="font-semibold">{{ topModels[0].stats.avgConsumptionKwhPer100km.toFixed(1) }} kWh/100km</span>
+              <span class="ml-1 text-red-500 font-medium">({{ formatDelta(topModels[0].stats.avgConsumptionKwhPer100km, topModels[0].stats.wltpVariants[0].wltpConsumptionKwhPer100km) }} vs. WLTP)</span>
+            </div>
+            <div class="mt-2 text-green-600 text-xs font-medium flex items-center gap-1">
+              <span>Details ansehen</span>
+              <ArrowRightIcon class="h-3.5 w-3.5" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Primary CTA: kein Account nötig -->
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
           <router-link
             to="/modelle"
-            class="border border-gray-300 text-gray-700 px-6 py-3 sm:px-8 sm:py-4 rounded-lg text-base sm:text-lg font-semibold hover:border-green-500 hover:text-green-700 transition inline-flex items-center justify-center space-x-2"
+            class="w-full sm:w-auto bg-green-600 text-white px-6 py-3 sm:px-8 sm:py-4 rounded-lg text-base sm:text-lg font-semibold hover:bg-green-700 transition inline-flex items-center justify-center space-x-2"
           >
-            <span>Elektroautos vergleichen</span>
+            <span>Alle Modelle ansehen</span>
             <ArrowRightIcon class="h-5 w-5" />
           </router-link>
-        </div>
-        <div class="mt-5 flex items-center justify-center gap-3 text-sm text-gray-400">
-          <div class="h-px w-12 bg-gray-200"></div>
-          <span>oder</span>
-          <div class="h-px w-12 bg-gray-200"></div>
-        </div>
-        <div class="mt-4">
           <button
             @click="demoLogin('hero')"
             :disabled="demoLoading"
-            class="demo-shimmer cursor-pointer w-full sm:w-auto border border-green-400 text-gray-900 px-6 py-3 rounded-lg text-base font-semibold disabled:opacity-50 inline-flex items-center justify-center gap-2"
+            class="demo-shimmer w-full sm:w-auto cursor-pointer border border-green-400 text-gray-900 px-6 py-3 sm:px-8 sm:py-4 rounded-lg text-base sm:text-lg font-semibold disabled:opacity-50 inline-flex items-center justify-center gap-2"
           >
-            {{ demoLoading ? 'Wird geladen…' : 'App live testen – kein Account, keine Registrierung.' }}
+            {{ demoLoading ? 'Wird geladen…' : 'App live testen →' }}
           </button>
         </div>
-        <p class="mt-4 text-sm sm:text-base font-semibold text-gray-600 tabular-nums">
+
+        <p class="mt-5 text-sm text-gray-400">
+          Kein Account nötig — oder
+          <button @click="goToRegister" class="text-green-600 hover:text-green-700 font-medium underline underline-offset-2">kostenlos registrieren</button>
+        </p>
+
+        <p class="mt-4 text-sm font-semibold text-gray-500 tabular-nums">
           <span>{{ displayTripsRounded.toLocaleString('de-DE') }}+ Fahrten</span>
           <span class="mx-2">•</span>
           <span>{{ displayModels }} Modelle</span>
           <span class="mx-2">•</span>
           <span>{{ displayUsers }} Fahrer</span>
-        </p>
-        <hr class="mt-6 border-gray-200 max-w-xl mx-auto" />
-        <p class="mt-6 text-lg text-gray-600 max-w-xl mx-auto">
-          EV Monitor ist eine Community-getriebene Plattform für eAuto-Fahrende und solche die es werden wollen. Alle deine Ladekosten an einem Fleck — echte Verbräuche tracken.
         </p>
       </div>
     </section>

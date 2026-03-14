@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+html, body {
+  overflow-x: hidden;
+}
+
 /* Leaflet: Tailwind Preflight sets max-width: 100% on all images,
    which breaks tile rendering and map panning on desktop */
 .leaflet-container img {
