@@ -85,7 +85,7 @@
                       @change="toggleBrand(brand)"
                       class="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
                     />
-                    <span class="text-sm text-gray-700">{{ brand }}</span>
+                    <a :href="`/modelle/${brand}`" class="text-sm text-gray-700 hover:text-green-600" @click.stop>{{ brand }}</a>
                   </label>
                 </div>
               </div>
@@ -315,18 +315,18 @@ interface FallbackModel {
 
 // Popular EV models in Germany by registration numbers (DE slugs matching DB)
 const POPULAR_DE_FALLBACK: FallbackModel[] = [
-  { brand: 'VW', model: 'ID_3', displayName: 'VW ID.3' },
-  { brand: 'TESLA', model: 'MODEL_Y', displayName: 'Tesla Model Y' },
-  { brand: 'TESLA', model: 'MODEL_3', displayName: 'Tesla Model 3' },
-  { brand: 'VW', model: 'ID_4', displayName: 'VW ID.4' },
-  { brand: 'HYUNDAI', model: 'IONIQ_5', displayName: 'Hyundai Ioniq 5' },
-  { brand: 'SKODA', model: 'ENYAQ', displayName: 'Škoda Enyaq' },
-  { brand: 'BMW', model: 'I4', displayName: 'BMW i4' },
-  { brand: 'AUDI', model: 'Q4_E_TRON', displayName: 'Audi Q4 e-tron' },
-  { brand: 'KIA', model: 'EV_6', displayName: 'Kia EV6' },
-  { brand: 'MG', model: 'MG4', displayName: 'MG MG4' },
-  { brand: 'HYUNDAI', model: 'IONIQ_6', displayName: 'Hyundai Ioniq 6' },
-  { brand: 'POLESTAR', model: 'POLESTAR_2', displayName: 'Polestar 2' },
+  { brand: 'Volkswagen', model: 'ID.3', displayName: 'VW ID.3' },
+  { brand: 'Tesla', model: 'Model_Y', displayName: 'Tesla Model Y' },
+  { brand: 'Tesla', model: 'Model_3', displayName: 'Tesla Model 3' },
+  { brand: 'Volkswagen', model: 'ID.4', displayName: 'VW ID.4' },
+  { brand: 'Hyundai', model: 'Ioniq_5', displayName: 'Hyundai Ioniq 5' },
+  { brand: 'Škoda', model: 'Enyaq', displayName: 'Škoda Enyaq' },
+  { brand: 'BMW', model: 'i4', displayName: 'BMW i4' },
+  { brand: 'Audi', model: 'Q4_e-tron', displayName: 'Audi Q4 e-tron' },
+  { brand: 'Kia', model: 'EV6', displayName: 'Kia EV6' },
+  { brand: 'MG Motor', model: 'MG4', displayName: 'MG MG4' },
+  { brand: 'Hyundai', model: 'Ioniq_6', displayName: 'Hyundai Ioniq 6' },
+  { brand: 'Polestar', model: 'Polestar_2', displayName: 'Polestar 2' },
 ]
 
 const modelsWithData = computed((): ModelInfo[] => {
@@ -363,6 +363,25 @@ const mobileFillModels = computed((): FallbackModel[] => {
     .slice(0, needed)
 })
 
+const itemListJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  name: 'Elektroauto Modelle – Realer Verbrauch & WLTP Vergleich',
+  description: 'Community-Verbrauchsdaten für alle Elektroautos im Vergleich zum WLTP-Wert.',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Tesla Model 3', url: 'https://ev-monitor.net/modelle/Tesla/Model_3' },
+    { '@type': 'ListItem', position: 2, name: 'Tesla Model Y', url: 'https://ev-monitor.net/modelle/Tesla/Model_Y' },
+    { '@type': 'ListItem', position: 3, name: 'VW ID.3', url: 'https://ev-monitor.net/modelle/Volkswagen/ID.3' },
+    { '@type': 'ListItem', position: 4, name: 'VW ID.4', url: 'https://ev-monitor.net/modelle/Volkswagen/ID.4' },
+    { '@type': 'ListItem', position: 5, name: 'Hyundai Ioniq 5', url: 'https://ev-monitor.net/modelle/Hyundai/Ioniq_5' },
+    { '@type': 'ListItem', position: 6, name: 'Hyundai Ioniq 6', url: 'https://ev-monitor.net/modelle/Hyundai/Ioniq_6' },
+    { '@type': 'ListItem', position: 7, name: 'BMW i4', url: 'https://ev-monitor.net/modelle/BMW/i4' },
+    { '@type': 'ListItem', position: 8, name: 'Audi Q4 e-tron', url: 'https://ev-monitor.net/modelle/Audi/Q4_e-tron' },
+    { '@type': 'ListItem', position: 9, name: 'Kia EV6', url: 'https://ev-monitor.net/modelle/Kia/EV6' },
+    { '@type': 'ListItem', position: 10, name: 'Polestar 2', url: 'https://ev-monitor.net/modelle/Polestar/Polestar_2' },
+  ]
+}
+
 useHead({
   title: 'Elektroauto Verbrauch Vergleich – Alle Modelle | EV Monitor',
   meta: [
@@ -379,6 +398,9 @@ useHead({
   ],
   link: [
     { rel: 'canonical', href: 'https://ev-monitor.net/modelle' }
+  ],
+  script: [
+    { type: 'application/ld+json', children: JSON.stringify(itemListJsonLd) }
   ]
 })
 

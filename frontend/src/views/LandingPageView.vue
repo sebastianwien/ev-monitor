@@ -174,11 +174,11 @@ const formatDelta = (real: number | null, wltp: number): string => {
         <div v-if="topModels.length > 0" class="mb-6">
           <!-- Mobile: horizontal scroll snap -->
           <div class="lg:hidden flex gap-3 overflow-x-auto snap-x snap-mandatory px-4 pb-1 -mx-4 scrollbar-hide">
-            <div
+            <a
               v-for="preview in topModels.slice(0, 3)"
               :key="`hero-mobile-${preview.brand}-${preview.model}`"
-              class="snap-start shrink-0 w-[75vw] max-w-[280px] bg-white border border-gray-200 rounded-xl p-4 text-left cursor-pointer hover:border-green-500 transition"
-              @click="goToModelDetail(preview.brand, preview.model)"
+              :href="`/modelle/${preview.brand}/${preview.model.replace(/ /g, '_')}`"
+              class="snap-start shrink-0 w-[75vw] max-w-[280px] bg-white border border-gray-200 rounded-xl p-4 text-left hover:border-green-500 transition block"
             >
               <div class="flex items-start justify-between gap-2 mb-1">
                 <span class="font-semibold text-gray-900">{{ preview.stats.modelDisplayName }}</span>
@@ -192,15 +192,15 @@ const formatDelta = (real: number | null, wltp: number): string => {
                 <span>Details ansehen</span>
                 <ArrowRightIcon class="h-3.5 w-3.5" />
               </div>
-            </div>
+            </a>
           </div>
           <!-- Desktop: 3 Modelle nebeneinander -->
           <div class="hidden lg:grid grid-cols-3 gap-4 max-w-4xl mx-auto">
-            <div
+            <a
               v-for="preview in topModels.slice(0, 3)"
               :key="`hero-${preview.brand}-${preview.model}`"
-              class="bg-white border border-gray-200 rounded-xl p-4 text-left cursor-pointer hover:border-green-500 transition"
-              @click="goToModelDetail(preview.brand, preview.model)"
+              :href="`/modelle/${preview.brand}/${preview.model.replace(/ /g, '_')}`"
+              class="bg-white border border-gray-200 rounded-xl p-4 text-left hover:border-green-500 transition block"
             >
               <div class="flex items-start justify-between gap-2 mb-1">
                 <span class="font-semibold text-gray-900">{{ preview.stats.modelDisplayName }}</span>
@@ -214,7 +214,7 @@ const formatDelta = (real: number | null, wltp: number): string => {
                 <span>Details ansehen</span>
                 <ArrowRightIcon class="h-3.5 w-3.5" />
               </div>
-            </div>
+            </a>
           </div>
         </div>
 
@@ -315,11 +315,11 @@ const formatDelta = (real: number | null, wltp: number): string => {
 
         <div v-else-if="topModels.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           <!-- Model Cards -->
-          <div
+          <a
             v-for="preview in topModels"
             :key="`${preview.brand}-${preview.model}`"
-            class="bg-white border border-gray-200 rounded-xl p-4 hover:border-green-500 transition cursor-pointer"
-            @click="goToModelDetail(preview.brand, preview.model)"
+            :href="`/modelle/${preview.brand}/${preview.model.replace(/ /g, '_')}`"
+            class="bg-white border border-gray-200 rounded-xl p-4 hover:border-green-500 transition block"
           >
             <div class="flex items-start justify-between gap-2 mb-2">
               <h3 class="text-lg font-semibold text-gray-900">{{ preview.stats.modelDisplayName }}</h3>
@@ -345,7 +345,7 @@ const formatDelta = (real: number | null, wltp: number): string => {
               <span>Details ansehen</span>
               <ArrowRightIcon class="h-4 w-4" />
             </div>
-          </div>
+          </a>
 
           <!-- Next 4 models teaser + CTAs — span full grid width -->
           <div class="col-span-full mt-2 space-y-4">

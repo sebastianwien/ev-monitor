@@ -40,11 +40,16 @@
           <span class="mx-2">›</span>
           <a href="/modelle" class="hover:text-gray-700">Modelle</a>
           <span class="mx-2">›</span>
-          <span class="text-gray-900">{{ stats.modelDisplayName }}</span>
+          <a :href="`/modelle/${canonicalBrand}`" class="hover:text-gray-700">{{ stats.brandDisplayName }}</a>
+          <span class="mx-2">›</span>
+          <span class="text-gray-900">{{ stats.modelDisplayName.replace(stats.brandDisplayName + ' ', '') }}</span>
         </nav>
 
         <!-- Hero -->
         <div class="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
+          <a :href="`/modelle/${canonicalBrand}`" class="inline-flex items-center gap-1 text-sm text-green-600 hover:underline mb-3">
+            ← Alle {{ stats.brandDisplayName }} Modelle
+          </a>
           <h1 class="text-3xl font-bold text-gray-900 mb-2">
             {{ stats.modelDisplayName }} – Realer Verbrauch & WLTP Vergleich
           </h1>
@@ -433,29 +438,29 @@
       <div class="bg-white rounded-2xl border border-gray-200 p-6">
         <h2 class="text-base font-bold text-gray-900 mb-3">Andere beliebte Elektroauto-Modelle</h2>
         <div class="flex flex-wrap gap-2 text-sm">
-          <a href="/modelle/TESLA/MODEL_3" class="text-green-600 hover:underline">Tesla Model 3</a>
+          <a href="/modelle/Tesla/Model_3" class="text-green-600 hover:underline">Tesla Model 3</a>
           <span class="text-gray-300">·</span>
-          <a href="/modelle/TESLA/MODEL_Y" class="text-green-600 hover:underline">Tesla Model Y</a>
+          <a href="/modelle/Tesla/Model_Y" class="text-green-600 hover:underline">Tesla Model Y</a>
           <span class="text-gray-300">·</span>
-          <a href="/modelle/VW/ID_3" class="text-green-600 hover:underline">VW ID.3</a>
+          <a href="/modelle/Volkswagen/ID.3" class="text-green-600 hover:underline">VW ID.3</a>
           <span class="text-gray-300">·</span>
-          <a href="/modelle/VW/ID_4" class="text-green-600 hover:underline">VW ID.4</a>
+          <a href="/modelle/Volkswagen/ID.4" class="text-green-600 hover:underline">VW ID.4</a>
           <span class="text-gray-300">·</span>
-          <a href="/modelle/HYUNDAI/IONIQ_5" class="text-green-600 hover:underline">Hyundai Ioniq 5</a>
+          <a href="/modelle/Hyundai/Ioniq_5" class="text-green-600 hover:underline">Hyundai Ioniq 5</a>
           <span class="text-gray-300">·</span>
-          <a href="/modelle/HYUNDAI/IONIQ_6" class="text-green-600 hover:underline">Hyundai Ioniq 6</a>
+          <a href="/modelle/Hyundai/Ioniq_6" class="text-green-600 hover:underline">Hyundai Ioniq 6</a>
           <span class="text-gray-300">·</span>
-          <a href="/modelle/KIA/EV_6" class="text-green-600 hover:underline">Kia EV6</a>
+          <a href="/modelle/Kia/EV6" class="text-green-600 hover:underline">Kia EV6</a>
           <span class="text-gray-300">·</span>
-          <a href="/modelle/BMW/I4" class="text-green-600 hover:underline">BMW i4</a>
+          <a href="/modelle/BMW/i4" class="text-green-600 hover:underline">BMW i4</a>
           <span class="text-gray-300">·</span>
-          <a href="/modelle/AUDI/Q4_E_TRON" class="text-green-600 hover:underline">Audi Q4 e-tron</a>
+          <a href="/modelle/Audi/Q4_e-tron" class="text-green-600 hover:underline">Audi Q4 e-tron</a>
           <span class="text-gray-300">·</span>
-          <a href="/modelle/POLESTAR/POLESTAR_2" class="text-green-600 hover:underline">Polestar 2</a>
+          <a href="/modelle/Polestar/Polestar_2" class="text-green-600 hover:underline">Polestar 2</a>
           <span class="text-gray-300">·</span>
-          <a href="/modelle/RENAULT/ZOE" class="text-green-600 hover:underline">Renault Zoe</a>
+          <a href="/modelle/Renault/Zoe" class="text-green-600 hover:underline">Renault Zoe</a>
           <span class="text-gray-300">·</span>
-          <a href="/modelle/NISSAN/LEAF" class="text-green-600 hover:underline">Nissan Leaf</a>
+          <a href="/modelle/Nissan/Leaf" class="text-green-600 hover:underline">Nissan Leaf</a>
         </div>
       </div>
     </div>
@@ -691,6 +696,12 @@ useHead(computed(() => {
       {
         '@type': 'ListItem',
         position: 3,
+        name: `${stats.value.brandDisplayName} Elektroautos`,
+        item: `https://ev-monitor.net/modelle/${canonicalBrand.value}`
+      },
+      {
+        '@type': 'ListItem',
+        position: 4,
         name: name
       }
     ]
