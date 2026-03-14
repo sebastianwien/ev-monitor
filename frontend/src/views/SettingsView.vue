@@ -272,7 +272,7 @@ onMounted(() => {
             class="flex-1 min-w-0 px-3 py-2 text-sm bg-white border border-indigo-200 rounded-lg text-gray-700 focus:outline-none cursor-default select-all" />
           <button
             @click="copyReferralLink"
-            class="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition"
+            class="btn-3d flex-shrink-0 flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition"
             :class="referralCopied
               ? 'bg-green-600 text-white'
               : 'bg-indigo-600 text-white hover:bg-indigo-700'">
@@ -300,7 +300,7 @@ onMounted(() => {
             <button
               v-if="(authStore.user as any)?.authProvider === 'LOCAL'"
               @click="showEmailForm = !showEmailForm"
-              class="px-3 py-1 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition">
+              class="btn-3d px-3 py-1 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition">
               Ändern
             </button>
             <span v-else class="text-xs text-gray-400">via {{ (authStore.user as any)?.authProvider }}</span>
@@ -322,12 +322,12 @@ onMounted(() => {
               <button
                 @click="changeEmail"
                 :disabled="loading || !newEmail || !emailCurrentPassword"
-                class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 transition">
+                class="btn-3d px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 transition">
                 Speichern
               </button>
               <button
                 @click="showEmailForm = false; newEmail = ''; emailCurrentPassword = ''"
-                class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition">
+                class="btn-3d px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition">
                 Abbrechen
               </button>
             </div>
@@ -343,7 +343,7 @@ onMounted(() => {
             </div>
             <button
               @click="showUsernameForm = !showUsernameForm"
-              class="px-3 py-1 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition">
+              class="btn-3d px-3 py-1 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition">
               Ändern
             </button>
           </div>
@@ -358,12 +358,12 @@ onMounted(() => {
               <button
                 @click="changeUsername"
                 :disabled="loading"
-                class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 transition">
+                class="btn-3d px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 transition">
                 Speichern
               </button>
               <button
                 @click="showUsernameForm = false; newUsername = ''"
-                class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition">
+                class="btn-3d px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition">
                 Abbrechen
               </button>
             </div>
@@ -379,7 +379,7 @@ onMounted(() => {
             </div>
             <button
               @click="showPasswordForm = !showPasswordForm"
-              class="px-3 py-1 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition">
+              class="btn-3d px-3 py-1 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition">
               Ändern
             </button>
           </div>
@@ -404,12 +404,12 @@ onMounted(() => {
               <button
                 @click="changePassword"
                 :disabled="loading"
-                class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 transition">
+                class="btn-3d px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 transition">
                 Speichern
               </button>
               <button
                 @click="showPasswordForm = false; currentPassword = ''; newPassword = ''; confirmPassword = ''"
-                class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition">
+                class="btn-3d px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition">
                 Abbrechen
               </button>
             </div>
@@ -440,7 +440,7 @@ onMounted(() => {
         <button
           @click="exportData"
           :disabled="loading"
-          class="w-full mb-4 flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition">
+          class="btn-3d w-full mb-4 flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition">
           <ArrowDownTrayIcon class="h-5 w-5" />
           <span>Meine Daten exportieren (JSON)</span>
         </button>
@@ -448,7 +448,7 @@ onMounted(() => {
         <!-- Delete Account -->
         <button
           @click="showDeleteConfirm = true"
-          class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
+          class="btn-3d w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
           <TrashIcon class="h-5 w-5" />
           <span>Account unwiderruflich löschen</span>
         </button>
@@ -471,7 +471,7 @@ onMounted(() => {
           </p>
           <button
             @click="restartOnboarding"
-            class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
+            class="btn-3d w-full flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
             <AcademicCapIcon class="h-5 w-5" />
             <span>Tutorial neu starten</span>
           </button>
@@ -500,12 +500,12 @@ onMounted(() => {
             <button
               @click="deleteAccount"
               :disabled="loading || !deletePassword"
-              class="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 transition">
+              class="btn-3d flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 transition">
               Endgültig löschen
             </button>
             <button
               @click="showDeleteConfirm = false; deletePassword = ''"
-              class="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition">
+              class="btn-3d flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition">
               Abbrechen
             </button>
           </div>

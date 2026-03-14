@@ -34,14 +34,13 @@ const showCoinToast = (coins: number) => {
 }
 
 const selectedCarId = ref<string | null>(null)
-const kwhCharged = ref<number>(0)
-const costEur = ref<number>(0)
+const kwhCharged = ref<number | null>(null)
+const costEur = ref<number | null>(null)
 const chargeDurationMinutes = ref<number | null>(null)
 const odometerKm = ref<number | null>(null) // Required: odometer reading
 const socAfterChargePercent = ref<number | null>(null) // Required: battery level after charging (0-100%)
 const maxChargingPowerKw = ref<number | null>(null) // Optional: max charging power
 const loggedAt = ref<string | null>(null) // Optional: when the charge happened
-const odometerWarning = ref<string | null>(null) // Warning if odometer is lower than last log
 const chargingType = ref<'AC' | 'DC'>('AC') // AC or DC charging, default AC
 const routeType = ref<'CITY' | 'COMBINED' | 'HIGHWAY'>('COMBINED')
 const tireType = ref<'SUMMER' | 'ALL_YEAR' | 'WINTER'>('SUMMER')
@@ -214,13 +213,28 @@ const submitLog = async () => {
     return
   }
 
-// Odometer validation: Show warning if lower than last reading
+  if (!kwhCharged.value || kwhCharged.value <= 0) {
+    error.value = 'Bitte gib die geladene Energie (kWh) ein'
+    return
+  }
+
+  if (!odometerKm.value || odometerKm.value <= 0) {
+    error.value = 'Bitte gib den aktuellen Tachostand ein'
+    return
+  }
+
+  if (socAfterChargePercent.value === null || socAfterChargePercent.value < 0 || socAfterChargePercent.value > 100) {
+    error.value = 'Bitte gib den Akkustand nach dem Laden ein (0–100%)'
+    return
+  }
+
+// Odometer validation: Block if lower than last reading
   odometerWarning.value = null
   if (odometerKm.value !== null) {
     const lastOdometer = getLastOdometerReading()
-    if (lastOdometer !== null && odometerKm.value < lastOdometer) {
-      odometerWarning.value = `⚠️ Hinweis: Dein Tachostand (${odometerKm.value} km) ist niedriger als der letzte erfasste Wert (${lastOdometer} km). Bist du sicher?`
-      // Don't block submission, just show warning
+    if (lastOdometer !== null && odometerKm.value <= lastOdometer) {
+      error.value = `Tachostand muss größer als der letzte erfasste Wert sein (${lastOdometer.toLocaleString('de-DE')} km)`
+      return
     }
   }
 
@@ -228,8 +242,8 @@ const submitLog = async () => {
     error.value = null
     const payload: any = {
       carId: selectedCarId.value,
-      kwhCharged: Math.round(kwhCharged.value * 100) / 100,
-      costEur: Math.round(costEur.value * 100) / 100,
+      kwhCharged: Math.round((kwhCharged.value ?? 0) * 100) / 100,
+      costEur: Math.round((costEur.value ?? 0) * 100) / 100,
       odometerKm: odometerKm.value,
       socAfterChargePercent: socAfterChargePercent.value
     }
@@ -277,14 +291,13 @@ const submitLog = async () => {
     analytics.trackLogCreated(ocrUsed.value ? 'ocr' : 'manual', isFirstLog)
 
     // Reset form (keep car selected)
-    kwhCharged.value = 0
-    costEur.value = 0
+    kwhCharged.value = null
+    costEur.value = null
     chargeDurationMinutes.value = null
     odometerKm.value = null
     socAfterChargePercent.value = null
     maxChargingPowerKw.value = null
     loggedAt.value = null
-    odometerWarning.value = null
     ocrUsed.value = false
     chargingType.value = 'AC'
     routeType.value = 'COMBINED'
@@ -407,15 +420,7 @@ const handleOcrData = (ocrResult: any) => {
 
     <!-- Manual Entry Mode -->
     <div v-if="!showOcrCapture">
-      <div v-if="error" class="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-md">
-        {{ error }}
-      </div>
-
-      <div v-if="odometerWarning" class="mb-4 p-4 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-md">
-        {{ odometerWarning }}
-      </div>
-
-      <form @submit.prevent="submitLog" class="space-y-4">
+      <form @submit.prevent="submitLog" novalidate class="space-y-4">
 
       <!-- Pflichtfelder-Gruppe -->
       <div class="bg-gray-100 md:rounded-xl p-3 space-y-3 -mx-4 md:mx-0">
@@ -424,11 +429,11 @@ const handleOcrData = (ocrResult: any) => {
       <div class="grid grid-cols-2 gap-3">
         <div>
           <label class="block text-sm font-medium text-gray-700">Energie (kWh)</label>
-          <input v-model="kwhCharged" type="number" step="0.1" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border bg-white" />
+          <input v-model="kwhCharged" type="number" step="0.1" placeholder="z.B. 42.5" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border bg-white" />
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700">Kosten (€)</label>
-          <input v-model="costEur" type="number" step="0.01" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border bg-white" />
+          <input v-model="costEur" type="number" step="0.01" placeholder="z.B. 12.50" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border bg-white" />
         </div>
       </div>
 
@@ -436,11 +441,11 @@ const handleOcrData = (ocrResult: any) => {
       <div class="grid grid-cols-2 gap-3">
         <div>
           <label class="block text-sm font-medium text-gray-700">Tachostand (km)</label>
-          <input v-model="odometerKm" type="number" step="1" required :placeholder="getLastOdometerPlaceholder()" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border bg-white" />
+          <input v-model="odometerKm" type="number" step="1" :placeholder="getLastOdometerPlaceholder()" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border bg-white" />
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700">Akku nach Laden (%)</label>
-          <input v-model="socAfterChargePercent" type="number" min="0" max="100" step="1" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border bg-white" />
+          <input v-model="socAfterChargePercent" type="number" min="0" max="100" step="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border bg-white" />
         </div>
       </div>
 
@@ -496,43 +501,43 @@ const handleOcrData = (ocrResult: any) => {
 
       <!-- Optionale Felder -->
       <div>
-        <p class="text-xs text-gray-400 text-center mb-2">Optional</p>
-        <div class="space-y-3">
-          <!-- Streckenart -->
-          <div>
-            <label class="block text-sm font-medium text-gray-600 mb-1">Streckenart</label>
-            <div class="inline-flex w-full rounded-full border border-gray-200 bg-gray-100 p-0.5">
-              <button type="button" @click="routeType = 'CITY'"
-                :class="['flex-1 px-3 py-1.5 rounded-full text-sm font-medium transition', routeType === 'CITY' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
-                Stadt
-              </button>
-              <button type="button" @click="routeType = 'COMBINED'"
-                :class="['flex-1 px-3 py-1.5 rounded-full text-sm font-medium transition', routeType === 'COMBINED' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
-                Gemischt
-              </button>
-              <button type="button" @click="routeType = 'HIGHWAY'"
-                :class="['flex-1 px-3 py-1.5 rounded-full text-sm font-medium transition', routeType === 'HIGHWAY' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
-                Autobahn
-              </button>
+<div class="space-y-3">
+          <!-- Streckenart + Reifen nebeneinander -->
+          <div class="grid grid-cols-2 gap-3">
+            <!-- Streckenart -->
+            <div>
+              <div class="inline-flex w-full rounded-full border border-gray-200 bg-gray-100 p-0.5">
+                <button type="button" @click="routeType = 'CITY'"
+                  :class="['flex-1 px-1 py-1.5 rounded-full text-xs font-medium transition', routeType === 'CITY' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
+                  Stadt
+                </button>
+                <button type="button" @click="routeType = 'COMBINED'"
+                  :class="['flex-1 px-1 py-1.5 rounded-full text-xs font-medium transition', routeType === 'COMBINED' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
+                  Mix
+                </button>
+                <button type="button" @click="routeType = 'HIGHWAY'"
+                  :class="['flex-1 px-1 py-1.5 rounded-full text-xs font-medium transition', routeType === 'HIGHWAY' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
+                  AB
+                </button>
+              </div>
             </div>
-          </div>
 
-          <!-- Reifenart -->
-          <div>
-            <label class="block text-sm font-medium text-gray-600 mb-1">Reifen</label>
-            <div class="inline-flex w-full rounded-full border border-gray-200 bg-gray-100 p-0.5">
-              <button type="button" @click="tireType = 'SUMMER'"
-                :class="['flex-1 px-3 py-1.5 rounded-full text-sm font-medium transition', tireType === 'SUMMER' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
-                Sommer
-              </button>
-              <button type="button" @click="tireType = 'ALL_YEAR'"
-                :class="['flex-1 px-3 py-1.5 rounded-full text-sm font-medium transition', tireType === 'ALL_YEAR' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
-                Ganzjahr
-              </button>
-              <button type="button" @click="tireType = 'WINTER'"
-                :class="['flex-1 px-3 py-1.5 rounded-full text-sm font-medium transition', tireType === 'WINTER' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
-                Winter
-              </button>
+            <!-- Reifenart -->
+            <div>
+              <div class="inline-flex w-full rounded-full border border-gray-200 bg-gray-100 p-0.5">
+                <button type="button" @click="tireType = 'SUMMER'"
+                  :class="['flex-1 px-1 py-1.5 rounded-full text-xs font-medium transition', tireType === 'SUMMER' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
+                  Som.
+                </button>
+                <button type="button" @click="tireType = 'ALL_YEAR'"
+                  :class="['flex-1 px-1 py-1.5 rounded-full text-xs font-medium transition', tireType === 'ALL_YEAR' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
+                  Ganz.
+                </button>
+                <button type="button" @click="tireType = 'WINTER'"
+                  :class="['flex-1 px-1 py-1.5 rounded-full text-xs font-medium transition', tireType === 'WINTER' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
+                  Win.
+                </button>
+              </div>
             </div>
           </div>
 
@@ -559,6 +564,9 @@ const handleOcrData = (ocrResult: any) => {
         </div>
       </div>
 
+        <div v-if="error" class="p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
+          {{ error }}
+        </div>
         <button type="submit" @click="haptic(20)" class="w-full bg-indigo-600 text-white p-3 rounded-md btn-3d hover:bg-indigo-700 transition">⚡ Ladevorgang speichern</button>
         <p class="text-xs text-gray-400 text-center mt-2">
           📍 Der Standort hilft uns, die Außentemperatur beim Laden zu ermitteln — anonymisiert auf ~5km.

@@ -250,8 +250,7 @@ function carLabel(car: Car): string {
         </div>
       </div>
 
-      <button v-if="!showForm" @click="showForm = true" class="flex items-center gap-2 text-sm text-green-600 hover:text-green-700 font-medium">
-        <PlusIcon class="h-4 w-4" />
+      <button v-if="!showForm" @click="showForm = true" class="btn-3d flex items-center gap-2 bg-green-600 text-white px-5 py-2.5 rounded-lg font-medium text-sm hover:bg-green-700 transition">
         go-eCharger hinzufügen
       </button>
     </template>

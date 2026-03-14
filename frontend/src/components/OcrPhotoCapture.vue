@@ -247,7 +247,6 @@ const cancel = () => {
         ref="fileInput"
         type="file"
         accept="image/*"
-        capture="environment"
         @change="handleFileSelect"
         class="hidden"
       />

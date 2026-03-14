@@ -22,6 +22,7 @@ const deleteAllLoading = ref(false)
 const deleteAllError = ref<string | null>(null)
 const fleetApiConfigured = ref(true)
 const cars = ref<Car[]>([])
+const carsLoaded = ref(false)
 const selectedCarId = ref<string>('')
 let geocodingPollInterval: ReturnType<typeof setInterval> | null = null
 
@@ -69,7 +70,9 @@ async function loadCars() {
   try {
     cars.value = await carService.getCars()
     if (cars.value.length > 0) selectedCarId.value = cars.value[0].id
-  } catch { /* ignore */ }
+  } catch { /* ignore */ } finally {
+    carsLoaded.value = true
+  }
 }
 
 async function handleConnect() {
@@ -167,7 +170,7 @@ function formatDate(d: string) {
 </script>
 
 <template>
-  <div class="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
+  <div class="space-y-4">
     <div class="flex items-center gap-3">
       <div class="bg-gray-900 rounded-lg p-2">
         <svg class="h-5 w-5 text-white" viewBox="0 0 24 24" fill="currentColor">
@@ -210,7 +213,7 @@ function formatDate(d: string) {
         <label class="block text-xs font-medium text-gray-600 mb-1">Welches Fahrzeug ist dein Tesla?</label>
         <CarSelectDropdown :cars="cars" v-model="selectedCarId" />
       </div>
-      <p v-if="cars.length === 0" class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2">
+      <p v-if="carsLoaded && cars.length === 0" class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2">
         Bitte zuerst ein Fahrzeug unter Fahrzeuge anlegen.
       </p>
       <button
