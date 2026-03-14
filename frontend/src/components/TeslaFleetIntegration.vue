@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import { ArrowTopRightOnSquareIcon, ArrowPathIcon, XMarkIcon, CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 import teslaFleetService, { type TeslaConnectionStatus, type TeslaFleetSyncResult } from '@/api/teslaFleetService'
 import { carService, type Car } from '@/api/carService'
+import CarSelectDropdown from './CarSelectDropdown.vue'
 
 const route = useRoute()
 
@@ -159,18 +160,6 @@ async function handleDeleteAllImports() {
   }
 }
 
-function enumToLabel(value: string | null | undefined): string {
-  if (!value) return ''
-  return value.replace(/_/g, ' ').toLowerCase()
-    .split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ')
-}
-
-function carLabel(car: Car): string {
-  const name = `${enumToLabel(car.brand)} ${enumToLabel(car.model)}`
-  return car.licensePlate ? `${name} · ${car.licensePlate}` : name
-}
 
 function formatDate(d: string) {
   return new Date(d).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
@@ -186,7 +175,7 @@ function formatDate(d: string) {
         </svg>
       </div>
       <div>
-        <h3 class="font-semibold text-gray-900">Tesla Import</h3>
+        <h3 class="font-semibold text-gray-900">Tesla Synchronisation einrichten</h3>
         <p class="text-xs text-gray-500">Via offizieller Tesla Fleet API</p>
       </div>
     </div>
@@ -201,9 +190,10 @@ function formatDate(d: string) {
     </div>
 
     <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800 space-y-1">
-      <p class="font-medium">Was importiert wird:</p>
+      <p class="font-medium">Was synchronisiert wird:</p>
       <ul class="list-disc list-inside space-y-0.5 text-blue-700">
-        <li>Supercharger-Sessions (historisch + zukünftig)</li>
+        <li>Supercharger-Sessions (historische einmalig + zukünftige periodisch)</li>
+        <li>Künftige Ladevorgänge (mit Duplikats-Erkennung für Datenqualität)</li>
         <li>Energie in kWh, Dauer, Standort</li>
         <li>Kosten (falls Supercharger mit Abrechnung)</li>
         <li>Kilometerstand (ab jetzt, für zukünftige Sessions)</li>
@@ -216,21 +206,17 @@ function formatDate(d: string) {
         Verbinde deinen Tesla Account über das offizielle OAuth2-Verfahren.
         Wir importieren dann deine bisherigen Supercharger-Sessions und prüfen täglich auf neue.
       </p>
-      <div v-if="cars.length > 0">
+      <div v-if="cars.length > 1">
         <label class="block text-xs font-medium text-gray-600 mb-1">Welches Fahrzeug ist dein Tesla?</label>
-        <select v-model="selectedCarId" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
-          <option v-for="car in cars" :key="car.id" :value="car.id">
-            {{ carLabel(car) }}
-          </option>
-        </select>
+        <CarSelectDropdown :cars="cars" v-model="selectedCarId" />
       </div>
-      <p v-else class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2">
+      <p v-if="cars.length === 0" class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2">
         Bitte zuerst ein Fahrzeug unter Fahrzeuge anlegen.
       </p>
       <button
         @click="handleConnect"
         :disabled="isLoading || !fleetApiConfigured || cars.length === 0"
-        class="w-full flex items-center justify-center gap-2 bg-gray-900 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-800 transition disabled:opacity-50"
+        class="btn-3d w-full flex items-center justify-center gap-2 bg-gray-900 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-800 transition disabled:opacity-50"
       >
         <ArrowTopRightOnSquareIcon class="h-4 w-4" />
         {{ isLoading ? 'Weiterleitung...' : 'Mit Tesla verbinden' }}
@@ -264,7 +250,7 @@ function formatDate(d: string) {
       <button
         @click="handleSyncHistory"
         :disabled="isLoading"
-        class="w-full flex items-center justify-center gap-2 bg-gray-900 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-800 transition disabled:opacity-50"
+        class="btn-3d w-full flex items-center justify-center gap-2 bg-gray-900 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-800 transition disabled:opacity-50"
       >
         <ArrowPathIcon class="h-4 w-4" :class="{ 'animate-spin': isLoading }" />
         {{ isLoading ? 'Importiere...' : 'Ladehistorie jetzt importieren' }}

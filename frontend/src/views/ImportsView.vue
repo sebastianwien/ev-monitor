@@ -5,6 +5,7 @@ import SpritMonitorImport from '../components/SpritMonitorImport.vue'
 import GoeIntegration from '../components/GoeIntegration.vue'
 import TeslaFleetIntegration from '../components/TeslaFleetIntegration.vue'
 import TeslaLoggerImportModal from '../components/TeslaLoggerImportModal.vue'
+import CarSelectDropdown from '../components/CarSelectDropdown.vue'
 import { carService, type Car } from '../api/carService'
 import { useImportsTab } from '../composables/useImportsTab'
 
@@ -253,21 +254,13 @@ const teslaCars = computed(() =>
 
             <div v-if="teslaCars.length > 1" class="space-y-1.5">
               <label class="block text-sm font-medium text-gray-700">Fahrzeug auswählen</label>
-              <select
-                v-model="teslaLoggerCarId"
-                class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-              >
-                <option value="" disabled>Fahrzeug auswählen…</option>
-                <option v-for="car in teslaCars" :key="car.id" :value="car.id">
-                  {{ car.brand }} {{ car.model }}
-                </option>
-              </select>
+              <CarSelectDropdown :cars="teslaCars" v-model="teslaLoggerCarId" />
             </div>
 
             <button
               @click="teslaLoggerCarId = teslaCars.length === 1 ? teslaCars[0].id : (teslaLoggerCarId || null)"
               :disabled="teslaCars.length > 1 && !teslaLoggerCarId"
-              class="flex items-center gap-2 bg-gray-800 text-white px-5 py-2.5 rounded-lg font-medium text-sm hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
+              class="btn-3d w-full flex items-center justify-center gap-2 bg-gray-800 text-white px-5 py-2.5 rounded-lg font-medium text-sm hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
             >
               <ArrowDownTrayIcon class="h-4 w-4" />
               Import starten

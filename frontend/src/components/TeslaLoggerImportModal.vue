@@ -1,5 +1,5 @@
 <template>
-  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+  <div class="fixed inset-0 z-50 flex items-start justify-center pt-12 px-4 pb-4 bg-black/50">
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg flex flex-col max-h-[90vh]">
       <!-- Header -->
       <div class="flex items-center justify-between p-5 border-b border-gray-100">
@@ -17,23 +17,24 @@
           oder einer anderen Quelle im vorgegebenen Format.
         </p>
 
+        <!-- Format toggle -->
+        <div class="flex gap-2">
+          <button
+            v-for="fmt in (['csv', 'json'] as const)"
+            :key="fmt"
+            @click="selectedFormat = fmt"
+            :class="['btn-3d text-sm px-4 py-1.5 rounded-lg font-medium transition-colors',
+              selectedFormat === fmt
+                ? 'active bg-green-600 text-white'
+                : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-100']"
+          >{{ fmt.toUpperCase() }}</button>
+        </div>
+
         <!-- Format spec -->
         <div class="bg-gray-50 rounded-xl p-4 space-y-2">
           <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Format-Vorlage</p>
 
-          <div class="flex gap-2">
-            <button
-              v-for="fmt in (['csv', 'json'] as const)"
-              :key="fmt"
-              @click="activeFormatTab = fmt"
-              :class="['text-xs px-3 py-1 rounded-lg font-medium transition-colors',
-                activeFormatTab === fmt
-                  ? 'bg-green-600 text-white'
-                  : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-100']"
-            >{{ fmt.toUpperCase() }}</button>
-          </div>
-
-          <pre v-if="activeFormatTab === 'csv'" class="text-xs text-gray-700 overflow-x-auto whitespace-pre">{{ csvTemplate }}</pre>
+          <pre v-if="selectedFormat === 'csv'" class="text-xs text-gray-700 overflow-x-auto whitespace-pre">{{ csvTemplate }}</pre>
           <pre v-else class="text-xs text-gray-700 overflow-x-auto whitespace-pre">{{ jsonTemplate }}</pre>
 
           <p class="text-xs text-gray-500">
@@ -41,17 +42,6 @@
             <strong>date:</strong> ISO 8601, DD.MM.YYYY, MM/DD/YYYY oder Unix-Timestamp<br>
             <strong>location:</strong> Lat/Lon (z.B. <code>48.2082,16.3738</code>) oder Ortsname
           </p>
-        </div>
-
-        <!-- Format selector -->
-        <div class="space-y-1.5">
-          <label class="block text-sm font-medium text-gray-700">Format</label>
-          <div class="flex gap-3">
-            <label v-for="fmt in ['csv', 'json']" :key="fmt" class="flex items-center gap-2 cursor-pointer">
-              <input type="radio" :value="fmt" v-model="selectedFormat" class="text-green-600" />
-              <span class="text-sm text-gray-700">{{ fmt.toUpperCase() }}</span>
-            </label>
-          </div>
         </div>
 
         <!-- File upload -->
@@ -109,12 +99,12 @@
       <div class="flex justify-end gap-3 p-5 border-t border-gray-100 shrink-0">
         <button
           @click="$emit('close')"
-          class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+          class="btn-3d px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
         >Schließen</button>
         <button
           @click="runImport"
           :disabled="!rawData.trim() || loading"
-          class="px-5 py-2 text-sm font-medium text-white bg-green-600 rounded-xl hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+          class="btn-3d px-5 py-2 text-sm font-medium text-white bg-green-600 rounded-xl hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
         >
           <span v-if="loading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
           Importieren
@@ -133,7 +123,6 @@ const props = defineProps<{ carId: string }>()
 const emit = defineEmits<{ close: []; imported: [count: number] }>()
 
 const selectedFormat = ref<'csv' | 'json'>('csv')
-const activeFormatTab = ref<'csv' | 'json'>('csv')
 const rawData = ref('')
 const fileName = ref('')
 const loading = ref(false)
@@ -141,20 +130,21 @@ const result = ref<TeslaLoggerImportResult | null>(null)
 const errorMsg = ref('')
 const fileInput = ref<HTMLInputElement>()
 
-const csvTemplate = `date,odometer_km,kwh,soc_before,soc_after,cost_eur,location,duration_min,charging_type
-2025-08-20T10:56:48,12345,24.5,45,80,8.50,"48.2082,16.3738",35,DC
-2025-09-01T14:22:00,13102,18.2,30,72,,IONITY Frankfurt,28,AC`
+const csvTemplate = `date,odometer_km,kwh,soc_before,soc_after,cost_eur,location,duration_min,max_charging_power_kw,temperature_celsius,charging_type
+2025-08-31T15:07:14+02:00,7893,32.09,42,80,0,48.2082 16.3738,26,150.0,23.5,DC`
 
 const jsonTemplate = `[
   {
-    "date": "2025-08-20T10:56:48",
-    "odometer_km": 12345,
-    "kwh": 24.5,
-    "soc_before": 45,
+    "date": "2025-08-31T15:07:14+02:00",
+    "odometer_km": 7893,
+    "kwh": 32.09,
+    "soc_before": 42,
     "soc_after": 80,
-    "cost_eur": 8.50,
-    "location": "48.2082,16.3738",
-    "duration_min": 35,
+    "cost_eur": 0,
+    "location": "48.2082 16.3738",
+    "duration_min": 26,
+    "max_charging_power_kw": 150.0,
+    "temperature_celsius": 23.5,
     "charging_type": "DC"
   }
 ]`

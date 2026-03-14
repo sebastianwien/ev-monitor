@@ -41,6 +41,10 @@ html, body {
   box-shadow: none;
   transform: none;
 }
+.btn-3d.active {
+  box-shadow: 0 1px 0 0 rgba(0,0,0,0.2);
+  transform: translateY(3px);
+}
 
 body {
     background-color: var(--color-gray-50, #f9fafb);
