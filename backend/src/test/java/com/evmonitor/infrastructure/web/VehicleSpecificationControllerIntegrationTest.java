@@ -43,11 +43,11 @@ class VehicleSpecificationControllerIntegrationTest extends AbstractIntegrationT
 
     @Test
     void shouldCreateWltpData_AndAwardCoins() {
-        // Given: New WLTP data for a vehicle (unique capacity to avoid conflicts)
-        BigDecimal uniqueCapacity = new BigDecimal("75." + System.nanoTime() % 1000);
+        // Given: New WLTP data for a vehicle — use brand not in seed data to avoid conflicts
+        BigDecimal uniqueCapacity = new BigDecimal("75.0");
         VehicleSpecificationRequest request = new VehicleSpecificationRequest(
-                "TESLA",
-                "MODEL_3",
+                "TESTBRAND_" + userId.toString().substring(0, 8),
+                "TESTMODEL_A",
                 uniqueCapacity,
                 new BigDecimal("450.0"),
                 new BigDecimal("16.5")
@@ -73,8 +73,8 @@ class VehicleSpecificationControllerIntegrationTest extends AbstractIntegrationT
         // Verify response contains correct data
         VehicleSpecificationResponse spec = response.getBody().specification();
         assertNotNull(spec);
-        assertEquals("TESLA", spec.carBrand());
-        assertEquals("MODEL_3", spec.carModel());
+        assertEquals("TESTBRAND_" + userId.toString().substring(0, 8), spec.carBrand());
+        assertEquals("TESTMODEL_A", spec.carModel());
         assertEquals(0, new BigDecimal("450.0").compareTo(spec.wltpRangeKm()));
         assertEquals(0, new BigDecimal("16.5").compareTo(spec.wltpConsumptionKwhPer100km()));
 
@@ -165,11 +165,11 @@ class VehicleSpecificationControllerIntegrationTest extends AbstractIntegrationT
 
     @Test
     void shouldSanitizeInput_XssPrevention() {
-        // Given: Malicious input with HTML tags (unique capacity)
-        BigDecimal uniqueCapacity = new BigDecimal("78." + System.nanoTime() % 1000);
+        // Given: Malicious input with HTML tags — use brand not in seed data to avoid conflicts
+        BigDecimal uniqueCapacity = new BigDecimal("78.0");
         VehicleSpecificationRequest request = new VehicleSpecificationRequest(
-                "TESLA<script>alert('XSS')</script>",
-                "MODEL_3<img src=x onerror=alert(1)>",
+                "TESTBRAND_XSS_" + userId.toString().substring(0, 8) + "<script>alert('XSS')</script>",
+                "TESTMODEL_XSS<img src=x onerror=alert(1)>",
                 uniqueCapacity,
                 new BigDecimal("450.0"),
                 new BigDecimal("16.5")
@@ -190,7 +190,7 @@ class VehicleSpecificationControllerIntegrationTest extends AbstractIntegrationT
                 response.getStatusCode() == HttpStatus.CREATED,
                 "Expected 200 or 201, got: " + response.getStatusCode());
 
-        // Verify HTML tags were removed from response data
+        // Verify HTML tags were removed from response data (script tags stripped, leaving only "TESTBRAND_XSS")
         VehicleSpecificationResponse spec = response.getBody().specification();
         assertNotNull(spec);
         assertFalse(spec.carBrand().contains("<script>"));
@@ -281,25 +281,26 @@ class VehicleSpecificationControllerIntegrationTest extends AbstractIntegrationT
 
     @Test
     void shouldHandleDifferentBatteryCapacities() {
-        // Given: Same model with different battery capacities
+        // Given: Same model with different battery capacities — use unique brand not in seed data
+        String uniqueBrand = "TESTBRAND_CAPS_" + userId.toString().substring(0, 8);
         vehicleSpecificationRepository.save(TestDataBuilder.createTestVehicleSpecification(
-                "TESLA", "MODEL_3", new BigDecimal("57.5")));
+                uniqueBrand, "TESTMODEL_B", new BigDecimal("57.5")));
         vehicleSpecificationRepository.save(TestDataBuilder.createTestVehicleSpecification(
-                "TESLA", "MODEL_3", new BigDecimal("75.0")));
+                uniqueBrand, "TESTMODEL_B", new BigDecimal("75.0")));
         vehicleSpecificationRepository.save(TestDataBuilder.createTestVehicleSpecification(
-                "TESLA", "MODEL_3", new BigDecimal("79.0")));
+                uniqueBrand, "TESTMODEL_B", new BigDecimal("79.0")));
 
         // When: Lookup specific capacity
         ResponseEntity<VehicleSpecificationResponse> response57 = restTemplate.getForEntity(
-                "/api/vehicle-specifications/lookup?brand=TESLA&model=MODEL_3&capacityKwh=57.5",
+                "/api/vehicle-specifications/lookup?brand=" + uniqueBrand + "&model=TESTMODEL_B&capacityKwh=57.5",
                 VehicleSpecificationResponse.class
         );
         ResponseEntity<VehicleSpecificationResponse> response75 = restTemplate.getForEntity(
-                "/api/vehicle-specifications/lookup?brand=TESLA&model=MODEL_3&capacityKwh=75.0",
+                "/api/vehicle-specifications/lookup?brand=" + uniqueBrand + "&model=TESTMODEL_B&capacityKwh=75.0",
                 VehicleSpecificationResponse.class
         );
         ResponseEntity<VehicleSpecificationResponse> response79 = restTemplate.getForEntity(
-                "/api/vehicle-specifications/lookup?brand=TESLA&model=MODEL_3&capacityKwh=79.0",
+                "/api/vehicle-specifications/lookup?brand=" + uniqueBrand + "&model=TESTMODEL_B&capacityKwh=79.0",
                 VehicleSpecificationResponse.class
         );
 
