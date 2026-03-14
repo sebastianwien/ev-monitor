@@ -6,6 +6,7 @@ import com.evmonitor.domain.User;
 import com.evmonitor.domain.UserRepository;
 import com.evmonitor.infrastructure.email.EmailService;
 import com.evmonitor.infrastructure.github.GitHubIssueService;
+import com.evmonitor.infrastructure.weather.TemperatureBackfillJob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -26,15 +27,18 @@ public class AppScheduler {
     private final EvLogRepository evLogRepository;
     private final EmailService emailService;
     private final GitHubIssueService gitHubIssueService;
+    private final TemperatureBackfillJob temperatureBackfillJob;
 
     public AppScheduler(UserRepository userRepository, CarRepository carRepository,
                         EvLogRepository evLogRepository, EmailService emailService,
-                        GitHubIssueService gitHubIssueService) {
+                        GitHubIssueService gitHubIssueService,
+                        TemperatureBackfillJob temperatureBackfillJob) {
         this.userRepository = userRepository;
         this.carRepository = carRepository;
         this.evLogRepository = evLogRepository;
         this.emailService = emailService;
         this.gitHubIssueService = gitHubIssueService;
+        this.temperatureBackfillJob = temperatureBackfillJob;
     }
 
     @Scheduled(cron = "0 0 6 * * *")
@@ -73,6 +77,17 @@ public class AppScheduler {
         if (!reminded.isEmpty()) {
             log.info("Onboarding reminder report: {} sent, {} skipped — {}",
                     reminded.size(), skipped.size(), reminded);
+        }
+    }
+
+    @Scheduled(cron = "0 30 2 * * *")
+    public void backfillMissingTemperatures() {
+        log.info("Daily temperature backfill started");
+        try {
+            String summary = temperatureBackfillJob.run();
+            log.info("Daily temperature backfill finished: {}", summary);
+        } catch (Exception e) {
+            log.error("Daily temperature backfill failed", e);
         }
     }
 }

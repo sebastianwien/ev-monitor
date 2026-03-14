@@ -199,8 +199,10 @@ public class EvLogService {
 
         // Compute new geohash from lat/lon if provided; otherwise keep existing
         String geohash = existing.getGeohash();
+        boolean geohashChanged = false;
         if (request.latitude() != null && request.longitude() != null) {
             geohash = GeoHash.withCharacterPrecision(request.latitude(), request.longitude(), 5).toBase32();
+            geohashChanged = !geohash.equals(existing.getGeohash());
         }
 
         EvLog updated = new EvLog(
@@ -226,7 +228,14 @@ public class EvLogService {
                 LocalDateTime.now()
         );
 
-        return EvLogResponse.fromDomain(evLogRepository.save(updated));
+        EvLog savedLog = evLogRepository.save(updated);
+
+        // Async: re-enrich temperature if location was added/changed
+        if (geohashChanged || (savedLog.getGeohash() != null && savedLog.getTemperatureCelsius() == null)) {
+            temperatureEnrichmentService.enrichLog(savedLog.getId(), savedLog.getGeohash(), savedLog.getLoggedAt());
+        }
+
+        return EvLogResponse.fromDomain(savedLog);
     }
 
     @Transactional
