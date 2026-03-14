@@ -4,7 +4,7 @@ import { XMarkIcon, ChatBubbleLeftEllipsisIcon } from '@heroicons/vue/24/outline
 import { useAuthStore } from '../stores/auth'
 
 const STORAGE_KEY = 'feedbackToastDismissed'
-const DELAY_MS = 45_000
+const DELAY_MS = 60_000
 
 const authStore = useAuthStore()
 const visible = ref(false)
