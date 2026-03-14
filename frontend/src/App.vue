@@ -213,7 +213,7 @@ const closeMobileMenu = () => {
             </button>
             <router-link
               to="/coins/history"
-              class="nav-3d flex items-center gap-1 px-2 py-1 text-sm bg-indigo-500 bg-opacity-30 border border-indigo-500 rounded-md hover:bg-opacity-50 transition font-medium"
+              class="nav-3d flex items-center gap-1 px-2 h-9 text-sm bg-indigo-500 bg-opacity-30 border border-indigo-500 rounded-md hover:bg-opacity-50 transition font-medium"
               @click="haptic()"
               :class="{ 'watt-bump': balanceBumping }"
               title="Watt-Guthaben">
@@ -223,14 +223,14 @@ const closeMobileMenu = () => {
             <router-link
               v-if="authStore.user"
               to="/settings"
-              class="nav-3d p-2 border border-indigo-500 rounded-md bg-indigo-500 bg-opacity-30 hover:bg-opacity-50 transition"
+              class="nav-3d flex items-center justify-center h-9 w-9 border border-indigo-500 rounded-md bg-indigo-500 bg-opacity-30 hover:bg-opacity-50 transition"
               @click="haptic()"
               title="Einstellungen">
               <UserIcon class="h-5 w-5" />
             </router-link>
             <button
               @click="handleLogout(); haptic()"
-              class="nav-3d p-2 bg-indigo-700 hover:bg-indigo-800 rounded-md transition"
+              class="nav-3d flex items-center justify-center h-9 w-9 bg-indigo-700 hover:bg-indigo-800 rounded-md transition"
               title="Abmelden">
               <ArrowRightOnRectangleIcon class="h-5 w-5" />
             </button>

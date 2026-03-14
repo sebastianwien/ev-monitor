@@ -164,29 +164,54 @@ const formatDelta = (real: number | null, wltp: number): string => {
     <section class="pt-12 pb-6 sm:pt-16 sm:pb-8">
       <div class="max-w-4xl mx-auto text-center px-6 sm:px-8 lg:px-12">
         <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-4">
-          Wie weit kommst du wirklich — und was kostet es dich?
+          Wie weit kommst du wirklich - und was kostet es dich?
         </h1>
         <p class="text-lg text-gray-600 mb-6 max-w-xl mx-auto break-words">
           Echte Verbräuche und Ladekosten von der Community — kein Marketing, keine Traumwerte.
         </p>
 
         <!-- Inline model preview — sofort Wert zeigen -->
-        <div v-if="topModels.length > 0" class="mb-6 max-w-sm mx-auto">
-          <div
-            class="bg-white border border-gray-200 rounded-xl p-4 text-left cursor-pointer hover:border-green-500 transition"
-            @click="goToModelDetail(topModels[0].brand, topModels[0].model)"
-          >
-            <div class="flex items-start justify-between gap-2 mb-1">
-              <span class="font-semibold text-gray-900">{{ topModels[0].stats.modelDisplayName }}</span>
-              <span class="text-xs text-gray-400 whitespace-nowrap mt-0.5">{{ topModels[0].stats.logCount }} Fahrten</span>
+        <div v-if="topModels.length > 0" class="mb-6 mx-auto max-w-sm lg:max-w-4xl">
+          <!-- Mobile: nur erstes Modell -->
+          <div class="lg:hidden">
+            <div
+              class="bg-white border border-gray-200 rounded-xl p-4 text-left cursor-pointer hover:border-green-500 transition"
+              @click="goToModelDetail(topModels[0].brand, topModels[0].model)"
+            >
+              <div class="flex items-start justify-between gap-2 mb-1">
+                <span class="font-semibold text-gray-900">{{ topModels[0].stats.modelDisplayName }}</span>
+                <span class="text-xs text-gray-400 whitespace-nowrap mt-0.5">{{ topModels[0].stats.logCount }} Fahrten</span>
+              </div>
+              <div v-if="topModels[0].stats.avgConsumptionKwhPer100km && topModels[0].stats.wltpVariants.length > 0" class="text-sm text-gray-700">
+                Real: <span class="font-semibold">{{ topModels[0].stats.avgConsumptionKwhPer100km.toFixed(1) }} kWh/100km</span>
+                <span class="ml-1 text-red-500 font-medium">({{ formatDelta(topModels[0].stats.avgConsumptionKwhPer100km, topModels[0].stats.wltpVariants[0].wltpConsumptionKwhPer100km) }} vs. WLTP)</span>
+              </div>
+              <div class="mt-2 text-green-600 text-xs font-medium flex items-center gap-1">
+                <span>Details ansehen</span>
+                <ArrowRightIcon class="h-3.5 w-3.5" />
+              </div>
             </div>
-            <div v-if="topModels[0].stats.avgConsumptionKwhPer100km && topModels[0].stats.wltpVariants.length > 0" class="text-sm text-gray-700">
-              Real: <span class="font-semibold">{{ topModels[0].stats.avgConsumptionKwhPer100km.toFixed(1) }} kWh/100km</span>
-              <span class="ml-1 text-red-500 font-medium">({{ formatDelta(topModels[0].stats.avgConsumptionKwhPer100km, topModels[0].stats.wltpVariants[0].wltpConsumptionKwhPer100km) }} vs. WLTP)</span>
-            </div>
-            <div class="mt-2 text-green-600 text-xs font-medium flex items-center gap-1">
-              <span>Details ansehen</span>
-              <ArrowRightIcon class="h-3.5 w-3.5" />
+          </div>
+          <!-- Desktop: 3 Modelle nebeneinander -->
+          <div class="hidden lg:grid grid-cols-3 gap-4">
+            <div
+              v-for="preview in topModels.slice(0, 3)"
+              :key="`hero-${preview.brand}-${preview.model}`"
+              class="bg-white border border-gray-200 rounded-xl p-4 text-left cursor-pointer hover:border-green-500 transition"
+              @click="goToModelDetail(preview.brand, preview.model)"
+            >
+              <div class="flex items-start justify-between gap-2 mb-1">
+                <span class="font-semibold text-gray-900">{{ preview.stats.modelDisplayName }}</span>
+                <span class="text-xs text-gray-400 whitespace-nowrap mt-0.5">{{ preview.stats.logCount }} Fahrten</span>
+              </div>
+              <div v-if="preview.stats.avgConsumptionKwhPer100km && preview.stats.wltpVariants.length > 0" class="text-sm text-gray-700">
+                Real: <span class="font-semibold">{{ preview.stats.avgConsumptionKwhPer100km.toFixed(1) }} kWh/100km</span>
+                <span class="ml-1 text-red-500 font-medium">({{ formatDelta(preview.stats.avgConsumptionKwhPer100km, preview.stats.wltpVariants[0].wltpConsumptionKwhPer100km) }} vs. WLTP)</span>
+              </div>
+              <div class="mt-2 text-green-600 text-xs font-medium flex items-center gap-1">
+                <span>Details ansehen</span>
+                <ArrowRightIcon class="h-3.5 w-3.5" />
+              </div>
             </div>
           </div>
         </div>
