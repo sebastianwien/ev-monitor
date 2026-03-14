@@ -167,7 +167,7 @@ const formatDelta = (real: number | null, wltp: number): string => {
           Wie weit kommst du wirklich - und was kostet es dich?
         </h1>
         <p class="text-lg text-gray-600 mb-6 max-w-xl mx-auto break-words">
-          Echte Verbräuche und Ladekosten von der Community — kein Marketing, keine Traumwerte.
+          Echte Verbräuche und Ladekosten von der Community — WLTP-Verbrauch trifft Alltagsrealität.
         </p>
 
         <!-- Inline model preview — sofort Wert zeigen -->
