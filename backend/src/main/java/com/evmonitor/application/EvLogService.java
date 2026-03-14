@@ -893,7 +893,7 @@ public class EvLogService {
                     int periodDist = 0;
                     for (EvLog log : periodLogs) {
                         ConsumptionResult cr = consumptionByLog.get(log.getId());
-                        if (cr == null || !cr.plausible()) continue;
+                        if (cr == null) continue;
                         periodWeighted = periodWeighted.add(cr.value().multiply(BigDecimal.valueOf(cr.distanceKm())));
                         periodDist += cr.distanceKm();
                     }
