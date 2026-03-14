@@ -56,7 +56,8 @@ class EvLogServiceSocIntegrationTest extends AbstractIntegrationTest {
             new BigDecimal("50.0"),
             null, // No SoC
             LocalDateTime.now().minusDays(2),
-            ChargingType.UNKNOWN
+            ChargingType.UNKNOWN,
+            null, null
         );
         evLogRepository.save(log1);
 
@@ -70,7 +71,8 @@ class EvLogServiceSocIntegrationTest extends AbstractIntegrationTest {
             new BigDecimal("50.0"),
             null, // No SoC
             LocalDateTime.now().minusDays(1),
-            ChargingType.UNKNOWN
+            ChargingType.UNKNOWN,
+            null, null
         );
         evLogRepository.save(log2);
 
@@ -97,7 +99,8 @@ class EvLogServiceSocIntegrationTest extends AbstractIntegrationTest {
             new BigDecimal("11.0"),
             80,
             LocalDateTime.now().minusDays(3),
-            ChargingType.UNKNOWN
+            ChargingType.UNKNOWN,
+            null, null
         );
         evLogRepository.save(log1);
 
@@ -114,7 +117,8 @@ class EvLogServiceSocIntegrationTest extends AbstractIntegrationTest {
             new BigDecimal("150.0"),
             85,
             LocalDateTime.now().minusDays(2),
-            ChargingType.UNKNOWN
+            ChargingType.UNKNOWN,
+            null, null
         );
         evLogRepository.save(log2);
 
@@ -141,7 +145,8 @@ class EvLogServiceSocIntegrationTest extends AbstractIntegrationTest {
             new BigDecimal("11.0"),
             80,
             LocalDateTime.now().minusDays(5),
-            ChargingType.UNKNOWN
+            ChargingType.UNKNOWN,
+            null, null
         );
         evLogRepository.save(log1);
 
@@ -156,7 +161,8 @@ class EvLogServiceSocIntegrationTest extends AbstractIntegrationTest {
             new BigDecimal("150.0"),
             90,
             LocalDateTime.now().minusDays(3),
-            ChargingType.UNKNOWN
+            ChargingType.UNKNOWN,
+            null, null
         );
         evLogRepository.save(log2);
 
@@ -171,7 +177,8 @@ class EvLogServiceSocIntegrationTest extends AbstractIntegrationTest {
             new BigDecimal("50.0"),
             75,
             LocalDateTime.now().minusDays(1),
-            ChargingType.UNKNOWN
+            ChargingType.UNKNOWN,
+            null, null
         );
         evLogRepository.save(log3);
 
@@ -201,7 +208,8 @@ class EvLogServiceSocIntegrationTest extends AbstractIntegrationTest {
             new BigDecimal("11.0"),
             70,
             LocalDateTime.now().minusDays(5),
-            ChargingType.UNKNOWN
+            ChargingType.UNKNOWN,
+            null, null
         );
         evLogRepository.save(log1);
 
@@ -216,7 +224,8 @@ class EvLogServiceSocIntegrationTest extends AbstractIntegrationTest {
             new BigDecimal("11.0"),
             80,
             LocalDateTime.now().minusDays(4),
-            ChargingType.UNKNOWN
+            ChargingType.UNKNOWN,
+            null, null
         );
         evLogRepository.save(log2);
 
@@ -231,7 +240,8 @@ class EvLogServiceSocIntegrationTest extends AbstractIntegrationTest {
             new BigDecimal("50.0"),
             75,
             LocalDateTime.now().minusDays(3),
-            ChargingType.UNKNOWN
+            ChargingType.UNKNOWN,
+            null, null
         );
         evLogRepository.save(log3);
 
@@ -246,7 +256,8 @@ class EvLogServiceSocIntegrationTest extends AbstractIntegrationTest {
             new BigDecimal("150.0"),
             85,
             LocalDateTime.now().minusDays(2),
-            ChargingType.UNKNOWN
+            ChargingType.UNKNOWN,
+            null, null
         );
         evLogRepository.save(log4);
 
@@ -261,7 +272,8 @@ class EvLogServiceSocIntegrationTest extends AbstractIntegrationTest {
             new BigDecimal("50.0"),
             70,
             LocalDateTime.now().minusDays(1),
-            ChargingType.UNKNOWN
+            ChargingType.UNKNOWN,
+            null, null
         );
         evLogRepository.save(log5);
 

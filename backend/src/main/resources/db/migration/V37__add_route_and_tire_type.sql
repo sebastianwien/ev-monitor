@@ -1,0 +1,2 @@
+ALTER TABLE ev_log ADD COLUMN route_type VARCHAR(20);
+ALTER TABLE ev_log ADD COLUMN tire_type VARCHAR(20);

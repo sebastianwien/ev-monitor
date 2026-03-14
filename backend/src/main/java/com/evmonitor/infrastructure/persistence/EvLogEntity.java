@@ -65,6 +65,12 @@ public class EvLogEntity {
     @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
     private String rawImportData;
 
+    @Column(name = "route_type", length = 20)
+    private String routeType;
+
+    @Column(name = "tire_type", length = 20)
+    private String tireType;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -252,5 +258,21 @@ public class EvLogEntity {
 
     public void setRawImportData(String rawImportData) {
         this.rawImportData = rawImportData;
+    }
+
+    public String getRouteType() {
+        return routeType;
+    }
+
+    public void setRouteType(String routeType) {
+        this.routeType = routeType;
+    }
+
+    public String getTireType() {
+        return tireType;
+    }
+
+    public void setTireType(String tireType) {
+        this.tireType = tireType;
     }
 }

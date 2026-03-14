@@ -361,7 +361,7 @@ class CoinRewardIntegrationTest extends AbstractIntegrationTest {
         EvLog rawLog = EvLog.createNew(
                 car.getId(), new BigDecimal("30"), new BigDecimal("7.50"),
                 45, null, 10000, null, 80, LocalDateTime.now().minusDays(1),
-                ChargingType.AC);
+                ChargingType.AC, null, null);
         EvLog saved = evLogRepository.save(rawLog);
 
         // When: Log is deleted via API
@@ -512,7 +512,8 @@ class CoinRewardIntegrationTest extends AbstractIntegrationTest {
                 80, // socAfterChargePercent (required)
                 LocalDateTime.now(),
                 ocrUsed,      // OCR flag
-                null          // chargingType
+                null,         // chargingType
+                null, null    // routeType, tireType
         );
         HttpEntity<EvLogRequest> entity = createAuthRequest(request, uid, email);
         return restTemplate.exchange("/api/logs", HttpMethod.POST, entity, EvLogCreateResponse.class);

@@ -974,7 +974,10 @@ const deleteLog = async (id: string) => {
             </template>
             <template v-else>
               <div v-for="log in logs" :key="log.id"
-                class="p-3 bg-white border border-gray-200 rounded-lg space-y-2">
+                :class="['p-3 border rounded-lg space-y-2',
+                         log.consumptionImplausible
+                           ? 'bg-red-50 border-red-300 border-l-4 border-l-red-400'
+                           : 'bg-white border-gray-200']">
                 <!-- Header -->
                 <div class="flex items-center justify-between gap-2">
                   <div class="flex items-center gap-2 min-w-0">
@@ -1008,11 +1011,11 @@ const deleteLog = async (id: string) => {
                   <span v-if="log.consumptionKwhPer100km != null"
                     :class="['inline-flex items-center gap-1 px-2 py-0.5 border rounded-full text-xs font-medium whitespace-nowrap',
                              log.consumptionImplausible
-                               ? 'animate-pulse bg-red-100 border-red-400 text-red-700'
+                               ? 'bg-red-100 border-red-400 text-red-700'
                                : log.consumptionIsEstimated
                                  ? 'bg-gray-50 border-gray-300 text-gray-500'
                                  : consumptionBadgeClass(log.consumptionKwhPer100km, stats?.avgConsumptionKwhPer100km ?? null)]"
-                    :title="log.consumptionImplausible ? 'Dieser Verbrauch weicht stark vom Muster ab. Möglicherweise fehlt ein Ladevorgang in der Lücke davor.' : log.consumptionIsEstimated ? 'Schätzwert: berechnet aus geladener Energie ÷ Distanz, da kein SoC-Wert vorhanden.' : undefined">
+                    :title="log.consumptionIsEstimated ? 'Schätzwert: berechnet aus geladener Energie ÷ Distanz, da kein SoC-Wert vorhanden.' : undefined">
                     <ExclamationTriangleIcon v-if="log.consumptionImplausible" class="w-3 h-3 flex-shrink-0" />
                     {{ log.consumptionIsEstimated ? '~' : '' }}{{ log.consumptionKwhPer100km }} kWh/100km
                   </span>
@@ -1037,6 +1040,11 @@ const deleteLog = async (id: string) => {
                   <span v-if="log.maxChargingPowerKw" class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
                     <BoltIcon class="w-3 h-3" />{{ log.maxChargingPowerKw }} kW
                   </span>
+                </div>
+                <!-- Implausibility warning -->
+                <div v-if="log.consumptionImplausible" class="flex items-start gap-1.5 text-xs text-red-700">
+                  <ExclamationTriangleIcon class="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                  <span>Verbrauch unplausibel — wahrscheinlich fehlt ein Ladevorgang zwischen diesem und dem vorherigen Eintrag.</span>
                 </div>
               </div>
             </template>

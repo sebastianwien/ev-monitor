@@ -74,7 +74,9 @@ public class EvLogService {
                 request.maxChargingPowerKw(),
                 request.socAfterChargePercent(),
                 request.loggedAt(),
-                request.chargingType());
+                request.chargingType(),
+                request.routeType(),
+                request.tireType());
 
         EvLog savedLog = evLogRepository.save(newLog);
 
@@ -225,7 +227,9 @@ public class EvLogService {
                 request.chargingType() != null ? request.chargingType() : existing.getChargingType(),
                 existing.getRawImportData(),
                 existing.getCreatedAt(),
-                LocalDateTime.now()
+                LocalDateTime.now(),
+                request.routeType() != null ? request.routeType() : existing.getRouteType(),
+                request.tireType() != null ? request.tireType() : existing.getTireType()
         );
 
         EvLog savedLog = evLogRepository.save(updated);

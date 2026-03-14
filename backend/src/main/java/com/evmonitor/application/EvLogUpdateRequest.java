@@ -1,6 +1,8 @@
 package com.evmonitor.application;
 
 import com.evmonitor.domain.ChargingType;
+import com.evmonitor.domain.RouteType;
+import com.evmonitor.domain.TireType;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
@@ -24,5 +26,7 @@ public record EvLogUpdateRequest(
         @Min(0) @Max(100) Integer socAfterChargePercent,
         @Min(0) @Max(100) Integer socBeforeChargePercent,
         LocalDateTime loggedAt,
-        ChargingType chargingType) {
+        ChargingType chargingType,
+        RouteType routeType,
+        TireType tireType) {
 }

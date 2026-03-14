@@ -126,7 +126,8 @@ class EvLogValidationTest {
                 null,                        // temperatureCelsius
                 ChargingType.UNKNOWN,
                 null,                        // rawImportData
-                NOW, NOW
+                NOW, NOW,
+                null, null                   // routeType, tireType
         );
     }
 }

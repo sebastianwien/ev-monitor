@@ -4,6 +4,8 @@ import com.evmonitor.domain.ChargingType;
 import com.evmonitor.domain.DataSource;
 import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.EvLogRepository;
+import com.evmonitor.domain.RouteType;
+import com.evmonitor.domain.TireType;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
@@ -158,6 +160,8 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
         entity.setTemperatureCelsius(domain.getTemperatureCelsius());
         entity.setChargingType(domain.getChargingType() != null ? domain.getChargingType().name() : null);
         entity.setRawImportData(domain.getRawImportData());
+        entity.setRouteType(domain.getRouteType() != null ? domain.getRouteType().name() : null);
+        entity.setTireType(domain.getTireType() != null ? domain.getTireType().name() : null);
         return entity;
     }
 
@@ -182,6 +186,8 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 entity.getChargingType() != null ? ChargingType.valueOf(entity.getChargingType()) : ChargingType.UNKNOWN,
                 entity.getRawImportData(),
                 entity.getCreatedAt(),
-                entity.getUpdatedAt());
+                entity.getUpdatedAt(),
+                entity.getRouteType() != null ? RouteType.valueOf(entity.getRouteType()) : null,
+                entity.getTireType() != null ? TireType.valueOf(entity.getTireType()) : null);
     }
 }

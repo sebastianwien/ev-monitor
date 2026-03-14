@@ -105,7 +105,8 @@ public class TestDataBuilder {
                 null, // maxChargingPowerKw (optional)
                 80, // socAfterChargePercent (required for tests)
                 LocalDateTime.now(),
-                ChargingType.UNKNOWN
+                ChargingType.UNKNOWN,
+                null, null
         );
     }
 
@@ -124,7 +125,8 @@ public class TestDataBuilder {
                 null, // maxChargingPowerKw (optional)
                 80, // socAfterChargePercent (required for tests)
                 timestamp,
-                ChargingType.UNKNOWN
+                ChargingType.UNKNOWN,
+                null, null
         );
     }
 

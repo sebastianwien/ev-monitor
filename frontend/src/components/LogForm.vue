@@ -43,6 +43,8 @@ const maxChargingPowerKw = ref<number | null>(null) // Optional: max charging po
 const loggedAt = ref<string | null>(null) // Optional: when the charge happened
 const odometerWarning = ref<string | null>(null) // Warning if odometer is lower than last log
 const chargingType = ref<'AC' | 'DC'>('AC') // AC or DC charging, default AC
+const routeType = ref<'CITY' | 'COMBINED' | 'HIGHWAY'>('COMBINED')
+const tireType = ref<'SUMMER' | 'ALL_YEAR' | 'WINTER'>('SUMMER')
 
 // Location tracking
 const latitude = ref<number | null>(null)
@@ -180,6 +182,9 @@ const fetchLogs = async () => {
     logs.value = res.data.sort((a: any, b: any) =>
       new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime()
     )
+    if (logs.value.length > 0 && logs.value[0].tireType) {
+      tireType.value = logs.value[0].tireType
+    }
   } catch (err) {
     console.error('Failed to fetch logs:', err)
   }
@@ -260,6 +265,9 @@ const submitLog = async () => {
       payload.chargingType = chargingType.value
     }
 
+    payload.routeType = routeType.value
+    payload.tireType = tireType.value
+
     const isFirstLog = logs.value.length === 0
     const res = await api.post('/logs', payload)
 
@@ -279,6 +287,8 @@ const submitLog = async () => {
     odometerWarning.value = null
     ocrUsed.value = false
     chargingType.value = 'AC'
+    routeType.value = 'COMBINED'
+    // tireType intentionally not reset — pre-fills next log with the same tire
     locationEnabled.value = false
     clearLocation()
 
@@ -488,6 +498,44 @@ const handleOcrData = (ocrResult: any) => {
       <div>
         <p class="text-xs text-gray-400 text-center mb-2">Optional</p>
         <div class="space-y-3">
+          <!-- Streckenart -->
+          <div>
+            <label class="block text-sm font-medium text-gray-600 mb-1">Streckenart</label>
+            <div class="inline-flex w-full rounded-full border border-gray-200 bg-gray-100 p-0.5">
+              <button type="button" @click="routeType = 'CITY'"
+                :class="['flex-1 px-3 py-1.5 rounded-full text-sm font-medium transition', routeType === 'CITY' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
+                Stadt
+              </button>
+              <button type="button" @click="routeType = 'COMBINED'"
+                :class="['flex-1 px-3 py-1.5 rounded-full text-sm font-medium transition', routeType === 'COMBINED' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
+                Gemischt
+              </button>
+              <button type="button" @click="routeType = 'HIGHWAY'"
+                :class="['flex-1 px-3 py-1.5 rounded-full text-sm font-medium transition', routeType === 'HIGHWAY' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
+                Autobahn
+              </button>
+            </div>
+          </div>
+
+          <!-- Reifenart -->
+          <div>
+            <label class="block text-sm font-medium text-gray-600 mb-1">Reifen</label>
+            <div class="inline-flex w-full rounded-full border border-gray-200 bg-gray-100 p-0.5">
+              <button type="button" @click="tireType = 'SUMMER'"
+                :class="['flex-1 px-3 py-1.5 rounded-full text-sm font-medium transition', tireType === 'SUMMER' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
+                Sommer
+              </button>
+              <button type="button" @click="tireType = 'ALL_YEAR'"
+                :class="['flex-1 px-3 py-1.5 rounded-full text-sm font-medium transition', tireType === 'ALL_YEAR' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
+                Ganzjahr
+              </button>
+              <button type="button" @click="tireType = 'WINTER'"
+                :class="['flex-1 px-3 py-1.5 rounded-full text-sm font-medium transition', tireType === 'WINTER' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
+                Winter
+              </button>
+            </div>
+          </div>
+
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="block text-sm font-medium text-gray-600">Dauer (min)</label>

@@ -2,6 +2,8 @@ package com.evmonitor.application;
 
 import com.evmonitor.domain.ChargingType;
 import com.evmonitor.domain.EvLog;
+import com.evmonitor.domain.RouteType;
+import com.evmonitor.domain.TireType;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -27,7 +29,9 @@ public record EvLogResponse(
         Boolean consumptionImplausible,      // null when consumption not computed, true when flagged
         Integer distanceSinceLastChargeKm,   // null when no previous log with odometer data
         Boolean consumptionIsEstimated,      // true when calculated via kWh/distance fallback (no SoC)
-        ChargingType chargingType) {         // AC, DC, or UNKNOWN
+        ChargingType chargingType,           // AC, DC, or UNKNOWN
+        RouteType routeType,                 // Optional: CITY, COMBINED, or HIGHWAY
+        TireType tireType) {                 // Optional: SUMMER, ALL_YEAR, or WINTER
 
     public static EvLogResponse fromDomain(EvLog evLog) {
         return fromDomain(evLog, null, null);
@@ -59,6 +63,8 @@ public record EvLogResponse(
                 consumption != null ? !consumption.plausible() : null,
                 distanceKm,
                 consumption != null ? consumption.estimated() : null,
-                evLog.getChargingType());
+                evLog.getChargingType(),
+                evLog.getRouteType(),
+                evLog.getTireType());
     }
 }

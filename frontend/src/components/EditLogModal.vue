@@ -76,6 +76,44 @@
           </div>
         </div>
 
+        <!-- Streckenart -->
+        <div class="space-y-1">
+          <label class="block text-sm font-medium text-gray-700">Streckenart</label>
+          <div class="inline-flex w-full rounded-full border border-gray-200 bg-gray-100 p-0.5">
+            <button type="button" @click="form.routeType = 'CITY'"
+              :class="['flex-1 px-3 py-1.5 rounded-full text-sm font-medium transition', form.routeType === 'CITY' ? 'bg-white text-green-700 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
+              Stadt
+            </button>
+            <button type="button" @click="form.routeType = 'COMBINED'"
+              :class="['flex-1 px-3 py-1.5 rounded-full text-sm font-medium transition', form.routeType === 'COMBINED' ? 'bg-white text-green-700 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
+              Gemischt
+            </button>
+            <button type="button" @click="form.routeType = 'HIGHWAY'"
+              :class="['flex-1 px-3 py-1.5 rounded-full text-sm font-medium transition', form.routeType === 'HIGHWAY' ? 'bg-white text-green-700 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
+              Autobahn
+            </button>
+          </div>
+        </div>
+
+        <!-- Reifenart -->
+        <div class="space-y-1">
+          <label class="block text-sm font-medium text-gray-700">Reifen</label>
+          <div class="inline-flex w-full rounded-full border border-gray-200 bg-gray-100 p-0.5">
+            <button type="button" @click="form.tireType = 'SUMMER'"
+              :class="['flex-1 px-3 py-1.5 rounded-full text-sm font-medium transition', form.tireType === 'SUMMER' ? 'bg-white text-green-700 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
+              Sommer
+            </button>
+            <button type="button" @click="form.tireType = 'ALL_YEAR'"
+              :class="['flex-1 px-3 py-1.5 rounded-full text-sm font-medium transition', form.tireType === 'ALL_YEAR' ? 'bg-white text-green-700 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
+              Ganzjahr
+            </button>
+            <button type="button" @click="form.tireType = 'WINTER'"
+              :class="['flex-1 px-3 py-1.5 rounded-full text-sm font-medium transition', form.tireType === 'WINTER' ? 'bg-white text-green-700 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
+              Winter
+            </button>
+          </div>
+        </div>
+
         <!-- Standort -->
         <div class="space-y-1">
           <label class="block text-sm font-medium text-gray-700">Standort aktualisieren</label>
@@ -145,6 +183,8 @@ export interface EvLogResponse {
   socAfterChargePercent: number | null
   socBeforeChargePercent: number | null
   loggedAt: string
+  routeType: 'CITY' | 'COMBINED' | 'HIGHWAY' | null
+  tireType: 'SUMMER' | 'ALL_YEAR' | 'WINTER' | null
 }
 
 const props = defineProps<{ log: EvLogResponse }>()
@@ -166,6 +206,8 @@ const form = ref({
   socAfterChargePercent: props.log.socAfterChargePercent ?? null,
   socBeforeChargePercent: props.log.socBeforeChargePercent ?? null,
   loggedAt: toDatetimeLocal(props.log.loggedAt),
+  routeType: props.log.routeType ?? null as 'CITY' | 'COMBINED' | 'HIGHWAY' | null,
+  tireType: props.log.tireType ?? null as 'SUMMER' | 'ALL_YEAR' | 'WINTER' | null,
 })
 
 const loading = ref(false)
@@ -217,6 +259,8 @@ async function save() {
       payload.latitude = newLatitude.value
       payload.longitude = newLongitude.value
     }
+    if (form.value.routeType) payload.routeType = form.value.routeType
+    if (form.value.tireType) payload.tireType = form.value.tireType
 
     const res = await api.put(`/logs/${props.log.id}`, payload)
     emit('saved', res.data)

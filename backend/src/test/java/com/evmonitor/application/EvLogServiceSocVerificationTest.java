@@ -65,7 +65,8 @@ class EvLogServiceSocVerificationTest extends AbstractIntegrationTest {
             new BigDecimal("11.0"),         // max power
             80,                             // SoC AFTER charge
             LocalDateTime.now().minusDays(2),
-            ChargingType.UNKNOWN
+            ChargingType.UNKNOWN,
+            null, null
         );
         evLogRepository.save(log1);
 
@@ -87,7 +88,8 @@ class EvLogServiceSocVerificationTest extends AbstractIntegrationTest {
             new BigDecimal("150.0"),        // max power
             85,                             // SoC AFTER charge
             LocalDateTime.now().minusDays(1),
-            ChargingType.UNKNOWN
+            ChargingType.UNKNOWN,
+            null, null
         );
         evLogRepository.save(log2);
 
@@ -144,7 +146,8 @@ class EvLogServiceSocVerificationTest extends AbstractIntegrationTest {
             new BigDecimal("11.0"),
             80,
             LocalDateTime.now().minusDays(2),
-            ChargingType.UNKNOWN
+            ChargingType.UNKNOWN,
+            null, null
         );
         evLogRepository.save(log1);
 
@@ -164,7 +167,8 @@ class EvLogServiceSocVerificationTest extends AbstractIntegrationTest {
             new BigDecimal("150.0"),
             90,
             LocalDateTime.now().minusDays(1),
-            ChargingType.UNKNOWN
+            ChargingType.UNKNOWN,
+            null, null
         );
         evLogRepository.save(log2);
 
@@ -213,7 +217,8 @@ class EvLogServiceSocVerificationTest extends AbstractIntegrationTest {
             new BigDecimal("11.0"),
             80,
             LocalDateTime.now().minusDays(2),
-            ChargingType.UNKNOWN
+            ChargingType.UNKNOWN,
+            null, null
         );
         evLogRepository.save(log1);
 
@@ -227,7 +232,8 @@ class EvLogServiceSocVerificationTest extends AbstractIntegrationTest {
             new BigDecimal("11.0"),
             85,
             LocalDateTime.now().minusDays(1),
-            ChargingType.UNKNOWN
+            ChargingType.UNKNOWN,
+            null, null
         );
         evLogRepository.save(log2);
 

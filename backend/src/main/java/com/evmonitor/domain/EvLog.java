@@ -24,6 +24,8 @@ public class EvLog {
     private final Double temperatureCelsius; // Optional: ambient temperature at charging time/location (Open-Meteo)
     private final ChargingType chargingType; // Optional: AC or DC charging
     private final String rawImportData;      // Optional: raw JSON data from import source (e.g. SpritMonitor fueling)
+    private final RouteType routeType;       // Optional: CITY, COMBINED, or HIGHWAY
+    private final TireType tireType;         // Optional: SUMMER, ALL_YEAR, or WINTER
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
 
@@ -33,7 +35,8 @@ public class EvLog {
             LocalDateTime loggedAt, DataSource dataSource,
             boolean includeInStatistics, Integer odometerSuggestionMinKm, Integer odometerSuggestionMaxKm,
             Double temperatureCelsius, ChargingType chargingType, String rawImportData,
-            LocalDateTime createdAt, LocalDateTime updatedAt) {
+            LocalDateTime createdAt, LocalDateTime updatedAt,
+            RouteType routeType, TireType tireType) {
         this.id = id;
         this.carId = carId;
         this.kwhCharged = kwhCharged;
@@ -52,6 +55,8 @@ public class EvLog {
         this.temperatureCelsius = temperatureCelsius;
         this.chargingType = chargingType != null ? chargingType : ChargingType.UNKNOWN;
         this.rawImportData = rawImportData;
+        this.routeType = routeType;
+        this.tireType = tireType;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -59,11 +64,11 @@ public class EvLog {
     public static EvLog createNew(UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
             Integer chargeDurationMinutes, String geohash, Integer odometerKm,
             BigDecimal maxChargingPowerKw, Integer socAfterChargePercent, LocalDateTime loggedAt,
-            ChargingType chargingType) {
+            ChargingType chargingType, RouteType routeType, TireType tireType) {
         LocalDateTime now = LocalDateTime.now();
         return new EvLog(UUID.randomUUID(), carId, kwhCharged, costEur,
                 chargeDurationMinutes, geohash, odometerKm, maxChargingPowerKw, socAfterChargePercent, null, loggedAt,
-                DataSource.USER_LOGGED, true, null, null, null, chargingType, null, now, now);
+                DataSource.USER_LOGGED, true, null, null, null, chargingType, null, now, now, routeType, tireType);
     }
 
     public static EvLog createNewWithSource(UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
@@ -74,7 +79,7 @@ public class EvLog {
         boolean includeInStats = dataSource.includeInStatistics();
         return new EvLog(UUID.randomUUID(), carId, kwhCharged, costEur,
                 chargeDurationMinutes, geohash, odometerKm, maxChargingPowerKw, socAfterChargePercent, null, loggedAt,
-                dataSource, includeInStats, null, null, null, chargingType, rawImportData, now, now);
+                dataSource, includeInStats, null, null, null, chargingType, rawImportData, now, now, null, null);
     }
 
     public static EvLog createNewWithSourceAndSocBefore(UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
@@ -86,7 +91,7 @@ public class EvLog {
         return new EvLog(UUID.randomUUID(), carId, kwhCharged, costEur,
                 chargeDurationMinutes, geohash, odometerKm, maxChargingPowerKw, socAfterChargePercent,
                 socBeforeChargePercent, loggedAt, dataSource, dataSource.includeInStatistics(),
-                null, null, temperatureCelsius, chargingType, rawImportData, now, now);
+                null, null, temperatureCelsius, chargingType, rawImportData, now, now, null, null);
     }
 
     public static EvLog createFromOcpp(UUID carId, BigDecimal kwhCharged,
@@ -112,7 +117,7 @@ public class EvLog {
         return new EvLog(UUID.randomUUID(), carId, kwhCharged, costEur,
                 chargeDurationMinutes, geohash, null, null, null, null, loggedAt,
                 dataSource, dataSource.includeInStatistics(),
-                odometerSuggestionMinKm, odometerSuggestionMaxKm, null, chargingType, null, now, now);
+                odometerSuggestionMinKm, odometerSuggestionMaxKm, null, chargingType, null, now, now, null, null);
     }
 
     public UUID getId() {
@@ -193,6 +198,14 @@ public class EvLog {
 
     public String getRawImportData() {
         return rawImportData;
+    }
+
+    public RouteType getRouteType() {
+        return routeType;
+    }
+
+    public TireType getTireType() {
+        return tireType;
     }
 
     /**

@@ -32,7 +32,8 @@ class EvLogOdometerAndMaxPowerTest {
                 maxChargingPowerKw,
                 null, // socAfterChargePercent
                 LocalDateTime.now(),
-                ChargingType.UNKNOWN
+                ChargingType.UNKNOWN,
+                null, null
         );
 
         // Then
@@ -56,7 +57,8 @@ class EvLogOdometerAndMaxPowerTest {
                 null, // No max power
                 null, // No socAfterChargePercent
                 LocalDateTime.now(),
-                ChargingType.UNKNOWN
+                ChargingType.UNKNOWN,
+                null, null
         );
 
         // Then
@@ -82,7 +84,8 @@ class EvLogOdometerAndMaxPowerTest {
                 null,
                 null, // socAfterChargePercent
                 LocalDateTime.now(),
-                ChargingType.UNKNOWN
+                ChargingType.UNKNOWN,
+                null, null
         );
 
         // Then
@@ -106,7 +109,8 @@ class EvLogOdometerAndMaxPowerTest {
                 maxChargingPowerKw,
                 null, // socAfterChargePercent
                 LocalDateTime.now(),
-                ChargingType.UNKNOWN
+                ChargingType.UNKNOWN,
+                null, null
         );
 
         // Then
@@ -122,21 +126,21 @@ class EvLogOdometerAndMaxPowerTest {
         EvLog session1 = EvLog.createNew(
                 carId, BigDecimal.valueOf(45.0), BigDecimal.valueOf(12.0), 90,
                 "u33d1", 50000, BigDecimal.valueOf(150.0), null, LocalDateTime.now().minusDays(3),
-                ChargingType.UNKNOWN
+                ChargingType.UNKNOWN, null, null
         );
 
         // Session 2: 50,250 km (drove 250 km)
         EvLog session2 = EvLog.createNew(
                 carId, BigDecimal.valueOf(40.0), BigDecimal.valueOf(11.0), 85,
                 "u33d2", 50250, BigDecimal.valueOf(145.0), null, LocalDateTime.now().minusDays(2),
-                ChargingType.UNKNOWN
+                ChargingType.UNKNOWN, null, null
         );
 
         // Session 3: 50,500 km (drove another 250 km)
         EvLog session3 = EvLog.createNew(
                 carId, BigDecimal.valueOf(38.0), BigDecimal.valueOf(10.0), 80,
                 "u33d3", 50500, BigDecimal.valueOf(140.0), null, LocalDateTime.now().minusDays(1),
-                ChargingType.UNKNOWN
+                ChargingType.UNKNOWN, null, null
         );
 
         // Then: All sessions have correct odometer readings
