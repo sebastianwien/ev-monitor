@@ -166,13 +166,14 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useHead } from '@unhead/vue'
 import { useAuthStore } from '../stores/auth'
 import { getBrandModels, type PublicBrandResponse } from '../api/publicModelService'
 import { BoltIcon, ArrowTrendingUpIcon } from '@heroicons/vue/24/outline'
 
 const route = useRoute()
+const router = useRouter()
 const authStore = useAuthStore()
 const loading = ref(true)
 const notFound = ref(false)
@@ -188,6 +189,10 @@ onMounted(async () => {
     notFound.value = true
   } else {
     brand.value = result
+    const canonicalPath = `/modelle/${result.brandDisplayName}`
+    if (route.path !== canonicalPath) {
+      router.replace(canonicalPath)
+    }
   }
   loading.value = false
 })

@@ -169,6 +169,7 @@ public class PublicModelService {
         return Optional.of(new PublicModelStatsResponse(
                 brandEnumName,
                 modelEnumName,
+                brandDisplay,
                 displayName,
                 (int) logCount,
                 uniqueContributors,

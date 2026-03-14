@@ -10,6 +10,7 @@ import java.util.List;
 public record PublicModelStatsResponse(
         String brand,
         String model,
+        String brandDisplayName,
         String modelDisplayName,
 
         // Community data

@@ -21,6 +21,7 @@ export interface SeasonalDistribution {
 export interface PublicModelStats {
     brand: string
     model: string
+    brandDisplayName: string
     modelDisplayName: string
     logCount: number
     uniqueContributors: number
