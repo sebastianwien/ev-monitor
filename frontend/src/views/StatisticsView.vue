@@ -30,6 +30,7 @@ import {
   TrashIcon,
   ExclamationTriangleIcon,
   CloudIcon,
+  XMarkIcon,
 } from '@heroicons/vue/24/outline'
 import { useRouter } from 'vue-router'
 import api from '../api/axios'
@@ -80,6 +81,13 @@ interface CarInfo {
 
 const router = useRouter()
 const selectedCarId = ref<string | null>(null)
+const importBannerDismissed = ref(localStorage.getItem('import_banner_dismissed') === 'true')
+
+const dismissImportBanner = (e: Event) => {
+  e.preventDefault()
+  importBannerDismissed.value = true
+  localStorage.setItem('import_banner_dismissed', 'true')
+}
 const stats = ref<StatisticsData | null>(null)
 const carInfo = ref<CarInfo | null>(null)
 const wltp = ref<VehicleSpecification | null>(null)
@@ -569,17 +577,26 @@ const deleteLog = async (id: string) => {
           </div>
 
           <!-- Import Hint Banner -->
-          <router-link
-            to="/imports"
-            class="flex items-center gap-3 bg-green-50 border border-green-200 rounded-lg px-4 py-3 mb-6 hover:bg-green-100 transition group"
-          >
-            <ArrowDownTrayIcon class="h-5 w-5 text-green-600 shrink-0" />
-            <div class="flex-1 min-w-0">
-              <span class="text-sm font-medium text-green-800">Ladevorgänge importieren</span>
-              <span class="text-sm text-green-700 ml-1">— Sprit-Monitor, go-eCharger Cloud, OCPP Wallbox</span>
-            </div>
-            <span class="text-green-600 text-sm group-hover:translate-x-0.5 transition-transform">→</span>
-          </router-link>
+          <div v-if="!importBannerDismissed" class="relative mb-6">
+            <router-link
+              to="/imports"
+              class="flex items-center gap-3 bg-green-50 border border-green-200 rounded-lg px-4 py-3 hover:bg-green-100 transition group"
+            >
+              <ArrowDownTrayIcon class="h-5 w-5 text-green-600 shrink-0" />
+              <div class="flex-1 min-w-0">
+                <span class="text-sm font-medium text-green-800">Ladevorgänge importieren</span>
+                <span class="text-sm text-green-700 ml-1">— Sprit-Monitor, go-eCharger Cloud, OCPP Wallbox</span>
+              </div>
+              <span class="text-green-600 text-sm group-hover:translate-x-0.5 transition-transform">→</span>
+            </router-link>
+            <button
+              @click="dismissImportBanner"
+              class="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-green-200 hover:bg-green-300 text-green-700 flex items-center justify-center transition"
+              title="Hinweis ausblenden"
+            >
+              <XMarkIcon class="h-3 w-3" />
+            </button>
+          </div>
 
           <!-- Car card selector (all breakpoints) -->
           <div v-if="cars.length > 0" class="mb-6">

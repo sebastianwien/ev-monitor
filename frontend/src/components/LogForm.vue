@@ -44,6 +44,18 @@ const loggedAt = ref<string | null>(null) // Optional: when the charge happened
 const chargingType = ref<'AC' | 'DC'>('AC') // AC or DC charging, default AC
 const routeType = ref<'CITY' | 'COMBINED' | 'HIGHWAY'>('COMBINED')
 const tireType = ref<'SUMMER' | 'ALL_YEAR' | 'WINTER'>('SUMMER')
+const odometerPlaceholderOverride = ref<string | null>(null)
+
+const validateOdometerOnBlur = () => {
+  if (odometerKm.value === null) return
+  const lastOdometer = getLastOdometerReading()
+  if (lastOdometer !== null && odometerKm.value <= lastOdometer) {
+    odometerKm.value = null
+    odometerPlaceholderOverride.value = `sollte > ${lastOdometer.toLocaleString('de-DE')} km sein`
+  } else {
+    odometerPlaceholderOverride.value = null
+  }
+}
 
 // Location tracking
 const latitude = ref<number | null>(null)
@@ -80,6 +92,8 @@ const getCurrentDateTimeLocal = () => {
 
 const logs = ref<any[]>([])
 const error = ref<string | null>(null)
+const fieldErrors = ref<Set<string>>(new Set())
+const shakeKey = ref(0)
 
 // Get last odometer reading for validation
 const getLastOdometerReading = (): number | null => {
@@ -103,7 +117,7 @@ const getLastOdometerPlaceholder = (): string => {
 
   const last = logsWithOdometer[0]
   const date = new Date(last.loggedAt).toLocaleDateString('de-DE')
-  return `zuletzt: ${last.odometerKm.toLocaleString('de-DE')} km vom ${date}`
+  return `zuletzt ${last.odometerKm.toLocaleString('de-DE')} km`
 }
 
 // Request current location via Geolocation API
@@ -208,38 +222,50 @@ const deleteLog = async (logId: string) => {
 }
 
 const submitLog = async () => {
+  fieldErrors.value = new Set()
+  shakeKey.value++
+
   if (!selectedCarId.value) {
     error.value = 'Bitte wähle ein Fahrzeug aus'
     return
   }
 
+  const errors: string[] = []
+
   if (!kwhCharged.value || kwhCharged.value <= 0) {
-    error.value = 'Bitte gib die geladene Energie (kWh) ein'
-    return
+    fieldErrors.value.add('kwh')
+    errors.push('Energie (kWh)')
+  }
+
+  if (costEur.value === null || costEur.value === undefined) {
+    fieldErrors.value.add('cost')
+    errors.push('Kosten (€)')
   }
 
   if (!odometerKm.value || odometerKm.value <= 0) {
-    error.value = 'Bitte gib den aktuellen Tachostand ein'
-    return
+    fieldErrors.value.add('odometer')
+    errors.push('Tachostand')
+  } else {
+    const lastOdometer = getLastOdometerReading()
+    if (lastOdometer !== null && odometerKm.value <= lastOdometer) {
+      fieldErrors.value.add('odometer')
+      errors.push(`Tachostand muss größer als ${lastOdometer.toLocaleString('de-DE')} km sein`)
+    }
   }
 
   if (socAfterChargePercent.value === null || socAfterChargePercent.value < 0 || socAfterChargePercent.value > 100) {
-    error.value = 'Bitte gib den Akkustand nach dem Laden ein (0–100%)'
-    return
+    fieldErrors.value.add('soc')
+    errors.push('Akkustand nach Laden (0–100%)')
   }
 
-// Odometer validation: Block if lower than last reading
-  odometerWarning.value = null
-  if (odometerKm.value !== null) {
-    const lastOdometer = getLastOdometerReading()
-    if (lastOdometer !== null && odometerKm.value <= lastOdometer) {
-      error.value = `Tachostand muss größer als der letzte erfasste Wert sein (${lastOdometer.toLocaleString('de-DE')} km)`
-      return
-    }
+  if (errors.length > 0) {
+    error.value = `Bitte fülle alle Pflichtfelder korrekt aus: ${errors.join(', ')}`
+    return
   }
 
   try {
     error.value = null
+    fieldErrors.value = new Set()
     const payload: any = {
       carId: selectedCarId.value,
       kwhCharged: Math.round((kwhCharged.value ?? 0) * 100) / 100,
@@ -362,7 +388,7 @@ const handleOcrData = (ocrResult: any) => {
 
 <template>
   <div class="md:max-w-2xl md:mx-auto p-4 md:p-6 bg-white md:rounded-xl md:shadow-lg md:mt-8">
-    <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">Ladevorgang erfassen</h1>
+    <h1 class="text-xl md:text-3xl font-bold text-gray-800 mb-4 md:mb-6 text-center">Ladevorgang erfassen</h1>
 
     <!-- No cars yet: prompt to add one first -->
     <div v-if="hasCars === false" class="text-center py-10 space-y-4">
@@ -429,11 +455,11 @@ const handleOcrData = (ocrResult: any) => {
       <div class="grid grid-cols-2 gap-3">
         <div>
           <label class="block text-sm font-medium text-gray-700">Energie (kWh)</label>
-          <input v-model="kwhCharged" type="number" step="0.1" placeholder="z.B. 42.5" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border bg-white" />
+          <input v-model="kwhCharged" type="number" step="0.1" placeholder="z.B. 42.5" :class="['mt-1 block w-full rounded-md shadow-sm sm:text-sm p-2 border bg-white', fieldErrors.has('kwh') ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-500']" />
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700">Kosten (€)</label>
-          <input v-model="costEur" type="number" step="0.01" placeholder="z.B. 12.50" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border bg-white" />
+          <input v-model="costEur" type="number" step="0.01" placeholder="z.B. 12.50" :class="['mt-1 block w-full rounded-md shadow-sm sm:text-sm p-2 border bg-white', fieldErrors.has('cost') ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-500']" />
         </div>
       </div>
 
@@ -441,11 +467,11 @@ const handleOcrData = (ocrResult: any) => {
       <div class="grid grid-cols-2 gap-3">
         <div>
           <label class="block text-sm font-medium text-gray-700">Tachostand (km)</label>
-          <input v-model="odometerKm" type="number" step="1" :placeholder="getLastOdometerPlaceholder()" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border bg-white" />
+          <input v-model="odometerKm" type="number" step="1" :placeholder="odometerPlaceholderOverride ?? getLastOdometerPlaceholder()" @blur="validateOdometerOnBlur" @focus="odometerPlaceholderOverride = null" :class="['mt-1 block w-full rounded-md shadow-sm sm:text-sm p-2 border bg-white', fieldErrors.has('odometer') || odometerPlaceholderOverride ? 'border-red-400 focus:border-red-500 focus:ring-red-500 placeholder-red-400' : 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-500']" />
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700">Akku nach Laden (%)</label>
-          <input v-model="socAfterChargePercent" type="number" min="0" max="100" step="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border bg-white" />
+          <input v-model="socAfterChargePercent" type="number" min="0" max="100" step="1" :class="['mt-1 block w-full rounded-md shadow-sm sm:text-sm p-2 border bg-white', fieldErrors.has('soc') ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-500']" />
         </div>
       </div>
 
@@ -564,10 +590,7 @@ const handleOcrData = (ocrResult: any) => {
         </div>
       </div>
 
-        <div v-if="error" class="p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
-          {{ error }}
-        </div>
-        <button type="submit" @click="haptic(20)" class="w-full bg-indigo-600 text-white p-3 rounded-md btn-3d hover:bg-indigo-700 transition">⚡ Ladevorgang speichern</button>
+<button :key="shakeKey" type="submit" @click="haptic(20)" :class="['w-full bg-indigo-600 text-white p-3 rounded-md btn-3d hover:bg-indigo-700 transition', error ? 'ring-2 ring-red-400 ring-offset-2 animate-shake' : '']">⚡ Ladevorgang speichern</button>
         <p class="text-xs text-gray-400 text-center mt-2">
           📍 Der Standort hilft uns, die Außentemperatur beim Laden zu ermitteln — anonymisiert auf ~5km.
         </p>
@@ -670,6 +693,15 @@ const handleOcrData = (ocrResult: any) => {
 </template>
 
 <style scoped>
+@keyframes shake {
+  0%, 100% { transform: translateX(0) translateY(0); }
+  20% { transform: translateX(-4px) translateY(0); }
+  40% { transform: translateX(4px) translateY(0); }
+  60% { transform: translateX(-3px) translateY(0); }
+  80% { transform: translateX(3px) translateY(0); }
+}
+.animate-shake { animation: shake 0.35s ease-in-out; }
+
 @keyframes slide-in {
   from { transform: translateX(100%); opacity: 0; }
   to { transform: translateX(0); opacity: 1; }
