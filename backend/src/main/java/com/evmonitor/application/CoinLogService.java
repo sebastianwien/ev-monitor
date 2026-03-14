@@ -50,7 +50,8 @@ public class CoinLogService {
         REFERRAL_INVITED            ("Freund eingeladen",                             100, false),
         REFERRAL_WELCOME            ("Willkommensbonus (eingeladen)",                  25, true),
         // Deductions
-        LOG_DELETED_DEDUCTION       ("Ladevorgang gelöscht",                           0, false); // defaultAmount unused — caller passes dynamic negative amount
+        LOG_DELETED_DEDUCTION       ("Ladevorgang gelöscht",                           0, false), // defaultAmount unused — caller passes dynamic negative amount
+        IMPORT_SUPERSEDED_DEDUCTION ("Import als Duplikat erkannt",                    0, false); // defaultAmount unused — caller passes dynamic negative amount
 
         private final String description;
         private final int defaultAmount;

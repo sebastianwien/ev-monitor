@@ -71,6 +71,9 @@ public class EvLogEntity {
     @Column(name = "tire_type", length = 20)
     private String tireType;
 
+    @Column(name = "superseded_by")
+    private UUID supersededBy;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -274,5 +277,13 @@ public class EvLogEntity {
 
     public void setTireType(String tireType) {
         this.tireType = tireType;
+    }
+
+    public UUID getSupersededBy() {
+        return supersededBy;
+    }
+
+    public void setSupersededBy(UUID supersededBy) {
+        this.supersededBy = supersededBy;
     }
 }

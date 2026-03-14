@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -15,14 +16,16 @@ import java.util.UUID;
 public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     Optional<EvLogEntity> findByIdAndCarId(UUID id, UUID carId);
 
-    List<EvLogEntity> findAllByCarId(UUID carId);
+    @Query("SELECT e FROM EvLogEntity e WHERE e.carId = :carId AND e.supersededBy IS NULL")
+    List<EvLogEntity> findAllByCarId(@Param("carId") UUID carId);
 
-    @Query("SELECT e FROM EvLogEntity e WHERE e.carId IN :carIds")
+    @Query("SELECT e FROM EvLogEntity e WHERE e.carId IN :carIds AND e.supersededBy IS NULL")
     List<EvLogEntity> findAllByCarIdIn(@Param("carIds") List<UUID> carIds);
 
-    List<EvLogEntity> findAllByCarIdOrderByLoggedAtDesc(UUID carId, org.springframework.data.domain.Pageable pageable);
+    @Query("SELECT e FROM EvLogEntity e WHERE e.carId = :carId AND e.supersededBy IS NULL ORDER BY e.loggedAt DESC")
+    List<EvLogEntity> findAllByCarIdOrderByLoggedAtDesc(@Param("carId") UUID carId, org.springframework.data.domain.Pageable pageable);
 
-    @Query("SELECT e FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id WHERE c.userId = :userId")
+    @Query("SELECT e FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id WHERE c.userId = :userId AND e.supersededBy IS NULL")
     List<EvLogEntity> findAllByUserId(@Param("userId") UUID userId);
 
     @Query("SELECT COUNT(e) FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id WHERE c.userId = :userId")
@@ -46,6 +49,47 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     @Modifying
     @Query("DELETE FROM EvLogEntity e WHERE e.carId IN (SELECT c.id FROM CarEntity c WHERE c.userId = :userId) AND e.dataSource IN :dataSources")
     void deleteAllByUserIdAndDataSourceIn(@Param("userId") UUID userId, @Param("dataSources") List<String> dataSources);
+
+    @Query("""
+            SELECT e FROM EvLogEntity e
+            WHERE e.carId = :carId
+              AND e.dataSource != 'USER_LOGGED'
+              AND e.supersededBy IS NULL
+              AND e.loggedAt BETWEEN :from AND :to
+              AND e.kwhCharged BETWEEN :kwhMin AND :kwhMax
+            """)
+    List<EvLogEntity> findImportLogsInTimeWindow(
+            @Param("carId") UUID carId,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to,
+            @Param("kwhMin") BigDecimal kwhMin,
+            @Param("kwhMax") BigDecimal kwhMax);
+
+    // Returns a List (not Optional) to avoid NonUniqueResultException if the user has
+    // multiple USER_LOGGED entries in the time window (e.g. corrected a previous entry).
+    // Callers take the first match.
+    @Query("""
+            SELECT e FROM EvLogEntity e
+            WHERE e.carId = :carId
+              AND e.dataSource = 'USER_LOGGED'
+              AND e.loggedAt BETWEEN :from AND :to
+              AND e.kwhCharged BETWEEN :kwhMin AND :kwhMax
+            ORDER BY e.loggedAt DESC
+            """)
+    List<EvLogEntity> findUserLoggedInTimeWindow(
+            @Param("carId") UUID carId,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to,
+            @Param("kwhMin") BigDecimal kwhMin,
+            @Param("kwhMax") BigDecimal kwhMax);
+
+    @Modifying
+    @Query("UPDATE EvLogEntity e SET e.supersededBy = :supersededById WHERE e.id = :id")
+    void markAsSuperseded(@Param("id") UUID id, @Param("supersededById") UUID supersededById);
+
+    @Modifying
+    @Query("UPDATE EvLogEntity e SET e.supersededBy = NULL WHERE e.supersededBy = :supersededById")
+    void clearSupersededByReferences(@Param("supersededById") UUID supersededById);
 
     /**
      * Aggregated basic stats for a car model.

@@ -1,5 +1,6 @@
 package com.evmonitor.domain;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -41,4 +42,14 @@ public interface EvLogRepository {
     List<EvLog> findAllWithGeohashAndNoTemperature();
 
     void updateTemperature(UUID id, Double temperatureCelsius);
+
+    List<EvLog> findImportLogsInTimeWindow(UUID carId, LocalDateTime from, LocalDateTime to,
+                                            BigDecimal kwhMin, BigDecimal kwhMax);
+
+    List<EvLog> findUserLoggedInTimeWindow(UUID carId, LocalDateTime from, LocalDateTime to,
+                                           BigDecimal kwhMin, BigDecimal kwhMax);
+
+    void markAsSuperseded(UUID id, UUID supersededById);
+
+    void clearSupersededByReferences(UUID supersededById);
 }

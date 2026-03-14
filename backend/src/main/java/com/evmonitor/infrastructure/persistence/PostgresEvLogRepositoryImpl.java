@@ -8,7 +8,9 @@ import com.evmonitor.domain.RouteType;
 import com.evmonitor.domain.TireType;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -138,6 +140,34 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
         });
     }
 
+    @Override
+    public List<EvLog> findImportLogsInTimeWindow(UUID carId, LocalDateTime from, LocalDateTime to,
+                                                   BigDecimal kwhMin, BigDecimal kwhMax) {
+        return jpaRepository.findImportLogsInTimeWindow(carId, from, to, kwhMin, kwhMax).stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<EvLog> findUserLoggedInTimeWindow(UUID carId, LocalDateTime from, LocalDateTime to,
+                                                  BigDecimal kwhMin, BigDecimal kwhMax) {
+        return jpaRepository.findUserLoggedInTimeWindow(carId, from, to, kwhMin, kwhMax).stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public void markAsSuperseded(UUID id, UUID supersededById) {
+        jpaRepository.markAsSuperseded(id, supersededById);
+    }
+
+    @Override
+    @Transactional
+    public void clearSupersededByReferences(UUID supersededById) {
+        jpaRepository.clearSupersededByReferences(supersededById);
+    }
+
     private EvLogEntity toEntity(EvLog domain) {
         EvLogEntity entity = new EvLogEntity(
                 domain.getId(),
@@ -162,6 +192,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
         entity.setRawImportData(domain.getRawImportData());
         entity.setRouteType(domain.getRouteType() != null ? domain.getRouteType().name() : null);
         entity.setTireType(domain.getTireType() != null ? domain.getTireType().name() : null);
+        entity.setSupersededBy(domain.getSupersededBy());
         return entity;
     }
 
@@ -188,6 +219,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 entity.getCreatedAt(),
                 entity.getUpdatedAt(),
                 entity.getRouteType() != null ? RouteType.valueOf(entity.getRouteType()) : null,
-                entity.getTireType() != null ? TireType.valueOf(entity.getTireType()) : null);
+                entity.getTireType() != null ? TireType.valueOf(entity.getTireType()) : null,
+                entity.getSupersededBy());
     }
 }

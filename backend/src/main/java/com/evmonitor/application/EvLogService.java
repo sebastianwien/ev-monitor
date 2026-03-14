@@ -27,6 +27,8 @@ import java.util.stream.Collectors;
 public class EvLogService {
 
     private static final BigDecimal HUNDRED = new BigDecimal("100");
+    private static final int SUPERSEDE_WINDOW_MINUTES = 15;
+    private static final BigDecimal SUPERSEDE_KWH_TOLERANCE = new BigDecimal("0.15");
 
     private final EvLogRepository evLogRepository;
     private final CarRepository carRepository;
@@ -79,6 +81,9 @@ public class EvLogService {
                 request.tireType());
 
         EvLog savedLog = evLogRepository.save(newLog);
+
+        // Suppress any matching import logs (e.g. Tesla auto-import of the same session)
+        suppressDuplicateImports(savedLog, userId);
 
         // Async: enrich with temperature from Open-Meteo (fire-and-forget, nullable result)
         temperatureEnrichmentService.enrichLog(savedLog.getId(), savedLog.getGeohash(), savedLog.getLoggedAt());
@@ -148,13 +153,43 @@ public class EvLogService {
 
         EvLog savedLog = evLogRepository.save(newLog);
 
-        // Award per-log coins for Tesla Fleet/Home sync (daily auto-import via ev-monitor-connectors).
+        // If a USER_LOGGED entry already covers this session, mark this import as superseded immediately
+        LocalDateTime from = savedLog.getLoggedAt().minusMinutes(SUPERSEDE_WINDOW_MINUTES);
+        LocalDateTime to   = savedLog.getLoggedAt().plusMinutes(SUPERSEDE_WINDOW_MINUTES);
+        BigDecimal kwhMin  = savedLog.getKwhCharged().multiply(BigDecimal.ONE.subtract(SUPERSEDE_KWH_TOLERANCE));
+        BigDecimal kwhMax  = savedLog.getKwhCharged().multiply(BigDecimal.ONE.add(SUPERSEDE_KWH_TOLERANCE));
+        boolean isSuperseded = evLogRepository.findUserLoggedInTimeWindow(savedLog.getCarId(), from, to, kwhMin, kwhMax)
+                .stream()
+                .min(Comparator.comparing(userLog ->
+                        savedLog.getKwhCharged().subtract(userLog.getKwhCharged()).abs()))
+                .map(userLog -> { evLogRepository.markAsSuperseded(savedLog.getId(), userLog.getId()); return true; })
+                .orElse(false);
+
+        // Award per-log coins — only if this import was NOT immediately superseded by a manual entry.
         // go-eCharger and plain OCPP wallbox coins are TBD and intentionally not awarded here yet.
-        if (source == DataSource.TESLA_FLEET || source == DataSource.TESLA_HOME) {
+        if (!isSuperseded && (source == DataSource.TESLA_FLEET || source == DataSource.TESLA_HOME)) {
             coinLogService.awardCoinsForEvent(request.userId(), CoinLogService.CoinEvent.TESLA_DAILY_LOG, savedLog.getId());
         }
 
         return EvLogResponse.fromDomain(savedLog);
+    }
+
+    private void suppressDuplicateImports(EvLog userLog, UUID userId) {
+        LocalDateTime from = userLog.getLoggedAt().minusMinutes(SUPERSEDE_WINDOW_MINUTES);
+        LocalDateTime to   = userLog.getLoggedAt().plusMinutes(SUPERSEDE_WINDOW_MINUTES);
+        BigDecimal kwhMin  = userLog.getKwhCharged().multiply(BigDecimal.ONE.subtract(SUPERSEDE_KWH_TOLERANCE));
+        BigDecimal kwhMax  = userLog.getKwhCharged().multiply(BigDecimal.ONE.add(SUPERSEDE_KWH_TOLERANCE));
+        evLogRepository.findImportLogsInTimeWindow(userLog.getCarId(), from, to, kwhMin, kwhMax)
+                .forEach(imp -> {
+                    evLogRepository.markAsSuperseded(imp.getId(), userLog.getId());
+                    // Revert any coins awarded for this import so the user doesn't double-dip
+                    int coinSum = coinLogService.sumCoinsForSourceEntity(imp.getId());
+                    if (coinSum > 0) {
+                        coinLogService.awardCoins(userId, CoinType.ACHIEVEMENT_COIN, -coinSum,
+                                CoinLogService.CoinEvent.IMPORT_SUPERSEDED_DEDUCTION.getDescription(),
+                                imp.getId());
+                    }
+                });
     }
 
     @Transactional
@@ -229,7 +264,8 @@ public class EvLogService {
                 existing.getCreatedAt(),
                 LocalDateTime.now(),
                 request.routeType() != null ? request.routeType() : existing.getRouteType(),
-                request.tireType() != null ? request.tireType() : existing.getTireType()
+                request.tireType() != null ? request.tireType() : existing.getTireType(),
+                existing.getSupersededBy()
         );
 
         EvLog savedLog = evLogRepository.save(updated);
@@ -262,6 +298,9 @@ public class EvLogService {
                     CoinLogService.CoinEvent.LOG_DELETED_DEDUCTION.getDescription(), id);
         }
 
+        // Before deleting, clear any superseded_by references so suppressed imports resurface.
+        // The DB FK uses ON DELETE SET NULL in production, but this ensures it also works in tests (H2).
+        evLogRepository.clearSupersededByReferences(id);
         evLogRepository.deleteById(id);
     }
 
@@ -359,9 +398,23 @@ public class EvLogService {
         }
 
         // Compute per-log consumption once — used for both chart data and overall average
-        Map<UUID, ConsumptionResult> consumptionByLog = car.getBatteryCapacityKwh() != null
+        Map<UUID, ConsumptionResult> consumptionByLog = new LinkedHashMap<>(car.getBatteryCapacityKwh() != null
                 ? calculateConsumptionPerLog(allLogsForCar, car.getBatteryCapacityKwh(), lookupWltp(car))
-                : Map.of();
+                : Map.of());
+
+        // Fallback: for logs with distance but no SoC-based consumption, estimate via kWh/distance.
+        // Must run before groupChargesByPeriod() so chart data is populated even without SoC.
+        Map<UUID, Integer> distanceByLogId = computeDistanceByLogId(allLogsForCar);
+        for (EvLog log : allLogsForCar) {
+            if (consumptionByLog.containsKey(log.getId())) continue;
+            if (log.getKwhCharged() == null) continue;
+            Integer dist = distanceByLogId.get(log.getId());
+            if (dist == null || dist < plausibility.getMinTripDistanceKm()) continue;
+            double c = log.getKwhCharged().doubleValue() / dist * 100.0;
+            if (c < plausibility.getAbsoluteMinKwhPer100km() || c > plausibility.getAbsoluteMaxKwhPer100km()) continue;
+            consumptionByLog.put(log.getId(), new ConsumptionResult(
+                    BigDecimal.valueOf(c).setScale(2, RoundingMode.HALF_UP), true, dist, true));
+        }
 
         // Calculate key metrics
         BigDecimal totalKwhCharged = logs.stream()
@@ -417,9 +470,8 @@ public class EvLogService {
         BigDecimal totalDistanceKm = totalDistAll > 0 ? BigDecimal.valueOf(totalDistAll) : null;
         BigDecimal avgConsumptionKwhPer100km = weightedAverage(totalWeighted, totalDist);
 
-        // Fallback: if no SoC data available, use kWh/distance
+        // Fallback: if no SoC data available, use kWh/distance (distanceByLogId already computed above)
         if (avgConsumptionKwhPer100km == null) {
-            Map<UUID, Integer> distanceByLogId = computeDistanceByLogId(allLogsForCar);
             List<EvLog> logsWithDistance = logs.stream()
                     .filter(l -> distanceByLogId.containsKey(l.getId()) && distanceByLogId.get(l.getId()) > 0)
                     .collect(Collectors.toList());
