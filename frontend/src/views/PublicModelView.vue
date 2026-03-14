@@ -492,6 +492,13 @@ const isAuthenticated = computed(() => authStore.isAuthenticated())
 const brand = route.params.brand as string
 const model = route.params.model as string
 
+// Canonical URL computed from response data (not raw params — avoids TESLA/Tesla dupe issues)
+const canonicalBrand = computed(() => stats.value?.brandDisplayName ?? brand)
+const canonicalModelSlug = computed(() => {
+  if (!stats.value) return model
+  return stats.value.modelDisplayName.replace(stats.value.brandDisplayName + ' ', '').replace(/ /g, '_')
+})
+
 const bestWltpRange = computed(() => {
   if (!stats.value?.wltpVariants.length) return null
   return Math.max(...stats.value.wltpVariants.map(v => v.wltpRangeKm))
@@ -698,11 +705,11 @@ useHead(computed(() => {
       { property: 'og:title', content: `${name} – Realer Verbrauch & WLTP Vergleich ${currentYear}` },
       { property: 'og:description', content: description },
       { property: 'og:type', content: 'article' },
-      { property: 'og:url', content: `https://ev-monitor.net/modelle/${brand}/${model}` },
+      { property: 'og:url', content: `https://ev-monitor.net/modelle/${canonicalBrand.value}/${canonicalModelSlug.value}` },
       { property: 'og:locale', content: 'de_DE' },
     ],
     link: [
-      { rel: 'canonical', href: `https://ev-monitor.net/modelle/${brand}/${model}` }
+      { rel: 'canonical', href: `https://ev-monitor.net/modelle/${canonicalBrand.value}/${canonicalModelSlug.value}` }
     ],
     script: [
       { type: 'application/ld+json', children: JSON.stringify(breadcrumbJsonLd) },

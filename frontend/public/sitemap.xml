@@ -4,461 +4,619 @@
   <!-- Main pages -->
   <url>
     <loc>https://ev-monitor.net/</loc>
-    <lastmod>2026-03-13</lastmod>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://ev-monitor.net/modelle</loc>
-    <lastmod>2026-03-13</lastmod>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://ev-monitor.net/register</loc>
-    <lastmod>2026-03-13</lastmod>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://ev-monitor.net/login</loc>
-    <lastmod>2026-03-01</lastmod>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
 
-  <!-- Tesla -->
+  <!-- Brand overview pages -->
   <url>
-    <loc>https://ev-monitor.net/modelle/TESLA/MODEL_3</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Tesla</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://ev-monitor.net/modelle/TESLA/MODEL_Y</loc>
-    <lastmod>2026-03-13</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://ev-monitor.net/modelle/TESLA/MODEL_S</loc>
-    <lastmod>2026-03-13</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://ev-monitor.net/modelle/TESLA/MODEL_X</loc>
-    <lastmod>2026-03-13</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-
-  <!-- VW -->
-  <url>
-    <loc>https://ev-monitor.net/modelle/VW/ID_3</loc>
-    <lastmod>2026-03-13</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://ev-monitor.net/modelle/VW/ID_4</loc>
-    <lastmod>2026-03-13</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://ev-monitor.net/modelle/VW/ID_5</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Volkswagen</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://ev-monitor.net/modelle/VW/ID_7</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/BMW</loc>
+    <lastmod>2026-03-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/modelle/Mercedes-Benz</loc>
+    <lastmod>2026-03-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/modelle/Audi</loc>
+    <lastmod>2026-03-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/modelle/Hyundai</loc>
+    <lastmod>2026-03-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/modelle/Kia</loc>
+    <lastmod>2026-03-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/modelle/Porsche</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://ev-monitor.net/modelle/VW/ID_BUZZ</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Polestar</loc>
+    <lastmod>2026-03-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/modelle/Škoda</loc>
+    <lastmod>2026-03-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/modelle/Volvo</loc>
+    <lastmod>2026-03-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/modelle/Cupra</loc>
+    <lastmod>2026-03-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/modelle/Renault</loc>
+    <lastmod>2026-03-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/modelle/Opel</loc>
+    <lastmod>2026-03-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/modelle/Ford</loc>
+    <lastmod>2026-03-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/modelle/Xpeng</loc>
+    <lastmod>2026-03-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/modelle/BYD</loc>
+    <lastmod>2026-03-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/modelle/Nissan</loc>
+    <lastmod>2026-03-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/modelle/Dacia</loc>
+    <lastmod>2026-03-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/modelle/Fiat</loc>
+    <lastmod>2026-03-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/modelle/Genesis</loc>
+    <lastmod>2026-03-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <!-- Tesla -->
+  <url>
+    <loc>https://ev-monitor.net/modelle/Tesla/Model_3</loc>
+    <lastmod>2026-03-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/modelle/Tesla/Model_Y</loc>
+    <lastmod>2026-03-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/modelle/Tesla/Model_S</loc>
+    <lastmod>2026-03-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/modelle/Tesla/Model_X</loc>
+    <lastmod>2026-03-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Volkswagen -->
+  <url>
+    <loc>https://ev-monitor.net/modelle/Volkswagen/ID.3</loc>
+    <lastmod>2026-03-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/modelle/Volkswagen/ID.4</loc>
+    <lastmod>2026-03-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/modelle/Volkswagen/ID.5</loc>
+    <lastmod>2026-03-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/modelle/Volkswagen/ID.7</loc>
+    <lastmod>2026-03-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/modelle/Volkswagen/ID._Buzz</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <!-- Hyundai -->
   <url>
-    <loc>https://ev-monitor.net/modelle/HYUNDAI/IONIQ_5</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Hyundai/Ioniq_5</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://ev-monitor.net/modelle/HYUNDAI/IONIQ_6</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Hyundai/Ioniq_6</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://ev-monitor.net/modelle/HYUNDAI/KONA_ELECTRIC</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Hyundai/Kona_Electric</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
 
   <!-- Kia -->
   <url>
-    <loc>https://ev-monitor.net/modelle/KIA/EV_6</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Kia/EV6</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://ev-monitor.net/modelle/KIA/EV_9</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Kia/EV9</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://ev-monitor.net/modelle/KIA/EV_3</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Kia/EV3</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://ev-monitor.net/modelle/KIA/NIRO_EV</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Kia/Niro_EV</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
 
   <!-- BMW -->
   <url>
-    <loc>https://ev-monitor.net/modelle/BMW/I3</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/BMW/i3</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://ev-monitor.net/modelle/BMW/I4</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/BMW/i4</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://ev-monitor.net/modelle/BMW/I5</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/BMW/i5</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://ev-monitor.net/modelle/BMW/IX1</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/BMW/i7</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://ev-monitor.net/modelle/BMW/IX3</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/BMW/iX</loc>
+    <lastmod>2026-03-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/modelle/BMW/iX1</loc>
+    <lastmod>2026-03-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/modelle/BMW/iX3</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
 
-  <!-- Mercedes -->
+  <!-- Mercedes-Benz -->
   <url>
-    <loc>https://ev-monitor.net/modelle/MERCEDES/EQA</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Mercedes-Benz/EQA</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://ev-monitor.net/modelle/MERCEDES/EQB</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Mercedes-Benz/EQB</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://ev-monitor.net/modelle/MERCEDES/EQC</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Mercedes-Benz/EQC</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://ev-monitor.net/modelle/MERCEDES/EQE</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Mercedes-Benz/EQE</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://ev-monitor.net/modelle/MERCEDES/EQS</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Mercedes-Benz/EQE_SUV</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/modelle/Mercedes-Benz/EQS</loc>
+    <lastmod>2026-03-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/modelle/Mercedes-Benz/EQS_SUV</loc>
+    <lastmod>2026-03-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/modelle/Mercedes-Benz/EQV</loc>
+    <lastmod>2026-03-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
   </url>
 
   <!-- Audi -->
   <url>
-    <loc>https://ev-monitor.net/modelle/AUDI/Q4_E_TRON</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Audi/Q4_e-tron</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://ev-monitor.net/modelle/AUDI/Q6_E_TRON</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Audi/Q6_e-tron</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://ev-monitor.net/modelle/AUDI/Q8_E_TRON</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Audi/Q8_e-tron</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://ev-monitor.net/modelle/AUDI/E_TRON</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Audi/e-tron</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://ev-monitor.net/modelle/AUDI/E_TRON_GT</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Audi/e-tron_GT</loc>
+    <lastmod>2026-03-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ev-monitor.net/modelle/Audi/A6_e-tron</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
 
   <!-- Porsche -->
   <url>
-    <loc>https://ev-monitor.net/modelle/PORSCHE/TAYCAN</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Porsche/Taycan</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://ev-monitor.net/modelle/PORSCHE/MACAN_ELECTRIC</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Porsche/Macan_Electric</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
 
-  <!-- Skoda -->
+  <!-- Škoda -->
   <url>
-    <loc>https://ev-monitor.net/modelle/SKODA/ENYAQ</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Škoda/Enyaq</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://ev-monitor.net/modelle/SKODA/ENYAQ_COUPE</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Škoda/Enyaq_Coupé</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://ev-monitor.net/modelle/SKODA/ELROQ</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Škoda/Elroq</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
 
-  <!-- Polestar & Volvo -->
+  <!-- Polestar -->
   <url>
-    <loc>https://ev-monitor.net/modelle/POLESTAR/POLESTAR_2</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Polestar/Polestar_2</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://ev-monitor.net/modelle/POLESTAR/POLESTAR_3</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Polestar/Polestar_3</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://ev-monitor.net/modelle/VOLVO/EX_30</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Polestar/Polestar_4</loc>
+    <lastmod>2026-03-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Volvo -->
+  <url>
+    <loc>https://ev-monitor.net/modelle/Volvo/EX30</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
 
   <!-- Cupra -->
   <url>
-    <loc>https://ev-monitor.net/modelle/CUPRA/CUPRA_BORN</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Cupra/Born</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://ev-monitor.net/modelle/CUPRA/CUPRA_TAVASCAN</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Cupra/Tavascan</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
 
   <!-- Opel -->
   <url>
-    <loc>https://ev-monitor.net/modelle/OPEL/CORSA_E</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Opel/Corsa-e</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://ev-monitor.net/modelle/OPEL/ASTRA_E</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Opel/Astra_Electric</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://ev-monitor.net/modelle/OPEL/MOKKA_E</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Opel/Mokka-e</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
 
   <!-- Ford -->
   <url>
-    <loc>https://ev-monitor.net/modelle/FORD/MUSTANG_MACH_E</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Ford/Mustang_Mach-E</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://ev-monitor.net/modelle/FORD/EXPLORER_EV</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Ford/Explorer</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
 
-  <!-- MG -->
+  <!-- MG Motor (%20 = space) -->
   <url>
-    <loc>https://ev-monitor.net/modelle/MG/MG4</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/MG%20Motor/MG4</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://ev-monitor.net/modelle/MG/MG_ZS_EV</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/MG%20Motor/MG_ZS_EV</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
 
   <!-- Renault -->
   <url>
-    <loc>https://ev-monitor.net/modelle/RENAULT/RENAULT_5</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Renault/Renault_5</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://ev-monitor.net/modelle/RENAULT/ZOE</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Renault/Zoe</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://ev-monitor.net/modelle/RENAULT/MEGANE_E_TECH</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Renault/Megane_E-Tech</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://ev-monitor.net/modelle/RENAULT/SCENIC_E_TECH</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Renault/Scenic_E-Tech</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
 
   <!-- Nissan -->
   <url>
-    <loc>https://ev-monitor.net/modelle/NISSAN/LEAF</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Nissan/Leaf</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://ev-monitor.net/modelle/NISSAN/ARIYA</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Nissan/Ariya</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
 
   <!-- Dacia -->
   <url>
-    <loc>https://ev-monitor.net/modelle/DACIA/DACIA_SPRING</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Dacia/Spring</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
 
   <!-- BYD -->
   <url>
-    <loc>https://ev-monitor.net/modelle/BYD/BYD_SEAL</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/BYD/Seal</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://ev-monitor.net/modelle/BYD/BYD_ATTO_3</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/BYD/Atto_3</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://ev-monitor.net/modelle/BYD/BYD_DOLPHIN</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/BYD/Dolphin</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
 
   <!-- Xpeng -->
   <url>
-    <loc>https://ev-monitor.net/modelle/XPENG/XPENG_G6</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Xpeng/G6</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://ev-monitor.net/modelle/XPENG/XPENG_G9</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Xpeng/G9</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://ev-monitor.net/modelle/XPENG/XPENG_P7</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Xpeng/P7</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
 
   <!-- Fiat -->
   <url>
-    <loc>https://ev-monitor.net/modelle/FIAT/FIAT_500E</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Fiat/500e</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
 
   <!-- Genesis -->
   <url>
-    <loc>https://ev-monitor.net/modelle/GENESIS/GV60</loc>
-    <lastmod>2026-03-13</lastmod>
+    <loc>https://ev-monitor.net/modelle/Genesis/GV60</loc>
+    <lastmod>2026-03-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
-  </url>
-
-  <!-- Smart -->
-  <url>
-    <loc>https://ev-monitor.net/modelle/SMART/SMART_1</loc>
-    <lastmod>2026-03-13</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://ev-monitor.net/modelle/SMART/SMART_3</loc>
-    <lastmod>2026-03-13</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
   </url>
 
 </urlset>

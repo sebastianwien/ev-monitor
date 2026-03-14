@@ -198,15 +198,74 @@ onMounted(async () => {
 })
 
 useHead(computed(() => {
-  if (!brand.value) return { title: 'Marke nicht gefunden – EV Monitor' }
+  if (!brand.value) {
+    return {
+      title: 'Marke nicht gefunden – EV Monitor',
+      meta: [{ name: 'robots', content: 'noindex, nofollow' }]
+    }
+  }
+
   const name = brand.value.brandDisplayName
+  const modelCount = brand.value.models.length
+  const canonicalUrl = `https://ev-monitor.net/modelle/${name}`
+  const currentYear = new Date().getFullYear()
+
+  const description = `Alle ${modelCount} ${name} Elektroautos im Überblick (${currentYear}): WLTP-Reichweite, realer Verbrauch und Community-Daten. Finde heraus wie viel ein ${name} wirklich verbraucht.`
+
+  const keywords = [
+    `${name} Elektroauto`,
+    `${name} Verbrauch`,
+    `${name} WLTP`,
+    `${name} Reichweite`,
+    `${name} E-Auto`,
+    `${name} kWh`,
+    `${name} Elektromodelle`,
+    'Elektroauto Verbrauch',
+    'WLTP Unterschied real',
+    'Elektroauto Reichweite',
+  ].join(', ')
+
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'EV Monitor', item: 'https://ev-monitor.net' },
+      { '@type': 'ListItem', position: 2, name: 'Modelle', item: 'https://ev-monitor.net/modelle' },
+      { '@type': 'ListItem', position: 3, name: `${name} Elektroautos`, item: canonicalUrl },
+    ]
+  }
+
+  const itemListJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: `${name} Elektroautos – EV Monitor`,
+    description,
+    itemListElement: brand.value.models.map((model, idx) => ({
+      '@type': 'ListItem',
+      position: idx + 1,
+      name: `${name} ${model.modelDisplayName}`,
+      url: `https://ev-monitor.net/modelle/${name}/${model.modelUrlSlug}`
+    }))
+  }
+
   return {
-    title: `${name} Elektroautos – Realer Verbrauch & WLTP | EV Monitor`,
+    title: `${name} Elektroautos – Verbrauch & WLTP (${currentYear}) | EV Monitor`,
     meta: [
-      {
-        name: 'description',
-        content: `Alle ${name} E-Modelle mit WLTP-Vergleich und realen Verbrauchsdaten der Community. Finde heraus wie viel ein ${name} wirklich verbraucht.`
-      }
+      { name: 'description', content: description },
+      { name: 'keywords', content: keywords },
+      { name: 'robots', content: 'index, follow' },
+      { property: 'og:title', content: `${name} Elektroautos – Realer Verbrauch & WLTP ${currentYear}` },
+      { property: 'og:description', content: description },
+      { property: 'og:type', content: 'website' },
+      { property: 'og:url', content: canonicalUrl },
+      { property: 'og:locale', content: 'de_DE' },
+    ],
+    link: [
+      { rel: 'canonical', href: canonicalUrl }
+    ],
+    script: [
+      { type: 'application/ld+json', children: JSON.stringify(breadcrumbJsonLd) },
+      { type: 'application/ld+json', children: JSON.stringify(itemListJsonLd) },
     ]
   }
 }))
