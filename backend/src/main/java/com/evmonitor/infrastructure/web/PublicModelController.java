@@ -1,6 +1,7 @@
 package com.evmonitor.infrastructure.web;
 
 import com.evmonitor.application.PlatformStatsResponse;
+import com.evmonitor.application.PublicBrandResponse;
 import com.evmonitor.application.PublicModelService;
 import com.evmonitor.application.PublicModelStatsResponse;
 import com.evmonitor.infrastructure.security.UserPrincipal;
@@ -33,6 +34,23 @@ public class PublicModelController {
     @GetMapping("/stats")
     public ResponseEntity<PlatformStatsResponse> getPlatformStats() {
         return ResponseEntity.ok(publicModelService.getPlatformStats());
+    }
+
+    /**
+     * GET /api/public/brands/{brand}
+     * Returns all models for a brand with WLTP and community data summary.
+     * Returns 404 if brand doesn't exist.
+     */
+    @GetMapping("/brands/{brand}")
+    public ResponseEntity<PublicBrandResponse> getBrandModels(
+            @PathVariable String brand,
+            @AuthenticationPrincipal UserPrincipal principal) {
+
+        boolean isSeedUser = principal != null && principal.getUser().isSeedData();
+
+        return publicModelService.getBrandModels(brand, isSeedUser)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     /**

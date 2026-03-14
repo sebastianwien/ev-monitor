@@ -71,6 +71,8 @@ public enum CarBrand {
 
    public enum CarModel {
       // --- TESLA (König der Effizienz und der minimalen Infos) ---
+      // TODO: 75.0/79.0 kWh NMC-Varianten — wahrscheinlich Brutto (Netto ~73.8/~75.0 kWh) — verifizieren!
+      // LFP-Varianten (57.5/60.0) sind korrekt netto (LFP = 100% nutzbar)
       MODEL_3(CarBrand.TESLA, "Model 3", 57.5, 75.0, 79.0),
       MODEL_Y(CarBrand.TESLA, "Model Y", 60.0, 75.0, 79.0),
       MODEL_S(CarBrand.TESLA, "Model S", 95.0),
@@ -89,6 +91,7 @@ public enum CarBrand {
 
       // --- HYUNDAI & KIA (800V-Monster) ---
       IONIQ_5(CarBrand.HYUNDAI, "Ioniq 5", 58.0, 77.4, 84.0),
+      // TODO: 63.0 kWh — evtl. Brutto (Netto ~61.1 kWh) — verifizieren!
       IONIQ_6(CarBrand.HYUNDAI, "Ioniq 6", 53.0, 63.0, 77.4, 84.0), // Facelift 2026
       IONIQ_ELECTRIC(CarBrand.HYUNDAI, "Ioniq Electric", 28.0, 38.3),
       KONA_ELECTRIC(CarBrand.HYUNDAI, "Kona Electric", 39.2, 48.6, 64.8, 65.4),
@@ -111,6 +114,7 @@ public enum CarBrand {
 
       // --- POLESTAR & VOLVO ---
       POLESTAR_2(CarBrand.POLESTAR, "Polestar 2", 67.0, 75.0, 78.0, 82.0),
+      // TODO: 107.0 kWh — wahrscheinlich Brutto (Netto ~104 kWh) — verifizieren!
       POLESTAR_3(CarBrand.POLESTAR, "Polestar 3", 107.0),
       POLESTAR_4(CarBrand.POLESTAR, "Polestar 4", 94.0),
       EX_30(CarBrand.VOLVO, "EX30", 49.0, 64.0),
@@ -125,13 +129,15 @@ public enum CarBrand {
       XPENG_G6(CarBrand.XPENG, "G6", 66.0, 80.0, 87.5), // 80.0 = chinesische Variante
 
       // --- MERCEDES (Luxus-Kapazitäten) ---
-      EQA(CarBrand.MERCEDES, "EQA", 66.5, 70.5),
-      EQB(CarBrand.MERCEDES, "EQB", 66.5, 70.5),
+      // Netto-Werte: EQA/EQB haben eine einzige Batterie (66.5 kWh netto / 70.5 kWh brutto)
+      EQA(CarBrand.MERCEDES, "EQA", 66.5),
+      EQB(CarBrand.MERCEDES, "EQB", 66.5),
       EQC(CarBrand.MERCEDES, "EQC", 80.0),
       EQE(CarBrand.MERCEDES, "EQE", 89.0, 90.6),
       EQE_SUV(CarBrand.MERCEDES, "EQE SUV", 90.6, 96.0),
-      EQS(CarBrand.MERCEDES, "EQS", 107.8, 118.0),
-      EQS_SUV(CarBrand.MERCEDES, "EQS SUV", 108.4, 118.0),
+      // EQS/EQS SUV: 118 kWh ist Bruttowert, alle Varianten teilen 107.8/108.4 kWh netto
+      EQS(CarBrand.MERCEDES, "EQS", 107.8),
+      EQS_SUV(CarBrand.MERCEDES, "EQS SUV", 108.4),
       EQV(CarBrand.MERCEDES, "EQV", 90.0),
 
       // --- AUDI (Vorsprung durch E-Technik) ---
@@ -140,7 +146,9 @@ public enum CarBrand {
       E_TRON_GT(CarBrand.AUDI, "e-tron GT", 93.4),
       Q4_E_TRON(CarBrand.AUDI, "Q4 e-tron", 52.0, 77.0, 82.0),
       Q6_E_TRON(CarBrand.AUDI, "Q6 e-tron", 83.0, 100.0),
-      Q8_E_TRON(CarBrand.AUDI, "Q8 e-tron", 95.0, 114.0),
+      // TODO: A6/Q6 e-tron 100.0 kWh — wahrscheinlich Brutto, Netto ~94.9 kWh — verifizieren!
+      // TODO: Q8 e-tron 106.0 kWh — war 114.0 kWh (Brutto), korrigiert auf Netto — verifizieren!
+      Q8_E_TRON(CarBrand.AUDI, "Q8 e-tron", 95.0, 106.0),
 
       // --- PORSCHE (Sportwagen-Elektrifizierung) ---
       TAYCAN(CarBrand.PORSCHE, "Taycan", 79.2, 93.4, 105.0),

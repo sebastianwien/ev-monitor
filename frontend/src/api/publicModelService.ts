@@ -55,6 +55,38 @@ export interface PlatformStats {
     validTripCount: number
 }
 
+export interface BrandWltpVariant {
+    batteryCapacityKwh: number
+    wltpRangeKm: number | null
+    wltpConsumptionKwhPer100km: number | null
+    realConsumptionKwhPer100km: number | null
+}
+
+export interface BrandModelSummary {
+    modelEnum: string
+    modelDisplayName: string
+    modelUrlSlug: string
+    logCount: number
+    avgConsumptionKwhPer100km: number | null
+    wltpVariants: BrandWltpVariant[]
+}
+
+export interface PublicBrandResponse {
+    brandEnum: string
+    brandDisplayName: string
+    models: BrandModelSummary[]
+}
+
+export async function getBrandModels(brand: string): Promise<PublicBrandResponse | null> {
+    try {
+        const response = await apiClient.get<PublicBrandResponse>(`/public/brands/${brand}`)
+        return response.data
+    } catch (err: any) {
+        if (err.response?.status === 404) return null
+        throw err
+    }
+}
+
 export async function getPlatformStats(): Promise<PlatformStats> {
     const response = await apiClient.get<PlatformStats>('/public/stats')
     return response.data

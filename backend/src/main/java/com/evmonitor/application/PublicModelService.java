@@ -222,6 +222,93 @@ public class PublicModelService {
                 .toList();
     }
 
+    /**
+     * Returns all models for a brand, including those without community data.
+     * Models are sorted by log count descending (popular first).
+     * Returns Optional.empty() if the brand doesn't exist.
+     */
+    public Optional<PublicBrandResponse> getBrandModels(String brandName, boolean isSeedUser) {
+        // Find the brand enum by display string (case-insensitive)
+        CarBrand carBrand = null;
+        for (CarBrand b : CarBrand.values()) {
+            if (b.getDisplayString().equalsIgnoreCase(brandName)) {
+                carBrand = b;
+                break;
+            }
+        }
+        if (carBrand == null) {
+            return Optional.empty();
+        }
+
+        final CarBrand finalBrand = carBrand;
+        List<CarBrand.CarModel> models = CarBrand.CarModel.byBrand(carBrand);
+        if (models.isEmpty()) {
+            return Optional.empty();
+        }
+
+        // Build model summaries — include all models, even those with 0 logs
+        List<PublicBrandResponse.ModelSummary> summaries = models.stream()
+                .map(model -> {
+                    // Get community log count
+                    Object[] stats = evLogRepository.findPublicBasicStatsByModel(model.name(), isSeedUser);
+                    long logCount = 0;
+                    if (stats != null && stats.length > 0) {
+                        Object first = stats[0];
+                        if (first instanceof Object[]) stats = (Object[]) first;
+                        if (stats[0] != null) logCount = ((Number) stats[0]).longValue();
+                    }
+
+                    // Get community avg consumption (model-level)
+                    List<Car> carsForModel = carRepository.findAllByModel(model);
+                    CommunityConsumptionResult communityResult = evLogService.calculateCommunityAvgConsumption(carsForModel, isSeedUser);
+                    BigDecimal avgConsumption = communityResult.value() != null
+                            ? communityResult.value().setScale(1, java.math.RoundingMode.HALF_UP) : null;
+
+                    // Build per-variant WLTP + real consumption data
+                    List<VehicleSpecificationEntity> wltpEntities =
+                            vehicleSpecificationRepository.findByCarModelOrderByBatteryCapacityKwhAsc(model.name());
+
+                    List<PublicBrandResponse.WltpVariantSummary> wltpVariants = wltpEntities.stream()
+                            .map(e -> {
+                                List<Car> carsForVariant = carsForModel.stream()
+                                        .filter(c -> c.getBatteryCapacityKwh() != null
+                                                && c.getBatteryCapacityKwh().compareTo(e.getBatteryCapacityKwh()) == 0)
+                                        .toList();
+                                CommunityConsumptionResult variantResult = carsForVariant.isEmpty()
+                                        ? CommunityConsumptionResult.EMPTY
+                                        : evLogService.calculateCommunityAvgConsumption(carsForVariant, isSeedUser);
+                                BigDecimal variantReal = variantResult.value() != null
+                                        ? variantResult.value().setScale(1, java.math.RoundingMode.HALF_UP) : null;
+                                return new PublicBrandResponse.WltpVariantSummary(
+                                        e.getBatteryCapacityKwh(),
+                                        e.getWltpRangeKm(),
+                                        e.getWltpConsumptionKwhPer100km(),
+                                        variantReal
+                                );
+                            })
+                            .toList();
+
+                    String urlSlug = model.getDisplayName().replace(" ", "_");
+
+                    return new PublicBrandResponse.ModelSummary(
+                            model.name(),
+                            model.getDisplayName(),
+                            urlSlug,
+                            (int) logCount,
+                            avgConsumption,
+                            wltpVariants
+                    );
+                })
+                .sorted((a, b) -> Integer.compare(b.logCount(), a.logCount()))
+                .toList();
+
+        return Optional.of(new PublicBrandResponse(
+                finalBrand.name(),
+                finalBrand.getDisplayString(),
+                summaries
+        ));
+    }
+
     private BigDecimal toBigDecimal(Object value) {
         if (value instanceof BigDecimal bd) return bd;
         if (value instanceof Double d) return BigDecimal.valueOf(d);

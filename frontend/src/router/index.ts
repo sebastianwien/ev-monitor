@@ -10,6 +10,7 @@ import CarManagementView from '../views/CarManagementView.vue';
 import StatisticsView from '../views/StatisticsView.vue';
 import SettingsView from '../views/SettingsView.vue';
 import PublicModelsListView from '../views/PublicModelsListView.vue';
+import PublicBrandView from '../views/PublicBrandView.vue';
 import PublicModelView from '../views/PublicModelView.vue';
 import PublicModelsCompareView from '../views/PublicModelsCompareView.vue';
 import DatenschutzView from '../views/DatenschutzView.vue';
@@ -157,7 +158,12 @@ const router = createRouter({
             path: '/modelle/vergleich',
             name: 'public-models-compare',
             component: PublicModelsCompareView
-            // must be before :brand/:model to avoid "vergleich" matching as brand
+            // must be before :brand to avoid "vergleich" matching as a brand name
+        },
+        {
+            path: '/modelle/:brand',
+            name: 'public-brand',
+            component: PublicBrandView
         },
         {
             path: '/modelle/:brand/:model',
