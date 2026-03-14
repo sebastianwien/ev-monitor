@@ -1,22 +1,8 @@
 <template>
   <div class="min-h-screen bg-gray-50">
-    <!-- Navigation (only show if not authenticated) -->
-    <nav v-if="!authStore.isAuthenticated" class="bg-white border-b border-gray-200 px-4 py-3">
-      <div class="max-w-6xl mx-auto flex items-center justify-between">
-        <a href="/" class="flex items-center gap-2 font-bold text-green-600 text-lg">
-          <BoltIcon class="h-6 w-6" />
-          EV Monitor
-        </a>
-        <div class="flex items-center gap-3">
-          <a href="/login" class="text-sm text-gray-600 hover:text-gray-900">Anmelden</a>
-          <a href="/register" class="text-sm bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700">
-            Kostenlos registrieren
-          </a>
-        </div>
-      </div>
-    </nav>
+    <PublicNav />
 
-    <main class="max-w-6xl mx-auto px-4 py-8">
+    <main class="max-w-4xl mx-auto md:px-4 py-6 md:py-8">
       <!-- Loading state -->
       <div v-if="loading" class="flex items-center justify-center py-20">
         <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-green-600"></div>
@@ -34,7 +20,7 @@
       <!-- Brand page -->
       <div v-else-if="brand">
         <!-- Breadcrumb -->
-        <nav class="text-sm text-gray-500 mb-4">
+        <nav class="px-4 md:px-0 text-sm text-gray-500 mb-4">
           <a href="/" class="hover:text-gray-700">EV Monitor</a>
           <span class="mx-2">›</span>
           <a href="/modelle" class="hover:text-gray-700">Modelle</a>
@@ -43,7 +29,7 @@
         </nav>
 
         <!-- Hero -->
-        <div class="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
+        <div class="bg-white md:rounded-2xl md:border-x border-t md:border-b border-gray-200 p-6 mb-6">
           <h1 class="text-3xl font-bold text-gray-900 mb-2">
             {{ brand.brandDisplayName }} Elektroautos – Verbrauch & WLTP Vergleich
           </h1>
@@ -60,17 +46,18 @@
         </div>
 
         <!-- Model Grid -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-0 sm:gap-4 px-0 sm:px-0">
           <a
             v-for="model in brand.models"
             :key="model.modelEnum"
             :href="`/modelle/${brand.brandDisplayName}/${model.modelUrlSlug}`"
-            class="bg-white rounded-2xl border border-gray-200 p-5 hover:border-green-400 hover:shadow-md transition-all group"
+            class="bg-white sm:rounded-2xl border-t sm:border border-l-4 border-r-4 border-l-green-500 border-r-green-500 border-gray-200 p-5 hover:border-green-400 hover:shadow-md transition-all group"
           >
             <!-- Model name & log badge -->
-            <div class="flex items-start justify-between mb-3">
-              <h2 class="text-lg font-bold text-gray-900 group-hover:text-green-700 transition-colors">
+            <div class="flex items-center justify-between mb-3">
+              <h2 class="text-lg font-bold text-gray-900 group-hover:text-green-700 transition-colors flex items-center gap-1">
                 {{ model.modelDisplayName }}
+                <ChevronRightIcon class="h-4 w-4 text-gray-400 group-hover:text-green-600 transition-colors" />
               </h2>
               <span
                 v-if="model.logCount > 0"
@@ -121,11 +108,15 @@
             <div v-else class="text-xs text-gray-400 text-center py-3">
               Keine Spezifikationsdaten verfügbar
             </div>
+
+            <div class="flex justify-end mt-3">
+              <span class="text-xs text-green-600 font-medium group-hover:underline">Details →</span>
+            </div>
           </a>
         </div>
 
         <!-- SEO text section -->
-        <div class="bg-white rounded-2xl border border-gray-200 p-6 mt-6">
+        <div class="bg-white md:rounded-2xl md:border-x border-t md:border-b border-gray-200 p-6 mt-6">
           <h2 class="text-xl font-bold text-gray-900 mb-3">
             {{ brand.brandDisplayName }} Elektroautos – Realer Verbrauch vs. WLTP
           </h2>
@@ -140,7 +131,7 @@
         </div>
 
         <!-- CTA -->
-        <div class="bg-gradient-to-br from-green-600 to-green-700 rounded-2xl p-6 text-white mt-6">
+        <div class="bg-gradient-to-br from-green-600 to-green-700 md:rounded-2xl p-6 text-white mt-6">
           <div class="flex items-center gap-2 mb-2">
             <ArrowTrendingUpIcon class="h-6 w-6" />
             <h2 class="text-xl font-bold">{{ brand.brandDisplayName }}-Fahrer? Trage deine Daten bei!</h2>
@@ -168,13 +159,12 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useHead } from '@unhead/vue'
-import { useAuthStore } from '../stores/auth'
 import { getBrandModels, type PublicBrandResponse } from '../api/publicModelService'
-import { BoltIcon, ArrowTrendingUpIcon } from '@heroicons/vue/24/outline'
+import { ArrowTrendingUpIcon, ChevronRightIcon } from '@heroicons/vue/24/outline'
+import PublicNav from '../components/PublicNav.vue'
 
 const route = useRoute()
 const router = useRouter()
-const authStore = useAuthStore()
 const loading = ref(true)
 const notFound = ref(false)
 const brand = ref<PublicBrandResponse | null>(null)

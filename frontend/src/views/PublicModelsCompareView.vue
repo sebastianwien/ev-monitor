@@ -1,20 +1,6 @@
 <template>
   <div class="min-h-screen bg-gray-50">
-    <!-- Nav (unauthenticated) -->
-    <nav v-if="!isAuthenticated" class="bg-white border-b border-gray-200 px-4 py-3">
-      <div class="max-w-6xl mx-auto flex items-center justify-between">
-        <a href="/" class="flex items-center gap-2 font-bold text-green-600 text-lg">
-          <BoltIcon class="h-6 w-6" />
-          EV Monitor
-        </a>
-        <div class="flex items-center gap-3">
-          <a href="/login" class="text-sm text-gray-600 hover:text-gray-900">Anmelden</a>
-          <a href="/register" class="text-sm bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700">
-            Kostenlos registrieren
-          </a>
-        </div>
-      </div>
-    </nav>
+    <PublicNav />
 
     <main class="max-w-6xl mx-auto px-4 py-8">
       <!-- Breadcrumb -->
@@ -287,13 +273,11 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useHead } from '@unhead/vue'
-import { useAuthStore } from '../stores/auth'
 import { getModelStats, type PublicModelStats } from '../api/publicModelService'
-import { BoltIcon, TruckIcon, ArrowLeftIcon, ChartBarIcon } from '@heroicons/vue/24/outline'
+import { TruckIcon, ArrowLeftIcon, ChartBarIcon } from '@heroicons/vue/24/outline'
+import PublicNav from '../components/PublicNav.vue'
 
 const route = useRoute()
-const authStore = useAuthStore()
-const isAuthenticated = computed(() => authStore.isAuthenticated())
 const loading = ref(true)
 const error = ref<string | null>(null)
 const models = ref<(PublicModelStats | null)[]>([])

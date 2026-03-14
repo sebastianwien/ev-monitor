@@ -1,20 +1,6 @@
 <template>
   <div class="min-h-screen bg-gray-50">
-    <!-- Navigation (only show if not authenticated) -->
-    <nav v-if="!isAuthenticated" class="bg-white border-b border-gray-200 px-4 py-3">
-      <div class="max-w-6xl mx-auto flex items-center justify-between">
-        <a href="/" class="flex items-center gap-2 font-bold text-green-600 text-lg">
-          <BoltIcon class="h-6 w-6" />
-          EV Monitor
-        </a>
-        <div class="flex items-center gap-3">
-          <a href="/login" class="text-sm text-gray-600 hover:text-gray-900">Anmelden</a>
-          <a href="/register" class="text-sm bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700">
-            Kostenlos registrieren
-          </a>
-        </div>
-      </div>
-    </nav>
+    <PublicNav />
 
     <main class="max-w-6xl mx-auto px-4 py-8">
       <!-- Hero -->
@@ -259,7 +245,8 @@ import { useHead } from '@unhead/vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { getAllModelsWithWltpData } from '../api/publicModelService'
-import { BoltIcon, TruckIcon, ChartBarIcon, ArrowTrendingUpIcon, ArrowsRightLeftIcon, XMarkIcon, CheckIcon } from '@heroicons/vue/24/outline'
+import { TruckIcon, ChartBarIcon, ArrowTrendingUpIcon, ArrowsRightLeftIcon, XMarkIcon, CheckIcon } from '@heroicons/vue/24/outline'
+import PublicNav from '../components/PublicNav.vue'
 
 const router = useRouter()
 
@@ -357,9 +344,10 @@ const mobileFillModels = computed((): FallbackModel[] => {
   if (selectedBrands.value.length > 0) return []
   const needed = 12 - filteredModels.value.length
   if (needed <= 0) return []
-  const existingSlugs = new Set(filteredModels.value.map(m => `${m.brand}/${m.model}`))
+  const normalize = (s: string) => s.replace(/ /g, '_').toLowerCase()
+  const existingSlugs = new Set(filteredModels.value.map(m => normalize(`${m.brand}/${m.model}`)))
   return POPULAR_DE_FALLBACK
-    .filter(f => !existingSlugs.has(`${f.brand}/${f.model}`))
+    .filter(f => !existingSlugs.has(normalize(`${f.brand}/${f.model}`)))
     .slice(0, needed)
 })
 

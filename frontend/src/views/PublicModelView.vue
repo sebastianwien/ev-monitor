@@ -1,20 +1,6 @@
 <template>
   <div class="min-h-screen bg-gray-50">
-    <!-- Navigation (only show if not authenticated) -->
-    <nav v-if="!isAuthenticated" class="bg-white border-b border-gray-200 px-4 py-3">
-      <div class="max-w-4xl mx-auto flex items-center justify-between">
-        <a href="/" class="flex items-center gap-2 font-bold text-green-600 text-lg">
-          <BoltIcon class="h-6 w-6" />
-          EV Monitor
-        </a>
-        <div class="flex items-center gap-3">
-          <a href="/login" class="text-sm text-gray-600 hover:text-gray-900">Anmelden</a>
-          <a href="/register" class="text-sm bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 whitespace-nowrap">
-            Registrieren
-          </a>
-        </div>
-      </div>
-    </nav>
+    <PublicNav />
 
     <main class="max-w-4xl mx-auto md:px-4 py-6 md:py-8">
       <!-- Loading state -->
@@ -117,9 +103,8 @@
           </div>
 
           <!-- Seasonal Consumption Breakdown -->
-          <div v-if="showSeasonalBreakdown" class="mt-4 -mx-6 -mb-6 px-6 py-4 pb-6 md:mx-0 md:mb-0 md:p-4 bg-gradient-to-br from-blue-50 to-indigo-50 border-t md:border border-blue-200 md:rounded-xl">
+          <div v-if="showSeasonalBreakdown" class="mt-6 -mx-6 -mb-6 px-6 py-6 md:mx-0 md:mb-0 md:p-4 bg-gradient-to-br from-blue-50 to-indigo-50 border-t md:border border-blue-200 md:rounded-xl">
             <div class="flex items-start gap-3">
-              <InformationCircleIcon class="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
               <div class="flex-1">
                 <p class="text-sm font-bold text-blue-900 mb-3">
                   📊 Verbrauch nach Jahreszeit
@@ -485,7 +470,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { useHead } from '@unhead/vue'
 import { useAuthStore } from '../stores/auth'
 import { getModelStats, type PublicModelStats } from '../api/publicModelService'
-import { BoltIcon, ArrowTrendingUpIcon, InformationCircleIcon, ClipboardDocumentListIcon, Battery0Icon, SunIcon } from '@heroicons/vue/24/outline'
+import { ArrowTrendingUpIcon, InformationCircleIcon, ClipboardDocumentListIcon, Battery0Icon, SunIcon } from '@heroicons/vue/24/outline'
+import PublicNav from '../components/PublicNav.vue'
 
 const route = useRoute()
 const router = useRouter()
