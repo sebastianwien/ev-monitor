@@ -54,6 +54,11 @@ services:
       GITHUB_ISSUES_ENABLED: ${GITHUB_ISSUES_ENABLED:-false}
     volumes:
       - car_images:/app/car-images
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "7"
     depends_on:
       db:
         condition: service_healthy
