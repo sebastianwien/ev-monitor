@@ -17,6 +17,15 @@
         </a>
       </div>
 
+      <!-- API error state (transient) — no noindex -->
+      <div v-else-if="apiError" class="text-center py-20">
+        <h1 class="text-2xl font-bold text-gray-800 mb-2">Daten konnten nicht geladen werden</h1>
+        <p class="text-gray-500 mb-6">Bitte versuche es in ein paar Sekunden erneut.</p>
+        <a href="/modelle" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+          Alle Modelle ansehen
+        </a>
+      </div>
+
       <!-- Brand page -->
       <div v-else-if="brand">
         <!-- Breadcrumb -->
@@ -166,7 +175,8 @@ import PublicNav from '../components/PublicNav.vue'
 const route = useRoute()
 const router = useRouter()
 const loading = ref(true)
-const notFound = ref(false)
+const notFound = ref(false)   // true only on genuine 404 — triggers noindex
+const apiError = ref(false)   // true on transient errors — keeps robots: index, follow
 const brand = ref<PublicBrandResponse | null>(null)
 
 const modelsWithData = computed(() => brand.value?.models.filter(m => m.logCount > 0) ?? [])
@@ -174,17 +184,23 @@ const totalLogs = computed(() => brand.value?.models.reduce((sum, m) => sum + m.
 
 onMounted(async () => {
   const brandParam = route.params.brand as string
-  const result = await getBrandModels(brandParam)
-  if (!result) {
-    notFound.value = true
-  } else {
-    brand.value = result
-    const canonicalPath = `/modelle/${result.brandDisplayName}`
-    if (route.path !== canonicalPath) {
-      router.replace(canonicalPath)
+  try {
+    const result = await getBrandModels(brandParam)
+    if (!result) {
+      notFound.value = true
+    } else {
+      brand.value = result
+      const canonicalPath = `/modelle/${result.brandDisplayName}`
+      if (route.path !== canonicalPath) {
+        router.replace(canonicalPath)
+      }
     }
+  } catch {
+    // Transient error (network, 500, timeout) — do NOT set noindex
+    apiError.value = true
+  } finally {
+    loading.value = false
   }
-  loading.value = false
 })
 
 useHead(computed(() => {
@@ -257,8 +273,8 @@ useHead(computed(() => {
       { rel: 'canonical', href: canonicalUrl }
     ],
     script: [
-      { type: 'application/ld+json', children: JSON.stringify(breadcrumbJsonLd) },
-      { type: 'application/ld+json', children: JSON.stringify(itemListJsonLd) },
+      { type: 'application/ld+json', innerHTML: JSON.stringify(breadcrumbJsonLd) },
+      { type: 'application/ld+json', innerHTML: JSON.stringify(itemListJsonLd) },
     ]
   }
 }))

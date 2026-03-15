@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { useHead } from '@unhead/vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { analytics } from '../services/analytics'
@@ -42,6 +43,10 @@ function animateCount(target: number, setter: (v: number) => void, duration = 14
   }
   requestAnimationFrame(tick)
 }
+
+useHead({
+  link: [{ rel: 'canonical', href: 'https://ev-monitor.net/' }]
+})
 
 onMounted(async () => {
   analytics.track('landing_page_viewed')

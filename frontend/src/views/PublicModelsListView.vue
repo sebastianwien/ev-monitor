@@ -6,7 +6,7 @@
       <!-- Hero -->
       <div class="bg-white rounded-2xl border border-gray-200 p-8 mb-8">
         <h1 class="text-3xl font-bold text-gray-900 mb-3">
-          Elektroauto Verbrauch im Vergleich
+          Elektroautos im Vergleich
         </h1>
         <p class="text-gray-600 text-lg mb-4">
           Reale Verbrauchsdaten von der Community – WLTP vs. Praxis für alle Elektroautos.
@@ -21,8 +21,9 @@
         <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-green-600"></div>
       </div>
 
-      <!-- Filters -->
-      <div v-else-if="modelsWithData.length > 0" class="mb-6">
+      <!-- Filters + Popular Models -->
+      <div v-if="!loading && modelsWithData.length > 0" class="mb-6">
+        <h2 class="text-lg font-semibold text-gray-800 mb-3">Populäre Modelle</h2>
         <div class="bg-white rounded-xl border border-gray-200 p-4">
           <div class="flex items-center gap-3">
             <span class="text-sm font-medium text-gray-700">Marken:</span>
@@ -178,6 +179,32 @@
         </button>
       </div>
 
+      <!-- Brand Grid -->
+      <div v-if="!loading && (availableBrands.length > 0 || brandFillItems.length > 0)" class="mb-8 mt-8">
+        <h2 class="text-lg font-semibold text-gray-800 mb-3">Alle Marken</h2>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+          <a
+            v-for="brand in availableBrands"
+            :key="brand"
+            :href="`/modelle/${brand}`"
+            class="brand-card bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center gap-2 hover:border-green-500 hover:shadow-sm transition-all"
+          >
+            <TruckIcon class="h-5 w-5 text-gray-400 flex-shrink-0" />
+            <span class="text-sm font-medium text-gray-800 truncate">{{ brand }}</span>
+          </a>
+          <!-- Fallback brands without community data yet -->
+          <a
+            v-for="brand in brandFillItems"
+            :key="`fallback/${brand}`"
+            :href="`/modelle/${brand}`"
+            class="brand-card bg-white rounded-xl border border-gray-100 px-4 py-3 flex items-center gap-2 hover:border-green-400 hover:shadow-sm transition-all opacity-70"
+          >
+            <TruckIcon class="h-5 w-5 text-gray-300 flex-shrink-0" />
+            <span class="text-sm font-medium text-gray-500 truncate">{{ brand }}</span>
+          </a>
+        </div>
+      </div>
+
       <!-- CTA Section -->
       <div v-if="!loading" class="bg-gradient-to-br from-green-600 to-green-700 rounded-2xl p-8 text-white mt-8">
         <div class="flex items-center gap-2 mb-3">
@@ -300,6 +327,22 @@ interface FallbackModel {
   displayName: string
 }
 
+// Popular EV brands in Germany — fallback when fewer than 20 brands have community data
+const POPULAR_DE_BRANDS_FALLBACK = [
+  'Tesla', 'Volkswagen', 'Hyundai', 'BMW', 'Audi', 'Kia', 'Mercedes-Benz',
+  'Škoda', 'Polestar', 'MG Motor', 'Renault', 'Volvo', 'Ford', 'Porsche',
+  'Opel', 'Cupra', 'Nissan', 'Fiat', 'Dacia', 'BYD',
+]
+
+const brandFillItems = computed((): string[] => {
+  const needed = 20 - availableBrands.value.length
+  if (needed <= 0) return []
+  const existing = new Set(availableBrands.value.map(b => b.toLowerCase()))
+  return POPULAR_DE_BRANDS_FALLBACK
+    .filter(b => !existing.has(b.toLowerCase()))
+    .slice(0, needed)
+})
+
 // Popular EV models in Germany by registration numbers (DE slugs matching DB)
 const POPULAR_DE_FALLBACK: FallbackModel[] = [
   { brand: 'Volkswagen', model: 'ID.3', displayName: 'VW ID.3' },
@@ -351,22 +394,52 @@ const mobileFillModels = computed((): FallbackModel[] => {
     .slice(0, needed)
 })
 
-const itemListJsonLd = {
+// Reactive JSON-LD: brands first (from live data), then popular model fallbacks
+const itemListJsonLd = computed(() => {
+  const BASE = 'https://ev-monitor.net'
+  const brandItems = availableBrands.value.map((brand, i) => ({
+    '@type': 'ListItem',
+    position: i + 1,
+    name: `${brand} Elektroautos – Realer Verbrauch`,
+    url: `${BASE}/modelle/${brand}`
+  }))
+
+  // Append popular model entries after brands (for long-tail keywords)
+  const POPULAR_MODELS = [
+    { name: 'Tesla Model 3', url: `${BASE}/modelle/Tesla/Model_3` },
+    { name: 'Tesla Model Y', url: `${BASE}/modelle/Tesla/Model_Y` },
+    { name: 'VW ID.3', url: `${BASE}/modelle/Volkswagen/ID.3` },
+    { name: 'VW ID.4', url: `${BASE}/modelle/Volkswagen/ID.4` },
+    { name: 'Hyundai Ioniq 5', url: `${BASE}/modelle/Hyundai/Ioniq_5` },
+    { name: 'Hyundai Ioniq 6', url: `${BASE}/modelle/Hyundai/Ioniq_6` },
+    { name: 'BMW i4', url: `${BASE}/modelle/BMW/i4` },
+    { name: 'Audi Q4 e-tron', url: `${BASE}/modelle/Audi/Q4_e-tron` },
+    { name: 'Kia EV6', url: `${BASE}/modelle/Kia/EV6` },
+    { name: 'Polestar 2', url: `${BASE}/modelle/Polestar/Polestar_2` },
+  ]
+  const offset = brandItems.length
+  const modelItems = POPULAR_MODELS.map((m, i) => ({
+    '@type': 'ListItem',
+    position: offset + i + 1,
+    name: m.name,
+    url: m.url
+  }))
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: 'Elektroauto Marken & Modelle – Realer Verbrauch & WLTP Vergleich',
+    description: 'Community-Verbrauchsdaten für alle Elektroautos im Vergleich zum WLTP-Wert.',
+    itemListElement: brandItems.length > 0 ? [...brandItems, ...modelItems] : modelItems
+  }
+})
+
+const breadcrumbJsonLd = {
   '@context': 'https://schema.org',
-  '@type': 'ItemList',
-  name: 'Elektroauto Modelle – Realer Verbrauch & WLTP Vergleich',
-  description: 'Community-Verbrauchsdaten für alle Elektroautos im Vergleich zum WLTP-Wert.',
+  '@type': 'BreadcrumbList',
   itemListElement: [
-    { '@type': 'ListItem', position: 1, name: 'Tesla Model 3', url: 'https://ev-monitor.net/modelle/Tesla/Model_3' },
-    { '@type': 'ListItem', position: 2, name: 'Tesla Model Y', url: 'https://ev-monitor.net/modelle/Tesla/Model_Y' },
-    { '@type': 'ListItem', position: 3, name: 'VW ID.3', url: 'https://ev-monitor.net/modelle/Volkswagen/ID.3' },
-    { '@type': 'ListItem', position: 4, name: 'VW ID.4', url: 'https://ev-monitor.net/modelle/Volkswagen/ID.4' },
-    { '@type': 'ListItem', position: 5, name: 'Hyundai Ioniq 5', url: 'https://ev-monitor.net/modelle/Hyundai/Ioniq_5' },
-    { '@type': 'ListItem', position: 6, name: 'Hyundai Ioniq 6', url: 'https://ev-monitor.net/modelle/Hyundai/Ioniq_6' },
-    { '@type': 'ListItem', position: 7, name: 'BMW i4', url: 'https://ev-monitor.net/modelle/BMW/i4' },
-    { '@type': 'ListItem', position: 8, name: 'Audi Q4 e-tron', url: 'https://ev-monitor.net/modelle/Audi/Q4_e-tron' },
-    { '@type': 'ListItem', position: 9, name: 'Kia EV6', url: 'https://ev-monitor.net/modelle/Kia/EV6' },
-    { '@type': 'ListItem', position: 10, name: 'Polestar 2', url: 'https://ev-monitor.net/modelle/Polestar/Polestar_2' },
+    { '@type': 'ListItem', position: 1, name: 'EV Monitor', item: 'https://ev-monitor.net' },
+    { '@type': 'ListItem', position: 2, name: 'Elektroautos im Vergleich', item: 'https://ev-monitor.net/modelle' },
   ]
 }
 
@@ -388,7 +461,8 @@ useHead({
     { rel: 'canonical', href: 'https://ev-monitor.net/modelle' }
   ],
   script: [
-    { type: 'application/ld+json', innerHTML: JSON.stringify(itemListJsonLd) }
+    { type: 'application/ld+json', innerHTML: () => JSON.stringify(itemListJsonLd.value) },
+    { type: 'application/ld+json', innerHTML: JSON.stringify(breadcrumbJsonLd) },
   ]
 })
 
@@ -436,6 +510,18 @@ function clearAllBrands() {
 </script>
 
 <style scoped>
+/* 3D press effect for brand cards */
+.brand-card {
+  box-shadow: 0 3px 0 0 rgba(0,0,0,0.08);
+  transform: translateY(0);
+  transition: transform 0.08s ease, box-shadow 0.08s ease, border-color 0.15s ease;
+}
+.brand-card:active {
+  box-shadow: 0 1px 0 0 rgba(0,0,0,0.08);
+  transform: translateY(2px);
+  transition: transform 0.05s ease, box-shadow 0.05s ease;
+}
+
 /* 3D press effect for model cards */
 .model-card {
   box-shadow: 0 4px 0 0 rgba(0,0,0,0.10);

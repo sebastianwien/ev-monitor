@@ -18,6 +18,15 @@
         </a>
       </div>
 
+      <!-- API error state (transient) — no noindex -->
+      <div v-else-if="apiError" class="text-center py-20">
+        <h1 class="text-2xl font-bold text-gray-800 mb-2">Daten konnten nicht geladen werden</h1>
+        <p class="text-gray-500 mb-6">Bitte versuche es in ein paar Sekunden erneut.</p>
+        <button @click="window.location.reload()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+          Neu laden
+        </button>
+      </div>
+
       <!-- Model stats page -->
       <div v-else-if="stats">
         <!-- Breadcrumb -->
@@ -477,7 +486,8 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const loading = ref(true)
-const notFound = ref(false)
+const notFound = ref(false)   // true only on genuine 404 — triggers noindex
+const apiError = ref(false)   // true on transient errors — keeps robots: index, follow
 const stats = ref<PublicModelStats | null>(null)
 
 const isAuthenticated = computed(() => authStore.isAuthenticated())
@@ -712,10 +722,10 @@ useHead(computed(() => {
       { rel: 'canonical', href: `https://ev-monitor.net/modelle/${canonicalBrand.value}/${canonicalModelSlug.value}` }
     ],
     script: [
-      { type: 'application/ld+json', children: JSON.stringify(breadcrumbJsonLd) },
-      { type: 'application/ld+json', children: JSON.stringify(productJsonLd) },
+      { type: 'application/ld+json', innerHTML: JSON.stringify(breadcrumbJsonLd) },
+      { type: 'application/ld+json', innerHTML: JSON.stringify(productJsonLd) },
       ...(faqItems.value.length > 0
-        ? [{ type: 'application/ld+json', children: JSON.stringify(faqJsonLd) }]
+        ? [{ type: 'application/ld+json', innerHTML: JSON.stringify(faqJsonLd) }]
         : [])
     ]
   }
@@ -735,7 +745,8 @@ onMounted(async () => {
       }
     }
   } catch {
-    notFound.value = true
+    // Transient error (network, 500, timeout) — do NOT set noindex
+    apiError.value = true
   } finally {
     loading.value = false
   }
@@ -762,6 +773,8 @@ function deltaLabel(real: number, wltp: number): string {
 }
 
 function toTitleCase(s: string): string {
-  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()
+  // Preserve all-caps brands (BMW, MG) — only capitalize first letter if fully lowercase
+  if (s === s.toUpperCase()) return s
+  return s.charAt(0).toUpperCase() + s.slice(1)
 }
 </script>
