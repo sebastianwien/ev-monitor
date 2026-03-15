@@ -116,7 +116,6 @@ const getLastOdometerPlaceholder = (): string => {
   if (logsWithOdometer.length === 0) return 'Tachostand (km)'
 
   const last = logsWithOdometer[0]
-  const date = new Date(last.loggedAt).toLocaleDateString('de-DE')
   return `zuletzt ${last.odometerKm.toLocaleString('de-DE')} km`
 }
 

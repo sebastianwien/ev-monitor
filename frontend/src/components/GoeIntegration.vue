@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from 'vue'
-import { PlusIcon, ExclamationTriangleIcon, InformationCircleIcon, ChevronRightIcon, MapPinIcon, CheckCircleIcon } from '@heroicons/vue/24/outline'
+import { ExclamationTriangleIcon, InformationCircleIcon, ChevronRightIcon, MapPinIcon, CheckCircleIcon } from '@heroicons/vue/24/outline'
 import goeService from '@/api/goeService'
 import { carService, type Car } from '@/api/carService'
 import GoeStatusCard from './GoeStatusCard.vue'
