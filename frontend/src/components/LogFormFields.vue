@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { GlobeAltIcon } from '@heroicons/vue/24/outline'
 
 export interface LogFormData {
@@ -93,6 +93,37 @@ const inputClass = (field: string) =>
       : 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-500',
   ].join(' ')
 
+// ── Cost Mode ─────────────────────────────────────────────────────────────────
+const costMode = ref<'eur' | 'eur_kwh'>('eur')
+const priceEurPerKwh = ref<number | null>(null)
+
+const calculatedEur = computed(() => {
+  const kwh = form.value.kwhCharged
+  const price = priceEurPerKwh.value
+  if (kwh != null && price != null) return Math.round(kwh * price * 100) / 100
+  return null
+})
+
+watch([() => form.value.kwhCharged, priceEurPerKwh], () => {
+  if (costMode.value === 'eur_kwh') {
+    form.value.costEur = calculatedEur.value
+  }
+})
+
+const toggleCostMode = (mode: 'eur' | 'eur_kwh') => {
+  if (costMode.value === mode) return
+  if (mode === 'eur_kwh') {
+    // € → €/kWh: Rückrechnung wenn kWh bekannt
+    const kwh = form.value.kwhCharged
+    const eur = form.value.costEur
+    priceEurPerKwh.value = (kwh && eur) ? Math.round((eur / kwh) * 100) / 100 : null
+  } else {
+    // €/kWh → €: berechneten Wert übernehmen
+    form.value.costEur = calculatedEur.value
+  }
+  costMode.value = mode
+}
+
 // expose clearLocation so LogForm can call it on reset
 defineExpose({ clearLocation, locationEnabled, locationStatus })
 </script>
@@ -102,16 +133,38 @@ defineExpose({ clearLocation, locationEnabled, locationStatus })
   <div :class="locationMode !== 'edit' ? 'bg-gray-100 md:rounded-xl p-3 space-y-3 -mx-4 md:mx-0' : 'space-y-3'">
 
   <!-- Row 1: kWh + Kosten -->
-  <div class="grid grid-cols-2 gap-3">
+  <div class="grid grid-cols-2 gap-3 items-end">
     <div>
       <label class="block text-sm font-medium text-gray-700">Energie (kWh)</label>
       <input v-model="form.kwhCharged" type="number" step="0.1" placeholder="z.B. 42.5"
         :class="inputClass('kwh')" />
     </div>
     <div>
-      <label class="block text-sm font-medium text-gray-700">Kosten (€)</label>
-      <input v-model="form.costEur" type="number" step="0.01" placeholder="z.B. 12.50"
+      <div class="flex items-center justify-between mb-1">
+        <label class="block text-sm font-medium text-gray-700">{{ costMode === 'eur' ? 'Kosten (€)' : 'Preis (€/kWh)' }}</label>
+        <div class="relative flex rounded-full border border-gray-200 bg-gray-100 p-0.5 text-xs">
+          <div class="absolute top-0.5 bottom-0.5 rounded-full bg-white shadow-sm transition-transform duration-200 ease-in-out pointer-events-none" style="width: calc(50% - 2px)"
+            :style="{ transform: `translateX(${costMode === 'eur_kwh' ? '100%' : '0%'})` }" />
+          <button type="button" @click="toggleCostMode('eur')"
+            :class="['relative z-10 px-1.5 py-0.5 rounded-full font-medium transition-colors duration-200', costMode === 'eur' ? 'text-indigo-700' : 'text-gray-500']">
+            €
+          </button>
+          <button type="button" @click="toggleCostMode('eur_kwh')"
+            :class="['relative z-10 px-1.5 py-0.5 rounded-full font-medium transition-colors duration-200', costMode === 'eur_kwh' ? 'text-indigo-700' : 'text-gray-500']">
+            ct
+          </button>
+        </div>
+      </div>
+      <input v-if="costMode === 'eur'" v-model="form.costEur" type="number" step="0.01" placeholder="z.B. 12.50"
         :class="inputClass('cost')" />
+      <div v-else class="relative">
+        <input v-model="priceEurPerKwh" type="number" step="0.01"
+          :placeholder="calculatedEur === null ? 'z.B. 0.20' : ''"
+          :class="[inputClass('cost'), 'pr-16']" />
+        <span v-if="calculatedEur !== null" class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">
+          = {{ calculatedEur.toFixed(2) }} €
+        </span>
+      </div>
     </div>
   </div>
 
