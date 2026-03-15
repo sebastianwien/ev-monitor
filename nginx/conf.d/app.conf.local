@@ -4,6 +4,8 @@
 map $http_user_agent $is_bot {
     default 0;
     "~*googlebot"               1;
+    "~*google-inspectiontool"   1;
+    "~*google-extended"         1;
     "~*bingbot"                 1;
     "~*yandexbot"               1;
     "~*duckduckbot"             1;
@@ -46,7 +48,23 @@ server {
         try_files $uri $uri/ /index.html;
     }
 
-    # Serve Frontend PWA
+    # Serve Frontend PWA (with Prerender for bots on landing page)
+    location = / {
+        resolver 127.0.0.11 valid=10s;
+        set $prerender 0;
+        if ($is_bot = 1) {
+            set $prerender 1;
+        }
+        set $prerender_url "http://prerender:3000/http://nginx/";
+        if ($prerender = 1) {
+            access_log /var/log/nginx/prerender.log prerender;
+            proxy_pass $prerender_url;
+        }
+        root /usr/share/nginx/html;
+        index index.html;
+        try_files $uri $uri/ /index.html;
+    }
+
     location / {
         root /usr/share/nginx/html;
         index index.html;
