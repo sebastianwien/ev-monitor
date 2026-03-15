@@ -1016,6 +1016,12 @@ const deleteLog = async (id: string) => {
                     <BoltIcon class="w-4 h-4 text-indigo-600 flex-shrink-0" />
                     <span class="font-semibold text-indigo-700 whitespace-nowrap">{{ log.kwhCharged }} kWh</span>
                     <span class="text-xs text-gray-400 whitespace-nowrap">{{ new Date(log.loggedAt).toLocaleDateString('de-DE') }}</span>
+                    <span v-if="sourceInfo(log.dataSource)"
+                      :class="['hidden md:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium whitespace-nowrap',
+                               sourceInfo(log.dataSource)!.classes]">
+                      <component :is="sourceInfo(log.dataSource)!.icon" class="w-3 h-3" />
+                      {{ sourceInfo(log.dataSource)!.label }}
+                    </span>
                   </div>
                   <div class="flex items-center gap-1.5 flex-shrink-0">
                     <span v-if="log.temperatureCelsius != null"
@@ -1033,8 +1039,8 @@ const deleteLog = async (id: string) => {
                     </button>
                   </div>
                 </div>
-                <!-- Source Badge -->
-                <div v-if="sourceInfo(log.dataSource)">
+                <!-- Source Badge: mobile only (desktop: inline im Header) -->
+                <div v-if="sourceInfo(log.dataSource)" class="md:hidden">
                   <span :class="['inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium',
                                  sourceInfo(log.dataSource)!.classes]">
                     <component :is="sourceInfo(log.dataSource)!.icon" class="w-3 h-3" />
