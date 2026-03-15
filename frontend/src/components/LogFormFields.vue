@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { GlobeAltIcon, BoltIcon, TruckIcon, Battery0Icon, ClockIcon } from '@heroicons/vue/24/outline'
+import { GlobeAltIcon } from '@heroicons/vue/24/outline'
 
 export interface LogFormData {
   kwhCharged: number | null
