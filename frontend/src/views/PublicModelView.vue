@@ -664,15 +664,16 @@ useHead(computed(() => {
     }))
   }
 
-  const productJsonLd = {
+  const articleJsonLd = {
     '@context': 'https://schema.org',
-    '@type': 'Product',
-    name: `${name} Elektroauto`,
-    category: 'Elektrofahrzeug',
+    '@type': 'Article',
+    headline: `${name} Verbrauch & Reichweite – Realer WLTP Vergleich`,
     description,
-    brand: { '@type': 'Brand', name: brandDisplay.value },
+    author: { '@type': 'Organization', name: 'EV Monitor' },
+    publisher: { '@type': 'Organization', name: 'EV Monitor', url: 'https://ev-monitor.net' },
+    url: `https://ev-monitor.net/modelle/${canonicalBrand.value}/${canonicalModelSlug.value}`,
     ...(stats.value.wltpVariants.length > 0 && {
-      additionalProperty: stats.value.wltpVariants.map(v => ({
+      about: stats.value.wltpVariants.map(v => ({
         '@type': 'PropertyValue',
         name: `WLTP Reichweite (${v.batteryCapacityKwh} kWh)`,
         value: `${v.wltpRangeKm} km`
@@ -727,7 +728,7 @@ useHead(computed(() => {
     ],
     script: [
       { type: 'application/ld+json', innerHTML: JSON.stringify(breadcrumbJsonLd) },
-      { type: 'application/ld+json', innerHTML: JSON.stringify(productJsonLd) },
+      { type: 'application/ld+json', innerHTML: JSON.stringify(articleJsonLd) },
       ...(faqItems.value.length > 0
         ? [{ type: 'application/ld+json', innerHTML: JSON.stringify(faqJsonLd) }]
         : [])
