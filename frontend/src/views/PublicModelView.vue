@@ -22,7 +22,7 @@
       <div v-else-if="apiError" class="text-center py-20">
         <h1 class="text-2xl font-bold text-gray-800 mb-2">Daten konnten nicht geladen werden</h1>
         <p class="text-gray-500 mb-6">Bitte versuche es in ein paar Sekunden erneut.</p>
-        <button @click="window.location.reload()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+        <button @click="reload" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
           Neu laden
         </button>
       </div>
@@ -615,7 +615,11 @@ useHead(computed(() => {
     }
   }
   if (!stats.value) {
-    return { title: 'EV Monitor' }
+    return {
+      title: 'EV Monitor',
+      meta: [{ name: 'robots', content: 'index, follow' }],
+      link: [{ rel: 'canonical', href: `https://ev-monitor.net/modelle/${brand}/${model}` }]
+    }
   }
   const name = stats.value.modelDisplayName
   const consumption = stats.value.avgConsumptionKwhPer100km
@@ -771,6 +775,8 @@ function deltaLabel(real: number, wltp: number): string {
   const sign = percentDelta > 0 ? '+' : ''
   return `${sign}${percentDelta.toFixed(1)}%`
 }
+
+function reload() { window.location.reload() }
 
 function toTitleCase(s: string): string {
   // Preserve all-caps brands (BMW, MG) — only capitalize first letter if fully lowercase

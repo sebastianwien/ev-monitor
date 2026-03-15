@@ -211,7 +211,12 @@ useHead(computed(() => {
     }
   }
   if (!brand.value) {
-    return { title: 'EV Monitor' }
+    const brandParam = route.params.brand as string
+    return {
+      title: 'EV Monitor',
+      meta: [{ name: 'robots', content: 'index, follow' }],
+      link: [{ rel: 'canonical', href: `https://ev-monitor.net/modelle/${brandParam}` }]
+    }
   }
 
   const name = brand.value.brandDisplayName
