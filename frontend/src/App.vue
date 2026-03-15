@@ -114,6 +114,7 @@ const closeMobileMenu = () => {
 }
 
 const openKofi = () => {
+  analytics.track('kofi_clicked')
   window.open('https://ko-fi.com/ev_monitor', '_blank', 'noopener,noreferrer,width=550,height=650,left=200,top=100')
 }
 </script>
