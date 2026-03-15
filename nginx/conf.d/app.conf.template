@@ -13,6 +13,20 @@ server {
     }
 }
 
+# Bot detection for prerendering
+map $http_user_agent $is_bot {
+    default 0;
+    "~*googlebot"               1;
+    "~*bingbot"                 1;
+    "~*yandexbot"               1;
+    "~*duckduckbot"             1;
+    "~*slurp"                   1;
+    "~*facebookexternalhit"     1;
+    "~*twitterbot"              1;
+    "~*linkedinbot"             1;
+    "~*whatsapp"                1;
+}
+
 # HTTPS
 server {
     listen 443 ssl http2;
@@ -45,6 +59,17 @@ server {
     location /.well-known/appspecific/ {
         alias /usr/share/nginx/well-known/appspecific/;
         add_header Content-Type text/plain;
+    }
+
+    # Prerender for bots on public SEO pages
+    location ~* ^/modelle {
+        if ($is_bot = 1) {
+            proxy_pass http://prerender:3000/https://ev-monitor.net$request_uri;
+            break;
+        }
+        root /usr/share/nginx/html;
+        index index.html;
+        try_files $uri $uri/ /index.html;
     }
 
     # Serve Frontend PWA

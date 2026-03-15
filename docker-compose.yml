@@ -129,6 +129,17 @@ services:
       - backend
       - wallbox-service
       - connectors-service
+      - prerender
+
+  prerender:
+    image: tvanro/prerender-alpine
+    restart: always
+    environment:
+      - MEMORY_CACHE=1
+      - CACHE_MAXSIZE=100
+      - CACHE_TTL=3600
+    ports:
+      - "127.0.0.1:3000:3000"
 
   certbot:
     image: certbot/certbot
