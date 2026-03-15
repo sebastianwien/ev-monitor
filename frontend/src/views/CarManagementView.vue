@@ -752,6 +752,7 @@ onUnmounted(() => {
               <p v-if="car.powerKw" class="text-sm text-gray-600">
                 <span class="font-semibold">Leistung:</span> {{ car.powerKw }} kW ({{ Math.round(car.powerKw * 1.35962) }} PS)
               </p>
+              <p class="text-xs text-gray-400 font-mono select-all" :title="'Fahrzeug-ID für API Upload'">{{ car.id }}</p>
             </div>
 
             <div class="flex gap-2">
