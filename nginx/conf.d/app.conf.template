@@ -13,7 +13,6 @@ server {
     }
 }
 
-# Bot detection for prerendering
 map $http_user_agent $is_bot {
     default 0;
     "~*googlebot"               1;
@@ -63,9 +62,14 @@ server {
 
     # Prerender for bots on public SEO pages
     location ~* ^/modelle {
+        resolver 127.0.0.11 valid=10s;
+        set $prerender 0;
         if ($is_bot = 1) {
-            proxy_pass http://prerender:3000/https://ev-monitor.net$request_uri;
-            break;
+            set $prerender 1;
+        }
+        set $prerender_url "http://prerender:3000/https://ev-monitor.net$request_uri";
+        if ($prerender = 1) {
+            proxy_pass $prerender_url;
         }
         root /usr/share/nginx/html;
         index index.html;

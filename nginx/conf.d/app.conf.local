@@ -1,10 +1,33 @@
 # Local Development - HTTP only on port 80
 # This mimics the production setup without SSL
 
+map $http_user_agent $is_bot {
+    default 0;
+    "~*googlebot"               1;
+    "~*bingbot"                 1;
+    "~*facebookexternalhit"     1;
+}
+
 server {
     listen 80;
     server_name localhost;
     server_tokens off;
+
+    # Prerender for bots on public SEO pages
+    location ~* ^/modelle {
+        resolver 127.0.0.11 valid=10s;
+        set $prerender 0;
+        if ($is_bot = 1) {
+            set $prerender 1;
+        }
+        set $prerender_url "http://prerender:3000/http://nginx$request_uri";
+        if ($prerender = 1) {
+            proxy_pass $prerender_url;
+        }
+        root /usr/share/nginx/html;
+        index index.html;
+        try_files $uri $uri/ /index.html;
+    }
 
     # Serve Frontend PWA
     location / {
