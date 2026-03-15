@@ -7,7 +7,7 @@ import RegisterView from '../views/RegisterView.vue';
 import VerifyEmailView from '../views/VerifyEmailView.vue';
 import OAuth2RedirectHandler from '../views/OAuth2RedirectHandler.vue';
 import CarManagementView from '../views/CarManagementView.vue';
-import StatisticsView from '../views/StatisticsView.vue';
+import DashboardView from '../views/DashboardView.vue';
 import SettingsView from '../views/SettingsView.vue';
 import PublicModelsListView from '../views/PublicModelsListView.vue';
 import PublicBrandView from '../views/PublicBrandView.vue';
@@ -57,7 +57,7 @@ const router = createRouter({
         {
             path: '/dashboard',
             name: 'statistics',
-            component: StatisticsView,
+            component: DashboardView,
             meta: { requiresAuth: true }
         },
         {

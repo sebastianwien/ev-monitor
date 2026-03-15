@@ -341,9 +341,9 @@ public class EvLogService {
             Integer dist = distanceByLogId.get(log.getId());
             if (dist == null || dist < plausibility.getMinTripDistanceKm()) continue;
             double c = log.getKwhCharged().doubleValue() / dist * 100.0;
-            if (c < plausibility.getAbsoluteMinKwhPer100km() || c > plausibility.getAbsoluteMaxKwhPer100km()) continue;
+            boolean plausible = c >= plausibility.getAbsoluteMinKwhPer100km() && c <= plausibility.getAbsoluteMaxKwhPer100km();
             consumptionByLog.put(log.getId(), new ConsumptionResult(
-                    BigDecimal.valueOf(c).setScale(2, RoundingMode.HALF_UP), true, dist, true));
+                    BigDecimal.valueOf(c).setScale(2, RoundingMode.HALF_UP), plausible, dist, true));
         }
 
         // Return the requested page, enriched with consumption and distance data
