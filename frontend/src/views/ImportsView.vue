@@ -310,6 +310,9 @@ const teslaCars = computed(() =>
             <p class="text-xs">
               Optional: <code class="bg-white px-1 rounded">odometer_km</code>, <code class="bg-white px-1 rounded">soc_after</code>, <code class="bg-white px-1 rounded">cost_eur</code>, <code class="bg-white px-1 rounded">duration_min</code>, <code class="bg-white px-1 rounded">location</code>, <code class="bg-white px-1 rounded">charging_type</code> (AC/DC)
             </p>
+            <p class="text-xs mt-1">
+              Duplikate werden automatisch erkannt und übersprungen — anhand Tachostand (±1h) oder Zeitpunkt (±30 Min).
+            </p>
             <a href="/swagger-ui/index.html" target="_blank" class="inline-block mt-2 text-indigo-700 hover:underline font-medium text-xs">
               Vollständige API Dokumentation →
             </a>
