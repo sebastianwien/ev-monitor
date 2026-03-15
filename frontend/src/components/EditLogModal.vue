@@ -1,6 +1,6 @@
 <template>
   <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg flex flex-col max-h-[90vh]">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-3xl flex flex-col max-h-[90vh]">
       <!-- Header -->
       <div class="flex items-center justify-between p-5 border-b border-gray-100">
         <h2 class="text-lg font-semibold text-gray-900">Ladevorgang bearbeiten</h2>
@@ -10,111 +10,14 @@
       </div>
 
       <div class="overflow-y-auto p-5 space-y-4">
-        <!-- kWh + Kosten -->
-        <div class="grid grid-cols-2 gap-3">
-          <div class="space-y-1">
-            <label class="block text-sm font-medium text-gray-700">
-              <BoltIcon class="w-4 h-4 inline mr-1 text-yellow-500" />Geladen (kWh)
-            </label>
-            <input v-model.number="form.kwhCharged" type="number" step="0.01" min="0.01"
-              class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
-          </div>
-          <div class="space-y-1">
-            <label class="block text-sm font-medium text-gray-700">Kosten (€)</label>
-            <input v-model.number="form.costEur" type="number" step="0.01" min="0"
-              class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
-          </div>
-        </div>
+        <LogFormFields
+          v-model="formData"
+          location-mode="edit"
+          :show-soc-before="true"
+          :field-errors="fieldErrors"
+        />
 
-        <!-- Datum -->
-        <div class="space-y-1">
-          <label class="block text-sm font-medium text-gray-700">Datum & Uhrzeit</label>
-          <input v-model="form.loggedAt" type="datetime-local"
-            class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
-        </div>
-
-        <!-- Tachostand -->
-        <div class="space-y-1">
-          <label class="block text-sm font-medium text-gray-700">
-            <TruckIcon class="w-4 h-4 inline mr-1 text-gray-400" />Tachostand (km)
-          </label>
-          <input v-model.number="form.odometerKm" type="number" step="1" min="0" placeholder="optional"
-            class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
-        </div>
-
-        <!-- SoC vorher + nachher -->
-        <div class="grid grid-cols-2 gap-3">
-          <div class="space-y-1">
-            <label class="block text-sm font-medium text-gray-700">
-              <Battery0Icon class="w-4 h-4 inline mr-1 text-gray-400" />SoC vorher (%)
-            </label>
-            <input v-model.number="form.socBeforeChargePercent" type="number" min="0" max="100" placeholder="optional"
-              class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
-          </div>
-          <div class="space-y-1">
-            <label class="block text-sm font-medium text-gray-700">
-              <Battery0Icon class="w-4 h-4 inline mr-1 text-green-500" />SoC nachher (%)
-            </label>
-            <input v-model.number="form.socAfterChargePercent" type="number" min="0" max="100" placeholder="optional"
-              class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
-          </div>
-        </div>
-
-        <!-- Dauer + Ladeleistung -->
-        <div class="grid grid-cols-2 gap-3">
-          <div class="space-y-1">
-            <label class="block text-sm font-medium text-gray-700">
-              <ClockIcon class="w-4 h-4 inline mr-1 text-gray-400" />Dauer (min)
-            </label>
-            <input v-model.number="form.chargeDurationMinutes" type="number" step="1" min="0" placeholder="optional"
-              class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
-          </div>
-          <div class="space-y-1">
-            <label class="block text-sm font-medium text-gray-700">Max. Ladeleistung (kW)</label>
-            <input v-model.number="form.maxChargingPowerKw" type="number" step="0.1" min="0" placeholder="optional"
-              class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
-          </div>
-        </div>
-
-        <!-- Streckenart -->
-        <div class="space-y-1">
-          <label class="block text-sm font-medium text-gray-700">Streckenart</label>
-          <div class="inline-flex w-full rounded-full border border-gray-200 bg-gray-100 p-0.5">
-            <button type="button" @click="form.routeType = 'CITY'"
-              :class="['flex-1 px-3 py-1.5 rounded-full text-sm font-medium transition', form.routeType === 'CITY' ? 'bg-white text-green-700 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
-              Stadt
-            </button>
-            <button type="button" @click="form.routeType = 'COMBINED'"
-              :class="['flex-1 px-3 py-1.5 rounded-full text-sm font-medium transition', form.routeType === 'COMBINED' ? 'bg-white text-green-700 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
-              Gemischt
-            </button>
-            <button type="button" @click="form.routeType = 'HIGHWAY'"
-              :class="['flex-1 px-3 py-1.5 rounded-full text-sm font-medium transition', form.routeType === 'HIGHWAY' ? 'bg-white text-green-700 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
-              Autobahn
-            </button>
-          </div>
-        </div>
-
-        <!-- Reifenart -->
-        <div class="space-y-1">
-          <label class="block text-sm font-medium text-gray-700">Reifen</label>
-          <div class="inline-flex w-full rounded-full border border-gray-200 bg-gray-100 p-0.5">
-            <button type="button" @click="form.tireType = 'SUMMER'"
-              :class="['flex-1 px-3 py-1.5 rounded-full text-sm font-medium transition', form.tireType === 'SUMMER' ? 'bg-white text-green-700 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
-              Sommer
-            </button>
-            <button type="button" @click="form.tireType = 'ALL_YEAR'"
-              :class="['flex-1 px-3 py-1.5 rounded-full text-sm font-medium transition', form.tireType === 'ALL_YEAR' ? 'bg-white text-green-700 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
-              Ganzjahr
-            </button>
-            <button type="button" @click="form.tireType = 'WINTER'"
-              :class="['flex-1 px-3 py-1.5 rounded-full text-sm font-medium transition', form.tireType === 'WINTER' ? 'bg-white text-green-700 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
-              Winter
-            </button>
-          </div>
-        </div>
-
-        <!-- Standort -->
+        <!-- Standort aktualisieren -->
         <div class="space-y-1">
           <label class="block text-sm font-medium text-gray-700">Standort aktualisieren</label>
           <div class="relative">
@@ -123,7 +26,7 @@
               type="text"
               placeholder="Ort suchen (ersetzt bestehenden Standort)…"
               class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-              @focus="showSuggestions = true"
+              @focus="showSuggestions = suggestions.length > 0"
             />
             <ul v-if="showSuggestions && suggestions.length > 0"
               class="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
@@ -134,12 +37,8 @@
               </li>
             </ul>
           </div>
-          <p v-if="newLocationName" class="text-xs text-green-600 mt-1">
-            Neuer Standort: {{ newLocationName }}
-          </p>
-          <p v-else-if="log.geohash" class="text-xs text-gray-400 mt-1">
-            Aktueller Standort gespeichert (Geohash: {{ log.geohash }})
-          </p>
+          <p v-if="newLocationName" class="text-xs text-green-600 mt-1">Neuer Standort: {{ newLocationName }}</p>
+          <p v-else-if="log.geohash" class="text-xs text-gray-400 mt-1">Aktueller Standort gespeichert (Geohash: {{ log.geohash }})</p>
         </div>
 
         <p v-if="errorMsg" class="text-sm text-red-600 bg-red-50 rounded-xl p-3">{{ errorMsg }}</p>
@@ -147,17 +46,13 @@
 
       <!-- Footer -->
       <div class="flex justify-end gap-3 p-5 border-t border-gray-100 shrink-0">
-        <button
-          @click="$emit('close')"
-          v-haptic
-          class="btn-3d px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
-        >Abbrechen</button>
-        <button
-          @click="save"
-          v-haptic
-          :disabled="loading || !form.kwhCharged"
-          class="btn-3d px-5 py-2 text-sm font-medium text-white bg-green-600 rounded-xl hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-        >
+        <button @click="$emit('close')" v-haptic
+          class="btn-3d px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
+          Abbrechen
+        </button>
+        <button @click="save" v-haptic
+          :disabled="loading || !isFormValid"
+          class="btn-3d px-5 py-2 text-sm font-medium text-white bg-green-600 rounded-xl hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-2">
           <span v-if="loading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
           Speichern
         </button>
@@ -167,9 +62,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import { XMarkIcon, BoltIcon, TruckIcon, Battery0Icon, ClockIcon } from '@heroicons/vue/24/outline'
+import { ref, watch, computed } from 'vue'
+import { XMarkIcon } from '@heroicons/vue/24/outline'
 import api from '../api/axios'
+import LogFormFields, { type LogFormData } from './LogFormFields.vue'
 
 export interface EvLogResponse {
   id: string
@@ -185,41 +81,52 @@ export interface EvLogResponse {
   loggedAt: string
   routeType: 'CITY' | 'COMBINED' | 'HIGHWAY' | null
   tireType: 'SUMMER' | 'ALL_YEAR' | 'WINTER' | null
+  chargingType: 'AC' | 'DC' | 'UNKNOWN' | null
 }
 
 const props = defineProps<{ log: EvLogResponse }>()
 const emit = defineEmits<{ close: []; saved: [log: EvLogResponse] }>()
 
-// Format loggedAt for datetime-local input (YYYY-MM-DDTHH:mm)
-const toDatetimeLocal = (iso: string) => {
-  const d = new Date(iso)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
+// Backend returns LocalDateTime without timezone (e.g. "2026-03-15T14:30:00")
+// Slice directly to avoid timezone conversion via new Date()
+const toDatetimeLocal = (iso: string) => iso.slice(0, 16)
 
-const form = ref({
+const formData = ref<LogFormData>({
   kwhCharged: props.log.kwhCharged,
   costEur: props.log.costEur ?? null,
-  chargeDurationMinutes: props.log.chargeDurationMinutes ?? null,
   odometerKm: props.log.odometerKm ?? null,
-  maxChargingPowerKw: props.log.maxChargingPowerKw ?? null,
   socAfterChargePercent: props.log.socAfterChargePercent ?? null,
   socBeforeChargePercent: props.log.socBeforeChargePercent ?? null,
+  chargeDurationMinutes: props.log.chargeDurationMinutes ?? null,
+  maxChargingPowerKw: props.log.maxChargingPowerKw ?? null,
   loggedAt: toDatetimeLocal(props.log.loggedAt),
-  routeType: props.log.routeType ?? null as 'CITY' | 'COMBINED' | 'HIGHWAY' | null,
-  tireType: props.log.tireType ?? null as 'SUMMER' | 'ALL_YEAR' | 'WINTER' | null,
+  chargingType: (props.log.chargingType === 'DC' ? 'DC' : 'AC'),
+  routeType: props.log.routeType ?? 'COMBINED',
+  tireType: props.log.tireType ?? 'SUMMER',
+  latitude: null,
+  longitude: null,
 })
 
 const loading = ref(false)
 const errorMsg = ref('')
+const fieldErrors = ref<Set<string>>(new Set())
+
+const isFormValid = computed(() => {
+  const f = formData.value
+  const hasValue = (v: any) => v !== null && v !== undefined && v !== ''
+  return (
+    hasValue(f.kwhCharged) && Number(f.kwhCharged) > 0 &&
+    hasValue(f.costEur) &&
+    hasValue(f.odometerKm) && Number(f.odometerKm) > 0 &&
+    hasValue(f.socAfterChargePercent) && Number(f.socAfterChargePercent) >= 0 && Number(f.socAfterChargePercent) <= 100
+  )
+})
 
 // Location search
 const locationSearchQuery = ref('')
 const suggestions = ref<any[]>([])
 const showSuggestions = ref(false)
 const newLocationName = ref('')
-const newLatitude = ref<number | null>(null)
-const newLongitude = ref<number | null>(null)
 
 let searchTimer: any = null
 watch(locationSearchQuery, (q) => {
@@ -229,38 +136,62 @@ watch(locationSearchQuery, (q) => {
     try {
       const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5`)
       suggestions.value = await res.json()
+      showSuggestions.value = suggestions.value.length > 0
     } catch { /* ignore */ }
   }, 300)
 })
 
 function selectLocation(s: any) {
-  newLatitude.value = parseFloat(s.lat)
-  newLongitude.value = parseFloat(s.lon)
+  formData.value.latitude = parseFloat(s.lat)
+  formData.value.longitude = parseFloat(s.lon)
   newLocationName.value = s.display_name
   locationSearchQuery.value = s.display_name
   showSuggestions.value = false
 }
 
 async function save() {
-  loading.value = true
   errorMsg.value = ''
+  const f = formData.value
+
+  // Normalize empty strings (from cleared number inputs) to null
+  const n = (v: any): number | null => (v === '' || v === null || v === undefined) ? null : Number(v)
+
+  const kwh = n(f.kwhCharged)
+  const cost = n(f.costEur)
+  const odometer = n(f.odometerKm)
+  const soc = n(f.socAfterChargePercent)
+
+  // Frontend validation (same rules as LogForm)
+  fieldErrors.value = new Set()
+  const errors: string[] = []
+  if (!kwh || kwh <= 0) { fieldErrors.value.add('kwh'); errors.push('Energie (kWh)') }
+  if (cost === null) { fieldErrors.value.add('cost'); errors.push('Kosten (€)') }
+  if (!odometer || odometer <= 0) { fieldErrors.value.add('odometer'); errors.push('Tachostand') }
+  if (soc === null || soc < 0 || soc > 100) { fieldErrors.value.add('soc'); errors.push('Akkustand nach Laden (0–100%)') }
+  if (errors.length > 0) {
+    errorMsg.value = `Bitte fülle alle Pflichtfelder korrekt aus: ${errors.join(', ')}`
+    return
+  }
+
+  loading.value = true
   try {
     const payload: Record<string, any> = {
-      kwhCharged: form.value.kwhCharged,
-      costEur: form.value.costEur,
-      chargeDurationMinutes: form.value.chargeDurationMinutes || null,
-      odometerKm: form.value.odometerKm || null,
-      maxChargingPowerKw: form.value.maxChargingPowerKw || null,
-      socAfterChargePercent: form.value.socAfterChargePercent || null,
-      socBeforeChargePercent: form.value.socBeforeChargePercent || null,
-      loggedAt: form.value.loggedAt + ':00',
+      kwhCharged: Math.round((kwh ?? 0) * 100) / 100,
+      costEur: Math.round((cost ?? 0) * 100) / 100,
+      chargeDurationMinutes: n(f.chargeDurationMinutes),
+      odometerKm: odometer,
+      maxChargingPowerKw: n(f.maxChargingPowerKw) !== null ? Math.round(n(f.maxChargingPowerKw)! * 100) / 100 : null,
+      socAfterChargePercent: soc,
+      socBeforeChargePercent: n(f.socBeforeChargePercent),
+      loggedAt: f.loggedAt + ':00',
+      chargingType: f.chargingType,
+      routeType: f.routeType,
+      tireType: f.tireType,
     }
-    if (newLatitude.value !== null && newLongitude.value !== null) {
-      payload.latitude = newLatitude.value
-      payload.longitude = newLongitude.value
+    if (f.latitude !== null && f.longitude !== null) {
+      payload.latitude = f.latitude
+      payload.longitude = f.longitude
     }
-    if (form.value.routeType) payload.routeType = form.value.routeType
-    if (form.value.tireType) payload.tireType = form.value.tireType
 
     const res = await api.put(`/logs/${props.log.id}`, payload)
     emit('saved', res.data)
@@ -272,3 +203,15 @@ async function save() {
   }
 }
 </script>
+
+<style scoped>
+.btn-3d {
+  box-shadow: 0 4px 0 0 rgba(0,0,0,0.2);
+  transform: translateY(0);
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+.btn-3d:active {
+  box-shadow: 0 1px 0 0 rgba(0,0,0,0.2);
+  transform: translateY(3px);
+}
+</style>
