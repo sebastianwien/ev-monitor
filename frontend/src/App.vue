@@ -233,12 +233,6 @@ const openKofi = () => {
               <UserIcon class="h-5 w-5" />
             </router-link>
             <button
-              @click="handleLogout(); haptic()"
-              class="nav-3d flex items-center justify-center h-9 w-9 bg-indigo-700 hover:bg-indigo-800 rounded-md transition"
-              title="Abmelden">
-              <ArrowRightOnRectangleIcon class="h-5 w-5" />
-            </button>
-            <button
               data-tally-open="vGB8XA" data-tally-emoji-text="👋" data-tally-emoji-animation="wave"
               class="p-2 text-indigo-300 hover:text-white transition"
               title="Feedback geben">
@@ -246,9 +240,10 @@ const openKofi = () => {
             </button>
             <button
               @click="openKofi()"
-              class="p-2 text-red-400 hover:text-red-300 transition"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 text-red-400 hover:text-red-300 transition text-sm font-medium"
               title="EV Monitor unterstützen">
-              <HeartIcon class="h-5 w-5" />
+              <HeartIcon class="h-4 w-4" />
+              Unterstützen
             </button>
           </div>
 
@@ -303,9 +298,6 @@ const openKofi = () => {
               <UserIcon class="h-4 w-4" />
               <span>{{ authStore.user.username || authStore.user.sub }}</span>
             </router-link>
-            <button @click="handleLogout(); haptic()" class="nav-3d px-4 py-2 bg-indigo-700 hover:bg-indigo-800 rounded-lg text-sm font-medium transition">
-              Abmelden
-            </button>
             <button
               data-tally-open="vGB8XA" data-tally-emoji-text="👋" data-tally-emoji-animation="wave"
               class="text-indigo-300 hover:text-white transition"
@@ -315,9 +307,10 @@ const openKofi = () => {
             </button>
             <button
               @click="openKofi()"
-              class="text-red-400 hover:text-red-300 transition"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 text-red-400 hover:text-red-300 transition text-sm font-medium"
               title="EV Monitor unterstützen">
-              <HeartIcon class="h-5 w-5" />
+              <HeartIcon class="h-4 w-4" />
+              Unterstützen
             </button>
           </div>
 
@@ -348,12 +341,6 @@ const openKofi = () => {
               class="text-indigo-300 hover:text-white transition"
               title="Feedback geben">
               <ChatBubbleLeftEllipsisIcon class="h-5 w-5" />
-            </button>
-            <button
-              @click="openKofi()"
-              class="text-red-400 hover:text-red-300 transition"
-              title="EV Monitor unterstützen">
-              <HeartIcon class="h-5 w-5" />
             </button>
             <button
               @click="mobileMenuOpen = !mobileMenuOpen"
@@ -398,7 +385,7 @@ const openKofi = () => {
             <router-link
               to="/dashboard"
               @click="closeMobileMenu"
-              class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-600 transition"
+              class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-indigo-100 hover:bg-indigo-600 transition"
               :class="{ 'bg-indigo-800': $route.path === '/dashboard' }">
               <HomeIcon class="h-5 w-5" />
               <span>Dashboard</span>
@@ -406,7 +393,7 @@ const openKofi = () => {
             <router-link
               to="/cars"
               @click="closeMobileMenu"
-              class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-600 transition"
+              class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-indigo-100 hover:bg-indigo-600 transition"
               :class="{ 'bg-indigo-800': $route.path === '/cars' }">
               <TruckIcon class="h-5 w-5" />
               <span>Fahrzeuge</span>
@@ -414,7 +401,7 @@ const openKofi = () => {
             <router-link
               to="/imports"
               @click="closeMobileMenu"
-              class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-600 transition"
+              class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-indigo-100 hover:bg-indigo-600 transition"
               :class="{ 'bg-indigo-800': $route.path === '/imports' }">
               <ArrowDownTrayIcon class="h-5 w-5" />
               <span>Import</span>
@@ -422,7 +409,7 @@ const openKofi = () => {
             <router-link
               to="/modelle"
               @click="closeMobileMenu"
-              class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-600 transition"
+              class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-indigo-100 hover:bg-indigo-600 transition"
               :class="{ 'bg-indigo-800': $route.path.startsWith('/modelle') }">
               <ArrowsRightLeftIcon class="h-5 w-5" />
               <span>Modelle vergleichen</span>
@@ -431,11 +418,17 @@ const openKofi = () => {
               v-if="authStore.user"
               to="/settings"
               @click="closeMobileMenu"
-              class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-600 transition"
+              class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-indigo-100 hover:bg-indigo-600 transition"
               :class="{ 'bg-indigo-800': $route.path === '/settings' }">
               <UserIcon class="h-5 w-5" />
               <span>{{ authStore.user.username || authStore.user.sub }}</span>
             </router-link>
+            <button
+              @click="openKofi(); closeMobileMenu()"
+              class="w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-600 transition text-red-300">
+              <HeartIcon class="h-5 w-5" />
+              <span>Unterstützen</span>
+            </button>
             <button
               @click="handleLogout"
               class="w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-600 transition text-red-300">

@@ -26,7 +26,7 @@ public class PlausibilityProperties {
     private int minTripsForStatistical = 5;
 
     /** Trips shorter than this distance (km) are excluded from plausibility context. */
-    private int minTripDistanceKm = 20;
+    private int minTripDistanceKm = 1;
 
     public double getAbsoluteMinKwhPer100km() { return absoluteMinKwhPer100km; }
     public void setAbsoluteMinKwhPer100km(double v) { this.absoluteMinKwhPer100km = v; }
