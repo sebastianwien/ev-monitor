@@ -246,6 +246,12 @@ const openKofi = () => {
               <HeartIcon class="h-4 w-4" />
               Unterstützen
             </button>
+            <button
+              @click="handleLogout"
+              class="nav-3d p-2 rounded-md bg-indigo-500 bg-opacity-30 border border-indigo-500 hover:bg-opacity-50 transition"
+              title="Abmelden">
+              <ArrowRightOnRectangleIcon class="h-5 w-5" />
+            </button>
           </div>
 
           <!-- Full Right Nav (1280px+) -->
@@ -312,6 +318,12 @@ const openKofi = () => {
               title="EV Monitor unterstützen">
               <HeartIcon class="h-4 w-4" />
               Unterstützen
+            </button>
+            <button
+              @click="handleLogout"
+              class="nav-3d p-2 rounded-md bg-indigo-500 bg-opacity-30 border border-indigo-500 hover:bg-opacity-50 transition"
+              title="Abmelden">
+              <ArrowRightOnRectangleIcon class="h-5 w-5" />
             </button>
           </div>
 
