@@ -74,6 +74,9 @@ public class EvLogEntity {
     @Column(name = "superseded_by")
     private UUID supersededBy;
 
+    @Column(name = "session_group_id")
+    private UUID sessionGroupId;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -285,5 +288,13 @@ public class EvLogEntity {
 
     public void setSupersededBy(UUID supersededBy) {
         this.supersededBy = supersededBy;
+    }
+
+    public UUID getSessionGroupId() {
+        return sessionGroupId;
+    }
+
+    public void setSessionGroupId(UUID sessionGroupId) {
+        this.sessionGroupId = sessionGroupId;
     }
 }

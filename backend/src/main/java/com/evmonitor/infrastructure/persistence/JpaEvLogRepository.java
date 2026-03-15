@@ -92,6 +92,20 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     void clearSupersededByReferences(@Param("supersededById") UUID supersededById);
 
     /**
+     * Verknüpft einen Log mit einer Session-Gruppe und setzt include_in_statistics=false.
+     * Sub-Sessions dürfen nicht einzeln in Statistiken einfließen — die Gruppe aggregiert.
+     */
+    @Modifying
+    @Query("UPDATE EvLogEntity e SET e.sessionGroupId = :groupId, e.includeInStatistics = false WHERE e.id = :id")
+    void setSessionGroupId(@Param("id") UUID id, @Param("groupId") UUID groupId);
+
+    @Query("SELECT e FROM EvLogEntity e WHERE e.sessionGroupId = :groupId ORDER BY e.loggedAt ASC")
+    List<EvLogEntity> findAllBySessionGroupId(@Param("groupId") UUID groupId);
+
+    @Query("SELECT e FROM EvLogEntity e WHERE e.carId = :carId AND e.supersededBy IS NULL AND e.sessionGroupId IS NULL")
+    List<EvLogEntity> findAllByCarIdExcludingSubSessions(@Param("carId") UUID carId);
+
+    /**
      * Aggregated basic stats for a car model.
      * Returns: [logCount, uniqueContributors, avgCostPerKwh, avgKwhPerSession]
      * Demo Mode: If isSeedUser=true, includes ALL seed data (from all seed users), not just current user.

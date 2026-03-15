@@ -168,6 +168,26 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
         jpaRepository.clearSupersededByReferences(supersededById);
     }
 
+    @Override
+    @Transactional
+    public void setSessionGroupId(UUID logId, UUID groupId) {
+        jpaRepository.setSessionGroupId(logId, groupId);
+    }
+
+    @Override
+    public List<EvLog> findAllBySessionGroupId(UUID groupId) {
+        return jpaRepository.findAllBySessionGroupId(groupId).stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<EvLog> findAllByCarIdExcludingSubSessions(UUID carId) {
+        return jpaRepository.findAllByCarIdExcludingSubSessions(carId).stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
+    }
+
     private EvLogEntity toEntity(EvLog domain) {
         EvLogEntity entity = new EvLogEntity(
                 domain.getId(),
@@ -193,6 +213,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
         entity.setRouteType(domain.getRouteType() != null ? domain.getRouteType().name() : null);
         entity.setTireType(domain.getTireType() != null ? domain.getTireType().name() : null);
         entity.setSupersededBy(domain.getSupersededBy());
+        entity.setSessionGroupId(domain.getSessionGroupId());
         return entity;
     }
 
@@ -220,6 +241,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 entity.getUpdatedAt(),
                 entity.getRouteType() != null ? RouteType.valueOf(entity.getRouteType()) : null,
                 entity.getTireType() != null ? TireType.valueOf(entity.getTireType()) : null,
-                entity.getSupersededBy());
+                entity.getSupersededBy(),
+                entity.getSessionGroupId());
     }
 }

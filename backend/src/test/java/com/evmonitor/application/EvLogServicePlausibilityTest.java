@@ -51,7 +51,8 @@ class EvLogServicePlausibilityTest {
         evLogService = new EvLogService(
                 evLogRepository, carRepository, userRepository, coinLogService,
                 temperatureEnrichmentService, mock(VehicleSpecificationRepository.class),
-                new PlausibilityProperties()
+                new PlausibilityProperties(),
+                mock(com.evmonitor.application.SessionGroupService.class)
         );
     }
 

@@ -3,6 +3,8 @@ package com.evmonitor.application;
 import ch.hsr.geohash.GeoHash;
 import com.evmonitor.domain.*;
 import com.evmonitor.infrastructure.weather.TemperatureEnrichmentService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +28,7 @@ import java.util.stream.Collectors;
 @Service
 public class EvLogService {
 
+    private static final Logger logger = LoggerFactory.getLogger(EvLogService.class);
     private static final BigDecimal HUNDRED = new BigDecimal("100");
     private static final int SUPERSEDE_WINDOW_MINUTES = 15;
     private static final BigDecimal SUPERSEDE_KWH_TOLERANCE = new BigDecimal("0.15");
@@ -37,10 +40,12 @@ public class EvLogService {
     private final TemperatureEnrichmentService temperatureEnrichmentService;
     private final VehicleSpecificationRepository vehicleSpecificationRepository;
     private final PlausibilityProperties plausibility;
+    private final SessionGroupService sessionGroupService;
 
     public EvLogService(EvLogRepository evLogRepository, CarRepository carRepository, UserRepository userRepository,
             CoinLogService coinLogService, TemperatureEnrichmentService temperatureEnrichmentService,
-            VehicleSpecificationRepository vehicleSpecificationRepository, PlausibilityProperties plausibility) {
+            VehicleSpecificationRepository vehicleSpecificationRepository, PlausibilityProperties plausibility,
+            SessionGroupService sessionGroupService) {
         this.evLogRepository = evLogRepository;
         this.carRepository = carRepository;
         this.userRepository = userRepository;
@@ -48,6 +53,7 @@ public class EvLogService {
         this.temperatureEnrichmentService = temperatureEnrichmentService;
         this.vehicleSpecificationRepository = vehicleSpecificationRepository;
         this.plausibility = plausibility;
+        this.sessionGroupService = sessionGroupService;
     }
 
     @Transactional
@@ -171,6 +177,17 @@ public class EvLogService {
             coinLogService.awardCoinsForEvent(request.userId(), CoinLogService.CoinEvent.TESLA_DAILY_LOG, savedLog.getId());
         }
 
+        // Überschussladen-Grouping: WALLBOX_GOE Sessions mit kurzem Abstand zusammenfassen.
+        // Fehler beim Grouping sollen den Log-Save NICHT rückgängig machen — daher try-catch.
+        if (!isSuperseded) {
+            try {
+                sessionGroupService.processWallboxLog(savedLog);
+            } catch (Exception e) {
+                logger.error("Session grouping failed for log {}, log was saved but not grouped: {}",
+                        savedLog.getId(), e.getMessage(), e);
+            }
+        }
+
         return EvLogResponse.fromDomain(savedLog);
     }
 
@@ -192,6 +209,18 @@ public class EvLogService {
                 });
     }
 
+    /**
+     * Prüft ob ein User das angegebene Fahrzeug besitzt.
+     * Wirft IllegalArgumentException bei Ownership-Verletzung (404-equivalent).
+     */
+    public void verifyCarOwnership(UUID carId, UUID userId) {
+        Car car = carRepository.findById(carId)
+                .orElseThrow(() -> new IllegalArgumentException("Car not found"));
+        if (!car.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("User does not own the specified car");
+        }
+    }
+
     @Transactional
     public void updateGeohash(UUID carId, UUID userId, LocalDateTime loggedAt, String geohash) {
         Car car = carRepository.findById(carId)
@@ -202,8 +231,9 @@ public class EvLogService {
         evLogRepository.updateGeohash(carId, loggedAt, geohash);
     }
 
-    public List<EvLogResponse> getAllLogsForUser(UUID userId) {
+    public List<EvLogResponse> getStandaloneLogsForUser(UUID userId) {
         return evLogRepository.findAllByUserId(userId).stream()
+                .filter(log -> log.getSessionGroupId() == null) // Sub-Sessions ausblenden
                 .map(EvLogResponse::fromDomain)
                 .toList();
     }
@@ -265,7 +295,8 @@ public class EvLogService {
                 LocalDateTime.now(),
                 request.routeType() != null ? request.routeType() : existing.getRouteType(),
                 request.tireType() != null ? request.tireType() : existing.getTireType(),
-                existing.getSupersededBy()
+                existing.getSupersededBy(),
+                existing.getSessionGroupId()
         );
 
         EvLog savedLog = evLogRepository.save(updated);
@@ -312,6 +343,7 @@ public class EvLogService {
         return getLogsForCar(carId, userId, limit, 0);
     }
 
+    @Transactional(readOnly = true)
     public List<EvLogResponse> getLogsForCar(UUID carId, UUID userId, Integer limit, int page) {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new IllegalArgumentException("Car not found"));
@@ -346,10 +378,15 @@ public class EvLogService {
                     BigDecimal.valueOf(c).setScale(2, RoundingMode.HALF_UP), plausible, dist, true));
         }
 
-        // Return the requested page, enriched with consumption and distance data
+        // Return the requested page, enriched with consumption and distance data.
+        // Sub-Sessions (sessionGroupId != null) are excluded — they are represented by their group entry.
         List<EvLog> page_logs = (limit != null && limit > 0)
-                ? evLogRepository.findLatestByCarId(carId, limit, page)
-                : allLogsSorted.reversed();
+                ? evLogRepository.findLatestByCarId(carId, limit, page).stream()
+                    .filter(log -> log.getSessionGroupId() == null)
+                    .toList()
+                : allLogsSorted.reversed().stream()
+                    .filter(log -> log.getSessionGroupId() == null)
+                    .toList();
 
         return page_logs.stream()
                 .map(log -> EvLogResponse.fromDomain(log, consumptionByLog.get(log.getId()), distanceByLogId.get(log.getId())))

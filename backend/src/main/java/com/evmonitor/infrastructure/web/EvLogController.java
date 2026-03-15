@@ -6,6 +6,8 @@ import com.evmonitor.application.EvLogResponse;
 import com.evmonitor.application.EvLogStatisticsResponse;
 import com.evmonitor.application.EvLogUpdateRequest;
 import com.evmonitor.application.EvLogService;
+import com.evmonitor.application.SessionGroupResponse;
+import com.evmonitor.application.SessionGroupService;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -22,9 +24,11 @@ import java.util.UUID;
 public class EvLogController {
 
     private final EvLogService evLogService;
+    private final SessionGroupService sessionGroupService;
 
-    public EvLogController(EvLogService evLogService) {
+    public EvLogController(EvLogService evLogService, SessionGroupService sessionGroupService) {
         this.evLogService = evLogService;
+        this.sessionGroupService = sessionGroupService;
     }
 
     @PostMapping
@@ -49,7 +53,7 @@ public class EvLogController {
         if (carId != null) {
             logs = evLogService.getLogsForCar(carId, principal.getUser().getId(), effectiveLimit, page);
         } else {
-            logs = evLogService.getAllLogsForUser(principal.getUser().getId());
+            logs = evLogService.getStandaloneLogsForUser(principal.getUser().getId());
         }
 
         return ResponseEntity.ok(logs);
@@ -97,6 +101,45 @@ public class EvLogController {
             }
         }
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Gibt alle Gruppen (Überschussladen-Zusammenfassungen) für ein Fahrzeug zurück.
+     * Jede Gruppe repräsentiert mehrere Micro-Sessions als einen logischen Ladevorgang.
+     */
+    @GetMapping("/groups")
+    public ResponseEntity<List<SessionGroupResponse>> getGroups(
+            @RequestParam UUID carId,
+            Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        try {
+            evLogService.verifyCarOwnership(carId, principal.getUser().getId());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+        List<SessionGroupResponse> groups = sessionGroupService.findAllByCarId(carId);
+        return ResponseEntity.ok(groups);
+    }
+
+    /**
+     * Gibt alle Sub-Sessions einer Gruppe zurück (für die Aufklapp-Ansicht im Dashboard).
+     */
+    @GetMapping("/group/{groupId}")
+    public ResponseEntity<List<EvLogResponse>> getGroupSubSessions(
+            @PathVariable UUID groupId,
+            Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        SessionGroupResponse group = sessionGroupService.findById(groupId).orElse(null);
+        if (group == null) {
+            return ResponseEntity.notFound().build();
+        }
+        try {
+            evLogService.verifyCarOwnership(group.carId(), principal.getUser().getId());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build(); // Car not found or ownership mismatch → 404
+        }
+        List<EvLogResponse> subSessions = sessionGroupService.getSubSessions(groupId);
+        return ResponseEntity.ok(subSessions);
     }
 
     @GetMapping("/statistics")

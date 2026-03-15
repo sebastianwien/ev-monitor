@@ -27,6 +27,7 @@ public class EvLog {
     private final RouteType routeType;       // Optional: CITY, COMBINED, or HIGHWAY
     private final TireType tireType;         // Optional: SUMMER, ALL_YEAR, or WINTER
     private final UUID supersededBy;         // Optional: ID of the USER_LOGGED log that supersedes this import
+    private final UUID sessionGroupId;       // Optional: ID of the charging_session_group (sub-sessions only)
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
 
@@ -37,7 +38,7 @@ public class EvLog {
             boolean includeInStatistics, Integer odometerSuggestionMinKm, Integer odometerSuggestionMaxKm,
             Double temperatureCelsius, ChargingType chargingType, String rawImportData,
             LocalDateTime createdAt, LocalDateTime updatedAt,
-            RouteType routeType, TireType tireType, UUID supersededBy) {
+            RouteType routeType, TireType tireType, UUID supersededBy, UUID sessionGroupId) {
         this.id = id;
         this.carId = carId;
         this.kwhCharged = kwhCharged;
@@ -59,6 +60,7 @@ public class EvLog {
         this.routeType = routeType;
         this.tireType = tireType;
         this.supersededBy = supersededBy;
+        this.sessionGroupId = sessionGroupId;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -70,7 +72,7 @@ public class EvLog {
         LocalDateTime now = LocalDateTime.now();
         return new EvLog(UUID.randomUUID(), carId, kwhCharged, costEur,
                 chargeDurationMinutes, geohash, odometerKm, maxChargingPowerKw, socAfterChargePercent, null, loggedAt,
-                DataSource.USER_LOGGED, true, null, null, null, chargingType, null, now, now, routeType, tireType, null);
+                DataSource.USER_LOGGED, true, null, null, null, chargingType, null, now, now, routeType, tireType, null, null);
     }
 
     public static EvLog createNewWithSource(UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
@@ -81,7 +83,7 @@ public class EvLog {
         boolean includeInStats = dataSource.includeInStatistics();
         return new EvLog(UUID.randomUUID(), carId, kwhCharged, costEur,
                 chargeDurationMinutes, geohash, odometerKm, maxChargingPowerKw, socAfterChargePercent, null, loggedAt,
-                dataSource, includeInStats, null, null, null, chargingType, rawImportData, now, now, null, null, null);
+                dataSource, includeInStats, null, null, null, chargingType, rawImportData, now, now, null, null, null, null);
     }
 
     public static EvLog createNewWithSourceAndSocBefore(UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
@@ -93,7 +95,7 @@ public class EvLog {
         return new EvLog(UUID.randomUUID(), carId, kwhCharged, costEur,
                 chargeDurationMinutes, geohash, odometerKm, maxChargingPowerKw, socAfterChargePercent,
                 socBeforeChargePercent, loggedAt, dataSource, dataSource.includeInStatistics(),
-                null, null, temperatureCelsius, chargingType, rawImportData, now, now, null, null, null);
+                null, null, temperatureCelsius, chargingType, rawImportData, now, now, null, null, null, null);
     }
 
     public static EvLog createFromOcpp(UUID carId, BigDecimal kwhCharged,
@@ -119,7 +121,7 @@ public class EvLog {
         return new EvLog(UUID.randomUUID(), carId, kwhCharged, costEur,
                 chargeDurationMinutes, geohash, null, null, null, null, loggedAt,
                 dataSource, dataSource.includeInStatistics(),
-                odometerSuggestionMinKm, odometerSuggestionMaxKm, null, chargingType, null, now, now, null, null, null);
+                odometerSuggestionMinKm, odometerSuggestionMaxKm, null, chargingType, null, now, now, null, null, null, null);
     }
 
     public UUID getId() {
@@ -212,6 +214,10 @@ public class EvLog {
 
     public UUID getSupersededBy() {
         return supersededBy;
+    }
+
+    public UUID getSessionGroupId() {
+        return sessionGroupId;
     }
 
     /**

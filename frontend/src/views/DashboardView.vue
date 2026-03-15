@@ -26,6 +26,8 @@ import {
   SunIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
   ListBulletIcon,
   TrashIcon,
   ExclamationTriangleIcon,
@@ -517,6 +519,49 @@ const hasMoreLogs = ref(false)
 const logsSection = ref<HTMLElement | null>(null)
 const editingLog = ref<any | null>(null)
 
+// Session Groups (Überschussladen)
+const sessionGroups = ref<any[]>([])
+const expandedGroups = ref<Set<string>>(new Set())
+const subSessionsCache = ref<Record<string, any[]>>({})
+
+const fetchGroups = async () => {
+  if (!selectedCarId.value) return
+  try {
+    const res = await api.get(`/logs/groups?carId=${selectedCarId.value}`)
+    sessionGroups.value = res.data
+  } catch {
+    // Kein Session-Grouping-Feature aktiv oder Netzwerkfehler — ignorieren
+    sessionGroups.value = []
+  }
+}
+
+const toggleGroupExpand = async (groupId: string) => {
+  if (expandedGroups.value.has(groupId)) {
+    expandedGroups.value.delete(groupId)
+    return
+  }
+  expandedGroups.value.add(groupId)
+  if (!subSessionsCache.value[groupId]) {
+    try {
+      const res = await api.get(`/logs/group/${groupId}`)
+      subSessionsCache.value[groupId] = res.data
+    } catch {
+      subSessionsCache.value[groupId] = []
+    }
+  }
+}
+
+// Merged + sorted feed: normale Logs und Gruppen nach Datum zusammenführen
+const mergedLogFeed = computed(() => {
+  const groupsForPage = sessionGroups.value.map((g: any) => ({ ...g, _isGroup: true }))
+  const logsWithFlag = logs.value.map((l: any) => ({ ...l, _isGroup: false }))
+  return [...logsWithFlag, ...groupsForPage].sort((a, b) => {
+    const dateA = new Date(a._isGroup ? a.sessionStart : a.loggedAt).getTime()
+    const dateB = new Date(b._isGroup ? b.sessionStart : b.loggedAt).getTime()
+    return dateB - dateA  // Neueste zuerst
+  })
+})
+
 const fetchLogs = async (page = 0) => {
   if (!selectedCarId.value) return
   logsLoading.value = true
@@ -525,6 +570,7 @@ const fetchLogs = async (page = 0) => {
     logs.value = res.data
     logsPage.value = page
     hasMoreLogs.value = res.data.length === PAGE_SIZE
+    fetchGroups()
   } catch {
     // Network error — keep existing log list, don't crash
   } finally {
@@ -540,6 +586,9 @@ const scrollToLogs = async () => {
 
 watch(selectedCarId, () => {
   logs.value = []
+  sessionGroups.value = []
+  expandedGroups.value = new Set()
+  subSessionsCache.value = {}
   logsPage.value = 0
   hasMoreLogs.value = false
 })
@@ -1005,94 +1054,154 @@ const deleteLog = async (id: string) => {
               <p class="py-8 text-center text-gray-400 text-sm">Keine Ladevorgänge vorhanden.</p>
             </template>
             <template v-else>
-              <div v-for="log in logs" :key="log.id"
+              <!-- Session Group (Überschussladen) -->
+              <div v-for="entry in mergedLogFeed" :key="entry.id">
+              <div v-if="entry._isGroup"
+                class="p-3 border border-blue-200 bg-blue-50 rounded-lg space-y-2">
+                <!-- Group Header -->
+                <div class="flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <SunIcon class="w-4 h-4 text-blue-600 flex-shrink-0" />
+                    <span class="font-semibold text-blue-700 whitespace-nowrap">{{ entry.totalKwhCharged }} kWh</span>
+                    <span class="text-xs text-gray-400 whitespace-nowrap">
+                      {{ new Date(entry.sessionStart).toLocaleDateString('de-DE') }}
+                      {{ new Date(entry.sessionStart).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) }}
+                      –
+                      {{ new Date(entry.sessionEnd).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) }}
+                    </span>
+                  </div>
+                  <button @click="toggleGroupExpand(entry.id)"
+                    class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-medium hover:bg-blue-200 transition flex-shrink-0">
+                    <HomeIcon class="w-3 h-3" />
+                    {{ entry.sessionCount }} Ladevorgänge
+                    <ChevronDownIcon v-if="!expandedGroups.has(entry.id)" class="w-3 h-3" />
+                    <ChevronUpIcon v-else class="w-3 h-3" />
+                  </button>
+                </div>
+                <!-- Group Badges -->
+                <div class="flex flex-wrap gap-1.5">
+                  <span v-if="entry.costEur != null && entry.totalKwhCharged"
+                    class="inline-flex items-center px-2 py-0.5 border border-blue-200 bg-white text-xs rounded-full text-blue-700 whitespace-nowrap">
+                    €{{ (entry.costEur / entry.totalKwhCharged).toFixed(2) }}/kWh
+                  </span>
+                  <span v-if="entry.costEur != null"
+                    class="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-blue-200 rounded-full text-xs text-blue-700 whitespace-nowrap">
+                    €{{ entry.costEur }}
+                  </span>
+                  <span v-if="entry.totalDurationMinutes"
+                    class="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-blue-200 rounded-full text-xs text-blue-700 whitespace-nowrap">
+                    <ClockIcon class="w-3 h-3" />{{ entry.totalDurationMinutes }}min
+                  </span>
+                  <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700 whitespace-nowrap">
+                    <HomeIcon class="w-3 h-3" />Überschussladen
+                  </span>
+                </div>
+                <!-- Sub-Sessions expandiert -->
+                <div v-if="expandedGroups.has(entry.id)" class="mt-2 space-y-1 pl-3 border-l-2 border-blue-200">
+                  <div v-if="!subSessionsCache[entry.id]" class="text-xs text-gray-400">Lade...</div>
+                  <div v-else-if="subSessionsCache[entry.id].length === 0" class="text-xs text-gray-400">Keine Sub-Sessions gefunden.</div>
+                  <div v-else v-for="sub in subSessionsCache[entry.id]" :key="sub.id"
+                    class="text-xs text-gray-600 flex items-center gap-2 py-1">
+                    <BoltIcon class="w-3 h-3 text-blue-400 flex-shrink-0" />
+                    <span class="font-medium">{{ sub.kwhCharged }} kWh</span>
+                    <span class="text-gray-400">
+                      {{ new Date(sub.loggedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) }}
+                    </span>
+                    <span v-if="sub.chargeDurationMinutes" class="text-gray-400">{{ sub.chargeDurationMinutes }}min</span>
+                    <span v-if="sub.costEur != null" class="text-gray-400">€{{ sub.costEur }}</span>
+                  </div>
+                </div>
+              </div>
+              <!-- Normal Log -->
+              <div v-else
                 :class="['p-3 border rounded-lg space-y-2',
-                         log.consumptionImplausible
+                         entry.consumptionImplausible
                            ? 'bg-red-50 border-red-300 border-l-4 border-l-red-400'
                            : 'bg-white border-gray-200']">
                 <!-- Header -->
                 <div class="flex items-center justify-between gap-2">
                   <div class="flex items-center gap-2 min-w-0">
                     <BoltIcon class="w-4 h-4 text-indigo-600 flex-shrink-0" />
-                    <span class="font-semibold text-indigo-700 whitespace-nowrap">{{ log.kwhCharged }} kWh</span>
-                    <span class="text-xs text-gray-400 whitespace-nowrap">{{ new Date(log.loggedAt).toLocaleDateString('de-DE') }}</span>
-                    <span v-if="sourceInfo(log.dataSource)"
+                    <span class="font-semibold text-indigo-700 whitespace-nowrap">{{ entry.kwhCharged }} kWh</span>
+                    <span class="text-xs text-gray-400 whitespace-nowrap">{{ new Date(entry.loggedAt).toLocaleDateString('de-DE') }}</span>
+                    <span v-if="sourceInfo(entry.dataSource)"
                       :class="['hidden md:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium whitespace-nowrap',
-                               sourceInfo(log.dataSource)!.classes]">
-                      <component :is="sourceInfo(log.dataSource)!.icon" class="w-3 h-3" />
-                      {{ sourceInfo(log.dataSource)!.label }}
+                               sourceInfo(entry.dataSource)!.classes]">
+                      <component :is="sourceInfo(entry.dataSource)!.icon" class="w-3 h-3" />
+                      {{ sourceInfo(entry.dataSource)!.label }}
                     </span>
                   </div>
                   <div class="flex items-center gap-1.5 flex-shrink-0">
-                    <span v-if="log.temperatureCelsius != null"
-                      :class="['inline-flex items-center gap-0.5 px-2 py-0.5 border rounded-full text-xs whitespace-nowrap', tempBadgeClass(log.temperatureCelsius)]">
-                      <SunIcon class="w-3 h-3" />{{ log.temperatureCelsius.toFixed(1) }}°C
+                    <span v-if="entry.temperatureCelsius != null"
+                      :class="['inline-flex items-center gap-0.5 px-2 py-0.5 border rounded-full text-xs whitespace-nowrap', tempBadgeClass(entry.temperatureCelsius)]">
+                      <SunIcon class="w-3 h-3" />{{ entry.temperatureCelsius.toFixed(1) }}°C
                     </span>
-                    <button @click="editingLog = log"
+                    <button @click="editingLog = entry"
                       class="p-1 rounded text-gray-300 hover:text-blue-500 hover:bg-blue-50 transition flex-shrink-0"
                       title="Ladevorgang bearbeiten">
                       <PencilSquareIcon class="w-3.5 h-3.5" />
                     </button>
-                    <button @click="deleteLog(log.id)"
+                    <button @click="deleteLog(entry.id)"
                       class="p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition flex-shrink-0">
                       <TrashIcon class="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
                 <!-- Source Badge: mobile only (desktop: inline im Header) -->
-                <div v-if="sourceInfo(log.dataSource)" class="md:hidden">
+                <div v-if="sourceInfo(entry.dataSource)" class="md:hidden">
                   <span :class="['inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium',
-                                 sourceInfo(log.dataSource)!.classes]">
-                    <component :is="sourceInfo(log.dataSource)!.icon" class="w-3 h-3" />
-                    {{ sourceInfo(log.dataSource)!.label }}
+                                 sourceInfo(entry.dataSource)!.classes]">
+                    <component :is="sourceInfo(entry.dataSource)!.icon" class="w-3 h-3" />
+                    {{ sourceInfo(entry.dataSource)!.label }}
                   </span>
                 </div>
                 <!-- Badges -->
                 <div class="flex flex-wrap gap-1.5">
-                  <span v-if="log.costEur != null && log.kwhCharged"
+                  <span v-if="entry.costEur != null && entry.kwhCharged"
                     :class="['inline-flex items-center px-2 py-0.5 border text-xs rounded-full font-medium whitespace-nowrap',
-                             costBadgeClass(log.costEur, log.kwhCharged) ?? 'bg-indigo-50 border-indigo-200 text-indigo-700']">
-                    €{{ (log.costEur / log.kwhCharged).toFixed(2) }}/kWh
+                             costBadgeClass(entry.costEur, entry.kwhCharged) ?? 'bg-indigo-50 border-indigo-200 text-indigo-700']">
+                    €{{ (entry.costEur / entry.kwhCharged).toFixed(2) }}/kWh
                   </span>
-                  <span v-if="log.consumptionKwhPer100km != null"
+                  <span v-if="entry.consumptionKwhPer100km != null"
                     :class="['inline-flex items-center gap-1 px-2 py-0.5 border rounded-full text-xs font-medium whitespace-nowrap',
-                             log.consumptionImplausible
+                             entry.consumptionImplausible
                                ? 'bg-red-100 border-red-400 text-red-700'
-                               : log.consumptionIsEstimated
+                               : entry.consumptionIsEstimated
                                  ? 'bg-gray-50 border-gray-300 text-gray-500'
-                                 : consumptionBadgeClass(log.consumptionKwhPer100km, stats?.avgConsumptionKwhPer100km ?? null)]"
-                    :title="log.consumptionIsEstimated ? 'Schätzwert: berechnet aus geladener Energie ÷ Distanz, da kein SoC-Wert vorhanden.' : undefined">
-                    <ExclamationTriangleIcon v-if="log.consumptionImplausible" class="w-3 h-3 flex-shrink-0" />
-                    {{ log.consumptionIsEstimated ? '~' : '' }}{{ log.consumptionKwhPer100km }} kWh/100km
+                                 : consumptionBadgeClass(entry.consumptionKwhPer100km, stats?.avgConsumptionKwhPer100km ?? null)]"
+                    :title="entry.consumptionIsEstimated ? 'Schätzwert: berechnet aus geladener Energie ÷ Distanz, da kein SoC-Wert vorhanden.' : undefined">
+                    <ExclamationTriangleIcon v-if="entry.consumptionImplausible" class="w-3 h-3 flex-shrink-0" />
+                    {{ entry.consumptionIsEstimated ? '~' : '' }}{{ entry.consumptionKwhPer100km }} kWh/100km
                   </span>
                   <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
-                    €{{ log.costEur }}
+                    €{{ entry.costEur }}
                   </span>
-                  <span v-if="log.chargeDurationMinutes" class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
-                    <ClockIcon class="w-3 h-3" />{{ log.chargeDurationMinutes }}min
+                  <span v-if="entry.chargeDurationMinutes" class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
+                    <ClockIcon class="w-3 h-3" />{{ entry.chargeDurationMinutes }}min
                   </span>
                   <span
-                    v-if="log.distanceSinceLastChargeKm != null || log.odometerKm"
+                    v-if="entry.distanceSinceLastChargeKm != null || entry.odometerKm"
                     class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap"
-                    :class="{ 'cursor-pointer hover:bg-gray-100': log.distanceSinceLastChargeKm != null && log.odometerKm }"
-                    @click="toggleOdometerDisplay(log.distanceSinceLastChargeKm, log.odometerKm)"
+                    :class="{ 'cursor-pointer hover:bg-gray-100': entry.distanceSinceLastChargeKm != null && entry.odometerKm }"
+                    @click="toggleOdometerDisplay(entry.distanceSinceLastChargeKm, entry.odometerKm)"
                   >
-                    <template v-if="log.distanceSinceLastChargeKm != null && !showOdometer">+{{ log.distanceSinceLastChargeKm.toLocaleString('de-DE') }} km</template>
-                    <template v-else>{{ log.odometerKm?.toLocaleString('de-DE') }} km</template>
+                    <template v-if="entry.distanceSinceLastChargeKm != null && !showOdometer">+{{ entry.distanceSinceLastChargeKm.toLocaleString('de-DE') }} km</template>
+                    <template v-else>{{ entry.odometerKm?.toLocaleString('de-DE') }} km</template>
                   </span>
-                  <span v-if="log.socAfterChargePercent != null" class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
-                    <Battery0Icon class="w-3 h-3" />{{ log.socAfterChargePercent }}%
+                  <span v-if="entry.socAfterChargePercent != null" class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
+                    <Battery0Icon class="w-3 h-3" />{{ entry.socAfterChargePercent }}%
                   </span>
-                  <span v-if="log.maxChargingPowerKw" class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
-                    <BoltIcon class="w-3 h-3" />{{ log.maxChargingPowerKw }} kW
+                  <span v-if="entry.maxChargingPowerKw" class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
+                    <BoltIcon class="w-3 h-3" />{{ entry.maxChargingPowerKw }} kW
                   </span>
                 </div>
                 <!-- Implausibility warning -->
-                <div v-if="log.consumptionImplausible" class="flex items-start gap-1.5 text-xs text-red-700">
+                <div v-if="entry.consumptionImplausible" class="flex items-start gap-1.5 text-xs text-red-700">
                   <ExclamationTriangleIcon class="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
                   <span>Verbrauch unplausibel — wahrscheinlich fehlt ein Ladevorgang zwischen diesem und dem vorherigen Eintrag.</span>
                 </div>
               </div>
+              </div><!-- end v-for entry in mergedLogFeed -->
             </template>
           </div>
           <!-- Pagination -->

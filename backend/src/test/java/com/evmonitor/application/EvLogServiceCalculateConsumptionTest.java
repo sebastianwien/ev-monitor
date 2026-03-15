@@ -16,6 +16,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
 
 /**
  * Unit tests for EvLogService.calculateConsumption(logX, logY, batteryCapacityKwh).
@@ -46,7 +47,8 @@ class EvLogServiceCalculateConsumptionTest {
         service = new EvLogService(
                 evLogRepository, carRepository, userRepository,
                 coinLogService, temperatureEnrichmentService,
-                vehicleSpecificationRepository, new PlausibilityProperties());
+                vehicleSpecificationRepository, new PlausibilityProperties(),
+                mock(com.evmonitor.application.SessionGroupService.class));
     }
 
     // -------------------------------------------------------------------------
@@ -334,7 +336,7 @@ class EvLogServiceCalculateConsumptionTest {
                 ChargingType.UNKNOWN,
                 null,
                 loggedAt, loggedAt,
-                null, null, null
+                null, null, null, null
         );
     }
 }
