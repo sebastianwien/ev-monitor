@@ -8,6 +8,7 @@ import com.evmonitor.application.EvLogUpdateRequest;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.ChargingType;
+import com.evmonitor.domain.DataSource;
 import com.evmonitor.domain.RouteType;
 import com.evmonitor.domain.TireType;
 import com.evmonitor.domain.EvLog;
@@ -560,6 +561,37 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
         assertNotNull(response.getBody());
         assertNull(response.getBody().log().routeType());
         assertNull(response.getBody().log().tireType());
+    }
+
+    // ── dataSource in API Response ──────────────────────────────────────────────
+
+    @Test
+    void getLogs_responseContainsDataSource() {
+        EvLog userLog = evLogRepository.save(EvLog.createNewWithSource(
+                carId, new BigDecimal("30.0"), new BigDecimal("9.00"),
+                60, null, 12000, null, 75, LocalDateTime.now(),
+                DataSource.USER_LOGGED, ChargingType.UNKNOWN, null));
+        EvLog fleetLog = evLogRepository.save(EvLog.createNewWithSource(
+                carId, new BigDecimal("44.0"), new BigDecimal("18.00"),
+                55, null, null, null, 95, LocalDateTime.now().minusDays(1),
+                DataSource.TESLA_FLEET_IMPORT, ChargingType.DC, null));
+
+        HttpEntity<Void> requestWithAuth = createAuthRequest(userId, testUser.getEmail());
+        ResponseEntity<List<EvLogResponse>> response = restTemplate.exchange(
+                "/api/logs?carId=" + carId, HttpMethod.GET, requestWithAuth,
+                new ParameterizedTypeReference<List<EvLogResponse>>() {});
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(2, response.getBody().size());
+
+        EvLogResponse user = response.getBody().stream()
+                .filter(l -> l.kwhCharged().compareTo(new BigDecimal("30.0")) == 0).findFirst().orElseThrow();
+        EvLogResponse fleet = response.getBody().stream()
+                .filter(l -> l.kwhCharged().compareTo(new BigDecimal("44.0")) == 0).findFirst().orElseThrow();
+
+        assertEquals(DataSource.USER_LOGGED, user.dataSource());
+        assertEquals(DataSource.TESLA_FLEET_IMPORT, fleet.dataSource());
     }
 
     @Test

@@ -63,7 +63,7 @@ class EvLogDuplicateSuppressionIntegrationTest extends AbstractIntegrationTest {
         // Given: Tesla import already in DB
         EvLog teslaImport = EvLog.createNewWithSource(
                 carId, kwh, null, 60, null, null, null, null, sessionTime,
-                DataSource.TESLA_FLEET, ChargingType.DC, null);
+                DataSource.TESLA_FLEET_IMPORT, ChargingType.DC, null);
         EvLog savedImport = evLogRepository.save(teslaImport);
         UUID importId = savedImport.getId();
 
@@ -132,7 +132,7 @@ class EvLogDuplicateSuppressionIntegrationTest extends AbstractIntegrationTest {
                 carId, userId, kwh, 55,
                 sessionTime.plusMinutes(5),
                 null, null, null,
-                "TESLA_FLEET", null, "DC");
+                "TESLA_FLEET_IMPORT", null, "DC");
 
         HttpHeaders internalHeaders = new HttpHeaders();
         internalHeaders.set("X-Internal-Token", INTERNAL_TOKEN);
@@ -173,7 +173,7 @@ class EvLogDuplicateSuppressionIntegrationTest extends AbstractIntegrationTest {
         // Given: Tesla import exists
         EvLog teslaImport = EvLog.createNewWithSource(
                 carId, kwh, null, 70, null, null, null, null, sessionTime,
-                DataSource.TESLA_FLEET, ChargingType.DC, null);
+                DataSource.TESLA_FLEET_IMPORT, ChargingType.DC, null);
         EvLog savedImport = evLogRepository.save(teslaImport);
         UUID importId = savedImport.getId();
 

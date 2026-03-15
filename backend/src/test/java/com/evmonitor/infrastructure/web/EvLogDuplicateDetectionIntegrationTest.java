@@ -68,7 +68,7 @@ class EvLogDuplicateDetectionIntegrationTest extends AbstractIntegrationTest {
                 null,
                 sessionTime,
                 null, null,
-                DataSource.TESLA_FLEET,
+                DataSource.TESLA_FLEET_IMPORT,
                 null,
                 ChargingType.DC));
 
@@ -135,7 +135,7 @@ class EvLogDuplicateDetectionIntegrationTest extends AbstractIntegrationTest {
                 sessionTime.plusMinutes(5),
                 null,
                 null, null,
-                DataSource.TESLA_FLEET.name(),
+                DataSource.TESLA_FLEET_IMPORT.name(),
                 null,
                 ChargingType.DC.name()
         );
@@ -157,7 +157,7 @@ class EvLogDuplicateDetectionIntegrationTest extends AbstractIntegrationTest {
         // Find the import log by its dataSource (newest, non-USER_LOGGED entry for this car)
         Optional<EvLog> importedLog = evLogRepository.findAll().stream()
                 .filter(l -> l.getCarId().equals(carId)
-                        && l.getDataSource() == DataSource.TESLA_FLEET)
+                        && l.getDataSource() == DataSource.TESLA_FLEET_IMPORT)
                 .findFirst();
 
         assertTrue(importedLog.isPresent(), "Import log should exist in DB");
@@ -189,7 +189,7 @@ class EvLogDuplicateDetectionIntegrationTest extends AbstractIntegrationTest {
                 null,
                 sessionTime,
                 null, null,
-                DataSource.TESLA_HOME,
+                DataSource.TESLA_LIVE,
                 null,
                 ChargingType.AC));
 
@@ -255,7 +255,7 @@ class EvLogDuplicateDetectionIntegrationTest extends AbstractIntegrationTest {
         InternalEvLogRequest importRequest = new InternalEvLogRequest(
                 carId, userId, kwh, 60, sessionTime,
                 null, null, null,
-                DataSource.TESLA_FLEET.name(),
+                DataSource.TESLA_FLEET_IMPORT.name(),
                 null, ChargingType.DC.name()
         );
         HttpHeaders headers = new HttpHeaders();
@@ -266,7 +266,7 @@ class EvLogDuplicateDetectionIntegrationTest extends AbstractIntegrationTest {
 
         // Verify import coins were awarded (+5 TESLA_DAILY_LOG)
         EvLog importLog = evLogRepository.findAll().stream()
-                .filter(l -> l.getCarId().equals(carId) && l.getDataSource() == DataSource.TESLA_FLEET)
+                .filter(l -> l.getCarId().equals(carId) && l.getDataSource() == DataSource.TESLA_FLEET_IMPORT)
                 .findFirst().orElseThrow();
         int importCoins = coinLogRepository.sumCoinsForSourceEntity(importLog.getId());
         assertEquals(5, importCoins, "Import should have received TESLA_DAILY_LOG coins (+5)");
@@ -318,7 +318,7 @@ class EvLogDuplicateDetectionIntegrationTest extends AbstractIntegrationTest {
         InternalEvLogRequest importRequest = new InternalEvLogRequest(
                 carId, userId, kwh, 50, sessionTime.plusMinutes(6),
                 null, null, null,
-                DataSource.TESLA_FLEET.name(),
+                DataSource.TESLA_FLEET_IMPORT.name(),
                 null, ChargingType.DC.name()
         );
         HttpHeaders headers = new HttpHeaders();
@@ -329,7 +329,7 @@ class EvLogDuplicateDetectionIntegrationTest extends AbstractIntegrationTest {
 
         // Then: Import is superseded and got NO coins
         EvLog importLog = evLogRepository.findAll().stream()
-                .filter(l -> l.getCarId().equals(carId) && l.getDataSource() == DataSource.TESLA_FLEET)
+                .filter(l -> l.getCarId().equals(carId) && l.getDataSource() == DataSource.TESLA_FLEET_IMPORT)
                 .findFirst().orElseThrow();
 
         assertNotNull(importLog.getSupersededBy(), "Import should be superseded");
@@ -352,7 +352,7 @@ class EvLogDuplicateDetectionIntegrationTest extends AbstractIntegrationTest {
                 null,
                 sessionTime,
                 null, null,
-                DataSource.TESLA_FLEET,
+                DataSource.TESLA_FLEET_IMPORT,
                 null,
                 ChargingType.DC));
 

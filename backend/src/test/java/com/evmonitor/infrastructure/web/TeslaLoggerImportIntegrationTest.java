@@ -58,7 +58,7 @@ class TeslaLoggerImportIntegrationTest extends AbstractIntegrationTest {
         assertEquals(0, new BigDecimal("24.5").compareTo(first.getKwhCharged()));
         assertEquals(80, first.getSocAfterChargePercent());
         assertEquals(45, first.getSocBeforeChargePercent());
-        assertEquals(DataSource.TESLA_LOGGER_IMPORT, first.getDataSource());
+        assertEquals(DataSource.TESLA_MANUAL_IMPORT, first.getDataSource());
         assertTrue(first.isIncludeInStatistics());
     }
 
@@ -145,7 +145,7 @@ class TeslaLoggerImportIntegrationTest extends AbstractIntegrationTest {
         evLogRepository.save(EvLog.createNewWithSource(
                 car.getId(), new BigDecimal("24.5"), null, null, null,
                 12345, null, 80, LocalDateTime.parse("2025-08-20T10:56:48"),
-                DataSource.TESLA_LOGGER_IMPORT, com.evmonitor.domain.ChargingType.UNKNOWN, null
+                DataSource.TESLA_MANUAL_IMPORT, com.evmonitor.domain.ChargingType.UNKNOWN, null
         ));
 
         // Import same session (exact same time)
@@ -165,7 +165,7 @@ class TeslaLoggerImportIntegrationTest extends AbstractIntegrationTest {
         evLogRepository.save(EvLog.createNewWithSource(
                 car.getId(), new BigDecimal("24.5"), null, null, null,
                 12345, null, 80, LocalDateTime.parse("2025-08-20T10:56:48"),
-                DataSource.TESLA_LOGGER_IMPORT, com.evmonitor.domain.ChargingType.UNKNOWN, null
+                DataSource.TESLA_MANUAL_IMPORT, com.evmonitor.domain.ChargingType.UNKNOWN, null
         ));
 
         // 3 hours later — outside ±1h window

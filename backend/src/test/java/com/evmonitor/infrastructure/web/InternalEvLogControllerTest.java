@@ -39,7 +39,7 @@ class InternalEvLogControllerTest extends AbstractIntegrationTest {
     @Test
     void createLog_withValidInternalToken_returnsCreatedLog() {
         Map<String, Object> request = logRequest(testCar.getId(), testUser.getId(),
-                "45.5", 60, LocalDateTime.now().minusHours(1), null, "TESLA_FLEET", "14.50");
+                "45.5", 60, LocalDateTime.now().minusHours(1), null, "TESLA_FLEET_IMPORT", "14.50");
 
         ResponseEntity<Map> response = restTemplate.exchange(
                 "/api/internal/logs", HttpMethod.POST,
@@ -54,7 +54,7 @@ class InternalEvLogControllerTest extends AbstractIntegrationTest {
     void createLog_withCostAndGeohash_persistsBothFields() {
         LocalDateTime loggedAt = LocalDateTime.now().minusHours(2);
         Map<String, Object> request = logRequest(testCar.getId(), testUser.getId(),
-                "50.0", 90, loggedAt, "u2edq", "TESLA_FLEET", "18.00");
+                "50.0", 90, loggedAt, "u2edq", "TESLA_FLEET_IMPORT", "18.00");
 
         ResponseEntity<Map> response = restTemplate.exchange(
                 "/api/internal/logs", HttpMethod.POST,
@@ -84,7 +84,7 @@ class InternalEvLogControllerTest extends AbstractIntegrationTest {
     @Test
     void createLog_withoutInternalToken_returns403() {
         Map<String, Object> request = logRequest(testCar.getId(), testUser.getId(),
-                "45.0", 60, LocalDateTime.now(), null, "TESLA_FLEET", null);
+                "45.0", 60, LocalDateTime.now(), null, "TESLA_FLEET_IMPORT", null);
 
         ResponseEntity<String> response = restTemplate.exchange(
                 "/api/internal/logs", HttpMethod.POST,
@@ -96,7 +96,7 @@ class InternalEvLogControllerTest extends AbstractIntegrationTest {
     @Test
     void createLog_withWrongInternalToken_returns403() {
         Map<String, Object> request = logRequest(testCar.getId(), testUser.getId(),
-                "45.0", 60, LocalDateTime.now(), null, "TESLA_FLEET", null);
+                "45.0", 60, LocalDateTime.now(), null, "TESLA_FLEET_IMPORT", null);
 
         ResponseEntity<String> response = restTemplate.exchange(
                 "/api/internal/logs", HttpMethod.POST,
@@ -112,7 +112,7 @@ class InternalEvLogControllerTest extends AbstractIntegrationTest {
         // Create a log first (without geohash)
         LocalDateTime loggedAt = LocalDateTime.now().minusHours(5).withNano(0).withSecond(0);
         Map<String, Object> createRequest = logRequest(testCar.getId(), testUser.getId(),
-                "60.0", 75, loggedAt, null, "TESLA_FLEET", "22.50");
+                "60.0", 75, loggedAt, null, "TESLA_FLEET_IMPORT", "22.50");
         restTemplate.exchange("/api/internal/logs", HttpMethod.POST,
                 new HttpEntity<>(createRequest, internalHeaders(VALID_TOKEN)), Map.class);
 

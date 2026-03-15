@@ -106,7 +106,7 @@ class SpritMonitorDeleteImportsIntegrationTest extends AbstractIntegrationTest {
         // Given: User has multiple import sources
         createLog(testCarId, DataSource.SPRITMONITOR_IMPORT);
         createLog(testCarId, DataSource.TESLA_IMPORT);
-        createLog(testCarId, DataSource.TESLA_FLEET);
+        createLog(testCarId, DataSource.TESLA_FLEET_IMPORT);
         createLog(testCarId, DataSource.WALLBOX_OCPP);
 
         assertEquals(4, evLogRepository.findAllByUserId(testUserId).size());
@@ -120,7 +120,7 @@ class SpritMonitorDeleteImportsIntegrationTest extends AbstractIntegrationTest {
         assertEquals(3, remaining.size());
         assertFalse(remaining.stream().anyMatch(log -> log.getDataSource().equals(DataSource.SPRITMONITOR_IMPORT)));
         assertTrue(remaining.stream().anyMatch(log -> log.getDataSource().equals(DataSource.TESLA_IMPORT)));
-        assertTrue(remaining.stream().anyMatch(log -> log.getDataSource().equals(DataSource.TESLA_FLEET)));
+        assertTrue(remaining.stream().anyMatch(log -> log.getDataSource().equals(DataSource.TESLA_FLEET_IMPORT)));
         assertTrue(remaining.stream().anyMatch(log -> log.getDataSource().equals(DataSource.WALLBOX_OCPP)));
     }
 

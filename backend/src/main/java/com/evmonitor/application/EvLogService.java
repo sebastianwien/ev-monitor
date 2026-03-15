@@ -167,7 +167,7 @@ public class EvLogService {
 
         // Award per-log coins — only if this import was NOT immediately superseded by a manual entry.
         // go-eCharger and plain OCPP wallbox coins are TBD and intentionally not awarded here yet.
-        if (!isSuperseded && (source == DataSource.TESLA_FLEET || source == DataSource.TESLA_HOME)) {
+        if (!isSuperseded && (source == DataSource.TESLA_FLEET_IMPORT || source == DataSource.TESLA_LIVE)) {
             coinLogService.awardCoinsForEvent(request.userId(), CoinLogService.CoinEvent.TESLA_DAILY_LOG, savedLog.getId());
         }
 

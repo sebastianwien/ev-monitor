@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Critical Safety Test: Verifies that DELETE /api/import/tesla/delete-all
- * only deletes TESLA_FLEET and TESLA_HOME logs for the authenticated user,
+ * only deletes TESLA_FLEET_IMPORT and TESLA_LIVE logs for the authenticated user,
  * and does NOT touch USER_LOGGED entries or other users' data.
  */
 class TeslaDeleteImportsIntegrationTest extends AbstractIntegrationTest {
@@ -36,8 +36,8 @@ class TeslaDeleteImportsIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void deleteAll_onlyDeletesTeslaFleetAndHome_notUserLogged() {
-        createLog(testCarId, DataSource.TESLA_FLEET);
-        createLog(testCarId, DataSource.TESLA_HOME);
+        createLog(testCarId, DataSource.TESLA_FLEET_IMPORT);
+        createLog(testCarId, DataSource.TESLA_LIVE);
         createLog(testCarId, DataSource.USER_LOGGED);
         createLog(testCarId, DataSource.USER_LOGGED);
 
@@ -55,8 +55,8 @@ class TeslaDeleteImportsIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void deleteAll_onlyDeletesOwnData_notOtherUsers() {
-        createLog(testCarId, DataSource.TESLA_FLEET);
-        createLog(otherCarId, DataSource.TESLA_FLEET);
+        createLog(testCarId, DataSource.TESLA_FLEET_IMPORT);
+        createLog(otherCarId, DataSource.TESLA_FLEET_IMPORT);
 
         HttpEntity<Void> request = createAuthRequest(testUser.getId(), testUser.getEmail());
         restTemplate.exchange("/api/import/tesla/delete-all", HttpMethod.DELETE, request, Void.class);
@@ -68,8 +68,8 @@ class TeslaDeleteImportsIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void deleteAll_doesNotDeleteSpritMonitorOrWallbox() {
-        createLog(testCarId, DataSource.TESLA_FLEET);
-        createLog(testCarId, DataSource.TESLA_HOME);
+        createLog(testCarId, DataSource.TESLA_FLEET_IMPORT);
+        createLog(testCarId, DataSource.TESLA_LIVE);
         createLog(testCarId, DataSource.SPRITMONITOR_IMPORT);
         createLog(testCarId, DataSource.WALLBOX_OCPP);
 

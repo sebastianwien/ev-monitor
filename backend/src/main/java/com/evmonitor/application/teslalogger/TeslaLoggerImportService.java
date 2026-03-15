@@ -22,7 +22,7 @@ import java.util.regex.Pattern;
 @Slf4j
 public class TeslaLoggerImportService {
 
-    private static final DataSource DATA_SOURCE = DataSource.TESLA_LOGGER_IMPORT;
+    private static final DataSource DATA_SOURCE = DataSource.TESLA_MANUAL_IMPORT;
 
     /**
      * Ordered list of date formats to try — most specific first.

@@ -35,8 +35,8 @@ class EvLogBatchDeleteIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void batchDelete_deletesOwnLogs() {
-        EvLog log1 = createLog(testCarId, DataSource.TESLA_FLEET);
-        EvLog log2 = createLog(testCarId, DataSource.TESLA_FLEET);
+        EvLog log1 = createLog(testCarId, DataSource.TESLA_FLEET_IMPORT);
+        EvLog log2 = createLog(testCarId, DataSource.TESLA_FLEET_IMPORT);
 
         HttpEntity<List<UUID>> request = createAuthRequest(
                 List.of(log1.getId(), log2.getId()), testUser.getId(), testUser.getEmail());
@@ -50,7 +50,7 @@ class EvLogBatchDeleteIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void batchDelete_ignoresForeignIds_doesNotDelete() {
-        EvLog foreignLog = createLog(otherCarId, DataSource.TESLA_FLEET);
+        EvLog foreignLog = createLog(otherCarId, DataSource.TESLA_FLEET_IMPORT);
         int countBefore = evLogRepository.findAllByUserId(otherUser.getId()).size();
 
         HttpEntity<List<UUID>> request = createAuthRequest(
@@ -66,8 +66,8 @@ class EvLogBatchDeleteIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void batchDelete_mixedIds_onlyDeletesOwn() {
-        EvLog ownLog = createLog(testCarId, DataSource.TESLA_FLEET);
-        EvLog foreignLog = createLog(otherCarId, DataSource.TESLA_FLEET);
+        EvLog ownLog = createLog(testCarId, DataSource.TESLA_FLEET_IMPORT);
+        EvLog foreignLog = createLog(otherCarId, DataSource.TESLA_FLEET_IMPORT);
 
         HttpEntity<List<UUID>> request = createAuthRequest(
                 List.of(ownLog.getId(), foreignLog.getId()), testUser.getId(), testUser.getEmail());

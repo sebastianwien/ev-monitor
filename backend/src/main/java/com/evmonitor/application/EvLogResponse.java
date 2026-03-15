@@ -1,6 +1,7 @@
 package com.evmonitor.application;
 
 import com.evmonitor.domain.ChargingType;
+import com.evmonitor.domain.DataSource;
 import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.RouteType;
 import com.evmonitor.domain.TireType;
@@ -31,7 +32,8 @@ public record EvLogResponse(
         Boolean consumptionIsEstimated,      // true when calculated via kWh/distance fallback (no SoC)
         ChargingType chargingType,           // AC, DC, or UNKNOWN
         RouteType routeType,                 // Optional: CITY, COMBINED, or HIGHWAY
-        TireType tireType) {                 // Optional: SUMMER, ALL_YEAR, or WINTER
+        TireType tireType,                   // Optional: SUMMER, ALL_YEAR, or WINTER
+        DataSource dataSource) {
 
     public static EvLogResponse fromDomain(EvLog evLog) {
         return fromDomain(evLog, null, null);
@@ -65,6 +67,7 @@ public record EvLogResponse(
                 consumption != null ? consumption.estimated() : null,
                 evLog.getChargingType(),
                 evLog.getRouteType(),
-                evLog.getTireType());
+                evLog.getTireType(),
+                evLog.getDataSource());
     }
 }

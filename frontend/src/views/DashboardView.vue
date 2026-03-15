@@ -31,7 +31,9 @@ import {
   ExclamationTriangleIcon,
   CloudIcon,
   XMarkIcon,
+  HomeIcon,
 } from '@heroicons/vue/24/outline'
+import type { Component } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../api/axios'
 import { tempBadgeClass } from '../utils/temperatureColor'
@@ -547,6 +549,19 @@ const toggleOdometerDisplay = (distanceKm: number | null, odometerKm: number | n
   showOdometer.value = !showOdometer.value
 }
 
+function sourceInfo(ds?: string): { label: string; icon: Component; classes: string } | null {
+  switch (ds) {
+    case 'TESLA_FLEET_IMPORT':  return { label: 'Supercharger',    icon: BoltIcon,          classes: 'bg-red-50 text-red-700' }
+    case 'TESLA_LIVE':          return { label: 'Tesla Live',       icon: BoltIcon,          classes: 'bg-red-50 text-red-700' }
+    case 'TESLA_IMPORT':        return { label: 'Tesla Import',     icon: ArrowDownTrayIcon, classes: 'bg-purple-50 text-purple-700' }
+    case 'TESLA_MANUAL_IMPORT': return { label: 'TeslaMate Import', icon: ArrowDownTrayIcon, classes: 'bg-purple-50 text-purple-700' }
+    case 'SPRITMONITOR_IMPORT': return { label: 'SpritMonitor',     icon: ArrowDownTrayIcon, classes: 'bg-purple-50 text-purple-700' }
+    case 'WALLBOX_OCPP':
+    case 'WALLBOX_GOE':         return { label: 'Wallbox',          icon: HomeIcon,          classes: 'bg-blue-50 text-blue-700' }
+    default:                    return null
+  }
+}
+
 const deleteLog = async (id: string) => {
   if (!confirm('Ladevorgang wirklich löschen?')) return
   try {
@@ -1017,6 +1032,14 @@ const deleteLog = async (id: string) => {
                       <TrashIcon class="w-3.5 h-3.5" />
                     </button>
                   </div>
+                </div>
+                <!-- Source Badge -->
+                <div v-if="sourceInfo(log.dataSource)">
+                  <span :class="['inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium',
+                                 sourceInfo(log.dataSource)!.classes]">
+                    <component :is="sourceInfo(log.dataSource)!.icon" class="w-3 h-3" />
+                    {{ sourceInfo(log.dataSource)!.label }}
+                  </span>
                 </div>
                 <!-- Badges -->
                 <div class="flex flex-wrap gap-1.5">

@@ -17,14 +17,14 @@ import java.util.List;
  * Manages Tesla Fleet API import data in the core backend.
  *
  * DELETE /api/import/tesla/delete-all
- * Deletes all TESLA_FLEET and TESLA_HOME logs for the authenticated user.
+ * Deletes all TESLA_FLEET_IMPORT and TESLA_LIVE logs for the authenticated user.
  */
 @RestController
 @RequestMapping("/api/import/tesla")
 @Slf4j
 public class TeslaImportController {
 
-    private static final List<DataSource> TESLA_FLEET_SOURCES = List.of(DataSource.TESLA_FLEET, DataSource.TESLA_HOME);
+    private static final List<DataSource> TESLA_FLEET_SOURCES = List.of(DataSource.TESLA_FLEET_IMPORT, DataSource.TESLA_LIVE);
 
     private final EvLogRepository evLogRepository;
 
