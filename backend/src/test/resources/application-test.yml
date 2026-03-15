@@ -43,3 +43,6 @@ stripe:
   webhook-secret: "test-webhook-secret"
   price-id-monthly: "price_test_monthly"
   price-id-yearly: "price_test_yearly"
+
+internal:
+  token: test-internal-token

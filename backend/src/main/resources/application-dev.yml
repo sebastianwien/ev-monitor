@@ -79,3 +79,7 @@ stripe:
   webhook-secret: ${STRIPE_WEBHOOK_SECRET:whsec_placeholder}
   price-id-monthly: ${STRIPE_PRICE_ID_MONTHLY:price_monthly_placeholder}
   price-id-yearly: ${STRIPE_PRICE_ID_YEARLY:price_yearly_placeholder}
+
+# Internal Service Token (dev default — override via INTERNAL_SERVICE_TOKEN env var in prod)
+internal:
+  token: ${INTERNAL_SERVICE_TOKEN:dev-internal-token-change-in-prod}

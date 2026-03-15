@@ -49,6 +49,8 @@ public class CoinLogService {
         // Social — REFERRAL_WELCOME is one-time per referred user; REFERRAL_INVITED is count-capped by caller
         REFERRAL_INVITED            ("Freund eingeladen",                             100, false),
         REFERRAL_WELCOME            ("Willkommensbonus (eingeladen)",                  25, true),
+        // Public API Upload — per-log reward
+        API_UPLOAD_LOG              ("Ladevorgang importiert (API)",                    2, false),
         // Deductions
         LOG_DELETED_DEDUCTION       ("Ladevorgang gelöscht",                           0, false), // defaultAmount unused — caller passes dynamic negative amount
         IMPORT_SUPERSEDED_DEDUCTION ("Import als Duplikat erkannt",                    0, false); // defaultAmount unused — caller passes dynamic negative amount

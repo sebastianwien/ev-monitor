@@ -30,6 +30,15 @@ export default defineConfig({
                 target: 'http://localhost:8080',
                 changeOrigin: true
             },
+            // Swagger UI + OpenAPI spec (springdoc-openapi, not under /api)
+            '/swagger-ui': {
+                target: 'http://localhost:8080',
+                changeOrigin: true
+            },
+            '/v3/api-docs': {
+                target: 'http://localhost:8080',
+                changeOrigin: true
+            },
             // OAuth2 (Spring Security endpoints, not under /api)
             '/oauth2': {
                 target: 'http://localhost:8080',

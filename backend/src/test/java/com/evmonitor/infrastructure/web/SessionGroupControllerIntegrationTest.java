@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class SessionGroupControllerIntegrationTest extends AbstractIntegrationTest {
 
-    private static final String VALID_TOKEN = "dev-internal-token-change-in-prod";
+    private static final String VALID_TOKEN = "test-internal-token";
 
     private User testUser;
     private Car testCar;

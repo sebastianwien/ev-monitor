@@ -124,6 +124,18 @@ public class EvLog {
                 odometerSuggestionMinKm, odometerSuggestionMaxKm, null, chargingType, null, now, now, null, null, null, null);
     }
 
+    public static EvLog createFromPublicApi(UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
+            Integer chargeDurationMinutes, String geohash, Integer odometerKm,
+            BigDecimal maxChargingPowerKw, Integer socAfterChargePercent, Integer socBeforeChargePercent,
+            LocalDateTime loggedAt, ChargingType chargingType, RouteType routeType, TireType tireType) {
+        LocalDateTime now = LocalDateTime.now();
+        return new EvLog(UUID.randomUUID(), carId, kwhCharged, costEur,
+                chargeDurationMinutes, geohash, odometerKm, maxChargingPowerKw,
+                socAfterChargePercent, socBeforeChargePercent, loggedAt,
+                DataSource.API_UPLOAD, DataSource.API_UPLOAD.includeInStatistics(),
+                null, null, null, chargingType, null, now, now, routeType, tireType, null, null);
+    }
+
     public UUID getId() {
         return id;
     }

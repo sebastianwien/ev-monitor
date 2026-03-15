@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { ArrowDownTrayIcon, BoltIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
+import { ArrowDownTrayIcon, BoltIcon, ExclamationTriangleIcon, CodeBracketIcon, TrashIcon, ClipboardDocumentIcon, CheckIcon } from '@heroicons/vue/24/outline'
 import SpritMonitorImport from '../components/SpritMonitorImport.vue'
 import GoeIntegration from '../components/GoeIntegration.vue'
 import TeslaFleetIntegration from '../components/TeslaFleetIntegration.vue'
@@ -8,6 +8,7 @@ import TeslaLoggerImportModal from '../components/TeslaLoggerImportModal.vue'
 import CarSelectDropdown from '../components/CarSelectDropdown.vue'
 import { carService, type Car } from '../api/carService'
 import { useImportsTab } from '../composables/useImportsTab'
+import { apiKeyService, type ApiKeyResponse, type ApiKeyCreatedResponse } from '../api/apiKeyService'
 
 const { activeTab } = useImportsTab()
 const showSpritMonitorModal = ref(false)
@@ -18,12 +19,70 @@ const loading = ref(true)
 onMounted(async () => {
   try {
     cars.value = await carService.getCars() ?? []
-    // Small delay for smooth fade-in
     await new Promise(resolve => setTimeout(resolve, 100))
   } catch { /* ignore */ } finally {
     loading.value = false
   }
+  fetchApiKeys()
 })
+
+// ── API Keys ──────────────────────────────────────────────────────────────────
+const apiKeys = ref<ApiKeyResponse[]>([])
+const newKeyName = ref('')
+const createdKey = ref<ApiKeyCreatedResponse | null>(null)
+const keyCopied = ref(false)
+const apiKeyLoading = ref(false)
+const deletingKeyId = ref<string | null>(null)
+const apiKeyMessage = ref<{ type: 'success' | 'error', text: string } | null>(null)
+
+const fetchApiKeys = async () => {
+  try { apiKeys.value = await apiKeyService.listKeys() } catch { /* ignore */ }
+}
+
+const createApiKey = async () => {
+  if (!newKeyName.value.trim()) return
+  apiKeyLoading.value = true
+  apiKeyMessage.value = null
+  try {
+    createdKey.value = await apiKeyService.createKey(newKeyName.value.trim())
+    newKeyName.value = ''
+    await fetchApiKeys()
+  } catch (error: any) {
+    apiKeyMessage.value = { type: 'error', text: error.response?.data?.error || 'API Key konnte nicht erstellt werden' }
+  } finally {
+    apiKeyLoading.value = false
+  }
+}
+
+const deleteApiKey = async (id: string, name: string) => {
+  if (!window.confirm(`API Key "${name || 'ohne Name'}" wirklich widerrufen? Alle Integrationen die diesen Key nutzen hören sofort auf zu funktionieren.`)) return
+  deletingKeyId.value = id
+  try {
+    await apiKeyService.deleteKey(id)
+    apiKeys.value = apiKeys.value.filter(k => k.id !== id)
+    if (createdKey.value?.id === id) createdKey.value = null
+    apiKeyMessage.value = { type: 'success', text: 'API Key widerrufen.' }
+    setTimeout(() => { apiKeyMessage.value = null }, 3000)
+  } catch {
+    apiKeyMessage.value = { type: 'error', text: 'Key konnte nicht gelöscht werden' }
+  } finally {
+    deletingKeyId.value = null
+  }
+}
+
+const copyApiKey = async () => {
+  if (!createdKey.value) return
+  try {
+    await navigator.clipboard.writeText(createdKey.value.plaintextKey)
+    keyCopied.value = true
+    setTimeout(() => { keyCopied.value = false }, 2000)
+  } catch { /* ignore */ }
+}
+
+const formatDate = (dateStr: string | null) => {
+  if (!dateStr) return 'Noch nie'
+  return new Date(dateStr).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
 
 const hasActiveTesla = computed(() =>
   cars.value.some(c => c.brand?.toLowerCase() === 'tesla' && c.status === 'ACTIVE')
@@ -57,6 +116,7 @@ const teslaCars = computed(() =>
               { id: 'goe', label: 'go-eCharger' },
               { id: 'wallbox', label: 'OCPP Wallbox' },
               { id: 'tesla', label: 'Tesla' },
+              { id: 'api', label: 'API' },
             ] as const)"
             :key="tab.id"
             @click="activeTab = tab.id"
@@ -224,6 +284,99 @@ const teslaCars = computed(() =>
           </div>
           </template>
         </div>
+        <!-- Tab: API -->
+        <div v-if="activeTab === 'api'" class="p-6 space-y-5">
+          <div class="flex items-start gap-4">
+            <div class="bg-indigo-600 rounded-lg p-2 shrink-0">
+              <CodeBracketIcon class="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h2 class="font-semibold text-gray-900">REST API Upload</h2>
+              <p class="text-sm text-gray-600 mt-1">
+                Verbinde Wallboxen, Skripte oder Home-Automation direkt mit EV Monitor. Ladevorgänge werden automatisch importiert sobald dein Tool sie sendet.
+              </p>
+            </div>
+          </div>
+
+          <!-- Endpoint Info -->
+          <div class="p-4 bg-indigo-50 border border-indigo-200 rounded-lg text-sm text-indigo-800">
+            <p class="font-mono text-xs bg-white border border-indigo-200 rounded px-2 py-1.5 mb-2 break-all">
+              POST https://ev-monitor.net/api/v1/sessions<br>
+              Authorization: Bearer evm_&lt;dein-key&gt;
+            </p>
+            <p class="text-xs mb-1">
+              Pflichtfelder: <code class="bg-white px-1 rounded">date</code>, <code class="bg-white px-1 rounded">kwh</code>
+            </p>
+            <p class="text-xs">
+              Optional: <code class="bg-white px-1 rounded">odometer_km</code>, <code class="bg-white px-1 rounded">soc_after</code>, <code class="bg-white px-1 rounded">cost_eur</code>, <code class="bg-white px-1 rounded">duration_min</code>, <code class="bg-white px-1 rounded">location</code>, <code class="bg-white px-1 rounded">charging_type</code> (AC/DC)
+            </p>
+            <a href="/swagger-ui/index.html" target="_blank" class="inline-block mt-2 text-indigo-700 hover:underline font-medium text-xs">
+              Vollständige API Dokumentation →
+            </a>
+          </div>
+
+          <!-- Message -->
+          <div v-if="apiKeyMessage" :class="[
+            'p-3 rounded-lg text-sm',
+            apiKeyMessage.type === 'success' ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-700'
+          ]">{{ apiKeyMessage.text }}</div>
+
+          <!-- Newly created key -->
+          <div v-if="createdKey" class="p-4 bg-green-50 border border-green-300 rounded-lg">
+            <p class="font-semibold text-green-800 mb-1 text-sm">Neuer API Key — nur jetzt sichtbar!</p>
+            <div class="flex items-center gap-2">
+              <code class="flex-1 bg-white border border-green-300 rounded px-3 py-2 text-sm font-mono break-all">{{ createdKey.plaintextKey }}</code>
+              <button @click="copyApiKey" class="flex-shrink-0 p-2 rounded-lg bg-green-600 text-white hover:bg-green-700 transition" title="Kopieren">
+                <CheckIcon v-if="keyCopied" class="h-5 w-5" />
+                <ClipboardDocumentIcon v-else class="h-5 w-5" />
+              </button>
+            </div>
+            <p class="text-xs text-green-700 mt-2">Speicher diesen Key jetzt — er wird nicht noch einmal angezeigt.</p>
+          </div>
+
+          <!-- Create key -->
+          <div class="flex gap-2">
+            <input
+              v-model="newKeyName"
+              type="text"
+              placeholder="Key-Name, z.B. OpenWB Zuhause"
+              maxlength="100"
+              class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500"
+              @keyup.enter="createApiKey" />
+            <button
+              @click="createApiKey"
+              :disabled="apiKeyLoading || !newKeyName.trim()"
+              class="btn-3d px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition text-sm font-medium whitespace-nowrap">
+              + Key erstellen
+            </button>
+          </div>
+
+          <!-- Key list -->
+          <div v-if="apiKeys.length === 0" class="text-sm text-gray-500 italic">Noch keine API Keys vorhanden.</div>
+          <div v-else class="space-y-2">
+            <div
+              v-for="key in apiKeys"
+              :key="key.id"
+              class="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg gap-2">
+              <div class="min-w-0">
+                <p class="font-medium text-gray-800 text-sm truncate">{{ key.name || '(kein Name)' }}</p>
+                <p class="text-xs text-gray-500">
+                  <code class="font-mono">{{ key.keyPrefix }}…</code>
+                  · Zuletzt: {{ formatDate(key.lastUsedAt) }}
+                  · Erstellt: {{ formatDate(key.createdAt) }}
+                </p>
+              </div>
+              <button
+                @click="deleteApiKey(key.id, key.name)"
+                :disabled="deletingKeyId === key.id"
+                class="flex-shrink-0 p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition disabled:opacity-50"
+                title="Key widerrufen">
+                <TrashIcon class="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+
         </div><!-- end tab panel -->
       </div>
     </Transition>

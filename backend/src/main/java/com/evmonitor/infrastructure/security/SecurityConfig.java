@@ -31,6 +31,7 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final InternalAuthFilter internalAuthFilter;
+    private final ApiKeyAuthFilter apiKeyAuthFilter;
     private final CustomUserDetailsService userDetailsService;
 
     @Autowired(required = false)
@@ -41,9 +42,11 @@ public class SecurityConfig {
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter,
             InternalAuthFilter internalAuthFilter,
+            ApiKeyAuthFilter apiKeyAuthFilter,
             CustomUserDetailsService userDetailsService) {
         this.jwtAuthFilter = jwtAuthFilter;
         this.internalAuthFilter = internalAuthFilter;
+        this.apiKeyAuthFilter = apiKeyAuthFilter;
         this.userDetailsService = userDetailsService;
     }
 
@@ -66,6 +69,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/webhooks/**").permitAll()
                         // Internal service endpoints — secured by InternalAuthFilter, not JWT
                         .requestMatchers("/api/internal/**").permitAll()
+                        // Public API upload — secured by ApiKeyAuthFilter, not JWT
+                        .requestMatchers("/api/v1/**").permitAll()
+                        // Swagger UI + OpenAPI spec (springdoc-openapi)
+                        .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         // Actuator — nur intern erreichbar (kein nginx-Proxy), trotzdem explizit freigeben
                         .requestMatchers("/actuator/health").permitAll()
                         // Require Auth for remaining API endpoints
@@ -77,6 +84,7 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(internalAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(apiKeyAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         if (oauth2SuccessHandler != null) {

@@ -9,12 +9,13 @@ public enum DataSource {
     TESLA_MANUAL_IMPORT, // Manual import from TeslaMate / TeslaLogger / TeslaFi
     WALLBOX_OCPP,
     WALLBOX_GOE,         // go-eCharger Cloud via ev-monitor-connectors
+    API_UPLOAD,          // Public Upload API (Wallboxen, Skripte, Home-Automation)
     SEED_DATA;
 
     public boolean includeInStatistics() {
         return this == USER_LOGGED || this == SPRITMONITOR_IMPORT
                 || this == WALLBOX_OCPP || this == WALLBOX_GOE
                 || this == TESLA_FLEET_IMPORT || this == TESLA_LIVE
-                || this == TESLA_MANUAL_IMPORT;
+                || this == TESLA_MANUAL_IMPORT || this == API_UPLOAD;
     }
 }

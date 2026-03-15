@@ -58,6 +58,14 @@ server:
   port: 8080
   forward-headers-strategy: NATIVE
 
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui/index.html
+    default-models-expand-depth: -1  # Models nicht auto-aufklappen
+  default-flat-param-object: true
+
 # Actuator Security (Default: DISABLED für Prod)
 # In dev.yml wird health/info enabled
 management:
@@ -119,7 +127,7 @@ tesla:
 
 # Internal Service Token (used by Wallbox Service to authenticate against Core)
 internal:
-  token: ${INTERNAL_SERVICE_TOKEN:dev-internal-token-change-in-prod}
+  token: ${INTERNAL_SERVICE_TOKEN}
 
 # Stripe Payment Integration
 stripe:

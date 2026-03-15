@@ -36,7 +36,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class EvLogDuplicateDetectionIntegrationTest extends AbstractIntegrationTest {
 
-    private static final String INTERNAL_TOKEN = "dev-internal-token-change-in-prod";
+    private static final String INTERNAL_TOKEN = "test-internal-token";
 
     private User testUser;
     private Car testCar;

@@ -25,8 +25,8 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class InternalUserControllerTest extends AbstractIntegrationTest {
 
-    // Default value from application.yml: ${INTERNAL_SERVICE_TOKEN:dev-internal-token-change-in-prod}
-    private static final String VALID_INTERNAL_TOKEN = "dev-internal-token-change-in-prod";
+    // Default value from application.yml: ${INTERNAL_SERVICE_TOKEN:test-internal-token}
+    private static final String VALID_INTERNAL_TOKEN = "test-internal-token";
 
     private User testUser;
 

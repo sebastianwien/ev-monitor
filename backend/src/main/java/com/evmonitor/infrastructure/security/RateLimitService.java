@@ -1,5 +1,7 @@
 package com.evmonitor.infrastructure.security;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import lombok.extern.slf4j.Slf4j;
@@ -7,7 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 /**
  * IP-based rate limiting for sensitive auth endpoints.
@@ -52,10 +54,24 @@ public class RateLimitService {
             .refillIntervally(5, Duration.ofMinutes(10))
             .build();
 
-    private final ConcurrentHashMap<String, Bucket> loginBuckets = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, Bucket> registerBuckets = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, Bucket> forgotPasswordBuckets = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, Bucket> demoLoginBuckets = new ConcurrentHashMap<>();
+    // 60 API upload requests per hour per API Key ID
+    private static final Bandwidth API_UPLOAD_LIMIT = Bandwidth.builder()
+            .capacity(60)
+            .refillIntervally(60, Duration.ofHours(1))
+            .build();
+
+    // Caffeine caches mit TTL + Größen-Limit — verhindert unbegrenztes Wachstum der Buckets.
+    // expireAfterAccess: Bucket wird nach Inaktivität entfernt. maximumSize: Hard Cap gegen DoS.
+    private final Cache<String, Bucket> loginBuckets = Caffeine.newBuilder()
+            .expireAfterAccess(10, TimeUnit.MINUTES).maximumSize(5_000).build();
+    private final Cache<String, Bucket> registerBuckets = Caffeine.newBuilder()
+            .expireAfterAccess(10, TimeUnit.MINUTES).maximumSize(5_000).build();
+    private final Cache<String, Bucket> forgotPasswordBuckets = Caffeine.newBuilder()
+            .expireAfterAccess(10, TimeUnit.MINUTES).maximumSize(5_000).build();
+    private final Cache<String, Bucket> demoLoginBuckets = Caffeine.newBuilder()
+            .expireAfterAccess(10, TimeUnit.MINUTES).maximumSize(5_000).build();
+    private final Cache<String, Bucket> apiUploadBuckets = Caffeine.newBuilder()
+            .expireAfterAccess(2, TimeUnit.HOURS).maximumSize(10_000).build();
 
     /**
      * @return true if the request may proceed, false if rate limit exceeded
@@ -63,7 +79,7 @@ public class RateLimitService {
     public boolean tryConsumeLogin(String clientIp) {
         if (!enabled) return true;
         boolean allowed = loginBuckets
-                .computeIfAbsent(clientIp, ip -> Bucket.builder().addLimit(LOGIN_LIMIT).build())
+                .get(clientIp, ip -> Bucket.builder().addLimit(LOGIN_LIMIT).build())
                 .tryConsume(1);
         if (!allowed) {
             log.warn("Rate limit exceeded for login from IP: {}", clientIp);
@@ -74,7 +90,7 @@ public class RateLimitService {
     public boolean tryConsumeForgotPassword(String clientIp) {
         if (!enabled) return true;
         boolean allowed = forgotPasswordBuckets
-                .computeIfAbsent(clientIp, ip -> Bucket.builder().addLimit(FORGOT_PASSWORD_LIMIT).build())
+                .get(clientIp, ip -> Bucket.builder().addLimit(FORGOT_PASSWORD_LIMIT).build())
                 .tryConsume(1);
         if (!allowed) {
             log.warn("Rate limit exceeded for forgot-password from IP: {}", clientIp);
@@ -88,7 +104,7 @@ public class RateLimitService {
     public boolean tryConsumeRegister(String clientIp) {
         if (!enabled) return true;
         boolean allowed = registerBuckets
-                .computeIfAbsent(clientIp, ip -> Bucket.builder().addLimit(REGISTER_LIMIT).build())
+                .get(clientIp, ip -> Bucket.builder().addLimit(REGISTER_LIMIT).build())
                 .tryConsume(1);
         if (!allowed) {
             log.warn("Rate limit exceeded for register from IP: {}", clientIp);
@@ -96,10 +112,26 @@ public class RateLimitService {
         return allowed;
     }
 
+    /**
+     * Rate limiting per API Key ID: 60 requests/hour.
+     * @param keyId the API key UUID as string (used as bucket key)
+     * @return true if the request may proceed, false if rate limit exceeded
+     */
+    public boolean tryConsumeApiUpload(String keyId) {
+        if (!enabled) return true;
+        boolean allowed = apiUploadBuckets
+                .get(keyId, k -> Bucket.builder().addLimit(API_UPLOAD_LIMIT).build())
+                .tryConsume(1);
+        if (!allowed) {
+            log.warn("Rate limit exceeded for API upload, key: {}", keyId);
+        }
+        return allowed;
+    }
+
     public boolean tryConsumeDemoLogin(String clientIp) {
         if (!enabled) return true;
         boolean allowed = demoLoginBuckets
-                .computeIfAbsent(clientIp, ip -> Bucket.builder().addLimit(DEMO_LOGIN_LIMIT).build())
+                .get(clientIp, ip -> Bucket.builder().addLimit(DEMO_LOGIN_LIMIT).build())
                 .tryConsume(1);
         if (!allowed) {
             log.warn("Rate limit exceeded for demo-login from IP: {}", clientIp);

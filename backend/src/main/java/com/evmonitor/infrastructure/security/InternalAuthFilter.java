@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.security.MessageDigest;
 
 /**
  * Secures /api/internal/** endpoints with a shared secret token.
@@ -35,7 +36,7 @@ public class InternalAuthFilter extends OncePerRequestFilter {
         }
 
         String token = request.getHeader(INTERNAL_TOKEN_HEADER);
-        if (token == null || !token.equals(internalToken)) {
+        if (token == null || !MessageDigest.isEqual(token.getBytes(), internalToken.getBytes())) {
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
             response.getWriter().write("{\"error\":\"Forbidden\"}");
             return;
