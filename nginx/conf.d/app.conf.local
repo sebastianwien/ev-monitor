@@ -5,7 +5,23 @@ map $http_user_agent $is_bot {
     default 0;
     "~*googlebot"               1;
     "~*bingbot"                 1;
+    "~*yandexbot"               1;
+    "~*duckduckbot"             1;
+    "~*slurp"                   1;
     "~*facebookexternalhit"     1;
+    "~*twitterbot"              1;
+    "~*linkedinbot"             1;
+    "~*whatsapp"                1;
+    "~*perplexitybot"           1;
+    "~*claudebot"               1;
+    "~*anthropic-ai"            1;
+    "~*gptbot"                  1;
+    "~*chatgpt-user"            1;
+    "~*oai-searchbot"           1;
+    "~*cohere-ai"               1;
+    "~*applebot"                1;
+    "~*ahrefsbot"               1;
+    "~*semrushbot"              1;
 }
 
 server {
@@ -22,6 +38,7 @@ server {
         }
         set $prerender_url "http://prerender:3000/http://nginx$request_uri";
         if ($prerender = 1) {
+            access_log /var/log/nginx/prerender.log prerender;
             proxy_pass $prerender_url;
         }
         root /usr/share/nginx/html;

@@ -41,6 +41,25 @@ jobs:
           cd frontend
           npm run build
 
+      - name: Start local stack for prerender test
+        run: |
+          docker compose -f docker-compose.local.yml up -d --build nginx prerender
+          echo "⏳ Waiting for nginx to be ready..."
+          for i in $(seq 1 15); do
+            if curl -sf http://localhost:8081/modelle > /dev/null 2>&1; then
+              echo "✅ Nginx ready after $((i*2)) seconds"
+              break
+            fi
+            sleep 2
+          done
+
+      - name: Run prerender smoke tests
+        run: ./scripts/test-prerender.sh http://localhost:8081
+
+      - name: Stop local stack
+        if: always()
+        run: docker compose -f docker-compose.local.yml down
+
   deploy:
     needs: test
     runs-on: ubuntu-latest
@@ -88,3 +107,14 @@ jobs:
             echo "❌ Backend health check failed — dumping logs:"
             cd /opt/ev-monitor/ev-monitor && docker compose logs backend --tail=50
             exit 1
+
+      - name: Prerender smoke test on production
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 2222
+          script: |
+            cd /opt/ev-monitor/ev-monitor
+            ./scripts/test-prerender.sh https://ev-monitor.net
