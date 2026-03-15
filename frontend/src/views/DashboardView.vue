@@ -132,12 +132,10 @@ const groupByOptions = [
   { value: 'MONTH', label: 'Monatlich' }
 ]
 
-// Fetch car details + WLTP when car changes
+// Fetch car details + WLTP when car changes (uses already-loaded cars.value — no extra API call)
 const fetchCarAndWltp = async (carId: string) => {
   try {
-    const carsResponse = await api.get('/cars')
-    cars.value = carsResponse.data // Store for empty state check
-    const car = carsResponse.data.find((c: any) => c.id === carId)
+    const car = cars.value.find((c: any) => c.id === carId)
     if (!car) return
 
     carInfo.value = {
@@ -507,7 +505,8 @@ onMounted(async () => {
     }
     startTeslaPolling(r.data.some((c: any) => c.brand?.toLowerCase() === 'tesla'))
   } catch { /* non-critical */ }
-  fetchStatistics()
+  // fetchStatistics() is NOT called here — setting selectedCarId above already triggers the watch,
+  // which calls fetchCarAndWltp + fetchStatistics + fetchLogs in sequence.
 })
 
 // ── Log List with Pagination ─────────────────────────────────────────────────

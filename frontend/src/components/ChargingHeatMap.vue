@@ -52,15 +52,43 @@ interface EvLog {
   chargeDurationMinutes: number
 }
 
-// Fetch logs for the selected car
+interface SessionGroup {
+  id: string
+  totalKwhCharged: number
+  costEur: number | null
+  geohash: string | null
+  sessionStart: string
+  totalDurationMinutes: number | null
+}
+
+// Fetch logs + groups for the selected car and combine geohash data
 const fetchLogs = async () => {
   if (!props.carId) return []
 
   try {
     loading.value = true
     error.value = null
-    const response = await api.get(`/logs?carId=${props.carId}`)
-    return response.data as EvLog[]
+    const [logsResponse, groupsResponse] = await Promise.all([
+      api.get(`/logs?carId=${props.carId}`),
+      api.get(`/logs/groups?carId=${props.carId}`).catch(() => ({ data: [] }))
+    ])
+
+    const logs: EvLog[] = logsResponse.data
+    const groups: SessionGroup[] = groupsResponse.data
+
+    // Convert groups to EvLog shape so they appear on the heatmap too
+    const groupsAsLogs: EvLog[] = groups
+      .filter((g: SessionGroup) => g.geohash)
+      .map((g: SessionGroup) => ({
+        id: g.id,
+        kwhCharged: g.totalKwhCharged,
+        costEur: g.costEur ?? 0,
+        geohash: g.geohash,
+        loggedAt: g.sessionStart,
+        chargeDurationMinutes: g.totalDurationMinutes ?? 0
+      }))
+
+    return [...logs, ...groupsAsLogs]
   } catch (err: any) {
     error.value = err.response?.data?.message || 'Fehler beim Laden der Logs'
     return []
