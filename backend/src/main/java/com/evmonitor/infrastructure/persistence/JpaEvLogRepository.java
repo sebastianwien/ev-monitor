@@ -136,7 +136,7 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
             SELECT
                 COUNT(l.id)                                            AS log_count,
                 COUNT(DISTINCT c.user_id)                              AS unique_contributors,
-                AVG(l.cost_eur / NULLIF(l.kwh_charged, 0))            AS avg_cost_per_kwh,
+                AVG(CASE WHEN l.cost_eur > 0 THEN l.cost_eur / NULLIF(l.kwh_charged, 0) END) AS avg_cost_per_kwh,
                 AVG(l.kwh_charged)                                     AS avg_kwh_per_session
             FROM ev_log l
             JOIN car c ON c.id = l.car_id

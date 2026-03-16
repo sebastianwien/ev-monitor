@@ -461,7 +461,7 @@ public class EvLogService {
 
         BigDecimal totalCostEur = logs.stream()
                 .map(EvLog::getCostEur)
-                .filter(Objects::nonNull)
+                .filter(c -> c != null && c.compareTo(BigDecimal.ZERO) > 0)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal avgCostPerKwh = totalKwhCharged.compareTo(BigDecimal.ZERO) > 0
