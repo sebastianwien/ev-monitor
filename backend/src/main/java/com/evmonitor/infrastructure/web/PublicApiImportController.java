@@ -3,6 +3,7 @@ package com.evmonitor.infrastructure.web;
 import com.evmonitor.application.publicapi.ImportApiResult;
 import com.evmonitor.application.publicapi.PublicApiImportService;
 import com.evmonitor.application.publicapi.PublicApiSessionRequest;
+import com.evmonitor.domain.ApiKey;
 import com.evmonitor.infrastructure.security.RateLimitService;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
@@ -73,9 +74,10 @@ public class PublicApiImportController {
         }
 
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        ApiKey apiKey = (ApiKey) httpRequest.getAttribute("apiKey");
 
         try {
-            ImportApiResult result = importService.importSessions(principal.getUser().getId(), request);
+            ImportApiResult result = importService.importSessions(principal.getUser().getId(), request, apiKey);
             return ResponseEntity.ok(Map.of(
                     "imported", result.imported(),
                     "skipped", result.skipped(),

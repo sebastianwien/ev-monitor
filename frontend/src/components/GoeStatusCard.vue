@@ -96,6 +96,21 @@ async function handleDisconnect() {
   emit('disconnect', conn.value.id)
 }
 
+// ── Merge sessions toggle ─────────────────────────────────────────────────────
+
+const savingMergeSessions = ref(false)
+
+async function toggleMergeSessions() {
+  if (!conn.value) return
+  savingMergeSessions.value = true
+  try {
+    const updated = await goeService.updateMergeSessions(conn.value.id, !conn.value.mergeSessions)
+    conn.value = { ...conn.value, mergeSessions: updated.mergeSessions }
+  } finally {
+    savingMergeSessions.value = false
+  }
+}
+
 // ── Tariff editing ────────────────────────────────────────────────────────────
 
 const editingTariff = ref(false)
@@ -227,6 +242,24 @@ async function saveTariff() {
         <button @click="editingTariff = false"
           class="p-1 text-gray-400 hover:text-gray-600">
           <XMarkIcon class="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+
+    <!-- Merge Sessions -->
+    <div class="px-5 py-3 border-t border-gray-100">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-xs font-medium text-gray-700">Sessions zusammenfassen</p>
+          <p class="text-xs text-gray-400 mt-0.5">Kleine Uberschuss-Sessions desselben Tages gruppieren</p>
+        </div>
+        <button
+          @click="toggleMergeSessions"
+          :disabled="savingMergeSessions"
+          :class="['relative inline-flex h-5 w-9 items-center rounded-full transition-colors disabled:opacity-50',
+                   conn.mergeSessions ? 'bg-indigo-600' : 'bg-gray-200']">
+          <span :class="['inline-block h-3 w-3 transform rounded-full bg-white transition-transform',
+                         conn.mergeSessions ? 'translate-x-5' : 'translate-x-1']" />
         </button>
       </div>
     </div>

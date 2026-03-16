@@ -84,6 +84,16 @@ const formatDate = (dateStr: string | null) => {
   return new Date(dateStr).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
+async function toggleMergeSessions(key: ApiKeyResponse) {
+  try {
+    const updated = await apiKeyService.updateMergeSessions(key.id, !key.mergeSessions)
+    const idx = apiKeys.value.findIndex(k => k.id === key.id)
+    if (idx !== -1) apiKeys.value[idx] = updated
+  } catch (e) {
+    console.error('Failed to toggle merge sessions', e)
+  }
+}
+
 const hasActiveTesla = computed(() =>
   cars.value.some(c => c.brand?.toLowerCase() === 'tesla' && c.status === 'ACTIVE')
 )
@@ -361,13 +371,25 @@ const teslaCars = computed(() =>
               v-for="key in apiKeys"
               :key="key.id"
               class="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg gap-2">
-              <div class="min-w-0">
+              <div class="min-w-0 flex-1">
                 <p class="font-medium text-gray-800 text-sm truncate">{{ key.name || '(kein Name)' }}</p>
                 <p class="text-xs text-gray-500">
                   <code class="font-mono">{{ key.keyPrefix }}…</code>
                   · Zuletzt: {{ formatDate(key.lastUsedAt) }}
                   · Erstellt: {{ formatDate(key.createdAt) }}
                 </p>
+                <!-- Merge toggle -->
+                <div class="flex items-center gap-2 mt-1">
+                  <button
+                    @click="toggleMergeSessions(key)"
+                    :class="['relative inline-flex h-5 w-9 items-center rounded-full transition-colors',
+                             key.mergeSessions ? 'bg-indigo-600' : 'bg-gray-200']"
+                    :title="key.mergeSessions ? 'Sessions zusammenfassen aktiv' : 'Sessions zusammenfassen inaktiv'">
+                    <span :class="['inline-block h-3 w-3 transform rounded-full bg-white transition-transform',
+                                   key.mergeSessions ? 'translate-x-5' : 'translate-x-1']" />
+                  </button>
+                  <span class="text-xs text-gray-500">Sessions zusammenfassen</span>
+                </div>
               </div>
               <button
                 @click="deleteApiKey(key.id, key.name)"

@@ -178,8 +178,9 @@ public class EvLogService {
         }
 
         // Überschussladen-Grouping: WALLBOX_GOE Sessions mit kurzem Abstand zusammenfassen.
+        // Nur wenn merge_sessions am Request aktiv ist (go-e Verbindung muss es explizit anfordern).
         // Fehler beim Grouping sollen den Log-Save NICHT rückgängig machen — daher try-catch.
-        if (!isSuperseded) {
+        if (!isSuperseded && request.mergeSessions()) {
             try {
                 sessionGroupService.processWallboxLog(savedLog);
             } catch (Exception e) {

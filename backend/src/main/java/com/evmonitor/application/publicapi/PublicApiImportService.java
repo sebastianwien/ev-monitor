@@ -2,6 +2,7 @@ package com.evmonitor.application.publicapi;
 
 import ch.hsr.geohash.GeoHash;
 import com.evmonitor.application.CoinLogService;
+import com.evmonitor.application.SessionGroupService;
 import com.evmonitor.domain.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -37,16 +38,18 @@ public class PublicApiImportService {
     private final EvLogRepository evLogRepository;
     private final CarRepository carRepository;
     private final CoinLogService coinLogService;
+    private final SessionGroupService sessionGroupService;
 
     public PublicApiImportService(EvLogRepository evLogRepository, CarRepository carRepository,
-                                  CoinLogService coinLogService) {
+                                  CoinLogService coinLogService, SessionGroupService sessionGroupService) {
         this.evLogRepository = evLogRepository;
         this.carRepository = carRepository;
         this.coinLogService = coinLogService;
+        this.sessionGroupService = sessionGroupService;
     }
 
     @Transactional
-    public ImportApiResult importSessions(UUID userId, PublicApiSessionRequest request) {
+    public ImportApiResult importSessions(UUID userId, PublicApiSessionRequest request, ApiKey apiKey) {
         Car car = carRepository.findById(request.carId())
                 .orElseThrow(() -> new IllegalArgumentException("Fahrzeug nicht gefunden"));
 
@@ -97,6 +100,16 @@ public class PublicApiImportService {
 
                 EvLog saved = evLogRepository.save(evLog);
                 coinLogService.awardCoinsForEvent(userId, CoinLogService.CoinEvent.API_UPLOAD_LOG, saved.getId());
+
+                // Merge only if: exactly 1 session in request AND merge flag enabled on API key
+                if (request.sessions().size() == 1 && apiKey.isMergeSessions()) {
+                    try {
+                        sessionGroupService.processWallboxLog(saved);
+                    } catch (Exception e) {
+                        log.warn("Session merging failed for API upload log {}: {}", saved.getId(), e.getMessage());
+                    }
+                }
+
                 imported++;
 
             } catch (Exception e) {

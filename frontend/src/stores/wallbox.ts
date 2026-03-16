@@ -12,6 +12,7 @@ const DEMO_CONNECTION: GoeConnection = {
   carStateLabel: 'Lädt',
   tariffCentsPerKwh: 28,
   geohash: null,
+  mergeSessions: false,
 }
 
 const POLL_CHARGING_MS = 2 * 60 * 1000

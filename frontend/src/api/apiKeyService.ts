@@ -6,6 +6,7 @@ export interface ApiKeyResponse {
   name: string;
   lastUsedAt: string | null;
   createdAt: string;
+  mergeSessions: boolean;
 }
 
 export interface ApiKeyCreatedResponse extends ApiKeyResponse {
@@ -25,5 +26,10 @@ export const apiKeyService = {
 
   async deleteKey(id: string): Promise<void> {
     await axiosInstance.delete(`/user/api-keys/${id}`);
+  },
+
+  async updateMergeSessions(id: string, mergeSessions: boolean): Promise<ApiKeyResponse> {
+    const response = await axiosInstance.patch(`/user/api-keys/${id}/merge-sessions`, { mergeSessions });
+    return response.data;
   },
 };

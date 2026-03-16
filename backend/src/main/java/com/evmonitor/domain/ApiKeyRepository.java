@@ -18,4 +18,6 @@ public interface ApiKeyRepository {
     void updateLastUsedAt(UUID id);
 
     long countByUserId(UUID userId);
+
+    ApiKey updateMergeSessions(UUID id, UUID userId, boolean mergeSessions);
 }

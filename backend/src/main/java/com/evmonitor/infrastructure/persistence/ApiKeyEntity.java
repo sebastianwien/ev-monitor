@@ -30,10 +30,14 @@ public class ApiKeyEntity {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "merge_sessions", nullable = false)
+    private boolean mergeSessions = false;
+
     public ApiKeyEntity() {}
 
     public ApiKeyEntity(UUID id, UUID userId, String keyHash, String keyPrefix,
-                        String name, LocalDateTime lastUsedAt, LocalDateTime createdAt) {
+                        String name, LocalDateTime lastUsedAt, LocalDateTime createdAt,
+                        boolean mergeSessions) {
         this.id = id;
         this.userId = userId;
         this.keyHash = keyHash;
@@ -41,6 +45,7 @@ public class ApiKeyEntity {
         this.name = name;
         this.lastUsedAt = lastUsedAt;
         this.createdAt = createdAt;
+        this.mergeSessions = mergeSessions;
     }
 
     public UUID getId() { return id; }
@@ -57,4 +62,6 @@ public class ApiKeyEntity {
     public void setLastUsedAt(LocalDateTime lastUsedAt) { this.lastUsedAt = lastUsedAt; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public boolean isMergeSessions() { return mergeSessions; }
+    public void setMergeSessions(boolean mergeSessions) { this.mergeSessions = mergeSessions; }
 }

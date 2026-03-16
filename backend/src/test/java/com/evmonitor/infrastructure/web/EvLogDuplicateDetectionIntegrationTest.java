@@ -137,7 +137,8 @@ class EvLogDuplicateDetectionIntegrationTest extends AbstractIntegrationTest {
                 null, null,
                 DataSource.TESLA_FLEET_IMPORT.name(),
                 null,
-                ChargingType.DC.name()
+                ChargingType.DC.name(),
+                false
         );
 
         HttpHeaders headers = new HttpHeaders();
@@ -256,7 +257,7 @@ class EvLogDuplicateDetectionIntegrationTest extends AbstractIntegrationTest {
                 carId, userId, kwh, 60, sessionTime,
                 null, null, null,
                 DataSource.TESLA_FLEET_IMPORT.name(),
-                null, ChargingType.DC.name()
+                null, ChargingType.DC.name(), false
         );
         HttpHeaders headers = new HttpHeaders();
         headers.set("X-Internal-Token", INTERNAL_TOKEN);
@@ -319,7 +320,7 @@ class EvLogDuplicateDetectionIntegrationTest extends AbstractIntegrationTest {
                 carId, userId, kwh, 50, sessionTime.plusMinutes(6),
                 null, null, null,
                 DataSource.TESLA_FLEET_IMPORT.name(),
-                null, ChargingType.DC.name()
+                null, ChargingType.DC.name(), false
         );
         HttpHeaders headers = new HttpHeaders();
         headers.set("X-Internal-Token", INTERNAL_TOKEN);

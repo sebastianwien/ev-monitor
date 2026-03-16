@@ -12,5 +12,6 @@ public record ApiKeyCreatedResponse(
         String keyPrefix,
         String name,
         LocalDateTime createdAt,
-        String plaintextKey
+        String plaintextKey,
+        boolean mergeSessions
 ) {}

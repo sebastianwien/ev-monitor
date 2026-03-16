@@ -21,5 +21,6 @@ public record InternalEvLogRequest(
         Integer odometerSuggestionMaxKm,
         String dataSource,    // optional: WALLBOX_OCPP | WALLBOX_GOE | TESLA_FLEET_IMPORT | TESLA_LIVE (defaults to WALLBOX_OCPP)
         BigDecimal costEur,   // optional: only available from sources that report cost (e.g. Tesla Supercharger)
-        String chargingType) {  // optional: AC | DC (defaults to UNKNOWN)
+        String chargingType,  // optional: AC | DC (defaults to UNKNOWN)
+        boolean mergeSessions) {  // optional: if true, merge with adjacent same-day sessions (WALLBOX_GOE only)
 }

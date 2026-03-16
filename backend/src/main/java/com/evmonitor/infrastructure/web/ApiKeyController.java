@@ -6,13 +6,12 @@ import com.evmonitor.application.publicapi.ApiKeyService;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 import java.util.List;
 import java.util.Map;
@@ -54,7 +53,25 @@ public class ApiKeyController {
         return ResponseEntity.noContent().build();
     }
 
+    @PatchMapping("/{id}/merge-sessions")
+    public ResponseEntity<?> updateMergeSessions(
+            @PathVariable UUID id,
+            @RequestBody @Valid UpdateMergeSessionsRequest body,
+            Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        try {
+            ApiKeyResponse response = apiKeyService.updateMergeSessions(principal.getUser().getId(), id, body.mergeSessions());
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        }
+    }
+
     public record CreateApiKeyRequest(
             @NotBlank @Size(max = 100) String name
+    ) {}
+
+    public record UpdateMergeSessionsRequest(
+            @NotNull Boolean mergeSessions
     ) {}
 }

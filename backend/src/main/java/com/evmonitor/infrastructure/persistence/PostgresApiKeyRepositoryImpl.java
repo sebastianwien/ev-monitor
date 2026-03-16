@@ -58,6 +58,15 @@ public class PostgresApiKeyRepositoryImpl implements ApiKeyRepository {
         jpaRepository.updateLastUsedAt(id, LocalDateTime.now());
     }
 
+    @Override
+    @Transactional
+    public ApiKey updateMergeSessions(UUID id, UUID userId, boolean mergeSessions) {
+        ApiKeyEntity entity = jpaRepository.findByIdAndUserId(id, userId)
+                .orElseThrow(() -> new IllegalArgumentException("API Key nicht gefunden"));
+        entity.setMergeSessions(mergeSessions);
+        return toDomain(jpaRepository.save(entity));
+    }
+
     private ApiKeyEntity toEntity(ApiKey domain) {
         return new ApiKeyEntity(
                 domain.getId(),
@@ -66,7 +75,8 @@ public class PostgresApiKeyRepositoryImpl implements ApiKeyRepository {
                 domain.getKeyPrefix(),
                 domain.getName(),
                 domain.getLastUsedAt(),
-                domain.getCreatedAt()
+                domain.getCreatedAt(),
+                domain.isMergeSessions()
         );
     }
 
@@ -78,7 +88,8 @@ public class PostgresApiKeyRepositoryImpl implements ApiKeyRepository {
                 entity.getKeyPrefix(),
                 entity.getName(),
                 entity.getLastUsedAt(),
-                entity.getCreatedAt()
+                entity.getCreatedAt(),
+                entity.isMergeSessions()
         );
     }
 }

@@ -77,8 +77,9 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
         auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(auth);
 
-        // Store key ID as request attribute for rate limiting in controller
+        // Store key ID and key object as request attributes for rate limiting and feature flags
         request.setAttribute("apiKeyId", apiKey.get().getId().toString());
+        request.setAttribute("apiKey", apiKey.get());
 
         filterChain.doFilter(request, response);
     }

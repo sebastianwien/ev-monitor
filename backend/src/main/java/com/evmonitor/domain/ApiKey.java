@@ -8,13 +8,15 @@ public class ApiKey {
     private final UUID id;
     private final UUID userId;
     private final String keyHash;    // SHA-256 hex
-    private final String keyPrefix;  // "evm_XXXX" — nur für UI
+    private final String keyPrefix;  // "evm_XXXX" - nur für UI
     private final String name;
     private final LocalDateTime lastUsedAt;
     private final LocalDateTime createdAt;
+    private final boolean mergeSessions;
 
     public ApiKey(UUID id, UUID userId, String keyHash, String keyPrefix,
-                  String name, LocalDateTime lastUsedAt, LocalDateTime createdAt) {
+                  String name, LocalDateTime lastUsedAt, LocalDateTime createdAt,
+                  boolean mergeSessions) {
         this.id = id;
         this.userId = userId;
         this.keyHash = keyHash;
@@ -22,10 +24,11 @@ public class ApiKey {
         this.name = name;
         this.lastUsedAt = lastUsedAt;
         this.createdAt = createdAt;
+        this.mergeSessions = mergeSessions;
     }
 
     public static ApiKey createNew(UUID userId, String keyHash, String keyPrefix, String name) {
-        return new ApiKey(UUID.randomUUID(), userId, keyHash, keyPrefix, name, null, LocalDateTime.now());
+        return new ApiKey(UUID.randomUUID(), userId, keyHash, keyPrefix, name, null, LocalDateTime.now(), false);
     }
 
     public UUID getId() { return id; }
@@ -35,4 +38,5 @@ public class ApiKey {
     public String getName() { return name; }
     public LocalDateTime getLastUsedAt() { return lastUsedAt; }
     public LocalDateTime getCreatedAt() { return createdAt; }
+    public boolean isMergeSessions() { return mergeSessions; }
 }

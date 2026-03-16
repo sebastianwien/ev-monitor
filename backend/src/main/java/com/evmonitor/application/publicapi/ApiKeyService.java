@@ -51,15 +51,22 @@ public class ApiKeyService {
         ApiKey apiKey = ApiKey.createNew(userId, hash, uiPrefix, name);
         ApiKey saved = apiKeyRepository.save(apiKey);
 
-        return new ApiKeyCreatedResponse(saved.getId(), uiPrefix, name, saved.getCreatedAt(), plaintext);
+        return new ApiKeyCreatedResponse(saved.getId(), uiPrefix, name, saved.getCreatedAt(), plaintext, saved.isMergeSessions());
     }
 
     public List<ApiKeyResponse> listKeys(UUID userId) {
         return apiKeyRepository.findAllByUserId(userId)
                 .stream()
                 .map(k -> new ApiKeyResponse(k.getId(), k.getKeyPrefix(), k.getName(),
-                        k.getLastUsedAt(), k.getCreatedAt()))
+                        k.getLastUsedAt(), k.getCreatedAt(), k.isMergeSessions()))
                 .toList();
+    }
+
+    @Transactional
+    public ApiKeyResponse updateMergeSessions(UUID userId, UUID keyId, boolean mergeSessions) {
+        ApiKey updated = apiKeyRepository.updateMergeSessions(keyId, userId, mergeSessions);
+        return new ApiKeyResponse(updated.getId(), updated.getKeyPrefix(), updated.getName(),
+                updated.getLastUsedAt(), updated.getCreatedAt(), updated.isMergeSessions());
     }
 
     @Transactional

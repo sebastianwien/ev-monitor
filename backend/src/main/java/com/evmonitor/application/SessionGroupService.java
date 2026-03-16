@@ -67,8 +67,9 @@ public class SessionGroupService {
      */
     @Transactional
     public void processWallboxLog(EvLog savedLog, int mergeGapMinutes) {
-        // Nur WALLBOX_GOE Sessions gruppieren
-        if (savedLog.getDataSource() != DataSource.WALLBOX_GOE) {
+        // Nur WALLBOX_GOE und API_UPLOAD Sessions gruppieren
+        if (savedLog.getDataSource() != DataSource.WALLBOX_GOE
+                && savedLog.getDataSource() != DataSource.API_UPLOAD) {
             return;
         }
 
@@ -79,7 +80,7 @@ public class SessionGroupService {
                 savedLog.getCarId(),
                 threshold,
                 newSessionStart.toLocalDate(),
-                DataSource.WALLBOX_GOE.name());
+                savedLog.getDataSource().name());
 
         UUID groupId;
         if (openGroup.isPresent()) {

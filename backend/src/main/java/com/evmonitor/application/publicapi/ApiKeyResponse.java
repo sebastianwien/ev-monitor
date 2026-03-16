@@ -8,5 +8,6 @@ public record ApiKeyResponse(
         String keyPrefix,
         String name,
         LocalDateTime lastUsedAt,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        boolean mergeSessions
 ) {}
