@@ -1,9 +1,11 @@
 package com.evmonitor.application.spritmonitor;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.math.BigDecimal;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record SpritMonitorFuelingDTO(
     String date,
     BigDecimal quantity,
