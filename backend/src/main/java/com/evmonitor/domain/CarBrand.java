@@ -8,6 +8,7 @@ public enum CarBrand {
    // Deutschland
    AUDI("Audi"),
    BMW("BMW"),
+   MINI("Mini"),
    MERCEDES("Mercedes-Benz"),
    PORSCHE("Porsche"),
    VW("Volkswagen"),
@@ -100,6 +101,17 @@ public enum CarBrand {
       EV_3(CarBrand.KIA, "EV3", 58.3, 81.4),
       NIRO_EV(CarBrand.KIA, "Niro EV", 39.2, 64.8),
       E_SOUL(CarBrand.KIA, "e-Soul", 39.2, 64.0),
+
+      // --- MINI (BMW Group) ---
+      // Cooper SE F56: 28.9 kWh netto (32.6 kWh brutto) — verifiziert
+      // TODO: J01-Modelle (Cooper E/SE, Aceman E/SE) — Netto-Werte ca. 90% von Brutto, bitte gegen ev-database.org prüfen
+      MINI_COOPER_SE_F56(CarBrand.MINI, "Cooper SE (2020-2023)", 28.9),
+      MINI_COOPER_E(CarBrand.MINI, "Cooper E", 37.0),
+      MINI_COOPER_SE(CarBrand.MINI, "Cooper SE", 49.0),
+      MINI_ACEMAN_E(CarBrand.MINI, "Aceman E", 37.0),
+      MINI_ACEMAN_SE(CarBrand.MINI, "Aceman SE", 49.0),
+      // TODO: Countryman SE Netto-Wert verifizieren (Brutto ~64.7 kWh)
+      MINI_COUNTRYMAN_SE(CarBrand.MINI, "Countryman SE", 64.0),
 
       // --- BMW (Bayerische Akku-Präzision) ---
       I3(CarBrand.BMW, "i3", 33.0, 42.2),

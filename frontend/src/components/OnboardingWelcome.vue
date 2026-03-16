@@ -136,6 +136,11 @@ const complete = () => {
                 <XMarkIcon class="h-6 w-6" />
               </button>
 
+              <!-- Tutorial Badge -->
+              <div class="flex justify-center mb-3">
+                <span class="text-xs font-semibold uppercase tracking-widest text-indigo-500 bg-indigo-50 px-3 py-1 rounded-full">Einführung</span>
+              </div>
+
               <!-- Progress Dots -->
               <div class="flex justify-center gap-2 mb-6">
                 <div
@@ -218,15 +223,16 @@ const complete = () => {
                     <p class="text-gray-600 max-w-md mx-auto">
                       Wähle zwischen zwei einfachen Methoden – beide dauern weniger als <strong>30 Sekunden</strong>!
                     </p>
+                    <p class="text-xs font-semibold uppercase tracking-wider text-gray-400">Deine Optionen</p>
                     <div class="grid grid-cols-2 gap-3 w-full max-w-sm mx-auto">
-                      <div class="bg-gradient-to-br from-indigo-50 to-blue-50 border-2 border-indigo-200 rounded-xl p-3 flex items-center gap-3">
+                      <div class="bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-200 rounded-xl p-3 flex items-center gap-3">
                         <CameraIcon class="h-7 w-7 text-indigo-600 flex-shrink-0" />
                         <div class="text-left">
                           <p class="text-sm font-semibold text-indigo-900">Foto scannen</p>
                           <p class="text-xs text-indigo-600">100% privat – kein Upload</p>
                         </div>
                       </div>
-                      <div class="bg-gray-50 border-2 border-gray-200 rounded-xl p-3 flex items-center gap-3">
+                      <div class="bg-gray-50 border border-gray-200 rounded-xl p-3 flex items-center gap-3">
                         <PencilSquareIcon class="h-7 w-7 text-gray-600 flex-shrink-0" />
                         <div class="text-left">
                           <p class="text-sm font-semibold text-gray-900">Manuell eingeben</p>
