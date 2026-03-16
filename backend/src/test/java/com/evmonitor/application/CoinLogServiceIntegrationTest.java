@@ -1,9 +1,9 @@
 package com.evmonitor.application;
 
+import com.evmonitor.application.manualimport.ManualImportService;
 import com.evmonitor.application.spritmonitor.ImportResult;
 import com.evmonitor.application.spritmonitor.SpritMonitorFuelingDTO;
 import com.evmonitor.application.spritmonitor.SpritMonitorImportService;
-import com.evmonitor.application.teslalogger.TeslaLoggerImportService;
 import com.evmonitor.domain.*;
 import com.evmonitor.infrastructure.external.SpritMonitorClient;
 import com.evmonitor.testutil.AbstractIntegrationTest;
@@ -33,7 +33,7 @@ import static org.mockito.Mockito.when;
 class CoinLogServiceIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired private SpritMonitorImportService spritMonitorImportService;
-    @Autowired private TeslaLoggerImportService teslaLoggerImportService;
+    @Autowired private ManualImportService manualImportService;
     @Autowired private EvLogService evLogService;
     @Autowired private CoinLogService coinLogService;
 
@@ -112,20 +112,20 @@ class CoinLogServiceIntegrationTest extends AbstractIntegrationTest {
         assertThat(perLogCoins(CoinLogService.CoinEvent.SPRITMONITOR_LOG.getDescription())).hasSize(1);
     }
 
-    // ── TeslaLogger import ────────────────────────────────────────────────────
+    // ── Manual import ─────────────────────────────────────────────────────────
 
     @Test
-    void teslaLogger_awards2CoinsPerImportedLog_WithSourceEntityId() {
+    void manualImport_awards2CoinsPerImportedLog_WithSourceEntityId() {
         String csv = """
-                date,odometer_km,kwh,soc_after
-                2025-08-20T10:00:00,12000,24.5,80
-                2025-09-01T10:00:00,12800,18.0,72
-                2025-10-01T10:00:00,13500,21.0,85
+                date,kwh,odometer_km,soc_after
+                2025-08-20T10:00:00,24.5,12000,80
+                2025-09-01T10:00:00,18.0,12800,72
+                2025-10-01T10:00:00,21.0,13500,85
                 """;
 
-        teslaLoggerImportService.importData(user.getId(), car.getId(), "csv", csv);
+        manualImportService.importData(user.getId(), car.getId(), "csv", csv, false);
 
-        List<CoinLog> perLogCoins = perLogCoins(CoinLogService.CoinEvent.TESLA_HISTORY_LOG.getDescription());
+        List<CoinLog> perLogCoins = perLogCoins(CoinLogService.CoinEvent.API_UPLOAD_LOG.getDescription());
         assertThat(perLogCoins).hasSize(3);
         perLogCoins.forEach(coin -> {
             assertThat(coin.getAmount()).isEqualTo(2);
@@ -138,39 +138,16 @@ class CoinLogServiceIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void teslaLogger_awards20OnceBonus_OnFirstImport() {
-        String csv = "date,odometer_km,kwh,soc_after\n2025-08-20T10:00:00,12000,24.5,80\n";
-
-        teslaLoggerImportService.importData(user.getId(), car.getId(), "csv", csv);
-
-        List<CoinLog> bonus = perLogCoins(CoinLogService.CoinEvent.TESLA_LOGGER_CONNECTED.getDescription());
-        assertThat(bonus).hasSize(1);
-        assertThat(bonus.get(0).getAmount()).isEqualTo(CoinLogService.CoinEvent.TESLA_LOGGER_CONNECTED.getDefaultAmount());
-        assertThat(bonus.get(0).getSourceEntityId()).isNull();
-    }
-
-    @Test
-    void teslaLogger_doesNotAward50BonusAgain_OnSecondImport() {
-        String csv1 = "date,odometer_km,kwh,soc_after\n2025-08-20T10:00:00,12000,24.5,80\n";
-        String csv2 = "date,odometer_km,kwh,soc_after\n2025-09-01T10:00:00,12800,18.0,72\n";
-
-        teslaLoggerImportService.importData(user.getId(), car.getId(), "csv", csv1);
-        teslaLoggerImportService.importData(user.getId(), car.getId(), "csv", csv2);
-
-        assertThat(perLogCoins(CoinLogService.CoinEvent.TESLA_LOGGER_CONNECTED.getDescription())).hasSize(1);
-    }
-
-    @Test
-    void teslaLogger_doesNotAwardCoins_ForSkippedRows() {
+    void manualImport_doesNotAwardCoins_ForSkippedRows() {
         String csv = """
-                date,odometer_km,kwh,soc_after
-                2025-08-20T10:00:00,12000,24.5,80
-                ,12800,18.0,72
+                date,kwh,odometer_km,soc_after
+                2025-08-20T10:00:00,24.5,12000,80
+                ,18.0,12800,72
                 """;
 
-        teslaLoggerImportService.importData(user.getId(), car.getId(), "csv", csv);
+        manualImportService.importData(user.getId(), car.getId(), "csv", csv, false);
 
-        assertThat(perLogCoins(CoinLogService.CoinEvent.TESLA_HISTORY_LOG.getDescription())).hasSize(1);
+        assertThat(perLogCoins(CoinLogService.CoinEvent.API_UPLOAD_LOG.getDescription())).hasSize(1);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

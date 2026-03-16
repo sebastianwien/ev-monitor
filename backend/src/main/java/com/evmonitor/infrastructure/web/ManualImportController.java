@@ -1,7 +1,7 @@
 package com.evmonitor.infrastructure.web;
 
-import com.evmonitor.application.spritmonitor.ImportResult;
-import com.evmonitor.application.teslalogger.TeslaLoggerImportService;
+import com.evmonitor.application.manualimport.ManualImportService;
+import com.evmonitor.application.publicapi.ImportApiResult;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -12,27 +12,24 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Accepts manual imports from third-party Tesla data loggers (TeslaMate, TeslaLogger, TeslaFi).
+ * Accepts manual CSV/JSON imports of charging sessions via JWT auth.
  *
- * POST /api/import/tesla-logger
- * Body: { "carId": "uuid", "format": "csv"|"json", "data": "<raw content>" }
- * Response: { "imported": N, "skipped": N, "errors": [...], "coinsAwarded": N }
+ * POST /api/import/sessions
+ * Body: { "carId": "uuid", "format": "csv"|"json", "data": "<raw content>", "mergeSessions": boolean }
+ * Response: { "imported": N, "skipped": N, "errors": N }
  *
- * Format spec (pflichtfelder zuerst):
- *   date, odometer_km, kwh, soc_before, soc_after, cost_eur, location, duration_min
- *
- * - date: ISO 8601, European (DD.MM.YYYY), US (MM/DD/YYYY), Unix timestamp (s or ms)
- * - location: "lat,lon" (computed to geohash) or place name (stored without geohash)
- * - soc_before OR soc_after is required; soc_after is preferred for consumption calculations
+ * CSV header (all optional except date and kwh):
+ *   date,kwh,odometer_km,soc_before,soc_after,cost_eur,duration_min,location,
+ *   charging_type,max_charging_power_kw,route_type,tire_type
  */
 @RestController
-@RequestMapping("/api/import/tesla-logger")
+@RequestMapping("/api/import/sessions")
 @Slf4j
-public class TeslaLoggerImportController {
+public class ManualImportController {
 
-    private final TeslaLoggerImportService importService;
+    private final ManualImportService importService;
 
-    public TeslaLoggerImportController(TeslaLoggerImportService importService) {
+    public ManualImportController(ManualImportService importService) {
         this.importService = importService;
     }
 
@@ -53,20 +50,23 @@ public class TeslaLoggerImportController {
         }
 
         try {
-            ImportResult result = importService.importData(
+            ImportApiResult result = importService.importData(
                     principal.getUser().getId(),
                     request.carId(),
                     format,
-                    request.data()
+                    request.data(),
+                    request.mergeSessions() != null && request.mergeSessions()
             );
             return ResponseEntity.ok(result);
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
-            log.error("TeslaLogger import failed", e);
+            log.error("Manual import failed", e);
             return ResponseEntity.internalServerError().body(Map.of("error", "Import fehlgeschlagen: " + e.getMessage()));
         }
     }
 
-    private record ImportRequest(UUID carId, String format, String data) {}
+    private record ImportRequest(UUID carId, String format, String data, Boolean mergeSessions) {}
 }

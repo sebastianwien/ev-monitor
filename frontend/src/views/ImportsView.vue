@@ -4,7 +4,7 @@ import { ArrowDownTrayIcon, BoltIcon, ExclamationTriangleIcon, CodeBracketIcon, 
 import SpritMonitorImport from '../components/SpritMonitorImport.vue'
 import GoeIntegration from '../components/GoeIntegration.vue'
 import TeslaFleetIntegration from '../components/TeslaFleetIntegration.vue'
-import TeslaLoggerImportModal from '../components/TeslaLoggerImportModal.vue'
+import ManualImportModal from '../components/ManualImportModal.vue'
 import CarSelectDropdown from '../components/CarSelectDropdown.vue'
 import { carService, type Car } from '../api/carService'
 import { useImportsTab } from '../composables/useImportsTab'
@@ -12,7 +12,7 @@ import { apiKeyService, type ApiKeyResponse, type ApiKeyCreatedResponse } from '
 
 const { activeTab } = useImportsTab()
 const showSpritMonitorModal = ref(false)
-const teslaLoggerCarId = ref<string | null>(null)
+const manualImportCarId = ref<string | null>(null)
 const cars = ref<Car[]>([])
 const loading = ref(true)
 
@@ -98,8 +98,8 @@ const hasActiveTesla = computed(() =>
   cars.value.some(c => c.brand?.toLowerCase() === 'tesla' && c.status === 'ACTIVE')
 )
 
-const teslaCars = computed(() =>
-  cars.value.filter(c => c.brand?.toLowerCase() === 'tesla' && c.status === 'ACTIVE')
+const activeCars = computed(() =>
+  cars.value.filter(c => c.status === 'ACTIVE')
 )
 </script>
 
@@ -126,6 +126,7 @@ const teslaCars = computed(() =>
               { id: 'goe', label: 'go-eCharger' },
               { id: 'wallbox', label: 'OCPP Wallbox' },
               { id: 'tesla', label: 'Tesla' },
+              { id: 'manuell', label: 'Manuell' },
               { id: 'api', label: 'API' },
             ] as const)"
             :key="tab.id"
@@ -259,41 +260,47 @@ const teslaCars = computed(() =>
           </div>
           <template v-else>
           <div class="p-6"><TeslaFleetIntegration /></div>
-          <!-- TeslaLogger Manual Import -->
-          <div class="p-6 space-y-4">
-            <div class="flex items-start gap-4">
-              <div class="bg-gray-700 rounded-lg p-2 shrink-0">
-                <ArrowDownTrayIcon class="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <h2 class="font-semibold text-gray-900">Manueller Datenlogger-Import</h2>
-                <p class="text-sm text-gray-600 mt-1">
-                  Importiere vergangene Ladevorgänge aus <strong>TeslaMate</strong>, <strong>TeslaLogger</strong>,
-                  <strong>TeslaFi</strong> oder einer anderen Quelle — als CSV oder JSON in unserem Format.
-                </p>
-              </div>
-            </div>
-            <ul class="text-sm text-gray-600 space-y-1 list-disc list-inside">
-              <li>Vergangene Sessions inklusive Tachostand</li>
-              <li>CSV oder JSON — Format wird vorgegeben</li>
-              <li>Datum-Erkennung: ISO 8601, deutsch, US, Unix-Timestamp</li>
-              <li>Standort: Koordinaten (Lat/Lon) oder Ortsname</li>
-            </ul>
-            <div v-if="teslaCars.length > 1" class="space-y-1.5">
-              <label class="block text-sm font-medium text-gray-700">Fahrzeug auswählen</label>
-              <CarSelectDropdown :cars="teslaCars" v-model="teslaLoggerCarId" />
-            </div>
-            <button
-              @click="teslaLoggerCarId = teslaCars.length === 1 ? teslaCars[0].id : (teslaLoggerCarId || null)"
-              :disabled="teslaCars.length > 1 && !teslaLoggerCarId"
-              class="btn-3d w-full flex items-center justify-center gap-2 bg-gray-800 text-white px-5 py-2.5 rounded-lg font-medium text-sm hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
-            >
-              <ArrowDownTrayIcon class="h-4 w-4" />
-              Import starten
-            </button>
-          </div>
           </template>
         </div>
+        <!-- Tab: Manuell -->
+        <div v-if="activeTab === 'manuell'" class="p-6 space-y-4">
+          <div class="flex items-start gap-4">
+            <div class="bg-green-700 rounded-lg p-2 shrink-0">
+              <ArrowDownTrayIcon class="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h2 class="font-semibold text-gray-900">Manueller Import</h2>
+              <p class="text-sm text-gray-600 mt-1">
+                Importiere vergangene Ladevorgänge aus beliebigen Quellen - als CSV oder JSON.
+                Kompatibel mit TeslaMate, TeslaFi, eigenen Exports und jedem anderen Format das du anpassen kannst.
+              </p>
+            </div>
+          </div>
+          <ul class="text-sm text-gray-600 space-y-1 list-disc list-inside">
+            <li>CSV oder JSON - Format wird vorgegeben</li>
+            <li>Pflichtfelder: date und kwh - alles andere optional</li>
+            <li>Datum-Erkennung: ISO 8601, deutsch, US, Unix-Timestamp</li>
+            <li>Standort: Koordinaten (Lat/Lon) für Kartenansicht</li>
+            <li>Duplikate werden erkannt und übersprungen - anhand Zeitpunkt und kWh</li>
+          </ul>
+          <div v-if="activeCars.length > 1" class="space-y-1.5">
+            <label class="block text-sm font-medium text-gray-700">Fahrzeug auswählen</label>
+            <CarSelectDropdown :cars="activeCars" v-model="manualImportCarId" />
+          </div>
+          <button
+            @click="manualImportCarId = activeCars.length === 1 ? activeCars[0].id : (manualImportCarId || null)"
+            :disabled="activeCars.length === 0 || (activeCars.length > 1 && !manualImportCarId)"
+            class="btn-3d w-full flex items-center justify-center gap-2 bg-green-700 text-white px-5 py-2.5 rounded-lg font-medium text-sm hover:bg-green-800 disabled:opacity-40 disabled:cursor-not-allowed transition"
+          >
+            <ArrowDownTrayIcon class="h-4 w-4" />
+            Import starten
+          </button>
+          <p v-if="activeCars.length === 0" class="text-sm text-gray-500 italic">
+            Kein aktives Fahrzeug gefunden.
+            <router-link to="/cars" class="text-indigo-600 hover:underline font-medium">Fahrzeug anlegen</router-link>
+          </p>
+        </div>
+
         <!-- Tab: API -->
         <div v-if="activeTab === 'api'" class="p-6 space-y-5">
           <div class="flex items-start gap-4">
@@ -321,7 +328,7 @@ const teslaCars = computed(() =>
               Optional: <code class="bg-white px-1 rounded">odometer_km</code>, <code class="bg-white px-1 rounded">soc_after</code>, <code class="bg-white px-1 rounded">cost_eur</code>, <code class="bg-white px-1 rounded">duration_min</code>, <code class="bg-white px-1 rounded">location</code>, <code class="bg-white px-1 rounded">charging_type</code> (AC/DC)
             </p>
             <p class="text-xs mt-1">
-              Duplikate werden automatisch erkannt und übersprungen — anhand Tachostand (±1h) oder Zeitpunkt (±30 Min).
+              Duplikate werden erkannt und übersprungen - anhand Zeitpunkt und kWh.
             </p>
             <a href="/swagger-ui/index.html" target="_blank" class="inline-block mt-2 text-indigo-700 hover:underline font-medium text-xs">
               Vollständige API Dokumentation →
@@ -410,12 +417,12 @@ const teslaCars = computed(() =>
   <!-- Sprit-Monitor Import Modal -->
   <SpritMonitorImport v-if="showSpritMonitorModal" @close="showSpritMonitorModal = false" />
 
-  <!-- TeslaLogger Import Modal -->
-  <TeslaLoggerImportModal
-    v-if="teslaLoggerCarId"
-    :car-id="teslaLoggerCarId"
-    @close="teslaLoggerCarId = null"
-    @imported="teslaLoggerCarId = null"
+  <!-- Manual Import Modal -->
+  <ManualImportModal
+    v-if="manualImportCarId"
+    :car-id="manualImportCarId"
+    @close="manualImportCarId = null"
+    @imported="manualImportCarId = null"
   />
 </template>
 

@@ -55,8 +55,8 @@ public class SessionGroupService {
      * @param savedLog Der gerade gespeicherte Log-Eintrag
      */
     @Transactional
-    public void processWallboxLog(EvLog savedLog) {
-        processWallboxLog(savedLog, DEFAULT_MERGE_GAP_MINUTES);
+    public void processSessionForGrouping(EvLog savedLog) {
+        processSessionForGrouping(savedLog, DEFAULT_MERGE_GAP_MINUTES);
     }
 
     /**
@@ -66,7 +66,7 @@ public class SessionGroupService {
      * @param mergeGapMinutes Maximale Pause zwischen Sessions (in Minuten) für Gruppierung
      */
     @Transactional
-    public void processWallboxLog(EvLog savedLog, int mergeGapMinutes) {
+    public void processSessionForGrouping(EvLog savedLog, int mergeGapMinutes) {
         // Nur WALLBOX_GOE und API_UPLOAD Sessions gruppieren
         if (savedLog.getDataSource() != DataSource.WALLBOX_GOE
                 && savedLog.getDataSource() != DataSource.API_UPLOAD) {

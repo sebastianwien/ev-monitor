@@ -3,7 +3,7 @@
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg flex flex-col max-h-[90vh]">
       <!-- Header -->
       <div class="flex items-center justify-between p-5 border-b border-gray-100">
-        <h2 class="text-lg font-semibold text-gray-900">Ladehistorie importieren</h2>
+        <h2 class="text-lg font-semibold text-gray-900">Ladevorgänge importieren</h2>
         <button @click="$emit('close')" class="text-gray-400 hover:text-gray-600 transition-colors">
           <XMarkIcon class="w-5 h-5" />
         </button>
@@ -12,9 +12,7 @@
       <div class="overflow-y-auto p-5 space-y-5">
         <!-- Info -->
         <p class="text-sm text-gray-600">
-          Importiere vergangene Ladevorgänge aus
-          <strong>TeslaMate</strong>, <strong>TeslaLogger</strong>, <strong>TeslaFi</strong>
-          oder einer anderen Quelle im vorgegebenen Format.
+          Importiere vergangene Ladevorgänge aus beliebigen Quellen - als CSV oder JSON.
         </p>
 
         <!-- Format toggle -->
@@ -38,9 +36,10 @@
           <pre v-else class="text-xs text-gray-700 overflow-x-auto whitespace-pre">{{ jsonTemplate }}</pre>
 
           <p class="text-xs text-gray-500">
-            <strong>Pflichtfelder:</strong> date, odometer_km, kwh, soc_before oder soc_after<br>
+            <strong>Pflichtfelder:</strong> date, kwh<br>
             <strong>date:</strong> ISO 8601, DD.MM.YYYY, MM/DD/YYYY oder Unix-Timestamp<br>
-            <strong>location:</strong> Lat/Lon (z.B. <code>48.2082,16.3738</code>) oder Ortsname
+            <strong>location:</strong> Lat/Lon (z.B. <code>48.2082,16.3738</code>) - Ortsname wird ohne Kartenpin gespeichert<br>
+            <strong>JSON:</strong> Array von Objekten mit denselben Feldern
           </p>
         </div>
 
@@ -81,14 +80,11 @@
 
         <!-- Result -->
         <div v-if="result" class="rounded-xl p-4 space-y-2"
-          :class="result.errors.length > 0 && result.imported === 0 ? 'bg-red-50' : 'bg-green-50'">
-          <p class="text-sm font-medium" :class="result.errors.length > 0 && result.imported === 0 ? 'text-red-700' : 'text-green-700'">
+          :class="result.errors > 0 && result.imported === 0 ? 'bg-red-50' : 'bg-green-50'">
+          <p class="text-sm font-medium" :class="result.errors > 0 && result.imported === 0 ? 'text-red-700' : 'text-green-700'">
             {{ result.imported }} importiert, {{ result.skipped }} übersprungen
-            <template v-if="result.coinsAwarded > 0"> · +{{ result.coinsAwarded }} ⚡</template>
+            <template v-if="result.errors > 0">, {{ result.errors }} Fehler</template>
           </p>
-          <ul v-if="result.errors.length > 0" class="space-y-1">
-            <li v-for="err in result.errors" :key="err" class="text-xs text-red-600">{{ err }}</li>
-          </ul>
         </div>
 
         <!-- Error -->
@@ -117,7 +113,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { XMarkIcon, ArrowUpTrayIcon } from '@heroicons/vue/24/outline'
-import { teslaLoggerService, type TeslaLoggerImportResult } from '../api/teslaLoggerService'
+import { manualImportService, type ManualImportResult } from '../api/manualImportService'
 
 const props = defineProps<{ carId: string }>()
 const emit = defineEmits<{ close: []; imported: [count: number] }>()
@@ -126,26 +122,25 @@ const selectedFormat = ref<'csv' | 'json'>('csv')
 const rawData = ref('')
 const fileName = ref('')
 const loading = ref(false)
-const result = ref<TeslaLoggerImportResult | null>(null)
+const result = ref<ManualImportResult | null>(null)
 const errorMsg = ref('')
 const fileInput = ref<HTMLInputElement>()
 
-const csvTemplate = `date,odometer_km,kwh,soc_before,soc_after,cost_eur,location,duration_min,max_charging_power_kw,temperature_celsius,charging_type
-2025-08-31T15:07:14+02:00,7893,32.09,42,80,0,48.2082 16.3738,26,150.0,23.5,DC`
+const csvTemplate = `date,kwh,odometer_km,soc_before,soc_after,cost_eur,duration_min,location,charging_type,max_charging_power_kw,route_type,tire_type
+2025-08-31T15:07:14+02:00,32.09,7893,42,80,0,26,48.2082 16.3738,DC,150.0,,`
 
 const jsonTemplate = `[
   {
     "date": "2025-08-31T15:07:14+02:00",
-    "odometer_km": 7893,
     "kwh": 32.09,
+    "odometer_km": 7893,
     "soc_before": 42,
     "soc_after": 80,
     "cost_eur": 0,
-    "location": "48.2082 16.3738",
     "duration_min": 26,
-    "max_charging_power_kw": 150.0,
-    "temperature_celsius": 23.5,
-    "charging_type": "DC"
+    "location": "48.2082 16.3738",
+    "charging_type": "DC",
+    "max_charging_power_kw": 150.0
   }
 ]`
 
@@ -174,7 +169,7 @@ async function runImport() {
   errorMsg.value = ''
 
   try {
-    result.value = await teslaLoggerService.importData(props.carId, selectedFormat.value, rawData.value)
+    result.value = await manualImportService.importData(props.carId, selectedFormat.value, rawData.value, false)
     if (result.value.imported > 0) {
       emit('imported', result.value.imported)
     }

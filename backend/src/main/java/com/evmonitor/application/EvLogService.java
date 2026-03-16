@@ -182,7 +182,7 @@ public class EvLogService {
         // Fehler beim Grouping sollen den Log-Save NICHT rückgängig machen — daher try-catch.
         if (!isSuperseded && request.mergeSessions()) {
             try {
-                sessionGroupService.processWallboxLog(savedLog);
+                sessionGroupService.processSessionForGrouping(savedLog);
             } catch (Exception e) {
                 logger.error("Session grouping failed for log {}, log was saved but not grouped: {}",
                         savedLog.getId(), e.getMessage(), e);

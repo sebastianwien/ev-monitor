@@ -50,6 +50,11 @@ public class PublicApiImportService {
 
     @Transactional
     public ImportApiResult importSessions(UUID userId, PublicApiSessionRequest request, ApiKey apiKey) {
+        return importSessions(userId, request, apiKey != null && apiKey.isMergeSessions());
+    }
+
+    @Transactional
+    public ImportApiResult importSessions(UUID userId, PublicApiSessionRequest request, boolean mergeSessions) {
         Car car = carRepository.findById(request.carId())
                 .orElseThrow(() -> new IllegalArgumentException("Fahrzeug nicht gefunden"));
 
@@ -58,11 +63,23 @@ public class PublicApiImportService {
             throw new SecurityException("Dieses Fahrzeug gehört dir nicht");
         }
 
+        // Sort chronologically so session grouping works correctly for bulk imports
+        List<PublicApiSessionRequest.SessionEntry> sortedEntries = request.sessions().stream()
+                .sorted((a, b) -> {
+                    LocalDateTime da = parseDate(a.date());
+                    LocalDateTime db = parseDate(b.date());
+                    if (da == null && db == null) return 0;
+                    if (da == null) return 1;
+                    if (db == null) return -1;
+                    return da.compareTo(db);
+                })
+                .toList();
+
         int imported = 0;
         int skipped = 0;
         int errors = 0;
 
-        for (PublicApiSessionRequest.SessionEntry entry : request.sessions()) {
+        for (PublicApiSessionRequest.SessionEntry entry : sortedEntries) {
             try {
                 LocalDateTime loggedAt = parseDate(entry.date());
                 if (loggedAt == null) {
@@ -71,8 +88,7 @@ public class PublicApiImportService {
                     continue;
                 }
 
-                // Deduplizierung
-                if (isDuplicate(request.carId(), entry.odometerKm(), loggedAt)) {
+                if (isDuplicate(request.carId(), loggedAt, entry.kwh())) {
                     skipped++;
                     continue;
                 }
@@ -101,10 +117,9 @@ public class PublicApiImportService {
                 EvLog saved = evLogRepository.save(evLog);
                 coinLogService.awardCoinsForEvent(userId, CoinLogService.CoinEvent.API_UPLOAD_LOG, saved.getId());
 
-                // Merge only if: exactly 1 session in request AND merge flag enabled on API key
-                if (request.sessions().size() == 1 && apiKey.isMergeSessions()) {
+                if (mergeSessions) {
                     try {
-                        sessionGroupService.processWallboxLog(saved);
+                        sessionGroupService.processSessionForGrouping(saved);
                     } catch (Exception e) {
                         log.warn("Session merging failed for API upload log {}: {}", saved.getId(), e.getMessage());
                     }
@@ -121,15 +136,9 @@ public class PublicApiImportService {
         return new ImportApiResult(imported, skipped, errors);
     }
 
-    private boolean isDuplicate(UUID carId, Integer odometerKm, LocalDateTime loggedAt) {
-        if (odometerKm != null) {
-            return evLogRepository.existsByCarIdAndOdometerKmAndLoggedAtBetween(
-                    carId, odometerKm,
-                    loggedAt.minusHours(1), loggedAt.plusHours(1));
-        }
-        return evLogRepository.existsByCarIdAndLoggedAtBetween(
-                carId,
-                loggedAt.minusMinutes(30), loggedAt.plusMinutes(30));
+    private boolean isDuplicate(UUID carId, LocalDateTime loggedAt, Double kwh) {
+        return evLogRepository.existsByCarIdAndLoggedAtAndKwhCharged(
+                carId, loggedAt, BigDecimal.valueOf(kwh));
     }
 
     private LocalDateTime parseDate(String raw) {

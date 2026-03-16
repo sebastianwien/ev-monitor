@@ -29,6 +29,8 @@ public interface EvLogRepository {
 
     boolean existsByCarIdAndLoggedAtAndDataSource(UUID carId, LocalDateTime loggedAt, DataSource dataSource);
 
+    boolean existsByCarIdAndLoggedAtAndKwhCharged(UUID carId, LocalDateTime loggedAt, BigDecimal kwhCharged);
+
     long countByUserId(UUID userId);
 
     void deleteById(UUID id);
