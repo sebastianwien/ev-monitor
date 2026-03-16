@@ -4,6 +4,7 @@ import com.evmonitor.application.PlatformStatsResponse;
 import com.evmonitor.application.PublicBrandResponse;
 import com.evmonitor.application.PublicModelService;
 import com.evmonitor.application.PublicModelStatsResponse;
+import com.evmonitor.application.TopModelResponse;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -77,6 +78,20 @@ public class PublicModelController {
         return publicModelService.getModelStats(brand, model, currentUserId, isSeedUser)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * GET /api/public/models/top?limit=N
+     * Returns top N models by community log count with lightweight stats.
+     * Used by landing page and model index — replaces N individual getModelStats calls.
+     */
+    @GetMapping("/models/top")
+    public ResponseEntity<List<TopModelResponse>> getTopModels(
+            @RequestParam(defaultValue = "12") int limit,
+            @AuthenticationPrincipal UserPrincipal principal) {
+
+        boolean isSeedUser = principal != null && principal.getUser().isSeedData();
+        return ResponseEntity.ok(publicModelService.getTopModels(Math.min(limit, 50), isSeedUser));
     }
 
     /**

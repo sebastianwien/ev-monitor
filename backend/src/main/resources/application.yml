@@ -21,6 +21,7 @@ spring:
       - platformStats
       - modelsWithData
       - modelStats
+      - topModels
 
   flyway:
     enabled: true

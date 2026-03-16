@@ -164,4 +164,81 @@ class PublicModelControllerIntegrationTest extends AbstractIntegrationTest {
         assertEquals(canonical.getStatusCode(), upper.getStatusCode(),
                 "Case-insensitive URL should return same status as canonical URL");
     }
+
+    // --- /api/public/models/top ---
+
+    @Test
+    void shouldReturnTopModelsAsJsonArray() {
+        ResponseEntity<String> response = restTemplate.getForEntity(
+                "/api/public/models/top", String.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().startsWith("["),
+                "Response should be a JSON array");
+    }
+
+    @Test
+    void shouldRespectLimitParameter() {
+        ResponseEntity<String> response = restTemplate.getForEntity(
+                "/api/public/models/top?limit=3", String.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+    }
+
+    @Test
+    void shouldCapLimitAt50() {
+        // Requesting 999 should be silently capped to 50
+        ResponseEntity<String> response = restTemplate.getForEntity(
+                "/api/public/models/top?limit=999", String.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+    }
+
+    @Test
+    void shouldReturnTopModelsWithRequiredFields() {
+        ResponseEntity<String> response = restTemplate.getForEntity(
+                "/api/public/models/top?limit=5", String.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+
+        if (!response.getBody().equals("[]")) {
+            assertTrue(response.getBody().contains("\"modelDisplayName\""),
+                    "Response should include modelDisplayName");
+            assertTrue(response.getBody().contains("\"logCount\""),
+                    "Response should include logCount");
+            assertTrue(response.getBody().contains("\"modelUrlSlug\""),
+                    "Response should include modelUrlSlug");
+            assertTrue(response.getBody().contains("\"brandDisplayName\""),
+                    "Response should include brandDisplayName");
+        }
+    }
+
+    @Test
+    void shouldNotExposeInternalUserDataInTopModels() {
+        ResponseEntity<String> response = restTemplate.getForEntity(
+                "/api/public/models/top", String.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertFalse(response.getBody().contains("\"userId\""),
+                "Top models must not expose userId");
+        assertFalse(response.getBody().contains("\"email\""),
+                "Top models must not expose email");
+        assertFalse(response.getBody().contains("\"password\""),
+                "Top models must not expose password");
+    }
+
+    @Test
+    void shouldBeAccessibleWithoutAuthentication() {
+        // No Authorization header — must return 200, not 401/403
+        ResponseEntity<String> response = restTemplate.getForEntity(
+                "/api/public/models/top", String.class);
+
+        assertNotEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        assertNotEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+    }
 }

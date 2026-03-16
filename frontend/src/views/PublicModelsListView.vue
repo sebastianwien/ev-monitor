@@ -91,47 +91,46 @@
         <!-- Real community models -->
         <div
           v-for="model in filteredModels"
-          :key="`${model.brand}/${model.model}`"
-          class="model-card flex flex-col bg-white rounded-xl border p-5 hover:shadow-md transition-all"
-          :class="isSelectedForCompare(`${model.brand}/${model.model}`)
+          :key="`${model.brandDisplayName}/${model.modelUrlSlug}`"
+          class="model-card flex flex-col bg-white rounded-xl border p-4 transition-all"
+          :class="isSelectedForCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`)
             ? 'border-green-500 ring-2 ring-green-200'
             : 'border-gray-200 hover:border-green-500'"
         >
-          <a :href="`/modelle/${model.brand}/${model.model.replace(/ /g, '_')}`" class="block">
-            <div class="flex items-start justify-between mb-3">
-              <h3 class="font-bold text-gray-900 text-lg">
-                {{ model.brand }} {{ model.model }}
-              </h3>
-              <TruckIcon class="h-8 w-8 text-gray-400 flex-shrink-0" />
+          <a :href="`/modelle/${model.brandDisplayName}/${model.modelUrlSlug}`" class="block flex-1">
+            <div class="flex items-start justify-between gap-2 mb-2">
+              <h3 class="font-bold text-gray-900 text-base">{{ model.modelDisplayName }}</h3>
+              <span class="text-xs text-gray-400 whitespace-nowrap mt-0.5">{{ model.logCount }} Fahrten</span>
             </div>
-            <div class="space-y-2 text-sm">
-              <div class="flex items-center gap-2 text-gray-600">
-                <svg class="h-4 w-4 flex-shrink-0" viewBox="0 0 16 16" fill="none">
-                  <rect x="1" y="9" width="3" height="6" rx="0.75" fill="#86efac"/>
-                  <rect x="6" y="5" width="3" height="10" rx="0.75" fill="#22c55e"/>
-                  <rect x="11" y="2" width="3" height="13" rx="0.75" fill="#15803d"/>
-                </svg>
-                <span>Echte Community-Daten</span>
-              </div>
-              <div class="flex items-center justify-between">
-                <span class="text-xs text-gray-400">Realer Verbrauch, WLTP-Vergleich & mehr</span>
-                <button
-                  @click.prevent="toggleCompare(`${model.brand}/${model.model}`)"
-                  :disabled="!isSelectedForCompare(`${model.brand}/${model.model}`) && selectedForCompare.length >= MAX_COMPARE"
-                  :title="isSelectedForCompare(`${model.brand}/${model.model}`) ? 'Aus Vergleich entfernen' : 'Zum Vergleich hinzufügen'"
-                  class="p-1.5 rounded-full transition-colors flex-shrink-0"
-                  :class="isSelectedForCompare(`${model.brand}/${model.model}`)
-                    ? 'bg-green-500 text-white'
-                    : selectedForCompare.length >= MAX_COMPARE
-                      ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
-                      : 'bg-gray-100 text-gray-400 hover:bg-green-100 hover:text-green-600'"
-                >
-                  <CheckIcon v-if="isSelectedForCompare(`${model.brand}/${model.model}`)" class="h-4 w-4" />
-                  <ArrowsRightLeftIcon v-else class="h-4 w-4" />
-                </button>
-              </div>
+            <div v-if="model.avgConsumptionKwhPer100km" class="text-sm text-gray-700 mb-0.5">
+              Real: <span class="font-medium">{{ model.avgConsumptionKwhPer100km.toFixed(1) }} kWh/100km</span>
+            </div>
+            <div v-if="model.avgConsumptionKwhPer100km && model.bestWltpConsumptionKwhPer100km"
+                 class="text-sm font-medium mb-3"
+                 :class="model.avgConsumptionKwhPer100km > model.bestWltpConsumptionKwhPer100km ? 'text-red-500' : 'text-green-600'">
+              ({{ formatDelta(model.avgConsumptionKwhPer100km, model.bestWltpConsumptionKwhPer100km) }} vs. WLTP)
+            </div>
+            <div class="text-green-600 font-medium flex items-center gap-1 text-sm mt-auto">
+              <span>Details ansehen</span>
+              <ArrowRightIcon class="h-4 w-4" />
             </div>
           </a>
+          <div class="flex justify-end mt-2 pt-2 border-t border-gray-100">
+            <button
+              @click.prevent="toggleCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`)"
+              :disabled="!isSelectedForCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`) && selectedForCompare.length >= MAX_COMPARE"
+              :title="isSelectedForCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`) ? 'Aus Vergleich entfernen' : 'Zum Vergleich hinzufügen'"
+              class="p-1.5 rounded-full transition-colors flex-shrink-0"
+              :class="isSelectedForCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`)
+                ? 'bg-green-500 text-white'
+                : selectedForCompare.length >= MAX_COMPARE
+                  ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                  : 'bg-gray-100 text-gray-400 hover:bg-green-100 hover:text-green-600'"
+            >
+              <CheckIcon v-if="isSelectedForCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`)" class="h-4 w-4" />
+              <ArrowsRightLeftIcon v-else class="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
         <!-- Fallback filler models (mobile only, no brand filter active) — no compare toggle -->
@@ -271,15 +270,15 @@ import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useHead } from '@unhead/vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import { getAllModelsWithWltpData } from '../api/publicModelService'
-import { TruckIcon, ChartBarIcon, ArrowTrendingUpIcon, ArrowsRightLeftIcon, XMarkIcon, CheckIcon } from '@heroicons/vue/24/outline'
+import { getTopModels, type TopModelPreview } from '../api/publicModelService'
+import { TruckIcon, ChartBarIcon, ArrowTrendingUpIcon, ArrowsRightLeftIcon, XMarkIcon, CheckIcon, ArrowRightIcon } from '@heroicons/vue/24/outline'
 import PublicNav from '../components/PublicNav.vue'
 
 const router = useRouter()
 
 const authStore = useAuthStore()
 const loading = ref(true)
-const modelsList = ref<string[]>([])
+const modelsList = ref<TopModelPreview[]>([])
 const selectedBrands = ref<string[]>([])
 const dropdownOpen = ref(false)
 
@@ -309,17 +308,19 @@ function startCompare() {
 }
 
 function compareLabel(key: string): string {
-  const [brand, model] = key.split('/')
-  return `${brand} ${model}`.replace(/_/g, ' ')
+  return key.replace(/_/g, ' ')
+}
+
+function formatDelta(real: number, wltp: number): string {
+  const pct = ((real - wltp) / wltp) * 100
+  const sign = pct > 0 ? '+' : ''
+  return `${sign}${pct.toFixed(0)}%`
 }
 
 const isAuthenticated = computed(() => authStore.isAuthenticated())
 const currentYear = new Date().getFullYear()
 
-interface ModelInfo {
-  brand: string
-  model: string
-}
+type ModelInfo = TopModelPreview
 
 interface FallbackModel {
   brand: string
@@ -359,19 +360,10 @@ const POPULAR_DE_FALLBACK: FallbackModel[] = [
   { brand: 'Polestar', model: 'Polestar_2', displayName: 'Polestar 2' },
 ]
 
-const modelsWithData = computed((): ModelInfo[] => {
-  return modelsList.value.map(entry => {
-    // Parse format: "BRAND/MODEL" (e.g., "TESLA/MODEL_3")
-    const [brand, model] = entry.split('/')
-    return {
-      brand: brand || 'UNKNOWN',
-      model: model || entry
-    }
-  })
-})
+const modelsWithData = computed((): ModelInfo[] => modelsList.value)
 
 const availableBrands = computed(() => {
-  const brands = new Set(modelsWithData.value.map(m => m.brand))
+  const brands = new Set(modelsWithData.value.map(m => m.brandDisplayName))
   return Array.from(brands).sort()
 })
 
@@ -379,7 +371,7 @@ const filteredModels = computed(() => {
   if (selectedBrands.value.length === 0) {
     return modelsWithData.value
   }
-  return modelsWithData.value.filter(m => selectedBrands.value.includes(m.brand))
+  return modelsWithData.value.filter(m => selectedBrands.value.includes(m.brandDisplayName))
 })
 
 // Fill up to 12 models on mobile with popular fallbacks (only when no brand filter active)
@@ -388,7 +380,7 @@ const mobileFillModels = computed((): FallbackModel[] => {
   const needed = 12 - filteredModels.value.length
   if (needed <= 0) return []
   const normalize = (s: string) => s.replace(/ /g, '_').toLowerCase()
-  const existingSlugs = new Set(filteredModels.value.map(m => normalize(`${m.brand}/${m.model}`)))
+  const existingSlugs = new Set(filteredModels.value.map(m => normalize(`${m.brandDisplayName}/${m.modelUrlSlug}`)))
   return POPULAR_DE_FALLBACK
     .filter(f => !existingSlugs.has(normalize(`${f.brand}/${f.model}`)))
     .slice(0, needed)
@@ -468,7 +460,7 @@ useHead({
 
 onMounted(async () => {
   try {
-    modelsList.value = await getAllModelsWithWltpData()
+    modelsList.value = await getTopModels(200)
   } catch (err) {
     console.error('Failed to load models:', err)
   } finally {

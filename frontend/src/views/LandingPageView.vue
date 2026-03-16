@@ -4,7 +4,7 @@ import { useHead } from '@unhead/vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { analytics } from '../services/analytics'
-import { getAllModelsWithWltpData, getModelStats, getPlatformStats, type PublicModelStats } from '../api/publicModelService'
+import { getTopModels, getPlatformStats, type TopModelPreview } from '../api/publicModelService'
 import {
   LockClosedIcon,
   UsersIcon,
@@ -17,14 +17,8 @@ import {
 const router = useRouter()
 const authStore = useAuthStore()
 
-interface ModelPreview {
-  brand: string
-  model: string
-  stats: PublicModelStats
-}
-
-const topModels = ref<ModelPreview[]>([])
-const nextModels = ref<ModelPreview[]>([])
+const topModels = ref<TopModelPreview[]>([])
+const nextModels = ref<TopModelPreview[]>([])
 const loading = ref(true)
 const displayModels = ref(0)
 const displayUsers = ref(0)
@@ -61,23 +55,11 @@ onMounted(async () => {
     // fallback: leave at 0
   }
 
-  // Load top models with community data for SEO
+  // Load top models with community data for SEO — single request instead of 12
   try {
-    const allModels = await getAllModelsWithWltpData()
-
-    // Fetch stats for first 10 models, then sort by logCount and take top 4
-    const previews = await Promise.all(
-      allModels.slice(0, 12).map(async (modelPath) => {
-        const [brand, model] = modelPath.split('/')
-        const stats = await getModelStats(brand, model)
-        return stats ? { brand, model, stats } : null
-      })
-    )
-
-    const sorted = (previews.filter(p => p !== null) as ModelPreview[])
-      .sort((a, b) => (b.stats.logCount ?? 0) - (a.stats.logCount ?? 0))
-    topModels.value = sorted.slice(0, 4)
-    nextModels.value = sorted.slice(4, 8)
+    const models = await getTopModels(8)
+    topModels.value = models.slice(0, 4)
+    nextModels.value = models.slice(4, 8)
   } catch (error) {
     console.error('Failed to load model previews:', error)
   } finally {
@@ -177,16 +159,16 @@ const formatDelta = (real: number | null, wltp: number): string => {
             <a
               v-for="preview in topModels.slice(0, 3)"
               :key="`hero-mobile-${preview.brand}-${preview.model}`"
-              :href="`/modelle/${preview.brand}/${preview.model.replace(/ /g, '_')}`"
+              :href="`/modelle/${preview.brandDisplayName}/${preview.modelUrlSlug}`"
               class="snap-start shrink-0 w-[75vw] max-w-[280px] bg-white border border-gray-200 rounded-xl p-4 text-left hover:border-green-500 transition block"
             >
               <div class="flex items-start justify-between gap-2 mb-1">
-                <span class="font-semibold text-gray-900">{{ preview.stats.modelDisplayName }}</span>
-                <span class="text-xs text-gray-400 whitespace-nowrap mt-0.5">{{ preview.stats.logCount }} Fahrten</span>
+                <span class="font-semibold text-gray-900">{{ preview.modelDisplayName }}</span>
+                <span class="text-xs text-gray-400 whitespace-nowrap mt-0.5">{{ preview.logCount }} Fahrten</span>
               </div>
-              <div v-if="preview.stats.avgConsumptionKwhPer100km && preview.stats.wltpVariants.length > 0" class="text-sm text-gray-700 flex flex-wrap items-baseline gap-x-1">
-                <span>Real: <span class="font-semibold">{{ preview.stats.avgConsumptionKwhPer100km.toFixed(1) }} kWh/100km</span></span>
-                <span class="text-red-500 font-medium whitespace-nowrap">({{ formatDelta(preview.stats.avgConsumptionKwhPer100km, preview.stats.wltpVariants[0].wltpConsumptionKwhPer100km) }} vs. WLTP)</span>
+              <div v-if="preview.avgConsumptionKwhPer100km && preview.bestWltpConsumptionKwhPer100km" class="text-sm text-gray-700 flex flex-wrap items-baseline gap-x-1">
+                <span>Real: <span class="font-semibold">{{ preview.avgConsumptionKwhPer100km.toFixed(1) }} kWh/100km</span></span>
+                <span class="text-red-500 font-medium whitespace-nowrap">({{ formatDelta(preview.avgConsumptionKwhPer100km, preview.bestWltpConsumptionKwhPer100km) }} vs. WLTP)</span>
               </div>
               <div class="mt-2 text-green-600 text-xs font-medium flex items-center gap-1">
                 <span>Details ansehen</span>
@@ -199,16 +181,16 @@ const formatDelta = (real: number | null, wltp: number): string => {
             <a
               v-for="preview in topModels.slice(0, 3)"
               :key="`hero-${preview.brand}-${preview.model}`"
-              :href="`/modelle/${preview.brand}/${preview.model.replace(/ /g, '_')}`"
+              :href="`/modelle/${preview.brandDisplayName}/${preview.modelUrlSlug}`"
               class="bg-white border border-gray-200 rounded-xl p-4 text-left hover:border-green-500 transition block"
             >
               <div class="flex items-start justify-between gap-2 mb-1">
-                <span class="font-semibold text-gray-900">{{ preview.stats.modelDisplayName }}</span>
-                <span class="text-xs text-gray-400 whitespace-nowrap mt-0.5">{{ preview.stats.logCount }} Fahrten</span>
+                <span class="font-semibold text-gray-900">{{ preview.modelDisplayName }}</span>
+                <span class="text-xs text-gray-400 whitespace-nowrap mt-0.5">{{ preview.logCount }} Fahrten</span>
               </div>
-              <div v-if="preview.stats.avgConsumptionKwhPer100km && preview.stats.wltpVariants.length > 0" class="text-sm text-gray-700 flex flex-wrap items-baseline gap-x-1">
-                <span>Real: <span class="font-semibold">{{ preview.stats.avgConsumptionKwhPer100km.toFixed(1) }} kWh/100km</span></span>
-                <span class="text-red-500 font-medium whitespace-nowrap">({{ formatDelta(preview.stats.avgConsumptionKwhPer100km, preview.stats.wltpVariants[0].wltpConsumptionKwhPer100km) }} vs. WLTP)</span>
+              <div v-if="preview.avgConsumptionKwhPer100km && preview.bestWltpConsumptionKwhPer100km" class="text-sm text-gray-700 flex flex-wrap items-baseline gap-x-1">
+                <span>Real: <span class="font-semibold">{{ preview.avgConsumptionKwhPer100km.toFixed(1) }} kWh/100km</span></span>
+                <span class="text-red-500 font-medium whitespace-nowrap">({{ formatDelta(preview.avgConsumptionKwhPer100km, preview.bestWltpConsumptionKwhPer100km) }} vs. WLTP)</span>
               </div>
               <div class="mt-2 text-green-600 text-xs font-medium flex items-center gap-1">
                 <span>Details ansehen</span>
@@ -318,27 +300,20 @@ const formatDelta = (real: number | null, wltp: number): string => {
           <a
             v-for="preview in topModels"
             :key="`${preview.brand}-${preview.model}`"
-            :href="`/modelle/${preview.brand}/${preview.model.replace(/ /g, '_')}`"
+            :href="`/modelle/${preview.brandDisplayName}/${preview.modelUrlSlug}`"
             class="bg-white border border-gray-200 rounded-xl p-4 hover:border-green-500 transition block"
           >
             <div class="flex items-start justify-between gap-2 mb-2">
-              <h3 class="text-lg font-semibold text-gray-900">{{ preview.stats.modelDisplayName }}</h3>
-              <span class="text-xs text-gray-400 whitespace-nowrap mt-1">{{ preview.stats.logCount }} Fahrten</span>
+              <h3 class="text-lg font-semibold text-gray-900">{{ preview.modelDisplayName }}</h3>
+              <span class="text-xs text-gray-400 whitespace-nowrap mt-1">{{ preview.logCount }} Fahrten</span>
             </div>
 
-            <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-600 mb-2">
-              <span class="whitespace-nowrap">Ø {{ preview.stats.avgKwhPerSession?.toFixed(1) || '—' }} kWh</span>
-              <template v-if="preview.stats.avgConsumptionKwhPer100km && preview.stats.avgCostPerKwh">
-                <span class="text-gray-300">|</span>
-                <span class="font-medium text-gray-800 whitespace-nowrap">{{ (preview.stats.avgConsumptionKwhPer100km * preview.stats.avgCostPerKwh).toFixed(2) }}€/100km</span>
-              </template>
-              <span class="text-gray-300">|</span>
-              <span class="whitespace-nowrap">{{ preview.stats.avgCostPerKwh?.toFixed(2) || '—' }}€/kWh</span>
+            <div v-if="preview.avgConsumptionKwhPer100km" class="text-sm text-gray-700 mb-1">
+              Real: <span class="font-medium">{{ preview.avgConsumptionKwhPer100km.toFixed(1) }} kWh/100km</span>
             </div>
-
-            <div v-if="preview.stats.avgConsumptionKwhPer100km && preview.stats.wltpVariants.length > 0" class="text-sm text-gray-700 mb-3">
-              Real: <span class="font-medium">{{ preview.stats.avgConsumptionKwhPer100km.toFixed(1) }} kWh/100km</span>
-              <span class="text-gray-400 ml-1">({{ formatDelta(preview.stats.avgConsumptionKwhPer100km, preview.stats.wltpVariants[0].wltpConsumptionKwhPer100km) }} vs WLTP)</span>
+            <div v-if="preview.avgConsumptionKwhPer100km && preview.bestWltpConsumptionKwhPer100km" class="text-sm mb-3"
+                 :class="preview.avgConsumptionKwhPer100km > preview.bestWltpConsumptionKwhPer100km ? 'text-red-500' : 'text-green-600'">
+              ({{ formatDelta(preview.avgConsumptionKwhPer100km, preview.bestWltpConsumptionKwhPer100km) }} vs. WLTP)
             </div>
 
             <div class="text-green-600 font-medium flex justify-center items-center gap-1 text-sm">
@@ -352,37 +327,35 @@ const formatDelta = (real: number | null, wltp: number): string => {
             <div v-if="nextModels.length > 0">
               <!-- Mobile: pills -->
               <div class="flex flex-wrap gap-2 justify-center sm:hidden">
-                <router-link
+                <a
                   v-for="m in nextModels"
                   :key="`${m.brand}-${m.model}`"
-                  :to="`/modelle/${m.brand}/${m.model.replace(/ /g, '_')}`"
+                  :href="`/modelle/${m.brandDisplayName}/${m.modelUrlSlug}`"
                   class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-medium rounded-full transition"
                 >
-                  {{ m.stats.modelDisplayName }}
-                </router-link>
+                  {{ m.modelDisplayName }}
+                </a>
               </div>
               <!-- sm+: cards -->
               <div class="hidden sm:grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                <router-link
+                <a
                   v-for="m in nextModels"
                   :key="`${m.brand}-${m.model}`"
-                  :to="`/modelle/${m.brand}/${m.model.replace(/ /g, '_')}`"
+                  :href="`/modelle/${m.brandDisplayName}/${m.modelUrlSlug}`"
                   class="bg-white border border-gray-200 rounded-xl p-4 hover:border-green-500 transition"
                 >
                   <div class="flex items-start justify-between gap-2 mb-2">
-                    <h3 class="text-sm font-semibold text-gray-900">{{ m.stats.modelDisplayName }}</h3>
-                    <span class="text-xs text-gray-400 whitespace-nowrap mt-0.5">{{ m.stats.logCount }} Fahrten</span>
+                    <h3 class="text-sm font-semibold text-gray-900">{{ m.modelDisplayName }}</h3>
+                    <span class="text-xs text-gray-400 whitespace-nowrap mt-0.5">{{ m.logCount }} Fahrten</span>
                   </div>
-                  <div class="flex items-center gap-3 text-xs text-gray-600 mb-2">
-                    <span>Ø {{ m.stats.avgKwhPerSession?.toFixed(1) || '—' }} kWh</span>
-                    <span class="text-gray-300">|</span>
-                    <span>{{ m.stats.avgCostPerKwh?.toFixed(2) || '—' }}€/kWh</span>
+                  <div v-if="m.avgConsumptionKwhPer100km" class="text-xs text-gray-700 mb-1">
+                    Real: <span class="font-medium">{{ m.avgConsumptionKwhPer100km.toFixed(1) }} kWh/100km</span>
                   </div>
-                  <div v-if="m.stats.avgConsumptionKwhPer100km && m.stats.wltpVariants.length > 0" class="text-xs text-gray-700">
-                    Real: <span class="font-medium">{{ m.stats.avgConsumptionKwhPer100km.toFixed(1) }} kWh/100km</span>
-                    <span class="text-gray-400 ml-1">({{ formatDelta(m.stats.avgConsumptionKwhPer100km, m.stats.wltpVariants[0].wltpConsumptionKwhPer100km) }} vs WLTP)</span>
+                  <div v-if="m.avgConsumptionKwhPer100km && m.bestWltpConsumptionKwhPer100km" class="text-xs"
+                       :class="m.avgConsumptionKwhPer100km > m.bestWltpConsumptionKwhPer100km ? 'text-red-500' : 'text-green-600'">
+                    ({{ formatDelta(m.avgConsumptionKwhPer100km, m.bestWltpConsumptionKwhPer100km) }} vs. WLTP)
                   </div>
-                </router-link>
+                </a>
               </div>
             </div>
             <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 mt-4 sm:mt-6">

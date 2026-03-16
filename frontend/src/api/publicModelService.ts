@@ -50,6 +50,23 @@ export async function getAllModelsWithWltpData(): Promise<string[]> {
     return response.data
 }
 
+export interface TopModelPreview {
+    brand: string
+    model: string
+    brandDisplayName: string
+    modelDisplayName: string
+    modelUrlSlug: string
+    logCount: number
+    avgConsumptionKwhPer100km: number | null
+    bestWltpConsumptionKwhPer100km: number | null
+    avgCostPerKwh: number | null
+}
+
+export async function getTopModels(limit: number = 12): Promise<TopModelPreview[]> {
+    const response = await apiClient.get<TopModelPreview[]>(`/public/models/top?limit=${limit}`)
+    return response.data
+}
+
 export interface PlatformStats {
     modelCount: number
     userCount: number

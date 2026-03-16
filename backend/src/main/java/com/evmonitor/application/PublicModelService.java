@@ -310,6 +310,79 @@ public class PublicModelService {
         ));
     }
 
+    /**
+     * Returns the top N models sorted by community log count.
+     * Much cheaper than N individual getModelStats calls — no seasonal queries,
+     * no per-variant consumption, just logCount + overall avgConsumption + WLTP lookup.
+     */
+    @Cacheable("topModels")
+    public List<TopModelResponse> getTopModels(int limit, boolean isSeedUser) {
+        record ModelData(CarBrand.CarModel carModel, long logCount,
+                         BigDecimal avgConsumption, BigDecimal bestWltpConsumption,
+                         BigDecimal avgCostPerKwh) {}
+
+        List<String> modelsWithWltp = vehicleSpecificationRepository.findAll().stream()
+                .map(VehicleSpecificationEntity::getCarModel)
+                .distinct()
+                .toList();
+
+        return modelsWithWltp.stream()
+                .map(modelName -> {
+                    CarBrand.CarModel carModel;
+                    try {
+                        carModel = CarBrand.CarModel.valueOf(modelName);
+                    } catch (IllegalArgumentException e) {
+                        return null;
+                    }
+
+                    Object[] stats = evLogRepository.findPublicBasicStatsByModel(modelName, isSeedUser);
+                    if (stats == null || stats.length == 0) return null;
+                    Object first = stats[0];
+                    if (first instanceof Object[]) stats = (Object[]) first;
+                    long logCount = stats[0] != null ? ((Number) stats[0]).longValue() : 0;
+                    if (logCount == 0) return null;
+
+                    BigDecimal avgCostPerKwh = null;
+                    if (stats.length > 2 && stats[2] != null) {
+                        avgCostPerKwh = toBigDecimal(stats[2]).setScale(4, RoundingMode.HALF_UP);
+                    }
+
+                    List<Car> cars = carRepository.findAllByModel(carModel);
+                    CommunityConsumptionResult result = evLogService.calculateCommunityAvgConsumption(cars, isSeedUser);
+                    BigDecimal avgConsumption = result.value() != null
+                            ? result.value().setScale(1, RoundingMode.HALF_UP) : null;
+
+                    List<VehicleSpecificationEntity> wltpSpecs =
+                            vehicleSpecificationRepository.findByCarModelOrderByBatteryCapacityKwhAsc(modelName);
+                    BigDecimal bestWltp = wltpSpecs.stream()
+                            .map(VehicleSpecificationEntity::getWltpConsumptionKwhPer100km)
+                            .filter(v -> v != null)
+                            .min(BigDecimal::compareTo)
+                            .orElse(null);
+
+                    return new ModelData(carModel, logCount, avgConsumption, bestWltp, avgCostPerKwh);
+                })
+                .filter(m -> m != null)
+                .sorted((a, b) -> Long.compare(b.logCount(), a.logCount()))
+                .limit(limit)
+                .map(m -> {
+                    String brandDisplay = m.carModel().getBrand().getDisplayString();
+                    String modelDisplay = m.carModel().getDisplayName();
+                    return new TopModelResponse(
+                            m.carModel().getBrand().name(),
+                            m.carModel().name(),
+                            brandDisplay,
+                            brandDisplay + " " + modelDisplay,
+                            modelDisplay.replace(" ", "_"),
+                            (int) m.logCount(),
+                            m.avgConsumption(),
+                            m.bestWltpConsumption(),
+                            m.avgCostPerKwh()
+                    );
+                })
+                .toList();
+    }
+
     private BigDecimal toBigDecimal(Object value) {
         if (value instanceof BigDecimal bd) return bd;
         if (value instanceof Double d) return BigDecimal.valueOf(d);
