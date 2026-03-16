@@ -563,26 +563,36 @@ const mergedLogFeed = computed(() => {
     return dateB - dateA  // Neueste zuerst
   })
 
-  // Nachladen-Erkennung: gleicher Kilometerstand wie nachfolgender Eintrag (aelterer)
-  // → neuerer Eintrag ist ein Nachladen des aelteren, wird als Sub-Eintrag unter dem aelteren angezeigt.
-  // sorted ist newest-first: sorted[i] ist neuer als sorted[i+1].
-  // Wenn sorted[i].odometerKm === sorted[i+1].odometerKm: sorted[i] = Top-Up von sorted[i+1].
+  // Nachladen-Erkennung: konsekutive Eintraege mit gleichem Kilometerstand
+  // sorted ist newest-first. Aeltester Eintrag im Run = Parent, alle neueren = Top-Ups.
   const topUpChildren = new Map<number, any[]>() // parent-index → [top-up entries]
   const skipIndices = new Set<number>()
 
-  for (let i = 0; i < sorted.length - 1; i++) {
-    const curr = sorted[i]
-    const next = sorted[i + 1]
-    if (!curr._isGroup && !next._isGroup &&
-        curr.odometerKm != null && next.odometerKm != null &&
-        curr.odometerKm === next.odometerKm) {
-      // curr (neuer) ist Top-Up von next (aelter)
-      const parentIdx = skipIndices.has(i + 1)
-        ? i + 1  // next ist selbst schon ein Top-Up — fuer jetzt nur eine Ebene
-        : i + 1
-      if (!topUpChildren.has(parentIdx)) topUpChildren.set(parentIdx, [])
-      topUpChildren.get(parentIdx)!.push({ ...curr, _isTopUp: true })
-      skipIndices.add(i)
+  let i = 0
+  while (i < sorted.length) {
+    if (sorted[i]._isGroup || sorted[i].odometerKm == null) {
+      i++
+      continue
+    }
+    // Konsekutiven Run mit gleichem odometerKm finden
+    let j = i + 1
+    while (j < sorted.length &&
+           !sorted[j]._isGroup &&
+           sorted[j].odometerKm != null &&
+           sorted[j].odometerKm === sorted[i].odometerKm) {
+      j++
+    }
+    if (j > i + 1) {
+      // Run von i bis j-1: sorted[j-1] ist der aelteste = Parent
+      const parentIdx = j - 1
+      topUpChildren.set(parentIdx, [])
+      for (let k = i; k < j - 1; k++) {
+        topUpChildren.get(parentIdx)!.push({ ...sorted[k], _isTopUp: true })
+        skipIndices.add(k)
+      }
+      i = j
+    } else {
+      i++
     }
   }
 
