@@ -22,7 +22,7 @@ import static org.mockito.Mockito.mock;
  * Unit tests for EvLogService.calculateConsumption(logX, logY, batteryCapacityKwh).
  *
  * Formula recap:
- *   socBefore(logY) = socAfter(logY) - kwhCharged(logY) / battery * 100
+ *   socBefore(logY) = stored value if available, else socAfter(logY) - kwhCharged(logY) / battery * 100
  *   energyConsumed  = (socAfter(logX) - socBefore(logY)) * battery / 100
  *   consumption     = energyConsumed * 100 / distanceKm  [kWh/100km]
  */
@@ -96,6 +96,59 @@ class EvLogServiceCalculateConsumptionTest {
 
         assertTrue(result.isPresent());
         assertEquals(new BigDecimal("15.00"), result.get());
+    }
+
+    /**
+     * When socBeforeChargePercent is stored on logY, it must be used directly
+     * instead of deriving it from kwhCharged (which includes charging losses).
+     *
+     *   logX: odometer=10000, socAfter=80%
+     *   logY: odometer=10300, kwhCharged=52.5, socAfter=85%, socBefore=15%
+     *   battery=75 kWh, distance=300 km
+     *
+     *   socBefore(logY) = 15% (stored — used directly, kwhCharged ignored for this step)
+     *   energyConsumed  = (80 - 15) * 75 / 100 = 48.75 kWh
+     *   consumption     = 48.75 * 100 / 300 = 16.25 kWh/100km
+     *
+     * Note: result is identical here because the stored soc_before matches what the formula
+     * would compute — the point is to verify that the stored value takes priority.
+     * A follow-up test verifies divergence when kwhCharged is inflated by losses.
+     */
+    @Test
+    void storedSocBefore_usedDirectly_notDerivedFromKwh() {
+        EvLog logX = logX(10000, 80);
+        EvLog logY = logYWithSocBefore(10300, new BigDecimal("52.5"), 85, 15);
+
+        Optional<BigDecimal> result = service.calculateConsumption(logX, logY, BATTERY_75);
+
+        assertTrue(result.isPresent());
+        assertEquals(new BigDecimal("16.25"), result.get());
+    }
+
+    /**
+     * When kwhCharged is inflated (e.g. grid measurement with 10% charging losses),
+     * the derived socBefore would be too low and the consumption too high.
+     * If socBeforeChargePercent is stored, it corrects this.
+     *
+     *   logX: odometer=10000, socAfter=80%
+     *   logY: odometer=10300, kwhCharged=58.3 (52.5 net + ~11% loss), socAfter=85%, socBefore=15%
+     *   battery=75 kWh, distance=300 km
+     *
+     *   Without stored socBefore: socBefore = 85 - (58.3/75*100) = 85 - 77.7 = 7.3% → overestimates consumption
+     *   With stored socBefore=15%: energyConsumed = (80-15)*75/100 = 48.75 kWh → 16.25 kWh/100km
+     */
+    @Test
+    void storedSocBefore_correctsChargingLossBias() {
+        EvLog logX = logX(10000, 80);
+        // kwhCharged is inflated by ~11% charging losses
+        EvLog logYWithStoredSoc   = logYWithSocBefore(10300, new BigDecimal("58.3"), 85, 15);
+        EvLog logYWithoutStoredSoc = logY(10300, new BigDecimal("58.3"), 85);
+
+        BigDecimal withStored   = service.calculateConsumption(logX, logYWithStoredSoc, BATTERY_75).orElseThrow();
+        BigDecimal withoutStored = service.calculateConsumption(logX, logYWithoutStoredSoc, BATTERY_75).orElseThrow();
+
+        assertEquals(new BigDecimal("16.25"), withStored);
+        assertTrue(withoutStored.compareTo(withStored) > 0, "Without stored socBefore, consumption is overestimated due to charging losses");
     }
 
     // -------------------------------------------------------------------------
@@ -270,9 +323,9 @@ class EvLogServiceCalculateConsumptionTest {
         LocalDateTime t2 = LocalDateTime.of(2026, 1, 2, 10, 0);
         LocalDateTime t3 = LocalDateTime.of(2026, 1, 3, 10, 0);
 
-        EvLog logX  = evLog(UUID.randomUUID(), 10000, null,                   80, t1);
-        EvLog logY1 = evLog(UUID.randomUUID(), 10010, new BigDecimal("2.0"),  85, t2); // 10km
-        EvLog logY2 = evLog(UUID.randomUUID(), 10310, new BigDecimal("50.0"), 90, t3); // 300km from logY1
+        EvLog logX  = evLog(UUID.randomUUID(), 10000, null,                   80, null, t1);
+        EvLog logY1 = evLog(UUID.randomUUID(), 10010, new BigDecimal("2.0"),  85, null, t2); // 10km
+        EvLog logY2 = evLog(UUID.randomUUID(), 10310, new BigDecimal("50.0"), 90, null, t3); // 300km from logY1
 
         Map<UUID, ConsumptionResult> result =
                 service.calculateConsumptionPerLog(List.of(logX, logY1, logY2), BATTERY_75, null);
@@ -287,36 +340,41 @@ class EvLogServiceCalculateConsumptionTest {
 
     /** logX with odometer and SoC — valid as logX, no kwhCharged needed. */
     private EvLog logX(int odometerKm, int socAfterPercent) {
-        return evLog(UUID.randomUUID(), odometerKm, null, socAfterPercent, T1);
+        return evLog(UUID.randomUUID(), odometerKm, null, socAfterPercent, null, T1);
     }
 
     private EvLog logXNoOdometer(int socAfterPercent) {
-        return evLog(UUID.randomUUID(), null, null, socAfterPercent, T1);
+        return evLog(UUID.randomUUID(), null, null, socAfterPercent, null, T1);
     }
 
     private EvLog logXNoSoc(int odometerKm) {
-        return evLog(UUID.randomUUID(), odometerKm, null, null, T1);
+        return evLog(UUID.randomUUID(), odometerKm, null, null, null, T1);
     }
 
     /** logY with odometer, kwhCharged, and SoC — must be complete. */
     private EvLog logY(int odometerKm, BigDecimal kwhCharged, int socAfterPercent) {
-        return evLog(UUID.randomUUID(), odometerKm, kwhCharged, socAfterPercent, T2);
+        return evLog(UUID.randomUUID(), odometerKm, kwhCharged, socAfterPercent, null, T2);
+    }
+
+    /** logY with stored socBeforeChargePercent — bypasses kwhCharged-based derivation. */
+    private EvLog logYWithSocBefore(int odometerKm, BigDecimal kwhCharged, int socAfterPercent, int socBeforePercent) {
+        return evLog(UUID.randomUUID(), odometerKm, kwhCharged, socAfterPercent, socBeforePercent, T2);
     }
 
     private EvLog logYNoOdometer(BigDecimal kwhCharged, int socAfterPercent) {
-        return evLog(UUID.randomUUID(), null, kwhCharged, socAfterPercent, T2);
+        return evLog(UUID.randomUUID(), null, kwhCharged, socAfterPercent, null, T2);
     }
 
     private EvLog logYNoKwh(int odometerKm, int socAfterPercent) {
-        return evLog(UUID.randomUUID(), odometerKm, null, socAfterPercent, T2);
+        return evLog(UUID.randomUUID(), odometerKm, null, socAfterPercent, null, T2);
     }
 
     private EvLog logYNoSoc(int odometerKm, BigDecimal kwhCharged) {
-        return evLog(UUID.randomUUID(), odometerKm, kwhCharged, null, T2);
+        return evLog(UUID.randomUUID(), odometerKm, kwhCharged, null, null, T2);
     }
 
     private EvLog evLog(UUID id, Integer odometerKm, BigDecimal kwhCharged,
-                        Integer socAfterChargePercent, LocalDateTime loggedAt) {
+                        Integer socAfterChargePercent, Integer socBeforeChargePercent, LocalDateTime loggedAt) {
         return new EvLog(
                 id,
                 UUID.randomUUID(),          // carId
@@ -327,7 +385,7 @@ class EvLogServiceCalculateConsumptionTest {
                 odometerKm,
                 new BigDecimal("11.0"),      // maxChargingPowerKw
                 socAfterChargePercent,
-                null,                        // socBeforeChargePercent
+                socBeforeChargePercent,
                 loggedAt,
                 DataSource.USER_LOGGED,
                 true,

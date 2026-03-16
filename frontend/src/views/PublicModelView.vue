@@ -52,15 +52,29 @@
             Echte Verbrauchsdaten von EV Monitor Nutzern – kein Marketing, nur Realität.
           </p>
 
+          <!-- Battery variant switcher (only if multiple variants) -->
+          <div v-if="stats.wltpVariants.length > 1" class="flex flex-wrap gap-2 mt-6 mb-4">
+            <button v-for="(v, i) in stats.wltpVariants" :key="v.batteryCapacityKwh"
+              @click="selectedVariantIndex = i"
+              :class="['px-3 py-1 rounded-full text-sm border transition-colors',
+                i === selectedVariantIndex
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400']">
+              {{ v.batteryCapacityKwh }} kWh
+            </button>
+          </div>
+
           <!-- Key metrics -->
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+          <div :class="['grid grid-cols-2 md:grid-cols-4 gap-4', stats.wltpVariants.length > 1 ? '' : 'mt-6']">
             <!-- Mobile: Verbrauch first, Kosten second, then Ladevorgänge, Reichweite -->
             <!-- Desktop: Ladevorgänge, Reichweite, Verbrauch, Kosten -->
             <div class="bg-purple-50 rounded-xl p-4 text-center order-1 md:order-3">
               <div class="text-2xl font-bold text-purple-700">
-                {{ stats.avgConsumptionKwhPer100km ? stats.avgConsumptionKwhPer100km.toFixed(1) + ' kWh' : '–' }}
+                {{ displayConsumption ? displayConsumption.toFixed(1) + ' kWh' : '–' }}
               </div>
               <div class="text-sm text-purple-600 mt-1">Ø Verbrauch / 100km</div>
+              <div v-if="stats.wltpVariants.length > 1 && selectedVariant?.realConsumptionKwhPer100km"
+                   class="text-xs text-purple-400 mt-1">({{ selectedVariant.batteryCapacityKwh }} kWh)</div>
             </div>
             <div class="bg-yellow-50 rounded-xl p-4 text-center order-2 md:order-4">
               <div class="text-2xl font-bold text-yellow-700">
@@ -83,10 +97,8 @@
               </div>
             </div>
             <div class="bg-blue-50 rounded-xl p-4 text-center order-4 md:order-2 flex flex-col justify-center">
-              <template v-if="stats.avgConsumptionKwhPer100km && stats.wltpVariants.length > 0">
-                <div class="text-2xl font-bold text-blue-700">
-                  {{ Math.round(([...stats.wltpVariants].sort((a, b) => (b.realConsumptionTripCount ?? 0) - (a.realConsumptionTripCount ?? 0))[0].batteryCapacityKwh) * 0.8 / stats.avgConsumptionKwhPer100km * 100) }} km
-                </div>
+              <template v-if="displayRange">
+                <div class="text-2xl font-bold text-blue-700">{{ displayRange }} km</div>
                 <div class="mt-1">
                   <div class="text-sm font-bold text-blue-600">Reichweite</div>
                   <div class="flex items-center justify-center gap-1 mt-2">
@@ -175,8 +187,8 @@
           </h2>
           <!-- Mobile: Cards -->
           <div class="md:hidden">
-            <div v-for="variant in stats.wltpVariants" :key="variant.batteryCapacityKwh"
-                 class="border-b last:border-b-0 border-gray-100 px-6 py-4">
+            <div v-for="(variant, i) in stats.wltpVariants" :key="variant.batteryCapacityKwh"
+                 :class="['border-b last:border-b-0 border-gray-100 px-6 py-4', stats.wltpVariants.length > 1 && i === selectedVariantIndex ? 'bg-blue-50' : '']">
               <div class="relative flex items-center justify-center mb-3">
                 <div class="font-semibold text-gray-900">{{ variant.batteryCapacityKwh }} kWh</div>
                 <span v-if="!variant.realConsumptionKwhPer100km"
@@ -250,8 +262,8 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="variant in stats.wltpVariants" :key="variant.batteryCapacityKwh"
-                    class="border-b border-gray-50">
+                <tr v-for="(variant, i) in stats.wltpVariants" :key="variant.batteryCapacityKwh"
+                    :class="['border-b border-gray-50', stats.wltpVariants.length > 1 && i === selectedVariantIndex ? 'bg-blue-50' : '']">
                   <td class="py-3 pr-4 font-medium text-gray-900 whitespace-nowrap">{{ variant.batteryCapacityKwh }} kWh</td>
                   <td class="py-3 pr-4 text-gray-700 whitespace-nowrap">{{ variant.wltpRangeKm }} km</td>
                   <td class="py-3 pr-4 whitespace-nowrap">
@@ -489,6 +501,7 @@ const loading = ref(true)
 const notFound = ref(false)   // true only on genuine 404 — triggers noindex
 const apiError = ref(false)   // true on transient errors — keeps robots: index, follow
 const stats = ref<PublicModelStats | null>(null)
+const selectedVariantIndex = ref(0)
 
 const isAuthenticated = computed(() => authStore.isAuthenticated())
 
@@ -500,6 +513,21 @@ const canonicalBrand = computed(() => stats.value?.brandDisplayName ?? brand)
 const canonicalModelSlug = computed(() => {
   if (!stats.value) return model
   return stats.value.modelDisplayName.replace(stats.value.brandDisplayName + ' ', '').replace(/ /g, '_')
+})
+
+const selectedVariant = computed(() =>
+  stats.value?.wltpVariants[selectedVariantIndex.value] ?? null
+)
+
+const displayConsumption = computed(() =>
+  selectedVariant.value?.realConsumptionKwhPer100km
+    ?? stats.value?.avgConsumptionKwhPer100km
+    ?? null
+)
+
+const displayRange = computed(() => {
+  if (!selectedVariant.value || !displayConsumption.value) return null
+  return Math.round(selectedVariant.value.batteryCapacityKwh * 0.8 / displayConsumption.value * 100)
 })
 
 const bestWltpRange = computed(() => {
@@ -743,6 +771,16 @@ onMounted(async () => {
       notFound.value = true
     } else {
       stats.value = data
+      // Default to variant with most real consumption data
+      if (data.wltpVariants.length > 1) {
+        let maxTrips = -1
+        data.wltpVariants.forEach((v, i) => {
+          if ((v.realConsumptionTripCount ?? 0) > maxTrips) {
+            maxTrips = v.realConsumptionTripCount ?? 0
+            selectedVariantIndex.value = i
+          }
+        })
+      }
       const modelSlug = data.modelDisplayName.replace(data.brandDisplayName + ' ', '').replace(/ /g, '_')
       const canonicalPath = `/modelle/${data.brandDisplayName}/${modelSlug}`
       if (route.path !== canonicalPath) {

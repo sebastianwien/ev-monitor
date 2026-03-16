@@ -573,11 +573,14 @@ public class EvLogService {
         int distance = logY.getOdometerKm() - logX.getOdometerKm();
         if (distance <= 0) return Optional.empty();
 
-        // socBefore(logY) = socAfter(logY) - kwhCharged(logY) / batteryCapacity * 100
-        BigDecimal socBeforeLogYPercent = BigDecimal.valueOf(logY.getSocAfterChargePercent())
-                .subtract(logY.getKwhCharged()
-                        .divide(batteryCapacityKwh, 4, RoundingMode.HALF_UP)
-                        .multiply(HUNDRED));
+        // socBefore(logY): use stored value if available (loss-free, from BMS),
+        // otherwise derive from kwhCharged (includes charging losses → slight overestimate)
+        BigDecimal socBeforeLogYPercent = logY.getSocBeforeChargePercent() != null
+                ? BigDecimal.valueOf(logY.getSocBeforeChargePercent())
+                : BigDecimal.valueOf(logY.getSocAfterChargePercent())
+                        .subtract(logY.getKwhCharged()
+                                .divide(batteryCapacityKwh, 4, RoundingMode.HALF_UP)
+                                .multiply(HUNDRED));
 
         // energyConsumed = (socAfter(logX) - socBefore(logY)) * batteryCapacity / 100
         BigDecimal energyConsumedKwh = BigDecimal.valueOf(logX.getSocAfterChargePercent())
