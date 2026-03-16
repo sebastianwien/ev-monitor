@@ -136,10 +136,10 @@ const submitLog = async () => {
     fieldErrors.value.add('odometer'); errors.push('Tachostand')
   } else {
     const last = getLastOdometerReading()
-    if (last !== null && f.odometerKm <= last) {
+    if (last !== null && f.odometerKm < last) {
       fieldErrors.value.add('odometer')
-      odometerPlaceholderOverride.value = `sollte > ${last.toLocaleString('de-DE')} km sein`
-      errors.push(`Tachostand muss größer als ${last.toLocaleString('de-DE')} km sein`)
+      odometerPlaceholderOverride.value = `sollte >= ${last.toLocaleString('de-DE')} km sein`
+      errors.push(`Tachostand muss mindestens ${last.toLocaleString('de-DE')} km sein`)
     }
   }
   if (f.socAfterChargePercent === null || f.socAfterChargePercent < 0 || f.socAfterChargePercent > 100) {
