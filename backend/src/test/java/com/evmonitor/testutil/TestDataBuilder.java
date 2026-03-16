@@ -63,7 +63,8 @@ public class TestDataBuilder {
                 "TEST-123",
                 "Standard",
                 batteryCapacityKwh,
-                new BigDecimal("150.0")
+                new BigDecimal("150.0"),
+                null
         );
     }
 

@@ -63,6 +63,9 @@ public class CarEntity {
     @Column(name = "is_primary", nullable = false)
     private boolean isPrimary;
 
+    @Column(name = "battery_degradation_percent")
+    private BigDecimal batteryDegradationPercent;
+
     public CarEntity() {
     }
 
@@ -194,5 +197,13 @@ public class CarEntity {
 
     public void setPrimary(boolean isPrimary) {
         this.isPrimary = isPrimary;
+    }
+
+    public BigDecimal getBatteryDegradationPercent() {
+        return batteryDegradationPercent;
+    }
+
+    public void setBatteryDegradationPercent(BigDecimal batteryDegradationPercent) {
+        this.batteryDegradationPercent = batteryDegradationPercent;
     }
 }

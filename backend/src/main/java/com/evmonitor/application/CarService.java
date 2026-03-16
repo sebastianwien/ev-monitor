@@ -32,7 +32,8 @@ public class CarService {
                 request.licensePlate(),
                 request.trim(),
                 request.batteryCapacityKwh(),
-                request.powerKw());
+                request.powerKw(),
+                request.batteryDegradationPercent());
 
         Car savedCar = carRepository.save(newCar);
 
@@ -90,7 +91,8 @@ public class CarService {
                 java.time.LocalDateTime.now(),
                 existingCar.getImagePath(),
                 existingCar.isImagePublic(),
-                existingCar.isPrimary());
+                existingCar.isPrimary(),
+                request.batteryDegradationPercent());
 
         Car savedCar = carRepository.save(updatedCar);
         return CarResponse.fromDomain(savedCar);

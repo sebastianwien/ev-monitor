@@ -1,6 +1,7 @@
 package com.evmonitor.domain;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -22,12 +23,23 @@ public class Car {
     private final String imagePath;
     private final boolean imagePublic;
     private final boolean isPrimary;
+    private final BigDecimal batteryDegradationPercent;
 
     public Car(UUID id, UUID userId, CarBrand.CarModel model, Integer year, String licensePlate,
             String trim, BigDecimal batteryCapacityKwh, BigDecimal powerKw,
             LocalDate registrationDate, LocalDate deregistrationDate, CarStatus status,
             LocalDateTime createdAt, LocalDateTime updatedAt, String imagePath, boolean imagePublic,
             boolean isPrimary) {
+        this(id, userId, model, year, licensePlate, trim, batteryCapacityKwh, powerKw,
+                registrationDate, deregistrationDate, status, createdAt, updatedAt, imagePath,
+                imagePublic, isPrimary, null);
+    }
+
+    public Car(UUID id, UUID userId, CarBrand.CarModel model, Integer year, String licensePlate,
+            String trim, BigDecimal batteryCapacityKwh, BigDecimal powerKw,
+            LocalDate registrationDate, LocalDate deregistrationDate, CarStatus status,
+            LocalDateTime createdAt, LocalDateTime updatedAt, String imagePath, boolean imagePublic,
+            boolean isPrimary, BigDecimal batteryDegradationPercent) {
         this.id = id;
         this.userId = userId;
         this.model = model;
@@ -44,38 +56,51 @@ public class Car {
         this.imagePath = imagePath;
         this.imagePublic = imagePublic;
         this.isPrimary = isPrimary;
+        this.batteryDegradationPercent = batteryDegradationPercent;
     }
 
     public static Car createNew(UUID userId, CarBrand.CarModel model, Integer year, String licensePlate,
-            String trim, BigDecimal batteryCapacityKwh, BigDecimal powerKw) {
+            String trim, BigDecimal batteryCapacityKwh, BigDecimal powerKw,
+            BigDecimal batteryDegradationPercent) {
         LocalDateTime now = LocalDateTime.now();
-        LocalDate registrationDate = LocalDate.of(year, 1, 1); // Default: Jan 1st of car year
+        LocalDate registrationDate = LocalDate.of(year, 1, 1);
         return new Car(UUID.randomUUID(), userId, model, year, licensePlate, trim,
-                batteryCapacityKwh, powerKw, registrationDate, null, CarStatus.ACTIVE, now, now, null, false, false);
+                batteryCapacityKwh, powerKw, registrationDate, null, CarStatus.ACTIVE, now, now,
+                null, false, false, batteryDegradationPercent);
     }
 
     public Car deregister(LocalDate deregistrationDate) {
         return new Car(id, userId, model, year, licensePlate, trim, batteryCapacityKwh, powerKw,
                 registrationDate, deregistrationDate, CarStatus.INACTIVE, createdAt, LocalDateTime.now(),
-                imagePath, imagePublic, isPrimary);
+                imagePath, imagePublic, isPrimary, batteryDegradationPercent);
     }
 
     public Car withImage(String imagePath, boolean imagePublic) {
         return new Car(id, userId, model, year, licensePlate, trim, batteryCapacityKwh, powerKw,
                 registrationDate, deregistrationDate, status, createdAt, LocalDateTime.now(),
-                imagePath, imagePublic, isPrimary);
+                imagePath, imagePublic, isPrimary, batteryDegradationPercent);
     }
 
     public Car activate() {
         return new Car(id, userId, model, year, licensePlate, trim, batteryCapacityKwh, powerKw,
                 registrationDate, deregistrationDate, status, createdAt, LocalDateTime.now(),
-                imagePath, imagePublic, true);
+                imagePath, imagePublic, true, batteryDegradationPercent);
     }
 
     public Car deactivate() {
         return new Car(id, userId, model, year, licensePlate, trim, batteryCapacityKwh, powerKw,
                 registrationDate, deregistrationDate, status, createdAt, LocalDateTime.now(),
-                imagePath, imagePublic, false);
+                imagePath, imagePublic, false, batteryDegradationPercent);
+    }
+
+    public BigDecimal getEffectiveBatteryCapacityKwh() {
+        if (batteryCapacityKwh == null) return null;
+        if (batteryDegradationPercent == null || batteryDegradationPercent.compareTo(BigDecimal.ZERO) == 0) {
+            return batteryCapacityKwh;
+        }
+        BigDecimal factor = BigDecimal.ONE.subtract(
+                batteryDegradationPercent.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP));
+        return batteryCapacityKwh.multiply(factor).setScale(2, RoundingMode.HALF_UP);
     }
 
     public UUID getId() {
@@ -140,5 +165,9 @@ public class Car {
 
     public boolean isPrimary() {
         return isPrimary;
+    }
+
+    public BigDecimal getBatteryDegradationPercent() {
+        return batteryDegradationPercent;
     }
 }

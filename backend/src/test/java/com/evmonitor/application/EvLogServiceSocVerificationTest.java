@@ -39,7 +39,8 @@ class EvLogServiceSocVerificationTest extends AbstractIntegrationTest {
             "VERIFY-123",
             "Long Range",
             new BigDecimal("75.0"), // 75 kWh battery
-            new BigDecimal("275.0")
+            new BigDecimal("275.0"),
+            null
         );
         carRepository.save(car);
         carId = car.getId();

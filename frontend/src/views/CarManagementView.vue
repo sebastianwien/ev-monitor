@@ -30,6 +30,8 @@ const selectedCapacity = ref<number | null>(null)
 const customCapacity = ref<number | null>(null)
 const useCustomCapacity = ref(false)
 const powerKw = ref<number | null>(null)
+const batteryDegradationPercent = ref<number | null>(null)
+const showAdvancedSettings = ref(false)
 
 // WLTP data
 const wltpData = ref<VehicleSpecification | null>(null)
@@ -179,6 +181,8 @@ const resetForm = () => {
   customCapacity.value = null
   useCustomCapacity.value = false
   powerKw.value = null
+  batteryDegradationPercent.value = null
+  showAdvancedSettings.value = false
   editingCar.value = null
   showForm.value = false
   availableModels.value = []
@@ -209,6 +213,8 @@ const openEditForm = async (car: Car) => {
   licensePlate.value = car.licensePlate
   trim.value = car.trim || ''
   powerKw.value = car.powerKw
+  batteryDegradationPercent.value = car.batteryDegradationPercent
+  showAdvancedSettings.value = car.batteryDegradationPercent != null
   showForm.value = true
 }
 
@@ -227,7 +233,8 @@ const submitForm = async () => {
       licensePlate: licensePlate.value,
       trim: trim.value || null,
       batteryCapacityKwh: finalCapacity.value,
-      powerKw: powerKw.value
+      powerKw: powerKw.value,
+      batteryDegradationPercent: batteryDegradationPercent.value
     }
 
     if (editingCar.value) {
@@ -595,6 +602,34 @@ onUnmounted(() => {
             </div>
           </div>
 
+          <!-- Erweiterte Einstellungen -->
+          <div class="mt-4 border-t pt-4">
+            <button type="button" @click="showAdvancedSettings = !showAdvancedSettings"
+              class="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
+                class="w-4 h-4 transition-transform" :class="{ 'rotate-180': showAdvancedSettings }">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+              </svg>
+              Erweiterte Einstellungen
+            </button>
+            <div v-if="showAdvancedSettings" class="mt-3 space-y-2">
+              <label class="block text-sm font-medium text-gray-700">Batteriedegradation (optional)</label>
+              <div class="flex items-center gap-2">
+                <input v-model.number="batteryDegradationPercent" type="number" step="0.1" min="0" max="50"
+                  placeholder="z.B. 8"
+                  class="w-32 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" />
+                <span class="text-sm text-gray-500">%</span>
+                <button v-if="batteryDegradationPercent != null" type="button"
+                  @click="batteryDegradationPercent = null"
+                  class="text-xs text-red-500 hover:text-red-700 ml-2">Zurücksetzen</button>
+              </div>
+              <p v-if="batteryDegradationPercent && finalCapacity" class="text-xs text-amber-600">
+                Effektive Kapazität: {{ (finalCapacity * (1 - batteryDegradationPercent / 100)).toFixed(2) }} kWh (statt {{ finalCapacity }} kWh)
+              </p>
+              <p class="text-xs text-gray-400">Verbrauchsberechnungen nutzen die effektive Kapazität.</p>
+            </div>
+          </div>
+
           <div class="flex gap-3 pt-2">
             <button type="submit"
               v-haptic
@@ -748,6 +783,9 @@ onUnmounted(() => {
             <div class="mb-4 space-y-1">
               <p class="text-sm text-gray-600">
                 <span class="font-semibold">Batterie:</span> {{ car.batteryCapacityKwh }} kWh
+                <span v-if="car.batteryDegradationPercent" class="text-amber-600 text-xs ml-1">
+                  ({{ car.batteryDegradationPercent }}% Degradation - effektiv {{ car.effectiveBatteryCapacityKwh }} kWh)
+                </span>
               </p>
               <p v-if="car.powerKw" class="text-sm text-gray-600">
                 <span class="font-semibold">Leistung:</span> {{ car.powerKw }} kW ({{ Math.round(car.powerKw * 1.35962) }} PS)
@@ -864,6 +902,34 @@ onUnmounted(() => {
                 class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" />
               <p v-if="powerPs" class="text-xs text-gray-500 mt-1">≈ {{ powerPs }} PS</p>
               <p v-else class="text-xs text-gray-500 mt-1">Gib kW ein um PS-Umrechnung zu sehen</p>
+            </div>
+          </div>
+
+          <!-- Erweiterte Einstellungen -->
+          <div class="mt-4 border-t pt-4">
+            <button type="button" @click="showAdvancedSettings = !showAdvancedSettings"
+              class="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
+                class="w-4 h-4 transition-transform" :class="{ 'rotate-180': showAdvancedSettings }">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+              </svg>
+              Erweiterte Einstellungen
+            </button>
+            <div v-if="showAdvancedSettings" class="mt-3 space-y-2">
+              <label class="block text-sm font-medium text-gray-700">Batteriedegradation (optional)</label>
+              <div class="flex items-center gap-2">
+                <input v-model.number="batteryDegradationPercent" type="number" step="0.1" min="0" max="50"
+                  placeholder="z.B. 8"
+                  class="w-32 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" />
+                <span class="text-sm text-gray-500">%</span>
+                <button v-if="batteryDegradationPercent != null" type="button"
+                  @click="batteryDegradationPercent = null"
+                  class="text-xs text-red-500 hover:text-red-700 ml-2">Zurücksetzen</button>
+              </div>
+              <p v-if="batteryDegradationPercent && finalCapacity" class="text-xs text-amber-600">
+                Effektive Kapazität: {{ (finalCapacity * (1 - batteryDegradationPercent / 100)).toFixed(2) }} kWh (statt {{ finalCapacity }} kWh)
+              </p>
+              <p class="text-xs text-gray-400">Verbrauchsberechnungen nutzen die effektive Kapazität.</p>
             </div>
           </div>
 

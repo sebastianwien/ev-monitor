@@ -19,6 +19,8 @@ export interface Car {
     imageUrl: string | null; // Relative URL to image, e.g. /api/cars/{id}/image
     imagePublic: boolean;
     isPrimary: boolean;
+    batteryDegradationPercent: number | null;
+    effectiveBatteryCapacityKwh: number | null;
 }
 
 export interface CarRequest {
@@ -28,6 +30,7 @@ export interface CarRequest {
     trim: string | null; // Trim level (optional)
     batteryCapacityKwh: number; // Selected or custom capacity
     powerKw: number | null; // Power in kW (optional)
+    batteryDegradationPercent: number | null;
 }
 
 export interface BrandInfo {

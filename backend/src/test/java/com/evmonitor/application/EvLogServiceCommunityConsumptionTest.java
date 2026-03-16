@@ -220,7 +220,7 @@ class EvLogServiceCommunityConsumptionTest extends AbstractIntegrationTest {
         Car car = Car.createNew(
                 userId, CarBrand.CarModel.MODEL_3, 2023,
                 "T-" + UUID.randomUUID().toString().substring(0, 8),
-                "Long Range", batteryKwh, new BigDecimal("275.0"));
+                "Long Range", batteryKwh, new BigDecimal("275.0"), null);
         return carRepository.save(car);
     }
 

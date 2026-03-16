@@ -60,7 +60,8 @@ class CarServiceTest {
                 "TEST-123",
                 "Long Range",
                 new BigDecimal("79.0"),
-                new BigDecimal("350.0")
+                new BigDecimal("350.0"),
+                null
         );
 
         when(carRepository.save(any(Car.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -156,7 +157,8 @@ class CarServiceTest {
                 "NEW-456",
                 "Performance",
                 new BigDecimal("82.0"),
-                new BigDecimal("450.0")
+                new BigDecimal("450.0"),
+                null
         );
 
         // When
@@ -189,7 +191,8 @@ class CarServiceTest {
                 "HACKED-123",
                 "Stolen",
                 new BigDecimal("80.0"),
-                new BigDecimal("400.0")
+                new BigDecimal("400.0"),
+                null
         );
 
         // When & Then
@@ -290,6 +293,35 @@ class CarServiceTest {
 
         assertEquals("User does not own the specified car", exception.getMessage());
         verify(carRepository, never()).save(any(Car.class));
+    }
+
+    @Test
+    void shouldPersistBatteryDegradationPercent_WhenUpdatingCar() {
+        // Given
+        Car existingCar = TestDataBuilder.createTestCarWithId(carId, userId, CarBrand.CarModel.MODEL_3);
+        when(carRepository.findById(carId)).thenReturn(Optional.of(existingCar));
+        when(carRepository.save(any(Car.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        CarRequest updateRequest = new CarRequest(
+                CarBrand.CarModel.MODEL_3,
+                2024,
+                "TEST-456",
+                "Performance",
+                new BigDecimal("75.0"),
+                new BigDecimal("200.0"),
+                new BigDecimal("10.0")
+        );
+
+        // When
+        carService.updateCar(carId, userId, updateRequest);
+
+        // Then
+        ArgumentCaptor<Car> captor = ArgumentCaptor.forClass(Car.class);
+        verify(carRepository).save(captor.capture());
+        Car savedCar = captor.getValue();
+        assertEquals(new BigDecimal("10.0"), savedCar.getBatteryDegradationPercent());
+        // 75 kWh - 10% = 67.5 kWh
+        assertEquals(new BigDecimal("67.50"), savedCar.getEffectiveBatteryCapacityKwh());
     }
 
     @Test

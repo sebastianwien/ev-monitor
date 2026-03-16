@@ -358,8 +358,8 @@ public class EvLogService {
                 .collect(Collectors.toList());
 
         // Compute per-log consumption + plausibility on the full dataset (SoC-based)
-        Map<UUID, ConsumptionResult> consumptionByLog = new LinkedHashMap<>(car.getBatteryCapacityKwh() != null
-                ? calculateConsumptionPerLog(allLogsSorted, car.getBatteryCapacityKwh(), lookupWltp(car))
+        Map<UUID, ConsumptionResult> consumptionByLog = new LinkedHashMap<>(car.getEffectiveBatteryCapacityKwh() != null
+                ? calculateConsumptionPerLog(allLogsSorted, car.getEffectiveBatteryCapacityKwh(), lookupWltp(car))
                 : Map.of());
 
         // Distance since last charge — covers logs with odometer regardless of SoC availability
@@ -435,8 +435,8 @@ public class EvLogService {
         }
 
         // Compute per-log consumption once — used for both chart data and overall average
-        Map<UUID, ConsumptionResult> consumptionByLog = new LinkedHashMap<>(car.getBatteryCapacityKwh() != null
-                ? calculateConsumptionPerLog(allLogsForCar, car.getBatteryCapacityKwh(), lookupWltp(car))
+        Map<UUID, ConsumptionResult> consumptionByLog = new LinkedHashMap<>(car.getEffectiveBatteryCapacityKwh() != null
+                ? calculateConsumptionPerLog(allLogsForCar, car.getEffectiveBatteryCapacityKwh(), lookupWltp(car))
                 : Map.of());
 
         // Fallback: for logs with distance but no SoC-based consumption, estimate via kWh/distance.
@@ -723,6 +723,10 @@ public class EvLogService {
     /**
      * Looks up the WLTP combined consumption for the given car via VehicleSpecification.
      * Returns null if no spec exists (e.g. model not yet in the database).
+     *
+     * Intentionally uses nominal battery capacity (not effective) for the lookup:
+     * WLTP specs are standardized per nominal battery size. Battery degradation affects
+     * the actual energy drawn, but the WLTP reference value stays tied to the nominal spec.
      */
     BigDecimal lookupWltp(Car car) {
         if (car.getModel() == null || car.getBatteryCapacityKwh() == null) return null;
@@ -806,7 +810,7 @@ public class EvLogService {
      */
     private List<PlausibleEntry> getPlausibleEntriesForCar(Car car, List<EvLog> allLogs, List<EvLog> statsLogs) {
         Map<UUID, ConsumptionResult> perLog = calculateConsumptionPerLog(
-                allLogs, car.getBatteryCapacityKwh(), lookupWltp(car));
+                allLogs, car.getEffectiveBatteryCapacityKwh(), lookupWltp(car));
 
         List<PlausibleEntry> entries = new ArrayList<>();
 

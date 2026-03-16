@@ -1,7 +1,8 @@
 package com.evmonitor.application;
 
 import com.evmonitor.domain.CarBrand;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
@@ -24,5 +25,9 @@ public record CarRequest(
         BigDecimal batteryCapacityKwh,
 
         @Positive(message = "Power must be positive")
-        BigDecimal powerKw) {
+        BigDecimal powerKw,
+
+        @DecimalMin(value = "0.0", message = "Battery degradation must be >= 0")
+        @DecimalMax(value = "50.0", message = "Battery degradation must be <= 50")
+        BigDecimal batteryDegradationPercent) {
 }

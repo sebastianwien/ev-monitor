@@ -160,7 +160,8 @@ public class DevDataSeeder implements CommandLineRunner {
                 licensePlate,
                 null, // trim
                 batteryKwh,
-                powerKw
+                powerKw,
+                null // no degradation for seed data
         );
         return carRepository.save(car);
     }
