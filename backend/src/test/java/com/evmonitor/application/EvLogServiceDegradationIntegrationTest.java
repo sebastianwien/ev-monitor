@@ -49,10 +49,10 @@ class EvLogServiceDegradationIntegrationTest extends AbstractIntegrationTest {
                 60, "u33d1", 15000, null, 80,
                 LocalDateTime.now().minusDays(3), ChargingType.UNKNOWN, null, null));
 
-        // second log (soc=15 after 300 km)
+        // second log (arrived at 15%, charged back to 80% = 48.75 kWh with 75 kWh battery)
         evLogRepository.save(EvLog.createNew(
-                carNoDeg.getId(), new BigDecimal("52.0"), new BigDecimal("14.0"),
-                45, "u33d2", 15300, null, 15,
+                carNoDeg.getId(), new BigDecimal("48.75"), new BigDecimal("14.0"),
+                45, "u33d2", 15300, null, 80,
                 LocalDateTime.now().minusDays(2), ChargingType.UNKNOWN, null, null));
 
         // --- Car WITH 10% degradation ---
@@ -68,9 +68,10 @@ class EvLogServiceDegradationIntegrationTest extends AbstractIntegrationTest {
                 60, "u33d3", 15000, null, 80,
                 LocalDateTime.now().minusDays(3), ChargingType.UNKNOWN, null, null));
 
+        // arrived at 15%, charged back to 80% = 43.875 kWh with 67.5 kWh effective battery (10% degradation)
         evLogRepository.save(EvLog.createNew(
-                carWithDeg.getId(), new BigDecimal("52.0"), new BigDecimal("14.0"),
-                45, "u33d4", 15300, null, 15,
+                carWithDeg.getId(), new BigDecimal("43.875"), new BigDecimal("14.0"),
+                45, "u33d4", 15300, null, 80,
                 LocalDateTime.now().minusDays(2), ChargingType.UNKNOWN, null, null));
 
         // --- Compare ---
@@ -108,9 +109,10 @@ class EvLogServiceDegradationIntegrationTest extends AbstractIntegrationTest {
                 60, "u33d5", 15000, null, 80,
                 LocalDateTime.now().minusDays(2), ChargingType.UNKNOWN, null, null));
 
+        // arrived at 15%, charged back to 80% = 48.75 kWh with 75 kWh battery
         evLogRepository.save(EvLog.createNew(
                 car.getId(), new BigDecimal("48.75"), new BigDecimal("14.0"),
-                45, "u33d6", 15300, null, 15,
+                45, "u33d6", 15300, null, 80,
                 LocalDateTime.now().minusDays(1), ChargingType.UNKNOWN, null, null));
 
         EvLogStatisticsResponse stats = evLogService.getStatistics(car.getId(), user.getId(), null, null, null);

@@ -554,11 +554,41 @@ const toggleGroupExpand = async (groupId: string) => {
 const mergedLogFeed = computed(() => {
   const groupsForPage = sessionGroups.value.map((g: any) => ({ ...g, _isGroup: true }))
   const logsWithFlag = logs.value.map((l: any) => ({ ...l, _isGroup: false }))
-  return [...logsWithFlag, ...groupsForPage].sort((a, b) => {
+  const sorted = [...logsWithFlag, ...groupsForPage].sort((a, b) => {
     const dateA = new Date(a._isGroup ? a.sessionStart : a.loggedAt).getTime()
     const dateB = new Date(b._isGroup ? b.sessionStart : b.loggedAt).getTime()
     return dateB - dateA  // Neueste zuerst
   })
+
+  // Nachladen-Erkennung: gleicher Kilometerstand wie nachfolgender Eintrag (aelterer)
+  // → neuerer Eintrag ist ein Nachladen des aelteren, wird als Sub-Eintrag unter dem aelteren angezeigt.
+  // sorted ist newest-first: sorted[i] ist neuer als sorted[i+1].
+  // Wenn sorted[i].odometerKm === sorted[i+1].odometerKm: sorted[i] = Top-Up von sorted[i+1].
+  const topUpChildren = new Map<number, any[]>() // parent-index → [top-up entries]
+  const skipIndices = new Set<number>()
+
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const curr = sorted[i]
+    const next = sorted[i + 1]
+    if (!curr._isGroup && !next._isGroup &&
+        curr.odometerKm != null && next.odometerKm != null &&
+        curr.odometerKm === next.odometerKm) {
+      // curr (neuer) ist Top-Up von next (aelter)
+      const parentIdx = skipIndices.has(i + 1)
+        ? i + 1  // next ist selbst schon ein Top-Up — fuer jetzt nur eine Ebene
+        : i + 1
+      if (!topUpChildren.has(parentIdx)) topUpChildren.set(parentIdx, [])
+      topUpChildren.get(parentIdx)!.push({ ...curr, _isTopUp: true })
+      skipIndices.add(i)
+    }
+  }
+
+  const result: any[] = []
+  for (let i = 0; i < sorted.length; i++) {
+    if (skipIndices.has(i)) continue
+    result.push({ ...sorted[i], _isTopUp: false, _topUps: topUpChildren.get(i) ?? [] })
+  }
+  return result
 })
 
 const fetchLogs = async (page = 0) => {
@@ -1112,7 +1142,8 @@ const deleteLog = async (id: string) => {
                 </div>
               </div>
               <!-- Normal Log -->
-              <div v-else
+              <div v-else>
+              <div
                 :class="['p-3 border rounded-lg space-y-2',
                          entry.consumptionImplausible
                            ? 'bg-red-50 border-red-300 border-l-4 border-l-red-400'
@@ -1197,9 +1228,58 @@ const deleteLog = async (id: string) => {
                 <!-- Implausibility warning -->
                 <div v-if="entry.consumptionImplausible" class="flex items-start gap-1.5 text-xs text-red-700">
                   <ExclamationTriangleIcon class="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-                  <span>Verbrauch unplausibel — wahrscheinlich fehlt ein Ladevorgang zwischen diesem und dem vorherigen Eintrag.</span>
+                  <span>Verbrauch unplausibel - wahrscheinlich fehlt ein Ladevorgang zwischen diesem und dem vorherigen Eintrag.</span>
                 </div>
               </div>
+              <!-- Nachladen Sub-Eintraege -->
+              <template v-if="entry._topUps && entry._topUps.length > 0">
+                <div v-for="topUp in entry._topUps" :key="topUp.id"
+                  class="ml-4 mt-1">
+                  <div class="flex items-center gap-1 mb-1 text-xs text-gray-400">
+                    <span class="text-gray-300">└</span>
+                    <span>Nachladen</span>
+                  </div>
+                  <div :class="['p-3 border rounded-lg space-y-2 bg-gray-50 border-gray-200']">
+                    <!-- Top-Up Header -->
+                    <div class="flex items-center justify-between gap-2">
+                      <div class="flex items-center gap-2 min-w-0">
+                        <BoltIcon class="w-4 h-4 text-gray-400 flex-shrink-0" />
+                        <span class="font-semibold text-gray-600 whitespace-nowrap">{{ topUp.kwhCharged }} kWh</span>
+                        <span class="text-xs text-gray-400 whitespace-nowrap">
+                          {{ new Date(topUp.loggedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) }} Uhr
+                        </span>
+                      </div>
+                      <div class="flex items-center gap-1.5 flex-shrink-0">
+                        <button @click="editingLog = topUp"
+                          class="p-1 rounded text-gray-300 hover:text-blue-500 hover:bg-blue-50 transition"
+                          title="Ladevorgang bearbeiten">
+                          <PencilSquareIcon class="w-3.5 h-3.5" />
+                        </button>
+                        <button @click="deleteLog(topUp.id)"
+                          class="p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition">
+                          <TrashIcon class="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                    <!-- Top-Up Badges -->
+                    <div class="flex flex-wrap gap-1.5">
+                      <span v-if="topUp.costEur != null"
+                        class="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
+                        €{{ topUp.costEur }}
+                      </span>
+                      <span v-if="topUp.chargeDurationMinutes"
+                        class="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
+                        <ClockIcon class="w-3 h-3" />{{ topUp.chargeDurationMinutes }}min
+                      </span>
+                      <span v-if="topUp.socAfterChargePercent != null"
+                        class="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
+                        <Battery0Icon class="w-3 h-3" />{{ topUp.socAfterChargePercent }}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </template>
+              </div><!-- end normal log wrapper -->
               </div><!-- end v-for entry in mergedLogFeed -->
             </template>
           </div>

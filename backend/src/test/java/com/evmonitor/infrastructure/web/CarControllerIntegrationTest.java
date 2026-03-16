@@ -48,7 +48,8 @@ class CarControllerIntegrationTest extends AbstractIntegrationTest {
                 "TEST-123",
                 "Long Range",
                 new BigDecimal("79.0"),
-                new BigDecimal("350.0")
+                new BigDecimal("350.0"),
+                null
         );
 
         HttpEntity<CarRequest> requestWithAuth = createAuthRequest(request, userId, testUser.getEmail());
@@ -130,7 +131,8 @@ class CarControllerIntegrationTest extends AbstractIntegrationTest {
                 "NEW-456",
                 "Performance",
                 new BigDecimal("82.0"),
-                new BigDecimal("450.0")
+                new BigDecimal("450.0"),
+                null
         );
 
         HttpEntity<CarRequest> requestWithAuth = createAuthRequest(updateRequest, userId, testUser.getEmail());
@@ -162,7 +164,8 @@ class CarControllerIntegrationTest extends AbstractIntegrationTest {
                 "HACKED-123",
                 "Stolen",
                 new BigDecimal("80.0"),
-                new BigDecimal("400.0")
+                new BigDecimal("400.0"),
+                null
         );
 
         HttpEntity<CarRequest> requestWithAuth = createAuthRequest(updateRequest, userId, testUser.getEmail());
@@ -234,7 +237,8 @@ class CarControllerIntegrationTest extends AbstractIntegrationTest {
                 "TEST-123",
                 "Standard",
                 new BigDecimal("75.0"),
-                new BigDecimal("350.0")
+                new BigDecimal("350.0"),
+                null
         );
 
         // When: Try to create car without auth

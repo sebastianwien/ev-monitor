@@ -141,6 +141,7 @@ const startImport = async () => {
           year: newCar.year,
           batteryCapacityKwh: 50, // Default placeholder (user can edit later)
           powerKw: null,
+          batteryDegradationPercent: null,
           licensePlate: '', // Empty string (user can add later)
           trim: null,
         });

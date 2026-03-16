@@ -186,6 +186,7 @@ class SessionGroupControllerIntegrationTest extends AbstractIntegrationTest {
         request.put("loggedAt", loggedAt.toString());
         request.put("dataSource", "WALLBOX_GOE");
         request.put("costEur", costEur);
+        request.put("mergeSessions", true);
 
         HttpHeaders headers = new HttpHeaders();
         headers.set("X-Internal-Token", VALID_TOKEN);
