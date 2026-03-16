@@ -52,20 +52,8 @@
             Echte Verbrauchsdaten von EV Monitor Nutzern – kein Marketing, nur Realität.
           </p>
 
-          <!-- Battery variant switcher (only if multiple variants) -->
-          <div v-if="stats.wltpVariants.length > 1" class="flex flex-wrap gap-2 mt-6 mb-4">
-            <button v-for="(v, i) in stats.wltpVariants" :key="v.batteryCapacityKwh"
-              @click="selectedVariantIndex = i"
-              :class="['px-3 py-1 rounded-full text-sm border transition-colors',
-                i === selectedVariantIndex
-                  ? 'bg-blue-600 text-white border-blue-600'
-                  : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400']">
-              {{ v.batteryCapacityKwh }} kWh
-            </button>
-          </div>
-
           <!-- Key metrics -->
-          <div :class="['grid grid-cols-2 md:grid-cols-4 gap-4', stats.wltpVariants.length > 1 ? '' : 'mt-6']">
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
             <!-- Mobile: Verbrauch first, Kosten second, then Ladevorgänge, Reichweite -->
             <!-- Desktop: Ladevorgänge, Reichweite, Verbrauch, Kosten -->
             <div class="bg-purple-50 rounded-xl p-4 text-center order-1 md:order-3">
@@ -73,8 +61,6 @@
                 {{ displayConsumption ? displayConsumption.toFixed(1) + ' kWh' : '–' }}
               </div>
               <div class="text-sm text-purple-600 mt-1">Ø Verbrauch / 100km</div>
-              <div v-if="stats.wltpVariants.length > 1 && selectedVariant?.realConsumptionKwhPer100km"
-                   class="text-xs text-purple-400 mt-1">({{ selectedVariant.batteryCapacityKwh }} kWh)</div>
             </div>
             <div class="bg-yellow-50 rounded-xl p-4 text-center order-2 md:order-4">
               <div class="text-2xl font-bold text-yellow-700">
@@ -123,58 +109,89 @@
             </p>
           </div>
 
-          <!-- Seasonal Consumption Breakdown -->
-          <div v-if="showSeasonalBreakdown" class="mt-6 -mx-6 -mb-6 px-6 py-6 md:mx-0 md:mb-0 md:p-4 bg-gradient-to-br from-blue-50 to-indigo-50 border-t md:border border-blue-200 md:rounded-xl">
-            <div class="flex items-start gap-3">
-              <div class="flex-1">
-                <p class="text-sm font-bold text-blue-900 mb-3">
-                  📊 Verbrauch nach Jahreszeit
-                </p>
+        </div>
 
-                <!-- Summer Stats -->
-                <div class="flex items-center justify-between mb-2 text-sm">
-                  <div class="flex items-center gap-2">
-                    <span class="text-orange-600 font-medium">🌞 Sommer<span class="block md:inline"> (Mai–Aug)</span></span>
-                  </div>
-                  <div class="flex items-center gap-3">
-                    <span v-if="stats.seasonalDistribution!.summerConsumptionKwhPer100km"
-                          class="font-bold text-orange-700">
-                      {{ stats.seasonalDistribution!.summerConsumptionKwhPer100km.toFixed(1) }} kWh/100km
-                    </span>
-                    <span v-else class="text-gray-400 text-xs">—</span>
-                    <span class="text-xs text-gray-500">({{ stats.seasonalDistribution!.summerLogCount }} Fahrten)</span>
-                  </div>
-                </div>
+        <!-- Variant switcher -->
+        <div v-if="stats.wltpVariants.length > 1"
+             class="px-4 md:px-0 py-2.5 md:py-0 md:mt-4">
+          <div class="relative flex bg-gray-100 rounded-full p-1">
+            <div
+              class="absolute top-1 bottom-1 rounded-full bg-blue-600 shadow-sm transition-transform duration-300 ease-in-out"
+              :style="{
+                width: `calc(${100 / stats.wltpVariants.length}% - ${8 / stats.wltpVariants.length}px)`,
+                transform: `translateX(calc(${selectedVariantIndex * 100}% + ${selectedVariantIndex * 4}px))`
+              }"
+            />
+            <button
+              v-for="(v, i) in stats.wltpVariants"
+              :key="v.batteryCapacityKwh"
+              @click="selectedVariantIndex = i"
+              class="relative flex-1 text-sm font-medium py-1.5 rounded-full transition-colors duration-300 z-10"
+              :class="i === selectedVariantIndex ? 'text-white' : 'text-gray-500 hover:text-gray-700'"
+            >
+              {{ v.batteryCapacityKwh }} kWh
+            </button>
+          </div>
+        </div>
 
-                <!-- Winter Stats -->
-                <div class="flex items-center justify-between mb-3 text-sm">
-                  <div class="flex items-center gap-2">
-                    <span class="text-blue-700 font-medium">❄️ Winter<span class="block md:inline"> (Nov–Feb)</span></span>
-                  </div>
-                  <div class="flex items-center gap-3">
-                    <span v-if="stats.seasonalDistribution!.winterConsumptionKwhPer100km"
-                          class="font-bold text-blue-800">
-                      {{ stats.seasonalDistribution!.winterConsumptionKwhPer100km.toFixed(1) }} kWh/100km
-                    </span>
-                    <span v-else class="text-gray-400 text-xs">—</span>
-                    <span class="text-xs text-gray-500">({{ stats.seasonalDistribution!.winterLogCount }} Fahrten)</span>
-                  </div>
-                </div>
+        <!-- Seasonal Consumption Breakdown -->
+        <div v-if="showSeasonalBreakdown" class="bg-white md:rounded-2xl md:border-x border-t md:border-b border-gray-200 px-6 py-6 md:p-4 md:mb-6 bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100">
+          <div class="flex-1">
+            <p class="text-sm font-bold text-blue-900 mb-3 flex items-center gap-1.5">
+              <ChartBarIcon class="h-4 w-4" />
+              Verbrauch nach Jahreszeit
+            </p>
 
-                <!-- Weighted Average (Overall) -->
-                <div class="pt-2 border-t border-blue-200">
-                  <div class="flex items-center justify-between text-sm">
-                    <span class="text-gray-700 font-medium">Ø Gewichtet (Gesamt)</span>
-                    <span class="font-bold text-gray-900">
-                      {{ stats.seasonalDistribution!.totalConsumptionKwhPer100km != null ? stats.seasonalDistribution!.totalConsumptionKwhPer100km.toFixed(1) + ' kWh/100km' : '—' }}
-                    </span>
-                  </div>
-                  <p class="text-xs text-gray-500 mt-1">
-                    {{ stats.seasonalDistribution!.summerPercentage }}% Sommer,
-                    {{ stats.seasonalDistribution!.winterPercentage }}% Winter (nach gefahrenen km)
-                  </p>
-                </div>
+            <!-- Summer Stats -->
+            <div class="flex items-center justify-between mb-2 text-sm">
+              <div class="flex items-center gap-2">
+                <span class="text-orange-600 font-medium">🌞 Sommer<span class="block md:inline"> (Mai–Aug)</span></span>
               </div>
+              <div class="flex items-center gap-3">
+                <template v-if="stats.seasonalDistribution!.summerConsumptionKwhPer100km">
+                  <span class="font-bold text-orange-600">
+                    {{ stats.seasonalDistribution!.summerConsumptionKwhPer100km.toFixed(1) }} kWh/100km
+                  </span>
+                  <span v-if="selectedVariant" class="text-base font-bold text-orange-600 whitespace-nowrap">
+                    ≈ {{ Math.round(selectedVariant.batteryCapacityKwh * 0.8 / stats.seasonalDistribution!.summerConsumptionKwhPer100km * 10) * 10 }} km
+                  </span>
+                </template>
+                <span v-else class="text-gray-400 text-xs">—</span>
+                <span class="hidden md:inline text-xs text-gray-500">({{ stats.seasonalDistribution!.summerLogCount }} Fahrten)</span>
+              </div>
+            </div>
+
+            <!-- Winter Stats -->
+            <div class="flex items-center justify-between mb-3 text-sm">
+              <div class="flex items-center gap-2">
+                <span class="text-blue-700 font-medium">❄️ Winter<span class="block md:inline"> (Nov–Feb)</span></span>
+              </div>
+              <div class="flex items-center gap-3">
+                <template v-if="stats.seasonalDistribution!.winterConsumptionKwhPer100km">
+                  <span class="font-bold text-blue-700">
+                    {{ stats.seasonalDistribution!.winterConsumptionKwhPer100km.toFixed(1) }} kWh/100km
+                  </span>
+                  <span v-if="selectedVariant" class="text-base font-bold text-blue-700 whitespace-nowrap">
+                    ≈ {{ Math.round(selectedVariant.batteryCapacityKwh * 0.8 / stats.seasonalDistribution!.winterConsumptionKwhPer100km * 10) * 10 }} km
+                  </span>
+                </template>
+                <span v-else class="text-gray-400 text-xs">—</span>
+                <span class="hidden md:inline text-xs text-gray-500">({{ stats.seasonalDistribution!.winterLogCount }} Fahrten)</span>
+              </div>
+            </div>
+
+            <!-- Weighted Average (Overall) -->
+            <div class="pt-2 border-t border-blue-200">
+              <div class="flex items-center justify-between text-sm">
+                <span class="text-gray-700 font-medium">Ø Gewichtet (Gesamt)</span>
+                <span class="font-bold text-gray-900">
+                  {{ stats.seasonalDistribution!.totalConsumptionKwhPer100km != null ? stats.seasonalDistribution!.totalConsumptionKwhPer100km.toFixed(1) + ' kWh/100km' : '—' }}
+                </span>
+              </div>
+              <p class="text-xs text-gray-500 mt-1">
+                {{ stats.seasonalDistribution!.summerPercentage }}% Sommer,
+                {{ stats.seasonalDistribution!.winterPercentage }}% Winter (nach gefahrenen km)
+              </p>
             </div>
           </div>
         </div>
@@ -185,54 +202,53 @@
             <ClipboardDocumentListIcon class="h-6 w-6 text-gray-700" />
             Offizielle WLTP-Daten nach Batterievariante
           </h2>
-          <!-- Mobile: Cards -->
+          <!-- Mobile: Card (selected variant only) -->
           <div class="md:hidden">
-            <div v-for="(variant, i) in stats.wltpVariants" :key="variant.batteryCapacityKwh"
-                 :class="['border-b last:border-b-0 border-gray-100 px-6 py-4', stats.wltpVariants.length > 1 && i === selectedVariantIndex ? 'bg-blue-50' : '']">
+            <div v-if="selectedVariant" class="px-6 py-4">
               <div class="relative flex items-center justify-center mb-3">
-                <div class="font-semibold text-gray-900">{{ variant.batteryCapacityKwh }} kWh</div>
-                <span v-if="!variant.realConsumptionKwhPer100km"
+                <div class="font-semibold text-gray-900">{{ selectedVariant.batteryCapacityKwh }} kWh</div>
+                <span v-if="!selectedVariant.realConsumptionKwhPer100km"
                       class="absolute right-0 inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-gray-100 border border-gray-200 text-gray-500">
                   keine Fahrten
                 </span>
-                <span v-else-if="variant.realConsumptionTripCount != null && variant.realConsumptionTripCount < 10"
+                <span v-else-if="selectedVariant.realConsumptionTripCount != null && selectedVariant.realConsumptionTripCount < 10"
                       class="absolute right-0 inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-600">
-                  ⚠ {{ variant.realConsumptionTripCount }} {{ variant.realConsumptionTripCount === 1 ? 'Fahrt' : 'Fahrten' }}
+                  ⚠ {{ selectedVariant.realConsumptionTripCount }} {{ selectedVariant.realConsumptionTripCount === 1 ? 'Fahrt' : 'Fahrten' }}
                 </span>
-                <span v-else-if="variant.realConsumptionTripCount != null && variant.realConsumptionTripCount < 50"
+                <span v-else-if="selectedVariant.realConsumptionTripCount != null && selectedVariant.realConsumptionTripCount < 50"
                       class="absolute right-0 inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-yellow-50 border border-yellow-200 text-yellow-700">
-                  {{ variant.realConsumptionTripCount }} Fahrten
+                  {{ selectedVariant.realConsumptionTripCount }} Fahrten
                 </span>
-                <span v-else-if="variant.realConsumptionTripCount != null"
+                <span v-else-if="selectedVariant.realConsumptionTripCount != null"
                       class="absolute right-0 inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-green-50 border border-green-200 text-green-700">
-                  {{ variant.realConsumptionTripCount }} Fahrten
+                  {{ selectedVariant.realConsumptionTripCount }} Fahrten
                 </span>
               </div>
               <div class="grid grid-cols-2 gap-2 text-sm">
                 <div class="bg-gray-50 rounded-lg p-2">
                   <div class="text-xs text-gray-500 mb-0.5">WLTP Reichweite</div>
-                  <div class="font-medium text-gray-800">{{ variant.wltpRangeKm }} km</div>
+                  <div class="font-medium text-gray-800">{{ selectedVariant.wltpRangeKm }} km</div>
                 </div>
                 <div class="bg-gray-50 rounded-lg p-2">
                   <div class="text-xs text-gray-500 mb-0.5">WLTP Verbrauch</div>
-                  <div class="font-medium text-gray-800">{{ variant.wltpConsumptionKwhPer100km }} kWh/100km</div>
+                  <div class="font-medium text-gray-800">{{ selectedVariant.wltpConsumptionKwhPer100km }} kWh/100km</div>
                 </div>
                 <div class="bg-gray-50 rounded-lg p-2">
                   <div class="text-xs text-gray-500 mb-0.5">Reale Reichweite</div>
                   <div class="font-medium text-gray-800">
-                    {{ variant.realConsumptionKwhPer100km ? Math.round(variant.batteryCapacityKwh / variant.realConsumptionKwhPer100km * 100) + ' km' : '–' }}
+                    {{ selectedVariant.realConsumptionKwhPer100km ? Math.round(selectedVariant.batteryCapacityKwh / selectedVariant.realConsumptionKwhPer100km * 10) * 10 + ' km' : '–' }}
                   </div>
                   <div class="text-xs text-gray-400">100% → 0%</div>
                 </div>
                 <div class="bg-gray-50 rounded-lg p-2">
                   <div class="text-xs text-gray-500 mb-0.5">Realer Verbrauch</div>
-                  <template v-if="variant.realConsumptionKwhPer100km">
-                    <div :class="consumptionDeltaClass(variant.realConsumptionKwhPer100km, variant.wltpConsumptionKwhPer100km)" class="font-medium">
-                      {{ variant.realConsumptionKwhPer100km.toFixed(1) }} kWh/100km
+                  <template v-if="selectedVariant.realConsumptionKwhPer100km">
+                    <div :class="consumptionDeltaClass(selectedVariant.realConsumptionKwhPer100km, selectedVariant.wltpConsumptionKwhPer100km)" class="font-medium">
+                      {{ selectedVariant.realConsumptionKwhPer100km.toFixed(1) }} kWh/100km
                     </div>
-                    <span :class="deltaLabelClass(variant.realConsumptionKwhPer100km, variant.wltpConsumptionKwhPer100km)"
+                    <span :class="deltaLabelClass(selectedVariant.realConsumptionKwhPer100km, selectedVariant.wltpConsumptionKwhPer100km)"
                           class="text-xs px-1.5 py-0.5 rounded-full mt-1 inline-block">
-                      {{ deltaLabel(variant.realConsumptionKwhPer100km, variant.wltpConsumptionKwhPer100km) }}
+                      {{ deltaLabel(selectedVariant.realConsumptionKwhPer100km, selectedVariant.wltpConsumptionKwhPer100km) }}
                     </span>
                   </template>
                   <div v-else class="text-gray-400 text-sm">–</div>
@@ -241,7 +257,7 @@
             </div>
           </div>
 
-          <!-- Desktop: Table -->
+          <!-- Desktop: Table (selected variant only) -->
           <div class="hidden md:block overflow-x-auto">
             <table class="w-full text-sm">
               <thead>
@@ -262,44 +278,43 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(variant, i) in stats.wltpVariants" :key="variant.batteryCapacityKwh"
-                    :class="['border-b border-gray-50', stats.wltpVariants.length > 1 && i === selectedVariantIndex ? 'bg-blue-50' : '']">
-                  <td class="py-3 pr-4 font-medium text-gray-900 whitespace-nowrap">{{ variant.batteryCapacityKwh }} kWh</td>
-                  <td class="py-3 pr-4 text-gray-700 whitespace-nowrap">{{ variant.wltpRangeKm }} km</td>
+                <tr v-if="selectedVariant" class="border-b border-gray-50">
+                  <td class="py-3 pr-4 font-medium text-gray-900 whitespace-nowrap">{{ selectedVariant.batteryCapacityKwh }} kWh</td>
+                  <td class="py-3 pr-4 text-gray-700 whitespace-nowrap">{{ selectedVariant.wltpRangeKm }} km</td>
                   <td class="py-3 pr-4 whitespace-nowrap">
                     <div v-if="stats.seasonalDistribution?.summerConsumptionKwhPer100km || stats.seasonalDistribution?.winterConsumptionKwhPer100km"
                          class="flex items-center gap-1.5">
                       <span class="flex items-center gap-1 text-amber-600">
                         <SunIcon class="h-3.5 w-3.5" />
-                        <span>{{ stats.seasonalDistribution?.summerConsumptionKwhPer100km ? Math.round(variant.batteryCapacityKwh / stats.seasonalDistribution.summerConsumptionKwhPer100km * 100) + ' km' : '–' }}</span>
+                        <span>{{ stats.seasonalDistribution?.summerConsumptionKwhPer100km ? Math.round(selectedVariant.batteryCapacityKwh / stats.seasonalDistribution.summerConsumptionKwhPer100km * 10) * 10 + ' km' : '–' }}</span>
                       </span>
                       <span class="text-gray-300">/</span>
                       <span class="flex items-center gap-1 text-blue-500">
                         <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/><line x1="19.07" y1="4.93" x2="4.93" y2="19.07"/><circle cx="12" cy="12" r="2" fill="currentColor"/></svg>
-                        <span>{{ stats.seasonalDistribution?.winterConsumptionKwhPer100km ? Math.round(variant.batteryCapacityKwh / stats.seasonalDistribution.winterConsumptionKwhPer100km * 100) + ' km' : '–' }}</span>
+                        <span>{{ stats.seasonalDistribution?.winterConsumptionKwhPer100km ? Math.round(selectedVariant.batteryCapacityKwh / stats.seasonalDistribution.winterConsumptionKwhPer100km * 10) * 10 + ' km' : '–' }}</span>
                       </span>
                     </div>
                     <span v-else class="text-gray-400">–</span>
                   </td>
-                  <td class="py-3 pr-4 text-gray-700 whitespace-nowrap">{{ variant.wltpConsumptionKwhPer100km }} kWh/100km</td>
+                  <td class="py-3 pr-4 text-gray-700 whitespace-nowrap">{{ selectedVariant.wltpConsumptionKwhPer100km }} kWh/100km</td>
                   <td class="py-3 align-top">
-                    <div v-if="variant.realConsumptionKwhPer100km" class="flex flex-col items-start gap-1">
-                      <span :class="consumptionDeltaClass(variant.realConsumptionKwhPer100km, variant.wltpConsumptionKwhPer100km)"
+                    <div v-if="selectedVariant.realConsumptionKwhPer100km" class="flex flex-col items-start gap-1">
+                      <span :class="consumptionDeltaClass(selectedVariant.realConsumptionKwhPer100km, selectedVariant.wltpConsumptionKwhPer100km)"
                             class="font-medium whitespace-nowrap">
-                        {{ variant.realConsumptionKwhPer100km.toFixed(1) }} kWh/100km
+                        {{ selectedVariant.realConsumptionKwhPer100km.toFixed(1) }} kWh/100km
                       </span>
                       <div class="flex items-center gap-1.5">
-                        <span :class="deltaLabelClass(variant.realConsumptionKwhPer100km, variant.wltpConsumptionKwhPer100km)"
+                        <span :class="deltaLabelClass(selectedVariant.realConsumptionKwhPer100km, selectedVariant.wltpConsumptionKwhPer100km)"
                               class="text-xs px-1.5 py-0.5 rounded-full">
-                          {{ deltaLabel(variant.realConsumptionKwhPer100km, variant.wltpConsumptionKwhPer100km) }}
+                          {{ deltaLabel(selectedVariant.realConsumptionKwhPer100km, selectedVariant.wltpConsumptionKwhPer100km) }}
                         </span>
-                        <span v-if="variant.realConsumptionTripCount != null && variant.realConsumptionTripCount < 10"
+                        <span v-if="selectedVariant.realConsumptionTripCount != null && selectedVariant.realConsumptionTripCount < 10"
                               class="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-600">
-                          ⚠ {{ variant.realConsumptionTripCount }} {{ variant.realConsumptionTripCount === 1 ? 'Fahrt' : 'Fahrten' }}
+                          ⚠ {{ selectedVariant.realConsumptionTripCount }} {{ selectedVariant.realConsumptionTripCount === 1 ? 'Fahrt' : 'Fahrten' }}
                         </span>
-                        <span v-else-if="variant.realConsumptionTripCount != null && variant.realConsumptionTripCount < 50"
+                        <span v-else-if="selectedVariant.realConsumptionTripCount != null && selectedVariant.realConsumptionTripCount < 50"
                               class="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-yellow-50 border border-yellow-200 text-yellow-700">
-                          {{ variant.realConsumptionTripCount }} Fahrten
+                          {{ selectedVariant.realConsumptionTripCount }} Fahrten
                         </span>
                       </div>
                     </div>
@@ -491,7 +506,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useHead } from '@unhead/vue'
 import { useAuthStore } from '../stores/auth'
 import { getModelStats, type PublicModelStats } from '../api/publicModelService'
-import { ArrowTrendingUpIcon, ClipboardDocumentListIcon, Battery0Icon, SunIcon } from '@heroicons/vue/24/outline'
+import { ArrowTrendingUpIcon, ClipboardDocumentListIcon, Battery0Icon, SunIcon, ChartBarIcon } from '@heroicons/vue/24/outline'
 import PublicNav from '../components/PublicNav.vue'
 
 const route = useRoute()
@@ -527,7 +542,7 @@ const displayConsumption = computed(() =>
 
 const displayRange = computed(() => {
   if (!selectedVariant.value || !displayConsumption.value) return null
-  return Math.round(selectedVariant.value.batteryCapacityKwh * 0.8 / displayConsumption.value * 100)
+  return Math.round(selectedVariant.value.batteryCapacityKwh * 0.8 / displayConsumption.value * 10) * 10
 })
 
 const bestWltpRange = computed(() => {
@@ -793,6 +808,7 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+
 })
 
 function consumptionDeltaClass(real: number, wltp: number): string {
