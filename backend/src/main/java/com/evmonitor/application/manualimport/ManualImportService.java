@@ -63,7 +63,7 @@ public class ManualImportService {
             return new ImportApiResult(0, 0, parseErrors);
         }
 
-        ImportApiResult result = publicApiImportService.importSessions(userId, new PublicApiSessionRequest(carId, entries), mergeSessions);
+        ImportApiResult result = publicApiImportService.importSessions(userId, new PublicApiSessionRequest(carId, entries), mergeSessions, true);
         return parseErrors > 0
                 ? new ImportApiResult(result.imported(), result.skipped(), result.errors() + parseErrors)
                 : result;

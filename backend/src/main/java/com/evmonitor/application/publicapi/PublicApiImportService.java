@@ -55,6 +55,11 @@ public class PublicApiImportService {
 
     @Transactional
     public ImportApiResult importSessions(UUID userId, PublicApiSessionRequest request, boolean mergeSessions) {
+        return importSessions(userId, request, mergeSessions, false);
+    }
+
+    @Transactional
+    public ImportApiResult importSessions(UUID userId, PublicApiSessionRequest request, boolean mergeSessions, boolean allowBatchMerge) {
         Car car = carRepository.findById(request.carId())
                 .orElseThrow(() -> new IllegalArgumentException("Fahrzeug nicht gefunden"));
 
@@ -117,7 +122,7 @@ public class PublicApiImportService {
                 EvLog saved = evLogRepository.save(evLog);
                 coinLogService.awardCoinsForEvent(userId, CoinLogService.CoinEvent.API_UPLOAD_LOG, saved.getId());
 
-                if (mergeSessions && sortedEntries.size() == 1) {
+                if (mergeSessions && (allowBatchMerge || sortedEntries.size() == 1)) {
                     try {
                         sessionGroupService.processSessionForGrouping(saved);
                     } catch (Exception e) {
