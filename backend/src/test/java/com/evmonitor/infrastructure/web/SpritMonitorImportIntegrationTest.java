@@ -9,6 +9,8 @@ import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.User;
 import com.evmonitor.infrastructure.external.SpritMonitorClient;
 import com.evmonitor.testutil.AbstractIntegrationTest;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -578,6 +580,52 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
 
         List<EvLog> importedLogs = evLogRepository.findAllByCarId(carId);
         assertEquals(3, importedLogs.size());
+    }
+
+    @Test
+    void shouldDeserializePosition_FromStringFormat() throws Exception {
+        // SpritMonitor sends position as "lat,lon" string — NOT as a JSON object.
+        // This caused "Failed to fetch fuelings: Error while extracting response" in production
+        // when a fueling entry had a position value (not all entries do).
+        String json = """
+                [{
+                    "date": "15.01.2024",
+                    "quantity": 50.0,
+                    "quantityunitid": 5,
+                    "cost": 12.50,
+                    "position": "51.194004,6.813039"
+                }]
+                """;
+
+        ObjectMapper mapper = new ObjectMapper();
+        List<SpritMonitorFuelingDTO> fuelings = mapper.readValue(json, new TypeReference<>() {});
+
+        assertEquals(1, fuelings.size());
+        SpritMonitorFuelingDTO fueling = fuelings.get(0);
+        assertNotNull(fueling.position(), "Position must be parsed from string");
+        assertEquals(0, new BigDecimal("51.194004").compareTo(fueling.position().lat()),
+                "Latitude must be parsed correctly");
+        assertEquals(0, new BigDecimal("6.813039").compareTo(fueling.position().lon()),
+                "Longitude must be parsed correctly");
+    }
+
+    @Test
+    void shouldHandleNullPosition_InStringFormat() throws Exception {
+        // Fuelings without GPS have no position field at all — must not throw
+        String json = """
+                [{
+                    "date": "15.01.2024",
+                    "quantity": 50.0,
+                    "quantityunitid": 5,
+                    "cost": 12.50
+                }]
+                """;
+
+        ObjectMapper mapper = new ObjectMapper();
+        List<SpritMonitorFuelingDTO> fuelings = mapper.readValue(json, new TypeReference<>() {});
+
+        assertEquals(1, fuelings.size());
+        assertNull(fuelings.get(0).position(), "Position must be null when not present in JSON");
     }
 
     @Test

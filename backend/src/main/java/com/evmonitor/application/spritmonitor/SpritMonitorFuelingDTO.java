@@ -1,5 +1,6 @@
 package com.evmonitor.application.spritmonitor;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -65,5 +66,18 @@ public record SpritMonitorFuelingDTO(
     public record Position(
         BigDecimal lat,
         BigDecimal lon
-    ) {}
+    ) {
+        // SpritMonitor sends position as "lat,lon" string (e.g., "51.194004,6.813039")
+        @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+        public static Position fromString(String value) {
+            if (value == null || value.isBlank()) return null;
+            String[] parts = value.split(",", 2);
+            if (parts.length != 2) return null;
+            try {
+                return new Position(new BigDecimal(parts[0].trim()), new BigDecimal(parts[1].trim()));
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+    }
 }
