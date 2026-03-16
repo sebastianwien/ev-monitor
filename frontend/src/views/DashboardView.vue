@@ -126,7 +126,7 @@ const timeRangeOptions = [
   { value: 'LAST_6_MONTHS', label: 'Letzte 6 Monate' },
   { value: 'LAST_12_MONTHS', label: 'Letztes Jahr' },
   { value: 'THIS_YEAR', label: 'Dieses Jahr' },
-  { value: 'ALL_TIME', label: 'Gesamt' }
+  { value: 'ALL_TIME', label: 'Alle' }
 ]
 
 const groupByOptions = [
@@ -198,8 +198,7 @@ const fetchStatistics = async () => {
 watch(selectedCarId, async (newId) => {
   if (newId) {
     await fetchCarAndWltp(newId)
-    await fetchStatistics()
-    fetchLogs(0)
+    await Promise.all([fetchStatistics(), fetchLogs(0)])
   } else {
     stats.value = null
     carInfo.value = null
@@ -553,6 +552,9 @@ const toggleGroupExpand = async (groupId: string) => {
   }
 }
 
+/// Schneller Exists-Check ohne den teuren Merge+Sort zu triggern
+const hasAnyLogs = computed(() => logs.value.length > 0 || sessionGroups.value.length > 0)
+
 // Merged + sorted feed: normale Logs und Gruppen nach Datum zusammenführen
 const mergedLogFeed = computed(() => {
   const groupsForPage = sessionGroups.value.map((g: any) => ({ ...g, _isGroup: true }))
@@ -612,7 +614,7 @@ const fetchLogs = async (page = 0) => {
     logs.value = res.data
     logsPage.value = page
     hasMoreLogs.value = res.data.length === PAGE_SIZE
-    fetchGroups()
+    if (page === 0) await fetchGroups()
   } catch {
     // Network error — keep existing log list, don't crash
   } finally {
@@ -834,8 +836,8 @@ const deleteLog = async (id: string) => {
             </div>
           </div>
 
-          <!-- Filters (only show if there are logs) -->
-          <div v-if="selectedCarId && stats && stats.totalCharges > 0" class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+          <!-- Filters (show if there are logs in any time range) -->
+          <div v-if="selectedCarId && hasAnyLogs" class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
             <div class="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
               <div class="flex-1">
                 <label class="block text-sm font-medium text-gray-700 mb-2">Zeitraum</label>
@@ -885,7 +887,15 @@ const deleteLog = async (id: string) => {
             </div>
           </div>
 
-          <!-- Empty State: No Logs -->
+          <!-- Empty State: No Logs in time range (but logs exist) -->
+          <div v-else-if="stats && stats.totalCharges === 0 && hasAnyLogs" class="py-12 flex items-center justify-center">
+            <div class="text-center max-w-md px-4">
+              <h2 class="text-lg font-semibold text-gray-700 mb-2">Keine Daten im gewählten Zeitraum</h2>
+              <p class="text-gray-500 text-sm">Wähle einen anderen Zeitraum oder scrolle nach unten um alle Ladevorgänge zu sehen.</p>
+            </div>
+          </div>
+
+          <!-- Empty State: Truly no logs at all -->
           <div v-else-if="stats && stats.totalCharges === 0" class="min-h-[60vh] flex items-center justify-center">
             <div class="text-center max-w-md px-4">
               <BoltIcon class="h-24 w-24 mx-auto text-green-500 mb-6" />
@@ -1099,8 +1109,8 @@ const deleteLog = async (id: string) => {
           <!-- Consumption info accordion -->
           <ConsumptionInfoBox :min-trips="5" class="mb-4" />
           <div class="space-y-2">
-            <div v-if="logsLoading && logs.length === 0" class="py-8 text-center text-gray-400 text-sm">Lade...</div>
-            <template v-else-if="logs.length === 0">
+            <div v-if="logsLoading && !hasAnyLogs" class="py-8 text-center text-gray-400 text-sm">Lade...</div>
+            <template v-else-if="!hasAnyLogs">
               <p class="py-8 text-center text-gray-400 text-sm">Keine Ladevorgänge vorhanden.</p>
             </template>
             <template v-else>
