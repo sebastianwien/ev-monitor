@@ -117,7 +117,7 @@ public class PublicApiImportService {
                 EvLog saved = evLogRepository.save(evLog);
                 coinLogService.awardCoinsForEvent(userId, CoinLogService.CoinEvent.API_UPLOAD_LOG, saved.getId());
 
-                if (mergeSessions) {
+                if (mergeSessions && sortedEntries.size() == 1) {
                     try {
                         sessionGroupService.processSessionForGrouping(saved);
                     } catch (Exception e) {
