@@ -619,7 +619,7 @@ const faqItems = computed(() => {
     const costPerSession = (stats.value.avgCostPerKwh * stats.value.avgKwhPerSession).toFixed(2)
     items.push({
       question: `Was kostet eine Ladung des ${name}?`,
-      answer: `Im Durchschnitt kostet eine Ladeeinheit ${(stats.value.avgCostPerKwh * 100).toFixed(1)} Cent pro kWh. Bei einer typischen Ladung von ${stats.value.avgKwhPerSession.toFixed(1)} kWh entstehen Kosten von etwa ${costPerSession} €. Zu Hause an der Wallbox ist Laden günstiger (ca. 25–35 ct/kWh), an öffentlichen Schnellladern teurer (35–60 ct/kWh).`
+      answer: `Im Durchschnitt kostet eine Ladeeinheit ${(stats.value.avgCostPerKwh * 100).toFixed(1)} Cent pro kWh. Bei einer typischen Ladung von ${stats.value.avgKwhPerSession.toFixed(1)} kWh entstehen Kosten von etwa ${costPerSession} €. Zu Hause an der Wallbox ist Laden deutlich günstiger als an öffentlichen Schnellladern - die Preise variieren je nach Region, Anbieter und Vertrag erheblich.`
     })
   }
 

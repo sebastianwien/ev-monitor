@@ -460,7 +460,7 @@ useHead({
 
 onMounted(async () => {
   try {
-    modelsList.value = await getTopModels(200)
+    modelsList.value = await getTopModels(50)
   } catch (err) {
     console.error('Failed to load models:', err)
   } finally {
