@@ -13,6 +13,7 @@ import { apiKeyService, type ApiKeyResponse, type ApiKeyCreatedResponse } from '
 const { activeTab } = useImportsTab()
 const showSpritMonitorModal = ref(false)
 const manualImportCarId = ref<string | null>(null)
+const showManualImportModal = ref(false)
 const cars = ref<Car[]>([])
 const loading = ref(true)
 
@@ -288,7 +289,7 @@ const activeCars = computed(() =>
             <CarSelectDropdown :cars="activeCars" v-model="manualImportCarId" />
           </div>
           <button
-            @click="manualImportCarId = activeCars.length === 1 ? activeCars[0].id : (manualImportCarId || null)"
+            @click="manualImportCarId = activeCars.length === 1 ? activeCars[0].id : manualImportCarId; showManualImportModal = true"
             :disabled="activeCars.length === 0 || (activeCars.length > 1 && !manualImportCarId)"
             class="btn-3d w-full flex items-center justify-center gap-2 bg-green-700 text-white px-5 py-2.5 rounded-lg font-medium text-sm hover:bg-green-800 disabled:opacity-40 disabled:cursor-not-allowed transition"
           >
@@ -419,10 +420,10 @@ const activeCars = computed(() =>
 
   <!-- Manual Import Modal -->
   <ManualImportModal
-    v-if="manualImportCarId"
+    v-if="showManualImportModal && manualImportCarId"
     :car-id="manualImportCarId"
-    @close="manualImportCarId = null"
-    @imported="manualImportCarId = null"
+    @close="showManualImportModal = false"
+    @imported="showManualImportModal = false"
   />
 </template>
 
