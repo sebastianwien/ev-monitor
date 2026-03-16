@@ -2,7 +2,8 @@
 import { ref, onMounted, watch, computed } from 'vue'
 import { ExclamationTriangleIcon, InformationCircleIcon, ChevronRightIcon, MapPinIcon, CheckCircleIcon } from '@heroicons/vue/24/outline'
 import goeService from '@/api/goeService'
-import { carService, type Car } from '@/api/carService'
+import type { Car } from '@/api/carService'
+import { useCarStore } from '@/stores/car'
 import GoeStatusCard from './GoeStatusCard.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useWallboxStore } from '@/stores/wallbox'
@@ -10,6 +11,7 @@ import * as geohash from 'ngeohash'
 
 const authStore = useAuthStore()
 const wallboxStore = useWallboxStore()
+const carStore = useCarStore()
 
 const cars = ref<Car[]>([])
 const loading = ref(false)
@@ -40,7 +42,7 @@ onMounted(async () => {
 
 async function loadCars() {
   try {
-    cars.value = await carService.getCars()
+    cars.value = await carStore.getCars()
     if (cars.value.length > 0 && !form.value.carId) form.value.carId = cars.value[0].id
   } catch { /* ignore */ }
 }

@@ -3,7 +3,8 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { ArrowTopRightOnSquareIcon, ArrowPathIcon, XMarkIcon, CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 import teslaFleetService, { type TeslaConnectionStatus, type TeslaFleetSyncResult } from '@/api/teslaFleetService'
-import { carService, type Car } from '@/api/carService'
+import type { Car } from '@/api/carService'
+import { useCarStore } from '@/stores/car'
 import CarSelectDropdown from './CarSelectDropdown.vue'
 
 const route = useRoute()
@@ -21,6 +22,7 @@ const showDeleteAllConfirm = ref(false)
 const deleteAllLoading = ref(false)
 const deleteAllError = ref<string | null>(null)
 const fleetApiConfigured = ref(true)
+const carStore = useCarStore()
 const cars = ref<Car[]>([])
 const carsLoaded = ref(false)
 const selectedCarId = ref<string>('')
@@ -68,7 +70,7 @@ onUnmounted(() => stopGeocodingPoll())
 
 async function loadCars() {
   try {
-    cars.value = await carService.getCars()
+    cars.value = await carStore.getCars()
     if (cars.value.length > 0) selectedCarId.value = cars.value[0].id
   } catch { /* ignore */ } finally {
     carsLoaded.value = true

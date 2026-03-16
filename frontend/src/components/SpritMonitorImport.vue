@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue';
 import { spritMonitorService, SpritMonitorVehicle, ImportResult } from '../api/spritMonitorService';
 import { carService, Car, BrandInfo, ModelInfo } from '../api/carService';
+import { useCarStore } from '../stores/car';
 import { useCoinStore } from '../stores/coins';
 import { TrashIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline';
 
@@ -10,6 +11,7 @@ const emit = defineEmits<{
 }>();
 
 const coinStore = useCoinStore()
+const carStore = useCarStore()
 
 const enumToLabel = (v: string) => v.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
 const carLabel = (car: Car) => {
@@ -42,8 +44,8 @@ const deleteError = ref('');
 onMounted(async () => {
   try {
     const [cars, brandList] = await Promise.all([
-      carService.getCars(),
-      carService.getBrands(),
+      carStore.getCars(),
+      carStore.getBrands(),
     ]);
     myCars.value = cars;
     brands.value = brandList;
@@ -90,7 +92,7 @@ const onBrandChange = async (vehicleId: number, brandValue: string) => {
 
   // Load models for this brand
   try {
-    const models = await carService.getModelsForBrand(brandValue);
+    const models = await carStore.getModelsForBrand(brandValue);
     newCarData.value[vehicleId].availableModels = models;
   } catch (e) {
     console.error('Failed to load models:', e);
@@ -147,6 +149,7 @@ const startImport = async () => {
         });
         carId = created.car.id;
         myCars.value.push(created.car);
+        carStore.invalidateCars();
       } else {
         carId = mapping;
       }

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useAuthStore } from '../stores/auth'
-import { carService, type Car } from '../api/carService'
+import type { Car } from '../api/carService'
+import { useCarStore } from '../stores/car'
 import { wallboxService, type WallboxConnection } from '../api/wallboxService'
 import {
   BoltIcon,
@@ -13,6 +14,7 @@ import {
 } from '@heroicons/vue/24/outline'
 
 const authStore = useAuthStore()
+const carStore = useCarStore()
 const userId = computed(() => authStore.user?.userId || '')
 
 const connections = ref<WallboxConnection[]>([])
@@ -40,7 +42,7 @@ const load = async () => {
   try {
     const [conns, carList] = await Promise.all([
       wallboxService.getConnections(userId.value),
-      carService.getCars()
+      carStore.getCars()
     ])
     connections.value = conns
     cars.value = carList

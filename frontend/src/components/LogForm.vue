@@ -8,13 +8,14 @@ import { CameraIcon, PencilSquareIcon, TrashIcon, BoltIcon, TruckIcon, ClockIcon
 import { useCoinStore } from '../stores/coins'
 import { useHaptic } from '../composables/useHaptic'
 import { analytics } from '../services/analytics'
-import { carService } from '../api/carService'
+import { useCarStore } from '../stores/car'
 import { tempBadgeClass } from '../utils/temperatureColor'
 import ConsumptionInfoBox from './ConsumptionInfoBox.vue'
 import EditLogModal from './EditLogModal.vue'
 
 const { haptic } = useHaptic()
 const coinStore = useCoinStore()
+const carStore = useCarStore()
 
 const emit = defineEmits<{ success: [] }>()
 
@@ -211,7 +212,7 @@ const handleOcrData = (ocrResult: any) => {
 
 onMounted(async () => {
   try {
-    const cars = await carService.getCars()
+    const cars = await carStore.getCars()
     hasCars.value = cars.length > 0
     carCount.value = cars.length
     if (cars.length === 1) selectedCarId.value = cars[0].id

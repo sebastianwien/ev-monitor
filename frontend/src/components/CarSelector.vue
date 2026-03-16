@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { carService, type Car } from '../api/carService'
+import type { Car } from '../api/carService'
+import { useCarStore } from '../stores/car'
 import { useRouter } from 'vue-router'
 
 const props = defineProps<{
@@ -12,6 +13,7 @@ const emit = defineEmits<{
 }>()
 
 const router = useRouter()
+const carStore = useCarStore()
 const cars = ref<Car[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
@@ -25,7 +27,7 @@ const fetchCars = async () => {
   try {
     loading.value = true
     error.value = null
-    cars.value = await carService.getCars()
+    cars.value = await carStore.getCars()
 
     // If no car is selected and we have cars, select the primary car (or first as fallback)
     if (!selectedCarId.value && cars.value.length > 0) {

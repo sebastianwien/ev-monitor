@@ -4,6 +4,7 @@ import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { jwtDecode } from 'jwt-decode';
 import { subscriptionService } from '../api/subscriptionService';
+import { useCarStore } from './car';
 
 function safeLocalStorage(op: () => void): void {
     try { op() } catch { /* localStorage blocked (Private Mode, strict tracking protection) */ }
@@ -53,6 +54,7 @@ export const useAuthStore = defineStore('auth', () => {
         isPremium.value = false;
         safeLocalStorage(() => localStorage.removeItem('token'));
         safeLocalStorage(() => localStorage.removeItem('isPremium'));
+        useCarStore().reset();
         router.push('/login');
     };
 

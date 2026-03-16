@@ -44,6 +44,7 @@ import ConsumptionInfoBox from '../components/ConsumptionInfoBox.vue'
 import EditLogModal from '../components/EditLogModal.vue'
 import { costBadgeClass } from '../utils/costColor'
 import { carService } from '../api/carService'
+import { useCarStore } from '../stores/car'
 import LicensePlate from '../components/LicensePlate.vue'
 import { useTeslaStatus } from '../composables/useTeslaStatus'
 import ChargingHeatMap from '../components/ChargingHeatMap.vue'
@@ -84,6 +85,7 @@ interface CarInfo {
 }
 
 const router = useRouter()
+const carStore = useCarStore()
 const selectedCarId = ref<string | null>(null)
 const importBannerDismissed = ref(localStorage.getItem('import_banner_dismissed') === 'true')
 
@@ -493,18 +495,18 @@ const enumToLabel = (value: string | undefined | null): string =>
 onMounted(async () => {
   // Pre-fetch cars so the desktop card selector is populated before CarSelector emits
   try {
-    const r = await api.get('/cars')
-    cars.value = r.data
+    const carList = await carStore.getCars()
+    cars.value = carList
     // Auto-select: primary car, fallback to first
-    const primary = r.data.find((c: any) => c.isPrimary) ?? r.data[0]
+    const primary = carList.find((c: any) => c.isPrimary) ?? carList[0]
     if (primary) selectedCarId.value = primary.id
     // Load images in background — non-critical
-    for (const car of r.data.filter((c: any) => c.imageUrl)) {
+    for (const car of carList.filter((c: any) => c.imageUrl)) {
       carService.getCarImageBlobUrl(car.id)
         .then(url => { carImageUrls.value = { ...carImageUrls.value, [car.id]: url } })
         .catch(() => {})
     }
-    startTeslaPolling(r.data.some((c: any) => c.brand?.toLowerCase() === 'tesla'))
+    startTeslaPolling(carList.some((c: any) => c.brand?.toLowerCase() === 'tesla'))
   } catch { /* non-critical */ }
   // fetchStatistics() is NOT called here — setting selectedCarId above already triggers the watch,
   // which calls fetchCarAndWltp + fetchStatistics + fetchLogs in sequence.

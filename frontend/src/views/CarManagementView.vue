@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { carService, type Car, type CarRequest, type BrandInfo, type ModelInfo, type CarCreateResponse } from '../api/carService'
+import { useCarStore } from '../stores/car'
 import { vehicleSpecificationService, type VehicleSpecification } from '../api/vehicleSpecificationService'
 import { ChartBarIcon, TruckIcon, ArrowDownTrayIcon } from '@heroicons/vue/24/outline'
 import { useCoinStore } from '../stores/coins'
@@ -9,6 +10,7 @@ import { analytics } from '../services/analytics'
 import { useTeslaStatus } from '../composables/useTeslaStatus'
 
 const coinStore = useCoinStore()
+const carStore = useCarStore()
 
 const { teslaStatus, start: startTeslaPolling } = useTeslaStatus()
 
@@ -91,7 +93,7 @@ const fetchCars = async () => {
     loading.value = true
     error.value = null
     revokeAllBlobUrls()
-    cars.value = await carService.getCars() ?? []
+    cars.value = await carStore.getCars(true) ?? []
     // Init checkbox state from server (shows current visibility per car)
     const visibility: Record<string, boolean> = {}
     cars.value.forEach(c => { visibility[c.id] = c.imagePublic })
@@ -110,7 +112,7 @@ const fetchCars = async () => {
 
 const fetchBrands = async () => {
   try {
-    brands.value = await carService.getBrands()
+    brands.value = await carStore.getBrands()
   } catch (err: any) {
     error.value = 'Fehler beim Laden der Marken'
     console.error('Failed to fetch brands:', err)
@@ -124,7 +126,7 @@ const loadModelsForBrand = async (brand: string) => {
   }
 
   try {
-    availableModels.value = await carService.getModelsForBrand(brand)
+    availableModels.value = await carStore.getModelsForBrand(brand)
   } catch (err: any) {
     error.value = 'Fehler beim Laden der Modelle'
     console.error('Failed to fetch models:', err)
@@ -281,6 +283,7 @@ const setActiveCar = async (id: string) => {
       ...c,
       isPrimary: c.id === updatedCar.id
     }))
+    carStore.invalidateCars()
   } catch (err: any) {
     error.value = err.response?.data?.message || 'Fehler beim Aktivieren des Fahrzeugs'
     console.error('Failed to set active car:', err)
@@ -383,6 +386,7 @@ const handleVisibilityChange = (carId: string, isPublic: boolean) => {
     try {
       const result = await carService.updateCarImageVisibility(carId, isPublic)
       cars.value = cars.value.map(c => c.id === carId ? result.car : c)
+      carStore.invalidateCars()
       if (result.coinsAwarded > 0) {
         coinStore.refresh()
         toastMessage.value = `Bild öffentlich geteilt! +${result.coinsAwarded} Watt erhalten!`
@@ -407,6 +411,7 @@ const handleImageUpload = async (carId: string, event: Event) => {
     const result = await carService.uploadCarImage(carId, file, isPublic)
     // Update car in list
     cars.value = cars.value.map(c => c.id === carId ? result.car : c)
+    carStore.invalidateCars()
     if (result.coinsAwarded > 0) {
       coinStore.refresh()
       toastMessage.value = `Foto hochgeladen! +${result.coinsAwarded} Watt erhalten!`
@@ -436,6 +441,7 @@ const handleDeleteImage = async (carId: string) => {
     imageBlobUrls.value = rest
     // Update car in list
     cars.value = cars.value.map(c => c.id === carId ? { ...c, imageUrl: null, imagePublic: false } : c)
+    carStore.invalidateCars()
   } catch (err: any) {
     error.value = err.response?.data?.message || 'Fehler beim Löschen des Bildes'
     console.error('Failed to delete image:', err)

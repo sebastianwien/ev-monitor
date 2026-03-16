@@ -6,11 +6,13 @@ import GoeIntegration from '../components/GoeIntegration.vue'
 import TeslaFleetIntegration from '../components/TeslaFleetIntegration.vue'
 import ManualImportModal from '../components/ManualImportModal.vue'
 import CarSelectDropdown from '../components/CarSelectDropdown.vue'
-import { carService, type Car } from '../api/carService'
+import type { Car } from '../api/carService'
+import { useCarStore } from '../stores/car'
 import { useImportsTab } from '../composables/useImportsTab'
 import { apiKeyService, type ApiKeyResponse, type ApiKeyCreatedResponse } from '../api/apiKeyService'
 
 const { activeTab } = useImportsTab()
+const carStore = useCarStore()
 const showSpritMonitorModal = ref(false)
 const manualImportCarId = ref<string | null>(null)
 const showManualImportModal = ref(false)
@@ -19,7 +21,7 @@ const loading = ref(true)
 
 onMounted(async () => {
   try {
-    cars.value = await carService.getCars() ?? []
+    cars.value = await carStore.getCars() ?? []
     await new Promise(resolve => setTimeout(resolve, 100))
   } catch { /* ignore */ } finally {
     loading.value = false
