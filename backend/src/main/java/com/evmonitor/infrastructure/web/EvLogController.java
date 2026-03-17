@@ -12,6 +12,7 @@ import com.evmonitor.infrastructure.security.UserPrincipal;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import jakarta.validation.Valid;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,7 +33,7 @@ public class EvLogController {
     }
 
     @PostMapping
-    public ResponseEntity<EvLogCreateResponse> logCharging(@RequestBody EvLogRequest request, Authentication authentication) {
+    public ResponseEntity<EvLogCreateResponse> logCharging(@Valid @RequestBody EvLogRequest request, Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         EvLogCreateResponse response = evLogService.logCharging(principal.getUser().getId(), request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
@@ -69,7 +70,7 @@ public class EvLogController {
     @PutMapping("/{id}")
     public ResponseEntity<?> updateLog(
             @PathVariable UUID id,
-            @RequestBody EvLogUpdateRequest request,
+            @Valid @RequestBody EvLogUpdateRequest request,
             Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         try {

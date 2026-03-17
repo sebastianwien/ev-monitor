@@ -5,6 +5,7 @@ import com.evmonitor.domain.RouteType;
 import com.evmonitor.domain.TireType;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Positive;
 
 import java.math.BigDecimal;
@@ -25,7 +26,7 @@ public record EvLogUpdateRequest(
         BigDecimal maxChargingPowerKw,
         @Min(0) @Max(100) Integer socAfterChargePercent,
         @Min(0) @Max(100) Integer socBeforeChargePercent,
-        LocalDateTime loggedAt,
+        @PastOrPresent LocalDateTime loggedAt,
         ChargingType chargingType,
         RouteType routeType,
         TireType tireType) {
