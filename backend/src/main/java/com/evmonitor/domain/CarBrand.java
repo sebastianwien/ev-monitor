@@ -76,7 +76,9 @@ public enum CarBrand {
       // LFP-Varianten (57.5/60.0) sind korrekt netto (LFP = 100% nutzbar)
       MODEL_3(CarBrand.TESLA, "Model 3", 57.5, 75.0, 79.0),
       MODEL_Y(CarBrand.TESLA, "Model Y", 60.0, 75.0, 79.0),
-      MODEL_S(CarBrand.TESLA, "Model S", 95.0),
+      MODEL_S(CarBrand.TESLA, "Model S", 75.0, 95.0),
+      MODEL_S_PLAID(CarBrand.TESLA, "Model S Plaid", 95.0),
+      MODEL_S_PERFORMANCE(CarBrand.TESLA, "Model S Performance", 95.0),
       MODEL_X(CarBrand.TESLA, "Model X", 95.0),
       CYBERTRUCK(CarBrand.TESLA, "Cybertruck", 123.0),
 
