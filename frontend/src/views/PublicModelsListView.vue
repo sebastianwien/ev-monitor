@@ -14,6 +14,9 @@
         <p class="text-sm text-gray-500">
           {{ modelsWithData.length }} Modelle mit echten Community-Daten
         </p>
+        <p class="text-xs text-gray-400 mt-3 leading-relaxed">
+          Die Kosten pro 100 km basieren auf dem Ø-Strompreis der Community-Einträge je Modell. Preisunterschiede zwischen Modellen entstehen durch verschiedene Ladegewohnheiten - Heimladen ist deutlich günstiger als öffentliche Schnelllader.
+        </p>
       </div>
 
       <!-- Loading state -->
@@ -102,11 +105,28 @@
               <h3 class="font-bold text-gray-900 text-base">{{ model.modelDisplayName }}</h3>
               <span class="text-xs text-gray-400 whitespace-nowrap mt-0.5">{{ model.logCount }} Fahrten</span>
             </div>
-            <div v-if="model.avgConsumptionKwhPer100km" class="text-sm text-gray-700 mb-0.5">
-              Real: <span class="font-medium">{{ model.avgConsumptionKwhPer100km.toFixed(1) }} kWh/100km</span>
-            </div>
-            <div v-if="model.minWltpConsumptionKwhPer100km" class="text-sm text-gray-500 mb-3">
-              WLTP: <span class="font-medium">{{ formatWltpRange(model.minWltpConsumptionKwhPer100km, model.maxWltpConsumptionKwhPer100km) }} kWh/100km</span>
+            <div class="grid grid-cols-[auto_1fr] items-baseline gap-x-3 gap-y-0.5 mb-3 text-sm">
+              <template v-if="model.minWltpConsumptionKwhPer100km">
+                <span class="text-xs text-gray-400">WLTP</span>
+                <span class="text-gray-500 font-medium">{{ formatWltpRange(model.minWltpConsumptionKwhPer100km, model.maxWltpConsumptionKwhPer100km) }} kWh/100km</span>
+              </template>
+              <template v-if="model.avgConsumptionKwhPer100km || model.minRealConsumptionKwhPer100km">
+                <span class="text-xs text-gray-400">Real</span>
+                <span class="text-gray-700 font-medium">{{ formatRealConsumption(model.avgConsumptionKwhPer100km, model.minRealConsumptionKwhPer100km, model.maxRealConsumptionKwhPer100km) }} kWh/100km</span>
+              </template>
+              <template v-if="model.avgCostPerKwh && model.avgConsumptionKwhPer100km">
+                <span class="text-xs text-gray-400">Kosten</span>
+                <span class="flex flex-wrap items-center gap-x-1.5">
+                  <span class="text-blue-500 font-medium">~{{ (model.avgCostPerKwh * model.avgConsumptionKwhPer100km).toFixed(1) }} €/100km</span>
+                  <span class="relative group cursor-help inline-flex items-center gap-0.5 text-xs text-gray-400">
+                    <span>Ø {{ model.avgCostPerKwh.toFixed(2) }} €/kWh</span>
+                    <InformationCircleIcon class="h-3 w-3 flex-shrink-0" />
+                    <span class="absolute bottom-full left-0 mb-1.5 px-2.5 py-2 bg-gray-800 text-white text-xs rounded-lg w-60 hidden group-hover:block z-20 pointer-events-none leading-snug shadow-lg">
+                      Basiert auf dem Ø-Strompreis der Community-Beiträge. Günstigeres Heimladen vs. teure Schnelllader erklärt Preisunterschiede zwischen Modellen.
+                    </span>
+                  </span>
+                </span>
+              </template>
             </div>
             <div class="text-green-600 font-medium flex items-center gap-1 text-sm mt-auto">
               <span>Details ansehen</span>
@@ -269,7 +289,7 @@ import { useHead } from '@unhead/vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { getTopModels, type TopModelPreview } from '../api/publicModelService'
-import { TruckIcon, ChartBarIcon, ArrowTrendingUpIcon, ArrowsRightLeftIcon, XMarkIcon, CheckIcon, ArrowRightIcon } from '@heroicons/vue/24/outline'
+import { TruckIcon, ChartBarIcon, ArrowTrendingUpIcon, ArrowsRightLeftIcon, XMarkIcon, CheckIcon, ArrowRightIcon, InformationCircleIcon } from '@heroicons/vue/24/outline'
 import PublicNav from '../components/PublicNav.vue'
 
 const router = useRouter()
@@ -312,6 +332,12 @@ function compareLabel(key: string): string {
 function formatWltpRange(min: number, max: number | null): string {
   if (!max || Math.abs(max - min) < 0.05) return min.toFixed(1)
   return `${min.toFixed(1)} - ${max.toFixed(1)}`
+}
+
+function formatRealConsumption(avg: number | null, min: number | null, max: number | null): string {
+  if (min !== null && max !== null) return formatWltpRange(min, max)
+  if (avg !== null) return avg.toFixed(1)
+  return '—'
 }
 
 const isAuthenticated = computed(() => authStore.isAuthenticated())

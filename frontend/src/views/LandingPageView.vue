@@ -11,7 +11,8 @@ import {
   UsersIcon,
   ArrowRightIcon,
   BoltIcon,
-  ArrowDownTrayIcon
+  ArrowDownTrayIcon,
+  InformationCircleIcon
 } from '@heroicons/vue/24/outline'
 
 const router = useRouter()
@@ -89,6 +90,12 @@ function formatWltpRange(min: number, max: number | null): string {
   if (!max || Math.abs(max - min) < 0.05) return min.toFixed(1)
   return `${min.toFixed(1)} - ${max.toFixed(1)}`
 }
+
+function formatRealConsumption(avg: number | null, min: number | null, max: number | null): string {
+  if (min !== null && max !== null) return formatWltpRange(min, max)
+  if (avg !== null) return avg.toFixed(1)
+  return '—'
+}
 </script>
 
 <template>
@@ -164,11 +171,28 @@ function formatWltpRange(min: number, max: number | null): string {
                 <span class="font-semibold text-gray-900">{{ preview.modelDisplayName }}</span>
                 <span class="text-xs text-gray-400 whitespace-nowrap mt-0.5">{{ preview.logCount }} Fahrten</span>
               </div>
-              <div v-if="preview.avgConsumptionKwhPer100km" class="text-sm text-gray-700 flex flex-wrap items-baseline gap-x-1">
-                <span>Real: <span class="font-semibold">{{ preview.avgConsumptionKwhPer100km.toFixed(1) }} kWh/100km</span></span>
-              </div>
-              <div v-if="preview.minWltpConsumptionKwhPer100km" class="text-xs text-gray-500">
-                WLTP: {{ formatWltpRange(preview.minWltpConsumptionKwhPer100km, preview.maxWltpConsumptionKwhPer100km) }} kWh/100km
+              <div class="grid grid-cols-[auto_1fr] items-baseline gap-x-3 gap-y-0.5 mt-1 text-sm">
+                <template v-if="preview.minWltpConsumptionKwhPer100km">
+                  <span class="text-xs text-gray-400">WLTP</span>
+                  <span class="text-gray-500">{{ formatWltpRange(preview.minWltpConsumptionKwhPer100km, preview.maxWltpConsumptionKwhPer100km) }} kWh/100km</span>
+                </template>
+                <template v-if="preview.avgConsumptionKwhPer100km || preview.minRealConsumptionKwhPer100km">
+                  <span class="text-xs text-gray-400">Real</span>
+                  <span class="text-gray-700 font-semibold">{{ formatRealConsumption(preview.avgConsumptionKwhPer100km, preview.minRealConsumptionKwhPer100km, preview.maxRealConsumptionKwhPer100km) }} kWh/100km</span>
+                </template>
+                <template v-if="preview.avgCostPerKwh && preview.avgConsumptionKwhPer100km">
+                  <span class="text-xs text-gray-400">Kosten</span>
+                  <span class="flex flex-wrap items-center gap-x-1.5">
+                    <span class="text-blue-500 font-medium">~{{ (preview.avgCostPerKwh * preview.avgConsumptionKwhPer100km).toFixed(1) }} €/100km</span>
+                    <span class="relative group cursor-help inline-flex items-center gap-0.5 text-xs text-gray-400">
+                      <span>Ø {{ preview.avgCostPerKwh.toFixed(2) }} €/kWh</span>
+                      <InformationCircleIcon class="h-3 w-3 flex-shrink-0" />
+                      <span class="absolute bottom-full left-0 mb-1.5 px-2.5 py-2 bg-gray-800 text-white text-xs rounded-lg w-60 hidden group-hover:block z-20 pointer-events-none leading-snug shadow-lg">
+                        Basiert auf dem Ø-Strompreis der Community-Beiträge. Günstigeres Heimladen vs. teure Schnelllader erklärt Preisunterschiede zwischen Modellen.
+                      </span>
+                    </span>
+                  </span>
+                </template>
               </div>
               <div class="mt-2 text-green-600 text-xs font-medium flex items-center gap-1">
                 <span>Details ansehen</span>
@@ -188,11 +212,28 @@ function formatWltpRange(min: number, max: number | null): string {
                 <span class="font-semibold text-gray-900">{{ preview.modelDisplayName }}</span>
                 <span class="text-xs text-gray-400 whitespace-nowrap mt-0.5">{{ preview.logCount }} Fahrten</span>
               </div>
-              <div v-if="preview.avgConsumptionKwhPer100km" class="text-sm text-gray-700 flex flex-wrap items-baseline gap-x-1">
-                <span>Real: <span class="font-semibold">{{ preview.avgConsumptionKwhPer100km.toFixed(1) }} kWh/100km</span></span>
-              </div>
-              <div v-if="preview.minWltpConsumptionKwhPer100km" class="text-xs text-gray-500">
-                WLTP: {{ formatWltpRange(preview.minWltpConsumptionKwhPer100km, preview.maxWltpConsumptionKwhPer100km) }} kWh/100km
+              <div class="grid grid-cols-[auto_1fr] items-baseline gap-x-3 gap-y-0.5 mt-1 text-sm">
+                <template v-if="preview.minWltpConsumptionKwhPer100km">
+                  <span class="text-xs text-gray-400">WLTP</span>
+                  <span class="text-gray-500">{{ formatWltpRange(preview.minWltpConsumptionKwhPer100km, preview.maxWltpConsumptionKwhPer100km) }} kWh/100km</span>
+                </template>
+                <template v-if="preview.avgConsumptionKwhPer100km || preview.minRealConsumptionKwhPer100km">
+                  <span class="text-xs text-gray-400">Real</span>
+                  <span class="text-gray-700 font-semibold">{{ formatRealConsumption(preview.avgConsumptionKwhPer100km, preview.minRealConsumptionKwhPer100km, preview.maxRealConsumptionKwhPer100km) }} kWh/100km</span>
+                </template>
+                <template v-if="preview.avgCostPerKwh && preview.avgConsumptionKwhPer100km">
+                  <span class="text-xs text-gray-400">Kosten</span>
+                  <span class="flex flex-wrap items-center gap-x-1.5">
+                    <span class="text-blue-500 font-medium">~{{ (preview.avgCostPerKwh * preview.avgConsumptionKwhPer100km).toFixed(1) }} €/100km</span>
+                    <span class="relative group cursor-help inline-flex items-center gap-0.5 text-xs text-gray-400">
+                      <span>Ø {{ preview.avgCostPerKwh.toFixed(2) }} €/kWh</span>
+                      <InformationCircleIcon class="h-3 w-3 flex-shrink-0" />
+                      <span class="absolute bottom-full left-0 mb-1.5 px-2.5 py-2 bg-gray-800 text-white text-xs rounded-lg w-60 hidden group-hover:block z-20 pointer-events-none leading-snug shadow-lg">
+                        Basiert auf dem Ø-Strompreis der Community-Beiträge. Günstigeres Heimladen vs. teure Schnelllader erklärt Preisunterschiede zwischen Modellen.
+                      </span>
+                    </span>
+                  </span>
+                </template>
               </div>
               <div class="mt-2 text-green-600 text-xs font-medium flex items-center gap-1">
                 <span>Details ansehen</span>
@@ -310,11 +351,28 @@ function formatWltpRange(min: number, max: number | null): string {
               <span class="text-xs text-gray-400 whitespace-nowrap mt-1">{{ preview.logCount }} Fahrten</span>
             </div>
 
-            <div v-if="preview.avgConsumptionKwhPer100km" class="text-sm text-gray-700 mb-1">
-              Real: <span class="font-medium">{{ preview.avgConsumptionKwhPer100km.toFixed(1) }} kWh/100km</span>
-            </div>
-            <div v-if="preview.minWltpConsumptionKwhPer100km" class="text-sm text-gray-500 mb-3">
-              WLTP: {{ formatWltpRange(preview.minWltpConsumptionKwhPer100km, preview.maxWltpConsumptionKwhPer100km) }} kWh/100km
+            <div class="grid grid-cols-[auto_1fr] items-baseline gap-x-3 gap-y-0.5 mb-3 text-sm">
+              <template v-if="preview.minWltpConsumptionKwhPer100km">
+                <span class="text-xs text-gray-400">WLTP</span>
+                <span class="text-gray-500">{{ formatWltpRange(preview.minWltpConsumptionKwhPer100km, preview.maxWltpConsumptionKwhPer100km) }} kWh/100km</span>
+              </template>
+              <template v-if="preview.avgConsumptionKwhPer100km || preview.minRealConsumptionKwhPer100km">
+                <span class="text-xs text-gray-400">Real</span>
+                <span class="text-gray-700 font-medium">{{ formatRealConsumption(preview.avgConsumptionKwhPer100km, preview.minRealConsumptionKwhPer100km, preview.maxRealConsumptionKwhPer100km) }} kWh/100km</span>
+              </template>
+              <template v-if="preview.avgCostPerKwh && preview.avgConsumptionKwhPer100km">
+                <span class="text-xs text-gray-400">Kosten</span>
+                <span class="flex flex-wrap items-center gap-x-1.5">
+                  <span class="text-blue-500 font-medium">~{{ (preview.avgCostPerKwh * preview.avgConsumptionKwhPer100km).toFixed(1) }} €/100km</span>
+                  <span class="relative group cursor-help inline-flex items-center gap-0.5 text-xs text-gray-400">
+                    <span>Ø {{ preview.avgCostPerKwh.toFixed(2) }} €/kWh</span>
+                    <InformationCircleIcon class="h-3 w-3 flex-shrink-0" />
+                    <span class="absolute bottom-full left-0 mb-1.5 px-2.5 py-2 bg-gray-800 text-white text-xs rounded-lg w-60 hidden group-hover:block z-20 pointer-events-none leading-snug shadow-lg">
+                      Basiert auf dem Ø-Strompreis der Community-Beiträge. Günstigeres Heimladen vs. teure Schnelllader erklärt Preisunterschiede zwischen Modellen.
+                    </span>
+                  </span>
+                </span>
+              </template>
             </div>
 
             <div class="text-green-600 font-medium flex justify-center items-center gap-1 text-sm">
@@ -349,11 +407,28 @@ function formatWltpRange(min: number, max: number | null): string {
                     <h3 class="text-sm font-semibold text-gray-900">{{ m.modelDisplayName }}</h3>
                     <span class="text-xs text-gray-400 whitespace-nowrap mt-0.5">{{ m.logCount }} Fahrten</span>
                   </div>
-                  <div v-if="m.avgConsumptionKwhPer100km" class="text-xs text-gray-700 mb-1">
-                    Real: <span class="font-medium">{{ m.avgConsumptionKwhPer100km.toFixed(1) }} kWh/100km</span>
-                  </div>
-                  <div v-if="m.minWltpConsumptionKwhPer100km" class="text-xs text-gray-500">
-                    WLTP: {{ formatWltpRange(m.minWltpConsumptionKwhPer100km, m.maxWltpConsumptionKwhPer100km) }} kWh/100km
+                  <div class="grid grid-cols-[auto_1fr] items-baseline gap-x-2 gap-y-0.5 text-xs">
+                    <template v-if="m.minWltpConsumptionKwhPer100km">
+                      <span class="text-gray-400">WLTP</span>
+                      <span class="text-gray-500">{{ formatWltpRange(m.minWltpConsumptionKwhPer100km, m.maxWltpConsumptionKwhPer100km) }} kWh/100km</span>
+                    </template>
+                    <template v-if="m.avgConsumptionKwhPer100km || m.minRealConsumptionKwhPer100km">
+                      <span class="text-gray-400">Real</span>
+                      <span class="text-gray-700 font-medium">{{ formatRealConsumption(m.avgConsumptionKwhPer100km, m.minRealConsumptionKwhPer100km, m.maxRealConsumptionKwhPer100km) }} kWh/100km</span>
+                    </template>
+                    <template v-if="m.avgCostPerKwh && m.avgConsumptionKwhPer100km">
+                      <span class="text-gray-400">Kosten</span>
+                      <span class="flex flex-wrap items-center gap-x-1">
+                        <span class="text-blue-500 font-medium">~{{ (m.avgCostPerKwh * m.avgConsumptionKwhPer100km).toFixed(1) }} €/100km</span>
+                        <span class="relative group cursor-help inline-flex items-center gap-0.5 text-gray-400">
+                          <span>Ø {{ m.avgCostPerKwh.toFixed(2) }} €/kWh</span>
+                          <InformationCircleIcon class="h-3 w-3 flex-shrink-0" />
+                          <span class="absolute bottom-full left-0 mb-1.5 px-2.5 py-2 bg-gray-800 text-white text-xs rounded-lg w-56 hidden group-hover:block z-20 pointer-events-none leading-snug shadow-lg">
+                            Basiert auf dem Ø-Strompreis der Community-Beiträge. Günstigeres Heimladen vs. teure Schnelllader erklärt Preisunterschiede zwischen Modellen.
+                          </span>
+                        </span>
+                      </span>
+                    </template>
                   </div>
                 </a>
               </div>

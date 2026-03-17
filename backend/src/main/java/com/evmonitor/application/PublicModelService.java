@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -318,7 +319,8 @@ public class PublicModelService {
     @Cacheable("topModels")
     public List<TopModelResponse> getTopModels(int limit, boolean isSeedUser) {
         record ModelData(CarBrand.CarModel carModel, long logCount,
-                         BigDecimal avgConsumption, BigDecimal minWltpConsumption,
+                         BigDecimal avgConsumption, BigDecimal minRealConsumption,
+                         BigDecimal maxRealConsumption, BigDecimal minWltpConsumption,
                          BigDecimal maxWltpConsumption, BigDecimal avgCostPerKwh) {}
 
         List<String> modelsWithWltp = vehicleSpecificationRepository.findAll().stream()
@@ -361,7 +363,26 @@ public class PublicModelService {
                     BigDecimal minWltp = wltpValues.stream().min(BigDecimal::compareTo).orElse(null);
                     BigDecimal maxWltp = wltpValues.stream().max(BigDecimal::compareTo).orElse(null);
 
-                    return new ModelData(carModel, logCount, avgConsumption, minWltp, maxWltp, avgCostPerKwh);
+                    // Per-variant real consumption: only variants with >= 100 trips qualify
+                    List<BigDecimal> variantConsumptions = wltpSpecs.stream()
+                            .map(spec -> {
+                                List<Car> carsForVariant = cars.stream()
+                                        .filter(c -> c.getBatteryCapacityKwh() != null
+                                                && c.getBatteryCapacityKwh().compareTo(spec.getBatteryCapacityKwh()) == 0)
+                                        .toList();
+                                if (carsForVariant.isEmpty()) return null;
+                                CommunityConsumptionResult r = evLogService.calculateCommunityAvgConsumption(carsForVariant, isSeedUser);
+                                return (r.tripCount() >= 100 && r.value() != null)
+                                        ? r.value().setScale(1, RoundingMode.HALF_UP) : null;
+                            })
+                            .filter(Objects::nonNull)
+                            .toList();
+                    BigDecimal minReal = variantConsumptions.size() >= 2
+                            ? variantConsumptions.stream().min(BigDecimal::compareTo).orElse(null) : null;
+                    BigDecimal maxReal = variantConsumptions.size() >= 2
+                            ? variantConsumptions.stream().max(BigDecimal::compareTo).orElse(null) : null;
+
+                    return new ModelData(carModel, logCount, avgConsumption, minReal, maxReal, minWltp, maxWltp, avgCostPerKwh);
                 })
                 .filter(m -> m != null)
                 .sorted((a, b) -> Long.compare(b.logCount(), a.logCount()))
@@ -377,6 +398,8 @@ public class PublicModelService {
                             modelDisplay.replace(" ", "_"),
                             (int) m.logCount(),
                             m.avgConsumption(),
+                            m.minRealConsumption(),
+                            m.maxRealConsumption(),
                             m.minWltpConsumption(),
                             m.maxWltpConsumption(),
                             m.avgCostPerKwh()

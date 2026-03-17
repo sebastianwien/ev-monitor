@@ -58,6 +58,8 @@ export interface TopModelPreview {
     modelUrlSlug: string
     logCount: number
     avgConsumptionKwhPer100km: number | null
+    minRealConsumptionKwhPer100km: number | null
+    maxRealConsumptionKwhPer100km: number | null
     minWltpConsumptionKwhPer100km: number | null
     maxWltpConsumptionKwhPer100km: number | null
     avgCostPerKwh: number | null
