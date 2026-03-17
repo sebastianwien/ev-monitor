@@ -9,13 +9,14 @@ import { useCoinStore } from './stores/coins'
 import { storeToRefs } from 'pinia'
 import { useWallboxStore } from './stores/wallbox'
 import SpritMonitorImport from './components/SpritMonitorImport.vue'
+import LeaderboardTicker from './components/LeaderboardTicker.vue'
 import LogFormModal from './components/LogFormModal.vue'
 import FloatingActionButton from './components/FloatingActionButton.vue'
 import OnboardingWelcome from './components/OnboardingWelcome.vue'
 import DemoBanner from './components/DemoBanner.vue'
 import RedditConsentBanner from './components/RedditConsentBanner.vue'
 import FeedbackToast from './components/FeedbackToast.vue'
-import { Bars3Icon, XMarkIcon, HomeIcon, TruckIcon, ArrowDownTrayIcon, UserIcon, ArrowRightOnRectangleIcon, BoltIcon, ChatBubbleLeftEllipsisIcon, ArrowsRightLeftIcon } from '@heroicons/vue/24/outline'
+import { Bars3Icon, XMarkIcon, HomeIcon, TruckIcon, ArrowDownTrayIcon, UserIcon, ArrowRightOnRectangleIcon, BoltIcon, ChatBubbleLeftEllipsisIcon, ArrowsRightLeftIcon, TrophyIcon } from '@heroicons/vue/24/outline'
 // Note: showImportOverlay kept for backward compat but SpritMonitor moved to /imports
 import { HeartIcon } from '@heroicons/vue/24/solid'
 import { captureUtmParams } from './utils/reddit-pixel'
@@ -164,6 +165,14 @@ const openKofi = () => {
                 title="Modelle vergleichen">
                 <ArrowsRightLeftIcon class="h-5 w-5" />
               </router-link>
+              <router-link
+                to="/leaderboard"
+                class="nav-3d p-2 rounded-md border border-indigo-500 hover:bg-indigo-500 transition"
+                @click="haptic()"
+                :class="{ 'bg-indigo-700': $route.path === '/leaderboard' }"
+                title="Bestenliste">
+                <TrophyIcon class="h-5 w-5" />
+              </router-link>
             </div>
 
             <!-- Full Nav (1024px+) -->
@@ -195,6 +204,14 @@ const openKofi = () => {
                 :class="{ 'bg-indigo-700': $route.path.startsWith('/modelle') }">
                 <ArrowsRightLeftIcon class="h-5 w-5" />
                 Modelle
+              </router-link>
+              <router-link
+                to="/leaderboard"
+                class="nav-3d flex items-center gap-2 px-3 py-2 rounded-md border border-indigo-500 text-sm font-medium hover:bg-indigo-500 transition"
+                @click="haptic()"
+                :class="{ 'bg-indigo-700': $route.path === '/leaderboard' }">
+                <TrophyIcon class="h-5 w-5" />
+                Bestenliste
               </router-link>
             </div>
           </div>
@@ -367,6 +384,9 @@ const openKofi = () => {
 
     </nav>
 
+    <!-- Leaderboard Ticker (below nav, only when authenticated) -->
+    <LeaderboardTicker v-if="authStore.isAuthenticated()" />
+
     <!-- Mobile Menu Overlay -->
     <Transition name="mobile-menu">
       <div
@@ -425,6 +445,14 @@ const openKofi = () => {
               :class="{ 'bg-indigo-800': $route.path.startsWith('/modelle') }">
               <ArrowsRightLeftIcon class="h-5 w-5" />
               <span>Modelle vergleichen</span>
+            </router-link>
+            <router-link
+              to="/leaderboard"
+              @click="closeMobileMenu"
+              class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-indigo-100 hover:bg-indigo-600 transition"
+              :class="{ 'bg-indigo-800': $route.path === '/leaderboard' }">
+              <TrophyIcon class="h-5 w-5" />
+              <span>Bestenliste</span>
             </router-link>
             <router-link
               v-if="authStore.user"

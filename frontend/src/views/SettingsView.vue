@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import { UserIcon, KeyIcon, TrashIcon, ArrowDownTrayIcon, CurrencyDollarIcon, AcademicCapIcon, ShareIcon, ClipboardDocumentIcon, CheckIcon, HeartIcon } from '@heroicons/vue/24/outline'
+import { UserIcon, KeyIcon, TrashIcon, ArrowDownTrayIcon, CurrencyDollarIcon, AcademicCapIcon, ShareIcon, ClipboardDocumentIcon, CheckIcon, HeartIcon, TrophyIcon } from '@heroicons/vue/24/outline'
 import api from '../api/axios'
 
 const router = useRouter()
@@ -22,6 +22,9 @@ const coinBalance = ref(0)
 // Referral
 const referralCode = ref('')
 const referralCopied = ref(false)
+
+// Community
+const leaderboardVisible = ref(true)
 
 const referralLink = () => `${window.location.origin}/register?ref=${referralCode.value}`
 
@@ -77,6 +80,7 @@ const fetchUserData = async () => {
     totalKwh.value = stats.totalKwh
     totalCostEur.value = stats.totalCostEur
     referralCode.value = stats.referralCode || ''
+    leaderboardVisible.value = stats.leaderboardVisible ?? true
 
     coinBalance.value = coinsRes.data.totalCoins || 0
   } catch (error: any) {
@@ -208,6 +212,17 @@ const deleteAccount = async () => {
   } catch (error: any) {
     message.value = { type: 'error', text: error.response?.data?.message || 'Account-Löschung fehlgeschlagen' }
     loading.value = false
+  }
+}
+
+// Leaderboard visibility
+const toggleLeaderboardVisible = async () => {
+  const newVal = !leaderboardVisible.value
+  try {
+    await api.put(`/users/me/leaderboard-visible?visible=${newVal}`)
+    leaderboardVisible.value = newVal
+  } catch {
+    message.value = { type: 'error', text: 'Einstellung konnte nicht gespeichert werden.' }
   }
 }
 
@@ -456,6 +471,33 @@ onMounted(() => {
           <TrashIcon class="h-5 w-5" />
           <span>Account unwiderruflich löschen</span>
         </button>
+      </div>
+
+      <!-- Community / Leaderboard Section -->
+      <div class="mb-8">
+        <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+          <TrophyIcon class="h-6 w-6 text-yellow-500" />
+          Bestenliste
+        </h2>
+        <div class="p-4 bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-between gap-4">
+          <div>
+            <p class="font-medium text-gray-800 text-sm">In Bestenlisten erscheinen</p>
+            <p class="text-xs text-gray-500 mt-0.5">Wenn deaktiviert, taucht dein Username in keiner Kategorie auf.</p>
+          </div>
+          <button
+            @click="toggleLeaderboardVisible"
+            :class="[
+              'relative flex-shrink-0 w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none',
+              leaderboardVisible ? 'bg-green-500' : 'bg-gray-300'
+            ]"
+            :title="leaderboardVisible ? 'Deaktivieren' : 'Aktivieren'">
+            <span
+              :class="[
+                'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200',
+                leaderboardVisible ? 'translate-x-5' : 'translate-x-0'
+              ]" />
+          </button>
+        </div>
       </div>
 
       <!-- Help & Support Section -->

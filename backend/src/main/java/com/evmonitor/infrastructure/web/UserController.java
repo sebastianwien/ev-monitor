@@ -76,6 +76,16 @@ public class UserController {
                 .body(resource);
     }
 
+    @PutMapping("/me/leaderboard-visible")
+    public ResponseEntity<Void> setLeaderboardVisible(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @RequestParam boolean visible
+    ) {
+        UUID userId = UUID.fromString(principal.getUser().getId().toString());
+        userService.setLeaderboardVisible(userId, visible);
+        return ResponseEntity.ok().build();
+    }
+
     @DeleteMapping("/me")
     public ResponseEntity<Void> deleteAccount(
             @AuthenticationPrincipal UserPrincipal principal,

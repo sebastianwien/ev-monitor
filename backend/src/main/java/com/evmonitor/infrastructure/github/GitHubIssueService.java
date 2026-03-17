@@ -70,7 +70,7 @@ public class GitHubIssueService {
             );
 
             restClient.post()
-                    .uri("/repos/{repo}/issues", githubRepo)
+                    .uri("/repos/" + githubRepo + "/issues")
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + githubToken)
                     .header(HttpHeaders.ACCEPT, "application/vnd.github+json")
                     .header("X-GitHub-Api-Version", "2022-11-28")

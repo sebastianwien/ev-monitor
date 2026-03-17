@@ -1,0 +1,1 @@
+ALTER TABLE app_user ADD COLUMN leaderboard_visible BOOLEAN NOT NULL DEFAULT TRUE;

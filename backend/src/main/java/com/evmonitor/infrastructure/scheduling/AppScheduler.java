@@ -1,5 +1,6 @@
 package com.evmonitor.infrastructure.scheduling;
 
+import com.evmonitor.application.LeaderboardService;
 import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.EvLogRepository;
 import com.evmonitor.domain.User;
@@ -28,17 +29,20 @@ public class AppScheduler {
     private final EmailService emailService;
     private final GitHubIssueService gitHubIssueService;
     private final TemperatureBackfillJob temperatureBackfillJob;
+    private final LeaderboardService leaderboardService;
 
     public AppScheduler(UserRepository userRepository, CarRepository carRepository,
                         EvLogRepository evLogRepository, EmailService emailService,
                         GitHubIssueService gitHubIssueService,
-                        TemperatureBackfillJob temperatureBackfillJob) {
+                        TemperatureBackfillJob temperatureBackfillJob,
+                        LeaderboardService leaderboardService) {
         this.userRepository = userRepository;
         this.carRepository = carRepository;
         this.evLogRepository = evLogRepository;
         this.emailService = emailService;
         this.gitHubIssueService = gitHubIssueService;
         this.temperatureBackfillJob = temperatureBackfillJob;
+        this.leaderboardService = leaderboardService;
     }
 
     @Scheduled(cron = "0 0 6 * * *")
@@ -77,6 +81,28 @@ public class AppScheduler {
         if (!reminded.isEmpty()) {
             log.info("Onboarding reminder report: {} sent, {} skipped — {}",
                     reminded.size(), skipped.size(), reminded);
+        }
+    }
+
+    /**
+     * Runs at 00:05 on the 1st of each month.
+     * Awards bonus coins to the top 3 users of the previous month's leaderboard categories.
+     */
+    @Scheduled(cron = "0 5 0 1 * *")
+    public void awardMonthlyLeaderboardRewards() {
+        LocalDate previousMonth = LocalDate.now().minusMonths(1);
+        log.info("Awarding monthly leaderboard rewards for {}", previousMonth.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM")));
+        try {
+            leaderboardService.awardMonthEndRewards(previousMonth);
+            log.info("Monthly leaderboard rewards awarded for {}", previousMonth);
+        } catch (Exception e) {
+            log.error("Monthly leaderboard reward job failed for {}", previousMonth, e);
+            gitHubIssueService.createIssue(
+                    "leaderboard-reward-error-" + previousMonth,
+                    "Leaderboard Reward Job fehlgeschlagen - " + previousMonth,
+                    "## Fehler\n\nMonat: `%s`\n\nException: `%s: %s`"
+                            .formatted(previousMonth, e.getClass().getSimpleName(), e.getMessage())
+            );
         }
     }
 

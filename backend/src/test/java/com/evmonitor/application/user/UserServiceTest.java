@@ -95,6 +95,7 @@ class UserServiceTest {
         // Given
         when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
         when(evLogRepository.findAllByUserId(userId)).thenReturn(List.of());
+        when(jpaUserRepository.findById(userId)).thenReturn(Optional.of(testUserEntity));
 
         // When
         UserStatsResponse stats = userService.getUserStats(userId);

@@ -27,6 +27,7 @@ import UpgradeCancelView from '../views/UpgradeCancelView.vue';
 import ForgotPasswordView from '../views/ForgotPasswordView.vue';
 import ResetPasswordView from '../views/ResetPasswordView.vue';
 import AdminImpersonateView from '../views/AdminImpersonateView.vue';
+import LeaderboardView from '../views/LeaderboardView.vue';
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
@@ -194,6 +195,12 @@ const router = createRouter({
             name: 'terms',
             component: TermsView
             // no auth guard - public page for legal info (legacy)
+        },
+        {
+            path: '/leaderboard',
+            name: 'leaderboard',
+            component: LeaderboardView,
+            meta: { requiresAuth: true }
         },
         {
             path: '/admin',

@@ -42,12 +42,16 @@ public class UserService {
                 .mapToDouble(log -> log.getCostEur().doubleValue())
                 .sum();
 
+        UserEntity userEntity = jpaUserRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
         return new UserStatsResponse(
                 user.getCreatedAt(),
                 totalLogs,
                 totalKwh,
                 totalCostEur,
-                user.getReferralCode()
+                user.getReferralCode(),
+                userEntity.isLeaderboardVisible()
         );
     }
 
@@ -156,5 +160,14 @@ public class UserService {
 
         // Delete user (CASCADE will delete all related data: Cars, EvLogs, CoinLogs, Tokens)
         userRepository.delete(user);
+    }
+
+    @Transactional
+    public void setLeaderboardVisible(UUID userId, boolean visible) {
+        UserEntity userEntity = jpaUserRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        userEntity.setLeaderboardVisible(visible);
+        userEntity.setUpdatedAt(LocalDateTime.now());
+        jpaUserRepository.save(userEntity);
     }
 }

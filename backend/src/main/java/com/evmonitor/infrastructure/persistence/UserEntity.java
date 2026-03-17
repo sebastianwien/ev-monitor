@@ -58,6 +58,9 @@ public class UserEntity {
     @Column(name = "utm_campaign", length = 100)
     private String utmCampaign;
 
+    @Column(name = "leaderboard_visible", nullable = false)
+    private boolean leaderboardVisible = true;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -228,6 +231,14 @@ public class UserEntity {
 
     public void setUtmCampaign(String utmCampaign) {
         this.utmCampaign = utmCampaign;
+    }
+
+    public boolean isLeaderboardVisible() {
+        return leaderboardVisible;
+    }
+
+    public void setLeaderboardVisible(boolean leaderboardVisible) {
+        this.leaderboardVisible = leaderboardVisible;
     }
 
 }
