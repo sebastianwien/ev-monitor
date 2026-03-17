@@ -2,6 +2,7 @@ package com.evmonitor.application.spritmonitor;
 
 import ch.hsr.geohash.GeoHash;
 import com.evmonitor.application.CoinLogService;
+import com.evmonitor.application.SessionGroupService;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.ChargingType;
@@ -37,15 +38,17 @@ public class SpritMonitorImportService {
     private final EvLogRepository evLogRepository;
     private final CarRepository carRepository;
     private final CoinLogService coinLogService;
+    private final SessionGroupService sessionGroupService;
     private final ObjectMapper objectMapper;
 
     public SpritMonitorImportService(SpritMonitorClient client, EvLogRepository evLogRepository,
                                      CarRepository carRepository, CoinLogService coinLogService,
-                                     ObjectMapper objectMapper) {
+                                     SessionGroupService sessionGroupService, ObjectMapper objectMapper) {
         this.client = client;
         this.evLogRepository = evLogRepository;
         this.carRepository = carRepository;
         this.coinLogService = coinLogService;
+        this.sessionGroupService = sessionGroupService;
         this.objectMapper = objectMapper;
     }
 
@@ -83,6 +86,7 @@ public class SpritMonitorImportService {
         }
 
         ImportResult result = new ImportResult();
+        List<EvLog> savedLogs = new ArrayList<>();
 
         try {
             int tankId = spritMonitorMainTankId != null ? spritMonitorMainTankId : 1;
@@ -130,6 +134,7 @@ public class SpritMonitorImportService {
 
                     EvLog evLog = convertToEvLog(fueling, evMonitorCarId, loggedAt);
                     EvLog savedLog = evLogRepository.save(evLog);
+                    savedLogs.add(savedLog);
                     result.incrementImported();
 
                     // Award 2 coins per imported log, linked to the log for deletion deduction
@@ -146,6 +151,9 @@ public class SpritMonitorImportService {
             // Return early to avoid coin check on aborted transaction
             return result;
         }
+
+        // Gruppe Ladungen mit gleichem Odometer-Wert (mehrere Ladevorgänge am selben Stopp)
+        sessionGroupService.groupByOdometer(savedLogs);
 
         // Award one-time bonus for first-ever Sprit-Monitor import (idempotency enforced by awardCoinsForEvent)
         if (result.getImported() > 0) {
@@ -164,7 +172,10 @@ public class SpritMonitorImportService {
      */
     @Transactional
     public void deleteAllImports(UUID userId) {
+        // ev_log zuerst löschen (FK: ev_log.session_group_id → charging_session_group.id)
         evLogRepository.deleteAllByUserIdAndDataSource(userId, DATA_SOURCE);
+        // danach Waisen-Gruppen entfernen
+        sessionGroupService.deleteGroupsByUserIdAndDataSource(userId, DATA_SOURCE.name());
     }
 
     /**

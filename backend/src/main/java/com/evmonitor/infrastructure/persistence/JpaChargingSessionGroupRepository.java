@@ -1,6 +1,7 @@
 package com.evmonitor.infrastructure.persistence;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -13,6 +14,14 @@ import java.util.UUID;
 public interface JpaChargingSessionGroupRepository extends JpaRepository<ChargingSessionGroupEntity, UUID> {
 
     List<ChargingSessionGroupEntity> findAllByCarId(UUID carId);
+
+    @Modifying(clearAutomatically = true)
+    @Query("""
+            DELETE FROM ChargingSessionGroupEntity g
+            WHERE g.dataSource = :dataSource
+              AND g.carId IN (SELECT c.id FROM CarEntity c WHERE c.userId = :userId)
+            """)
+    void deleteAllByUserIdAndDataSource(@Param("userId") UUID userId, @Param("dataSource") String dataSource);
 
     /**
      * Findet eine offene Gruppe für ein Fahrzeug:

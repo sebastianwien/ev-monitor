@@ -610,6 +610,77 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void shouldGroupFuelings_WithSameOdometer_IntoSessionGroup() {
+        // Zwei Ladevorgänge am selben Stopp (gleicher Kilometerstand) — klassisches Spritmonitor-Szenario:
+        // z.B. AC-Nachladen + DC-Schnellladen an der gleichen Raststätte ohne Zwischenfahrt.
+        List<SpritMonitorFuelingDTO> mockFuelings = List.of(
+                new SpritMonitorFuelingDTO("28.10.2025", new BigDecimal("11.02"), QUANTITY_UNIT_KWH,
+                        new BigDecimal("113487"), new BigDecimal("4.00"), 20, null, null, null, null, null, null),
+                new SpritMonitorFuelingDTO("28.10.2025", new BigDecimal("40.00"), QUANTITY_UNIT_KWH,
+                        new BigDecimal("113487"), new BigDecimal("15.00"), 60, null, null, null, null, null, null)
+        );
+
+        when(spritMonitorClient.getFuelings(eq(validToken), eq(123), any())).thenReturn(mockFuelings);
+
+        Map<String, Object> request = Map.of("token", validToken, "vehicleId", 123,
+                "mainTankId", MAIN_TANK_ID, "carId", carId.toString());
+        HttpEntity<Map<String, Object>> requestWithAuth = createAuthRequest(request, userId, testUser.getEmail());
+
+        ResponseEntity<ImportResult> response = restTemplate.exchange(
+                "/api/import/sprit-monitor/fuelings", HttpMethod.POST, requestWithAuth, ImportResult.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(2, response.getBody().getImported());
+
+        // Beide Logs müssen als Sub-Sessions markiert sein
+        List<EvLog> logs = evLogRepository.findAllByCarId(carId);
+        assertEquals(2, logs.size());
+        assertTrue(logs.stream().allMatch(l -> l.getSessionGroupId() != null),
+                "Beide Logs müssen einer Session-Gruppe angehören");
+        assertTrue(logs.stream().allMatch(l -> !l.isIncludeInStatistics()),
+                "Sub-Sessions müssen aus Statistiken ausgeschlossen sein");
+
+        // Gruppe aggregiert korrekt
+        UUID groupId = logs.get(0).getSessionGroupId();
+        var group = sessionGroupRepository.findById(groupId).orElseThrow();
+        assertEquals(0, new BigDecimal("51.02").compareTo(group.getTotalKwhCharged()),
+                "Gruppe muss kWh beider Ladevorgänge summieren");
+        assertEquals(2, group.getSessionCount());
+        assertEquals("SPRITMONITOR_IMPORT", group.getDataSource());
+    }
+
+    @Test
+    void shouldNotGroup_FuelingsWithDifferentOdometers() {
+        // Zwei Ladevorgänge an verschiedenen Stopps (unterschiedlicher Kilometerstand) — dürfen NICHT gruppiert werden.
+        List<SpritMonitorFuelingDTO> mockFuelings = List.of(
+                new SpritMonitorFuelingDTO("15.11.2025", new BigDecimal("79.0"), QUANTITY_UNIT_KWH,
+                        new BigDecimal("13703"), new BigDecimal("30.71"), 60, null, null, null, null, null, null),
+                new SpritMonitorFuelingDTO("15.11.2025", new BigDecimal("27.0"), QUANTITY_UNIT_KWH,
+                        new BigDecimal("13978"), new BigDecimal("10.50"), 30, null, null, null, null, null, null)
+        );
+
+        when(spritMonitorClient.getFuelings(eq(validToken), eq(123), any())).thenReturn(mockFuelings);
+
+        Map<String, Object> request = Map.of("token", validToken, "vehicleId", 123,
+                "mainTankId", MAIN_TANK_ID, "carId", carId.toString());
+        HttpEntity<Map<String, Object>> requestWithAuth = createAuthRequest(request, userId, testUser.getEmail());
+
+        ResponseEntity<ImportResult> response = restTemplate.exchange(
+                "/api/import/sprit-monitor/fuelings", HttpMethod.POST, requestWithAuth, ImportResult.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(2, response.getBody().getImported());
+
+        // Beide Logs müssen standalone bleiben
+        List<EvLog> logs = evLogRepository.findAllByCarId(carId);
+        assertEquals(2, logs.size());
+        assertTrue(logs.stream().allMatch(l -> l.getSessionGroupId() == null),
+                "Logs mit verschiedenen Odometer-Werten dürfen nicht gruppiert werden");
+        assertTrue(logs.stream().allMatch(EvLog::isIncludeInStatistics),
+                "Standalone-Logs müssen in Statistiken enthalten sein");
+    }
+
+    @Test
     void shouldHandleNullPosition_InStringFormat() throws Exception {
         // Fuelings without GPS have no position field at all — must not throw
         String json = """

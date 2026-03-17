@@ -1,6 +1,7 @@
 package com.evmonitor.infrastructure.web;
 
 import com.evmonitor.domain.*;
+import com.evmonitor.infrastructure.persistence.ChargingSessionGroupEntity;
 import com.evmonitor.testutil.AbstractIntegrationTest;
 import com.evmonitor.testutil.TestDataBuilder;
 import org.junit.jupiter.api.BeforeEach;
@@ -178,6 +179,39 @@ class SpritMonitorDeleteImportsIntegrationTest extends AbstractIntegrationTest {
         List<EvLog> remaining = evLogRepository.findAllByUserId(testUserId);
         assertEquals(2, remaining.size(), "Only USER_LOGGED from both cars should remain");
         assertTrue(remaining.stream().allMatch(log -> log.getDataSource().equals(DataSource.USER_LOGGED)));
+    }
+
+    @Test
+    void deleteAllImports_alsoDeletesOrphanedSessionGroups() {
+        // Given: User hat Spritmonitor-Logs und eine dazugehörige Session-Gruppe
+        createLog(testCarId, DataSource.SPRITMONITOR_IMPORT);
+        createLog(testCarId, DataSource.SPRITMONITOR_IMPORT);
+
+        // Session-Gruppe manuell anlegen (wie der Import es tun würde)
+        ChargingSessionGroupEntity group = new ChargingSessionGroupEntity();
+        group.setId(UUID.randomUUID());
+        group.setCarId(testCarId);
+        group.setTotalKwhCharged(new BigDecimal("51.02"));
+        group.setSessionCount(2);
+        group.setSessionStart(LocalDateTime.now());
+        group.setSessionEnd(LocalDateTime.now().plusMinutes(80));
+        group.setDataSource("SPRITMONITOR_IMPORT");
+        group.setCreatedAt(LocalDateTime.now());
+        group.setUpdatedAt(LocalDateTime.now());
+        sessionGroupRepository.save(group);
+
+        assertEquals(1, sessionGroupRepository.findAllByCarId(testCarId).size());
+
+        // When: User löscht alle Spritmonitor-Imports
+        HttpEntity<Void> request = createAuthRequest(testUserId, testUser.getEmail());
+        ResponseEntity<Void> response = restTemplate.exchange(
+                "/api/import/sprit-monitor/delete-all", HttpMethod.DELETE, request, Void.class);
+
+        // Then: Logs UND Gruppen gelöscht
+        assertEquals(200, response.getStatusCode().value());
+        assertEquals(0, evLogRepository.findAllByUserId(testUserId).size(), "Alle Logs müssen gelöscht sein");
+        assertEquals(0, sessionGroupRepository.findAllByCarId(testCarId).size(),
+                "Waisen-Gruppen müssen ebenfalls gelöscht werden");
     }
 
     // ──────────────────────────────────────────────────────────────────────────

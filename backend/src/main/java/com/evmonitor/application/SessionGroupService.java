@@ -11,22 +11,27 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
- * Gruppiert Wallbox-Micro-Sessions zu logischen Ladegruppen.
+ * Gruppiert mehrere Ladevorgänge zu logischen Ladegruppen.
  *
- * Anwendungsfall: Überschussladen (Solar-Surplus) an einer go-e Wallbox.
- * Die Wallbox startet und stoppt je nach verfügbarem Überschuss mehrfach, was
- * viele kleine WALLBOX_GOE Sessions erzeugt. Diese werden hier zu einer
- * Gruppe zusammengefasst (gleicher Tag, Gap < merge_gap_minutes).
+ * Zwei Gruppierungsstrategien:
  *
- * Merge-Kriterium:
- * - data_source = WALLBOX_GOE (erweiterbar auf andere Surplus-Quellen)
- * - Gleicher Kalendertag
- * - Gap zwischen letztem session_end und neuem session_start < DEFAULT_MERGE_GAP_MINUTES
+ * 1. Zeitbasiert (processSessionForGrouping) — für Echtzeit-Sessions von Wallboxen und API-Uploads.
+ *    Anwendungsfall: Solar-Überschussladen — die Wallbox startet/stoppt mehrfach je nach
+ *    verfügbarem Überschuss. Sessions desselben Tages mit kurzem Abstand (< merge_gap_minutes)
+ *    werden zusammengefasst.
+ *    Unterstützte Quellen: WALLBOX_GOE, API_UPLOAD
+ *
+ * 2. Odometer-basiert (groupByOdometer) — für Batch-Imports mit geteiltem Kilometerstand.
+ *    Anwendungsfall: Spritmonitor-Import — mehrere Ladevorgänge am selben Stopp teilen sich
+ *    einen Odometer-Wert. Ohne Gruppierung schlägt der Verbrauch-Plausibilitätscheck fehl.
+ *    Unterstützte Quellen: SPRITMONITOR_IMPORT
  */
 @Service
 public class SessionGroupService {
@@ -46,8 +51,8 @@ public class SessionGroupService {
     }
 
     /**
-     * Verarbeitet einen neuen Wallbox-Log und gruppiert ihn ggf. mit bestehenden Sessions.
-     * Wird nach dem Speichern eines WALLBOX_GOE Logs aufgerufen.
+     * Verarbeitet einen neu gespeicherten Log und gruppiert ihn zeitbasiert mit bestehenden Sessions.
+     * Für WALLBOX_GOE und API_UPLOAD; andere Quellen werden ignoriert.
      *
      * Läuft in derselben Transaktion wie der Log-Save (REQUIRED):
      * Log-Save und Group-Linking sind atomic — entweder beide committed oder keiner.
@@ -60,7 +65,8 @@ public class SessionGroupService {
     }
 
     /**
-     * Verarbeitet einen neuen Wallbox-Log mit konfiguriertem Merge-Fenster.
+     * Verarbeitet einen neu gespeicherten Log mit konfiguriertem Merge-Fenster.
+     * Für WALLBOX_GOE und API_UPLOAD; andere Quellen werden ignoriert.
      *
      * @param savedLog Der gerade gespeicherte Log-Eintrag
      * @param mergeGapMinutes Maximale Pause zwischen Sessions (in Minuten) für Gruppierung
@@ -98,6 +104,55 @@ public class SessionGroupService {
 
         // Log mit der Gruppe verknüpfen
         evLogRepository.setSessionGroupId(savedLog.getId(), groupId);
+    }
+
+    /**
+     * Gruppiert Sprit-Monitor-Einträge mit gleichem Odometer-Wert zu Session-Gruppen.
+     *
+     * Hintergrund: Spritmonitor erlaubt mehrere Ladevorgänge pro Stopp mit identischem
+     * Kilometerstand. Ohne Gruppierung schlägt der Plausibilitätscheck fehl - ein Log
+     * bekommt die gesamte Distanz, aber nur einen Teil der Energie (z.B. 11 kWh / 2647 km
+     * = 0.42 kWh/100km → wird als implausibel verworfen).
+     *
+     * Logs ohne Odometer-Wert und Einzel-Einträge bleiben unberührt.
+     * Läuft in derselben Transaktion wie der Import (REQUIRED).
+     *
+     * @param savedLogs Alle in diesem Import-Batch gespeicherten Logs (chronologisch sortiert)
+     */
+    @Transactional
+    public void groupByOdometer(List<EvLog> savedLogs) {
+        savedLogs.stream()
+                .filter(l -> l.getOdometerKm() != null)
+                .collect(Collectors.groupingBy(EvLog::getOdometerKm))
+                .values().stream()
+                .filter(group -> group.size() > 1)
+                .forEach(group -> {
+                    List<EvLog> sorted = group.stream()
+                            .sorted(Comparator.comparing(EvLog::getLoggedAt))
+                            .toList();
+
+                    ChargingSessionGroup sessionGroup = ChargingSessionGroup.createFrom(sorted.get(0));
+                    for (int i = 1; i < sorted.size(); i++) {
+                        sessionGroup.addSubSession(sorted.get(i));
+                    }
+                    ChargingSessionGroup saved = groupRepository.save(sessionGroup);
+
+                    for (EvLog evLog : sorted) {
+                        evLogRepository.setSessionGroupId(evLog.getId(), saved.getId());
+                    }
+
+                    log.debug("Grouped {} logs at odometer {} km into session group {}",
+                            sorted.size(), sorted.get(0).getOdometerKm(), saved.getId());
+                });
+    }
+
+    /**
+     * Löscht alle Session-Gruppen eines Users für eine DataSource.
+     * Muss NACH dem Löschen der zugehörigen ev_log-Einträge aufgerufen werden.
+     */
+    @Transactional
+    public void deleteGroupsByUserIdAndDataSource(UUID userId, String dataSource) {
+        groupRepository.deleteAllByUserIdAndDataSource(userId, dataSource);
     }
 
     /**

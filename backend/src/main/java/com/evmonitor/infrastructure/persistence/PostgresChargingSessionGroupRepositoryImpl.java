@@ -36,6 +36,11 @@ public class PostgresChargingSessionGroupRepositoryImpl implements ChargingSessi
     }
 
     @Override
+    public void deleteAllByUserIdAndDataSource(UUID userId, String dataSource) {
+        jpa.deleteAllByUserIdAndDataSource(userId, dataSource);
+    }
+
+    @Override
     public Optional<ChargingSessionGroup> findOpenGroupForCar(UUID carId, LocalDateTime threshold,
             LocalDate sessionDay, String dataSource) {
         LocalDateTime dayStart = sessionDay.atStartOfDay();

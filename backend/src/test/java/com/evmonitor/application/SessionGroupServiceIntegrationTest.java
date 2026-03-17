@@ -208,6 +208,99 @@ class SessionGroupServiceIntegrationTest extends AbstractIntegrationTest {
         assertEquals(3, group.sessionCount());
     }
 
+    // ── groupByOdometer ───────────────────────────────────────────────────────
+
+    @Test
+    void groupByOdometer_twoLogsAtSameOdometer_createsGroup() {
+        LocalDateTime base = LocalDateTime.now().minusHours(2);
+        EvLog log1 = createAndSaveSpritMonitorLog(testCar.getId(), "11.02", 113487, base);
+        EvLog log2 = createAndSaveSpritMonitorLog(testCar.getId(), "40.00", 113487, base.plusSeconds(1));
+
+        sessionGroupService.groupByOdometer(List.of(log1, log2));
+
+        List<SessionGroupResponse> groups = sessionGroupService.findAllByCarId(testCar.getId());
+        assertEquals(1, groups.size());
+        assertEquals(0, new BigDecimal("51.02").compareTo(groups.get(0).totalKwhCharged()));
+        assertEquals(2, groups.get(0).sessionCount());
+        assertEquals("SPRITMONITOR_IMPORT", groups.get(0).dataSource());
+
+        // Sub-Sessions aus Statistiken ausgeschlossen
+        List<EvLog> allLogs = evLogRepository.findAllByCarId(testCar.getId());
+        assertTrue(allLogs.stream().allMatch(l -> !l.isIncludeInStatistics()));
+    }
+
+    @Test
+    void groupByOdometer_threeLogsAtSameOdometer_createsGroupWithThree() {
+        LocalDateTime base = LocalDateTime.now().minusHours(2);
+        EvLog log1 = createAndSaveSpritMonitorLog(testCar.getId(), "10.00", 50000, base);
+        EvLog log2 = createAndSaveSpritMonitorLog(testCar.getId(), "20.00", 50000, base.plusSeconds(1));
+        EvLog log3 = createAndSaveSpritMonitorLog(testCar.getId(), "15.00", 50000, base.plusSeconds(2));
+
+        sessionGroupService.groupByOdometer(List.of(log1, log2, log3));
+
+        List<SessionGroupResponse> groups = sessionGroupService.findAllByCarId(testCar.getId());
+        assertEquals(1, groups.size());
+        assertEquals(0, new BigDecimal("45.00").compareTo(groups.get(0).totalKwhCharged()));
+        assertEquals(3, groups.get(0).sessionCount());
+    }
+
+    @Test
+    void groupByOdometer_mixedBatch_groupsOnlySameOdometer() {
+        LocalDateTime base = LocalDateTime.now().minusHours(2);
+        // Zwei am gleichen Stopp (gleicher Odo) + eine separate Fahrt davor
+        EvLog stopA1 = createAndSaveSpritMonitorLog(testCar.getId(), "30.00", 50000, base);
+        EvLog stopA2 = createAndSaveSpritMonitorLog(testCar.getId(), "20.00", 50000, base.plusSeconds(1));
+        EvLog stopB  = createAndSaveSpritMonitorLog(testCar.getId(), "25.00", 49700, base.minusHours(3));
+
+        sessionGroupService.groupByOdometer(List.of(stopB, stopA1, stopA2));
+
+        List<SessionGroupResponse> groups = sessionGroupService.findAllByCarId(testCar.getId());
+        assertEquals(1, groups.size(), "Nur die beiden Logs mit Odo 50000 sollen gruppiert werden");
+        assertEquals(2, groups.get(0).sessionCount());
+
+        // stopB bleibt standalone und in Statistiken
+        List<EvLog> allLogs = evLogRepository.findAllByCarId(testCar.getId());
+        EvLog standalone = allLogs.stream()
+                .filter(l -> l.getSessionGroupId() == null)
+                .findFirst().orElseThrow();
+        assertEquals(49700, standalone.getOdometerKm());
+        assertTrue(standalone.isIncludeInStatistics());
+    }
+
+    @Test
+    void groupByOdometer_nullOdometer_notGrouped() {
+        LocalDateTime base = LocalDateTime.now().minusHours(1);
+        EvLog log1 = createAndSaveSpritMonitorLog(testCar.getId(), "20.00", null, base);
+        EvLog log2 = createAndSaveSpritMonitorLog(testCar.getId(), "30.00", null, base.plusSeconds(1));
+
+        sessionGroupService.groupByOdometer(List.of(log1, log2));
+
+        List<SessionGroupResponse> groups = sessionGroupService.findAllByCarId(testCar.getId());
+        assertTrue(groups.isEmpty(), "Logs ohne Odometer dürfen nicht gruppiert werden");
+
+        List<EvLog> allLogs = evLogRepository.findAllByCarId(testCar.getId());
+        assertTrue(allLogs.stream().allMatch(l -> l.getSessionGroupId() == null));
+        assertTrue(allLogs.stream().allMatch(EvLog::isIncludeInStatistics));
+    }
+
+    @Test
+    void groupByOdometer_emptyList_noOp() {
+        sessionGroupService.groupByOdometer(List.of());
+        assertTrue(sessionGroupService.findAllByCarId(testCar.getId()).isEmpty());
+    }
+
+    @Test
+    void groupByOdometer_singleLogPerOdometer_notGrouped() {
+        LocalDateTime base = LocalDateTime.now().minusHours(2);
+        EvLog log1 = createAndSaveSpritMonitorLog(testCar.getId(), "30.00", 50000, base);
+        EvLog log2 = createAndSaveSpritMonitorLog(testCar.getId(), "25.00", 50300, base.plusSeconds(1));
+
+        sessionGroupService.groupByOdometer(List.of(log1, log2));
+
+        assertTrue(sessionGroupService.findAllByCarId(testCar.getId()).isEmpty(),
+                "Einzel-Logs pro Odometer-Wert dürfen keine Gruppe erzeugen");
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private EvLog createAndSaveGoeLog(java.util.UUID carId, String kwhCharged, LocalDateTime loggedAt) {
@@ -241,6 +334,23 @@ class SessionGroupServiceIntegrationTest extends AbstractIntegrationTest {
                 source,
                 null,
                 ChargingType.AC);
+        return evLogRepository.save(log);
+    }
+
+    private EvLog createAndSaveSpritMonitorLog(java.util.UUID carId, String kwhCharged,
+            Integer odometerKm, LocalDateTime loggedAt) {
+        EvLog log = EvLog.createNewWithSource(
+                carId,
+                new BigDecimal(kwhCharged),
+                BigDecimal.ZERO,
+                0,
+                null,
+                odometerKm,
+                null, null,
+                loggedAt,
+                DataSource.SPRITMONITOR_IMPORT,
+                ChargingType.UNKNOWN,
+                null);
         return evLogRepository.save(log);
     }
 }

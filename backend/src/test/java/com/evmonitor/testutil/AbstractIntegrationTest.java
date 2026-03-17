@@ -1,6 +1,7 @@
 package com.evmonitor.testutil;
 
 import com.evmonitor.domain.*;
+import com.evmonitor.infrastructure.persistence.JpaChargingSessionGroupRepository;
 import com.evmonitor.infrastructure.security.JwtService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -43,6 +44,9 @@ public abstract class AbstractIntegrationTest {
 
     @Autowired
     protected CoinLogRepository coinLogRepository;
+
+    @Autowired
+    protected JpaChargingSessionGroupRepository sessionGroupRepository;
 
     @Autowired
     protected JwtService jwtService;
