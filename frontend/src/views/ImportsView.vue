@@ -5,6 +5,7 @@ import SpritMonitorImport from '../components/SpritMonitorImport.vue'
 import GoeIntegration from '../components/GoeIntegration.vue'
 import TeslaFleetIntegration from '../components/TeslaFleetIntegration.vue'
 import ManualImportModal from '../components/ManualImportModal.vue'
+import TronityImport from '../components/TronityImport.vue'
 import CarSelectDropdown from '../components/CarSelectDropdown.vue'
 import type { Car } from '../api/carService'
 import { useCarStore } from '../stores/car'
@@ -129,6 +130,7 @@ const activeCars = computed(() =>
               { id: 'goe', label: 'go-eCharger' },
               { id: 'wallbox', label: 'OCPP Wallbox' },
               { id: 'tesla', label: 'Tesla' },
+              { id: 'tronity', label: 'Tronity' },
               { id: 'manuell', label: 'Manuell' },
               { id: 'api', label: 'API' },
             ] as const)"
@@ -265,6 +267,11 @@ const activeCars = computed(() =>
           <div class="p-6"><TeslaFleetIntegration /></div>
           </template>
         </div>
+        <!-- Tab: Tronity -->
+        <div v-if="activeTab === 'tronity'">
+          <TronityImport />
+        </div>
+
         <!-- Tab: Manuell -->
         <div v-if="activeTab === 'manuell'" class="p-6 space-y-4">
           <div class="flex items-start gap-4">

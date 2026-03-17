@@ -12,6 +12,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@e965/xlsx": "^0.20.3",
     "@heroicons/vue": "^2.2.0",
     "@unhead/vue": "^2.1.9",
     "axios": "^1.13.5",

@@ -5,6 +5,7 @@ import com.evmonitor.application.publicapi.PublicApiImportService;
 import com.evmonitor.application.publicapi.PublicApiSessionRequest;
 import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.Car;
+import com.evmonitor.domain.DataSource;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +30,10 @@ public class ManualImportService {
     }
 
     public ImportApiResult importData(UUID userId, UUID carId, String format, String data, boolean mergeSessions) {
+        return importData(userId, carId, format, data, mergeSessions, DataSource.API_UPLOAD);
+    }
+
+    public ImportApiResult importData(UUID userId, UUID carId, String format, String data, boolean mergeSessions, DataSource dataSource) {
         // Ownership check before parsing
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new IllegalArgumentException("Fahrzeug nicht gefunden"));
@@ -63,7 +68,7 @@ public class ManualImportService {
             return new ImportApiResult(0, 0, parseErrors);
         }
 
-        ImportApiResult result = publicApiImportService.importSessions(userId, new PublicApiSessionRequest(carId, entries), mergeSessions, true);
+        ImportApiResult result = publicApiImportService.importSessions(userId, new PublicApiSessionRequest(carId, entries), mergeSessions, true, dataSource);
         return parseErrors > 0
                 ? new ImportApiResult(result.imported(), result.skipped(), result.errors() + parseErrors)
                 : result;
@@ -92,11 +97,12 @@ public class ManualImportService {
         Double maxChargingPowerKw = parseDouble(get(row, "max_charging_power_kw"));
         String routeType = get(row, "route_type");
         String tireType = get(row, "tire_type");
+        String rawImportData = get(row, "raw_import_data");
 
         return new PublicApiSessionRequest.SessionEntry(
                 date, kwh, odometerKm, socBefore, socAfter,
                 costEur, durationMin, location, chargingType,
-                maxChargingPowerKw, routeType, tireType
+                maxChargingPowerKw, routeType, tireType, rawImportData
         );
     }
 

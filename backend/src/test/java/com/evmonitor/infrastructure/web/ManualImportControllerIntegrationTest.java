@@ -327,6 +327,18 @@ class ManualImportControllerIntegrationTest extends AbstractIntegrationTest {
         assertTrue(response.getBody().errors() > 0);
     }
 
+    @Test
+    void jsonImport_rawImportDataIsNull() {
+        String json = """
+                [{"date":"2025-08-20T10:56:48","kwh":24.5}]
+                """;
+
+        post(json, "json");
+
+        EvLog log = evLogRepository.findAllByCarId(car.getId()).getFirst();
+        assertNull(log.getRawImportData());
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private ResponseEntity<ImportApiResult> post(String data, String format) {

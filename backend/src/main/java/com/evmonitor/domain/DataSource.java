@@ -10,12 +10,14 @@ public enum DataSource {
     WALLBOX_OCPP,
     WALLBOX_GOE,         // go-eCharger Cloud via ev-monitor-connectors
     API_UPLOAD,          // Public Upload API (Wallboxen, Skripte, Home-Automation)
+    TRONITY_IMPORT,      // Tronity XLSX export import
     SEED_DATA;
 
     public boolean includeInStatistics() {
         return this == USER_LOGGED || this == SPRITMONITOR_IMPORT
                 || this == WALLBOX_OCPP || this == WALLBOX_GOE
                 || this == TESLA_FLEET_IMPORT || this == TESLA_LIVE
-                || this == TESLA_MANUAL_IMPORT || this == API_UPLOAD;
+                || this == TESLA_MANUAL_IMPORT || this == API_UPLOAD
+                || this == TRONITY_IMPORT;
     }
 }

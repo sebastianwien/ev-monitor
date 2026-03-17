@@ -23,6 +23,7 @@ public record PublicApiSessionRequest(
             @Size(max = 10) @JsonProperty("charging_type") String chargingType,
             @DecimalMin("0.0") @DecimalMax("1000.0") @JsonProperty("max_charging_power_kw") Double maxChargingPowerKw,
             @Size(max = 10) @JsonProperty("route_type") String routeType,
-            @Size(max = 10) @JsonProperty("tire_type") String tireType
+            @Size(max = 10) @JsonProperty("tire_type") String tireType,
+            @Size(max = 2000) @JsonProperty("raw_import_data") String rawImportData
     ) {}
 }

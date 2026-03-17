@@ -128,12 +128,32 @@ public class EvLog {
             Integer chargeDurationMinutes, String geohash, Integer odometerKm,
             BigDecimal maxChargingPowerKw, Integer socAfterChargePercent, Integer socBeforeChargePercent,
             LocalDateTime loggedAt, ChargingType chargingType, RouteType routeType, TireType tireType) {
+        return createFromPublicApi(carId, kwhCharged, costEur, chargeDurationMinutes, geohash, odometerKm,
+                maxChargingPowerKw, socAfterChargePercent, socBeforeChargePercent, loggedAt,
+                chargingType, routeType, tireType, DataSource.API_UPLOAD);
+    }
+
+    public static EvLog createFromPublicApi(UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
+            Integer chargeDurationMinutes, String geohash, Integer odometerKm,
+            BigDecimal maxChargingPowerKw, Integer socAfterChargePercent, Integer socBeforeChargePercent,
+            LocalDateTime loggedAt, ChargingType chargingType, RouteType routeType, TireType tireType,
+            DataSource dataSource) {
+        return createFromPublicApi(carId, kwhCharged, costEur, chargeDurationMinutes, geohash, odometerKm,
+                maxChargingPowerKw, socAfterChargePercent, socBeforeChargePercent, loggedAt,
+                chargingType, routeType, tireType, dataSource, null);
+    }
+
+    public static EvLog createFromPublicApi(UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
+            Integer chargeDurationMinutes, String geohash, Integer odometerKm,
+            BigDecimal maxChargingPowerKw, Integer socAfterChargePercent, Integer socBeforeChargePercent,
+            LocalDateTime loggedAt, ChargingType chargingType, RouteType routeType, TireType tireType,
+            DataSource dataSource, String rawImportData) {
         LocalDateTime now = LocalDateTime.now();
         return new EvLog(UUID.randomUUID(), carId, kwhCharged, costEur,
                 chargeDurationMinutes, geohash, odometerKm, maxChargingPowerKw,
                 socAfterChargePercent, socBeforeChargePercent, loggedAt,
-                DataSource.API_UPLOAD, DataSource.API_UPLOAD.includeInStatistics(),
-                null, null, null, chargingType, null, now, now, routeType, tireType, null, null);
+                dataSource, dataSource.includeInStatistics(),
+                null, null, null, chargingType, rawImportData, now, now, routeType, tireType, null, null);
     }
 
     public UUID getId() {

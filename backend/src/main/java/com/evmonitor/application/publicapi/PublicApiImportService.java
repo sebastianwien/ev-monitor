@@ -55,11 +55,16 @@ public class PublicApiImportService {
 
     @Transactional
     public ImportApiResult importSessions(UUID userId, PublicApiSessionRequest request, boolean mergeSessions) {
-        return importSessions(userId, request, mergeSessions, false);
+        return importSessions(userId, request, mergeSessions, false, DataSource.API_UPLOAD);
     }
 
     @Transactional
     public ImportApiResult importSessions(UUID userId, PublicApiSessionRequest request, boolean mergeSessions, boolean allowBatchMerge) {
+        return importSessions(userId, request, mergeSessions, allowBatchMerge, DataSource.API_UPLOAD);
+    }
+
+    @Transactional
+    public ImportApiResult importSessions(UUID userId, PublicApiSessionRequest request, boolean mergeSessions, boolean allowBatchMerge, DataSource dataSource) {
         Car car = carRepository.findById(request.carId())
                 .orElseThrow(() -> new IllegalArgumentException("Fahrzeug nicht gefunden"));
 
@@ -116,7 +121,9 @@ public class PublicApiImportService {
                         loggedAt,
                         chargingType,
                         routeType,
-                        tireType
+                        tireType,
+                        dataSource,
+                        entry.rawImportData()
                 );
 
                 EvLog saved = evLogRepository.save(evLog);
