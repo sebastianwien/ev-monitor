@@ -56,6 +56,8 @@ if (import.meta.env.PROD) {
         // Ignore browser extension errors (e.g. chrome.runtime.sendMessage from ad blockers, password managers)
         const message = event.reason instanceof Error ? event.reason.message : String(event.reason)
         if (message.includes('runtime.sendMessage') || message.includes('extension')) return
+        // Ignore known WebKit/Safari internal autofill errors — not our code
+        if (message.includes('autofillFieldData')) return
         reportError(event.reason, 'unhandledrejection')
     })
 }
