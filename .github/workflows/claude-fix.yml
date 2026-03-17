@@ -72,6 +72,7 @@ jobs:
           3. Implementiere einen Fix
           4. Stelle sicher dass der Fix keine Security-Probleme (OWASP Top 10) einführt
           5. Mache KEINE unnötigen Änderungen über den Fix hinaus
+          6. Schreibe eine Erklärung nach /tmp/claude-fix-explanation.md (siehe Format unten)
 
           Wichtige Regeln:
           - Nur Änderungen die direkt den Fehler beheben
@@ -79,7 +80,29 @@ jobs:
           - Backend: Clean Architecture (domain → application → infrastructure)
           - Frontend: Vue 3 Composition API, TypeScript, Mobile-First
 
-          Starte mit dem Lesen der relevanten Dateien, dann implementiere den Fix."
+          ## Format für /tmp/claude-fix-explanation.md
+
+          Schreibe diese Datei IMMER, egal ob du einen Fix gefunden hast oder nicht.
+          Schreibe sie so, dass ein Junior-Entwickler daraus lernen kann.
+
+          \`\`\`markdown
+          ## Ursache
+
+          [Erkläre in 2-4 Sätzen WARUM dieser Fehler auftritt. Nicht nur was der Fehler ist,
+          sondern die technische Ursache - z.B. welche Annahme im Code falsch war, welches
+          Verhalten einer Library unerwartet war, welcher Edge Case nicht behandelt wurde.]
+
+          ## Fix
+
+          [Erkläre WARUM du den Fix genau so implementiert hast. Welche Alternativen gab es?
+          Warum ist dieser Ansatz besser als die Alternativen? Was hätte man falsch machen können?]
+
+          ## Was man daraus lernen kann
+
+          [1-3 konkrete Takeaways - allgemeine Prinzipien, die über diesen spezifischen Bug hinausgehen.]
+          \`\`\`
+
+          Starte mit dem Lesen der relevanten Dateien, dann implementiere den Fix, dann schreibe die Erklärung."
 
       - name: Check for changes
         id: changes
@@ -104,23 +127,29 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          EXPLANATION=""
+          if [ -f /tmp/claude-fix-explanation.md ]; then
+            EXPLANATION=$(cat /tmp/claude-fix-explanation.md)
+          fi
+
           gh pr create \
             --title "fix: Auto-Fix für Issue #${{ github.event.issue.number }}" \
-            --body "$(cat << 'EOF'
-          ## Auto-Fix
-
-          Automatisch generierter Fix für Issue #${{ github.event.issue.number }}.
+            --body "## Auto-Fix für Issue #${{ github.event.issue.number }}
 
           **Issue:** ${{ github.event.issue.title }}
+
+          ---
+
+          ${EXPLANATION}
+
+          ---
 
           **Bitte vor dem Merge prüfen:**
           - [ ] Fix löst das gemeldete Problem
           - [ ] Keine unerwünschten Seiteneffekte
           - [ ] Tests laufen durch (CI)
 
-          > Generiert von Claude Code via `claude-fix` Workflow
-          EOF
-          )" \
+          > Generiert von Claude Code via \`claude-fix\` Workflow" \
             --base main \
             --head "${{ steps.branch.outputs.branch }}"
 
@@ -129,5 +158,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          EXPLANATION=""
+          if [ -f /tmp/claude-fix-explanation.md ]; then
+            EXPLANATION=$(cat /tmp/claude-fix-explanation.md)
+          fi
+
           gh issue comment ${{ github.event.issue.number }} \
-            --body "🤖 Claude hat den Fehler analysiert, konnte aber keinen automatischen Fix ermitteln. Manuelle Überprüfung erforderlich."
+            --body "Claude hat den Fehler analysiert, konnte aber keinen automatischen Fix ermitteln. Manuelle Überprüfung erforderlich.
+
+          ${EXPLANATION}"
