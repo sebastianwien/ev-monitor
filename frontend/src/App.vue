@@ -9,6 +9,7 @@ import { useCoinStore } from './stores/coins'
 import { storeToRefs } from 'pinia'
 import { useWallboxStore } from './stores/wallbox'
 import SpritMonitorImport from './components/SpritMonitorImport.vue'
+import SupportPopover from './components/SupportPopover.vue'
 import LeaderboardTicker from './components/LeaderboardTicker.vue'
 import LogFormModal from './components/LogFormModal.vue'
 import FloatingActionButton from './components/FloatingActionButton.vue'
@@ -18,7 +19,6 @@ import RedditConsentBanner from './components/RedditConsentBanner.vue'
 import FeedbackToast from './components/FeedbackToast.vue'
 import { Bars3Icon, XMarkIcon, HomeIcon, TruckIcon, ArrowDownTrayIcon, UserIcon, ArrowRightOnRectangleIcon, BoltIcon, ChatBubbleLeftEllipsisIcon, ArrowsRightLeftIcon, TrophyIcon } from '@heroicons/vue/24/outline'
 // Note: showImportOverlay kept for backward compat but SpritMonitor moved to /imports
-import { HeartIcon } from '@heroicons/vue/24/solid'
 import { captureUtmParams } from './utils/reddit-pixel'
 import { useHaptic } from './composables/useHaptic'
 
@@ -114,10 +114,6 @@ const closeMobileMenu = () => {
   mobileMenuOpen.value = false
 }
 
-const openKofi = () => {
-  analytics.track('kofi_clicked')
-  window.open('https://ko-fi.com/ev_monitor', '_blank', 'noopener,noreferrer,width=550,height=650,left=200,top=100')
-}
 </script>
 
 <template>
@@ -255,13 +251,7 @@ const openKofi = () => {
               title="Feedback geben">
               <ChatBubbleLeftEllipsisIcon class="h-5 w-5" />
             </button>
-            <button
-              @click="openKofi()"
-              class="inline-flex items-center gap-1.5 px-3 py-1.5 text-red-400 hover:text-red-300 transition text-sm font-medium"
-              title="EV Monitor unterstützen">
-              <HeartIcon class="h-4 w-4" />
-              Unterstützen
-            </button>
+            <SupportPopover variant="nav" />
             <button
               @click="handleLogout"
               class="nav-3d p-2 rounded-md bg-indigo-500 bg-opacity-30 border border-indigo-500 hover:bg-opacity-50 transition"
@@ -328,13 +318,7 @@ const openKofi = () => {
             >
               <ChatBubbleLeftEllipsisIcon class="h-5 w-5" />
             </button>
-            <button
-              @click="openKofi()"
-              class="inline-flex items-center gap-1.5 px-3 py-1.5 text-red-400 hover:text-red-300 transition text-sm font-medium"
-              title="EV Monitor unterstützen">
-              <HeartIcon class="h-4 w-4" />
-              Unterstützen
-            </button>
+            <SupportPopover variant="nav" />
             <button
               @click="handleLogout"
               class="nav-3d p-2 rounded-md bg-indigo-500 bg-opacity-30 border border-indigo-500 hover:bg-opacity-50 transition"
@@ -463,12 +447,7 @@ const openKofi = () => {
               <UserIcon class="h-5 w-5" />
               <span>{{ authStore.user.username || authStore.user.sub }}</span>
             </router-link>
-            <button
-              @click="openKofi(); closeMobileMenu()"
-              class="w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-600 transition text-red-300">
-              <HeartIcon class="h-5 w-5" />
-              <span>Unterstützen</span>
-            </button>
+            <SupportPopover variant="nav" />
             <button
               @click="handleLogout"
               class="w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-600 transition text-red-300">
@@ -509,10 +488,7 @@ const openKofi = () => {
             <a href="https://github.com/sebastianwien/ev-monitor" target="_blank" rel="noopener noreferrer" class="hover:text-green-600 underline">GitHub</a>
           </p>
           <p>
-            <button @click="openKofi()" class="inline-flex items-center gap-1.5 text-red-500 hover:text-red-600 transition font-medium">
-              <HeartIcon class="h-4 w-4" />
-              EV Monitor unterstützen
-            </button>
+            <SupportPopover variant="footer" />
           </p>
         </div>
       </div>

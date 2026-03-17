@@ -4,13 +4,13 @@ import { useHead } from '@unhead/vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { analytics } from '../services/analytics'
+import SupportPopover from '../components/SupportPopover.vue'
 import { getTopModels, getPlatformStats, type TopModelPreview } from '../api/publicModelService'
 import {
   LockClosedIcon,
   UsersIcon,
   ArrowRightIcon,
   BoltIcon,
-  HeartIcon,
   ArrowDownTrayIcon
 } from '@heroicons/vue/24/outline'
 
@@ -514,16 +514,8 @@ const formatDelta = (real: number | null, wltp: number): string => {
         <div class="mt-8 text-center text-sm text-gray-500">
           Made with ⚡ for the EV community
         </div>
-        <div class="mt-3 text-center">
-          <a
-            href="https://ko-fi.com/ev_monitor"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-amber-600 transition"
-          >
-            <HeartIcon class="h-3.5 w-3.5" />
-            <span>EV Monitor unterstützen</span>
-          </a>
+        <div class="mt-3 text-center text-xs text-gray-400">
+          <SupportPopover variant="footer" />
         </div>
       </div>
     </footer>

@@ -215,20 +215,23 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 mb-4">10. Externe Dienste: Ko-fi</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 mb-4">10. Externe Dienste: Ko-fi &amp; PayPal</h2>
           <p>
-            Auf unserer Website befindet sich ein Link zur Plattform Ko-fi
-            (<a href="https://ko-fi.com" target="_blank" rel="noopener noreferrer" class="text-green-600 hover:text-green-700">ko-fi.com</a>),
-            über die Sie die Entwicklung von EV Monitor freiwillig unterstützen können.
+            Auf unserer Website befinden sich Links zu Ko-fi
+            (<a href="https://ko-fi.com" target="_blank" rel="noopener noreferrer" class="text-green-600 hover:text-green-700">ko-fi.com</a>)
+            und PayPal
+            (<a href="https://www.paypal.com" target="_blank" rel="noopener noreferrer" class="text-green-600 hover:text-green-700">paypal.com</a>),
+            uber die Sie die Entwicklung von EV Monitor freiwillig unterstützen können.
           </p>
           <p class="mt-4">
-            Der Link öffnet die externe Website von Ko-fi. EV Monitor bettet keinen Ko-fi-Code oder externe Scripts ein.
-            Es werden durch den Klick auf den Link keine Daten von uns an Ko-fi übertragen.
-            Erst wenn Sie die Ko-fi-Website besuchen, gelten deren Datenschutzbestimmungen:
-            <a href="https://more.ko-fi.com/privacy" target="_blank" rel="noopener noreferrer" class="text-green-600 hover:text-green-700">https://more.ko-fi.com/privacy</a>.
+            Die Links öffnen die externen Websites der jeweiligen Anbieter. EV Monitor bettet keinen Code oder externe Scripts dieser Dienste ein.
+            Es werden durch den Klick auf die Links keine Daten von uns an die Anbieter übertragen.
+            Erst wenn Sie die jeweilige Website besuchen, gelten deren Datenschutzbestimmungen:
+            Ko-fi: <a href="https://more.ko-fi.com/privacy" target="_blank" rel="noopener noreferrer" class="text-green-600 hover:text-green-700">https://more.ko-fi.com/privacy</a>,
+            PayPal: <a href="https://www.paypal.com/de/webapps/mpp/ua/privacy-full" target="_blank" rel="noopener noreferrer" class="text-green-600 hover:text-green-700">https://www.paypal.com/de/webapps/mpp/ua/privacy-full</a>.
           </p>
           <p class="mt-4">
-            Die Nutzung von Ko-fi ist vollständig freiwillig und hat keinen Einfluss auf die Nutzung von EV Monitor.
+            Die Nutzung dieser Dienste ist vollständig freiwillig und hat keinen Einfluss auf die Nutzung von EV Monitor.
           </p>
         </section>
 

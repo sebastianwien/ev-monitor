@@ -50,6 +50,7 @@ import { useTeslaStatus } from '../composables/useTeslaStatus'
 import ChargingHeatMap from '../components/ChargingHeatMap.vue'
 import { vehicleSpecificationService, type VehicleSpecification } from '../api/vehicleSpecificationService'
 import RewardSystemUpdateBanner from '../components/RewardSystemUpdateBanner.vue'
+import SupportPopover from '../components/SupportPopover.vue'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend, Filler, ChartDataLabels)
 
@@ -1331,16 +1332,9 @@ const deleteLog = async (id: string) => {
 
         <!-- Support -->
         <div class="px-4 md:px-0 py-6 text-center">
-          <p class="text-sm text-gray-400">
+          <p class="text-sm text-gray-400 flex items-center justify-center gap-1">
             EV Monitor ist kostenlos.
-            <a
-              href="https://ko-fi.com/ev_monitor"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="text-gray-400 hover:text-amber-600 transition underline underline-offset-2"
-            >
-              Unterstütze die Entwicklung auf Ko-fi →
-            </a>
+            <SupportPopover variant="footer" />
           </p>
         </div>
 
