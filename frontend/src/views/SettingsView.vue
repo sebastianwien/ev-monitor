@@ -115,12 +115,10 @@ const changeUsername = async () => {
   message.value = null
 
   try {
-    await api.put('/users/me/username', { newUsername: newUsername.value })
+    const response = await api.put('/users/me/username', { newUsername: newUsername.value })
+    authStore.setToken(response.data.token)
+    username.value = authStore.user?.username || newUsername.value
     message.value = { type: 'success', text: 'Username erfolgreich geändert!' }
-
-    // Update local value immediately
-    username.value = newUsername.value
-
     showUsernameForm.value = false
     newUsername.value = ''
   } catch (error: any) {

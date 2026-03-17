@@ -1,6 +1,8 @@
 package com.evmonitor.infrastructure.web;
 
 import com.evmonitor.application.user.*;
+import com.evmonitor.infrastructure.security.CustomUserDetailsService;
+import com.evmonitor.infrastructure.security.JwtService;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -10,8 +12,10 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -20,6 +24,8 @@ import java.util.UUID;
 public class UserController {
 
     private final UserService userService;
+    private final JwtService jwtService;
+    private final CustomUserDetailsService customUserDetailsService;
 
     @GetMapping("/me/stats")
     public ResponseEntity<UserStatsResponse> getUserStats(
@@ -41,13 +47,15 @@ public class UserController {
     }
 
     @PutMapping("/me/username")
-    public ResponseEntity<Void> changeUsername(
+    public ResponseEntity<Map<String, String>> changeUsername(
             @AuthenticationPrincipal UserPrincipal principal,
             @Valid @RequestBody ChangeUsernameRequest request
     ) {
         UUID userId = UUID.fromString(principal.getUser().getId().toString());
         userService.changeUsername(userId, request);
-        return ResponseEntity.ok().build();
+        UserDetails updatedUser = customUserDetailsService.loadUserById(userId);
+        String newToken = jwtService.generateToken(updatedUser);
+        return ResponseEntity.ok(Map.of("token", newToken));
     }
 
     @PutMapping("/me/password")
