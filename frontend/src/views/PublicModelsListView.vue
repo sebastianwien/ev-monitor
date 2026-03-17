@@ -4,19 +4,72 @@
 
     <main class="max-w-6xl mx-auto px-4 py-8">
       <!-- Hero -->
-      <div class="bg-white rounded-2xl border border-gray-200 p-8 mb-8">
-        <h1 class="text-3xl font-bold text-gray-900 mb-3">
-          Elektroautos im Vergleich
-        </h1>
-        <p class="text-gray-600 text-lg mb-4">
-          Reale Verbrauchsdaten von der Community – WLTP vs. Praxis für alle Elektroautos.
-        </p>
-        <p class="text-sm text-gray-500">
-          {{ modelsWithData.length }} Modelle mit echten Community-Daten
-        </p>
-        <p class="text-xs text-gray-400 mt-3 leading-relaxed">
-          Die Kosten pro 100 km basieren auf dem Ø-Strompreis der Community-Einträge je Modell. Preisunterschiede zwischen Modellen entstehen durch verschiedene Ladegewohnheiten - Heimladen ist deutlich günstiger als öffentliche Schnelllader.
-        </p>
+      <div class="rounded-2xl mb-8 overflow-hidden">
+
+        <!-- Standard Hero -->
+        <template v-if="!isRedditSource">
+          <div class="bg-gradient-to-br from-gray-900 to-gray-800 px-6 py-10 sm:px-10 sm:py-12">
+            <h1 class="text-3xl sm:text-4xl font-bold text-white mb-3 leading-tight">
+              Elektroautos im Vergleich
+            </h1>
+            <p class="text-gray-300 text-lg mb-6 max-w-xl leading-relaxed">
+              Reale Verbrauchsdaten von der Community - WLTP vs. Praxis für alle Elektroautos.
+            </p>
+            <!-- Stats Badges -->
+            <div class="flex flex-wrap gap-3">
+              <span class="inline-flex items-center gap-1.5 bg-white/10 text-white text-sm font-medium px-3.5 py-1.5 rounded-full">
+                <ChartBarIcon class="h-4 w-4 text-green-400" />
+                {{ modelsWithData.length }} Modelle
+              </span>
+              <span v-if="platformStats" class="inline-flex items-center gap-1.5 bg-white/10 text-white text-sm font-medium px-3.5 py-1.5 rounded-full">
+                <ArrowTrendingUpIcon class="h-4 w-4 text-green-400" />
+                {{ platformStats.validTripCount.toLocaleString('de-DE') }} Fahrten
+              </span>
+              <span v-if="platformStats" class="inline-flex items-center gap-1.5 bg-white/10 text-white text-sm font-medium px-3.5 py-1.5 rounded-full">
+                <CheckIcon class="h-4 w-4 text-green-400" />
+                {{ platformStats.userCount.toLocaleString('de-DE') }} Fahrer*innen
+              </span>
+            </div>
+          </div>
+          <div class="bg-white border border-gray-200 border-t-0 rounded-b-2xl px-6 py-4 sm:px-10">
+            <p class="text-xs text-gray-400 leading-relaxed">
+              Die Kosten pro 100 km basieren auf dem Ø-Strompreis der Community-Einträge je Modell. Preisunterschiede entstehen durch verschiedene Ladegewohnheiten - Heimladen ist deutlich günstiger als öffentliche Schnelllader.
+            </p>
+          </div>
+        </template>
+
+        <!-- Reddit Hero -->
+        <template v-else>
+          <div class="bg-gradient-to-br from-gray-900 to-green-900 px-6 py-10 sm:px-10 sm:py-12">
+            <div class="inline-flex items-center gap-1.5 bg-green-500/20 text-green-300 text-xs font-semibold px-3 py-1 rounded-full mb-4 uppercase tracking-wide">
+              Keine Herstellerangaben
+            </div>
+            <h1 class="text-3xl sm:text-4xl font-bold text-white mb-3 leading-tight">
+              Was verbraucht dein E-Auto wirklich?
+            </h1>
+            <p class="text-gray-300 text-lg mb-6 max-w-xl leading-relaxed">
+              Hersteller versprechen WLTP-Reichweiten, die in der Praxis selten stimmen. Hier findest du echte Zahlen von EV-Fahrern - aus dem Alltag, nicht aus dem Labor.
+            </p>
+            <div class="flex flex-wrap gap-3 mb-6">
+              <span class="inline-flex items-center gap-1.5 bg-white/10 text-white text-sm font-medium px-3.5 py-1.5 rounded-full">
+                <ChartBarIcon class="h-4 w-4 text-green-400" />
+                {{ modelsWithData.length }} Modelle
+              </span>
+              <span v-if="platformStats" class="inline-flex items-center gap-1.5 bg-white/10 text-white text-sm font-medium px-3.5 py-1.5 rounded-full">
+                <ArrowTrendingUpIcon class="h-4 w-4 text-green-400" />
+                {{ platformStats.validTripCount.toLocaleString('de-DE') }} echte Fahrten
+              </span>
+            </div>
+            <div class="flex flex-wrap gap-3">
+              <a href="/register"
+                 class="inline-flex items-center gap-2 bg-green-500 hover:bg-green-400 text-white font-semibold px-5 py-2.5 rounded-lg transition-colors text-sm">
+                Kostenlos mitmachen
+                <ArrowRightIcon class="h-4 w-4" />
+              </a>
+              <span class="inline-flex items-center text-gray-400 text-xs self-center">Kein Abo, kein Paywall</span>
+            </div>
+          </div>
+        </template>
       </div>
 
       <!-- Loading state -->
@@ -288,15 +341,18 @@ import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useHead } from '@unhead/vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import { getTopModels, type TopModelPreview } from '../api/publicModelService'
+import { getTopModels, getPlatformStats, type TopModelPreview, type PlatformStats } from '../api/publicModelService'
 import { TruckIcon, ChartBarIcon, ArrowTrendingUpIcon, ArrowsRightLeftIcon, XMarkIcon, CheckIcon, ArrowRightIcon, InformationCircleIcon } from '@heroicons/vue/24/outline'
 import PublicNav from '../components/PublicNav.vue'
 
 const router = useRouter()
 
+const isRedditSource = new URLSearchParams(window.location.search).get('utm_source') === 'reddit'
+
 const authStore = useAuthStore()
 const loading = ref(true)
 const modelsList = ref<TopModelPreview[]>([])
+const platformStats = ref<PlatformStats | null>(null)
 const selectedBrands = ref<string[]>([])
 const dropdownOpen = ref(false)
 
@@ -483,7 +539,9 @@ useHead({
 
 onMounted(async () => {
   try {
-    modelsList.value = await getTopModels(50)
+    const [models, stats] = await Promise.all([getTopModels(50), getPlatformStats()])
+    modelsList.value = models
+    platformStats.value = stats
   } catch (err) {
     console.error('Failed to load models:', err)
   } finally {
