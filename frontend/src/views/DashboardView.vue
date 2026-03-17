@@ -526,11 +526,24 @@ const sessionGroups = ref<any[]>([])
 const expandedGroups = ref<Set<string>>(new Set())
 const subSessionsCache = ref<Record<string, any[]>>({})
 
+const fetchSubSessions = async (groupId: string) => {
+  if (subSessionsCache.value[groupId]) return
+  try {
+    const res = await api.get(`/logs/group/${groupId}`)
+    subSessionsCache.value[groupId] = res.data
+  } catch {
+    subSessionsCache.value[groupId] = []
+  }
+}
+
 const fetchGroups = async () => {
   if (!selectedCarId.value) return
   try {
     const res = await api.get(`/logs/groups?carId=${selectedCarId.value}`)
     sessionGroups.value = res.data
+    // Spritmonitor-Gruppen werden inline wie Nachladen dargestellt — Sub-Sessions sofort laden
+    const spritGroups = res.data.filter((g: any) => g.dataSource === 'SPRITMONITOR_IMPORT')
+    await Promise.all(spritGroups.map((g: any) => fetchSubSessions(g.id)))
   } catch {
     // Kein Session-Grouping-Feature aktiv oder Netzwerkfehler — ignorieren
     sessionGroups.value = []
@@ -543,14 +556,7 @@ const toggleGroupExpand = async (groupId: string) => {
     return
   }
   expandedGroups.value.add(groupId)
-  if (!subSessionsCache.value[groupId]) {
-    try {
-      const res = await api.get(`/logs/group/${groupId}`)
-      subSessionsCache.value[groupId] = res.data
-    } catch {
-      subSessionsCache.value[groupId] = []
-    }
-  }
+  await fetchSubSessions(groupId)
 }
 
 /// Schneller Exists-Check ohne den teuren Merge+Sort zu triggern
@@ -558,11 +564,15 @@ const hasAnyLogs = computed(() => logs.value.length > 0 || sessionGroups.value.l
 
 // Merged + sorted feed: normale Logs und Gruppen nach Datum zusammenführen
 const mergedLogFeed = computed(() => {
-  const groupsForPage = sessionGroups.value.map((g: any) => ({ ...g, _isGroup: true }))
-  const logsWithFlag = logs.value.map((l: any) => ({ ...l, _isGroup: false }))
+  const groupsForPage = sessionGroups.value.map((g: any) => ({
+    ...g,
+    _isGroup: g.dataSource !== 'SPRITMONITOR_IMPORT',
+    _isSpritGroup: g.dataSource === 'SPRITMONITOR_IMPORT'
+  }))
+  const logsWithFlag = logs.value.map((l: any) => ({ ...l, _isGroup: false, _isSpritGroup: false }))
   const sorted = [...logsWithFlag, ...groupsForPage].sort((a, b) => {
-    const dateA = new Date(a._isGroup ? a.sessionStart : a.loggedAt).getTime()
-    const dateB = new Date(b._isGroup ? b.sessionStart : b.loggedAt).getTime()
+    const dateA = new Date((a._isGroup || a._isSpritGroup) ? a.sessionStart : a.loggedAt).getTime()
+    const dateB = new Date((b._isGroup || b._isSpritGroup) ? b.sessionStart : b.loggedAt).getTime()
     return dateB - dateA  // Neueste zuerst
   })
 
@@ -573,7 +583,7 @@ const mergedLogFeed = computed(() => {
 
   let i = 0
   while (i < sorted.length) {
-    if (sorted[i]._isGroup || sorted[i].odometerKm == null) {
+    if (sorted[i]._isGroup || sorted[i]._isSpritGroup || sorted[i].odometerKm == null) {
       i++
       continue
     }
@@ -581,6 +591,7 @@ const mergedLogFeed = computed(() => {
     let j = i + 1
     while (j < sorted.length &&
            !sorted[j]._isGroup &&
+           !sorted[j]._isSpritGroup &&
            sorted[j].odometerKm != null &&
            sorted[j].odometerKm === sorted[i].odometerKm) {
       j++
@@ -1173,6 +1184,72 @@ const deleteLog = async (id: string) => {
                   </div>
                 </div>
               </div>
+              <!-- Spritmonitor Group (Zusammengefasst) -->
+              <div v-else-if="entry._isSpritGroup">
+                <div class="p-3 border border-gray-200 bg-white rounded-lg space-y-2">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <BoltIcon class="w-4 h-4 text-indigo-600 flex-shrink-0" />
+                    <span class="font-semibold text-indigo-700 whitespace-nowrap">{{ entry.totalKwhCharged }} kWh</span>
+                    <span class="text-xs text-gray-400 whitespace-nowrap">
+                      {{ new Date(entry.sessionStart).toLocaleDateString('de-DE', { day: 'numeric', month: 'numeric', year: new Date(entry.sessionStart).getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined }) }}
+                    </span>
+                    <span class="hidden md:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium bg-purple-50 text-purple-700 whitespace-nowrap">
+                      <ArrowDownTrayIcon class="w-3 h-3" />SpritMonitor
+                    </span>
+                  </div>
+                  <div class="md:hidden">
+                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium bg-purple-50 text-purple-700">
+                      <ArrowDownTrayIcon class="w-3 h-3" />SpritMonitor
+                    </span>
+                  </div>
+                  <div class="flex flex-wrap gap-1.5">
+                    <span v-if="entry.costEur != null && entry.totalKwhCharged"
+                      :class="['inline-flex items-center px-2 py-0.5 border text-xs rounded-full font-medium whitespace-nowrap cursor-pointer transition-all duration-75',
+                               showCostAbsolute
+                                 ? 'bg-gray-50 border-gray-200 text-gray-600 shadow-[0_2px_0_0_#d1d5db] hover:shadow-[0_1px_0_0_#d1d5db] hover:translate-y-px active:shadow-none active:translate-y-0.5'
+                                 : 'bg-green-50 border-green-200 text-green-700 shadow-[0_2px_0_0_#bbf7d0] hover:shadow-[0_1px_0_0_#bbf7d0] hover:translate-y-px active:shadow-none active:translate-y-0.5']"
+                      @click="showCostAbsolute = !showCostAbsolute">
+                      <template v-if="showCostAbsolute">€{{ entry.costEur }}</template>
+                      <template v-else>€{{ (entry.costEur / entry.totalKwhCharged).toFixed(2) }}/kWh</template>
+                    </span>
+                  </div>
+                </div>
+                <!-- Sub-Sessions inline -->
+                <template v-if="subSessionsCache[entry.id] && subSessionsCache[entry.id].length > 0">
+                  <div v-for="sub in subSessionsCache[entry.id]" :key="sub.id"
+                    class="ml-4 mt-1 flex flex-col gap-1.5 px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-lg">
+                    <div class="flex items-center gap-2">
+                      <span class="text-gray-300 text-xs leading-none">└</span>
+                      <span class="text-xs text-gray-400 whitespace-nowrap">Zusammengefasst</span>
+                      <BoltIcon class="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                      <span class="text-xs font-semibold text-gray-600 whitespace-nowrap">{{ sub.kwhCharged }} kWh</span>
+                      <div class="ml-auto flex items-center gap-1 flex-shrink-0">
+                        <button @click="editingLog = sub" class="p-1 rounded text-gray-300 hover:text-blue-500 hover:bg-blue-50 transition" title="Ladevorgang bearbeiten">
+                          <PencilSquareIcon class="w-3.5 h-3.5" />
+                        </button>
+                        <button @click="deleteLog(sub.id)" class="p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition">
+                          <TrashIcon class="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                    <div v-if="sub.costEur != null || sub.chargeDurationMinutes" class="flex flex-wrap items-center gap-1.5">
+                      <span v-if="sub.costEur != null && sub.kwhCharged"
+                        :class="['inline-flex items-center px-1.5 py-0.5 border rounded-full text-xs font-medium whitespace-nowrap cursor-pointer transition-all duration-75',
+                                 showCostAbsolute
+                                   ? 'bg-gray-50 border-gray-200 text-gray-600 shadow-[0_2px_0_0_#d1d5db] hover:shadow-[0_1px_0_0_#d1d5db] hover:translate-y-px active:shadow-none active:translate-y-0.5'
+                                   : 'bg-green-50 border-green-200 text-green-700 shadow-[0_2px_0_0_#bbf7d0] hover:shadow-[0_1px_0_0_#bbf7d0] hover:translate-y-px active:shadow-none active:translate-y-0.5']"
+                        @click="showCostAbsolute = !showCostAbsolute">
+                        <template v-if="showCostAbsolute">€{{ sub.costEur }}</template>
+                        <template v-else>€{{ (sub.costEur / sub.kwhCharged).toFixed(2) }}/kWh</template>
+                      </span>
+                      <span v-else-if="sub.costEur != null" class="text-xs text-gray-500 whitespace-nowrap">· €{{ sub.costEur }}</span>
+                      <span v-if="sub.chargeDurationMinutes" class="inline-flex items-center gap-0.5 text-xs text-gray-500 whitespace-nowrap">
+                        · <ClockIcon class="w-3 h-3" />{{ sub.chargeDurationMinutes }}min
+                      </span>
+                    </div>
+                  </div>
+                </template>
+              </div>
               <!-- Normal Log -->
               <div v-else>
               <div
@@ -1199,23 +1276,38 @@ const deleteLog = async (id: string) => {
                       <SunIcon class="w-3 h-3" />{{ entry.temperatureCelsius.toFixed(1) }}°C
                     </span>
                     <button @click="editingLog = entry"
-                      class="p-1 rounded text-gray-300 hover:text-blue-500 hover:bg-blue-50 transition flex-shrink-0"
+                      :class="['p-1 rounded text-gray-300 hover:text-blue-500 hover:bg-blue-50 transition',
+                               entry.temperatureCelsius != null ? 'hidden md:block' : '']"
                       title="Ladevorgang bearbeiten">
                       <PencilSquareIcon class="w-3.5 h-3.5" />
                     </button>
                     <button @click="deleteLog(entry.id)"
-                      class="p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition flex-shrink-0">
+                      :class="['p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition',
+                               entry.temperatureCelsius != null ? 'hidden md:block' : '']">
                       <TrashIcon class="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
-                <!-- Source Badge: mobile only (desktop: inline im Header) -->
-                <div v-if="sourceInfo(entry.dataSource)" class="md:hidden">
-                  <span :class="['inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium',
-                                 sourceInfo(entry.dataSource)!.classes]">
+                <!-- Source Badge + Edit/Delete (mobile only) -->
+                <div v-if="sourceInfo(entry.dataSource) || entry.temperatureCelsius != null"
+                  class="md:hidden flex items-center gap-2">
+                  <span v-if="sourceInfo(entry.dataSource)"
+                    :class="['inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium',
+                             sourceInfo(entry.dataSource)!.classes]">
                     <component :is="sourceInfo(entry.dataSource)!.icon" class="w-3 h-3" />
                     {{ sourceInfo(entry.dataSource)!.label }}
                   </span>
+                  <div v-if="entry.temperatureCelsius != null" class="flex items-center gap-1 ml-auto">
+                    <button @click="editingLog = entry"
+                      class="p-1 rounded text-gray-300 hover:text-blue-500 hover:bg-blue-50 transition"
+                      title="Ladevorgang bearbeiten">
+                      <PencilSquareIcon class="w-3.5 h-3.5" />
+                    </button>
+                    <button @click="deleteLog(entry.id)"
+                      class="p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition">
+                      <TrashIcon class="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
                 <!-- Badges -->
                 <div class="flex flex-wrap gap-1.5">
