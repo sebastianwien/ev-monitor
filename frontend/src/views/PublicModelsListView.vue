@@ -105,10 +105,8 @@
             <div v-if="model.avgConsumptionKwhPer100km" class="text-sm text-gray-700 mb-0.5">
               Real: <span class="font-medium">{{ model.avgConsumptionKwhPer100km.toFixed(1) }} kWh/100km</span>
             </div>
-            <div v-if="model.avgConsumptionKwhPer100km && model.bestWltpConsumptionKwhPer100km"
-                 class="text-sm font-medium mb-3"
-                 :class="model.avgConsumptionKwhPer100km > model.bestWltpConsumptionKwhPer100km ? 'text-red-500' : 'text-green-600'">
-              ({{ formatDelta(model.avgConsumptionKwhPer100km, model.bestWltpConsumptionKwhPer100km) }} vs. WLTP)
+            <div v-if="model.minWltpConsumptionKwhPer100km" class="text-sm text-gray-500 mb-3">
+              WLTP: <span class="font-medium">{{ formatWltpRange(model.minWltpConsumptionKwhPer100km, model.maxWltpConsumptionKwhPer100km) }} kWh/100km</span>
             </div>
             <div class="text-green-600 font-medium flex items-center gap-1 text-sm mt-auto">
               <span>Details ansehen</span>
@@ -311,10 +309,9 @@ function compareLabel(key: string): string {
   return key.replace(/_/g, ' ')
 }
 
-function formatDelta(real: number, wltp: number): string {
-  const pct = ((real - wltp) / wltp) * 100
-  const sign = pct > 0 ? '+' : ''
-  return `${sign}${pct.toFixed(0)}%`
+function formatWltpRange(min: number, max: number | null): string {
+  if (!max || Math.abs(max - min) < 0.05) return min.toFixed(1)
+  return `${min.toFixed(1)} - ${max.toFixed(1)}`
 }
 
 const isAuthenticated = computed(() => authStore.isAuthenticated())

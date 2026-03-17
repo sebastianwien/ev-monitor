@@ -318,8 +318,8 @@ public class PublicModelService {
     @Cacheable("topModels")
     public List<TopModelResponse> getTopModels(int limit, boolean isSeedUser) {
         record ModelData(CarBrand.CarModel carModel, long logCount,
-                         BigDecimal avgConsumption, BigDecimal bestWltpConsumption,
-                         BigDecimal avgCostPerKwh) {}
+                         BigDecimal avgConsumption, BigDecimal minWltpConsumption,
+                         BigDecimal maxWltpConsumption, BigDecimal avgCostPerKwh) {}
 
         List<String> modelsWithWltp = vehicleSpecificationRepository.findAll().stream()
                 .map(VehicleSpecificationEntity::getCarModel)
@@ -354,13 +354,14 @@ public class PublicModelService {
 
                     List<VehicleSpecificationEntity> wltpSpecs =
                             vehicleSpecificationRepository.findByCarModelOrderByBatteryCapacityKwhAsc(modelName);
-                    BigDecimal bestWltp = wltpSpecs.stream()
+                    List<BigDecimal> wltpValues = wltpSpecs.stream()
                             .map(VehicleSpecificationEntity::getWltpConsumptionKwhPer100km)
                             .filter(v -> v != null)
-                            .min(BigDecimal::compareTo)
-                            .orElse(null);
+                            .toList();
+                    BigDecimal minWltp = wltpValues.stream().min(BigDecimal::compareTo).orElse(null);
+                    BigDecimal maxWltp = wltpValues.stream().max(BigDecimal::compareTo).orElse(null);
 
-                    return new ModelData(carModel, logCount, avgConsumption, bestWltp, avgCostPerKwh);
+                    return new ModelData(carModel, logCount, avgConsumption, minWltp, maxWltp, avgCostPerKwh);
                 })
                 .filter(m -> m != null)
                 .sorted((a, b) -> Long.compare(b.logCount(), a.logCount()))
@@ -376,7 +377,8 @@ public class PublicModelService {
                             modelDisplay.replace(" ", "_"),
                             (int) m.logCount(),
                             m.avgConsumption(),
-                            m.bestWltpConsumption(),
+                            m.minWltpConsumption(),
+                            m.maxWltpConsumption(),
                             m.avgCostPerKwh()
                     );
                 })

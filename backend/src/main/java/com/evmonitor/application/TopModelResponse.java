@@ -14,6 +14,7 @@ public record TopModelResponse(
         String modelUrlSlug,
         int logCount,
         BigDecimal avgConsumptionKwhPer100km,
-        BigDecimal bestWltpConsumptionKwhPer100km,
+        BigDecimal minWltpConsumptionKwhPer100km,
+        BigDecimal maxWltpConsumptionKwhPer100km,
         BigDecimal avgCostPerKwh
 ) {}

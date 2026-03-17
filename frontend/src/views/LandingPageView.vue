@@ -85,11 +85,9 @@ const demoLogin = async (source: 'hero' | 'models_section' = 'hero') => {
 }
 
 
-const formatDelta = (real: number | null, wltp: number): string => {
-  if (!real || wltp === 0) return '—'
-  const percentDelta = ((real - wltp) / wltp) * 100
-  const sign = percentDelta > 0 ? '+' : ''
-  return `${sign}${percentDelta.toFixed(0)}%`
+function formatWltpRange(min: number, max: number | null): string {
+  if (!max || Math.abs(max - min) < 0.05) return min.toFixed(1)
+  return `${min.toFixed(1)} - ${max.toFixed(1)}`
 }
 </script>
 
@@ -166,9 +164,11 @@ const formatDelta = (real: number | null, wltp: number): string => {
                 <span class="font-semibold text-gray-900">{{ preview.modelDisplayName }}</span>
                 <span class="text-xs text-gray-400 whitespace-nowrap mt-0.5">{{ preview.logCount }} Fahrten</span>
               </div>
-              <div v-if="preview.avgConsumptionKwhPer100km && preview.bestWltpConsumptionKwhPer100km" class="text-sm text-gray-700 flex flex-wrap items-baseline gap-x-1">
+              <div v-if="preview.avgConsumptionKwhPer100km" class="text-sm text-gray-700 flex flex-wrap items-baseline gap-x-1">
                 <span>Real: <span class="font-semibold">{{ preview.avgConsumptionKwhPer100km.toFixed(1) }} kWh/100km</span></span>
-                <span class="text-red-500 font-medium whitespace-nowrap">({{ formatDelta(preview.avgConsumptionKwhPer100km, preview.bestWltpConsumptionKwhPer100km) }} vs. WLTP)</span>
+              </div>
+              <div v-if="preview.minWltpConsumptionKwhPer100km" class="text-xs text-gray-500">
+                WLTP: {{ formatWltpRange(preview.minWltpConsumptionKwhPer100km, preview.maxWltpConsumptionKwhPer100km) }} kWh/100km
               </div>
               <div class="mt-2 text-green-600 text-xs font-medium flex items-center gap-1">
                 <span>Details ansehen</span>
@@ -188,9 +188,11 @@ const formatDelta = (real: number | null, wltp: number): string => {
                 <span class="font-semibold text-gray-900">{{ preview.modelDisplayName }}</span>
                 <span class="text-xs text-gray-400 whitespace-nowrap mt-0.5">{{ preview.logCount }} Fahrten</span>
               </div>
-              <div v-if="preview.avgConsumptionKwhPer100km && preview.bestWltpConsumptionKwhPer100km" class="text-sm text-gray-700 flex flex-wrap items-baseline gap-x-1">
+              <div v-if="preview.avgConsumptionKwhPer100km" class="text-sm text-gray-700 flex flex-wrap items-baseline gap-x-1">
                 <span>Real: <span class="font-semibold">{{ preview.avgConsumptionKwhPer100km.toFixed(1) }} kWh/100km</span></span>
-                <span class="text-red-500 font-medium whitespace-nowrap">({{ formatDelta(preview.avgConsumptionKwhPer100km, preview.bestWltpConsumptionKwhPer100km) }} vs. WLTP)</span>
+              </div>
+              <div v-if="preview.minWltpConsumptionKwhPer100km" class="text-xs text-gray-500">
+                WLTP: {{ formatWltpRange(preview.minWltpConsumptionKwhPer100km, preview.maxWltpConsumptionKwhPer100km) }} kWh/100km
               </div>
               <div class="mt-2 text-green-600 text-xs font-medium flex items-center gap-1">
                 <span>Details ansehen</span>
@@ -311,9 +313,8 @@ const formatDelta = (real: number | null, wltp: number): string => {
             <div v-if="preview.avgConsumptionKwhPer100km" class="text-sm text-gray-700 mb-1">
               Real: <span class="font-medium">{{ preview.avgConsumptionKwhPer100km.toFixed(1) }} kWh/100km</span>
             </div>
-            <div v-if="preview.avgConsumptionKwhPer100km && preview.bestWltpConsumptionKwhPer100km" class="text-sm mb-3"
-                 :class="preview.avgConsumptionKwhPer100km > preview.bestWltpConsumptionKwhPer100km ? 'text-red-500' : 'text-green-600'">
-              ({{ formatDelta(preview.avgConsumptionKwhPer100km, preview.bestWltpConsumptionKwhPer100km) }} vs. WLTP)
+            <div v-if="preview.minWltpConsumptionKwhPer100km" class="text-sm text-gray-500 mb-3">
+              WLTP: {{ formatWltpRange(preview.minWltpConsumptionKwhPer100km, preview.maxWltpConsumptionKwhPer100km) }} kWh/100km
             </div>
 
             <div class="text-green-600 font-medium flex justify-center items-center gap-1 text-sm">
@@ -351,9 +352,8 @@ const formatDelta = (real: number | null, wltp: number): string => {
                   <div v-if="m.avgConsumptionKwhPer100km" class="text-xs text-gray-700 mb-1">
                     Real: <span class="font-medium">{{ m.avgConsumptionKwhPer100km.toFixed(1) }} kWh/100km</span>
                   </div>
-                  <div v-if="m.avgConsumptionKwhPer100km && m.bestWltpConsumptionKwhPer100km" class="text-xs"
-                       :class="m.avgConsumptionKwhPer100km > m.bestWltpConsumptionKwhPer100km ? 'text-red-500' : 'text-green-600'">
-                    ({{ formatDelta(m.avgConsumptionKwhPer100km, m.bestWltpConsumptionKwhPer100km) }} vs. WLTP)
+                  <div v-if="m.minWltpConsumptionKwhPer100km" class="text-xs text-gray-500">
+                    WLTP: {{ formatWltpRange(m.minWltpConsumptionKwhPer100km, m.maxWltpConsumptionKwhPer100km) }} kWh/100km
                   </div>
                 </a>
               </div>
