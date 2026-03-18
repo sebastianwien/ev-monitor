@@ -106,7 +106,7 @@
                     class="text-center"
                   >
                     {{ v.realConsumptionKwhPer100km
-                      ? Math.round(v.batteryCapacityKwh / v.realConsumptionKwhPer100km * 100) + ' km'
+                      ? '~ ' + Math.round(v.batteryCapacityKwh / v.realConsumptionKwhPer100km * 10) * 10 + ' km'
                       : '–' }}
                   </span>
                 </div>

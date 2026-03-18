@@ -156,12 +156,28 @@ public class PublicModelService {
                             : evLogService.calculateCommunityAvgConsumption(carsForVariant, isSeedUser);
                     BigDecimal variantConsumption = variantResult.value() != null
                             ? variantResult.value().setScale(1, RoundingMode.HALF_UP) : null;
+                    PublicModelStatsResponse.SeasonalDistribution variantSeasonal = null;
+                    if (!carsForVariant.isEmpty()) {
+                        EvLogService.SeasonalConsumptionResult vs = evLogService.calculateSeasonalConsumption(carsForVariant, isSeedUser);
+                        long vsKm = (long) vs.summerKm() + vs.winterKm();
+                        if (vsKm > 0) {
+                            int sPct = (int) Math.round((vs.summerKm() * 100.0) / vsKm);
+                            int wPct = (int) Math.round((vs.winterKm() * 100.0) / vsKm);
+                            variantSeasonal = new PublicModelStatsResponse.SeasonalDistribution(
+                                    sPct, wPct,
+                                    vs.summerConsumptionKwhPer100km() != null ? vs.summerConsumptionKwhPer100km().setScale(1, RoundingMode.HALF_UP) : null,
+                                    vs.winterConsumptionKwhPer100km() != null ? vs.winterConsumptionKwhPer100km().setScale(1, RoundingMode.HALF_UP) : null,
+                                    vs.totalConsumptionKwhPer100km() != null ? vs.totalConsumptionKwhPer100km().setScale(1, RoundingMode.HALF_UP) : null,
+                                    vs.summerLogCount(), vs.winterLogCount());
+                        }
+                    }
                     return new PublicModelStatsResponse.WltpVariant(
                             e.getBatteryCapacityKwh(),
                             e.getWltpRangeKm(),
                             e.getWltpConsumptionKwhPer100km(),
                             variantConsumption,
-                            variantResult.tripCount() > 0 ? variantResult.tripCount() : null);
+                            variantResult.tripCount() > 0 ? variantResult.tripCount() : null,
+                            variantSeasonal);
                 })
                 .toList();
 

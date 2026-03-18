@@ -32,7 +32,8 @@ public record PublicModelStatsResponse(
             BigDecimal wltpRangeKm,
             BigDecimal wltpConsumptionKwhPer100km,
             BigDecimal realConsumptionKwhPer100km, // null if no user data for this battery size
-            Integer realConsumptionTripCount       // number of trips used for realConsumptionKwhPer100km
+            Integer realConsumptionTripCount,      // number of trips used for realConsumptionKwhPer100km
+            SeasonalDistribution seasonalDistribution // null if no seasonal data for this variant
     ) {}
 
     /**

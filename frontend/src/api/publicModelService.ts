@@ -6,6 +6,7 @@ export interface WltpVariant {
     wltpConsumptionKwhPer100km: number
     realConsumptionKwhPer100km: number | null
     realConsumptionTripCount: number | null
+    seasonalDistribution: SeasonalDistribution | null
 }
 
 export interface SeasonalDistribution {

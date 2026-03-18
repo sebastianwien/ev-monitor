@@ -117,7 +117,7 @@
 
           <!-- Variant Switcher Header -->
           <div v-if="stats.wltpVariants.length > 1" class="px-6 py-4 border-b border-gray-100">
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3 flex-wrap">
               <span class="text-sm font-medium text-gray-500 whitespace-nowrap">Batterievariante</span>
               <div class="relative flex bg-gray-100 rounded-full p-1 w-fit">
                 <div
@@ -137,6 +137,11 @@
                   {{ v.batteryCapacityKwh }} kWh
                 </button>
               </div>
+              <span v-if="selectedVariant?.seasonalDistribution && (selectedVariant.seasonalDistribution.summerLogCount < 30 || selectedVariant.seasonalDistribution.winterLogCount < 30)"
+                    class="flex items-center gap-1 text-xs text-yellow-600 font-medium whitespace-nowrap">
+                <ExclamationTriangleIcon class="h-3.5 w-3.5" />
+                Wenig Fahrten
+              </span>
             </div>
           </div>
 
@@ -154,16 +159,20 @@
                 <span class="text-orange-600 font-medium">🌞 Sommer<span class="block md:inline"> (Mai–Aug)</span></span>
               </div>
               <div class="flex items-center gap-3">
-                <template v-if="stats.seasonalDistribution!.summerConsumptionKwhPer100km">
+                <template v-if="selectedVariant!.seasonalDistribution!.summerConsumptionKwhPer100km">
                   <span class="font-bold text-orange-600">
-                    {{ stats.seasonalDistribution!.summerConsumptionKwhPer100km.toFixed(1) }} kWh/100km
+                    {{ selectedVariant!.seasonalDistribution!.summerConsumptionKwhPer100km.toFixed(1) }} kWh/100km
                   </span>
                   <span v-if="selectedVariant" class="text-base font-bold text-orange-600 whitespace-nowrap">
-                    ≈ {{ Math.round(selectedVariant.batteryCapacityKwh * 0.8 / stats.seasonalDistribution!.summerConsumptionKwhPer100km * 10) * 10 }} km
+                    ~ {{ Math.round(selectedVariant.batteryCapacityKwh * 0.8 / selectedVariant!.seasonalDistribution!.summerConsumptionKwhPer100km * 10) * 10 }} km
                   </span>
                 </template>
                 <span v-else class="text-gray-400 text-xs">—</span>
-                <span class="hidden md:inline text-xs text-gray-500">({{ stats.seasonalDistribution!.summerLogCount }} Fahrten)</span>
+                <span class="hidden md:inline text-xs"
+                      :class="selectedVariant!.seasonalDistribution!.summerLogCount < 30 ? 'text-yellow-600 font-medium' : 'text-gray-500'">
+                  <ExclamationTriangleIcon v-if="selectedVariant!.seasonalDistribution!.summerLogCount < 30" class="h-3 w-3 inline -mt-0.5 mr-0.5" />
+                  ({{ selectedVariant!.seasonalDistribution!.summerLogCount }} Fahrten)
+                </span>
               </div>
             </div>
 
@@ -173,16 +182,20 @@
                 <span class="text-blue-700 font-medium">❄️ Winter<span class="block md:inline"> (Nov–Feb)</span></span>
               </div>
               <div class="flex items-center gap-3">
-                <template v-if="stats.seasonalDistribution!.winterConsumptionKwhPer100km">
+                <template v-if="selectedVariant!.seasonalDistribution!.winterConsumptionKwhPer100km">
                   <span class="font-bold text-blue-700">
-                    {{ stats.seasonalDistribution!.winterConsumptionKwhPer100km.toFixed(1) }} kWh/100km
+                    {{ selectedVariant!.seasonalDistribution!.winterConsumptionKwhPer100km.toFixed(1) }} kWh/100km
                   </span>
                   <span v-if="selectedVariant" class="text-base font-bold text-blue-700 whitespace-nowrap">
-                    ≈ {{ Math.round(selectedVariant.batteryCapacityKwh * 0.8 / stats.seasonalDistribution!.winterConsumptionKwhPer100km * 10) * 10 }} km
+                    ~ {{ Math.round(selectedVariant.batteryCapacityKwh * 0.8 / selectedVariant!.seasonalDistribution!.winterConsumptionKwhPer100km * 10) * 10 }} km
                   </span>
                 </template>
                 <span v-else class="text-gray-400 text-xs">—</span>
-                <span class="hidden md:inline text-xs text-gray-500">({{ stats.seasonalDistribution!.winterLogCount }} Fahrten)</span>
+                <span class="hidden md:inline text-xs"
+                      :class="selectedVariant!.seasonalDistribution!.winterLogCount < 30 ? 'text-yellow-600 font-medium' : 'text-gray-500'">
+                  <ExclamationTriangleIcon v-if="selectedVariant!.seasonalDistribution!.winterLogCount < 30" class="h-3 w-3 inline -mt-0.5 mr-0.5" />
+                  ({{ selectedVariant!.seasonalDistribution!.winterLogCount }} Fahrten)
+                </span>
               </div>
             </div>
 
@@ -191,12 +204,12 @@
               <div class="flex items-center justify-between text-sm">
                 <span class="text-gray-700 font-medium">Ø Gewichtet (Gesamt)</span>
                 <span class="font-bold text-gray-900">
-                  {{ stats.seasonalDistribution!.totalConsumptionKwhPer100km != null ? stats.seasonalDistribution!.totalConsumptionKwhPer100km.toFixed(1) + ' kWh/100km' : '—' }}
+                  {{ selectedVariant!.seasonalDistribution!.totalConsumptionKwhPer100km != null ? selectedVariant!.seasonalDistribution!.totalConsumptionKwhPer100km.toFixed(1) + ' kWh/100km' : '—' }}
                 </span>
               </div>
               <p class="text-xs text-gray-500 mt-1">
-                {{ stats.seasonalDistribution!.summerPercentage }}% Sommer,
-                {{ stats.seasonalDistribution!.winterPercentage }}% Winter (nach gefahrenen km)
+                {{ selectedVariant!.seasonalDistribution!.summerPercentage }}% Sommer,
+                {{ selectedVariant!.seasonalDistribution!.winterPercentage }}% Winter (nach gefahrenen km)
               </p>
             </div>
           </div>
@@ -288,16 +301,16 @@
                   <td class="py-3 pr-4 font-medium text-gray-900 whitespace-nowrap">{{ selectedVariant.batteryCapacityKwh }} kWh</td>
                   <td class="py-3 pr-4 text-gray-700 whitespace-nowrap">{{ selectedVariant.wltpRangeKm }} km</td>
                   <td class="py-3 pr-4 whitespace-nowrap">
-                    <div v-if="stats.seasonalDistribution?.summerConsumptionKwhPer100km || stats.seasonalDistribution?.winterConsumptionKwhPer100km"
+                    <div v-if="selectedVariant?.seasonalDistribution?.summerConsumptionKwhPer100km || selectedVariant?.seasonalDistribution?.winterConsumptionKwhPer100km"
                          class="flex items-center gap-1.5">
                       <span class="flex items-center gap-1 text-amber-600">
                         <SunIcon class="h-3.5 w-3.5" />
-                        <span>{{ stats.seasonalDistribution?.summerConsumptionKwhPer100km ? Math.round(selectedVariant.batteryCapacityKwh / stats.seasonalDistribution.summerConsumptionKwhPer100km * 10) * 10 + ' km' : '–' }}</span>
+                        <span>{{ selectedVariant?.seasonalDistribution?.summerConsumptionKwhPer100km ? Math.round(selectedVariant.batteryCapacityKwh / selectedVariant.seasonalDistribution.summerConsumptionKwhPer100km * 10) * 10 + ' km' : '–' }}</span>
                       </span>
                       <span class="text-gray-300">/</span>
                       <span class="flex items-center gap-1 text-blue-500">
                         <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/><line x1="19.07" y1="4.93" x2="4.93" y2="19.07"/><circle cx="12" cy="12" r="2" fill="currentColor"/></svg>
-                        <span>{{ stats.seasonalDistribution?.winterConsumptionKwhPer100km ? Math.round(selectedVariant.batteryCapacityKwh / stats.seasonalDistribution.winterConsumptionKwhPer100km * 10) * 10 + ' km' : '–' }}</span>
+                        <span>{{ selectedVariant?.seasonalDistribution?.winterConsumptionKwhPer100km ? Math.round(selectedVariant.batteryCapacityKwh / selectedVariant.seasonalDistribution.winterConsumptionKwhPer100km * 10) * 10 + ' km' : '–' }}</span>
                       </span>
                     </div>
                     <span v-else class="text-gray-400">–</span>
@@ -513,7 +526,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useHead } from '@unhead/vue'
 import { useAuthStore } from '../stores/auth'
 import { getModelStats, type PublicModelStats } from '../api/publicModelService'
-import { ArrowTrendingUpIcon, ClipboardDocumentListIcon, Battery0Icon, SunIcon, ChartBarIcon } from '@heroicons/vue/24/outline'
+import { ArrowTrendingUpIcon, ClipboardDocumentListIcon, Battery0Icon, SunIcon, ChartBarIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 import PublicNav from '../components/PublicNav.vue'
 
 const route = useRoute()
@@ -585,7 +598,7 @@ const consumptionDataQuality = computed((): 'good' | 'low' | 'scarce' => {
 })
 
 const showSeasonalBreakdown = computed(() => {
-  const s = stats.value?.seasonalDistribution
+  const s = selectedVariant.value?.seasonalDistribution
   if (!s) return false
   return s.winterLogCount >= 10 && s.summerLogCount >= 10 && s.winterLogCount + s.summerLogCount > 10
 })
@@ -641,7 +654,7 @@ const faqItems = computed(() => {
   }
 
   // Q5: Winter
-  const seasonal = stats.value.seasonalDistribution
+  const seasonal = selectedVariant.value?.seasonalDistribution
   const hasSeasonalData = seasonal && seasonal.winterLogCount >= 10 && seasonal.summerLogCount >= 10
   items.push({
     question: `Wie verändert sich der Verbrauch des ${name} im Winter?`,
