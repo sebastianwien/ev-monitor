@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia';
 import api from '../api/axios';
 import { ref, computed } from 'vue';
-import { useRouter } from 'vue-router';
 import { jwtDecode } from 'jwt-decode';
 import { subscriptionService } from '../api/subscriptionService';
 import { useCarStore } from './car';
@@ -18,8 +17,6 @@ export const useAuthStore = defineStore('auth', () => {
     const token = ref<string | null>(safeLocalStorageGet('token'));
     const user = ref<any>(null);
     const isPremium = ref<boolean>(safeLocalStorageGet('isPremium') === 'true');
-    const router = useRouter();
-
     if (token.value) {
         try {
             user.value = jwtDecode(token.value);
@@ -48,14 +45,16 @@ export const useAuthStore = defineStore('auth', () => {
         safeLocalStorage(() => localStorage.setItem('isPremium', String(value)));
     };
 
-    const logout = () => {
+    const logout = (redirect = true) => {
         token.value = null;
         user.value = null;
         isPremium.value = false;
         safeLocalStorage(() => localStorage.removeItem('token'));
         safeLocalStorage(() => localStorage.removeItem('isPremium'));
         useCarStore().reset();
-        router.push('/login');
+        if (redirect) {
+            window.location.href = '/login';
+        }
     };
 
     const login = async (credentials: any) => {

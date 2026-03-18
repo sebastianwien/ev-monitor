@@ -149,8 +149,7 @@ public class PublicApiImportService {
     }
 
     private boolean isDuplicate(UUID carId, LocalDateTime loggedAt, Double kwh, DataSource dataSource) {
-        return evLogRepository.existsByCarIdAndLoggedAtAndKwhCharged(carId, loggedAt, BigDecimal.valueOf(kwh))
-                || evLogRepository.existsByCarIdAndLoggedAtAndDataSource(carId, loggedAt, dataSource);
+        return evLogRepository.existsByCarIdAndLoggedAtAndKwhCharged(carId, loggedAt, BigDecimal.valueOf(kwh));
     }
 
     private LocalDateTime parseDate(String raw) {
