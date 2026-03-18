@@ -169,7 +169,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
             >
               <div class="flex items-start justify-between gap-2 mb-1">
                 <span class="font-semibold text-gray-900">{{ preview.modelDisplayName }}</span>
-                <span class="text-xs text-gray-400 whitespace-nowrap mt-0.5">{{ preview.logCount }} Fahrten</span>
+                <span class="text-xs text-gray-400 whitespace-nowrap mt-0.5">{{ preview.logCount }} Ladevorgänge</span>
               </div>
               <div class="grid grid-cols-[auto_1fr] items-baseline gap-x-3 gap-y-0.5 mt-1 text-sm">
                 <template v-if="preview.minWltpConsumptionKwhPer100km">
@@ -210,7 +210,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
             >
               <div class="flex items-start justify-between gap-2 mb-1">
                 <span class="font-semibold text-gray-900">{{ preview.modelDisplayName }}</span>
-                <span class="text-xs text-gray-400 whitespace-nowrap mt-0.5">{{ preview.logCount }} Fahrten</span>
+                <span class="text-xs text-gray-400 whitespace-nowrap mt-0.5">{{ preview.logCount }} Ladevorgänge</span>
               </div>
               <div class="grid grid-cols-[auto_1fr] items-baseline gap-x-3 gap-y-0.5 mt-1 text-sm">
                 <template v-if="preview.minWltpConsumptionKwhPer100km">
@@ -348,7 +348,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
           >
             <div class="flex items-start justify-between gap-2 mb-2">
               <h3 class="text-lg font-semibold text-gray-900">{{ preview.modelDisplayName }}</h3>
-              <span class="text-xs text-gray-400 whitespace-nowrap mt-1">{{ preview.logCount }} Fahrten</span>
+              <span class="text-xs text-gray-400 whitespace-nowrap mt-1">{{ preview.logCount }} Ladevorgänge</span>
             </div>
 
             <div class="grid grid-cols-[auto_1fr] items-baseline gap-x-3 gap-y-0.5 mb-3 text-sm">
@@ -405,7 +405,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
                 >
                   <div class="flex items-start justify-between gap-2 mb-2">
                     <h3 class="text-sm font-semibold text-gray-900">{{ m.modelDisplayName }}</h3>
-                    <span class="text-xs text-gray-400 whitespace-nowrap mt-0.5">{{ m.logCount }} Fahrten</span>
+                    <span class="text-xs text-gray-400 whitespace-nowrap mt-0.5">{{ m.logCount }} Ladevorgänge</span>
                   </div>
                   <div class="grid grid-cols-[auto_1fr] items-baseline gap-x-2 gap-y-0.5 text-xs">
                     <template v-if="m.minWltpConsumptionKwhPer100km">
