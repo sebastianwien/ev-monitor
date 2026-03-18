@@ -11,9 +11,12 @@
 
       <div class="overflow-y-auto p-5 space-y-5">
         <!-- Info -->
-        <p class="text-sm text-gray-600">
-          Importiere vergangene Ladevorgänge aus beliebigen Quellen - als CSV oder JSON.
-        </p>
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-2.5">
+          <ExclamationTriangleIcon class="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+          <p class="text-sm text-amber-800">
+            Die Datei muss dem <strong>EV Monitor Format</strong> entsprechen - kein direkter Export aus anderen Apps. Kopiere zuerst die Vorlage unten und befülle sie mit deinen Daten.
+          </p>
+        </div>
 
         <!-- Format toggle -->
         <div class="flex gap-2">
@@ -30,7 +33,16 @@
 
         <!-- Format spec -->
         <div class="bg-gray-50 rounded-xl p-4 space-y-2">
-          <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Format-Vorlage</p>
+          <div class="flex items-center justify-between">
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Vorlage (Pflichtformat)</p>
+            <button
+              @click="copyTemplate"
+              class="text-xs text-green-600 hover:text-green-700 font-medium flex items-center gap-1 transition-colors"
+            >
+              <ClipboardDocumentIcon class="w-3.5 h-3.5" />
+              {{ copied ? 'Kopiert!' : 'Kopieren' }}
+            </button>
+          </div>
 
           <pre v-if="selectedFormat === 'csv'" class="text-xs text-gray-700 overflow-x-auto whitespace-pre">{{ csvTemplate }}</pre>
           <pre v-else class="text-xs text-gray-700 overflow-x-auto whitespace-pre">{{ jsonTemplate }}</pre>
@@ -38,14 +50,13 @@
           <p class="text-xs text-gray-500">
             <strong>Pflichtfelder:</strong> date, kwh<br>
             <strong>date:</strong> ISO 8601, DD.MM.YYYY, MM/DD/YYYY oder Unix-Timestamp<br>
-            <strong>location:</strong> Lat/Lon (z.B. <code>48.2082,16.3738</code>) - Ortsname wird ohne Kartenpin gespeichert<br>
-            <strong>JSON:</strong> Array von Objekten mit denselben Feldern
+            <strong>location:</strong> Lat/Lon (z.B. <code>48.2082,16.3738</code>) - Ortsname wird ohne Kartenpin gespeichert
           </p>
         </div>
 
         <!-- File upload -->
         <div class="space-y-1.5">
-          <label class="block text-sm font-medium text-gray-700">Datei auswählen</label>
+          <label class="block text-sm font-medium text-gray-700">Datei im EV Monitor Format hochladen</label>
           <div
             class="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center cursor-pointer hover:border-green-400 transition-colors"
             @click="fileInput?.click()"
@@ -112,7 +123,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { XMarkIcon, ArrowUpTrayIcon } from '@heroicons/vue/24/outline'
+import { XMarkIcon, ArrowUpTrayIcon, ExclamationTriangleIcon, ClipboardDocumentIcon } from '@heroicons/vue/24/outline'
 import { manualImportService, type ManualImportResult } from '../api/manualImportService'
 
 const props = defineProps<{ carId: string }>()
@@ -125,6 +136,7 @@ const loading = ref(false)
 const result = ref<ManualImportResult | null>(null)
 const errorMsg = ref('')
 const fileInput = ref<HTMLInputElement>()
+const copied = ref(false)
 
 const csvTemplate = `date,kwh,odometer_km,soc_before,soc_after,cost_eur,duration_min,location,charging_type,max_charging_power_kw,route_type,tire_type
 2025-08-31T15:07:14+02:00,32.09,7893,42,80,0,26,48.2082 16.3738,DC,150.0,,`
@@ -143,6 +155,13 @@ const jsonTemplate = `[
     "max_charging_power_kw": 150.0
   }
 ]`
+
+async function copyTemplate() {
+  const text = selectedFormat.value === 'csv' ? csvTemplate : jsonTemplate
+  await navigator.clipboard.writeText(text)
+  copied.value = true
+  setTimeout(() => { copied.value = false }, 2000)
+}
 
 function onFileChange(event: Event) {
   const file = (event.target as HTMLInputElement).files?.[0]
