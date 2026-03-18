@@ -65,6 +65,14 @@ server {
         try_files $uri $uri/ /index.html;
     }
 
+    location = /sitemap.xml {
+        proxy_pass http://backend:8080/sitemap.xml;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
     location / {
         root /usr/share/nginx/html;
         index index.html;
