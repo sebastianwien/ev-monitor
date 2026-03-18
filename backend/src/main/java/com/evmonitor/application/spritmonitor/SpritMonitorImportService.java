@@ -133,6 +133,9 @@ public class SpritMonitorImportService {
                     }
 
                     EvLog evLog = convertToEvLog(fueling, evMonitorCarId, loggedAt);
+                    if (evLog.getGeohash() == null && fueling.stationname() != null && !fueling.stationname().isBlank()) {
+                        result.incrementWithoutLocation();
+                    }
                     EvLog savedLog = evLogRepository.save(evLog);
                     savedLogs.add(savedLog);
                     result.incrementImported();

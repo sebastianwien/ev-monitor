@@ -7,6 +7,7 @@ public class ImportResult {
     private int imported = 0;
     private int skipped = 0;
     private int coinsAwarded = 0;
+    private int withoutLocation = 0;
     private List<String> errors = new ArrayList<>();
 
     public void incrementImported() {
@@ -35,6 +36,14 @@ public class ImportResult {
 
     public int getCoinsAwarded() {
         return coinsAwarded;
+    }
+
+    public void incrementWithoutLocation() {
+        withoutLocation++;
+    }
+
+    public int getWithoutLocation() {
+        return withoutLocation;
     }
 
     public List<String> getErrors() {

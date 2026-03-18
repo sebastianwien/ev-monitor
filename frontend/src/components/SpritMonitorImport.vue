@@ -32,6 +32,7 @@ const importResults = ref<Record<number, ImportResult>>({});
 const totalImported = ref(0);
 const totalSkipped = ref(0);
 const totalCoinsAwarded = ref(0);
+const totalWithoutLocation = ref(0);
 const totalErrors = ref<string[]>([]);
 const currentVehicle = ref(0);
 const totalVehicles = ref(0);
@@ -69,6 +70,11 @@ const fetchVehicles = async () => {
       return;
     }
     spritMonitorVehicles.value = vehicles;
+    // Initialize newCarData for all vehicles upfront to prevent template crash
+    // when user selects "Neues Auto anlegen" before a brand is chosen
+    vehicles.forEach(v => {
+      newCarData.value[v.id] = { brand: '', model: '', year: new Date().getFullYear(), availableModels: [] };
+    });
     importStep.value = 'mapping';
   } catch (e: any) {
     error.value = e.response?.data?.error || 'Token ungültig oder API nicht erreichbar. Check mal deinen Token!';
@@ -104,6 +110,7 @@ const startImport = async () => {
   totalImported.value = 0;
   totalSkipped.value = 0;
   totalCoinsAwarded.value = 0;
+  totalWithoutLocation.value = 0;
   totalErrors.value = [];
   importResults.value = {};
 
@@ -160,6 +167,7 @@ const startImport = async () => {
       totalImported.value += result.imported;
       totalSkipped.value += result.skipped;
       totalCoinsAwarded.value += result.coinsAwarded ?? 0;
+      totalWithoutLocation.value += result.withoutLocation ?? 0;
       totalErrors.value.push(...result.errors);
     } catch (e: any) {
       const errorMsg = `${vehicle.make} ${vehicle.model}: ${e.response?.data?.error || e.message}`;
@@ -353,6 +361,9 @@ const close = () => {
             </p>
             <p v-if="totalSkipped > 0" class="text-lg mb-2">
               <strong class="text-yellow-600">{{ totalSkipped }}</strong> bereits vorhanden, übersprungen
+            </p>
+            <p v-if="totalWithoutLocation > 0" class="text-sm mb-2 text-gray-600 dark:text-gray-400">
+              <strong class="text-gray-700 dark:text-gray-300">{{ totalWithoutLocation }}</strong> Einträge haben einen Ortsnamen (z.B. "SuC Asten"), aber keine GPS-Koordinaten von Sprit-Monitor - diese erscheinen nicht auf der Heatmap.
             </p>
             <p v-if="totalCoinsAwarded > 0" class="text-lg mb-2">
               <strong class="text-indigo-600">+{{ totalCoinsAwarded }} Watt</strong> erhalten!

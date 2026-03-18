@@ -12,6 +12,7 @@ export interface ImportResult {
   imported: number;
   skipped: number;
   coinsAwarded: number;
+  withoutLocation: number;
   errors: string[];
 }
 
