@@ -438,11 +438,23 @@
             <div>
               <h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-1">Verbrauch im Winter und Sommer</h3>
               <p v-if="showSeasonalBreakdown">
-                Wie alle Elektroautos zeigt der {{ stats.modelDisplayName }} saisonale Verbrauchsschwankungen.
-                Im Winter (November bis Februar) steigt der Verbrauch typischerweise um <strong>20–30%</strong>
-                durch Kabinenheizung und reduzierte Batterieeffizienz bei Kälte. Im Sommer (Mai bis August)
-                wird die maximale Effizienz erreicht. Vorheizen des Fahrzeugs beim Laden schont die Reichweite
-                erheblich.
+                <template v-if="selectedVariant?.seasonalDistribution?.summerConsumptionKwhPer100km && selectedVariant?.seasonalDistribution?.winterConsumptionKwhPer100km">
+                  Laut Community-Daten ({{ selectedVariant.seasonalDistribution.summerLogCount + selectedVariant.seasonalDistribution.winterLogCount }} Fahrten)
+                  verbraucht der {{ stats.modelDisplayName }} im Sommer (Mai–August)
+                  <strong>{{ selectedVariant.seasonalDistribution.summerConsumptionKwhPer100km.toFixed(1) }} kWh/100km</strong>
+                  und im Winter (November–Februar)
+                  <strong>{{ selectedVariant.seasonalDistribution.winterConsumptionKwhPer100km.toFixed(1) }} kWh/100km</strong> –
+                  das entspricht einem Mehrverbrauch von
+                  <strong>{{ Math.round((selectedVariant.seasonalDistribution.winterConsumptionKwhPer100km / selectedVariant.seasonalDistribution.summerConsumptionKwhPer100km - 1) * 100) }}%</strong>
+                  im Winter durch Kabinenheizung und reduzierte Batterieeffizienz bei Kälte.
+                  Vorheizen des Fahrzeugs beim Laden schont die Reichweite erheblich.
+                </template>
+                <template v-else>
+                  Wie alle Elektroautos zeigt der {{ stats.modelDisplayName }} saisonale Verbrauchsschwankungen.
+                  Im Winter (November bis Februar) steigt der Verbrauch durch Kabinenheizung und reduzierte Batterieeffizienz,
+                  im Sommer (Mai bis August) wird die beste Effizienz erreicht.
+                  Vorheizen des Fahrzeugs beim Laden schont die Reichweite erheblich.
+                </template>
               </p>
               <p v-else>
                 Für den {{ stats.modelDisplayName }} liegen noch nicht genug saisonale Daten vor, um Winter- und
