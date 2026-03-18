@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import api from '../api/axios';
 import { analytics } from '../services/analytics';
-import { getStoredUtmParams, clearStoredUtmParams, trackRedditSignup } from '../utils/reddit-pixel';
+import { getStoredUtmParams, clearStoredUtmParams, trackRedditSignup, getStoredReferrer, clearStoredReferrer } from '../utils/reddit-pixel';
 
 const route = useRoute();
 
@@ -15,6 +15,7 @@ const referralCode = ref('');
 const utmSource = ref('');
 const utmMedium = ref('');
 const utmCampaign = ref('');
+const referrerSource = ref('');
 const error = ref('');
 
 onMounted(() => {
@@ -39,6 +40,8 @@ onMounted(() => {
     utmMedium.value = finalParams.medium
     utmCampaign.value = finalParams.campaign
   }
+
+  referrerSource.value = getStoredReferrer() || ''
 });
 const pendingEmail = ref('');
 const resendSent = ref(false);
@@ -64,6 +67,7 @@ const handleRegister = async () => {
       utmSource: utmSource.value || undefined,
       utmMedium: utmMedium.value || undefined,
       utmCampaign: utmCampaign.value || undefined,
+      referrerSource: referrerSource.value || undefined,
     });
     if (response.data.status === 'PENDING_VERIFICATION') {
       pendingEmail.value = response.data.email;
@@ -74,8 +78,9 @@ const handleRegister = async () => {
       // Track Reddit conversion if user came from Reddit ad
       trackRedditSignup();
 
-      // Clear stored UTM params after successful registration
+      // Clear stored UTM params and referrer after successful registration
       clearStoredUtmParams();
+      clearStoredReferrer();
     }
   } catch (err: any) {
     error.value = err.response?.data?.message || 'Registrierung fehlgeschlagen';

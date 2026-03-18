@@ -28,5 +28,8 @@ public record RegisterRequest(
         String utmMedium,
 
         @Size(max = 100, message = "UTM campaign must be max 100 characters")
-        String utmCampaign) {
+        String utmCampaign,
+
+        @Size(max = 255, message = "Referrer source must be max 255 characters")
+        String referrerSource) {
 }

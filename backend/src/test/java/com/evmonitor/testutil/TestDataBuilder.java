@@ -47,6 +47,7 @@ public class TestDataBuilder {
                 null, // utmSource
                 null, // utmMedium
                 null, // utmCampaign
+                null, // referrerSource
                 LocalDateTime.now(),
                 LocalDateTime.now()
         );

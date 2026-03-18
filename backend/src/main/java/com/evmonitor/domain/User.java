@@ -20,13 +20,14 @@ public class User {
     private final String utmSource;
     private final String utmMedium;
     private final String utmCampaign;
+    private final String referrerSource;
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
 
     public User(UUID id, String email, String username, String passwordHash, AuthProvider authProvider, String role,
             boolean emailVerified, boolean seedData, boolean emailNotificationsEnabled, boolean premium,
             String referralCode, UUID referredByUserId, String stripeCustomerId,
-            String utmSource, String utmMedium, String utmCampaign,
+            String utmSource, String utmMedium, String utmCampaign, String referrerSource,
             LocalDateTime createdAt, LocalDateTime updatedAt) {
         if (id == null)
             throw new IllegalArgumentException("User ID cannot be null");
@@ -53,6 +54,7 @@ public class User {
         this.utmSource = utmSource;
         this.utmMedium = utmMedium;
         this.utmCampaign = utmCampaign;
+        this.referrerSource = referrerSource;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -63,32 +65,32 @@ public class User {
 
     public static User createNewLocalUser(String email, String username, String passwordHash) {
         LocalDateTime now = LocalDateTime.now();
-        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", false, false, true, false, generateReferralCode(), null, null, null, null, null, now, now);
+        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", false, false, true, false, generateReferralCode(), null, null, null, null, null, null, now, now);
     }
 
     public static User createNewLocalUserWithReferrer(String email, String username, String passwordHash, UUID referredByUserId) {
         LocalDateTime now = LocalDateTime.now();
-        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", false, false, true, false, generateReferralCode(), referredByUserId, null, null, null, null, now, now);
+        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", false, false, true, false, generateReferralCode(), referredByUserId, null, null, null, null, null, now, now);
     }
 
-    public static User createNewLocalUserWithCampaign(String email, String username, String passwordHash, UUID referredByUserId, String utmSource, String utmMedium, String utmCampaign) {
+    public static User createNewLocalUserWithCampaign(String email, String username, String passwordHash, UUID referredByUserId, String utmSource, String utmMedium, String utmCampaign, String referrerSource) {
         LocalDateTime now = LocalDateTime.now();
-        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", false, false, true, false, generateReferralCode(), referredByUserId, null, utmSource, utmMedium, utmCampaign, now, now);
+        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", false, false, true, false, generateReferralCode(), referredByUserId, null, utmSource, utmMedium, utmCampaign, referrerSource, now, now);
     }
 
     public static User createVerifiedLocalUser(String email, String username, String passwordHash) {
         LocalDateTime now = LocalDateTime.now();
-        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", true, false, true, false, generateReferralCode(), null, null, null, null, null, now, now);
+        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", true, false, true, false, generateReferralCode(), null, null, null, null, null, null, now, now);
     }
 
     public static User createSeedUser(String email, String username, String passwordHash) {
         LocalDateTime now = LocalDateTime.now();
-        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", true, true, false, false, generateReferralCode(), null, null, null, null, null, now, now);
+        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", true, true, false, false, generateReferralCode(), null, null, null, null, null, null, now, now);
     }
 
     public static User createNewSsoUser(String email, String username, AuthProvider authProvider) {
         LocalDateTime now = LocalDateTime.now();
-        return new User(UUID.randomUUID(), email, username, null, authProvider, "USER", true, false, true, false, generateReferralCode(), null, null, null, null, null, now, now);
+        return new User(UUID.randomUUID(), email, username, null, authProvider, "USER", true, false, true, false, generateReferralCode(), null, null, null, null, null, null, now, now);
     }
 
     public UUID getId() { return id; }
@@ -109,4 +111,5 @@ public class User {
     public String getUtmSource() { return utmSource; }
     public String getUtmMedium() { return utmMedium; }
     public String getUtmCampaign() { return utmCampaign; }
+    public String getReferrerSource() { return referrerSource; }
 }

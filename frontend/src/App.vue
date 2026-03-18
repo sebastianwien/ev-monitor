@@ -19,7 +19,7 @@ import RedditConsentBanner from './components/RedditConsentBanner.vue'
 import FeedbackToast from './components/FeedbackToast.vue'
 import { Bars3Icon, XMarkIcon, HomeIcon, TruckIcon, ArrowDownTrayIcon, UserIcon, ArrowRightOnRectangleIcon, BoltIcon, ChatBubbleLeftEllipsisIcon, ArrowsRightLeftIcon, TrophyIcon } from '@heroicons/vue/24/outline'
 // Note: showImportOverlay kept for backward compat but SpritMonitor moved to /imports
-import { captureUtmParams } from './utils/reddit-pixel'
+import { captureUtmParams, captureReferrer } from './utils/reddit-pixel'
 import { useHaptic } from './composables/useHaptic'
 
 const { haptic } = useHaptic()
@@ -70,9 +70,10 @@ watch(() => coinStore.balance, (newVal, oldVal) => {
   }
 })
 
-// Capture UTM parameters on first page load for campaign tracking
+// Capture UTM parameters and referrer on first page load for campaign tracking
 onMounted(() => {
   captureUtmParams()
+  captureReferrer()
 })
 
 // Impersonation

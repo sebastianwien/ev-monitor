@@ -19,6 +19,7 @@ declare global {
 const REDDIT_PIXEL_ID = import.meta.env.VITE_REDDIT_PIXEL_ID || ''
 const CONSENT_KEY = 'reddit-pixel-consent'
 const UTM_PARAMS_KEY = 'utm-params'
+const REFERRER_KEY = 'referrer-source'
 
 function lsGet(key: string): string | null {
   try { return localStorage.getItem(key) } catch { return null }
@@ -30,6 +31,33 @@ function lsSet(key: string, value: string): void {
 
 function lsRemove(key: string): void {
   try { localStorage.removeItem(key) } catch { /* localStorage blocked */ }
+}
+
+/**
+ * Speichert document.referrer (nur Hostname) beim ersten Seitenaufruf in localStorage.
+ * Wird nur gesetzt wenn noch kein Wert vorhanden ist (first-touch attribution).
+ * Muss beim ersten PageLoad aufgerufen werden (z.B. in App.vue).
+ */
+export function captureReferrer() {
+  if (lsGet(REFERRER_KEY)) return // already captured
+  const referrer = document.referrer
+  if (!referrer) return
+  try {
+    const hostname = new URL(referrer).hostname
+    if (hostname) {
+      lsSet(REFERRER_KEY, hostname)
+    }
+  } catch {
+    // invalid URL - ignore
+  }
+}
+
+export function getStoredReferrer(): string | null {
+  return lsGet(REFERRER_KEY)
+}
+
+export function clearStoredReferrer() {
+  lsRemove(REFERRER_KEY)
 }
 
 /**

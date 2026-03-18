@@ -111,31 +111,37 @@
 
         </div>
 
-        <!-- Variant switcher -->
-        <div v-if="stats.wltpVariants.length > 1"
-             class="px-4 md:px-0 py-2.5 md:py-0 md:mt-4">
-          <div class="relative flex bg-gray-100 rounded-full p-1">
-            <div
-              class="absolute top-1 bottom-1 rounded-full bg-blue-600 shadow-sm transition-transform duration-300 ease-in-out"
-              :style="{
-                width: `calc(${100 / stats.wltpVariants.length}% - ${8 / stats.wltpVariants.length}px)`,
-                transform: `translateX(calc(${selectedVariantIndex * 100}% + ${selectedVariantIndex * 4}px))`
-              }"
-            />
-            <button
-              v-for="(v, i) in stats.wltpVariants"
-              :key="v.batteryCapacityKwh"
-              @click="selectedVariantIndex = i"
-              class="relative flex-1 text-sm font-medium py-1.5 rounded-full transition-colors duration-300 z-10"
-              :class="i === selectedVariantIndex ? 'text-white' : 'text-gray-500 hover:text-gray-700'"
-            >
-              {{ v.batteryCapacityKwh }} kWh
-            </button>
-          </div>
-        </div>
+        <!-- Combined: Variant Switcher + Seasonal + WLTP -->
+        <div v-if="stats.wltpVariants.length > 0 || showSeasonalBreakdown"
+             class="bg-white md:rounded-2xl md:border-x border-t md:border-b border-gray-200 md:mb-6 overflow-hidden">
 
-        <!-- Seasonal Consumption Breakdown -->
-        <div v-if="showSeasonalBreakdown" class="bg-white md:rounded-2xl md:border-x border-t md:border-b border-gray-200 px-6 py-6 md:p-4 md:mb-6 bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100">
+          <!-- Variant Switcher Header -->
+          <div v-if="stats.wltpVariants.length > 1" class="px-6 py-4 border-b border-gray-100">
+            <div class="flex items-center gap-3">
+              <span class="text-sm font-medium text-gray-500 whitespace-nowrap">Batterievariante</span>
+              <div class="relative flex bg-gray-100 rounded-full p-1 w-fit">
+                <div
+                  class="absolute top-1 bottom-1 rounded-full bg-blue-600 shadow-sm transition-transform duration-300 ease-in-out"
+                  :style="{
+                    width: `calc(${100 / stats.wltpVariants.length}% - ${8 / stats.wltpVariants.length}px)`,
+                    transform: `translateX(calc(${selectedVariantIndex * 100}% + ${selectedVariantIndex * 4}px))`
+                  }"
+                />
+                <button
+                  v-for="(v, i) in stats.wltpVariants"
+                  :key="v.batteryCapacityKwh"
+                  @click="selectedVariantIndex = i"
+                  class="relative px-4 text-sm font-medium py-1.5 rounded-full transition-colors duration-300 z-10 whitespace-nowrap"
+                  :class="i === selectedVariantIndex ? 'text-white' : 'text-gray-500 hover:text-gray-700'"
+                >
+                  {{ v.batteryCapacityKwh }} kWh
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Seasonal Consumption Breakdown -->
+          <div v-if="showSeasonalBreakdown" class="px-6 py-5 bg-gradient-to-br from-blue-50 to-indigo-50 border-b border-blue-100">
           <div class="flex-1">
             <p class="text-sm font-bold text-blue-900 mb-3 flex items-center gap-1.5">
               <ChartBarIcon class="h-4 w-4" />
@@ -194,17 +200,17 @@
               </p>
             </div>
           </div>
-        </div>
+          </div><!-- end seasonal section -->
 
-        <!-- WLTP vs Real Comparison -->
-        <div v-if="stats.wltpVariants.length > 0" class="bg-white md:rounded-2xl md:border-x border-t md:border-b border-gray-200 pt-6 pb-0 md:p-6 md:mb-6">
-          <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2 px-6 md:px-0">
-            <ClipboardDocumentListIcon class="h-6 w-6 text-gray-700" />
-            Offizielle WLTP-Daten nach Batterievariante
+          <!-- WLTP vs Real Comparison (inside combined card) -->
+          <div v-if="stats.wltpVariants.length > 0">
+          <h2 class="text-base font-semibold text-gray-700 px-6 pt-5 pb-3 flex items-center gap-2">
+            <ClipboardDocumentListIcon class="h-5 w-5 text-gray-500" />
+            WLTP-Daten & Realer Verbrauch
           </h2>
           <!-- Mobile: Card (selected variant only) -->
           <div class="md:hidden">
-            <div v-if="selectedVariant" class="px-6 py-4">
+            <div v-if="selectedVariant" class="px-6 pb-4">
               <div class="relative flex items-center justify-center mb-3">
                 <div class="font-semibold text-gray-900">{{ selectedVariant.batteryCapacityKwh }} kWh</div>
                 <span v-if="!selectedVariant.realConsumptionKwhPer100km"
@@ -258,7 +264,7 @@
           </div>
 
           <!-- Desktop: Table (selected variant only) -->
-          <div class="hidden md:block overflow-x-auto">
+          <div class="hidden md:block overflow-x-auto px-6 pb-2">
             <table class="w-full text-sm">
               <thead>
                 <tr class="text-left text-gray-500 border-b border-gray-100">
@@ -324,12 +330,13 @@
               </tbody>
             </table>
           </div>
-          <div class="px-6 md:px-0 py-4 md:pt-3 md:pb-0">
+          <div class="px-6 py-4">
             <span class="inline-block text-xs bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full">
               WLTP = offizieller Herstellerwert (COMBINED). Realer Verbrauch basiert auf Nutzerdaten von EV Monitor.
             </span>
           </div>
-        </div>
+          </div><!-- end WLTP section -->
+        </div><!-- end combined card -->
 
         <!-- What is EV Monitor / CTA -->
         <div class="bg-gradient-to-br from-green-600 to-green-700 md:rounded-2xl p-6 text-white">

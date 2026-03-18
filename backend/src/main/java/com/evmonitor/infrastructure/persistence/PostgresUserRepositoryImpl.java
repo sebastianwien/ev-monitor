@@ -129,6 +129,7 @@ public class PostgresUserRepositoryImpl implements UserRepository {
         entity.setUtmSource(domain.getUtmSource());
         entity.setUtmMedium(domain.getUtmMedium());
         entity.setUtmCampaign(domain.getUtmCampaign());
+        entity.setReferrerSource(domain.getReferrerSource());
         return entity;
     }
 
@@ -150,6 +151,7 @@ public class PostgresUserRepositoryImpl implements UserRepository {
                 entity.getUtmSource(),
                 entity.getUtmMedium(),
                 entity.getUtmCampaign(),
+                entity.getReferrerSource(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt());
     }

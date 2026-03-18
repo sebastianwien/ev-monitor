@@ -71,10 +71,11 @@ public class AuthService {
             }
         }
 
-        // Check if user has campaign tracking data (utm_*)
+        // Check if user has campaign tracking data (utm_* or referrer)
         boolean hasCampaignData = (request.utmSource() != null && !request.utmSource().isBlank())
                                || (request.utmMedium() != null && !request.utmMedium().isBlank())
-                               || (request.utmCampaign() != null && !request.utmCampaign().isBlank());
+                               || (request.utmCampaign() != null && !request.utmCampaign().isBlank())
+                               || (request.referrerSource() != null && !request.referrerSource().isBlank());
 
         User user;
         if (hasCampaignData) {
@@ -85,7 +86,8 @@ public class AuthService {
                     referrerId,
                     request.utmSource(),
                     request.utmMedium(),
-                    request.utmCampaign());
+                    request.utmCampaign(),
+                    request.referrerSource());
         } else if (referrerId != null) {
             user = User.createNewLocalUserWithReferrer(request.email(), username, encodedPassword, referrerId);
         } else {

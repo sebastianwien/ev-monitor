@@ -58,6 +58,9 @@ public class UserEntity {
     @Column(name = "utm_campaign", length = 100)
     private String utmCampaign;
 
+    @Column(name = "referrer_source", length = 255)
+    private String referrerSource;
+
     @Column(name = "leaderboard_visible", nullable = false)
     private boolean leaderboardVisible = true;
 
@@ -231,6 +234,14 @@ public class UserEntity {
 
     public void setUtmCampaign(String utmCampaign) {
         this.utmCampaign = utmCampaign;
+    }
+
+    public String getReferrerSource() {
+        return referrerSource;
+    }
+
+    public void setReferrerSource(String referrerSource) {
+        this.referrerSource = referrerSource;
     }
 
     public boolean isLeaderboardVisible() {

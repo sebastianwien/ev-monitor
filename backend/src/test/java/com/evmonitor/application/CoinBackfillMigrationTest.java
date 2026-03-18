@@ -273,7 +273,7 @@ class CoinBackfillMigrationTest extends AbstractIntegrationTest {
                 AuthProvider.LOCAL, "USER",
                 true, true, true, false,
                 UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase(),
-                null, null, null, null, null,
+                null, null, null, null, null, null,
                 LocalDateTime.now(), LocalDateTime.now()
         );
         return userRepository.save(user);

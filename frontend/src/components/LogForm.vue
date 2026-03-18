@@ -76,16 +76,21 @@ const logs = ref<any[]>([])
 const editingLog = ref<any | null>(null)
 const pendingDeleteId = ref<string | null>(null)
 
-const getLastOdometerReading = (): number | null => {
-  const sorted = logs.value
-    .filter(l => l.odometerKm != null)
-    .sort((a, b) => new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime())
+const getLastOdometerReading = (beforeDate?: string): number | null => {
+  let filtered = logs.value.filter(l => l.odometerKm != null)
+  if (beforeDate) {
+    const cutoff = new Date(beforeDate).getTime()
+    filtered = filtered.filter(l => new Date(l.loggedAt).getTime() < cutoff)
+  }
+  const sorted = filtered.sort((a, b) => new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime())
   return sorted.length > 0 ? sorted[0].odometerKm : null
 }
 
 const getLastOdometerPlaceholder = (): string => {
+  const refDate = formData.value.loggedAt || undefined
   const sorted = logs.value
     .filter(l => l.odometerKm != null)
+    .filter(l => !refDate || new Date(l.loggedAt).getTime() < new Date(refDate).getTime())
     .sort((a, b) => new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime())
   if (sorted.length === 0) return 'Tachostand (km)'
   return `zuletzt ${sorted[0].odometerKm.toLocaleString('de-DE')} km`
@@ -136,7 +141,7 @@ const submitLog = async () => {
   if (!f.odometerKm || f.odometerKm <= 0) {
     fieldErrors.value.add('odometer'); errors.push('Tachostand')
   } else {
-    const last = getLastOdometerReading()
+    const last = getLastOdometerReading(f.loggedAt || undefined)
     if (last !== null && f.odometerKm < last) {
       fieldErrors.value.add('odometer')
       odometerPlaceholderOverride.value = `sollte >= ${last.toLocaleString('de-DE')} km sein`
