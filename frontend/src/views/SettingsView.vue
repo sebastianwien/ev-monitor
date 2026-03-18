@@ -243,26 +243,26 @@ onMounted(() => {
 
 <template>
   <div class="md:max-w-4xl md:mx-auto md:p-6">
-    <div class="bg-white md:rounded-xl md:shadow-lg p-4 md:p-6">
+    <div class="bg-white dark:bg-gray-800 md:rounded-xl md:shadow-lg p-4 md:p-6">
       <!-- Header -->
       <div class="flex items-center gap-3 mb-6">
-        <UserIcon class="h-8 w-8 text-gray-700" />
-        <h1 class="text-3xl font-bold text-gray-800">Einstellungen</h1>
+        <UserIcon class="h-8 w-8 text-gray-700 dark:text-gray-300" />
+        <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-200">Einstellungen</h1>
       </div>
 
       <!-- Message Banner -->
       <div v-if="message" :class="[
         'mb-6 p-4 rounded-lg',
-        message.type === 'success' ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-700'
+        message.type === 'success' ? 'bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 text-green-700 dark:text-green-300' : 'bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300'
       ]">
         {{ message.text }}
       </div>
 
       <!-- Watt Balance -->
-      <div class="mb-8 bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-lg p-6">
+      <div class="mb-8 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/30 dark:to-yellow-900/30 border border-amber-200 dark:border-amber-700 rounded-lg p-6">
         <div class="flex items-center gap-3 mb-2">
           <CurrencyDollarIcon class="h-6 w-6 text-amber-600" />
-          <h2 class="text-xl font-bold text-gray-800">Dein Watt-Konto</h2>
+          <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">Dein Watt-Konto</h2>
         </div>
         <p class="text-3xl font-bold text-amber-600">{{ coinBalance }}</p>
         <router-link to="/coins/history" class="text-sm text-amber-700 hover:text-amber-800 underline mt-2 inline-block">
@@ -274,9 +274,9 @@ onMounted(() => {
       <div v-if="referralCode" class="mb-8 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg p-6">
         <div class="flex items-center gap-3 mb-2">
           <ShareIcon class="h-6 w-6 text-indigo-600" />
-          <h2 class="text-xl font-bold text-gray-800">Freunde einladen</h2>
+          <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">Freunde einladen</h2>
         </div>
-        <p class="text-sm text-gray-600 mb-4">
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
           Teile deinen persönlichen Einladungslink. Du erhältst <strong>100 Watt</strong> für jeden Freund,
           der sich registriert und seine E-Mail-Adresse bestätigt. Dein Freund bekommt <strong>25 Watt</strong> als Willkommensbonus.
         </p>
@@ -284,7 +284,7 @@ onMounted(() => {
           <input
             :value="referralLink()"
             readonly
-            class="flex-1 min-w-0 px-3 py-2 text-sm bg-white border border-indigo-200 rounded-lg text-gray-700 focus:outline-none cursor-default select-all" />
+            class="flex-1 min-w-0 px-3 py-2 text-sm bg-white dark:bg-gray-700 border border-indigo-200 dark:border-indigo-700 rounded-lg text-gray-700 dark:text-gray-300 focus:outline-none cursor-default select-all" />
           <button
             @click="copyReferralLink"
             class="btn-3d flex-shrink-0 flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition"
@@ -300,16 +300,16 @@ onMounted(() => {
 
       <!-- Account Section -->
       <div class="mb-8">
-        <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+        <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
           <UserIcon class="h-6 w-6" />
           Account
         </h2>
 
         <!-- Email -->
-        <div class="mb-4 p-4 bg-gray-50 rounded-lg">
+        <div class="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
           <div class="flex justify-between items-center">
             <div>
-              <p class="text-sm text-gray-600">Email</p>
+              <p class="text-sm text-gray-600 dark:text-gray-400">Email</p>
               <p class="font-medium">{{ email }}</p>
             </div>
             <button
@@ -321,18 +321,18 @@ onMounted(() => {
             <span v-else class="text-xs text-gray-400">via {{ (authStore.user as any)?.authProvider }}</span>
           </div>
 
-          <div v-if="showEmailForm" class="mt-4 pt-4 border-t border-gray-200 space-y-3">
+          <div v-if="showEmailForm" class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600 space-y-3">
             <input
               v-model="newEmail"
               type="email"
               placeholder="Neue Email-Adresse"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
             <input
               v-model="emailCurrentPassword"
               type="password"
               placeholder="Aktuelles Passwort zur Bestätigung"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
-            <p class="text-xs text-gray-500">Du wirst danach ausgeloggt und musst dich mit der neuen Email anmelden.</p>
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+            <p class="text-xs text-gray-500 dark:text-gray-400">Du wirst danach ausgeloggt und musst dich mit der neuen Email anmelden.</p>
             <div class="flex gap-2">
               <button
                 @click="changeEmail"
@@ -342,7 +342,7 @@ onMounted(() => {
               </button>
               <button
                 @click="showEmailForm = false; newEmail = ''; emailCurrentPassword = ''"
-                class="btn-3d px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition">
+                class="btn-3d px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 transition">
                 Abbrechen
               </button>
             </div>
@@ -350,10 +350,10 @@ onMounted(() => {
         </div>
 
         <!-- Username -->
-        <div class="mb-4 p-4 bg-gray-50 rounded-lg">
+        <div class="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
           <div class="flex justify-between items-center">
             <div>
-              <p class="text-sm text-gray-600">Username</p>
+              <p class="text-sm text-gray-600 dark:text-gray-400">Username</p>
               <p class="font-medium">{{ username }}</p>
             </div>
             <button
@@ -363,12 +363,12 @@ onMounted(() => {
             </button>
           </div>
 
-          <div v-if="showUsernameForm" class="mt-4 pt-4 border-t border-gray-200">
+          <div v-if="showUsernameForm" class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
             <input
               v-model="newUsername"
               type="text"
               placeholder="Neuer Username"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 mb-3">
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md focus:ring-indigo-500 focus:border-indigo-500 mb-3">
             <div class="flex gap-2">
               <button
                 @click="changeUsername"
@@ -378,7 +378,7 @@ onMounted(() => {
               </button>
               <button
                 @click="showUsernameForm = false; newUsername = ''"
-                class="btn-3d px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition">
+                class="btn-3d px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 transition">
                 Abbrechen
               </button>
             </div>
@@ -386,10 +386,10 @@ onMounted(() => {
         </div>
 
         <!-- Password -->
-        <div class="mb-4 p-4 bg-gray-50 rounded-lg">
+        <div class="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
           <div class="flex justify-between items-center">
             <div>
-              <p class="text-sm text-gray-600">Passwort</p>
+              <p class="text-sm text-gray-600 dark:text-gray-400">Passwort</p>
               <p class="font-medium">••••••••••</p>
             </div>
             <button
@@ -399,22 +399,22 @@ onMounted(() => {
             </button>
           </div>
 
-          <div v-if="showPasswordForm" class="mt-4 pt-4 border-t border-gray-200 space-y-3">
+          <div v-if="showPasswordForm" class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600 space-y-3">
             <input
               v-model="currentPassword"
               type="password"
               placeholder="Aktuelles Passwort"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
             <input
               v-model="newPassword"
               type="password"
               placeholder="Neues Passwort (min. 8 Zeichen)"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
             <input
               v-model="confirmPassword"
               type="password"
               placeholder="Neues Passwort bestätigen"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
             <div class="flex gap-2">
               <button
                 @click="changePassword"
@@ -424,7 +424,7 @@ onMounted(() => {
               </button>
               <button
                 @click="showPasswordForm = false; currentPassword = ''; newPassword = ''; confirmPassword = ''"
-                class="btn-3d px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition">
+                class="btn-3d px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 transition">
                 Abbrechen
               </button>
             </div>
@@ -434,17 +434,17 @@ onMounted(() => {
 
       <!-- Data & Privacy Section -->
       <div class="mb-8">
-        <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+        <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
           <KeyIcon class="h-6 w-6" />
           Daten & Privacy
         </h2>
 
         <!-- Stats -->
-        <div class="mb-4 p-4 bg-gray-50 rounded-lg">
-          <p class="text-sm text-gray-600 mb-2">Registriert seit</p>
+        <div class="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+          <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Registriert seit</p>
           <p class="font-medium mb-3">{{ registeredSince }}</p>
 
-          <p class="text-sm text-gray-600">
+          <p class="text-sm text-gray-600 dark:text-gray-400">
             <strong>{{ totalLogs }}</strong> Ladevorgänge ·
             <strong>{{ Math.round(totalKwh) }}</strong> kWh ·
             <strong>€{{ totalCostEur.toFixed(2) }}</strong>
@@ -471,14 +471,14 @@ onMounted(() => {
 
       <!-- Community / Leaderboard Section -->
       <div class="mb-8">
-        <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+        <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
           <TrophyIcon class="h-6 w-6 text-yellow-500" />
           Bestenliste
         </h2>
-        <div class="p-4 bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-between gap-4">
+        <div class="p-4 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg flex items-center justify-between gap-4">
           <div>
-            <p class="font-medium text-gray-800 text-sm">In Bestenlisten erscheinen</p>
-            <p class="text-xs text-gray-500 mt-0.5">Wenn deaktiviert, taucht dein Username in keiner Kategorie auf.</p>
+            <p class="font-medium text-gray-800 dark:text-gray-200 text-sm">In Bestenlisten erscheinen</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Wenn deaktiviert, taucht dein Username in keiner Kategorie auf.</p>
           </div>
           <button
             @click="toggleLeaderboardVisible"
@@ -498,17 +498,17 @@ onMounted(() => {
 
       <!-- Help & Support Section -->
       <div class="mb-8">
-        <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+        <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
           <AcademicCapIcon class="h-6 w-6" />
           Hilfe & Support
         </h2>
 
-        <div class="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg">
-          <h3 class="font-semibold text-gray-800 mb-2 flex items-center gap-2">
+        <div class="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/30 dark:to-purple-900/30 border border-indigo-200 dark:border-indigo-700 rounded-lg">
+          <h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-2 flex items-center gap-2">
             <span class="text-xl">👋</span>
             Tutorial erneut ansehen
           </h3>
-          <p class="text-sm text-gray-600 mb-4">
+          <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
             Möchtest du das Willkommens-Tutorial nochmal durchgehen? Perfekt wenn du eine Auffrischung brauchst oder neue Features kennenlernen willst.
           </p>
           <button
@@ -522,12 +522,12 @@ onMounted(() => {
 
       <!-- Support Section -->
       <div class="mb-8">
-        <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+        <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
           <HeartIcon class="h-6 w-6 text-red-500" />
           EV Monitor unterstützen
         </h2>
-        <div class="p-4 bg-gradient-to-r from-red-50 to-pink-50 border border-red-200 rounded-lg">
-          <p class="text-sm text-gray-600 mb-4">
+        <div class="p-4 bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
             EV Monitor ist kostenlos und werbefrei. Wenn dir die App hilft, freue ich mich über einen Kaffee ☕
           </p>
           <SupportPopover variant="block" />
@@ -539,9 +539,9 @@ onMounted(() => {
         v-if="showDeleteConfirm"
         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
         @click.self="showDeleteConfirm = false">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6">
           <h3 class="text-2xl font-bold text-red-600 mb-4">Account löschen?</h3>
-          <p class="text-gray-700 mb-4">
+          <p class="text-gray-700 dark:text-gray-300 mb-4">
             Diese Aktion kann <strong>nicht rückgängig</strong> gemacht werden.
             Alle deine Daten (Ladevorgänge, Fahrzeuge, Watt) werden permanent gelöscht.
           </p>
@@ -550,7 +550,7 @@ onMounted(() => {
             v-model="deletePassword"
             type="password"
             placeholder="Passwort zur Bestätigung"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500 mb-4">
+            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md focus:ring-red-500 focus:border-red-500 mb-4">
 
           <div class="flex gap-3">
             <button
@@ -561,7 +561,7 @@ onMounted(() => {
             </button>
             <button
               @click="showDeleteConfirm = false; deletePassword = ''"
-              class="btn-3d flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition">
+              class="btn-3d flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 transition">
               Abbrechen
             </button>
           </div>

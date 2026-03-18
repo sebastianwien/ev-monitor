@@ -3,16 +3,16 @@ import { BoltIcon } from '@heroicons/vue/24/outline'
 </script>
 
 <template>
-  <div class="min-h-screen bg-white">
+  <div class="min-h-screen bg-white dark:bg-gray-900">
     <!-- Navbar -->
-    <nav class="border-b border-gray-200">
+    <nav class="border-b border-gray-200 dark:border-gray-700">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between items-center h-16">
           <router-link to="/" class="flex items-center space-x-2">
             <BoltIcon class="h-8 w-8 text-green-600" />
-            <span class="text-xl font-bold text-gray-900">EV Monitor</span>
+            <span class="text-xl font-bold text-gray-900 dark:text-gray-100">EV Monitor</span>
           </router-link>
-          <router-link to="/modelle" class="text-sm font-medium text-gray-600 hover:text-green-700 transition">
+          <router-link to="/modelle" class="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-green-700 transition">
             Modelle
           </router-link>
         </div>
@@ -21,11 +21,11 @@ import { BoltIcon } from '@heroicons/vue/24/outline'
 
     <!-- Content -->
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-      <h1 class="text-4xl font-bold text-gray-900 mb-8">Allgemeine Geschäftsbedingungen (AGB)</h1>
+      <h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-8">Allgemeine Geschäftsbedingungen (AGB)</h1>
 
-      <div class="prose prose-lg text-gray-600 space-y-8">
+      <div class="prose prose-lg text-gray-600 dark:text-gray-400 space-y-8">
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 mb-4">1. Geltungsbereich</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">1. Geltungsbereich</h2>
           <p>
             Diese Allgemeinen Geschäftsbedingungen (AGB) gelten für die Nutzung der Plattform "EV Monitor"
             (im Folgenden "Plattform" oder "Service"). Mit der Registrierung und Nutzung des Services
@@ -34,7 +34,7 @@ import { BoltIcon } from '@heroicons/vue/24/outline'
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 mb-4">2. Leistungsumfang</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">2. Leistungsumfang</h2>
           <p>
             EV Monitor bietet folgende Leistungen:
           </p>
@@ -52,15 +52,15 @@ import { BoltIcon } from '@heroicons/vue/24/outline'
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 mb-4">3. Registrierung und Nutzerkonto</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">3. Registrierung und Nutzerkonto</h2>
 
-          <h3 class="text-xl font-semibold text-gray-900 mt-6 mb-3">3.1 Registrierung</h3>
+          <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">3.1 Registrierung</h3>
           <p>
             Zur Nutzung des Services ist eine Registrierung mit E-Mail-Adresse und Passwort erforderlich.
             Die E-Mail-Adresse muss verifiziert werden.
           </p>
 
-          <h3 class="text-xl font-semibold text-gray-900 mt-6 mb-3">3.2 Pflichten des Nutzers</h3>
+          <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">3.2 Pflichten des Nutzers</h3>
           <ul class="list-disc list-inside space-y-2">
             <li>Sie müssen bei der Registrierung wahrheitsgemäße Angaben machen</li>
             <li>Sie sind verpflichtet, Ihr Passwort geheim zu halten</li>
@@ -68,7 +68,7 @@ import { BoltIcon } from '@heroicons/vue/24/outline'
             <li>Bei Verdacht auf unbefugten Zugriff informieren Sie uns umgehend</li>
           </ul>
 
-          <h3 class="text-xl font-semibold text-gray-900 mt-6 mb-3">3.3 Account-Löschung</h3>
+          <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">3.3 Account-Löschung</h3>
           <p>
             Sie können Ihren Account jederzeit löschen. Dabei werden alle personenbezogenen Daten
             unwiderruflich gelöscht. Anonymisierte Statistiken bleiben bestehen.
@@ -76,14 +76,14 @@ import { BoltIcon } from '@heroicons/vue/24/outline'
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 mb-4">4. Nutzungsregeln</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">4. Nutzungsregeln</h2>
 
-          <h3 class="text-xl font-semibold text-gray-900 mt-6 mb-3">4.1 Erlaubte Nutzung</h3>
+          <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">4.1 Erlaubte Nutzung</h3>
           <p>
             Der Service darf ausschließlich für private, nicht-kommerzielle Zwecke genutzt werden.
           </p>
 
-          <h3 class="text-xl font-semibold text-gray-900 mt-6 mb-3">4.2 Verbotene Nutzung</h3>
+          <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">4.2 Verbotene Nutzung</h3>
           <p>Folgende Handlungen sind untersagt:</p>
           <ul class="list-disc list-inside space-y-2">
             <li>Eingabe falscher oder irreführender Daten</li>
@@ -95,7 +95,7 @@ import { BoltIcon } from '@heroicons/vue/24/outline'
             <li>Belästigung anderer Nutzer (falls Community-Features eingeführt werden)</li>
           </ul>
 
-          <h3 class="text-xl font-semibold text-gray-900 mt-6 mb-3">4.3 Community-Daten</h3>
+          <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">4.3 Community-Daten</h3>
           <p>
             Wenn Sie Daten teilen (z.B. WLTP-Angaben), verpflichten Sie sich zu wahrheitsgemäßen Angaben.
             Bewusst falsche Daten können zur Sperrung Ihres Accounts führen.
@@ -103,28 +103,28 @@ import { BoltIcon } from '@heroicons/vue/24/outline'
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 mb-4">5. Haftung und Gewährleistung</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">5. Haftung und Gewährleistung</h2>
 
-          <h3 class="text-xl font-semibold text-gray-900 mt-6 mb-3">5.1 Verfügbarkeit</h3>
+          <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">5.1 Verfügbarkeit</h3>
           <p>
             Wir bemühen uns um hohe Verfügbarkeit des Services. Eine Garantie für ununterbrochene
             Verfügbarkeit wird nicht gegeben. Wartungsarbeiten werden nach Möglichkeit angekündigt.
           </p>
 
-          <h3 class="text-xl font-semibold text-gray-900 mt-6 mb-3">5.2 Datenrichtigkeit</h3>
+          <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">5.2 Datenrichtigkeit</h3>
           <p>
             Alle Statistiken und WLTP-Vergleiche basieren auf Community-Daten und Herstellerangaben.
             Wir übernehmen keine Gewähr für die Richtigkeit oder Vollständigkeit dieser Daten.
           </p>
 
-          <h3 class="text-xl font-semibold text-gray-900 mt-6 mb-3">5.3 Haftungsbeschränkung</h3>
+          <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">5.3 Haftungsbeschränkung</h3>
           <p>
             Wir haften nur für Schäden, die durch vorsätzliches oder grob fahrlässiges Verhalten entstehen.
             Die Haftung für leichte Fahrlässigkeit ist ausgeschlossen, soweit nicht Leben, Körper, Gesundheit
             oder wesentliche Vertragspflichten betroffen sind.
           </p>
 
-          <h3 class="text-xl font-semibold text-gray-900 mt-6 mb-3">5.4 Tesla-Integration</h3>
+          <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">5.4 Tesla-Integration</h3>
           <p>
             Die Tesla-Integration nutzt die offizielle Tesla Owner API. Wir übernehmen keine Haftung für:
           </p>
@@ -140,7 +140,7 @@ import { BoltIcon } from '@heroicons/vue/24/outline'
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 mb-4">6. Urheberrechte und Lizenzen</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">6. Urheberrechte und Lizenzen</h2>
           <p>
             Alle Inhalte der Plattform (Code, Design, Texte) sind urheberrechtlich geschützt.
           </p>
@@ -152,7 +152,7 @@ import { BoltIcon } from '@heroicons/vue/24/outline'
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 mb-4">7. Änderungen der AGB</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">7. Änderungen der AGB</h2>
           <p>
             Wir behalten uns vor, diese AGB jederzeit zu ändern. Änderungen werden per E-Mail angekündigt.
             Wenn Sie den Änderungen nicht zustimmen, können Sie Ihren Account löschen.
@@ -163,7 +163,7 @@ import { BoltIcon } from '@heroicons/vue/24/outline'
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 mb-4">8. Kündigung</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">8. Kündigung</h2>
           <p>
             Beide Parteien können das Nutzungsverhältnis jederzeit ohne Einhaltung einer Frist kündigen.
           </p>
@@ -173,7 +173,7 @@ import { BoltIcon } from '@heroicons/vue/24/outline'
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 mb-4">9. Salvatorische Klausel</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">9. Salvatorische Klausel</h2>
           <p>
             Sollten einzelne Bestimmungen dieser AGB unwirksam sein, bleibt die Wirksamkeit der übrigen
             Bestimmungen unberührt.
@@ -181,7 +181,7 @@ import { BoltIcon } from '@heroicons/vue/24/outline'
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 mb-4">10. Anwendbares Recht</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">10. Anwendbares Recht</h2>
           <p>
             Für diese AGB gilt deutsches Recht unter Ausschluss des UN-Kaufrechts (CISG).
           </p>
@@ -190,14 +190,14 @@ import { BoltIcon } from '@heroicons/vue/24/outline'
           </p>
         </section>
 
-        <section class="mt-8 pt-6 border-t border-gray-200">
+        <section class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
           <p class="text-sm text-gray-500">
             Stand: {{ new Date().toLocaleDateString('de-DE', { year: 'numeric', month: 'long' }) }}
           </p>
         </section>
       </div>
 
-      <div class="mt-12 pt-8 border-t border-gray-200">
+      <div class="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700">
         <router-link
           to="/"
           class="text-green-600 hover:text-green-700 font-medium"

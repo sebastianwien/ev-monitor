@@ -1,10 +1,10 @@
 <template>
   <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-3xl flex flex-col max-h-[90vh]">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-3xl flex flex-col max-h-[90vh]">
       <!-- Header -->
-      <div class="flex items-center justify-between p-5 border-b border-gray-100">
-        <h2 class="text-lg font-semibold text-gray-900">Ladevorgang bearbeiten</h2>
-        <button @click="$emit('close')" class="text-gray-400 hover:text-gray-600 transition-colors">
+      <div class="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-700">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Ladevorgang bearbeiten</h2>
+        <button @click="$emit('close')" class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
           <XMarkIcon class="w-5 h-5" />
         </button>
       </div>
@@ -19,35 +19,35 @@
 
         <!-- Standort aktualisieren -->
         <div class="space-y-1">
-          <label class="block text-sm font-medium text-gray-700">Standort aktualisieren</label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Standort aktualisieren</label>
           <div class="relative">
             <input
               v-model="locationSearchQuery"
               type="text"
               placeholder="Ort suchen (ersetzt bestehenden Standort)…"
-              class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              class="w-full border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
               @focus="showSuggestions = suggestions.length > 0"
             />
             <ul v-if="showSuggestions && suggestions.length > 0"
-              class="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+              class="absolute z-10 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg max-h-48 overflow-y-auto">
               <li v-for="s in suggestions" :key="s.place_id"
-                class="px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer"
+                class="px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
                 @mousedown.prevent="selectLocation(s)">
                 {{ s.display_name }}
               </li>
             </ul>
           </div>
           <p v-if="newLocationName" class="text-xs text-green-600 mt-1">Neuer Standort: {{ newLocationName }}</p>
-          <p v-else-if="log.geohash" class="text-xs text-gray-400 mt-1">Aktueller Standort gespeichert (Geohash: {{ log.geohash }})</p>
+          <p v-else-if="log.geohash" class="text-xs text-gray-400 dark:text-gray-500 mt-1">Aktueller Standort gespeichert (Geohash: {{ log.geohash }})</p>
         </div>
 
         <p v-if="errorMsg" class="text-sm text-red-600 bg-red-50 rounded-xl p-3">{{ errorMsg }}</p>
       </div>
 
       <!-- Footer -->
-      <div class="flex justify-end gap-3 p-5 border-t border-gray-100 shrink-0">
+      <div class="flex justify-end gap-3 p-5 border-t border-gray-100 dark:border-gray-700 shrink-0">
         <button @click="$emit('close')" v-haptic
-          class="btn-3d px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
+          class="btn-3d px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
           Abbrechen
         </button>
         <button @click="save" v-haptic

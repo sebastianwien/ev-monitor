@@ -21,8 +21,11 @@ import { Bars3Icon, XMarkIcon, HomeIcon, TruckIcon, ArrowDownTrayIcon, UserIcon,
 // Note: showImportOverlay kept for backward compat but SpritMonitor moved to /imports
 import { captureUtmParams, captureReferrer } from './utils/reddit-pixel'
 import { useHaptic } from './composables/useHaptic'
+import { useThemeStore } from './stores/theme'
+import ThemeToggle from './components/ThemeToggle.vue'
 
 const { haptic } = useHaptic()
+const themeStore = useThemeStore()
 
 const router = useRouter()
 const route = useRoute()
@@ -72,6 +75,7 @@ watch(() => coinStore.balance, (newVal, oldVal) => {
 
 // Capture UTM parameters and referrer on first page load for campaign tracking
 onMounted(() => {
+  themeStore.init()
   captureUtmParams()
   captureReferrer()
 })
@@ -118,7 +122,7 @@ const closeMobileMenu = () => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-100 flex flex-col">
+  <div class="min-h-screen bg-gray-100 dark:bg-gray-950 flex flex-col">
     <!-- Navigation -->
     <nav class="bg-indigo-600 shadow-md text-white sticky top-0 z-40" v-if="authStore.isAuthenticated()">
       <div class="px-4 py-3">
@@ -217,6 +221,7 @@ const closeMobileMenu = () => {
 
           <!-- Compact Right Nav (768px - 1280px) -->
           <div class="hidden md:flex xl:hidden items-center space-x-2">
+            <ThemeToggle class="text-white" />
             <!-- Wallbox dot -->
             <button
               v-if="wallboxHasConnections"
@@ -263,6 +268,7 @@ const closeMobileMenu = () => {
 
           <!-- Full Right Nav (1280px+) -->
           <div class="hidden xl:flex items-center space-x-4">
+            <ThemeToggle class="text-white" />
             <!-- Wallbox chip -->
             <button
               v-if="wallboxHasConnections"
@@ -330,6 +336,7 @@ const closeMobileMenu = () => {
 
           <!-- Mobile: Icons + Hamburger Button -->
           <div class="md:hidden flex items-center gap-3">
+            <ThemeToggle class="text-white" />
             <!-- Wallbox dot -->
             <button
               v-if="wallboxHasConnections"
@@ -449,6 +456,11 @@ const closeMobileMenu = () => {
               <span>{{ authStore.user.username || authStore.user.sub }}</span>
             </router-link>
             <SupportPopover variant="nav" />
+            <!-- Theme Toggle in mobile menu -->
+            <div class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-indigo-100">
+              <ThemeToggle class="text-white -ml-2" />
+              <span>{{ themeStore.isDark ? 'Hell-Modus' : 'Dunkel-Modus' }}</span>
+            </div>
             <button
               @click="handleLogout"
               class="w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-600 transition text-red-300">
@@ -478,9 +490,9 @@ const closeMobileMenu = () => {
     </main>
 
     <!-- Footer (only for authenticated users) -->
-    <footer v-if="authStore.isAuthenticated()" class="bg-gray-50 border-t border-gray-200 py-6 mt-auto">
+    <footer v-if="authStore.isAuthenticated()" class="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 py-6 mt-auto">
       <div class="container mx-auto px-4">
-        <div class="text-center text-sm text-gray-600 space-y-3">
+        <div class="text-center text-sm text-gray-600 dark:text-gray-400 space-y-3">
           <p>
             © 2026 EV Monitor ·
             <router-link to="/datenschutz" class="hover:text-green-600 underline">Datenschutz</router-link> ·

@@ -103,18 +103,18 @@ const handleResend = async () => {
 </script>
 
 <template>
-  <div class="flex items-center justify-center min-h-[80vh] bg-gray-100">
-    <div class="w-full max-w-md p-8 bg-white rounded-xl shadow-lg">
+  <div class="flex items-center justify-center min-h-[80vh] bg-gray-100 dark:bg-gray-900">
+    <div class="w-full max-w-md p-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg">
 
       <!-- Pending Verification Screen -->
       <div v-if="pendingEmail" class="text-center">
         <div class="text-6xl mb-4">📬</div>
-        <h2 class="text-2xl font-bold text-gray-800 mb-2">Check deine E-Mails!</h2>
-        <p class="text-gray-500 mb-2">
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">Check deine E-Mails!</h2>
+        <p class="text-gray-500 dark:text-gray-400 mb-2">
           Wir haben einen Bestätigungs-Link an
         </p>
         <p class="font-semibold text-indigo-600 mb-4">{{ pendingEmail }}</p>
-        <p class="text-gray-500 text-sm mb-6">
+        <p class="text-gray-500 dark:text-gray-400 text-sm mb-6">
           Klick auf den Link in der E-Mail, um dein Konto zu aktivieren.<br>
           Der Link ist 24 Stunden gültig.
         </p>
@@ -130,23 +130,23 @@ const handleResend = async () => {
         </div>
         <p v-else class="text-sm text-green-600 font-medium">✅ E-Mail wurde erneut verschickt!</p>
 
-        <div class="mt-6 text-sm text-gray-400">
-          <router-link to="/login" class="hover:text-gray-600">Zurück zum Login</router-link>
+        <div class="mt-6 text-sm text-gray-400 dark:text-gray-500">
+          <router-link to="/login" class="hover:text-gray-600 dark:hover:text-gray-300">Zurück zum Login</router-link>
         </div>
       </div>
 
       <!-- Registration Form -->
       <div v-else>
-        <h2 class="text-3xl font-bold text-center text-gray-800 mb-8">Registrieren</h2>
+        <h2 class="text-3xl font-bold text-center text-gray-800 dark:text-gray-200 mb-8">Registrieren</h2>
         <form @submit.prevent="handleRegister" class="space-y-6">
           <div>
-            <label class="block text-sm font-medium text-gray-700">E-Mail</label>
-            <input v-model="email" type="email" required autocomplete="email" class="block w-full px-4 py-3 mt-1 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">E-Mail</label>
+            <input v-model="email" type="email" required autocomplete="email" class="block w-full px-4 py-3 mt-1 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700">Passwort</label>
-            <input v-model="password" type="password" required autocomplete="new-password" class="block w-full px-4 py-3 mt-1 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
-            <p class="text-xs text-gray-500 mt-1">Mindestens 8 Zeichen</p>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Passwort</label>
+            <input v-model="password" type="password" required autocomplete="new-password" class="block w-full px-4 py-3 mt-1 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Mindestens 8 Zeichen</p>
           </div>
           <div v-if="error" class="text-sm font-medium text-red-600 bg-red-50 p-3 rounded-lg">{{ error }}</div>
           <button type="submit" v-haptic class="btn-3d w-full px-4 py-3 font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition">Konto erstellen</button>
@@ -156,15 +156,15 @@ const handleResend = async () => {
         <template v-if="googleOauthEnabled">
           <div class="relative my-6">
             <div class="absolute inset-0 flex items-center">
-              <div class="w-full border-t border-gray-200"></div>
+              <div class="w-full border-t border-gray-200 dark:border-gray-600"></div>
             </div>
             <div class="relative flex justify-center text-sm">
-              <span class="px-3 bg-white text-gray-400">oder schneller registrieren</span>
+              <span class="px-3 bg-white dark:bg-gray-800 text-gray-400">oder schneller registrieren</span>
             </div>
           </div>
           <a
             href="/oauth2/authorization/google"
-            class="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
+            class="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
             <svg class="h-5 w-5" viewBox="0 0 24 24">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
               <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -175,7 +175,7 @@ const handleResend = async () => {
           </a>
         </template>
 
-        <div class="mt-6 text-center text-sm text-gray-500">
+        <div class="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
           Bereits ein Konto? <router-link to="/login" class="font-semibold text-indigo-600 hover:text-indigo-500">Hier anmelden</router-link>
         </div>
       </div>

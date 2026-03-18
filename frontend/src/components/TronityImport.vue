@@ -182,15 +182,15 @@ async function runImport() {
         <ArrowDownTrayIcon class="h-5 w-5 text-white" />
       </div>
       <div>
-        <h2 class="font-semibold text-gray-900">Tronity Import</h2>
-        <p class="text-sm text-gray-600 mt-1">
+        <h2 class="font-semibold text-gray-900 dark:text-gray-100">Tronity Import</h2>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
           Importiere deine Ladehistorie direkt aus dem Tronity XLSX-Export.
           In der Tronity-App unter <strong>Fahrten &amp; Laden - Laden - Export</strong> eine XLSX-Datei erstellen und hier hochladen.
         </p>
       </div>
     </div>
 
-    <ul class="text-sm text-gray-600 space-y-1 list-disc list-inside">
+    <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-1 list-disc list-inside">
       <li>SoC vor/nach, Kosten, GPS-Koordinaten, AC/DC - alles inklusive</li>
       <li>Duplikate werden automatisch erkannt und übersprungen</li>
       <li>Format wird automatisch erkannt - kein manuelles Mapping nötig</li>
@@ -198,28 +198,28 @@ async function runImport() {
 
     <!-- Car selector -->
     <div v-if="activeCars.length > 1" class="space-y-1.5">
-      <label class="block text-sm font-medium text-gray-700">Fahrzeug</label>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Fahrzeug</label>
       <CarSelectDropdown :cars="activeCars" v-model="selectedCarId" />
     </div>
-    <p v-if="activeCars.length === 0" class="text-sm text-gray-500 italic">
+    <p v-if="activeCars.length === 0" class="text-sm text-gray-500 dark:text-gray-400 italic">
       Kein aktives Fahrzeug gefunden.
       <router-link to="/cars" class="text-indigo-600 hover:underline font-medium">Fahrzeug anlegen</router-link>
     </p>
 
     <!-- File upload -->
     <div class="space-y-1.5">
-      <label class="block text-sm font-medium text-gray-700">XLSX-Datei</label>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">XLSX-Datei</label>
       <div
-        class="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center cursor-pointer hover:border-blue-400 transition-colors"
+        class="border-2 border-dashed border-gray-200 dark:border-gray-600 rounded-xl p-6 text-center cursor-pointer hover:border-blue-400 transition-colors"
         @click="fileInput?.click()"
         @dragover.prevent
         @drop.prevent="onDrop"
       >
         <ArrowUpTrayIcon class="w-8 h-8 text-gray-300 mx-auto mb-2" />
-        <p v-if="!fileName" class="text-sm text-gray-500">
+        <p v-if="!fileName" class="text-sm text-gray-500 dark:text-gray-400">
           Datei hierher ziehen oder <span class="text-blue-600 font-medium">auswählen</span>
         </p>
-        <p v-else class="text-sm font-medium text-gray-700">{{ fileName }}</p>
+        <p v-else class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ fileName }}</p>
         <input
           ref="fileInput"
           type="file"
@@ -229,21 +229,21 @@ async function runImport() {
         />
       </div>
       <p v-if="parseError" class="text-sm text-red-600">{{ parseError }}</p>
-      <p v-if="previewCount !== null && !parseError" class="text-sm text-gray-500">
+      <p v-if="previewCount !== null && !parseError" class="text-sm text-gray-500 dark:text-gray-400">
         {{ previewCount }} Einträge erkannt
       </p>
     </div>
 
     <!-- Result -->
     <div v-if="result" class="rounded-xl p-4"
-      :class="result.errors > 0 && result.imported === 0 ? 'bg-red-50' : 'bg-green-50'">
-      <p class="text-sm font-medium" :class="result.errors > 0 && result.imported === 0 ? 'text-red-700' : 'text-green-700'">
+      :class="result.errors > 0 && result.imported === 0 ? 'bg-red-50 dark:bg-red-900/30' : 'bg-green-50 dark:bg-green-900/30'">
+      <p class="text-sm font-medium" :class="result.errors > 0 && result.imported === 0 ? 'text-red-700 dark:text-red-300' : 'text-green-700 dark:text-green-300'">
         {{ result.imported }} importiert, {{ result.skipped }} übersprungen
         <template v-if="result.errors > 0">, {{ result.errors }} Fehler</template>
       </p>
     </div>
 
-    <p v-if="errorMsg" class="text-sm text-red-600 bg-red-50 rounded-xl p-3">{{ errorMsg }}</p>
+    <p v-if="errorMsg" class="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 rounded-xl p-3">{{ errorMsg }}</p>
 
     <!-- Button -->
     <button

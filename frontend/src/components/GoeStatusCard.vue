@@ -38,11 +38,11 @@ const hasError   = computed(() => conn.value?.carState === 5 || !!conn.value?.la
 // ── Colors ───────────────────────────────────────────────────────────────────
 
 const colorMap = {
-  gray:  { ring: 'border-gray-200',  icon: 'text-gray-400',  bg: 'bg-gray-50',   badge: 'bg-gray-100 text-gray-600'  },
-  green: { ring: 'border-green-400', icon: 'text-green-500', bg: 'bg-green-50',  badge: 'bg-green-100 text-green-700' },
-  amber: { ring: 'border-amber-400', icon: 'text-amber-500', bg: 'bg-amber-50',  badge: 'bg-amber-100 text-amber-700' },
-  blue:  { ring: 'border-blue-400',  icon: 'text-blue-500',  bg: 'bg-blue-50',   badge: 'bg-blue-100 text-blue-700'  },
-  red:   { ring: 'border-red-400',   icon: 'text-red-500',   bg: 'bg-red-50',    badge: 'bg-red-100 text-red-700'    },
+  gray:  { ring: 'border-gray-200',  icon: 'text-gray-400',  bg: 'bg-gray-50 dark:bg-gray-700',                      badge: 'bg-gray-100 text-gray-600'                        },
+  green: { ring: 'border-green-400', icon: 'text-green-500', bg: 'bg-green-50 dark:bg-green-900/30',                  badge: 'bg-green-100 text-green-700 dark:text-green-300'  },
+  amber: { ring: 'border-amber-400', icon: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/30',                  badge: 'bg-amber-100 text-amber-700 dark:text-amber-300'  },
+  blue:  { ring: 'border-blue-400',  icon: 'text-blue-500',  bg: 'bg-blue-50 dark:bg-blue-900/30',                    badge: 'bg-blue-100 text-blue-700 dark:text-blue-300'     },
+  red:   { ring: 'border-red-400',   icon: 'text-red-500',   bg: 'bg-red-50 dark:bg-red-900/30',                      badge: 'bg-red-100 text-red-700 dark:text-red-300'        },
 }
 
 const colors = computed(() => colorMap[stateConfig.value.color])
@@ -196,9 +196,9 @@ async function saveTariff() {
 
     <!-- Error details -->
     <div v-if="conn.lastPollError"
-      class="mx-4 mt-3 flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-      <ExclamationTriangleIcon class="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
-      <p class="text-xs text-red-700 leading-snug">
+      class="mx-4 mt-3 flex items-start gap-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg px-3 py-2">
+      <ExclamationTriangleIcon class="h-4 w-4 text-red-500 dark:text-red-400 mt-0.5 shrink-0" />
+      <p class="text-xs text-red-700 dark:text-red-300 leading-snug">
         <span v-if="conn.lastPollError.includes('cloud api not enabled')">
           Cloud API nicht aktiviert. Aktiviere sie in der go-e App unter
           <strong>Einstellungen → Internet → Cloud API</strong>.

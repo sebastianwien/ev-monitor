@@ -47,11 +47,11 @@ const handleResendFromLogin = async () => {
 </script>
 
 <template>
-  <div class="min-h-[80vh] flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-violet-50 px-4 py-12">
+  <div class="min-h-[80vh] flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-violet-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900 px-4 py-12">
     <div class="w-full max-w-md">
 
       <!-- Card -->
-      <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
 
         <!-- Card header: branded strip -->
         <div class="bg-gradient-to-r from-indigo-600 to-violet-600 px-8 py-6 text-white text-center">
@@ -64,7 +64,7 @@ const handleResendFromLogin = async () => {
 
         <!-- Form -->
         <div class="px-8 py-8">
-          <h2 class="text-xl font-bold text-gray-800 mb-6 text-center">Willkommen zurück</h2>
+          <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-6 text-center">Willkommen zurück</h2>
 
           <div v-if="infoMessage" class="mb-4 text-sm font-medium bg-green-50 p-3 rounded-lg border border-green-200 text-green-700">
             {{ infoMessage }}
@@ -72,15 +72,15 @@ const handleResendFromLogin = async () => {
 
           <form @submit.prevent="handleLogin" class="space-y-5">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">E-Mail oder Username</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">E-Mail oder Username</label>
               <input v-model="email" type="text" required
-                class="block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                class="block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
                 placeholder="deine@email.de" />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Passwort</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Passwort</label>
               <input v-model="password" type="password" required
-                class="block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+                class="block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
             </div>
 
             <div v-if="error" class="text-sm font-medium bg-red-50 p-3 rounded-lg border border-red-100"
@@ -107,15 +107,15 @@ const handleResendFromLogin = async () => {
           <template v-if="googleOauthEnabled">
             <div class="relative my-5">
               <div class="absolute inset-0 flex items-center">
-                <div class="w-full border-t border-gray-200"></div>
+                <div class="w-full border-t border-gray-200 dark:border-gray-600"></div>
               </div>
               <div class="relative flex justify-center text-sm">
-                <span class="px-3 bg-white text-gray-400">oder</span>
+                <span class="px-3 bg-white dark:bg-gray-800 text-gray-400">oder</span>
               </div>
             </div>
             <a
               href="/oauth2/authorization/google"
-              class="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
+              class="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
               <svg class="h-5 w-5" viewBox="0 0 24 24">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                 <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -132,7 +132,7 @@ const handleResendFromLogin = async () => {
             </router-link>
           </div>
 
-          <div class="mt-3 text-center text-sm text-gray-500">
+          <div class="mt-3 text-center text-sm text-gray-500 dark:text-gray-400">
             Noch kein Konto?
             <router-link to="/register" class="font-semibold text-indigo-600 hover:text-indigo-500">
               Hier registrieren
@@ -141,7 +141,7 @@ const handleResendFromLogin = async () => {
         </div>
 
         <!-- Trust badges -->
-        <div class="px-8 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-center gap-6 text-xs text-gray-400">
+        <div class="px-8 py-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-700 flex items-center justify-center gap-6 text-xs text-gray-400">
           <span class="flex items-center gap-1">
             <CurrencyEuroIcon class="h-3.5 w-3.5" />
             Kostenlos

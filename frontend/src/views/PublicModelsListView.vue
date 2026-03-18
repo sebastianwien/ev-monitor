@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen bg-gray-50 dark:bg-gray-950">
     <PublicNav />
 
     <main class="max-w-6xl mx-auto px-4 py-8">
@@ -31,7 +31,7 @@
               </span>
             </div>
           </div>
-          <div class="bg-white border border-gray-200 border-t-0 rounded-b-2xl px-6 py-4 sm:px-10">
+          <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 border-t-0 rounded-b-2xl px-6 py-4 sm:px-10">
             <p class="text-xs text-gray-400 leading-relaxed">
               Die Kosten pro 100 km basieren auf dem Ø-Strompreis der Community-Einträge je Modell. Preisunterschiede entstehen durch verschiedene Ladegewohnheiten - Heimladen ist deutlich günstiger als öffentliche Schnelllader.
             </p>
@@ -79,14 +79,14 @@
 
       <!-- Filters + Popular Models -->
       <div v-if="!loading && modelsWithData.length > 0" class="mb-6">
-        <h2 class="text-lg font-semibold text-gray-800 mb-3">Populäre Modelle</h2>
-        <div class="bg-white rounded-xl border border-gray-200 p-4">
+        <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">Populäre Modelle</h2>
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
           <div class="flex items-center gap-3">
-            <span class="text-sm font-medium text-gray-700">Marken:</span>
+            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Marken:</span>
             <div class="relative">
               <button
                 @click="dropdownOpen = !dropdownOpen"
-                class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
               >
                 <span class="text-sm">
                   {{ selectedBrands.length === 0 ? 'Alle Marken' : `${selectedBrands.length} ausgewählt` }}
@@ -97,11 +97,11 @@
               <!-- Dropdown -->
               <div
                 v-if="dropdownOpen"
-                class="absolute top-full left-0 mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-96 overflow-y-auto"
+                class="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg z-50 max-h-96 overflow-y-auto"
               >
                 <div class="p-2">
                   <!-- Select All / Clear All -->
-                  <div class="flex gap-2 pb-2 mb-2 border-b border-gray-100">
+                  <div class="flex gap-2 pb-2 mb-2 border-b border-gray-100 dark:border-gray-700">
                     <button
                       @click="selectAllBrands"
                       class="flex-1 text-xs px-2 py-1.5 bg-green-50 text-green-700 rounded hover:bg-green-100"
@@ -110,7 +110,7 @@
                     </button>
                     <button
                       @click="clearAllBrands"
-                      class="flex-1 text-xs px-2 py-1.5 bg-gray-50 text-gray-700 rounded hover:bg-gray-100"
+                      class="flex-1 text-xs px-2 py-1.5 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-100 dark:hover:bg-gray-600"
                     >
                       Alle abwählen
                     </button>
@@ -120,22 +120,22 @@
                   <label
                     v-for="brand in availableBrands"
                     :key="brand"
-                    class="flex items-center gap-2 px-2 py-2 hover:bg-gray-50 rounded cursor-pointer"
+                    class="flex items-center gap-2 px-2 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded cursor-pointer"
                   >
                     <input
                       type="checkbox"
                       :checked="selectedBrands.includes(brand)"
                       @change="toggleBrand(brand)"
-                      class="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                      class="w-4 h-4 text-green-600 border-gray-300 dark:border-gray-600 rounded focus:ring-green-500"
                     />
-                    <a :href="`/modelle/${brand}`" class="text-sm text-gray-700 hover:text-green-600" @click.stop>{{ brand }}</a>
+                    <a :href="`/modelle/${brand}`" class="text-sm text-gray-700 dark:text-gray-300 hover:text-green-600" @click.stop>{{ brand }}</a>
                   </label>
                 </div>
               </div>
             </div>
 
             <!-- Active Filter Count -->
-            <span v-if="selectedBrands.length > 0" class="text-sm text-gray-500">
+            <span v-if="selectedBrands.length > 0" class="text-sm text-gray-500 dark:text-gray-400">
               ({{ filteredModels.length }} von {{ modelsWithData.length }} Modellen)
             </span>
           </div>
@@ -148,24 +148,24 @@
         <div
           v-for="model in filteredModels"
           :key="`${model.brandDisplayName}/${model.modelUrlSlug}`"
-          class="model-card flex flex-col bg-white rounded-xl border p-4 transition-all"
+          class="model-card flex flex-col bg-white dark:bg-gray-800 rounded-xl border p-4 transition-all"
           :class="isSelectedForCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`)
             ? 'border-green-500 ring-2 ring-green-200'
-            : 'border-gray-200 hover:border-green-500'"
+            : 'border-gray-200 dark:border-gray-700 hover:border-green-500'"
         >
           <a :href="`/modelle/${model.brandDisplayName}/${model.modelUrlSlug}`" class="block flex-1">
             <div class="flex items-start justify-between gap-2 mb-2">
-              <h3 class="font-bold text-gray-900 text-base">{{ model.modelDisplayName }}</h3>
+              <h3 class="font-bold text-gray-900 dark:text-gray-100 text-base">{{ model.modelDisplayName }}</h3>
               <span class="text-xs text-gray-400 whitespace-nowrap mt-0.5">{{ model.logCount }} Fahrten</span>
             </div>
             <div class="grid grid-cols-[auto_1fr] items-baseline gap-x-3 gap-y-0.5 mb-3 text-sm">
               <template v-if="model.minWltpConsumptionKwhPer100km">
                 <span class="text-xs text-gray-400">WLTP</span>
-                <span class="text-gray-500 font-medium">{{ formatWltpRange(model.minWltpConsumptionKwhPer100km, model.maxWltpConsumptionKwhPer100km) }} kWh/100km</span>
+                <span class="text-gray-500 dark:text-gray-400 font-medium">{{ formatWltpRange(model.minWltpConsumptionKwhPer100km, model.maxWltpConsumptionKwhPer100km) }} kWh/100km</span>
               </template>
               <template v-if="model.avgConsumptionKwhPer100km || model.minRealConsumptionKwhPer100km">
                 <span class="text-xs text-gray-400">Real</span>
-                <span class="text-gray-700 font-medium">{{ formatRealConsumption(model.avgConsumptionKwhPer100km, model.minRealConsumptionKwhPer100km, model.maxRealConsumptionKwhPer100km) }} kWh/100km</span>
+                <span class="text-gray-700 dark:text-gray-300 font-medium">{{ formatRealConsumption(model.avgConsumptionKwhPer100km, model.minRealConsumptionKwhPer100km, model.maxRealConsumptionKwhPer100km) }} kWh/100km</span>
               </template>
               <template v-if="model.avgCostPerKwh && model.avgConsumptionKwhPer100km">
                 <span class="text-xs text-gray-400">Kosten</span>
@@ -186,7 +186,7 @@
               <ArrowRightIcon class="h-4 w-4" />
             </div>
           </a>
-          <div class="flex justify-end mt-2 pt-2 border-t border-gray-100">
+          <div class="flex justify-end mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
             <button
               @click.prevent="toggleCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`)"
               :disabled="!isSelectedForCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`) && selectedForCompare.length >= MAX_COMPARE"
@@ -195,8 +195,8 @@
               :class="isSelectedForCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`)
                 ? 'bg-green-500 text-white'
                 : selectedForCompare.length >= MAX_COMPARE
-                  ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
-                  : 'bg-gray-100 text-gray-400 hover:bg-green-100 hover:text-green-600'"
+                  ? 'bg-gray-100 dark:bg-gray-700 text-gray-300 cursor-not-allowed'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-400 hover:bg-green-100 hover:text-green-600'"
             >
               <CheckIcon v-if="isSelectedForCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`)" class="h-4 w-4" />
               <ArrowsRightLeftIcon v-else class="h-4 w-4" />
@@ -209,10 +209,10 @@
           v-for="model in mobileFillModels"
           :key="`fallback/${model.brand}/${model.model}`"
           :href="`/modelle/${model.brand}/${model.model}`"
-          class="model-card bg-white rounded-xl border border-gray-100 p-4 hover:border-green-400 hover:shadow-sm transition-all opacity-80"
+          class="model-card bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 hover:border-green-400 hover:shadow-sm transition-all opacity-80"
         >
           <div class="flex items-start justify-between mb-2">
-            <h3 class="font-semibold text-gray-700 text-base">{{ model.displayName }}</h3>
+            <h3 class="font-semibold text-gray-700 dark:text-gray-300 text-base">{{ model.displayName }}</h3>
             <TruckIcon class="h-6 w-6 text-gray-300" />
           </div>
           <div class="flex items-center gap-2 text-xs text-gray-400">
@@ -225,8 +225,8 @@
       <!-- Empty state: No models at all -->
       <div v-else-if="!loading && modelsWithData.length === 0" class="text-center py-20">
         <TruckIcon class="h-16 w-16 text-gray-300 mb-4 mx-auto" />
-        <h2 class="text-xl font-bold text-gray-800 mb-2">Noch keine Community-Daten</h2>
-        <p class="text-gray-500 mb-6">
+        <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-2">Noch keine Community-Daten</h2>
+        <p class="text-gray-500 dark:text-gray-400 mb-6">
           Sei der Erste der echte Verbrauchsdaten beisteuert und der Community hilft!
         </p>
         <a href="/register" class="inline-block bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700">
@@ -237,8 +237,8 @@
       <!-- Empty state: Filtered but no results -->
       <div v-else-if="!loading && selectedBrands.length > 0 && filteredModels.length === 0" class="text-center py-20">
         <div class="text-5xl mb-4">🔍</div>
-        <h2 class="text-xl font-bold text-gray-800 mb-2">Keine Modelle gefunden</h2>
-        <p class="text-gray-500 mb-6">
+        <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-2">Keine Modelle gefunden</h2>
+        <p class="text-gray-500 dark:text-gray-400 mb-6">
           Für die ausgewählten Marken sind aktuell keine Community-Daten verfügbar.
         </p>
         <button
@@ -251,26 +251,26 @@
 
       <!-- Brand Grid -->
       <div v-if="!loading && (availableBrands.length > 0 || brandFillItems.length > 0)" class="mb-8 mt-8">
-        <h2 class="text-lg font-semibold text-gray-800 mb-3">Alle Marken</h2>
+        <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">Alle Marken</h2>
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
           <a
             v-for="brand in availableBrands"
             :key="brand"
             :href="`/modelle/${brand}`"
-            class="brand-card bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center gap-2 hover:border-green-500 hover:shadow-sm transition-all"
+            class="brand-card bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center gap-2 hover:border-green-500 hover:shadow-sm transition-all"
           >
             <TruckIcon class="h-5 w-5 text-gray-400 flex-shrink-0" />
-            <span class="text-sm font-medium text-gray-800 truncate">{{ brand }}</span>
+            <span class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{{ brand }}</span>
           </a>
           <!-- Fallback brands without community data yet -->
           <a
             v-for="brand in brandFillItems"
             :key="`fallback/${brand}`"
             :href="`/modelle/${brand}`"
-            class="brand-card bg-white rounded-xl border border-gray-100 px-4 py-3 flex items-center gap-2 hover:border-green-400 hover:shadow-sm transition-all opacity-70"
+            class="brand-card bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center gap-2 hover:border-green-400 hover:shadow-sm transition-all opacity-70"
           >
             <TruckIcon class="h-5 w-5 text-gray-300 flex-shrink-0" />
-            <span class="text-sm font-medium text-gray-500 truncate">{{ brand }}</span>
+            <span class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">{{ brand }}</span>
           </a>
         </div>
       </div>
@@ -324,13 +324,13 @@
       </Transition>
     </main>
 
-    <footer class="max-w-6xl mx-auto px-4 py-8 mt-6 border-t border-gray-200 text-sm text-gray-500 text-center">
+    <footer class="max-w-6xl mx-auto px-4 py-8 mt-6 border-t border-gray-200 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400 text-center">
       © {{ currentYear }} EV Monitor ·
-      <a href="/" class="hover:text-gray-700">{{ isAuthenticated ? 'Dashboard' : 'Startseite' }}</a>
+      <a href="/" class="hover:text-gray-700 dark:hover:text-gray-200">{{ isAuthenticated ? 'Dashboard' : 'Startseite' }}</a>
       <template v-if="!isAuthenticated">
         ·
-        <a href="/register" class="hover:text-gray-700">Kostenlos registrieren</a> ·
-        <a href="/login" class="hover:text-gray-700">Anmelden</a>
+        <a href="/register" class="hover:text-gray-700 dark:hover:text-gray-200">Kostenlos registrieren</a> ·
+        <a href="/login" class="hover:text-gray-700 dark:hover:text-gray-200">Anmelden</a>
       </template>
     </footer>
   </div>

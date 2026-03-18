@@ -13,11 +13,11 @@ const expanded = ref(false)
 </script>
 
 <template>
-  <div class="border border-gray-200 rounded-lg overflow-hidden">
+  <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
     <button
       type="button"
       @click="expanded = !expanded"
-      class="w-full flex items-center justify-between px-3 py-2.5 text-sm text-gray-500 hover:bg-gray-50 transition text-left">
+      class="w-full flex items-center justify-between px-3 py-2.5 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition text-left">
       <span class="flex items-center gap-1.5">
         <InformationCircleIcon class="w-4 h-4 text-indigo-400 flex-shrink-0" />
         Wie berechnen wir deinen Verbrauch?
@@ -25,7 +25,7 @@ const expanded = ref(false)
       <ChevronRightIcon class="w-4 h-4 flex-shrink-0 transition-transform duration-200"
         :class="expanded ? 'rotate-90' : ''" />
     </button>
-    <div v-if="expanded" class="px-3 pb-3 text-sm text-gray-600 space-y-2 border-t border-gray-100 pt-2.5">
+    <div v-if="expanded" class="px-3 pb-3 text-sm text-gray-600 dark:text-gray-400 space-y-2 border-t border-gray-100 dark:border-gray-700 pt-2.5">
       <p>
         Der Verbrauch wird aus <strong>geladenen kWh</strong>, <strong>Ladezustand (SoC)</strong> und
         <strong>Kilometerstand</strong> zweier aufeinanderfolgender Ladevorgänge berechnet —

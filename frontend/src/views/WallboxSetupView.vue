@@ -131,9 +131,9 @@ onMounted(load)
     </div>
 
     <!-- Beta Disclaimer -->
-    <div class="flex items-start gap-3 bg-blue-50 border border-blue-200 rounded-xl p-4 mb-8">
-      <ExclamationTriangleIcon class="h-5 w-5 text-blue-500 mt-0.5 shrink-0" />
-      <div class="text-sm text-blue-800">
+    <div class="flex items-start gap-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-xl p-4 mb-8">
+      <ExclamationTriangleIcon class="h-5 w-5 text-blue-500 dark:text-blue-400 mt-0.5 shrink-0" />
+      <div class="text-sm text-blue-800 dark:text-blue-200">
         <p class="font-semibold mb-1">Beta-Funktion</p>
         <p>
           Die Wallbox-Integration befindet sich im Beta-Stadium. Sie ist primär dazu gedacht,
@@ -144,13 +144,13 @@ onMounted(load)
     </div>
 
     <!-- Alerts -->
-    <div v-if="success" class="flex items-start gap-2 bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-      <CheckCircleIcon class="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
-      <p class="text-sm text-green-800">{{ success }}</p>
+    <div v-if="success" class="flex items-start gap-2 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg p-4 mb-6">
+      <CheckCircleIcon class="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5 shrink-0" />
+      <p class="text-sm text-green-800 dark:text-green-200">{{ success }}</p>
     </div>
-    <div v-if="error" class="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-      <ExclamationTriangleIcon class="h-5 w-5 text-red-500 mt-0.5 shrink-0" />
-      <p class="text-sm text-red-800">{{ error }}</p>
+    <div v-if="error" class="flex items-start gap-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg p-4 mb-6">
+      <ExclamationTriangleIcon class="h-5 w-5 text-red-500 dark:text-red-400 mt-0.5 shrink-0" />
+      <p class="text-sm text-red-800 dark:text-red-200">{{ error }}</p>
     </div>
 
     <!-- Loading -->
@@ -282,16 +282,16 @@ onMounted(load)
       </div>
 
       <!-- Setup Instructions -->
-      <div class="bg-amber-50 border border-amber-200 rounded-xl p-5">
-        <h3 class="font-semibold text-amber-900 mb-3">Setup-Anleitung (go-e Charger)</h3>
-        <ol class="text-sm text-amber-800 space-y-2 list-decimal list-inside">
+      <div class="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-xl p-5">
+        <h3 class="font-semibold text-amber-900 dark:text-amber-200 mb-3">Setup-Anleitung (go-e Charger)</h3>
+        <ol class="text-sm text-amber-800 dark:text-amber-200 space-y-2 list-decimal list-inside">
           <li>go-e App öffnen → deine Wallbox auswählen</li>
           <li>Einstellungen → OCPP → OCPP aktivieren</li>
           <li>Server URL: <strong>die oben angezeigte OCPP-URL eintragen</strong></li>
           <li>ChargePoint-ID: deine Seriennummer (gleiche wie oben eingegeben)</li>
           <li>Speichern — ab jetzt werden Ladevorgänge automatisch importiert</li>
         </ol>
-        <p class="text-xs text-amber-700 mt-3">
+        <p class="text-xs text-amber-700 dark:text-amber-300 mt-3">
           Andere OCPP-fähige Wallboxen (Easee, KEBA, Wallbe, Heidelberg) funktionieren analog.
         </p>
       </div>

@@ -196,7 +196,7 @@ const close = () => {
     class="fixed inset-0 flex items-center justify-center z-50 p-4"
     style="backdrop-filter: blur(8px); background-color: rgba(0, 0, 0, 0.3);"
     @click.self="close">
-    <div class="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto" @click.stop>
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto" @click.stop>
       <!-- Header -->
       <div class="sticky top-0 bg-indigo-600 text-white px-6 py-4 rounded-t-xl flex justify-between items-center">
         <h2 class="text-2xl font-bold">Sprit-Monitor Import</h2>
@@ -211,7 +211,7 @@ const close = () => {
 
         <!-- Step 1: Token Input -->
         <div v-if="importStep === 'token'">
-          <p class="text-gray-700 mb-4">
+          <p class="text-gray-700 dark:text-gray-300 mb-4">
             Gib deinen <strong>Sprit-Monitor API Token</strong> ein um deine Ladevorgänge zu importieren.
             Der Token wird nach dem Import sofort wieder verworfen. Er wird <strong>nicht gespeichert</strong>!
           </p>
@@ -219,8 +219,8 @@ const close = () => {
             v-model="token"
             type="text"
             placeholder="z.B. abc123xyz..."
-            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 mb-2" />
-          <p class="text-sm text-gray-500 mb-4">
+            class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 mb-2" />
+          <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
             Den Token findest du auf Sprit-Monitor unter
             <a href="https://www.spritmonitor.de/de/mein_account/passwort_aendern.html" target="_blank" rel="noopener noreferrer"
               class="text-indigo-600 underline hover:text-indigo-800">Mein Konto → Passwort ändern</a>.
@@ -237,12 +237,12 @@ const close = () => {
           </button>
 
           <!-- Danger Zone: Delete Imports -->
-          <div class="mt-8 pt-6 border-t border-gray-200">
+          <div class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
             <div class="flex items-center gap-2 mb-2">
               <TrashIcon class="w-5 h-5 text-red-600" />
               <h3 class="text-lg font-semibold text-red-600">Bisherige Importe löschen</h3>
             </div>
-            <p class="text-sm text-gray-600 mb-3">
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
               Wenn du alle bisherigen Sprit-Monitor Importe löschen möchtest, klicke hier.
               <strong>Manuell eingetragene Ladevorgänge werden NICHT gelöscht.</strong>
             </p>
@@ -256,21 +256,21 @@ const close = () => {
 
         <!-- Step 2: Vehicle Mapping -->
         <div v-if="importStep === 'mapping'">
-          <p class="text-gray-700 mb-4">
+          <p class="text-gray-700 dark:text-gray-300 mb-4">
             Wir haben <strong>{{ spritMonitorVehicles.length }} Elektrofahrzeuge</strong> gefunden!
             Ordne sie deinen EV Monitor Autos zu oder lege neue an.
           </p>
 
           <div class="space-y-4">
-            <div v-for="vehicle in spritMonitorVehicles" :key="vehicle.id" class="border border-gray-300 rounded-lg p-4 bg-gray-50">
-              <h3 class="font-bold text-lg text-gray-800 mb-2">
+            <div v-for="vehicle in spritMonitorVehicles" :key="vehicle.id" class="border border-gray-300 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-900">
+              <h3 class="font-bold text-lg text-gray-800 dark:text-gray-200 mb-2">
                 {{ vehicle.make }} {{ vehicle.model }}
               </h3>
 
-              <label class="block text-sm font-medium text-gray-700 mb-2">Zuordnung:</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Zuordnung:</label>
               <select
                 v-model="vehicleMapping[vehicle.id]"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg mb-3 focus:ring-2 focus:ring-indigo-500">
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg mb-3 focus:ring-2 focus:ring-indigo-500">
                 <option value="">-- Bitte wählen --</option>
                 <option value="new">➕ Neues Auto anlegen</option>
                 <option v-for="car in myCars" :key="car.id" :value="car.id">
@@ -279,14 +279,14 @@ const close = () => {
               </select>
 
               <!-- New Car Form -->
-              <div v-if="vehicleMapping[vehicle.id] === 'new'" class="mt-3 p-3 bg-white rounded-lg border border-indigo-200 space-y-2">
-                <p class="text-sm text-gray-600 mb-2">Neues Auto anlegen:</p>
+              <div v-if="vehicleMapping[vehicle.id] === 'new'" class="mt-3 p-3 bg-white dark:bg-gray-800 rounded-lg border border-indigo-200 space-y-2">
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Neues Auto anlegen:</p>
 
                 <!-- Brand Selection -->
                 <select
                   :value="newCarData[vehicle.id]?.brand || ''"
                   @change="(e) => onBrandChange(vehicle.id, (e.target as HTMLSelectElement).value)"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-indigo-500">
                   <option value="">-- Marke wählen --</option>
                   <option v-for="brand in brands" :key="brand.value" :value="brand.value">
                     {{ brand.label }}
@@ -297,7 +297,7 @@ const close = () => {
                 <select
                   v-model="newCarData[vehicle.id].model"
                   :disabled="!newCarData[vehicle.id]?.brand"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100">
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100 dark:disabled:bg-gray-600">
                   <option value="">{{ newCarData[vehicle.id]?.brand ? '-- Modell wählen --' : 'Erst Marke wählen' }}</option>
                   <option v-for="model in newCarData[vehicle.id]?.availableModels || []" :key="model.value" :value="model.value">
                     {{ model.label }}
@@ -311,7 +311,7 @@ const close = () => {
                   placeholder="Baujahr (z.B. 2023)"
                   min="2000"
                   max="2030"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" />
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-indigo-500" />
               </div>
             </div>
           </div>
@@ -331,11 +331,11 @@ const close = () => {
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
           </div>
-          <h3 class="text-xl font-bold text-gray-800 mb-2">Importiere Daten...</h3>
-          <p class="text-gray-600">
+          <h3 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-2">Importiere Daten...</h3>
+          <p class="text-gray-600 dark:text-gray-400">
             Fahrzeug {{ currentVehicle }} / {{ totalVehicles }}
           </p>
-          <div class="w-full bg-gray-200 rounded-full h-3 mt-4">
+          <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mt-4">
             <div
               class="bg-indigo-600 h-3 rounded-full transition-all duration-300"
               :style="{ width: `${(currentVehicle / totalVehicles) * 100}%` }">
@@ -346,8 +346,8 @@ const close = () => {
         <!-- Step 4: Done -->
         <div v-if="importStep === 'done'" class="text-center">
           <div class="text-6xl mb-4">✅</div>
-          <h3 class="text-2xl font-bold text-gray-800 mb-4">Import abgeschlossen!</h3>
-          <div class="text-left bg-gray-50 rounded-lg p-4 mb-4">
+          <h3 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">Import abgeschlossen!</h3>
+          <div class="text-left bg-gray-50 dark:bg-gray-900 rounded-lg p-4 mb-4">
             <p class="text-lg mb-2">
               <strong class="text-green-600">{{ totalImported }}</strong> Ladevorgänge importiert
             </p>
@@ -359,7 +359,7 @@ const close = () => {
             </p>
             <div v-if="totalErrors.length > 0" class="mt-3">
               <p class="text-red-600 font-semibold mb-2">Fehler:</p>
-              <ul class="list-disc list-inside text-sm text-gray-700">
+              <ul class="list-disc list-inside text-sm text-gray-700 dark:text-gray-300">
                 <li v-for="(err, idx) in totalErrors" :key="idx">{{ err }}</li>
               </ul>
             </div>
@@ -379,12 +379,12 @@ const close = () => {
       class="fixed inset-0 flex items-center justify-center z-[60] p-4"
       style="backdrop-filter: blur(12px); background-color: rgba(0, 0, 0, 0.5);"
       @click.self="showDeleteConfirm = false">
-      <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6" @click.stop>
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6" @click.stop>
         <div class="flex items-center gap-2 mb-4">
           <ExclamationTriangleIcon class="w-8 h-8 text-red-600" />
           <h3 class="text-2xl font-bold text-red-600">Alle Importe löschen?</h3>
         </div>
-        <p class="text-gray-700 mb-4">
+        <p class="text-gray-700 dark:text-gray-300 mb-4">
           Du bist dabei, <strong>ALLE bisherigen Sprit-Monitor Importe</strong> zu löschen.
           Dieser Vorgang kann <strong>nicht rückgängig gemacht werden</strong>.
         </p>
@@ -395,7 +395,7 @@ const close = () => {
           {{ deleteError }}
         </div>
 
-        <p class="text-sm text-gray-700 mb-4">
+        <p class="text-sm text-gray-700 dark:text-gray-300 mb-4">
           Ich habe verstanden, dass all meine bisher importierten Sprit-Monitor Ladevorgänge gelöscht werden.
         </p>
 
@@ -403,7 +403,7 @@ const close = () => {
           <button
             @click="showDeleteConfirm = false"
             :disabled="deleteLoading"
-            class="flex-1 px-4 py-3 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 transition disabled:opacity-50">
+            class="flex-1 px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-semibold rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition disabled:opacity-50">
             Abbrechen
           </button>
           <button

@@ -180,48 +180,48 @@ function formatDate(d: string) {
         </svg>
       </div>
       <div>
-        <h3 class="font-semibold text-gray-900">Tesla Synchronisation einrichten</h3>
-        <p class="text-xs text-gray-500">Via offizieller Tesla Fleet API</p>
+        <h3 class="font-semibold text-gray-900 dark:text-gray-100">Tesla Synchronisation einrichten</h3>
+        <p class="text-xs text-gray-500 dark:text-gray-400">Via offizieller Tesla Fleet API</p>
       </div>
     </div>
 
-    <div v-if="success" class="flex items-start gap-2 bg-green-50 border border-green-200 rounded-lg p-3">
-      <CheckCircleIcon class="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
-      <p class="text-sm text-green-800">{{ success }}</p>
+    <div v-if="success" class="flex items-start gap-2 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg p-3">
+      <CheckCircleIcon class="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5 shrink-0" />
+      <p class="text-sm text-green-800 dark:text-green-200">{{ success }}</p>
     </div>
-    <div v-if="error" class="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg p-3">
-      <ExclamationTriangleIcon class="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
-      <p class="text-sm text-red-800">{{ error }}</p>
+    <div v-if="error" class="flex items-start gap-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg p-3">
+      <ExclamationTriangleIcon class="h-4 w-4 text-red-500 dark:text-red-400 mt-0.5 shrink-0" />
+      <p class="text-sm text-red-800 dark:text-red-200">{{ error }}</p>
     </div>
 
-    <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800 space-y-1">
+    <div class="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-3 text-sm text-blue-800 dark:text-blue-200 space-y-1">
       <p class="font-medium">Was synchronisiert wird:</p>
-      <ul class="list-disc list-inside space-y-0.5 text-blue-700">
+      <ul class="list-disc list-inside space-y-0.5 text-blue-700 dark:text-blue-300">
         <li>Supercharger-Sessions (historische einmalig + zukünftige periodisch)</li>
         <li>Künftige Ladevorgänge (mit Duplikats-Erkennung für Datenqualität)</li>
         <li>Energie in kWh, Dauer, Standort</li>
         <li>Kosten (falls Supercharger mit Abrechnung)</li>
         <li>Kilometerstand (ab jetzt, für zukünftige Sessions)</li>
       </ul>
-      <p class="text-xs text-blue-600 mt-2">Bisherige Sessions enthalten keinen km-Stand — die Tesla API liefert diesen nur bei aktiven Ladevorgängen.</p>
+      <p class="text-xs text-blue-600 dark:text-blue-400 mt-2">Bisherige Sessions enthalten keinen km-Stand - die Tesla API liefert diesen nur bei aktiven Ladevorgängen.</p>
     </div>
 
     <template v-if="!status.connected">
-      <p class="text-sm text-gray-600">
+      <p class="text-sm text-gray-600 dark:text-gray-400">
         Verbinde deinen Tesla Account über das offizielle OAuth2-Verfahren.
         Wir importieren dann deine bisherigen Supercharger-Sessions und prüfen täglich auf neue.
       </p>
       <div v-if="cars.length > 1">
-        <label class="block text-xs font-medium text-gray-600 mb-1">Welches Fahrzeug ist dein Tesla?</label>
+        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Welches Fahrzeug ist dein Tesla?</label>
         <CarSelectDropdown :cars="cars" v-model="selectedCarId" />
       </div>
-      <p v-if="carsLoaded && cars.length === 0" class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2">
+      <p v-if="carsLoaded && cars.length === 0" class="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg p-2">
         Bitte zuerst ein Fahrzeug unter Fahrzeuge anlegen.
       </p>
       <button
         @click="handleConnect"
         :disabled="isLoading || !fleetApiConfigured || cars.length === 0"
-        class="btn-3d w-full flex items-center justify-center gap-2 bg-gray-900 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-800 transition disabled:opacity-50"
+        class="btn-3d w-full flex items-center justify-center gap-2 bg-gray-900 dark:bg-gray-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-500 transition disabled:opacity-50"
       >
         <ArrowTopRightOnSquareIcon class="h-4 w-4" />
         {{ isLoading ? 'Weiterleitung...' : 'Mit Tesla verbinden' }}
@@ -229,11 +229,11 @@ function formatDate(d: string) {
     </template>
 
     <template v-else>
-      <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+      <div class="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg p-3">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-semibold text-green-800">Verbunden: {{ status.vehicleName || 'Tesla' }}</p>
-            <p v-if="status.lastSyncAt" class="text-xs text-gray-500 mt-0.5">Letzter Sync: {{ formatDate(status.lastSyncAt) }}</p>
+            <p class="text-sm font-semibold text-green-800 dark:text-green-200">Verbunden: {{ status.vehicleName || 'Tesla' }}</p>
+            <p v-if="status.lastSyncAt" class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Letzter Sync: {{ formatDate(status.lastSyncAt) }}</p>
           </div>
           <button
             @click="handleDisconnect"
@@ -244,28 +244,28 @@ function formatDate(d: string) {
           </button>
         </div>
       </div>
-      <div v-if="syncResult" class="bg-gray-50 rounded-lg p-3 text-sm">
-        <p class="font-medium text-gray-800">{{ syncResult.message }}</p>
-        <p v-if="syncResult.logsSkipped > 0" class="text-gray-500 text-xs mt-1">{{ syncResult.logsSkipped }} übersprungen</p>
+      <div v-if="syncResult" class="bg-gray-50 dark:bg-gray-900 rounded-lg p-3 text-sm">
+        <p class="font-medium text-gray-800 dark:text-gray-200">{{ syncResult.message }}</p>
+        <p v-if="syncResult.logsSkipped > 0" class="text-gray-500 dark:text-gray-400 text-xs mt-1">{{ syncResult.logsSkipped }} übersprungen</p>
       </div>
-      <div v-if="status.geocodingInProgress" class="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg p-3">
-        <ArrowPathIcon class="h-4 w-4 text-blue-500 animate-spin shrink-0" />
-        <p class="text-sm text-blue-800">Ladestandorte werden aufgelöst…</p>
+      <div v-if="status.geocodingInProgress" class="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-3">
+        <ArrowPathIcon class="h-4 w-4 text-blue-500 dark:text-blue-400 animate-spin shrink-0" />
+        <p class="text-sm text-blue-800 dark:text-blue-200">Ladestandorte werden aufgelöst…</p>
       </div>
       <button
         @click="handleSyncHistory"
         :disabled="isLoading"
-        class="btn-3d w-full flex items-center justify-center gap-2 bg-gray-900 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-800 transition disabled:opacity-50"
+        class="btn-3d w-full flex items-center justify-center gap-2 bg-gray-900 dark:bg-gray-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-500 transition disabled:opacity-50"
       >
         <ArrowPathIcon class="h-4 w-4" :class="{ 'animate-spin': isLoading }" />
         {{ isLoading ? 'Importiere...' : 'Ladehistorie jetzt importieren' }}
       </button>
-      <p class="text-xs text-gray-400 text-center">Täglich automatischer Import aktiviert</p>
+      <p class="text-xs text-gray-400 dark:text-gray-500 text-center">Täglich automatischer Import aktiviert</p>
 
       <!-- Sleep-Window Setting -->
-      <div class="border-t border-gray-100 pt-4 space-y-2">
-        <p class="text-xs font-medium text-gray-600">Echtzeit-Erkennung</p>
-        <p class="text-xs text-gray-500">
+      <div class="border-t border-gray-100 dark:border-gray-700 pt-4 space-y-2">
+        <p class="text-xs font-medium text-gray-600 dark:text-gray-400">Echtzeit-Erkennung</p>
+        <p class="text-xs text-gray-500 dark:text-gray-400">
           Nach einer Fahrt prüfen wir <span class="font-medium">{{ status.suspendAfterIdleMinutes }} Minuten</span> lang,
           ob du das Auto eingesteckt hast. Danach lassen wir den Tesla schlafen.
         </p>
@@ -278,16 +278,16 @@ function formatDate(d: string) {
             step="5"
             class="flex-1 accent-gray-900"
           />
-          <span class="text-sm font-medium text-gray-700 w-16 text-right">{{ suspendMinutesInput }} Min</span>
+          <span class="text-sm font-medium text-gray-700 dark:text-gray-300 w-16 text-right">{{ suspendMinutesInput }} Min</span>
           <button
             @click="handleUpdateSettings"
             :disabled="suspendMinutesInput === status.suspendAfterIdleMinutes"
-            class="text-xs px-2.5 py-1 rounded-lg bg-gray-900 text-white disabled:opacity-40 transition"
+            class="text-xs px-2.5 py-1 rounded-lg bg-gray-900 dark:bg-gray-600 text-white disabled:opacity-40 transition"
           >
             {{ settingsSaved ? 'Gespeichert' : 'Speichern' }}
           </button>
         </div>
-        <p class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2">
+        <p class="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg p-2">
           Längere Fenster erkennen Ladesessions zuverlässiger, verhindern aber auch dass der Tesla schläft.
           Kürzere Fenster schonen die Batterie, können aber Sessions verpassen.
           <span class="font-medium">15 Min</span> ist ein guter Kompromiss.
@@ -295,7 +295,7 @@ function formatDate(d: string) {
       </div>
 
       <!-- Undo last import -->
-      <div v-if="lastImportedIds.length > 0" class="border-t border-gray-100 pt-4">
+      <div v-if="lastImportedIds.length > 0" class="border-t border-gray-100 dark:border-gray-700 pt-4">
         <button
           @click="handleUndoLastImport"
           :disabled="isLoading"
@@ -307,7 +307,7 @@ function formatDate(d: string) {
       </div>
 
       <!-- Delete all imports -->
-      <div class="border-t border-gray-100 pt-4">
+      <div class="border-t border-gray-100 dark:border-gray-700 pt-4">
         <button
           @click="showDeleteAllConfirm = true"
           class="w-full text-sm px-4 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition"
@@ -325,16 +325,16 @@ function formatDate(d: string) {
     style="backdrop-filter: blur(8px); background-color: rgba(0, 0, 0, 0.3);"
     @click.self="showDeleteAllConfirm = false"
   >
-    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4" @click.stop>
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4" @click.stop>
       <div class="flex flex-col items-center gap-2 text-center">
         <ExclamationTriangleIcon class="w-8 h-8 text-red-600" />
         <h3 class="text-xl font-bold text-red-600">Alle Tesla-Importe löschen?</h3>
       </div>
-      <p class="text-gray-700 text-sm">
+      <p class="text-gray-700 dark:text-gray-300 text-sm">
         Du bist dabei, <strong>ALLE über Tesla Fleet API importierten Ladevorgänge</strong> zu löschen.
         Manuell angelegte Logs bleiben erhalten. Dieser Vorgang kann <strong>nicht rückgängig gemacht werden</strong>.
       </p>
-      <div v-if="deleteAllError" class="p-3 bg-red-100 text-red-800 rounded-lg border border-red-300 text-sm">
+      <div v-if="deleteAllError" class="p-3 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 rounded-lg border border-red-300 dark:border-red-700 text-sm">
         <ExclamationTriangleIcon class="w-4 h-4 inline-block mr-1" />
         {{ deleteAllError }}
       </div>
@@ -342,7 +342,7 @@ function formatDate(d: string) {
         <button
           @click="showDeleteAllConfirm = false"
           :disabled="deleteAllLoading"
-          class="flex-1 px-4 py-3 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 transition disabled:opacity-50"
+          class="flex-1 px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-semibold rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition disabled:opacity-50"
         >
           Abbrechen
         </button>

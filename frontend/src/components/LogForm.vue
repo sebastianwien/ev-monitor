@@ -229,14 +229,14 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="md:max-w-2xl md:mx-auto p-4 md:p-6 bg-white md:rounded-xl md:shadow-lg md:mt-8">
-    <h1 class="text-xl md:text-3xl font-bold text-gray-800 mb-4 md:mb-6 text-center">Ladevorgang erfassen</h1>
+  <div class="md:max-w-2xl md:mx-auto p-4 md:p-6 bg-white dark:bg-gray-800 md:rounded-xl md:shadow-lg md:mt-8">
+    <h1 class="text-xl md:text-3xl font-bold text-gray-800 dark:text-gray-200 mb-4 md:mb-6 text-center">Ladevorgang erfassen</h1>
 
     <!-- No cars yet -->
     <div v-if="hasCars === false" class="text-center py-10 space-y-4">
       <TruckIcon class="h-14 w-14 mx-auto text-gray-300" />
-      <p class="text-gray-600 font-medium">Noch kein Fahrzeug hinterlegt</p>
-      <p class="text-sm text-gray-400">Lege zuerst ein Fahrzeug an, bevor du einen Ladevorgang erfasst.</p>
+      <p class="text-gray-600 dark:text-gray-400 font-medium">Noch kein Fahrzeug hinterlegt</p>
+      <p class="text-sm text-gray-400 dark:text-gray-500">Lege zuerst ein Fahrzeug an, bevor du einen Ladevorgang erfasst.</p>
       <router-link
         to="/cars"
         class="inline-flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-indigo-700 transition"
@@ -254,13 +254,13 @@ onMounted(async () => {
 
       <!-- Mode Toggle: Photo OCR vs Manual -->
       <div class="flex justify-center mb-4">
-        <div class="inline-flex rounded-full border border-gray-200 bg-gray-100 p-0.5">
+        <div class="inline-flex rounded-full border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-700 p-0.5">
           <button type="button" @click="showOcrCapture = true"
-            :class="['flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition', showOcrCapture ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
+            :class="['flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition', showOcrCapture ? 'bg-white dark:bg-gray-600 text-indigo-700 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']">
             <CameraIcon class="h-4 w-4" />Foto
           </button>
           <button type="button" @click="showOcrCapture = false"
-            :class="['flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition', !showOcrCapture ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
+            :class="['flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition', !showOcrCapture ? 'bg-white dark:bg-gray-600 text-indigo-700 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']">
             <PencilSquareIcon class="h-4 w-4" />Manuell
           </button>
         </div>
@@ -285,7 +285,7 @@ onMounted(async () => {
             :class="['w-full bg-indigo-600 text-white p-3 rounded-md btn-3d transition', !isFormValid ? 'opacity-40 cursor-not-allowed' : 'hover:bg-indigo-700', error ? 'ring-2 ring-red-400 ring-offset-2 animate-shake' : '']">
             ⚡ Ladevorgang speichern
           </button>
-          <p class="text-xs text-gray-400 text-center mt-2">
+          <p class="text-xs text-gray-400 dark:text-gray-500 text-center mt-2">
             📍 Der Standort hilft uns, die Außentemperatur beim Laden zu ermitteln — anonymisiert auf ~5km.
           </p>
           <ConsumptionInfoBox :min-trips="5" class="mt-4" />
@@ -301,16 +301,16 @@ onMounted(async () => {
 
         <!-- Last 5 logs -->
         <div class="mt-10">
-          <h2 class="text-xl font-semibold mb-4 text-gray-800">Letzte 5 Ladevorgänge</h2>
-          <div v-if="!selectedCarId" class="text-gray-500 text-center">Bitte wähle ein Fahrzeug aus um Ladevorgänge anzuzeigen.</div>
-          <div v-else-if="logs.length === 0" class="text-gray-500 text-center">Noch keine Ladevorgänge für dieses Fahrzeug erfasst.</div>
+          <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">Letzte 5 Ladevorgänge</h2>
+          <div v-if="!selectedCarId" class="text-gray-500 dark:text-gray-400 text-center">Bitte wähle ein Fahrzeug aus um Ladevorgänge anzuzeigen.</div>
+          <div v-else-if="logs.length === 0" class="text-gray-500 dark:text-gray-400 text-center">Noch keine Ladevorgänge für dieses Fahrzeug erfasst.</div>
           <ul v-else class="space-y-3">
-            <li v-for="log in logs" :key="log.id" class="p-3 bg-gray-50 border border-gray-200 rounded-lg shadow-sm hover:shadow transition space-y-2">
+            <li v-for="log in logs" :key="log.id" class="p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:shadow transition space-y-2">
               <div class="flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2 min-w-0">
                   <BoltIcon class="w-4 h-4 text-indigo-600 flex-shrink-0" />
                   <span class="font-semibold text-indigo-700 whitespace-nowrap">{{ log.kwhCharged }} kWh</span>
-                  <span class="text-xs text-gray-400 whitespace-nowrap">{{ new Date(log.loggedAt).toLocaleDateString('de-DE') }}</span>
+                  <span class="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{{ new Date(log.loggedAt).toLocaleDateString('de-DE') }}</span>
                 </div>
                 <div class="flex items-center gap-1.5 flex-shrink-0">
                   <span v-if="log.temperatureCelsius != null"
@@ -321,32 +321,32 @@ onMounted(async () => {
                     €{{ (log.costEur / log.kwhCharged).toFixed(2) }}/kWh
                   </span>
                   <button type="button" @click="editingLog = log"
-                    class="p-1 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded transition" title="Ladevorgang bearbeiten">
+                    class="p-1 text-gray-400 dark:text-gray-500 hover:text-blue-500 hover:bg-blue-50 rounded transition" title="Ladevorgang bearbeiten">
                     <PencilSquareIcon class="w-4 h-4" />
                   </button>
                   <button type="button" @click="deleteLog(log.id)"
                     class="p-1 rounded transition"
-                    :class="pendingDeleteId === log.id ? 'text-red-600 bg-red-50 ring-1 ring-red-300' : 'text-gray-400 hover:text-red-500 hover:bg-red-50'"
+                    :class="pendingDeleteId === log.id ? 'text-red-600 bg-red-50 ring-1 ring-red-300' : 'text-gray-400 dark:text-gray-500 hover:text-red-500 hover:bg-red-50'"
                     :title="pendingDeleteId === log.id ? 'Nochmal klicken zum Bestätigen' : 'Ladevorgang löschen'">
                     <TrashIcon class="w-4 h-4" />
                   </button>
                 </div>
               </div>
               <div class="flex flex-wrap gap-1.5">
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">€{{ log.costEur }}</span>
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">€{{ log.costEur }}</span>
                 <span class="inline-flex min-[475px]:hidden items-center gap-1 px-2 py-0.5 bg-indigo-50 border border-indigo-200 rounded-full text-xs text-indigo-700 font-medium whitespace-nowrap">
                   €{{ (log.costEur / log.kwhCharged).toFixed(2) }}/kWh
                 </span>
-                <span v-if="log.chargeDurationMinutes" class="hidden min-[475px]:inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
+                <span v-if="log.chargeDurationMinutes" class="hidden min-[475px]:inline-flex items-center gap-1 px-2 py-0.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">
                   <ClockIcon class="w-3 h-3" />{{ log.chargeDurationMinutes }}min
                 </span>
-                <span v-if="log.odometerKm" class="hidden min-[475px]:inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
+                <span v-if="log.odometerKm" class="hidden min-[475px]:inline-flex items-center gap-1 px-2 py-0.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">
                   <TruckIcon class="w-3 h-3" />{{ log.odometerKm.toLocaleString('de-DE') }} km
                 </span>
-                <span v-if="log.socAfterChargePercent !== null" class="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
+                <span v-if="log.socAfterChargePercent !== null" class="inline-flex items-center gap-1 px-2 py-0.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">
                   <Battery0Icon class="w-3 h-3" />{{ log.socAfterChargePercent }}%
                 </span>
-                <span v-if="log.maxChargingPowerKw" class="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
+                <span v-if="log.maxChargingPowerKw" class="inline-flex items-center gap-1 px-2 py-0.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">
                   <BoltIcon class="w-3 h-3" />{{ log.maxChargingPowerKw }} kW
                 </span>
                 <span v-if="log.chargingType && log.chargingType !== 'UNKNOWN'"

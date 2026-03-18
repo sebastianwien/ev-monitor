@@ -1,19 +1,19 @@
 <template>
   <div class="fixed inset-0 z-50 flex items-start justify-center pt-12 px-4 pb-4 bg-black/50">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg flex flex-col max-h-[90vh]">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-lg flex flex-col max-h-[90vh]">
       <!-- Header -->
-      <div class="flex items-center justify-between p-5 border-b border-gray-100">
-        <h2 class="text-lg font-semibold text-gray-900">Ladevorgänge importieren</h2>
-        <button @click="$emit('close')" class="text-gray-400 hover:text-gray-600 transition-colors">
+      <div class="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-700">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Ladevorgänge importieren</h2>
+        <button @click="$emit('close')" class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
           <XMarkIcon class="w-5 h-5" />
         </button>
       </div>
 
       <div class="overflow-y-auto p-5 space-y-5">
         <!-- Info -->
-        <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-2.5">
-          <ExclamationTriangleIcon class="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-          <p class="text-sm text-amber-800">
+        <div class="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-xl p-3 flex gap-2.5">
+          <ExclamationTriangleIcon class="w-4 h-4 text-amber-500 dark:text-amber-400 shrink-0 mt-0.5" />
+          <p class="text-sm text-amber-800 dark:text-amber-200">
             Die Datei muss dem <strong>EV Monitor Format</strong> entsprechen - kein direkter Export aus anderen Apps. Kopiere zuerst die Vorlage unten und befülle sie mit deinen Daten.
           </p>
         </div>
@@ -27,14 +27,14 @@
             :class="['btn-3d text-sm px-4 py-1.5 rounded-lg font-medium transition-colors',
               selectedFormat === fmt
                 ? 'active bg-green-600 text-white'
-                : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-100']"
+                : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600']"
           >{{ fmt.toUpperCase() }}</button>
         </div>
 
         <!-- Format spec -->
-        <div class="bg-gray-50 rounded-xl p-4 space-y-2">
+        <div class="bg-gray-50 dark:bg-gray-900 rounded-xl p-4 space-y-2">
           <div class="flex items-center justify-between">
-            <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Vorlage (Pflichtformat)</p>
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Vorlage (Pflichtformat)</p>
             <button
               @click="copyTemplate"
               class="text-xs text-green-600 hover:text-green-700 font-medium flex items-center gap-1 transition-colors"
@@ -44,10 +44,10 @@
             </button>
           </div>
 
-          <pre v-if="selectedFormat === 'csv'" class="text-xs text-gray-700 overflow-x-auto whitespace-pre">{{ csvTemplate }}</pre>
-          <pre v-else class="text-xs text-gray-700 overflow-x-auto whitespace-pre">{{ jsonTemplate }}</pre>
+          <pre v-if="selectedFormat === 'csv'" class="text-xs text-gray-700 dark:text-gray-300 overflow-x-auto whitespace-pre">{{ csvTemplate }}</pre>
+          <pre v-else class="text-xs text-gray-700 dark:text-gray-300 overflow-x-auto whitespace-pre">{{ jsonTemplate }}</pre>
 
-          <p class="text-xs text-gray-500">
+          <p class="text-xs text-gray-500 dark:text-gray-400">
             <strong>Pflichtfelder:</strong> date, kwh<br>
             <strong>date:</strong> ISO 8601, DD.MM.YYYY, MM/DD/YYYY oder Unix-Timestamp<br>
             <strong>location:</strong> Lat/Lon (z.B. <code>48.2082,16.3738</code>) - Ortsname wird ohne Kartenpin gespeichert
@@ -56,18 +56,18 @@
 
         <!-- File upload -->
         <div class="space-y-1.5">
-          <label class="block text-sm font-medium text-gray-700">Datei im EV Monitor Format hochladen</label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Datei im EV Monitor Format hochladen</label>
           <div
-            class="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center cursor-pointer hover:border-green-400 transition-colors"
+            class="border-2 border-dashed border-gray-200 dark:border-gray-600 rounded-xl p-6 text-center cursor-pointer hover:border-green-400 transition-colors"
             @click="fileInput?.click()"
             @dragover.prevent
             @drop.prevent="onDrop"
           >
-            <ArrowUpTrayIcon class="w-8 h-8 text-gray-300 mx-auto mb-2" />
-            <p v-if="!fileName" class="text-sm text-gray-500">
+            <ArrowUpTrayIcon class="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+            <p v-if="!fileName" class="text-sm text-gray-500 dark:text-gray-400">
               Datei hierher ziehen oder <span class="text-green-600 font-medium">auswählen</span>
             </p>
-            <p v-else class="text-sm font-medium text-gray-700">{{ fileName }}</p>
+            <p v-else class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ fileName }}</p>
             <input
               ref="fileInput"
               type="file"
@@ -80,33 +80,33 @@
 
         <!-- Or paste -->
         <div class="space-y-1.5">
-          <label class="block text-sm font-medium text-gray-700">Oder direkt einfügen</label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Oder direkt einfügen</label>
           <textarea
             v-model="rawData"
             rows="5"
-            class="w-full text-xs font-mono border border-gray-200 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
+            class="w-full text-xs font-mono border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
             :placeholder="selectedFormat === 'csv' ? csvTemplate : jsonTemplate"
           />
         </div>
 
         <!-- Result -->
         <div v-if="result" class="rounded-xl p-4 space-y-2"
-          :class="result.errors > 0 && result.imported === 0 ? 'bg-red-50' : 'bg-green-50'">
-          <p class="text-sm font-medium" :class="result.errors > 0 && result.imported === 0 ? 'text-red-700' : 'text-green-700'">
+          :class="result.errors > 0 && result.imported === 0 ? 'bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700' : 'bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700'">
+          <p class="text-sm font-medium" :class="result.errors > 0 && result.imported === 0 ? 'text-red-700 dark:text-red-300' : 'text-green-700 dark:text-green-300'">
             {{ result.imported }} importiert, {{ result.skipped }} übersprungen
             <template v-if="result.errors > 0">, {{ result.errors }} Fehler</template>
           </p>
         </div>
 
         <!-- Error -->
-        <p v-if="errorMsg" class="text-sm text-red-600 bg-red-50 rounded-xl p-3">{{ errorMsg }}</p>
+        <p v-if="errorMsg" class="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-xl p-3">{{ errorMsg }}</p>
       </div>
 
       <!-- Footer -->
-      <div class="flex justify-end gap-3 p-5 border-t border-gray-100 shrink-0">
+      <div class="flex justify-end gap-3 p-5 border-t border-gray-100 dark:border-gray-700 shrink-0">
         <button
           @click="$emit('close')"
-          class="btn-3d px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+          class="btn-3d px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
         >Schließen</button>
         <button
           @click="runImport"

@@ -47,11 +47,11 @@ onUnmounted(() => {
   >
     <div
       v-if="visible"
-      class="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 z-50 bg-white border border-gray-200 rounded-xl shadow-2xl p-4"
+      class="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl p-4"
     >
       <button
         @click="dismiss"
-        class="absolute top-3 right-3 text-gray-400 hover:text-gray-600 transition"
+        class="absolute top-3 right-3 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition"
         aria-label="Schließen"
       >
         <XMarkIcon class="h-4 w-4" />
@@ -62,8 +62,8 @@ onUnmounted(() => {
           <ChatBubbleLeftEllipsisIcon class="h-5 w-5 text-green-600" />
         </div>
         <div>
-          <p class="text-sm font-semibold text-gray-800">Kurze Frage an dich</p>
-          <p class="text-sm text-gray-500 mt-0.5 leading-snug">
+          <p class="text-sm font-semibold text-gray-800 dark:text-gray-200">Kurze Frage an dich</p>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5 leading-snug">
             Was überzeugt dich noch nicht? Was fehlt dir? Dein Feedback hilft uns sehr.
           </p>
           <a

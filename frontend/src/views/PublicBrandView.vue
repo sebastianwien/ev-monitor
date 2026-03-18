@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen bg-gray-50 dark:bg-gray-950">
     <PublicNav />
 
     <main class="max-w-4xl mx-auto md:px-4 py-6 md:py-8">
@@ -10,8 +10,8 @@
 
       <!-- 404 state -->
       <div v-else-if="notFound" class="text-center py-20">
-        <h1 class="text-2xl font-bold text-gray-800 mb-2">Marke nicht gefunden</h1>
-        <p class="text-gray-500 mb-6">Diese Marke kennen wir leider nicht.</p>
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">Marke nicht gefunden</h1>
+        <p class="text-gray-500 dark:text-gray-400 mb-6">Diese Marke kennen wir leider nicht.</p>
         <a href="/modelle" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
           Alle Modelle ansehen
         </a>
@@ -19,8 +19,8 @@
 
       <!-- API error state (transient) — no noindex -->
       <div v-else-if="apiError" class="text-center py-20">
-        <h1 class="text-2xl font-bold text-gray-800 mb-2">Daten konnten nicht geladen werden</h1>
-        <p class="text-gray-500 mb-6">Bitte versuche es in ein paar Sekunden erneut.</p>
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">Daten konnten nicht geladen werden</h1>
+        <p class="text-gray-500 dark:text-gray-400 mb-6">Bitte versuche es in ein paar Sekunden erneut.</p>
         <a href="/modelle" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
           Alle Modelle ansehen
         </a>
@@ -29,23 +29,23 @@
       <!-- Brand page -->
       <div v-else-if="brand">
         <!-- Breadcrumb -->
-        <nav class="px-4 md:px-0 text-sm text-gray-500 mb-4">
-          <a href="/" class="hover:text-gray-700">EV Monitor</a>
+        <nav class="px-4 md:px-0 text-sm text-gray-500 dark:text-gray-400 mb-4">
+          <a href="/" class="hover:text-gray-700 dark:hover:text-gray-200">EV Monitor</a>
           <span class="mx-2">›</span>
-          <a href="/modelle" class="hover:text-gray-700">Modelle</a>
+          <a href="/modelle" class="hover:text-gray-700 dark:hover:text-gray-200">Modelle</a>
           <span class="mx-2">›</span>
-          <span class="text-gray-900">{{ brand.brandDisplayName }}</span>
+          <span class="text-gray-900 dark:text-gray-100">{{ brand.brandDisplayName }}</span>
         </nav>
 
         <!-- Hero -->
-        <div class="bg-white md:rounded-2xl md:border-x border-t md:border-b border-gray-200 p-6 mb-6">
-          <h1 class="text-3xl font-bold text-gray-900 mb-2">
+        <div class="bg-white dark:bg-gray-800 md:rounded-2xl md:border-x border-t md:border-b border-gray-200 dark:border-gray-700 p-6 mb-6">
+          <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
             {{ brand.brandDisplayName }} Elektroautos – Verbrauch & WLTP Vergleich
           </h1>
-          <p class="text-gray-600 text-lg">
+          <p class="text-gray-600 dark:text-gray-400 text-lg">
             Alle {{ brand.brandDisplayName }} E-Modelle im Überblick: WLTP-Reichweite und reale Verbrauchsdaten der Community.
           </p>
-          <div class="flex gap-4 mt-4 text-sm text-gray-500">
+          <div class="flex gap-4 mt-4 text-sm text-gray-500 dark:text-gray-400">
             <span>{{ brand.models.length }} Modelle</span>
             <span>·</span>
             <span>{{ modelsWithData.length }} mit Community-Daten</span>
@@ -60,11 +60,11 @@
             v-for="model in brand.models"
             :key="model.modelEnum"
             :href="`/modelle/${brand.brandDisplayName}/${model.modelUrlSlug}`"
-            class="bg-white sm:rounded-2xl border-t sm:border border-l-4 border-r-4 border-l-green-500 border-r-green-500 border-gray-200 p-5 hover:border-green-400 hover:shadow-md transition-all group"
+            class="bg-white dark:bg-gray-800 sm:rounded-2xl border-t sm:border border-l-4 border-r-4 border-l-green-500 border-r-green-500 border-gray-200 dark:border-gray-700 p-5 hover:border-green-400 hover:shadow-md transition-all group"
           >
             <!-- Model name & log badge -->
             <div class="flex items-center justify-between mb-3">
-              <h2 class="text-lg font-bold text-gray-900 group-hover:text-green-700 transition-colors flex items-center gap-1">
+              <h2 class="text-lg font-bold text-gray-900 dark:text-gray-100 group-hover:text-green-700 transition-colors flex items-center gap-1">
                 {{ model.modelDisplayName }}
                 <ChevronRightIcon class="h-4 w-4 text-gray-400 group-hover:text-green-600 transition-colors" />
               </h2>
@@ -76,7 +76,7 @@
               </span>
               <span
                 v-else
-                class="text-xs px-2 py-0.5 rounded-full bg-gray-50 text-gray-400 border border-gray-200 whitespace-nowrap ml-2"
+                class="text-xs px-2 py-0.5 rounded-full bg-gray-50 dark:bg-gray-700 text-gray-400 border border-gray-200 dark:border-gray-600 whitespace-nowrap ml-2"
               >
                 Sei der Erste
               </span>
@@ -85,7 +85,7 @@
             <!-- Variant table: one row per battery size -->
             <div v-if="model.wltpVariants.length > 0">
               <!-- Header -->
-              <div class="grid grid-cols-3 text-xs text-gray-400 px-1 pb-1">
+              <div class="grid grid-cols-3 text-xs text-gray-400 dark:text-gray-500 px-1 pb-1">
                 <span>Akku</span>
                 <span class="text-center">WLTP</span>
                 <span class="text-center">Ø Real</span>
@@ -95,10 +95,10 @@
                 <div
                   v-for="v in model.wltpVariants"
                   :key="v.batteryCapacityKwh"
-                  class="grid grid-cols-3 text-sm bg-gray-50 rounded-lg px-2 py-1.5 items-center"
+                  class="grid grid-cols-3 text-sm bg-gray-50 dark:bg-gray-700 rounded-lg px-2 py-1.5 items-center"
                 >
-                  <span class="text-gray-600 font-medium">{{ v.batteryCapacityKwh }} kWh</span>
-                  <span class="text-center text-gray-700">
+                  <span class="text-gray-600 dark:text-gray-400 font-medium">{{ v.batteryCapacityKwh }} kWh</span>
+                  <span class="text-center text-gray-700 dark:text-gray-300">
                     {{ v.wltpRangeKm ? v.wltpRangeKm + ' km' : '–' }}
                   </span>
                   <span
@@ -114,7 +114,7 @@
             </div>
 
             <!-- No WLTP data at all -->
-            <div v-else class="text-xs text-gray-400 text-center py-3">
+            <div v-else class="text-xs text-gray-400 dark:text-gray-500 text-center py-3">
               Keine Spezifikationsdaten verfügbar
             </div>
 
@@ -125,11 +125,11 @@
         </div>
 
         <!-- SEO text section -->
-        <div class="bg-white md:rounded-2xl md:border-x border-t md:border-b border-gray-200 p-6 mt-6">
-          <h2 class="text-xl font-bold text-gray-900 mb-3">
+        <div class="bg-white dark:bg-gray-800 md:rounded-2xl md:border-x border-t md:border-b border-gray-200 dark:border-gray-700 p-6 mt-6">
+          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-3">
             {{ brand.brandDisplayName }} Elektroautos – Realer Verbrauch vs. WLTP
           </h2>
-          <p class="text-sm text-gray-600 leading-relaxed">
+          <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
             Auf dieser Seite findest du alle {{ brand.brandDisplayName }} Elektromodelle im Überblick.
             EV Monitor sammelt reale Verbrauchsdaten von {{ brand.brandDisplayName }}-Fahrern und vergleicht sie mit den offiziellen WLTP-Werten.
             <template v-if="modelsWithData.length > 0">

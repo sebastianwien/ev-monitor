@@ -6,16 +6,16 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
 </script>
 
 <template>
-  <div class="min-h-screen bg-white">
+  <div class="min-h-screen bg-white dark:bg-gray-900">
     <!-- Navbar -->
-    <nav class="border-b border-gray-200">
+    <nav class="border-b border-gray-200 dark:border-gray-700">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between items-center h-16">
           <router-link to="/" class="flex items-center space-x-2">
             <BoltIcon class="h-8 w-8 text-green-600" />
-            <span class="text-xl font-bold text-gray-900">EV Monitor</span>
+            <span class="text-xl font-bold text-gray-900 dark:text-gray-100">EV Monitor</span>
           </router-link>
-          <router-link to="/modelle" class="text-sm font-medium text-gray-600 hover:text-green-700 transition">
+          <router-link to="/modelle" class="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-green-700 transition">
             Modelle
           </router-link>
         </div>
@@ -24,11 +24,11 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
 
     <!-- Content -->
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-      <h1 class="text-4xl font-bold text-gray-900 mb-8">Datenschutzerklärung</h1>
+      <h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-8">Datenschutzerklärung</h1>
 
-      <div class="prose prose-lg text-gray-600 space-y-8">
+      <div class="prose prose-lg text-gray-600 dark:text-gray-400 space-y-8">
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 mb-4">1. Verantwortlicher</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">1. Verantwortlicher</h2>
           <p>
             Verantwortlich für die Datenverarbeitung auf dieser Website ist:<br />
             Sebastian Wien<br />
@@ -38,9 +38,9 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 mb-4">2. Erhebung und Speicherung personenbezogener Daten</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">2. Erhebung und Speicherung personenbezogener Daten</h2>
 
-          <h3 class="text-xl font-semibold text-gray-900 mt-6 mb-3">2.1 Registrierung</h3>
+          <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">2.1 Registrierung</h3>
           <p>
             Zur Nutzung unseres Services ist eine Registrierung erforderlich. Dabei werden folgende Daten erhoben:
           </p>
@@ -54,7 +54,7 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
             Der Token ist 24 Stunden gültig.
           </p>
 
-          <h3 class="text-xl font-semibold text-gray-900 mt-6 mb-3">2.2 Ladevorgänge</h3>
+          <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">2.2 Ladevorgänge</h3>
           <p>
             Beim Tracken von Ladevorgängen speichern wir:
           </p>
@@ -66,7 +66,7 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
             <li>Zeitstempel</li>
           </ul>
 
-          <h3 class="text-xl font-semibold text-gray-900 mt-6 mb-3">2.3 Standortdaten (Privacy-First)</h3>
+          <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">2.3 Standortdaten (Privacy-First)</h3>
           <p>
             <strong>WICHTIG:</strong> Wir speichern KEINE exakten GPS-Koordinaten!
           </p>
@@ -79,7 +79,7 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
             <strong>Beispiel:</strong> Standort "Berlin Mitte" wird zu Geohash "u33d1" (deckt ~5km Gebiet ab)
           </p>
 
-          <h3 class="text-xl font-semibold text-gray-900 mt-6 mb-3">2.4 Tesla Import (optional)</h3>
+          <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">2.4 Tesla Import (optional)</h3>
           <p>
             Wenn Sie die Tesla-Integration nutzen, speichern wir:
           </p>
@@ -95,7 +95,7 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 mb-4">3. Zweck der Datenverarbeitung</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">3. Zweck der Datenverarbeitung</h2>
           <p>Die erhobenen Daten werden verwendet für:</p>
           <ul class="list-disc list-inside space-y-2">
             <li>Bereitstellung und Verbesserung des Services</li>
@@ -106,7 +106,7 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 mb-4">4. Community-Daten & Anonymisierung</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">4. Community-Daten & Anonymisierung</h2>
           <p>
             Ihre Ladevorgänge können in <strong>anonymisierten</strong> Community-Statistiken einfließen:
           </p>
@@ -125,7 +125,7 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 mb-4">5. Cookies & Tracking</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">5. Cookies & Tracking</h2>
           <p>
             Wir verwenden <strong>keine Tracking-Cookies</strong> von Drittanbietern.
           </p>
@@ -139,7 +139,7 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 mb-4">5a. Webanalyse (Plausible Analytics)</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">5a. Webanalyse (Plausible Analytics)</h2>
           <p>
             Wir nutzen <strong>Plausible Analytics</strong>, einen datenschutzfreundlichen Webanalysedienst der Plausible Insights OÜ (Tartu, Estland — EU).
           </p>
@@ -165,7 +165,7 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 mb-4">6. Weitergabe von Daten</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">6. Weitergabe von Daten</h2>
           <p>
             Wir geben Ihre Daten <strong>nicht</strong> an Dritte weiter, außer:
           </p>
@@ -176,7 +176,7 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 mb-4">7. Ihre Rechte (DSGVO)</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">7. Ihre Rechte (DSGVO)</h2>
           <p>Sie haben das Recht auf:</p>
           <ul class="list-disc list-inside space-y-2">
             <li><strong>Auskunft:</strong> Welche Daten wir über Sie speichern</li>
@@ -192,7 +192,7 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 mb-4">8. Datensicherheit</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">8. Datensicherheit</h2>
           <p>Wir setzen folgende Sicherheitsmaßnahmen ein:</p>
           <ul class="list-disc list-inside space-y-2">
             <li>HTTPS/TLS-Verschlüsselung für alle Verbindungen</li>
@@ -204,7 +204,7 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 mb-4">9. Speicherdauer</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">9. Speicherdauer</h2>
           <p>
             Ihre Daten werden gespeichert, solange Ihr Account aktiv ist.
           </p>
@@ -215,7 +215,7 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 mb-4">10. Externe Dienste: Ko-fi &amp; PayPal</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">10. Externe Dienste: Ko-fi &amp; PayPal</h2>
           <p>
             Auf unserer Website befinden sich Links zu Ko-fi
             (<a href="https://ko-fi.com" target="_blank" rel="noopener noreferrer" class="text-green-600 hover:text-green-700">ko-fi.com</a>)
@@ -236,7 +236,7 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 mb-4">11. Änderungen dieser Datenschutzerklärung</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">11. Änderungen dieser Datenschutzerklärung</h2>
           <p>
             Wir behalten uns vor, diese Datenschutzerklärung anzupassen, um sie an geänderte Rechtslagen
             oder Änderungen des Services anzupassen.
@@ -247,7 +247,7 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
         </section>
       </div>
 
-      <div class="mt-12 pt-8 border-t border-gray-200">
+      <div class="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700">
         <router-link
           to="/"
           class="text-green-600 hover:text-green-700 font-medium"

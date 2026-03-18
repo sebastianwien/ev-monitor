@@ -90,10 +90,10 @@ function rankDeltaLabel(delta: number | null, isNew: boolean): string {
 }
 
 function podiumClass(rank: number): string {
-  if (rank === 1) return 'bg-yellow-50 border-yellow-300'
-  if (rank === 2) return 'bg-gray-50 border-gray-300'
-  if (rank === 3) return 'bg-orange-50 border-orange-200'
-  return 'bg-white border-gray-100'
+  if (rank === 1) return 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700'
+  if (rank === 2) return 'bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600'
+  if (rank === 3) return 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800'
+  return 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700'
 }
 
 function rankLabel(rank: number): string {
@@ -107,7 +107,7 @@ function rankLabelClass(rank: number): string {
   if (rank === 1) return 'bg-yellow-400 text-white'
   if (rank === 2) return 'bg-gray-400 text-white'
   if (rank === 3) return 'bg-orange-400 text-white'
-  return 'bg-gray-100 text-gray-700'
+  return 'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200'
 }
 
 const periodLabel = computed(() => {
@@ -119,7 +119,7 @@ const periodLabel = computed(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-100">
+  <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
     <!-- Header -->
     <div class="bg-indigo-600 text-white px-4 py-6 md:rounded-xl md:shadow mb-0 md:mb-6">
       <div class="max-w-3xl mx-auto">
@@ -146,7 +146,7 @@ const periodLabel = computed(() => {
               'flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all border',
               activeCategory === cat.key
                 ? 'bg-indigo-600 text-white border-indigo-700 translate-y-0.5 shadow-[0_2px_0_0_#3730a3]'
-                : 'bg-white text-gray-700 border-gray-200 shadow-[0_4px_0_0_#d1d5db] hover:shadow-[0_4px_0_0_#a5b4fc] hover:border-indigo-300 active:translate-y-0.5 active:shadow-[0_2px_0_0_#d1d5db]'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 shadow-[0_4px_0_0_#d1d5db] hover:shadow-[0_4px_0_0_#a5b4fc] hover:border-indigo-300 active:translate-y-0.5 active:shadow-[0_2px_0_0_#d1d5db]'
             ]">
             <component :is="cat.icon" :class="['h-4 w-4', activeCategory === cat.key ? 'text-white' : cat.color]" />
             {{ cat.label }}
@@ -161,14 +161,14 @@ const periodLabel = computed(() => {
       </div>
 
       <!-- Error -->
-      <div v-else-if="error" class="mx-4 bg-red-50 border border-red-200 text-red-700 rounded-xl p-4 text-sm">
+      <div v-else-if="error" class="mx-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300 rounded-xl p-4 text-sm">
         {{ error }}
       </div>
 
       <!-- Leaderboard Table -->
       <div v-else-if="data" class="mx-4 md:mx-0 space-y-2">
         <!-- Section label -->
-        <div class="flex items-center gap-2 text-xs text-gray-500 px-1 pb-1">
+        <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 px-1 pb-1">
           <component :is="activeCategoryMeta?.icon" :class="['h-3.5 w-3.5', activeCategoryMeta?.color]" />
           <span>{{ data.displayName }}</span>
           <span class="text-gray-300">·</span>
@@ -176,7 +176,7 @@ const periodLabel = computed(() => {
         </div>
 
         <!-- Empty state -->
-        <div v-if="data.entries.length === 0" class="bg-white rounded-xl border border-gray-100 p-8 text-center text-gray-400">
+        <div v-if="data.entries.length === 0" class="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-8 text-center text-gray-400">
           <TrophyIcon class="h-10 w-10 mx-auto mb-3 opacity-30" />
           <p class="text-sm">Noch keine Daten fuer diesen Monat.</p>
           <p class="text-xs mt-1">Lad auf und sichere dir deinen Platz!</p>
@@ -195,13 +195,13 @@ const periodLabel = computed(() => {
 
           <!-- Username -->
           <div class="flex-1 min-w-0">
-            <div class="font-semibold text-gray-900 truncate">{{ entry.username }}</div>
-            <div class="text-xs text-gray-500">Platz {{ entry.rank }}</div>
+            <div class="font-semibold text-gray-900 dark:text-gray-100 truncate">{{ entry.username }}</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400">Platz {{ entry.rank }}</div>
           </div>
 
           <!-- Value -->
           <div class="text-right flex-shrink-0">
-            <div class="font-bold text-gray-900 tabular-nums">{{ entry.value }}</div>
+            <div class="font-bold text-gray-900 dark:text-gray-100 tabular-nums">{{ entry.value }}</div>
             <div class="text-xs text-gray-400">{{ entry.unit }}</div>
           </div>
 
@@ -218,16 +218,16 @@ const periodLabel = computed(() => {
         <!-- Own rank (if not in top 10) -->
         <template v-if="data.ownEntry">
           <div class="text-center text-xs text-gray-400 py-1">- - -</div>
-          <div class="rounded-xl border-2 border-indigo-400 bg-indigo-50 p-3 flex items-center gap-3">
+          <div class="rounded-xl border-2 border-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 p-3 flex items-center gap-3">
             <div class="w-8 h-8 rounded-full bg-indigo-500 text-white flex items-center justify-center text-sm font-bold flex-shrink-0">
               {{ data.ownEntry.rank }}
             </div>
             <div class="flex-1 min-w-0">
-              <div class="font-semibold text-indigo-900 truncate">{{ data.ownEntry.username }} <span class="text-xs font-normal text-indigo-500">(Du)</span></div>
+              <div class="font-semibold text-indigo-900 dark:text-indigo-200 truncate">{{ data.ownEntry.username }} <span class="text-xs font-normal text-indigo-500">(Du)</span></div>
               <div class="text-xs text-indigo-400">Platz {{ data.ownEntry.rank }}</div>
             </div>
             <div class="text-right flex-shrink-0">
-              <div class="font-bold text-indigo-900 tabular-nums">{{ data.ownEntry.value }}</div>
+              <div class="font-bold text-indigo-900 dark:text-indigo-200 tabular-nums">{{ data.ownEntry.value }}</div>
               <div class="text-xs text-indigo-400">{{ data.ownEntry.unit }}</div>
             </div>
             <div :class="['w-12 flex-shrink-0 flex flex-col items-center text-xs font-semibold', rankDeltaClass(data.ownEntry.rankDelta, data.ownEntry.isNew)]">
@@ -243,7 +243,7 @@ const periodLabel = computed(() => {
         <!-- Login hint if not authenticated -->
         <div
           v-if="!authStore.isAuthenticated() && data.entries.length > 0"
-          class="text-center text-xs text-gray-400 pt-2 pb-1">
+          class="text-center text-xs text-gray-500 dark:text-gray-400 pt-2 pb-1">
           <router-link to="/login" class="text-indigo-500 hover:underline">Einloggen</router-link>
           um deinen eigenen Platz zu sehen.
         </div>
@@ -252,13 +252,13 @@ const periodLabel = computed(() => {
         <router-link
           v-if="activeCategory === 'MONTHLY_COINS'"
           to="/coins"
-          class="flex items-center gap-2 bg-indigo-50 border border-indigo-200 rounded-xl p-3 text-sm text-indigo-700 hover:bg-indigo-100 transition mt-1">
+          class="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700 rounded-xl p-3 text-sm text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition mt-1">
           <ClockIcon class="h-4 w-4 flex-shrink-0 text-indigo-400" />
           <span>Deinen eigenen Watt-Verlauf ansehen</span>
         </router-link>
 
         <!-- Month-end reward hint -->
-        <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-3 text-xs text-yellow-800 flex gap-2 mt-4">
+        <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-xl p-3 text-xs text-yellow-800 dark:text-yellow-300 flex gap-2 mt-4">
           <TrophyIcon class="h-4 w-4 flex-shrink-0 text-yellow-500 mt-0.5" />
           <span>
             Die Top 3 erhalten am Monatsende Bonus-Coins:

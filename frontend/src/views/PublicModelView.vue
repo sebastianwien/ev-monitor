@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen bg-gray-50 dark:bg-gray-950">
     <PublicNav />
 
     <main class="max-w-4xl mx-auto md:px-4 py-6 md:py-8">
@@ -11,8 +11,8 @@
       <!-- 404 state -->
       <div v-else-if="notFound" class="text-center py-20">
         <div class="text-5xl mb-4">🔍</div>
-        <h1 class="text-2xl font-bold text-gray-800 mb-2">Modell nicht gefunden</h1>
-        <p class="text-gray-500 mb-6">Für dieses Fahrzeugmodell haben wir leider keine Daten.</p>
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">Modell nicht gefunden</h1>
+        <p class="text-gray-500 dark:text-gray-400 mb-6">Für dieses Fahrzeugmodell haben wir leider keine Daten.</p>
         <a href="/" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
           Zur Startseite
         </a>
@@ -20,8 +20,8 @@
 
       <!-- API error state (transient) — no noindex -->
       <div v-else-if="apiError" class="text-center py-20">
-        <h1 class="text-2xl font-bold text-gray-800 mb-2">Daten konnten nicht geladen werden</h1>
-        <p class="text-gray-500 mb-6">Bitte versuche es in ein paar Sekunden erneut.</p>
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">Daten konnten nicht geladen werden</h1>
+        <p class="text-gray-500 dark:text-gray-400 mb-6">Bitte versuche es in ein paar Sekunden erneut.</p>
         <button @click="reload" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
           Neu laden
         </button>
@@ -30,25 +30,25 @@
       <!-- Model stats page -->
       <div v-else-if="stats">
         <!-- Breadcrumb -->
-        <nav class="px-4 md:px-0 text-sm text-gray-500 mb-4">
-          <a href="/" class="hover:text-gray-700">EV Monitor</a>
+        <nav class="px-4 md:px-0 text-sm text-gray-500 dark:text-gray-400 mb-4">
+          <a href="/" class="hover:text-gray-700 dark:hover:text-gray-200">EV Monitor</a>
           <span class="mx-2">›</span>
-          <a href="/modelle" class="hover:text-gray-700">Modelle</a>
+          <a href="/modelle" class="hover:text-gray-700 dark:hover:text-gray-200">Modelle</a>
           <span class="mx-2">›</span>
-          <a :href="`/modelle/${canonicalBrand}`" class="hover:text-gray-700">{{ stats.brandDisplayName }}</a>
+          <a :href="`/modelle/${canonicalBrand}`" class="hover:text-gray-700 dark:hover:text-gray-200">{{ stats.brandDisplayName }}</a>
           <span class="mx-2">›</span>
-          <span class="text-gray-900">{{ stats.modelDisplayName.replace(stats.brandDisplayName + ' ', '') }}</span>
+          <span class="text-gray-900 dark:text-gray-100">{{ stats.modelDisplayName.replace(stats.brandDisplayName + ' ', '') }}</span>
         </nav>
 
         <!-- Hero -->
-        <div class="bg-white md:rounded-2xl md:border-x border-t md:border-b border-gray-200 p-6 md:mb-6">
+        <div class="bg-white dark:bg-gray-800 md:rounded-2xl md:border-x border-t md:border-b border-gray-200 dark:border-gray-700 p-6 md:mb-6">
           <a :href="`/modelle/${canonicalBrand}`" class="inline-flex items-center gap-1 text-sm text-green-600 hover:underline mb-3">
             ← Alle {{ stats.brandDisplayName }} Modelle
           </a>
-          <h1 class="text-3xl font-bold text-gray-900 mb-2">
+          <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
             {{ stats.modelDisplayName }} – Realer Verbrauch & WLTP Vergleich
           </h1>
-          <p class="text-gray-600 text-lg">
+          <p class="text-gray-600 dark:text-gray-400 text-lg">
             Echte Verbrauchsdaten von EV Monitor Nutzern – kein Marketing, nur Realität.
           </p>
 
@@ -101,8 +101,8 @@
           </div>
 
           <!-- No data yet notice -->
-          <div v-if="stats.logCount === 0" class="mt-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
-            <p class="text-gray-600 text-sm">
+          <div v-if="stats.logCount === 0" class="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600">
+            <p class="text-gray-600 dark:text-gray-300 text-sm">
               Noch keine Fahrdaten für dieses Modell vorhanden.
               <a href="/register" class="text-green-600 font-medium hover:underline">Registriere dich</a>
               und trage als Erster deine Ladevorgänge ein!
@@ -113,13 +113,13 @@
 
         <!-- Combined: Variant Switcher + Seasonal + WLTP -->
         <div v-if="stats.wltpVariants.length > 0 || showSeasonalBreakdown"
-             class="bg-white md:rounded-2xl md:border-x border-t md:border-b border-gray-200 md:mb-6 overflow-hidden">
+             class="bg-white dark:bg-gray-800 md:rounded-2xl md:border-x border-t md:border-b border-gray-200 dark:border-gray-700 md:mb-6 overflow-hidden">
 
           <!-- Variant Switcher Header -->
-          <div v-if="stats.wltpVariants.length > 1" class="px-6 py-4 border-b border-gray-100">
+          <div v-if="stats.wltpVariants.length > 1" class="px-6 py-4 border-b border-gray-100 dark:border-gray-700">
             <div class="flex items-center gap-3 flex-wrap">
-              <span class="text-sm font-medium text-gray-500 whitespace-nowrap">Batterievariante</span>
-              <div class="relative flex bg-gray-100 rounded-full p-1 w-fit">
+              <span class="text-sm font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">Batterievariante</span>
+              <div class="relative flex bg-gray-100 dark:bg-gray-700 rounded-full p-1 w-fit">
                 <div
                   class="absolute top-1 bottom-1 rounded-full bg-blue-600 shadow-sm transition-transform duration-300 ease-in-out"
                   :style="{
@@ -132,7 +132,7 @@
                   :key="v.batteryCapacityKwh"
                   @click="selectedVariantIndex = i"
                   class="relative px-4 text-sm font-medium py-1.5 rounded-full transition-colors duration-300 z-10 whitespace-nowrap"
-                  :class="i === selectedVariantIndex ? 'text-white' : 'text-gray-500 hover:text-gray-700'"
+                  :class="i === selectedVariantIndex ? 'text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'"
                 >
                   {{ v.batteryCapacityKwh }} kWh
                 </button>
@@ -146,9 +146,9 @@
           </div>
 
           <!-- Seasonal Consumption Breakdown -->
-          <div v-if="showSeasonalBreakdown" class="px-6 py-5 bg-gradient-to-br from-blue-50 to-indigo-50 border-b border-blue-100">
+          <div v-if="showSeasonalBreakdown" class="px-6 py-5 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-b border-blue-100 dark:border-blue-900/50">
           <div class="flex-1">
-            <p class="text-sm font-bold text-blue-900 mb-3 flex items-center gap-1.5">
+            <p class="text-sm font-bold text-blue-900 dark:text-blue-300 mb-3 flex items-center gap-1.5">
               <ChartBarIcon class="h-4 w-4" />
               Verbrauch nach Jahreszeit
             </p>
@@ -200,14 +200,14 @@
             </div>
 
             <!-- Weighted Average (Overall) -->
-            <div class="pt-2 border-t border-blue-200">
+            <div class="pt-2 border-t border-blue-200 dark:border-blue-900/50">
               <div class="flex items-center justify-between text-sm">
-                <span class="text-gray-700 font-medium">Ø Gewichtet (Gesamt)</span>
-                <span class="font-bold text-gray-900">
+                <span class="text-gray-700 dark:text-gray-300 font-medium">Ø Gewichtet (Gesamt)</span>
+                <span class="font-bold text-gray-900 dark:text-gray-100">
                   {{ selectedVariant!.seasonalDistribution!.totalConsumptionKwhPer100km != null ? selectedVariant!.seasonalDistribution!.totalConsumptionKwhPer100km.toFixed(1) + ' kWh/100km' : '—' }}
                 </span>
               </div>
-              <p class="text-xs text-gray-500 mt-1">
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 {{ selectedVariant!.seasonalDistribution!.summerPercentage }}% Sommer,
                 {{ selectedVariant!.seasonalDistribution!.winterPercentage }}% Winter (nach gefahrenen km)
               </p>
@@ -217,17 +217,17 @@
 
           <!-- WLTP vs Real Comparison (inside combined card) -->
           <div v-if="stats.wltpVariants.length > 0">
-          <h2 class="text-base font-semibold text-gray-700 px-6 pt-5 pb-3 flex items-center gap-2">
-            <ClipboardDocumentListIcon class="h-5 w-5 text-gray-500" />
+          <h2 class="text-base font-semibold text-gray-700 dark:text-gray-300 px-6 pt-5 pb-3 flex items-center gap-2">
+            <ClipboardDocumentListIcon class="h-5 w-5 text-gray-500 dark:text-gray-400" />
             WLTP-Daten & Realer Verbrauch
           </h2>
           <!-- Mobile: Card (selected variant only) -->
           <div class="md:hidden">
             <div v-if="selectedVariant" class="px-6 pb-4">
               <div class="relative flex items-center justify-center mb-3">
-                <div class="font-semibold text-gray-900">{{ selectedVariant.batteryCapacityKwh }} kWh</div>
+                <div class="font-semibold text-gray-900 dark:text-gray-100">{{ selectedVariant.batteryCapacityKwh }} kWh</div>
                 <span v-if="!selectedVariant.realConsumptionKwhPer100km"
-                      class="absolute right-0 inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-gray-100 border border-gray-200 text-gray-500">
+                      class="absolute right-0 inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400">
                   keine Fahrten
                 </span>
                 <span v-else-if="selectedVariant.realConsumptionTripCount != null && selectedVariant.realConsumptionTripCount < 10"
@@ -244,23 +244,23 @@
                 </span>
               </div>
               <div class="grid grid-cols-2 gap-2 text-sm">
-                <div class="bg-gray-50 rounded-lg p-2">
-                  <div class="text-xs text-gray-500 mb-0.5">WLTP Reichweite</div>
-                  <div class="font-medium text-gray-800">{{ selectedVariant.wltpRangeKm }} km</div>
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
+                  <div class="text-xs text-gray-500 dark:text-gray-400 mb-0.5">WLTP Reichweite</div>
+                  <div class="font-medium text-gray-800 dark:text-gray-200">{{ selectedVariant.wltpRangeKm }} km</div>
                 </div>
-                <div class="bg-gray-50 rounded-lg p-2">
-                  <div class="text-xs text-gray-500 mb-0.5">WLTP Verbrauch</div>
-                  <div class="font-medium text-gray-800">{{ selectedVariant.wltpConsumptionKwhPer100km }} kWh/100km</div>
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
+                  <div class="text-xs text-gray-500 dark:text-gray-400 mb-0.5">WLTP Verbrauch</div>
+                  <div class="font-medium text-gray-800 dark:text-gray-200">{{ selectedVariant.wltpConsumptionKwhPer100km }} kWh/100km</div>
                 </div>
-                <div class="bg-gray-50 rounded-lg p-2">
-                  <div class="text-xs text-gray-500 mb-0.5">Reale Reichweite</div>
-                  <div class="font-medium text-gray-800">
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
+                  <div class="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Reale Reichweite</div>
+                  <div class="font-medium text-gray-800 dark:text-gray-200">
                     {{ selectedVariant.realConsumptionKwhPer100km ? Math.round(selectedVariant.batteryCapacityKwh / selectedVariant.realConsumptionKwhPer100km * 10) * 10 + ' km' : '–' }}
                   </div>
-                  <div class="text-xs text-gray-400">100% → 0%</div>
+                  <div class="text-xs text-gray-400 dark:text-gray-500">100% → 0%</div>
                 </div>
-                <div class="bg-gray-50 rounded-lg p-2">
-                  <div class="text-xs text-gray-500 mb-0.5">Realer Verbrauch</div>
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
+                  <div class="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Realer Verbrauch</div>
                   <template v-if="selectedVariant.realConsumptionKwhPer100km">
                     <div :class="consumptionDeltaClass(selectedVariant.realConsumptionKwhPer100km, selectedVariant.wltpConsumptionKwhPer100km)" class="font-medium">
                       {{ selectedVariant.realConsumptionKwhPer100km.toFixed(1) }} kWh/100km
@@ -280,7 +280,7 @@
           <div class="hidden md:block overflow-x-auto px-6 pb-2">
             <table class="w-full text-sm">
               <thead>
-                <tr class="text-left text-gray-500 border-b border-gray-100">
+                <tr class="text-left text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700">
                   <th class="pb-3 pr-4 font-medium whitespace-nowrap">Batterie</th>
                   <th class="pb-3 pr-4 font-medium whitespace-nowrap">Reichweite</th>
                   <th class="pb-3 pr-4 font-medium whitespace-nowrap">
@@ -297,9 +297,9 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-if="selectedVariant" class="border-b border-gray-50">
-                  <td class="py-3 pr-4 font-medium text-gray-900 whitespace-nowrap">{{ selectedVariant.batteryCapacityKwh }} kWh</td>
-                  <td class="py-3 pr-4 text-gray-700 whitespace-nowrap">{{ selectedVariant.wltpRangeKm }} km</td>
+                <tr v-if="selectedVariant" class="border-b border-gray-50 dark:border-gray-700">
+                  <td class="py-3 pr-4 font-medium text-gray-900 dark:text-gray-100 whitespace-nowrap">{{ selectedVariant.batteryCapacityKwh }} kWh</td>
+                  <td class="py-3 pr-4 text-gray-700 dark:text-gray-300 whitespace-nowrap">{{ selectedVariant.wltpRangeKm }} km</td>
                   <td class="py-3 pr-4 whitespace-nowrap">
                     <div v-if="selectedVariant?.seasonalDistribution?.summerConsumptionKwhPer100km || selectedVariant?.seasonalDistribution?.winterConsumptionKwhPer100km"
                          class="flex items-center gap-1.5">
@@ -315,7 +315,7 @@
                     </div>
                     <span v-else class="text-gray-400">–</span>
                   </td>
-                  <td class="py-3 pr-4 text-gray-700 whitespace-nowrap">{{ selectedVariant.wltpConsumptionKwhPer100km }} kWh/100km</td>
+                  <td class="py-3 pr-4 text-gray-700 dark:text-gray-300 whitespace-nowrap">{{ selectedVariant.wltpConsumptionKwhPer100km }} kWh/100km</td>
                   <td class="py-3 align-top">
                     <div v-if="selectedVariant.realConsumptionKwhPer100km" class="flex flex-col items-start gap-1">
                       <span :class="consumptionDeltaClass(selectedVariant.realConsumptionKwhPer100km, selectedVariant.wltpConsumptionKwhPer100km)"
@@ -344,7 +344,7 @@
             </table>
           </div>
           <div class="px-6 py-4">
-            <span class="inline-block text-xs bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full">
+            <span class="inline-block text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-2.5 py-1 rounded-full">
               WLTP = offizieller Herstellerwert (COMBINED). Realer Verbrauch basiert auf Nutzerdaten von EV Monitor.
             </span>
           </div>
@@ -374,12 +374,12 @@
         </div>
 
         <!-- SEO rich text section -->
-        <div class="bg-white md:rounded-2xl md:border-x border-y border-gray-200 p-6 md:mt-6">
-          <h2 class="text-xl font-bold text-gray-900 mb-4">
+        <div class="bg-white dark:bg-gray-800 md:rounded-2xl md:border-x border-y border-gray-200 dark:border-gray-700 p-6 md:mt-6">
+          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
             {{ stats.modelDisplayName }} – Verbrauch, Reichweite & Ladekosten
           </h2>
 
-          <div class="space-y-4 text-sm text-gray-600 leading-relaxed">
+          <div class="space-y-4 text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
             <p>
               Der <strong>{{ stats.modelDisplayName }}</strong> ist ein Elektrofahrzeug
               <template v-if="bestWltpRange">mit einer offiziellen WLTP-Reichweite von bis zu <strong>{{ bestWltpRange }} km</strong></template>.
@@ -408,7 +408,7 @@
             </p>
 
             <div v-if="stats.avgCostPerKwh">
-              <h3 class="font-semibold text-gray-800 mb-1">Ladekosten im Alltag</h3>
+              <h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-1">Ladekosten im Alltag</h3>
               <p>
                 Der durchschnittliche Ladepreis für den {{ stats.modelDisplayName }} beträgt laut Nutzerdaten
                 <strong>{{ (stats.avgCostPerKwh * 100).toFixed(1) }} Cent pro kWh</strong>.
@@ -422,7 +422,7 @@
             </div>
 
             <div v-if="stats.wltpVariants.length > 0 && consumptionDataCount >= 25">
-              <h3 class="font-semibold text-gray-800 mb-1">WLTP vs. realer Verbrauch</h3>
+              <h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-1">WLTP vs. realer Verbrauch</h3>
               <p>
                 Der WLTP-Zyklus wird unter standardisierten Laborbedingungen gemessen und weicht im Alltag
                 häufig ab. Faktoren wie Autobahnfahrten, Heizung, Klimaanlage und Fahrstil erhöhen den
@@ -436,7 +436,7 @@
             </div>
 
             <div>
-              <h3 class="font-semibold text-gray-800 mb-1">Verbrauch im Winter und Sommer</h3>
+              <h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-1">Verbrauch im Winter und Sommer</h3>
               <p v-if="showSeasonalBreakdown">
                 Wie alle Elektroautos zeigt der {{ stats.modelDisplayName }} saisonale Verbrauchsschwankungen.
                 Im Winter (November bis Februar) steigt der Verbrauch typischerweise um <strong>20–30%</strong>
@@ -455,19 +455,19 @@
         </div>
 
         <!-- FAQ Section -->
-        <div v-if="faqItems.length > 0" class="bg-white md:rounded-2xl md:border-x border-y border-gray-200 p-6 mt-6">
-          <h2 class="text-xl font-bold text-gray-900 mb-4">
+        <div v-if="faqItems.length > 0" class="bg-white dark:bg-gray-800 md:rounded-2xl md:border-x border-y border-gray-200 dark:border-gray-700 p-6 mt-6">
+          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
             Häufige Fragen zum {{ stats.modelDisplayName }}
           </h2>
           <div class="space-y-3">
             <details v-for="(faq, i) in faqItems" :key="i"
-                     class="border border-gray-100 rounded-xl overflow-hidden">
-              <summary class="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50
-                              font-medium text-gray-900 text-sm list-none">
+                     class="border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden">
+              <summary class="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700
+                              font-medium text-gray-900 dark:text-gray-100 text-sm list-none">
                 {{ faq.question }}
                 <span class="text-gray-400 ml-2 flex-shrink-0">﹀</span>
               </summary>
-              <div class="px-4 pb-4 pt-1 text-sm text-gray-600 leading-relaxed border-t border-gray-100">
+              <div class="px-4 pb-4 pt-1 text-sm text-gray-600 dark:text-gray-400 leading-relaxed border-t border-gray-100 dark:border-gray-700">
                 {{ faq.answer }}
               </div>
             </details>
@@ -478,8 +478,8 @@
 
     <!-- Internal linking: popular models -->
     <div class="max-w-4xl mx-auto md:px-4 mt-8">
-      <div class="bg-white md:rounded-2xl md:border-x border-y border-gray-200 p-6">
-        <h2 class="text-base font-bold text-gray-900 mb-3">Andere beliebte Elektroauto-Modelle</h2>
+      <div class="bg-white dark:bg-gray-800 md:rounded-2xl md:border-x border-y border-gray-200 dark:border-gray-700 p-6">
+        <h2 class="text-base font-bold text-gray-900 dark:text-gray-100 mb-3">Andere beliebte Elektroauto-Modelle</h2>
         <div class="flex flex-wrap gap-2 text-sm">
           <a href="/modelle/Tesla/Model_3" class="text-green-600 hover:underline">Tesla Model 3</a>
           <span class="text-gray-300">·</span>
@@ -508,13 +508,13 @@
       </div>
     </div>
 
-    <footer class="max-w-4xl mx-auto px-4 py-8 mt-6 border-t border-gray-200 text-sm text-gray-500 text-center">
+    <footer class="max-w-4xl mx-auto px-4 py-8 mt-6 border-t border-gray-200 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400 text-center">
       © {{ currentYear }} EV Monitor ·
-      <a href="/" class="hover:text-gray-700">{{ isAuthenticated ? 'Dashboard' : 'Startseite' }}</a>
+      <a href="/" class="hover:text-gray-700 dark:hover:text-gray-200">{{ isAuthenticated ? 'Dashboard' : 'Startseite' }}</a>
       <template v-if="!isAuthenticated">
         ·
-        <a href="/register" class="hover:text-gray-700">Kostenlos registrieren</a> ·
-        <a href="/login" class="hover:text-gray-700">Anmelden</a>
+        <a href="/register" class="hover:text-gray-700 dark:hover:text-gray-200">Kostenlos registrieren</a> ·
+        <a href="/login" class="hover:text-gray-700 dark:hover:text-gray-200">Anmelden</a>
       </template>
     </footer>
   </div>

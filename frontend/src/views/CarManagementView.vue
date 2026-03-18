@@ -463,9 +463,9 @@ onUnmounted(() => {
   <div class="md:max-w-4xl md:mx-auto md:p-6">
     <Transition name="fade" mode="out-in">
       <div v-if="!loading">
-        <div class="bg-white md:rounded-xl md:shadow-lg p-4 md:p-6">
+        <div class="bg-white dark:bg-gray-800 md:rounded-xl md:shadow-lg p-4 md:p-6">
       <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold text-gray-800">Meine Fahrzeuge</h1>
+        <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-200">Meine Fahrzeuge</h1>
         <button
           v-if="!showForm"
           @click="openAddForm"
@@ -475,20 +475,20 @@ onUnmounted(() => {
         </button>
       </div>
 
-      <div v-if="error" class="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-md">
+      <div v-if="error" class="mb-4 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300 rounded-md">
         {{ error }}
       </div>
 
       <!-- Add form (inline) -->
-      <div v-if="showForm && !editingCar" class="mb-8 p-6 bg-gray-50 rounded-lg border border-gray-200">
-        <h2 class="text-xl font-semibold mb-4 text-gray-800">Neues Fahrzeug hinzufügen</h2>
+      <div v-if="showForm && !editingCar" class="mb-8 p-6 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+        <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">Neues Fahrzeug hinzufügen</h2>
 
         <form @submit.prevent="submitForm" class="space-y-4">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Marke *</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Marke *</label>
               <select v-model="selectedBrand" required
-                class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border">
+                class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100">
                 <option value="">Marke wählen...</option>
                 <option v-for="brand in sortedBrands" :key="brand.value" :value="brand.value">
                   {{ brand.label }}
@@ -497,9 +497,9 @@ onUnmounted(() => {
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Modell *</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Modell *</label>
               <select v-model="selectedModel" required :disabled="!selectedBrand"
-                class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border disabled:bg-gray-100">
+                class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border disabled:bg-gray-100 dark:disabled:bg-gray-600 dark:bg-gray-700 dark:text-gray-100">
                 <option value="">{{ selectedBrand ? 'Modell wählen...' : 'Erst Marke wählen...' }}</option>
                 <option v-for="m in availableModels" :key="m.value" :value="m.value">
                   {{ m.label }}
@@ -508,18 +508,18 @@ onUnmounted(() => {
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Ausstattungslinie (optional)</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ausstattungslinie (optional)</label>
               <input
                 v-model="trim"
                 type="text"
                 placeholder="z.B. GTX, Pro Performance, Long Range"
-                class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" />
-              <p class="text-xs text-gray-500 mt-1">Variante/Ausstattung</p>
+                class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Variante/Ausstattung</p>
             </div>
 
             <!-- Capacity Selection -->
             <div v-if="selectedModel" class="md:col-span-2">
-              <label class="block text-sm font-medium text-gray-700 mb-2">Batteriekapazität (kWh) *</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Batteriekapazität (kWh) *</label>
 
               <div v-if="!useCustomCapacity" class="space-y-2">
                 <div class="flex gap-2 flex-wrap">
@@ -553,7 +553,7 @@ onUnmounted(() => {
                   min="0"
                   required
                   placeholder="Eigene Kapazität eingeben (z.B. 82,5)"
-                  class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border"
+                  class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100"
                 />
                 <button
                   type="button"
@@ -566,14 +566,14 @@ onUnmounted(() => {
 
             <!-- WLTP Info (if available) -->
             <div v-if="wltpData && !editingCar" class="md:col-span-2">
-              <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div class="p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg">
                 <div class="flex items-start">
                   <svg class="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                   </svg>
                   <div>
-                    <p class="text-sm font-medium text-blue-900">WLTP-Werte verfügbar</p>
-                    <p class="text-sm text-blue-700 mt-1">
+                    <p class="text-sm font-medium text-blue-900 dark:text-blue-300">WLTP-Werte verfügbar</p>
+                    <p class="text-sm text-blue-700 dark:text-blue-400 mt-1">
                       Reichweite: <span class="font-semibold">{{ wltpData.wltpRangeKm }} km</span>
                       | Verbrauch: <span class="font-semibold">{{ wltpData.wltpConsumptionKwhPer100km }} kWh/100km</span>
                     </p>
@@ -583,35 +583,35 @@ onUnmounted(() => {
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Baujahr *</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Baujahr *</label>
               <input v-model="year" type="number" required min="2000" :max="new Date().getFullYear() + 1"
-                class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" />
+                class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Kennzeichen (optional)</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kennzeichen (optional)</label>
               <input v-model="licensePlate" type="text" placeholder="z.B. M-EV 123"
-                class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" />
+                class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Leistung (optional)</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Leistung (optional)</label>
               <input
                 v-model.number="powerKw"
                 type="number"
                 step="0.1"
                 min="0"
                 placeholder="z.B. 150"
-                class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" />
-              <p v-if="powerPs" class="text-xs text-gray-500 mt-1">≈ {{ powerPs }} PS</p>
-              <p v-else class="text-xs text-gray-500 mt-1">Gib kW ein um PS-Umrechnung zu sehen</p>
+                class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
+              <p v-if="powerPs" class="text-xs text-gray-500 dark:text-gray-400 mt-1">≈ {{ powerPs }} PS</p>
+              <p v-else class="text-xs text-gray-500 dark:text-gray-400 mt-1">Gib kW ein um PS-Umrechnung zu sehen</p>
             </div>
           </div>
 
           <!-- Erweiterte Einstellungen -->
-          <div class="mt-4 border-t pt-4">
+          <div class="mt-4 border-t dark:border-gray-600 pt-4">
             <button type="button" @click="showAdvancedSettings = !showAdvancedSettings"
-              class="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700">
+              class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
                 class="w-4 h-4 transition-transform" :class="{ 'rotate-180': showAdvancedSettings }">
                 <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
@@ -619,12 +619,12 @@ onUnmounted(() => {
               Erweiterte Einstellungen
             </button>
             <div v-if="showAdvancedSettings" class="mt-3 space-y-2">
-              <label class="block text-sm font-medium text-gray-700">Batteriedegradation (optional)</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Batteriedegradation (optional)</label>
               <div class="flex items-center gap-2">
                 <input v-model.number="batteryDegradationPercent" type="number" step="0.1" min="0" max="50"
                   placeholder="z.B. 8"
-                  class="w-32 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" />
-                <span class="text-sm text-gray-500">%</span>
+                  class="w-32 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
+                <span class="text-sm text-gray-500 dark:text-gray-400">%</span>
                 <button v-if="batteryDegradationPercent != null" type="button"
                   @click="batteryDegradationPercent = null"
                   class="text-xs text-red-500 hover:text-red-700 ml-2">Zurücksetzen</button>
@@ -632,7 +632,7 @@ onUnmounted(() => {
               <p v-if="batteryDegradationPercent && finalCapacity" class="text-xs text-amber-600">
                 Effektive Kapazität: {{ (finalCapacity * (1 - batteryDegradationPercent / 100)).toFixed(2) }} kWh (statt {{ finalCapacity }} kWh)
               </p>
-              <p class="text-xs text-gray-400">Verbrauchsberechnungen nutzen die effektive Kapazität.</p>
+              <p class="text-xs text-gray-400 dark:text-gray-500">Verbrauchsberechnungen nutzen die effektive Kapazität.</p>
             </div>
           </div>
 
@@ -644,7 +644,7 @@ onUnmounted(() => {
             </button>
             <button type="button" @click="resetForm"
               v-haptic
-              class="btn-3d bg-gray-200 text-gray-700 px-6 py-2 rounded-md hover:bg-gray-300 transition">
+              class="btn-3d bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 px-6 py-2 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500 transition">
               Abbrechen
             </button>
           </div>
@@ -654,8 +654,8 @@ onUnmounted(() => {
       <!-- Empty State: No Cars -->
       <div v-if="cars.length === 0 && !showForm" class="text-center py-16 px-4">
         <TruckIcon class="h-24 w-24 mx-auto text-gray-300 mb-6" />
-        <h3 class="text-2xl font-bold text-gray-800 mb-3">Noch keine Fahrzeuge</h3>
-        <p class="text-gray-600 mb-8 max-w-md mx-auto">
+        <h3 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-3">Noch keine Fahrzeuge</h3>
+        <p class="text-gray-600 dark:text-gray-400 mb-8 max-w-md mx-auto">
           Füge dein erstes E-Auto hinzu um Ladevorgänge zu erfassen und Statistiken zu sehen!
         </p>
         <button
@@ -665,36 +665,36 @@ onUnmounted(() => {
           Erstes Fahrzeug hinzufügen
         </button>
         <div class="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl mx-auto text-left">
-          <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div class="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
             <div class="text-blue-600 mb-2">📊</div>
-            <p class="text-sm font-semibold text-gray-800 mb-1">140+ Modelle</p>
-            <p class="text-xs text-gray-600">68 Marken in unserer Datenbank</p>
+            <p class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">140+ Modelle</p>
+            <p class="text-xs text-gray-600 dark:text-gray-400">68 Marken in unserer Datenbank</p>
           </div>
-          <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div class="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg p-4">
             <div class="text-green-600 mb-2">⚡</div>
-            <p class="text-sm font-semibold text-gray-800 mb-1">WLTP-Daten</p>
-            <p class="text-xs text-gray-600">Automatischer Verbrauchsvergleich</p>
+            <p class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">WLTP-Daten</p>
+            <p class="text-xs text-gray-600 dark:text-gray-400">Automatischer Verbrauchsvergleich</p>
           </div>
-          <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+          <div class="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
             <div class="text-purple-600 mb-2">🔒</div>
-            <p class="text-sm font-semibold text-gray-800 mb-1">Privat</p>
-            <p class="text-xs text-gray-600">Deine Daten bleiben bei dir</p>
+            <p class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Privat</p>
+            <p class="text-xs text-gray-600 dark:text-gray-400">Deine Daten bleiben bei dir</p>
           </div>
         </div>
       </div>
 
       <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div v-for="car in cars" :key="car.id"
-          class="bg-gray-50 border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition overflow-hidden">
+          class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-sm hover:shadow-md transition overflow-hidden">
 
           <!-- Car Image -->
-          <div class="relative bg-gray-100 h-40 flex items-center justify-center">
+          <div class="relative bg-gray-100 dark:bg-gray-600 h-40 flex items-center justify-center">
             <img
               v-if="imageBlobUrls[car.id]"
               :src="imageBlobUrls[car.id]"
               :alt="getModelLabel(car.model)"
               class="w-full h-full object-cover" />
-            <div v-else class="flex flex-col items-center text-gray-400">
+            <div v-else class="flex flex-col items-center text-gray-400 dark:text-gray-500">
               <svg class="w-12 h-12 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
                   d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -705,7 +705,7 @@ onUnmounted(() => {
             <!-- Delete image button -->
             <button v-if="imageBlobUrls[car.id]"
               @click="handleDeleteImage(car.id)"
-              class="absolute top-2 right-2 bg-white bg-opacity-80 rounded-full p-1 hover:bg-opacity-100 text-red-600 hover:text-red-700 transition"
+              class="absolute top-2 right-2 bg-white dark:bg-gray-800 bg-opacity-80 dark:bg-opacity-80 rounded-full p-1 hover:bg-opacity-100 text-red-600 hover:text-red-700 transition"
               title="Foto löschen">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -730,13 +730,13 @@ onUnmounted(() => {
                 :checked="imagePublicForUpload[car.id] ?? false"
                 @change="handleVisibilityChange(car.id, ($event.target as HTMLInputElement).checked)"
                 class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-              <span class="text-xs text-gray-600">Foto öffentlich teilen</span>
+              <span class="text-xs text-gray-600 dark:text-gray-400">Foto öffentlich teilen</span>
             </label>
             <label class="ml-auto cursor-pointer">
               <span :class="[
                 'text-xs px-3 py-1.5 rounded-md font-medium transition',
                 imageUploading[car.id]
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  ? 'bg-gray-100 dark:bg-gray-600 text-gray-400 dark:text-gray-500 cursor-not-allowed'
                   : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
               ]">
                 {{ imageUploading[car.id] ? 'Lädt...' : (car.imageUrl ? 'Foto ändern' : 'Foto hochladen') }}
@@ -775,28 +775,28 @@ onUnmounted(() => {
                       Online
                     </span>
                     <span v-else-if="teslaStatus.vehicleState === 'asleep'"
-                      class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-500 text-xs rounded-full font-medium border border-gray-200">
+                      class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-300 text-xs rounded-full font-medium border border-gray-200 dark:border-gray-500">
                       <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
                       Schläft
                     </span>
                   </template>
                 </div>
-                <p class="text-sm text-gray-600">{{ car.year }}</p>
+                <p class="text-sm text-gray-600 dark:text-gray-400">{{ car.year }}</p>
               </div>
               <LicensePlate v-if="car.licensePlate" :plate="car.licensePlate" />
             </div>
 
             <div class="mb-4 space-y-1">
-              <p class="text-sm text-gray-600">
+              <p class="text-sm text-gray-600 dark:text-gray-400">
                 <span class="font-semibold">Batterie:</span> {{ car.batteryCapacityKwh }} kWh
                 <span v-if="car.batteryDegradationPercent" class="text-amber-600 text-xs ml-1">
                   ({{ car.batteryDegradationPercent }}% Degradation - effektiv {{ car.effectiveBatteryCapacityKwh }} kWh)
                 </span>
               </p>
-              <p v-if="car.powerKw" class="text-sm text-gray-600">
+              <p v-if="car.powerKw" class="text-sm text-gray-600 dark:text-gray-400">
                 <span class="font-semibold">Leistung:</span> {{ car.powerKw }} kW ({{ Math.round(car.powerKw * 1.35962) }} PS)
               </p>
-              <p class="text-xs text-gray-400 font-mono select-all" :title="'Fahrzeug-ID für API Upload'">{{ car.id }}</p>
+              <p class="text-xs text-gray-400 dark:text-gray-500 font-mono select-all" :title="'Fahrzeug-ID für API Upload'">{{ car.id }}</p>
             </div>
 
             <div class="flex gap-2">
@@ -823,10 +823,10 @@ onUnmounted(() => {
 
     <!-- Edit Car Modal -->
     <div v-if="editingCar" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="resetForm">
-      <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div class="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100">
-          <h2 class="text-xl font-semibold text-gray-800">Fahrzeug bearbeiten</h2>
-          <button @click="resetForm" class="text-gray-400 hover:text-gray-600 transition">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-700">
+          <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">Fahrzeug bearbeiten</h2>
+          <button @click="resetForm" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -836,9 +836,9 @@ onUnmounted(() => {
         <form @submit.prevent="submitForm" class="p-6 space-y-4">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Marke *</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Marke *</label>
               <select v-model="selectedBrand" required
-                class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border">
+                class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100">
                 <option value="">Marke wählen...</option>
                 <option v-for="brand in sortedBrands" :key="brand.value" :value="brand.value">
                   {{ brand.label }}
@@ -847,9 +847,9 @@ onUnmounted(() => {
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Modell *</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Modell *</label>
               <select v-model="selectedModel" required :disabled="!selectedBrand"
-                class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border disabled:bg-gray-100">
+                class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border disabled:bg-gray-100 dark:disabled:bg-gray-600 dark:bg-gray-700 dark:text-gray-100">
                 <option value="">{{ selectedBrand ? 'Modell wählen...' : 'Erst Marke wählen...' }}</option>
                 <option v-for="m in availableModels" :key="m.value" :value="m.value">
                   {{ m.label }}
@@ -858,13 +858,13 @@ onUnmounted(() => {
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Ausstattungslinie (optional)</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ausstattungslinie (optional)</label>
               <input v-model="trim" type="text" placeholder="z.B. GTX, Pro Performance, Long Range"
-                class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" />
+                class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
             </div>
 
             <div v-if="selectedModel" class="md:col-span-2">
-              <label class="block text-sm font-medium text-gray-700 mb-2">Batteriekapazität (kWh) *</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Batteriekapazität (kWh) *</label>
               <div v-if="!useCustomCapacity" class="space-y-2">
                 <div class="flex gap-2 flex-wrap">
                   <button v-for="capacity in selectedModelCapacities" :key="capacity" type="button"
@@ -882,7 +882,7 @@ onUnmounted(() => {
               <div v-else class="space-y-2">
                 <input v-model.number="customCapacity" type="number" step="0.1" min="0" required
                   placeholder="Eigene Kapazität eingeben (z.B. 82,5)"
-                  class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" />
+                  class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
                 <button type="button" @click="useCustomCapacity = false; customCapacity = null"
                   class="text-sm text-indigo-600 hover:text-indigo-700 underline">
                   Aus verfügbaren Kapazitäten wählen
@@ -891,30 +891,30 @@ onUnmounted(() => {
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Baujahr *</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Baujahr *</label>
               <input v-model="year" type="number" required min="2000" :max="new Date().getFullYear() + 1"
-                class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" />
+                class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Kennzeichen (optional)</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kennzeichen (optional)</label>
               <input v-model="licensePlate" type="text" placeholder="z.B. M-EV 123"
-                class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" />
+                class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Leistung (optional)</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Leistung (optional)</label>
               <input v-model.number="powerKw" type="number" step="0.1" min="0" placeholder="z.B. 150"
-                class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" />
-              <p v-if="powerPs" class="text-xs text-gray-500 mt-1">≈ {{ powerPs }} PS</p>
-              <p v-else class="text-xs text-gray-500 mt-1">Gib kW ein um PS-Umrechnung zu sehen</p>
+                class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
+              <p v-if="powerPs" class="text-xs text-gray-500 dark:text-gray-400 mt-1">≈ {{ powerPs }} PS</p>
+              <p v-else class="text-xs text-gray-500 dark:text-gray-400 mt-1">Gib kW ein um PS-Umrechnung zu sehen</p>
             </div>
           </div>
 
           <!-- Erweiterte Einstellungen -->
-          <div class="mt-4 border-t pt-4">
+          <div class="mt-4 border-t dark:border-gray-600 pt-4">
             <button type="button" @click="showAdvancedSettings = !showAdvancedSettings"
-              class="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700">
+              class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
                 class="w-4 h-4 transition-transform" :class="{ 'rotate-180': showAdvancedSettings }">
                 <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
@@ -922,12 +922,12 @@ onUnmounted(() => {
               Erweiterte Einstellungen
             </button>
             <div v-if="showAdvancedSettings" class="mt-3 space-y-2">
-              <label class="block text-sm font-medium text-gray-700">Batteriedegradation (optional)</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Batteriedegradation (optional)</label>
               <div class="flex items-center gap-2">
                 <input v-model.number="batteryDegradationPercent" type="number" step="0.1" min="0" max="50"
                   placeholder="z.B. 8"
-                  class="w-32 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" />
-                <span class="text-sm text-gray-500">%</span>
+                  class="w-32 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
+                <span class="text-sm text-gray-500 dark:text-gray-400">%</span>
                 <button v-if="batteryDegradationPercent != null" type="button"
                   @click="batteryDegradationPercent = null"
                   class="text-xs text-red-500 hover:text-red-700 ml-2">Zurücksetzen</button>
@@ -935,7 +935,7 @@ onUnmounted(() => {
               <p v-if="batteryDegradationPercent && finalCapacity" class="text-xs text-amber-600">
                 Effektive Kapazität: {{ (finalCapacity * (1 - batteryDegradationPercent / 100)).toFixed(2) }} kWh (statt {{ finalCapacity }} kWh)
               </p>
-              <p class="text-xs text-gray-400">Verbrauchsberechnungen nutzen die effektive Kapazität.</p>
+              <p class="text-xs text-gray-400 dark:text-gray-500">Verbrauchsberechnungen nutzen die effektive Kapazität.</p>
             </div>
           </div>
 
@@ -947,7 +947,7 @@ onUnmounted(() => {
             </button>
             <button type="button" @click="resetForm"
               v-haptic
-              class="btn-3d bg-gray-200 text-gray-700 px-6 py-2 rounded-md hover:bg-gray-300 transition">
+              class="btn-3d bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 px-6 py-2 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500 transition">
               Abbrechen
             </button>
           </div>
@@ -957,9 +957,9 @@ onUnmounted(() => {
 
     <!-- WLTP Question Overlay -->
     <div v-if="showWltpQuestion" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
-        <h3 class="text-xl font-bold text-gray-800 mb-4">🎯 WLTP-Werte fehlen!</h3>
-        <p class="text-gray-600 mb-6">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6">
+        <h3 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4">🎯 WLTP-Werte fehlen!</h3>
+        <p class="text-gray-600 dark:text-gray-400 mb-6">
           Wir haben noch keine WLTP-Werte für dieses Modell in unserer Datenbank.
           Möchtest du diese angeben und dadurch Punkte sammeln?
         </p>
@@ -980,19 +980,19 @@ onUnmounted(() => {
 
     <!-- WLTP Form Overlay -->
     <div v-if="showWltpForm" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-lg w-full p-6">
         <div class="flex items-center gap-2 mb-4">
-          <ChartBarIcon class="h-6 w-6 text-gray-700" />
-          <h3 class="text-xl font-bold text-gray-800">WLTP-Werte eingeben</h3>
+          <ChartBarIcon class="h-6 w-6 text-gray-700 dark:text-gray-300" />
+          <h3 class="text-xl font-bold text-gray-800 dark:text-gray-200">WLTP-Werte eingeben</h3>
         </div>
-        <p class="text-sm text-gray-600 mb-4">
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
           Für: <span class="font-semibold">{{ selectedBrand }} {{ getModelLabel(selectedModel) }}</span>
           ({{ finalCapacity }} kWh)
         </p>
 
         <form @submit.prevent="submitWltpData" class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Reichweite (WLTP Combined) *
             </label>
             <div class="relative">
@@ -1004,13 +1004,13 @@ onUnmounted(() => {
                 max="2000"
                 required
                 placeholder="z.B. 450"
-                class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 border pr-12" />
-              <span class="absolute right-3 top-3 text-gray-500 text-sm">km</span>
+                class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 border pr-12 dark:bg-gray-700 dark:text-gray-100" />
+              <span class="absolute right-3 top-3 text-gray-500 dark:text-gray-400 text-sm">km</span>
             </div>
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Verbrauch (WLTP Combined) *
             </label>
             <div class="relative">
@@ -1022,8 +1022,8 @@ onUnmounted(() => {
                 max="100"
                 required
                 placeholder="z.B. 16.5"
-                class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 border pr-24" />
-              <span class="absolute right-3 top-3 text-gray-500 text-sm">kWh/100km</span>
+                class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 border pr-24 dark:bg-gray-700 dark:text-gray-100" />
+              <span class="absolute right-3 top-3 text-gray-500 dark:text-gray-400 text-sm">kWh/100km</span>
             </div>
           </div>
 
@@ -1036,7 +1036,7 @@ onUnmounted(() => {
             <button
               type="button"
               @click="closeWltpForm"
-              class="flex-1 bg-gray-200 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-300 transition">
+              class="flex-1 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 px-6 py-3 rounded-lg font-semibold hover:bg-gray-300 dark:hover:bg-gray-500 transition">
               Abbrechen
             </button>
           </div>
@@ -1049,14 +1049,14 @@ onUnmounted(() => {
       <!-- Import Hub Hint -->
       <router-link
         to="/imports"
-        class="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 hover:bg-gray-100 transition group"
+        class="flex items-center gap-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-600 transition group"
       >
-        <ArrowDownTrayIcon class="h-5 w-5 text-gray-500 shrink-0" />
+        <ArrowDownTrayIcon class="h-5 w-5 text-gray-500 dark:text-gray-400 shrink-0" />
         <div>
-          <span class="text-sm font-medium text-gray-800">Importmöglichkeiten</span>
-          <span class="text-sm text-gray-500 ml-1">— Tesla, Sprit-Monitor, go-eCharger Cloud, OCPP Wallbox</span>
+          <span class="text-sm font-medium text-gray-800 dark:text-gray-200">Importmöglichkeiten</span>
+          <span class="text-sm text-gray-500 dark:text-gray-400 ml-1">— Tesla, Sprit-Monitor, go-eCharger Cloud, OCPP Wallbox</span>
         </div>
-        <span class="text-gray-400 ml-auto group-hover:translate-x-0.5 transition-transform">→</span>
+        <span class="text-gray-400 dark:text-gray-500 ml-auto group-hover:translate-x-0.5 transition-transform">→</span>
       </router-link>
     </div>
       </div>

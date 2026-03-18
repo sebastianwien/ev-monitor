@@ -6,16 +6,16 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
 </script>
 
 <template>
-  <div class="min-h-screen bg-white">
+  <div class="min-h-screen bg-white dark:bg-gray-900">
     <!-- Navbar -->
-    <nav class="border-b border-gray-200">
+    <nav class="border-b border-gray-200 dark:border-gray-700">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between items-center h-16">
           <router-link to="/" class="flex items-center space-x-2">
             <BoltIcon class="h-8 w-8 text-green-600" />
-            <span class="text-xl font-bold text-gray-900">EV Monitor</span>
+            <span class="text-xl font-bold text-gray-900 dark:text-gray-100">EV Monitor</span>
           </router-link>
-          <router-link to="/modelle" class="text-sm font-medium text-gray-600 hover:text-green-700 transition">
+          <router-link to="/modelle" class="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-green-700 transition">
             Modelle
           </router-link>
         </div>
@@ -24,11 +24,11 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
 
     <!-- Content -->
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-      <h1 class="text-4xl font-bold text-gray-900 mb-8">Impressum</h1>
+      <h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-8">Impressum</h1>
 
-      <div class="prose prose-lg text-gray-600 space-y-8">
+      <div class="prose prose-lg text-gray-600 dark:text-gray-400 space-y-8">
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 mb-4">Angaben gemäß § 5 TMG</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Angaben gemäß § 5 TMG</h2>
           <p>
             Sebastian Wien<br />
             Cotheniusstrasse 5<br />
@@ -38,14 +38,14 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 mb-4">Kontakt</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Kontakt</h2>
           <p>
             E-Mail: <a :href="`mailto:${email}`" class="text-green-600 hover:text-green-700">{{ email }}</a><br />
           </p>
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 mb-4">Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV</h2>
           <p>
             Sebastian Wien<br />
             Cotheniusstrasse 5
@@ -54,7 +54,7 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 mb-4">EU-Streitschlichtung</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">EU-Streitschlichtung</h2>
           <p>
             Die Europäische Kommission stellt eine Plattform zur Online-Streitbeilegung (OS) bereit:
             <a
@@ -71,7 +71,7 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 mb-4">Verbraucherstreitbeilegung / Universalschlichtungsstelle</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Verbraucherstreitbeilegung / Universalschlichtungsstelle</h2>
           <p>
             Wir sind nicht bereit oder verpflichtet, an Streitbeilegungsverfahren vor einer
             Verbraucherschlichtungsstelle teilzunehmen.
@@ -79,7 +79,7 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 mb-4">Haftung für Inhalte</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Haftung für Inhalte</h2>
           <p>
             Als Diensteanbieter sind wir gemäß § 7 Abs.1 TMG für eigene Inhalte auf diesen Seiten nach den
             allgemeinen Gesetzen verantwortlich. Nach §§ 8 bis 10 TMG sind wir als Diensteanbieter jedoch nicht
@@ -95,7 +95,7 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 mb-4">Haftung für Links</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Haftung für Links</h2>
           <p>
             Unser Angebot enthält Links zu externen Websites Dritter, auf deren Inhalte wir keinen Einfluss haben.
             Deshalb können wir für diese fremden Inhalte auch keine Gewähr übernehmen. Für die Inhalte der
@@ -110,7 +110,7 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 mb-4">Urheberrecht</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Urheberrecht</h2>
           <p>
             Die durch die Seitenbetreiber erstellten Inhalte und Werke auf diesen Seiten unterliegen dem
             deutschen Urheberrecht. Die Vervielfältigung, Bearbeitung, Verbreitung und jede Art der Verwertung
@@ -127,7 +127,7 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 mb-4">Datenquellen</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Datenquellen</h2>
           <p>
             WLTP-Daten stammen aus öffentlich zugänglichen Herstellerangaben und Community-Beiträgen.
             Alle Angaben ohne Gewähr. Für die Richtigkeit der Daten übernehmen wir keine Haftung.
@@ -135,7 +135,7 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 mb-4">Open-Source-Komponenten</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Open-Source-Komponenten</h2>
           <p>
             Die Darstellung der Kraftfahrzeugkennzeichen verwendet den Schriftsatz
             <a href="https://github.com/Gutenberg-Labo/GL-Nummernschild" target="_blank" rel="noopener noreferrer" class="text-green-600 hover:underline">GL-Nummernschild</a>
@@ -144,7 +144,7 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
         </section>
       </div>
 
-      <div class="mt-12 pt-8 border-t border-gray-200">
+      <div class="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700">
         <router-link
           to="/"
           class="text-green-600 hover:text-green-700 font-medium"

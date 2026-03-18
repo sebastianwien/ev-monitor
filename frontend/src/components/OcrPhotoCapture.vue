@@ -222,7 +222,7 @@ const cancel = () => {
     </div>
 
     <!-- Error Message -->
-    <div v-if="error" class="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+    <div v-if="error" class="mb-4 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300 rounded-lg text-sm">
       {{ error }}
     </div>
 
@@ -286,14 +286,14 @@ const cancel = () => {
     <div v-if="ocrResults" class="space-y-4">
       <!-- Confidence Indicator -->
       <div class="p-3 rounded-lg" :class="{
-        'bg-green-50 border border-green-200': ocrResults.confidence >= 66,
-        'bg-yellow-50 border border-yellow-200': ocrResults.confidence >= 33 && ocrResults.confidence < 66,
-        'bg-red-50 border border-red-200': ocrResults.confidence < 33
+        'bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700': ocrResults.confidence >= 66,
+        'bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700': ocrResults.confidence >= 33 && ocrResults.confidence < 66,
+        'bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700': ocrResults.confidence < 33
       }">
         <p class="text-sm font-medium" :class="{
-          'text-green-700': ocrResults.confidence >= 66,
-          'text-yellow-700': ocrResults.confidence >= 33 && ocrResults.confidence < 66,
-          'text-red-700': ocrResults.confidence < 33
+          'text-green-700 dark:text-green-300': ocrResults.confidence >= 66,
+          'text-yellow-700 dark:text-yellow-300': ocrResults.confidence >= 33 && ocrResults.confidence < 66,
+          'text-red-700 dark:text-red-300': ocrResults.confidence < 33
         }">
           <span v-if="ocrResults.confidence >= 66">✅ {{ ocrResults.confidence }}% Daten erkannt</span>
           <span v-else-if="ocrResults.confidence >= 33">⚠️ {{ ocrResults.confidence }}% Daten erkannt</span>

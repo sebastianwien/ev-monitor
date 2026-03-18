@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 html, body {
   overflow-x: hidden;
@@ -23,6 +24,13 @@ html, body {
   animation: gold-shimmer 2.5s linear infinite;
   border-color: #f59e0b;
   color: #78350f;
+}
+
+.dark .cost-badge-gold {
+  background: linear-gradient(90deg, #92400e, #fbbf24, #d97706, #fbbf24, #92400e);
+  background-size: 200% auto;
+  border-color: #d97706;
+  color: #fef3c7;
 }
 
 /* Global 3D press effect */
@@ -52,4 +60,9 @@ body {
     font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+}
+
+.dark body {
+    background-color: #030712;
+    color: #f9fafb;
 }

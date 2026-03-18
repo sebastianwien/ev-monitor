@@ -34,7 +34,7 @@ function dismiss() {
     >
       <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
         <div
-          class="relative w-full max-w-md rounded-2xl bg-white shadow-2xl p-6"
+          class="relative w-full max-w-md rounded-2xl bg-white dark:bg-gray-800 shadow-2xl p-6"
           @click.stop
         >
           <!-- Header -->
@@ -42,10 +42,10 @@ function dismiss() {
             <div class="flex-shrink-0 w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center">
               <TrophyIcon class="w-5 h-5 text-indigo-600" />
             </div>
-            <h2 class="text-lg font-bold text-gray-900">Belohnungssystem überarbeitet</h2>
+            <h2 class="text-lg font-bold text-gray-900 dark:text-gray-100">Belohnungssystem überarbeitet</h2>
             <button
               @click="dismiss"
-              class="ml-auto text-gray-400 hover:text-gray-600 transition-colors"
+              class="ml-auto text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
               aria-label="Schließen"
             >
               <XMarkIcon class="w-5 h-5" />
@@ -53,9 +53,9 @@ function dismiss() {
           </div>
 
           <!-- Body -->
-          <div class="space-y-3 text-sm text-gray-600">
+          <div class="space-y-3 text-sm text-gray-600 dark:text-gray-400">
             <p>
-              Wir haben das <strong class="text-gray-800">Punkte-System grundlegend überarbeitet</strong> —
+              Wir haben das <strong class="text-gray-800 dark:text-gray-200">Punkte-System grundlegend überarbeitet</strong> —
               wie Watt verdient werden, was sie wert sind und wie sie sich auf die Community auswirken.
             </p>
             <p>

@@ -115,9 +115,9 @@ const activeCars = computed(() =>
         <div class="mb-6">
           <div class="flex items-center gap-3 mb-2">
             <ArrowDownTrayIcon class="h-7 w-7 text-green-600" />
-            <h1 class="text-2xl font-bold text-gray-900">Ladevorgänge importieren</h1>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Ladevorgänge importieren</h1>
           </div>
-          <p class="text-gray-600 text-sm">
+          <p class="text-gray-600 dark:text-gray-400 text-sm">
             Importiere deine bisherigen Ladevorgänge oder verbinde eine Heimwallbox für automatischen Import.
           </p>
         </div>
@@ -139,13 +139,13 @@ const activeCars = computed(() =>
             :class="[
               'shrink-0 px-4 py-2.5 text-sm font-medium border-t border-l border-r rounded-t-lg transition-colors relative z-10',
               activeTab === tab.id
-                ? 'bg-white border-gray-200 text-gray-900 -mb-px pb-[calc(0.625rem+1px)]'
-                : 'bg-gray-50 border-gray-200 text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                ? 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 -mb-px pb-[calc(0.625rem+1px)]'
+                : 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600'
             ]"
           >{{ tab.label }}</button>
         </div>
         <!-- Tab panel -->
-        <div class="border border-gray-200 rounded-b-xl rounded-tr-xl bg-white">
+        <div class="border border-gray-200 dark:border-gray-700 rounded-b-xl rounded-tr-xl bg-white dark:bg-gray-800">
         <!-- Tab: Sprit-Monitor -->
         <div v-if="activeTab === 'spritmonitor'" class="p-6 space-y-4">
           <div class="flex items-start gap-4">
@@ -153,14 +153,14 @@ const activeCars = computed(() =>
               <ArrowDownTrayIcon class="h-5 w-5 text-white" />
             </div>
             <div>
-              <h2 class="font-semibold text-gray-900">Sprit-Monitor Import</h2>
-              <p class="text-sm text-gray-600 mt-1">
+              <h2 class="font-semibold text-gray-900 dark:text-gray-100">Sprit-Monitor Import</h2>
+              <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
                 Importiere deine komplette Ladehistorie aus Sprit-Monitor — inklusive Kosten und Verbrauch.
                 Dein API Token wird nach dem Import sofort verworfen, nichts wird gespeichert.
               </p>
             </div>
           </div>
-          <ul class="text-sm text-gray-600 space-y-1 list-disc list-inside">
+          <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-1 list-disc list-inside">
             <li>Komplette Ladehistorie aus Sprit-Monitor</li>
             <li>Kosten, kWh, Datum — alles inklusive</li>
             <li>Fahrzeugzuordnung wählbar</li>
@@ -182,22 +182,22 @@ const activeCars = computed(() =>
               <BoltIcon class="h-5 w-5 text-white" />
             </div>
             <div>
-              <h2 class="font-semibold text-gray-900">go-eCharger Cloud <span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-medium ml-2">BETA</span></h2>
-              <p class="text-sm text-gray-600 mt-1">
+              <h2 class="font-semibold text-gray-900 dark:text-gray-100">go-eCharger Cloud <span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-medium ml-2">BETA</span></h2>
+              <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
                 Verbinde deinen go-eCharger über die Cloud API für vollautomatischen Import.
                 Alle 30 Sekunden wird der Ladestatus geprüft und abgeschlossene Sessions automatisch eingetragen.
               </p>
             </div>
           </div>
-          <div class="flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <ExclamationTriangleIcon class="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
-            <p class="text-xs text-blue-800">
+          <div class="flex items-start gap-2 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-3">
+            <ExclamationTriangleIcon class="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+            <p class="text-xs text-blue-800 dark:text-blue-200">
               <strong>Beta-Feature:</strong> Diese Integration befindet sich in der Beta-Phase und kann noch Fehler enthalten. Bei Problemen melde dich bitte.
             </p>
           </div>
-          <div class="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3">
-            <ExclamationTriangleIcon class="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
-            <p class="text-xs text-amber-800">
+          <div class="flex items-start gap-2 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg p-3">
+            <ExclamationTriangleIcon class="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+            <p class="text-xs text-amber-800 dark:text-amber-200">
               <strong>Hinweis:</strong> Die Cloud API lässt sich parallel zu allen anderen go-e Features (PV-Überschussladen,
               Lastmanagement) nutzen. Keine OCPP-Konfiguration nötig.
             </p>
@@ -212,22 +212,22 @@ const activeCars = computed(() =>
               <BoltIcon class="h-5 w-5 text-white" />
             </div>
             <div>
-              <h2 class="font-semibold text-gray-900">OCPP Wallbox <span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-medium ml-2">BETA</span></h2>
-              <p class="text-sm text-gray-600 mt-1">
+              <h2 class="font-semibold text-gray-900 dark:text-gray-100">OCPP Wallbox <span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-medium ml-2">BETA</span></h2>
+              <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
                 Richte deine Wallbox über das OCPP-Protokoll ein. Ladevorgänge werden dann automatisch
                 nach jeder Session importiert.
               </p>
             </div>
           </div>
-          <div class="flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <ExclamationTriangleIcon class="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
-            <p class="text-xs text-blue-800">
+          <div class="flex items-start gap-2 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-3">
+            <ExclamationTriangleIcon class="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+            <p class="text-xs text-blue-800 dark:text-blue-200">
               <strong>Beta-Feature:</strong> Diese Integration befindet sich in der Beta-Phase und kann noch Fehler enthalten. Bei Problemen melde dich bitte.
             </p>
           </div>
-          <div class="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl p-4">
-            <ExclamationTriangleIcon class="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
-            <div class="text-sm text-amber-800 space-y-1">
+          <div class="flex items-start gap-2 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-xl p-4">
+            <ExclamationTriangleIcon class="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+            <div class="text-sm text-amber-800 dark:text-amber-200 space-y-1">
               <p class="font-semibold">Wichtiger Hinweis vor der Einrichtung</p>
               <p>
                 Bei OCPP wird deine Wallbox auf <strong>unseren Server</strong> als Steuereinheit umgekonfiguriert.
@@ -239,7 +239,7 @@ const activeCars = computed(() =>
           </div>
           <router-link
             to="/wallbox"
-            class="btn-3d inline-flex items-center gap-2 bg-gray-800 text-white px-5 py-2.5 rounded-lg font-medium text-sm hover:bg-gray-700 transition"
+            class="btn-3d inline-flex items-center gap-2 bg-gray-800 dark:bg-gray-600 text-white px-5 py-2.5 rounded-lg font-medium text-sm hover:bg-gray-700 dark:hover:bg-gray-500 transition"
           >
             <BoltIcon class="h-4 w-4" />
             OCPP Wallbox konfigurieren
@@ -254,8 +254,8 @@ const activeCars = computed(() =>
                 <BoltIcon class="h-5 w-5 text-white" />
               </div>
               <div>
-                <h2 class="font-semibold text-gray-900">Tesla Integration</h2>
-                <p class="text-sm text-gray-600 mt-2">
+                <h2 class="font-semibold text-gray-900 dark:text-gray-100">Tesla Integration</h2>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">
                   Um die Tesla-Integration zu nutzen, musst du zuerst ein Tesla-Fahrzeug in deiner
                   <router-link to="/cars" class="text-indigo-600 hover:underline font-medium">Fahrzeugverwaltung</router-link>
                   anlegen.
@@ -279,14 +279,14 @@ const activeCars = computed(() =>
               <ArrowDownTrayIcon class="h-5 w-5 text-white" />
             </div>
             <div>
-              <h2 class="font-semibold text-gray-900">Manueller Import</h2>
-              <p class="text-sm text-gray-600 mt-1">
+              <h2 class="font-semibold text-gray-900 dark:text-gray-100">Manueller Import</h2>
+              <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
                 Importiere vergangene Ladevorgänge aus beliebigen Quellen - als CSV oder JSON.
                 Kompatibel mit TeslaMate, TeslaFi, eigenen Exports und jedem anderen Format das du anpassen kannst.
               </p>
             </div>
           </div>
-          <ul class="text-sm text-gray-600 space-y-1 list-disc list-inside">
+          <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-1 list-disc list-inside">
             <li>CSV oder JSON - Format wird vorgegeben</li>
             <li>Pflichtfelder: date und kwh - alles andere optional</li>
             <li>Datum-Erkennung: ISO 8601, deutsch, US, Unix-Timestamp</li>
@@ -294,7 +294,7 @@ const activeCars = computed(() =>
             <li>Duplikate werden erkannt und übersprungen - anhand Zeitpunkt und kWh</li>
           </ul>
           <div v-if="activeCars.length > 1" class="space-y-1.5">
-            <label class="block text-sm font-medium text-gray-700">Fahrzeug auswählen</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Fahrzeug auswählen</label>
             <CarSelectDropdown :cars="activeCars" v-model="manualImportCarId" />
           </div>
           <button
@@ -305,7 +305,7 @@ const activeCars = computed(() =>
             <ArrowDownTrayIcon class="h-4 w-4" />
             Import starten
           </button>
-          <p v-if="activeCars.length === 0" class="text-sm text-gray-500 italic">
+          <p v-if="activeCars.length === 0" class="text-sm text-gray-500 dark:text-gray-400 italic">
             Kein aktives Fahrzeug gefunden.
             <router-link to="/cars" class="text-indigo-600 hover:underline font-medium">Fahrzeug anlegen</router-link>
           </p>
@@ -318,24 +318,24 @@ const activeCars = computed(() =>
               <CodeBracketIcon class="h-5 w-5 text-white" />
             </div>
             <div>
-              <h2 class="font-semibold text-gray-900">REST API Upload</h2>
-              <p class="text-sm text-gray-600 mt-1">
+              <h2 class="font-semibold text-gray-900 dark:text-gray-100">REST API Upload</h2>
+              <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
                 Verbinde Wallboxen, Skripte oder Home-Automation direkt mit EV Monitor. Ladevorgänge werden automatisch importiert sobald dein Tool sie sendet.
               </p>
             </div>
           </div>
 
           <!-- Endpoint Info -->
-          <div class="p-4 bg-indigo-50 border border-indigo-200 rounded-lg text-sm text-indigo-800">
-            <p class="font-mono text-xs bg-white border border-indigo-200 rounded px-2 py-1.5 mb-2 break-all">
+          <div class="p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700 rounded-lg text-sm text-indigo-800 dark:text-indigo-300">
+            <p class="font-mono text-xs bg-white dark:bg-gray-700 border border-indigo-200 dark:border-indigo-700 rounded px-2 py-1.5 mb-2 break-all">
               POST https://ev-monitor.net/api/v1/sessions<br>
               Authorization: Bearer evm_&lt;dein-key&gt;
             </p>
             <p class="text-xs mb-1">
-              Pflichtfelder: <code class="bg-white px-1 rounded">date</code>, <code class="bg-white px-1 rounded">kwh</code>
+              Pflichtfelder: <code class="bg-white dark:bg-gray-700 px-1 rounded">date</code>, <code class="bg-white dark:bg-gray-700 px-1 rounded">kwh</code>
             </p>
             <p class="text-xs">
-              Optional: <code class="bg-white px-1 rounded">odometer_km</code>, <code class="bg-white px-1 rounded">soc_after</code>, <code class="bg-white px-1 rounded">cost_eur</code>, <code class="bg-white px-1 rounded">duration_min</code>, <code class="bg-white px-1 rounded">location</code>, <code class="bg-white px-1 rounded">charging_type</code> (AC/DC)
+              Optional: <code class="bg-white dark:bg-gray-700 px-1 rounded">odometer_km</code>, <code class="bg-white dark:bg-gray-700 px-1 rounded">soc_after</code>, <code class="bg-white dark:bg-gray-700 px-1 rounded">cost_eur</code>, <code class="bg-white dark:bg-gray-700 px-1 rounded">duration_min</code>, <code class="bg-white dark:bg-gray-700 px-1 rounded">location</code>, <code class="bg-white dark:bg-gray-700 px-1 rounded">charging_type</code> (AC/DC)
             </p>
             <p class="text-xs mt-1">
               Duplikate werden erkannt und übersprungen - anhand Zeitpunkt und kWh.
@@ -348,20 +348,20 @@ const activeCars = computed(() =>
           <!-- Message -->
           <div v-if="apiKeyMessage" :class="[
             'p-3 rounded-lg text-sm',
-            apiKeyMessage.type === 'success' ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-700'
+            apiKeyMessage.type === 'success' ? 'bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 text-green-700 dark:text-green-300' : 'bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300'
           ]">{{ apiKeyMessage.text }}</div>
 
           <!-- Newly created key -->
-          <div v-if="createdKey" class="p-4 bg-green-50 border border-green-300 rounded-lg">
-            <p class="font-semibold text-green-800 mb-1 text-sm">Neuer API Key — nur jetzt sichtbar!</p>
+          <div v-if="createdKey" class="p-4 bg-green-50 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded-lg">
+            <p class="font-semibold text-green-800 dark:text-green-200 mb-1 text-sm">Neuer API Key — nur jetzt sichtbar!</p>
             <div class="flex items-center gap-2">
-              <code class="flex-1 bg-white border border-green-300 rounded px-3 py-2 text-sm font-mono break-all">{{ createdKey.plaintextKey }}</code>
+              <code class="flex-1 bg-white dark:bg-gray-700 border border-green-300 dark:border-green-700 rounded px-3 py-2 text-sm font-mono break-all">{{ createdKey.plaintextKey }}</code>
               <button @click="copyApiKey" class="flex-shrink-0 p-2 rounded-lg bg-green-600 text-white hover:bg-green-700 transition" title="Kopieren">
                 <CheckIcon v-if="keyCopied" class="h-5 w-5" />
                 <ClipboardDocumentIcon v-else class="h-5 w-5" />
               </button>
             </div>
-            <p class="text-xs text-green-700 mt-2">Speicher diesen Key jetzt — er wird nicht noch einmal angezeigt.</p>
+            <p class="text-xs text-green-700 dark:text-green-300 mt-2">Speicher diesen Key jetzt — er wird nicht noch einmal angezeigt.</p>
           </div>
 
           <!-- Create key -->
@@ -371,7 +371,7 @@ const activeCars = computed(() =>
               type="text"
               placeholder="Key-Name, z.B. OpenWB Zuhause"
               maxlength="100"
-              class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500"
+              class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500"
               @keyup.enter="createApiKey" />
             <button
               @click="createApiKey"
@@ -382,15 +382,15 @@ const activeCars = computed(() =>
           </div>
 
           <!-- Key list -->
-          <div v-if="apiKeys.length === 0" class="text-sm text-gray-500 italic">Noch keine API Keys vorhanden.</div>
+          <div v-if="apiKeys.length === 0" class="text-sm text-gray-500 dark:text-gray-400 italic">Noch keine API Keys vorhanden.</div>
           <div v-else class="space-y-2">
             <div
               v-for="key in apiKeys"
               :key="key.id"
-              class="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg gap-2">
+              class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg gap-2">
               <div class="min-w-0 flex-1">
-                <p class="font-medium text-gray-800 text-sm truncate">{{ key.name || '(kein Name)' }}</p>
-                <p class="text-xs text-gray-500">
+                <p class="font-medium text-gray-800 dark:text-gray-200 text-sm truncate">{{ key.name || '(kein Name)' }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">
                   <code class="font-mono">{{ key.keyPrefix }}…</code>
                   · Zuletzt: {{ formatDate(key.lastUsedAt) }}
                   · Erstellt: {{ formatDate(key.createdAt) }}
@@ -400,12 +400,12 @@ const activeCars = computed(() =>
                   <button
                     @click="toggleMergeSessions(key)"
                     :class="['relative inline-flex h-5 w-9 items-center rounded-full transition-colors',
-                             key.mergeSessions ? 'bg-indigo-600' : 'bg-gray-200']"
+                             key.mergeSessions ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-600']"
                     :title="key.mergeSessions ? 'Sessions zusammenfassen aktiv' : 'Sessions zusammenfassen inaktiv'">
                     <span :class="['inline-block h-3 w-3 transform rounded-full bg-white transition-transform',
                                    key.mergeSessions ? 'translate-x-5' : 'translate-x-1']" />
                   </button>
-                  <span class="text-xs text-gray-500">Sessions zusammenfassen</span>
+                  <span class="text-xs text-gray-500 dark:text-gray-400">Sessions zusammenfassen</span>
                 </div>
               </div>
               <button

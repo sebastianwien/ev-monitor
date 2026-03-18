@@ -322,7 +322,7 @@ onMounted(async () => {
       </div>
     </div>
 
-    <div v-if="error" class="p-4 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm mb-4">
+    <div v-if="error" class="p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300 rounded-md text-sm mb-4">
       {{ error }}
     </div>
 
@@ -355,24 +355,24 @@ onMounted(async () => {
     <!-- Map container (always rendered) -->
     <div>
       <!-- Controls (only shown when we have data) -->
-      <div v-if="chargeCount > 0" class="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-3 md:p-4 bg-gradient-to-r from-indigo-50 to-purple-50 md:rounded-lg border border-indigo-100">
+      <div v-if="chargeCount > 0" class="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-3 md:p-4 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/30 dark:to-purple-900/20 md:rounded-lg border border-indigo-100 dark:border-indigo-800">
         <div class="flex items-center gap-2">
-          <MapPinIcon class="h-5 w-5 text-indigo-600" />
-          <span class="text-sm font-semibold text-gray-700">
-            <strong class="text-indigo-600">{{ chargeCount }}</strong> Ladevorgänge
+          <MapPinIcon class="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+          <span class="text-sm font-semibold text-gray-700 dark:text-gray-200">
+            <strong class="text-indigo-600 dark:text-indigo-400">{{ chargeCount }}</strong> Ladevorgänge
           </span>
         </div>
 
         <!-- View Mode Toggle -->
         <div class="flex items-center gap-2">
-          <span class="text-xs font-medium text-gray-600 mr-2">Ansicht:</span>
+          <span class="text-xs font-medium text-gray-600 dark:text-gray-400 mr-2">Ansicht:</span>
           <button
             @click="setViewMode('heatmap')"
             :class="[
               'px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200',
               viewMode === 'heatmap'
                 ? 'bg-indigo-600 text-white shadow-md'
-                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
             ]">
             Heatmap
           </button>
@@ -382,7 +382,7 @@ onMounted(async () => {
               'px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200',
               viewMode === 'markers'
                 ? 'bg-indigo-600 text-white shadow-md'
-                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
             ]">
             Marker
           </button>
@@ -392,7 +392,7 @@ onMounted(async () => {
               'px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200',
               viewMode === 'both'
                 ? 'bg-indigo-600 text-white shadow-md'
-                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
             ]">
             Beides
           </button>
@@ -400,8 +400,8 @@ onMounted(async () => {
       </div>
 
       <!-- Legend (only shown when we have data) -->
-      <div v-if="chargeCount > 0" class="mb-3 flex flex-wrap items-center gap-4 text-xs text-gray-600 px-2">
-        <span class="font-semibold text-gray-700">Legende:</span>
+      <div v-if="chargeCount > 0" class="mb-3 flex flex-wrap items-center gap-4 text-xs text-gray-600 dark:text-gray-400 px-2">
+        <span class="font-semibold text-gray-700 dark:text-gray-300">Legende:</span>
         <span class="flex items-center gap-1.5">
           <span class="inline-block w-4 h-4 rounded-full bg-green-500 shadow-sm"></span>
           Wenig kWh

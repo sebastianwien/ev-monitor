@@ -99,21 +99,21 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
 </script>
 
 <template>
-  <div class="min-h-screen bg-white overflow-x-hidden">
+  <div class="min-h-screen bg-white dark:bg-gray-950 overflow-x-hidden">
     <!-- Navbar -->
-    <nav class="border-b border-gray-200">
+    <nav class="border-b border-gray-200 dark:border-gray-700">
       <div class="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
         <div class="flex justify-between items-center h-16">
           <div class="flex items-center gap-2">
             <BoltIcon class="h-7 w-7 text-green-600" />
-            <span class="text-xl font-bold text-gray-900 whitespace-nowrap">EV Monitor</span>
+            <span class="text-xl font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap">EV Monitor</span>
           </div>
           <div class="flex items-center gap-2 sm:gap-3">
             <a
               href="https://github.com/sebastianwien/ev-monitor"
               target="_blank"
               rel="noopener noreferrer"
-              class="text-gray-600 hover:text-gray-900 p-2 inline-flex items-center"
+              class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 p-2 inline-flex items-center"
               aria-label="View source on GitHub"
             >
               <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -123,7 +123,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
             <template v-if="authStore.isAuthenticated()">
               <router-link
                 to="/dashboard"
-                class="text-gray-600 hover:text-gray-900 px-2 sm:px-3 py-2 text-sm font-medium"
+                class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 px-2 sm:px-3 py-2 text-sm font-medium"
               >
                 Dashboard
               </router-link>
@@ -131,7 +131,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
             <template v-else>
               <router-link
                 to="/login"
-                class="text-gray-600 hover:text-gray-900 px-2 sm:px-3 py-2 text-sm font-medium"
+                class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 px-2 sm:px-3 py-2 text-sm font-medium"
               >
                 Login
               </router-link>
@@ -150,10 +150,10 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
     <!-- Hero Section -->
     <section class="pt-8 pb-6 sm:pt-12 sm:pb-8">
       <div class="max-w-4xl mx-auto text-center px-6 sm:px-8 lg:px-12">
-        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-4">
+        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-gray-100 leading-tight mb-4">
           Wie weit kommst du wirklich - und was kostet es dich?
         </h1>
-        <p class="text-lg text-gray-600 mb-6 max-w-xl mx-auto break-words">
+        <p class="text-lg text-gray-600 dark:text-gray-400 mb-6 max-w-xl mx-auto break-words">
           Echte Verbräuche und Ladekosten von der Community — WLTP-Verbrauch trifft Alltagsrealität. Mit Wallbox-Integration und API-Synchronisation.
         </p>
 
@@ -165,20 +165,20 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
               v-for="preview in topModels.slice(0, 3)"
               :key="`hero-mobile-${preview.brand}-${preview.model}`"
               :href="`/modelle/${preview.brandDisplayName}/${preview.modelUrlSlug}`"
-              class="snap-start shrink-0 w-[75vw] max-w-[280px] bg-white border border-gray-200 rounded-xl p-4 text-left hover:border-green-500 transition block"
+              class="snap-start shrink-0 w-[75vw] max-w-[280px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 text-left hover:border-green-500 transition block"
             >
               <div class="flex items-start justify-between gap-2 mb-1">
-                <span class="font-semibold text-gray-900">{{ preview.modelDisplayName }}</span>
+                <span class="font-semibold text-gray-900 dark:text-gray-100">{{ preview.modelDisplayName }}</span>
                 <span class="text-xs text-gray-400 whitespace-nowrap mt-0.5">{{ preview.logCount }} Ladevorgänge</span>
               </div>
               <div class="grid grid-cols-[auto_1fr] items-baseline gap-x-3 gap-y-0.5 mt-1 text-sm">
                 <template v-if="preview.minWltpConsumptionKwhPer100km">
                   <span class="text-xs text-gray-400">WLTP</span>
-                  <span class="text-gray-500">{{ formatWltpRange(preview.minWltpConsumptionKwhPer100km, preview.maxWltpConsumptionKwhPer100km) }} kWh/100km</span>
+                  <span class="text-gray-500 dark:text-gray-400">{{ formatWltpRange(preview.minWltpConsumptionKwhPer100km, preview.maxWltpConsumptionKwhPer100km) }} kWh/100km</span>
                 </template>
                 <template v-if="preview.avgConsumptionKwhPer100km || preview.minRealConsumptionKwhPer100km">
                   <span class="text-xs text-gray-400">Real</span>
-                  <span class="text-gray-700 font-semibold">{{ formatRealConsumption(preview.avgConsumptionKwhPer100km, preview.minRealConsumptionKwhPer100km, preview.maxRealConsumptionKwhPer100km) }} kWh/100km</span>
+                  <span class="text-gray-700 dark:text-gray-300 font-semibold">{{ formatRealConsumption(preview.avgConsumptionKwhPer100km, preview.minRealConsumptionKwhPer100km, preview.maxRealConsumptionKwhPer100km) }} kWh/100km</span>
                 </template>
                 <template v-if="preview.avgCostPerKwh && preview.avgConsumptionKwhPer100km">
                   <span class="text-xs text-gray-400">Kosten</span>
@@ -206,20 +206,20 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
               v-for="preview in topModels.slice(0, 3)"
               :key="`hero-${preview.brand}-${preview.model}`"
               :href="`/modelle/${preview.brandDisplayName}/${preview.modelUrlSlug}`"
-              class="bg-white border border-gray-200 rounded-xl p-4 text-left hover:border-green-500 transition block"
+              class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 text-left hover:border-green-500 transition block"
             >
               <div class="flex items-start justify-between gap-2 mb-1">
-                <span class="font-semibold text-gray-900">{{ preview.modelDisplayName }}</span>
+                <span class="font-semibold text-gray-900 dark:text-gray-100">{{ preview.modelDisplayName }}</span>
                 <span class="text-xs text-gray-400 whitespace-nowrap mt-0.5">{{ preview.logCount }} Ladevorgänge</span>
               </div>
               <div class="grid grid-cols-[auto_1fr] items-baseline gap-x-3 gap-y-0.5 mt-1 text-sm">
                 <template v-if="preview.minWltpConsumptionKwhPer100km">
                   <span class="text-xs text-gray-400">WLTP</span>
-                  <span class="text-gray-500">{{ formatWltpRange(preview.minWltpConsumptionKwhPer100km, preview.maxWltpConsumptionKwhPer100km) }} kWh/100km</span>
+                  <span class="text-gray-500 dark:text-gray-400">{{ formatWltpRange(preview.minWltpConsumptionKwhPer100km, preview.maxWltpConsumptionKwhPer100km) }} kWh/100km</span>
                 </template>
                 <template v-if="preview.avgConsumptionKwhPer100km || preview.minRealConsumptionKwhPer100km">
                   <span class="text-xs text-gray-400">Real</span>
-                  <span class="text-gray-700 font-semibold">{{ formatRealConsumption(preview.avgConsumptionKwhPer100km, preview.minRealConsumptionKwhPer100km, preview.maxRealConsumptionKwhPer100km) }} kWh/100km</span>
+                  <span class="text-gray-700 dark:text-gray-300 font-semibold">{{ formatRealConsumption(preview.avgConsumptionKwhPer100km, preview.minRealConsumptionKwhPer100km, preview.maxRealConsumptionKwhPer100km) }} kWh/100km</span>
                 </template>
                 <template v-if="preview.avgCostPerKwh && preview.avgConsumptionKwhPer100km">
                   <span class="text-xs text-gray-400">Kosten</span>
@@ -255,7 +255,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
           <button
             @click="demoLogin('hero')"
             :disabled="demoLoading"
-            class="demo-shimmer w-full sm:w-auto cursor-pointer border border-green-400 text-gray-900 px-6 py-3 sm:px-8 sm:py-4 rounded-lg text-base sm:text-lg font-semibold disabled:opacity-50 inline-flex items-center justify-center gap-2"
+            class="demo-shimmer w-full sm:w-auto cursor-pointer border border-green-400 text-gray-900 dark:text-gray-100 px-6 py-3 sm:px-8 sm:py-4 rounded-lg text-base sm:text-lg font-semibold disabled:opacity-50 inline-flex items-center justify-center gap-2"
           >
             {{ demoLoading ? 'Wird geladen…' : 'App live testen →' }}
           </button>
@@ -267,7 +267,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
           und direkt loslegen
         </p>
 
-        <p class="mt-4 text-sm font-semibold text-gray-500 tabular-nums">
+        <p class="mt-4 text-sm font-semibold text-gray-500 dark:text-gray-400 tabular-nums">
           <span>{{ displayTripsRounded.toLocaleString('de-DE') }}+ Fahrten</span>
           <span class="mx-2">•</span>
           <span>{{ displayModels }} Modelle</span>
@@ -278,16 +278,16 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
     </section>
 
     <!-- Feature Highlights -->
-    <section class="pt-6 pb-8 sm:pt-12 sm:pb-16 bg-gray-50">
+    <section class="pt-6 pb-8 sm:pt-12 sm:pb-16 bg-gray-50 dark:bg-gray-900">
       <div class="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
           <!-- Feature 1: Open Source -->
-          <div class="bg-white border border-green-200 rounded-xl p-3 sm:p-6 hover:border-green-500 transition">
+          <div class="bg-white dark:bg-gray-800 border border-green-200 rounded-xl p-3 sm:p-6 hover:border-green-500 transition">
             <svg class="h-6 w-6 sm:h-10 sm:w-10 text-green-600 mb-2 sm:mb-3" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" />
             </svg>
-            <h3 class="text-sm sm:text-lg font-semibold text-gray-900 mb-1 sm:mb-2">100% Open Source</h3>
-            <p class="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">Vollständig transparent auf GitHub. Keine Vendor Lock-ins.</p>
+            <h3 class="text-sm sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1 sm:mb-2">100% Open Source</h3>
+            <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-2 sm:mb-3">Vollständig transparent auf GitHub. Keine Vendor Lock-ins.</p>
             <a href="https://github.com/sebastianwien/ev-monitor" target="_blank" rel="noopener noreferrer"
               class="inline-flex items-center gap-1 text-green-600 hover:text-green-700 text-xs font-medium">
               View Source →
@@ -295,10 +295,10 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
           </div>
 
           <!-- Feature 2: Auto-Import -->
-          <div class="bg-white border border-gray-200 rounded-xl p-3 sm:p-6 hover:border-green-500 transition">
+          <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 sm:p-6 hover:border-green-500 transition">
             <ArrowDownTrayIcon class="h-6 w-6 sm:h-10 sm:w-10 text-gray-400 mb-2 sm:mb-3" />
-            <h3 class="text-sm sm:text-lg font-semibold text-gray-900 mb-1 sm:mb-2">Auto-Import</h3>
-            <p class="text-xs sm:text-sm text-gray-600 mb-2">Tesla, Sprit-Monitor, go-eCharger & OCPP Wallboxen.</p>
+            <h3 class="text-sm sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1 sm:mb-2">Auto-Import</h3>
+            <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-2">Tesla, Sprit-Monitor, go-eCharger & OCPP Wallboxen.</p>
             <div class="flex flex-wrap gap-1">
               <span class="text-xs bg-blue-100 text-blue-800 font-medium px-1.5 py-0.5 rounded-full">go-e BETA</span>
               <span class="text-xs bg-blue-100 text-blue-800 font-medium px-1.5 py-0.5 rounded-full">OCPP BETA</span>
@@ -306,17 +306,17 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
           </div>
 
           <!-- Feature 3: Privacy First -->
-          <div class="bg-white border border-gray-200 rounded-xl p-3 sm:p-6 hover:border-green-500 transition">
+          <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 sm:p-6 hover:border-green-500 transition">
             <LockClosedIcon class="h-6 w-6 sm:h-10 sm:w-10 text-gray-400 mb-2 sm:mb-3" />
-            <h3 class="text-sm sm:text-lg font-semibold text-gray-900 mb-1 sm:mb-2">Privacy First</h3>
-            <p class="text-xs sm:text-sm text-gray-600">Geohashing statt Tracking. Deine Daten gehören dir.</p>
+            <h3 class="text-sm sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1 sm:mb-2">Privacy First</h3>
+            <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Geohashing statt Tracking. Deine Daten gehören dir.</p>
           </div>
 
           <!-- Feature 4: Community -->
-          <div class="bg-white border border-gray-200 rounded-xl p-3 sm:p-6 hover:border-green-500 transition">
+          <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 sm:p-6 hover:border-green-500 transition">
             <UsersIcon class="h-6 w-6 sm:h-10 sm:w-10 text-gray-400 mb-2 sm:mb-3" />
-            <h3 class="text-sm sm:text-lg font-semibold text-gray-900 mb-1 sm:mb-2">Community-Daten</h3>
-            <p class="text-xs sm:text-sm text-gray-600">WLTP vs. Realität von echten Fahrern. Beitragen, Coins verdienen.</p>
+            <h3 class="text-sm sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1 sm:mb-2">Community-Daten</h3>
+            <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">WLTP vs. Realität von echten Fahrern. Beitragen, Coins verdienen.</p>
           </div>
         </div>
       </div>
@@ -326,15 +326,15 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
     <section class="py-8 sm:py-16 px-4 sm:px-6 lg:px-8">
       <div class="max-w-7xl mx-auto">
         <div class="text-center mb-12">
-          <h2 class="text-3xl font-semibold text-gray-900 mb-4">
+          <h2 class="text-3xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
             Was kostet das Laden wirklich?
           </h2>
-          <p class="text-lg text-gray-600">
+          <p class="text-lg text-gray-600 dark:text-gray-400">
             Echte Daten von der Community
           </p>
         </div>
 
-        <div v-if="loading" class="text-center text-gray-500">
+        <div v-if="loading" class="text-center text-gray-500 dark:text-gray-400">
           Lade Fahrzeugdaten...
         </div>
 
@@ -344,21 +344,21 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
             v-for="preview in topModels"
             :key="`${preview.brand}-${preview.model}`"
             :href="`/modelle/${preview.brandDisplayName}/${preview.modelUrlSlug}`"
-            class="bg-white border border-gray-200 rounded-xl p-4 hover:border-green-500 transition block"
+            class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:border-green-500 transition block"
           >
             <div class="flex items-start justify-between gap-2 mb-2">
-              <h3 class="text-lg font-semibold text-gray-900">{{ preview.modelDisplayName }}</h3>
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ preview.modelDisplayName }}</h3>
               <span class="text-xs text-gray-400 whitespace-nowrap mt-1">{{ preview.logCount }} Ladevorgänge</span>
             </div>
 
             <div class="grid grid-cols-[auto_1fr] items-baseline gap-x-3 gap-y-0.5 mb-3 text-sm">
               <template v-if="preview.minWltpConsumptionKwhPer100km">
                 <span class="text-xs text-gray-400">WLTP</span>
-                <span class="text-gray-500">{{ formatWltpRange(preview.minWltpConsumptionKwhPer100km, preview.maxWltpConsumptionKwhPer100km) }} kWh/100km</span>
+                <span class="text-gray-500 dark:text-gray-400">{{ formatWltpRange(preview.minWltpConsumptionKwhPer100km, preview.maxWltpConsumptionKwhPer100km) }} kWh/100km</span>
               </template>
               <template v-if="preview.avgConsumptionKwhPer100km || preview.minRealConsumptionKwhPer100km">
                 <span class="text-xs text-gray-400">Real</span>
-                <span class="text-gray-700 font-medium">{{ formatRealConsumption(preview.avgConsumptionKwhPer100km, preview.minRealConsumptionKwhPer100km, preview.maxRealConsumptionKwhPer100km) }} kWh/100km</span>
+                <span class="text-gray-700 dark:text-gray-300 font-medium">{{ formatRealConsumption(preview.avgConsumptionKwhPer100km, preview.minRealConsumptionKwhPer100km, preview.maxRealConsumptionKwhPer100km) }} kWh/100km</span>
               </template>
               <template v-if="preview.avgCostPerKwh && preview.avgConsumptionKwhPer100km">
                 <span class="text-xs text-gray-400">Kosten</span>
@@ -390,7 +390,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
                   v-for="m in nextModels"
                   :key="`${m.brand}-${m.model}`"
                   :href="`/modelle/${m.brandDisplayName}/${m.modelUrlSlug}`"
-                  class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-medium rounded-full transition"
+                  class="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs font-medium rounded-full transition"
                 >
                   {{ m.modelDisplayName }}
                 </a>
@@ -401,20 +401,20 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
                   v-for="m in nextModels"
                   :key="`${m.brand}-${m.model}`"
                   :href="`/modelle/${m.brandDisplayName}/${m.modelUrlSlug}`"
-                  class="bg-white border border-gray-200 rounded-xl p-4 hover:border-green-500 transition"
+                  class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:border-green-500 transition"
                 >
                   <div class="flex items-start justify-between gap-2 mb-2">
-                    <h3 class="text-sm font-semibold text-gray-900">{{ m.modelDisplayName }}</h3>
+                    <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ m.modelDisplayName }}</h3>
                     <span class="text-xs text-gray-400 whitespace-nowrap mt-0.5">{{ m.logCount }} Ladevorgänge</span>
                   </div>
                   <div class="grid grid-cols-[auto_1fr] items-baseline gap-x-2 gap-y-0.5 text-xs">
                     <template v-if="m.minWltpConsumptionKwhPer100km">
                       <span class="text-gray-400">WLTP</span>
-                      <span class="text-gray-500">{{ formatWltpRange(m.minWltpConsumptionKwhPer100km, m.maxWltpConsumptionKwhPer100km) }} kWh/100km</span>
+                      <span class="text-gray-500 dark:text-gray-400">{{ formatWltpRange(m.minWltpConsumptionKwhPer100km, m.maxWltpConsumptionKwhPer100km) }} kWh/100km</span>
                     </template>
                     <template v-if="m.avgConsumptionKwhPer100km || m.minRealConsumptionKwhPer100km">
                       <span class="text-gray-400">Real</span>
-                      <span class="text-gray-700 font-medium">{{ formatRealConsumption(m.avgConsumptionKwhPer100km, m.minRealConsumptionKwhPer100km, m.maxRealConsumptionKwhPer100km) }} kWh/100km</span>
+                      <span class="text-gray-700 dark:text-gray-300 font-medium">{{ formatRealConsumption(m.avgConsumptionKwhPer100km, m.minRealConsumptionKwhPer100km, m.maxRealConsumptionKwhPer100km) }} kWh/100km</span>
                     </template>
                     <template v-if="m.avgCostPerKwh && m.avgConsumptionKwhPer100km">
                       <span class="text-gray-400">Kosten</span>
@@ -444,7 +444,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
               <button
                 @click="demoLogin('models_section')"
                 :disabled="demoLoading"
-                class="border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:border-green-500 hover:text-green-700 transition disabled:opacity-50 inline-flex items-center justify-center space-x-2"
+                class="border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-6 py-3 rounded-lg font-semibold hover:border-green-500 hover:text-green-700 transition disabled:opacity-50 inline-flex items-center justify-center space-x-2"
               >
                 <span>{{ demoLoading ? 'Wird geladen…' : 'Demo ausprobieren' }}</span>
               </button>
@@ -452,98 +452,98 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
           </div>
         </div>
 
-        <div v-else class="text-center text-gray-500">
+        <div v-else class="text-center text-gray-500 dark:text-gray-400">
           Noch keine Community-Daten verfügbar.
         </div>
       </div>
     </section>
 
     <!-- Gamification Teaser -->
-    <section class="py-8 sm:py-16 px-4 sm:px-6 lg:px-8 bg-gray-50">
+    <section class="py-8 sm:py-16 px-4 sm:px-6 lg:px-8 bg-gray-50 dark:bg-gray-900">
       <div class="max-w-3xl mx-auto text-center relative overflow-hidden">
         <BoltIcon class="absolute inset-0 m-auto h-64 w-64 text-green-600 opacity-[0.15] pointer-events-none" />
-        <h2 class="text-2xl font-semibold text-gray-900 mb-6">
+        <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
           Belohnungen für Community-Beiträge
         </h2>
-        <ul class="text-left inline-block text-gray-600 space-y-2 mb-4 text-lg">
+        <ul class="text-left inline-block text-gray-600 dark:text-gray-400 space-y-2 mb-4 text-lg">
           <li>• Ladevorgang erfassen</li>
           <li>• Fahrzeug hinzufügen</li>
           <li>• Freund einladen</li>
           <li>• Daten importieren</li>
         </ul>
-        <p class="text-4xl text-gray-400">. . .</p>
+        <p class="text-4xl text-gray-400 dark:text-gray-600">. . .</p>
       </div>
     </section>
 
     <!-- Import Hub Teaser -->
-    <section class="py-8 sm:py-16 px-4 sm:px-6 lg:px-8 border-t border-gray-100">
+    <section class="py-8 sm:py-16 px-4 sm:px-6 lg:px-8 border-t border-gray-100 dark:border-gray-800">
       <div class="max-w-4xl mx-auto">
         <div class="text-center mb-10">
           <div class="inline-flex items-center gap-2 mb-3">
             <ArrowDownTrayIcon class="h-6 w-6 text-green-600" />
-            <h2 class="text-2xl font-semibold text-gray-900">Nie wieder manuell eintippen</h2>
+            <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">Nie wieder manuell eintippen</h2>
           </div>
-          <p class="text-gray-600">
+          <p class="text-gray-600 dark:text-gray-400">
             Verbinde deine Datenquellen — Ladevorgänge kommen automatisch rein.
           </p>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <!-- Tesla -->
-          <div class="bg-white border border-gray-200 rounded-xl p-5 flex items-start gap-4">
+          <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 flex items-start gap-4">
             <div class="bg-gray-900 rounded-lg p-2 shrink-0">
               <BoltIcon class="h-5 w-5 text-white" />
             </div>
             <div>
               <div class="flex items-center gap-2 mb-1">
-                <span class="font-semibold text-gray-900 text-sm">Tesla Fleet API</span>
+                <span class="font-semibold text-gray-900 dark:text-gray-100 text-sm">Tesla Fleet API</span>
                 <span class="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">Verfügbar</span>
               </div>
-              <p class="text-sm text-gray-500">Ladehistorie automatisch importieren — kein Tippen, kein Kopieren.</p>
+              <p class="text-sm text-gray-500 dark:text-gray-400">Ladehistorie automatisch importieren — kein Tippen, kein Kopieren.</p>
             </div>
           </div>
 
           <!-- Sprit-Monitor -->
-          <div class="bg-white border border-gray-200 rounded-xl p-5 flex items-start gap-4">
+          <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 flex items-start gap-4">
             <div class="bg-indigo-600 rounded-lg p-2 shrink-0">
               <ArrowDownTrayIcon class="h-5 w-5 text-white" />
             </div>
             <div>
               <div class="flex items-center gap-2 mb-1">
-                <span class="font-semibold text-gray-900 text-sm">Sprit-Monitor</span>
+                <span class="font-semibold text-gray-900 dark:text-gray-100 text-sm">Sprit-Monitor</span>
                 <span class="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">Verfügbar</span>
               </div>
-              <p class="text-sm text-gray-500">Komplette Ladehistorie aus Sprit-Monitor einmalig importieren.</p>
+              <p class="text-sm text-gray-500 dark:text-gray-400">Komplette Ladehistorie aus Sprit-Monitor einmalig importieren.</p>
             </div>
           </div>
 
           <!-- go-eCharger -->
-          <div class="bg-white border border-gray-200 rounded-xl p-5 flex items-start gap-4">
+          <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 flex items-start gap-4">
             <div class="bg-green-600 rounded-lg p-2 shrink-0">
               <BoltIcon class="h-5 w-5 text-white" />
             </div>
             <div>
               <div class="flex items-center gap-2 mb-1">
-                <span class="font-semibold text-gray-900 text-sm">go-eCharger Cloud</span>
+                <span class="font-semibold text-gray-900 dark:text-gray-100 text-sm">go-eCharger Cloud</span>
                 <span class="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">Verfügbar</span>
                 <span class="text-xs bg-blue-100 text-blue-800 font-medium px-2 py-0.5 rounded-full">BETA</span>
               </div>
-              <p class="text-sm text-gray-500">Wallbox-Sessions automatisch nach jeder Ladung importieren.</p>
+              <p class="text-sm text-gray-500 dark:text-gray-400">Wallbox-Sessions automatisch nach jeder Ladung importieren.</p>
             </div>
           </div>
 
           <!-- OCPP -->
-          <div class="bg-white border border-gray-200 rounded-xl p-5 flex items-start gap-4">
+          <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 flex items-start gap-4">
             <div class="bg-gray-700 rounded-lg p-2 shrink-0">
               <BoltIcon class="h-5 w-5 text-white" />
             </div>
             <div>
               <div class="flex items-center gap-2 mb-1">
-                <span class="font-semibold text-gray-900 text-sm">OCPP Wallbox</span>
+                <span class="font-semibold text-gray-900 dark:text-gray-100 text-sm">OCPP Wallbox</span>
                 <span class="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">Verfügbar</span>
                 <span class="text-xs bg-blue-100 text-blue-800 font-medium px-2 py-0.5 rounded-full">BETA</span>
               </div>
-              <p class="text-sm text-gray-500">Universelles Protokoll für alle OCPP-fähigen Heimwallboxen.</p>
+              <p class="text-sm text-gray-500 dark:text-gray-400">Universelles Protokoll für alle OCPP-fähigen Heimwallboxen.</p>
             </div>
           </div>
         </div>
@@ -551,12 +551,12 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
     </section>
 
     <!-- Final CTA -->
-    <section class="py-10 sm:py-20 px-4 sm:px-6 lg:px-8 border-t border-gray-100">
+    <section class="py-10 sm:py-20 px-4 sm:px-6 lg:px-8 border-t border-gray-100 dark:border-gray-800">
       <div class="max-w-3xl mx-auto text-center">
-        <h2 class="text-4xl font-bold text-gray-900 mb-4">
+        <h2 class="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">
           Bereit für transparente Ladekosten?
         </h2>
-        <p class="text-lg text-gray-600 mb-8">
+        <p class="text-lg text-gray-600 dark:text-gray-400 mb-8">
           Kostenlos registrieren und loslegen.<br />
           E-Mail verifizieren – fertig.
         </p>
@@ -570,26 +570,26 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
     </section>
 
     <!-- Footer -->
-    <footer class="border-t border-gray-200 py-12 px-4 sm:px-6 lg:px-8 bg-gray-50">
+    <footer class="border-t border-gray-200 dark:border-gray-700 py-12 px-4 sm:px-6 lg:px-8 bg-gray-50 dark:bg-gray-900">
       <div class="max-w-7xl mx-auto">
         <div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
           <div class="flex items-center space-x-2">
             <BoltIcon class="h-6 w-6 text-green-600" />
-            <span class="font-semibold text-gray-900">EV Monitor</span>
+            <span class="font-semibold text-gray-900 dark:text-gray-100">EV Monitor</span>
           </div>
-          <div class="flex flex-wrap justify-center gap-6 text-sm text-gray-600">
-            <router-link to="/modelle" class="hover:text-gray-900 font-medium">Modelle</router-link>
-            <router-link to="/datenschutz" class="hover:text-gray-900">Datenschutz</router-link>
-            <router-link to="/impressum" class="hover:text-gray-900">Impressum</router-link>
-            <router-link to="/agb" class="hover:text-gray-900">AGB</router-link>
-            <a href="https://github.com/sebastianwien/ev-monitor" target="_blank" rel="noopener noreferrer" class="hover:text-gray-900">GitHub</a>
-            <a href="https://tally.so/r/vGB8XA" target="_blank" rel="noopener noreferrer" class="hover:text-gray-900">Feedback</a>
+          <div class="flex flex-wrap justify-center gap-6 text-sm text-gray-600 dark:text-gray-400">
+            <router-link to="/modelle" class="hover:text-gray-900 dark:hover:text-gray-100 font-medium">Modelle</router-link>
+            <router-link to="/datenschutz" class="hover:text-gray-900 dark:hover:text-gray-100">Datenschutz</router-link>
+            <router-link to="/impressum" class="hover:text-gray-900 dark:hover:text-gray-100">Impressum</router-link>
+            <router-link to="/agb" class="hover:text-gray-900 dark:hover:text-gray-100">AGB</router-link>
+            <a href="https://github.com/sebastianwien/ev-monitor" target="_blank" rel="noopener noreferrer" class="hover:text-gray-900 dark:hover:text-gray-100">GitHub</a>
+            <a href="https://tally.so/r/vGB8XA" target="_blank" rel="noopener noreferrer" class="hover:text-gray-900 dark:hover:text-gray-100">Feedback</a>
           </div>
         </div>
-        <div class="mt-8 text-center text-sm text-gray-500">
+        <div class="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
           Made with ⚡ for the EV community
         </div>
-        <div class="mt-3 text-center text-xs text-gray-400">
+        <div class="mt-3 text-center text-xs text-gray-400 dark:text-gray-500">
           <SupportPopover variant="footer" />
         </div>
       </div>

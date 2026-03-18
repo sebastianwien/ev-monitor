@@ -83,18 +83,18 @@ onUnmounted(() => document.removeEventListener('click', handleOutsideClick))
       leave-to-class="opacity-0 scale-95">
       <div
         v-if="open"
-        class="absolute z-50 mt-2 w-52 rounded-xl shadow-lg bg-white ring-1 ring-black/10 overflow-hidden"
+        class="absolute z-50 mt-2 w-52 rounded-xl shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black/10 overflow-hidden"
         :class="variant === 'footer' ? 'bottom-full mb-2 left-1/2 -translate-x-1/2' : 'right-0'">
         <div class="p-1">
           <button
             @click="openPaypal"
-            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition">
+            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-700 transition">
             <img src="https://www.paypalobjects.com/webstatic/icon/pp16.png" alt="PayPal" class="h-4 w-4" />
             PayPal
           </button>
           <button
             @click="openKofi"
-            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-600 transition">
+            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 transition">
             <HeartIcon class="h-4 w-4 text-red-400" />
             Ko-fi
           </button>

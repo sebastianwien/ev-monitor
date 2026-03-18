@@ -51,6 +51,8 @@ import ChargingHeatMap from '../components/ChargingHeatMap.vue'
 import { vehicleSpecificationService, type VehicleSpecification } from '../api/vehicleSpecificationService'
 import RewardSystemUpdateBanner from '../components/RewardSystemUpdateBanner.vue'
 import SupportPopover from '../components/SupportPopover.vue'
+import { useThemeStore } from '../stores/theme'
+import { storeToRefs } from 'pinia'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend, Filler, ChartDataLabels)
 
@@ -111,6 +113,7 @@ const selectedGroupBy = ref<string>('DAY')
 const showOdometer = ref(false)
 const showCostAbsolute = ref(false)
 const { teslaStatus, start: startTeslaPolling } = useTeslaStatus()
+const { isDark } = storeToRefs(useThemeStore())
 
 // Dataset toggles - Chart 1 (Charging & Costs)
 const showCostPerKwh = ref(true)
@@ -296,16 +299,18 @@ const chargingChartOptions = computed(() => ({
     y: {
       type: 'linear' as const,
       position: 'left' as const,
-      title: { display: true, text: '€/kWh' },
+      title: { display: true, text: '€/kWh', color: isDark.value ? '#9ca3af' : '#6b7280' },
       beginAtZero: false,
-      grid: { color: 'rgba(0,0,0,0.06)' }
+      grid: { color: isDark.value ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' },
+      ticks: { color: isDark.value ? '#9ca3af' : '#6b7280' }
     },
     y1: {
       type: 'linear' as const,
       position: 'right' as const,
-      title: { display: true, text: 'kWh' },
+      title: { display: true, text: 'kWh', color: isDark.value ? '#9ca3af' : '#6b7280' },
       beginAtZero: true,
-      grid: { drawOnChartArea: false }
+      grid: { drawOnChartArea: false },
+      ticks: { color: isDark.value ? '#9ca3af' : '#6b7280' }
     }
   }
 }))
@@ -364,16 +369,18 @@ const efficiencyChartOptions = computed(() => ({
     y: {
       type: 'linear' as const,
       position: 'left' as const,
-      title: { display: true, text: 'kWh/100km' },
+      title: { display: true, text: 'kWh/100km', color: isDark.value ? '#9ca3af' : '#6b7280' },
       beginAtZero: false,
-      grid: { color: 'rgba(0,0,0,0.06)' }
+      grid: { color: isDark.value ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' },
+      ticks: { color: isDark.value ? '#9ca3af' : '#6b7280' }
     },
     y1: {
       type: 'linear' as const,
       position: 'right' as const,
-      title: { display: true, text: 'km' },
+      title: { display: true, text: 'km', color: isDark.value ? '#9ca3af' : '#6b7280' },
       beginAtZero: true,
-      grid: { drawOnChartArea: false }
+      grid: { drawOnChartArea: false },
+      ticks: { color: isDark.value ? '#9ca3af' : '#6b7280' }
     }
   }
 }))
@@ -428,7 +435,7 @@ const wltpChartOptions = computed(() => {
       datalabels: {
         align: 'end' as const,
         anchor: 'end' as const,
-        color: '#374151',
+        color: isDark.value ? '#d1d5db' : '#374151',
         font: { weight: 'bold' as const, size: 12 },
         formatter: (value: number) => {
           const wltpVal = wltp.value?.wltpConsumptionKwhPer100km || 0
@@ -454,14 +461,16 @@ const wltpChartOptions = computed(() => {
     },
     scales: {
       x: {
-        title: { display: true, text: 'Δ kWh/100km (+ = mehr als WLTP)' },
-        grid: { color: (ctx: any) => ctx.tick.value === 0 ? '#6b7280' : 'rgba(0,0,0,0.06)' },
+        title: { display: true, text: 'Δ kWh/100km (+ = mehr als WLTP)', color: isDark.value ? '#9ca3af' : '#6b7280' },
+        grid: { color: (ctx: any) => ctx.tick.value === 0 ? (isDark.value ? '#9ca3af' : '#6b7280') : (isDark.value ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)') },
         ticks: {
-          callback: (v: any) => `${v > 0 ? '+' : ''}${v}`
+          callback: (v: any) => `${v > 0 ? '+' : ''}${v}`,
+          color: isDark.value ? '#9ca3af' : '#6b7280'
         }
       },
       y: {
-        grid: { display: false }
+        grid: { display: false },
+        ticks: { color: isDark.value ? '#9ca3af' : '#6b7280' }
       }
     }
   }
@@ -510,6 +519,10 @@ onMounted(async () => {
   } catch { /* non-critical */ }
   // fetchStatistics() is NOT called here — setting selectedCarId above already triggers the watch,
   // which calls fetchCarAndWltp + fetchStatistics + fetchLogs in sequence.
+})
+
+watch(isDark, () => {
+  // charts re-render automatically via computed reactivity
 })
 
 // ── Log List with Pagination ─────────────────────────────────────────────────
@@ -691,10 +704,10 @@ const deleteLog = async (id: string) => {
     <RewardSystemUpdateBanner class="mb-4" />
     <Transition name="fade" mode="out-in">
       <div v-if="!loading">
-        <div class="bg-white md:rounded-xl md:shadow-lg p-4 md:p-6">
+        <div class="bg-white dark:bg-gray-800 md:rounded-xl md:shadow-lg p-4 md:p-6">
           <div class="flex items-center gap-3 mb-6">
-            <ChartBarIcon class="h-8 w-8 text-gray-700" />
-            <h1 class="text-3xl font-bold text-gray-800">Dashboard</h1>
+            <ChartBarIcon class="h-8 w-8 text-gray-700 dark:text-gray-300" />
+            <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-200">Dashboard</h1>
             <button v-if="stats && stats.totalCharges > 0"
               @click="scrollToLogs"
               class="ml-auto hidden md:flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium shadow-sm hover:bg-indigo-700 active:scale-95 transition">
@@ -708,14 +721,14 @@ const deleteLog = async (id: string) => {
           <div v-if="!importBannerDismissed" class="relative mb-6">
             <router-link
               to="/imports"
-              class="flex items-center gap-3 bg-green-50 border border-green-200 rounded-lg px-4 py-3 hover:bg-green-100 transition group"
+              class="flex items-center gap-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg px-4 py-3 hover:bg-green-100 dark:hover:bg-green-900/40 transition group"
             >
-              <ArrowDownTrayIcon class="h-5 w-5 text-green-600 shrink-0" />
+              <ArrowDownTrayIcon class="h-5 w-5 text-green-600 dark:text-green-400 shrink-0" />
               <div class="flex-1 min-w-0">
-                <span class="text-sm font-medium text-green-800">Ladevorgänge importieren</span>
-                <span class="text-sm text-green-700 ml-1">— Sprit-Monitor, go-eCharger Cloud, OCPP Wallbox</span>
+                <span class="text-sm font-medium text-green-800 dark:text-green-200">Ladevorgänge importieren</span>
+                <span class="text-sm text-green-700 dark:text-green-300 ml-1">— Sprit-Monitor, go-eCharger Cloud, OCPP Wallbox</span>
               </div>
-              <span class="text-green-600 text-sm group-hover:translate-x-0.5 transition-transform">→</span>
+              <span class="text-green-600 dark:text-green-400 text-sm group-hover:translate-x-0.5 transition-transform">→</span>
             </router-link>
             <button
               @click="dismissImportBanner"
@@ -728,7 +741,7 @@ const deleteLog = async (id: string) => {
 
           <!-- Car card selector (all breakpoints) -->
           <div v-if="cars.length > 0" class="mb-6">
-            <p class="text-sm font-medium text-gray-700 mb-2">Fahrzeug</p>
+            <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Fahrzeug</p>
             <div class="flex gap-3 overflow-x-auto pb-1 lg:flex-wrap lg:overflow-x-visible">
               <button
                 v-for="car in cars"
@@ -739,10 +752,10 @@ const deleteLog = async (id: string) => {
                     ? 'flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition w-full md:w-auto'
                     : 'flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition flex-shrink-0 min-w-[200px] max-w-[280px] lg:flex-shrink lg:min-w-0 lg:max-w-none',
                   selectedCarId === car.id
-                    ? 'border-indigo-500 bg-indigo-50 shadow-sm'
-                    : 'border-gray-200 bg-white hover:border-indigo-300 hover:bg-gray-50'
+                    ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 shadow-sm'
+                    : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 hover:border-indigo-300 hover:bg-gray-50 dark:hover:bg-gray-600'
                 ]">
-                <div class="flex-shrink-0 w-16 h-16 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden">
+                <div class="flex-shrink-0 w-16 h-16 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
                   <img
                     v-if="carImageUrls[car.id]"
                     :src="carImageUrls[car.id]"
@@ -753,8 +766,8 @@ const deleteLog = async (id: string) => {
                 <div class="min-w-0 flex-1">
                   <!-- Mobile single-car: alles in einer Zeile -->
                   <div v-if="cars.length === 1" class="flex items-center gap-2 flex-wrap lg:hidden">
-                    <span class="font-semibold text-gray-800">{{ enumToLabel(car.brand) }} {{ enumToLabel(car.model) }}</span>
-                    <span v-if="car.trim" class="text-sm text-gray-500">{{ car.trim }}</span>
+                    <span class="font-semibold text-gray-800 dark:text-gray-200">{{ enumToLabel(car.brand) }} {{ enumToLabel(car.model) }}</span>
+                    <span v-if="car.trim" class="text-sm text-gray-500 dark:text-gray-400">{{ car.trim }}</span>
                     <LicensePlate v-if="car.licensePlate" :plate="car.licensePlate" />
                     <span v-if="car.isPrimary"
                       class="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded-full border border-green-200 font-medium">
@@ -778,8 +791,8 @@ const deleteLog = async (id: string) => {
                   <!-- Desktop oder mehrere Autos: zweizeiliges Layout -->
                   <div :class="cars.length === 1 ? 'hidden lg:block' : ''">
                     <div class="flex items-center gap-2 flex-wrap">
-                      <span class="font-semibold text-gray-800">{{ enumToLabel(car.brand) }} {{ enumToLabel(car.model) }}</span>
-                      <span v-if="car.trim" class="text-sm text-gray-500">{{ car.trim }}</span>
+                      <span class="font-semibold text-gray-800 dark:text-gray-200">{{ enumToLabel(car.brand) }} {{ enumToLabel(car.model) }}</span>
+                      <span v-if="car.trim" class="text-sm text-gray-500 dark:text-gray-400">{{ car.trim }}</span>
                       <span v-if="car.isPrimary"
                         class="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded-full border border-green-200 font-medium">
                         Aktiv
@@ -810,12 +823,12 @@ const deleteLog = async (id: string) => {
 
           <!-- Echte Reichweite -->
           <div v-if="carInfo?.batteryCapacityKwh && (stats?.summerConsumptionKwhPer100km || stats?.winterConsumptionKwhPer100km)"
-            class="mb-6 bg-gray-50 rounded-lg border border-gray-200 p-4">
-            <h3 class="text-sm font-semibold text-gray-700 mb-3">Deine echte Reichweite</h3>
+            class="mb-6 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 p-4">
+            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Deine echte Reichweite</h3>
             <div class="overflow-x-auto -mx-4 px-4">
             <table class="w-full text-sm">
               <thead>
-                <tr class="text-xs text-gray-500">
+                <tr class="text-xs text-gray-500 dark:text-gray-400">
                   <th class="text-left pb-2 font-medium">Ladefenster</th>
                   <th v-if="stats?.summerConsumptionKwhPer100km" class="text-right pb-2 font-medium text-amber-600 whitespace-nowrap pl-4">
                     <span class="inline-flex items-center justify-end gap-1">
@@ -824,7 +837,7 @@ const deleteLog = async (id: string) => {
                       <span class="font-normal">({{ stats.summerConsumptionKwhPer100km.toFixed(1) }}<span class="hidden sm:inline"> kWh/100km</span><span class="sm:hidden"> kWh</span>)</span>
                     </span>
                   </th>
-                  <th v-if="stats?.winterConsumptionKwhPer100km" class="text-right pb-2 font-medium text-blue-600 whitespace-nowrap pl-4">
+                  <th v-if="stats?.winterConsumptionKwhPer100km" class="text-right pb-2 font-medium text-blue-600 dark:text-blue-300 whitespace-nowrap pl-4">
                     <span class="inline-flex items-center justify-end gap-1">
                       <CloudIcon class="w-4 h-4" />
                       <span class="hidden sm:inline">Winter</span>
@@ -833,13 +846,13 @@ const deleteLog = async (id: string) => {
                   </th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-gray-100">
+              <tbody class="divide-y divide-gray-100 dark:divide-gray-600">
                 <tr v-for="window in rangeWindows" :key="window.label">
-                  <td class="py-2 pr-4 whitespace-nowrap font-medium text-gray-800">{{ window.label }}</td>
+                  <td class="py-2 pr-4 whitespace-nowrap font-medium text-gray-800 dark:text-gray-200">{{ window.label }}</td>
                   <td v-if="stats?.summerConsumptionKwhPer100km" class="py-2 text-right font-bold text-amber-700">
                     {{ calcRange(carInfo.batteryCapacityKwh, window.socMax, window.socMin, stats.summerConsumptionKwhPer100km) }} km
                   </td>
-                  <td v-if="stats?.winterConsumptionKwhPer100km" class="py-2 text-right font-bold text-blue-700">
+                  <td v-if="stats?.winterConsumptionKwhPer100km" class="py-2 text-right font-bold text-blue-700 dark:text-blue-300">
                     {{ calcRange(carInfo.batteryCapacityKwh, window.socMax, window.socMin, stats.winterConsumptionKwhPer100km) }} km
                   </td>
                 </tr>
@@ -849,10 +862,10 @@ const deleteLog = async (id: string) => {
           </div>
 
           <!-- Filters (show if there are logs in any time range) -->
-          <div v-if="selectedCarId && hasAnyLogs" class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+          <div v-if="selectedCarId && hasAnyLogs" class="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
             <div class="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
               <div class="flex-1">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Zeitraum</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Zeitraum</label>
                 <div class="flex flex-wrap gap-2">
                   <button
                     v-for="option in timeRangeOptions"
@@ -862,32 +875,32 @@ const deleteLog = async (id: string) => {
                       'px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
                       selectedTimeRange === option.value
                         ? 'bg-indigo-600 text-white shadow-md'
-                        : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-100'
+                        : 'bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-500 hover:bg-gray-100 dark:hover:bg-gray-500'
                     ]">
                     {{ option.label }}
                   </button>
                 </div>
               </div>
               <div class="w-full md:w-auto">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Gruppierung</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Gruppierung</label>
                 <select v-model="selectedGroupBy"
-                  class="block w-full md:w-auto px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                  class="block w-full md:w-auto px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
                   <option v-for="opt in groupByOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
                 </select>
               </div>
             </div>
           </div>
 
-          <div v-if="error" class="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-md">{{ error }}</div>
+          <div v-if="error" class="mb-4 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300 rounded-md">{{ error }}</div>
 
           <!-- Empty State: No Cars -->
           <div v-if="cars.length === 0" class="min-h-[60vh] flex items-center justify-center">
             <div class="text-center max-w-md px-4">
               <TruckIcon class="h-24 w-24 mx-auto text-gray-300 mb-6" />
-              <h2 class="text-2xl font-bold text-gray-800 mb-3">
+              <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-3">
                 Noch kein Fahrzeug hinzugefügt
               </h2>
-              <p class="text-gray-600 mb-8">
+              <p class="text-gray-600 dark:text-gray-400 mb-8">
                 Füge dein erstes E-Auto hinzu um Ladevorgänge zu tracken und Statistiken zu sehen.
               </p>
               <button
@@ -902,8 +915,8 @@ const deleteLog = async (id: string) => {
           <!-- Empty State: No Logs in time range (but logs exist) -->
           <div v-else-if="stats && stats.totalCharges === 0 && hasAnyLogs" class="py-12 flex items-center justify-center">
             <div class="text-center max-w-md px-4">
-              <h2 class="text-lg font-semibold text-gray-700 mb-2">Keine Daten im gewählten Zeitraum</h2>
-              <p class="text-gray-500 text-sm">Wähle einen anderen Zeitraum oder scrolle nach unten um alle Ladevorgänge zu sehen.</p>
+              <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">Keine Daten im gewählten Zeitraum</h2>
+              <p class="text-gray-500 dark:text-gray-400 text-sm">Wähle einen anderen Zeitraum oder scrolle nach unten um alle Ladevorgänge zu sehen.</p>
             </div>
           </div>
 
@@ -911,10 +924,10 @@ const deleteLog = async (id: string) => {
           <div v-else-if="stats && stats.totalCharges === 0" class="min-h-[60vh] flex items-center justify-center">
             <div class="text-center max-w-md px-4">
               <BoltIcon class="h-24 w-24 mx-auto text-green-500 mb-6" />
-              <h2 class="text-2xl font-bold text-gray-800 mb-3">
+              <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-3">
                 Noch keine Ladevorgänge erfasst
               </h2>
-              <p class="text-gray-600 mb-8">
+              <p class="text-gray-600 dark:text-gray-400 mb-8">
                 Erfasse deinen ersten Ladevorgang um Statistiken, Charts und WLTP-Vergleiche zu sehen!
               </p>
               <div class="flex flex-col sm:flex-row gap-4 justify-center">
@@ -947,32 +960,32 @@ const deleteLog = async (id: string) => {
 
         <!-- Key Metrics -->
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 pb-6 mb-0">
-          <div class="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
-            <p class="text-xs text-blue-600 font-medium mb-1">Gesamtenergie</p>
-            <p class="text-2xl font-bold text-blue-900">{{ stats.totalKwhCharged.toFixed(1) }}</p>
-            <p class="text-xs text-blue-600 mt-0.5">kWh · {{ stats.totalCharges }} Ladungen</p>
+          <div class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20 p-4 rounded-lg border border-blue-200 dark:border-blue-700">
+            <p class="text-xs text-blue-600 dark:text-blue-400 font-medium mb-1">Gesamtenergie</p>
+            <p class="text-2xl font-bold text-blue-900 dark:text-blue-100">{{ stats.totalKwhCharged.toFixed(1) }}</p>
+            <p class="text-xs text-blue-600 dark:text-blue-400 mt-0.5">kWh · {{ stats.totalCharges }} Ladungen</p>
           </div>
-          <div class="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-200">
-            <p class="text-xs text-purple-600 font-medium mb-1">Gesamtkosten</p>
-            <p class="text-2xl font-bold text-purple-900">€{{ stats.totalCostEur.toFixed(2) }}</p>
-            <p class="text-xs text-purple-600 mt-0.5">Ø €{{ stats.avgCostPerKwh.toFixed(2) }}/kWh</p>
+          <div class="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/20 p-4 rounded-lg border border-purple-200 dark:border-purple-700">
+            <p class="text-xs text-purple-600 dark:text-purple-400 font-medium mb-1">Gesamtkosten</p>
+            <p class="text-2xl font-bold text-purple-900 dark:text-purple-100">€{{ stats.totalCostEur.toFixed(2) }}</p>
+            <p class="text-xs text-purple-600 dark:text-purple-400 mt-0.5">Ø €{{ stats.avgCostPerKwh.toFixed(2) }}/kWh</p>
           </div>
-          <div class="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
-            <p class="text-xs text-green-600 font-medium mb-1">Ø Ladedauer</p>
-            <p class="text-2xl font-bold text-green-900">{{ formatDuration(stats.avgChargeDurationMinutes) }}</p>
-            <p class="text-xs text-green-600 mt-0.5">pro Ladevorgang</p>
+          <div class="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/20 p-4 rounded-lg border border-green-200 dark:border-green-700">
+            <p class="text-xs text-green-600 dark:text-green-400 font-medium mb-1">Ø Ladedauer</p>
+            <p class="text-2xl font-bold text-green-900 dark:text-green-100">{{ formatDuration(stats.avgChargeDurationMinutes) }}</p>
+            <p class="text-xs text-green-600 dark:text-green-400 mt-0.5">pro Ladevorgang</p>
           </div>
           <div v-if="stats.totalDistanceKm != null"
-            class="bg-gradient-to-br from-amber-50 to-amber-100 p-4 rounded-lg border border-amber-200">
-            <p class="text-xs text-amber-600 font-medium mb-1">Gesamtstrecke</p>
-            <p class="text-2xl font-bold text-amber-900">{{ Math.round(stats.totalDistanceKm).toLocaleString('de-DE') }}</p>
-            <p class="text-xs text-amber-600 mt-0.5">km gefahren</p>
+            class="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/30 dark:to-amber-800/20 p-4 rounded-lg border border-amber-200 dark:border-amber-700">
+            <p class="text-xs text-amber-600 dark:text-amber-400 font-medium mb-1">Gesamtstrecke</p>
+            <p class="text-2xl font-bold text-amber-900 dark:text-amber-100">{{ Math.round(stats.totalDistanceKm).toLocaleString('de-DE') }}</p>
+            <p class="text-xs text-amber-600 dark:text-amber-400 mt-0.5">km gefahren</p>
           </div>
           <div v-if="stats.avgConsumptionKwhPer100km != null"
-            class="bg-gradient-to-br from-red-50 to-red-100 p-4 rounded-lg border border-red-200">
-            <p class="text-xs text-red-600 font-medium mb-1">Ø Verbrauch</p>
-            <p class="text-2xl font-bold text-red-900">{{ stats.avgConsumptionKwhPer100km.toFixed(1) }}</p>
-            <p class="text-xs text-red-600 mt-0.5">
+            class="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-800/20 p-4 rounded-lg border border-red-200 dark:border-red-700">
+            <p class="text-xs text-red-600 dark:text-red-400 font-medium mb-1">Ø Verbrauch</p>
+            <p class="text-2xl font-bold text-red-900 dark:text-red-100">{{ stats.avgConsumptionKwhPer100km.toFixed(1) }}</p>
+            <p class="text-xs text-red-600 dark:text-red-400 mt-0.5">
               kWh/100km
               <span v-if="wltp" class="font-medium">
                 (WLTP: {{ wltp.wltpConsumptionKwhPer100km.toFixed(1) }})
@@ -985,17 +998,17 @@ const deleteLog = async (id: string) => {
         </div>
 
         <!-- Chart 1: Charging & Costs -->
-        <div class="border-t border-gray-100 pt-6">
-          <div class="md:bg-gray-50 py-4 md:p-6 -mx-4 md:mx-0 md:rounded-lg md:border md:border-gray-200">
-            <div v-if="!chartsReady && isInitialLoad" class="h-64 sm:h-72 bg-gray-100 animate-pulse rounded mx-4 md:mx-0"></div>
+        <div class="border-t border-gray-100 dark:border-gray-700 pt-6">
+          <div class="md:bg-gray-50 md:dark:bg-gray-700 py-4 md:p-6 -mx-4 md:mx-0 md:rounded-lg md:border md:border-gray-200 md:dark:border-gray-600">
+            <div v-if="!chartsReady && isInitialLoad" class="h-64 sm:h-72 bg-gray-100 dark:bg-gray-700 animate-pulse rounded mx-4 md:mx-0"></div>
             <template v-else>
               <div class="flex flex-col sm:flex-row sm:items-center justify-center gap-4 sm:gap-6 mb-4 px-4 md:px-0">
-                <h2 class="text-xl font-semibold text-gray-800 text-center">Laden & Kosten</h2>
+                <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200 text-center">Laden & Kosten</h2>
                 <div class="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm justify-center">
                   <label class="flex items-center gap-1 sm:gap-2 cursor-pointer">
                     <input type="checkbox" v-model="showCostPerKwh"
                       class="w-3 h-3 sm:w-4 sm:h-4 rounded accent-indigo-600 cursor-pointer" />
-                    <span class="font-medium text-gray-700">
+                    <span class="font-medium text-gray-700 dark:text-gray-300">
                       <span class="inline-block w-2 sm:w-3 h-0.5 bg-indigo-600 mr-1 align-middle"></span>
                       €/kWh
                     </span>
@@ -1003,7 +1016,7 @@ const deleteLog = async (id: string) => {
                   <label class="flex items-center gap-1 sm:gap-2 cursor-pointer">
                     <input type="checkbox" v-model="showKwh"
                       class="w-3 h-3 sm:w-4 sm:h-4 rounded accent-amber-500 cursor-pointer" />
-                    <span class="font-medium text-gray-700">
+                    <span class="font-medium text-gray-700 dark:text-gray-300">
                       <span class="inline-block w-2 sm:w-3 h-0.5 bg-amber-500 mr-1 align-middle"></span>
                       kWh
                     </span>
@@ -1025,17 +1038,17 @@ const deleteLog = async (id: string) => {
         </div>
 
         <!-- Chart 2: Range & Efficiency (only if distance data exists) -->
-        <div v-if="hasDistanceData" class="border-t border-gray-100 pt-6">
-          <div class="md:bg-gray-50 py-4 md:p-6 -mx-4 md:mx-0 md:rounded-lg md:border md:border-gray-200">
-            <div v-if="!chartsReady && isInitialLoad" class="h-64 sm:h-72 bg-gray-100 animate-pulse rounded mx-4 md:mx-0"></div>
+        <div v-if="hasDistanceData" class="border-t border-gray-100 dark:border-gray-700 pt-6">
+          <div class="md:bg-gray-50 md:dark:bg-gray-700 py-4 md:p-6 -mx-4 md:mx-0 md:rounded-lg md:border md:border-gray-200 md:dark:border-gray-600">
+            <div v-if="!chartsReady && isInitialLoad" class="h-64 sm:h-72 bg-gray-100 dark:bg-gray-700 animate-pulse rounded mx-4 md:mx-0"></div>
             <template v-else>
               <div class="flex flex-col sm:flex-row sm:items-center justify-center gap-4 sm:gap-6 mb-4 px-4 md:px-0">
-                <h2 class="text-xl font-semibold text-gray-800 text-center">Reichweite & Effizienz</h2>
+                <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200 text-center">Reichweite & Effizienz</h2>
                 <div class="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm justify-center">
                   <label class="flex items-center gap-1 sm:gap-2 cursor-pointer">
                     <input type="checkbox" v-model="showConsumption"
                       class="w-3 h-3 sm:w-4 sm:h-4 rounded accent-red-500 cursor-pointer" />
-                    <span class="font-medium text-gray-700">
+                    <span class="font-medium text-gray-700 dark:text-gray-300">
                       <span class="inline-block w-2 sm:w-3 h-0.5 bg-red-500 mr-1 align-middle"></span>
                       kWh/100km
                     </span>
@@ -1043,7 +1056,7 @@ const deleteLog = async (id: string) => {
                   <label class="flex items-center gap-1 sm:gap-2 cursor-pointer">
                     <input type="checkbox" v-model="showDistance"
                       class="w-3 h-3 sm:w-4 sm:h-4 rounded accent-emerald-500 cursor-pointer" />
-                    <span class="font-medium text-gray-700">
+                    <span class="font-medium text-gray-700 dark:text-gray-300">
                       <span class="inline-block w-2 sm:w-3 h-0.5 bg-emerald-500 mr-1 align-middle"></span>
                       km
                     </span>
@@ -1065,13 +1078,13 @@ const deleteLog = async (id: string) => {
         </div>
 
         <!-- WLTP Delta Bar Chart -->
-        <div v-if="wltp && hasDistanceData && wltpChartData" class="border-t border-gray-100 pt-6">
-          <div class="md:bg-gray-50 py-4 md:p-6 -mx-4 md:mx-0 md:rounded-lg md:border md:border-gray-200">
-          <div v-if="!chartsReady && isInitialLoad" :style="{ height: wltpChartHeight }" class="bg-gray-100 animate-pulse rounded mx-4 md:mx-0"></div>
+        <div v-if="wltp && hasDistanceData && wltpChartData" class="border-t border-gray-100 dark:border-gray-700 pt-6">
+          <div class="md:bg-gray-50 md:dark:bg-gray-700 py-4 md:p-6 -mx-4 md:mx-0 md:rounded-lg md:border md:border-gray-200 md:dark:border-gray-600">
+          <div v-if="!chartsReady && isInitialLoad" :style="{ height: wltpChartHeight }" class="bg-gray-100 dark:bg-gray-700 animate-pulse rounded mx-4 md:mx-0"></div>
           <template v-else>
           <div class="mb-4 text-center px-4 md:px-0">
-            <h2 class="text-xl font-semibold text-gray-800">Verbrauch vs. WLTP</h2>
-            <p class="text-xs sm:text-sm text-gray-500 mt-1">
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">Verbrauch vs. WLTP</h2>
+            <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
               WLTP: <strong>{{ wltp.wltpConsumptionKwhPer100km.toFixed(1) }} kWh/100km</strong>
               ({{ wltp.wltpRangeKm }} km, {{ wltp.wltpType }})
               <span class="hidden sm:inline">
@@ -1089,20 +1102,20 @@ const deleteLog = async (id: string) => {
 
         <!-- WLTP missing hint -->
         <div v-else-if="!wltp && hasDistanceData" class="border-t border-gray-100 pt-6">
-          <div class="bg-amber-50 border border-amber-200 md:rounded-lg p-3 md:p-4 text-sm text-amber-700">
+          <div class="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 md:rounded-lg p-3 md:p-4 text-sm text-amber-700 dark:text-amber-300">
             Für dieses Fahrzeug sind noch keine WLTP-Daten hinterlegt.
             Du kannst sie in der <router-link to="/cars" class="font-semibold underline">Fahrzeugverwaltung</router-link> ergänzen und dabei 50 Watt verdienen!
           </div>
         </div>
 
         <!-- Charging Heat Map -->
-        <div class="border-t border-gray-100 pt-6">
-          <div class="md:bg-gray-50 py-4 md:p-6 -mx-4 md:mx-0 md:rounded-lg md:border md:border-gray-200 mb-4 md:mb-0">
-            <div v-if="!chartsReady && isInitialLoad" class="h-96 bg-gray-100 animate-pulse rounded mx-4 md:mx-0"></div>
+        <div class="border-t border-gray-100 dark:border-gray-700 pt-6">
+          <div class="md:bg-gray-50 md:dark:bg-gray-700 py-4 md:p-6 -mx-4 md:mx-0 md:rounded-lg md:border md:border-gray-200 md:dark:border-gray-600 mb-4 md:mb-0">
+            <div v-if="!chartsReady && isInitialLoad" class="h-96 bg-gray-100 dark:bg-gray-700 animate-pulse rounded mx-4 md:mx-0"></div>
             <template v-else>
               <div class="mb-4 px-4 md:px-0">
-                <h2 class="text-xl font-semibold text-gray-800">Lade-Standorte</h2>
-                <p class="text-sm text-gray-500 mt-1">
+                <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">Lade-Standorte</h2>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
                   Geografische Übersicht deiner Ladevorgänge · Farbcodiert nach geladener Energie (kWh)
                 </p>
               </div>
@@ -1112,9 +1125,9 @@ const deleteLog = async (id: string) => {
         </div>
 
         <!-- Log List -->
-        <div ref="logsSection" class="border-t border-gray-100 pt-3 scroll-mt-4 pb-6">
+        <div ref="logsSection" class="border-t border-gray-100 dark:border-gray-700 pt-3 scroll-mt-4 pb-6">
           <div class="flex items-center justify-between mb-3">
-            <h2 class="text-xl font-semibold text-gray-800">Deine Ladevorgänge</h2>
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">Deine Ladevorgänge</h2>
             <span v-if="!logsLoading" class="text-sm text-gray-400">Seite {{ logsPage + 1 }}</span>
           </div>
 
@@ -1129,7 +1142,7 @@ const deleteLog = async (id: string) => {
               <!-- Session Group (Überschussladen) -->
               <div v-for="entry in mergedLogFeed" :key="entry.id">
               <div v-if="entry._isGroup"
-                class="p-3 border border-blue-200 bg-blue-50 rounded-lg space-y-2">
+                class="p-3 border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/30 rounded-lg space-y-2">
                 <!-- Group Header -->
                 <div class="flex items-center justify-between gap-2">
                   <div class="flex items-center gap-2 min-w-0">
@@ -1186,7 +1199,7 @@ const deleteLog = async (id: string) => {
               </div>
               <!-- Spritmonitor Group (Zusammengefasst) -->
               <div v-else-if="entry._isSpritGroup">
-                <div class="p-3 border border-gray-200 bg-white rounded-lg space-y-2">
+                <div class="p-3 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg space-y-2">
                   <div class="flex items-center gap-2 min-w-0">
                     <BoltIcon class="w-4 h-4 text-indigo-600 flex-shrink-0" />
                     <span class="font-semibold text-indigo-700 whitespace-nowrap">{{ entry.totalKwhCharged }} kWh</span>
@@ -1206,8 +1219,8 @@ const deleteLog = async (id: string) => {
                     <span v-if="entry.costEur != null && entry.totalKwhCharged"
                       :class="['inline-flex items-center px-2 py-0.5 border text-xs rounded-full font-medium whitespace-nowrap cursor-pointer transition-all duration-75',
                                showCostAbsolute
-                                 ? 'bg-gray-50 border-gray-200 text-gray-600 shadow-[0_2px_0_0_#d1d5db] hover:shadow-[0_1px_0_0_#d1d5db] hover:translate-y-px active:shadow-none active:translate-y-0.5'
-                                 : 'bg-green-50 border-green-200 text-green-700 shadow-[0_2px_0_0_#bbf7d0] hover:shadow-[0_1px_0_0_#bbf7d0] hover:translate-y-px active:shadow-none active:translate-y-0.5']"
+                                 ? 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'
+                                 : 'bg-green-50 border-green-200 text-green-700 shadow-[0_4px_0_0_#bbf7d0] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#bbf7d0] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1']"
                       @click="showCostAbsolute = !showCostAbsolute">
                       <template v-if="showCostAbsolute">€{{ entry.costEur }}</template>
                       <template v-else>€{{ (entry.costEur / entry.totalKwhCharged).toFixed(2) }}/kWh</template>
@@ -1217,12 +1230,12 @@ const deleteLog = async (id: string) => {
                 <!-- Sub-Sessions inline -->
                 <template v-if="subSessionsCache[entry.id] && subSessionsCache[entry.id].length > 0">
                   <div v-for="sub in subSessionsCache[entry.id]" :key="sub.id"
-                    class="ml-4 mt-1 flex flex-col gap-1.5 px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-lg">
+                    class="ml-4 mt-1 flex flex-col gap-1.5 px-2.5 py-1.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg">
                     <div class="flex items-center gap-2">
                       <span class="text-gray-300 text-xs leading-none">└</span>
-                      <span class="text-xs text-gray-400 whitespace-nowrap">Zusammengefasst</span>
+                      <span class="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">Zusammengefasst</span>
                       <BoltIcon class="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                      <span class="text-xs font-semibold text-gray-600 whitespace-nowrap">{{ sub.kwhCharged }} kWh</span>
+                      <span class="text-xs font-semibold text-gray-600 dark:text-gray-300 whitespace-nowrap">{{ sub.kwhCharged }} kWh</span>
                       <div class="ml-auto flex items-center gap-1 flex-shrink-0">
                         <button @click="editingLog = sub" class="p-1 rounded text-gray-300 hover:text-blue-500 hover:bg-blue-50 transition" title="Ladevorgang bearbeiten">
                           <PencilSquareIcon class="w-3.5 h-3.5" />
@@ -1236,8 +1249,8 @@ const deleteLog = async (id: string) => {
                       <span v-if="sub.costEur != null && sub.kwhCharged"
                         :class="['inline-flex items-center px-1.5 py-0.5 border rounded-full text-xs font-medium whitespace-nowrap cursor-pointer transition-all duration-75',
                                  showCostAbsolute
-                                   ? 'bg-gray-50 border-gray-200 text-gray-600 shadow-[0_2px_0_0_#d1d5db] hover:shadow-[0_1px_0_0_#d1d5db] hover:translate-y-px active:shadow-none active:translate-y-0.5'
-                                   : 'bg-green-50 border-green-200 text-green-700 shadow-[0_2px_0_0_#bbf7d0] hover:shadow-[0_1px_0_0_#bbf7d0] hover:translate-y-px active:shadow-none active:translate-y-0.5']"
+                                   ? 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'
+                                   : 'bg-green-50 border-green-200 text-green-700 shadow-[0_4px_0_0_#bbf7d0] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#bbf7d0] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1']"
                         @click="showCostAbsolute = !showCostAbsolute">
                         <template v-if="showCostAbsolute">€{{ sub.costEur }}</template>
                         <template v-else>€{{ (sub.costEur / sub.kwhCharged).toFixed(2) }}/kWh</template>
@@ -1255,13 +1268,13 @@ const deleteLog = async (id: string) => {
               <div
                 :class="['p-3 border rounded-lg space-y-2',
                          entry.consumptionImplausible
-                           ? 'bg-red-50 border-red-300 border-l-4 border-l-red-400'
-                           : 'bg-white border-gray-200']">
+                           ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700 border-l-4 border-l-red-400 dark:border-l-red-600'
+                           : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600']">
                 <!-- Header -->
                 <div class="flex items-center justify-between gap-2">
                   <div class="flex items-center gap-2 min-w-0">
                     <BoltIcon class="w-4 h-4 text-indigo-600 flex-shrink-0" />
-                    <span class="font-semibold text-indigo-700 whitespace-nowrap">{{ entry.kwhCharged }} kWh</span>
+                    <span class="font-semibold text-indigo-700 dark:text-indigo-300 whitespace-nowrap">{{ entry.kwhCharged }} kWh</span>
                     <span class="text-xs text-gray-400 whitespace-nowrap">{{ formatLogDate(entry.loggedAt) }}</span>
                     <span v-if="sourceInfo(entry.dataSource)"
                       :class="['hidden md:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium whitespace-nowrap',
@@ -1314,44 +1327,44 @@ const deleteLog = async (id: string) => {
                   <span v-if="entry.costEur != null && entry.kwhCharged"
                     :class="['inline-flex items-center px-2 py-0.5 border text-xs rounded-full font-medium whitespace-nowrap cursor-pointer transition-all duration-75',
                              showCostAbsolute
-                               ? 'bg-gray-50 border-gray-200 text-gray-600 shadow-[0_2px_0_0_#d1d5db] hover:shadow-[0_1px_0_0_#d1d5db] hover:translate-y-px active:shadow-none active:translate-y-0.5'
-                               : [(costBadgeClass(entry.costEur, entry.kwhCharged) ?? 'bg-green-50 border-green-200 text-green-700'), 'shadow-[0_2px_0_0_#d1d5db] hover:shadow-[0_1px_0_0_#d1d5db] hover:translate-y-px active:shadow-none active:translate-y-0.5'].join(' ')]"
+                               ? 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'
+                               : [(costBadgeClass(entry.costEur, entry.kwhCharged) ?? 'bg-green-50 border-green-200 text-green-700'), 'shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'].join(' ')]"
                     @click="showCostAbsolute = !showCostAbsolute">
                     <template v-if="showCostAbsolute">€{{ entry.costEur }}</template>
                     <template v-else>€{{ (entry.costEur / entry.kwhCharged).toFixed(2) }}/kWh</template>
                   </span>
-                  <span v-if="entry.consumptionKwhPer100km != null"
-                    :class="['inline-flex items-center gap-1 px-2 py-0.5 border rounded-full text-xs font-medium whitespace-nowrap',
-                             entry.consumptionImplausible
-                               ? 'bg-red-100 border-red-400 text-red-700'
-                               : entry.consumptionIsEstimated
-                                 ? 'bg-gray-50 border-gray-300 text-gray-500'
-                                 : consumptionBadgeClass(entry.consumptionKwhPer100km, stats?.avgConsumptionKwhPer100km ?? null)]"
-                    :title="entry.consumptionIsEstimated ? 'Schätzwert: berechnet aus geladener Energie ÷ Distanz, da kein SoC-Wert vorhanden.' : undefined">
-                    <ExclamationTriangleIcon v-if="entry.consumptionImplausible" class="w-3 h-3 flex-shrink-0" />
-                    {{ entry.consumptionIsEstimated ? '~' : '' }}{{ entry.consumptionKwhPer100km }} kWh/100km
-                  </span>
-                  <span v-if="entry.costEur != null && !entry.kwhCharged" class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
-                    €{{ entry.costEur }}
-                  </span>
-                  <span v-if="entry.chargeDurationMinutes" class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
-                    <ClockIcon class="w-3 h-3" />{{ entry.chargeDurationMinutes }}min
-                  </span>
                   <span
                     v-if="entry.distanceSinceLastChargeKm != null || entry.odometerKm"
-                    class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap"
+                    class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap"
                     :class="entry.distanceSinceLastChargeKm != null && entry.odometerKm
-                      ? 'cursor-pointer shadow-[0_2px_0_0_#d1d5db] hover:shadow-[0_1px_0_0_#d1d5db] hover:translate-y-px active:shadow-none active:translate-y-0.5 transition-all duration-75'
+                      ? 'cursor-pointer shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1 transition-all duration-75'
                       : ''"
                     @click="toggleOdometerDisplay(entry.distanceSinceLastChargeKm, entry.odometerKm)"
                   >
                     <template v-if="entry.distanceSinceLastChargeKm != null && !showOdometer">+{{ entry.distanceSinceLastChargeKm.toLocaleString('de-DE') }} km</template>
                     <template v-else>{{ entry.odometerKm?.toLocaleString('de-DE') }} km</template>
                   </span>
-                  <span v-if="entry.socAfterChargePercent != null" class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
+                  <span v-if="entry.consumptionKwhPer100km != null"
+                    :class="['inline-flex items-center gap-1 px-2 py-0.5 border rounded-full text-xs font-medium whitespace-nowrap',
+                             entry.consumptionImplausible
+                               ? 'bg-red-100 dark:bg-red-900/40 border-red-400 dark:border-red-700 text-red-700 dark:text-red-300'
+                               : entry.consumptionIsEstimated
+                                 ? 'bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400'
+                                 : consumptionBadgeClass(entry.consumptionKwhPer100km, stats?.avgConsumptionKwhPer100km ?? null)]"
+                    :title="entry.consumptionIsEstimated ? 'Schätzwert: berechnet aus geladener Energie ÷ Distanz, da kein SoC-Wert vorhanden.' : undefined">
+                    <ExclamationTriangleIcon v-if="entry.consumptionImplausible" class="w-3 h-3 flex-shrink-0" />
+                    {{ entry.consumptionIsEstimated ? '~' : '' }}{{ entry.consumptionKwhPer100km }} kWh/100km
+                  </span>
+                  <span v-if="entry.costEur != null && !entry.kwhCharged" class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                    €{{ entry.costEur }}
+                  </span>
+                  <span v-if="entry.chargeDurationMinutes" class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                    <ClockIcon class="w-3 h-3" />{{ entry.chargeDurationMinutes }}min
+                  </span>
+                  <span v-if="entry.socAfterChargePercent != null" class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">
                     <Battery0Icon class="w-3 h-3" />{{ entry.socAfterChargePercent }}%
                   </span>
-                  <span v-if="entry.maxChargingPowerKw" class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 border border-gray-200 rounded-full text-xs text-gray-600 whitespace-nowrap">
+                  <span v-if="entry.maxChargingPowerKw" class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">
                     <BoltIcon class="w-3 h-3" />{{ entry.maxChargingPowerKw }} kW
                   </span>
                 </div>
@@ -1364,13 +1377,13 @@ const deleteLog = async (id: string) => {
               <!-- Nachladen Sub-Eintraege -->
               <template v-if="entry._topUps && entry._topUps.length > 0">
                 <div v-for="topUp in entry._topUps" :key="topUp.id"
-                  class="ml-4 mt-1 flex flex-col gap-1.5 px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-lg">
+                  class="ml-4 mt-1 flex flex-col gap-1.5 px-2.5 py-1.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg">
                   <!-- Zeile 1: Label + kWh + Zeit + Buttons -->
                   <div class="flex items-center gap-2">
                     <span class="text-gray-300 text-xs leading-none">└</span>
-                    <span class="text-xs text-gray-400 whitespace-nowrap">Nachladen</span>
+                    <span class="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">Nachladen</span>
                     <BoltIcon class="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                    <span class="text-xs font-semibold text-gray-600 whitespace-nowrap">{{ topUp.kwhCharged }} kWh</span>
+                    <span class="text-xs font-semibold text-gray-600 dark:text-gray-300 whitespace-nowrap">{{ topUp.kwhCharged }} kWh</span>
                     <span class="text-xs text-gray-400 whitespace-nowrap">
                       <template v-if="new Date(topUp.loggedAt).toDateString() !== new Date(entry.loggedAt).toDateString()">{{ formatLogDate(topUp.loggedAt) }}</template>
                       <template v-else>{{ new Date(topUp.loggedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) }} Uhr</template>
@@ -1389,8 +1402,8 @@ const deleteLog = async (id: string) => {
                   <span v-if="topUp.costEur != null && topUp.kwhCharged"
                     :class="['inline-flex items-center px-1.5 py-0.5 border rounded-full text-xs font-medium whitespace-nowrap cursor-pointer transition-all duration-75',
                              showCostAbsolute
-                               ? 'bg-gray-50 border-gray-200 text-gray-600 shadow-[0_2px_0_0_#d1d5db] hover:shadow-[0_1px_0_0_#d1d5db] hover:translate-y-px active:shadow-none active:translate-y-0.5'
-                               : 'bg-green-50 border-green-200 text-green-700 shadow-[0_2px_0_0_#d1d5db] hover:shadow-[0_1px_0_0_#d1d5db] hover:translate-y-px active:shadow-none active:translate-y-0.5']"
+                               ? 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'
+                               : 'bg-green-50 border-green-200 text-green-700 shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1']"
                     @click="showCostAbsolute = !showCostAbsolute">
                     <template v-if="showCostAbsolute">€{{ topUp.costEur }}</template>
                     <template v-else>€{{ (topUp.costEur / topUp.kwhCharged).toFixed(2) }}/kWh</template>
@@ -1410,13 +1423,13 @@ const deleteLog = async (id: string) => {
             <button
               @click="fetchLogs(logsPage - 1)"
               :disabled="logsPage === 0"
-              class="flex items-center gap-1 px-3 py-2 text-sm rounded-lg border border-gray-200 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition">
+              class="flex items-center gap-1 px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-600 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition">
               <ChevronLeftIcon class="w-4 h-4" />Zurück
             </button>
             <button
               @click="fetchLogs(logsPage + 1)"
               :disabled="!hasMoreLogs"
-              class="flex items-center gap-1 px-3 py-2 text-sm rounded-lg border border-gray-200 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition">
+              class="flex items-center gap-1 px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-600 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition">
               Weiter<ChevronRightIcon class="w-4 h-4" />
             </button>
           </div>
