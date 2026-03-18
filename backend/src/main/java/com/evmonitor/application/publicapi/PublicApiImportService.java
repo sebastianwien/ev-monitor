@@ -98,7 +98,7 @@ public class PublicApiImportService {
                     continue;
                 }
 
-                if (isDuplicate(request.carId(), loggedAt, entry.kwh())) {
+                if (isDuplicate(request.carId(), loggedAt, entry.kwh(), dataSource)) {
                     skipped++;
                     continue;
                 }
@@ -148,9 +148,9 @@ public class PublicApiImportService {
         return new ImportApiResult(imported, skipped, errors);
     }
 
-    private boolean isDuplicate(UUID carId, LocalDateTime loggedAt, Double kwh) {
-        return evLogRepository.existsByCarIdAndLoggedAtAndKwhCharged(
-                carId, loggedAt, BigDecimal.valueOf(kwh));
+    private boolean isDuplicate(UUID carId, LocalDateTime loggedAt, Double kwh, DataSource dataSource) {
+        return evLogRepository.existsByCarIdAndLoggedAtAndKwhCharged(carId, loggedAt, BigDecimal.valueOf(kwh))
+                || evLogRepository.existsByCarIdAndLoggedAtAndDataSource(carId, loggedAt, dataSource);
     }
 
     private LocalDateTime parseDate(String raw) {
