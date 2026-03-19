@@ -102,11 +102,11 @@ async function toggleMergeSessions(key: ApiKeyResponse) {
 }
 
 const hasActiveTesla = computed(() =>
-  cars.value.some(c => c.brand?.toLowerCase() === 'tesla' && c.status === 'ACTIVE')
+  Array.isArray(cars.value) && cars.value.some(c => c.brand?.toLowerCase() === 'tesla' && c.status === 'ACTIVE')
 )
 
 const activeCars = computed(() =>
-  cars.value.filter(c => c.status === 'ACTIVE')
+  Array.isArray(cars.value) ? cars.value.filter(c => c.status === 'ACTIVE') : []
 )
 </script>
 

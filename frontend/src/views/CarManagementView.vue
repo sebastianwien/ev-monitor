@@ -290,7 +290,8 @@ const setActiveCar = async (id: string) => {
   }
 }
 
-const getModelLabel = (modelValue: string): string => {
+const getModelLabel = (modelValue: string | null | undefined): string => {
+  if (!modelValue) return ''
   const model = availableModels.value.find(m => m.value === modelValue)
   if (model) return model.label
   return modelValue.replace(/_/g, ' ').toLowerCase()
