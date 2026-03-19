@@ -114,29 +114,31 @@ const startImport = async () => {
   totalErrors.value = [];
   importResults.value = {};
 
-  // Validate mappings
-  for (const vehicle of spritMonitorVehicles.value) {
-    const mapping = vehicleMapping.value[vehicle.id];
-    if (!mapping) {
-      error.value = `Bitte ordne alle Fahrzeuge zu! (${vehicle.make} ${vehicle.model} fehlt noch)`;
-      return;
-    }
+  // Validate mappings - empty = skip vehicle (not an error)
+  const vehiclesToImport = spritMonitorVehicles.value.filter(v => !!vehicleMapping.value[v.id]);
 
+  if (vehiclesToImport.length === 0) {
+    error.value = 'Bitte ordne mindestens ein Fahrzeug zu!';
+    return;
+  }
+
+  for (const vehicle of vehiclesToImport) {
+    const mapping = vehicleMapping.value[vehicle.id];
     if (mapping === 'new') {
       const newCar = newCarData.value[vehicle.id];
       if (!newCar || !newCar.brand || !newCar.model || !newCar.year) {
-        error.value = `Für "${vehicle.make} ${vehicle.model}" fehlen noch Daten (Brand/Model/Jahr)!`;
+        error.value = `Für "${vehicle.make} ${vehicle.model}" fehlen noch Daten (Marke/Modell/Jahr)!`;
         return;
       }
     }
   }
 
   importStep.value = 'importing';
-  totalVehicles.value = spritMonitorVehicles.value.length;
+  totalVehicles.value = vehiclesToImport.length;
 
-  for (let i = 0; i < spritMonitorVehicles.value.length; i++) {
+  for (let i = 0; i < vehiclesToImport.length; i++) {
     currentVehicle.value = i + 1;
-    const vehicle = spritMonitorVehicles.value[i];
+    const vehicle = vehiclesToImport[i];
     const mapping = vehicleMapping.value[vehicle.id];
 
     try {
@@ -202,7 +204,7 @@ const close = () => {
 <template>
   <div
     class="fixed inset-0 flex items-center justify-center z-50 p-4"
-    style="backdrop-filter: blur(8px); background-color: rgba(0, 0, 0, 0.3);"
+    style="backdrop-filter: blur(8px); background-color: rgba(0, 0, 0, 0.3);">
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto" @click.stop>
       <!-- Header -->
       <div class="sticky top-0 bg-indigo-600 text-white px-6 py-4 rounded-t-xl flex justify-between items-center">
@@ -323,9 +325,12 @@ const close = () => {
             </div>
           </div>
 
+          <p class="mt-4 text-sm text-gray-500 dark:text-gray-400">
+            Fahrzeuge ohne Zuordnung werden beim Import übersprungen.
+          </p>
           <button
             @click="startImport"
-            class="w-full mt-6 px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition">
+            class="w-full mt-3 px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition">
             Import starten
           </button>
         </div>
