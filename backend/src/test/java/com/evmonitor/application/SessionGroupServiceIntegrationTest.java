@@ -181,7 +181,8 @@ class SessionGroupServiceIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void processSessionForGrouping_multipleSubSessions_aggregatesKwhAndCost() {
-        LocalDateTime base = LocalDateTime.now().minusHours(8);
+        // Fixer Mittags-Timestamp um Mitternacht-Grenze in UTC-CI zu vermeiden
+        LocalDateTime base = LocalDateTime.now().toLocalDate().minusDays(1).atTime(12, 0);
 
         // 3 Sessions à 2 kWh und 0.80 EUR
         for (int i = 0; i < 3; i++) {
