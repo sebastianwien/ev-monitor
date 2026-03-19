@@ -68,7 +68,10 @@ onMounted(async () => {
   }
 })
 
-const goToRegister = () => router.push('/register')
+const goToRegister = (source: string = 'unknown') => {
+  analytics.track('cta_register_clicked', { source })
+  router.push('/register')
+}
 
 const demoLoading = ref(false)
 const demoLogin = async (source: 'hero' | 'models_section' = 'hero') => {
@@ -245,26 +248,27 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
 
         <!-- Primary CTA: kein Account nötig -->
         <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+          <button
+            @click="demoLogin('hero')"
+            :disabled="demoLoading"
+            class="demo-shimmer w-full sm:w-auto cursor-pointer bg-green-600 text-white px-6 py-3 sm:px-8 sm:py-4 rounded-lg text-base sm:text-lg font-semibold hover:bg-green-700 disabled:opacity-50 inline-flex items-center justify-center gap-2 transition"
+          >
+            {{ demoLoading ? 'Wird geladen…' : 'App live testen →' }}
+          </button>
           <router-link
             to="/modelle"
-            class="w-full sm:w-auto bg-green-600 text-white px-6 py-3 sm:px-8 sm:py-4 rounded-lg text-base sm:text-lg font-semibold hover:bg-green-700 transition inline-flex items-center justify-center space-x-2"
+            @click="analytics.trackCtaModelsClicked('hero')"
+            class="w-full sm:w-auto border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-6 py-3 sm:px-8 sm:py-4 rounded-lg text-base sm:text-lg font-semibold hover:border-green-500 hover:text-green-700 transition inline-flex items-center justify-center space-x-2"
           >
             <span>Alle Modelle ansehen</span>
             <ArrowRightIcon class="h-5 w-5" />
           </router-link>
-          <button
-            @click="demoLogin('hero')"
-            :disabled="demoLoading"
-            class="demo-shimmer w-full sm:w-auto cursor-pointer border border-green-400 text-gray-900 dark:text-gray-100 px-6 py-3 sm:px-8 sm:py-4 rounded-lg text-base sm:text-lg font-semibold disabled:opacity-50 inline-flex items-center justify-center gap-2"
-          >
-            {{ demoLoading ? 'Wird geladen…' : 'App live testen →' }}
-          </button>
         </div>
 
         <p class="mt-5 text-sm text-gray-400">
           Oder
-          <button @click="goToRegister" class="text-green-600 hover:text-green-700 font-medium underline underline-offset-2">hier registrieren</button>
-          und direkt loslegen
+          <button @click="goToRegister('hero_secondary')" class="text-green-600 hover:text-green-700 font-medium underline underline-offset-2">kostenlos registrieren</button>
+          und eigene Daten tracken
         </p>
 
         <p class="mt-4 text-sm font-semibold text-gray-500 dark:text-gray-400 tabular-nums">
@@ -561,7 +565,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
           E-Mail verifizieren – fertig.
         </p>
         <button
-          @click="goToRegister"
+          @click="goToRegister('footer_cta')"
           class="bg-green-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-green-700 transition"
         >
           Jetzt kostenlos starten
@@ -613,9 +617,10 @@ section a[class*="rounded"]:active, section button[class*="rounded"]:active {
 }
 
 .demo-shimmer {
-  background: linear-gradient(120deg, #f0fdf4 0%, #dcfce7 40%, #bbf7d0 50%, #dcfce7 60%, #f0fdf4 100%);
+  background: linear-gradient(120deg, #16a34a 0%, #15803d 40%, #22c55e 50%, #15803d 60%, #16a34a 100%);
   background-size: 200% 100%;
   animation: shimmer 3s ease-in-out infinite;
+  color: white;
 }
 
 .demo-shimmer:hover {

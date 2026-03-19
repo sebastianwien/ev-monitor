@@ -11,6 +11,7 @@ import type { Car } from '../api/carService'
 import { useCarStore } from '../stores/car'
 import { useImportsTab } from '../composables/useImportsTab'
 import { apiKeyService, type ApiKeyResponse, type ApiKeyCreatedResponse } from '../api/apiKeyService'
+import { analytics } from '../services/analytics'
 
 const { activeTab } = useImportsTab()
 const carStore = useCarStore()
@@ -49,6 +50,7 @@ const createApiKey = async () => {
   apiKeyMessage.value = null
   try {
     createdKey.value = await apiKeyService.createKey(newKeyName.value.trim())
+    analytics.trackApiKeyCreated()
     newKeyName.value = ''
     await fetchApiKeys()
   } catch (error: any) {
@@ -63,6 +65,7 @@ const deleteApiKey = async (id: string, name: string) => {
   deletingKeyId.value = id
   try {
     await apiKeyService.deleteKey(id)
+    analytics.trackApiKeyDeleted()
     apiKeys.value = apiKeys.value.filter(k => k.id !== id)
     if (createdKey.value?.id === id) createdKey.value = null
     apiKeyMessage.value = { type: 'success', text: 'API Key widerrufen.' }
@@ -135,7 +138,7 @@ const activeCars = computed(() =>
               { id: 'api', label: 'API' },
             ] as const)"
             :key="tab.id"
-            @click="activeTab = tab.id"
+            @click="activeTab = tab.id; analytics.trackImportTabClicked(tab.id)"
             :class="[
               'shrink-0 px-4 py-2.5 text-sm font-medium border-t border-l border-r rounded-t-lg transition-colors relative z-10',
               activeTab === tab.id

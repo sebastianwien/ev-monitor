@@ -29,8 +29,10 @@ const handleLogin = async () => {
     errorCode.value = code || '';
     if (code === 'EMAIL_NOT_VERIFIED') {
       error.value = 'Bitte bestätige zuerst deine E-Mail-Adresse.';
+      analytics.trackLoginFailed('email_not_verified');
     } else {
       error.value = 'Ungültige E-Mail/Username oder Passwort';
+      analytics.trackLoginFailed('invalid_credentials');
     }
   }
 };

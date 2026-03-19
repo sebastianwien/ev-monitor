@@ -84,6 +84,7 @@ const handleRegister = async () => {
     }
   } catch (err: any) {
     error.value = err.response?.data?.message || 'Registrierung fehlgeschlagen';
+    analytics.trackRegistrationFailed(err.response?.data?.code || 'unknown');
   }
 };
 
@@ -104,7 +105,12 @@ const handleResend = async () => {
 
 <template>
   <div class="flex items-center justify-center min-h-[80vh] bg-gray-100 dark:bg-gray-900">
-    <div class="w-full max-w-md p-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg">
+    <div class="pointer-events-none fixed inset-0 flex items-center justify-center opacity-[0.04] dark:opacity-[0.06] z-0">
+      <svg class="w-[32rem] h-[32rem] text-green-600 blur-sm" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M13 2L4.09 12.97 12 12l-1 8 8.91-9.97L12 11l1-9z"/>
+      </svg>
+    </div>
+    <div class="relative w-full max-w-md p-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg z-10">
 
       <!-- Pending Verification Screen -->
       <div v-if="pendingEmail" class="text-center">
@@ -137,7 +143,20 @@ const handleResend = async () => {
 
       <!-- Registration Form -->
       <div v-else>
-        <h2 class="text-3xl font-bold text-center text-gray-800 dark:text-gray-200 mb-8">Registrieren</h2>
+        <h2 class="text-3xl font-bold text-center text-gray-800 dark:text-gray-200 mb-6">Registrieren</h2>
+
+        <div class="bg-green-50 dark:bg-green-900/20 rounded-lg px-4 py-3 mb-6 space-y-1.5">
+          <div class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+            <span class="text-green-600 font-bold">✓</span> Verbrauch & Ladekosten im Blick behalten
+          </div>
+          <div class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+            <span class="text-green-600 font-bold">✓</span> WLTP vs. deine echte Reichweite vergleichen
+          </div>
+          <div class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+            <span class="text-green-600 font-bold">✓</span> Kostenlos - kein Abo, kein Paywall
+          </div>
+        </div>
+
         <form @submit.prevent="handleRegister" class="space-y-6">
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">E-Mail</label>
@@ -149,7 +168,7 @@ const handleResend = async () => {
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Mindestens 8 Zeichen</p>
           </div>
           <div v-if="error" class="text-sm font-medium text-red-600 bg-red-50 p-3 rounded-lg">{{ error }}</div>
-          <button type="submit" v-haptic class="btn-3d w-full px-4 py-3 font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition">Konto erstellen</button>
+          <button type="submit" v-haptic class="btn-3d w-full px-4 py-3 font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition">Konto erstellen</button>
         </form>
 
         <!-- Google SSO -->
@@ -176,7 +195,7 @@ const handleResend = async () => {
         </template>
 
         <div class="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
-          Bereits ein Konto? <router-link to="/login" class="font-semibold text-indigo-600 hover:text-indigo-500">Hier anmelden</router-link>
+          Bereits ein Konto? <router-link to="/login" class="font-semibold text-green-600 hover:text-green-500">Hier anmelden</router-link>
         </div>
       </div>
 

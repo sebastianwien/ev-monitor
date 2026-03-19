@@ -84,6 +84,34 @@ class AnalyticsService {
     this.track('demo_login_clicked', { source })
   }
 
+  trackCtaRegisterClicked(source: string) {
+    this.track('cta_register_clicked', { source })
+  }
+
+  trackCtaModelsClicked(source: string) {
+    this.track('cta_models_clicked', { source })
+  }
+
+  trackLoginFailed(reason: string) {
+    this.track('login_failed', { reason })
+  }
+
+  trackRegistrationFailed(reason: string) {
+    this.track('registration_failed', { reason })
+  }
+
+  trackImportTabClicked(tab: string) {
+    this.track('import_tab_clicked', { tab })
+  }
+
+  trackApiKeyCreated() {
+    this.track('api_key_created')
+  }
+
+  trackApiKeyDeleted() {
+    this.track('api_key_deleted')
+  }
+
   // Auth Events
   trackLogin() {
     this.track('login')
