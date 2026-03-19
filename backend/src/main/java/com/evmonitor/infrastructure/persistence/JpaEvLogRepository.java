@@ -96,8 +96,11 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     /**
      * Verknüpft einen Log mit einer Session-Gruppe und setzt include_in_statistics=false.
      * Sub-Sessions dürfen nicht einzeln in Statistiken einfließen — die Gruppe aggregiert.
+     *
+     * flushAutomatically=true: Flusht alle pending INSERTs (inkl. neuer ChargingSessionGroup)
+     * bevor das UPDATE läuft, sonst schlägt der FK-Check fehl (charging_session_group noch nicht auf DB).
      */
-    @Modifying
+    @Modifying(flushAutomatically = true)
     @Query("UPDATE EvLogEntity e SET e.sessionGroupId = :groupId, e.includeInStatistics = false WHERE e.id = :id")
     void setSessionGroupId(@Param("id") UUID id, @Param("groupId") UUID groupId);
 
