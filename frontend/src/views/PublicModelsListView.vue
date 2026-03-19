@@ -156,7 +156,7 @@
           <a :href="`/modelle/${model.brandDisplayName}/${model.modelUrlSlug}`" class="block flex-1">
             <div class="flex items-start justify-between gap-2 mb-2">
               <h3 class="font-bold text-gray-900 dark:text-gray-100 text-base">{{ model.modelDisplayName }}</h3>
-              <span class="text-xs text-gray-400 whitespace-nowrap mt-0.5">{{ model.logCount }} Fahrten</span>
+              <span class="text-xs text-gray-400 whitespace-nowrap mt-0.5">{{ model.logCount }} Ladevorgänge</span>
             </div>
             <div class="grid grid-cols-[auto_1fr] items-baseline gap-x-3 gap-y-0.5 mb-3 text-sm">
               <template v-if="model.minWltpConsumptionKwhPer100km">
