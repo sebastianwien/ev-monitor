@@ -203,7 +203,6 @@ const close = () => {
   <div
     class="fixed inset-0 flex items-center justify-center z-50 p-4"
     style="backdrop-filter: blur(8px); background-color: rgba(0, 0, 0, 0.3);"
-    @click.self="close">
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto" @click.stop>
       <!-- Header -->
       <div class="sticky top-0 bg-indigo-600 text-white px-6 py-4 rounded-t-xl flex justify-between items-center">
