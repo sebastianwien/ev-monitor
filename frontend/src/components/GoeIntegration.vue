@@ -1,13 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, computed } from 'vue'
-import { ExclamationTriangleIcon, InformationCircleIcon, ChevronRightIcon, MapPinIcon, CheckCircleIcon } from '@heroicons/vue/24/outline'
+import { ref, onMounted, watch } from 'vue'
+import { ExclamationTriangleIcon, InformationCircleIcon, ChevronRightIcon, MapPinIcon, CheckIcon } from '@heroicons/vue/24/outline'
 import goeService from '@/api/goeService'
 import type { Car } from '@/api/carService'
 import { useCarStore } from '@/stores/car'
 import GoeStatusCard from './GoeStatusCard.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useWallboxStore } from '@/stores/wallbox'
-import * as geohash from 'ngeohash'
 
 const authStore = useAuthStore()
 const wallboxStore = useWallboxStore()
@@ -19,17 +18,53 @@ const error = ref<string | null>(null)
 const showForm = ref(false)
 
 const form = ref({ serial: '', apiKey: '', carId: '', displayName: '' })
-const latitude = ref<number | null>(null)
-const longitude = ref<number | null>(null)
-const locationStatus = ref<'idle' | 'loading' | 'success' | 'error'>('idle')
-const locationError = ref<string | null>(null)
 
-const geohashValue = computed(() => {
-  if (latitude.value && longitude.value) {
-    return geohash.encode(latitude.value, longitude.value, 5)
+// ── Location (manual address search) ─────────────────────────────────────────
+const locationQuery = ref('')
+const locationResults = ref<{ display_name: string; lat: string; lon: string }[]>([])
+const locationSearchTimer = ref<ReturnType<typeof setTimeout> | null>(null)
+const selectedGeohash = ref<string | null>(null)
+const selectedLocationName = ref<string | null>(null)
+
+function encodeGeohash(lat: number, lon: number, precision: number): string {
+  const BASE32 = '0123456789bcdefghjkmnpqrstuvwxyz'
+  let idx = 0, bit = 0, evenBit = true, geohash = ''
+  let minLat = -90, maxLat = 90, minLon = -180, maxLon = 180
+  while (geohash.length < precision) {
+    if (evenBit) {
+      const mid = (minLon + maxLon) / 2
+      if (lon >= mid) { idx = idx * 2 + 1; minLon = mid } else { idx = idx * 2; maxLon = mid }
+    } else {
+      const mid = (minLat + maxLat) / 2
+      if (lat >= mid) { idx = idx * 2 + 1; minLat = mid } else { idx = idx * 2; maxLat = mid }
+    }
+    evenBit = !evenBit
+    if (++bit === 5) { geohash += BASE32[idx]; bit = 0; idx = 0 }
   }
-  return null
-})
+  return geohash
+}
+
+function onLocationQueryChange() {
+  if (locationSearchTimer.value) clearTimeout(locationSearchTimer.value)
+  selectedGeohash.value = null
+  selectedLocationName.value = null
+  if (locationQuery.value.length < 3) { locationResults.value = []; return }
+  locationSearchTimer.value = setTimeout(async () => {
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(locationQuery.value)}&format=json&limit=5`
+      )
+      locationResults.value = await res.json()
+    } catch { locationResults.value = [] }
+  }, 400)
+}
+
+function selectLocation(result: { display_name: string; lat: string; lon: string }) {
+  selectedGeohash.value = encodeGeohash(parseFloat(result.lat), parseFloat(result.lon), 5)
+  selectedLocationName.value = result.display_name
+  locationQuery.value = result.display_name
+  locationResults.value = []
+}
 
 const infoExpanded = ref(!wallboxStore.hasConnections)
 watch(() => wallboxStore.hasConnections, (hasConnections) => {
@@ -47,29 +82,6 @@ async function loadCars() {
   } catch { /* ignore */ }
 }
 
-function useCurrentLocation() {
-  if (!navigator.geolocation) {
-    locationError.value = 'Dein Browser unterstützt keine Standortabfrage.'
-    locationStatus.value = 'error'
-    return
-  }
-
-  locationStatus.value = 'loading'
-  locationError.value = null
-
-  navigator.geolocation.getCurrentPosition(
-    (position) => {
-      latitude.value = position.coords.latitude
-      longitude.value = position.coords.longitude
-      locationStatus.value = 'success'
-    },
-    (err) => {
-      console.error('Geolocation error:', err)
-      locationStatus.value = 'error'
-      locationError.value = 'Standortzugriff verweigert. Bitte erlaube den Zugriff in deinem Browser.'
-    }
-  )
-}
 
 async function handleConnect() {
   if (!form.value.serial || !form.value.apiKey || !form.value.carId) {
@@ -79,11 +91,12 @@ async function handleConnect() {
   loading.value = true
   error.value = null
   try {
-    await goeService.connect(form.value.serial, form.value.apiKey, form.value.carId, form.value.displayName, geohashValue.value)
+    await goeService.connect(form.value.serial, form.value.apiKey, form.value.carId, form.value.displayName, selectedGeohash.value)
     form.value = { serial: '', apiKey: '', carId: cars.value[0]?.id ?? '', displayName: '' }
-    latitude.value = null
-    longitude.value = null
-    locationStatus.value = 'idle'
+    locationQuery.value = ''
+    locationResults.value = []
+    selectedGeohash.value = null
+    selectedLocationName.value = null
     showForm.value = false
     await wallboxStore.refresh()
   } catch (e: any) {
@@ -135,7 +148,7 @@ function carLabel(car: Car): string {
         <ChevronRightIcon class="w-4 h-4 flex-shrink-0 transition-transform duration-200"
           :class="infoExpanded ? 'rotate-90' : ''" />
       </button>
-      <div v-if="infoExpanded" class="px-3 pb-3 text-sm text-gray-600 space-y-2 border-t border-gray-100 pt-2.5">
+      <div v-if="infoExpanded" class="px-3 pb-3 text-sm text-gray-600 dark:text-gray-200 space-y-2 border-t border-gray-100 dark:border-gray-700 pt-2.5">
         <p>
           Nach einmaliger Einrichtung läuft alles <strong>vollautomatisch</strong>: EV Monitor fragt
           alle paar Minuten bei der go-e Cloud an, ob gerade geladen wird.
@@ -190,56 +203,29 @@ function carLabel(car: Car): string {
         </div>
 
         <!-- Location (optional) -->
-        <div class="border border-indigo-200 rounded-lg p-3 bg-indigo-50/50">
-          <div class="flex items-start gap-2 mb-2">
-            <MapPinIcon class="w-4 h-4 text-indigo-600 mt-0.5 flex-shrink-0" />
-            <div class="flex-1">
-              <label class="block text-xs font-medium text-indigo-900 mb-1">Standort (optional)</label>
-              <p class="text-xs text-indigo-700 mb-2">
-                Mit Standort profitierst du von:
-              </p>
-              <ul class="text-xs text-indigo-700 space-y-1 mb-3">
-                <li class="flex items-start gap-1.5">
-                  <span class="text-green-600 mt-0.5">✓</span>
-                  <span><strong>Temperatur-Daten:</strong> Wie saisonale Schwankungen deinen Verbrauch beeinflussen</span>
-                </li>
-                <li class="flex items-start gap-1.5">
-                  <span class="text-green-600 mt-0.5">✓</span>
-                  <span><strong>Heatmap:</strong> Ladevorgänge werden auf der Karte angezeigt</span>
-                </li>
-                <li class="flex items-start gap-1.5">
-                  <span class="text-green-600 mt-0.5">✓</span>
-                  <span><strong>Privacy:</strong> Wir speichern nur einen ~5km Bereich (Geohash), keine exakte Adresse</span>
-                </li>
-              </ul>
-
-              <button
-                v-if="locationStatus === 'idle'"
-                type="button"
-                @click="useCurrentLocation"
-                class="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded-md hover:bg-indigo-700 transition">
-                <MapPinIcon class="w-3.5 h-3.5" />
-                Aktuelle Position verwenden
-              </button>
-
-              <div v-if="locationStatus === 'loading'" class="flex items-center gap-2 text-xs text-indigo-700">
-                <svg class="animate-spin h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Standort wird ermittelt...
-              </div>
-
-              <div v-if="locationStatus === 'success'" class="flex items-center gap-2 text-xs text-green-700">
-                <CheckCircleIcon class="w-4 h-4" />
-                Standort erfasst (Geohash: {{ geohashValue }})
-              </div>
-
-              <div v-if="locationStatus === 'error' && locationError" class="text-xs text-red-600 mt-1">
-                {{ locationError }}
-              </div>
-            </div>
+        <div class="space-y-1.5">
+          <label class="block text-xs text-gray-500">Standort (optional, für Heatmap)</label>
+          <div class="relative">
+            <input
+              v-model="locationQuery"
+              type="text"
+              placeholder="Adresse oder Ort eingeben..."
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm pr-8"
+              @input="onLocationQueryChange"
+            />
+            <MapPinIcon class="absolute right-2.5 top-2.5 h-4 w-4 text-gray-400 pointer-events-none" />
           </div>
+          <ul v-if="locationResults.length" class="border border-gray-200 rounded-lg overflow-hidden text-xs">
+            <li v-for="r in locationResults" :key="r.display_name"
+              class="px-3 py-2 hover:bg-gray-50 cursor-pointer truncate border-b border-gray-100 last:border-0"
+              @click="selectLocation(r)">
+              {{ r.display_name }}
+            </li>
+          </ul>
+          <p v-if="selectedLocationName" class="text-xs text-green-700 flex items-center gap-1">
+            <CheckIcon class="h-3.5 w-3.5 flex-shrink-0" />
+            {{ selectedLocationName }}
+          </p>
         </div>
 
         <div class="flex gap-2">

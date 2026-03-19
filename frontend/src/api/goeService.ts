@@ -48,4 +48,9 @@ export default {
     const resp = await api.patch(`/goe/connections/${id}/merge-sessions`, { mergeSessions })
     return { ...resp.data, carStateLabel: CAR_STATE_LABELS[resp.data.carState] ?? 'Unbekannt' }
   },
+
+  async updateGeohash(id: string, geohash: string | null): Promise<GoeConnection> {
+    const resp = await api.patch(`/goe/connections/${id}/geohash`, { geohash })
+    return { ...resp.data, carStateLabel: CAR_STATE_LABELS[resp.data.carState] ?? 'Unbekannt' }
+  },
 }

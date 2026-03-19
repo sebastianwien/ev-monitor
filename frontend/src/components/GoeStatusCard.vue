@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { BoltIcon, ClockIcon, CheckCircleIcon, ExclamationTriangleIcon, XMarkIcon, PencilIcon, CheckIcon } from '@heroicons/vue/24/outline'
+import { BoltIcon, ClockIcon, CheckCircleIcon, ExclamationTriangleIcon, XMarkIcon, PencilIcon, CheckIcon, MapPinIcon } from '@heroicons/vue/24/outline'
 import goeService, { type GoeConnection } from '@/api/goeService'
 import { useWallboxStore } from '@/stores/wallbox'
 
@@ -96,6 +96,81 @@ async function handleDisconnect() {
   emit('disconnect', conn.value.id)
 }
 
+// ── Location editing ──────────────────────────────────────────────────────────
+
+const editingLocation = ref(false)
+const locationQuery = ref('')
+const locationResults = ref<{ display_name: string; lat: string; lon: string }[]>([])
+const locationSearchTimer = ref<ReturnType<typeof setTimeout> | null>(null)
+const savingLocation = ref(false)
+const selectedGeohash = ref<string | null>(null)
+const selectedLocationName = ref<string | null>(null)
+
+function startEditLocation() {
+  selectedGeohash.value = conn.value?.geohash ?? null
+  selectedLocationName.value = null
+  locationQuery.value = ''
+  locationResults.value = []
+  editingLocation.value = true
+}
+
+function selectLocation(result: { display_name: string; lat: string; lon: string }) {
+  // 5-char geohash = ~5km precision, matches privacy policy
+  const lat = parseFloat(result.lat)
+  const lon = parseFloat(result.lon)
+  // Manual base32 geohash encoding (5 chars)
+  selectedGeohash.value = encodeGeohash(lat, lon, 5)
+  selectedLocationName.value = result.display_name
+  locationQuery.value = result.display_name
+  locationResults.value = []
+}
+
+function encodeGeohash(lat: number, lon: number, precision: number): string {
+  const BASE32 = '0123456789bcdefghjkmnpqrstuvwxyz'
+  let idx = 0, bit = 0, evenBit = true
+  let geohash = ''
+  let minLat = -90, maxLat = 90, minLon = -180, maxLon = 180
+  while (geohash.length < precision) {
+    if (evenBit) {
+      const mid = (minLon + maxLon) / 2
+      if (lon >= mid) { idx = idx * 2 + 1; minLon = mid } else { idx = idx * 2; maxLon = mid }
+    } else {
+      const mid = (minLat + maxLat) / 2
+      if (lat >= mid) { idx = idx * 2 + 1; minLat = mid } else { idx = idx * 2; maxLat = mid }
+    }
+    evenBit = !evenBit
+    if (++bit === 5) { geohash += BASE32[idx]; bit = 0; idx = 0 }
+  }
+  return geohash
+}
+
+function onLocationQueryChange() {
+  if (locationSearchTimer.value) clearTimeout(locationSearchTimer.value)
+  selectedGeohash.value = null
+  selectedLocationName.value = null
+  if (locationQuery.value.length < 3) { locationResults.value = []; return }
+  locationSearchTimer.value = setTimeout(async () => {
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(locationQuery.value)}&format=json&limit=5`
+      )
+      locationResults.value = await res.json()
+    } catch { locationResults.value = [] }
+  }, 400)
+}
+
+async function saveLocation() {
+  if (!conn.value) return
+  savingLocation.value = true
+  try {
+    const updated = await goeService.updateGeohash(conn.value.id, selectedGeohash.value)
+    conn.value = { ...conn.value, geohash: updated.geohash }
+    editingLocation.value = false
+  } finally {
+    savingLocation.value = false
+  }
+}
+
 // ── Merge sessions toggle ─────────────────────────────────────────────────────
 
 const savingMergeSessions = ref(false)
@@ -139,20 +214,20 @@ async function saveTariff() {
 
 <template>
   <!-- Skeleton -->
-  <div v-if="loading" class="rounded-2xl border border-gray-200 bg-white p-5 animate-pulse">
-    <div class="h-4 bg-gray-100 rounded w-1/2 mb-4" />
-    <div class="h-20 bg-gray-100 rounded mb-4" />
-    <div class="h-3 bg-gray-100 rounded w-1/3" />
+  <div v-if="loading" class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 animate-pulse">
+    <div class="h-4 bg-gray-100 dark:bg-gray-700 rounded w-1/2 mb-4" />
+    <div class="h-20 bg-gray-100 dark:bg-gray-700 rounded mb-4" />
+    <div class="h-3 bg-gray-100 dark:bg-gray-700 rounded w-1/3" />
   </div>
 
   <div v-else-if="conn"
-    :class="['rounded-2xl border bg-white overflow-hidden shadow-sm transition-all duration-300',
-             hasError ? 'border-red-200' : 'border-gray-200']"
+    :class="['rounded-2xl border bg-white dark:bg-gray-800 overflow-hidden shadow-sm transition-all duration-300',
+             hasError ? 'border-red-200 dark:border-red-700' : 'border-gray-200 dark:border-gray-700']"
   >
     <!-- Header -->
     <div class="flex items-center justify-between px-5 pt-4 pb-3">
       <div class="flex items-center gap-2 min-w-0">
-        <span class="text-sm font-semibold text-gray-900 truncate">
+        <span class="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
           {{ conn.displayName || 'go-E Wallbox' }}
         </span>
         <!-- Online dot -->
@@ -175,7 +250,7 @@ async function saveTariff() {
         <span v-if="stateConfig.pulse"
           :class="['absolute inset-0 rounded-full border-2 animate-ping opacity-40', colors.ring]" />
         <!-- Inner ring -->
-        <span :class="['flex items-center justify-center w-16 h-16 rounded-full border-2 bg-white', colors.ring]">
+        <span :class="['flex items-center justify-center w-16 h-16 rounded-full border-2 bg-white dark:bg-gray-800', colors.ring]">
           <BoltIcon          v-if="conn.carState === 2" :class="['h-8 w-8', colors.icon]" />
           <ClockIcon         v-else-if="conn.carState === 3" :class="['h-8 w-8', colors.icon]" />
           <CheckCircleIcon   v-else-if="conn.carState === 4" :class="['h-8 w-8', colors.icon]" />
@@ -208,11 +283,11 @@ async function saveTariff() {
     </div>
 
     <!-- Tariff -->
-    <div class="px-5 py-3 border-t border-gray-100">
+    <div class="px-5 py-3 border-t border-gray-100 dark:border-gray-700">
       <div v-if="!editingTariff" class="flex items-center justify-between">
-        <span class="text-xs text-gray-500">
+        <span class="text-xs text-gray-500 dark:text-gray-400">
           Tarif:
-          <span class="font-medium text-gray-700">
+          <span class="font-medium text-gray-700 dark:text-gray-300">
             {{ conn.tariffCentsPerKwh > 0 ? `${Number(conn.tariffCentsPerKwh).toLocaleString('de-DE', { maximumFractionDigits: 4 })} ct/kWh` : 'nicht gesetzt' }}
           </span>
         </span>
@@ -230,11 +305,11 @@ async function saveTariff() {
           max="9999"
           step="0.0001"
           placeholder="z.B. 29,5"
-          class="flex-1 border border-gray-300 rounded-lg px-2 py-1 text-sm"
+          class="flex-1 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-2 py-1 text-sm"
           @keyup.enter="saveTariff"
           @keyup.escape="editingTariff = false"
         />
-        <span class="text-xs text-gray-500 shrink-0">ct/kWh</span>
+        <span class="text-xs text-gray-500 dark:text-gray-400 shrink-0">ct/kWh</span>
         <button @click="saveTariff" :disabled="savingTariff"
           class="p-1 text-green-600 hover:text-green-700 disabled:opacity-50">
           <CheckIcon class="h-4 w-4" />
@@ -246,12 +321,64 @@ async function saveTariff() {
       </div>
     </div>
 
+    <!-- Location -->
+    <div class="px-5 py-3 border-t border-gray-100 dark:border-gray-700">
+      <div v-if="!editingLocation" class="flex items-center justify-between">
+        <span class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+          <MapPinIcon class="h-3.5 w-3.5" />
+          Standort:
+          <span :class="conn.geohash ? 'font-medium text-gray-700 dark:text-gray-300' : 'text-amber-600 font-medium'">
+            {{ conn.geohash ? 'gesetzt' : 'fehlt - Heatmap inaktiv' }}
+          </span>
+        </span>
+        <button @click="startEditLocation"
+          class="flex items-center gap-1 text-xs text-green-600 hover:text-green-700 font-medium">
+          <PencilIcon class="h-3.5 w-3.5" />
+          {{ conn.geohash ? 'Ändern' : 'Festlegen' }}
+        </button>
+      </div>
+      <div v-else class="space-y-2">
+        <div class="relative">
+          <input
+            v-model="locationQuery"
+            type="text"
+            placeholder="Adresse oder Ort eingeben..."
+            class="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-1.5 text-sm pr-8"
+            @input="onLocationQueryChange"
+            @keyup.escape="editingLocation = false"
+          />
+          <MapPinIcon class="absolute right-2.5 top-2 h-4 w-4 text-gray-400 pointer-events-none" />
+        </div>
+        <ul v-if="locationResults.length" class="border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg overflow-hidden text-xs">
+          <li v-for="r in locationResults" :key="r.display_name"
+            class="px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 cursor-pointer truncate border-b border-gray-100 dark:border-gray-600 last:border-0"
+            @click="selectLocation(r)">
+            {{ r.display_name }}
+          </li>
+        </ul>
+        <p v-if="selectedLocationName" class="text-xs text-green-700 flex items-center gap-1">
+          <CheckIcon class="h-3.5 w-3.5" />
+          {{ selectedLocationName }}
+        </p>
+        <div class="flex gap-2">
+          <button @click="saveLocation" :disabled="savingLocation || !selectedGeohash"
+            class="flex-1 bg-green-600 text-white py-1.5 rounded-lg text-xs font-medium hover:bg-green-700 disabled:opacity-40 transition">
+            {{ savingLocation ? 'Speichern...' : 'Speichern' }}
+          </button>
+          <button @click="editingLocation = false"
+            class="px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+            Abbrechen
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Merge Sessions -->
-    <div class="px-5 py-3 border-t border-gray-100">
+    <div class="px-5 py-3 border-t border-gray-100 dark:border-gray-700">
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-xs font-medium text-gray-700">Sessions zusammenfassen</p>
-          <p class="text-xs text-gray-400 mt-0.5">Kleine Uberschuss-Sessions desselben Tages gruppieren</p>
+          <p class="text-xs font-medium text-gray-700 dark:text-gray-300">Sessions zusammenfassen</p>
+          <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Kleine Uberschuss-Sessions desselben Tages gruppieren</p>
         </div>
         <button
           @click="toggleMergeSessions"
@@ -265,9 +392,9 @@ async function saveTariff() {
     </div>
 
     <!-- Footer -->
-    <div class="flex items-center justify-between px-5 py-2 border-t border-gray-100">
-      <span class="text-xs text-gray-400">Serial: {{ conn.serial }}</span>
-      <span class="text-xs text-gray-400">
+    <div class="flex items-center justify-between px-5 py-2 border-t border-gray-100 dark:border-gray-700">
+      <span class="text-xs text-gray-400 dark:text-gray-500">Serial: {{ conn.serial }}</span>
+      <span class="text-xs text-gray-400 dark:text-gray-500">
         Aktualisiert alle {{ isCharging ? '2' : '4' }} Min
       </span>
     </div>

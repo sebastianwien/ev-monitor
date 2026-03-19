@@ -56,46 +56,46 @@
           <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
             <!-- Mobile: Verbrauch first, Kosten second, then Ladevorgänge, Reichweite -->
             <!-- Desktop: Ladevorgänge, Reichweite, Verbrauch, Kosten -->
-            <div class="bg-purple-50 rounded-xl p-4 text-center order-1 md:order-3">
-              <div class="text-2xl font-bold text-purple-700">
+            <div class="bg-purple-50 dark:bg-purple-900/30 rounded-xl p-4 text-center order-1 md:order-3">
+              <div class="text-2xl font-bold text-purple-700 dark:text-purple-300">
                 {{ displayConsumption ? displayConsumption.toFixed(1) + ' kWh' : '–' }}
               </div>
-              <div class="text-sm text-purple-600 mt-1">Ø Verbrauch / 100km</div>
+              <div class="text-sm text-purple-600 dark:text-purple-400 mt-1">Ø Verbrauch / 100km</div>
             </div>
-            <div class="bg-yellow-50 rounded-xl p-4 text-center order-2 md:order-4">
-              <div class="text-2xl font-bold text-yellow-700">
+            <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-xl p-4 text-center order-2 md:order-4">
+              <div class="text-2xl font-bold text-yellow-700 dark:text-yellow-300">
                 {{ stats.avgCostPerKwh && stats.avgConsumptionKwhPer100km
                   ? (stats.avgCostPerKwh * stats.avgConsumptionKwhPer100km).toFixed(2) + ' €'
                   : stats.avgCostPerKwh ? (stats.avgCostPerKwh * 100).toFixed(1) + ' ct' : '–' }}
               </div>
-              <div class="text-sm text-yellow-600 mt-1">Ø Kosten / 100km</div>
-              <div v-if="stats.avgCostPerKwh" class="text-xs text-yellow-500 mt-1">
+              <div class="text-sm text-yellow-600 dark:text-yellow-400 mt-1">Ø Kosten / 100km</div>
+              <div v-if="stats.avgCostPerKwh" class="text-xs text-yellow-500 dark:text-yellow-500 mt-1">
                 {{ (stats.avgCostPerKwh * 100).toFixed(1) }} ct/kWh
               </div>
             </div>
-            <div class="bg-green-50 rounded-xl p-4 text-center order-3 md:order-1">
-              <div class="text-2xl font-bold text-green-700">
+            <div class="bg-green-50 dark:bg-green-900/30 rounded-xl p-4 text-center order-3 md:order-1">
+              <div class="text-2xl font-bold text-green-700 dark:text-green-300">
                 {{ stats.logCount > 0 ? stats.logCount.toLocaleString('de-DE') : '–' }}
               </div>
-              <div class="text-sm text-green-600 mt-1">Ladevorgänge</div>
-              <div v-if="stats.estimatedConsumptionCount > 0" class="text-xs text-green-500 mt-2 italic">
+              <div class="text-sm text-green-600 dark:text-green-400 mt-1">Ladevorgänge</div>
+              <div v-if="stats.estimatedConsumptionCount > 0" class="text-xs text-green-500 dark:text-green-500 mt-2 italic">
                 {{ stats.estimatedConsumptionCount }} geschätzt (ohne SoC)
               </div>
             </div>
-            <div class="bg-blue-50 rounded-xl p-4 text-center order-4 md:order-2 flex flex-col justify-center">
+            <div class="bg-blue-50 dark:bg-blue-900/30 rounded-xl p-4 text-center order-4 md:order-2 flex flex-col justify-center">
               <template v-if="displayRange">
-                <div class="text-2xl font-bold text-blue-700">{{ displayRange }} km</div>
+                <div class="text-2xl font-bold text-blue-700 dark:text-blue-300">{{ displayRange }} km</div>
                 <div class="mt-1">
-                  <div class="text-sm font-bold text-blue-600">Reichweite</div>
+                  <div class="text-sm font-bold text-blue-600 dark:text-blue-400">Reichweite</div>
                   <div class="flex items-center justify-center gap-1 mt-2">
-                    <Battery0Icon class="h-3.5 w-3.5 text-blue-500" />
-                    <span class="text-xs text-blue-500">90%→10%</span>
+                    <Battery0Icon class="h-3.5 w-3.5 text-blue-500 dark:text-blue-400" />
+                    <span class="text-xs text-blue-500 dark:text-blue-400">90%→10%</span>
                   </div>
                 </div>
               </template>
               <template v-else>
-                <div class="text-2xl font-bold text-blue-700">–</div>
-                <div class="text-sm text-blue-600 mt-1">Reichweite 90%→10%</div>
+                <div class="text-2xl font-bold text-blue-700 dark:text-blue-300">–</div>
+                <div class="text-sm text-blue-600 dark:text-blue-400 mt-1">Reichweite 90%→10%</div>
               </template>
             </div>
           </div>
