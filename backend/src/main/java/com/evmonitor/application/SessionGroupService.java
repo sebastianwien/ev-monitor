@@ -8,6 +8,7 @@ import com.evmonitor.domain.EvLogRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -54,12 +55,14 @@ public class SessionGroupService {
      * Verarbeitet einen neu gespeicherten Log und gruppiert ihn zeitbasiert mit bestehenden Sessions.
      * Für WALLBOX_GOE und API_UPLOAD; andere Quellen werden ignoriert.
      *
-     * Läuft in derselben Transaktion wie der Log-Save (REQUIRED):
-     * Log-Save und Group-Linking sind atomic — entweder beide committed oder keiner.
+     * Läuft in einer eigenen Transaktion (REQUIRES_NEW) damit ein Fehler beim Grouping
+     * nicht die äußere Log-Save-Transaktion als rollback-only markiert. Die Caller
+     * (createWallboxLog, logCharging, PublicApiImportService) wollen den Log auch dann
+     * speichern wenn das Grouping fehlschlägt.
      *
      * @param savedLog Der gerade gespeicherte Log-Eintrag
      */
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void processSessionForGrouping(EvLog savedLog) {
         processSessionForGrouping(savedLog, DEFAULT_MERGE_GAP_MINUTES);
     }
@@ -71,7 +74,7 @@ public class SessionGroupService {
      * @param savedLog Der gerade gespeicherte Log-Eintrag
      * @param mergeGapMinutes Maximale Pause zwischen Sessions (in Minuten) für Gruppierung
      */
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void processSessionForGrouping(EvLog savedLog, int mergeGapMinutes) {
         // Nur WALLBOX_GOE und API_UPLOAD Sessions gruppieren
         if (savedLog.getDataSource() != DataSource.WALLBOX_GOE
