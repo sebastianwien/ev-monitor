@@ -17,15 +17,23 @@ import OnboardingWelcome from './components/OnboardingWelcome.vue'
 import DemoBanner from './components/DemoBanner.vue'
 import RedditConsentBanner from './components/RedditConsentBanner.vue'
 import FeedbackToast from './components/FeedbackToast.vue'
-import { Bars3Icon, XMarkIcon, HomeIcon, TruckIcon, ArrowDownTrayIcon, UserIcon, ArrowRightOnRectangleIcon, BoltIcon, ChatBubbleLeftEllipsisIcon, ArrowsRightLeftIcon, TrophyIcon } from '@heroicons/vue/24/outline'
+import { Bars3Icon, XMarkIcon, HomeIcon, ArrowDownTrayIcon, UserIcon, BoltIcon, ChatBubbleLeftEllipsisIcon, ArrowsRightLeftIcon } from '@heroicons/vue/24/outline'
 // Note: showImportOverlay kept for backward compat but SpritMonitor moved to /imports
 import { captureUtmParams, captureReferrer } from './utils/reddit-pixel'
 import { useHaptic } from './composables/useHaptic'
 import { useThemeStore } from './stores/theme'
 import ThemeToggle from './components/ThemeToggle.vue'
+import { useTickerState } from './composables/useTickerState'
 
 const { haptic } = useHaptic()
 const themeStore = useThemeStore()
+const { tickerHasItems, tickerCollapsed } = useTickerState()
+
+const mainPaddingTop = computed(() => {
+  if (!authStore.isAuthenticated()) return '0px'
+  if (tickerHasItems.value && !tickerCollapsed.value) return '90px' // 58 + 32
+  return '64px'
+})
 
 const router = useRouter()
 const route = useRoute()
@@ -97,11 +105,6 @@ const stopImpersonation = () => {
   authStore.logout()
 }
 
-const handleLogout = () => {
-  sessionStorage.removeItem('impersonating')
-  authStore.logout()
-  mobileMenuOpen.value = false
-}
 
 const handleNewLog = () => {
   // Check if desktop (≥768px) or mobile
@@ -124,13 +127,13 @@ const closeMobileMenu = () => {
 <template>
   <div class="min-h-screen bg-gray-100 dark:bg-gray-950 flex flex-col">
     <!-- Navigation -->
-    <nav class="bg-indigo-600 shadow-md text-white sticky top-0 z-40" v-if="authStore.isAuthenticated()">
+    <nav class="bg-indigo-600 shadow-md text-white fixed top-0 left-0 right-0 z-40" v-if="authStore.isAuthenticated()">
       <div class="px-4 py-3">
         <div class="flex justify-between items-center">
           <!-- Left: Logo + Nav Buttons (Desktop) -->
           <div class="flex items-center space-x-4">
             <router-link to="/dashboard" class="flex items-center gap-1.5 text-2xl font-bold tracking-wide hover:opacity-80 transition whitespace-nowrap">
-              <HomeIcon class="h-7 w-7" />
+              <BoltIcon class="h-7 w-7" />
               <span class="hidden sm:inline">EV Monitor</span>
             </router-link>
 
@@ -143,18 +146,10 @@ const closeMobileMenu = () => {
                 <BoltIcon class="h-5 w-5" />
               </button>
               <router-link
-                to="/cars"
-                class="nav-3d p-2 rounded-md border border-indigo-500 hover:bg-indigo-500 transition"
-                @click="haptic()"
-                :class="{ 'bg-indigo-700': $route.path === '/cars' }"
-                title="Fahrzeuge">
-                <TruckIcon class="h-5 w-5" />
-              </router-link>
-              <router-link
                 to="/imports"
                 class="nav-3d p-2 rounded-md border border-indigo-500 hover:bg-indigo-500 transition"
                 @click="haptic()"
-                :class="{ 'bg-indigo-700': $route.path === '/imports' }"
+                :class="{ 'bg-indigo-500': $route.path === '/imports' }"
                 title="Import">
                 <ArrowDownTrayIcon class="h-5 w-5" />
               </router-link>
@@ -162,39 +157,35 @@ const closeMobileMenu = () => {
                 to="/modelle"
                 class="nav-3d p-2 rounded-md border border-indigo-500 hover:bg-indigo-500 transition"
                 @click="haptic()"
-                :class="{ 'bg-indigo-700': $route.path.startsWith('/modelle') }"
+                :class="{ 'bg-indigo-500': $route.path.startsWith('/modelle') }"
                 title="Modelle vergleichen">
                 <ArrowsRightLeftIcon class="h-5 w-5" />
               </router-link>
               <router-link
-                to="/leaderboard"
+                to="/dashboard"
                 class="nav-3d p-2 rounded-md border border-indigo-500 hover:bg-indigo-500 transition"
                 @click="haptic()"
-                :class="{ 'bg-indigo-700': $route.path === '/leaderboard' }"
-                title="Bestenliste">
-                <TrophyIcon class="h-5 w-5" />
+                :class="{ 'bg-indigo-500': $route.path === '/dashboard' }"
+                title="Dashboard">
+                <HomeIcon class="h-5 w-5" />
               </router-link>
             </div>
 
             <!-- Full Nav (1024px+) -->
             <div class="hidden lg:flex items-center space-x-4">
-              <button
-                @click="handleNewLog(); haptic()"
-                class="nav-3d px-3 py-2 rounded-md text-sm font-medium bg-green-600 hover:bg-green-700 transition">
-                Ladevorgang erfassen
-              </button>
               <router-link
-                to="/cars"
-                class="nav-3d px-3 py-2 rounded-md border border-indigo-500 text-sm font-medium hover:bg-indigo-500 transition"
+                to="/dashboard"
+                class="nav-3d p-2 rounded-md border border-indigo-500 hover:bg-indigo-500 transition"
                 @click="haptic()"
-                :class="{ 'bg-indigo-700': $route.path === '/cars' }">
-                Fahrzeuge
+                :class="{ 'bg-indigo-500': $route.path === '/dashboard' }"
+                title="Dashboard">
+                <HomeIcon class="h-5 w-5" />
               </router-link>
               <router-link
                 to="/imports"
                 class="nav-3d flex items-center gap-2 px-3 py-2 rounded-md border border-indigo-500 text-sm font-medium hover:bg-indigo-500 transition"
                 @click="haptic()"
-                :class="{ 'bg-indigo-700': $route.path === '/imports' }">
+                :class="{ 'bg-indigo-500': $route.path === '/imports' }">
                 <ArrowDownTrayIcon class="h-5 w-5" />
                 Import
               </router-link>
@@ -202,18 +193,16 @@ const closeMobileMenu = () => {
                 to="/modelle"
                 class="nav-3d flex items-center gap-2 px-3 py-2 rounded-md border border-indigo-500 text-sm font-medium hover:bg-indigo-500 transition"
                 @click="haptic()"
-                :class="{ 'bg-indigo-700': $route.path.startsWith('/modelle') }">
+                :class="{ 'bg-indigo-500': $route.path.startsWith('/modelle') }">
                 <ArrowsRightLeftIcon class="h-5 w-5" />
                 Modelle
               </router-link>
-              <router-link
-                to="/leaderboard"
-                class="nav-3d flex items-center gap-2 px-3 py-2 rounded-md border border-indigo-500 text-sm font-medium hover:bg-indigo-500 transition"
-                @click="haptic()"
-                :class="{ 'bg-indigo-700': $route.path === '/leaderboard' }">
-                <TrophyIcon class="h-5 w-5" />
-                Bestenliste
-              </router-link>
+              <button
+                @click="handleNewLog(); haptic()"
+                class="nav-3d p-2 rounded-md bg-green-600 hover:bg-green-700 transition"
+                title="Ladevorgang erfassen">
+                <BoltIcon class="h-5 w-5" />
+              </button>
             </div>
           </div>
 
@@ -236,7 +225,7 @@ const closeMobileMenu = () => {
             </button>
             <router-link
               to="/coins/history"
-              class="nav-3d flex items-center gap-1 px-2 h-9 text-sm bg-indigo-500 bg-opacity-30 border border-indigo-500 rounded-md hover:bg-opacity-50 transition font-medium"
+              class="nav-3d flex items-center gap-1 px-2 h-9 text-sm border border-indigo-500 rounded-md hover:bg-indigo-500 transition font-medium"
               @click="haptic()"
               :class="{ 'watt-bump': balanceBumping }"
               title="Watt-Guthaben">
@@ -246,7 +235,8 @@ const closeMobileMenu = () => {
             <router-link
               v-if="authStore.user"
               to="/settings"
-              class="nav-3d flex items-center justify-center h-9 w-9 border border-indigo-500 rounded-md bg-indigo-500 bg-opacity-30 hover:bg-opacity-50 transition"
+              class="nav-3d flex items-center justify-center h-9 w-9 border border-indigo-500 rounded-md hover:bg-indigo-500 transition"
+              :class="{ 'bg-indigo-500': $route.path === '/settings' }"
               @click="haptic()"
               title="Einstellungen">
               <UserIcon class="h-5 w-5" />
@@ -258,12 +248,6 @@ const closeMobileMenu = () => {
               <ChatBubbleLeftEllipsisIcon class="h-5 w-5" />
             </button>
             <SupportPopover variant="nav" />
-            <button
-              @click="handleLogout"
-              class="nav-3d p-2 rounded-md bg-indigo-500 bg-opacity-30 border border-indigo-500 hover:bg-opacity-50 transition"
-              title="Abmelden">
-              <ArrowRightOnRectangleIcon class="h-5 w-5" />
-            </button>
           </div>
 
           <!-- Full Right Nav (1280px+) -->
@@ -290,7 +274,7 @@ const closeMobileMenu = () => {
             <div class="relative group">
               <router-link
                 to="/coins/history"
-                class="nav-3d flex items-center gap-1.5 px-3 py-1.5 text-sm bg-indigo-500 bg-opacity-30 border border-indigo-500 rounded-md hover:bg-opacity-50 transition font-medium"
+                class="nav-3d flex items-center gap-1.5 px-3 py-1.5 text-sm border border-indigo-500 rounded-md hover:bg-indigo-500 transition font-medium"
                 @click="haptic()"
                 :class="{ 'watt-bump': balanceBumping }">
                 <BoltIcon class="h-4 w-4" />
@@ -313,10 +297,10 @@ const closeMobileMenu = () => {
             <router-link
               v-if="authStore.user"
               to="/settings"
-              class="nav-3d flex items-center gap-2 px-3 py-1.5 text-sm border border-indigo-500 rounded-md bg-indigo-500 bg-opacity-30 hover:bg-opacity-50 transition"
+              class="nav-3d flex items-center justify-center h-9 w-9 border border-indigo-500 rounded-md hover:bg-indigo-500 transition"
+              :class="{ 'bg-indigo-500': $route.path === '/settings' }"
               @click="haptic()">
-              <UserIcon class="h-4 w-4" />
-              <span>{{ authStore.user.username || authStore.user.sub }}</span>
+              <UserIcon class="h-5 w-5" />
             </router-link>
             <button
               data-tally-open="vGB8XA" data-tally-emoji-text="👋" data-tally-emoji-animation="wave"
@@ -326,12 +310,6 @@ const closeMobileMenu = () => {
               <ChatBubbleLeftEllipsisIcon class="h-5 w-5" />
             </button>
             <SupportPopover variant="nav" />
-            <button
-              @click="handleLogout"
-              class="nav-3d p-2 rounded-md bg-indigo-500 bg-opacity-30 border border-indigo-500 hover:bg-opacity-50 transition"
-              title="Abmelden">
-              <ArrowRightOnRectangleIcon class="h-5 w-5" />
-            </button>
           </div>
 
           <!-- Mobile: Icons + Hamburger Button -->
@@ -377,7 +355,7 @@ const closeMobileMenu = () => {
     </nav>
 
     <!-- Leaderboard Ticker (below nav, only when authenticated) -->
-    <LeaderboardTicker v-if="authStore.isAuthenticated()" />
+    <LeaderboardTicker v-if="authStore.isAuthenticated() && !authStore.isDemoAccount" />
 
     <!-- Mobile Menu Overlay -->
     <Transition name="mobile-menu">
@@ -415,14 +393,6 @@ const closeMobileMenu = () => {
               <span>Dashboard</span>
             </router-link>
             <router-link
-              to="/cars"
-              @click="closeMobileMenu"
-              class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-indigo-100 hover:bg-indigo-600 transition"
-              :class="{ 'bg-indigo-800': $route.path === '/cars' }">
-              <TruckIcon class="h-5 w-5" />
-              <span>Fahrzeuge</span>
-            </router-link>
-            <router-link
               to="/imports"
               @click="closeMobileMenu"
               class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-indigo-100 hover:bg-indigo-600 transition"
@@ -439,12 +409,12 @@ const closeMobileMenu = () => {
               <span>Modelle vergleichen</span>
             </router-link>
             <router-link
-              to="/leaderboard"
+              to="/dashboard"
               @click="closeMobileMenu"
               class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-indigo-100 hover:bg-indigo-600 transition"
-              :class="{ 'bg-indigo-800': $route.path === '/leaderboard' }">
-              <TrophyIcon class="h-5 w-5" />
-              <span>Bestenliste</span>
+              :class="{ 'bg-indigo-800': $route.path === '/dashboard' }">
+              <HomeIcon class="h-5 w-5" />
+              <span>Dashboard</span>
             </router-link>
             <router-link
               v-if="authStore.user"
@@ -461,12 +431,6 @@ const closeMobileMenu = () => {
               <ThemeToggle class="text-white -ml-2" />
               <span>{{ themeStore.isDark ? 'Hell-Modus' : 'Dunkel-Modus' }}</span>
             </div>
-            <button
-              @click="handleLogout"
-              class="w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-600 transition text-red-300">
-              <ArrowRightOnRectangleIcon class="h-5 w-5" />
-              <span>Abmelden</span>
-            </button>
           </div>
         </div>
       </div>
@@ -485,7 +449,7 @@ const closeMobileMenu = () => {
 
     <!-- Demo Banner (shown for seed/demo accounts) -->
     <DemoBanner v-if="authStore.isDemoAccount" />
-    <main :class="{ 'md:py-10 md:px-4': authStore.isAuthenticated() }">
+    <main :class="{ 'md:pb-10 md:px-4': authStore.isAuthenticated() }" :style="{ paddingTop: mainPaddingTop, transition: 'padding-top 0.3s ease' }">
       <router-view></router-view>
     </main>
 

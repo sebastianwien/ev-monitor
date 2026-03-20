@@ -39,18 +39,18 @@ onUnmounted(() => document.removeEventListener('click', handleOutsideClick))
 
 <template>
   <!-- Block variant (Settings page) -->
-  <div v-if="variant === 'block'" class="flex flex-col gap-3">
+  <div v-if="variant === 'block'" class="flex gap-3">
     <button
       @click="openPaypal"
-      class="btn-3d w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition font-medium">
+      class="btn-3d flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded-lg hover:bg-indigo-200 dark:hover:bg-indigo-900/60 transition font-medium shadow-[0_4px_0_0_#a5b4fc] dark:shadow-[0_4px_0_0_#312e81] active:shadow-none active:translate-y-1" style="transition: transform 0.075s ease, box-shadow 0.075s ease;">
       <img src="https://www.paypalobjects.com/webstatic/icon/pp16.png" alt="PayPal" class="h-4 w-4" />
-      <span>Per PayPal spenden</span>
+      <span>Per PayPal</span>
     </button>
     <button
       @click="openKofi"
-      class="btn-3d w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition font-medium">
-      <HeartIcon class="h-5 w-5" />
-      <span>Per Ko-fi spenden</span>
+      class="btn-3d flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded-lg hover:bg-indigo-200 dark:hover:bg-indigo-900/60 transition font-medium shadow-[0_4px_0_0_#a5b4fc] dark:shadow-[0_4px_0_0_#312e81] active:shadow-none active:translate-y-1" style="transition: transform 0.075s ease, box-shadow 0.075s ease;">
+      <HeartIcon class="h-4 w-4" />
+      <span>Per Ko-fi</span>
     </button>
   </div>
 
@@ -60,9 +60,9 @@ onUnmounted(() => document.removeEventListener('click', handleOutsideClick))
     <button
       v-if="variant === 'nav'"
       @click.stop="open = !open"
-      class="inline-flex items-center gap-1.5 px-3 py-1.5 text-red-400 hover:text-red-300 transition text-sm font-medium"
+      class="inline-flex items-center gap-1.5 px-3 py-1.5 text-white hover:text-indigo-200 transition text-sm font-medium"
       title="EV Monitor unterstützen">
-      <HeartIcon class="h-4 w-4" />
+      <HeartIcon class="h-4 w-4 text-red-400" />
       Unterstützen
     </button>
     <button

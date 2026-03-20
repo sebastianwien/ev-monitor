@@ -55,6 +55,8 @@ public interface EvLogRepository {
 
     void clearSupersededByReferences(UUID supersededById);
 
+    List<GeohashPoint> findGeohashDataByCarId(UUID carId);
+
     /**
      * Setzt die session_group_id für einen einzelnen Log-Eintrag (Sub-Session Linking).
      */

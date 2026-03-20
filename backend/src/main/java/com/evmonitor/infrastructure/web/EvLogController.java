@@ -148,6 +148,19 @@ public class EvLogController {
         return ResponseEntity.ok(subSessions);
     }
 
+    @GetMapping("/geohashes")
+    public ResponseEntity<List<com.evmonitor.application.GeohashResponse>> getGeohashData(
+            @RequestParam UUID carId,
+            Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        try {
+            List<com.evmonitor.application.GeohashResponse> data = evLogService.getGeohashData(carId, principal.getUser().getId());
+            return ResponseEntity.ok(data);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     @GetMapping("/implausible")
     public ResponseEntity<List<EvLogResponse>> getImplausibleLogs(
             @RequestParam UUID carId,

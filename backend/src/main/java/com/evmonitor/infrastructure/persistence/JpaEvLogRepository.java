@@ -19,6 +19,9 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     @Query("SELECT e FROM EvLogEntity e WHERE e.carId = :carId AND e.supersededBy IS NULL")
     List<EvLogEntity> findAllByCarId(@Param("carId") UUID carId);
 
+    @Query("SELECT e.geohash, e.kwhCharged FROM EvLogEntity e WHERE e.carId = :carId AND e.geohash IS NOT NULL AND e.supersededBy IS NULL")
+    List<Object[]> findGeohashDataByCarId(@Param("carId") UUID carId);
+
     @Query("SELECT e FROM EvLogEntity e WHERE e.carId IN :carIds AND e.supersededBy IS NULL")
     List<EvLogEntity> findAllByCarIdIn(@Param("carIds") List<UUID> carIds);
 

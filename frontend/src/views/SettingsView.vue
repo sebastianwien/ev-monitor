@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import { UserIcon, KeyIcon, TrashIcon, ArrowDownTrayIcon, CurrencyDollarIcon, AcademicCapIcon, ShareIcon, ClipboardDocumentIcon, CheckIcon, HeartIcon, TrophyIcon } from '@heroicons/vue/24/outline'
+import { UserIcon, KeyIcon, TrashIcon, ArrowDownTrayIcon, AcademicCapIcon, ShareIcon, ClipboardDocumentIcon, CheckIcon, HeartIcon, TrophyIcon, ArrowRightOnRectangleIcon, BoltIcon } from '@heroicons/vue/24/outline'
 import SupportPopover from '../components/SupportPopover.vue'
 import api from '../api/axios'
 
@@ -248,6 +248,12 @@ onMounted(() => {
       <div class="flex items-center gap-3 mb-6">
         <UserIcon class="h-8 w-8 text-gray-700 dark:text-gray-300" />
         <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-200">Einstellungen</h1>
+        <button
+          @click="authStore.logout()"
+          class="ml-auto flex items-center gap-2 px-3 py-1.5 rounded-lg border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/30 transition shadow-[0_4px_0_0_#fca5a5] dark:shadow-[0_4px_0_0_#7f1d1d] active:shadow-none active:translate-y-1 cursor-pointer" style="transition: transform 0.075s ease, box-shadow 0.075s ease;">
+          <ArrowRightOnRectangleIcon class="h-4 w-4" />
+          Abmelden
+        </button>
       </div>
 
       <!-- Message Banner -->
@@ -259,9 +265,9 @@ onMounted(() => {
       </div>
 
       <!-- Watt Balance -->
-      <div class="mb-8 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/30 dark:to-yellow-900/30 border border-amber-200 dark:border-amber-700 rounded-lg p-6">
+      <div class="mb-8 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
         <div class="flex items-center gap-3 mb-2">
-          <CurrencyDollarIcon class="h-6 w-6 text-amber-600" />
+          <BoltIcon class="h-6 w-6 text-gray-500 dark:text-gray-400" />
           <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">Dein Watt-Konto</h2>
         </div>
         <p class="text-3xl font-bold text-amber-600">{{ coinBalance }}</p>
@@ -271,9 +277,9 @@ onMounted(() => {
       </div>
 
       <!-- Referral Section -->
-      <div v-if="referralCode" class="mb-8 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg p-6">
+      <div v-if="referralCode" class="mb-8 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
         <div class="flex items-center gap-3 mb-2">
-          <ShareIcon class="h-6 w-6 text-indigo-600" />
+          <ShareIcon class="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
           <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">Freunde einladen</h2>
         </div>
         <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
@@ -526,7 +532,7 @@ onMounted(() => {
           <HeartIcon class="h-6 w-6 text-red-500" />
           EV Monitor unterstützen
         </h2>
-        <div class="p-4 bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+        <div class="p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
           <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
             EV Monitor ist kostenlos und werbefrei. Wenn dir die App hilft, freue ich mich über einen Kaffee ☕
           </p>

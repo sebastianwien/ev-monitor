@@ -133,7 +133,7 @@ const fetchImplausibleCount = async () => {
   if (!selectedCarId.value) { implausibleCount.value = 0; return }
   try {
     const res = await api.get(`/logs/implausible?carId=${selectedCarId.value}`)
-    implausibleCount.value = res.data.length
+    implausibleCount.value = res.data.filter((l: any) => l.includeInStatistics).length
   } catch {
     implausibleCount.value = 0
   }
@@ -493,11 +493,6 @@ const wltpChartOptions = computed(() => {
   }
 })
 
-const formatDuration = (minutes: number) => {
-  const h = Math.floor(minutes / 60)
-  const m = minutes % 60
-  return h > 0 ? `${h}h ${m}min` : `${m}min`
-}
 
 // Dynamic chart height: 35px per bar, minimum 400px, max 1150px (30 bars) then scroll
 const wltpChartHeight = computed(() => {
@@ -607,7 +602,9 @@ const mergedLogFeed = computed(() => {
   const groupsForPage = safeGroups
     .filter((g: any) => g.dataSource !== 'SPRITMONITOR_IMPORT')
     .map((g: any) => ({ ...g, _isGroup: true }))
-  const logsWithFlag = safeLogs.map((l: any) => ({ ...l, _isGroup: false }))
+  const logsWithFlag = safeLogs
+    .filter((l: any) => l.includeInStatistics || !l.consumptionImplausible)
+    .map((l: any) => ({ ...l, _isGroup: false }))
   const sorted = [...logsWithFlag, ...groupsForPage].sort((a, b) => {
     const dateA = new Date(a._isGroup ? a.sessionStart : a.loggedAt).getTime()
     const dateB = new Date(b._isGroup ? b.sessionStart : b.loggedAt).getTime()
@@ -765,18 +762,26 @@ const deleteLog = async (id: string) => {
   <div class="md:max-w-6xl md:mx-auto md:p-6">
     <RewardSystemUpdateBanner class="mb-4" />
     <Transition name="fade" mode="out-in">
-      <div v-if="!loading">
+      <div v-if="!loading || !isInitialLoad">
         <div class="bg-white dark:bg-gray-800 md:rounded-xl md:shadow-lg p-4 md:p-6">
           <div class="flex items-center gap-3 mb-6">
             <ChartBarIcon class="h-8 w-8 text-gray-700 dark:text-gray-300" />
             <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-200">Dashboard</h1>
-            <button v-if="stats && stats.totalCharges > 0"
-              @click="scrollToLogs"
-              class="ml-auto hidden md:flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium shadow-[0_4px_0_0_#3730a3] hover:shadow-[0_2px_0_0_#3730a3] hover:translate-y-0.5 active:shadow-none active:translate-y-1 transition-all duration-75">
-              <ListBulletIcon class="w-4 h-4" />
-              Deine Ladevorgänge
-              <ChevronRightIcon class="w-3.5 h-3.5 opacity-75" />
-            </button>
+            <div class="ml-auto hidden md:flex items-center gap-2">
+              <router-link
+                to="/cars"
+                class="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1 transition-all duration-75">
+                <TruckIcon class="w-4 h-4" />
+                Fahrzeuge
+              </router-link>
+              <button v-if="stats && stats.totalCharges > 0"
+                @click="scrollToLogs"
+                class="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium shadow-[0_4px_0_0_#3730a3] hover:shadow-[0_2px_0_0_#3730a3] hover:translate-y-0.5 active:shadow-none active:translate-y-1 transition-all duration-75">
+                <ListBulletIcon class="w-4 h-4" />
+                Deine Ladevorgänge
+                <ChevronRightIcon class="w-3.5 h-3.5 opacity-75" />
+              </button>
+            </div>
           </div>
 
           <!-- Import Hint Banner -->
@@ -803,7 +808,6 @@ const deleteLog = async (id: string) => {
 
           <!-- Car card selector (all breakpoints) -->
           <div v-if="cars.length > 0" class="mb-6">
-            <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Fahrzeug</p>
             <div class="flex gap-3 overflow-x-auto pb-1 lg:flex-wrap lg:overflow-x-visible">
               <button
                 v-for="car in cars"
@@ -814,9 +818,9 @@ const deleteLog = async (id: string) => {
                     ? 'flex items-stretch rounded-xl border-2 text-left transition w-full md:w-auto overflow-hidden'
                     : 'flex items-stretch rounded-xl border-2 text-left transition flex-shrink-0 min-w-[200px] max-w-[280px] lg:flex-shrink lg:min-w-0 lg:max-w-none overflow-hidden',
                   selectedCarId === car.id
-                    ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 shadow-sm'
-                    : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 hover:border-indigo-300 hover:bg-gray-50 dark:hover:bg-gray-600'
-                ]">
+                    ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 shadow-[0_4px_0_0_#4338ca] translate-y-[2px]'
+                    : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:border-indigo-300 active:shadow-none active:translate-y-1'
+                ]" style="transition: transform 0.075s ease, box-shadow 0.075s ease;">
                 <div class="flex-shrink-0 w-24 self-stretch bg-gray-100 dark:bg-gray-600 flex items-center justify-center overflow-hidden">
                   <img
                     v-if="carImageUrls[car.id]"
@@ -923,19 +927,6 @@ const deleteLog = async (id: string) => {
             </div>
           </div>
 
-          <!-- Datenqualität -->
-          <button v-if="implausibleCount > 0"
-            @click="showImplausibleModal = true"
-            class="w-full mb-4 flex items-center justify-between gap-3 px-4 py-3 rounded-lg bg-amber-200 dark:bg-amber-500/20 border border-amber-300 dark:border-amber-600/50 text-left shadow-[0_4px_0_0_#92400e] dark:shadow-[0_4px_0_0_#1c0a00] hover:shadow-[0_2px_0_0_#92400e] dark:hover:shadow-[0_2px_0_0_#1c0a00] hover:translate-y-0.5 active:shadow-none active:translate-y-1 transition-all duration-75">
-            <div class="flex items-center gap-2">
-              <ExclamationTriangleIcon class="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
-              <span class="text-sm font-medium text-amber-800 dark:text-amber-300">
-                {{ implausibleCount }} {{ implausibleCount === 1 ? 'Eintrag' : 'Einträge' }} mit unplausiblem Verbrauch
-              </span>
-            </div>
-            <span class="text-xs text-amber-700 dark:text-amber-400 font-medium shrink-0">Jetzt prüfen →</span>
-          </button>
-
           <!-- Mobile: Deine Ladevorgänge CTA — above Zeitraum filter -->
           <button v-if="stats && stats.totalCharges > 0"
             @click="scrollToLogs"
@@ -958,8 +949,8 @@ const deleteLog = async (id: string) => {
                     :class="[
                       'px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
                       selectedTimeRange === option.value
-                        ? 'bg-indigo-600 text-white shadow-md'
-                        : 'bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-500 hover:bg-gray-100 dark:hover:bg-gray-500'
+                        ? 'bg-indigo-600 text-white translate-y-[2px] shadow-[0_2px_0_0_#3730a3] active:shadow-none active:translate-y-1 transition-all duration-75 cursor-pointer'
+                        : 'bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-500 shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] active:shadow-none active:translate-y-1 transition-all duration-75 cursor-pointer'
                     ]">
                     {{ option.label }}
                   </button>
@@ -1035,40 +1026,56 @@ const deleteLog = async (id: string) => {
 
         <!-- Key Metrics -->
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 pb-6 mb-0">
-          <div class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20 p-4 rounded-lg border border-blue-200 dark:border-blue-700">
-            <p class="text-xs text-blue-600 dark:text-blue-400 font-medium mb-1">Gesamtenergie</p>
-            <p class="text-2xl font-bold text-blue-900 dark:text-blue-100">{{ stats.totalKwhCharged.toFixed(1) }}</p>
-            <p class="text-xs text-blue-600 dark:text-blue-400 mt-0.5">kWh · {{ stats.totalCharges }} Ladungen</p>
+          <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="h-1 bg-amber-500"></div>
+            <div class="p-4">
+              <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">Gesamtenergie</p>
+              <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ stats.totalKwhCharged.toFixed(1) }}</p>
+              <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">kWh · {{ stats.totalCharges }} Ladungen</p>
+            </div>
           </div>
-          <div class="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/20 p-4 rounded-lg border border-purple-200 dark:border-purple-700">
-            <p class="text-xs text-purple-600 dark:text-purple-400 font-medium mb-1">Gesamtkosten</p>
-            <p class="text-2xl font-bold text-purple-900 dark:text-purple-100">€{{ stats.totalCostEur.toFixed(2) }}</p>
-            <p class="text-xs text-purple-600 dark:text-purple-400 mt-0.5">Ø €{{ stats.avgCostPerKwh.toFixed(2) }}/kWh</p>
-          </div>
-          <div class="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/20 p-4 rounded-lg border border-green-200 dark:border-green-700">
-            <p class="text-xs text-green-600 dark:text-green-400 font-medium mb-1">Ø Ladedauer</p>
-            <p class="text-2xl font-bold text-green-900 dark:text-green-100">{{ formatDuration(stats.avgChargeDurationMinutes) }}</p>
-            <p class="text-xs text-green-600 dark:text-green-400 mt-0.5">pro Ladevorgang</p>
+          <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="h-1 bg-indigo-500"></div>
+            <div class="p-4">
+              <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">Gesamtkosten</p>
+              <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">€{{ stats.totalCostEur.toFixed(2) }}</p>
+              <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Ø €{{ stats.avgCostPerKwh.toFixed(2) }}/kWh</p>
+            </div>
           </div>
           <div v-if="stats.totalDistanceKm != null"
-            class="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/30 dark:to-amber-800/20 p-4 rounded-lg border border-amber-200 dark:border-amber-700">
-            <p class="text-xs text-amber-600 dark:text-amber-400 font-medium mb-1">Gesamtstrecke</p>
-            <p class="text-2xl font-bold text-amber-900 dark:text-amber-100">{{ Math.round(stats.totalDistanceKm).toLocaleString('de-DE') }}</p>
-            <p class="text-xs text-amber-600 dark:text-amber-400 mt-0.5">km gefahren</p>
+            class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="h-1 bg-green-500"></div>
+            <div class="p-4">
+              <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">Gesamtstrecke</p>
+              <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ Math.round(stats.totalDistanceKm).toLocaleString('de-DE') }}</p>
+              <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">km gefahren</p>
+            </div>
           </div>
           <div v-if="stats.avgConsumptionKwhPer100km != null"
-            class="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-800/20 p-4 rounded-lg border border-red-200 dark:border-red-700">
-            <p class="text-xs text-red-600 dark:text-red-400 font-medium mb-1">Ø Verbrauch</p>
-            <p class="text-2xl font-bold text-red-900 dark:text-red-100">{{ stats.avgConsumptionKwhPer100km.toFixed(1) }}</p>
-            <p class="text-xs text-red-600 dark:text-red-400 mt-0.5">
-              kWh/100km
-              <span v-if="wltp" class="font-medium">
-                (WLTP: {{ wltp.wltpConsumptionKwhPer100km.toFixed(1) }})
-              </span>
-            </p>
-            <p v-if="stats.estimatedConsumptionCount > 0" class="text-xs text-red-500 mt-2 italic">
-              {{ stats.estimatedConsumptionCount }} Ladung{{ stats.estimatedConsumptionCount > 1 ? 'en' : '' }} geschätzt (ohne SoC)
-            </p>
+            class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="h-1 bg-red-500"></div>
+            <div class="p-4">
+              <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">Ø Verbrauch</p>
+              <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ stats.avgConsumptionKwhPer100km.toFixed(1) }}</p>
+              <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                kWh/100km
+                <span v-if="wltp" class="font-medium">
+                  (WLTP: {{ wltp.wltpConsumptionKwhPer100km.toFixed(1) }})
+                </span>
+              </p>
+              <p v-if="stats.estimatedConsumptionCount > 0" class="text-xs text-red-500 mt-2 italic">
+                {{ stats.estimatedConsumptionCount }} Ladung{{ stats.estimatedConsumptionCount > 1 ? 'en' : '' }} geschätzt (ohne SoC)
+              </p>
+            </div>
+          </div>
+          <div v-if="stats.totalDistanceKm != null && stats.totalCostEur != null && stats.totalDistanceKm > 0"
+            class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="h-1 bg-teal-500"></div>
+            <div class="p-4">
+              <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">Ø Kosten</p>
+              <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">€{{ (stats.totalCostEur / stats.totalDistanceKm * 100).toFixed(2) }}</p>
+              <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">pro 100km</p>
+            </div>
           </div>
         </div>
 
@@ -1292,7 +1299,7 @@ const deleteLog = async (id: string) => {
                 :class="['p-3 border rounded-lg space-y-2',
                          entry._isLadegruppe
                            ? 'bg-white dark:bg-gray-700 border-blue-200 dark:border-blue-800 cursor-pointer shadow-[0_5px_0_0_#bfdbfe] dark:shadow-[0_5px_0_0_#1e3a5f] hover:shadow-[0_2px_0_0_#bfdbfe] dark:hover:shadow-[0_2px_0_0_#1e3a5f] hover:translate-y-[3px] active:shadow-none active:translate-y-[5px] transition-all duration-75'
-                           : !entry._isLadegruppe && entry.consumptionImplausible
+                           : entry.consumptionImplausible
                              ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700 border-l-4 border-l-red-400 dark:border-l-red-600'
                              : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600']"
                 @click="entry._isLadegruppe ? toggleLadegruppe(entry.id) : null">
@@ -1336,7 +1343,7 @@ const deleteLog = async (id: string) => {
                     <span
                       v-if="entry.distanceSinceLastChargeKm != null || entry.odometerKm"
                       class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap"
-                      :class="entry.distanceSinceLastChargeKm != null && entry.odometerKm ? 'cursor-pointer shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1 transition-all duration-75' : ''"
+                      :class="entry.distanceSinceLastChargeKm != null && entry.odometerKm ? 'cursor-pointer shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] active:shadow-none active:translate-y-1 transition-all duration-75 cursor-pointer' : ''"
                       @click.stop="toggleOdometerDisplay(entry.distanceSinceLastChargeKm, entry.odometerKm)"
                       @mousedown.stop
                     >
@@ -1426,7 +1433,7 @@ const deleteLog = async (id: string) => {
                     v-if="entry.distanceSinceLastChargeKm != null || entry.odometerKm"
                     class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap"
                     :class="entry.distanceSinceLastChargeKm != null && entry.odometerKm
-                      ? 'cursor-pointer shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1 transition-all duration-75'
+                      ? 'cursor-pointer shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] active:shadow-none active:translate-y-1 transition-all duration-75 cursor-pointer'
                       : ''"
                     @click="toggleOdometerDisplay(entry.distanceSinceLastChargeKm, entry.odometerKm)"
                   >

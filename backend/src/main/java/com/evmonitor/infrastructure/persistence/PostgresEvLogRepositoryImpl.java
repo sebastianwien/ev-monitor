@@ -193,6 +193,13 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public List<com.evmonitor.domain.GeohashPoint> findGeohashDataByCarId(UUID carId) {
+        return jpaRepository.findGeohashDataByCarId(carId).stream()
+                .map(row -> new com.evmonitor.domain.GeohashPoint((String) row[0], (java.math.BigDecimal) row[1]))
+                .collect(Collectors.toList());
+    }
+
     private EvLogEntity toEntity(EvLog domain) {
         EvLogEntity entity = new EvLogEntity(
                 domain.getId(),

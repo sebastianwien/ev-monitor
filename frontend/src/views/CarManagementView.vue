@@ -738,7 +738,7 @@ onUnmounted(() => {
                 'text-xs px-3 py-1.5 rounded-md font-medium transition',
                 imageUploading[car.id]
                   ? 'bg-gray-100 dark:bg-gray-600 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                  : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
+                  : 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-900/60'
               ]">
                 {{ imageUploading[car.id] ? 'Lädt...' : (car.imageUrl ? 'Foto ändern' : 'Foto hochladen') }}
               </span>
@@ -755,9 +755,9 @@ onUnmounted(() => {
             <div class="flex justify-between items-start mb-3">
               <div>
                 <div class="flex items-center gap-2 flex-wrap">
-                  <h3 class="text-xl font-bold text-indigo-700">
+                  <h3 class="text-xl font-bold text-indigo-700 dark:text-indigo-300">
                     {{ getModelLabel(car.model) }}
-                    <span v-if="car.trim" class="text-base font-normal text-indigo-600">{{ car.trim }}</span>
+                    <span v-if="car.trim" class="text-base font-normal text-indigo-600 dark:text-indigo-400">{{ car.trim }}</span>
                   </h3>
                   <span v-if="car.isPrimary"
                     class="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium border border-green-200">
@@ -803,17 +803,17 @@ onUnmounted(() => {
             <div class="flex gap-2">
               <button v-if="!car.isPrimary" @click="setActiveCar(car.id)"
                 v-haptic
-                class="btn-3d flex-1 bg-green-100 text-green-700 px-3 py-2 rounded-md text-sm font-medium hover:bg-green-200 transition">
+                class="btn-3d flex-1 bg-green-100 dark:bg-green-700 text-green-800 dark:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-green-200 dark:hover:bg-green-600 transition shadow-[0_4px_0_0_#86efac] dark:shadow-[0_4px_0_0_#15803d] active:shadow-none active:translate-y-1" style="transition: transform 0.075s ease, box-shadow 0.075s ease;">
                 Als aktiv setzen
               </button>
               <button @click="openEditForm(car)"
                 v-haptic
-                class="btn-3d flex-1 bg-indigo-100 text-indigo-700 px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-200 transition">
+                class="btn-3d flex-1 bg-indigo-100 dark:bg-indigo-700 text-indigo-800 dark:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-200 dark:hover:bg-indigo-600 transition shadow-[0_4px_0_0_#a5b4fc] dark:shadow-[0_4px_0_0_#3730a3] active:shadow-none active:translate-y-1" style="transition: transform 0.075s ease, box-shadow 0.075s ease;">
                 Bearbeiten
               </button>
               <button @click="deleteCar(car.id)"
                 v-haptic
-                class="btn-3d flex-1 bg-red-100 text-red-700 px-3 py-2 rounded-md text-sm font-medium hover:bg-red-200 transition">
+                class="btn-3d flex-1 bg-red-100 dark:bg-red-700 text-red-800 dark:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-red-200 dark:hover:bg-red-600 transition shadow-[0_4px_0_0_#fca5a5] dark:shadow-[0_4px_0_0_#b91c1c] active:shadow-none active:translate-y-1" style="transition: transform 0.075s ease, box-shadow 0.075s ease;">
                 Löschen
               </button>
             </div>

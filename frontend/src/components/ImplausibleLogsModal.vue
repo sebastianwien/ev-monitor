@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import { XMarkIcon, ExclamationTriangleIcon, CheckCircleIcon, InformationCircleIcon, PencilSquareIcon, TrashIcon } from '@heroicons/vue/24/outline'
+import { ref, watch, computed } from 'vue'
+import { XMarkIcon, ExclamationTriangleIcon, CheckCircleIcon, InformationCircleIcon, PencilSquareIcon, TrashIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
 import api from '@/api/axios'
 import EditLogModal from './EditLogModal.vue'
 
@@ -23,6 +23,10 @@ const logs = ref<ImplausibleLog[]>([])
 const loading = ref(false)
 const saving = ref<Set<string>>(new Set())
 const editingLog = ref<any | null>(null)
+const showExcluded = ref(false)
+
+const openLogs = computed(() => logs.value.filter(l => l.includeInStatistics))
+const excludedLogs = computed(() => logs.value.filter(l => !l.includeInStatistics))
 
 async function loadLogs() {
   if (!props.carId) return
@@ -35,7 +39,9 @@ async function loadLogs() {
   }
 }
 
-watch(() => props.open, (open) => { if (open) loadLogs() })
+watch(() => props.open, (open) => {
+  if (open) { loadLogs(); showExcluded.value = false }
+})
 
 async function toggle(log: ImplausibleLog) {
   saving.value = new Set([...saving.value, log.id])
@@ -86,9 +92,9 @@ function formatDate(iso: string) {
           <div class="flex items-center gap-2">
             <ExclamationTriangleIcon class="h-5 w-5 text-amber-500" />
             <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100">Datenqualität prüfen</h2>
-            <span v-if="logs.length > 0"
+            <span v-if="openLogs.length > 0"
               class="text-xs bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full font-medium">
-              {{ logs.length }}
+              {{ openLogs.length }}
             </span>
           </div>
           <button @click="emit('close')" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1 rounded-lg">
@@ -112,73 +118,124 @@ function formatDate(iso: string) {
             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500" />
           </div>
 
-          <!-- Empty -->
-          <div v-else-if="logs.length === 0" class="flex flex-col items-center justify-center py-12 gap-2">
-            <CheckCircleIcon class="h-10 w-10 text-green-400" />
-            <p class="text-sm text-gray-500 dark:text-gray-400">Alle Einträge sehen plausibel aus.</p>
-          </div>
+          <template v-else>
+            <!-- All clear -->
+            <div v-if="openLogs.length === 0 && excludedLogs.length === 0"
+              class="flex flex-col items-center justify-center py-12 gap-2">
+              <CheckCircleIcon class="h-10 w-10 text-green-400" />
+              <p class="text-sm text-gray-500 dark:text-gray-400">Alle Einträge sehen plausibel aus.</p>
+            </div>
 
-          <!-- Log list -->
-          <ul v-else class="divide-y divide-gray-100 dark:divide-gray-700">
-            <li v-for="log in logs" :key="log.id"
-              class="flex items-center gap-3 px-5 py-3.5">
-              <!-- Date & kWh -->
-              <div class="min-w-0 flex-1">
-                <div class="flex items-center gap-2 flex-wrap">
-                  <span class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                    {{ formatDate(log.loggedAt) }}
-                  </span>
-                  <span class="text-xs text-gray-500 dark:text-gray-400">
-                    {{ log.kwhCharged?.toFixed(2) }} kWh
-                  </span>
-                  <span v-if="log.socBeforeChargePercent != null && log.socAfterChargePercent != null"
-                    class="text-xs text-gray-400 dark:text-gray-500">
-                    SoC {{ log.socBeforeChargePercent }}% → {{ log.socAfterChargePercent }}%
-                  </span>
-                </div>
-                <div class="flex items-center gap-3 mt-1 flex-wrap">
-                  <span v-if="log.consumptionKwhPer100km != null"
-                    class="text-xs font-semibold text-red-600 dark:text-red-400">
-                    {{ log.consumptionKwhPer100km.toFixed(1) }} kWh/100km
-                  </span>
-                  <span v-if="log.distanceSinceLastChargeKm != null"
-                    class="text-xs text-gray-500 dark:text-gray-400">
-                    {{ log.distanceSinceLastChargeKm }} km
-                  </span>
-                  <span v-if="log.odometerKm != null"
-                    class="text-xs text-gray-400 dark:text-gray-500">
-                    Odo: {{ log.odometerKm.toLocaleString('de-DE') }} km
-                  </span>
-                </div>
-              </div>
+            <!-- All excluded -->
+            <div v-else-if="openLogs.length === 0"
+              class="flex flex-col items-center justify-center py-8 gap-2">
+              <CheckCircleIcon class="h-10 w-10 text-green-400" />
+              <p class="text-sm text-gray-500 dark:text-gray-400">Alle Einträge sind aus den Statistiken ausgeblendet.</p>
+            </div>
 
-              <!-- Actions -->
-              <div class="flex items-center gap-1 shrink-0">
-                <!-- Include toggle -->
-                <button
-                  @click="toggle(log)"
-                  :disabled="saving.has(log.id)"
-                  :title="log.includeInStatistics ? 'Aus Statistiken ausschliessen' : 'In Statistiken aufnehmen'"
-                  :class="['relative inline-flex h-5 w-9 items-center rounded-full transition-colors disabled:opacity-50 mr-1',
-                           log.includeInStatistics ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600']">
-                  <span :class="['inline-block h-3 w-3 transform rounded-full bg-white transition-transform',
-                                 log.includeInStatistics ? 'translate-x-5' : 'translate-x-1']" />
-                </button>
-                <!-- Edit -->
-                <button @click="editingLog = log"
-                  class="p-1.5 rounded text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition"
-                  title="Bearbeiten">
-                  <PencilSquareIcon class="h-4 w-4" />
-                </button>
-                <!-- Delete -->
-                <button @click="deleteLog(log)"
-                  class="p-1.5 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition"
-                  title="Löschen">
-                  <TrashIcon class="h-4 w-4" />
-                </button>
-              </div>
-            </li>
-          </ul>
+            <!-- Open entries -->
+            <ul v-if="openLogs.length > 0" class="divide-y divide-gray-100 dark:divide-gray-700">
+              <li v-for="log in openLogs" :key="log.id"
+                class="flex items-center gap-3 px-5 py-3.5">
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      {{ formatDate(log.loggedAt) }}
+                    </span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">
+                      {{ log.kwhCharged?.toFixed(2) }} kWh
+                    </span>
+                    <span v-if="log.socBeforeChargePercent != null && log.socAfterChargePercent != null"
+                      class="text-xs text-gray-400 dark:text-gray-500">
+                      SoC {{ log.socBeforeChargePercent }}% - {{ log.socAfterChargePercent }}%
+                    </span>
+                  </div>
+                  <div class="flex items-center gap-3 mt-1 flex-wrap">
+                    <span v-if="log.consumptionKwhPer100km != null"
+                      class="text-xs font-semibold text-red-600 dark:text-red-400">
+                      {{ log.consumptionKwhPer100km.toFixed(1) }} kWh/100km
+                    </span>
+                    <span v-if="log.distanceSinceLastChargeKm != null"
+                      class="text-xs text-gray-500 dark:text-gray-400">
+                      {{ log.distanceSinceLastChargeKm }} km
+                    </span>
+                    <span v-if="log.odometerKm != null"
+                      class="text-xs text-gray-400 dark:text-gray-500">
+                      Odo: {{ log.odometerKm.toLocaleString('de-DE') }} km
+                    </span>
+                  </div>
+                </div>
+                <div class="flex items-center gap-1 shrink-0">
+                  <button
+                    @click="toggle(log)"
+                    :disabled="saving.has(log.id)"
+                    title="Aus Statistiken ausschliessen"
+                    :class="['relative inline-flex h-5 w-9 items-center rounded-full transition-colors disabled:opacity-50 mr-1 bg-green-500']">
+                    <span class="inline-block h-3 w-3 transform rounded-full bg-white transition-transform translate-x-5" />
+                  </button>
+                  <button @click="editingLog = log"
+                    class="p-1.5 rounded text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition"
+                    title="Bearbeiten">
+                    <PencilSquareIcon class="h-4 w-4" />
+                  </button>
+                  <button @click="deleteLog(log)"
+                    class="p-1.5 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition"
+                    title="Löschen">
+                    <TrashIcon class="h-4 w-4" />
+                  </button>
+                </div>
+              </li>
+            </ul>
+
+            <!-- Excluded section -->
+            <div v-if="excludedLogs.length > 0" class="border-t border-gray-100 dark:border-gray-700">
+              <button
+                @click="showExcluded = !showExcluded"
+                class="w-full flex items-center justify-between px-5 py-3 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+                <span>{{ excludedLogs.length }} {{ excludedLogs.length === 1 ? 'Eintrag' : 'Einträge' }} ausgeblendet</span>
+                <ChevronDownIcon :class="['h-4 w-4 transition-transform', showExcluded ? 'rotate-180' : '']" />
+              </button>
+              <ul v-if="showExcluded" class="divide-y divide-gray-100 dark:divide-gray-700 bg-gray-50 dark:bg-gray-700/30">
+                <li v-for="log in excludedLogs" :key="log.id"
+                  class="flex items-center gap-3 px-5 py-3.5 opacity-60">
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {{ formatDate(log.loggedAt) }}
+                      </span>
+                      <span class="text-xs text-gray-400 dark:text-gray-500">
+                        {{ log.kwhCharged?.toFixed(2) }} kWh
+                      </span>
+                    </div>
+                    <div class="flex items-center gap-3 mt-1 flex-wrap">
+                      <span v-if="log.consumptionKwhPer100km != null"
+                        class="text-xs font-semibold text-red-400 dark:text-red-500">
+                        {{ log.consumptionKwhPer100km.toFixed(1) }} kWh/100km
+                      </span>
+                      <span v-if="log.distanceSinceLastChargeKm != null"
+                        class="text-xs text-gray-400 dark:text-gray-500">
+                        {{ log.distanceSinceLastChargeKm }} km
+                      </span>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-1 shrink-0">
+                    <button
+                      @click="toggle(log)"
+                      :disabled="saving.has(log.id)"
+                      title="Wieder in Statistiken aufnehmen"
+                      :class="['relative inline-flex h-5 w-9 items-center rounded-full transition-colors disabled:opacity-50 mr-1 bg-gray-300 dark:bg-gray-600']">
+                      <span class="inline-block h-3 w-3 transform rounded-full bg-white transition-transform translate-x-1" />
+                    </button>
+                    <button @click="deleteLog(log)"
+                      class="p-1.5 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition"
+                      title="Löschen">
+                      <TrashIcon class="h-4 w-4" />
+                    </button>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </template>
         </div>
 
         <!-- Footer -->

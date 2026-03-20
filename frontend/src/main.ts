@@ -7,24 +7,31 @@ import { createHead } from '@unhead/vue/client'
 
 const app = createApp(App)
 
-// Global v-haptic directive
+// Global haptic feedback for all buttons (vibration on Android, soft click sound on iOS)
+function triggerHaptic() {
+  if (navigator.vibrate?.(10)) return
+  try {
+    const ctx = new AudioContext()
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+    osc.frequency.value = 440
+    gain.gain.value = 0.015
+    osc.start()
+    osc.stop(ctx.currentTime + 0.012)
+    osc.onended = () => ctx.close()
+  } catch { /* silent */ }
+}
+
+document.addEventListener('pointerdown', (e) => {
+  if ((e.target as Element).closest('button')) triggerHaptic()
+}, { passive: true })
+
+// Keep v-haptic directive for explicit use on non-button elements
 app.directive('haptic', {
   mounted(el) {
-    el.addEventListener('pointerdown', () => {
-      if (navigator.vibrate?.(10)) return
-      try {
-        const ctx = new AudioContext()
-        const osc = ctx.createOscillator()
-        const gain = ctx.createGain()
-        osc.connect(gain)
-        gain.connect(ctx.destination)
-        osc.frequency.value = 440
-        gain.gain.value = 0.015
-        osc.start()
-        osc.stop(ctx.currentTime + 0.012)
-        osc.onended = () => ctx.close()
-      } catch { /* silent */ }
-    })
+    el.addEventListener('pointerdown', triggerHaptic, { passive: true })
   }
 })
 

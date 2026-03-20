@@ -24,6 +24,8 @@ public interface UserRepository {
 
     List<User> findRegisteredOnDay(LocalDate day);
 
+    List<User> findUsersWithLastLogOnDay(LocalDate day);
+
     void delete(User user);
 
     Optional<User> findByReferralCode(String referralCode);

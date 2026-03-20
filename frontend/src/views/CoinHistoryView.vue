@@ -112,10 +112,10 @@ onMounted(() => {
       <div class="mb-6">
         <div class="flex items-center justify-between">
           <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200">Watt-Verlauf</h1>
-          <div class="flex items-center gap-2 px-4 py-2 bg-indigo-50 border border-indigo-200 rounded-lg">
-            <BoltIcon class="h-5 w-5 text-indigo-600" />
-            <span class="text-xl font-bold text-indigo-700">{{ coinStore.balance }}</span>
-            <span class="text-sm text-indigo-500">Watt</span>
+          <div class="flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700 rounded-lg">
+            <BoltIcon class="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+            <span class="text-xl font-bold text-indigo-700 dark:text-indigo-300">{{ coinStore.balance }}</span>
+            <span class="text-sm text-indigo-500 dark:text-indigo-400">Watt</span>
           </div>
         </div>
         <router-link to="/leaderboard" class="mt-3 flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-yellow-400 hover:bg-yellow-300 active:translate-y-0.5 active:shadow-none text-yellow-900 font-semibold text-sm rounded-xl shadow-[0_4px_0_0_#b45309] hover:shadow-[0_4px_0_0_#92400e] active:shadow-[0_2px_0_0_#92400e] transition-all">

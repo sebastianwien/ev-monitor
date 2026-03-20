@@ -22,6 +22,7 @@ public class AppScheduler {
 
     private static final Logger log = LoggerFactory.getLogger(AppScheduler.class);
     private static final int REMINDER_DAYS_AFTER_REGISTRATION = 14;
+    private static final int RE_ENGAGEMENT_DAYS_INACTIVE = 10;
 
     private final UserRepository userRepository;
     private final CarRepository carRepository;
@@ -81,6 +82,37 @@ public class AppScheduler {
         if (!reminded.isEmpty()) {
             log.info("Onboarding reminder report: {} sent, {} skipped — {}",
                     reminded.size(), skipped.size(), reminded);
+        }
+    }
+
+    @Scheduled(cron = "0 0 7 * * *")
+    public void sendReEngagementEmails() {
+        LocalDate targetDay = LocalDate.now().minusDays(RE_ENGAGEMENT_DAYS_INACTIVE);
+
+        List<User> candidates = userRepository.findUsersWithLastLogOnDay(targetDay);
+        log.info("Re-engagement: {} candidate(s) with last log on {}", candidates.size(), targetDay);
+
+        List<String> reminded = new ArrayList<>();
+
+        try {
+            for (User user : candidates) {
+                emailService.sendReEngagementEmail(user.getEmail(), user.getUsername());
+                reminded.add(user.getUsername());
+                log.info("Sent re-engagement email to user {}", user.getId());
+            }
+        } catch (Exception e) {
+            log.error("Re-engagement scheduler failed", e);
+            gitHubIssueService.createIssue(
+                    "re-engagement-error-" + targetDay,
+                    "🚨 [EV Monitor] Re-Engagement Scheduler fehlgeschlagen",
+                    "## Scheduler-Fehler\n\nDatum: `%s`\n\nException: `%s: %s`"
+                            .formatted(targetDay, e.getClass().getSimpleName(), e.getMessage())
+            );
+            return;
+        }
+
+        if (!reminded.isEmpty()) {
+            log.info("Re-engagement report: {} sent — {}", reminded.size(), reminded);
         }
     }
 

@@ -423,6 +423,13 @@ public class EvLogService {
                 .collect(Collectors.toList());
     }
 
+    public List<GeohashResponse> getGeohashData(UUID carId, UUID userId) {
+        verifyCarOwnership(carId, userId);
+        return evLogRepository.findGeohashDataByCarId(carId).stream()
+                .map(p -> new GeohashResponse(p.geohash(), p.kwhCharged()))
+                .toList();
+    }
+
     /**
      * Toggles include_in_statistics for a single log. Ownership is verified.
      */

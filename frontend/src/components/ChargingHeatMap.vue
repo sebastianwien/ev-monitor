@@ -43,52 +43,20 @@ const error = ref<string | null>(null)
 const chargeCount = ref(0)
 const viewMode = ref<'heatmap' | 'markers' | 'both'>('both')
 
-interface EvLog {
-  id: string
+interface GeohashEntry {
+  geohash: string
   kwhCharged: number
-  costEur: number
-  geohash: string | null
-  loggedAt: string
-  chargeDurationMinutes: number
 }
 
-interface SessionGroup {
-  id: string
-  totalKwhCharged: number
-  costEur: number | null
-  geohash: string | null
-  sessionStart: string
-  totalDurationMinutes: number | null
-}
-
-// Fetch logs + groups for the selected car and combine geohash data
+// Fetch minimal geohash data for all logs of this car (no limit, no time range filter)
 const fetchLogs = async () => {
   if (!props.carId) return []
 
   try {
     loading.value = true
     error.value = null
-    const [logsResponse, groupsResponse] = await Promise.all([
-      api.get(`/logs?carId=${props.carId}`),
-      api.get(`/logs/groups?carId=${props.carId}`).catch(() => ({ data: [] }))
-    ])
-
-    const logs: EvLog[] = logsResponse.data
-    const groups: SessionGroup[] = groupsResponse.data
-
-    // Convert groups to EvLog shape so they appear on the heatmap too
-    const groupsAsLogs: EvLog[] = groups
-      .filter((g: SessionGroup) => g.geohash)
-      .map((g: SessionGroup) => ({
-        id: g.id,
-        kwhCharged: g.totalKwhCharged,
-        costEur: g.costEur ?? 0,
-        geohash: g.geohash,
-        loggedAt: g.sessionStart,
-        chargeDurationMinutes: g.totalDurationMinutes ?? 0
-      }))
-
-    return [...logs, ...groupsAsLogs]
+    const response = await api.get(`/logs/geohashes?carId=${props.carId}`)
+    return response.data as GeohashEntry[]
   } catch (err: any) {
     error.value = err.response?.data?.message || 'Fehler beim Laden der Logs'
     return []
@@ -152,18 +120,10 @@ const renderCharges = async () => {
   }
 
   const logs = await fetchLogs()
-  const logsWithGeohash = logs.filter(log => log.geohash)
 
-  console.log('📊 ChargingHeatMap Debug:', {
-    totalLogs: logs.length,
-    logsWithGeohash: logsWithGeohash.length,
-    viewMode: viewMode.value
-  })
+  chargeCount.value = logs.length
 
-  chargeCount.value = logsWithGeohash.length
-
-  if (logsWithGeohash.length === 0) {
-    console.warn('⚠️ Keine Logs mit Geohash gefunden')
+  if (logs.length === 0) {
     return
   }
 
@@ -172,9 +132,7 @@ const renderCharges = async () => {
   const heatPoints: [number, number, number][] = []
   const markers: L.Layer[] = []
 
-  logsWithGeohash.forEach(log => {
-    if (!log.geohash) return
-
+  logs.forEach(log => {
     try {
       const { latitude, longitude } = geohash.decode(log.geohash)
       bounds.push([latitude, longitude])
@@ -196,33 +154,14 @@ const renderCharges = async () => {
         fillOpacity: 0.8
       })
 
-      // Enhanced popup with better formatting
-      const date = new Date(log.loggedAt).toLocaleDateString('de-DE', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric'
-      })
-      const time = new Date(log.loggedAt).toLocaleTimeString('de-DE', {
-        hour: '2-digit',
-        minute: '2-digit'
-      })
-      const kwh = log.kwhCharged ?? 0
-      const cost = log.costEur ?? 0
-      const costPerKwh = kwh > 0 ? (cost / kwh).toFixed(2) : '0.00'
-
       marker.bindPopup(`
-        <div style="font-family: system-ui; font-size: 13px; min-width: 180px;">
-          <div style="font-weight: 700; font-size: 15px; margin-bottom: 6px; color: #1f2937;">
-            ⚡ ${kwh.toFixed(1)} kWh
-          </div>
-          <div style="display: flex; flex-direction: column; gap: 4px; color: #4b5563;">
-            <div>💰 €${cost.toFixed(2)} <span style="color: #9ca3af;">(€${costPerKwh}/kWh)</span></div>
-            <div>⏱️ ${log.chargeDurationMinutes} Minuten</div>
-            <div>📅 ${date} · ${time}</div>
+        <div style="font-family: system-ui; font-size: 13px; min-width: 140px;">
+          <div style="font-weight: 700; font-size: 15px; color: #1f2937;">
+            ⚡ ${log.kwhCharged.toFixed(1)} kWh
           </div>
         </div>
       `, {
-        maxWidth: 250,
+        maxWidth: 200,
         className: 'custom-popup'
       })
 

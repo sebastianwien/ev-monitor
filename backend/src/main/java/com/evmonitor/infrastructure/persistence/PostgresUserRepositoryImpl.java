@@ -70,6 +70,12 @@ public class PostgresUserRepositoryImpl implements UserRepository {
     }
 
     @Override
+    public List<User> findUsersWithLastLogOnDay(LocalDate day) {
+        return jpaUserRepository.findUsersWithLastLogOnDay(day)
+                .stream().map(this::toDomain).toList();
+    }
+
+    @Override
     @Transactional
     public void delete(User user) {
         jpaUserRepository.deleteById(user.getId());

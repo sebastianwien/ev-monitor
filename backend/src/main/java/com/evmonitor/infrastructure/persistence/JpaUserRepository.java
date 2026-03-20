@@ -32,6 +32,20 @@ public interface JpaUserRepository extends JpaRepository<UserEntity, UUID> {
     @Query("SELECT u FROM UserEntity u WHERE u.emailVerified = true AND u.emailNotificationsEnabled = true AND u.seedData = false AND cast(u.createdAt as LocalDate) = :day")
     List<UserEntity> findRegisteredOnDay(@Param("day") LocalDate day);
 
+    @Query(value = """
+            SELECT u.* FROM app_user u
+            WHERE u.email_verified = true
+              AND u.email_notifications_enabled = true
+              AND u.is_seed_data = false
+              AND (
+                SELECT MAX(e.logged_at)::date
+                FROM ev_log e
+                JOIN car c ON c.id = e.car_id
+                WHERE c.user_id = u.id
+              ) = :day
+            """, nativeQuery = true)
+    List<UserEntity> findUsersWithLastLogOnDay(@Param("day") LocalDate day);
+
     long countBySeedDataFalseAndEmailVerifiedTrue();
 
     Optional<UserEntity> findByReferralCode(String referralCode);
