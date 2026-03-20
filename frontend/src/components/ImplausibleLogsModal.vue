@@ -1,0 +1,203 @@
+<script setup lang="ts">
+import { ref, watch } from 'vue'
+import { XMarkIcon, ExclamationTriangleIcon, CheckCircleIcon, InformationCircleIcon, PencilSquareIcon, TrashIcon } from '@heroicons/vue/24/outline'
+import api from '@/api/axios'
+import EditLogModal from './EditLogModal.vue'
+
+const props = defineProps<{ carId: string | null; open: boolean }>()
+const emit = defineEmits<{ close: []; updated: [] }>()
+
+interface ImplausibleLog {
+  id: string
+  loggedAt: string
+  kwhCharged: number
+  consumptionKwhPer100km: number | null
+  distanceSinceLastChargeKm: number | null
+  odometerKm: number | null
+  includeInStatistics: boolean
+  socBeforeChargePercent: number | null
+  socAfterChargePercent: number | null
+}
+
+const logs = ref<ImplausibleLog[]>([])
+const loading = ref(false)
+const saving = ref<Set<string>>(new Set())
+const editingLog = ref<any | null>(null)
+
+async function loadLogs() {
+  if (!props.carId) return
+  loading.value = true
+  try {
+    const res = await api.get(`/logs/implausible?carId=${props.carId}`)
+    logs.value = res.data
+  } finally {
+    loading.value = false
+  }
+}
+
+watch(() => props.open, (open) => { if (open) loadLogs() })
+
+async function toggle(log: ImplausibleLog) {
+  saving.value = new Set([...saving.value, log.id])
+  try {
+    const res = await api.patch(`/logs/${log.id}/statistics-inclusion`, {
+      includeInStatistics: !log.includeInStatistics
+    })
+    const idx = logs.value.findIndex(l => l.id === log.id)
+    if (idx !== -1) logs.value[idx] = { ...logs.value[idx], includeInStatistics: res.data.includeInStatistics }
+    emit('updated')
+  } finally {
+    saving.value = new Set([...saving.value].filter(id => id !== log.id))
+  }
+}
+
+async function deleteLog(log: ImplausibleLog) {
+  if (!confirm('Ladevorgang wirklich löschen?')) return
+  try {
+    await api.delete(`/logs/${log.id}`)
+    logs.value = logs.value.filter(l => l.id !== log.id)
+    emit('updated')
+  } catch {
+    // ignore
+  }
+}
+
+function onLogSaved() {
+  editingLog.value = null
+  loadLogs()
+  emit('updated')
+}
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+</script>
+
+<template>
+  <Teleport to="body">
+    <div v-if="open" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <!-- Backdrop -->
+      <div class="absolute inset-0 bg-black/50" @click="emit('close')" />
+
+      <!-- Modal -->
+      <div class="relative w-full sm:max-w-2xl bg-white dark:bg-gray-800 sm:rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[90dvh]">
+        <!-- Header -->
+        <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+          <div class="flex items-center gap-2">
+            <ExclamationTriangleIcon class="h-5 w-5 text-amber-500" />
+            <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100">Datenqualität prüfen</h2>
+            <span v-if="logs.length > 0"
+              class="text-xs bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full font-medium">
+              {{ logs.length }}
+            </span>
+          </div>
+          <button @click="emit('close')" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1 rounded-lg">
+            <XMarkIcon class="h-5 w-5" />
+          </button>
+        </div>
+
+        <!-- Info -->
+        <div class="px-5 py-3 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-100 dark:border-amber-800/40 flex items-start gap-2">
+          <InformationCircleIcon class="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+          <p class="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
+            Diese Einträge haben unplausible Verbräuche - oft durch Kurzstrecken, Standheizung oder fehlende Ladevorgänge.
+            Du kannst sie aus Statistiken ausschliessen, bearbeiten oder löschen.
+          </p>
+        </div>
+
+        <!-- Content -->
+        <div class="overflow-y-auto flex-1">
+          <!-- Loading -->
+          <div v-if="loading" class="flex items-center justify-center py-12">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500" />
+          </div>
+
+          <!-- Empty -->
+          <div v-else-if="logs.length === 0" class="flex flex-col items-center justify-center py-12 gap-2">
+            <CheckCircleIcon class="h-10 w-10 text-green-400" />
+            <p class="text-sm text-gray-500 dark:text-gray-400">Alle Einträge sehen plausibel aus.</p>
+          </div>
+
+          <!-- Log list -->
+          <ul v-else class="divide-y divide-gray-100 dark:divide-gray-700">
+            <li v-for="log in logs" :key="log.id"
+              class="flex items-center gap-3 px-5 py-3.5">
+              <!-- Date & kWh -->
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    {{ formatDate(log.loggedAt) }}
+                  </span>
+                  <span class="text-xs text-gray-500 dark:text-gray-400">
+                    {{ log.kwhCharged?.toFixed(2) }} kWh
+                  </span>
+                  <span v-if="log.socBeforeChargePercent != null && log.socAfterChargePercent != null"
+                    class="text-xs text-gray-400 dark:text-gray-500">
+                    SoC {{ log.socBeforeChargePercent }}% → {{ log.socAfterChargePercent }}%
+                  </span>
+                </div>
+                <div class="flex items-center gap-3 mt-1 flex-wrap">
+                  <span v-if="log.consumptionKwhPer100km != null"
+                    class="text-xs font-semibold text-red-600 dark:text-red-400">
+                    {{ log.consumptionKwhPer100km.toFixed(1) }} kWh/100km
+                  </span>
+                  <span v-if="log.distanceSinceLastChargeKm != null"
+                    class="text-xs text-gray-500 dark:text-gray-400">
+                    {{ log.distanceSinceLastChargeKm }} km
+                  </span>
+                  <span v-if="log.odometerKm != null"
+                    class="text-xs text-gray-400 dark:text-gray-500">
+                    Odo: {{ log.odometerKm.toLocaleString('de-DE') }} km
+                  </span>
+                </div>
+              </div>
+
+              <!-- Actions -->
+              <div class="flex items-center gap-1 shrink-0">
+                <!-- Include toggle -->
+                <button
+                  @click="toggle(log)"
+                  :disabled="saving.has(log.id)"
+                  :title="log.includeInStatistics ? 'Aus Statistiken ausschliessen' : 'In Statistiken aufnehmen'"
+                  :class="['relative inline-flex h-5 w-9 items-center rounded-full transition-colors disabled:opacity-50 mr-1',
+                           log.includeInStatistics ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600']">
+                  <span :class="['inline-block h-3 w-3 transform rounded-full bg-white transition-transform',
+                                 log.includeInStatistics ? 'translate-x-5' : 'translate-x-1']" />
+                </button>
+                <!-- Edit -->
+                <button @click="editingLog = log"
+                  class="p-1.5 rounded text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition"
+                  title="Bearbeiten">
+                  <PencilSquareIcon class="h-4 w-4" />
+                </button>
+                <!-- Delete -->
+                <button @click="deleteLog(log)"
+                  class="p-1.5 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition"
+                  title="Löschen">
+                  <TrashIcon class="h-4 w-4" />
+                </button>
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Footer -->
+        <div class="px-5 py-3 border-t border-gray-100 dark:border-gray-700 flex justify-end">
+          <button @click="emit('close')"
+            class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition">
+            Schliessen
+          </button>
+        </div>
+      </div>
+    </div>
+  </Teleport>
+
+  <Teleport to="body">
+    <EditLogModal
+      v-if="editingLog"
+      :log="editingLog"
+      @close="editingLog = null"
+      @saved="onLogSaved"
+    />
+  </Teleport>
+</template>

@@ -252,6 +252,14 @@ public class EvLog {
         return sessionGroupId;
     }
 
+    public EvLog withIncludeInStatistics(boolean includeInStatistics) {
+        return new EvLog(id, carId, kwhCharged, costEur, chargeDurationMinutes, geohash, odometerKm,
+                maxChargingPowerKw, socAfterChargePercent, socBeforeChargePercent, loggedAt,
+                dataSource, includeInStatistics, odometerSuggestionMinKm, odometerSuggestionMaxKm,
+                temperatureCelsius, chargingType, rawImportData, createdAt, LocalDateTime.now(),
+                routeType, tireType, supersededBy, sessionGroupId);
+    }
+
     /**
      * A log is complete when all fields required to act as logY in a consumption
      * calculation are present: odometer, kwhCharged, and socAfterChargePercent.

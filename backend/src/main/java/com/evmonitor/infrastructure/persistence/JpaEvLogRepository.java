@@ -104,6 +104,10 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     @Query("UPDATE EvLogEntity e SET e.sessionGroupId = :groupId, e.includeInStatistics = false WHERE e.id = :id")
     void setSessionGroupId(@Param("id") UUID id, @Param("groupId") UUID groupId);
 
+    @Modifying
+    @Query("UPDATE EvLogEntity e SET e.includeInStatistics = :includeInStatistics, e.updatedAt = CURRENT_TIMESTAMP WHERE e.id = :id")
+    void updateIncludeInStatistics(@Param("id") UUID id, @Param("includeInStatistics") boolean includeInStatistics);
+
     @Query("SELECT e FROM EvLogEntity e WHERE e.sessionGroupId = :groupId ORDER BY e.loggedAt ASC")
     List<EvLogEntity> findAllBySessionGroupId(@Param("groupId") UUID groupId);
 

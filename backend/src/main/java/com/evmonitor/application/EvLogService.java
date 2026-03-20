@@ -395,6 +395,52 @@ public class EvLogService {
     }
 
     /**
+     * Returns all logs for a car where the calculated consumption is implausible.
+     * Uses the same calculation logic as getStatistics() — no duplicate computation.
+     */
+    public List<EvLogResponse> getImplausibleLogs(UUID carId, UUID userId) {
+        Car car = carRepository.findById(carId)
+                .orElseThrow(() -> new IllegalArgumentException("Car not found"));
+        if (!car.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("User does not own the specified car");
+        }
+
+        List<EvLog> allLogs = evLogRepository.findAllByCarId(carId).stream()
+                .sorted(Comparator.comparing(EvLog::getLoggedAt))
+                .collect(Collectors.toList());
+
+        if (car.getEffectiveBatteryCapacityKwh() == null) return List.of();
+
+        Map<UUID, ConsumptionResult> consumptionByLog =
+                calculateConsumptionPerLog(allLogs, car.getEffectiveBatteryCapacityKwh(), lookupWltp(car));
+
+        return allLogs.stream()
+                .map(log -> {
+                    ConsumptionResult cr = consumptionByLog.get(log.getId());
+                    return cr != null && !cr.plausible() ? EvLogResponse.fromDomain(log, cr, cr.distanceKm()) : null;
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Toggles include_in_statistics for a single log. Ownership is verified.
+     */
+    @Transactional
+    public EvLogResponse updateIncludeInStatistics(UUID id, UUID userId, boolean includeInStatistics) {
+        EvLog log = evLogRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Log not found"));
+        Car car = carRepository.findById(log.getCarId())
+                .orElseThrow(() -> new IllegalArgumentException("Associated car not found"));
+        if (!car.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("Log not found for current user (ownership mismatch).");
+        }
+        EvLog updated = log.withIncludeInStatistics(includeInStatistics);
+        EvLog saved = evLogRepository.save(updated);
+        return EvLogResponse.fromDomain(saved);
+    }
+
+    /**
      * Get statistics for a specific car.
      * Includes key metrics for charging events and charge over time data.
      *

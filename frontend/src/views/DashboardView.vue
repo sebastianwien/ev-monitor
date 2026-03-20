@@ -53,6 +53,7 @@ import RewardSystemUpdateBanner from '../components/RewardSystemUpdateBanner.vue
 import SupportPopover from '../components/SupportPopover.vue'
 import { useThemeStore } from '../stores/theme'
 import { storeToRefs } from 'pinia'
+import ImplausibleLogsModal from '../components/ImplausibleLogsModal.vue'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend, Filler, ChartDataLabels)
 
@@ -122,6 +123,21 @@ const showKwh = ref(true)
 // Dataset toggles - Chart 2 (Range & Efficiency)
 const showDistance = ref(true)
 const showConsumption = ref(true)
+
+// Implausible logs
+const showImplausibleModal = ref(false)
+const implausibleCount = ref(0)
+const implausibleModalDirty = ref(false)
+
+const fetchImplausibleCount = async () => {
+  if (!selectedCarId.value) { implausibleCount.value = 0; return }
+  try {
+    const res = await api.get(`/logs/implausible?carId=${selectedCarId.value}`)
+    implausibleCount.value = res.data.length
+  } catch {
+    implausibleCount.value = 0
+  }
+}
 
 const timeRangeOptions = [
   { value: 'THIS_MONTH', label: 'Dieser Monat' },
@@ -202,11 +218,12 @@ const fetchStatistics = async () => {
 watch(selectedCarId, async (newId) => {
   if (newId) {
     await fetchCarAndWltp(newId)
-    await Promise.all([fetchStatistics(), fetchLogs(0)])
+    await Promise.all([fetchStatistics(), fetchLogs(0), fetchImplausibleCount()])
   } else {
     stats.value = null
     carInfo.value = null
     wltp.value = null
+    implausibleCount.value = 0
   }
 })
 
@@ -755,7 +772,7 @@ const deleteLog = async (id: string) => {
             <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-200">Dashboard</h1>
             <button v-if="stats && stats.totalCharges > 0"
               @click="scrollToLogs"
-              class="ml-auto hidden md:flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium shadow-sm hover:bg-indigo-700 active:scale-95 transition">
+              class="ml-auto hidden md:flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium shadow-[0_4px_0_0_#3730a3] hover:shadow-[0_2px_0_0_#3730a3] hover:translate-y-0.5 active:shadow-none active:translate-y-1 transition-all duration-75">
               <ListBulletIcon class="w-4 h-4" />
               Deine Ladevorgänge
               <ChevronRightIcon class="w-3.5 h-3.5 opacity-75" />
@@ -794,13 +811,13 @@ const deleteLog = async (id: string) => {
                 @click="selectedCarId = car.id"
                 :class="[
                   cars.length === 1
-                    ? 'flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition w-full md:w-auto'
-                    : 'flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition flex-shrink-0 min-w-[200px] max-w-[280px] lg:flex-shrink lg:min-w-0 lg:max-w-none',
+                    ? 'flex items-stretch rounded-xl border-2 text-left transition w-full md:w-auto overflow-hidden'
+                    : 'flex items-stretch rounded-xl border-2 text-left transition flex-shrink-0 min-w-[200px] max-w-[280px] lg:flex-shrink lg:min-w-0 lg:max-w-none overflow-hidden',
                   selectedCarId === car.id
                     ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 shadow-sm'
                     : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 hover:border-indigo-300 hover:bg-gray-50 dark:hover:bg-gray-600'
                 ]">
-                <div class="flex-shrink-0 w-16 h-16 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
+                <div class="flex-shrink-0 w-24 self-stretch bg-gray-100 dark:bg-gray-600 flex items-center justify-center overflow-hidden">
                   <img
                     v-if="carImageUrls[car.id]"
                     :src="carImageUrls[car.id]"
@@ -808,7 +825,7 @@ const deleteLog = async (id: string) => {
                     class="w-full h-full object-cover" />
                   <TruckIcon v-else class="w-8 h-8 text-gray-400" />
                 </div>
-                <div class="min-w-0 flex-1">
+                <div class="min-w-0 flex-1 px-4 py-3">
                   <!-- Mobile single-car: alles in einer Zeile -->
                   <div v-if="cars.length === 1" class="flex items-center gap-2 flex-wrap lg:hidden">
                     <span class="font-semibold text-gray-800 dark:text-gray-200">{{ enumToLabel(car.brand) }} {{ enumToLabel(car.model) }}</span>
@@ -906,6 +923,28 @@ const deleteLog = async (id: string) => {
             </div>
           </div>
 
+          <!-- Datenqualität -->
+          <button v-if="implausibleCount > 0"
+            @click="showImplausibleModal = true"
+            class="w-full mb-4 flex items-center justify-between gap-3 px-4 py-3 rounded-lg bg-amber-200 dark:bg-amber-500/20 border border-amber-300 dark:border-amber-600/50 text-left shadow-[0_4px_0_0_#92400e] dark:shadow-[0_4px_0_0_#1c0a00] hover:shadow-[0_2px_0_0_#92400e] dark:hover:shadow-[0_2px_0_0_#1c0a00] hover:translate-y-0.5 active:shadow-none active:translate-y-1 transition-all duration-75">
+            <div class="flex items-center gap-2">
+              <ExclamationTriangleIcon class="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+              <span class="text-sm font-medium text-amber-800 dark:text-amber-300">
+                {{ implausibleCount }} {{ implausibleCount === 1 ? 'Eintrag' : 'Einträge' }} mit unplausiblem Verbrauch
+              </span>
+            </div>
+            <span class="text-xs text-amber-700 dark:text-amber-400 font-medium shrink-0">Jetzt prüfen →</span>
+          </button>
+
+          <!-- Mobile: Deine Ladevorgänge CTA — above Zeitraum filter -->
+          <button v-if="stats && stats.totalCharges > 0"
+            @click="scrollToLogs"
+            class="md:hidden w-full flex items-center justify-center gap-2 px-4 py-3 mb-4 rounded-xl bg-indigo-600 text-white text-sm font-semibold shadow-[0_4px_0_0_#3730a3] hover:shadow-[0_2px_0_0_#3730a3] hover:translate-y-0.5 active:shadow-none active:translate-y-1 transition-all duration-75">
+            <ListBulletIcon class="w-4 h-4" />
+            Deine Ladevorgänge
+            <ChevronRightIcon class="w-3.5 h-3.5 opacity-75" />
+          </button>
+
           <!-- Filters (show if there are logs in any time range) -->
           <div v-if="selectedCarId && hasAnyLogs" class="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
             <div class="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
@@ -993,15 +1032,6 @@ const deleteLog = async (id: string) => {
           </div>
 
           <div v-else-if="stats" class="space-y-0">
-
-        <!-- Mobile: Deine Ladevorgänge CTA — above stats cards, below filters -->
-        <button v-if="stats && stats.totalCharges > 0"
-          @click="scrollToLogs"
-          class="md:hidden w-full flex items-center justify-center gap-2 px-4 py-3 mb-4 rounded-xl bg-indigo-600 text-white text-sm font-semibold shadow-sm hover:bg-indigo-700 active:scale-95 transition">
-          <ListBulletIcon class="w-4 h-4" />
-          Deine Ladevorgänge
-          <ChevronRightIcon class="w-3.5 h-3.5 opacity-75" />
-        </button>
 
         <!-- Key Metrics -->
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 pb-6 mb-0">
@@ -1178,6 +1208,20 @@ const deleteLog = async (id: string) => {
 
           <!-- Consumption info accordion -->
           <ConsumptionInfoBox :min-trips="5" class="mb-4" />
+
+          <!-- Implausible logs banner (position 2: under ConsumptionInfoBox) -->
+          <button v-if="implausibleCount > 0"
+            @click="showImplausibleModal = true"
+            class="w-full mb-4 flex items-center justify-between gap-3 px-4 py-3 rounded-lg bg-amber-200 dark:bg-amber-500/20 border border-amber-300 dark:border-amber-600/50 text-left shadow-[0_4px_0_0_#92400e] dark:shadow-[0_4px_0_0_#1c0a00] hover:shadow-[0_2px_0_0_#92400e] dark:hover:shadow-[0_2px_0_0_#1c0a00] hover:translate-y-0.5 active:shadow-none active:translate-y-1 transition-all duration-75">
+            <div class="flex items-center gap-2">
+              <ExclamationTriangleIcon class="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+              <span class="text-sm font-medium text-amber-800 dark:text-amber-300">
+                {{ implausibleCount }} {{ implausibleCount === 1 ? 'Eintrag' : 'Einträge' }} mit unplausiblem Verbrauch
+              </span>
+            </div>
+            <span class="text-xs text-amber-700 dark:text-amber-400 font-medium shrink-0">Jetzt prüfen -&gt;</span>
+          </button>
+
           <div class="space-y-2">
             <div v-if="logsLoading && !hasAnyLogs" class="py-8 text-center text-gray-400 text-sm">Lade...</div>
             <template v-else-if="!hasAnyLogs">
@@ -1504,6 +1548,13 @@ const deleteLog = async (id: string) => {
     :log="editingLog"
     @close="editingLog = null"
     @saved="() => { editingLog = null; fetchLogs(logsPage) }"
+  />
+
+  <ImplausibleLogsModal
+    :car-id="selectedCarId"
+    :open="showImplausibleModal"
+    @close="() => { showImplausibleModal = false; if (implausibleModalDirty.value) { fetchStatistics(); implausibleModalDirty.value = false } }"
+    @updated="() => { fetchImplausibleCount(); implausibleModalDirty.value = true }"
   />
 </template>
 

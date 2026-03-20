@@ -33,7 +33,8 @@ public record EvLogResponse(
         ChargingType chargingType,           // AC, DC, or UNKNOWN
         RouteType routeType,                 // Optional: CITY, COMBINED, or HIGHWAY
         TireType tireType,                   // Optional: SUMMER, ALL_YEAR, or WINTER
-        DataSource dataSource) {
+        DataSource dataSource,
+        boolean includeInStatistics) {
 
     public static EvLogResponse fromDomain(EvLog evLog) {
         return fromDomain(evLog, null, null);
@@ -68,6 +69,7 @@ public record EvLogResponse(
                 evLog.getChargingType(),
                 evLog.getRouteType(),
                 evLog.getTireType(),
-                evLog.getDataSource());
+                evLog.getDataSource(),
+                evLog.isIncludeInStatistics());
     }
 }

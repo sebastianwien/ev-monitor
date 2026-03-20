@@ -148,6 +148,37 @@ public class EvLogController {
         return ResponseEntity.ok(subSessions);
     }
 
+    @GetMapping("/implausible")
+    public ResponseEntity<List<EvLogResponse>> getImplausibleLogs(
+            @RequestParam UUID carId,
+            Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        try {
+            List<EvLogResponse> logs = evLogService.getImplausibleLogs(carId, principal.getUser().getId());
+            return ResponseEntity.ok(logs);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PatchMapping("/{id}/statistics-inclusion")
+    public ResponseEntity<?> updateStatisticsInclusion(
+            @PathVariable UUID id,
+            @RequestBody Map<String, Boolean> body,
+            Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        Boolean include = body.get("includeInStatistics");
+        if (include == null) {
+            return ResponseEntity.badRequest().body(Map.of("message", "includeInStatistics is required"));
+        }
+        try {
+            EvLogResponse updated = evLogService.updateIncludeInStatistics(id, principal.getUser().getId(), include);
+            return ResponseEntity.ok(updated);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     @GetMapping("/statistics")
     public ResponseEntity<EvLogStatisticsResponse> getStatistics(
             @RequestParam UUID carId,
