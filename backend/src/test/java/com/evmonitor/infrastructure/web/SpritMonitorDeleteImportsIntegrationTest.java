@@ -182,36 +182,21 @@ class SpritMonitorDeleteImportsIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void deleteAllImports_alsoDeletesOrphanedSessionGroups() {
-        // Given: User hat Spritmonitor-Logs und eine dazugehörige Session-Gruppe
+    void deleteAllImports_deletesAllSpritMonitorLogs() {
+        // Given: User hat Spritmonitor-Logs (kein Backend-Grouping mehr)
         createLog(testCarId, DataSource.SPRITMONITOR_IMPORT);
         createLog(testCarId, DataSource.SPRITMONITOR_IMPORT);
 
-        // Session-Gruppe manuell anlegen (wie der Import es tun würde)
-        ChargingSessionGroupEntity group = new ChargingSessionGroupEntity();
-        group.setId(UUID.randomUUID());
-        group.setCarId(testCarId);
-        group.setTotalKwhCharged(new BigDecimal("51.02"));
-        group.setSessionCount(2);
-        group.setSessionStart(LocalDateTime.now());
-        group.setSessionEnd(LocalDateTime.now().plusMinutes(80));
-        group.setDataSource("SPRITMONITOR_IMPORT");
-        group.setCreatedAt(LocalDateTime.now());
-        group.setUpdatedAt(LocalDateTime.now());
-        sessionGroupRepository.save(group);
-
-        assertEquals(1, sessionGroupRepository.findAllByCarId(testCarId).size());
+        assertEquals(2, evLogRepository.findAllByUserId(testUserId).size());
 
         // When: User löscht alle Spritmonitor-Imports
         HttpEntity<Void> request = createAuthRequest(testUserId, testUser.getEmail());
         ResponseEntity<Void> response = restTemplate.exchange(
                 "/api/import/sprit-monitor/delete-all", HttpMethod.DELETE, request, Void.class);
 
-        // Then: Logs UND Gruppen gelöscht
+        // Then: Alle Logs gelöscht
         assertEquals(200, response.getStatusCode().value());
         assertEquals(0, evLogRepository.findAllByUserId(testUserId).size(), "Alle Logs müssen gelöscht sein");
-        assertEquals(0, sessionGroupRepository.findAllByCarId(testCarId).size(),
-                "Waisen-Gruppen müssen ebenfalls gelöscht werden");
     }
 
     // ──────────────────────────────────────────────────────────────────────────

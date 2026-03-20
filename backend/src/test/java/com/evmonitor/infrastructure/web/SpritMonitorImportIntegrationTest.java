@@ -610,9 +610,9 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void shouldGroupFuelings_WithSameOdometer_IntoSessionGroup() {
-        // Zwei Ladevorgänge am selben Stopp (gleicher Kilometerstand) — klassisches Spritmonitor-Szenario:
-        // z.B. AC-Nachladen + DC-Schnellladen an der gleichen Raststätte ohne Zwischenfahrt.
+    void shouldImportFuelings_WithSameOdometer_AsStandaloneLogsWithoutGrouping() {
+        // Grouping von SpritMonitor-Logs mit gleichem Kilometerstand wird im Frontend behandelt.
+        // Das Backend importiert alle Logs als eigenständige Einträge ohne session_group_id.
         List<SpritMonitorFuelingDTO> mockFuelings = List.of(
                 new SpritMonitorFuelingDTO("28.10.2025", new BigDecimal("11.02"), QUANTITY_UNIT_KWH,
                         new BigDecimal("113487"), new BigDecimal("4.00"), 20, null, null, null, null, null, null),
@@ -632,21 +632,12 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(2, response.getBody().getImported());
 
-        // Beide Logs müssen als Sub-Sessions markiert sein
         List<EvLog> logs = evLogRepository.findAllByCarId(carId);
         assertEquals(2, logs.size());
-        assertTrue(logs.stream().allMatch(l -> l.getSessionGroupId() != null),
-                "Beide Logs müssen einer Session-Gruppe angehören");
-        assertTrue(logs.stream().allMatch(l -> !l.isIncludeInStatistics()),
-                "Sub-Sessions müssen aus Statistiken ausgeschlossen sein");
-
-        // Gruppe aggregiert korrekt
-        UUID groupId = logs.get(0).getSessionGroupId();
-        var group = sessionGroupRepository.findById(groupId).orElseThrow();
-        assertEquals(0, new BigDecimal("51.02").compareTo(group.getTotalKwhCharged()),
-                "Gruppe muss kWh beider Ladevorgänge summieren");
-        assertEquals(2, group.getSessionCount());
-        assertEquals("SPRITMONITOR_IMPORT", group.getDataSource());
+        assertTrue(logs.stream().allMatch(l -> l.getSessionGroupId() == null),
+                "Logs mit gleichem Odometer dürfen nicht mehr serverseitig gruppiert werden");
+        assertTrue(logs.stream().allMatch(EvLog::isIncludeInStatistics),
+                "Alle SpritMonitor-Logs müssen in Statistiken enthalten sein");
     }
 
     @Test
