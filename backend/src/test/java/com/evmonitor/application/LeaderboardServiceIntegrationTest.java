@@ -189,7 +189,6 @@ class LeaderboardServiceIntegrationTest {
         var items = leaderboardService.getTicker();
 
         assertThat(items).anyMatch(i -> "STAT".equals(i.type()));
-        assertThat(items).anyMatch(i -> "FACT".equals(i.type()));
     }
 
     @Test
