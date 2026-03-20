@@ -39,7 +39,7 @@ import type { Component } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../api/axios'
 import { tempBadgeClass } from '../utils/temperatureColor'
-import { consumptionBadgeClass } from '../utils/consumptionColor'
+import { consumptionBadgeClass, consumptionTextClass } from '../utils/consumptionColor'
 import ConsumptionInfoBox from '../components/ConsumptionInfoBox.vue'
 import EditLogModal from '../components/EditLogModal.vue'
 import { costBadgeClass } from '../utils/costColor'
@@ -563,6 +563,14 @@ const fetchGroups = async () => {
   }
 }
 
+const toggleLadegruppe = (id: string) => {
+  if (expandedGroups.value.has(id)) {
+    expandedGroups.value.delete(id)
+  } else {
+    expandedGroups.value.add(id)
+  }
+}
+
 const toggleGroupExpand = async (groupId: string) => {
   if (expandedGroups.value.has(groupId)) {
     expandedGroups.value.delete(groupId)
@@ -579,15 +587,13 @@ const hasAnyLogs = computed(() => logs.value.length > 0 || sessionGroups.value.l
 const mergedLogFeed = computed(() => {
   const safeGroups = Array.isArray(sessionGroups.value) ? sessionGroups.value : []
   const safeLogs = Array.isArray(logs.value) ? logs.value : []
-  const groupsForPage = safeGroups.map((g: any) => ({
-    ...g,
-    _isGroup: g.dataSource !== 'SPRITMONITOR_IMPORT',
-    _isSpritGroup: g.dataSource === 'SPRITMONITOR_IMPORT'
-  }))
-  const logsWithFlag = safeLogs.map((l: any) => ({ ...l, _isGroup: false, _isSpritGroup: false }))
+  const groupsForPage = safeGroups
+    .filter((g: any) => g.dataSource !== 'SPRITMONITOR_IMPORT')
+    .map((g: any) => ({ ...g, _isGroup: true }))
+  const logsWithFlag = safeLogs.map((l: any) => ({ ...l, _isGroup: false }))
   const sorted = [...logsWithFlag, ...groupsForPage].sort((a, b) => {
-    const dateA = new Date((a._isGroup || a._isSpritGroup) ? a.sessionStart : a.loggedAt).getTime()
-    const dateB = new Date((b._isGroup || b._isSpritGroup) ? b.sessionStart : b.loggedAt).getTime()
+    const dateA = new Date(a._isGroup ? a.sessionStart : a.loggedAt).getTime()
+    const dateB = new Date(b._isGroup ? b.sessionStart : b.loggedAt).getTime()
     return dateB - dateA  // Neueste zuerst
   })
 
@@ -598,7 +604,7 @@ const mergedLogFeed = computed(() => {
 
   let i = 0
   while (i < sorted.length) {
-    if (sorted[i]._isGroup || sorted[i]._isSpritGroup || sorted[i].odometerKm == null) {
+    if (sorted[i]._isGroup || sorted[i].odometerKm == null) {
       i++
       continue
     }
@@ -606,7 +612,6 @@ const mergedLogFeed = computed(() => {
     let j = i + 1
     while (j < sorted.length &&
            !sorted[j]._isGroup &&
-           !sorted[j]._isSpritGroup &&
            sorted[j].odometerKm != null &&
            sorted[j].odometerKm === sorted[i].odometerKm) {
       j++
@@ -628,7 +633,45 @@ const mergedLogFeed = computed(() => {
   const result: any[] = []
   for (let i = 0; i < sorted.length; i++) {
     if (skipIndices.has(i)) continue
-    result.push({ ...sorted[i], _isTopUp: false, _topUps: topUpChildren.get(i) ?? [] })
+    const topUps: any[] = topUpChildren.get(i) ?? []
+    if (topUps.length > 0) {
+      // Ladegruppe: oldest=parent, newer=topUps. All subs sorted oldest-first.
+      const allSubs = [...topUps, { ...sorted[i] }].sort(
+        (a, b) => new Date(a.loggedAt).getTime() - new Date(b.loggedAt).getTime()
+      )
+      const totalKwh = allSubs.reduce((s, l) => s + (l.kwhCharged ?? 0), 0)
+      const totalCostEur = allSubs.every((l: any) => l.costEur != null)
+        ? allSubs.reduce((s: number, l: any) => s + (l.costEur ?? 0), 0)
+        : null
+      const maxSoc = allSubs.reduce((m: number | null, l: any) =>
+        l.socAfterChargePercent != null ? Math.max(m ?? 0, l.socAfterChargePercent) : m, null)
+      const maxPower = allSubs.reduce((m: number | null, l: any) =>
+        l.maxChargingPowerKw != null ? Math.max(m ?? 0, l.maxChargingPowerKw) : m, null)
+      const dates = allSubs.map((l: any) => new Date(l.loggedAt).toDateString())
+      const spansMultipleDays = new Set(dates).size > 1
+      const firstDate = new Date(allSubs[0].loggedAt)
+      const lastDate = new Date(allSubs[allSubs.length - 1].loggedAt)
+      const fmtDate = (d: Date) => d.toLocaleDateString('de-DE', { day: 'numeric', month: 'numeric' })
+      const dateRangeLabel = spansMultipleDays ? `${fmtDate(firstDate)} - ${fmtDate(lastDate)}` : fmtDate(firstDate)
+      // consumption comes from the parent (oldest) entry
+      const parentConsumption = sorted[i].consumptionKwhPer100km
+      result.push({
+        ...sorted[i],
+        _isTopUp: false,
+        _isLadegruppe: true,
+        _topUps: allSubs,
+        _totalKwh: Math.round(totalKwh * 100) / 100,
+        _totalCostEur: totalCostEur !== null ? Math.round(totalCostEur * 100) / 100 : null,
+        _maxSoc: maxSoc,
+        _maxPower: maxPower,
+        _spansMultipleDays: spansMultipleDays,
+        _dateRangeLabel: dateRangeLabel,
+        _totalConsumption: parentConsumption,
+        _commonDataSource: new Set(allSubs.map((l: any) => l.dataSource)).size === 1 ? allSubs[0].dataSource : null,
+      })
+    } else {
+      result.push({ ...sorted[i], _isTopUp: false, _isLadegruppe: false, _topUps: [] })
+    }
   }
   return result
 })
@@ -669,7 +712,7 @@ const formatLogDate = (loggedAt: string) => {
   const isCurrentYear = d.getFullYear() === new Date().getFullYear()
   const date = d.toLocaleDateString('de-DE', { day: 'numeric', month: 'numeric', ...(isCurrentYear ? {} : { year: 'numeric' }) })
   const time = d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
-  return `${date}, ${time} Uhr`
+  return `${date}, ${time}`
 }
 
 const toggleOdometerDisplay = (distanceKm: number | null, odometerKm: number | null) => {
@@ -679,10 +722,10 @@ const toggleOdometerDisplay = (distanceKm: number | null, odometerKm: number | n
 
 function sourceInfo(ds?: string): { label: string; icon: Component; classes: string } | null {
   switch (ds) {
-    case 'TESLA_FLEET_IMPORT':  return { label: 'Supercharger',    icon: BoltIcon,          classes: 'bg-red-50 text-red-700' }
-    case 'TESLA_LIVE':          return { label: 'Tesla Live',       icon: BoltIcon,          classes: 'bg-red-50 text-red-700' }
-    case 'TESLA_IMPORT':        return { label: 'Tesla Import',     icon: ArrowDownTrayIcon, classes: 'bg-purple-50 text-purple-700' }
-    case 'TESLA_MANUAL_IMPORT': return { label: 'TeslaMate Import', icon: ArrowDownTrayIcon, classes: 'bg-purple-50 text-purple-700' }
+    case 'TESLA_FLEET_IMPORT':  return { label: 'Supercharger',    icon: BoltIcon,          classes: 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-700' }
+    case 'TESLA_LIVE':          return { label: 'Tesla',            icon: BoltIcon,          classes: 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-700' }
+    case 'TESLA_IMPORT':        return { label: 'Tesla',            icon: ArrowDownTrayIcon, classes: 'bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-700' }
+    case 'TESLA_MANUAL_IMPORT': return { label: 'Tesla',            icon: ArrowDownTrayIcon, classes: 'bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-700' }
     case 'SPRITMONITOR_IMPORT': return { label: 'SpritMonitor',     icon: ArrowDownTrayIcon, classes: 'bg-purple-50 text-purple-700' }
     case 'WALLBOX_OCPP':
     case 'WALLBOX_GOE':         return { label: 'Wallbox',          icon: HomeIcon,          classes: 'bg-blue-50 text-blue-700' }
@@ -1142,7 +1185,7 @@ const deleteLog = async (id: string) => {
             </template>
             <template v-else>
               <!-- Session Group (Überschussladen) -->
-              <div v-for="entry in mergedLogFeed" :key="entry.id">
+              <div v-for="entry in mergedLogFeed" :key="entry.id" :class="entry._isLadegruppe ? 'pb-[5px]' : ''">
               <div v-if="entry._isGroup"
                 class="p-3 border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/30 rounded-lg space-y-2">
                 <!-- Group Header -->
@@ -1199,80 +1242,79 @@ const deleteLog = async (id: string) => {
                   </div>
                 </div>
               </div>
-              <!-- Spritmonitor Group (Zusammengefasst) -->
-              <div v-else-if="entry._isSpritGroup">
-                <div class="p-3 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg space-y-2">
-                  <div class="flex items-center gap-2 min-w-0">
-                    <BoltIcon class="w-4 h-4 text-indigo-600 flex-shrink-0" />
-                    <span class="font-semibold text-indigo-700 whitespace-nowrap">{{ entry.totalKwhCharged }} kWh</span>
-                    <span class="text-xs text-gray-400 whitespace-nowrap">
-                      {{ new Date(entry.sessionStart).toLocaleDateString('de-DE', { day: 'numeric', month: 'numeric', year: new Date(entry.sessionStart).getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined }) }}
-                    </span>
-                    <span class="hidden md:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium bg-purple-50 text-purple-700 whitespace-nowrap">
-                      <ArrowDownTrayIcon class="w-3 h-3" />SpritMonitor
-                    </span>
-                  </div>
-                  <div class="md:hidden">
-                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium bg-purple-50 text-purple-700">
-                      <ArrowDownTrayIcon class="w-3 h-3" />SpritMonitor
-                    </span>
-                  </div>
-                  <div class="flex flex-wrap gap-1.5">
-                    <span v-if="entry.costEur != null && entry.totalKwhCharged"
-                      :class="['inline-flex items-center px-2 py-0.5 border text-xs rounded-full font-medium whitespace-nowrap cursor-pointer transition-all duration-75',
-                               showCostAbsolute
-                                 ? 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'
-                                 : 'bg-green-50 border-green-200 text-green-700 shadow-[0_4px_0_0_#bbf7d0] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#bbf7d0] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1']"
-                      @click="showCostAbsolute = !showCostAbsolute">
-                      <template v-if="showCostAbsolute">€{{ entry.costEur }}</template>
-                      <template v-else>€{{ (entry.costEur / entry.totalKwhCharged).toFixed(2) }}/kWh</template>
-                    </span>
-                  </div>
-                </div>
-                <!-- Sub-Sessions inline -->
-                <template v-if="subSessionsCache[entry.id] && subSessionsCache[entry.id].length > 0">
-                  <div v-for="sub in subSessionsCache[entry.id]" :key="sub.id"
-                    class="ml-4 mt-1 flex flex-col gap-1.5 px-2.5 py-1.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg">
-                    <div class="flex items-center gap-2">
-                      <span class="text-gray-300 text-xs leading-none">└</span>
-                      <span class="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">Zusammengefasst</span>
-                      <BoltIcon class="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                      <span class="text-xs font-semibold text-gray-600 dark:text-gray-300 whitespace-nowrap">{{ sub.kwhCharged }} kWh</span>
-                      <div class="ml-auto flex items-center gap-1 flex-shrink-0">
-                        <button @click="editingLog = sub" class="p-1 rounded text-gray-300 hover:text-blue-500 hover:bg-blue-50 transition" title="Ladevorgang bearbeiten">
-                          <PencilSquareIcon class="w-3.5 h-3.5" />
-                        </button>
-                        <button @click="deleteLog(sub.id)" class="p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition">
-                          <TrashIcon class="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                    <div v-if="sub.costEur != null || sub.chargeDurationMinutes" class="flex flex-wrap items-center gap-1.5">
-                      <span v-if="sub.costEur != null && sub.kwhCharged"
-                        :class="['inline-flex items-center px-1.5 py-0.5 border rounded-full text-xs font-medium whitespace-nowrap cursor-pointer transition-all duration-75',
-                                 showCostAbsolute
-                                   ? 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'
-                                   : 'bg-green-50 border-green-200 text-green-700 shadow-[0_4px_0_0_#bbf7d0] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#bbf7d0] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1']"
-                        @click="showCostAbsolute = !showCostAbsolute">
-                        <template v-if="showCostAbsolute">€{{ sub.costEur }}</template>
-                        <template v-else>€{{ (sub.costEur / sub.kwhCharged).toFixed(2) }}/kWh</template>
-                      </span>
-                      <span v-else-if="sub.costEur != null" class="text-xs text-gray-500 whitespace-nowrap">· €{{ sub.costEur }}</span>
-                      <span v-if="sub.chargeDurationMinutes" class="inline-flex items-center gap-0.5 text-xs text-gray-500 whitespace-nowrap">
-                        · <ClockIcon class="w-3 h-3" />{{ sub.chargeDurationMinutes }}min
-                      </span>
-                    </div>
-                  </div>
-                </template>
-              </div>
               <!-- Normal Log -->
               <div v-else>
               <div
                 :class="['p-3 border rounded-lg space-y-2',
-                         entry.consumptionImplausible
-                           ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700 border-l-4 border-l-red-400 dark:border-l-red-600'
-                           : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600']">
-                <!-- Header -->
+                         entry._isLadegruppe
+                           ? 'bg-white dark:bg-gray-700 border-blue-200 dark:border-blue-800 cursor-pointer shadow-[0_5px_0_0_#bfdbfe] dark:shadow-[0_5px_0_0_#1e3a5f] hover:shadow-[0_2px_0_0_#bfdbfe] dark:hover:shadow-[0_2px_0_0_#1e3a5f] hover:translate-y-[3px] active:shadow-none active:translate-y-[5px] transition-all duration-75'
+                           : !entry._isLadegruppe && entry.consumptionImplausible
+                             ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700 border-l-4 border-l-red-400 dark:border-l-red-600'
+                             : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600']"
+                @click="entry._isLadegruppe ? toggleLadegruppe(entry.id) : null">
+
+                <!-- LADEGRUPPE HEADER -->
+                <template v-if="entry._isLadegruppe">
+                  <div class="flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2 min-w-0">
+                      <BoltIcon class="w-4 h-4 text-indigo-600 flex-shrink-0" />
+                      <span class="font-semibold text-indigo-700 dark:text-indigo-300 whitespace-nowrap">{{ entry._totalKwh }} kWh</span>
+                      <span class="text-xs text-gray-400 whitespace-nowrap">{{ entry._dateRangeLabel }}</span>
+                      <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-700">
+                        Ladegruppe
+                      </span>
+<span v-if="sourceInfo(entry._commonDataSource)"
+                        :class="['inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium whitespace-nowrap',
+                                 sourceInfo(entry._commonDataSource)!.classes]">
+                        <component :is="sourceInfo(entry._commonDataSource)!.icon" class="w-3 h-3" />
+                        {{ sourceInfo(entry._commonDataSource)!.label }}
+                      </span>
+                    </div>
+                    <div class="flex items-center gap-1.5 flex-shrink-0">
+                      <button class="p-1 rounded text-blue-400 dark:text-blue-500">
+                        <ChevronDownIcon v-if="!expandedGroups.has(entry.id)" class="w-4 h-4" />
+                        <ChevronUpIcon v-else class="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <!-- Ladegruppe badges -->
+                  <div class="flex flex-wrap gap-1.5">
+                    <span v-if="entry._totalCostEur != null && entry._totalKwh"
+                      :class="['inline-flex items-center px-2 py-0.5 border text-xs rounded-full font-medium whitespace-nowrap cursor-pointer transition-all duration-75',
+                               showCostAbsolute
+                                 ? 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'
+                                 : [(costBadgeClass(entry._totalCostEur, entry._totalKwh) ?? 'bg-green-50 border-green-200 text-green-700'), 'shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'].join(' ')]"
+                      @click.stop="showCostAbsolute = !showCostAbsolute"
+                      @mousedown.stop>
+                      <template v-if="showCostAbsolute">€{{ entry._totalCostEur }}</template>
+                      <template v-else>€{{ (entry._totalCostEur / entry._totalKwh).toFixed(2) }}/kWh</template>
+                    </span>
+                    <span
+                      v-if="entry.distanceSinceLastChargeKm != null || entry.odometerKm"
+                      class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap"
+                      :class="entry.distanceSinceLastChargeKm != null && entry.odometerKm ? 'cursor-pointer shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1 transition-all duration-75' : ''"
+                      @click.stop="toggleOdometerDisplay(entry.distanceSinceLastChargeKm, entry.odometerKm)"
+                      @mousedown.stop
+                    >
+                      <template v-if="entry.distanceSinceLastChargeKm != null && !showOdometer">+{{ entry.distanceSinceLastChargeKm.toLocaleString('de-DE') }} km</template>
+                      <template v-else>{{ entry.odometerKm?.toLocaleString('de-DE') }} km</template>
+                    </span>
+                    <span v-if="entry._totalConsumption != null"
+                      :class="['inline-flex items-center gap-1 text-xs font-medium whitespace-nowrap',
+                               consumptionTextClass(entry._totalConsumption, stats?.avgConsumptionKwhPer100km ?? null)]">
+                      {{ entry._totalConsumption }} kWh/100km
+                    </span>
+                    <span v-if="entry._maxSoc != null" class="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
+                      <Battery0Icon class="w-3 h-3" />{{ entry._maxSoc }}%
+                    </span>
+                    <span v-if="entry._maxPower" class="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
+                      <BoltIcon class="w-3 h-3" />{{ entry._maxPower }} kW
+                    </span>
+                  </div>
+                </template>
+
+                <!-- NORMAL LOG HEADER -->
+                <template v-else>
                 <div class="flex items-center justify-between gap-2">
                   <div class="flex items-center gap-2 min-w-0">
                     <BoltIcon class="w-4 h-4 text-indigo-600 flex-shrink-0" />
@@ -1324,8 +1366,9 @@ const deleteLog = async (id: string) => {
                     </button>
                   </div>
                 </div>
-                <!-- Badges -->
-                <div class="flex flex-wrap gap-1.5">
+                </template>
+                <!-- Badges (normal log only) -->
+                <div v-if="!entry._isLadegruppe" class="flex flex-wrap gap-1.5">
                   <span v-if="entry.costEur != null && entry.kwhCharged"
                     :class="['inline-flex items-center px-2 py-0.5 border text-xs rounded-full font-medium whitespace-nowrap cursor-pointer transition-all duration-75',
                              showCostAbsolute
@@ -1347,74 +1390,79 @@ const deleteLog = async (id: string) => {
                     <template v-else>{{ entry.odometerKm?.toLocaleString('de-DE') }} km</template>
                   </span>
                   <span v-if="entry.consumptionKwhPer100km != null"
-                    :class="['inline-flex items-center gap-1 px-2 py-0.5 border rounded-full text-xs font-medium whitespace-nowrap',
+                    :class="['inline-flex items-center gap-1 text-xs font-medium whitespace-nowrap',
                              entry.consumptionImplausible
-                               ? 'bg-red-100 dark:bg-red-900/40 border-red-400 dark:border-red-700 text-red-700 dark:text-red-300'
+                               ? 'text-red-600 dark:text-red-400'
                                : entry.consumptionIsEstimated
-                                 ? 'bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400'
-                                 : consumptionBadgeClass(entry.consumptionKwhPer100km, stats?.avgConsumptionKwhPer100km ?? null)]"
+                                 ? 'text-gray-400 dark:text-gray-500'
+                                 : consumptionTextClass(entry.consumptionKwhPer100km, stats?.avgConsumptionKwhPer100km ?? null)]"
                     :title="entry.consumptionIsEstimated ? 'Schätzwert: berechnet aus geladener Energie ÷ Distanz, da kein SoC-Wert vorhanden.' : undefined">
                     <ExclamationTriangleIcon v-if="entry.consumptionImplausible" class="w-3 h-3 flex-shrink-0" />
                     {{ entry.consumptionIsEstimated ? '~' : '' }}{{ entry.consumptionKwhPer100km }} kWh/100km
                   </span>
-                  <span v-if="entry.costEur != null && !entry.kwhCharged" class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                  <span v-if="entry.costEur != null && !entry.kwhCharged" class="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
                     €{{ entry.costEur }}
                   </span>
-                  <span v-if="entry.chargeDurationMinutes" class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                  <span v-if="entry.chargeDurationMinutes" class="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
                     <ClockIcon class="w-3 h-3" />{{ entry.chargeDurationMinutes }}min
                   </span>
-                  <span v-if="entry.socAfterChargePercent != null" class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                  <span v-if="entry.socAfterChargePercent != null" class="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
                     <Battery0Icon class="w-3 h-3" />{{ entry.socAfterChargePercent }}%
                   </span>
-                  <span v-if="entry.maxChargingPowerKw" class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                  <span v-if="entry.maxChargingPowerKw" class="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
                     <BoltIcon class="w-3 h-3" />{{ entry.maxChargingPowerKw }} kW
                   </span>
                 </div>
-                <!-- Implausibility warning -->
-                <div v-if="entry.consumptionImplausible" class="flex items-start gap-1.5 text-xs text-red-700">
+                <!-- Implausibility warning (normal log only) -->
+                <div v-if="!entry._isLadegruppe && entry.consumptionImplausible" class="flex items-start gap-1.5 text-xs text-red-700">
                   <ExclamationTriangleIcon class="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
                   <span>Verbrauch unplausibel - wahrscheinlich fehlt ein Ladevorgang zwischen diesem und dem vorherigen Eintrag.</span>
                 </div>
               </div>
-              <!-- Nachladen Sub-Eintraege -->
-              <template v-if="entry._topUps && entry._topUps.length > 0">
-                <div v-for="topUp in entry._topUps" :key="topUp.id"
-                  class="ml-4 mt-1 flex flex-col gap-1.5 px-2.5 py-1.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg">
-                  <!-- Zeile 1: Label + kWh + Zeit + Buttons -->
-                  <div class="flex items-center gap-2">
-                    <span class="text-gray-300 text-xs leading-none">└</span>
-                    <span class="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">Nachladen</span>
-                    <BoltIcon class="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                    <span class="text-xs font-semibold text-gray-600 dark:text-gray-300 whitespace-nowrap">{{ topUp.kwhCharged }} kWh</span>
-                    <span class="text-xs text-gray-400 whitespace-nowrap">
-                      <template v-if="new Date(topUp.loggedAt).toDateString() !== new Date(entry.loggedAt).toDateString()">{{ formatLogDate(topUp.loggedAt) }}</template>
-                      <template v-else>{{ new Date(topUp.loggedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) }} Uhr</template>
-                    </span>
-                    <div class="ml-auto flex items-center gap-1 flex-shrink-0">
-                      <button @click="editingLog = topUp" class="p-1 rounded text-gray-300 hover:text-blue-500 hover:bg-blue-50 transition" title="Ladevorgang bearbeiten">
-                        <PencilSquareIcon class="w-3.5 h-3.5" />
-                      </button>
-                      <button @click="deleteLog(topUp.id)" class="p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition">
-                        <TrashIcon class="w-3.5 h-3.5" />
-                      </button>
+              <!-- Ladegruppe Sub-Eintraege (collapsible) -->
+              <template v-if="entry._isLadegruppe">
+                <Transition name="slide-down">
+                  <div v-if="expandedGroups.has(entry.id)" class="mt-1 -space-y-px">
+                    <div v-for="(topUp, idx) in entry._topUps" :key="topUp.id"
+                      :class="['ml-4 flex flex-col gap-1.5 px-2.5 py-1.5 bg-gray-50 dark:bg-gray-700 border border-blue-200 dark:border-[#1e3a5f]',
+                               idx === 0 ? 'rounded-t-lg' : '',
+                               idx === entry._topUps.length - 1 ? 'rounded-b-lg' : '']">
+                      <!-- Einzeiler: alles in einer Zeile, bricht auf Mobile sauber um -->
+                      <div class="flex items-center gap-x-2">
+                        <span class="text-gray-300 text-xs leading-none flex-shrink-0">└</span>
+                        <span class="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">Nachladen</span>
+                        <BoltIcon class="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                        <span class="text-xs font-semibold text-gray-600 dark:text-gray-300 whitespace-nowrap">{{ topUp.kwhCharged }} kWh</span>
+                        <span class="text-xs text-gray-400 whitespace-nowrap">
+                          <template v-if="entry._spansMultipleDays">{{ formatLogDate(topUp.loggedAt) }}</template>
+                          <template v-else>{{ new Date(topUp.loggedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) }}</template>
+                        </span>
+                        <span v-if="topUp.chargeDurationMinutes" class="min-[436px]:inline-flex hidden items-center gap-1 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
+                          <ClockIcon class="w-3 h-3" />{{ topUp.chargeDurationMinutes }}min
+                        </span>
+                        <span v-if="topUp.socAfterChargePercent != null" class="min-[436px]:inline-flex hidden items-center gap-1 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
+                          <Battery0Icon class="w-3 h-3" />{{ topUp.socAfterChargePercent }}%
+                        </span>
+                        <div class="ml-auto flex items-center gap-1 flex-shrink-0">
+                          <button @click="editingLog = topUp" class="p-1 rounded text-gray-300 hover:text-blue-500 hover:bg-blue-50 transition" title="Ladevorgang bearbeiten">
+                            <PencilSquareIcon class="w-3.5 h-3.5" />
+                          </button>
+                          <button @click="deleteLog(topUp.id)" class="p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition">
+                            <TrashIcon class="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                      <div class="max-[436px]:flex min-[436px]:hidden items-center gap-2">
+                        <span v-if="topUp.chargeDurationMinutes" class="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
+                          <ClockIcon class="w-3 h-3" />{{ topUp.chargeDurationMinutes }}min
+                        </span>
+                        <span v-if="topUp.socAfterChargePercent != null" class="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
+                          <Battery0Icon class="w-3 h-3" />{{ topUp.socAfterChargePercent }}%
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <!-- Zeile 2: Badges -->
-                  <div v-if="topUp.costEur != null || topUp.chargeDurationMinutes || topUp.socAfterChargePercent != null" class="flex flex-wrap items-center gap-1.5">
-                  <span v-if="topUp.costEur != null && topUp.kwhCharged"
-                    :class="['inline-flex items-center px-1.5 py-0.5 border rounded-full text-xs font-medium whitespace-nowrap cursor-pointer transition-all duration-75',
-                             showCostAbsolute
-                               ? 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'
-                               : 'bg-green-50 border-green-200 text-green-700 shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1']"
-                    @click="showCostAbsolute = !showCostAbsolute">
-                    <template v-if="showCostAbsolute">€{{ topUp.costEur }}</template>
-                    <template v-else>€{{ (topUp.costEur / topUp.kwhCharged).toFixed(2) }}/kWh</template>
-                  </span>
-                  <span v-else-if="topUp.costEur != null" class="text-xs text-gray-500 whitespace-nowrap">· €{{ topUp.costEur }}</span>
-                  <span v-if="topUp.chargeDurationMinutes" class="inline-flex items-center gap-0.5 text-xs text-gray-500 whitespace-nowrap">· <ClockIcon class="w-3 h-3" />{{ topUp.chargeDurationMinutes }}min</span>
-                  <span v-if="topUp.socAfterChargePercent != null" class="inline-flex items-center gap-0.5 text-xs text-gray-500 whitespace-nowrap">· <Battery0Icon class="w-3 h-3" />{{ topUp.socAfterChargePercent }}%</span>
-                  </div>
-                </div>
+                </Transition>
               </template>
               </div><!-- end normal log wrapper -->
               </div><!-- end v-for entry in mergedLogFeed -->
@@ -1470,5 +1518,18 @@ const deleteLog = async (id: string) => {
 
 .fade-enter-to {
   opacity: 1;
+}
+
+.slide-down-enter-active,
+.slide-down-leave-active {
+  transition: max-height 0.25s ease, opacity 0.2s ease;
+  overflow: hidden;
+  max-height: 600px;
+}
+
+.slide-down-enter-from,
+.slide-down-leave-to {
+  max-height: 0;
+  opacity: 0;
 }
 </style>

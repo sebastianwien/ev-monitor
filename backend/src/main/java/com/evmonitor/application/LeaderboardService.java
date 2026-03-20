@@ -18,36 +18,6 @@ public class LeaderboardService {
 
     private static final int TOP_N = 10;
 
-    /**
-     * EV-spezifische Witze und Sarkasmus.
-     * Format: bewusst kurz und knackig fuer den Ticker.
-     */
-    private static final List<String> EV_JOKES = List.of(
-            "Benziner-Fahrer erklären dir gerne, dass E-Autos nichts taugen. Meistens von der Tankstelle aus.",
-            "'Aber woher kommt der Strom?' - fragt derselbe Mensch, der nie gefragt hat, woher das Öl kommt.",
-            "Mein E-Auto hat heute 0 Liter Sprit verbraucht. Der Arzt sagt, das ist normal.",
-            "Wallbox zuhause = Tankstelle im Schlafanzug. Der Traum ist real.",
-            "Laden dauert 20 Minuten? Dein letzter Netflix-Binge dauerte 6 Stunden. Kein Kommentar.",
-            "Reichweitenangst: die Angst vor leeren Akkus bei Leuten, die täglich 30 km fahren und zuhause laden.",
-            "Lade ich bei 22% noch oder warte ich bis 18%? Die Frage, die Hamlet nie kannte.",
-            "Mein Akku hat heute 94%. Das ist mehr als mein letztes Mitarbeitergespräch.",
-            "AC oder DC laden? Immer DC. Die Band geht auch schneller - obwohl beides Hochspannung ist.",
-            "Das E-Auto macht keine Geräusche. Dafür macht der Besitzer umso mehr.",
-            "Fun Fact: Der erste Elektrowagen wurde 1884 gebaut. Reichweitenangst existiert also seit 142 Jahren.",
-            "Spoiler: Auch Verbrenner-Besitzer kommen irgendwann an. Nur nicht günstig.",
-            "In Deutschland gibt es mehr Ladepunkte als du je brauchst. Nur halt nie wo du gerade bist.",
-            "Das E-Auto beschleunigt schneller als ein Klischee über E-Autos veraltet.",
-            "Klimaschutz beim Verbrenner: Reifendruck prüfen, Fenster auf, trotzdem 12L/100km.",
-            "Warum ist das E-Auto so ruhig? Weil es nichts zu sagen hat. Anders als sein Besitzer.",
-            "Gutes Laden ist wie guter Kaffee: kurz warten, lange Wirkung.",
-            "Der Verbrenner macht auch Geräusche. Leider meistens Geldbeutel-Geräusche.",
-            "Rekuperation: Sparen beim Ausgeben. Dem Finanzamt würde das gefallen.",
-            "Fun Fact: 'Range Anxiety' ist Deutsch für 'Ich hab den Unterschied zwischen 20% und 80% nicht gecheckt.'",
-            "E-Autos sind nicht die Zukunft. Sie sind die Gegenwart. Die Zukunft sind fliegende Autos - auch mit Lader.",
-            "Wusstest du? Ein Tesla beschleunigt schneller als manche Meinungen im Internet wechseln.",
-            "Jeden Morgen voll: Wallbox. Kein Kommentar zu anderen Beziehungen."
-    );
-
     private final LeaderboardQueryRepository queryRepository;
     private final CoinLogService coinLogService;
     private final ExternalJokeService externalJokeService;
@@ -207,14 +177,9 @@ public class LeaderboardService {
                 "bolt"
         ));
 
-        // EV jokes - pick 2 based on day rotation
-        int base = today.getDayOfMonth();
-        for (int i = 0; i < 2; i++) {
-            items.add(new TickerItemDTO("FACT", EV_JOKES.get((base + i * 7) % EV_JOKES.size()), "light-bulb"));
-        }
-
         // External jokes - max 2
         List<String> external = externalJokeService.getJokes();
+        int base = today.getDayOfMonth();
         for (int i = 0; i < Math.min(2, external.size()); i++) {
             items.add(new TickerItemDTO("JOKE", external.get((base + i) % external.size()), "face-smile"));
         }

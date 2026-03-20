@@ -9,6 +9,23 @@
  *
  * Falls back to neutral gray when no average is available.
  */
+export function consumptionTextClass(
+  consumptionKwhPer100km: number,
+  avgKwhPer100km: number | null
+): string {
+  if (avgKwhPer100km == null || avgKwhPer100km === 0) {
+    return 'text-gray-500 dark:text-gray-400'
+  }
+
+  const deltaPercent = ((consumptionKwhPer100km - avgKwhPer100km) / avgKwhPer100km) * 100
+
+  if (deltaPercent <= -15) return 'text-emerald-700 dark:text-emerald-300'
+  if (deltaPercent <= -5)  return 'text-green-600 dark:text-green-400'
+  if (deltaPercent <= 5)   return 'text-gray-500 dark:text-gray-400'
+  if (deltaPercent <= 15)  return 'text-amber-600 dark:text-amber-400'
+  return                          'text-red-600 dark:text-red-400'
+}
+
 export function consumptionBadgeClass(
   consumptionKwhPer100km: number,
   avgKwhPer100km: number | null
