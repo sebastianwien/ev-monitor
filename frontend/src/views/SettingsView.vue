@@ -79,7 +79,7 @@ const fetchUserData = async () => {
     registeredSince.value = new Date(stats.registeredSince).toLocaleDateString('de-DE')
     totalLogs.value = stats.totalLogs
     totalKwh.value = stats.totalKwh
-    totalCostEur.value = stats.totalCostEur
+    totalCostEur.value = stats.totalCostEur ?? 0
     referralCode.value = stats.referralCode || ''
     leaderboardVisible.value = stats.leaderboardVisible ?? true
 
