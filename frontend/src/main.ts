@@ -58,6 +58,8 @@ if (import.meta.env.PROD) {
         if (message.includes('runtime.sendMessage') || message.includes('extension')) return
         // Ignore known WebKit/Safari internal autofill errors — not our code
         if (message.includes('autofillFieldData')) return
+        // Ignore known browser extension errors (Zotero, etc.)
+        if (message.includes('Zotero') || message.includes('Failed to send message')) return
         reportError(event.reason, 'unhandledrejection')
     })
 }

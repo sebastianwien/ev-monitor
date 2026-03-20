@@ -577,12 +577,14 @@ const hasAnyLogs = computed(() => logs.value.length > 0 || sessionGroups.value.l
 
 // Merged + sorted feed: normale Logs und Gruppen nach Datum zusammenführen
 const mergedLogFeed = computed(() => {
-  const groupsForPage = sessionGroups.value.map((g: any) => ({
+  const safeGroups = Array.isArray(sessionGroups.value) ? sessionGroups.value : []
+  const safeLogs = Array.isArray(logs.value) ? logs.value : []
+  const groupsForPage = safeGroups.map((g: any) => ({
     ...g,
     _isGroup: g.dataSource !== 'SPRITMONITOR_IMPORT',
     _isSpritGroup: g.dataSource === 'SPRITMONITOR_IMPORT'
   }))
-  const logsWithFlag = logs.value.map((l: any) => ({ ...l, _isGroup: false, _isSpritGroup: false }))
+  const logsWithFlag = safeLogs.map((l: any) => ({ ...l, _isGroup: false, _isSpritGroup: false }))
   const sorted = [...logsWithFlag, ...groupsForPage].sort((a, b) => {
     const dateA = new Date((a._isGroup || a._isSpritGroup) ? a.sessionStart : a.loggedAt).getTime()
     const dateB = new Date((b._isGroup || b._isSpritGroup) ? b.sessionStart : b.loggedAt).getTime()
