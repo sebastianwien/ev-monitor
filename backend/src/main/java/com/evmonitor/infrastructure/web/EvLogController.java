@@ -33,10 +33,15 @@ public class EvLogController {
     }
 
     @PostMapping
-    public ResponseEntity<EvLogCreateResponse> logCharging(@Valid @RequestBody EvLogRequest request, Authentication authentication) {
+    public ResponseEntity<?> logCharging(@Valid @RequestBody EvLogRequest request, Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        EvLogCreateResponse response = evLogService.logCharging(principal.getUser().getId(), request);
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
+        try {
+            EvLogCreateResponse response = evLogService.logCharging(principal.getUser().getId(), request);
+            return new ResponseEntity<>(response, HttpStatus.CREATED);
+        } catch (DataIntegrityViolationException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("message", "Ein Eintrag mit diesem Datum und dieser Uhrzeit existiert bereits für dieses Fahrzeug. Bitte ändere die Uhrzeit."));
+        }
     }
 
     @GetMapping
