@@ -1553,8 +1553,8 @@ const deleteLog = async (id: string) => {
   <ImplausibleLogsModal
     :car-id="selectedCarId"
     :open="showImplausibleModal"
-    @close="() => { showImplausibleModal = false; if (implausibleModalDirty.value) { fetchStatistics(); implausibleModalDirty.value = false } }"
-    @updated="() => { fetchImplausibleCount(); implausibleModalDirty.value = true }"
+    @close="() => { showImplausibleModal = false; if (implausibleModalDirty) { fetchStatistics(); implausibleModalDirty = false } }"
+    @updated="() => { fetchImplausibleCount(); implausibleModalDirty = true }"
   />
 </template>
 
