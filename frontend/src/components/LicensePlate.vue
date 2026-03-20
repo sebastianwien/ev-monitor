@@ -4,7 +4,7 @@ import { computed } from 'vue'
 const props = defineProps<{ plate: string }>()
 
 // FE-Engschrift ab 9 Zeichen (z.B. "M-EV 1234E")
-const isLong = computed(() => props.plate.replace(/\s/g, '').length >= 9)
+const isLong = computed(() => (props.plate ?? '').replace(/\s/g, '').length >= 9)
 </script>
 
 <template>
@@ -15,7 +15,7 @@ const isLong = computed(() => props.plate.replace(/\s/g, '').length >= 9)
       </div>
       <span class="eu-country">D</span>
     </div>
-    <span class="plate-text" :class="{ 'plate-text--eng': isLong }">{{ plate.toUpperCase() }}</span>
+    <span class="plate-text" :class="{ 'plate-text--eng': isLong }">{{ (plate ?? '').toUpperCase() }}</span>
   </div>
 </template>
 
