@@ -302,8 +302,9 @@ const close = () => {
                   </option>
                 </select>
 
-                <!-- Model Selection -->
+                <!-- Model Selection (only rendered once a brand was selected and newCarData is initialized) -->
                 <select
+                  v-if="newCarData[vehicle.id]"
                   v-model="newCarData[vehicle.id].model"
                   :disabled="!newCarData[vehicle.id]?.brand"
                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100 dark:disabled:bg-gray-600">
@@ -312,9 +313,13 @@ const close = () => {
                     {{ model.label }}
                   </option>
                 </select>
+                <select v-else disabled class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-400">
+                  <option>Erst Marke wählen</option>
+                </select>
 
                 <!-- Year Input -->
                 <input
+                  v-if="newCarData[vehicle.id]"
                   v-model.number="newCarData[vehicle.id].year"
                   type="number"
                   placeholder="Baujahr (z.B. 2023)"
