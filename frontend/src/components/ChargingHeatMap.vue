@@ -206,15 +206,17 @@ const renderCharges = async () => {
         hour: '2-digit',
         minute: '2-digit'
       })
-      const costPerKwh = log.kwhCharged > 0 ? (log.costEur / log.kwhCharged).toFixed(2) : '0.00'
+      const kwh = log.kwhCharged ?? 0
+      const cost = log.costEur ?? 0
+      const costPerKwh = kwh > 0 ? (cost / kwh).toFixed(2) : '0.00'
 
       marker.bindPopup(`
         <div style="font-family: system-ui; font-size: 13px; min-width: 180px;">
           <div style="font-weight: 700; font-size: 15px; margin-bottom: 6px; color: #1f2937;">
-            ⚡ ${log.kwhCharged.toFixed(1)} kWh
+            ⚡ ${kwh.toFixed(1)} kWh
           </div>
           <div style="display: flex; flex-direction: column; gap: 4px; color: #4b5563;">
-            <div>💰 €${log.costEur.toFixed(2)} <span style="color: #9ca3af;">(€${costPerKwh}/kWh)</span></div>
+            <div>💰 €${cost.toFixed(2)} <span style="color: #9ca3af;">(€${costPerKwh}/kWh)</span></div>
             <div>⏱️ ${log.chargeDurationMinutes} Minuten</div>
             <div>📅 ${date} · ${time}</div>
           </div>
