@@ -697,15 +697,31 @@ useHead(computed(() => {
     }
   }
   const name = stats.value.modelDisplayName
-  const consumption = stats.value.avgConsumptionKwhPer100km
-    ? `${stats.value.avgConsumptionKwhPer100km.toFixed(1)} kWh/100km`
-    : null
-  const range = bestWltpRange.value ? `${bestWltpRange.value} km WLTP` : null
+  const realConsumption = stats.value.avgConsumptionKwhPer100km
+  const wltpConsumption = worstWltpConsumption.value
+  const range = bestWltpRange.value ? `${bestWltpRange.value} km` : null
+  const logCount = stats.value.logCount
 
-  const descParts = [`${name} Verbrauch & Reichweite (${currentYear}): `]
-  if (consumption) descParts.push(`Realer Verbrauch ${consumption}. `)
+  // Title: Zahlen direkt rein wenn vorhanden
+  const titleConsumption = realConsumption && wltpConsumption
+    ? `${realConsumption.toFixed(1)} kWh/100km real vs. ${wltpConsumption.toFixed(1)} kWh WLTP`
+    : realConsumption
+      ? `${realConsumption.toFixed(1)} kWh/100km Realverbrauch`
+      : null
+
+  // Description: Frage-Format + Delta als Hook
+  const descParts = [`Wie viel verbraucht der ${name} wirklich? `]
+  if (realConsumption && wltpConsumption) {
+    const delta = wltpDeltaPercent.value
+    descParts.push(`Community-Durchschnitt aus ${logCount} Ladevorgängen: ${realConsumption.toFixed(1)} kWh/100km`)
+    if (delta) descParts.push(` (${delta} gegenuber WLTP)`)
+    descParts.push(`. `)
+  } else if (realConsumption) {
+    descParts.push(`Community-Durchschnitt aus ${logCount} Ladevorgängen: ${realConsumption.toFixed(1)} kWh/100km. `)
+  }
   if (range) descParts.push(`WLTP-Reichweite bis zu ${range}. `)
-  descParts.push(`Echte Community-Daten von ${stats.value.logCount > 0 ? stats.value.logCount + ' Ladevorgängen' : 'EV Monitor Nutzern'} – kein Marketing.`)
+  if (!realConsumption) descParts.push(`Echte Fahrerdaten statt Marketing-Versprechen. `)
+  descParts.push(`Kostenlos vergleichen & eigene Daten eintragen.`)
   const description = descParts.join('').trim()
 
   const keywords = [
@@ -787,12 +803,14 @@ useHead(computed(() => {
   }
 
   return {
-    title: `${name} Verbrauch & Reichweite (${currentYear}) – EV Monitor`,
+    title: titleConsumption
+      ? `${name}: ${titleConsumption} | EV Monitor`
+      : `${name} Verbrauch & Reichweite (${currentYear}) – EV Monitor`,
     meta: [
       { name: 'description', content: description },
       { name: 'keywords', content: keywords },
       { name: 'robots', content: 'index, follow' },
-      { property: 'og:title', content: `${name} – Realer Verbrauch & WLTP Vergleich ${currentYear}` },
+      { property: 'og:title', content: titleConsumption ? `${name}: ${titleConsumption}` : `${name} – Realer Verbrauch & WLTP Vergleich ${currentYear}` },
       { property: 'og:description', content: description },
       { property: 'og:type', content: 'article' },
       { property: 'og:url', content: `https://ev-monitor.net/modelle/${canonicalBrand.value}/${canonicalModelSlug.value}` },
