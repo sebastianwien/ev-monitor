@@ -58,7 +58,7 @@ if [ -z "$ALLOWED_ORIGINS" ]; then
   ERRORS=$((ERRORS + 1))
 fi
 
-if [ -z "$WALLBOX_DB_PASSWORD" ] || [ "$WALLBOX_DB_PASSWORD" == "CHANGE_ME_TO_STRONG_PASSWORD" ]; then
+if [ -f docker-compose.full.yml ] && { [ -z "$WALLBOX_DB_PASSWORD" ] || [ "$WALLBOX_DB_PASSWORD" == "CHANGE_ME_TO_STRONG_PASSWORD" ]; }; then
   echo "❌ WALLBOX_DB_PASSWORD is missing or not configured!"
   ERRORS=$((ERRORS + 1))
 fi
@@ -87,19 +87,27 @@ if [ ! -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ] && [ "$DOMAIN" != "loc
   echo ""
 fi
 
+# Use full compose file if available (includes private microservices),
+# otherwise fall back to community docker-compose.yml
+if [ -f docker-compose.full.yml ]; then
+  COMPOSE_FILE="-f docker-compose.full.yml"
+else
+  COMPOSE_FILE=""
+fi
+
 # Deploy
 # Note: only build and recreate services owned by this repo.
 # connectors-service and wallbox-service have their own deploy pipelines.
 echo "🐳 Building backend + nginx..."
-docker compose build backend nginx
+docker compose $COMPOSE_FILE build backend nginx
 
 echo ""
 echo "🔄 Ensuring db + certbot are running..."
-docker compose up -d db certbot
+docker compose $COMPOSE_FILE up -d db certbot
 
 echo ""
 echo "🔄 Switching to new backend + nginx containers..."
-docker compose up -d --force-recreate backend nginx
+docker compose $COMPOSE_FILE up -d --force-recreate backend nginx
 
 echo ""
 echo "⏳ Waiting for services to start..."
@@ -110,7 +118,7 @@ echo "🔄 Reloading nginx configuration..."
 docker exec ev-monitor-nginx-1 nginx -s reload 2>/dev/null || echo "⚠️  nginx reload skipped (container not ready yet)"
 
 # Check if services are running
-if docker compose ps | grep -q "Up"; then
+if docker compose $COMPOSE_FILE ps | grep -q "Up"; then
   echo "✅ Services are running!"
   echo ""
   echo "🌍 Application deployed:"

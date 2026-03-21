@@ -1,65 +1,152 @@
 # EV Monitor
 
-**EV Monitor** is a full-stack web app for tracking Electric Vehicle charging sessions — logging kWh, costs, location, and duration, with vehicle management, WLTP data crowdsourcing, and a gamification coin system.
+**EV Monitor** is a full-stack web app for tracking Electric Vehicle charging sessions. Log kWh, costs, location, and duration — and compare your real-world consumption against WLTP ratings using community-contributed data.
 
-## 🤖 AI Assistant Context (Claude Code & Others)
+Live at **[ev-monitor.net](https://ev-monitor.net)**
 
-This project is a multi-container application using Clean Architecture for the backend and a modern Vue+Vite setup for the frontend.
-
-- **Backend**: Spring Boot 3.5 (Java 21, Gradle) → `./backend`
-- **Frontend**: Vue 3, Vite, TypeScript, Tailwind CSS v4 → `./frontend`
-- **Database**: PostgreSQL 15
-- **Deployment**: Docker Compose + Nginx (reverse proxy) + Certbot (SSL)
-
-When modifying this codebase, respect Clean Architecture boundaries in the backend (domain → application → infrastructure) and ensure dependency version compatibility (Java 21, Tailwind CSS v4 syntax).
+---
 
 ## Features
 
-- 📊 **Charging Logs** — kWh, costs in EUR, location (geohashed), duration, date
-- 🚗 **Vehicle Management** — 68+ brands, 100+ models with battery capacity specs
-- ⚡ **WLTP Crowdsourcing** — community-contributed range & consumption data
-- 🔐 **Authentication** — JWT + email verification (24h token) + username
-- 📧 **Email Verification** — token-based with resend + rate limiting
-- 🪙 **Gamification** — earn coins for contributing WLTP data, feeding data, or bringing users to the platform (more rewards planned)
-- 🌍 **Privacy-First Geohashing** — ~5km precision, no exact GPS coordinates stored
-- 📈 **Statistics Dashboard** — charts & analytics (Chart.js)
-- 📱 **PWA-Ready** — Progressive Web App
+### Core
+- **Charging Logs** — kWh, costs in EUR, location (geohashed for privacy), duration, date
+- **Vehicle Management** — 68+ brands, 100+ models with battery capacity specs
+- **Statistics Dashboard** — charts, seasonal breakdowns, WLTP delta analysis (Chart.js)
+- **Interactive Heatmap** — visualize charging locations on a map (Leaflet, ~5km precision)
+- **WLTP Crowdsourcing** — community-contributed real-world range & consumption data per model
+- **Gamification** — earn coins for logging data, adding vehicle specs, and referring users
+- **Leaderboard** — community ranking with optional visibility toggle
+- **Privacy-First Geohashing** — no exact GPS coordinates ever stored
 
-## Coming Soon: Wallbox Integration (Premium)
+### Authentication & Accounts
+- **JWT Authentication** — token-based, 7-day sessions
+- **Email Verification** — 24h token with resend + rate limiting
+- **Password Reset** — email-based two-step flow
+- **OAuth2** — infrastructure ready (Google/GitHub)
+- **User Settings** — profile, notification preferences, leaderboard visibility
 
-A dedicated **Wallbox Integration Service** is currently in development. It will automatically import charging sessions directly from your home wallbox — no manual logging required.
+### Import & Integrations
+- **Tesla Import** — automatic session sync via Tesla Fleet API (with encrypted token storage)
+- **Spritmonitor Import** — one-click import of existing Spritmonitor history
+- **Manual Import** — CSV/JSON import with session grouping logic
+- **Public Upload API** — REST API with API keys for wallboxes, scripts, home automation
 
-**Planned integrations:** go-e Charger, Easee, Wallbe, Heidelberg, KEBA, and more.
+### Public Pages (SEO-optimized)
+- **Model Overview** (`/modelle`) — community averages per EV model
+- **Brand Pages** (`/modelle/:brand`) — all models per brand
+- **Model Detail Pages** (`/modelle/:brand/:model`) — WLTP vs. real consumption, seasonal data
+- **Model Comparison** — side-by-side comparison of multiple models
 
-This will be available as a **premium add-on** and runs as a separate closed-source microservice alongside the open-source core. The EV Monitor core (this repository) remains free and open-source under AGPL-3.0.
+### Premium (Beta)
+- **Wallbox Integration** — automatic import from go-e Charger and more (runs as separate closed-source microservice)
+- **Stripe Subscription** — infrastructure in place, currently in beta (`PREMIUM_ENABLED=false`)
+
+---
+
+## Tech Stack
+
+### Backend
+| | |
+|---|---|
+| Framework | Spring Boot 3.5.0 |
+| Language | Java 21 |
+| Build | Gradle (Wrapper) |
+| Database | PostgreSQL 15 |
+| Security | Spring Security + JWT |
+| Architecture | Clean Architecture (domain → application → infrastructure) |
+
+### Frontend
+| | |
+|---|---|
+| Framework | Vue 3.5.28 (Composition API) |
+| Build | Vite 7.3.1 |
+| Language | TypeScript 5.9.3 |
+| CSS | Tailwind CSS 4.2.0 |
+| State | Pinia 3.0.4 |
+| HTTP | Axios (JWT Interceptor) |
+| Charts | Chart.js 4.5.1 + vue-chartjs |
+| Maps | Leaflet 1.9.4 + leaflet.heat + markercluster |
+| Icons | Heroicons Vue 2.2.0 |
+
+### Infrastructure
+- **Docker Compose** — multi-container setup
+- **Nginx** — reverse proxy + static file serving
+- **Certbot** — Let's Encrypt SSL (auto-renewal)
+- **Hosting** — Hetzner Cloud
+
+---
 
 ## Project Structure
 
-- [`/backend/README.md`](./backend/README.md) — Spring Boot REST API (Clean Architecture)
-- [`/frontend/README.md`](./frontend/README.md) — Vue.js PWA
-- `/nginx/` — Nginx config for reverse proxy + static file serving
-- `docker-compose.yml` — Production orchestration (DB + Backend + Nginx + Certbot)
-- `docker-compose.dev.yml` — Local dev infrastructure (DB + Mailpit only)
-- `docker-compose.local.yml` — Full local stack (DB + Backend + Nginx + Mailpit)
-- `deploy.sh` — Production deployment script (validates env, builds, restarts)
-- `dev.sh` — Local dev startup script (starts DB, backend, frontend in one go)
-- `stop-dev.sh` — Stops all local dev services
-- `init-letsencrypt.sh` — First-time SSL certificate setup
+```
+/
+├── backend/              # Spring Boot REST API
+├── frontend/             # Vue.js PWA
+├── nginx/                # Nginx config (reverse proxy)
+├── docker-compose.yml         # Production orchestration
+├── docker-compose.dev.yml     # Local dev: DB + Mailpit only
+├── docker-compose.local.yml   # Full local stack with Nginx
+├── dev.sh                # One-command local dev startup
+├── stop-dev.sh           # Stops all local dev processes
+├── deploy.sh             # Production deployment script
+└── init-letsencrypt.sh   # First-time SSL certificate setup
+```
+
+### Backend Structure
+```
+backend/src/main/java/com/evmonitor/
+├── domain/           # Entities: User, Car, EvLog, CoinLog, VehicleSpec
+├── application/      # Services, DTOs, Use Cases
+└── infrastructure/   # Spring config, Web, Persistence, Email, Security
+```
+
+### Frontend Views
+```
+frontend/src/views/
+├── LandingPageView.vue          # / — Public landing page (SEO)
+├── PublicModelsListView.vue     # /modelle — All models (SEO)
+├── PublicBrandView.vue          # /modelle/:brand (SEO)
+├── PublicModelView.vue          # /modelle/:brand/:model (SEO)
+├── PublicModelsCompareView.vue  # Model comparison
+├── LoginView.vue
+├── RegisterView.vue
+├── ForgotPasswordView.vue
+├── ResetPasswordView.vue
+├── VerifyEmailView.vue
+├── OAuth2RedirectHandler.vue
+├── DashboardView.vue            # Main dashboard (auth required)
+├── LogFormView.vue              # Add/edit charging log
+├── StatisticsView.vue           # Charts & analytics
+├── CarManagementView.vue        # Vehicle management
+├── ImportsView.vue              # All imports: Tesla, Spritmonitor, CSV, go-e
+├── WallboxSetupView.vue         # Wallbox connection management
+├── LeaderboardView.vue          # Community leaderboard
+├── CoinHistoryView.vue          # Coin transaction history
+├── SettingsView.vue             # Account settings
+├── UpgradeView.vue              # Premium subscription
+├── UpgradeSuccessView.vue
+├── UpgradeCancelView.vue
+├── DatenschutzView.vue          # DSGVO privacy policy
+├── ImpressumView.vue            # Legal notice (TMG §5)
+├── AGBView.vue                  # Terms of service
+└── NotFoundView.vue             # 404
+```
+
+---
 
 ## Getting Started
 
 ### Local Development (Recommended)
 
-Use `dev.sh` to start the full stack with hot reload in one command:
-
 ```bash
 ./dev.sh
 ```
 
-This starts:
+Starts the full stack with hot reload:
 1. PostgreSQL via Docker (`docker-compose.dev.yml`)
-2. Spring Boot backend natively on `http://localhost:8080` (with `dev` profile)
-3. Vite frontend dev server on `http://localhost:5173`
+2. Mailpit (email testing) via Docker
+3. Spring Boot backend natively on `http://localhost:8080` (dev profile)
+4. Vite frontend dev server on `http://localhost:5173`
 
 Logs stream to `./logs/backend.log` and `./logs/frontend.log`. Stop everything with:
 
@@ -67,16 +154,17 @@ Logs stream to `./logs/backend.log` and `./logs/frontend.log`. Stop everything w
 ./stop-dev.sh
 ```
 
-**Test users** (created automatically by `DevDataSeeder` in dev profile):
-| Email | Password |
-|---|---|
-| test1@ev-monitor.net | Test1234! |
-| test2@ev-monitor.net | Test1234! |
-| test3@ev-monitor.net | Test1234! |
+**Test users** (seeded automatically by `DevDataSeeder` in dev profile):
 
-Each user has 2 cars with ~70–80 charging logs over 1 year.
+| Email | Password | Username |
+|---|---|---|
+| test1@ev-monitor.net | `123!"§` | max_e_driver |
+| test2@ev-monitor.net | `123!"§` | anna_ampere |
+| test3@ev-monitor.net | `123!"§` | kurt_kilowatt |
 
-**Email testing** — Mailpit catches all outgoing emails locally:
+Each user has 2 cars with ~70-80 charging logs spread over 1 year.
+
+**Email testing** — Mailpit catches all outgoing emails:
 - Web UI: `http://localhost:8025`
 - SMTP: `localhost:1025`
 
@@ -100,6 +188,16 @@ docker compose -f docker-compose.local.yml up --build
 ```
 
 Available at `http://localhost`.
+
+---
+
+## Database
+
+PostgreSQL with Flyway migrations. Current schema: **V47** (`V47__remove_spritmonitor_session_groups.sql`).
+
+Migrations live in `backend/src/main/resources/db/migration/`.
+
+---
 
 ## Deployment
 
@@ -157,7 +255,16 @@ docker compose restart backend
 docker compose run --rm --entrypoint certbot certbot renew
 ```
 
+---
+
 ## Sub-project Documentation
 
 - [Backend README](./backend/README.md) — Architecture, running locally, building
 - [Frontend README](./frontend/README.md) — Tech stack, dev server, building
+- [Feature Docs](./docs/) — Detailed documentation per feature
+
+---
+
+## License
+
+The EV Monitor core is open-source under **AGPL-3.0**. The Wallbox Integration microservice is a separate, closed-source component.

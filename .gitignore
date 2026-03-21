@@ -28,15 +28,23 @@ logs/
 backend/car-images-dev/
 
 # Dev Scripts (local only — not for repo)
-dev.sh
+dev-full.sh
 stop-dev.sh
 .backend.pid
 .frontend.pid
+.wallbox.pid
+.connectors.pid
 
 # Local Docker Compose variants
 docker-compose.dev.yml
 docker-compose.local.yml
 docker-compose.frontend-dev.yml
+docker-compose.full.yml
+
+# WIP Frontend Views (not ready for public)
+frontend/src/views/UpgradeView.vue
+frontend/src/views/UpgradeSuccessView.vue
+frontend/src/views/UpgradeCancelView.vue
 
 # Server/Deployment Scripts (stored on server, not in repo)
 backup.sh

@@ -1,4 +1,3 @@
-
 services:
   db:
     image: postgres:15-alpine
@@ -30,25 +29,21 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-604800000}
-      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5173,http://localhost}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost}
       SPRING_MAIL_HOST: ${MAIL_HOST}
       SPRING_MAIL_PORT: ${MAIL_PORT:-587}
       SPRING_MAIL_USERNAME: ${MAIL_USERNAME}
       SPRING_MAIL_PASSWORD: ${MAIL_PASSWORD}
       SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: ${MAIL_SMTP_AUTH:-true}
       SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: ${MAIL_SMTP_STARTTLS:-true}
-      APP_BASE_URL: ${APP_BASE_URL:-https://ev-monitor.net}
-      APP_MAIL_FROM: ${APP_MAIL_FROM:-noreply@ev-monitor.net}
+      APP_BASE_URL: ${APP_BASE_URL:-https://example.com}
+      APP_MAIL_FROM: ${APP_MAIL_FROM:-noreply@example.com}
       APP_ALERT_EMAIL: ${ALERT_EMAIL:-}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
-      SPRITMONITOR_PROXY_ENABLED: ${SPRITMONITOR_PROXY_ENABLED:-false}
-      SPRITMONITOR_PROXY_HOST: ${SPRITMONITOR_PROXY_HOST:-127.0.0.1}
-      SPRITMONITOR_PROXY_PORT: ${SPRITMONITOR_PROXY_PORT:-1080}
       GITHUB_ISSUE_TOKEN: ${GITHUB_ISSUE_TOKEN:-}
       GITHUB_REPO: ${GITHUB_REPO:-}
       GITHUB_ISSUES_ENABLED: ${GITHUB_ISSUES_ENABLED:-false}
@@ -59,56 +54,6 @@ services:
       options:
         max-size: "50m"
         max-file: "7"
-    depends_on:
-      db:
-        condition: service_healthy
-
-  connectors-service:
-    build:
-      context: ../ev-monitor-connectors
-      dockerfile: Dockerfile
-    restart: always
-    environment:
-      JAVA_OPTS: "-Xmx384m -Xms192m"
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/ev_connectors
-      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
-      JWT_SECRET: ${JWT_SECRET}
-      CORE_API_BASE_URL: http://backend:8080
-      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
-      TESLA_ENCRYPTION_KEY: ${TESLA_ENCRYPTION_KEY}
-      TESLA_FLEET_CLIENT_ID: ${TESLA_FLEET_CLIENT_ID:-}
-      TESLA_FLEET_CLIENT_SECRET: ${TESLA_FLEET_CLIENT_SECRET:-}
-      TESLA_FLEET_REDIRECT_URI: ${TESLA_FLEET_REDIRECT_URI:-https://ev-monitor.net/api/tesla/fleet/auth/callback}
-      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-https://ev-monitor.net}
-      GOE_ENCRYPTION_KEY: ${GOE_ENCRYPTION_KEY}
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "50m"
-        max-file: "7"
-    depends_on:
-      db:
-        condition: service_healthy
-      backend:
-        condition: service_started
-
-  wallbox-service:
-    build:
-      context: ../ev-monitor-wallbox
-      dockerfile: Dockerfile
-    restart: always
-    environment:
-      JAVA_OPTS: "-Xmx384m -Xms192m"
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_NAME: ev_monitor_wallbox
-      DB_USER: ${WALLBOX_DB_USER:-wallbox_user}
-      DB_PASSWORD: ${WALLBOX_DB_PASSWORD}
-      EVMONITOR_CORE_URL: http://backend:8080
-      EVMONITOR_INTERNAL_TOKEN: ${INTERNAL_SERVICE_TOKEN}
-      JWT_SECRET: ${JWT_SECRET}
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://ev-monitor.net,https://www.ev-monitor.net}
     depends_on:
       db:
         condition: service_healthy
@@ -137,8 +82,6 @@ services:
         max-file: "7"
     depends_on:
       - backend
-      - wallbox-service
-      - connectors-service
       - prerender
 
   prerender:

@@ -61,7 +61,7 @@ jobs:
             git reset --hard origin/main
 
             echo "🗄️  Creating database backup..."
-            docker compose exec -T db pg_dump -U evmonitor ev_monitor > backup-$(date +%Y%m%d-%H%M%S).sql || echo "⚠️  Backup failed (DB might not be running yet)"
+            docker compose -f docker-compose.full.yml exec -T db pg_dump -U evmonitor ev_monitor > backup-$(date +%Y%m%d-%H%M%S).sql || echo "⚠️  Backup failed (DB might not be running yet)"
 
             echo "🚀 Deploying application..."
             flock -w 180 /tmp/ev-monitor-deploy.lock ./deploy.sh
@@ -78,7 +78,7 @@ jobs:
           script: |
             echo "⏳ Waiting for backend to become healthy (max 3 minutes)..."
             for i in $(seq 1 18); do
-              if docker compose -f /opt/ev-monitor/ev-monitor/docker-compose.yml exec -T backend curl -sf http://localhost:8080/actuator/health > /dev/null 2>&1; then
+              if docker compose -f /opt/ev-monitor/ev-monitor/docker-compose.full.yml exec -T backend curl -sf http://localhost:8080/actuator/health > /dev/null 2>&1; then
                 echo "✅ Backend healthy after $((i*10)) seconds"
                 exit 0
               fi
@@ -86,7 +86,7 @@ jobs:
               sleep 10
             done
             echo "❌ Backend health check failed — dumping logs:"
-            cd /opt/ev-monitor/ev-monitor && docker compose logs backend --tail=50
+            cd /opt/ev-monitor/ev-monitor && docker compose -f docker-compose.full.yml logs backend --tail=50
             exit 1
 
       - name: Prerender smoke test on production

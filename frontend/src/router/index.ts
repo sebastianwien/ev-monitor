@@ -21,9 +21,6 @@ import NotFoundView from '../views/NotFoundView.vue';
 import CoinHistoryView from '../views/CoinHistoryView.vue';
 import WallboxSetupView from '../views/WallboxSetupView.vue';
 import ImportsView from '../views/ImportsView.vue';
-import UpgradeView from '../views/UpgradeView.vue';
-import UpgradeSuccessView from '../views/UpgradeSuccessView.vue';
-import UpgradeCancelView from '../views/UpgradeCancelView.vue';
 import ForgotPasswordView from '../views/ForgotPasswordView.vue';
 import ResetPasswordView from '../views/ResetPasswordView.vue';
 import AdminImpersonateView from '../views/AdminImpersonateView.vue';
@@ -94,24 +91,6 @@ const router = createRouter({
             path: '/imports',
             name: 'imports',
             component: ImportsView,
-            meta: { requiresAuth: true }
-        },
-        {
-            path: '/upgrade',
-            name: 'upgrade',
-            component: UpgradeView,
-            meta: { requiresAuth: true }
-        },
-        {
-            path: '/upgrade/success',
-            name: 'upgrade-success',
-            component: UpgradeSuccessView,
-            meta: { requiresAuth: true }
-        },
-        {
-            path: '/upgrade/cancel',
-            name: 'upgrade-cancel',
-            component: UpgradeCancelView,
             meta: { requiresAuth: true }
         },
         {
