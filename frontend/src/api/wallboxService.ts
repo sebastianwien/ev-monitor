@@ -6,6 +6,8 @@ export interface WallboxConnection {
   ocppChargePointId: string
   carId: string | null
   displayName: string | null
+  geohash: string | null
+  tariffCentsPerKwh: number
   active: boolean
 }
 
@@ -14,6 +16,11 @@ export interface RegisterWallboxRequest {
   ocppChargePointId: string
   carId: string | null
   displayName: string | null
+}
+
+export interface UpdateWallboxSettingsRequest {
+  geohash: string | null
+  tariffCentsPerKwh: number
 }
 
 async function getConnections(userId: string): Promise<WallboxConnection[]> {
@@ -26,8 +33,13 @@ async function registerConnection(request: RegisterWallboxRequest): Promise<Wall
   return res.data
 }
 
+async function updateSettings(id: string, userId: string, request: UpdateWallboxSettingsRequest): Promise<WallboxConnection> {
+  const res = await api.patch(`/wallbox/connections/${id}`, request, { params: { userId } })
+  return res.data
+}
+
 async function deleteConnection(id: string, userId: string): Promise<void> {
   await api.delete(`/wallbox/connections/${id}`, { params: { userId } })
 }
 
-export const wallboxService = { getConnections, registerConnection, deleteConnection }
+export const wallboxService = { getConnections, registerConnection, updateSettings, deleteConnection }

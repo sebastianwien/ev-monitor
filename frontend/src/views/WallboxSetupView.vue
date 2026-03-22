@@ -10,7 +10,11 @@ import {
   TrashIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,
-  ClipboardDocumentIcon
+  ClipboardDocumentIcon,
+  MapPinIcon,
+  PencilIcon,
+  CheckIcon,
+  XMarkIcon
 } from '@heroicons/vue/24/outline'
 
 const authStore = useAuthStore()
@@ -24,18 +28,159 @@ const saving = ref(false)
 const error = ref<string | null>(null)
 const success = ref<string | null>(null)
 
-// Form
+// ── Add form ───────────────────────────────────────────────────────────────────
 const showForm = ref(false)
 const formChargePointId = ref('')
 const formCarId = ref('')
 const formDisplayName = ref('')
 
-// OCPP WebSocket URL (points to Core Nginx which proxies to Wallbox Service)
+// OCPP WebSocket URL
 const ocppUrl = computed(() => {
   const base = import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || window.location.origin
   return `${base.replace('https://', 'wss://').replace('http://', 'ws://')}/ocpp/ws/${formChargePointId.value || '<deine-chargepoint-id>'}`
 })
 
+// ── Location search (shared helper) ───────────────────────────────────────────
+function encodeGeohash(lat: number, lon: number, precision: number): string {
+  const BASE32 = '0123456789bcdefghjkmnpqrstuvwxyz'
+  let idx = 0, bit = 0, evenBit = true, geohash = ''
+  let minLat = -90, maxLat = 90, minLon = -180, maxLon = 180
+  while (geohash.length < precision) {
+    if (evenBit) {
+      const mid = (minLon + maxLon) / 2
+      if (lon >= mid) { idx = idx * 2 + 1; minLon = mid } else { idx = idx * 2; maxLon = mid }
+    } else {
+      const mid = (minLat + maxLat) / 2
+      if (lat >= mid) { idx = idx * 2 + 1; minLat = mid } else { idx = idx * 2; maxLat = mid }
+    }
+    evenBit = !evenBit
+    if (++bit === 5) { geohash += BASE32[idx]; bit = 0; idx = 0 }
+  }
+  return geohash
+}
+
+async function searchLocation(query: string): Promise<{ display_name: string; lat: string; lon: string }[]> {
+  if (query.length < 3) return []
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5`
+    )
+    return await res.json()
+  } catch { return [] }
+}
+
+// ── Per-connection inline edit state ──────────────────────────────────────────
+interface EditState {
+  editingLocation: boolean
+  locationQuery: string
+  locationResults: { display_name: string; lat: string; lon: string }[]
+  locationTimer: ReturnType<typeof setTimeout> | null
+  pendingGeohash: string | null
+  pendingLocationName: string | null
+  editingTariff: boolean
+  tariffInput: string
+  saving: boolean
+}
+
+const editStates = ref<Record<string, EditState>>({})
+
+function getEditState(id: string): EditState {
+  if (!editStates.value[id]) {
+    editStates.value[id] = {
+      editingLocation: false,
+      locationQuery: '',
+      locationResults: [],
+      locationTimer: null,
+      pendingGeohash: null,
+      pendingLocationName: null,
+      editingTariff: false,
+      tariffInput: '',
+      saving: false
+    }
+  }
+  return editStates.value[id]
+}
+
+function startEditLocation(conn: WallboxConnection) {
+  const s = getEditState(conn.id)
+  s.editingLocation = true
+  s.locationQuery = ''
+  s.pendingGeohash = conn.geohash
+  s.pendingLocationName = null
+}
+
+function onLocationQueryChange(id: string) {
+  const s = getEditState(id)
+  if (s.locationTimer) clearTimeout(s.locationTimer)
+  s.pendingGeohash = null
+  s.pendingLocationName = null
+  if (s.locationQuery.length < 3) { s.locationResults = []; return }
+  s.locationTimer = setTimeout(async () => {
+    s.locationResults = await searchLocation(s.locationQuery)
+  }, 400)
+}
+
+function selectLocation(id: string, result: { display_name: string; lat: string; lon: string }) {
+  const s = getEditState(id)
+  s.pendingGeohash = encodeGeohash(parseFloat(result.lat), parseFloat(result.lon), 5)
+  s.pendingLocationName = result.display_name
+  s.locationQuery = result.display_name
+  s.locationResults = []
+}
+
+function clearLocation(id: string) {
+  const s = getEditState(id)
+  s.pendingGeohash = null
+  s.pendingLocationName = null
+  s.locationQuery = ''
+  s.locationResults = []
+}
+
+async function saveLocation(conn: WallboxConnection) {
+  const s = getEditState(conn.id)
+  s.saving = true
+  try {
+    const updated = await wallboxService.updateSettings(conn.id, userId.value, {
+      geohash: s.pendingGeohash,
+      tariffCentsPerKwh: conn.tariffCentsPerKwh
+    })
+    const idx = connections.value.findIndex(c => c.id === conn.id)
+    if (idx !== -1) connections.value[idx] = updated
+    s.editingLocation = false
+  } catch {
+    error.value = 'Standort konnte nicht gespeichert werden.'
+  } finally {
+    s.saving = false
+  }
+}
+
+function startEditTariff(conn: WallboxConnection) {
+  const s = getEditState(conn.id)
+  s.tariffInput = conn.tariffCentsPerKwh > 0 ? String(conn.tariffCentsPerKwh) : ''
+  s.editingTariff = true
+}
+
+async function saveTariff(conn: WallboxConnection) {
+  const s = getEditState(conn.id)
+  const n = s.tariffInput === '' ? 0 : parseFloat(s.tariffInput)
+  if (isNaN(n) || n < 0 || n > 9999) return
+  s.saving = true
+  try {
+    const updated = await wallboxService.updateSettings(conn.id, userId.value, {
+      geohash: conn.geohash,
+      tariffCentsPerKwh: n
+    })
+    const idx = connections.value.findIndex(c => c.id === conn.id)
+    if (idx !== -1) connections.value[idx] = updated
+    s.editingTariff = false
+  } catch {
+    error.value = 'Tarif konnte nicht gespeichert werden.'
+  } finally {
+    s.saving = false
+  }
+}
+
+// ── Load / Save / Delete ──────────────────────────────────────────────────────
 const load = async () => {
   loading.value = true
   error.value = null
@@ -46,7 +191,7 @@ const load = async () => {
     ])
     connections.value = conns
     cars.value = carList
-  } catch (e: any) {
+  } catch {
     error.value = 'Fehler beim Laden der Wallbox-Verbindungen.'
   } finally {
     loading.value = false
@@ -126,7 +271,7 @@ onMounted(load)
         <h1 class="text-2xl font-bold text-gray-900">Wallbox verbinden</h1>
       </div>
       <p class="text-gray-600">
-        Verbinde deine Heimwallbox über OCPP 1.6. Ladevorgänge werden automatisch importiert.
+        Verbinde deine Heimwallbox uber OCPP 1.6. Ladevorgange werden automatisch importiert.
       </p>
     </div>
 
@@ -136,9 +281,9 @@ onMounted(load)
       <div class="text-sm text-blue-800 dark:text-blue-200">
         <p class="font-semibold mb-1">Beta-Funktion</p>
         <p>
-          Die Wallbox-Integration befindet sich im Beta-Stadium. Sie ist primär dazu gedacht,
-          die OCPP-Schnittstelle mit echten Geräten zu erproben und stabiler zu machen.
-          Fehler und Änderungen sind möglich — Feedback ist willkommen.
+          Die Wallbox-Integration befindet sich im Beta-Stadium. Sie ist primar dazu gedacht,
+          die OCPP-Schnittstelle mit echten Geraten zu erproben und stabiler zu machen.
+          Fehler und Anderungen sind moglich - Feedback ist willkommen.
         </p>
       </div>
     </div>
@@ -163,28 +308,123 @@ onMounted(load)
         <div
           v-for="conn in connections"
           :key="conn.id"
-          class="bg-white border border-gray-200 rounded-xl p-4 flex items-start justify-between gap-4"
+          class="bg-white border border-gray-200 rounded-xl overflow-hidden"
         >
-          <div class="min-w-0">
-            <div class="flex items-center gap-2">
-              <BoltIcon class="h-4 w-4 text-green-600 shrink-0" />
-              <span class="font-medium text-gray-900 truncate">
-                {{ conn.displayName || conn.ocppChargePointId }}
-              </span>
-              <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Aktiv</span>
+          <!-- Connection header -->
+          <div class="p-4 flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <div class="flex items-center gap-2">
+                <BoltIcon class="h-4 w-4 text-green-600 shrink-0" />
+                <span class="font-medium text-gray-900 truncate">
+                  {{ conn.displayName || conn.ocppChargePointId }}
+                </span>
+                <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Aktiv</span>
+              </div>
+              <p class="text-xs text-gray-500 mt-1 font-mono">{{ conn.ocppChargePointId }}</p>
+              <p v-if="carLabel(conn.carId)" class="text-xs text-gray-500 mt-0.5">
+                {{ carLabel(conn.carId) }}
+              </p>
             </div>
-            <p class="text-xs text-gray-500 mt-1 font-mono">{{ conn.ocppChargePointId }}</p>
-            <p v-if="carLabel(conn.carId)" class="text-xs text-gray-500 mt-0.5">
-              {{ carLabel(conn.carId) }}
-            </p>
+            <button
+              @click="remove(conn.id)"
+              class="text-gray-400 hover:text-red-500 transition shrink-0"
+              title="Verbindung entfernen"
+            >
+              <TrashIcon class="h-4 w-4" />
+            </button>
           </div>
-          <button
-            @click="remove(conn.id)"
-            class="text-gray-400 hover:text-red-500 transition shrink-0"
-            title="Verbindung entfernen"
-          >
-            <TrashIcon class="h-4 w-4" />
-          </button>
+
+          <!-- Location row -->
+          <div class="border-t border-gray-100 px-4 py-3">
+            <div v-if="!getEditState(conn.id).editingLocation" class="flex items-center justify-between">
+              <span class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                <MapPinIcon class="h-3.5 w-3.5" />
+                Standort:
+                <span class="font-medium text-gray-700">
+                  {{ conn.geohash ? `Gesetzt (${conn.geohash})` : 'nicht gesetzt' }}
+                </span>
+              </span>
+              <button @click="startEditLocation(conn)"
+                class="flex items-center gap-1 text-xs text-green-600 hover:text-green-700 font-medium">
+                <PencilIcon class="h-3.5 w-3.5" />
+                Bearbeiten
+              </button>
+            </div>
+            <div v-else class="space-y-2">
+              <div class="relative">
+                <input
+                  v-model="getEditState(conn.id).locationQuery"
+                  @input="onLocationQueryChange(conn.id)"
+                  type="text"
+                  placeholder="Adresse suchen..."
+                  class="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+                <ul v-if="getEditState(conn.id).locationResults.length > 0"
+                  class="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-48 overflow-auto">
+                  <li v-for="result in getEditState(conn.id).locationResults" :key="result.lat + result.lon"
+                    @click="selectLocation(conn.id, result)"
+                    class="px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer truncate">
+                    {{ result.display_name }}
+                  </li>
+                </ul>
+              </div>
+              <p v-if="getEditState(conn.id).pendingGeohash" class="text-xs text-green-600">
+                Geohash: {{ getEditState(conn.id).pendingGeohash }}
+              </p>
+              <div class="flex items-center gap-2">
+                <button @click="saveLocation(conn)" :disabled="getEditState(conn.id).saving"
+                  class="flex items-center gap-1 text-xs bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 disabled:opacity-50">
+                  <CheckIcon class="h-3.5 w-3.5" />
+                  Speichern
+                </button>
+                <button @click="clearLocation(conn.id); getEditState(conn.id).editingLocation = false"
+                  class="text-xs text-gray-500 hover:text-gray-700 px-2 py-1.5">
+                  Abbrechen
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tariff row -->
+          <div class="border-t border-gray-100 px-4 py-3">
+            <div v-if="!getEditState(conn.id).editingTariff" class="flex items-center justify-between">
+              <span class="text-xs text-gray-500 dark:text-gray-400">
+                Tarif:
+                <span class="font-medium text-gray-700">
+                  {{ conn.tariffCentsPerKwh > 0
+                    ? `${Number(conn.tariffCentsPerKwh).toLocaleString('de-DE', { maximumFractionDigits: 4 })} ct/kWh`
+                    : 'nicht gesetzt' }}
+                </span>
+              </span>
+              <button @click="startEditTariff(conn)"
+                class="flex items-center gap-1 text-xs text-green-600 hover:text-green-700 font-medium">
+                <PencilIcon class="h-3.5 w-3.5" />
+                Bearbeiten
+              </button>
+            </div>
+            <div v-else class="flex items-center gap-2">
+              <input
+                v-model="getEditState(conn.id).tariffInput"
+                type="number"
+                min="0"
+                max="9999"
+                step="0.0001"
+                placeholder="z.B. 29,5"
+                class="flex-1 border border-gray-300 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                @keyup.enter="saveTariff(conn)"
+                @keyup.escape="getEditState(conn.id).editingTariff = false"
+              />
+              <span class="text-xs text-gray-500 shrink-0">ct/kWh</span>
+              <button @click="saveTariff(conn)" :disabled="getEditState(conn.id).saving"
+                class="p-1 text-green-600 hover:text-green-700 disabled:opacity-50">
+                <CheckIcon class="h-4 w-4" />
+              </button>
+              <button @click="getEditState(conn.id).editingTariff = false"
+                class="p-1 text-gray-400 hover:text-gray-600">
+                <XMarkIcon class="h-4 w-4" />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -195,7 +435,7 @@ onMounted(load)
           class="flex items-center gap-2 bg-green-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-green-700 transition"
         >
           <PlusIcon class="h-5 w-5" />
-          Wallbox hinzufügen
+          Wallbox hinzufugen
         </button>
       </div>
 
@@ -214,7 +454,7 @@ onMounted(load)
             class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
           />
           <p class="text-xs text-gray-500 mt-1">
-            Bei go-e: Seriennummer aus der App unter Einstellungen → Geräteinformationen
+            Bei go-e: Seriennummer aus der App unter Einstellungen - Gerateinformationen
           </p>
         </div>
 
@@ -246,7 +486,7 @@ onMounted(load)
         <!-- OCPP URL Preview -->
         <div v-if="formChargePointId.trim()" class="bg-gray-50 border border-gray-200 rounded-lg p-4">
           <p class="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">
-            OCPP-URL für deine Wallbox-App:
+            OCPP-URL fur deine Wallbox-App:
           </p>
           <div class="flex items-center gap-2">
             <code class="text-xs text-gray-800 break-all flex-1">{{ ocppUrl }}</code>
@@ -259,7 +499,7 @@ onMounted(load)
             </button>
           </div>
           <p class="text-xs text-gray-500 mt-2">
-            go-e: App → Einstellungen → OCPP → Server URL eintragen
+            go-e: App - Einstellungen - OCPP - Server URL eintragen
           </p>
         </div>
 
@@ -285,14 +525,14 @@ onMounted(load)
       <div class="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-xl p-5">
         <h3 class="font-semibold text-amber-900 dark:text-amber-200 mb-3">Setup-Anleitung (go-e Charger)</h3>
         <ol class="text-sm text-amber-800 dark:text-amber-200 space-y-2 list-decimal list-inside">
-          <li>go-e App öffnen → deine Wallbox auswählen</li>
-          <li>Einstellungen → OCPP → OCPP aktivieren</li>
+          <li>go-e App offnen - deine Wallbox auswahlen</li>
+          <li>Einstellungen - OCPP - OCPP aktivieren</li>
           <li>Server URL: <strong>die oben angezeigte OCPP-URL eintragen</strong></li>
           <li>ChargePoint-ID: deine Seriennummer (gleiche wie oben eingegeben)</li>
-          <li>Speichern — ab jetzt werden Ladevorgänge automatisch importiert</li>
+          <li>Speichern - ab jetzt werden Ladevorgange automatisch importiert</li>
         </ol>
         <p class="text-xs text-amber-700 dark:text-amber-300 mt-3">
-          Andere OCPP-fähige Wallboxen (Easee, KEBA, Wallbe, Heidelberg) funktionieren analog.
+          Andere OCPP-fahige Wallboxen (Easee, KEBA, Wallbe, Heidelberg) funktionieren analog.
         </p>
       </div>
     </template>
