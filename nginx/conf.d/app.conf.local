@@ -101,9 +101,9 @@ server {
         proxy_buffering off;
     }
 
-    # Proxy OCPP WebSocket to wallbox-service
+    # Proxy OCPP WebSocket to wallbox-service (OCPP 1.6 runs on port 9090, not 8090)
     location /ocpp/ws/ {
-        proxy_pass http://wallbox-service:8090/ocpp/ws/;
+        proxy_pass http://wallbox-service:9090/ocpp/ws/;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
