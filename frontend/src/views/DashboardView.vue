@@ -747,11 +747,17 @@ function sourceInfo(ds?: string): { label: string; icon: Component; classes: str
   }
 }
 
+const refreshLogsAndGroups = () => {
+  subSessionsCache.value = {}
+  fetchLogs(logsPage.value)
+  fetchGroups()
+}
+
 const deleteLog = async (id: string) => {
   if (!confirm('Ladevorgang wirklich löschen?')) return
   try {
     await api.delete(`/logs/${id}`)
-    await fetchLogs(logsPage.value)
+    refreshLogsAndGroups()
   } catch {
     // Network error — ignore, log list stays unchanged
   }
@@ -1030,7 +1036,7 @@ const deleteLog = async (id: string) => {
             <div class="h-1 bg-amber-500"></div>
             <div class="p-4">
               <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">Gesamtenergie</p>
-              <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ stats.totalKwhCharged.toFixed(1) }}</p>
+              <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ stats.totalKwhCharged?.toFixed(1) ?? '–' }}</p>
               <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">kWh · {{ stats.totalCharges }} Ladungen</p>
             </div>
           </div>
@@ -1038,8 +1044,8 @@ const deleteLog = async (id: string) => {
             <div class="h-1 bg-indigo-500"></div>
             <div class="p-4">
               <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">Gesamtkosten</p>
-              <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">€{{ stats.totalCostEur.toFixed(2) }}</p>
-              <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Ø €{{ stats.avgCostPerKwh.toFixed(2) }}/kWh</p>
+              <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">€{{ stats.totalCostEur?.toFixed(2) ?? '–' }}</p>
+              <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Ø €{{ stats.avgCostPerKwh?.toFixed(2) ?? '–' }}/kWh</p>
             </div>
           </div>
           <div v-if="stats.totalDistanceKm != null"
@@ -1060,7 +1066,7 @@ const deleteLog = async (id: string) => {
               <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                 kWh/100km
                 <span v-if="wltp" class="font-medium">
-                  (WLTP: {{ wltp.wltpConsumptionKwhPer100km.toFixed(1) }})
+                  (WLTP: {{ wltp.wltpConsumptionKwhPer100km?.toFixed(1) ?? '–' }})
                 </span>
               </p>
               <p v-if="stats.estimatedConsumptionCount > 0" class="text-xs text-red-500 mt-2 italic">
@@ -1167,7 +1173,7 @@ const deleteLog = async (id: string) => {
           <div class="mb-4 text-center px-4 md:px-0">
             <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">Verbrauch vs. WLTP</h2>
             <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
-              WLTP: <strong>{{ wltp.wltpConsumptionKwhPer100km.toFixed(1) }} kWh/100km</strong>
+              WLTP: <strong>{{ wltp.wltpConsumptionKwhPer100km?.toFixed(1) ?? '–' }} kWh/100km</strong>
               ({{ wltp.wltpRangeKm }} km, {{ wltp.wltpType }})
               <span class="hidden sm:inline">
                 · <span class="text-emerald-600 font-medium">grün = effizienter</span>
@@ -1290,6 +1296,14 @@ const deleteLog = async (id: string) => {
                     </span>
                     <span v-if="sub.chargeDurationMinutes" class="text-gray-400">{{ sub.chargeDurationMinutes }}min</span>
                     <span v-if="sub.costEur != null" class="text-gray-400">€{{ sub.costEur }}</span>
+                    <div class="ml-auto flex items-center gap-1 flex-shrink-0">
+                      <button @click="editingLog = sub" class="p-1 rounded text-gray-300 hover:text-blue-500 hover:bg-blue-50 transition" title="Ladevorgang bearbeiten">
+                        <PencilSquareIcon class="w-3.5 h-3.5" />
+                      </button>
+                      <button @click="deleteLog(sub.id)" class="p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition">
+                        <TrashIcon class="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1554,7 +1568,7 @@ const deleteLog = async (id: string) => {
     v-if="editingLog"
     :log="editingLog"
     @close="editingLog = null"
-    @saved="() => { editingLog = null; fetchLogs(logsPage) }"
+    @saved="() => { editingLog = null; refreshLogsAndGroups() }"
   />
 
   <ImplausibleLogsModal
