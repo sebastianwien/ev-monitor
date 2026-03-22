@@ -14,7 +14,10 @@ import {
   MapPinIcon,
   PencilIcon,
   CheckIcon,
-  XMarkIcon
+  XMarkIcon,
+  EyeIcon,
+  EyeSlashIcon,
+  KeyIcon
 } from '@heroicons/vue/24/outline'
 
 const authStore = useAuthStore()
@@ -79,6 +82,7 @@ interface EditState {
   pendingLocationName: string | null
   editingTariff: boolean
   tariffInput: string
+  passwordVisible: boolean
   saving: boolean
 }
 
@@ -95,6 +99,7 @@ function getEditState(id: string): EditState {
       pendingLocationName: null,
       editingTariff: false,
       tariffInput: '',
+      passwordVisible: false,
       saving: false
     }
   }
@@ -423,6 +428,37 @@ onMounted(load)
                 class="p-1 text-gray-400 hover:text-gray-600">
                 <XMarkIcon class="h-4 w-4" />
               </button>
+            </div>
+          </div>
+
+          <!-- OCPP credentials row -->
+          <div class="border-t border-gray-100 px-4 py-3 bg-gray-50">
+            <p class="text-xs font-semibold text-gray-600 flex items-center gap-1 mb-2">
+              <KeyIcon class="h-3.5 w-3.5" />
+              OCPP-Zugangsdaten
+            </p>
+            <div class="space-y-1.5">
+              <div class="flex items-center gap-2">
+                <span class="text-xs text-gray-500 w-16 shrink-0">Username</span>
+                <code class="text-xs text-gray-800 bg-white border border-gray-200 rounded px-2 py-0.5 flex-1 truncate">{{ conn.ocppChargePointId }}</code>
+                <button @click="copyUrl(conn.ocppChargePointId)" class="text-gray-400 hover:text-green-600 shrink-0" title="Kopieren">
+                  <ClipboardDocumentIcon class="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs text-gray-500 w-16 shrink-0">Passwort</span>
+                <code class="text-xs text-gray-800 bg-white border border-gray-200 rounded px-2 py-0.5 flex-1 truncate">
+                  {{ getEditState(conn.id).passwordVisible ? conn.ocppPassword : '••••••••••••••••' }}
+                </code>
+                <button @click="getEditState(conn.id).passwordVisible = !getEditState(conn.id).passwordVisible"
+                  class="text-gray-400 hover:text-gray-600 shrink-0" title="Anzeigen/Verbergen">
+                  <EyeSlashIcon v-if="getEditState(conn.id).passwordVisible" class="h-3.5 w-3.5" />
+                  <EyeIcon v-else class="h-3.5 w-3.5" />
+                </button>
+                <button @click="copyUrl(conn.ocppPassword)" class="text-gray-400 hover:text-green-600 shrink-0" title="Kopieren">
+                  <ClipboardDocumentIcon class="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
           </div>
         </div>

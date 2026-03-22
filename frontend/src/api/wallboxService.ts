@@ -8,6 +8,7 @@ export interface WallboxConnection {
   displayName: string | null
   geohash: string | null
   tariffCentsPerKwh: number
+  ocppPassword: string
   active: boolean
 }
 
