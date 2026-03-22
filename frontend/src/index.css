@@ -66,3 +66,16 @@ body {
     background-color: #030712;
     color: #f9fafb;
 }
+
+/* EV wallpaper background */
+.ev-bg-pattern {
+    background-image: url('/wallpaper-light.avif');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+}
+
+.dark .ev-bg-pattern {
+    background-image: url('/wallpaper-dark.avif');
+}

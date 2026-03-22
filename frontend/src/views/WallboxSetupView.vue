@@ -223,7 +223,7 @@ const save = async () => {
     formChargePointId.value = ''
     formCarId.value = ''
     formDisplayName.value = ''
-    success.value = 'Wallbox erfolgreich verbunden! Jetzt die OCPP-URL in deiner Wallbox-App eintragen.'
+    success.value = 'Wallbox erfolgreich registriert! Trage OCPP-URL und Passwort in deine Wallbox-App ein - beides findest du unten in den Zugangsdaten.'
   } catch (e: any) {
     if (e?.response?.status === 409) {
       error.value = 'Diese ChargePoint-ID ist bereits registriert.'

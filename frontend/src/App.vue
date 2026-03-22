@@ -125,7 +125,7 @@ const closeMobileMenu = () => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-100 dark:bg-gray-950 flex flex-col">
+  <div class="min-h-screen bg-gray-100 dark:bg-gray-950 ev-bg-pattern flex flex-col">
     <!-- Navigation -->
     <nav class="bg-indigo-600 shadow-md text-white fixed top-0 left-0 right-0 z-40" v-if="authStore.isAuthenticated()">
       <div class="px-4 py-3">
