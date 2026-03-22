@@ -55,10 +55,14 @@ public class SessionGroupService {
      * Verarbeitet einen neu gespeicherten Log und gruppiert ihn zeitbasiert mit bestehenden Sessions.
      * Für WALLBOX_GOE und API_UPLOAD; andere Quellen werden ignoriert.
      *
-     * Läuft in einer eigenen Transaktion (REQUIRES_NEW) damit ein Fehler beim Grouping
-     * nicht die äußere Log-Save-Transaktion als rollback-only markiert. Die Caller
-     * (createWallboxLog, logCharging, PublicApiImportService) wollen den Log auch dann
-     * speichern wenn das Grouping fehlschlägt.
+     * Läuft in derselben Transaktion wie der Caller (REQUIRED). Das ist bewusst so:
+     * setSessionGroupId nutzt flushAutomatically=true, damit der ev_log (der noch uncommitted
+     * in der JPA-Session liegt) zuerst in die DB geflusht wird, bevor das UPDATE läuft.
+     * Mit REQUIRES_NEW würde der ev_log nicht sichtbar sein → UPDATE matcht 0 Zeilen → orphaned group.
+     *
+     * Falls das Grouping fehlschlägt und eine Exception wirft, wird die gesamte äußere
+     * Transaktion als rollback-only markiert. Der try-catch in den Callern gibt Logging-Sicherheit,
+     * verhindert aber keinen Rollback.
      *
      * @param savedLog Der gerade gespeicherte Log-Eintrag
      */
