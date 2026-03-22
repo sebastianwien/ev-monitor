@@ -453,7 +453,7 @@ onMounted(() => {
           <p class="text-sm text-gray-600 dark:text-gray-400">
             <strong>{{ totalLogs }}</strong> Ladevorgänge ·
             <strong>{{ Math.round(totalKwh) }}</strong> kWh ·
-            <strong>€{{ totalCostEur.toFixed(2) }}</strong>
+            <strong>€{{ (totalCostEur ?? 0).toFixed(2) }}</strong>
           </p>
         </div>
 

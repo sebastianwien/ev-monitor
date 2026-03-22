@@ -13,7 +13,10 @@ const emit = defineEmits<{
 const coinStore = useCoinStore()
 const carStore = useCarStore()
 
-const enumToLabel = (v: string) => v.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
+const enumToLabel = (v: string | null | undefined): string => {
+  if (!v) return ''
+  return v.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
+}
 const carLabel = (car: Car) => {
   const name = `${enumToLabel(car.brand)} ${enumToLabel(car.model)}`
   return car.licensePlate ? `${name} · ${car.licensePlate}` : name

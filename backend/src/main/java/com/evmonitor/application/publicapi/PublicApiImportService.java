@@ -5,6 +5,7 @@ import com.evmonitor.application.CoinLogService;
 import com.evmonitor.application.SessionGroupService;
 import com.evmonitor.domain.*;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -126,7 +127,14 @@ public class PublicApiImportService {
                         entry.rawImportData()
                 );
 
-                EvLog saved = evLogRepository.save(evLog);
+                EvLog saved;
+                try {
+                    saved = evLogRepository.save(evLog);
+                } catch (DataIntegrityViolationException e) {
+                    log.debug("API Upload: Duplikat beim Speichern erkannt (race condition) — übersprungen");
+                    skipped++;
+                    continue;
+                }
                 coinLogService.awardCoinsForEvent(userId, CoinLogService.CoinEvent.API_UPLOAD_LOG, saved.getId());
 
                 if (mergeSessions && (allowBatchMerge || sortedEntries.size() == 1)) {
@@ -149,7 +157,7 @@ public class PublicApiImportService {
     }
 
     private boolean isDuplicate(UUID carId, LocalDateTime loggedAt, Double kwh, DataSource dataSource) {
-        return evLogRepository.existsByCarIdAndLoggedAtAndKwhCharged(carId, loggedAt, BigDecimal.valueOf(kwh));
+        return evLogRepository.existsByCarIdAndLoggedAtAndDataSource(carId, loggedAt, dataSource);
     }
 
     private LocalDateTime parseDate(String raw) {

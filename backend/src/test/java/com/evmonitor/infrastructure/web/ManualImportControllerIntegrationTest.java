@@ -221,7 +221,9 @@ class ManualImportControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void csvImport_sameTimestampDifferentKwh_notDuplicate() {
+    void csvImport_sameTimestampDifferentKwh_isSkipped() {
+        // Same (carId, loggedAt, dataSource) = duplicate per DB constraint uq_ev_log_car_loggedat_datasource.
+        // kWh difference is irrelevant — the second entry is skipped.
         String csv = """
                 date,kwh
                 2025-08-20T10:00:00,24.5
@@ -230,8 +232,8 @@ class ManualImportControllerIntegrationTest extends AbstractIntegrationTest {
 
         ResponseEntity<ImportApiResult> response = post(csv, "csv");
 
-        assertEquals(2, response.getBody().imported());
-        assertEquals(0, response.getBody().skipped());
+        assertEquals(1, response.getBody().imported());
+        assertEquals(1, response.getBody().skipped());
     }
 
     // ── Session merging ───────────────────────────────────────────────────────

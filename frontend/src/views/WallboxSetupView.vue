@@ -245,11 +245,13 @@ const remove = async (id: string) => {
   }
 }
 
-const enumToLabel = (value: string): string =>
-  value.replace(/_/g, ' ').toLowerCase()
+const enumToLabel = (value: string | null | undefined): string => {
+  if (!value) return ''
+  return value.replace(/_/g, ' ').toLowerCase()
     .split(' ')
     .map(w => w.charAt(0).toUpperCase() + w.slice(1))
     .join(' ')
+}
 
 const carLabel = (carId: string | null) => {
   if (!carId) return null
