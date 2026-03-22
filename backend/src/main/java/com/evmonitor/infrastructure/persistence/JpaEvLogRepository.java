@@ -145,17 +145,26 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     long countValidTrips();
 
     @Query(value = """
+            WITH filtered AS (
+                SELECT l.id,
+                       l.kwh_charged,
+                       l.cost_eur,
+                       c.user_id,
+                       l.odometer_km,
+                       LAG(l.odometer_km) OVER (PARTITION BY l.car_id ORDER BY l.logged_at) AS prev_odometer
+                FROM ev_log l
+                JOIN car c ON c.id = l.car_id
+                WHERE c.model = :model
+                  AND (l.include_in_statistics = true
+                       OR (:isSeedUser = true
+                           AND c.user_id IN (SELECT id FROM app_user WHERE is_seed_data = true)))
+            )
             SELECT
-                COUNT(l.id)                                            AS log_count,
-                COUNT(DISTINCT c.user_id)                              AS unique_contributors,
-                AVG(CASE WHEN l.cost_eur > 0 THEN l.cost_eur / NULLIF(l.kwh_charged, 0) END) AS avg_cost_per_kwh,
-                AVG(l.kwh_charged)                                     AS avg_kwh_per_session
-            FROM ev_log l
-            JOIN car c ON c.id = l.car_id
-            WHERE c.model = :model
-              AND (l.include_in_statistics = true
-                   OR (:isSeedUser = true
-                       AND c.user_id IN (SELECT id FROM app_user WHERE is_seed_data = true)))
+                COUNT(id) FILTER (WHERE prev_odometer IS NULL OR odometer_km IS NULL OR odometer_km != prev_odometer) AS log_count,
+                COUNT(DISTINCT user_id)                                                                                AS unique_contributors,
+                AVG(CASE WHEN cost_eur > 0 THEN cost_eur / NULLIF(kwh_charged, 0) END)                               AS avg_cost_per_kwh,
+                AVG(kwh_charged) FILTER (WHERE prev_odometer IS NULL OR odometer_km IS NULL OR odometer_km != prev_odometer) AS avg_kwh_per_session
+            FROM filtered
             """, nativeQuery = true)
     Object[] findPublicBasicStatsByModel(
             @Param("model") String model,
