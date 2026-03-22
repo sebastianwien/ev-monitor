@@ -275,10 +275,10 @@ onMounted(load)
     <div class="mb-8">
       <div class="flex items-center gap-3 mb-2">
         <BoltIcon class="h-7 w-7 text-green-600" />
-        <h1 class="text-2xl font-bold text-gray-900">Wallbox verbinden</h1>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Wallbox verbinden</h1>
       </div>
-      <p class="text-gray-600">
-        Verbinde deine Heimwallbox uber OCPP 1.6. Ladevorgange werden automatisch importiert.
+      <p class="text-gray-600 dark:text-gray-400">
+        Verbinde deine Heimwallbox über OCPP 1.6. Ladevorgänge werden automatisch importiert.
       </p>
     </div>
 
@@ -288,9 +288,9 @@ onMounted(load)
       <div class="text-sm text-blue-800 dark:text-blue-200">
         <p class="font-semibold mb-1">Beta-Funktion</p>
         <p>
-          Die Wallbox-Integration befindet sich im Beta-Stadium. Sie ist primar dazu gedacht,
-          die OCPP-Schnittstelle mit echten Geraten zu erproben und stabiler zu machen.
-          Fehler und Anderungen sind moglich - Feedback ist willkommen.
+          Die Wallbox-Integration befindet sich im Beta-Stadium. Sie ist primär dazu gedacht,
+          die OCPP-Schnittstelle mit echten Geräten zu erproben und stabiler zu machen.
+          Fehler und Änderungen sind möglich - Feedback ist willkommen.
         </p>
       </div>
     </div>
@@ -306,35 +306,35 @@ onMounted(load)
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="text-center text-gray-500 py-12">Lade...</div>
+    <div v-if="loading" class="text-center text-gray-500 dark:text-gray-400 py-12">Lade...</div>
 
     <template v-else>
       <!-- Existing Connections -->
       <div v-if="connections.length > 0" class="mb-8 space-y-3">
-        <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Verbundene Wallboxen</h2>
+        <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Verbundene Wallboxen</h2>
         <div
           v-for="conn in connections"
           :key="conn.id"
-          class="bg-white border border-gray-200 rounded-xl overflow-hidden"
+          class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden"
         >
           <!-- Connection header -->
           <div class="p-4 flex items-start justify-between gap-4">
             <div class="min-w-0">
               <div class="flex items-center gap-2">
                 <BoltIcon class="h-4 w-4 text-green-600 shrink-0" />
-                <span class="font-medium text-gray-900 truncate">
+                <span class="font-medium text-gray-900 dark:text-gray-100 truncate">
                   {{ conn.displayName || conn.ocppChargePointId }}
                 </span>
-                <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Aktiv</span>
+                <span class="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-0.5 rounded-full">Aktiv</span>
               </div>
-              <p class="text-xs text-gray-500 mt-1 font-mono">{{ conn.ocppChargePointId }}</p>
-              <p v-if="carLabel(conn.carId)" class="text-xs text-gray-500 mt-0.5">
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 font-mono">{{ conn.ocppChargePointId }}</p>
+              <p v-if="carLabel(conn.carId)" class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                 {{ carLabel(conn.carId) }}
               </p>
             </div>
             <button
               @click="remove(conn.id)"
-              class="text-gray-400 hover:text-red-500 transition shrink-0"
+              class="text-gray-400 dark:text-gray-500 hover:text-red-500 transition shrink-0"
               title="Verbindung entfernen"
             >
               <TrashIcon class="h-4 w-4" />
@@ -342,12 +342,12 @@ onMounted(load)
           </div>
 
           <!-- Location row -->
-          <div class="border-t border-gray-100 px-4 py-3">
+          <div class="border-t border-gray-100 dark:border-gray-700 px-4 py-3">
             <div v-if="!getEditState(conn.id).editingLocation" class="flex items-center justify-between">
               <span class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
                 <MapPinIcon class="h-3.5 w-3.5" />
                 Standort:
-                <span class="font-medium text-gray-700">
+                <span class="font-medium text-gray-700 dark:text-gray-300">
                   {{ conn.geohash ? `Gesetzt (${conn.geohash})` : 'nicht gesetzt' }}
                 </span>
               </span>
@@ -364,13 +364,13 @@ onMounted(load)
                   @input="onLocationQueryChange(conn.id)"
                   type="text"
                   placeholder="Adresse suchen..."
-                  class="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                  class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500"
                 />
                 <ul v-if="getEditState(conn.id).locationResults.length > 0"
-                  class="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-48 overflow-auto">
+                  class="absolute z-10 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg mt-1 max-h-48 overflow-auto">
                   <li v-for="result in getEditState(conn.id).locationResults" :key="result.lat + result.lon"
                     @click="selectLocation(conn.id, result)"
-                    class="px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer truncate">
+                    class="px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer truncate">
                     {{ result.display_name }}
                   </li>
                 </ul>
@@ -385,7 +385,7 @@ onMounted(load)
                   Speichern
                 </button>
                 <button @click="clearLocation(conn.id); getEditState(conn.id).editingLocation = false"
-                  class="text-xs text-gray-500 hover:text-gray-700 px-2 py-1.5">
+                  class="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 px-2 py-1.5">
                   Abbrechen
                 </button>
               </div>
@@ -393,11 +393,11 @@ onMounted(load)
           </div>
 
           <!-- Tariff row -->
-          <div class="border-t border-gray-100 px-4 py-3">
+          <div class="border-t border-gray-100 dark:border-gray-700 px-4 py-3">
             <div v-if="!getEditState(conn.id).editingTariff" class="flex items-center justify-between">
               <span class="text-xs text-gray-500 dark:text-gray-400">
                 Tarif:
-                <span class="font-medium text-gray-700">
+                <span class="font-medium text-gray-700 dark:text-gray-300">
                   {{ conn.tariffCentsPerKwh > 0
                     ? `${Number(conn.tariffCentsPerKwh).toLocaleString('de-DE', { maximumFractionDigits: 4 })} ct/kWh`
                     : 'nicht gesetzt' }}
@@ -417,47 +417,47 @@ onMounted(load)
                 max="9999"
                 step="0.0001"
                 placeholder="z.B. 29,5"
-                class="flex-1 border border-gray-300 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                class="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500"
                 @keyup.enter="saveTariff(conn)"
                 @keyup.escape="getEditState(conn.id).editingTariff = false"
               />
-              <span class="text-xs text-gray-500 shrink-0">ct/kWh</span>
+              <span class="text-xs text-gray-500 dark:text-gray-400 shrink-0">ct/kWh</span>
               <button @click="saveTariff(conn)" :disabled="getEditState(conn.id).saving"
                 class="p-1 text-green-600 hover:text-green-700 disabled:opacity-50">
                 <CheckIcon class="h-4 w-4" />
               </button>
               <button @click="getEditState(conn.id).editingTariff = false"
-                class="p-1 text-gray-400 hover:text-gray-600">
+                class="p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
                 <XMarkIcon class="h-4 w-4" />
               </button>
             </div>
           </div>
 
           <!-- OCPP credentials row -->
-          <div class="border-t border-gray-100 px-4 py-3 bg-gray-50">
-            <p class="text-xs font-semibold text-gray-600 flex items-center gap-1 mb-2">
+          <div class="border-t border-gray-100 dark:border-gray-700 px-4 py-3 bg-gray-50 dark:bg-gray-700/50">
+            <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 flex items-center gap-1 mb-2">
               <KeyIcon class="h-3.5 w-3.5" />
               OCPP-Zugangsdaten
             </p>
             <div class="space-y-1.5">
               <div class="flex items-center gap-2">
-                <span class="text-xs text-gray-500 w-16 shrink-0">Username</span>
-                <code class="text-xs text-gray-800 bg-white border border-gray-200 rounded px-2 py-0.5 flex-1 truncate">{{ conn.ocppChargePointId }}</code>
-                <button @click="copyUrl(conn.ocppChargePointId)" class="text-gray-400 hover:text-green-600 shrink-0" title="Kopieren">
+                <span class="text-xs text-gray-500 dark:text-gray-400 w-16 shrink-0">Username</span>
+                <code class="text-xs text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-0.5 flex-1 truncate">{{ conn.ocppChargePointId }}</code>
+                <button @click="copyUrl(conn.ocppChargePointId)" class="text-gray-400 dark:text-gray-500 hover:text-green-600 shrink-0" title="Kopieren">
                   <ClipboardDocumentIcon class="h-3.5 w-3.5" />
                 </button>
               </div>
               <div class="flex items-center gap-2">
-                <span class="text-xs text-gray-500 w-16 shrink-0">Passwort</span>
-                <code class="text-xs text-gray-800 bg-white border border-gray-200 rounded px-2 py-0.5 flex-1 truncate">
+                <span class="text-xs text-gray-500 dark:text-gray-400 w-16 shrink-0">Passwort</span>
+                <code class="text-xs text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-0.5 flex-1 truncate">
                   {{ getEditState(conn.id).passwordVisible ? conn.ocppPassword : '••••••••••••••••' }}
                 </code>
                 <button @click="getEditState(conn.id).passwordVisible = !getEditState(conn.id).passwordVisible"
-                  class="text-gray-400 hover:text-gray-600 shrink-0" title="Anzeigen/Verbergen">
+                  class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 shrink-0" title="Anzeigen/Verbergen">
                   <EyeSlashIcon v-if="getEditState(conn.id).passwordVisible" class="h-3.5 w-3.5" />
                   <EyeIcon v-else class="h-3.5 w-3.5" />
                 </button>
-                <button @click="copyUrl(conn.ocppPassword)" class="text-gray-400 hover:text-green-600 shrink-0" title="Kopieren">
+                <button @click="copyUrl(conn.ocppPassword)" class="text-gray-400 dark:text-gray-500 hover:text-green-600 shrink-0" title="Kopieren">
                   <ClipboardDocumentIcon class="h-3.5 w-3.5" />
                 </button>
               </div>
@@ -473,46 +473,46 @@ onMounted(load)
           class="flex items-center gap-2 bg-green-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-green-700 transition"
         >
           <PlusIcon class="h-5 w-5" />
-          Wallbox hinzufugen
+          Wallbox hinzufügen
         </button>
       </div>
 
-      <div v-else class="bg-white border border-gray-200 rounded-xl p-6 mb-8 space-y-5">
-        <h2 class="font-semibold text-gray-900">Neue Wallbox verbinden</h2>
+      <div v-else class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 mb-8 space-y-5">
+        <h2 class="font-semibold text-gray-900 dark:text-gray-100">Neue Wallbox verbinden</h2>
 
         <!-- ChargePoint ID -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             ChargePoint-ID <span class="text-red-500">*</span>
           </label>
           <input
             v-model="formChargePointId"
             type="text"
             placeholder="z.B. ESP32_A1B2C3 oder go-e Seriennummer"
-            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+            class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500"
           />
-          <p class="text-xs text-gray-500 mt-1">
-            Bei go-e: Seriennummer aus der App unter Einstellungen - Gerateinformationen
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Bei go-e: Seriennummer aus der App unter Einstellungen - Geräteinformationen
           </p>
         </div>
 
         <!-- Display Name -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Name (optional)</label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name (optional)</label>
           <input
             v-model="formDisplayName"
             type="text"
             placeholder="z.B. Garage Zuhause"
-            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+            class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500"
           />
         </div>
 
         <!-- Car Selection -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Fahrzeug (optional)</label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fahrzeug (optional)</label>
           <select
             v-model="formCarId"
-            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+            class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500"
           >
             <option value="">Kein Fahrzeug zuordnen</option>
             <option v-for="car in cars" :key="car.id" :value="car.id">
@@ -522,12 +522,12 @@ onMounted(load)
         </div>
 
         <!-- OCPP URL Preview -->
-        <div v-if="formChargePointId.trim()" class="bg-gray-50 border border-gray-200 rounded-lg p-4">
-          <p class="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">
-            OCPP-URL fur deine Wallbox-App:
+        <div v-if="formChargePointId.trim()" class="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg p-4">
+          <p class="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">
+            OCPP-URL für deine Wallbox-App:
           </p>
           <div class="flex items-center gap-2">
-            <code class="text-xs text-gray-800 break-all flex-1">{{ ocppUrl }}</code>
+            <code class="text-xs text-gray-800 dark:text-gray-100 break-all flex-1">{{ ocppUrl }}</code>
             <button
               @click="copyUrl(ocppUrl)"
               class="text-gray-400 hover:text-green-600 transition shrink-0"
@@ -536,7 +536,7 @@ onMounted(load)
               <ClipboardDocumentIcon class="h-4 w-4" />
             </button>
           </div>
-          <p class="text-xs text-gray-500 mt-2">
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
             go-e: App - Einstellungen - OCPP - Server URL eintragen
           </p>
         </div>
@@ -552,26 +552,11 @@ onMounted(load)
           </button>
           <button
             @click="showForm = false; error = null"
-            class="text-gray-600 px-5 py-2 rounded-lg text-sm font-medium hover:bg-gray-100 transition"
+            class="text-gray-600 dark:text-gray-300 px-5 py-2 rounded-lg text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition"
           >
             Abbrechen
           </button>
         </div>
-      </div>
-
-      <!-- Setup Instructions -->
-      <div class="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-xl p-5">
-        <h3 class="font-semibold text-amber-900 dark:text-amber-200 mb-3">Setup-Anleitung (go-e Charger)</h3>
-        <ol class="text-sm text-amber-800 dark:text-amber-200 space-y-2 list-decimal list-inside">
-          <li>go-e App offnen - deine Wallbox auswahlen</li>
-          <li>Einstellungen - OCPP - OCPP aktivieren</li>
-          <li>Server URL: <strong>die oben angezeigte OCPP-URL eintragen</strong></li>
-          <li>ChargePoint-ID: deine Seriennummer (gleiche wie oben eingegeben)</li>
-          <li>Speichern - ab jetzt werden Ladevorgange automatisch importiert</li>
-        </ol>
-        <p class="text-xs text-amber-700 dark:text-amber-300 mt-3">
-          Andere OCPP-fahige Wallboxen (Easee, KEBA, Wallbe, Heidelberg) funktionieren analog.
-        </p>
       </div>
     </template>
   </div>
