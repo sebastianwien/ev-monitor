@@ -18,5 +18,7 @@ public record TopModelResponse(
         BigDecimal maxRealConsumptionKwhPer100km,
         BigDecimal minWltpConsumptionKwhPer100km,
         BigDecimal maxWltpConsumptionKwhPer100km,
-        BigDecimal avgCostPerKwh
+        BigDecimal avgCostPerKwh,
+        String category,
+        String categoryDisplayName
 ) {}

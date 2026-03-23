@@ -3,6 +3,7 @@ package com.evmonitor.application;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.CarRepository;
+import com.evmonitor.domain.VehicleCategory;
 import com.evmonitor.infrastructure.persistence.JpaEvLogRepository;
 import com.evmonitor.infrastructure.persistence.JpaUserRepository;
 import com.evmonitor.infrastructure.persistence.JpaVehicleSpecificationRepository;
@@ -13,6 +14,8 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -141,6 +144,12 @@ public class PublicModelService {
                     seasonal.summerLogCount(), seasonal.winterLogCount());
         }
 
+        // Fetch average DC charging power from real fast-charging sessions (DC only, min 5 sessions)
+        BigDecimal avgChargingPowerKw = evLogRepository.findAvgDcChargingPowerKwByModel(modelEnumName, isSeedUser);
+        if (avgChargingPowerKw != null) {
+            avgChargingPowerKw = avgChargingPowerKw.setScale(1, RoundingMode.HALF_UP);
+        }
+
         // Fetch WLTP variants for this model
         List<VehicleSpecificationEntity> wltpEntities =
                 vehicleSpecificationRepository.findByCarModelOrderByBatteryCapacityKwhAsc(modelEnumName);
@@ -188,12 +197,15 @@ public class PublicModelService {
                 modelEnumName,
                 brandDisplay,
                 displayName,
+                carModel.getCategory().name(),
+                carModel.getCategory().getDisplayName(),
                 (int) logCount,
                 uniqueContributors,
                 avgCostPerKwh,
                 avgKwhPerSession,
                 avgConsumption,
                 communityResult.estimatedTripCount(),
+                avgChargingPowerKw,
                 wltpVariants,
                 seasonalDistribution
         ));
@@ -418,11 +430,39 @@ public class PublicModelService {
                             m.maxRealConsumption(),
                             m.minWltpConsumption(),
                             m.maxWltpConsumption(),
-                            m.avgCostPerKwh()
+                            m.avgCostPerKwh(),
+                            m.carModel().getCategory().name(),
+                            m.carModel().getCategory().getDisplayName()
                     );
                 })
                 .toList();
     }
+
+    /**
+     * Returns the top N models sorted by lowest average real consumption (most efficient first).
+     * Only includes models with avgConsumptionKwhPer100km != null and logCount >= 10.
+     */
+    @Cacheable("efficientModels")
+    public List<TopModelResponse> getMostEfficientModels(int limit, boolean isSeedUser) {
+        int MIN_LOG_COUNT = 10;
+        return getTopModels(50, isSeedUser).stream()
+                .filter(m -> m.avgConsumptionKwhPer100km() != null)
+                .filter(m -> m.logCount() >= MIN_LOG_COUNT)
+                .sorted(Comparator.comparing(TopModelResponse::avgConsumptionKwhPer100km))
+                .limit(limit)
+                .toList();
+    }
+
+    /**
+     * Returns all vehicle categories with their display names.
+     */
+    public List<CategoryResponse> getCategories() {
+        return Arrays.stream(VehicleCategory.values())
+                .map(c -> new CategoryResponse(c.name(), c.getDisplayName()))
+                .toList();
+    }
+
+    public record CategoryResponse(String key, String displayName) {}
 
     private BigDecimal toBigDecimal(Object value) {
         if (value instanceof BigDecimal bd) return bd;

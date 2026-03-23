@@ -12,6 +12,8 @@ public record PublicModelStatsResponse(
         String model,
         String brandDisplayName,
         String modelDisplayName,
+        String category,
+        String categoryDisplayName,
 
         // Community data
         int logCount,
@@ -20,6 +22,7 @@ public record PublicModelStatsResponse(
         BigDecimal avgKwhPerSession,
         BigDecimal avgConsumptionKwhPer100km, // null if no odometer data
         int estimatedConsumptionCount,         // count of trips where consumption is estimated (kWh/distance fallback)
+        BigDecimal avgChargingPowerKw,         // null if no sessions with duration data
 
         // WLTP official data (all known variants for this model)
         List<WltpVariant> wltpVariants,

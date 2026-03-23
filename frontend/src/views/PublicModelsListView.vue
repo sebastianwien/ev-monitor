@@ -81,26 +81,24 @@
       <div v-if="!loading && modelsWithData.length > 0" class="mb-6">
         <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">Populäre Modelle</h2>
         <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-          <div class="flex items-center gap-3">
-            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Marken:</span>
+          <div class="flex flex-wrap items-center gap-3">
+            <!-- Marken-Filter -->
             <div class="relative">
               <button
-                @click="dropdownOpen = !dropdownOpen"
+                @click="dropdownOpen = !dropdownOpen; categoryDropdownOpen = false"
                 class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
               >
                 <span class="text-sm">
-                  {{ selectedBrands.length === 0 ? 'Alle Marken' : `${selectedBrands.length} ausgewählt` }}
+                  {{ selectedBrands.length === 0 ? 'Alle Marken' : `${selectedBrands.length} Marken` }}
                 </span>
                 <span class="text-gray-400">▼</span>
               </button>
 
-              <!-- Dropdown -->
               <div
                 v-if="dropdownOpen"
                 class="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg z-50 max-h-96 overflow-y-auto"
               >
                 <div class="p-2">
-                  <!-- Select All / Clear All -->
                   <div class="flex gap-2 pb-2 mb-2 border-b border-gray-100 dark:border-gray-700">
                     <button
                       @click="selectAllBrands"
@@ -115,8 +113,6 @@
                       Alle abwählen
                     </button>
                   </div>
-
-                  <!-- Brand Checkboxes -->
                   <label
                     v-for="brand in availableBrands"
                     :key="brand"
@@ -134,9 +130,49 @@
               </div>
             </div>
 
+            <!-- Kategorie-Filter -->
+            <div class="relative">
+              <button
+                @click="categoryDropdownOpen = !categoryDropdownOpen; dropdownOpen = false"
+                class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-700 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                :class="selectedCategory !== null
+                  ? 'border-green-500 text-green-700 dark:text-green-400'
+                  : 'border-gray-300 dark:border-gray-600'"
+              >
+                <span class="text-sm">
+                  {{ selectedCategory === null ? 'Alle Kategorien' : categories.find(c => c.key === selectedCategory)?.displayName }}
+                </span>
+                <span class="text-gray-400">▼</span>
+              </button>
+
+              <div
+                v-if="categoryDropdownOpen"
+                class="absolute top-full left-0 mt-2 w-52 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg z-50 overflow-hidden"
+              >
+                <div class="p-1">
+                  <button
+                    @click="selectCategory(null)"
+                    class="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    :class="selectedCategory === null ? 'text-green-700 dark:text-green-400 font-medium bg-green-50 dark:bg-green-900/20' : 'text-gray-700 dark:text-gray-300'"
+                  >
+                    Alle Kategorien
+                  </button>
+                  <button
+                    v-for="cat in categories"
+                    :key="cat.key"
+                    @click="selectCategory(cat.key)"
+                    class="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    :class="selectedCategory === cat.key ? 'text-green-700 dark:text-green-400 font-medium bg-green-50 dark:bg-green-900/20' : 'text-gray-700 dark:text-gray-300'"
+                  >
+                    {{ cat.displayName }}
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <!-- Active Filter Count -->
-            <span v-if="selectedBrands.length > 0" class="text-sm text-gray-500 dark:text-gray-400">
-              ({{ filteredModels.length }} von {{ modelsWithData.length }} Modellen)
+            <span v-if="selectedBrands.length > 0 || selectedCategory !== null" class="text-sm text-gray-500 dark:text-gray-400">
+              {{ filteredModels.length }} von {{ modelsWithData.length }} Modellen
             </span>
           </div>
         </div>
@@ -235,17 +271,17 @@
       </div>
 
       <!-- Empty state: Filtered but no results -->
-      <div v-else-if="!loading && selectedBrands.length > 0 && filteredModels.length === 0" class="text-center py-20">
+      <div v-else-if="!loading && (selectedBrands.length > 0 || selectedCategory !== null) && filteredModels.length === 0" class="text-center py-20">
         <div class="text-5xl mb-4">🔍</div>
         <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-2">Keine Modelle gefunden</h2>
         <p class="text-gray-500 dark:text-gray-400 mb-6">
           Für die ausgewählten Marken sind aktuell keine Community-Daten verfügbar.
         </p>
         <button
-          @click="clearAllBrands"
+          @click="clearAllFilters"
           class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
         >
-          Alle Marken anzeigen
+          Filter zurücksetzen
         </button>
       </div>
 
@@ -341,7 +377,7 @@ import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useHead } from '@unhead/vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import { getTopModels, getPlatformStats, type TopModelPreview, type PlatformStats } from '../api/publicModelService'
+import { getTopModels, getPlatformStats, getCategories, type TopModelPreview, type PlatformStats, type VehicleCategoryItem } from '../api/publicModelService'
 import { TruckIcon, ChartBarIcon, ArrowTrendingUpIcon, ArrowsRightLeftIcon, XMarkIcon, CheckIcon, ArrowRightIcon, InformationCircleIcon } from '@heroicons/vue/24/outline'
 import PublicNav from '../components/PublicNav.vue'
 
@@ -355,6 +391,9 @@ const modelsList = ref<TopModelPreview[]>([])
 const platformStats = ref<PlatformStats | null>(null)
 const selectedBrands = ref<string[]>([])
 const dropdownOpen = ref(false)
+const categoryDropdownOpen = ref(false)
+const selectedCategory = ref<string | null>(null)
+const categories = ref<VehicleCategoryItem[]>([])
 
 // ── Comparison selection ───────────────────────────────────────────────────
 const MAX_COMPARE = 3
@@ -447,15 +486,19 @@ const availableBrands = computed(() => {
 })
 
 const filteredModels = computed(() => {
-  if (selectedBrands.value.length === 0) {
-    return modelsWithData.value
+  let models = modelsWithData.value
+  if (selectedBrands.value.length > 0) {
+    models = models.filter(m => selectedBrands.value.includes(m.brandDisplayName))
   }
-  return modelsWithData.value.filter(m => selectedBrands.value.includes(m.brandDisplayName))
+  if (selectedCategory.value !== null) {
+    models = models.filter(m => m.category === selectedCategory.value)
+  }
+  return models
 })
 
-// Fill up to 12 models on mobile with popular fallbacks (only when no brand filter active)
+// Fill up to 12 models on mobile with popular fallbacks (only when no filters active)
 const mobileFillModels = computed((): FallbackModel[] => {
-  if (selectedBrands.value.length > 0) return []
+  if (selectedBrands.value.length > 0 || selectedCategory.value !== null) return []
   const needed = 12 - filteredModels.value.length
   if (needed <= 0) return []
   const normalize = (s: string) => s.replace(/ /g, '_').toLowerCase()
@@ -539,9 +582,10 @@ useHead({
 
 onMounted(async () => {
   try {
-    const [models, stats] = await Promise.all([getTopModels(50), getPlatformStats()])
+    const [models, stats, cats] = await Promise.all([getTopModels(50), getPlatformStats(), getCategories()])
     modelsList.value = models
     platformStats.value = stats
+    categories.value = cats
   } catch (err) {
     console.error('Failed to load models:', err)
   } finally {
@@ -560,6 +604,7 @@ function handleClickOutside(event: MouseEvent) {
   const target = event.target as HTMLElement
   if (!target.closest('.relative')) {
     dropdownOpen.value = false
+    categoryDropdownOpen.value = false
   }
 }
 
@@ -579,6 +624,18 @@ function selectAllBrands() {
 function clearAllBrands() {
   selectedBrands.value = []
   dropdownOpen.value = false
+}
+
+function clearAllFilters() {
+  selectedBrands.value = []
+  selectedCategory.value = null
+  dropdownOpen.value = false
+  categoryDropdownOpen.value = false
+}
+
+function selectCategory(key: string | null) {
+  selectedCategory.value = key
+  categoryDropdownOpen.value = false
 }
 </script>
 

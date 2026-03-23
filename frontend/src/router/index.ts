@@ -182,6 +182,13 @@ const router = createRouter({
             meta: { requiresAuth: true }
         },
         {
+            path: '/rankings',
+            name: 'rankings',
+            component: () => import('../views/PublicRankingsView.vue'),
+            meta: { requiresAuth: false }
+            // Dark page - kein Nav-Link, nur per direktem URL erreichbar
+        },
+        {
             path: '/admin',
             name: 'admin-impersonate',
             component: AdminImpersonateView

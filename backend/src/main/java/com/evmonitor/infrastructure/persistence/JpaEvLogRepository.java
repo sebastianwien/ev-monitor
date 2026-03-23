@@ -170,4 +170,30 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
             @Param("model") String model,
             @Param("isSeedUser") boolean isSeedUser);
 
+    /**
+     * Average DC charging power (kW) for a model, calculated from real DC fast-charging sessions.
+     * Uses energy-weighted approach: total kWh / total hours charging.
+     * Only includes sessions with charging_type = 'DC' and at least 5 sessions to filter outliers.
+     * Returns null if fewer than 5 qualifying DC sessions exist.
+     */
+    @Query(value = """
+            SELECT
+                CASE WHEN COUNT(*) >= 5
+                     THEN SUM(kwh_charged) / NULLIF(SUM(charge_duration_minutes) / 60.0, 0)
+                     ELSE NULL
+                END
+            FROM ev_log l
+            JOIN car c ON c.id = l.car_id
+            WHERE c.model = :model
+              AND l.charge_duration_minutes > 0
+              AND l.kwh_charged > 0
+              AND l.charging_type = 'DC'
+              AND (l.include_in_statistics = true
+                   OR (:isSeedUser = true
+                       AND c.user_id IN (SELECT id FROM app_user WHERE is_seed_data = true)))
+            """, nativeQuery = true)
+    BigDecimal findAvgDcChargingPowerKwByModel(
+            @Param("model") String model,
+            @Param("isSeedUser") boolean isSeedUser);
+
 }

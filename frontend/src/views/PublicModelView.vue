@@ -137,6 +137,16 @@
             </div>
           </div>
 
+          <!-- 20-Minuten-Laden -->
+          <div v-if="kmIn20Min" class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+            <div class="flex items-center justify-center gap-2 flex-wrap">
+              <BoltIcon class="h-4 w-4 text-green-500 shrink-0" />
+              <span class="text-sm text-gray-500 dark:text-gray-400">20 Min Laden:</span>
+              <span class="text-lg font-bold text-green-600 dark:text-green-400">~{{ kmIn20Min }} km</span>
+              <span class="text-xs text-gray-400 dark:text-gray-500">(Ø {{ stats.avgChargingPowerKw?.toFixed(1) }} kW Ladegeschwindigkeit)</span>
+            </div>
+          </div>
+
         </div>
 
         <!-- Combined: Variant Switcher + Seasonal + WLTP -->
@@ -636,6 +646,14 @@ const consumptionDataQuality = computed((): 'good' | 'low' | 'scarce' => {
   if (n >= 100) return 'good'
   if (n >= 50) return 'low'
   return 'scarce'
+})
+
+// km that can be charged in 20 minutes, based on avg charging power and real-world consumption
+const kmIn20Min = computed(() => {
+  const power = stats.value?.avgChargingPowerKw
+  const consumption = displayConsumption.value
+  if (!power || !consumption) return null
+  return Math.round(power * (20 / 60) * 100 / consumption)
 })
 
 const showSeasonalBreakdown = computed(() => {

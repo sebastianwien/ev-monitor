@@ -30,6 +30,7 @@ export interface PublicModelStats {
     avgKwhPerSession: number | null
     avgConsumptionKwhPer100km: number | null
     estimatedConsumptionCount: number
+    avgChargingPowerKw: number | null
     wltpVariants: WltpVariant[]
     seasonalDistribution: SeasonalDistribution | null
 }
@@ -64,6 +65,18 @@ export interface TopModelPreview {
     minWltpConsumptionKwhPer100km: number | null
     maxWltpConsumptionKwhPer100km: number | null
     avgCostPerKwh: number | null
+    category: string
+    categoryDisplayName: string
+}
+
+export interface VehicleCategoryItem {
+    key: string
+    displayName: string
+}
+
+export async function getCategories(): Promise<VehicleCategoryItem[]> {
+    const response = await apiClient.get<VehicleCategoryItem[]>('/public/rankings/categories')
+    return response.data
 }
 
 export async function getTopModels(limit: number = 12): Promise<TopModelPreview[]> {
@@ -107,6 +120,13 @@ export async function getBrandModels(brand: string): Promise<PublicBrandResponse
         if (err.response?.status === 404) return null
         throw err
     }
+}
+
+export async function getMostEfficientModels(limit: number = 5): Promise<TopModelPreview[]> {
+    const response = await apiClient.get<TopModelPreview[]>(
+        `/public/rankings/efficiency?limit=${limit}`
+    )
+    return response.data
 }
 
 export async function getPlatformStats(): Promise<PlatformStats> {
