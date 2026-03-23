@@ -273,9 +273,9 @@ const chargingChartData = computed(() => {
       data: stats.value.chargesOverTime.map(d =>
         d.kwhCharged > 0 ? +(d.costEur / d.kwhCharged).toFixed(3) : null
       ),
-      borderColor: '#4f46e5',
-      backgroundColor: 'rgba(79,70,229,0.08)',
-      tension: 0.3, fill: false, pointRadius: 4, pointHoverRadius: 6, yAxisID: 'y'
+      borderColor: isDark.value ? '#818cf8' : '#4f46e5',
+      backgroundColor: isDark.value ? 'rgba(129,140,248,0.13)' : 'rgba(79,70,229,0.1)',
+      tension: 0, fill: true, pointRadius: 4, pointHoverRadius: 6, yAxisID: 'y'
     })
   }
 
@@ -283,9 +283,9 @@ const chargingChartData = computed(() => {
     datasets.push({
       label: 'Geladen (kWh)',
       data: stats.value.chargesOverTime.map(d => d.kwhCharged),
-      borderColor: '#f59e0b',
-      backgroundColor: 'rgba(245,158,11,0.08)',
-      tension: 0.3, fill: false, pointRadius: 4, pointHoverRadius: 6, yAxisID: 'y1'
+      borderColor: isDark.value ? '#fcd34d' : '#f59e0b',
+      backgroundColor: isDark.value ? 'rgba(252,211,77,0.13)' : 'rgba(245,158,11,0.1)',
+      tension: 0, fill: true, pointRadius: 4, pointHoverRadius: 6, yAxisID: 'y1'
     })
   }
 
@@ -317,7 +317,7 @@ const chargingChartOptions = computed(() => ({
       type: 'linear' as const,
       position: 'left' as const,
       title: { display: true, text: '€/kWh', color: isDark.value ? '#9ca3af' : '#6b7280' },
-      beginAtZero: false,
+      beginAtZero: true,
       grid: { color: isDark.value ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' },
       ticks: { color: isDark.value ? '#9ca3af' : '#6b7280' }
     },
@@ -343,9 +343,9 @@ const efficiencyChartData = computed(() => {
     datasets.push({
       label: 'Verbrauch (kWh/100km)',
       data: stats.value.chargesOverTime.map(d => d.consumptionKwhPer100km),
-      borderColor: '#ef4444',
-      backgroundColor: 'rgba(239,68,68,0.08)',
-      tension: 0.3, fill: false, pointRadius: 4, pointHoverRadius: 6, yAxisID: 'y'
+      borderColor: isDark.value ? '#f87171' : '#ef4444',
+      backgroundColor: isDark.value ? 'rgba(248,113,113,0.13)' : 'rgba(239,68,68,0.1)',
+      tension: 0, fill: true, pointRadius: 4, pointHoverRadius: 6, yAxisID: 'y'
     })
   }
 
@@ -353,9 +353,9 @@ const efficiencyChartData = computed(() => {
     datasets.push({
       label: 'Strecke (km)',
       data: stats.value.chargesOverTime.map(d => d.distanceKm),
-      borderColor: '#10b981',
-      backgroundColor: 'rgba(16,185,129,0.08)',
-      tension: 0.3, fill: false, pointRadius: 4, pointHoverRadius: 6, yAxisID: 'y1'
+      borderColor: isDark.value ? '#34d399' : '#10b981',
+      backgroundColor: isDark.value ? 'rgba(52,211,153,0.13)' : 'rgba(16,185,129,0.1)',
+      tension: 0, fill: true, pointRadius: 4, pointHoverRadius: 6, yAxisID: 'y1'
     })
   }
 
@@ -387,7 +387,7 @@ const efficiencyChartOptions = computed(() => ({
       type: 'linear' as const,
       position: 'left' as const,
       title: { display: true, text: 'kWh/100km', color: isDark.value ? '#9ca3af' : '#6b7280' },
-      beginAtZero: false,
+      beginAtZero: true,
       grid: { color: isDark.value ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' },
       ticks: { color: isDark.value ? '#9ca3af' : '#6b7280' }
     },
@@ -418,8 +418,14 @@ const wltpChartData = computed(() => {
     datasets: [{
       label: 'Δ Verbrauch vs. WLTP (kWh/100km)',
       data: deltas,
-      backgroundColor: deltas.map(v => v > 0 ? 'rgba(239,68,68,0.75)' : 'rgba(16,185,129,0.75)'),
-      borderColor: deltas.map(v => v > 0 ? '#dc2626' : '#059669'),
+      backgroundColor: deltas.map(v => v > 0
+        ? (isDark.value ? 'rgba(248,113,113,0.6)' : 'rgba(239,68,68,0.7)')
+        : (isDark.value ? 'rgba(52,211,153,0.6)' : 'rgba(16,185,129,0.7)')
+      ),
+      borderColor: deltas.map(v => v > 0
+        ? (isDark.value ? '#f87171' : '#dc2626')
+        : (isDark.value ? '#34d399' : '#059669')
+      ),
       borderWidth: 1,
       borderRadius: 3,
     }]
