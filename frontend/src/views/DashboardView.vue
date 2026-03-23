@@ -779,7 +779,7 @@ const deleteLog = async (id: string) => {
           <div class="flex items-center gap-3 mb-6">
             <ChartBarIcon class="h-8 w-8 text-gray-700 dark:text-gray-300" />
             <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-200">Dashboard</h1>
-            <div class="ml-auto hidden md:flex items-center gap-2">
+            <div class="ml-auto flex items-center gap-2">
               <router-link
                 to="/cars"
                 class="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1 transition-all duration-75">
@@ -790,7 +790,7 @@ const deleteLog = async (id: string) => {
                 @click="scrollToLogs"
                 class="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium shadow-[0_4px_0_0_#3730a3] hover:shadow-[0_2px_0_0_#3730a3] hover:translate-y-0.5 active:shadow-none active:translate-y-1 transition-all duration-75">
                 <ListBulletIcon class="w-4 h-4" />
-                Deine Ladevorgänge
+                <span class="hidden sm:inline">Deine </span>Ladevorgänge
                 <ChevronRightIcon class="w-3.5 h-3.5 opacity-75" />
               </button>
             </div>
@@ -819,7 +819,14 @@ const deleteLog = async (id: string) => {
           </div>
 
           <!-- Car card selector (all breakpoints) -->
-          <div v-if="cars.length > 0" class="mb-6">
+          <div
+            v-if="cars.length > 0"
+            :class="[
+              cars.length > 1
+                ? 'sticky top-16 z-10 bg-white dark:bg-gray-800 -mx-4 px-4 md:-mx-6 md:px-6 py-3 mb-3 border-b border-gray-100 dark:border-gray-700 shadow-sm'
+                : 'mb-6'
+            ]"
+          >
             <div class="flex gap-3 overflow-x-auto pb-1 lg:flex-wrap lg:overflow-x-visible">
               <button
                 v-for="car in cars"
@@ -900,7 +907,7 @@ const deleteLog = async (id: string) => {
           </div>
 
           <!-- Echte Reichweite -->
-          <div v-if="carInfo?.batteryCapacityKwh && (stats?.summerConsumptionKwhPer100km || stats?.winterConsumptionKwhPer100km)"
+          <div v-if="carInfo?.batteryCapacityKwh && stats?.avgConsumptionKwhPer100km"
             class="mb-6 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 p-4">
             <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Deine echte Reichweite</h3>
             <div class="overflow-x-auto -mx-4 px-4">
@@ -922,6 +929,9 @@ const deleteLog = async (id: string) => {
                       <span class="font-normal">({{ stats.winterConsumptionKwhPer100km.toFixed(1) }}<span class="hidden sm:inline"> kWh/100km</span><span class="sm:hidden"> kWh</span>)</span>
                     </span>
                   </th>
+                  <th v-if="!stats?.summerConsumptionKwhPer100km && !stats?.winterConsumptionKwhPer100km" class="text-right pb-2 font-medium text-gray-600 dark:text-gray-300 whitespace-nowrap pl-4">
+                    <span class="font-normal">Ø ({{ stats.avgConsumptionKwhPer100km!.toFixed(1) }}<span class="hidden sm:inline"> kWh/100km</span><span class="sm:hidden"> kWh</span>)</span>
+                  </th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-100 dark:divide-gray-600">
@@ -933,20 +943,15 @@ const deleteLog = async (id: string) => {
                   <td v-if="stats?.winterConsumptionKwhPer100km" class="py-2 text-right font-bold text-blue-700 dark:text-blue-300">
                     {{ calcRange(carInfo.batteryCapacityKwh, window.socMax, window.socMin, stats.winterConsumptionKwhPer100km) }} km
                   </td>
+                  <td v-if="!stats?.summerConsumptionKwhPer100km && !stats?.winterConsumptionKwhPer100km" class="py-2 text-right font-bold text-gray-700 dark:text-gray-200">
+                    {{ calcRange(carInfo.batteryCapacityKwh, window.socMax, window.socMin, stats.avgConsumptionKwhPer100km!) }} km
+                  </td>
                 </tr>
               </tbody>
             </table>
             </div>
           </div>
 
-          <!-- Mobile: Deine Ladevorgänge CTA — above Zeitraum filter -->
-          <button v-if="stats && stats.totalCharges > 0"
-            @click="scrollToLogs"
-            class="md:hidden w-full flex items-center justify-center gap-2 px-4 py-3 mb-4 rounded-xl bg-indigo-600 text-white text-sm font-semibold shadow-[0_4px_0_0_#3730a3] hover:shadow-[0_2px_0_0_#3730a3] hover:translate-y-0.5 active:shadow-none active:translate-y-1 transition-all duration-75">
-            <ListBulletIcon class="w-4 h-4" />
-            Deine Ladevorgänge
-            <ChevronRightIcon class="w-3.5 h-3.5 opacity-75" />
-          </button>
 
           <!-- Filters (show if there are logs in any time range) -->
           <div v-if="selectedCarId && hasAnyLogs" class="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">

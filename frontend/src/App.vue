@@ -409,14 +409,6 @@ const closeMobileMenu = () => {
               <span>Modelle vergleichen</span>
             </router-link>
             <router-link
-              to="/dashboard"
-              @click="closeMobileMenu"
-              class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-indigo-100 hover:bg-indigo-600 transition"
-              :class="{ 'bg-indigo-800': $route.path === '/dashboard' }">
-              <HomeIcon class="h-5 w-5" />
-              <span>Dashboard</span>
-            </router-link>
-            <router-link
               v-if="authStore.user"
               to="/settings"
               @click="closeMobileMenu"
@@ -426,11 +418,6 @@ const closeMobileMenu = () => {
               <span>{{ authStore.user.username || authStore.user.sub }}</span>
             </router-link>
             <SupportPopover variant="nav" />
-            <!-- Theme Toggle in mobile menu -->
-            <div class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-indigo-100">
-              <ThemeToggle class="text-white -ml-2" />
-              <span>{{ themeStore.isDark ? 'Hell-Modus' : 'Dunkel-Modus' }}</span>
-            </div>
           </div>
         </div>
       </div>
