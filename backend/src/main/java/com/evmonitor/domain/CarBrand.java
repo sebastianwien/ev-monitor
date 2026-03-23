@@ -176,6 +176,7 @@ public enum CarBrand {
       FORFOUR_EQ(CarBrand.SMART, "forfour EQ", 17.6),
 
       // --- OPEL (Stellantis E-Offensive) ---
+      AMPERA_E(CarBrand.OPEL, "Ampera-e", 60.0),
       CORSA_E(CarBrand.OPEL, "Corsa-e", 50.0, 51.0, 54.0),
       ASTRA_E(CarBrand.OPEL, "Astra Electric", 54.0),
       MOKKA_E(CarBrand.OPEL, "Mokka-e", 50.0, 54.0),
