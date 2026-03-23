@@ -109,6 +109,34 @@
             </p>
           </div>
 
+          <!-- Kostenrechner -->
+          <div v-if="displayConsumption" class="mt-6 pt-5 border-t border-gray-100 dark:border-gray-700">
+            <!-- Label + Ergebnis -->
+            <div class="flex items-center justify-center gap-2 mb-3 flex-wrap">
+              <BoltIcon class="h-4 w-4 text-yellow-500 shrink-0" />
+              <span class="text-sm text-gray-500 dark:text-gray-400">
+                Dein Stromtarif: bei {{ Math.round(pricePerKwh * 100) }} ct/kWh
+              </span>
+              <span class="text-sm text-gray-300 dark:text-gray-600">~</span>
+              <span class="text-lg font-bold text-yellow-600 dark:text-yellow-400">
+                {{ (pricePerKwh * displayConsumption).toFixed(2) }} €/100km
+              </span>
+            </div>
+            <!-- Slider -->
+            <div class="flex items-center gap-3">
+              <span class="text-xs text-gray-400 shrink-0">0,10 €</span>
+              <input
+                type="range"
+                min="0.10"
+                max="1.00"
+                step="0.01"
+                v-model.number="pricePerKwh"
+                class="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full appearance-none cursor-pointer accent-yellow-500"
+              />
+              <span class="text-xs text-gray-400 shrink-0">1,00 €</span>
+            </div>
+          </div>
+
         </div>
 
         <!-- Combined: Variant Switcher + Seasonal + WLTP -->
@@ -121,17 +149,17 @@
               <span class="text-sm font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">Batterievariante</span>
               <div class="relative flex bg-gray-100 dark:bg-gray-700 rounded-full p-1 w-fit">
                 <div
-                  class="absolute top-1 bottom-1 rounded-full bg-blue-600 shadow-sm transition-transform duration-300 ease-in-out"
+                  class="absolute top-1 bottom-1 left-1 rounded-full bg-blue-600 shadow-sm transition-transform duration-300 ease-in-out"
                   :style="{
-                    width: `calc(${100 / stats.wltpVariants.length}% - ${8 / stats.wltpVariants.length}px)`,
-                    transform: `translateX(calc(${selectedVariantIndex * 100}% + ${selectedVariantIndex * 4}px))`
+                    width: `calc((100% - 8px) / ${stats.wltpVariants.length})`,
+                    transform: `translateX(calc(${selectedVariantIndex * 100}%))`
                   }"
                 />
                 <button
                   v-for="(v, i) in stats.wltpVariants"
                   :key="v.batteryCapacityKwh"
                   @click="selectedVariantIndex = i"
-                  class="relative px-4 text-sm font-medium py-1.5 rounded-full transition-colors duration-300 z-10 whitespace-nowrap"
+                  class="relative flex-1 text-center px-4 text-sm font-medium py-1.5 rounded-full transition-colors duration-300 z-10 whitespace-nowrap"
                   :class="i === selectedVariantIndex ? 'text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'"
                 >
                   {{ v.batteryCapacityKwh }} kWh
@@ -538,7 +566,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useHead } from '@unhead/vue'
 import { useAuthStore } from '../stores/auth'
 import { getModelStats, type PublicModelStats } from '../api/publicModelService'
-import { ArrowTrendingUpIcon, ClipboardDocumentListIcon, Battery0Icon, SunIcon, ChartBarIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
+import { ArrowTrendingUpIcon, ClipboardDocumentListIcon, Battery0Icon, SunIcon, ChartBarIcon, ExclamationTriangleIcon, BoltIcon } from '@heroicons/vue/24/outline'
 import PublicNav from '../components/PublicNav.vue'
 
 const route = useRoute()
@@ -549,6 +577,7 @@ const notFound = ref(false)   // true only on genuine 404 — triggers noindex
 const apiError = ref(false)   // true on transient errors — keeps robots: index, follow
 const stats = ref<PublicModelStats | null>(null)
 const selectedVariantIndex = ref(0)
+const pricePerKwh = ref(0.35)
 
 const isAuthenticated = computed(() => authStore.isAuthenticated())
 
