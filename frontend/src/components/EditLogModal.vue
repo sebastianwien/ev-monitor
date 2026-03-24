@@ -3,7 +3,7 @@
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-3xl flex flex-col max-h-[90vh]">
       <!-- Header -->
       <div class="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-700">
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Ladevorgang bearbeiten</h2>
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ t('editlog.title') }}</h2>
         <button @click="$emit('close')" class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
           <XMarkIcon class="w-5 h-5" />
         </button>
@@ -19,12 +19,12 @@
 
         <!-- Standort aktualisieren -->
         <div class="space-y-1">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Standort aktualisieren</label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('editlog.location_label') }}</label>
           <div class="relative">
             <input
               v-model="locationSearchQuery"
               type="text"
-              placeholder="Ort suchen (ersetzt bestehenden Standort)…"
+              :placeholder="t('editlog.location_placeholder')"
               class="w-full border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
               @focus="showSuggestions = suggestions.length > 0"
             />
@@ -37,8 +37,8 @@
               </li>
             </ul>
           </div>
-          <p v-if="newLocationName" class="text-xs text-green-600 mt-1">Neuer Standort: {{ newLocationName }}</p>
-          <p v-else-if="log.geohash" class="text-xs text-gray-400 dark:text-gray-500 mt-1">Aktueller Standort gespeichert (Geohash: {{ log.geohash }})</p>
+          <p v-if="newLocationName" class="text-xs text-green-600 mt-1">{{ t('editlog.new_location', { name: newLocationName }) }}</p>
+          <p v-else-if="log.geohash" class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ t('editlog.current_location', { hash: log.geohash }) }}</p>
         </div>
 
         <p v-if="errorMsg" class="text-sm text-red-600 bg-red-50 rounded-xl p-3">{{ errorMsg }}</p>
@@ -48,13 +48,13 @@
       <div class="flex justify-end gap-3 p-5 border-t border-gray-100 dark:border-gray-700 shrink-0">
         <button @click="$emit('close')" v-haptic
           class="btn-3d px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
-          Abbrechen
+          {{ t('editlog.cancel') }}
         </button>
         <button @click="save" v-haptic
           :disabled="loading || !isFormValid"
           class="btn-3d px-5 py-2 text-sm font-medium text-white bg-green-600 rounded-xl hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-2">
           <span v-if="loading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-          Speichern
+          {{ t('editlog.save') }}
         </button>
       </div>
     </div>
@@ -63,6 +63,7 @@
 
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { XMarkIcon } from '@heroicons/vue/24/outline'
 import api from '../api/axios'
 import LogFormFields, { type LogFormData } from './LogFormFields.vue'
@@ -82,6 +83,8 @@ export interface EvLogResponse {
   routeType: 'CITY' | 'COMBINED' | 'HIGHWAY' | null
   tireType: 'SUMMER' | 'ALL_YEAR' | 'WINTER' | null
   chargingType: 'AC' | 'DC' | 'UNKNOWN' | null
+  isPublicCharging: boolean
+  cpoName: string | null
 }
 
 const props = defineProps<{ log: EvLogResponse }>()
@@ -105,8 +108,11 @@ const formData = ref<LogFormData>({
   tireType: props.log.tireType ?? 'SUMMER',
   latitude: null,
   longitude: null,
+  isPublicCharging: props.log.isPublicCharging ?? false,
+  cpoName: props.log.cpoName ?? null,
 })
 
+const { t } = useI18n()
 const loading = ref(false)
 const errorMsg = ref('')
 const fieldErrors = ref<Set<string>>(new Set())
@@ -164,12 +170,12 @@ async function save() {
   // Frontend validation (same rules as LogForm)
   fieldErrors.value = new Set()
   const errors: string[] = []
-  if (!kwh || kwh <= 0) { fieldErrors.value.add('kwh'); errors.push('Energie (kWh)') }
-  if (cost === null) { fieldErrors.value.add('cost'); errors.push('Kosten (€)') }
-  if (!odometer || odometer <= 0) { fieldErrors.value.add('odometer'); errors.push('Tachostand') }
-  if (soc === null || soc < 0 || soc > 100) { fieldErrors.value.add('soc'); errors.push('Akkustand nach Laden (0–100%)') }
+  if (!kwh || kwh <= 0) { fieldErrors.value.add('kwh'); errors.push(t('editlog.field_kwh')) }
+  if (cost === null) { fieldErrors.value.add('cost'); errors.push(t('editlog.field_cost')) }
+  if (!odometer || odometer <= 0) { fieldErrors.value.add('odometer'); errors.push(t('editlog.field_odometer')) }
+  if (soc === null || soc < 0 || soc > 100) { fieldErrors.value.add('soc'); errors.push(t('editlog.field_soc')) }
   if (errors.length > 0) {
-    errorMsg.value = `Bitte fülle alle Pflichtfelder korrekt aus: ${errors.join(', ')}`
+    errorMsg.value = t('editlog.error_required', { fields: errors.join(', ') })
     return
   }
 
@@ -187,6 +193,8 @@ async function save() {
       chargingType: f.chargingType,
       routeType: f.routeType,
       tireType: f.tireType,
+      isPublicCharging: f.isPublicCharging,
+      cpoName: f.isPublicCharging && f.cpoName ? f.cpoName : null,
     }
     if (f.latitude !== null && f.longitude !== null) {
       payload.latitude = f.latitude
@@ -197,7 +205,7 @@ async function save() {
     emit('saved', res.data)
     emit('close')
   } catch (e: any) {
-    errorMsg.value = e?.response?.data?.message ?? 'Speichern fehlgeschlagen'
+    errorMsg.value = e?.response?.data?.message ?? t('editlog.error_save')
   } finally {
     loading.value = false
   }

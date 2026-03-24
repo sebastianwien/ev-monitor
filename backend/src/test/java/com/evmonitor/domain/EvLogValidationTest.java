@@ -127,7 +127,8 @@ class EvLogValidationTest {
                 ChargingType.UNKNOWN,
                 null,                        // rawImportData
                 NOW, NOW,
-                null, null, null, null        // routeType, tireType, supersededBy, sessionGroupId
+                null, null, null, null,       // routeType, tireType, supersededBy, sessionGroupId
+                false, null                  // isPublicCharging, cpoName
         );
     }
 }

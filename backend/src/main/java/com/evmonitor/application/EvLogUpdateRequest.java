@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -29,5 +30,19 @@ public record EvLogUpdateRequest(
         @PastOrPresent LocalDateTime loggedAt,
         ChargingType chargingType,
         RouteType routeType,
-        TireType tireType) {
+        TireType tireType,
+        Boolean isPublicCharging,
+        @Size(max = 100) String cpoName) {
+
+    // Backward-compatible constructor for existing callers (tests)
+    public EvLogUpdateRequest(BigDecimal kwhCharged, BigDecimal costEur,
+            Integer chargeDurationMinutes, Double latitude, Double longitude,
+            Integer odometerKm, BigDecimal maxChargingPowerKw,
+            Integer socAfterChargePercent, Integer socBeforeChargePercent,
+            LocalDateTime loggedAt, ChargingType chargingType,
+            RouteType routeType, TireType tireType) {
+        this(kwhCharged, costEur, chargeDurationMinutes, latitude, longitude,
+                odometerKm, maxChargingPowerKw, socAfterChargePercent, socBeforeChargePercent,
+                loggedAt, chargingType, routeType, tireType, null, null);
+    }
 }

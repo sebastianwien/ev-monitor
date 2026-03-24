@@ -65,11 +65,12 @@ public class EvLogService {
             throw new IllegalArgumentException("User does not own the specified car");
         }
 
-        // Convert lat/lon to 5-character geohash for privacy (~5km precision)
-        // Lat/lon are never stored, only the anonymized geohash
+        // Convert lat/lon to geohash for privacy. Public chargers get 7-char (~150m), private get 5-char (~5km).
+        // Lat/lon are never stored, only the anonymized geohash.
         String geohash = null;
         if (request.latitude() != null && request.longitude() != null) {
-            geohash = GeoHash.withCharacterPrecision(request.latitude(), request.longitude(), 5).toBase32();
+            int precision = Boolean.TRUE.equals(request.isPublicCharging()) ? 7 : 5;
+            geohash = GeoHash.withCharacterPrecision(request.latitude(), request.longitude(), precision).toBase32();
         }
 
         EvLog newLog = EvLog.createNew(
@@ -84,7 +85,9 @@ public class EvLogService {
                 request.loggedAt(),
                 request.chargingType(),
                 request.routeType(),
-                request.tireType());
+                request.tireType(),
+                Boolean.TRUE.equals(request.isPublicCharging()),
+                request.cpoName());
 
         EvLog savedLog = evLogRepository.save(newLog);
 
@@ -265,11 +268,16 @@ public class EvLogService {
             throw new IllegalArgumentException("Log not found for current user (ownership mismatch).");
         }
 
-        // Compute new geohash from lat/lon if provided; otherwise keep existing
+        // Compute new geohash from lat/lon if provided; otherwise keep existing.
+        // Precision depends on isPublicCharging (new value if provided, else existing).
+        boolean updatedIsPublicCharging = request.isPublicCharging() != null
+                ? request.isPublicCharging()
+                : existing.isPublicCharging();
         String geohash = existing.getGeohash();
         boolean geohashChanged = false;
         if (request.latitude() != null && request.longitude() != null) {
-            geohash = GeoHash.withCharacterPrecision(request.latitude(), request.longitude(), 5).toBase32();
+            int precision = updatedIsPublicCharging ? 7 : 5;
+            geohash = GeoHash.withCharacterPrecision(request.latitude(), request.longitude(), precision).toBase32();
             geohashChanged = !geohash.equals(existing.getGeohash());
         }
 
@@ -297,7 +305,9 @@ public class EvLogService {
                 request.routeType() != null ? request.routeType() : existing.getRouteType(),
                 request.tireType() != null ? request.tireType() : existing.getTireType(),
                 existing.getSupersededBy(),
-                existing.getSessionGroupId()
+                existing.getSessionGroupId(),
+                updatedIsPublicCharging,
+                request.cpoName() != null ? request.cpoName() : existing.getCpoName()
         );
 
         EvLog savedLog = evLogRepository.save(updated);

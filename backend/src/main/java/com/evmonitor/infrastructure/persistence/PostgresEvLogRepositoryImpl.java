@@ -226,6 +226,8 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
         entity.setTireType(domain.getTireType() != null ? domain.getTireType().name() : null);
         entity.setSupersededBy(domain.getSupersededBy());
         entity.setSessionGroupId(domain.getSessionGroupId());
+        entity.setPublicCharging(domain.isPublicCharging());
+        entity.setCpoName(domain.getCpoName());
         return entity;
     }
 
@@ -254,6 +256,8 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 entity.getRouteType() != null ? RouteType.valueOf(entity.getRouteType()) : null,
                 entity.getTireType() != null ? TireType.valueOf(entity.getTireType()) : null,
                 entity.getSupersededBy(),
-                entity.getSessionGroupId());
+                entity.getSessionGroupId(),
+                entity.isPublicCharging(),
+                entity.getCpoName());
     }
 }

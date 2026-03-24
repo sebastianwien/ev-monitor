@@ -5,6 +5,8 @@ import com.evmonitor.infrastructure.security.CustomUserDetailsService;
 import com.evmonitor.infrastructure.security.JwtService;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Size;
+import org.springframework.validation.annotation.Validated;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 import java.util.UUID;
 
+@Validated
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
@@ -91,6 +94,16 @@ public class UserController {
     ) {
         UUID userId = UUID.fromString(principal.getUser().getId().toString());
         userService.setLeaderboardVisible(userId, visible);
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/me/primary-emp")
+    public ResponseEntity<Void> setPrimaryEmp(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @RequestParam(required = false) @Size(max = 100) String emp
+    ) {
+        UUID userId = UUID.fromString(principal.getUser().getId().toString());
+        userService.setPrimaryEmp(userId, emp);
         return ResponseEntity.ok().build();
     }
 

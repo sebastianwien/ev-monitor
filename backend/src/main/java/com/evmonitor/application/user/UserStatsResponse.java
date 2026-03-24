@@ -8,6 +8,7 @@ public record UserStatsResponse(
         double totalKwh,
         double totalCostEur,
         String referralCode,
-        boolean leaderboardVisible
+        boolean leaderboardVisible,
+        String primaryEmp
 ) {
 }
