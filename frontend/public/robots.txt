@@ -1,6 +1,7 @@
 User-agent: *
 Allow: /
 Allow: /modelle/
+Allow: /en/
 Disallow: /api/
 
 Sitemap: https://ev-monitor.net/sitemap.xml

@@ -5,7 +5,7 @@
     class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
   >
     <slot name="placeholder">
-      <option value="" disabled>Fahrzeug auswählen…</option>
+      <option value="" disabled>{{ t('cars.select_placeholder') }}</option>
     </slot>
     <option v-for="car in cars" :key="car.id" :value="car.id">
       {{ carLabel(car) }}
@@ -14,7 +14,10 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import type { Car } from '../api/carService'
+
+const { t } = useI18n()
 
 defineProps<{
   cars: Car[]

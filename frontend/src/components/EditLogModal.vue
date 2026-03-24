@@ -166,12 +166,12 @@ async function save() {
   // Frontend validation (same rules as LogForm)
   fieldErrors.value = new Set()
   const errors: string[] = []
-  if (!kwh || kwh <= 0) { fieldErrors.value.add('kwh'); errors.push('Energie (kWh)') }
-  if (cost === null) { fieldErrors.value.add('cost'); errors.push('Kosten (€)') }
-  if (!odometer || odometer <= 0) { fieldErrors.value.add('odometer'); errors.push('Tachostand') }
-  if (soc === null || soc < 0 || soc > 100) { fieldErrors.value.add('soc'); errors.push('Akkustand nach Laden (0–100%)') }
+  if (!kwh || kwh <= 0) { fieldErrors.value.add('kwh'); errors.push(t('logform.field_kwh')) }
+  if (cost === null) { fieldErrors.value.add('cost'); errors.push(t('logform.field_cost')) }
+  if (!odometer || odometer <= 0) { fieldErrors.value.add('odometer'); errors.push(t('logform.field_odometer')) }
+  if (soc === null || soc < 0 || soc > 100) { fieldErrors.value.add('soc'); errors.push(t('logform.field_soc')) }
   if (errors.length > 0) {
-    errorMsg.value = `Bitte fülle alle Pflichtfelder korrekt aus: ${errors.join(', ')}`
+    errorMsg.value = t('logform.error_required', { fields: errors.join(', ') })
     return
   }
 

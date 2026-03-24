@@ -202,7 +202,7 @@ const fetchStatistics = async () => {
     const response = await api.get(`/logs/statistics?${params}`)
     stats.value = response.data
   } catch (err: any) {
-    error.value = err.response?.data?.message || 'Fehler beim Laden der Statistiken'
+    error.value = err.response?.data?.message || t('dashboard.err_load')
   } finally {
     loading.value = false
     // Delay only on initial load, immediate on filter changes
@@ -271,7 +271,7 @@ const chargingChartData = computed(() => {
 
   if (showCostPerKwh.value) {
     datasets.push({
-      label: 'Kosten (€/kWh)',
+      label: t('dashboard.chart_cost_per_kwh'),
       data: stats.value.chargesOverTime.map(d =>
         d.kwhCharged > 0 ? +(d.costEur / d.kwhCharged).toFixed(3) : null
       ),
@@ -283,7 +283,7 @@ const chargingChartData = computed(() => {
 
   if (showKwh.value) {
     datasets.push({
-      label: 'Geladen (kWh)',
+      label: t('dashboard.chart_kwh'),
       data: stats.value.chargesOverTime.map(d => d.kwhCharged),
       borderColor: isDark.value ? '#fcd34d' : '#f59e0b',
       backgroundColor: isDark.value ? 'rgba(252,211,77,0.13)' : 'rgba(245,158,11,0.1)',
