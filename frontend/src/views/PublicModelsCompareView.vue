@@ -5,9 +5,9 @@
     <main class="max-w-6xl mx-auto px-4 py-8">
       <!-- Breadcrumb -->
       <nav class="text-sm text-gray-500 mb-6">
-        <a href="/modelle" class="hover:text-gray-700">Modelle</a>
+        <a href="/modelle" class="hover:text-gray-700">{{ t('compare.breadcrumb_models') }}</a>
         <span class="mx-2">›</span>
-        <span class="text-gray-900">Vergleich</span>
+        <span class="text-gray-900">{{ t('compare.breadcrumb_current') }}</span>
       </nav>
 
       <!-- Loading -->
@@ -18,10 +18,10 @@
       <!-- Error / invalid params -->
       <div v-else-if="error || validModels.length < 2" class="text-center py-20">
         <TruckIcon class="h-16 w-16 text-gray-300 mx-auto mb-4" />
-        <h1 class="text-xl font-bold text-gray-800 mb-2">Vergleich nicht möglich</h1>
-        <p class="text-gray-500 mb-6">{{ error || 'Bitte mindestens 2 Modelle auswählen.' }}</p>
+        <h1 class="text-xl font-bold text-gray-800 mb-2">{{ t('compare.error_title') }}</h1>
+        <p class="text-gray-500 mb-6">{{ error || t('compare.error_min_models') }}</p>
         <a href="/modelle" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700">
-          Zur Modellübersicht
+          {{ t('compare.breadcrumb_models') }}
         </a>
       </div>
 
@@ -32,11 +32,11 @@
             {{ validModels.map(m => m.modelDisplayName).join(' vs. ') }}
           </h1>
           <p class="text-gray-500 text-sm">
-            Reale Community-Daten im direkten Vergleich – WLTP vs. Praxis
+            {{ t('compare.subtitle') }}
           </p>
           <a href="/modelle" class="inline-flex items-center gap-1.5 text-sm text-green-600 hover:underline mt-3">
             <ArrowLeftIcon class="h-4 w-4" />
-            Andere Modelle wählen
+            {{ t('compare.change_models') }}
           </a>
         </div>
 
@@ -59,12 +59,12 @@
                     <span v-if="m.logCount > 0"
                           class="inline-flex items-center gap-1 mt-1 text-xs px-2 py-0.5 rounded-full bg-green-50 border border-green-200 text-green-700 font-normal">
                       <ChartBarIcon class="h-3 w-3" />
-                      Community-Daten
+                      {{ t('compare.badge_community') }}
                     </span>
                     <!-- WLTP-only badge — same muted look as fallback cards -->
                     <span v-else
                           class="inline-flex items-center gap-1 mt-1 text-xs px-2 py-0.5 rounded-full bg-gray-100 border border-gray-200 text-gray-400 font-normal">
-                      Nur WLTP
+                      {{ t('compare.badge_wltp_only') }}
                     </span>
                   </th>
                 </tr>
@@ -74,13 +74,13 @@
                 <!-- ── Block 1: Verbrauch & Effizienz ───────────────────── -->
                 <tr class="bg-gray-50">
                   <td :colspan="validModels.length + 1" class="sticky left-0 px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Verbrauch & Effizienz
+                    {{ t('compare.section_consumption') }}
                   </td>
                 </tr>
                 <!-- Real consumption -->
                 <tr class="border-t border-gray-50 hover:bg-gray-50 transition-colors">
                   <td class="sticky left-0 bg-white z-10 px-4 py-3 text-gray-600 font-medium whitespace-nowrap">
-                    Ø Real (kWh/100km)
+                    {{ t('compare.row_real_consumption') }}
                   </td>
                   <td v-for="(_, i) in validModels" :key="i"
                       class="px-3 py-3 text-center" :class="cellClass(i, realConsumptions)">
@@ -90,7 +90,7 @@
                 <!-- WLTP consumption -->
                 <tr class="border-t border-gray-50 hover:bg-gray-50 transition-colors">
                   <td class="sticky left-0 bg-white z-10 px-4 py-3 text-gray-600 font-medium whitespace-nowrap">
-                    WLTP (kWh/100km)
+                    {{ t('compare.row_wltp_consumption') }}
                   </td>
                   <td v-for="(_, i) in validModels" :key="i"
                       class="px-3 py-3 text-center text-gray-700">
@@ -100,7 +100,7 @@
                 <!-- Delta WLTP -->
                 <tr class="border-t border-gray-50 hover:bg-gray-50 transition-colors">
                   <td class="sticky left-0 bg-white z-10 px-4 py-3 text-gray-600 font-medium whitespace-nowrap">
-                    Abweichung WLTP
+                    {{ t('compare.row_wltp_delta') }}
                   </td>
                   <td v-for="(_, i) in validModels" :key="i"
                       class="px-3 py-3 text-center">
@@ -116,13 +116,13 @@
                 <!-- ── Block 2: Reichweite ──────────────────────────────── -->
                 <tr class="bg-gray-50">
                   <td :colspan="validModels.length + 1" class="sticky left-0 px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Reichweite
+                    {{ t('compare.section_range') }}
                   </td>
                 </tr>
                 <tr class="border-t border-gray-50 hover:bg-gray-50 transition-colors">
                   <td class="sticky left-0 bg-white z-10 px-4 py-3 text-gray-600 font-medium whitespace-nowrap">
-                    <div>Praxis (90→10%)</div>
-                    <div class="text-xs text-gray-400 font-normal">bei realem Verbrauch</div>
+                    <div>{{ t('compare.row_real_range') }}</div>
+                    <div class="text-xs text-gray-400 font-normal">{{ t('compare.row_real_range_sub') }}</div>
                   </td>
                   <td v-for="(_, i) in validModels" :key="i"
                       class="px-3 py-3 text-center" :class="cellClass(i, realRanges, false)">
@@ -131,7 +131,7 @@
                 </tr>
                 <tr class="border-t border-gray-50 hover:bg-gray-50 transition-colors">
                   <td class="sticky left-0 bg-white z-10 px-4 py-3 text-gray-600 font-medium whitespace-nowrap">
-                    WLTP Reichweite
+                    {{ t('compare.row_wltp_range') }}
                   </td>
                   <td v-for="(_, i) in validModels" :key="i"
                       class="px-3 py-3 text-center text-gray-700">
@@ -142,12 +142,12 @@
                 <!-- ── Block 3: Kosten ──────────────────────────────────── -->
                 <tr class="bg-gray-50">
                   <td :colspan="validModels.length + 1" class="sticky left-0 px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Kosten
+                    {{ t('compare.section_costs') }}
                   </td>
                 </tr>
                 <tr class="border-t border-gray-50 hover:bg-gray-50 transition-colors">
                   <td class="sticky left-0 bg-white z-10 px-4 py-3 text-gray-600 font-medium whitespace-nowrap">
-                    Ø Kosten / 100km
+                    {{ t('compare.row_costs_per_100') }}
                   </td>
                   <td v-for="(_, i) in validModels" :key="i"
                       class="px-3 py-3 text-center" :class="cellClass(i, costsPerHundred)">
@@ -156,7 +156,7 @@
                 </tr>
                 <tr class="border-t border-gray-50 hover:bg-gray-50 transition-colors">
                   <td class="sticky left-0 bg-white z-10 px-4 py-3 text-gray-600 font-medium whitespace-nowrap">
-                    Ø Ladepreis / kWh
+                    {{ t('compare.row_costs_per_kwh') }}
                   </td>
                   <td v-for="(_, i) in validModels" :key="i"
                       class="px-3 py-3 text-center" :class="cellClass(i, costsPerKwh)">
@@ -167,12 +167,12 @@
                 <!-- ── Block 4: Saisonal ────────────────────────────────── -->
                 <tr class="bg-gray-50">
                   <td :colspan="validModels.length + 1" class="sticky left-0 px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Saisonal
+                    {{ t('compare.section_seasonal') }}
                   </td>
                 </tr>
                 <tr class="border-t border-gray-50 hover:bg-gray-50 transition-colors">
                   <td class="sticky left-0 bg-white z-10 px-4 py-3 text-gray-600 font-medium whitespace-nowrap">
-                    🌞 Sommer (kWh/100km)
+                    🌞 {{ t('compare.row_summer') }}
                   </td>
                   <td v-for="(_, i) in validModels" :key="i"
                       class="px-3 py-3 text-center" :class="cellClass(i, summerConsumptions)">
@@ -181,7 +181,7 @@
                 </tr>
                 <tr class="border-t border-gray-50 hover:bg-gray-50 transition-colors">
                   <td class="sticky left-0 bg-white z-10 px-4 py-3 text-gray-600 font-medium whitespace-nowrap">
-                    ❄️ Winter (kWh/100km)
+                    ❄️ {{ t('compare.row_winter') }}
                   </td>
                   <td v-for="(_, i) in validModels" :key="i"
                       class="px-3 py-3 text-center" :class="cellClass(i, winterConsumptions)">
@@ -192,21 +192,21 @@
                 <!-- ── Block 5: Datenbasis ──────────────────────────────── -->
                 <tr class="bg-gray-50">
                   <td :colspan="validModels.length + 1" class="sticky left-0 px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Community-Datenbasis
+                    {{ t('compare.section_data') }}
                   </td>
                 </tr>
                 <tr class="border-t border-gray-50 hover:bg-gray-50 transition-colors">
                   <td class="sticky left-0 bg-white z-10 px-4 py-3 text-gray-600 font-medium whitespace-nowrap">
-                    Ladevorgänge
+                    {{ t('compare.row_log_count') }}
                   </td>
                   <td v-for="(_, i) in validModels" :key="i"
                       class="px-3 py-3 text-center" :class="cellClass(i, logCounts, false)">
-                    {{ validModels[i].logCount > 0 ? validModels[i].logCount.toLocaleString('de-DE') : '–' }}
+                    {{ validModels[i].logCount > 0 ? validModels[i].logCount.toLocaleString() : '–' }}
                   </td>
                 </tr>
                 <tr class="border-t border-gray-50 hover:bg-gray-50 transition-colors">
                   <td class="sticky left-0 bg-white z-10 px-4 py-3 text-gray-600 font-medium whitespace-nowrap">
-                    Mitwirkende
+                    {{ t('compare.row_contributors') }}
                   </td>
                   <td v-for="(_, i) in validModels" :key="i"
                       class="px-3 py-3 text-center text-gray-700">
@@ -221,19 +221,19 @@
           <div class="px-4 py-3 border-t border-gray-100 flex flex-wrap gap-4 text-xs text-gray-400">
             <span class="flex items-center gap-1.5">
               <span class="w-2.5 h-2.5 rounded-full bg-green-500 inline-block"></span>
-              Bester Wert
+              {{ t('compare.legend_best') }}
             </span>
             <span class="flex items-center gap-1.5">
               <span class="w-2.5 h-2.5 rounded-full bg-red-400 inline-block"></span>
-              Schlechtester Wert
+              {{ t('compare.legend_worst') }}
             </span>
-            <span>– = keine Daten vorhanden</span>
+            <span>{{ t('compare.legend_no_data') }}</span>
           </div>
         </div>
 
         <!-- Links to individual pages -->
         <div class="bg-white rounded-2xl border border-gray-200 p-5 mb-6">
-          <p class="text-sm font-semibold text-gray-700 mb-3">Detailseiten</p>
+          <p class="text-sm font-semibold text-gray-700 mb-3">{{ t('compare.detail_pages') }}</p>
           <div class="flex flex-wrap gap-3">
             <a v-for="m in validModels" :key="m.brand + m.model"
                :href="`/modelle/${m.brand}/${m.model}`"
@@ -246,16 +246,16 @@
 
         <!-- CTA -->
         <div class="bg-gradient-to-br from-green-600 to-green-700 rounded-2xl p-6 text-white">
-          <h2 class="text-xl font-bold mb-2">Daten fehlen oder unvollständig?</h2>
+          <h2 class="text-xl font-bold mb-2">{{ t('compare.cta_title') }}</h2>
           <p class="text-green-100 text-sm mb-4">
-            Trage deine Ladevorgänge bei – je mehr Fahrer mitmachen, desto belastbarer werden die Vergleichswerte.
+            {{ t('compare.cta_desc') }}
           </p>
           <div class="flex flex-wrap gap-3">
             <a href="/register" class="bg-white text-green-700 font-semibold px-4 py-2 rounded-lg hover:bg-green-50 transition-colors text-sm">
-              Kostenlos starten
+              {{ t('compare.cta_register') }}
             </a>
             <a href="/login" class="border border-white text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors text-sm">
-              Anmelden
+              {{ t('compare.cta_login') }}
             </a>
           </div>
         </div>
@@ -264,7 +264,7 @@
 
     <footer class="max-w-6xl mx-auto px-4 py-8 mt-6 border-t border-gray-200 text-sm text-gray-500 text-center">
       © {{ currentYear }} EV Monitor ·
-      <a href="/modelle" class="hover:text-gray-700">Alle Modelle</a>
+      <a href="/modelle" class="hover:text-gray-700">{{ t('compare.all_models') }}</a>
     </footer>
   </div>
 </template>
@@ -273,9 +273,12 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useHead } from '@unhead/vue'
+import { useI18n } from 'vue-i18n'
 import { getModelStats, type PublicModelStats } from '../api/publicModelService'
 import { TruckIcon, ArrowLeftIcon, ChartBarIcon } from '@heroicons/vue/24/outline'
 import PublicNav from '../components/PublicNav.vue'
+
+const { t } = useI18n()
 
 const route = useRoute()
 const loading = ref(true)
@@ -291,7 +294,7 @@ const modelKeys = computed((): string[] => {
 
 onMounted(async () => {
   if (modelKeys.value.length < 2) {
-    error.value = 'Bitte mindestens 2 Modelle zum Vergleich auswählen.'
+    error.value = t('compare.error_need_two')
     loading.value = false
     return
   }
@@ -303,7 +306,7 @@ onMounted(async () => {
       })
     )
   } catch {
-    error.value = 'Fehler beim Laden der Modelldaten.'
+    error.value = t('compare.error_loading')
   } finally {
     loading.value = false
   }
@@ -400,9 +403,9 @@ function deltaChipClass(pct: number): string {
 useHead(computed(() => {
   const names = validModels.value.map(m => m.modelDisplayName).join(' vs. ')
   return {
-    title: names ? `${names} – Vergleich | EV Monitor` : 'Modellvergleich | EV Monitor',
+    title: names ? `${names} – ${t('compare.breadcrumb_current')} | EV Monitor` : t('compare.head_title_fallback'),
     meta: [
-      { name: 'description', content: `Direkter Vergleich: ${names}. Realer Verbrauch, Reichweite, Kosten und WLTP-Abweichung aus echten Community-Daten.` },
+      { name: 'description', content: t('compare.head_desc', { names }) },
       { name: 'robots', content: 'index, follow' }
     ]
   }

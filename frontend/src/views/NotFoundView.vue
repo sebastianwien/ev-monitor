@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const router = useRouter();
 
 const goHome = () => {
@@ -33,18 +35,17 @@ const goBack = () => {
       </h1>
 
       <p class="text-xl text-gray-300 mb-2">
-        Die Seite hat sich wohl selbst entladen...
+        {{ t('notfound.subtitle') }}
       </p>
 
       <p class="text-gray-400 mb-8">
-        <code class="bg-gray-800 px-2 py-1 rounded text-red-400">{{ $route.fullPath }}</code> existiert nicht.
+        <code class="bg-gray-800 px-2 py-1 rounded text-red-400">{{ $route.fullPath }}</code> {{ t('notfound.path_info') }}
       </p>
 
       <!-- Fun Facts -->
       <div class="bg-gray-800/50 border border-gray-700 rounded-lg p-6 mb-8 text-left">
         <p class="text-gray-300 text-sm mb-2">
-          <span class="text-yellow-400">💡 Fun Fact:</span> HTTP 404 wurde nach Room 404 im CERN benannt,
-          wo Tim Berners-Lee das WWW erfand. (Ist aber wahrscheinlich ein Mythos 🤓)
+          <span class="text-yellow-400">💡 {{ t('notfound.fun_fact_label') }}</span> {{ t('notfound.fun_fact') }}
         </p>
       </div>
 
@@ -54,13 +55,13 @@ const goBack = () => {
           @click="goBack"
           class="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors font-medium"
         >
-          ← Zurück
+          {{ t('notfound.go_back') }}
         </button>
         <button
           @click="goHome"
           class="px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white rounded-lg transition-all font-medium shadow-lg hover:shadow-xl"
         >
-          🏠 Zum Dashboard
+          {{ t('notfound.go_home') }}
         </button>
       </div>
 

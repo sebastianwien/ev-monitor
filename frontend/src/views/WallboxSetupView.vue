@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/auth'
 import type { Car } from '../api/carService'
 import { useCarStore } from '../stores/car'
@@ -20,6 +21,7 @@ import {
   KeyIcon
 } from '@heroicons/vue/24/outline'
 
+const { t } = useI18n()
 const authStore = useAuthStore()
 const carStore = useCarStore()
 const userId = computed(() => authStore.user?.userId || '')
@@ -153,7 +155,7 @@ async function saveLocation(conn: WallboxConnection) {
     if (idx !== -1) connections.value[idx] = updated
     s.editingLocation = false
   } catch {
-    error.value = 'Standort konnte nicht gespeichert werden.'
+    error.value = t('wallbox.err_location')
   } finally {
     s.saving = false
   }
@@ -179,7 +181,7 @@ async function saveTariff(conn: WallboxConnection) {
     if (idx !== -1) connections.value[idx] = updated
     s.editingTariff = false
   } catch {
-    error.value = 'Tarif konnte nicht gespeichert werden.'
+    error.value = t('wallbox.err_tariff')
   } finally {
     s.saving = false
   }
@@ -197,7 +199,7 @@ const load = async () => {
     connections.value = conns
     cars.value = carList
   } catch {
-    error.value = 'Fehler beim Laden der Wallbox-Verbindungen.'
+    error.value = t('wallbox.err_load')
   } finally {
     loading.value = false
   }
@@ -205,7 +207,7 @@ const load = async () => {
 
 const save = async () => {
   if (!formChargePointId.value.trim()) {
-    error.value = 'ChargePoint-ID darf nicht leer sein.'
+    error.value = t('wallbox.err_empty_id')
     return
   }
   saving.value = true
@@ -223,12 +225,12 @@ const save = async () => {
     formChargePointId.value = ''
     formCarId.value = ''
     formDisplayName.value = ''
-    success.value = 'Wallbox erfolgreich registriert! Trage OCPP-URL und Passwort in deine Wallbox-App ein - beides findest du unten in den Zugangsdaten.'
+    success.value = t('wallbox.success_registered')
   } catch (e: any) {
     if (e?.response?.status === 409) {
-      error.value = 'Diese ChargePoint-ID ist bereits registriert.'
+      error.value = t('wallbox.err_duplicate')
     } else {
-      error.value = 'Verbindung konnte nicht gespeichert werden.'
+      error.value = t('wallbox.err_save')
     }
   } finally {
     saving.value = false
@@ -239,9 +241,9 @@ const remove = async (id: string) => {
   try {
     await wallboxService.deleteConnection(id, userId.value)
     connections.value = connections.value.filter(c => c.id !== id)
-    success.value = 'Wallbox-Verbindung entfernt.'
+    success.value = t('wallbox.success_removed')
   } catch {
-    error.value = 'Verbindung konnte nicht gelöscht werden.'
+    error.value = t('wallbox.err_delete')
   }
 }
 
@@ -263,7 +265,7 @@ const carLabel = (carId: string | null) => {
 
 const copyUrl = (url: string) => {
   navigator.clipboard.writeText(url)
-  success.value = 'URL kopiert!'
+  success.value = t('wallbox.success_url_copied')
 }
 
 onMounted(load)
@@ -275,23 +277,17 @@ onMounted(load)
     <div class="mb-8">
       <div class="flex items-center gap-3 mb-2">
         <BoltIcon class="h-7 w-7 text-green-600" />
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Wallbox verbinden</h1>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ t('wallbox.title') }}</h1>
       </div>
-      <p class="text-gray-600 dark:text-gray-400">
-        Verbinde deine Heimwallbox über OCPP 1.6. Ladevorgänge werden automatisch importiert.
-      </p>
+      <p class="text-gray-600 dark:text-gray-400">{{ t('wallbox.subtitle') }}</p>
     </div>
 
     <!-- Beta Disclaimer -->
     <div class="flex items-start gap-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-xl p-4 mb-8">
       <ExclamationTriangleIcon class="h-5 w-5 text-blue-500 dark:text-blue-400 mt-0.5 shrink-0" />
       <div class="text-sm text-blue-800 dark:text-blue-200">
-        <p class="font-semibold mb-1">Beta-Funktion</p>
-        <p>
-          Die Wallbox-Integration befindet sich im Beta-Stadium. Sie ist primär dazu gedacht,
-          die OCPP-Schnittstelle mit echten Geräten zu erproben und stabiler zu machen.
-          Fehler und Änderungen sind möglich - Feedback ist willkommen.
-        </p>
+        <p class="font-semibold mb-1">{{ t('wallbox.beta_title') }}</p>
+        <p>{{ t('wallbox.beta_desc') }}</p>
       </div>
     </div>
 
@@ -306,12 +302,12 @@ onMounted(load)
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="text-center text-gray-500 dark:text-gray-400 py-12">Lade...</div>
+    <div v-if="loading" class="text-center text-gray-500 dark:text-gray-400 py-12">{{ t('wallbox.loading') }}</div>
 
     <template v-else>
       <!-- Existing Connections -->
       <div v-if="connections.length > 0" class="mb-8 space-y-3">
-        <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Verbundene Wallboxen</h2>
+        <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">{{ t('wallbox.connections_title') }}</h2>
         <div
           v-for="conn in connections"
           :key="conn.id"
@@ -325,7 +321,7 @@ onMounted(load)
                 <span class="font-medium text-gray-900 dark:text-gray-100 truncate">
                   {{ conn.displayName || conn.ocppChargePointId }}
                 </span>
-                <span class="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-0.5 rounded-full">Aktiv</span>
+                <span class="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-0.5 rounded-full">{{ t('wallbox.status_active') }}</span>
               </div>
               <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 font-mono">{{ conn.ocppChargePointId }}</p>
               <p v-if="carLabel(conn.carId)" class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
@@ -335,7 +331,7 @@ onMounted(load)
             <button
               @click="remove(conn.id)"
               class="text-gray-400 dark:text-gray-500 hover:text-red-500 transition shrink-0"
-              title="Verbindung entfernen"
+              :title="t('wallbox.remove_title')"
             >
               <TrashIcon class="h-4 w-4" />
             </button>
@@ -346,15 +342,15 @@ onMounted(load)
             <div v-if="!getEditState(conn.id).editingLocation" class="flex items-center justify-between">
               <span class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
                 <MapPinIcon class="h-3.5 w-3.5" />
-                Standort:
+                {{ t('wallbox.location_label') }}
                 <span class="font-medium text-gray-700 dark:text-gray-300">
-                  {{ conn.geohash ? `Gesetzt (${conn.geohash})` : 'nicht gesetzt' }}
+                  {{ conn.geohash ? t('wallbox.location_set', { hash: conn.geohash }) : t('wallbox.location_unset') }}
                 </span>
               </span>
               <button @click="startEditLocation(conn)"
                 class="flex items-center gap-1 text-xs text-green-600 hover:text-green-700 font-medium">
                 <PencilIcon class="h-3.5 w-3.5" />
-                Bearbeiten
+                {{ t('wallbox.location_edit') }}
               </button>
             </div>
             <div v-else class="space-y-2">
@@ -363,7 +359,7 @@ onMounted(load)
                   v-model="getEditState(conn.id).locationQuery"
                   @input="onLocationQueryChange(conn.id)"
                   type="text"
-                  placeholder="Adresse suchen..."
+                  :placeholder="t('wallbox.location_placeholder')"
                   class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500"
                 />
                 <ul v-if="getEditState(conn.id).locationResults.length > 0"
@@ -382,11 +378,11 @@ onMounted(load)
                 <button @click="saveLocation(conn)" :disabled="getEditState(conn.id).saving"
                   class="flex items-center gap-1 text-xs bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 disabled:opacity-50">
                   <CheckIcon class="h-3.5 w-3.5" />
-                  Speichern
+                  {{ t('wallbox.location_save') }}
                 </button>
                 <button @click="clearLocation(conn.id); getEditState(conn.id).editingLocation = false"
                   class="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 px-2 py-1.5">
-                  Abbrechen
+                  {{ t('wallbox.location_cancel') }}
                 </button>
               </div>
             </div>
@@ -396,17 +392,17 @@ onMounted(load)
           <div class="border-t border-gray-100 dark:border-gray-700 px-4 py-3">
             <div v-if="!getEditState(conn.id).editingTariff" class="flex items-center justify-between">
               <span class="text-xs text-gray-500 dark:text-gray-400">
-                Tarif:
+                {{ t('wallbox.tariff_label') }}
                 <span class="font-medium text-gray-700 dark:text-gray-300">
                   {{ conn.tariffCentsPerKwh > 0
-                    ? `${Number(conn.tariffCentsPerKwh).toLocaleString('de-DE', { maximumFractionDigits: 4 })} ct/kWh`
-                    : 'nicht gesetzt' }}
+                    ? `${Number(conn.tariffCentsPerKwh).toLocaleString(undefined, { maximumFractionDigits: 4 })} ct/kWh`
+                    : t('wallbox.tariff_unset') }}
                 </span>
               </span>
               <button @click="startEditTariff(conn)"
                 class="flex items-center gap-1 text-xs text-green-600 hover:text-green-700 font-medium">
                 <PencilIcon class="h-3.5 w-3.5" />
-                Bearbeiten
+                {{ t('wallbox.tariff_edit') }}
               </button>
             </div>
             <div v-else class="flex items-center gap-2">
@@ -416,7 +412,7 @@ onMounted(load)
                 min="0"
                 max="9999"
                 step="0.0001"
-                placeholder="z.B. 29,5"
+                :placeholder="t('wallbox.tariff_placeholder')"
                 class="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500"
                 @keyup.enter="saveTariff(conn)"
                 @keyup.escape="getEditState(conn.id).editingTariff = false"
@@ -437,27 +433,27 @@ onMounted(load)
           <div class="border-t border-gray-100 dark:border-gray-700 px-4 py-3 bg-gray-50 dark:bg-gray-700/50">
             <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 flex items-center gap-1 mb-2">
               <KeyIcon class="h-3.5 w-3.5" />
-              OCPP-Zugangsdaten
+              {{ t('wallbox.ocpp_credentials_title') }}
             </p>
             <div class="space-y-1.5">
               <div class="flex items-center gap-2">
-                <span class="text-xs text-gray-500 dark:text-gray-400 w-16 shrink-0">Username</span>
+                <span class="text-xs text-gray-500 dark:text-gray-400 w-16 shrink-0">{{ t('wallbox.username_label') }}</span>
                 <code class="text-xs text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-0.5 flex-1 truncate">{{ conn.ocppChargePointId }}</code>
-                <button @click="copyUrl(conn.ocppChargePointId)" class="text-gray-400 dark:text-gray-500 hover:text-green-600 shrink-0" title="Kopieren">
+                <button @click="copyUrl(conn.ocppChargePointId)" class="text-gray-400 dark:text-gray-500 hover:text-green-600 shrink-0" :title="t('wallbox.copy_title')">
                   <ClipboardDocumentIcon class="h-3.5 w-3.5" />
                 </button>
               </div>
               <div class="flex items-center gap-2">
-                <span class="text-xs text-gray-500 dark:text-gray-400 w-16 shrink-0">Passwort</span>
+                <span class="text-xs text-gray-500 dark:text-gray-400 w-16 shrink-0">{{ t('wallbox.password_label') }}</span>
                 <code class="text-xs text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-0.5 flex-1 truncate">
                   {{ getEditState(conn.id).passwordVisible ? conn.ocppPassword : '••••••••••••••••' }}
                 </code>
                 <button @click="getEditState(conn.id).passwordVisible = !getEditState(conn.id).passwordVisible"
-                  class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 shrink-0" title="Anzeigen/Verbergen">
+                  class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 shrink-0" :title="t('wallbox.show_hide_title')">
                   <EyeSlashIcon v-if="getEditState(conn.id).passwordVisible" class="h-3.5 w-3.5" />
                   <EyeIcon v-else class="h-3.5 w-3.5" />
                 </button>
-                <button @click="copyUrl(conn.ocppPassword)" class="text-gray-400 dark:text-gray-500 hover:text-green-600 shrink-0" title="Kopieren">
+                <button @click="copyUrl(conn.ocppPassword)" class="text-gray-400 dark:text-gray-500 hover:text-green-600 shrink-0" :title="t('wallbox.copy_title')">
                   <ClipboardDocumentIcon class="h-3.5 w-3.5" />
                 </button>
               </div>
@@ -473,48 +469,48 @@ onMounted(load)
           class="flex items-center gap-2 bg-green-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-green-700 transition"
         >
           <PlusIcon class="h-5 w-5" />
-          Wallbox hinzufügen
+          {{ t('wallbox.add_btn') }}
         </button>
       </div>
 
       <div v-else class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 mb-8 space-y-5">
-        <h2 class="font-semibold text-gray-900 dark:text-gray-100">Neue Wallbox verbinden</h2>
+        <h2 class="font-semibold text-gray-900 dark:text-gray-100">{{ t('wallbox.new_wallbox_title') }}</h2>
 
         <!-- ChargePoint ID -->
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            ChargePoint-ID <span class="text-red-500">*</span>
+            {{ t('wallbox.chargepointid_label') }} <span class="text-red-500">*</span>
           </label>
           <input
             v-model="formChargePointId"
             type="text"
-            placeholder="z.B. ESP32_A1B2C3 oder go-e Seriennummer"
+            :placeholder="t('wallbox.chargepointid_placeholder')"
             class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500"
           />
           <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            Bei go-e: Seriennummer aus der App unter Einstellungen - Geräteinformationen
+            {{ t('wallbox.chargepointid_hint') }}
           </p>
         </div>
 
         <!-- Display Name -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name (optional)</label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('wallbox.name_label') }}</label>
           <input
             v-model="formDisplayName"
             type="text"
-            placeholder="z.B. Garage Zuhause"
+            :placeholder="t('wallbox.name_placeholder')"
             class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500"
           />
         </div>
 
         <!-- Car Selection -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fahrzeug (optional)</label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('wallbox.car_label') }}</label>
           <select
             v-model="formCarId"
             class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500"
           >
-            <option value="">Kein Fahrzeug zuordnen</option>
+            <option value="">{{ t('wallbox.car_none') }}</option>
             <option v-for="car in cars" :key="car.id" :value="car.id">
               {{ carLabel(car.id) }}
             </option>
@@ -524,20 +520,20 @@ onMounted(load)
         <!-- OCPP URL Preview -->
         <div v-if="formChargePointId.trim()" class="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg p-4">
           <p class="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">
-            OCPP-URL für deine Wallbox-App:
+            {{ t('wallbox.ocpp_url_label') }}
           </p>
           <div class="flex items-center gap-2">
             <code class="text-xs text-gray-800 dark:text-gray-100 break-all flex-1">{{ ocppUrl }}</code>
             <button
               @click="copyUrl(ocppUrl)"
               class="text-gray-400 hover:text-green-600 transition shrink-0"
-              title="Kopieren"
+              :title="t('wallbox.copy_title')"
             >
               <ClipboardDocumentIcon class="h-4 w-4" />
             </button>
           </div>
           <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
-            go-e: App - Einstellungen - OCPP - Server URL eintragen
+            {{ t('wallbox.ocpp_url_goe_hint') }}
           </p>
         </div>
 
@@ -548,13 +544,13 @@ onMounted(load)
             :disabled="saving"
             class="bg-green-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition disabled:opacity-50"
           >
-            {{ saving ? 'Speichern...' : 'Verbindung speichern' }}
+            {{ saving ? t('wallbox.save_btn_loading') : t('wallbox.save_btn') }}
           </button>
           <button
             @click="showForm = false; error = null"
             class="text-gray-600 dark:text-gray-300 px-5 py-2 rounded-lg text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition"
           >
-            Abbrechen
+            {{ t('wallbox.cancel_btn') }}
           </button>
         </div>
       </div>

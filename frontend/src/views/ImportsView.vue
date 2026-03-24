@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ArrowDownTrayIcon, BoltIcon, ExclamationTriangleIcon, CodeBracketIcon, TrashIcon, ClipboardDocumentIcon, CheckIcon } from '@heroicons/vue/24/outline'
 import SpritMonitorImport from '../components/SpritMonitorImport.vue'
 import GoeIntegration from '../components/GoeIntegration.vue'
@@ -13,6 +14,7 @@ import { useImportsTab } from '../composables/useImportsTab'
 import { apiKeyService, type ApiKeyResponse, type ApiKeyCreatedResponse } from '../api/apiKeyService'
 import { analytics } from '../services/analytics'
 
+const { t } = useI18n()
 const { activeTab } = useImportsTab()
 const carStore = useCarStore()
 const showSpritMonitorModal = ref(false)
@@ -54,24 +56,24 @@ const createApiKey = async () => {
     newKeyName.value = ''
     await fetchApiKeys()
   } catch (error: any) {
-    apiKeyMessage.value = { type: 'error', text: error.response?.data?.error || 'API Key konnte nicht erstellt werden' }
+    apiKeyMessage.value = { type: 'error', text: error.response?.data?.error || t('imports.api_err_create') }
   } finally {
     apiKeyLoading.value = false
   }
 }
 
 const deleteApiKey = async (id: string, name: string) => {
-  if (!window.confirm(`API Key "${name || 'ohne Name'}" wirklich widerrufen? Alle Integrationen die diesen Key nutzen hören sofort auf zu funktionieren.`)) return
+  if (!window.confirm(t('imports.api_confirm_revoke', { name: name || t('imports.api_confirm_name_fallback') }))) return
   deletingKeyId.value = id
   try {
     await apiKeyService.deleteKey(id)
     analytics.trackApiKeyDeleted()
     apiKeys.value = apiKeys.value.filter(k => k.id !== id)
     if (createdKey.value?.id === id) createdKey.value = null
-    apiKeyMessage.value = { type: 'success', text: 'API Key widerrufen.' }
+    apiKeyMessage.value = { type: 'success', text: t('imports.api_revoked') }
     setTimeout(() => { apiKeyMessage.value = null }, 3000)
   } catch {
-    apiKeyMessage.value = { type: 'error', text: 'Key konnte nicht gelöscht werden' }
+    apiKeyMessage.value = { type: 'error', text: t('imports.api_err_delete') }
   } finally {
     deletingKeyId.value = null
   }
@@ -87,8 +89,8 @@ const copyApiKey = async () => {
 }
 
 const formatDate = (dateStr: string | null) => {
-  if (!dateStr) return 'Noch nie'
-  return new Date(dateStr).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  if (!dateStr) return t('imports.api_never')
+  return new Date(dateStr).toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
 async function toggleMergeSessions(key: ApiKeyResponse) {
@@ -118,10 +120,10 @@ const activeCars = computed(() =>
         <div class="mb-6">
           <div class="flex items-center gap-3 mb-2">
             <ArrowDownTrayIcon class="h-7 w-7 text-green-600" />
-            <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Ladevorgänge importieren</h1>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ t('imports.title') }}</h1>
           </div>
           <p class="text-gray-600 dark:text-gray-400 text-sm">
-            Importiere deine bisherigen Ladevorgänge oder verbinde eine Heimwallbox für automatischen Import.
+            {{ t('imports.subtitle') }}
           </p>
         </div>
 
@@ -129,14 +131,14 @@ const activeCars = computed(() =>
         <div class="flex gap-1">
           <button
             v-for="tab in ([
-              { id: 'spritmonitor', label: 'Sprit-Monitor' },
-              { id: 'goe', label: 'go-eCharger' },
-              { id: 'wallbox', label: 'OCPP Wallbox' },
-              { id: 'tesla', label: 'Tesla' },
-              { id: 'tronity', label: 'Tronity' },
-              { id: 'manuell', label: 'Manuell' },
-              { id: 'api', label: 'API' },
-            ] as const)"
+              { id: 'spritmonitor' as const, label: t('imports.tab_spritmonitor') },
+              { id: 'goe' as const, label: t('imports.tab_goe') },
+              { id: 'wallbox' as const, label: t('imports.tab_wallbox') },
+              { id: 'tesla' as const, label: t('imports.tab_tesla') },
+              { id: 'tronity' as const, label: t('imports.tab_tronity') },
+              { id: 'manuell' as const, label: t('imports.tab_manuell') },
+              { id: 'api' as const, label: t('imports.tab_api') },
+            ])"
             :key="tab.id"
             @click="activeTab = tab.id; analytics.trackImportTabClicked(tab.id)"
             :class="[
@@ -156,25 +158,22 @@ const activeCars = computed(() =>
               <ArrowDownTrayIcon class="h-5 w-5 text-white" />
             </div>
             <div>
-              <h2 class="font-semibold text-gray-900 dark:text-gray-100">Sprit-Monitor Import</h2>
-              <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                Importiere deine komplette Ladehistorie aus Sprit-Monitor — inklusive Kosten und Verbrauch.
-                Dein API Token wird nach dem Import sofort verworfen, nichts wird gespeichert.
-              </p>
+              <h2 class="font-semibold text-gray-900 dark:text-gray-100">{{ t('imports.sprit_title') }}</h2>
+              <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ t('imports.sprit_desc') }}</p>
             </div>
           </div>
           <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-1 list-disc list-inside">
-            <li>Komplette Ladehistorie aus Sprit-Monitor</li>
-            <li>Kosten, kWh, Datum — alles inklusive</li>
-            <li>Fahrzeugzuordnung wählbar</li>
-            <li>Einmalig, API Token wird nicht gespeichert</li>
+            <li>{{ t('imports.sprit_feat1') }}</li>
+            <li>{{ t('imports.sprit_feat2') }}</li>
+            <li>{{ t('imports.sprit_feat3') }}</li>
+            <li>{{ t('imports.sprit_feat4') }}</li>
           </ul>
           <button
             @click="showSpritMonitorModal = true"
             class="btn-3d flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-lg font-medium text-sm hover:bg-indigo-700 transition"
           >
             <ArrowDownTrayIcon class="h-4 w-4" />
-            Sprit-Monitor Import starten
+            {{ t('imports.sprit_btn') }}
           </button>
         </div>
 
@@ -185,25 +184,17 @@ const activeCars = computed(() =>
               <BoltIcon class="h-5 w-5 text-white" />
             </div>
             <div>
-              <h2 class="font-semibold text-gray-900 dark:text-gray-100">go-eCharger Cloud <span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-medium ml-2">BETA</span></h2>
-              <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                Verbinde deinen go-eCharger über die Cloud API für vollautomatischen Import.
-                Alle 30 Sekunden wird der Ladestatus geprüft und abgeschlossene Sessions automatisch eingetragen.
-              </p>
+              <h2 class="font-semibold text-gray-900 dark:text-gray-100">{{ t('imports.goe_title') }} <span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-medium ml-2">BETA</span></h2>
+              <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ t('imports.goe_desc') }}</p>
             </div>
           </div>
           <div class="flex items-start gap-2 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-3">
             <ExclamationTriangleIcon class="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
-            <p class="text-xs text-blue-800 dark:text-blue-200">
-              <strong>Beta-Feature:</strong> Diese Integration befindet sich in der Beta-Phase und kann noch Fehler enthalten. Bei Problemen melde dich bitte.
-            </p>
+            <p class="text-xs text-blue-800 dark:text-blue-200">{{ t('imports.goe_beta_hint') }}</p>
           </div>
           <div class="flex items-start gap-2 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg p-3">
             <ExclamationTriangleIcon class="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
-            <p class="text-xs text-amber-800 dark:text-amber-200">
-              <strong>Hinweis:</strong> Die Cloud API lässt sich parallel zu allen anderen go-e Features (PV-Überschussladen,
-              Lastmanagement) nutzen. Keine OCPP-Konfiguration nötig.
-            </p>
+            <p class="text-xs text-amber-800 dark:text-amber-200">{{ t('imports.goe_parallel_hint') }}</p>
           </div>
           <GoeIntegration />
         </div>
@@ -215,29 +206,20 @@ const activeCars = computed(() =>
               <BoltIcon class="h-5 w-5 text-white" />
             </div>
             <div>
-              <h2 class="font-semibold text-gray-900 dark:text-gray-100">OCPP Wallbox <span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-medium ml-2">BETA</span></h2>
-              <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                Richte deine Wallbox über das OCPP-Protokoll ein. Ladevorgänge werden dann automatisch
-                nach jeder Session importiert.
-              </p>
+              <h2 class="font-semibold text-gray-900 dark:text-gray-100">{{ t('imports.wallbox_title') }} <span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-medium ml-2">BETA</span></h2>
+              <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ t('imports.wallbox_desc') }}</p>
             </div>
           </div>
           <div class="flex items-start gap-2 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-3">
             <ExclamationTriangleIcon class="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
-            <p class="text-xs text-blue-800 dark:text-blue-200">
-              <strong>Beta-Feature:</strong> Diese Integration befindet sich in der Beta-Phase und kann noch Fehler enthalten. Bei Problemen melde dich bitte.
-            </p>
+            <p class="text-xs text-blue-800 dark:text-blue-200">{{ t('imports.wallbox_beta_hint') }}</p>
           </div>
           <div class="flex items-start gap-2 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-xl p-4">
             <ExclamationTriangleIcon class="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
             <div class="text-sm text-amber-800 dark:text-amber-200 space-y-1">
-              <p class="font-semibold">Wichtiger Hinweis vor der Einrichtung</p>
-              <p>
-                Bei OCPP wird deine Wallbox auf <strong>unseren Server</strong> als Steuereinheit umgekonfiguriert.
-                Das bedeutet: Herstellerspezifische Cloud-Features wie <strong>PV-Überschussladen</strong>
-                oder <strong>Lastmanagement</strong> funktionieren danach nicht mehr.
-              </p>
-              <p>Empfehlung für go-eCharger: Nutze stattdessen den <button @click="activeTab = 'goe'" class="underline font-medium cursor-pointer">Cloud API Import</button> — parallel zu allen Wallbox-Features.</p>
+              <p class="font-semibold">{{ t('imports.wallbox_ocpp_warning_title') }}</p>
+              <p v-html="t('imports.wallbox_ocpp_warning_desc')" />
+              <p>{{ t('imports.wallbox_ocpp_goe_hint_pre') }} <button @click="activeTab = 'goe'" class="underline font-medium cursor-pointer">{{ t('imports.wallbox_ocpp_goe_link') }}</button> {{ t('imports.wallbox_ocpp_goe_hint_post') }}</p>
             </div>
           </div>
           <router-link
@@ -245,7 +227,7 @@ const activeCars = computed(() =>
             class="btn-3d inline-flex items-center gap-2 bg-gray-800 dark:bg-gray-600 text-white px-5 py-2.5 rounded-lg font-medium text-sm hover:bg-gray-700 dark:hover:bg-gray-500 transition"
           >
             <BoltIcon class="h-4 w-4" />
-            OCPP Wallbox konfigurieren
+            {{ t('imports.wallbox_btn') }}
           </router-link>
         </div>
 
@@ -257,11 +239,10 @@ const activeCars = computed(() =>
                 <BoltIcon class="h-5 w-5 text-white" />
               </div>
               <div>
-                <h2 class="font-semibold text-gray-900 dark:text-gray-100">Tesla Integration</h2>
+                <h2 class="font-semibold text-gray-900 dark:text-gray-100">{{ t('imports.tesla_no_car_title') }}</h2>
                 <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                  Um die Tesla-Integration zu nutzen, musst du zuerst ein Tesla-Fahrzeug in deiner
-                  <router-link to="/cars" class="text-indigo-600 hover:underline font-medium">Fahrzeugverwaltung</router-link>
-                  anlegen.
+                  {{ t('imports.tesla_no_car_desc', { link: '' }) }}
+                  <router-link to="/cars" class="text-indigo-600 hover:underline font-medium">{{ t('imports.tesla_no_car_link') }}</router-link>
                 </p>
               </div>
             </div>
@@ -282,22 +263,19 @@ const activeCars = computed(() =>
               <ArrowDownTrayIcon class="h-5 w-5 text-white" />
             </div>
             <div>
-              <h2 class="font-semibold text-gray-900 dark:text-gray-100">Manueller Import</h2>
-              <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                Importiere vergangene Ladevorgänge aus beliebigen Quellen - als CSV oder JSON.
-                Kompatibel mit TeslaMate, TeslaFi, eigenen Exports und jedem anderen Format das du anpassen kannst.
-              </p>
+              <h2 class="font-semibold text-gray-900 dark:text-gray-100">{{ t('imports.manuell_title') }}</h2>
+              <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ t('imports.manuell_desc') }}</p>
             </div>
           </div>
           <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-1 list-disc list-inside">
-            <li>CSV oder JSON - Format wird vorgegeben</li>
-            <li>Pflichtfelder: date und kwh - alles andere optional</li>
-            <li>Datum-Erkennung: ISO 8601, deutsch, US, Unix-Timestamp</li>
-            <li>Standort: Koordinaten (Lat/Lon) für Kartenansicht</li>
-            <li>Duplikate werden erkannt und übersprungen - anhand Zeitpunkt und kWh</li>
+            <li>{{ t('imports.manuell_feat1') }}</li>
+            <li>{{ t('imports.manuell_feat2') }}</li>
+            <li>{{ t('imports.manuell_feat3') }}</li>
+            <li>{{ t('imports.manuell_feat4') }}</li>
+            <li>{{ t('imports.manuell_feat5') }}</li>
           </ul>
           <div v-if="activeCars.length > 1" class="space-y-1.5">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Fahrzeug auswählen</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('imports.manuell_select_car') }}</label>
             <CarSelectDropdown :cars="activeCars" v-model="manualImportCarId" />
           </div>
           <button
@@ -306,11 +284,11 @@ const activeCars = computed(() =>
             class="btn-3d w-full flex items-center justify-center gap-2 bg-green-700 text-white px-5 py-2.5 rounded-lg font-medium text-sm hover:bg-green-800 disabled:opacity-40 disabled:cursor-not-allowed transition"
           >
             <ArrowDownTrayIcon class="h-4 w-4" />
-            Import starten
+            {{ t('imports.manuell_btn') }}
           </button>
           <p v-if="activeCars.length === 0" class="text-sm text-gray-500 dark:text-gray-400 italic">
-            Kein aktives Fahrzeug gefunden.
-            <router-link to="/cars" class="text-indigo-600 hover:underline font-medium">Fahrzeug anlegen</router-link>
+            {{ t('imports.manuell_no_car') }}
+            <router-link to="/cars" class="text-indigo-600 hover:underline font-medium">{{ t('imports.manuell_no_car_link') }}</router-link>
           </p>
         </div>
 
@@ -321,10 +299,8 @@ const activeCars = computed(() =>
               <CodeBracketIcon class="h-5 w-5 text-white" />
             </div>
             <div>
-              <h2 class="font-semibold text-gray-900 dark:text-gray-100">REST API Upload</h2>
-              <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                Verbinde Wallboxen, Skripte oder Home-Automation direkt mit EV Monitor. Ladevorgänge werden automatisch importiert sobald dein Tool sie sendet.
-              </p>
+              <h2 class="font-semibold text-gray-900 dark:text-gray-100">{{ t('imports.api_title') }}</h2>
+              <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ t('imports.api_desc') }}</p>
             </div>
           </div>
 
@@ -335,16 +311,14 @@ const activeCars = computed(() =>
               Authorization: Bearer evm_&lt;dein-key&gt;
             </p>
             <p class="text-xs mb-1">
-              Pflichtfelder: <code class="bg-white dark:bg-gray-700 px-1 rounded">date</code>, <code class="bg-white dark:bg-gray-700 px-1 rounded">kwh</code>
+              {{ t('imports.api_required') }} <code class="bg-white dark:bg-gray-700 px-1 rounded">date</code>, <code class="bg-white dark:bg-gray-700 px-1 rounded">kwh</code>
             </p>
             <p class="text-xs">
-              Optional: <code class="bg-white dark:bg-gray-700 px-1 rounded">odometer_km</code>, <code class="bg-white dark:bg-gray-700 px-1 rounded">soc_after</code>, <code class="bg-white dark:bg-gray-700 px-1 rounded">cost_eur</code>, <code class="bg-white dark:bg-gray-700 px-1 rounded">duration_min</code>, <code class="bg-white dark:bg-gray-700 px-1 rounded">location</code>, <code class="bg-white dark:bg-gray-700 px-1 rounded">charging_type</code> (AC/DC)
+              {{ t('imports.api_optional') }} <code class="bg-white dark:bg-gray-700 px-1 rounded">odometer_km</code>, <code class="bg-white dark:bg-gray-700 px-1 rounded">soc_after</code>, <code class="bg-white dark:bg-gray-700 px-1 rounded">cost_eur</code>, <code class="bg-white dark:bg-gray-700 px-1 rounded">duration_min</code>, <code class="bg-white dark:bg-gray-700 px-1 rounded">location</code>, <code class="bg-white dark:bg-gray-700 px-1 rounded">charging_type</code> (AC/DC)
             </p>
-            <p class="text-xs mt-1">
-              Duplikate werden erkannt und übersprungen - anhand Zeitpunkt und kWh.
-            </p>
+            <p class="text-xs mt-1">{{ t('imports.api_dedup') }}</p>
             <a href="/swagger-ui/index.html" target="_blank" class="inline-block mt-2 text-indigo-700 hover:underline font-medium text-xs">
-              Vollständige API Dokumentation →
+              {{ t('imports.api_docs') }}
             </a>
           </div>
 
@@ -356,15 +330,15 @@ const activeCars = computed(() =>
 
           <!-- Newly created key -->
           <div v-if="createdKey" class="p-4 bg-green-50 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded-lg">
-            <p class="font-semibold text-green-800 dark:text-green-200 mb-1 text-sm">Neuer API Key — nur jetzt sichtbar!</p>
+            <p class="font-semibold text-green-800 dark:text-green-200 mb-1 text-sm">{{ t('imports.api_new_key_title') }}</p>
             <div class="flex items-center gap-2">
               <code class="flex-1 bg-white dark:bg-gray-700 border border-green-300 dark:border-green-700 rounded px-3 py-2 text-sm font-mono break-all">{{ createdKey.plaintextKey }}</code>
-              <button @click="copyApiKey" class="flex-shrink-0 p-2 rounded-lg bg-green-600 text-white hover:bg-green-700 transition" title="Kopieren">
+              <button @click="copyApiKey" class="flex-shrink-0 p-2 rounded-lg bg-green-600 text-white hover:bg-green-700 transition" :title="t('imports.api_copy_title')">
                 <CheckIcon v-if="keyCopied" class="h-5 w-5" />
                 <ClipboardDocumentIcon v-else class="h-5 w-5" />
               </button>
             </div>
-            <p class="text-xs text-green-700 dark:text-green-300 mt-2">Speicher diesen Key jetzt — er wird nicht noch einmal angezeigt.</p>
+            <p class="text-xs text-green-700 dark:text-green-300 mt-2">{{ t('imports.api_save_key_hint') }}</p>
           </div>
 
           <!-- Create key -->
@@ -372,7 +346,7 @@ const activeCars = computed(() =>
             <input
               v-model="newKeyName"
               type="text"
-              placeholder="Key-Name, z.B. OpenWB Zuhause"
+              :placeholder="t('imports.api_key_placeholder')"
               maxlength="100"
               class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500"
               @keyup.enter="createApiKey" />
@@ -380,23 +354,23 @@ const activeCars = computed(() =>
               @click="createApiKey"
               :disabled="apiKeyLoading || !newKeyName.trim()"
               class="btn-3d px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition text-sm font-medium whitespace-nowrap">
-              + Key erstellen
+              {{ t('imports.api_create_btn') }}
             </button>
           </div>
 
           <!-- Key list -->
-          <div v-if="apiKeys.length === 0" class="text-sm text-gray-500 dark:text-gray-400 italic">Noch keine API Keys vorhanden.</div>
+          <div v-if="apiKeys.length === 0" class="text-sm text-gray-500 dark:text-gray-400 italic">{{ t('imports.api_no_keys') }}</div>
           <div v-else class="space-y-2">
             <div
               v-for="key in apiKeys"
               :key="key.id"
               class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg gap-2">
               <div class="min-w-0 flex-1">
-                <p class="font-medium text-gray-800 dark:text-gray-200 text-sm truncate">{{ key.name || '(kein Name)' }}</p>
+                <p class="font-medium text-gray-800 dark:text-gray-200 text-sm truncate">{{ key.name || t('imports.api_no_name') }}</p>
                 <p class="text-xs text-gray-500 dark:text-gray-400">
                   <code class="font-mono">{{ key.keyPrefix }}…</code>
-                  · Zuletzt: {{ formatDate(key.lastUsedAt) }}
-                  · Erstellt: {{ formatDate(key.createdAt) }}
+                  · {{ t('imports.api_last_used') }} {{ formatDate(key.lastUsedAt) }}
+                  · {{ t('imports.api_created') }} {{ formatDate(key.createdAt) }}
                 </p>
                 <!-- Merge toggle -->
                 <div class="flex items-center gap-2 mt-1">
@@ -404,18 +378,18 @@ const activeCars = computed(() =>
                     @click="toggleMergeSessions(key)"
                     :class="['relative inline-flex h-5 w-9 items-center rounded-full transition-colors',
                              key.mergeSessions ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-600']"
-                    :title="key.mergeSessions ? 'Sessions zusammenfassen aktiv' : 'Sessions zusammenfassen inaktiv'">
+                    :title="key.mergeSessions ? t('imports.api_merge_active') : t('imports.api_merge_inactive')">
                     <span :class="['inline-block h-3 w-3 transform rounded-full bg-white transition-transform',
                                    key.mergeSessions ? 'translate-x-5' : 'translate-x-1']" />
                   </button>
-                  <span class="text-xs text-gray-500 dark:text-gray-400">Sessions zusammenfassen</span>
+                  <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('imports.api_merge_sessions') }}</span>
                 </div>
               </div>
               <button
                 @click="deleteApiKey(key.id, key.name)"
                 :disabled="deletingKeyId === key.id"
                 class="flex-shrink-0 p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition disabled:opacity-50"
-                title="Key widerrufen">
+                :title="t('imports.api_revoke_title')">
                 <TrashIcon class="h-5 w-5" />
               </button>
             </div>

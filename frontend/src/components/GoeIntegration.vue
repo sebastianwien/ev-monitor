@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ExclamationTriangleIcon, InformationCircleIcon, ChevronRightIcon, MapPinIcon, CheckIcon } from '@heroicons/vue/24/outline'
 import goeService from '@/api/goeService'
 import type { Car } from '@/api/carService'
@@ -8,6 +9,7 @@ import GoeStatusCard from './GoeStatusCard.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useWallboxStore } from '@/stores/wallbox'
 
+const { t } = useI18n()
 const authStore = useAuthStore()
 const wallboxStore = useWallboxStore()
 const carStore = useCarStore()
@@ -85,7 +87,7 @@ async function loadCars() {
 
 async function handleConnect() {
   if (!form.value.serial || !form.value.apiKey || !form.value.carId) {
-    error.value = 'Serial, API Key und Fahrzeug sind erforderlich.'
+    error.value = t('goe.err_required')
     return
   }
   loading.value = true
@@ -100,18 +102,18 @@ async function handleConnect() {
     showForm.value = false
     await wallboxStore.refresh()
   } catch (e: any) {
-    error.value = e.response?.data?.message || 'Verbindung fehlgeschlagen'
+    error.value = e.response?.data?.message || t('goe.err_connect')
   } finally {
     loading.value = false
   }
 }
 
 async function handleDisconnect(id: string) {
-  if (!confirm('go-eCharger Verbindung wirklich trennen?')) return
+  if (!confirm(t('goe.confirm_disconnect'))) return
   try {
     await goeService.disconnect(id)
     await wallboxStore.refresh()
-  } catch { error.value = 'Trennen fehlgeschlagen' }
+  } catch { error.value = t('goe.err_disconnect') }
 }
 
 function enumToLabel(value: string | null | undefined): string {
@@ -143,31 +145,21 @@ function carLabel(car: Car): string {
         class="w-full flex items-center justify-between px-3 py-2.5 text-sm text-gray-500 hover:bg-gray-50 transition text-left">
         <span class="flex items-center gap-1.5">
           <InformationCircleIcon class="w-4 h-4 text-indigo-400 flex-shrink-0" />
-          Wie funktioniert der go-eCharger Import?
+          {{ t('goe.how_it_works') }}
         </span>
         <ChevronRightIcon class="w-4 h-4 flex-shrink-0 transition-transform duration-200"
           :class="infoExpanded ? 'rotate-90' : ''" />
       </button>
       <div v-if="infoExpanded" class="px-3 pb-3 text-sm text-gray-600 dark:text-gray-200 space-y-2 border-t border-gray-100 dark:border-gray-700 pt-2.5">
-        <p>
-          Nach einmaliger Einrichtung läuft alles <strong>vollautomatisch</strong>: EV Monitor fragt
-          alle paar Minuten bei der go-e Cloud an, ob gerade geladen wird.
-        </p>
-        <p>
-          Sobald du das Kabel einsteckst, merkt sich das System Startzeitpunkt und Energiezählerstand.
-          Wenn du fertig bist, wird daraus automatisch ein <strong>Ladeeintrag</strong> in deinem
-          Dashboard angelegt — mit Datum, kWh und optional den Kosten.
-        </p>
-        <p>
-          Den <strong>Strompreis</strong> kannst du direkt bei der Wallbox-Verbindung hinterlegen —
-          dann rechnet EV Monitor die Kosten für jede Session automatisch aus.
-        </p>
+        <p v-html="t('goe.info_auto')" />
+        <p v-html="t('goe.info_session')" />
+        <p v-html="t('goe.info_tariff')" />
       </div>
     </div>
 
     <!-- Connected devices -->
     <div v-if="wallboxStore.hasConnections" class="space-y-3">
-      <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Verbundene Geräte</p>
+      <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">{{ t('goe.connected_devices') }}</p>
       <GoeStatusCard
         v-for="conn in wallboxStore.connections"
         :key="conn.id"
@@ -180,17 +172,17 @@ function carLabel(car: Car): string {
     <!-- Add form (hidden for demo users) -->
     <template v-if="!authStore.isDemoAccount">
       <div v-if="showForm" class="border border-gray-200 rounded-lg p-4 space-y-3">
-        <p class="text-sm font-medium text-gray-800">go-eCharger verbinden</p>
+        <p class="text-sm font-medium text-gray-800">{{ t('goe.form_title') }}</p>
         <div>
-          <label class="block text-xs text-gray-500 mb-1">Serial-Nummer</label>
-          <input v-model="form.serial" type="text" placeholder="z.B. A0123456" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+          <label class="block text-xs text-gray-500 mb-1">{{ t('goe.serial_label') }}</label>
+          <input v-model="form.serial" type="text" :placeholder="t('goe.serial_placeholder')" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
         </div>
         <div>
-          <label class="block text-xs text-gray-500 mb-1">Cloud API Key</label>
-          <input v-model="form.apiKey" type="password" placeholder="aus der go-e App" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+          <label class="block text-xs text-gray-500 mb-1">{{ t('goe.apikey_label') }}</label>
+          <input v-model="form.apiKey" type="password" :placeholder="t('goe.apikey_placeholder')" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
         </div>
         <div v-if="cars.length > 0">
-          <label class="block text-xs text-gray-500 mb-1">Fahrzeug</label>
+          <label class="block text-xs text-gray-500 mb-1">{{ t('goe.car_label') }}</label>
           <select v-model="form.carId" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
             <option v-for="car in cars" :key="car.id" :value="car.id">
               {{ carLabel(car) }}
@@ -198,18 +190,18 @@ function carLabel(car: Car): string {
           </select>
         </div>
         <div>
-          <label class="block text-xs text-gray-500 mb-1">Name (optional)</label>
-          <input v-model="form.displayName" type="text" placeholder="z.B. Heimlader Garage" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+          <label class="block text-xs text-gray-500 mb-1">{{ t('goe.name_label') }}</label>
+          <input v-model="form.displayName" type="text" :placeholder="t('goe.name_placeholder')" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
         </div>
 
         <!-- Location (optional) -->
         <div class="space-y-1.5">
-          <label class="block text-xs text-gray-500">Standort (optional, für Heatmap)</label>
+          <label class="block text-xs text-gray-500">{{ t('goe.location_label') }}</label>
           <div class="relative">
             <input
               v-model="locationQuery"
               type="text"
-              placeholder="Adresse oder Ort eingeben..."
+              :placeholder="t('goe.location_placeholder')"
               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm pr-8"
               @input="onLocationQueryChange"
             />
@@ -230,16 +222,16 @@ function carLabel(car: Car): string {
 
         <div class="flex gap-2">
           <button @click="handleConnect" :disabled="loading" class="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 transition">
-            {{ loading ? 'Verbinde...' : 'Verbinden' }}
+            {{ loading ? t('goe.connect_btn_loading') : t('goe.connect_btn') }}
           </button>
           <button @click="showForm = false" class="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition">
-            Abbrechen
+            {{ t('goe.cancel_btn') }}
           </button>
         </div>
       </div>
 
       <button v-if="!showForm" @click="showForm = true" class="btn-3d flex items-center gap-2 bg-green-600 text-white px-5 py-2.5 rounded-lg font-medium text-sm hover:bg-green-700 transition">
-        go-eCharger hinzufügen
+        {{ t('goe.add_btn') }}
       </button>
     </template>
   </div>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/auth'
 import apiClient from '../api/axios'
 import {
@@ -36,16 +37,18 @@ interface LeaderboardResponse {
   ownEntry: LeaderboardEntry | null
 }
 
-const CATEGORIES = [
-  { key: 'MONTHLY_KWH', label: 'Meiste kWh', icon: BoltIcon, color: 'text-yellow-500' },
-  { key: 'MONTHLY_CHARGES', label: 'Ladevorgänge', icon: ArrowPathIcon, color: 'text-blue-500' },
-  { key: 'MONTHLY_DISTANCE', label: 'Längste Strecke', icon: FireIcon, color: 'text-orange-500' },
-  { key: 'MONTHLY_COINS', label: 'Meiste Watt', icon: SparklesIcon, color: 'text-purple-500' },
-  { key: 'MONTHLY_CHEAPEST', label: 'Günstigster Lader', icon: StarIcon, color: 'text-green-500' },
-  { key: 'MONTHLY_NIGHT_OWL', label: 'Nacht-Eule', icon: MoonIcon, color: 'text-indigo-400' },
-  { key: 'MONTHLY_ICE_CHARGER', label: 'Eisbär', icon: ArrowDownIcon, color: 'text-cyan-400' },
-  { key: 'MONTHLY_POWER_CHARGER', label: 'Schnellster Lader', icon: BoltIcon, color: 'text-red-500' },
-]
+const { t, locale } = useI18n()
+
+const CATEGORIES = computed(() => [
+  { key: 'MONTHLY_KWH', label: t('leaderboard.cat_kwh'), icon: BoltIcon, color: 'text-yellow-500' },
+  { key: 'MONTHLY_CHARGES', label: t('leaderboard.cat_charges'), icon: ArrowPathIcon, color: 'text-blue-500' },
+  { key: 'MONTHLY_DISTANCE', label: t('leaderboard.cat_distance'), icon: FireIcon, color: 'text-orange-500' },
+  { key: 'MONTHLY_COINS', label: t('leaderboard.cat_coins'), icon: SparklesIcon, color: 'text-purple-500' },
+  { key: 'MONTHLY_CHEAPEST', label: t('leaderboard.cat_cheapest'), icon: StarIcon, color: 'text-green-500' },
+  { key: 'MONTHLY_NIGHT_OWL', label: t('leaderboard.cat_night_owl'), icon: MoonIcon, color: 'text-indigo-400' },
+  { key: 'MONTHLY_ICE_CHARGER', label: t('leaderboard.cat_ice_charger'), icon: ArrowDownIcon, color: 'text-cyan-400' },
+  { key: 'MONTHLY_POWER_CHARGER', label: t('leaderboard.cat_power_charger'), icon: BoltIcon, color: 'text-red-500' },
+])
 
 const authStore = useAuthStore()
 const activeCategory = ref('MONTHLY_KWH')
@@ -53,7 +56,7 @@ const data = ref<LeaderboardResponse | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
 
-const activeCategoryMeta = computed(() => CATEGORIES.find(c => c.key === activeCategory.value))
+const activeCategoryMeta = computed(() => CATEGORIES.value.find(c => c.key === activeCategory.value))
 
 async function load(category: string) {
   loading.value = true
@@ -62,7 +65,7 @@ async function load(category: string) {
     const res = await apiClient.get(`/public/leaderboard/${category}`)
     data.value = res.data
   } catch (e) {
-    error.value = 'Leaderboard konnte nicht geladen werden.'
+    error.value = t('leaderboard.loading')
   } finally {
     loading.value = false
   }
@@ -84,7 +87,7 @@ function rankDeltaClass(delta: number | null, isNew: boolean): string {
 }
 
 function rankDeltaLabel(delta: number | null, isNew: boolean): string {
-  if (isNew) return 'NEU'
+  if (isNew) return t('leaderboard.new_entry')
   if (delta === null || delta === 0) return '-'
   return delta > 0 ? `+${delta}` : `${delta}`
 }
@@ -114,7 +117,7 @@ const periodLabel = computed(() => {
   if (!data.value) return ''
   const [year, month] = data.value.period.split('-')
   const date = new Date(Number(year), Number(month) - 1, 1)
-  return date.toLocaleString('de-DE', { month: 'long', year: 'numeric' })
+  return date.toLocaleString(locale.value === 'en' ? 'en-GB' : 'de-DE', { month: 'long', year: 'numeric' })
 })
 </script>
 
@@ -125,10 +128,10 @@ const periodLabel = computed(() => {
       <div class="max-w-3xl mx-auto">
         <div class="flex items-center gap-3 mb-1">
           <TrophyIcon class="h-7 w-7 text-yellow-300" />
-          <h1 class="text-2xl font-bold">Bestenliste</h1>
+          <h1 class="text-2xl font-bold">{{ t('leaderboard.title') }}</h1>
         </div>
         <p class="text-indigo-200 text-sm">
-          Monatliches Ranking der aktivsten EV-Monitor-Community
+          {{ t('leaderboard.subtitle') }}
           <span v-if="data"> - {{ periodLabel }}</span>
         </p>
       </div>
@@ -157,7 +160,7 @@ const periodLabel = computed(() => {
       <!-- Loading -->
       <div v-if="loading" class="flex items-center justify-center py-16 text-gray-400">
         <ArrowPathIcon class="h-6 w-6 animate-spin mr-2" />
-        Lade Bestenliste...
+        {{ t('leaderboard.loading') }}
       </div>
 
       <!-- Error -->
@@ -172,14 +175,14 @@ const periodLabel = computed(() => {
           <component :is="activeCategoryMeta?.icon" :class="['h-3.5 w-3.5', activeCategoryMeta?.color]" />
           <span>{{ data.displayName }}</span>
           <span class="text-gray-300">·</span>
-          <span v-if="data.lowerIsBetter" class="text-blue-500">Niedriger = Besser</span>
+          <span v-if="data.lowerIsBetter" class="text-blue-500">{{ t('leaderboard.lower_is_better') }}</span>
         </div>
 
         <!-- Empty state -->
         <div v-if="data.entries.length === 0" class="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-8 text-center text-gray-400">
           <TrophyIcon class="h-10 w-10 mx-auto mb-3 opacity-30" />
-          <p class="text-sm">Noch keine Daten fuer diesen Monat.</p>
-          <p class="text-xs mt-1">Lad auf und sichere dir deinen Platz!</p>
+          <p class="text-sm">{{ t('leaderboard.no_data') }}</p>
+          <p class="text-xs mt-1">{{ t('leaderboard.no_data_subtitle') }}</p>
         </div>
 
         <!-- Top 10 -->
@@ -196,7 +199,7 @@ const periodLabel = computed(() => {
           <!-- Username -->
           <div class="flex-1 min-w-0">
             <div class="font-semibold text-gray-900 dark:text-gray-100 truncate">{{ entry.username }}</div>
-            <div class="text-xs text-gray-500 dark:text-gray-400">Platz {{ entry.rank }}</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400">{{ t('leaderboard.rank', { n: entry.rank }) }}</div>
           </div>
 
           <!-- Value -->
@@ -223,8 +226,8 @@ const periodLabel = computed(() => {
               {{ data.ownEntry.rank }}
             </div>
             <div class="flex-1 min-w-0">
-              <div class="font-semibold text-indigo-900 dark:text-indigo-200 truncate">{{ data.ownEntry.username }} <span class="text-xs font-normal text-indigo-500">(Du)</span></div>
-              <div class="text-xs text-indigo-400">Platz {{ data.ownEntry.rank }}</div>
+              <div class="font-semibold text-indigo-900 dark:text-indigo-200 truncate">{{ data.ownEntry.username }} <span class="text-xs font-normal text-indigo-500">{{ t('leaderboard.you') }}</span></div>
+              <div class="text-xs text-indigo-400">{{ t('leaderboard.rank', { n: data.ownEntry.rank }) }}</div>
             </div>
             <div class="text-right flex-shrink-0">
               <div class="font-bold text-indigo-900 dark:text-indigo-200 tabular-nums">{{ data.ownEntry.value }}</div>
@@ -244,8 +247,8 @@ const periodLabel = computed(() => {
         <div
           v-if="!authStore.isAuthenticated() && data.entries.length > 0"
           class="text-center text-xs text-gray-500 dark:text-gray-400 pt-2 pb-1">
-          <router-link to="/login" class="text-indigo-500 hover:underline">Einloggen</router-link>
-          um deinen eigenen Platz zu sehen.
+          <router-link to="/login" class="text-indigo-500 hover:underline">{{ t('leaderboard.login_hint') }}</router-link>
+          {{ t('leaderboard.login_hint_suffix') }}
         </div>
 
         <!-- Watt history link (only for MONTHLY_COINS tab) -->
@@ -254,16 +257,16 @@ const periodLabel = computed(() => {
           to="/coins"
           class="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700 rounded-xl p-3 text-sm text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition mt-1">
           <ClockIcon class="h-4 w-4 flex-shrink-0 text-indigo-400" />
-          <span>Deinen eigenen Watt-Verlauf ansehen</span>
+          <span>{{ t('leaderboard.coins_history') }}</span>
         </router-link>
 
         <!-- Month-end reward hint -->
         <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-xl p-3 text-xs text-yellow-800 dark:text-yellow-300 flex gap-2 mt-4">
           <TrophyIcon class="h-4 w-4 flex-shrink-0 text-yellow-500 mt-0.5" />
           <span>
-            Die Top 3 erhalten am Monatsende Bonus-Coins:
+            {{ t('leaderboard.top3_reward') }}
             <strong>100</strong> / <strong>50</strong> / <strong>25 Coins</strong>.
-            <span v-if="!data.ownEntry && authStore.isAuthenticated()"> Du bist noch nicht im Ranking - leg los!</span>
+            <span v-if="!data.ownEntry && authStore.isAuthenticated()"> {{ t('leaderboard.not_ranked') }}</span>
           </span>
         </div>
       </div>

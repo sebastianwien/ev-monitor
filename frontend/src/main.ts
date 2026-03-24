@@ -4,6 +4,7 @@ import App from './App.vue'
 import router from './router'
 import { createPinia } from 'pinia'
 import { createHead } from '@unhead/vue/client'
+import { i18n } from './i18n'
 
 const app = createApp(App)
 
@@ -38,6 +39,7 @@ app.directive('haptic', {
 app.use(createPinia())
 app.use(router)
 app.use(createHead())
+app.use(i18n)
 
 // Global error reporting (production only)
 if (import.meta.env.PROD) {
