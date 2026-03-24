@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { BoltIcon, ClockIcon, CheckCircleIcon, ExclamationTriangleIcon, XMarkIcon, PencilIcon, CheckIcon, MapPinIcon } from '@heroicons/vue/24/outline'
 import goeService, { type GoeConnection } from '@/api/goeService'
 import { useWallboxStore } from '@/stores/wallbox'
 
+const { t } = useI18n()
 const wallboxStore = useWallboxStore()
 
 const props = defineProps<{ connectionId: string; mockConnection?: GoeConnection }>()
@@ -20,16 +22,16 @@ let pollTimer: ReturnType<typeof setTimeout> | null = null
 // ── State config ────────────────────────────────────────────────────────────
 
 const STATE = {
-  1: { label: 'Bereit',           color: 'gray',  pulse: false },
-  2: { label: 'Lädt',             color: 'green', pulse: true  },
-  3: { label: 'Wartet auf Auto',  color: 'amber', pulse: false },
-  4: { label: 'Ladevorgang beendet', color: 'blue', pulse: false },
-  5: { label: 'Fehler',           color: 'red',   pulse: false },
+  1: { key: 'state_key_state_ready',   color: 'gray',  pulse: false },
+  2: { key: 'state_key_state_charging', color: 'green', pulse: true  },
+  3: { key: 'state_key_state_waiting',  color: 'amber', pulse: false },
+  4: { key: 'state_key_state_done',     color: 'blue',  pulse: false },
+  5: { key: 'state_key_state_error',    color: 'red',   pulse: false },
 } as const
 
 const stateConfig = computed(() => {
   const s = conn.value?.carState ?? 1
-  return STATE[s as keyof typeof STATE] ?? { label: 'Unbekannt', color: 'gray', pulse: false }
+  return STATE[s as keyof typeof STATE] ?? { key: 'state_unknown', color: 'gray', pulse: false }
 })
 
 const isCharging = computed(() => conn.value?.carState === 2)
@@ -92,7 +94,7 @@ onUnmounted(() => {
 
 async function handleDisconnect() {
   if (!conn.value) return
-  if (!confirm(`go-eCharger "${conn.value.displayName || conn.value.serial}" wirklich trennen?`)) return
+  if (!confirm(t('goe.confirm_disconnect_named', { name: conn.value.displayName || conn.value.serial }))) return
   emit('disconnect', conn.value.id)
 }
 
@@ -228,16 +230,16 @@ async function saveTariff() {
     <div class="flex items-center justify-between px-5 pt-4 pb-3">
       <div class="flex items-center gap-2 min-w-0">
         <span class="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
-          {{ conn.displayName || 'go-E Wallbox' }}
+          {{ conn.displayName || t('goe.default_name') }}
         </span>
         <!-- Online dot -->
         <span :class="['inline-block w-2 h-2 rounded-full flex-shrink-0',
                        conn.active && !conn.lastPollError ? 'bg-green-400' : 'bg-gray-300']"
-              :title="conn.active && !conn.lastPollError ? 'Verbunden' : 'Keine Verbindung'" />
+              :title="conn.active && !conn.lastPollError ? t('goe.title_connected') : t('goe.title_disconnected')" />
       </div>
       <button @click="handleDisconnect"
         class="text-gray-300 hover:text-red-400 transition p-1 rounded-md hover:bg-red-50 flex-shrink-0"
-        title="Verbindung trennen">
+        :title="t('goe.title_disconnect')">
         <XMarkIcon class="h-4 w-4" />
       </button>
     </div>
@@ -265,7 +267,7 @@ async function saveTariff() {
 
       <!-- State label -->
       <span :class="['text-sm font-semibold px-3 py-1 rounded-full', colors.badge]">
-        {{ stateConfig.label }}
+        {{ t('goe.' + stateConfig.key) }}
       </span>
     </div>
 
@@ -274,10 +276,7 @@ async function saveTariff() {
       class="mx-4 mt-3 flex items-start gap-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg px-3 py-2">
       <ExclamationTriangleIcon class="h-4 w-4 text-red-500 dark:text-red-400 mt-0.5 shrink-0" />
       <p class="text-xs text-red-700 dark:text-red-300 leading-snug">
-        <span v-if="conn.lastPollError.includes('cloud api not enabled')">
-          Cloud API nicht aktiviert. Aktiviere sie in der go-e App unter
-          <strong>Einstellungen → Internet → Cloud API</strong>.
-        </span>
+        <span v-if="conn.lastPollError.includes('cloud api not enabled')" v-html="t('goe.cloud_api_error')" />
         <span v-else>{{ conn.lastPollError }}</span>
       </p>
     </div>
@@ -286,15 +285,15 @@ async function saveTariff() {
     <div class="px-5 py-3 border-t border-gray-100 dark:border-gray-700">
       <div v-if="!editingTariff" class="flex items-center justify-between">
         <span class="text-xs text-gray-500 dark:text-gray-400">
-          Tarif:
+          {{ t('goe.tariff_label') }}
           <span class="font-medium text-gray-700 dark:text-gray-300">
-            {{ conn.tariffCentsPerKwh > 0 ? `${Number(conn.tariffCentsPerKwh).toLocaleString('de-DE', { maximumFractionDigits: 4 })} ct/kWh` : 'nicht gesetzt' }}
+            {{ conn.tariffCentsPerKwh > 0 ? `${Number(conn.tariffCentsPerKwh).toLocaleString(undefined, { maximumFractionDigits: 4 })} ct/kWh` : t('goe.tariff_unset') }}
           </span>
         </span>
         <button @click="startEditTariff"
           class="flex items-center gap-1 text-xs text-green-600 hover:text-green-700 font-medium">
           <PencilIcon class="h-3.5 w-3.5" />
-          Bearbeiten
+          {{ t('goe.tariff_edit') }}
         </button>
       </div>
       <div v-else class="flex items-center gap-2">
@@ -304,7 +303,7 @@ async function saveTariff() {
           min="0"
           max="9999"
           step="0.0001"
-          placeholder="z.B. 29,5"
+          :placeholder="t('goe.tariff_placeholder')"
           class="flex-1 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-2 py-1 text-sm"
           @keyup.enter="saveTariff"
           @keyup.escape="editingTariff = false"
@@ -326,15 +325,15 @@ async function saveTariff() {
       <div v-if="!editingLocation" class="flex items-center justify-between">
         <span class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
           <MapPinIcon class="h-3.5 w-3.5" />
-          Standort:
+          {{ t('goe.location_status_label') }}
           <span :class="conn.geohash ? 'font-medium text-gray-700 dark:text-gray-300' : 'text-amber-600 font-medium'">
-            {{ conn.geohash ? 'gesetzt' : 'fehlt - Heatmap inaktiv' }}
+            {{ conn.geohash ? t('goe.location_status_set') : t('goe.location_status_missing') }}
           </span>
         </span>
         <button @click="startEditLocation"
           class="flex items-center gap-1 text-xs text-green-600 hover:text-green-700 font-medium">
           <PencilIcon class="h-3.5 w-3.5" />
-          {{ conn.geohash ? 'Ändern' : 'Festlegen' }}
+          {{ conn.geohash ? t('goe.location_change') : t('goe.location_set_btn') }}
         </button>
       </div>
       <div v-else class="space-y-2">
@@ -342,7 +341,7 @@ async function saveTariff() {
           <input
             v-model="locationQuery"
             type="text"
-            placeholder="Adresse oder Ort eingeben..."
+            :placeholder="t('goe.location_placeholder')"
             class="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-1.5 text-sm pr-8"
             @input="onLocationQueryChange"
             @keyup.escape="editingLocation = false"
@@ -363,11 +362,11 @@ async function saveTariff() {
         <div class="flex gap-2">
           <button @click="saveLocation" :disabled="savingLocation || !selectedGeohash"
             class="flex-1 bg-green-600 text-white py-1.5 rounded-lg text-xs font-medium hover:bg-green-700 disabled:opacity-40 transition">
-            {{ savingLocation ? 'Speichern...' : 'Speichern' }}
+            {{ savingLocation ? t('goe.location_save_loading') : t('goe.location_save') }}
           </button>
           <button @click="editingLocation = false"
             class="px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
-            Abbrechen
+            {{ t('goe.location_cancel') }}
           </button>
         </div>
       </div>
@@ -377,8 +376,8 @@ async function saveTariff() {
     <div class="px-5 py-3 border-t border-gray-100 dark:border-gray-700">
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-xs font-medium text-gray-700 dark:text-gray-300">Sessions zusammenfassen</p>
-          <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Kleine Uberschuss-Sessions desselben Tages gruppieren</p>
+          <p class="text-xs font-medium text-gray-700 dark:text-gray-300">{{ t('goe.merge_sessions_title') }}</p>
+          <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ t('goe.merge_sessions_desc') }}</p>
         </div>
         <button
           @click="toggleMergeSessions"
@@ -395,7 +394,7 @@ async function saveTariff() {
     <div class="flex items-center justify-between px-5 py-2 border-t border-gray-100 dark:border-gray-700">
       <span class="text-xs text-gray-400 dark:text-gray-500">Serial: {{ conn.serial }}</span>
       <span class="text-xs text-gray-400 dark:text-gray-500">
-        Aktualisiert alle {{ isCharging ? '2' : '4' }} Min
+        {{ t('goe.updated_every', { n: isCharging ? 2 : 4 }) }}
       </span>
     </div>
   </div>

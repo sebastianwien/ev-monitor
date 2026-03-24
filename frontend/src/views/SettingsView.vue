@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { UserIcon, KeyIcon, TrashIcon, ArrowDownTrayIcon, AcademicCapIcon, ShareIcon, ClipboardDocumentIcon, CheckIcon, HeartIcon, TrophyIcon, ArrowRightOnRectangleIcon, BoltIcon } from '@heroicons/vue/24/outline'
 import SupportPopover from '../components/SupportPopover.vue'
 import api from '../api/axios'
 
+const { t } = useI18n()
 const router = useRouter()
 const authStore = useAuthStore()
 
@@ -76,7 +78,7 @@ const fetchUserData = async () => {
     ])
 
     const stats = statsRes.data
-    registeredSince.value = new Date(stats.registeredSince).toLocaleDateString('de-DE')
+    registeredSince.value = new Date(stats.registeredSince).toLocaleDateString()
     totalLogs.value = stats.totalLogs
     totalKwh.value = stats.totalKwh
     totalCostEur.value = stats.totalCostEur ?? 0
@@ -102,7 +104,7 @@ const changeEmail = async () => {
     authStore.logout()
     router.push('/login?reason=email-changed')
   } catch (error: any) {
-    message.value = { type: 'error', text: error.response?.data?.message || 'Email-Änderung fehlgeschlagen' }
+    message.value = { type: 'error', text: error.response?.data?.message || t('settings.err_email_change') }
     loading.value = false
   }
 }
@@ -118,11 +120,11 @@ const changeUsername = async () => {
     const response = await api.put('/users/me/username', { newUsername: newUsername.value })
     authStore.setToken(response.data.token)
     username.value = authStore.user?.username || newUsername.value
-    message.value = { type: 'success', text: 'Username erfolgreich geändert!' }
+    message.value = { type: 'success', text: t('settings.ok_username') }
     showUsernameForm.value = false
     newUsername.value = ''
   } catch (error: any) {
-    message.value = { type: 'error', text: error.response?.data?.message || 'Username-Änderung fehlgeschlagen' }
+    message.value = { type: 'error', text: error.response?.data?.message || t('settings.err_username_change') }
   } finally {
     loading.value = false
   }
@@ -131,17 +133,17 @@ const changeUsername = async () => {
 // Change Password
 const changePassword = async () => {
   if (!currentPassword.value || !newPassword.value || !confirmPassword.value) {
-    message.value = { type: 'error', text: 'Bitte alle Felder ausfüllen' }
+    message.value = { type: 'error', text: t('settings.err_fill_all') }
     return
   }
 
   if (newPassword.value !== confirmPassword.value) {
-    message.value = { type: 'error', text: 'Passwörter stimmen nicht überein' }
+    message.value = { type: 'error', text: t('settings.err_passwords_mismatch') }
     return
   }
 
   if (newPassword.value.length < 8) {
-    message.value = { type: 'error', text: 'Passwort muss mindestens 8 Zeichen lang sein' }
+    message.value = { type: 'error', text: t('settings.err_password_short') }
     return
   }
 
@@ -153,13 +155,13 @@ const changePassword = async () => {
       currentPassword: currentPassword.value,
       newPassword: newPassword.value
     })
-    message.value = { type: 'success', text: 'Passwort erfolgreich geändert!' }
+    message.value = { type: 'success', text: t('settings.ok_password') }
     showPasswordForm.value = false
     currentPassword.value = ''
     newPassword.value = ''
     confirmPassword.value = ''
   } catch (error: any) {
-    message.value = { type: 'error', text: error.response?.data?.message || 'Passwort-Änderung fehlgeschlagen' }
+    message.value = { type: 'error', text: error.response?.data?.message || t('settings.err_password_change') }
   } finally {
     loading.value = false
   }
@@ -182,9 +184,9 @@ const exportData = async () => {
     link.click()
     link.remove()
 
-    message.value = { type: 'success', text: 'Daten erfolgreich exportiert!' }
+    message.value = { type: 'success', text: t('settings.ok_export') }
   } catch (error: any) {
-    message.value = { type: 'error', text: error.response?.data?.message || 'Daten-Export fehlgeschlagen' }
+    message.value = { type: 'error', text: error.response?.data?.message || t('settings.err_export') }
   } finally {
     loading.value = false
   }
@@ -193,7 +195,7 @@ const exportData = async () => {
 // Delete Account
 const deleteAccount = async () => {
   if (!deletePassword.value) {
-    message.value = { type: 'error', text: 'Bitte Passwort eingeben' }
+    message.value = { type: 'error', text: t('settings.err_password_enter') }
     return
   }
 
@@ -209,7 +211,7 @@ const deleteAccount = async () => {
     authStore.logout()
     router.push('/login')
   } catch (error: any) {
-    message.value = { type: 'error', text: error.response?.data?.message || 'Account-Löschung fehlgeschlagen' }
+    message.value = { type: 'error', text: error.response?.data?.message || t('settings.err_delete') }
     loading.value = false
   }
 }
@@ -221,7 +223,7 @@ const toggleLeaderboardVisible = async () => {
     await api.put(`/users/me/leaderboard-visible?visible=${newVal}`)
     leaderboardVisible.value = newVal
   } catch {
-    message.value = { type: 'error', text: 'Einstellung konnte nicht gespeichert werden.' }
+    message.value = { type: 'error', text: t('settings.err_leaderboard') }
   }
 }
 
@@ -229,7 +231,7 @@ const toggleLeaderboardVisible = async () => {
 const restartOnboarding = () => {
   localStorage.removeItem('onboarding-completed')
   localStorage.setItem('onboarding-force', 'true')
-  message.value = { type: 'success', text: 'Tutorial wird neu gestartet...' }
+  message.value = { type: 'success', text: t('settings.tutorial_restarting') }
   setTimeout(() => {
     window.location.reload()
   }, 1000)
@@ -247,12 +249,12 @@ onMounted(() => {
       <!-- Header -->
       <div class="flex items-center gap-3 mb-6">
         <UserIcon class="h-8 w-8 text-gray-700 dark:text-gray-300" />
-        <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-200">Einstellungen</h1>
+        <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-200">{{ t('settings.title') }}</h1>
         <button
           @click="authStore.logout()"
           class="ml-auto flex items-center gap-2 px-3 py-1.5 rounded-lg border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/30 transition shadow-[0_4px_0_0_#fca5a5] dark:shadow-[0_4px_0_0_#7f1d1d] active:shadow-none active:translate-y-1 cursor-pointer" style="transition: transform 0.075s ease, box-shadow 0.075s ease;">
           <ArrowRightOnRectangleIcon class="h-4 w-4" />
-          Abmelden
+          {{ t('settings.logout') }}
         </button>
       </div>
 
@@ -268,11 +270,11 @@ onMounted(() => {
       <div class="mb-8 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
         <div class="flex items-center gap-3 mb-2">
           <BoltIcon class="h-6 w-6 text-gray-500 dark:text-gray-400" />
-          <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">Dein Watt-Konto</h2>
+          <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">{{ t('settings.watt_account') }}</h2>
         </div>
         <p class="text-3xl font-bold text-amber-600">{{ coinBalance }}</p>
         <router-link to="/coins/history" class="text-sm text-amber-700 hover:text-amber-800 underline mt-2 inline-block">
-          Watt-Verlauf ansehen →
+          {{ t('settings.watt_history') }}
         </router-link>
       </div>
 
@@ -280,12 +282,9 @@ onMounted(() => {
       <div v-if="referralCode" class="mb-8 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
         <div class="flex items-center gap-3 mb-2">
           <ShareIcon class="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
-          <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">Freunde einladen</h2>
+          <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">{{ t('settings.referral_title') }}</h2>
         </div>
-        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-          Teile deinen persönlichen Einladungslink. Du erhältst <strong>100 Watt</strong> für jeden Freund,
-          der sich registriert und seine E-Mail-Adresse bestätigt. Dein Freund bekommt <strong>25 Watt</strong> als Willkommensbonus.
-        </p>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4" v-html="t('settings.referral_desc')" />
         <div class="flex gap-2">
           <input
             :value="referralLink()"
@@ -299,7 +298,7 @@ onMounted(() => {
               : 'bg-indigo-600 text-white hover:bg-indigo-700'">
             <CheckIcon v-if="referralCopied" class="h-4 w-4" />
             <ClipboardDocumentIcon v-else class="h-4 w-4" />
-            {{ referralCopied ? 'Kopiert!' : 'Kopieren' }}
+            {{ referralCopied ? t('settings.copied') : t('settings.copy') }}
           </button>
         </div>
       </div>
@@ -308,48 +307,48 @@ onMounted(() => {
       <div class="mb-8">
         <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
           <UserIcon class="h-6 w-6" />
-          Account
+          {{ t('settings.account') }}
         </h2>
 
         <!-- Email -->
         <div class="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
           <div class="flex justify-between items-center">
             <div>
-              <p class="text-sm text-gray-600 dark:text-gray-400">Email</p>
+              <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('settings.email_label') }}</p>
               <p class="font-medium">{{ email }}</p>
             </div>
             <button
               v-if="(authStore.user as any)?.authProvider === 'LOCAL'"
               @click="showEmailForm = !showEmailForm"
               class="btn-3d px-3 py-1 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition">
-              Ändern
+              {{ t('settings.email_change') }}
             </button>
-            <span v-else class="text-xs text-gray-400">via {{ (authStore.user as any)?.authProvider }}</span>
+            <span v-else class="text-xs text-gray-400">{{ t('settings.via_provider', { provider: (authStore.user as any)?.authProvider }) }}</span>
           </div>
 
           <div v-if="showEmailForm" class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600 space-y-3">
             <input
               v-model="newEmail"
               type="email"
-              placeholder="Neue Email-Adresse"
+              :placeholder="t('settings.email_new_placeholder')"
               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
             <input
               v-model="emailCurrentPassword"
               type="password"
-              placeholder="Aktuelles Passwort zur Bestätigung"
+              :placeholder="t('settings.email_password_placeholder')"
               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
-            <p class="text-xs text-gray-500 dark:text-gray-400">Du wirst danach ausgeloggt und musst dich mit der neuen Email anmelden.</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('settings.email_logout_hint') }}</p>
             <div class="flex gap-2">
               <button
                 @click="changeEmail"
                 :disabled="loading || !newEmail || !emailCurrentPassword"
                 class="btn-3d px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 transition">
-                Speichern
+                {{ t('settings.save') }}
               </button>
               <button
                 @click="showEmailForm = false; newEmail = ''; emailCurrentPassword = ''"
                 class="btn-3d px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 transition">
-                Abbrechen
+                {{ t('settings.cancel') }}
               </button>
             </div>
           </div>
@@ -359,13 +358,13 @@ onMounted(() => {
         <div class="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
           <div class="flex justify-between items-center">
             <div>
-              <p class="text-sm text-gray-600 dark:text-gray-400">Username</p>
+              <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('settings.username_label') }}</p>
               <p class="font-medium">{{ username }}</p>
             </div>
             <button
               @click="showUsernameForm = !showUsernameForm"
               class="btn-3d px-3 py-1 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition">
-              Ändern
+              {{ t('settings.email_change') }}
             </button>
           </div>
 
@@ -373,7 +372,7 @@ onMounted(() => {
             <input
               v-model="newUsername"
               type="text"
-              placeholder="Neuer Username"
+              :placeholder="t('settings.username_new_placeholder')"
               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md focus:ring-indigo-500 focus:border-indigo-500 mb-3">
             <div class="flex gap-2">
               <button
@@ -395,13 +394,13 @@ onMounted(() => {
         <div class="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
           <div class="flex justify-between items-center">
             <div>
-              <p class="text-sm text-gray-600 dark:text-gray-400">Passwort</p>
+              <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('settings.password_label') }}</p>
               <p class="font-medium">••••••••••</p>
             </div>
             <button
               @click="showPasswordForm = !showPasswordForm"
               class="btn-3d px-3 py-1 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition">
-              Ändern
+              {{ t('settings.email_change') }}
             </button>
           </div>
 
@@ -409,17 +408,17 @@ onMounted(() => {
             <input
               v-model="currentPassword"
               type="password"
-              placeholder="Aktuelles Passwort"
+              :placeholder="t('settings.password_current_placeholder')"
               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
             <input
               v-model="newPassword"
               type="password"
-              placeholder="Neues Passwort (min. 8 Zeichen)"
+              :placeholder="t('settings.password_new_placeholder')"
               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
             <input
               v-model="confirmPassword"
               type="password"
-              placeholder="Neues Passwort bestätigen"
+              :placeholder="t('settings.password_confirm_placeholder')"
               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
             <div class="flex gap-2">
               <button
@@ -442,12 +441,12 @@ onMounted(() => {
       <div class="mb-8">
         <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
           <KeyIcon class="h-6 w-6" />
-          Daten & Privacy
+          {{ t('settings.privacy_title') }}
         </h2>
 
         <!-- Stats -->
         <div class="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-          <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Registriert seit</p>
+          <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">{{ t('settings.registered_since') }}</p>
           <p class="font-medium mb-3">{{ registeredSince }}</p>
 
           <p class="text-sm text-gray-600 dark:text-gray-400">
@@ -463,7 +462,7 @@ onMounted(() => {
           :disabled="loading"
           class="btn-3d w-full mb-4 flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition">
           <ArrowDownTrayIcon class="h-5 w-5" />
-          <span>Meine Daten exportieren (JSON)</span>
+          <span>{{ t('settings.export_btn') }}</span>
         </button>
 
         <!-- Delete Account -->
@@ -471,7 +470,7 @@ onMounted(() => {
           @click="showDeleteConfirm = true"
           class="btn-3d w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
           <TrashIcon class="h-5 w-5" />
-          <span>Account unwiderruflich löschen</span>
+          <span>{{ t('settings.delete_btn') }}</span>
         </button>
       </div>
 
@@ -479,12 +478,12 @@ onMounted(() => {
       <div class="mb-8">
         <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
           <TrophyIcon class="h-6 w-6 text-yellow-500" />
-          Bestenliste
+          {{ t('settings.leaderboard_title') }}
         </h2>
         <div class="p-4 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg flex items-center justify-between gap-4">
           <div>
-            <p class="font-medium text-gray-800 dark:text-gray-200 text-sm">In Bestenlisten erscheinen</p>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Wenn deaktiviert, taucht dein Username in keiner Kategorie auf.</p>
+            <p class="font-medium text-gray-800 dark:text-gray-200 text-sm">{{ t('settings.leaderboard_visible_label') }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('settings.leaderboard_visible_hint') }}</p>
           </div>
           <button
             @click="toggleLeaderboardVisible"
@@ -492,7 +491,7 @@ onMounted(() => {
               'relative flex-shrink-0 w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none',
               leaderboardVisible ? 'bg-green-500' : 'bg-gray-300'
             ]"
-            :title="leaderboardVisible ? 'Deaktivieren' : 'Aktivieren'">
+            :title="leaderboardVisible ? t('settings.leaderboard_disable') : t('settings.leaderboard_enable')">
             <span
               :class="[
                 'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200',
@@ -506,22 +505,22 @@ onMounted(() => {
       <div class="mb-8">
         <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
           <AcademicCapIcon class="h-6 w-6" />
-          Hilfe & Support
+          {{ t('settings.help_title') }}
         </h2>
 
         <div class="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/30 dark:to-purple-900/30 border border-indigo-200 dark:border-indigo-700 rounded-lg">
           <h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-2 flex items-center gap-2">
             <span class="text-xl">👋</span>
-            Tutorial erneut ansehen
+            {{ t('settings.tutorial_title') }}
           </h3>
           <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            Möchtest du das Willkommens-Tutorial nochmal durchgehen? Perfekt wenn du eine Auffrischung brauchst oder neue Features kennenlernen willst.
+            {{ t('settings.tutorial_desc') }}
           </p>
           <button
             @click="restartOnboarding"
             class="btn-3d w-full flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
             <AcademicCapIcon class="h-5 w-5" />
-            <span>Tutorial neu starten</span>
+            <span>{{ t('settings.tutorial_btn') }}</span>
           </button>
         </div>
       </div>
@@ -530,11 +529,11 @@ onMounted(() => {
       <div class="mb-8">
         <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
           <HeartIcon class="h-6 w-6 text-red-500" />
-          EV Monitor unterstützen
+          {{ t('settings.support_title') }}
         </h2>
         <div class="p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
           <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            EV Monitor ist kostenlos und werbefrei. Wenn dir die App hilft, freue ich mich über einen Kaffee ☕
+            {{ t('settings.support_desc') }}
           </p>
           <SupportPopover variant="block" />
         </div>
@@ -546,16 +545,13 @@ onMounted(() => {
         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
         @click.self="showDeleteConfirm = false">
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6">
-          <h3 class="text-2xl font-bold text-red-600 mb-4">Account löschen?</h3>
-          <p class="text-gray-700 dark:text-gray-300 mb-4">
-            Diese Aktion kann <strong>nicht rückgängig</strong> gemacht werden.
-            Alle deine Daten (Ladevorgänge, Fahrzeuge, Watt) werden permanent gelöscht.
-          </p>
+          <h3 class="text-2xl font-bold text-red-600 mb-4">{{ t('settings.delete_modal_title') }}</h3>
+          <p class="text-gray-700 dark:text-gray-300 mb-4" v-html="t('settings.delete_modal_desc')" />
 
           <input
             v-model="deletePassword"
             type="password"
-            placeholder="Passwort zur Bestätigung"
+            :placeholder="t('settings.delete_password_placeholder')"
             class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md focus:ring-red-500 focus:border-red-500 mb-4">
 
           <div class="flex gap-3">
@@ -563,12 +559,12 @@ onMounted(() => {
               @click="deleteAccount"
               :disabled="loading || !deletePassword"
               class="btn-3d flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 transition">
-              Endgültig löschen
+              {{ t('settings.delete_confirm_btn') }}
             </button>
             <button
               @click="showDeleteConfirm = false; deletePassword = ''"
               class="btn-3d flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 transition">
-              Abbrechen
+              {{ t('settings.cancel') }}
             </button>
           </div>
         </div>

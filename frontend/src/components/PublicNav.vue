@@ -6,10 +6,11 @@
         EV Monitor
       </a>
       <div class="flex items-center gap-3">
+        <LocaleSwitcher />
         <ThemeToggle class="text-gray-600 dark:text-gray-300" />
-        <a href="/login" class="text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">Anmelden</a>
+        <a href="/login" class="text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">{{ t('nav.login') }}</a>
         <a href="/register" class="text-sm bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 whitespace-nowrap">
-          Registrieren
+          {{ t('nav.register') }}
         </a>
       </div>
     </div>
@@ -17,9 +18,12 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/auth'
 import { BoltIcon } from '@heroicons/vue/24/outline'
 import ThemeToggle from './ThemeToggle.vue'
+import LocaleSwitcher from './LocaleSwitcher.vue'
 
+const { t } = useI18n()
 const authStore = useAuthStore()
 </script>

@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useHead } from '@unhead/vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/auth'
 import { analytics } from '../services/analytics'
 import SupportPopover from '../components/SupportPopover.vue'
+import LocaleSwitcher from '../components/LocaleSwitcher.vue'
 import { getTopModels, getPlatformStats, type TopModelPreview } from '../api/publicModelService'
 import {
   LockClosedIcon,
@@ -15,8 +17,14 @@ import {
   InformationCircleIcon
 } from '@heroicons/vue/24/outline'
 
+const { t } = useI18n()
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
+const isEn = computed(() => route.path.startsWith('/en'))
+const modelsUrl = computed(() => isEn.value ? '/en/models' : '/modelle')
+const loginPath = computed(() => isEn.value ? '/en/login' : '/login')
+const registerPath = computed(() => isEn.value ? '/en/register' : '/register')
 
 const topModels = ref<TopModelPreview[]>([])
 const nextModels = ref<TopModelPreview[]>([])
@@ -39,9 +47,14 @@ function animateCount(target: number, setter: (v: number) => void, duration = 14
   requestAnimationFrame(tick)
 }
 
-useHead({
-  link: [{ rel: 'canonical', href: 'https://ev-monitor.net/' }]
-})
+useHead(computed(() => ({
+  link: [
+    { rel: 'canonical', href: isEn.value ? 'https://ev-monitor.net/en' : 'https://ev-monitor.net/' },
+    { rel: 'alternate', hreflang: 'de', href: 'https://ev-monitor.net/' },
+    { rel: 'alternate', hreflang: 'en', href: 'https://ev-monitor.net/en' },
+    { rel: 'alternate', hreflang: 'x-default', href: 'https://ev-monitor.net/' },
+  ]
+})))
 
 onMounted(async () => {
   analytics.track('landing_page_viewed')
@@ -112,6 +125,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
             <span class="text-xl font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap">EV Monitor</span>
           </div>
           <div class="flex items-center gap-2 sm:gap-3">
+            <LocaleSwitcher />
             <a
               href="https://github.com/sebastianwien/ev-monitor"
               target="_blank"
@@ -128,21 +142,21 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
                 to="/dashboard"
                 class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 px-2 sm:px-3 py-2 text-sm font-medium"
               >
-                Dashboard
+                {{ t('nav.dashboard') }}
               </router-link>
             </template>
             <template v-else>
               <router-link
-                to="/login"
+                :to="loginPath"
                 class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 px-2 sm:px-3 py-2 text-sm font-medium"
               >
-                Login
+                {{ t('nav.login') }}
               </router-link>
               <router-link
-                to="/register"
+                :to="registerPath"
                 class="hidden sm:inline-flex bg-green-600 text-white px-3 sm:px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition whitespace-nowrap"
               >
-                Registrieren
+                {{ t('nav.register') }}
               </router-link>
             </template>
           </div>
@@ -154,10 +168,10 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
     <section class="pt-8 pb-6 sm:pt-12 sm:pb-8">
       <div class="max-w-4xl mx-auto text-center px-6 sm:px-8 lg:px-12">
         <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-gray-100 leading-tight mb-4">
-          Wie weit kommst du wirklich - und was kostet es dich?
+          {{ t('landing.hero.title') }}
         </h1>
         <p class="text-lg text-gray-600 dark:text-gray-400 mb-6 max-w-xl mx-auto break-words">
-          Echte Verbräuche und Ladekosten von der Community — WLTP-Verbrauch trifft Alltagsrealität. Mit Wallbox-Integration und API-Synchronisation.
+          {{ t('landing.hero.subtitle') }}
         </p>
 
         <!-- Inline model preview — sofort Wert zeigen -->
@@ -167,38 +181,38 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
             <a
               v-for="preview in topModels.slice(0, 3)"
               :key="`hero-mobile-${preview.brand}-${preview.model}`"
-              :href="`/modelle/${preview.brandDisplayName}/${preview.modelUrlSlug}`"
+              :href="`${modelsUrl}/${preview.brandDisplayName}/${preview.modelUrlSlug}`"
               class="snap-start shrink-0 w-[75vw] max-w-[280px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 text-left hover:border-green-500 transition block"
             >
               <div class="flex items-start justify-between gap-2 mb-1">
                 <span class="font-semibold text-gray-900 dark:text-gray-100">{{ preview.modelDisplayName }}</span>
-                <span class="text-xs text-gray-400 whitespace-nowrap mt-0.5">{{ preview.logCount }} Ladevorgänge</span>
+                <span class="text-xs text-gray-400 whitespace-nowrap mt-0.5">{{ preview.logCount }} {{ t('landing.hero.charging_sessions') }}</span>
               </div>
               <div class="grid grid-cols-[auto_1fr] items-baseline gap-x-3 gap-y-0.5 mt-1 text-sm">
                 <template v-if="preview.minWltpConsumptionKwhPer100km">
-                  <span class="text-xs text-gray-400">WLTP</span>
+                  <span class="text-xs text-gray-400">{{ t('landing.hero.wltp_label') }}</span>
                   <span class="text-gray-500 dark:text-gray-400">{{ formatWltpRange(preview.minWltpConsumptionKwhPer100km, preview.maxWltpConsumptionKwhPer100km) }} kWh/100km</span>
                 </template>
                 <template v-if="preview.avgConsumptionKwhPer100km || preview.minRealConsumptionKwhPer100km">
-                  <span class="text-xs text-gray-400">Real</span>
+                  <span class="text-xs text-gray-400">{{ t('landing.hero.real_label') }}</span>
                   <span class="text-gray-700 dark:text-gray-300 font-semibold">{{ formatRealConsumption(preview.avgConsumptionKwhPer100km, preview.minRealConsumptionKwhPer100km, preview.maxRealConsumptionKwhPer100km) }} kWh/100km</span>
                 </template>
                 <template v-if="preview.avgCostPerKwh && preview.avgConsumptionKwhPer100km">
-                  <span class="text-xs text-gray-400">Kosten</span>
+                  <span class="text-xs text-gray-400">{{ t('landing.hero.costs_label') }}</span>
                   <span class="flex flex-wrap items-center gap-x-1.5">
                     <span class="text-blue-500 font-medium">~{{ (preview.avgCostPerKwh * preview.avgConsumptionKwhPer100km).toFixed(1) }} €/100km</span>
                     <span class="relative group cursor-help inline-flex items-center gap-0.5 text-xs text-gray-400">
                       <span>Ø {{ preview.avgCostPerKwh.toFixed(2) }} €/kWh</span>
                       <InformationCircleIcon class="h-3 w-3 flex-shrink-0" />
                       <span class="absolute bottom-full left-0 mb-1.5 px-2.5 py-2 bg-gray-800 text-white text-xs rounded-lg w-60 hidden group-hover:block z-20 pointer-events-none leading-snug shadow-lg">
-                        Basiert auf dem Ø-Strompreis der Community-Beiträge. Günstigeres Heimladen vs. teure Schnelllader erklärt Preisunterschiede zwischen Modellen.
+                        {{ t('landing.hero.cost_tooltip') }}
                       </span>
                     </span>
                   </span>
                 </template>
               </div>
               <div class="mt-2 text-green-600 text-xs font-medium flex items-center gap-1">
-                <span>Details ansehen</span>
+                <span>{{ t('landing.hero.view_details') }}</span>
                 <ArrowRightIcon class="h-3.5 w-3.5" />
               </div>
             </a>
@@ -208,38 +222,38 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
             <a
               v-for="preview in topModels.slice(0, 3)"
               :key="`hero-${preview.brand}-${preview.model}`"
-              :href="`/modelle/${preview.brandDisplayName}/${preview.modelUrlSlug}`"
+              :href="`${modelsUrl}/${preview.brandDisplayName}/${preview.modelUrlSlug}`"
               class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 text-left hover:border-green-500 transition block"
             >
               <div class="flex items-start justify-between gap-2 mb-1">
                 <span class="font-semibold text-gray-900 dark:text-gray-100">{{ preview.modelDisplayName }}</span>
-                <span class="text-xs text-gray-400 whitespace-nowrap mt-0.5">{{ preview.logCount }} Ladevorgänge</span>
+                <span class="text-xs text-gray-400 whitespace-nowrap mt-0.5">{{ preview.logCount }} {{ t('landing.hero.charging_sessions') }}</span>
               </div>
               <div class="grid grid-cols-[auto_1fr] items-baseline gap-x-3 gap-y-0.5 mt-1 text-sm">
                 <template v-if="preview.minWltpConsumptionKwhPer100km">
-                  <span class="text-xs text-gray-400">WLTP</span>
+                  <span class="text-xs text-gray-400">{{ t('landing.hero.wltp_label') }}</span>
                   <span class="text-gray-500 dark:text-gray-400">{{ formatWltpRange(preview.minWltpConsumptionKwhPer100km, preview.maxWltpConsumptionKwhPer100km) }} kWh/100km</span>
                 </template>
                 <template v-if="preview.avgConsumptionKwhPer100km || preview.minRealConsumptionKwhPer100km">
-                  <span class="text-xs text-gray-400">Real</span>
+                  <span class="text-xs text-gray-400">{{ t('landing.hero.real_label') }}</span>
                   <span class="text-gray-700 dark:text-gray-300 font-semibold">{{ formatRealConsumption(preview.avgConsumptionKwhPer100km, preview.minRealConsumptionKwhPer100km, preview.maxRealConsumptionKwhPer100km) }} kWh/100km</span>
                 </template>
                 <template v-if="preview.avgCostPerKwh && preview.avgConsumptionKwhPer100km">
-                  <span class="text-xs text-gray-400">Kosten</span>
+                  <span class="text-xs text-gray-400">{{ t('landing.hero.costs_label') }}</span>
                   <span class="flex flex-wrap items-center gap-x-1.5">
                     <span class="text-blue-500 font-medium">~{{ (preview.avgCostPerKwh * preview.avgConsumptionKwhPer100km).toFixed(1) }} €/100km</span>
                     <span class="relative group cursor-help inline-flex items-center gap-0.5 text-xs text-gray-400">
                       <span>Ø {{ preview.avgCostPerKwh.toFixed(2) }} €/kWh</span>
                       <InformationCircleIcon class="h-3 w-3 flex-shrink-0" />
                       <span class="absolute bottom-full left-0 mb-1.5 px-2.5 py-2 bg-gray-800 text-white text-xs rounded-lg w-60 hidden group-hover:block z-20 pointer-events-none leading-snug shadow-lg">
-                        Basiert auf dem Ø-Strompreis der Community-Beiträge. Günstigeres Heimladen vs. teure Schnelllader erklärt Preisunterschiede zwischen Modellen.
+                        {{ t('landing.hero.cost_tooltip') }}
                       </span>
                     </span>
                   </span>
                 </template>
               </div>
               <div class="mt-2 text-green-600 text-xs font-medium flex items-center gap-1">
-                <span>Details ansehen</span>
+                <span>{{ t('landing.hero.view_details') }}</span>
                 <ArrowRightIcon class="h-3.5 w-3.5" />
               </div>
             </a>
@@ -253,30 +267,30 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
             :disabled="demoLoading"
             class="demo-shimmer w-full sm:w-auto cursor-pointer bg-green-600 text-white px-6 py-3 sm:px-8 sm:py-4 rounded-lg text-base sm:text-lg font-semibold hover:bg-green-700 disabled:opacity-50 inline-flex items-center justify-center gap-2 transition"
           >
-            {{ demoLoading ? 'Wird geladen…' : 'App live testen →' }}
+            {{ demoLoading ? t('landing.hero.loading_button') : t('landing.hero.demo_button') }}
           </button>
           <router-link
-            to="/modelle"
+            :to="modelsUrl"
             @click="analytics.trackCtaModelsClicked('hero')"
             class="w-full sm:w-auto border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-6 py-3 sm:px-8 sm:py-4 rounded-lg text-base sm:text-lg font-semibold hover:border-green-500 hover:text-green-700 transition inline-flex items-center justify-center space-x-2"
           >
-            <span>Alle Modelle ansehen</span>
+            <span>{{ t('landing.hero.models_button') }}</span>
             <ArrowRightIcon class="h-5 w-5" />
           </router-link>
         </div>
 
         <p class="mt-5 text-sm text-gray-400">
-          Oder
-          <button @click="goToRegister('hero_secondary')" class="text-green-600 hover:text-green-700 font-medium underline underline-offset-2">kostenlos registrieren</button>
-          und eigene Daten tracken
+          {{ t('landing.hero.or') }}
+          <button @click="goToRegister('hero_secondary')" class="text-green-600 hover:text-green-700 font-medium underline underline-offset-2">{{ t('landing.hero.register_link') }}</button>
+          {{ t('landing.hero.track_data') }}
         </p>
 
         <p class="mt-4 text-sm font-semibold text-gray-500 dark:text-gray-400 tabular-nums">
-          <span>{{ displayTripsRounded.toLocaleString('de-DE') }}+ Fahrten</span>
+          <span>{{ displayTripsRounded }}+ {{ t('landing.hero.trips_label') }}</span>
           <span class="mx-2">•</span>
-          <span>{{ displayModels }} Modelle</span>
+          <span>{{ displayModels }} {{ t('landing.hero.models_label') }}</span>
           <span class="mx-2">•</span>
-          <span>{{ displayUsers }} Fahrer</span>
+          <span>{{ displayUsers }} {{ t('landing.hero.drivers_label') }}</span>
         </p>
       </div>
     </section>
@@ -290,8 +304,8 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
             <svg class="h-6 w-6 sm:h-10 sm:w-10 text-green-600 mb-2 sm:mb-3" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" />
             </svg>
-            <h3 class="text-sm sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1 sm:mb-2">100% Open Source</h3>
-            <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-2 sm:mb-3">Vollständig transparent auf GitHub. Keine Vendor Lock-ins.</p>
+            <h3 class="text-sm sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1 sm:mb-2">{{ t('landing.features.open_source_title') }}</h3>
+            <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-2 sm:mb-3">{{ t('landing.features.open_source_desc') }}</p>
             <a href="https://github.com/sebastianwien/ev-monitor" target="_blank" rel="noopener noreferrer"
               class="inline-flex items-center gap-1 text-green-600 hover:text-green-700 text-xs font-medium">
               View Source →
@@ -301,8 +315,8 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
           <!-- Feature 2: Auto-Import -->
           <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 sm:p-6 hover:border-green-500 transition">
             <ArrowDownTrayIcon class="h-6 w-6 sm:h-10 sm:w-10 text-gray-400 mb-2 sm:mb-3" />
-            <h3 class="text-sm sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1 sm:mb-2">Auto-Import</h3>
-            <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-2">Tesla, Sprit-Monitor, go-eCharger & OCPP Wallboxen.</p>
+            <h3 class="text-sm sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1 sm:mb-2">{{ t('landing.features.auto_import_title') }}</h3>
+            <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-2">{{ t('landing.features.auto_import_desc') }}</p>
             <div class="flex flex-wrap gap-1">
               <span class="text-xs bg-blue-100 text-blue-800 font-medium px-1.5 py-0.5 rounded-full">go-e BETA</span>
               <span class="text-xs bg-blue-100 text-blue-800 font-medium px-1.5 py-0.5 rounded-full">OCPP BETA</span>
@@ -312,15 +326,15 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
           <!-- Feature 3: Privacy First -->
           <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 sm:p-6 hover:border-green-500 transition">
             <LockClosedIcon class="h-6 w-6 sm:h-10 sm:w-10 text-gray-400 mb-2 sm:mb-3" />
-            <h3 class="text-sm sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1 sm:mb-2">Privacy First</h3>
-            <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Geohashing statt Tracking. Deine Daten gehören dir.</p>
+            <h3 class="text-sm sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1 sm:mb-2">{{ t('landing.features.privacy_title') }}</h3>
+            <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{{ t('landing.features.privacy_desc') }}</p>
           </div>
 
           <!-- Feature 4: Community -->
           <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 sm:p-6 hover:border-green-500 transition">
             <UsersIcon class="h-6 w-6 sm:h-10 sm:w-10 text-gray-400 mb-2 sm:mb-3" />
-            <h3 class="text-sm sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1 sm:mb-2">Community-Daten</h3>
-            <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">WLTP vs. Realität von echten Fahrern. Beitragen, Coins verdienen.</p>
+            <h3 class="text-sm sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1 sm:mb-2">{{ t('landing.features.community_title') }}</h3>
+            <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{{ t('landing.features.community_desc') }}</p>
           </div>
         </div>
       </div>
@@ -331,15 +345,15 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
       <div class="max-w-7xl mx-auto">
         <div class="text-center mb-12">
           <h2 class="text-3xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
-            Was kostet das Laden wirklich?
+            {{ t('landing.models_section.title') }}
           </h2>
           <p class="text-lg text-gray-600 dark:text-gray-400">
-            Echte Daten von der Community
+            {{ t('landing.models_section.subtitle') }}
           </p>
         </div>
 
         <div v-if="loading" class="text-center text-gray-500 dark:text-gray-400">
-          Lade Fahrzeugdaten...
+          {{ t('landing.models_section.loading') }}
         </div>
 
         <div v-else-if="topModels.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -352,7 +366,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
           >
             <div class="flex items-start justify-between gap-2 mb-2">
               <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ preview.modelDisplayName }}</h3>
-              <span class="text-xs text-gray-400 whitespace-nowrap mt-1">{{ preview.logCount }} Ladevorgänge</span>
+              <span class="text-xs text-gray-400 whitespace-nowrap mt-1">{{ preview.logCount }} {{ t('landing.hero.charging_sessions') }}</span>
             </div>
 
             <div class="grid grid-cols-[auto_1fr] items-baseline gap-x-3 gap-y-0.5 mb-3 text-sm">
@@ -372,7 +386,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
                     <span>Ø {{ preview.avgCostPerKwh.toFixed(2) }} €/kWh</span>
                     <InformationCircleIcon class="h-3 w-3 flex-shrink-0" />
                     <span class="absolute bottom-full left-0 mb-1.5 px-2.5 py-2 bg-gray-800 text-white text-xs rounded-lg w-60 hidden group-hover:block z-20 pointer-events-none leading-snug shadow-lg">
-                      Basiert auf dem Ø-Strompreis der Community-Beiträge. Günstigeres Heimladen vs. teure Schnelllader erklärt Preisunterschiede zwischen Modellen.
+                      {{ t('landing.hero.cost_tooltip') }}
                     </span>
                   </span>
                 </span>
@@ -380,7 +394,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
             </div>
 
             <div class="text-green-600 font-medium flex justify-center items-center gap-1 text-sm">
-              <span>Details ansehen</span>
+              <span>{{ t('landing.models_section.view_details') }}</span>
               <ArrowRightIcon class="h-4 w-4" />
             </div>
           </a>
@@ -393,7 +407,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
                 <a
                   v-for="m in nextModels"
                   :key="`${m.brand}-${m.model}`"
-                  :href="`/modelle/${m.brandDisplayName}/${m.modelUrlSlug}`"
+                  :href="`${modelsUrl}/${m.brandDisplayName}/${m.modelUrlSlug}`"
                   class="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs font-medium rounded-full transition"
                 >
                   {{ m.modelDisplayName }}
@@ -404,12 +418,12 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
                 <a
                   v-for="m in nextModels"
                   :key="`${m.brand}-${m.model}`"
-                  :href="`/modelle/${m.brandDisplayName}/${m.modelUrlSlug}`"
+                  :href="`${modelsUrl}/${m.brandDisplayName}/${m.modelUrlSlug}`"
                   class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:border-green-500 transition"
                 >
                   <div class="flex items-start justify-between gap-2 mb-2">
                     <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ m.modelDisplayName }}</h3>
-                    <span class="text-xs text-gray-400 whitespace-nowrap mt-0.5">{{ m.logCount }} Ladevorgänge</span>
+                    <span class="text-xs text-gray-400 whitespace-nowrap mt-0.5">{{ m.logCount }} {{ t('landing.hero.charging_sessions') }}</span>
                   </div>
                   <div class="grid grid-cols-[auto_1fr] items-baseline gap-x-2 gap-y-0.5 text-xs">
                     <template v-if="m.minWltpConsumptionKwhPer100km">
@@ -428,7 +442,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
                           <span>Ø {{ m.avgCostPerKwh.toFixed(2) }} €/kWh</span>
                           <InformationCircleIcon class="h-3 w-3 flex-shrink-0" />
                           <span class="absolute bottom-full left-0 mb-1.5 px-2.5 py-2 bg-gray-800 text-white text-xs rounded-lg w-56 hidden group-hover:block z-20 pointer-events-none leading-snug shadow-lg">
-                            Basiert auf dem Ø-Strompreis der Community-Beiträge. Günstigeres Heimladen vs. teure Schnelllader erklärt Preisunterschiede zwischen Modellen.
+                            {{ t('landing.hero.cost_tooltip') }}
                           </span>
                         </span>
                       </span>
@@ -439,10 +453,10 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
             </div>
             <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 mt-4 sm:mt-6">
               <router-link
-                to="/modelle"
+                :to="modelsUrl"
                 class="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition inline-flex items-center justify-center space-x-2"
               >
-                <span>Alle Modelle im Vergleich</span>
+                <span>{{ t('landing.models_section.compare_button') }}</span>
                 <ArrowRightIcon class="h-5 w-5" />
               </router-link>
               <button
@@ -450,14 +464,14 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
                 :disabled="demoLoading"
                 class="border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-6 py-3 rounded-lg font-semibold hover:border-green-500 hover:text-green-700 transition disabled:opacity-50 inline-flex items-center justify-center space-x-2"
               >
-                <span>{{ demoLoading ? 'Wird geladen…' : 'Demo ausprobieren' }}</span>
+                <span>{{ demoLoading ? t('landing.models_section.loading_button') : t('landing.models_section.demo_button') }}</span>
               </button>
             </div>
           </div>
         </div>
 
         <div v-else class="text-center text-gray-500 dark:text-gray-400">
-          Noch keine Community-Daten verfügbar.
+          {{ t('landing.models_section.no_data') }}
         </div>
       </div>
     </section>
@@ -467,13 +481,13 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
       <div class="max-w-3xl mx-auto text-center relative overflow-hidden">
         <BoltIcon class="absolute inset-0 m-auto h-64 w-64 text-green-600 opacity-[0.15] pointer-events-none" />
         <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
-          Belohnungen für Community-Beiträge
+          {{ t('landing.gamification.title') }}
         </h2>
         <ul class="text-left inline-block text-gray-600 dark:text-gray-400 space-y-2 mb-4 text-lg">
-          <li>• Ladevorgang erfassen</li>
-          <li>• Fahrzeug hinzufügen</li>
-          <li>• Freund einladen</li>
-          <li>• Daten importieren</li>
+          <li>• {{ t('landing.gamification.log_entry') }}</li>
+          <li>• {{ t('landing.gamification.add_vehicle') }}</li>
+          <li>• {{ t('landing.gamification.invite_friend') }}</li>
+          <li>• {{ t('landing.gamification.import_data') }}</li>
         </ul>
         <p class="text-4xl text-gray-400 dark:text-gray-600">. . .</p>
       </div>
@@ -485,10 +499,10 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
         <div class="text-center mb-10">
           <div class="inline-flex items-center gap-2 mb-3">
             <ArrowDownTrayIcon class="h-6 w-6 text-green-600" />
-            <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">Nie wieder manuell eintippen</h2>
+            <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">{{ t('landing.import.title') }}</h2>
           </div>
           <p class="text-gray-600 dark:text-gray-400">
-            Verbinde deine Datenquellen — Ladevorgänge kommen automatisch rein.
+            {{ t('landing.import.subtitle') }}
           </p>
         </div>
 
@@ -501,9 +515,9 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
             <div>
               <div class="flex items-center gap-2 mb-1">
                 <span class="font-semibold text-gray-900 dark:text-gray-100 text-sm">Tesla Fleet API</span>
-                <span class="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">Verfügbar</span>
+                <span class="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">{{ t('landing.import.tesla_status') }}</span>
               </div>
-              <p class="text-sm text-gray-500 dark:text-gray-400">Ladehistorie automatisch importieren — kein Tippen, kein Kopieren.</p>
+              <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('landing.import.tesla_desc') }}</p>
             </div>
           </div>
 
@@ -515,9 +529,9 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
             <div>
               <div class="flex items-center gap-2 mb-1">
                 <span class="font-semibold text-gray-900 dark:text-gray-100 text-sm">Sprit-Monitor</span>
-                <span class="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">Verfügbar</span>
+                <span class="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">{{ t('landing.import.spritmonitor_status') }}</span>
               </div>
-              <p class="text-sm text-gray-500 dark:text-gray-400">Komplette Ladehistorie aus Sprit-Monitor einmalig importieren.</p>
+              <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('landing.import.spritmonitor_desc') }}</p>
             </div>
           </div>
 
@@ -529,10 +543,10 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
             <div>
               <div class="flex items-center gap-2 mb-1">
                 <span class="font-semibold text-gray-900 dark:text-gray-100 text-sm">go-eCharger Cloud</span>
-                <span class="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">Verfügbar</span>
-                <span class="text-xs bg-blue-100 text-blue-800 font-medium px-2 py-0.5 rounded-full">BETA</span>
+                <span class="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">{{ t('landing.import.gocharger_status') }}</span>
+                <span class="text-xs bg-blue-100 text-blue-800 font-medium px-2 py-0.5 rounded-full">{{ t('landing.import.gocharger_beta') }}</span>
               </div>
-              <p class="text-sm text-gray-500 dark:text-gray-400">Wallbox-Sessions automatisch nach jeder Ladung importieren.</p>
+              <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('landing.import.gocharger_desc') }}</p>
             </div>
           </div>
 
@@ -544,10 +558,10 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
             <div>
               <div class="flex items-center gap-2 mb-1">
                 <span class="font-semibold text-gray-900 dark:text-gray-100 text-sm">OCPP Wallbox</span>
-                <span class="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">Verfügbar</span>
-                <span class="text-xs bg-blue-100 text-blue-800 font-medium px-2 py-0.5 rounded-full">BETA</span>
+                <span class="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">{{ t('landing.import.ocpp_status') }}</span>
+                <span class="text-xs bg-blue-100 text-blue-800 font-medium px-2 py-0.5 rounded-full">{{ t('landing.import.ocpp_beta') }}</span>
               </div>
-              <p class="text-sm text-gray-500 dark:text-gray-400">Universelles Protokoll für alle OCPP-fähigen Heimwallboxen.</p>
+              <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('landing.import.ocpp_desc') }}</p>
             </div>
           </div>
         </div>
@@ -558,17 +572,17 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
     <section class="py-10 sm:py-20 px-4 sm:px-6 lg:px-8 border-t border-gray-100 dark:border-gray-800">
       <div class="max-w-3xl mx-auto text-center">
         <h2 class="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-          Bereit für transparente Ladekosten?
+          {{ t('landing.cta.title') }}
         </h2>
         <p class="text-lg text-gray-600 dark:text-gray-400 mb-8">
-          Kostenlos registrieren und loslegen.<br />
-          E-Mail verifizieren – fertig.
+          {{ t('landing.cta.subtitle') }}<br />
+          {{ t('landing.cta.subtitle2') }}
         </p>
         <button
           @click="goToRegister('footer_cta')"
           class="bg-green-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-green-700 transition"
         >
-          Jetzt kostenlos starten
+          {{ t('landing.cta.button') }}
         </button>
       </div>
     </section>
@@ -582,16 +596,16 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
             <span class="font-semibold text-gray-900 dark:text-gray-100">EV Monitor</span>
           </div>
           <div class="flex flex-wrap justify-center gap-6 text-sm text-gray-600 dark:text-gray-400">
-            <router-link to="/modelle" class="hover:text-gray-900 dark:hover:text-gray-100 font-medium">Modelle</router-link>
-            <router-link to="/datenschutz" class="hover:text-gray-900 dark:hover:text-gray-100">Datenschutz</router-link>
-            <router-link to="/impressum" class="hover:text-gray-900 dark:hover:text-gray-100">Impressum</router-link>
-            <router-link to="/agb" class="hover:text-gray-900 dark:hover:text-gray-100">AGB</router-link>
-            <a href="https://github.com/sebastianwien/ev-monitor" target="_blank" rel="noopener noreferrer" class="hover:text-gray-900 dark:hover:text-gray-100">GitHub</a>
-            <a href="https://tally.so/r/vGB8XA" target="_blank" rel="noopener noreferrer" class="hover:text-gray-900 dark:hover:text-gray-100">Feedback</a>
+            <router-link :to="modelsUrl" class="hover:text-gray-900 dark:hover:text-gray-100 font-medium">{{ t('landing.footer.models') }}</router-link>
+            <router-link to="/datenschutz" class="hover:text-gray-900 dark:hover:text-gray-100">{{ t('landing.footer.privacy') }}</router-link>
+            <router-link to="/impressum" class="hover:text-gray-900 dark:hover:text-gray-100">{{ t('landing.footer.imprint') }}</router-link>
+            <router-link to="/agb" class="hover:text-gray-900 dark:hover:text-gray-100">{{ t('landing.footer.terms') }}</router-link>
+            <a href="https://github.com/sebastianwien/ev-monitor" target="_blank" rel="noopener noreferrer" class="hover:text-gray-900 dark:hover:text-gray-100">{{ t('landing.footer.github') }}</a>
+            <a href="https://tally.so/r/vGB8XA" target="_blank" rel="noopener noreferrer" class="hover:text-gray-900 dark:hover:text-gray-100">{{ t('landing.footer.feedback') }}</a>
           </div>
         </div>
         <div class="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
-          Made with ⚡ for the EV community
+          {{ t('landing.footer.made_with') }}
         </div>
         <div class="mt-3 text-center text-xs text-gray-400 dark:text-gray-500">
           <SupportPopover variant="footer" />

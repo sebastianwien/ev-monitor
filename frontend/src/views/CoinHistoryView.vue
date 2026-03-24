@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import api from '../api/axios'
 import { useCoinStore } from '../stores/coins'
 import { BoltIcon, TrophyIcon, ArrowUpIcon, ArrowDownIcon, MinusIcon, SparklesIcon } from '@heroicons/vue/24/outline'
 
+const { t } = useI18n()
 const coinStore = useCoinStore()
 
 interface Standing {
@@ -47,7 +49,7 @@ function deltaClass(delta: number | null, isNew: boolean): string {
 }
 
 function deltaLabel(delta: number | null, isNew: boolean): string {
-  if (isNew) return 'NEU'
+  if (isNew) return t('coins.delta_new')
   if (delta === null || delta === 0) return '-'
   return delta > 0 ? `+${delta}` : `${delta}`
 }
@@ -64,17 +66,17 @@ const logs = ref<CoinLog[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
 
-const coinTypeLabel: Record<string, string> = {
-  ACHIEVEMENT_COIN: 'Achievement',
-  SOCIAL_COIN: 'Community',
-  GREEN_COIN: 'Eco',
-  DISTANCE_COIN: 'Strecke',
-  STREAK_COIN: 'Streak',
-  EFFICIENCY_COIN: 'Effizienz'
-}
+const coinTypeLabel = computed<Record<string, string>>(() => ({
+  ACHIEVEMENT_COIN: t('coins.type_achievement'),
+  SOCIAL_COIN: t('coins.type_social'),
+  GREEN_COIN: t('coins.type_green'),
+  DISTANCE_COIN: t('coins.type_distance'),
+  STREAK_COIN: t('coins.type_streak'),
+  EFFICIENCY_COIN: t('coins.type_efficiency')
+}))
 
 const formatDate = (iso: string): string => {
-  return new Date(iso).toLocaleString('de-DE', {
+  return new Date(iso).toLocaleString(undefined, {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
@@ -93,7 +95,7 @@ const fetchLogs = async () => {
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     )
   } catch (err: any) {
-    error.value = err.response?.data?.message || 'Fehler beim Laden des Watt-Verlaufs'
+    error.value = err.response?.data?.message || t('coins.error_load')
   } finally {
     loading.value = false
   }
@@ -111,27 +113,27 @@ onMounted(() => {
       <!-- Header -->
       <div class="mb-6">
         <div class="flex items-center justify-between">
-          <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200">Watt-Verlauf</h1>
+          <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200">{{ t('coins.title') }}</h1>
           <div class="flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700 rounded-lg">
             <BoltIcon class="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
             <span class="text-xl font-bold text-indigo-700 dark:text-indigo-300">{{ coinStore.balance }}</span>
-            <span class="text-sm text-indigo-500 dark:text-indigo-400">Watt</span>
+            <span class="text-sm text-indigo-500 dark:text-indigo-400">{{ t('coins.unit') }}</span>
           </div>
         </div>
         <router-link to="/leaderboard" class="mt-3 flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-yellow-400 hover:bg-yellow-300 active:translate-y-0.5 active:shadow-none text-yellow-900 font-semibold text-sm rounded-xl shadow-[0_4px_0_0_#b45309] hover:shadow-[0_4px_0_0_#92400e] active:shadow-[0_2px_0_0_#92400e] transition-all">
           <TrophyIcon class="h-4 w-4" />
-          Zur Bestenliste
+          {{ t('coins.to_leaderboard') }}
         </router-link>
       </div>
 
       <!-- Leaderboard Standings -->
       <div class="mb-6">
         <button @click="toggleStandings" class="w-full flex items-center justify-between mb-2 group">
-          <h2 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Dein Ranking diesen Monat</h2>
-          <span class="text-xs text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition">{{ standingsOpen ? 'einklappen ▲' : 'ausklappen ▼' }}</span>
+          <h2 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">{{ t('coins.ranking_title') }}</h2>
+          <span class="text-xs text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition">{{ standingsOpen ? t('coins.collapse') : t('coins.expand') }}</span>
         </button>
         <div v-if="standingsOpen">
-        <div v-if="standingsLoading" class="text-center py-4 text-gray-400 text-sm">Lade...</div>
+        <div v-if="standingsLoading" class="text-center py-4 text-gray-400 text-sm">{{ t('coins.standings_loading') }}</div>
         <div v-else class="rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
           <table class="w-full text-sm">
             <tbody>
@@ -169,43 +171,43 @@ onMounted(() => {
 
       <!-- Legende -->
       <details class="mb-6 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 text-sm">
-        <summary class="cursor-pointer px-4 py-3 font-medium text-gray-700 dark:text-gray-300 select-none">Wofür gibt es Watt?</summary>
+        <summary class="cursor-pointer px-4 py-3 font-medium text-gray-700 dark:text-gray-300 select-none">{{ t('coins.legend_title') }}</summary>
         <div class="px-4 pb-4 pt-2 space-y-3">
           <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Ladevorgänge</p>
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">{{ t('coins.legend_logs') }}</p>
             <ul class="space-y-1 text-gray-600 dark:text-gray-400">
-              <li class="flex justify-between"><span>Erster Ladevorgang erfasst</span><span class="font-semibold text-indigo-600">+25 ⚡</span></li>
-              <li class="flex justify-between"><span>Weiterer Ladevorgang</span><span class="font-semibold text-indigo-600">+5 ⚡</span></li>
-              <li class="flex justify-between"><span>Ladevorgang via OCR (erster)</span><span class="font-semibold text-indigo-600">+27 ⚡</span></li>
-              <li class="flex justify-between"><span>Ladevorgang via OCR</span><span class="font-semibold text-indigo-600">+7 ⚡</span></li>
-              <li class="flex justify-between"><span>Ladevorgang gelöscht</span><span class="font-semibold text-red-500">− ⚡</span></li>
+              <li class="flex justify-between"><span>{{ t('coins.legend_log_first') }}</span><span class="font-semibold text-indigo-600">+25 ⚡</span></li>
+              <li class="flex justify-between"><span>{{ t('coins.legend_log_more') }}</span><span class="font-semibold text-indigo-600">+5 ⚡</span></li>
+              <li class="flex justify-between"><span>{{ t('coins.legend_log_ocr_first') }}</span><span class="font-semibold text-indigo-600">+27 ⚡</span></li>
+              <li class="flex justify-between"><span>{{ t('coins.legend_log_ocr') }}</span><span class="font-semibold text-indigo-600">+7 ⚡</span></li>
+              <li class="flex justify-between"><span>{{ t('coins.legend_log_delete') }}</span><span class="font-semibold text-red-500">− ⚡</span></li>
             </ul>
           </div>
           <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Imports (einmalig)</p>
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">{{ t('coins.legend_imports') }}</p>
             <ul class="space-y-1 text-gray-600 dark:text-gray-400">
-              <li class="flex justify-between"><span>Sprit-Monitor verbunden</span><span class="font-semibold text-indigo-600">+50 ⚡</span></li>
-              <li class="flex justify-between"><span>Ladevorgang via Sprit-Monitor</span><span class="font-semibold text-indigo-600">+2 ⚡</span></li>
-              <li class="flex justify-between"><span>Tesla verbunden</span><span class="font-semibold text-indigo-600">+50 ⚡</span></li>
-              <li class="flex justify-between"><span>TeslaLogger verbunden</span><span class="font-semibold text-indigo-600">+20 ⚡</span></li>
-              <li class="flex justify-between"><span>Ladevorgang via TeslaLogger (Historie)</span><span class="font-semibold text-indigo-600">+2 ⚡</span></li>
-              <li class="flex justify-between"><span>Ladevorgang via Tesla Sync (täglich)</span><span class="font-semibold text-indigo-600">+5 ⚡</span></li>
+              <li class="flex justify-between"><span>{{ t('coins.legend_sprit_connect') }}</span><span class="font-semibold text-indigo-600">+50 ⚡</span></li>
+              <li class="flex justify-between"><span>{{ t('coins.legend_sprit_log') }}</span><span class="font-semibold text-indigo-600">+2 ⚡</span></li>
+              <li class="flex justify-between"><span>{{ t('coins.legend_tesla_connect') }}</span><span class="font-semibold text-indigo-600">+50 ⚡</span></li>
+              <li class="flex justify-between"><span>{{ t('coins.legend_tesla_logger') }}</span><span class="font-semibold text-indigo-600">+20 ⚡</span></li>
+              <li class="flex justify-between"><span>{{ t('coins.legend_tesla_logger_log') }}</span><span class="font-semibold text-indigo-600">+2 ⚡</span></li>
+              <li class="flex justify-between"><span>{{ t('coins.legend_tesla_sync_log') }}</span><span class="font-semibold text-indigo-600">+5 ⚡</span></li>
             </ul>
           </div>
           <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Fahrzeuge</p>
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">{{ t('coins.legend_cars') }}</p>
             <ul class="space-y-1 text-gray-600 dark:text-gray-400">
-              <li class="flex justify-between"><span>Erstes Fahrzeug hinzugefügt</span><span class="font-semibold text-indigo-600">+20 ⚡</span></li>
-              <li class="flex justify-between"><span>Weiteres Fahrzeug</span><span class="font-semibold text-indigo-600">+5 ⚡</span></li>
-              <li class="flex justify-between"><span>Erstes Auto-Bild hochgeladen (einmalig)</span><span class="font-semibold text-indigo-600">+15 ⚡</span></li>
-              <li class="flex justify-between"><span>Bild öffentlich geteilt (einmalig)</span><span class="font-semibold text-indigo-600">+10 ⚡</span></li>
+              <li class="flex justify-between"><span>{{ t('coins.legend_car_first') }}</span><span class="font-semibold text-indigo-600">+20 ⚡</span></li>
+              <li class="flex justify-between"><span>{{ t('coins.legend_car_more') }}</span><span class="font-semibold text-indigo-600">+5 ⚡</span></li>
+              <li class="flex justify-between"><span>{{ t('coins.legend_car_image_first') }}</span><span class="font-semibold text-indigo-600">+15 ⚡</span></li>
+              <li class="flex justify-between"><span>{{ t('coins.legend_car_image_public') }}</span><span class="font-semibold text-indigo-600">+10 ⚡</span></li>
             </ul>
           </div>
           <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Community</p>
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">{{ t('coins.legend_community') }}</p>
             <ul class="space-y-1 text-gray-600 dark:text-gray-400">
-              <li class="flex justify-between"><span>Freund eingeladen</span><span class="font-semibold text-indigo-600">+100 ⚡</span></li>
-              <li class="flex justify-between"><span>Willkommensbonus (eingeladen worden)</span><span class="font-semibold text-indigo-600">+25 ⚡</span></li>
+              <li class="flex justify-between"><span>{{ t('coins.legend_referral') }}</span><span class="font-semibold text-indigo-600">+100 ⚡</span></li>
+              <li class="flex justify-between"><span>{{ t('coins.legend_referral_bonus') }}</span><span class="font-semibold text-indigo-600">+25 ⚡</span></li>
             </ul>
           </div>
         </div>
@@ -219,16 +221,14 @@ onMounted(() => {
       <!-- Loading -->
       <div v-if="loading" class="text-center py-12 text-gray-500 dark:text-gray-400">
         <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-3"></div>
-        <p class="text-sm">Lade Watt-Verlauf...</p>
+        <p class="text-sm">{{ t('coins.loading') }}</p>
       </div>
 
       <!-- Empty state -->
       <div v-else-if="logs.length === 0" class="text-center py-12">
         <BoltIcon class="h-16 w-16 mx-auto mb-4 text-gray-300" />
-        <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">Noch kein Watt verdient</h3>
-        <p class="text-gray-500 dark:text-gray-400 text-sm">
-          Erfasse deinen ersten Ladevorgang oder füge ein Fahrzeug hinzu, um Coins zu verdienen!
-        </p>
+        <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">{{ t('coins.empty_title') }}</h3>
+        <p class="text-gray-500 dark:text-gray-400 text-sm">{{ t('coins.empty_desc') }}</p>
       </div>
 
       <!-- Coin log list -->

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { Car } from '../api/carService'
 import { useCarStore } from '../stores/car'
 import { useRouter } from 'vue-router'
@@ -12,6 +13,7 @@ const emit = defineEmits<{
   'update:modelValue': [value: string | null]
 }>()
 
+const { t } = useI18n()
 const router = useRouter()
 const carStore = useCarStore()
 const cars = ref<Car[]>([])
@@ -35,7 +37,7 @@ const fetchCars = async () => {
       selectedCarId.value = primaryCar ? primaryCar.id : cars.value[0].id
     }
   } catch (err: any) {
-    error.value = err.response?.data?.message || 'Fehler beim Laden der Fahrzeuge'
+    error.value = err.response?.data?.message || t('carselector.error_load')
     console.error('Failed to fetch cars:', err)
   } finally {
     loading.value = false
@@ -66,10 +68,10 @@ onMounted(() => {
 
 <template>
   <div>
-    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fahrzeug</label>
+    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('carselector.label') }}</label>
 
     <div v-if="loading" class="text-sm text-gray-500 dark:text-gray-400 p-2">
-      Lade Fahrzeuge...
+      {{ t('carselector.loading') }}
     </div>
 
     <div v-else-if="error" class="text-sm text-red-600 p-2">
@@ -78,13 +80,13 @@ onMounted(() => {
 
     <div v-else-if="cars.length === 0" class="space-y-2">
       <p class="text-sm text-gray-600 dark:text-gray-400 p-2 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-md">
-        Du musst zuerst ein Fahrzeug hinzufügen um Ladevorgänge zu erfassen.
+        {{ t('carselector.no_cars') }}
       </p>
       <button
         @click="goToCarManagement"
         type="button"
         class="w-full bg-indigo-100 text-indigo-700 px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-200 transition">
-        Zur Fahrzeugverwaltung
+        {{ t('carselector.go_to_cars') }}
       </button>
     </div>
 
@@ -93,7 +95,7 @@ onMounted(() => {
       v-model="selectedCarId"
       required
       class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border">
-      <option :value="null" disabled>Fahrzeug wählen</option>
+      <option :value="null" disabled>{{ t('carselector.select') }}</option>
       <option v-for="car in cars" :key="car.id" :value="car.id">
         {{ carLabel(car) }}
       </option>

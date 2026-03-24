@@ -5,15 +5,15 @@
     <main class="max-w-3xl mx-auto md:px-4 py-6 md:py-8">
       <!-- Breadcrumb -->
       <nav class="px-4 md:px-0 text-sm text-gray-500 dark:text-gray-400 mb-4">
-        <a href="/modelle" class="hover:text-gray-700 dark:hover:text-gray-200">Modelle</a>
+        <a href="/modelle" class="hover:text-gray-700 dark:hover:text-gray-200">{{ t('rankings.breadcrumb_models') }}</a>
         <span class="mx-2">›</span>
-        <span class="text-gray-900 dark:text-gray-100">Rankings</span>
+        <span class="text-gray-900 dark:text-gray-100">{{ t('rankings.breadcrumb_current') }}</span>
       </nav>
 
       <!-- Header -->
       <div class="px-4 md:px-0 mb-6">
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">EV Rankings</h1>
-        <p class="text-gray-500 dark:text-gray-400">Community-basierte Fahrzeug-Rankings</p>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">{{ t('rankings.header') }}</h1>
+        <p class="text-gray-500 dark:text-gray-400">{{ t('rankings.subtitle') }}</p>
       </div>
 
       <!-- Efficiency Section -->
@@ -22,7 +22,7 @@
         <div class="px-4 py-4 border-b border-gray-100 dark:border-gray-700">
           <div class="flex items-center gap-2 mb-3">
             <BoltIcon class="h-5 w-5 text-yellow-500" />
-            <h2 class="font-semibold text-gray-900 dark:text-gray-100">Sparsamste Modelle (real)</h2>
+            <h2 class="font-semibold text-gray-900 dark:text-gray-100">{{ t('rankings.section_title') }}</h2>
           </div>
           <!-- Kategorie-Tabs -->
           <div v-if="categories.length > 0" class="flex flex-wrap gap-2">
@@ -33,7 +33,7 @@
                 ? 'bg-green-600 text-white'
                 : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'"
             >
-              Alle
+              {{ t('rankings.filter_all') }}
             </button>
             <button
               v-for="cat in categories"
@@ -56,12 +56,12 @@
 
         <!-- Error -->
         <div v-else-if="error" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
-          Daten konnten nicht geladen werden.
+          {{ t('rankings.error') }}
         </div>
 
         <!-- Empty -->
         <div v-else-if="models.length === 0" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
-          Noch nicht genug Community-Daten vorhanden.
+          {{ t('rankings.empty') }}
         </div>
 
         <!-- Model list -->
@@ -89,7 +89,7 @@
                   {{ model.modelDisplayName }}
                 </div>
                 <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-                  {{ model.logCount.toLocaleString('de-DE') }} Ladevorgänge
+                  {{ t('rankings.log_count', { n: model.logCount.toLocaleString() }) }}
                 </div>
               </div>
 
@@ -111,7 +111,7 @@
 
       <!-- Weitere Rankings - Platzhalter -->
       <div class="bg-white dark:bg-gray-800 md:rounded-2xl md:border-x border-t md:border-b border-gray-200 dark:border-gray-700 px-4 py-5 text-center">
-        <p class="text-sm text-gray-400 dark:text-gray-500">Weitere Rankings in Kürze</p>
+        <p class="text-sm text-gray-400 dark:text-gray-500">{{ t('rankings.coming_soon') }}</p>
       </div>
     </main>
   </div>
@@ -120,9 +120,12 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useHead } from '@unhead/vue'
+import { useI18n } from 'vue-i18n'
 import { BoltIcon, ChevronRightIcon } from '@heroicons/vue/24/outline'
 import PublicNav from '../components/PublicNav.vue'
 import { getMostEfficientModels, getCategories, type TopModelPreview, type VehicleCategoryItem } from '../api/publicModelService'
+
+const { t } = useI18n()
 
 useHead({
     title: 'EV Rankings - EV Monitor',

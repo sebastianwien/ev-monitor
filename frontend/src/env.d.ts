@@ -13,3 +13,8 @@ declare module '*.vue' {
     const component: DefineComponent<{}, {}, any>
     export default component
 }
+
+declare module '*.yaml' {
+    const content: Record<string, any>
+    export default content
+}

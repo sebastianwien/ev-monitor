@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Line, Bar } from 'vue-chartjs'
 import {
   Chart as ChartJS,
@@ -88,6 +89,7 @@ interface CarInfo {
   batteryCapacityKwh: number
 }
 
+const { t, locale } = useI18n()
 const router = useRouter()
 const carStore = useCarStore()
 const selectedCarId = ref<string | null>(null)
@@ -139,21 +141,21 @@ const fetchImplausibleCount = async () => {
   }
 }
 
-const timeRangeOptions = [
-  { value: 'THIS_MONTH', label: 'Dieser Monat' },
-  { value: 'LAST_MONTH', label: 'Letzter Monat' },
-  { value: 'LAST_3_MONTHS', label: 'Letzte 3 Monate' },
-  { value: 'LAST_6_MONTHS', label: 'Letzte 6 Monate' },
-  { value: 'LAST_12_MONTHS', label: 'Letztes Jahr' },
-  { value: 'THIS_YEAR', label: 'Dieses Jahr' },
-  { value: 'ALL_TIME', label: 'Alle' }
-]
+const timeRangeOptions = computed(() => [
+  { value: 'THIS_MONTH', label: t('dashboard.time_this_month') },
+  { value: 'LAST_MONTH', label: t('dashboard.time_last_month') },
+  { value: 'LAST_3_MONTHS', label: t('dashboard.time_last_3m') },
+  { value: 'LAST_6_MONTHS', label: t('dashboard.time_last_6m') },
+  { value: 'LAST_12_MONTHS', label: t('dashboard.time_last_12m') },
+  { value: 'THIS_YEAR', label: t('dashboard.time_this_year') },
+  { value: 'ALL_TIME', label: t('dashboard.time_all') }
+])
 
-const groupByOptions = [
-  { value: 'DAY', label: 'Täglich' },
-  { value: 'WEEK', label: 'Wöchentlich' },
-  { value: 'MONTH', label: 'Monatlich' }
-]
+const groupByOptions = computed(() => [
+  { value: 'DAY', label: t('dashboard.group_day') },
+  { value: 'WEEK', label: t('dashboard.group_week') },
+  { value: 'MONTH', label: t('dashboard.group_month') }
+])
 
 // Fetch car details + WLTP when car changes (uses already-loaded cars.value — no extra API call)
 const fetchCarAndWltp = async (carId: string) => {
@@ -254,10 +256,10 @@ const formatLabel = (timestamp: string) => {
   const yearSuffix = year !== currentYear ? ` '${String(year).slice(-2)}` : ''
 
   if (selectedGroupBy.value === 'DAY')
-    return date.toLocaleDateString('de-DE', { month: 'short', day: 'numeric' }) + yearSuffix
+    return date.toLocaleDateString(locale.value === 'en' ? 'en-GB' : 'de-DE', { month: 'short', day: 'numeric' }) + yearSuffix
   if (selectedGroupBy.value === 'WEEK')
-    return `KW ${Math.ceil(date.getDate() / 7)} ${date.toLocaleDateString('de-DE', { month: 'short' })}${yearSuffix}`
-  return date.toLocaleDateString('de-DE', { month: 'short', year: 'numeric' })
+    return `${t('dashboard.week_abbr')} ${Math.ceil(date.getDate() / 7)} ${date.toLocaleDateString(locale.value === 'en' ? 'en-GB' : 'de-DE', { month: 'short' })}${yearSuffix}`
+  return date.toLocaleDateString(locale.value === 'en' ? 'en-GB' : 'de-DE', { month: 'short', year: 'numeric' })
 }
 
 // ── Chart 1: Charging & Costs ───────────────────────────────────────────────
@@ -376,7 +378,7 @@ const efficiencyChartOptions = computed(() => ({
           const v = ctx.parsed.y
           if (v == null) return `${lbl}: –`
           if (lbl.includes('kWh/100km')) return `${lbl}: ${v.toFixed(1)}`
-          if (lbl.includes('km')) return `${lbl}: ${Math.round(v).toLocaleString('de-DE')} km`
+          if (lbl.includes('km')) return `${lbl}: ${Math.round(v).toLocaleString()} km`
           return `${lbl}: ${v}`
         }
       }
@@ -671,7 +673,7 @@ const mergedLogFeed = computed(() => {
       const spansMultipleDays = new Set(dates).size > 1
       const firstDate = new Date(allSubs[0].loggedAt)
       const lastDate = new Date(allSubs[allSubs.length - 1].loggedAt)
-      const fmtDate = (d: Date) => d.toLocaleDateString('de-DE', { day: 'numeric', month: 'numeric' })
+      const fmtDate = (d: Date) => d.toLocaleDateString(locale.value === 'en' ? 'en-GB' : 'de-DE', { day: 'numeric', month: 'numeric' })
       const dateRangeLabel = spansMultipleDays ? `${fmtDate(firstDate)} - ${fmtDate(lastDate)}` : fmtDate(firstDate)
       // consumption comes from the parent (oldest) entry
       const parentConsumption = sorted[i].consumptionKwhPer100km
@@ -730,8 +732,9 @@ watch(selectedCarId, () => {
 const formatLogDate = (loggedAt: string) => {
   const d = new Date(loggedAt)
   const isCurrentYear = d.getFullYear() === new Date().getFullYear()
-  const date = d.toLocaleDateString('de-DE', { day: 'numeric', month: 'numeric', ...(isCurrentYear ? {} : { year: 'numeric' }) })
-  const time = d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+  const loc = locale.value === 'en' ? 'en-GB' : 'de-DE'
+  const date = d.toLocaleDateString(loc, { day: 'numeric', month: 'numeric', ...(isCurrentYear ? {} : { year: 'numeric' }) })
+  const time = d.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' })
   return `${date}, ${time}`
 }
 
@@ -760,7 +763,7 @@ const refreshLogsAndGroups = () => {
 }
 
 const deleteLog = async (id: string) => {
-  if (!confirm('Ladevorgang wirklich löschen?')) return
+  if (!confirm(t('dashboard.delete_confirm'))) return
   try {
     await api.delete(`/logs/${id}`)
     refreshLogsAndGroups()
@@ -784,13 +787,13 @@ const deleteLog = async (id: string) => {
                 to="/cars"
                 class="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1 transition-all duration-75">
                 <TruckIcon class="w-4 h-4" />
-                Fahrzeuge
+                {{ t('dashboard.vehicles_btn') }}
               </router-link>
               <button v-if="stats && stats.totalCharges > 0"
                 @click="scrollToLogs"
                 class="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium shadow-[0_4px_0_0_#3730a3] hover:shadow-[0_2px_0_0_#3730a3] hover:translate-y-0.5 active:shadow-none active:translate-y-1 transition-all duration-75">
                 <ListBulletIcon class="w-4 h-4" />
-                <span class="hidden sm:inline">Deine </span>Ladevorgänge
+                {{ t('dashboard.logs_btn') }}
                 <ChevronRightIcon class="w-3.5 h-3.5 opacity-75" />
               </button>
             </div>
@@ -804,8 +807,8 @@ const deleteLog = async (id: string) => {
             >
               <ArrowDownTrayIcon class="h-5 w-5 text-green-600 dark:text-green-400 shrink-0" />
               <div class="flex-1 min-w-0">
-                <span class="text-sm font-medium text-green-800 dark:text-green-200">Ladevorgänge importieren</span>
-                <span class="text-sm text-green-700 dark:text-green-300 ml-1">— Sprit-Monitor, go-eCharger Cloud, OCPP Wallbox</span>
+                <span class="text-sm font-medium text-green-800 dark:text-green-200">{{ t('dashboard.import_banner') }}</span>
+                <span class="text-sm text-green-700 dark:text-green-300 ml-1">{{ t('dashboard.import_banner_sources') }}</span>
               </div>
               <span class="text-green-600 dark:text-green-400 text-sm group-hover:translate-x-0.5 transition-transform">→</span>
             </router-link>
@@ -856,20 +859,20 @@ const deleteLog = async (id: string) => {
                     <LicensePlate v-if="car.licensePlate" :plate="car.licensePlate" />
                     <span v-if="car.isPrimary"
                       class="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded-full border border-green-200 font-medium">
-                      Aktiv
+                      {{ t('dashboard.active') }}
                     </span>
                     <template v-if="car.brand?.toLowerCase() === 'tesla' && teslaStatus?.connected && (teslaStatus.carId === car.id || teslaStatus.carId === null)">
                       <span v-if="teslaStatus.vehicleState === 'charging'"
                         class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium border border-green-200">
-                        <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>Lädt
+                        <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>{{ t('dashboard.tesla_charging') }}
                       </span>
                       <span v-else-if="teslaStatus.vehicleState === 'online'"
                         class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 text-blue-600 text-xs rounded-full font-medium border border-blue-200">
-                        <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>Online
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>{{ t('dashboard.tesla_online') }}
                       </span>
                       <span v-else-if="teslaStatus.vehicleState === 'asleep'"
                         class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 text-gray-500 text-xs rounded-full font-medium border border-gray-200">
-                        <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>Schläft
+                        <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>{{ t('dashboard.tesla_sleeping') }}
                       </span>
                     </template>
                   </div>
@@ -885,15 +888,15 @@ const deleteLog = async (id: string) => {
                       <template v-if="car.brand?.toLowerCase() === 'tesla' && teslaStatus?.connected && (teslaStatus.carId === car.id || teslaStatus.carId === null)">
                         <span v-if="teslaStatus.vehicleState === 'charging'"
                           class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium border border-green-200">
-                          <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>Lädt
+                          <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>{{ t('dashboard.tesla_charging') }}
                         </span>
                         <span v-else-if="teslaStatus.vehicleState === 'online'"
                           class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 text-blue-600 text-xs rounded-full font-medium border border-blue-200">
-                          <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>Online
+                          <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>{{ t('dashboard.tesla_online') }}
                         </span>
                         <span v-else-if="teslaStatus.vehicleState === 'asleep'"
                           class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 text-gray-500 text-xs rounded-full font-medium border border-gray-200">
-                          <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>Schläft
+                          <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>{{ t('dashboard.tesla_sleeping') }}
                         </span>
                       </template>
                     </div>
@@ -909,23 +912,23 @@ const deleteLog = async (id: string) => {
           <!-- Echte Reichweite -->
           <div v-if="carInfo?.batteryCapacityKwh && stats?.avgConsumptionKwhPer100km"
             class="mb-6 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 p-4">
-            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Deine echte Reichweite</h3>
+            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">{{ t('dashboard.real_range_title') }}</h3>
             <div class="overflow-x-auto -mx-4 px-4">
             <table class="w-full text-sm">
               <thead>
                 <tr class="text-xs text-gray-500 dark:text-gray-400">
-                  <th class="text-left pb-2 font-medium">Ladefenster</th>
+                  <th class="text-left pb-2 font-medium">{{ t('dashboard.range_window') }}</th>
                   <th v-if="stats?.summerConsumptionKwhPer100km" class="text-right pb-2 font-medium text-amber-600 whitespace-nowrap pl-4">
                     <span class="inline-flex items-center justify-end gap-1">
                       <SunIcon class="w-4 h-4" />
-                      <span class="hidden sm:inline">Sommer</span>
+                      <span class="hidden sm:inline">{{ t('dashboard.range_summer') }}</span>
                       <span class="font-normal">({{ stats.summerConsumptionKwhPer100km.toFixed(1) }}<span class="hidden sm:inline"> kWh/100km</span><span class="sm:hidden"> kWh</span>)</span>
                     </span>
                   </th>
                   <th v-if="stats?.winterConsumptionKwhPer100km" class="text-right pb-2 font-medium text-blue-600 dark:text-blue-300 whitespace-nowrap pl-4">
                     <span class="inline-flex items-center justify-end gap-1">
                       <CloudIcon class="w-4 h-4" />
-                      <span class="hidden sm:inline">Winter</span>
+                      <span class="hidden sm:inline">{{ t('dashboard.range_winter') }}</span>
                       <span class="font-normal">({{ stats.winterConsumptionKwhPer100km.toFixed(1) }}<span class="hidden sm:inline"> kWh/100km</span><span class="sm:hidden"> kWh</span>)</span>
                     </span>
                   </th>
@@ -957,7 +960,7 @@ const deleteLog = async (id: string) => {
           <div v-if="selectedCarId && hasAnyLogs" class="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
             <div class="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
               <div class="flex-1">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Zeitraum</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ t('dashboard.time_range_label') }}</label>
                 <div class="flex flex-wrap gap-2">
                   <button
                     v-for="option in timeRangeOptions"
@@ -974,7 +977,7 @@ const deleteLog = async (id: string) => {
                 </div>
               </div>
               <div class="w-full md:w-auto">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Gruppierung</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ t('dashboard.group_by_label') }}</label>
                 <select v-model="selectedGroupBy"
                   class="block w-full md:w-auto px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
                   <option v-for="opt in groupByOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
@@ -990,16 +993,16 @@ const deleteLog = async (id: string) => {
             <div class="text-center max-w-md px-4">
               <TruckIcon class="h-24 w-24 mx-auto text-gray-300 mb-6" />
               <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-3">
-                Noch kein Fahrzeug hinzugefügt
+                {{ t('dashboard.no_car_title') }}
               </h2>
               <p class="text-gray-600 dark:text-gray-400 mb-8">
-                Füge dein erstes E-Auto hinzu um Ladevorgänge zu tracken und Statistiken zu sehen.
+                {{ t('dashboard.no_car_desc') }}
               </p>
               <button
                 @click="router.push('/cars')"
                 class="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium shadow-lg hover:shadow-xl transition flex items-center gap-2 mx-auto">
                 <TruckIcon class="h-5 w-5" />
-                Fahrzeug hinzufügen →
+                {{ t('dashboard.no_car_btn') }}
               </button>
             </div>
           </div>
@@ -1007,8 +1010,8 @@ const deleteLog = async (id: string) => {
           <!-- Empty State: No Logs in time range (but logs exist) -->
           <div v-else-if="stats && stats.totalCharges === 0 && hasAnyLogs" class="py-12 flex items-center justify-center">
             <div class="text-center max-w-md px-4">
-              <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">Keine Daten im gewählten Zeitraum</h2>
-              <p class="text-gray-500 dark:text-gray-400 text-sm">Wähle einen anderen Zeitraum oder scrolle nach unten um alle Ladevorgänge zu sehen.</p>
+              <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">{{ t('dashboard.no_logs_period_title') }}</h2>
+              <p class="text-gray-500 dark:text-gray-400 text-sm">{{ t('dashboard.no_logs_period_desc') }}</p>
             </div>
           </div>
 
@@ -1017,23 +1020,23 @@ const deleteLog = async (id: string) => {
             <div class="text-center max-w-md px-4">
               <BoltIcon class="h-24 w-24 mx-auto text-green-500 mb-6" />
               <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-3">
-                Noch keine Ladevorgänge erfasst
+                {{ t('dashboard.no_logs_title') }}
               </h2>
               <p class="text-gray-600 dark:text-gray-400 mb-8">
-                Erfasse deinen ersten Ladevorgang um Statistiken, Charts und WLTP-Vergleiche zu sehen!
+                {{ t('dashboard.no_logs_desc') }}
               </p>
               <div class="flex flex-col sm:flex-row gap-4 justify-center">
                 <button
                   @click="router.push('/erfassen')"
                   class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 justify-center shadow-lg hover:shadow-xl transition font-medium">
                   <CameraIcon class="h-5 w-5" />
-                  Foto scannen
+                  {{ t('dashboard.scan_photo') }}
                 </button>
                 <button
                   @click="router.push('/erfassen')"
                   class="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center gap-2 justify-center transition font-medium">
                   <PencilSquareIcon class="h-5 w-5" />
-                  Manuell eingeben
+                  {{ t('dashboard.enter_manual') }}
                 </button>
               </div>
             </div>
@@ -1046,15 +1049,15 @@ const deleteLog = async (id: string) => {
           <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="h-1 bg-amber-500"></div>
             <div class="p-4">
-              <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">Gesamtenergie</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">{{ t('dashboard.metric_total_energy') }}</p>
               <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ stats.totalKwhCharged?.toFixed(1) ?? '–' }}</p>
-              <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">kWh · {{ stats.totalCharges }} Ladungen</p>
+              <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">kWh · {{ stats.totalCharges }} {{ t('dashboard.metric_charges') }}</p>
             </div>
           </div>
           <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="h-1 bg-indigo-500"></div>
             <div class="p-4">
-              <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">Gesamtkosten</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">{{ t('dashboard.metric_total_cost') }}</p>
               <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">€{{ stats.totalCostEur?.toFixed(2) ?? '–' }}</p>
               <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Ø €{{ stats.avgCostPerKwh?.toFixed(2) ?? '–' }}/kWh</p>
             </div>
@@ -1063,16 +1066,16 @@ const deleteLog = async (id: string) => {
             class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="h-1 bg-green-500"></div>
             <div class="p-4">
-              <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">Gesamtstrecke</p>
-              <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ Math.round(stats.totalDistanceKm).toLocaleString('de-DE') }}</p>
-              <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">km gefahren</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">{{ t('dashboard.metric_total_distance') }}</p>
+              <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ Math.round(stats.totalDistanceKm).toLocaleString() }}</p>
+              <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ t('dashboard.metric_km_driven') }}</p>
             </div>
           </div>
           <div v-if="stats.avgConsumptionKwhPer100km != null"
             class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="h-1 bg-red-500"></div>
             <div class="p-4">
-              <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">Ø Verbrauch</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">{{ t('dashboard.metric_avg_consumption') }}</p>
               <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ stats.avgConsumptionKwhPer100km.toFixed(1) }}</p>
               <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                 kWh/100km
@@ -1081,7 +1084,7 @@ const deleteLog = async (id: string) => {
                 </span>
               </p>
               <p v-if="stats.estimatedConsumptionCount > 0" class="text-xs text-red-500 mt-2 italic">
-                {{ stats.estimatedConsumptionCount }} Ladung{{ stats.estimatedConsumptionCount > 1 ? 'en' : '' }} geschätzt (ohne SoC)
+                {{ t('dashboard.metric_estimated', { n: stats.estimatedConsumptionCount }) }}
               </p>
             </div>
           </div>
@@ -1089,9 +1092,9 @@ const deleteLog = async (id: string) => {
             class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="h-1 bg-teal-500"></div>
             <div class="p-4">
-              <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">Ø Kosten</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">{{ t('dashboard.metric_avg_cost') }}</p>
               <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">€{{ (stats.totalCostEur / stats.totalDistanceKm * 100).toFixed(2) }}</p>
-              <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">pro 100km</p>
+              <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ t('dashboard.metric_per_100km') }}</p>
             </div>
           </div>
         </div>
@@ -1102,7 +1105,7 @@ const deleteLog = async (id: string) => {
             <div v-if="!chartsReady && isInitialLoad" class="h-64 sm:h-72 bg-gray-100 dark:bg-gray-700 animate-pulse rounded mx-4 md:mx-0"></div>
             <template v-else>
               <div class="flex flex-col sm:flex-row sm:items-center justify-center gap-4 sm:gap-6 mb-4 px-4 md:px-0">
-                <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200 text-center">Laden & Kosten</h2>
+                <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200 text-center">{{ t('dashboard.chart_charging_costs') }}</h2>
                 <div class="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm justify-center">
                   <label class="flex items-center gap-1 sm:gap-2 cursor-pointer">
                     <input type="checkbox" v-model="showCostPerKwh"
@@ -1126,11 +1129,11 @@ const deleteLog = async (id: string) => {
                 <Line :data="chargingChartData" :options="chargingChartOptions" />
               </div>
               <div v-else class="text-center py-10 text-gray-400 text-sm px-4 md:px-0">
-                Kein Datensatz ausgewählt oder nicht genügend Daten.
+                {{ t('dashboard.chart_no_data') }}
               </div>
               <div class="flex flex-wrap gap-x-6 gap-y-1 mt-3 text-xs text-gray-400 px-4 md:px-0">
-                <span>Linke Achse: €/kWh</span>
-                <span>Rechte Achse: kWh</span>
+                <span>{{ t('dashboard.chart_left_axis') }}: €/kWh</span>
+                <span>{{ t('dashboard.chart_right_axis') }}: kWh</span>
               </div>
             </template>
           </div>
@@ -1142,7 +1145,7 @@ const deleteLog = async (id: string) => {
             <div v-if="!chartsReady && isInitialLoad" class="h-64 sm:h-72 bg-gray-100 dark:bg-gray-700 animate-pulse rounded mx-4 md:mx-0"></div>
             <template v-else>
               <div class="flex flex-col sm:flex-row sm:items-center justify-center gap-4 sm:gap-6 mb-4 px-4 md:px-0">
-                <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200 text-center">Reichweite & Effizienz</h2>
+                <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200 text-center">{{ t('dashboard.chart_range_efficiency') }}</h2>
                 <div class="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm justify-center">
                   <label class="flex items-center gap-1 sm:gap-2 cursor-pointer">
                     <input type="checkbox" v-model="showConsumption"
@@ -1166,11 +1169,11 @@ const deleteLog = async (id: string) => {
                 <Line :data="efficiencyChartData" :options="efficiencyChartOptions" />
               </div>
               <div v-else class="text-center py-10 text-gray-400 text-sm px-4 md:px-0">
-                Kein Datensatz ausgewählt oder nicht genügend Daten.
+                {{ t('dashboard.chart_no_data') }}
               </div>
               <div class="flex flex-wrap gap-x-6 gap-y-1 mt-3 text-xs text-gray-400 px-4 md:px-0">
-                <span>Linke Achse: kWh/100km</span>
-                <span>Rechte Achse: km</span>
+                <span>{{ t('dashboard.chart_left_axis') }}: kWh/100km</span>
+                <span>{{ t('dashboard.chart_right_axis') }}: km</span>
               </div>
             </template>
           </div>
@@ -1182,13 +1185,13 @@ const deleteLog = async (id: string) => {
           <div v-if="!chartsReady && isInitialLoad" :style="{ height: wltpChartHeight }" class="bg-gray-100 dark:bg-gray-700 animate-pulse rounded mx-4 md:mx-0"></div>
           <template v-else>
           <div class="mb-4 text-center px-4 md:px-0">
-            <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">Verbrauch vs. WLTP</h2>
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">{{ t('dashboard.chart_consumption_vs_wltp') }}</h2>
             <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
               WLTP: <strong>{{ wltp.wltpConsumptionKwhPer100km?.toFixed(1) ?? '–' }} kWh/100km</strong>
               ({{ wltp.wltpRangeKm }} km, {{ wltp.wltpType }})
               <span class="hidden sm:inline">
-                · <span class="text-emerald-600 font-medium">grün = effizienter</span>
-                · <span class="text-red-600 font-medium">rot = mehr Verbrauch</span>
+                · <span class="text-emerald-600 font-medium">{{ t('dashboard.chart_green_better') }}</span>
+                · <span class="text-red-600 font-medium">{{ t('dashboard.chart_red_worse') }}</span>
               </span>
             </p>
           </div>
@@ -1202,8 +1205,9 @@ const deleteLog = async (id: string) => {
         <!-- WLTP missing hint -->
         <div v-else-if="!wltp && hasDistanceData" class="border-t border-gray-100 pt-6">
           <div class="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 md:rounded-lg p-3 md:p-4 text-sm text-amber-700 dark:text-amber-300">
-            Für dieses Fahrzeug sind noch keine WLTP-Daten hinterlegt.
-            Du kannst sie in der <router-link to="/cars" class="font-semibold underline">Fahrzeugverwaltung</router-link> ergänzen und dabei 50 Watt verdienen!
+            {{ t('dashboard.wltp_missing') }}
+            <router-link to="/cars" class="font-semibold underline">{{ t('dashboard.wltp_missing_link') }}</router-link>
+            {{ t('dashboard.wltp_missing_suffix') }}
           </div>
         </div>
 
@@ -1213,9 +1217,9 @@ const deleteLog = async (id: string) => {
             <div v-if="!chartsReady && isInitialLoad" class="h-96 bg-gray-100 dark:bg-gray-700 animate-pulse rounded mx-4 md:mx-0"></div>
             <template v-else>
               <div class="mb-4 px-4 md:px-0">
-                <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">Lade-Standorte</h2>
+                <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">{{ t('dashboard.map_title') }}</h2>
                 <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  Geografische Übersicht deiner Ladevorgänge · Farbcodiert nach geladener Energie (kWh)
+                  {{ t('dashboard.map_subtitle') }}
                 </p>
               </div>
               <ChargingHeatMap :car-id="selectedCarId" :time-range="selectedTimeRange" />
@@ -1226,8 +1230,8 @@ const deleteLog = async (id: string) => {
         <!-- Log List -->
         <div ref="logsSection" class="border-t border-gray-100 dark:border-gray-700 pt-3 scroll-mt-4 pb-6">
           <div class="flex items-center justify-between mb-3">
-            <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">Deine Ladevorgänge</h2>
-            <span v-if="!logsLoading" class="text-sm text-gray-400">Seite {{ logsPage + 1 }}</span>
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">{{ t('dashboard.logs_title') }}</h2>
+            <span v-if="!logsLoading" class="text-sm text-gray-400">{{ t('dashboard.logs_page', { n: logsPage + 1 }) }}</span>
           </div>
 
           <!-- Consumption info accordion -->
@@ -1240,16 +1244,16 @@ const deleteLog = async (id: string) => {
             <div class="flex items-center gap-2">
               <ExclamationTriangleIcon class="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
               <span class="text-sm font-medium text-amber-800 dark:text-amber-300">
-                {{ implausibleCount }} {{ implausibleCount === 1 ? 'Eintrag' : 'Einträge' }} mit unplausiblem Verbrauch
+                {{ t('dashboard.implausible_banner', { n: implausibleCount, noun: implausibleCount === 1 ? t('dashboard.implausible_entry') : t('dashboard.implausible_entries') }) }}
               </span>
             </div>
-            <span class="text-xs text-amber-700 dark:text-amber-400 font-medium shrink-0">Jetzt prüfen -&gt;</span>
+            <span class="text-xs text-amber-700 dark:text-amber-400 font-medium shrink-0">{{ t('dashboard.implausible_check') }}</span>
           </button>
 
           <div class="space-y-2">
-            <div v-if="logsLoading && !hasAnyLogs" class="py-8 text-center text-gray-400 text-sm">Lade...</div>
+            <div v-if="logsLoading && !hasAnyLogs" class="py-8 text-center text-gray-400 text-sm">{{ t('dashboard.loading') }}</div>
             <template v-else-if="!hasAnyLogs">
-              <p class="py-8 text-center text-gray-400 text-sm">Keine Ladevorgänge vorhanden.</p>
+              <p class="py-8 text-center text-gray-400 text-sm">{{ t('dashboard.no_logs_empty') }}</p>
             </template>
             <template v-else>
               <!-- Session Group (Überschussladen) -->
@@ -1262,16 +1266,16 @@ const deleteLog = async (id: string) => {
                     <SunIcon class="w-4 h-4 text-blue-600 flex-shrink-0" />
                     <span class="font-semibold text-blue-700 whitespace-nowrap">{{ entry.totalKwhCharged }} kWh</span>
                     <span class="text-xs text-gray-400 whitespace-nowrap">
-                      {{ new Date(entry.sessionStart).toLocaleDateString('de-DE') }}
-                      {{ new Date(entry.sessionStart).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) }}
+                      {{ new Date(entry.sessionStart).toLocaleDateString() }}
+                      {{ new Date(entry.sessionStart).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}
                       –
-                      {{ new Date(entry.sessionEnd).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) }}
+                      {{ new Date(entry.sessionEnd).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}
                     </span>
                   </div>
                   <button @click="toggleGroupExpand(entry.id)"
                     class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-medium hover:bg-blue-200 transition flex-shrink-0">
                     <HomeIcon class="w-3 h-3" />
-                    {{ entry.sessionCount }} Ladevorgänge
+                    {{ entry.sessionCount }} {{ t('dashboard.logs_btn') }}
                     <ChevronDownIcon v-if="!expandedGroups.has(entry.id)" class="w-3 h-3" />
                     <ChevronUpIcon v-else class="w-3 h-3" />
                   </button>
@@ -1291,24 +1295,24 @@ const deleteLog = async (id: string) => {
                     <ClockIcon class="w-3 h-3" />{{ entry.totalDurationMinutes }}min
                   </span>
                   <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700 whitespace-nowrap">
-                    <HomeIcon class="w-3 h-3" />Überschussladen
+                    <HomeIcon class="w-3 h-3" />{{ t('dashboard.excess_solar') }}
                   </span>
                 </div>
                 <!-- Sub-Sessions expandiert -->
                 <div v-if="expandedGroups.has(entry.id)" class="mt-2 space-y-1 pl-3 border-l-2 border-blue-200">
-                  <div v-if="!subSessionsCache[entry.id]" class="text-xs text-gray-400">Lade...</div>
-                  <div v-else-if="subSessionsCache[entry.id].length === 0" class="text-xs text-gray-400">Keine Sub-Sessions gefunden.</div>
+                  <div v-if="!subSessionsCache[entry.id]" class="text-xs text-gray-400">{{ t('dashboard.sub_loading') }}</div>
+                  <div v-else-if="subSessionsCache[entry.id].length === 0" class="text-xs text-gray-400">{{ t('dashboard.sub_none') }}</div>
                   <div v-else v-for="sub in subSessionsCache[entry.id]" :key="sub.id"
                     class="text-xs text-gray-600 flex items-center gap-2 py-1">
                     <BoltIcon class="w-3 h-3 text-blue-400 flex-shrink-0" />
                     <span class="font-medium">{{ sub.kwhCharged }} kWh</span>
                     <span class="text-gray-400">
-                      {{ new Date(sub.loggedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) }}
+                      {{ new Date(sub.loggedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}
                     </span>
                     <span v-if="sub.chargeDurationMinutes" class="text-gray-400">{{ sub.chargeDurationMinutes }}min</span>
                     <span v-if="sub.costEur != null" class="text-gray-400">€{{ sub.costEur }}</span>
                     <div class="ml-auto flex items-center gap-1 flex-shrink-0">
-                      <button @click="editingLog = sub" class="p-1 rounded text-gray-300 hover:text-blue-500 hover:bg-blue-50 transition" title="Ladevorgang bearbeiten">
+                      <button @click="editingLog = sub" class="p-1 rounded text-gray-300 hover:text-blue-500 hover:bg-blue-50 transition" :title="t('dashboard.edit_title')">
                         <PencilSquareIcon class="w-3.5 h-3.5" />
                       </button>
                       <button @click="deleteLog(sub.id)" class="p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition">
@@ -1337,7 +1341,7 @@ const deleteLog = async (id: string) => {
                       <span class="font-semibold text-indigo-700 dark:text-indigo-300 whitespace-nowrap">{{ entry._totalKwh }} kWh</span>
                       <span class="text-xs text-gray-400 whitespace-nowrap">{{ entry._dateRangeLabel }}</span>
                       <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-700">
-                        Ladegruppe
+                        {{ t('dashboard.charge_group') }}
                       </span>
 <span v-if="sourceInfo(entry._commonDataSource)"
                         :class="['inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium whitespace-nowrap',
@@ -1372,8 +1376,8 @@ const deleteLog = async (id: string) => {
                       @click.stop="toggleOdometerDisplay(entry.distanceSinceLastChargeKm, entry.odometerKm)"
                       @mousedown.stop
                     >
-                      <template v-if="entry.distanceSinceLastChargeKm != null && !showOdometer">+{{ entry.distanceSinceLastChargeKm.toLocaleString('de-DE') }} km</template>
-                      <template v-else>{{ entry.odometerKm?.toLocaleString('de-DE') }} km</template>
+                      <template v-if="entry.distanceSinceLastChargeKm != null && !showOdometer">+{{ entry.distanceSinceLastChargeKm.toLocaleString() }} km</template>
+                      <template v-else>{{ entry.odometerKm?.toLocaleString() }} km</template>
                     </span>
                     <span v-if="entry._totalConsumption != null"
                       :class="['inline-flex items-center gap-1 text-xs font-medium whitespace-nowrap',
@@ -1411,7 +1415,7 @@ const deleteLog = async (id: string) => {
                     <button @click="editingLog = entry"
                       :class="['p-1 rounded text-gray-300 hover:text-blue-500 hover:bg-blue-50 transition',
                                entry.temperatureCelsius != null ? 'hidden md:block' : '']"
-                      title="Ladevorgang bearbeiten">
+                      :title="t('dashboard.edit_title')">
                       <PencilSquareIcon class="w-3.5 h-3.5" />
                     </button>
                     <button @click="deleteLog(entry.id)"
@@ -1433,7 +1437,7 @@ const deleteLog = async (id: string) => {
                   <div v-if="entry.temperatureCelsius != null" class="flex items-center gap-1 ml-auto">
                     <button @click="editingLog = entry"
                       class="p-1 rounded text-gray-300 hover:text-blue-500 hover:bg-blue-50 transition"
-                      title="Ladevorgang bearbeiten">
+                      :title="t('dashboard.edit_title')">
                       <PencilSquareIcon class="w-3.5 h-3.5" />
                     </button>
                     <button @click="deleteLog(entry.id)"
@@ -1462,8 +1466,8 @@ const deleteLog = async (id: string) => {
                       : ''"
                     @click="toggleOdometerDisplay(entry.distanceSinceLastChargeKm, entry.odometerKm)"
                   >
-                    <template v-if="entry.distanceSinceLastChargeKm != null && !showOdometer">+{{ entry.distanceSinceLastChargeKm.toLocaleString('de-DE') }} km</template>
-                    <template v-else>{{ entry.odometerKm?.toLocaleString('de-DE') }} km</template>
+                    <template v-if="entry.distanceSinceLastChargeKm != null && !showOdometer">+{{ entry.distanceSinceLastChargeKm.toLocaleString() }} km</template>
+                    <template v-else>{{ entry.odometerKm?.toLocaleString() }} km</template>
                   </span>
                   <span v-if="entry.consumptionKwhPer100km != null"
                     :class="['inline-flex items-center gap-1 text-xs font-medium whitespace-nowrap',
@@ -1472,7 +1476,7 @@ const deleteLog = async (id: string) => {
                                : entry.consumptionIsEstimated
                                  ? 'text-gray-400 dark:text-gray-500'
                                  : consumptionTextClass(entry.consumptionKwhPer100km, stats?.avgConsumptionKwhPer100km ?? null)]"
-                    :title="entry.consumptionIsEstimated ? 'Schätzwert: berechnet aus geladener Energie ÷ Distanz, da kein SoC-Wert vorhanden.' : undefined">
+                    :title="entry.consumptionIsEstimated ? t('dashboard.estimated_tooltip') : undefined">
                     <ExclamationTriangleIcon v-if="entry.consumptionImplausible" class="w-3 h-3 flex-shrink-0" />
                     {{ entry.consumptionIsEstimated ? '~' : '' }}{{ entry.consumptionKwhPer100km }} kWh/100km
                   </span>
@@ -1492,7 +1496,7 @@ const deleteLog = async (id: string) => {
                 <!-- Implausibility warning (normal log only) -->
                 <div v-if="!entry._isLadegruppe && entry.consumptionImplausible" class="flex items-start gap-1.5 text-xs text-red-700">
                   <ExclamationTriangleIcon class="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-                  <span>Verbrauch unplausibel - wahrscheinlich fehlt ein Ladevorgang zwischen diesem und dem vorherigen Eintrag.</span>
+                  <span>{{ t('dashboard.implausible_warning') }}</span>
                 </div>
               </div>
               <!-- Ladegruppe Sub-Eintraege (collapsible) -->
@@ -1506,12 +1510,12 @@ const deleteLog = async (id: string) => {
                       <!-- Einzeiler: alles in einer Zeile, bricht auf Mobile sauber um -->
                       <div class="flex items-center gap-x-2">
                         <span class="text-gray-300 text-xs leading-none flex-shrink-0">└</span>
-                        <span class="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">Nachladen</span>
+                        <span class="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{{ t('dashboard.top_up') }}</span>
                         <BoltIcon class="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
                         <span class="text-xs font-semibold text-gray-600 dark:text-gray-300 whitespace-nowrap">{{ topUp.kwhCharged }} kWh</span>
                         <span class="text-xs text-gray-400 whitespace-nowrap">
                           <template v-if="entry._spansMultipleDays">{{ formatLogDate(topUp.loggedAt) }}</template>
-                          <template v-else>{{ new Date(topUp.loggedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) }}</template>
+                          <template v-else>{{ new Date(topUp.loggedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}</template>
                         </span>
                         <span v-if="topUp.chargeDurationMinutes" class="min-[436px]:inline-flex hidden items-center gap-1 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
                           <ClockIcon class="w-3 h-3" />{{ topUp.chargeDurationMinutes }}min
@@ -1520,7 +1524,7 @@ const deleteLog = async (id: string) => {
                           <Battery0Icon class="w-3 h-3" />{{ topUp.socAfterChargePercent }}%
                         </span>
                         <div class="ml-auto flex items-center gap-1 flex-shrink-0">
-                          <button @click="editingLog = topUp" class="p-1 rounded text-gray-300 hover:text-blue-500 hover:bg-blue-50 transition" title="Ladevorgang bearbeiten">
+                          <button @click="editingLog = topUp" class="p-1 rounded text-gray-300 hover:text-blue-500 hover:bg-blue-50 transition" :title="t('dashboard.edit_title')">
                             <PencilSquareIcon class="w-3.5 h-3.5" />
                           </button>
                           <button @click="deleteLog(topUp.id)" class="p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition">
@@ -1550,13 +1554,13 @@ const deleteLog = async (id: string) => {
               @click="fetchLogs(logsPage - 1)"
               :disabled="logsPage === 0"
               class="flex items-center gap-1 px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-600 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition">
-              <ChevronLeftIcon class="w-4 h-4" />Zurück
+              <ChevronLeftIcon class="w-4 h-4" />{{ t('dashboard.prev') }}
             </button>
             <button
               @click="fetchLogs(logsPage + 1)"
               :disabled="!hasMoreLogs"
               class="flex items-center gap-1 px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-600 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition">
-              Weiter<ChevronRightIcon class="w-4 h-4" />
+              {{ t('dashboard.next') }}<ChevronRightIcon class="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -1564,7 +1568,7 @@ const deleteLog = async (id: string) => {
         <!-- Support -->
         <div class="px-4 md:px-0 py-6 text-center">
           <p class="text-sm text-gray-400 flex items-center justify-center gap-1">
-            EV Monitor ist kostenlos.
+            {{ t('dashboard.free_text') }}
             <SupportPopover variant="footer" />
           </p>
         </div>
