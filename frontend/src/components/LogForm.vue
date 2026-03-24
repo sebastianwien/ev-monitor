@@ -124,7 +124,7 @@ const deleteLog = async (logId: string) => {
     await api.delete(`/logs/${logId}`)
     await fetchLogs()
   } catch {
-    error.value = 'Löschen fehlgeschlagen. Bitte versuche es erneut.'
+    error.value = t('logform.delete_failed')
   }
 }
 
@@ -135,29 +135,29 @@ const submitLog = async () => {
   fieldErrors.value = new Set()
   shakeKey.value++
 
-  if (!selectedCarId.value) { error.value = 'Bitte wähle ein Fahrzeug aus'; return }
+  if (!selectedCarId.value) { error.value = t('logform.error_no_car'); return }
 
   const errors: string[] = []
   const f = formData.value
 
-  if (!f.kwhCharged || f.kwhCharged <= 0) { fieldErrors.value.add('kwh'); errors.push('Energie (kWh)') }
-  if (f.costEur === null || f.costEur === undefined) { fieldErrors.value.add('cost'); errors.push('Kosten (€)') }
+  if (!f.kwhCharged || f.kwhCharged <= 0) { fieldErrors.value.add('kwh'); errors.push(t('logform.field_kwh')) }
+  if (f.costEur === null || f.costEur === undefined) { fieldErrors.value.add('cost'); errors.push(t('logform.field_cost')) }
   if (!f.odometerKm || f.odometerKm <= 0) {
-    fieldErrors.value.add('odometer'); errors.push('Tachostand')
+    fieldErrors.value.add('odometer'); errors.push(t('logform.field_odometer'))
   } else {
     const last = getLastOdometerReading(f.loggedAt || undefined)
     if (last !== null && f.odometerKm < last) {
       fieldErrors.value.add('odometer')
-      odometerPlaceholderOverride.value = `sollte >= ${last.toLocaleString('de-DE')} km sein`
-      errors.push(`Tachostand muss mindestens ${last.toLocaleString('de-DE')} km sein`)
+      odometerPlaceholderOverride.value = t('logform.odometer_min', { min: formatNumber(last) })
+      errors.push(t('logform.field_odometer'))
     }
   }
   if (f.socAfterChargePercent === null || f.socAfterChargePercent < 0 || f.socAfterChargePercent > 100) {
-    fieldErrors.value.add('soc'); errors.push('Akkustand nach Laden (0–100%)')
+    fieldErrors.value.add('soc'); errors.push(t('logform.field_soc'))
   }
 
   if (errors.length > 0) {
-    error.value = `Bitte fülle alle Pflichtfelder korrekt aus: ${errors.join(', ')}`
+    error.value = t('logform.error_required', { fields: errors.join(', ') })
     return
   }
 

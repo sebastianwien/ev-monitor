@@ -410,6 +410,9 @@ dashboard:
   free_text: "EV Monitor ist kostenlos."
   coins_total: "Gesamt"
   coins_this_month: "Diesen Monat"
+  chart_cost_per_kwh: "Kosten (€/kWh)"
+  chart_kwh: "Geladen (kWh)"
+  err_load: "Fehler beim Laden der Statistiken"
 
 leaderboard:
   title: "Bestenliste"
@@ -498,6 +501,7 @@ logfields:
   save: "Speichern"
 
 cars:
+  select_placeholder: "Fahrzeug auswählen…"
   title: "Meine Fahrzeuge"
   add_btn: "+ Fahrzeug hinzufügen"
   add_title: "Neues Fahrzeug hinzufügen"
@@ -1189,3 +1193,8 @@ tronity:
   err_format: "Kein Tronity-Format erkannt. Bitte einen Tronity XLSX-Export hochladen."
   err_read: "Datei konnte nicht gelesen werden."
   err_import: "Import fehlgeschlagen"
+
+demo:
+  title: "Demo-Account"
+  read_only: "Nur Lesezugriff"
+  register_btn: "Kostenlos registrieren →"
