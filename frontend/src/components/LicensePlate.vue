@@ -5,16 +5,45 @@ const props = defineProps<{ plate: string }>()
 
 // FE-Engschrift ab 9 Zeichen (z.B. "M-EV 1234E")
 const isLong = computed(() => (props.plate ?? '').replace(/\s/g, '').length >= 9)
+
+// de-DE → 'DE', de-AT → 'AT', de-CH → 'CH', alles andere → 'NEUTRAL'
+type PlateStyle = 'DE' | 'AT' | 'CH' | 'NEUTRAL'
+const style = computed<PlateStyle>(() => {
+  const lang = navigator.language ?? ''
+  if (lang === 'de-DE') return 'DE'
+  if (lang === 'de-AT') return 'AT'
+  if (lang === 'de-CH' || lang === 'fr-CH' || lang === 'it-CH') return 'CH'
+  return 'NEUTRAL'
+})
+
+const euCountryCode = computed(() => style.value === 'AT' ? 'A' : 'D')
 </script>
 
 <template>
-  <div class="plate-outer">
+  <!-- DE / AT: EU-Band links mit Sternen -->
+  <div v-if="style === 'DE' || style === 'AT'" class="plate-outer">
     <div class="eu-band">
       <div class="eu-stars">
         <span v-for="i in 12" :key="i" class="star" :style="{ transform: `rotate(${i * 30}deg) translateY(-5px)` }">★</span>
       </div>
-      <span class="eu-country">D</span>
+      <span class="eu-country">{{ euCountryCode }}</span>
     </div>
+    <span class="plate-text" :class="{ 'plate-text--eng': isLong }">{{ (plate ?? '').toUpperCase() }}</span>
+  </div>
+
+  <!-- CH: roter Rand, rotes Band links mit weißem Kreuz -->
+  <div v-else-if="style === 'CH'" class="plate-outer plate-outer--ch">
+    <div class="ch-band">
+      <svg viewBox="0 0 20 20" class="ch-cross" aria-hidden="true">
+        <rect x="8" y="3" width="4" height="14" fill="white" />
+        <rect x="3" y="8" width="14" height="4" fill="white" />
+      </svg>
+    </div>
+    <span class="plate-text" :class="{ 'plate-text--eng': isLong }">{{ (plate ?? '').toUpperCase() }}</span>
+  </div>
+
+  <!-- NEUTRAL: kein Band, schlichtes weißes Schild -->
+  <div v-else class="plate-outer plate-outer--neutral">
     <span class="plate-text" :class="{ 'plate-text--eng': isLong }">{{ (plate ?? '').toUpperCase() }}</span>
   </div>
 </template>
@@ -42,6 +71,16 @@ const isLong = computed(() => (props.plate ?? '').replace(/\s/g, '').length >= 9
   height: 34px;
 }
 
+.plate-outer--ch {
+  border-color: #D00;
+  border-width: 2.5px;
+}
+
+.plate-outer--neutral {
+  /* kein Band, nur Schild */
+}
+
+/* ── EU-Band (DE / AT) ───────────────────────────── */
 .eu-band {
   display: flex;
   flex-direction: column;
@@ -81,6 +120,22 @@ const isLong = computed(() => (props.plate ?? '').replace(/\s/g, '').length >= 9
   font-family: Arial, sans-serif;
 }
 
+/* ── CH-Band ─────────────────────────────────────── */
+.ch-band {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #D00;
+  width: 22px;
+  flex-shrink: 0;
+}
+
+.ch-cross {
+  width: 14px;
+  height: 14px;
+}
+
+/* ── Kennzeichen-Text ────────────────────────────── */
 .plate-text {
   display: flex;
   align-items: center;

@@ -265,7 +265,7 @@ const periodLabel = computed(() => {
           <TrophyIcon class="h-4 w-4 flex-shrink-0 text-yellow-500 mt-0.5" />
           <span>
             {{ t('leaderboard.top3_reward') }}
-            <strong>100</strong> / <strong>50</strong> / <strong>25 Coins</strong>.
+            <strong>50</strong> / <strong>30</strong> / <strong>15 Watt</strong>.
             <span v-if="!data.ownEntry && authStore.isAuthenticated()"> {{ t('leaderboard.not_ranked') }}</span>
           </span>
         </div>

@@ -883,7 +883,7 @@ const deleteLog = async (id: string) => {
                       <span v-if="car.trim" class="text-sm text-gray-500 dark:text-gray-400">{{ car.trim }}</span>
                       <span v-if="car.isPrimary"
                         class="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded-full border border-green-200 font-medium">
-                        Aktiv
+                        {{ t('dashboard.active') }}
                       </span>
                       <template v-if="car.brand?.toLowerCase() === 'tesla' && teslaStatus?.connected && (teslaStatus.carId === car.id || teslaStatus.carId === null)">
                         <span v-if="teslaStatus.vehicleState === 'charging'"

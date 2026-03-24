@@ -2,15 +2,18 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { XMarkIcon, ChatBubbleLeftEllipsisIcon } from '@heroicons/vue/24/outline'
 import { useAuthStore } from '../stores/auth'
+import { useI18n } from 'vue-i18n'
 
 const STORAGE_KEY = 'feedbackToastDismissed'
 const DELAY_MS = 60_000
 
 const authStore = useAuthStore()
+const { locale } = useI18n()
 const visible = ref(false)
 let timer: ReturnType<typeof setTimeout> | null = null
 
 const shouldShow = () => {
+  if (locale.value !== 'de') return false
   if (localStorage.getItem(STORAGE_KEY)) return false
   if (localStorage.getItem('wasRealUser')) return false
   // Show for unauthenticated visitors and demo accounts only

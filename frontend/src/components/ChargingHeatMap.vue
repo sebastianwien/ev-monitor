@@ -8,6 +8,7 @@ import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 import { MapIcon, MapPinIcon } from '@heroicons/vue/24/outline'
 import api from '../api/axios'
+import { useI18n } from 'vue-i18n'
 
 // Import leaflet.heat with proper typing
 import 'leaflet.heat'
@@ -33,6 +34,7 @@ interface Props {
 
 const props = defineProps<Props>()
 
+const { t } = useI18n()
 const mapContainer = ref<HTMLDivElement | null>(null)
 let map: L.Map | null = null
 let heatLayer: L.HeatLayer | null = null
@@ -58,7 +60,7 @@ const fetchLogs = async () => {
     const response = await api.get(`/logs/geohashes?carId=${props.carId}`)
     return response.data as GeohashEntry[]
   } catch (err: any) {
-    error.value = err.response?.data?.message || 'Fehler beim Laden der Logs'
+    error.value = err.response?.data?.message || t('heatmap.loading')
     return []
   } finally {
     loading.value = false
@@ -259,7 +261,7 @@ onMounted(async () => {
     <div v-if="loading" class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-90 z-10 rounded-lg backdrop-blur-sm">
       <div class="text-center">
         <div class="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 mb-3"></div>
-        <p class="text-sm text-gray-600 font-medium">Lade Karte...</p>
+        <p class="text-sm text-gray-600 font-medium">{{ t('heatmap.loading') }}</p>
       </div>
     </div>
 
@@ -271,8 +273,8 @@ onMounted(async () => {
     <div v-if="!carId" class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 z-10 rounded-lg">
       <div class="p-6 md:p-10 text-center">
         <MapIcon class="h-20 w-20 mx-auto mb-4 text-gray-300" />
-        <p class="text-lg font-semibold text-gray-700 mb-2">Kein Fahrzeug ausgewählt</p>
-        <p class="text-sm text-gray-500">Wähle ein Fahrzeug aus um die Lade-Karte anzuzeigen.</p>
+        <p class="text-lg font-semibold text-gray-700 mb-2">{{ t('heatmap.no_car_title') }}</p>
+        <p class="text-sm text-gray-500">{{ t('heatmap.no_car_desc') }}</p>
       </div>
     </div>
 
@@ -280,15 +282,13 @@ onMounted(async () => {
     <div v-else-if="chargeCount === 0 && !loading" class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 z-10 rounded-lg">
       <div class="p-6 md:p-10 text-center max-w-sm">
         <MapPinIcon class="h-20 w-20 mx-auto mb-4 text-indigo-300" />
-        <p class="text-lg font-semibold text-gray-800 mb-2">Noch keine Standorte erfasst</p>
-        <p class="text-sm text-gray-600 mb-4">
-          Füge Standorte zu deinen Ladevorgängen hinzu, um sie hier auf der Karte zu sehen!
-        </p>
+        <p class="text-lg font-semibold text-gray-800 mb-2">{{ t('heatmap.no_locations_title') }}</p>
+        <p class="text-sm text-gray-600 mb-4">{{ t('heatmap.no_locations_desc') }}</p>
         <div class="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 border border-blue-200 rounded-lg text-xs text-blue-800">
           <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <span>Standorte werden auf 5km anonymisiert (DSGVO)</span>
+          <span>{{ t('heatmap.privacy_note') }}</span>
         </div>
       </div>
     </div>
@@ -300,13 +300,13 @@ onMounted(async () => {
         <div class="flex items-center gap-2">
           <MapPinIcon class="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
           <span class="text-sm font-semibold text-gray-700 dark:text-gray-200">
-            <strong class="text-indigo-600 dark:text-indigo-400">{{ chargeCount }}</strong> Ladevorgänge
+            {{ t('heatmap.charges_count', { n: chargeCount }) }}
           </span>
         </div>
 
         <!-- View Mode Toggle -->
         <div class="flex items-center gap-2">
-          <span class="text-xs font-medium text-gray-600 dark:text-gray-400 mr-2">Ansicht:</span>
+          <span class="text-xs font-medium text-gray-600 dark:text-gray-400 mr-2">{{ t('heatmap.view_label') }}</span>
           <button
             @click="setViewMode('heatmap')"
             :class="[
@@ -335,27 +335,27 @@ onMounted(async () => {
                 ? 'bg-indigo-600 text-white shadow-md'
                 : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
             ]">
-            Beides
+            {{ t('heatmap.view_both') }}
           </button>
         </div>
       </div>
 
       <!-- Legend (only shown when we have data) -->
       <div v-if="chargeCount > 0" class="mb-3 flex flex-wrap items-center gap-4 text-xs text-gray-600 dark:text-gray-400 px-2">
-        <span class="font-semibold text-gray-700 dark:text-gray-300">Legende:</span>
+        <span class="font-semibold text-gray-700 dark:text-gray-300">{{ t('heatmap.legend') }}</span>
         <span class="flex items-center gap-1.5">
           <span class="inline-block w-4 h-4 rounded-full bg-green-500 shadow-sm"></span>
-          Wenig kWh
+          {{ t('heatmap.legend_low') }}
         </span>
         <span class="flex items-center gap-1.5">
           <span class="inline-block w-4 h-4 rounded-full bg-yellow-500 shadow-sm"></span>
-          Mittel
+          {{ t('heatmap.legend_medium') }}
         </span>
         <span class="flex items-center gap-1.5">
           <span class="inline-block w-4 h-4 rounded-full bg-red-500 shadow-sm"></span>
-          Viel kWh
+          {{ t('heatmap.legend_high') }}
         </span>
-        <span class="text-gray-400 ml-2">• Klick auf Marker für Details</span>
+        <span class="text-gray-400 ml-2">{{ t('heatmap.click_for_details') }}</span>
       </div>
 
       <div ref="mapContainer" class="w-full h-[400px] sm:h-[550px] md:rounded-lg border md:border-2 border-gray-300 md:shadow-lg transition-all duration-300 hover:shadow-xl"></div>

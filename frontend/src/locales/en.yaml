@@ -20,6 +20,7 @@ nav:
   login: "Sign in"
   register: "Sign up"
   dashboard: "Dashboard"
+  models_compare: "Models"
 
 landing:
   hero:
@@ -407,6 +408,8 @@ dashboard:
   prev: "Previous"
   next: "Next"
   free_text: "EV Monitor is free."
+  coins_total: "Total"
+  coins_this_month: "This month"
 
 leaderboard:
   title: "Leaderboard"
@@ -488,6 +491,11 @@ logfields:
   cost_per_kwh_placeholder: "e.g. 0.20"
   public_charging: "Public charging station"
   cpo_name_placeholder: "Network operator (e.g. IONITY, EnBW)"
+  update_location: "Update location"
+  location_search_placeholder: "Search location (replaces existing)..."
+  new_location: "New location:"
+  current_location: "Current location saved (Geohash: {geohash})"
+  save: "Save"
 
 cars:
   title: "My vehicles"
@@ -1134,3 +1142,50 @@ goe:
   merge_sessions_title: "Merge sessions"
   merge_sessions_desc: "Group small surplus sessions from the same day"
   updated_every: "Updates every {n} min"
+
+heatmap:
+  loading: "Loading map..."
+  no_car_title: "No vehicle selected"
+  no_car_desc: "Select a vehicle to show the charging map."
+  no_locations_title: "No locations recorded yet"
+  no_locations_desc: "Add locations to your charging sessions to see them on the map!"
+  privacy_note: "Locations are anonymised to 5km (GDPR)"
+  charges_count: "{n} charging sessions"
+  view_label: "View:"
+  view_both: "Both"
+  legend: "Legend:"
+  legend_low: "Low kWh"
+  legend_medium: "Medium kWh"
+  legend_high: "High kWh"
+  click_for_details: "· Click marker for details"
+
+support:
+  nav_btn: "Support"
+  footer_btn: "Support EV Monitor"
+
+footer:
+  privacy: "Privacy"
+  imprint: "Imprint"
+  terms: "Terms"
+  github: "GitHub"
+
+tronity:
+  title: "Tronity Import"
+  desc: "Import your charging history directly from the Tronity XLSX export. In the Tronity app under <strong>Trips &amp; Charging - Charging - Export</strong>, create an XLSX file and upload it here."
+  feature_1: "SoC before/after, costs, GPS coordinates, AC/DC - all included"
+  feature_2: "Duplicates are automatically detected and skipped"
+  feature_3: "Format is automatically detected - no manual mapping needed"
+  car_label: "Vehicle"
+  no_car: "No active vehicle found."
+  add_car: "Add vehicle"
+  file_label: "XLSX file"
+  file_drop: "Drag file here or"
+  file_select: "select"
+  entries_found: "{n} entries detected"
+  result: "{imported} imported, {skipped} skipped"
+  result_errors: ", {errors} errors"
+  import_btn: "Import"
+  err_too_large: "File too large (max. 5 MB)"
+  err_format: "No Tronity format detected. Please upload a Tronity XLSX export."
+  err_read: "File could not be read."
+  err_import: "Import failed"

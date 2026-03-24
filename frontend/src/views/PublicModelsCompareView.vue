@@ -251,10 +251,10 @@
             {{ t('compare.cta_desc') }}
           </p>
           <div class="flex flex-wrap gap-3">
-            <a href="/register" class="bg-white text-green-700 font-semibold px-4 py-2 rounded-lg hover:bg-green-50 transition-colors text-sm">
+            <a :href="registerPath" class="bg-white text-green-700 font-semibold px-4 py-2 rounded-lg hover:bg-green-50 transition-colors text-sm">
               {{ t('compare.cta_register') }}
             </a>
-            <a href="/login" class="border border-white text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors text-sm">
+            <a :href="loginPath" class="border border-white text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors text-sm">
               {{ t('compare.cta_login') }}
             </a>
           </div>
@@ -278,7 +278,9 @@ import { getModelStats, type PublicModelStats } from '../api/publicModelService'
 import { TruckIcon, ArrowLeftIcon, ChartBarIcon } from '@heroicons/vue/24/outline'
 import PublicNav from '../components/PublicNav.vue'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const registerPath = computed(() => locale.value === 'en' ? '/en/register' : '/register')
+const loginPath = computed(() => locale.value === 'en' ? '/en/login' : '/login')
 
 const route = useRoute()
 const loading = ref(true)

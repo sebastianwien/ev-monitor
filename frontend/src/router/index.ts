@@ -263,10 +263,14 @@ const router = createRouter({
 router.beforeEach((to, _from) => {
     const authStore = useAuthStore();
 
-    // Set locale based on route meta or URL prefix
-    const locale = (to.meta.locale as string) ?? (to.path.startsWith('/en') ? 'en' : 'de');
-    i18n.global.locale.value = locale as 'de' | 'en';
-    localStorage.setItem('ev-locale', locale);
+    // Set locale only for routes with explicit locale signal.
+    // Auth-required routes (dashboard, settings, ...) inherit the current locale.
+    const explicitLocale = (to.meta.locale as string | undefined)
+        ?? (to.path.startsWith('/en') ? 'en' : null);
+    if (explicitLocale !== null) {
+        i18n.global.locale.value = explicitLocale as 'de' | 'en';
+        localStorage.setItem('ev-locale', explicitLocale);
+    }
 
     if (to.meta.requiresAuth) {
         if (!authStore.isAuthenticated()) {

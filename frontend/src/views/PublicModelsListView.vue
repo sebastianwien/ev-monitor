@@ -1,8 +1,9 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-950">
+  <div :class="isAuthenticated ? '' : 'min-h-screen bg-gray-50 dark:bg-gray-950'">
     <PublicNav />
 
-    <main class="max-w-6xl mx-auto px-4 py-8">
+    <main :class="isAuthenticated ? 'md:max-w-6xl md:mx-auto md:p-6' : 'max-w-6xl mx-auto px-4 py-8'">
+      <div :class="isAuthenticated ? 'bg-white dark:bg-gray-800 md:rounded-xl md:shadow-lg p-4 md:p-6' : ''">
       <!-- Hero -->
       <div class="rounded-2xl mb-8 overflow-hidden">
 
@@ -357,9 +358,10 @@
           </div>
         </div>
       </Transition>
+      </div>
     </main>
 
-    <footer class="max-w-6xl mx-auto px-4 py-8 mt-6 border-t border-gray-200 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400 text-center">
+    <footer v-if="!isAuthenticated" class="max-w-6xl mx-auto px-4 py-8 mt-6 border-t border-gray-200 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400 text-center">
       © {{ currentYear }} EV Monitor ·
       <a href="/" class="hover:text-gray-700 dark:hover:text-gray-200">{{ isAuthenticated ? t('nav.dashboard') : t('nav.login') }}</a>
       <template v-if="!isAuthenticated">

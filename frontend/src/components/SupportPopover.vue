@@ -2,12 +2,14 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { HeartIcon } from '@heroicons/vue/24/solid'
 import { analytics } from '../services/analytics'
+import { useI18n } from 'vue-i18n'
 
 const props = withDefaults(defineProps<{
   variant?: 'nav' | 'footer' | 'block'
 }>(), {
   variant: 'nav'
 })
+const { t } = useI18n()
 
 const open = ref(false)
 const containerRef = ref<HTMLElement | null>(null)
@@ -61,16 +63,16 @@ onUnmounted(() => document.removeEventListener('click', handleOutsideClick))
       v-if="variant === 'nav'"
       @click.stop="open = !open"
       class="inline-flex items-center gap-1.5 px-3 py-1.5 text-white hover:text-indigo-200 transition text-sm font-medium"
-      title="EV Monitor unterstützen">
+      :title="t('support.footer_btn')">
       <HeartIcon class="h-4 w-4 text-red-400" />
-      Unterstützen
+      {{ t('support.nav_btn') }}
     </button>
     <button
       v-else
       @click.stop="open = !open"
       class="inline-flex items-center gap-1.5 text-red-500 hover:text-red-600 transition font-medium">
       <HeartIcon class="h-4 w-4" />
-      EV Monitor unterstützen
+      {{ t('support.footer_btn') }}
     </button>
 
     <!-- Popover -->

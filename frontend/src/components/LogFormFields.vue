@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { GlobeAltIcon } from '@heroicons/vue/24/outline'
 
 export interface LogFormData {
@@ -28,6 +29,8 @@ const props = defineProps<{
 
 const form = defineModel<LogFormData>({ required: true })
 
+const { t } = useI18n()
+
 // ── Location ─────────────────────────────────────────────────────────────────
 const locationEnabled = ref(
   props.locationMode === 'create'
@@ -40,7 +43,7 @@ const locationErrorMessage = ref<string | null>(null)
 const requestCurrentLocation = () => {
   if (!navigator.geolocation) {
     locationStatus.value = 'error'
-    locationErrorMessage.value = 'Geolokalisierung wird von deinem Browser nicht unterstützt'
+    locationErrorMessage.value = t('logfields.location_not_supported')
     return
   }
   locationStatus.value = 'loading'
@@ -54,7 +57,7 @@ const requestCurrentLocation = () => {
     (err) => {
       console.error('Geolocation error:', err)
       locationStatus.value = 'error'
-      locationErrorMessage.value = 'Standortzugriff verweigert. Du kannst unten manuell nach einem Standort suchen.'
+      locationErrorMessage.value = t('logfields.location_denied')
     }
   )
 }
@@ -135,13 +138,13 @@ defineExpose({ clearLocation, locationEnabled, locationStatus })
   <!-- Row 1: kWh + Kosten -->
   <div class="grid grid-cols-2 gap-3 items-end">
     <div>
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Energie (kWh)</label>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('logfields.energy') }}</label>
       <input v-model="form.kwhCharged" type="number" step="0.1" placeholder="z.B. 42.5"
         :class="inputClass('kwh')" />
     </div>
     <div>
       <div class="flex items-center justify-between mb-1">
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ costMode === 'eur' ? 'Kosten (€)' : 'Preis (€/kWh)' }}</label>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ costMode === 'eur' ? t('logfields.cost_eur') : t('logfields.cost_per_kwh') }}</label>
         <div class="relative flex rounded-full border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-700 p-0.5 text-xs">
           <div class="absolute top-0.5 bottom-0.5 rounded-full bg-white dark:bg-gray-600 shadow-sm transition-transform duration-200 ease-in-out pointer-events-none" style="width: calc(50% - 2px)"
             :style="{ transform: `translateX(${costMode === 'eur_kwh' ? '100%' : '0%'})` }" />
@@ -171,24 +174,24 @@ defineExpose({ clearLocation, locationEnabled, locationStatus })
   <!-- Row 2: Tachostand + SoC nach (+ SoC vorher wenn Edit) -->
   <div class="grid grid-cols-2 gap-3">
     <div>
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tachostand (km)</label>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('logfields.odometer') }}</label>
       <input v-model="form.odometerKm" type="number" step="1"
         :placeholder="odometerPlaceholder ?? 'Tachostand (km)'"
         :class="inputClass('odometer')" />
     </div>
     <div>
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Akku nach Laden (%)</label>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('logfields.soc_after') }}</label>
       <input v-model="form.socAfterChargePercent" type="number" min="0" max="100" step="1"
         :class="inputClass('soc')" />
     </div>
     <div v-if="showSocBefore">
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Akku vor Laden (%)</label>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('logfields.soc_before') }}</label>
       <input v-model="form.socBeforeChargePercent" type="number" min="0" max="100" placeholder="optional"
         :class="inputClass('socBefore')" />
     </div>
     <!-- Ladeart im Edit-Mode: 2. Spalte neben SoC vorher -->
     <div v-if="showSocBefore">
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Ladeart</label>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('logfields.charge_type') }}</label>
       <div class="mt-1 flex items-center h-[34px]">
         <button
           type="button"
@@ -269,15 +272,15 @@ defineExpose({ clearLocation, locationEnabled, locationStatus })
         :style="{ transform: `translateX(${['CITY','COMBINED','HIGHWAY'].indexOf(form.routeType) * 100}%)` }" />
       <button type="button" @click="form.routeType = 'CITY'"
         :class="['relative z-10 flex-1 px-1 py-1.5 rounded-full text-xs font-medium transition-colors duration-200', form.routeType === 'CITY' ? 'text-indigo-700' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']">
-        Stadt
+        {{ t('logfields.route_city') }}
       </button>
       <button type="button" @click="form.routeType = 'COMBINED'"
         :class="['relative z-10 flex-1 px-1 py-1.5 rounded-full text-xs font-medium transition-colors duration-200', form.routeType === 'COMBINED' ? 'text-indigo-700' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']">
-        Mix
+        {{ t('logfields.route_mix') }}
       </button>
       <button type="button" @click="form.routeType = 'HIGHWAY'"
         :class="['relative z-10 flex-1 px-1 py-1.5 rounded-full text-xs font-medium transition-colors duration-200', form.routeType === 'HIGHWAY' ? 'text-indigo-700' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']">
-        AB
+        {{ t('logfields.route_highway') }}
       </button>
     </div>
     <!-- Reifenart -->
@@ -287,15 +290,15 @@ defineExpose({ clearLocation, locationEnabled, locationStatus })
         :style="{ transform: `translateX(${['SUMMER','ALL_YEAR','WINTER'].indexOf(form.tireType) * 100}%)` }" />
       <button type="button" @click="form.tireType = 'SUMMER'"
         :class="['relative z-10 flex-1 px-1 py-1.5 rounded-full text-xs font-medium transition-colors duration-200', form.tireType === 'SUMMER' ? 'text-indigo-700' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']">
-        Som.
+        {{ t('logfields.tire_summer') }}
       </button>
       <button type="button" @click="form.tireType = 'ALL_YEAR'"
         :class="['relative z-10 flex-1 px-1 py-1.5 rounded-full text-xs font-medium transition-colors duration-200', form.tireType === 'ALL_YEAR' ? 'text-indigo-700' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']">
-        Ganz.
+        {{ t('logfields.tire_allyear') }}
       </button>
       <button type="button" @click="form.tireType = 'WINTER'"
         :class="['relative z-10 flex-1 px-1 py-1.5 rounded-full text-xs font-medium transition-colors duration-200', form.tireType === 'WINTER' ? 'text-indigo-700' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']">
-        Win.
+        {{ t('logfields.tire_winter') }}
       </button>
     </div>
   </div>
@@ -303,12 +306,12 @@ defineExpose({ clearLocation, locationEnabled, locationStatus })
   <!-- Dauer + Ladeleistung -->
   <div class="grid grid-cols-2 gap-3">
     <div>
-      <label class="block text-sm font-medium text-gray-600 dark:text-gray-400">Dauer (min)</label>
+      <label class="block text-sm font-medium text-gray-600 dark:text-gray-400">{{ t('logfields.duration') }}</label>
       <input v-model="form.chargeDurationMinutes" type="number"
         class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
     </div>
     <div>
-      <label class="block text-sm font-medium text-gray-600 dark:text-gray-400"><span class="sm:hidden">Max. Leistung (kW)</span><span class="hidden sm:inline">Max. Ladeleistung (kW)</span></label>
+      <label class="block text-sm font-medium text-gray-600 dark:text-gray-400"><span class="sm:hidden">{{ t('logfields.max_power') }}</span><span class="hidden sm:inline">{{ t('logfields.max_power_full') }}</span></label>
       <input v-model="form.maxChargingPowerKw" type="number" step="0.1"
         class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
     </div>
@@ -316,12 +319,12 @@ defineExpose({ clearLocation, locationEnabled, locationStatus })
 
   <!-- Datum/Uhrzeit -->
   <div>
-    <label class="block text-sm font-medium text-gray-600 dark:text-gray-400">Ladezeitpunkt</label>
+    <label class="block text-sm font-medium text-gray-600 dark:text-gray-400">{{ t('logfields.timestamp') }}</label>
     <input
       v-model="form.loggedAt"
       type="datetime-local"
       :max="getCurrentDateTimeLocal()"
       class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
-    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Leer lassen für aktuelle Zeit</p>
+    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ t('logfields.timestamp_hint') }}</p>
   </div>
 </template>

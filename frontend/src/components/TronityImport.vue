@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { read, utils } from '@e965/xlsx'
 import { ArrowDownTrayIcon, ArrowUpTrayIcon } from '@heroicons/vue/24/outline'
 import { tronityImportService } from '../api/tronityImportService'
@@ -10,6 +11,7 @@ import type { Car } from '../api/carService'
 
 const MAX_FILE_BYTES = 5 * 1024 * 1024 // 5 MB
 
+const { t } = useI18n()
 const carStore = useCarStore()
 const cars = ref<Car[]>([])
 const selectedCarId = ref<string | null>(null)
@@ -43,7 +45,7 @@ function parseFile(file: File) {
   errorMsg.value = ''
 
   if (file.size > MAX_FILE_BYTES) {
-    parseError.value = 'Datei zu groß (max. 5 MB)'
+    parseError.value = t('tronity.err_too_large')
     return
   }
 
@@ -56,7 +58,7 @@ function parseFile(file: File) {
       const rows = utils.sheet_to_json<Record<string, unknown>>(sheet, { raw: true, defval: null })
 
       if (!isTronityFormat(rows[0])) {
-        parseError.value = 'Kein Tronity-Format erkannt. Bitte einen Tronity XLSX-Export hochladen.'
+        parseError.value = t('tronity.err_format')
         return
       }
 
@@ -64,7 +66,7 @@ function parseFile(file: File) {
       parsedEntries.value = entries
       previewCount.value = entries.length
     } catch {
-      parseError.value = 'Datei konnte nicht gelesen werden.'
+      parseError.value = t('tronity.err_read')
     }
   }
   reader.readAsArrayBuffer(file)
@@ -167,7 +169,7 @@ async function runImport() {
       false
     )
   } catch (e: any) {
-    errorMsg.value = e?.response?.data?.error ?? 'Import fehlgeschlagen'
+    errorMsg.value = e?.response?.data?.error ?? t('tronity.err_import')
   } finally {
     loading.value = false
   }
@@ -182,33 +184,30 @@ async function runImport() {
         <ArrowDownTrayIcon class="h-5 w-5 text-white" />
       </div>
       <div>
-        <h2 class="font-semibold text-gray-900 dark:text-gray-100">Tronity Import</h2>
-        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-          Importiere deine Ladehistorie direkt aus dem Tronity XLSX-Export.
-          In der Tronity-App unter <strong>Fahrten &amp; Laden - Laden - Export</strong> eine XLSX-Datei erstellen und hier hochladen.
-        </p>
+        <h2 class="font-semibold text-gray-900 dark:text-gray-100">{{ t('tronity.title') }}</h2>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1" v-html="t('tronity.desc')" />
       </div>
     </div>
 
     <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-1 list-disc list-inside">
-      <li>SoC vor/nach, Kosten, GPS-Koordinaten, AC/DC - alles inklusive</li>
-      <li>Duplikate werden automatisch erkannt und übersprungen</li>
-      <li>Format wird automatisch erkannt - kein manuelles Mapping nötig</li>
+      <li>{{ t('tronity.feature_1') }}</li>
+      <li>{{ t('tronity.feature_2') }}</li>
+      <li>{{ t('tronity.feature_3') }}</li>
     </ul>
 
     <!-- Car selector -->
     <div v-if="activeCars.length > 1" class="space-y-1.5">
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Fahrzeug</label>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('tronity.car_label') }}</label>
       <CarSelectDropdown :cars="activeCars" v-model="selectedCarId" />
     </div>
     <p v-if="activeCars.length === 0" class="text-sm text-gray-500 dark:text-gray-400 italic">
-      Kein aktives Fahrzeug gefunden.
-      <router-link to="/cars" class="text-indigo-600 hover:underline font-medium">Fahrzeug anlegen</router-link>
+      {{ t('tronity.no_car') }}
+      <router-link to="/cars" class="text-indigo-600 hover:underline font-medium">{{ t('tronity.add_car') }}</router-link>
     </p>
 
     <!-- File upload -->
     <div class="space-y-1.5">
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">XLSX-Datei</label>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('tronity.file_label') }}</label>
       <div
         class="border-2 border-dashed border-gray-200 dark:border-gray-600 rounded-xl p-6 text-center cursor-pointer hover:border-blue-400 transition-colors"
         @click="fileInput?.click()"
@@ -217,7 +216,7 @@ async function runImport() {
       >
         <ArrowUpTrayIcon class="w-8 h-8 text-gray-300 mx-auto mb-2" />
         <p v-if="!fileName" class="text-sm text-gray-500 dark:text-gray-400">
-          Datei hierher ziehen oder <span class="text-blue-600 font-medium">auswählen</span>
+          {{ t('tronity.file_drop') }} <span class="text-blue-600 font-medium">{{ t('tronity.file_select') }}</span>
         </p>
         <p v-else class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ fileName }}</p>
         <input
@@ -230,7 +229,7 @@ async function runImport() {
       </div>
       <p v-if="parseError" class="text-sm text-red-600">{{ parseError }}</p>
       <p v-if="previewCount !== null && !parseError" class="text-sm text-gray-500 dark:text-gray-400">
-        {{ previewCount }} Einträge erkannt
+        {{ t('tronity.entries_found', { n: previewCount }) }}
       </p>
     </div>
 
@@ -238,8 +237,8 @@ async function runImport() {
     <div v-if="result" class="rounded-xl p-4"
       :class="result.errors > 0 && result.imported === 0 ? 'bg-red-50 dark:bg-red-900/30' : 'bg-green-50 dark:bg-green-900/30'">
       <p class="text-sm font-medium" :class="result.errors > 0 && result.imported === 0 ? 'text-red-700 dark:text-red-300' : 'text-green-700 dark:text-green-300'">
-        {{ result.imported }} importiert, {{ result.skipped }} übersprungen
-        <template v-if="result.errors > 0">, {{ result.errors }} Fehler</template>
+        {{ t('tronity.result', { imported: result.imported, skipped: result.skipped }) }}
+        <template v-if="result.errors > 0">{{ t('tronity.result_errors', { errors: result.errors }) }}</template>
       </p>
     </div>
 
@@ -253,7 +252,7 @@ async function runImport() {
     >
       <span v-if="loading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
       <ArrowDownTrayIcon v-else class="h-4 w-4" />
-      Importieren
+      {{ t('tronity.import_btn') }}
     </button>
   </div>
 </template>
