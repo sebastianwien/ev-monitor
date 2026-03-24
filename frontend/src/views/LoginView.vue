@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '../stores/auth';
 import { useRouter, useRoute } from 'vue-router';
 import { analytics } from '../services/analytics';
 import { BoltIcon, ShieldCheckIcon, CurrencyEuroIcon } from '@heroicons/vue/24/outline';
 
+const { t, locale } = useI18n();
 const googleOauthEnabled = import.meta.env.VITE_GOOGLE_OAUTH_ENABLED === 'true'
 
 const email = ref('');
@@ -15,7 +17,11 @@ const route = useRoute();
 const error = ref('');
 const errorCode = ref('');
 const resendSent = ref(false);
-const infoMessage = ref(route.query.reason === 'email-changed' ? 'Email erfolgreich geändert. Bitte melde dich mit deiner neuen Email-Adresse an.' : '');
+const infoMessage = computed(() => route.query.reason === 'email-changed' ? t('auth.login.email_changed') : '');
+const sessionExpiredMessage = computed(() => route.query.reason === 'session-expired' ? t('auth.login.session_expired') : '');
+
+const registerPath = computed(() => locale.value === 'en' ? '/en/register' : '/register')
+const forgotPath = computed(() => locale.value === 'en' ? '/en/forgot-password' : '/forgot-password')
 
 const handleLogin = async () => {
   try {
@@ -28,10 +34,10 @@ const handleLogin = async () => {
     const code = err.response?.data?.code;
     errorCode.value = code || '';
     if (code === 'EMAIL_NOT_VERIFIED') {
-      error.value = 'Bitte bestätige zuerst deine E-Mail-Adresse.';
+      error.value = t('auth.login.error_not_verified');
       analytics.trackLoginFailed('email_not_verified');
     } else {
-      error.value = 'Ungültige E-Mail/Username oder Passwort';
+      error.value = t('auth.login.error_invalid');
       analytics.trackLoginFailed('invalid_credentials');
     }
   }
@@ -61,26 +67,29 @@ const handleResendFromLogin = async () => {
             <BoltIcon class="h-7 w-7" />
             <span class="text-2xl font-bold tracking-tight">EV Monitor</span>
           </div>
-          <p class="text-indigo-200 text-sm">Dein Ladetagebuch für Elektroautos</p>
+          <p class="text-indigo-200 text-sm">{{ t('auth.login.tagline') }}</p>
         </div>
 
         <!-- Form -->
         <div class="px-8 py-8">
-          <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-6 text-center">Willkommen zurück</h2>
+          <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-6 text-center">{{ t('auth.login.welcome') }}</h2>
 
           <div v-if="infoMessage" class="mb-4 text-sm font-medium bg-green-50 p-3 rounded-lg border border-green-200 text-green-700">
             {{ infoMessage }}
           </div>
+          <div v-if="sessionExpiredMessage" class="mb-4 text-sm font-medium bg-amber-50 p-3 rounded-lg border border-amber-200 text-amber-700">
+            {{ sessionExpiredMessage }}
+          </div>
 
           <form @submit.prevent="handleLogin" class="space-y-5">
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">E-Mail oder Username</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('auth.login.email_or_username') }}</label>
               <input v-model="email" type="text" required
                 class="block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="deine@email.de" />
+                :placeholder="t('auth.login.email_placeholder')" />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Passwort</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('auth.login.password') }}</label>
               <input v-model="password" type="password" required
                 class="block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
             </div>
@@ -91,17 +100,17 @@ const handleResendFromLogin = async () => {
               <div v-if="errorCode === 'EMAIL_NOT_VERIFIED'" class="mt-2">
                 <span v-if="!resendSent">
                   <button @click="handleResendFromLogin" class="font-semibold underline hover:no-underline">
-                    Bestätigungs-E-Mail erneut senden
+                    {{ t('auth.login.resend_email') }}
                   </button>
                 </span>
-                <span v-else class="text-green-700 font-medium">E-Mail verschickt!</span>
+                <span v-else class="text-green-700 font-medium">{{ t('auth.login.resend_sent') }}</span>
               </div>
             </div>
 
             <button type="submit"
               v-haptic
               class="btn-3d w-full px-4 py-3 font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition">
-              Anmelden
+              {{ t('auth.login.submit') }}
             </button>
           </form>
 
@@ -112,7 +121,7 @@ const handleResendFromLogin = async () => {
                 <div class="w-full border-t border-gray-200 dark:border-gray-600"></div>
               </div>
               <div class="relative flex justify-center text-sm">
-                <span class="px-3 bg-white dark:bg-gray-800 text-gray-400">oder</span>
+                <span class="px-3 bg-white dark:bg-gray-800 text-gray-400">{{ t('auth.login.or') }}</span>
               </div>
             </div>
             <a
@@ -124,20 +133,20 @@ const handleResendFromLogin = async () => {
                 <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
                 <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
               </svg>
-              Mit Google anmelden
+              {{ t('auth.login.google') }}
             </a>
           </template>
 
           <div class="mt-4 text-center">
-            <router-link to="/forgot-password" class="text-sm text-gray-400 hover:text-indigo-600 transition">
-              Passwort vergessen?
+            <router-link :to="forgotPath" class="text-sm text-gray-400 hover:text-indigo-600 transition">
+              {{ t('auth.login.forgot_password') }}
             </router-link>
           </div>
 
           <div class="mt-3 text-center text-sm text-gray-500 dark:text-gray-400">
-            Noch kein Konto?
-            <router-link to="/register" class="font-semibold text-indigo-600 hover:text-indigo-500">
-              Hier registrieren
+            {{ t('auth.login.no_account') }}
+            <router-link :to="registerPath" class="font-semibold text-indigo-600 hover:text-indigo-500">
+              {{ t('auth.login.register_link') }}
             </router-link>
           </div>
         </div>
@@ -146,15 +155,15 @@ const handleResendFromLogin = async () => {
         <div class="px-8 py-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-700 flex items-center justify-center gap-6 text-xs text-gray-400">
           <span class="flex items-center gap-1">
             <CurrencyEuroIcon class="h-3.5 w-3.5" />
-            Kostenlos
+            {{ t('auth.login.free') }}
           </span>
           <span class="text-gray-200">|</span>
           <span class="flex items-center gap-1">
             <ShieldCheckIcon class="h-3.5 w-3.5" />
-            DSGVO-konform
+            {{ t('auth.login.gdpr') }}
           </span>
           <span class="text-gray-200">|</span>
-          <span>Kein Tracking</span>
+          <span>{{ t('auth.login.no_tracking') }}</span>
         </div>
       </div>
 
