@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import api from '../api/axios';
 import { ref, computed } from 'vue';
-import { jwtDecode } from 'jwt-decode';
+import { jwtDecode, type JwtPayload } from 'jwt-decode';
 import { subscriptionService } from '../api/subscriptionService';
 import { useCarStore } from './car';
 
@@ -80,12 +80,23 @@ export const useAuthStore = defineStore('auth', () => {
         }
     };
 
+    const isExpired = (): boolean => {
+        if (!token.value) return true;
+        try {
+            const decoded = jwtDecode<JwtPayload>(token.value);
+            return decoded.exp !== undefined && decoded.exp * 1000 < Date.now();
+        } catch {
+            return true;
+        }
+    };
+
     const isDemoAccount = computed(() => (user.value as any)?.demoAccount === true);
 
     return {
         token, user, isDemoAccount, isPremium,
         setToken, setPremium, logout, login, register,
         refreshPremiumStatus,
-        isAuthenticated: () => !!token.value
+        isAuthenticated: () => !!token.value,
+        isExpired,
     };
 });
