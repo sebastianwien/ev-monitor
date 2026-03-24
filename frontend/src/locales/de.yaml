@@ -20,6 +20,7 @@ nav:
   login: "Anmelden"
   register: "Registrieren"
   dashboard: "Dashboard"
+  models_compare: "Modelle"
 
 landing:
   hero:
@@ -407,6 +408,8 @@ dashboard:
   prev: "Zurück"
   next: "Weiter"
   free_text: "EV Monitor ist kostenlos."
+  coins_total: "Gesamt"
+  coins_this_month: "Diesen Monat"
 
 leaderboard:
   title: "Bestenliste"
@@ -420,7 +423,7 @@ leaderboard:
   login_hint: "Einloggen"
   login_hint_suffix: "um deinen eigenen Platz zu sehen."
   coins_history: "Deinen eigenen Watt-Verlauf ansehen"
-  top3_reward: "Die Top 3 erhalten am Monatsende Bonus-Coins:"
+  top3_reward: "Die Top 3 erhalten am Monatsende Bonus-Watt:"
   not_ranked: "Du bist noch nicht im Ranking - leg los!"
   new_entry: "NEU"
   cat_kwh: "Meiste kWh"
@@ -488,6 +491,11 @@ logfields:
   cost_per_kwh_placeholder: "z.B. 0.20"
   public_charging: "Öffentliche Ladesäule"
   cpo_name_placeholder: "Netzbetreiber (z.B. IONITY, EnBW)"
+  update_location: "Standort aktualisieren"
+  location_search_placeholder: "Ort suchen (ersetzt bestehenden Standort)..."
+  new_location: "Neuer Standort:"
+  current_location: "Aktueller Standort gespeichert (Geohash: {geohash})"
+  save: "Speichern"
 
 cars:
   title: "Meine Fahrzeuge"
@@ -1134,3 +1142,50 @@ goe:
   merge_sessions_title: "Sessions zusammenfassen"
   merge_sessions_desc: "Kleine Überschuss-Sessions desselben Tages gruppieren"
   updated_every: "Aktualisiert alle {n} Min"
+
+heatmap:
+  loading: "Lade Karte..."
+  no_car_title: "Kein Fahrzeug ausgewählt"
+  no_car_desc: "Wähle ein Fahrzeug aus um die Lade-Karte anzuzeigen."
+  no_locations_title: "Noch keine Standorte erfasst"
+  no_locations_desc: "Füge Standorte zu deinen Ladevorgängen hinzu, um sie hier auf der Karte zu sehen!"
+  privacy_note: "Standorte werden auf 5km anonymisiert (DSGVO)"
+  charges_count: "{n} Ladevorgänge"
+  view_label: "Ansicht:"
+  view_both: "Beides"
+  legend: "Legende:"
+  legend_low: "Wenig kWh"
+  legend_medium: "Mittel kWh"
+  legend_high: "Viel kWh"
+  click_for_details: "· Klick auf Marker für Details"
+
+support:
+  nav_btn: "Unterstützen"
+  footer_btn: "EV Monitor unterstützen"
+
+footer:
+  privacy: "Datenschutz"
+  imprint: "Impressum"
+  terms: "AGB"
+  github: "GitHub"
+
+tronity:
+  title: "Tronity Import"
+  desc: "Importiere deine Ladehistorie direkt aus dem Tronity XLSX-Export. In der Tronity-App unter <strong>Fahrten &amp; Laden - Laden - Export</strong> eine XLSX-Datei erstellen und hier hochladen."
+  feature_1: "SoC vor/nach, Kosten, GPS-Koordinaten, AC/DC - alles inklusive"
+  feature_2: "Duplikate werden automatisch erkannt und übersprungen"
+  feature_3: "Format wird automatisch erkannt - kein manuelles Mapping nötig"
+  car_label: "Fahrzeug"
+  no_car: "Kein aktives Fahrzeug gefunden."
+  add_car: "Fahrzeug anlegen"
+  file_label: "XLSX-Datei"
+  file_drop: "Datei hierher ziehen oder"
+  file_select: "auswählen"
+  entries_found: "{n} Einträge erkannt"
+  result: "{imported} importiert, {skipped} übersprungen"
+  result_errors: ", {errors} Fehler"
+  import_btn: "Importieren"
+  err_too_large: "Datei zu groß (max. 5 MB)"
+  err_format: "Kein Tronity-Format erkannt. Bitte einen Tronity XLSX-Export hochladen."
+  err_read: "Datei konnte nicht gelesen werden."
+  err_import: "Import fehlgeschlagen"

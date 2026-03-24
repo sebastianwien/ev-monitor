@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useLocaleFormat } from '../composables/useLocaleFormat'
 import api from '../api/axios'
 import CarSelector from './CarSelector.vue'
 import OcrPhotoCapture from './OcrPhotoCapture.vue'
@@ -14,6 +16,8 @@ import ConsumptionInfoBox from './ConsumptionInfoBox.vue'
 import EditLogModal from './EditLogModal.vue'
 
 const { haptic } = useHaptic()
+const { t } = useI18n()
+const { formatNumber } = useLocaleFormat()
 const coinStore = useCoinStore()
 const carStore = useCarStore()
 
@@ -27,7 +31,7 @@ const ocrUsed = ref(false)
 const showToast = ref(false)
 const toastMessage = ref('')
 const showCoinToast = (coins: number) => {
-  toastMessage.value = `+${coins} Watt erhalten!`
+  toastMessage.value = t('logform.coin_toast', { n: coins })
   showToast.value = true
   setTimeout(() => { showToast.value = false }, 4000)
 }
@@ -92,8 +96,8 @@ const getLastOdometerPlaceholder = (): string => {
     .filter(l => l.odometerKm != null)
     .filter(l => !refDate || new Date(l.loggedAt).getTime() < new Date(refDate).getTime())
     .sort((a, b) => new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime())
-  if (sorted.length === 0) return 'Tachostand (km)'
-  return `zuletzt ${sorted[0].odometerKm.toLocaleString('de-DE')} km`
+  if (sorted.length === 0) return t('logfields.odometer')
+  return t('logform.odometer_last', { km: formatNumber(sorted[0].odometerKm) })
 }
 
 const fetchLogs = async () => {
@@ -230,19 +234,19 @@ onMounted(async () => {
 
 <template>
   <div class="md:max-w-2xl md:mx-auto p-4 md:p-6 bg-white dark:bg-gray-800 md:rounded-xl md:shadow-lg md:mt-8">
-    <h1 class="text-xl md:text-3xl font-bold text-gray-800 dark:text-gray-200 mb-4 md:mb-6 text-center">Ladevorgang erfassen</h1>
+    <h1 class="text-xl md:text-3xl font-bold text-gray-800 dark:text-gray-200 mb-4 md:mb-6 text-center">{{ t('logform.title') }}</h1>
 
     <!-- No cars yet -->
     <div v-if="hasCars === false" class="text-center py-10 space-y-4">
       <TruckIcon class="h-14 w-14 mx-auto text-gray-300" />
-      <p class="text-gray-600 dark:text-gray-400 font-medium">Noch kein Fahrzeug hinterlegt</p>
-      <p class="text-sm text-gray-400 dark:text-gray-500">Lege zuerst ein Fahrzeug an, bevor du einen Ladevorgang erfasst.</p>
+      <p class="text-gray-600 dark:text-gray-400 font-medium">{{ t('logform.no_car_title') }}</p>
+      <p class="text-sm text-gray-400 dark:text-gray-500">{{ t('logform.no_car_desc') }}</p>
       <router-link
         to="/cars"
         class="inline-flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-indigo-700 transition"
       >
         <TruckIcon class="h-4 w-4" />
-        Fahrzeug anlegen
+        {{ t('logform.no_car_btn') }}
       </router-link>
     </div>
 
@@ -257,11 +261,11 @@ onMounted(async () => {
         <div class="inline-flex rounded-full border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-700 p-0.5">
           <button type="button" @click="showOcrCapture = true"
             :class="['flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition', showOcrCapture ? 'bg-white dark:bg-gray-600 text-indigo-700 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']">
-            <CameraIcon class="h-4 w-4" />Foto
+            <CameraIcon class="h-4 w-4" />{{ t('logform.mode_photo') }}
           </button>
           <button type="button" @click="showOcrCapture = false"
             :class="['flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition', !showOcrCapture ? 'bg-white dark:bg-gray-600 text-indigo-700 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']">
-            <PencilSquareIcon class="h-4 w-4" />Manuell
+            <PencilSquareIcon class="h-4 w-4" />{{ t('logform.mode_manual') }}
           </button>
         </div>
       </div>
@@ -283,10 +287,10 @@ onMounted(async () => {
           <button :key="shakeKey" type="submit" @click="haptic(20)"
             :disabled="!isFormValid"
             :class="['w-full bg-indigo-600 text-white p-3 rounded-md btn-3d transition', !isFormValid ? 'opacity-40 cursor-not-allowed' : 'hover:bg-indigo-700', error ? 'ring-2 ring-red-400 ring-offset-2 animate-shake' : '']">
-            ⚡ Ladevorgang speichern
+            {{ t('logform.save_btn') }}
           </button>
           <p class="text-xs text-gray-400 dark:text-gray-500 text-center mt-2">
-            📍 Der Standort hilft uns, die Außentemperatur beim Laden zu ermitteln — anonymisiert auf ~5km.
+            {{ t('logform.location_hint') }}
           </p>
           <ConsumptionInfoBox :min-trips="5" class="mt-4" />
         </form>
@@ -301,9 +305,9 @@ onMounted(async () => {
 
         <!-- Last 5 logs -->
         <div class="mt-10">
-          <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">Letzte 5 Ladevorgänge</h2>
-          <div v-if="!selectedCarId" class="text-gray-500 dark:text-gray-400 text-center">Bitte wähle ein Fahrzeug aus um Ladevorgänge anzuzeigen.</div>
-          <div v-else-if="logs.length === 0" class="text-gray-500 dark:text-gray-400 text-center">Noch keine Ladevorgänge für dieses Fahrzeug erfasst.</div>
+          <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">{{ t('logform.last_5_title') }}</h2>
+          <div v-if="!selectedCarId" class="text-gray-500 dark:text-gray-400 text-center">{{ t('logform.no_car_selected') }}</div>
+          <div v-else-if="logs.length === 0" class="text-gray-500 dark:text-gray-400 text-center">{{ t('logform.no_logs_yet') }}</div>
           <ul v-else class="space-y-3">
             <li v-for="log in logs" :key="log.id" class="p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:shadow transition space-y-2">
               <div class="flex items-center justify-between gap-2">

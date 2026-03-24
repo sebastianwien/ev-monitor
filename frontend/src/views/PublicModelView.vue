@@ -193,7 +193,7 @@
             <!-- Summer Stats -->
             <div class="flex items-center justify-between mb-2 text-sm">
               <div class="flex items-center gap-2">
-                <span class="text-orange-600 font-medium">🌞 {{ t('model.seasonal_summer') }}<span class="block md:inline"> {{ t('model.seasonal_summer_months') }}</span></span>
+                <span class="text-orange-600 font-medium">🌞 {{ t('model.seasonal_summer') }} <span class="block md:inline"> {{ t('model.seasonal_summer_months') }}</span></span>
               </div>
               <div class="flex items-center gap-3">
                 <template v-if="selectedVariant!.seasonalDistribution!.summerConsumptionKwhPer100km">
@@ -216,7 +216,7 @@
             <!-- Winter Stats -->
             <div class="flex items-center justify-between mb-3 text-sm">
               <div class="flex items-center gap-2">
-                <span class="text-blue-700 font-medium">❄️ {{ t('model.seasonal_winter') }}<span class="block md:inline"> {{ t('model.seasonal_winter_months') }}</span></span>
+                <span class="text-blue-700 font-medium">❄️ {{ t('model.seasonal_winter') }} <span class="block md:inline"> {{ t('model.seasonal_winter_months') }}</span></span>
               </div>
               <div class="flex items-center gap-3">
                 <template v-if="selectedVariant!.seasonalDistribution!.winterConsumptionKwhPer100km">
@@ -320,13 +320,7 @@
                   <th class="pb-3 pr-4 font-medium whitespace-nowrap">{{ t('model.wltp_table_battery') }}</th>
                   <th class="pb-3 pr-4 font-medium whitespace-nowrap">{{ t('model.wltp_table_range') }}</th>
                   <th class="pb-3 pr-4 font-medium whitespace-nowrap">
-                    <div>{{ t('model.wltp_table_real_range') }}</div>
-                    <div class="flex items-center gap-1.5 mt-1 font-normal">
-                      <SunIcon class="h-3.5 w-3.5 text-amber-500" />
-                      <span class="text-gray-300">/</span>
-                      <svg class="h-3.5 w-3.5 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/><line x1="19.07" y1="4.93" x2="4.93" y2="19.07"/><circle cx="12" cy="12" r="2" fill="currentColor"/></svg>
-                      <span class="text-xs">{{ t('model.wltp_table_full_to_empty') }}</span>
-                    </div>
+                    <div>{{ t('model.wltp_table_real_range') }} <span class="text-xs">{{ t('model.wltp_table_full_to_empty') }}</span></div>
                   </th>
                   <th class="pb-3 pr-4 font-medium whitespace-nowrap">{{ t('model.wltp_table_consumption') }}</th>
                   <th class="pb-3 font-medium whitespace-nowrap">{{ t('model.wltp_table_real_consumption') }}</th>

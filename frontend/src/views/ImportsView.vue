@@ -113,9 +113,9 @@ const activeCars = computed(() =>
 </script>
 
 <template>
-  <div class="md:max-w-3xl md:mx-auto px-4 md:px-0 py-6">
+  <div class="md:max-w-3xl md:mx-auto md:p-6">
     <Transition name="fade" mode="out-in">
-      <div v-if="!loading">
+      <div v-if="!loading" class="bg-white dark:bg-gray-800 md:rounded-xl md:shadow-lg p-4 md:p-6">
         <!-- Header -->
         <div class="mb-6">
           <div class="flex items-center gap-3 mb-2">
