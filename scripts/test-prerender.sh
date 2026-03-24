@@ -19,8 +19,9 @@ check() {
   local label="$1"
   local ua="$2"
   local expect_prerender="$3"  # "yes" or "no"
+  local path="${4:-/modelle}"
 
-  body_size=$(curl -s -A "$ua" -o /dev/null -w "%{size_download}" "$BASE_URL/modelle")
+  body_size=$(curl -s -A "$ua" -o /dev/null -w "%{size_download}" "$BASE_URL$path")
 
   if [ "$expect_prerender" = "yes" ]; then
     if [ "$body_size" -gt 10000 ]; then
@@ -38,6 +39,8 @@ check() {
   fi
 }
 
+echo ""
+echo "── /modelle (DE) ──────────────────────"
 check "Normal User (Chrome)"     "Mozilla/5.0 Chrome/120.0"                         "no"
 check "Googlebot"                "Googlebot/2.1"                                    "yes"
 check "Bingbot"                  "bingbot/2.0"                                      "yes"
@@ -47,6 +50,18 @@ check "ClaudeBot"                "ClaudeBot/1.0"                                
 check "OAI-SearchBot"            "OAI-SearchBot/1.0"                                "yes"
 check "DuckDuckBot"              "DuckDuckBot/1.1"                                  "yes"
 check "LinkedInBot"              "LinkedInBot/1.0"                                  "yes"
+
+echo ""
+echo "── /en/models (EN) ────────────────────"
+check "Normal User (Chrome)"     "Mozilla/5.0 Chrome/120.0"                         "no"   "/en/models"
+check "Googlebot"                "Googlebot/2.1"                                    "yes"  "/en/models"
+check "GPTBot"                   "GPTBot/1.0"                                       "yes"  "/en/models"
+check "ClaudeBot"                "ClaudeBot/1.0"                                    "yes"  "/en/models"
+
+echo ""
+echo "── /en/models/tesla/Model_3 (EN detail) ─"
+check "Googlebot"                "Googlebot/2.1"                                    "yes"  "/en/models/tesla/Model_3"
+check "Normal User (Chrome)"     "Mozilla/5.0 Chrome/120.0"                         "no"   "/en/models/tesla/Model_3"
 
 echo ""
 if [ "$FAILED" -eq 0 ]; then
