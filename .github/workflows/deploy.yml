@@ -99,3 +99,29 @@ jobs:
           script: |
             cd /opt/ev-monitor/ev-monitor
             ./scripts/test-prerender.sh https://ev-monitor.net
+
+      - name: Warm prerender cache
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 2222
+          script: |
+            cd /opt/ev-monitor/ev-monitor
+            mkdir -p logs
+            echo "🔥 Starting prerender cache warmer in background..."
+            nohup ./scripts/warm-prerender-cache.sh > /opt/ev-monitor/ev-monitor/logs/prerender-warm.log 2>&1 &
+            echo "✅ Cache warmer started (PID $!), see /opt/ev-monitor/ev-monitor/logs/prerender-warm.log"
+
+      - name: Install prerender cache warmer cron job
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 2222
+          script: |
+            CRON_LINE="17 4 * * * /opt/ev-monitor/ev-monitor/scripts/warm-prerender-cache.sh >> /opt/ev-monitor/ev-monitor/logs/prerender-warm.log 2>&1"
+            (crontab -l 2>/dev/null | grep -v "warm-prerender-cache"; echo "$CRON_LINE") | crontab -
+            echo "✅ Cron job set: $(crontab -l | grep warm-prerender-cache)"
