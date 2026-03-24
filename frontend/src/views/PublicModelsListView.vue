@@ -3,7 +3,7 @@
     <PublicNav />
 
     <main :class="isAuthenticated ? 'md:max-w-6xl md:mx-auto md:p-6' : 'max-w-6xl mx-auto px-4 py-8'">
-      <div :class="isAuthenticated ? 'bg-white dark:bg-gray-800 md:rounded-xl md:shadow-lg p-4 md:p-6' : ''">
+      <div :class="isAuthenticated ? 'bg-white dark:bg-gray-800 md:rounded-xl md:shadow-xl dark:md:shadow-[0_8px_32px_rgba(0,0,0,0.5)] p-4 md:p-6' : ''">
       <!-- Hero -->
       <div class="rounded-2xl mb-8 overflow-hidden">
 

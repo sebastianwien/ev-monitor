@@ -778,7 +778,7 @@ const deleteLog = async (id: string) => {
     <RewardSystemUpdateBanner class="mb-4" />
     <Transition name="fade" mode="out-in">
       <div v-if="!loading || !isInitialLoad">
-        <div class="bg-white dark:bg-gray-800 md:rounded-xl md:shadow-lg p-4 md:p-6">
+        <div class="bg-white dark:bg-gray-800 md:rounded-xl md:shadow-xl dark:md:shadow-[0_8px_32px_rgba(0,0,0,0.5)] p-4 md:p-6">
           <div class="flex items-center gap-3 mb-6">
             <ChartBarIcon class="h-8 w-8 text-gray-700 dark:text-gray-300" />
             <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-200">Dashboard</h1>

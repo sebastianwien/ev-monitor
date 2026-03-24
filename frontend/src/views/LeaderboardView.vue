@@ -14,7 +14,9 @@ import {
   MoonIcon,
   FireIcon,
   ArrowPathIcon,
-  ClockIcon
+  ClockIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon
 } from '@heroicons/vue/24/outline'
 
 interface LeaderboardEntry {
@@ -52,6 +54,20 @@ const CATEGORIES = computed(() => [
 
 const authStore = useAuthStore()
 const activeCategory = ref('MONTHLY_KWH')
+const tabsScrollEl = ref<HTMLElement | null>(null)
+const canScrollLeft = ref(false)
+const canScrollRight = ref(false)
+
+function updateScrollIndicators() {
+  const el = tabsScrollEl.value
+  if (!el) return
+  canScrollLeft.value = el.scrollLeft > 4
+  canScrollRight.value = el.scrollLeft + el.clientWidth < el.scrollWidth - 4
+}
+
+function scrollTabs(dir: 'left' | 'right') {
+  tabsScrollEl.value?.scrollBy({ left: dir === 'right' ? 160 : -160, behavior: 'smooth' })
+}
 const data = ref<LeaderboardResponse | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
@@ -72,7 +88,10 @@ async function load(category: string) {
 }
 
 watch(activeCategory, (cat) => load(cat))
-onMounted(() => load(activeCategory.value))
+onMounted(() => {
+  load(activeCategory.value)
+  updateScrollIndicators()
+})
 
 function setCategory(key: string) {
   activeCategory.value = key
@@ -122,39 +141,60 @@ const periodLabel = computed(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
-    <!-- Header -->
-    <div class="bg-indigo-600 text-white px-4 py-6 md:rounded-xl md:shadow mb-0 md:mb-6">
-      <div class="max-w-3xl mx-auto">
-        <div class="flex items-center gap-3 mb-1">
-          <TrophyIcon class="h-7 w-7 text-yellow-300" />
-          <h1 class="text-2xl font-bold">{{ t('leaderboard.title') }}</h1>
-        </div>
-        <p class="text-indigo-200 text-sm">
-          {{ t('leaderboard.subtitle') }}
-          <span v-if="data"> - {{ periodLabel }}</span>
-        </p>
+  <div class="md:max-w-3xl md:mx-auto md:p-6 pt-4">
+    <div class="bg-white dark:bg-gray-800 md:rounded-xl md:shadow-xl dark:md:shadow-[0_8px_32px_rgba(0,0,0,0.5)] p-4 md:p-6">
+      <!-- Header -->
+      <div class="flex items-center gap-3 mb-1">
+        <TrophyIcon class="h-7 w-7 text-yellow-400" />
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ t('leaderboard.title') }}</h1>
       </div>
-    </div>
+      <p class="text-gray-500 dark:text-gray-400 text-sm mb-2">
+        {{ t('leaderboard.subtitle') }}
+        <span v-if="data"> - {{ periodLabel }}</span>
+      </p>
+      <!-- Category Tabs -->
+      <div class="relative -mx-4 md:-mx-6">
+        <!-- Left fade + arrow -->
+        <Transition name="fade-quick">
+          <div v-if="canScrollLeft" class="absolute left-0 top-0 bottom-0 z-10 flex items-center pointer-events-none">
+            <div class="w-12 h-full bg-gradient-to-r from-white dark:from-gray-800 to-transparent" />
+            <button @click="scrollTabs('left')" class="absolute left-1 pointer-events-auto bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full p-1 shadow-md">
+              <ChevronLeftIcon class="h-4 w-4 text-gray-600 dark:text-gray-300" />
+            </button>
+          </div>
+        </Transition>
 
-    <div class="max-w-3xl mx-auto px-0 md:px-0">
-      <!-- Category Tabs - horizontally scrollable on mobile -->
-      <div class="overflow-x-auto -mx-0">
-        <div class="flex gap-2 px-4 py-3 min-w-max">
-          <button
-            v-for="cat in CATEGORIES"
-            :key="cat.key"
-            @click="setCategory(cat.key)"
-            :class="[
-              'flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all border',
-              activeCategory === cat.key
-                ? 'bg-indigo-600 text-white border-indigo-700 translate-y-0.5 shadow-[0_2px_0_0_#3730a3]'
-                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 shadow-[0_4px_0_0_#d1d5db] hover:shadow-[0_4px_0_0_#a5b4fc] hover:border-indigo-300 active:translate-y-0.5 active:shadow-[0_2px_0_0_#d1d5db]'
-            ]">
-            <component :is="cat.icon" :class="['h-4 w-4', activeCategory === cat.key ? 'text-white' : cat.color]" />
-            {{ cat.label }}
-          </button>
+        <div
+          ref="tabsScrollEl"
+          @scroll="updateScrollIndicators"
+          class="overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+        >
+          <div class="flex gap-2 px-4 md:px-6 py-3 min-w-max">
+            <button
+              v-for="cat in CATEGORIES"
+              :key="cat.key"
+              @click="setCategory(cat.key)"
+              :class="[
+                'flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all border',
+                activeCategory === cat.key
+                  ? 'bg-indigo-600 text-white border-indigo-700 translate-y-0.5 shadow-[0_2px_0_0_#3730a3]'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_4px_0_0_#a5b4fc] dark:hover:shadow-[0_4px_0_0_#4338ca] hover:border-indigo-300 active:translate-y-0.5 active:shadow-[0_2px_0_0_#d1d5db] dark:active:shadow-[0_2px_0_0_#111827]'
+              ]">
+              <component :is="cat.icon" :class="['h-4 w-4', activeCategory === cat.key ? 'text-white' : cat.color]" />
+              {{ cat.label }}
+            </button>
+          </div>
         </div>
+
+        <!-- Right fade + arrow -->
+        <Transition name="fade-quick">
+          <div v-if="canScrollRight" class="absolute right-0 top-0 bottom-0 z-10 flex items-center pointer-events-none">
+            <div class="w-12 h-full bg-gradient-to-l from-white dark:from-gray-800 to-transparent" />
+            <button @click="scrollTabs('right')" class="absolute right-1 pointer-events-auto bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full p-1 shadow-md">
+              <ChevronRightIcon class="h-4 w-4 text-gray-600 dark:text-gray-300" />
+            </button>
+          </div>
+        </Transition>
       </div>
 
       <!-- Loading -->
@@ -169,14 +209,8 @@ const periodLabel = computed(() => {
       </div>
 
       <!-- Leaderboard Table -->
-      <div v-else-if="data" class="mx-4 md:mx-0 space-y-2">
-        <!-- Section label -->
-        <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 px-1 pb-1">
-          <component :is="activeCategoryMeta?.icon" :class="['h-3.5 w-3.5', activeCategoryMeta?.color]" />
-          <span>{{ data.displayName }}</span>
-          <span class="text-gray-300">·</span>
-          <span v-if="data.lowerIsBetter" class="text-blue-500">{{ t('leaderboard.lower_is_better') }}</span>
-        </div>
+      <div v-else-if="data" class="space-y-2">
+        <div v-if="data.lowerIsBetter" class="text-xs text-blue-500 px-1 pb-1">{{ t('leaderboard.lower_is_better') }}</div>
 
         <!-- Empty state -->
         <div v-if="data.entries.length === 0" class="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-8 text-center text-gray-400">
@@ -275,3 +309,8 @@ const periodLabel = computed(() => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.fade-quick-enter-active, .fade-quick-leave-active { transition: opacity 0.15s ease; }
+.fade-quick-enter-from, .fade-quick-leave-to { opacity: 0; }
+</style>

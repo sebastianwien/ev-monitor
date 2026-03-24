@@ -466,7 +466,7 @@ onUnmounted(() => {
   <div class="md:max-w-4xl md:mx-auto md:p-6">
     <Transition name="fade" mode="out-in">
       <div v-if="!loading">
-        <div class="bg-white dark:bg-gray-800 md:rounded-xl md:shadow-lg p-4 md:p-6">
+        <div class="bg-white dark:bg-gray-800 md:rounded-xl md:shadow-xl dark:md:shadow-[0_8px_32px_rgba(0,0,0,0.5)] p-4 md:p-6">
       <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-200">{{ t('cars.title') }}</h1>
         <button

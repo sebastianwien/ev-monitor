@@ -109,7 +109,7 @@ onMounted(() => {
 
 <template>
   <div class="md:max-w-2xl md:mx-auto p-4 md:p-6 md:mt-8">
-    <div class="bg-white dark:bg-gray-800 md:rounded-xl md:shadow-lg p-4 md:p-6">
+    <div class="bg-white dark:bg-gray-800 md:rounded-xl md:shadow-xl dark:md:shadow-[0_8px_32px_rgba(0,0,0,0.5)] p-4 md:p-6">
       <!-- Header -->
       <div class="mb-6">
         <div class="flex items-center justify-between">

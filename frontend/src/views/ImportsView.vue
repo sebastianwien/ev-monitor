@@ -115,7 +115,7 @@ const activeCars = computed(() =>
 <template>
   <div class="md:max-w-3xl md:mx-auto md:p-6">
     <Transition name="fade" mode="out-in">
-      <div v-if="!loading" class="bg-white dark:bg-gray-800 md:rounded-xl md:shadow-lg p-4 md:p-6">
+      <div v-if="!loading" class="bg-white dark:bg-gray-800 md:rounded-xl md:shadow-xl dark:md:shadow-[0_8px_32px_rgba(0,0,0,0.5)] p-4 md:p-6">
         <!-- Header -->
         <div class="mb-6">
           <div class="flex items-center gap-3 mb-2">
