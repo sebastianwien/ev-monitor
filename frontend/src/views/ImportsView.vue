@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useAuthStore } from '../stores/auth'
 import { ArrowDownTrayIcon, BoltIcon, ExclamationTriangleIcon, CodeBracketIcon, TrashIcon, ClipboardDocumentIcon, CheckIcon } from '@heroicons/vue/24/outline'
 import SpritMonitorImport from '../components/SpritMonitorImport.vue'
 import GoeIntegration from '../components/GoeIntegration.vue'
@@ -17,6 +18,7 @@ import { analytics } from '../services/analytics'
 
 const { t } = useI18n()
 const { activeTab } = useImportsTab()
+const authStore = useAuthStore()
 const carStore = useCarStore()
 const showSpritMonitorModal = ref(false)
 const manualImportCarId = ref<string | null>(null)
@@ -114,7 +116,7 @@ const activeCars = computed(() =>
 </script>
 
 <template>
-  <div class="md:max-w-3xl md:mx-auto md:p-6">
+  <div class="md:max-w-5xl md:mx-auto md:p-6">
     <Transition name="fade" mode="out-in">
       <div v-if="!loading" class="bg-white dark:bg-gray-800 md:rounded-xl md:shadow-lg p-4 md:p-6">
         <!-- Header -->
@@ -149,7 +151,10 @@ const activeCars = computed(() =>
                 ? 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 -mb-px pb-[calc(0.625rem+1px)]'
                 : 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600'
             ]"
-          >{{ tab.label }}</button>
+          >
+            {{ tab.label }}
+            <span v-if="tab.id === 'smartcar' && !authStore.isAdmin" class="ml-1.5 text-[10px] bg-amber-400 text-amber-900 font-semibold px-1.5 py-0.5 rounded-full leading-none">{{ t('imports.smartcar_coming_soon') }}</span>
+          </button>
         </div>
         <!-- Tab panel -->
         <div class="border border-gray-200 dark:border-gray-700 rounded-b-xl rounded-tr-xl bg-white dark:bg-gray-800">

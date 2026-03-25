@@ -100,10 +100,10 @@ const stateColor = (state: string | null) => {
         <SparklesIcon class="h-5 w-5 text-white" />
       </div>
       <div>
-        <h2 class="font-semibold text-gray-900 dark:text-gray-100">
+        <h2 class="font-semibold text-gray-900 dark:text-gray-100 flex flex-wrap items-center gap-2">
           {{ t('imports.smartcar_teaser_title') }}
-          <span class="text-xs bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200 px-2 py-0.5 rounded-full font-medium ml-2">
-            {{ t('imports.smartcar_coming_soon') }}
+<span class="text-xs bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 px-2 py-0.5 rounded-full font-medium">
+            Premium
           </span>
         </h2>
         <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ t('imports.smartcar_teaser_desc') }}</p>
