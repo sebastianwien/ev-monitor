@@ -111,6 +111,15 @@ server {
         return 404;
     }
 
+    # Service Worker - must never be cached so browsers always get the latest version
+    # Stale sw.js can reference workbox files from old deployments that no longer exist
+    location = /sw.js {
+        root /usr/share/nginx/html;
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+        add_header Pragma "no-cache";
+        expires 0;
+    }
+
     location = /sitemap.xml {
         proxy_pass http://backend:8080/sitemap.xml;
         proxy_set_header Host $http_host;
