@@ -6,6 +6,7 @@ import com.evmonitor.application.publicapi.PublicApiSessionRequest;
 import com.evmonitor.domain.ApiKey;
 import com.evmonitor.infrastructure.security.RateLimitService;
 import com.evmonitor.infrastructure.security.UserPrincipal;
+import org.springframework.dao.DataIntegrityViolationException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -89,6 +90,10 @@ public class PublicApiImportController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
                     .body(Map.of("error", e.getMessage()));
+        } catch (DataIntegrityViolationException e) {
+            // Race condition: duplicate session slipped past the isDuplicate check
+            // Return gracefully instead of 500
+            return ResponseEntity.ok(Map.of("imported", 0, "skipped", 1, "errors", 0));
         }
     }
 }
