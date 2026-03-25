@@ -51,8 +51,7 @@ public class UserService {
                 totalKwh,
                 totalCostEur,
                 user.getReferralCode(),
-                userEntity.isLeaderboardVisible(),
-                userEntity.getPrimaryEmp()
+                userEntity.isLeaderboardVisible()
         );
     }
 
@@ -172,12 +171,4 @@ public class UserService {
         jpaUserRepository.save(userEntity);
     }
 
-    @Transactional
-    public void setPrimaryEmp(UUID userId, String primaryEmp) {
-        UserEntity userEntity = jpaUserRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-        userEntity.setPrimaryEmp(primaryEmp != null && primaryEmp.isBlank() ? null : primaryEmp);
-        userEntity.setUpdatedAt(LocalDateTime.now());
-        jpaUserRepository.save(userEntity);
-    }
 }

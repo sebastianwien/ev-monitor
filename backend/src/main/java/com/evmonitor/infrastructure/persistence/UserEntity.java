@@ -64,9 +64,6 @@ public class UserEntity {
     @Column(name = "leaderboard_visible", nullable = false)
     private boolean leaderboardVisible = true;
 
-    @Column(name = "primary_emp", length = 100)
-    private String primaryEmp;
-
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -253,14 +250,6 @@ public class UserEntity {
 
     public void setLeaderboardVisible(boolean leaderboardVisible) {
         this.leaderboardVisible = leaderboardVisible;
-    }
-
-    public String getPrimaryEmp() {
-        return primaryEmp;
-    }
-
-    public void setPrimaryEmp(String primaryEmp) {
-        this.primaryEmp = primaryEmp;
     }
 
 }

@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import { UserIcon, KeyIcon, TrashIcon, ArrowDownTrayIcon, AcademicCapIcon, ShareIcon, ClipboardDocumentIcon, CheckIcon, HeartIcon, TrophyIcon, ArrowRightOnRectangleIcon, BoltIcon } from '@heroicons/vue/24/outline'
+import { UserIcon, KeyIcon, TrashIcon, ArrowDownTrayIcon, AcademicCapIcon, ShareIcon, ClipboardDocumentIcon, CheckIcon, HeartIcon, TrophyIcon, ArrowRightOnRectangleIcon, BoltIcon, CreditCardIcon, PlusIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/vue/24/outline'
 import SupportPopover from '../components/SupportPopover.vue'
 import api from '../api/axios'
 
@@ -214,6 +214,116 @@ const deleteAccount = async () => {
   }
 }
 
+// Charging Providers
+interface ChargingProvider {
+  id: string
+  providerName: string
+  acPricePerKwh: number | null
+  dcPricePerKwh: number | null
+  monthlyFeeEur: number
+  sessionFeeEur: number
+  activeFrom: string
+  activeUntil: string | null
+}
+
+const KNOWN_EMPS = [
+  'ADAC e-Charge',
+  'Maingau Energie',
+  'EnBW mobility+',
+  'Plugsurfing',
+  'Elli',
+  'IONITY Passport',
+  'Fastned Gold',
+  'Shell Recharge',
+  'E.ON Drive',
+  'Lichtblick',
+  'EWE Go',
+  'Stadtwerke',
+  'Anderer Anbieter',
+]
+
+const chargingProviders = ref<ChargingProvider[]>([])
+const showProviderForm = ref(false)
+const showProviderHistory = ref(false)
+const providerForm = ref({
+  providerName: '',
+  customProviderName: '',
+  acPricePerKwh: '' as string | number,
+  dcPricePerKwh: '' as string | number,
+  monthlyFeeEur: 0,
+  sessionFeeEur: 0,
+  activeFrom: new Date().toISOString().split('T')[0],
+})
+
+const activeProvider = computed(() =>
+  chargingProviders.value.find(p => p.activeUntil === null) ?? null
+)
+const pastProviders = computed(() =>
+  chargingProviders.value.filter(p => p.activeUntil !== null)
+)
+const isCustomProvider = computed(() => providerForm.value.providerName === 'Anderer Anbieter')
+
+const fetchChargingProviders = async () => {
+  try {
+    const res = await api.get('/users/me/charging-providers')
+    chargingProviders.value = res.data
+  } catch {
+    // not critical - section just stays empty
+  }
+}
+
+const saveChargingProvider = async () => {
+  const name = isCustomProvider.value
+    ? providerForm.value.customProviderName.trim()
+    : providerForm.value.providerName
+
+  if (!name || !providerForm.value.activeFrom) return
+
+  loading.value = true
+  message.value = null
+  try {
+    await api.post('/users/me/charging-providers', {
+      providerName: name,
+      acPricePerKwh: providerForm.value.acPricePerKwh !== '' ? providerForm.value.acPricePerKwh : null,
+      dcPricePerKwh: providerForm.value.dcPricePerKwh !== '' ? providerForm.value.dcPricePerKwh : null,
+      monthlyFeeEur: providerForm.value.monthlyFeeEur || 0,
+      sessionFeeEur: providerForm.value.sessionFeeEur || 0,
+      activeFrom: providerForm.value.activeFrom,
+    })
+    await fetchChargingProviders()
+    showProviderForm.value = false
+    providerForm.value = {
+      providerName: '',
+      customProviderName: '',
+      acPricePerKwh: '',
+      dcPricePerKwh: '',
+      monthlyFeeEur: 0,
+      sessionFeeEur: 0,
+      activeFrom: new Date().toISOString().split('T')[0],
+    }
+    message.value = { type: 'success', text: 'Ladetarif gespeichert!' }
+  } catch (error: any) {
+    message.value = { type: 'error', text: error.response?.data?.message || 'Speichern fehlgeschlagen' }
+  } finally {
+    loading.value = false
+  }
+}
+
+const deleteChargingProvider = async (id: string) => {
+  try {
+    await api.delete(`/users/me/charging-providers/${id}`)
+    await fetchChargingProviders()
+  } catch {
+    message.value = { type: 'error', text: 'Löschen fehlgeschlagen' }
+  }
+}
+
+const formatPrice = (val: number | null) =>
+  val != null ? `${val.toFixed(4).replace(/\.?0+$/, '')} €/kWh` : '-'
+
+const formatDate = (dateStr: string) =>
+  new Date(dateStr).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+
 // Leaderboard visibility
 const toggleLeaderboardVisible = async () => {
   const newVal = !leaderboardVisible.value
@@ -238,6 +348,7 @@ const restartOnboarding = () => {
 
 onMounted(() => {
   fetchUserData()
+  fetchChargingProviders()
 })
 </script>
 
@@ -432,6 +543,163 @@ onMounted(() => {
                 @click="showPasswordForm = false; currentPassword = ''; newPassword = ''; confirmPassword = ''"
                 class="btn-3d px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 transition">
                 Abbrechen
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ladetarif Section -->
+      <div class="mb-8">
+        <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
+          <CreditCardIcon class="h-6 w-6" />
+          Mein Ladetarif
+        </h2>
+
+        <!-- Aktueller Tarif -->
+        <div class="mb-3 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+          <div v-if="activeProvider" class="flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <p class="font-semibold text-gray-800 dark:text-gray-100 truncate">{{ activeProvider.providerName }}</p>
+              <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">seit {{ formatDate(activeProvider.activeFrom) }}</p>
+              <div class="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-sm text-gray-600 dark:text-gray-300">
+                <span v-if="activeProvider.acPricePerKwh != null">AC: {{ formatPrice(activeProvider.acPricePerKwh) }}</span>
+                <span v-if="activeProvider.dcPricePerKwh != null">DC: {{ formatPrice(activeProvider.dcPricePerKwh) }}</span>
+                <span v-if="activeProvider.monthlyFeeEur > 0">{{ activeProvider.monthlyFeeEur.toFixed(2) }} €/Monat</span>
+              </div>
+            </div>
+            <button
+              @click="showProviderForm = !showProviderForm"
+              class="btn-3d flex-shrink-0 px-3 py-1 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition">
+              Wechseln
+            </button>
+          </div>
+          <div v-else class="flex items-center justify-between gap-4">
+            <div>
+              <p class="font-medium text-gray-700 dark:text-gray-300">Noch kein Tarif eingetragen</p>
+              <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Trag deinen Ladetarif ein um Vergleiche zu berechnen.</p>
+            </div>
+            <button
+              @click="showProviderForm = !showProviderForm"
+              class="btn-3d flex-shrink-0 flex items-center gap-1 px-3 py-1 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition">
+              <PlusIcon class="h-4 w-4" />
+              Eintragen
+            </button>
+          </div>
+        </div>
+
+        <!-- Formular -->
+        <div v-if="showProviderForm" class="mb-3 p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700 rounded-lg space-y-3">
+          <p class="text-sm font-medium text-indigo-800 dark:text-indigo-300">
+            {{ activeProvider ? 'Neuen Tarif eintragen (beendet automatisch den aktuellen)' : 'Tarif eintragen' }}
+          </p>
+
+          <!-- Anbieter -->
+          <div>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Anbieter</label>
+            <select
+              v-model="providerForm.providerName"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500">
+              <option value="" disabled>Anbieter wählen...</option>
+              <option v-for="emp in KNOWN_EMPS" :key="emp" :value="emp">{{ emp }}</option>
+            </select>
+          </div>
+          <div v-if="isCustomProvider">
+            <input
+              v-model="providerForm.customProviderName"
+              type="text"
+              placeholder="Anbietername eingeben"
+              maxlength="100"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500" />
+          </div>
+
+          <!-- Preise -->
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">AC-Preis (€/kWh)</label>
+              <input
+                v-model="providerForm.acPricePerKwh"
+                type="number" step="0.0001" min="0" max="5"
+                placeholder="z.B. 0.39"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">DC-Preis (€/kWh)</label>
+              <input
+                v-model="providerForm.dcPricePerKwh"
+                type="number" step="0.0001" min="0" max="5"
+                placeholder="z.B. 0.49"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500" />
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Grundgebühr (€/Monat)</label>
+              <input
+                v-model="providerForm.monthlyFeeEur"
+                type="number" step="0.01" min="0"
+                placeholder="0.00"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Startgebühr (€/Session)</label>
+              <input
+                v-model="providerForm.sessionFeeEur"
+                type="number" step="0.0001" min="0"
+                placeholder="0.00"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500" />
+            </div>
+          </div>
+
+          <!-- Aktiv seit -->
+          <div>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Aktiv seit</label>
+            <input
+              v-model="providerForm.activeFrom"
+              type="date"
+              :max="new Date().toISOString().split('T')[0]"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500" />
+          </div>
+
+          <div class="flex gap-2 pt-1">
+            <button
+              @click="saveChargingProvider"
+              :disabled="loading || !providerForm.providerName || (isCustomProvider && !providerForm.customProviderName)"
+              class="btn-3d flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 transition text-sm">
+              Speichern
+            </button>
+            <button
+              @click="showProviderForm = false"
+              class="btn-3d flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-400 transition text-sm">
+              Abbrechen
+            </button>
+          </div>
+        </div>
+
+        <!-- History -->
+        <div v-if="pastProviders.length > 0">
+          <button
+            @click="showProviderHistory = !showProviderHistory"
+            class="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition">
+            <ChevronDownIcon v-if="!showProviderHistory" class="h-4 w-4" />
+            <ChevronUpIcon v-else class="h-4 w-4" />
+            {{ pastProviders.length }} frühere {{ pastProviders.length === 1 ? 'Tarif' : 'Tarife' }}
+          </button>
+          <div v-if="showProviderHistory" class="mt-2 space-y-2">
+            <div
+              v-for="provider in pastProviders"
+              :key="provider.id"
+              class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg text-sm">
+              <div class="min-w-0">
+                <p class="font-medium text-gray-700 dark:text-gray-300 truncate">{{ provider.providerName }}</p>
+                <p class="text-xs text-gray-400 mt-0.5">
+                  {{ formatDate(provider.activeFrom) }} - {{ provider.activeUntil ? formatDate(provider.activeUntil) : '' }}
+                </p>
+              </div>
+              <button
+                @click="deleteChargingProvider(provider.id)"
+                class="flex-shrink-0 ml-3 p-1.5 text-gray-400 hover:text-red-500 transition rounded">
+                <TrashIcon class="h-4 w-4" />
               </button>
             </div>
           </div>

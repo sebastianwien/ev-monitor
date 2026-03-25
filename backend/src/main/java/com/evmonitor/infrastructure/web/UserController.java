@@ -97,16 +97,6 @@ public class UserController {
         return ResponseEntity.ok().build();
     }
 
-    @PutMapping("/me/primary-emp")
-    public ResponseEntity<Void> setPrimaryEmp(
-            @AuthenticationPrincipal UserPrincipal principal,
-            @RequestParam(required = false) @Size(max = 100) String emp
-    ) {
-        UUID userId = UUID.fromString(principal.getUser().getId().toString());
-        userService.setPrimaryEmp(userId, emp);
-        return ResponseEntity.ok().build();
-    }
-
     @DeleteMapping("/me")
     public ResponseEntity<Void> deleteAccount(
             @AuthenticationPrincipal UserPrincipal principal,
