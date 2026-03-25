@@ -303,7 +303,10 @@ public enum CarBrand {
       XPENG_G9(CarBrand.XPENG, VehicleCategory.LARGE_SUV, "G9", 78.2, 98.0),
       ZEEKR_001(CarBrand.ZEEKR, VehicleCategory.SEDAN, "001", 86.0, 100.0),
       ZEEKR_X(CarBrand.ZEEKR, VehicleCategory.COMPACT, "X", 64.0),
-      ORA_FUNKY_CAT(CarBrand.ORA, VehicleCategory.CITY_CAR, "Funky Cat", 48.0, 63.0);
+      ORA_FUNKY_CAT(CarBrand.ORA, VehicleCategory.CITY_CAR, "Funky Cat", 48.0, 63.0),
+
+      // --- SONSTIGE ---
+      SONSTIGE_CUSTOM(CarBrand.SONSTIGE, VehicleCategory.COMPACT, "Sonstiges Modell");
 
       private final CarBrand brand;
       private final VehicleCategory category;

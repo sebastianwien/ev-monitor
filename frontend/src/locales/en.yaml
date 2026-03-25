@@ -601,6 +601,7 @@ cars:
   toast_image_public: "Image shared publicly! +{n} Watts earned!"
   toast_upload: "Photo uploaded! +{n} Watts earned!"
   trim_placeholder: "e.g. GTX, Pro Performance, Long Range"
+  trim_placeholder_sonstige: "e.g. C10 ProMax, BX3, Elroq 50"
   capacity_custom_placeholder: "e.g. 82.5"
   plate_placeholder: "e.g. AB-123 CD"
   power_placeholder: "e.g. 150"
