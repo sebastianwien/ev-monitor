@@ -56,6 +56,8 @@ const sortedBrands = computed(() => {
   return [...brands.value].sort((a, b) => a.label.localeCompare(b.label))
 })
 
+const isSonstige = computed(() => selectedBrand.value === 'SONSTIGE')
+
 const selectedModelCapacities = computed(() => {
   if (!selectedModel.value) return []
   const model = availableModels.value.find(m => m.value === selectedModel.value)
@@ -148,16 +150,26 @@ watch(selectedBrand, (newBrand) => {
     availableModels.value = []
   }
   if (!editingCar.value) {
-    selectedModel.value = ''
     selectedCapacity.value = null
+    if (newBrand === 'SONSTIGE') {
+      selectedModel.value = 'SONSTIGE_CUSTOM'
+      useCustomCapacity.value = true
+    } else {
+      selectedModel.value = ''
+      useCustomCapacity.value = false
+    }
   }
 })
 
-watch(selectedModel, () => {
+watch(selectedModel, (newModel) => {
   if (!editingCar.value) {
     selectedCapacity.value = null
-    useCustomCapacity.value = false
-    customCapacity.value = null
+    if (newModel === 'SONSTIGE_CUSTOM') {
+      useCustomCapacity.value = true
+    } else {
+      useCustomCapacity.value = false
+      customCapacity.value = null
+    }
   }
   // Reset WLTP data when model changes
   wltpData.value = null
@@ -499,7 +511,7 @@ onUnmounted(() => {
               </select>
             </div>
 
-            <div>
+            <div v-if="!isSonstige">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('cars.label_model') }}</label>
               <select v-model="selectedModel" required :disabled="!selectedBrand"
                 class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border disabled:bg-gray-100 dark:disabled:bg-gray-600 dark:bg-gray-700 dark:text-gray-100">
@@ -511,13 +523,13 @@ onUnmounted(() => {
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('cars.label_trim') }}</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ isSonstige ? t('cars.label_model') : t('cars.label_trim') }}</label>
               <input
                 v-model="trim"
                 type="text"
-                :placeholder="t('cars.trim_placeholder')"
+                :placeholder="isSonstige ? t('cars.trim_placeholder_sonstige') : t('cars.trim_placeholder')"
                 class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
-              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ t('cars.hint_trim') }}</p>
+              <p v-if="!isSonstige" class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ t('cars.hint_trim') }}</p>
             </div>
 
             <!-- Capacity Selection -->
@@ -849,7 +861,7 @@ onUnmounted(() => {
               </select>
             </div>
 
-            <div>
+            <div v-if="!isSonstige">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('cars.label_model') }}</label>
               <select v-model="selectedModel" required :disabled="!selectedBrand"
                 class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border disabled:bg-gray-100 dark:disabled:bg-gray-600 dark:bg-gray-700 dark:text-gray-100">
@@ -861,8 +873,9 @@ onUnmounted(() => {
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('cars.label_trim') }}</label>
-              <input v-model="trim" type="text" :placeholder="t('cars.trim_placeholder')"
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ isSonstige ? t('cars.label_model') : t('cars.label_trim') }}</label>
+              <input v-model="trim" type="text"
+                :placeholder="isSonstige ? t('cars.trim_placeholder_sonstige') : t('cars.trim_placeholder')"
                 class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
             </div>
 
