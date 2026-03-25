@@ -7,7 +7,10 @@ export interface SmartcarConnectionStatus {
   vin: string | null
   vehicleState: string | null
   lastCheckedAt: string | null
+  lastSoc: number | null
   sessionActive: boolean
+  sessionStartedAt: string | null
+  sessionEnergyAdded: number | null
 }
 
 export default {

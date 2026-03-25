@@ -27,6 +27,11 @@ const cars = ref<Car[]>([])
 const loading = ref(true)
 
 onMounted(async () => {
+  const params = new URLSearchParams(window.location.search)
+  if (params.get('smartcar-connected') || params.get('smartcar-error')) {
+    activeTab.value = 'smartcar'
+    // URL-Bereinigung überlässt SmartcarIntegration.vue (liest den Param selbst aus)
+  }
   try {
     cars.value = await carStore.getCars() ?? []
     await new Promise(resolve => setTimeout(resolve, 100))

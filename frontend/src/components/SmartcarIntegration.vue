@@ -133,7 +133,9 @@ const stateColor = (state: string | null) => {
       </div>
       <div>
         <h2 class="font-semibold text-gray-900 dark:text-gray-100">{{ t('imports.smartcar_title') }}</h2>
-        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ t('imports.smartcar_desc') }}</p>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+          {{ status?.connected ? t('imports.smartcar_desc_connected') : t('imports.smartcar_desc') }}
+        </p>
       </div>
     </div>
 
@@ -153,17 +155,29 @@ const stateColor = (state: string | null) => {
             <p class="font-medium text-green-800 dark:text-green-200 text-sm">{{ status.vehicleName }}</p>
             <p v-if="status.vin" class="text-xs text-green-700 dark:text-green-300 font-mono mt-0.5">{{ status.vin }}</p>
             <div class="flex items-center gap-3 mt-1.5">
-              <span :class="['text-xs font-medium', stateColor(status.vehicleState)]">
+              <span v-if="status.vehicleState" :class="['text-xs font-medium', stateColor(status.vehicleState)]">
                 {{ stateLabel(status.vehicleState) }}
               </span>
+              <span v-else class="text-xs text-gray-400 dark:text-gray-500">{{ t('imports.smartcar_waiting_data') }}</span>
               <span v-if="status.sessionActive" class="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
                 <span class="inline-block w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
                 {{ t('imports.smartcar_session_active') }}
               </span>
             </div>
-            <p v-if="status.lastCheckedAt" class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              {{ t('imports.smartcar_last_update') }}: {{ new Date(status.lastCheckedAt).toLocaleString() }}
-            </p>
+            <div v-if="status.lastCheckedAt" class="mt-2 pt-2 border-t border-green-200 dark:border-green-800 flex flex-wrap gap-x-4 gap-y-1">
+              <span class="text-xs text-gray-500 dark:text-gray-400">
+                {{ t('imports.smartcar_last_update') }}: {{ new Date(status.lastCheckedAt).toLocaleString() }}
+              </span>
+              <span v-if="status.lastSoc != null" class="text-xs text-gray-500 dark:text-gray-400">
+                SoC: <span class="font-medium text-gray-700 dark:text-gray-200">{{ status.lastSoc }}%</span>
+              </span>
+              <span v-if="status.sessionActive && status.sessionEnergyAdded != null" class="text-xs text-gray-500 dark:text-gray-400">
+                {{ t('imports.smartcar_energy_added') }}: <span class="font-medium text-gray-700 dark:text-gray-200">{{ status.sessionEnergyAdded }} kWh</span>
+              </span>
+              <span v-if="status.sessionActive && status.sessionStartedAt" class="text-xs text-gray-500 dark:text-gray-400">
+                {{ t('imports.smartcar_session_since') }}: <span class="font-medium text-gray-700 dark:text-gray-200">{{ new Date(status.sessionStartedAt).toLocaleTimeString() }}</span>
+              </span>
+            </div>
           </div>
         </div>
 
