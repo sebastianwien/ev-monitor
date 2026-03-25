@@ -55,7 +55,7 @@ const handleResendFromLogin = async () => {
 </script>
 
 <template>
-  <div class="min-h-[80vh] flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-violet-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900 px-4 py-12">
+  <div class="min-h-screen flex items-center justify-center px-4 py-12">
     <div class="w-full max-w-md">
 
       <!-- Card -->

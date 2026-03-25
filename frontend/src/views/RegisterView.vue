@@ -107,13 +107,8 @@ const handleResend = async () => {
 </script>
 
 <template>
-  <div class="flex items-center justify-center min-h-[80vh] bg-gray-100 dark:bg-gray-900">
-    <div class="pointer-events-none fixed inset-0 flex items-center justify-center opacity-[0.04] dark:opacity-[0.06] z-0">
-      <svg class="w-[32rem] h-[32rem] text-green-600 blur-sm" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M13 2L4.09 12.97 12 12l-1 8 8.91-9.97L12 11l1-9z"/>
-      </svg>
-    </div>
-    <div class="relative w-full max-w-md p-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg z-10">
+  <div class="flex items-center justify-center min-h-screen px-4 py-12">
+    <div class="w-full max-w-md p-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg">
 
       <!-- Pending Verification Screen -->
       <div v-if="pendingEmail" class="text-center">

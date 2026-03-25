@@ -115,6 +115,7 @@ const selectedGroupBy = ref<string>('DAY')
 
 const showOdometer = ref(false)
 const showCostAbsolute = ref(false)
+const openTooltipLogId = ref<string | null>(null)
 const { teslaStatus, start: startTeslaPolling } = useTeslaStatus()
 const { isDark } = storeToRefs(useThemeStore())
 
@@ -1328,9 +1329,7 @@ const deleteLog = async (id: string) => {
                 :class="['p-3 border rounded-lg space-y-2',
                          entry._isLadegruppe
                            ? 'bg-white dark:bg-gray-700 border-blue-200 dark:border-blue-800 cursor-pointer shadow-[0_5px_0_0_#bfdbfe] dark:shadow-[0_5px_0_0_#1e3a5f] hover:shadow-[0_2px_0_0_#bfdbfe] dark:hover:shadow-[0_2px_0_0_#1e3a5f] hover:translate-y-[3px] active:shadow-none active:translate-y-[5px] transition-all duration-75'
-                           : entry.consumptionImplausible
-                             ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700 border-l-4 border-l-red-400 dark:border-l-red-600'
-                             : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600']"
+                           : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600']"
                 @click="entry._isLadegruppe ? toggleLadegruppe(entry.id) : null">
 
                 <!-- LADEGRUPPE HEADER -->
@@ -1476,8 +1475,13 @@ const deleteLog = async (id: string) => {
                                : entry.consumptionIsEstimated
                                  ? 'text-gray-400 dark:text-gray-500'
                                  : consumptionTextClass(entry.consumptionKwhPer100km, stats?.avgConsumptionKwhPer100km ?? null)]"
-                    :title="entry.consumptionIsEstimated ? t('dashboard.estimated_tooltip') : undefined">
-                    <ExclamationTriangleIcon v-if="entry.consumptionImplausible" class="w-3 h-3 flex-shrink-0" />
+                    :title="entry.consumptionIsEstimated ? 'Schätzwert: berechnet aus geladener Energie ÷ Distanz, da kein SoC-Wert vorhanden.' : undefined">
+                    <button
+                      v-if="entry.consumptionImplausible"
+                      class="flex-shrink-0 focus:outline-none"
+                      @click.stop="openTooltipLogId = openTooltipLogId === entry.id ? null : entry.id">
+                      <ExclamationTriangleIcon class="w-3 h-3" />
+                    </button>
                     {{ entry.consumptionIsEstimated ? '~' : '' }}{{ entry.consumptionKwhPer100km }} kWh/100km
                   </span>
                   <span v-if="entry.costEur != null && !entry.kwhCharged" class="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
@@ -1493,10 +1497,16 @@ const deleteLog = async (id: string) => {
                     <BoltIcon class="w-3 h-3" />{{ entry.maxChargingPowerKw }} kW
                   </span>
                 </div>
-                <!-- Implausibility warning (normal log only) -->
-                <div v-if="!entry._isLadegruppe && entry.consumptionImplausible" class="flex items-start gap-1.5 text-xs text-red-700">
-                  <ExclamationTriangleIcon class="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-                  <span>{{ t('dashboard.implausible_warning') }}</span>
+                <!-- Implausibility tooltip panel (normal log only) -->
+                <div
+                  v-if="!entry._isLadegruppe && entry.consumptionImplausible && openTooltipLogId === entry.id"
+                  class="mt-1 p-2.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-xs text-amber-800 dark:text-amber-300 space-y-1">
+                  <p class="font-medium">{{ t('dashboard.implausible_tooltip_title') }}</p>
+                  <p>{{ t('dashboard.implausible_tooltip_desc', { value: entry.consumptionKwhPer100km }) }}</p>
+                  <ul class="list-disc list-inside space-y-0.5 mt-1">
+                    <li>{{ t('dashboard.implausible_tooltip_cause1') }}</li>
+                    <li>{{ t('dashboard.implausible_tooltip_cause2') }}</li>
+                  </ul>
                 </div>
               </div>
               <!-- Ladegruppe Sub-Eintraege (collapsible) -->
