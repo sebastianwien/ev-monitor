@@ -1,9 +1,9 @@
 export interface FeatureAnnouncement {
   key: string
   expiresAt: string   // ISO date string - nach diesem Datum wird die Ankündigung nicht mehr gezeigt
-  title: string
-  body: string
-  ctaLabel?: string
+  titleKey: string    // i18n key
+  bodyKey: string     // i18n key
+  ctaLabelKey?: string // i18n key, optional
   ctaRoute?: string
 }
 
@@ -11,9 +11,9 @@ export const featureAnnouncements: FeatureAnnouncement[] = [
   {
     key: 'charging-provider-v1',
     expiresAt: '2026-04-04',
-    title: 'Neu: Ladetarif eintragen',
-    body: 'Du kannst jetzt deinen Ladeanbieter und Tarif in den Einstellungen hinterlegen. So berechnen wir bald, wie viel du mit einem anderen Tarif gespart hättest.',
-    ctaLabel: 'Jetzt eintragen',
+    titleKey: 'announcements.charging_provider_v1_title',
+    bodyKey: 'announcements.charging_provider_v1_body',
+    ctaLabelKey: 'announcements.charging_provider_v1_cta',
     ctaRoute: '/settings',
   },
 ]

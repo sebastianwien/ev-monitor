@@ -19,12 +19,16 @@ api.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
+let sessionExpiredRedirectPending = false;
+
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response && error.response.status === 401) {
+        if (error.response?.status === 401 && !sessionExpiredRedirectPending) {
+            sessionExpiredRedirectPending = true;
             const authStore = useAuthStore();
-            authStore.logout();
+            authStore.logout(false);
+            window.location.href = '/login?reason=session-expired';
         }
         if (error.response?.status === 403 && error.response?.data?.error === 'DEMO_ACCOUNT_READONLY') {
             window.dispatchEvent(new CustomEvent('demo-account-blocked'));

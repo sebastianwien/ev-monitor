@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useLocaleFormat } from '../composables/useLocaleFormat'
 import api from '../api/axios'
 import CarSelector from './CarSelector.vue'
 import OcrPhotoCapture from './OcrPhotoCapture.vue'
@@ -16,6 +17,7 @@ import EditLogModal from './EditLogModal.vue'
 
 const { t } = useI18n()
 const { haptic } = useHaptic()
+const { formatNumber } = useLocaleFormat()
 const coinStore = useCoinStore()
 const carStore = useCarStore()
 
@@ -96,8 +98,8 @@ const getLastOdometerPlaceholder = (): string => {
     .filter(l => l.odometerKm != null)
     .filter(l => !refDate || new Date(l.loggedAt).getTime() < new Date(refDate).getTime())
     .sort((a, b) => new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime())
-  if (sorted.length === 0) return t('logform.odometer_placeholder')
-  return t('logform.odometer_last', { km: sorted[0].odometerKm.toLocaleString() })
+  if (sorted.length === 0) return t('logfields.odometer')
+  return t('logform.odometer_last', { km: formatNumber(sorted[0].odometerKm) })
 }
 
 const fetchLogs = async () => {
@@ -148,7 +150,7 @@ const submitLog = async () => {
     const last = getLastOdometerReading(f.loggedAt || undefined)
     if (last !== null && f.odometerKm < last) {
       fieldErrors.value.add('odometer')
-      odometerPlaceholderOverride.value = t('logform.odometer_min', { min: last.toLocaleString() })
+      odometerPlaceholderOverride.value = t('logform.odometer_min', { min: formatNumber(last) })
       errors.push(t('logform.field_odometer'))
     }
   }

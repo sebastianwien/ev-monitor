@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useImportsTab } from './composables/useImportsTab'
 import { useOnboardingState } from './composables/useOnboardingState'
 import { useAuthStore } from './stores/auth'
@@ -24,9 +25,11 @@ import { captureUtmParams, captureReferrer } from './utils/reddit-pixel'
 import { useHaptic } from './composables/useHaptic'
 import { useThemeStore } from './stores/theme'
 import ThemeToggle from './components/ThemeToggle.vue'
+import LocaleSwitcher from './components/LocaleSwitcher.vue'
 import { useTickerState } from './composables/useTickerState'
 
 const { haptic } = useHaptic()
+const { t, locale } = useI18n()
 const themeStore = useThemeStore()
 const { tickerHasItems, tickerCollapsed } = useTickerState()
 
@@ -159,7 +162,7 @@ const closeMobileMenu = () => {
                 class="nav-3d p-2 rounded-md border border-indigo-500 hover:bg-indigo-500 transition"
                 @click="haptic()"
                 :class="{ 'bg-indigo-500': $route.path.startsWith('/modelle') }"
-                title="Modelle vergleichen">
+                :title="t('nav.models_compare')">
                 <ArrowsRightLeftIcon class="h-5 w-5" />
               </router-link>
               <router-link
@@ -196,7 +199,7 @@ const closeMobileMenu = () => {
                 @click="haptic()"
                 :class="{ 'bg-indigo-500': $route.path.startsWith('/modelle') }">
                 <ArrowsRightLeftIcon class="h-5 w-5" />
-                Modelle
+                {{ t('nav.models_compare') }}
               </router-link>
               <button
                 @click="handleNewLog(); haptic()"
@@ -211,6 +214,7 @@ const closeMobileMenu = () => {
 
           <!-- Compact Right Nav (768px - 1280px) -->
           <div class="hidden md:flex xl:hidden items-center space-x-2">
+            <LocaleSwitcher variant="nav" />
             <ThemeToggle class="text-white" />
             <!-- Wallbox dot -->
             <button
@@ -253,6 +257,7 @@ const closeMobileMenu = () => {
 
           <!-- Full Right Nav (1280px+) -->
           <div class="hidden xl:flex items-center space-x-4">
+            <LocaleSwitcher variant="nav" />
             <ThemeToggle class="text-white" />
             <!-- Wallbox chip -->
             <button
@@ -284,11 +289,11 @@ const closeMobileMenu = () => {
               <!-- Tooltip -->
               <div class="absolute right-0 top-full mt-2 w-48 bg-gray-900 text-white text-xs rounded-lg shadow-xl p-3 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50">
                 <div class="flex justify-between mb-1.5">
-                  <span class="text-gray-400">Gesamt</span>
+                  <span class="text-gray-400">{{ t('dashboard.coins_total') }}</span>
                   <span class="font-semibold">{{ coinStore.balance }} Watt</span>
                 </div>
                 <div class="flex justify-between border-t border-gray-700 pt-1.5">
-                  <span class="text-gray-400">Diesen Monat</span>
+                  <span class="text-gray-400">{{ t('dashboard.coins_this_month') }}</span>
                   <span class="font-semibold text-yellow-400">+{{ coinStore.coinsThisMonth }} Watt</span>
                 </div>
                 <!-- Arrow -->
@@ -315,6 +320,7 @@ const closeMobileMenu = () => {
 
           <!-- Mobile: Icons + Hamburger Button -->
           <div class="md:hidden flex items-center gap-3">
+            <LocaleSwitcher variant="nav" />
             <ThemeToggle class="text-white" />
             <!-- Wallbox dot -->
             <button
@@ -356,7 +362,7 @@ const closeMobileMenu = () => {
     </nav>
 
     <!-- Leaderboard Ticker (below nav, only when authenticated) -->
-    <LeaderboardTicker v-if="authStore.isAuthenticated() && !authStore.isDemoAccount" />
+    <LeaderboardTicker v-if="authStore.isAuthenticated() && !authStore.isDemoAccount && locale === 'de'" />
 
     <!-- Mobile Menu Overlay -->
     <Transition name="mobile-menu">
@@ -407,7 +413,7 @@ const closeMobileMenu = () => {
               class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-indigo-100 hover:bg-indigo-600 transition"
               :class="{ 'bg-indigo-800': $route.path.startsWith('/modelle') }">
               <ArrowsRightLeftIcon class="h-5 w-5" />
-              <span>Modelle vergleichen</span>
+              <span>{{ t('nav.models_compare') }}</span>
             </router-link>
             <router-link
               v-if="authStore.user"
@@ -447,10 +453,10 @@ const closeMobileMenu = () => {
         <div class="text-center text-sm text-gray-600 dark:text-gray-400 space-y-3">
           <p>
             © 2026 EV Monitor ·
-            <router-link to="/datenschutz" class="hover:text-green-600 underline">Datenschutz</router-link> ·
-            <router-link to="/impressum" class="hover:text-green-600 underline">Impressum</router-link> ·
-            <router-link to="/agb" class="hover:text-green-600 underline">AGB</router-link> ·
-            <a href="https://github.com/sebastianwien/ev-monitor" target="_blank" rel="noopener noreferrer" class="hover:text-green-600 underline">GitHub</a>
+            <router-link to="/datenschutz" class="hover:text-green-600 underline">{{ t('footer.privacy') }}</router-link> ·
+            <router-link to="/impressum" class="hover:text-green-600 underline">{{ t('footer.imprint') }}</router-link> ·
+            <router-link to="/agb" class="hover:text-green-600 underline">{{ t('footer.terms') }}</router-link> ·
+            <a href="https://github.com/sebastianwien/ev-monitor" target="_blank" rel="noopener noreferrer" class="hover:text-green-600 underline">{{ t('footer.github') }}</a>
           </p>
           <p>
             <SupportPopover variant="footer" />

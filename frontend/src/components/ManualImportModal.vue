@@ -3,7 +3,7 @@
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-lg flex flex-col max-h-[90vh]">
       <!-- Header -->
       <div class="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-700">
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Ladevorgänge importieren</h2>
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ t('manual_import.title') }}</h2>
         <button @click="$emit('close')" class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
           <XMarkIcon class="w-5 h-5" />
         </button>
@@ -13,9 +13,7 @@
         <!-- Info -->
         <div class="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-xl p-3 flex gap-2.5">
           <ExclamationTriangleIcon class="w-4 h-4 text-amber-500 dark:text-amber-400 shrink-0 mt-0.5" />
-          <p class="text-sm text-amber-800 dark:text-amber-200">
-            Die Datei muss dem <strong>EV Monitor Format</strong> entsprechen - kein direkter Export aus anderen Apps. Kopiere zuerst die Vorlage unten und befülle sie mit deinen Daten.
-          </p>
+          <p class="text-sm text-amber-800 dark:text-amber-200" v-html="t('manual_import.format_info')" />
         </div>
 
         <!-- Format toggle -->
@@ -34,13 +32,13 @@
         <!-- Format spec -->
         <div class="bg-gray-50 dark:bg-gray-900 rounded-xl p-4 space-y-2">
           <div class="flex items-center justify-between">
-            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Vorlage (Pflichtformat)</p>
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{{ t('manual_import.template_label') }}</p>
             <button
               @click="copyTemplate"
               class="text-xs text-green-600 hover:text-green-700 font-medium flex items-center gap-1 transition-colors"
             >
               <ClipboardDocumentIcon class="w-3.5 h-3.5" />
-              {{ copied ? 'Kopiert!' : 'Kopieren' }}
+              {{ copied ? t('manual_import.copied') : t('manual_import.copy_btn') }}
             </button>
           </div>
 
@@ -48,15 +46,15 @@
           <pre v-else class="text-xs text-gray-700 dark:text-gray-300 overflow-x-auto whitespace-pre">{{ jsonTemplate }}</pre>
 
           <p class="text-xs text-gray-500 dark:text-gray-400">
-            <strong>Pflichtfelder:</strong> date, kwh<br>
-            <strong>date:</strong> ISO 8601, DD.MM.YYYY, MM/DD/YYYY oder Unix-Timestamp<br>
-            <strong>location:</strong> Lat/Lon (z.B. <code>48.2082,16.3738</code>) - Ortsname wird ohne Kartenpin gespeichert
+            <span v-html="t('manual_import.required_fields')" /><br>
+            <span v-html="t('manual_import.date_formats')" /><br>
+            <span v-html="t('manual_import.location_hint')" />
           </p>
         </div>
 
         <!-- File upload -->
         <div class="space-y-1.5">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Datei im EV Monitor Format hochladen</label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('manual_import.upload_label') }}</label>
           <div
             class="border-2 border-dashed border-gray-200 dark:border-gray-600 rounded-xl p-6 text-center cursor-pointer hover:border-green-400 transition-colors"
             @click="fileInput?.click()"
@@ -64,9 +62,7 @@
             @drop.prevent="onDrop"
           >
             <ArrowUpTrayIcon class="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
-            <p v-if="!fileName" class="text-sm text-gray-500 dark:text-gray-400">
-              Datei hierher ziehen oder <span class="text-green-600 font-medium">auswählen</span>
-            </p>
+            <p v-if="!fileName" class="text-sm text-gray-500 dark:text-gray-400" v-html="t('manual_import.drop_hint')" />
             <p v-else class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ fileName }}</p>
             <input
               ref="fileInput"
@@ -80,7 +76,7 @@
 
         <!-- Or paste -->
         <div class="space-y-1.5">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Oder direkt einfügen</label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('manual_import.paste_label') }}</label>
           <textarea
             v-model="rawData"
             rows="5"
@@ -93,8 +89,8 @@
         <div v-if="result" class="rounded-xl p-4 space-y-2"
           :class="result.errors > 0 && result.imported === 0 ? 'bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700' : 'bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700'">
           <p class="text-sm font-medium" :class="result.errors > 0 && result.imported === 0 ? 'text-red-700 dark:text-red-300' : 'text-green-700 dark:text-green-300'">
-            {{ result.imported }} importiert, {{ result.skipped }} übersprungen
-            <template v-if="result.errors > 0">, {{ result.errors }} Fehler</template>
+            {{ t('manual_import.result_summary', { imported: result.imported, skipped: result.skipped }) }}
+            <template v-if="result.errors > 0">{{ t('manual_import.result_errors', { errors: result.errors }) }}</template>
           </p>
         </div>
 
@@ -107,14 +103,14 @@
         <button
           @click="$emit('close')"
           class="btn-3d px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
-        >Schließen</button>
+        >{{ t('manual_import.close_btn') }}</button>
         <button
           @click="runImport"
           :disabled="!rawData.trim() || loading"
           class="btn-3d px-5 py-2 text-sm font-medium text-white bg-green-600 rounded-xl hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
         >
           <span v-if="loading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-          Importieren
+          {{ t('manual_import.import_btn') }}
         </button>
       </div>
     </div>
@@ -123,8 +119,11 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { XMarkIcon, ArrowUpTrayIcon, ExclamationTriangleIcon, ClipboardDocumentIcon } from '@heroicons/vue/24/outline'
 import { manualImportService, type ManualImportResult } from '../api/manualImportService'
+
+const { t } = useI18n()
 
 const props = defineProps<{ carId: string }>()
 const emit = defineEmits<{ close: []; imported: [count: number] }>()
@@ -193,7 +192,7 @@ async function runImport() {
       emit('imported', result.value.imported)
     }
   } catch (e: any) {
-    errorMsg.value = e?.response?.data?.error ?? 'Import fehlgeschlagen'
+    errorMsg.value = e?.response?.data?.error ?? t('manual_import.err_import')
   } finally {
     loading.value = false
   }

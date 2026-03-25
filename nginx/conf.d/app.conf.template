@@ -72,8 +72,8 @@ server {
         add_header Content-Type text/plain;
     }
 
-    # Prerender for bots on public SEO pages
-    location ~* ^/modelle {
+    # Prerender for bots on public SEO pages (DE + EN)
+    location ~* ^/(modelle|en) {
         resolver 127.0.0.11 valid=10s;
         set $prerender 0;
         if ($is_bot = 1) {

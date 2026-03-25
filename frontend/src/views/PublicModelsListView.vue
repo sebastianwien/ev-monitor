@@ -1,8 +1,9 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-950">
+  <div :class="isAuthenticated ? '' : 'min-h-screen bg-gray-50 dark:bg-gray-950'">
     <PublicNav />
 
-    <main class="max-w-6xl mx-auto px-4 py-8">
+    <main :class="isAuthenticated ? 'md:max-w-6xl md:mx-auto md:p-6' : 'max-w-6xl mx-auto px-4 py-8'">
+      <div :class="isAuthenticated ? 'bg-white dark:bg-gray-800 md:rounded-xl md:shadow-lg p-4 md:p-6' : ''">
       <!-- Hero -->
       <div class="rounded-2xl mb-8 overflow-hidden">
 
@@ -10,30 +11,30 @@
         <template v-if="!isRedditSource">
           <div class="bg-gradient-to-br from-gray-900 to-gray-800 px-6 py-10 sm:px-10 sm:py-12">
             <h1 class="text-3xl sm:text-4xl font-bold text-white mb-3 leading-tight">
-              Elektroautos im Vergleich
+              {{ t('models_list.hero.title') }}
             </h1>
             <p class="text-gray-300 text-lg mb-6 max-w-xl leading-relaxed">
-              Reale Verbrauchsdaten von der Community - WLTP vs. Praxis für alle Elektroautos.
+              {{ t('models_list.hero.subtitle') }}
             </p>
             <!-- Stats Badges -->
             <div class="flex flex-wrap gap-3">
               <span class="inline-flex items-center gap-1.5 bg-white/10 text-white text-sm font-medium px-3.5 py-1.5 rounded-full">
                 <ChartBarIcon class="h-4 w-4 text-green-400" />
-                {{ modelsWithData.length }} Modelle
+                {{ modelsWithData.length }} {{ t('models_list.hero.models_count') }}
               </span>
               <span v-if="platformStats" class="inline-flex items-center gap-1.5 bg-white/10 text-white text-sm font-medium px-3.5 py-1.5 rounded-full">
                 <ArrowTrendingUpIcon class="h-4 w-4 text-green-400" />
-                {{ platformStats.validTripCount.toLocaleString('de-DE') }} Fahrten
+                {{ platformStats.validTripCount.toLocaleString() }} {{ t('models_list.hero.trips_count') }}
               </span>
               <span v-if="platformStats" class="inline-flex items-center gap-1.5 bg-white/10 text-white text-sm font-medium px-3.5 py-1.5 rounded-full">
                 <CheckIcon class="h-4 w-4 text-green-400" />
-                {{ platformStats.userCount.toLocaleString('de-DE') }} Fahrer*innen
+                {{ platformStats.userCount.toLocaleString() }} {{ t('models_list.hero.drivers_count') }}
               </span>
             </div>
           </div>
           <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 border-t-0 rounded-b-2xl px-6 py-4 sm:px-10">
             <p class="text-xs text-gray-400 leading-relaxed">
-              Die Kosten pro 100 km basieren auf dem Ø-Strompreis der Community-Einträge je Modell. Preisunterschiede entstehen durch verschiedene Ladegewohnheiten - Heimladen ist deutlich günstiger als öffentliche Schnelllader.
+              {{ t('models_list.hero.cost_note') }}
             </p>
           </div>
         </template>
@@ -42,31 +43,31 @@
         <template v-else>
           <div class="bg-gradient-to-br from-gray-900 to-green-900 px-6 py-10 sm:px-10 sm:py-12">
             <div class="inline-flex items-center gap-1.5 bg-green-500/20 text-green-300 text-xs font-semibold px-3 py-1 rounded-full mb-4 uppercase tracking-wide">
-              Keine Herstellerangaben
+              {{ t('models_list.reddit.badge') }}
             </div>
             <h1 class="text-3xl sm:text-4xl font-bold text-white mb-3 leading-tight">
-              Was verbraucht dein E-Auto wirklich?
+              {{ t('models_list.reddit.title') }}
             </h1>
             <p class="text-gray-300 text-lg mb-6 max-w-xl leading-relaxed">
-              Hersteller versprechen WLTP-Reichweiten, die in der Praxis selten stimmen. Hier findest du echte Zahlen von EV-Fahrern - aus dem Alltag, nicht aus dem Labor.
+              {{ t('models_list.reddit.subtitle') }}
             </p>
             <div class="flex flex-wrap gap-3 mb-6">
               <span class="inline-flex items-center gap-1.5 bg-white/10 text-white text-sm font-medium px-3.5 py-1.5 rounded-full">
                 <ChartBarIcon class="h-4 w-4 text-green-400" />
-                {{ modelsWithData.length }} Modelle
+                {{ modelsWithData.length }} {{ t('models_list.hero.models_count') }}
               </span>
               <span v-if="platformStats" class="inline-flex items-center gap-1.5 bg-white/10 text-white text-sm font-medium px-3.5 py-1.5 rounded-full">
                 <ArrowTrendingUpIcon class="h-4 w-4 text-green-400" />
-                {{ platformStats.validTripCount.toLocaleString('de-DE') }} echte Fahrten
+                {{ platformStats.validTripCount.toLocaleString() }} {{ t('models_list.reddit.trips') }}
               </span>
             </div>
             <div class="flex flex-wrap gap-3">
-              <a href="/register"
+              <a :href="registerPath"
                  class="inline-flex items-center gap-2 bg-green-500 hover:bg-green-400 text-white font-semibold px-5 py-2.5 rounded-lg transition-colors text-sm">
-                Kostenlos mitmachen
+                {{ t('models_list.reddit.cta') }}
                 <ArrowRightIcon class="h-4 w-4" />
               </a>
-              <span class="inline-flex items-center text-gray-400 text-xs self-center">Kein Abo, kein Paywall</span>
+              <span class="inline-flex items-center text-gray-400 text-xs self-center">{{ t('models_list.reddit.no_subscription') }}</span>
             </div>
           </div>
         </template>
@@ -79,7 +80,7 @@
 
       <!-- Filters + Popular Models -->
       <div v-if="!loading && modelsWithData.length > 0" class="mb-6">
-        <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">Populäre Modelle</h2>
+        <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">{{ t('models_list.filters.popular') }}</h2>
         <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
           <div class="flex flex-wrap items-center gap-3">
             <!-- Marken-Filter -->
@@ -89,7 +90,7 @@
                 class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
               >
                 <span class="text-sm">
-                  {{ selectedBrands.length === 0 ? 'Alle Marken' : `${selectedBrands.length} Marken` }}
+                  {{ selectedBrands.length === 0 ? t('models_list.filters.all_brands') : t('models_list.filters.brand_count', { count: selectedBrands.length }) }}
                 </span>
                 <span class="text-gray-400">▼</span>
               </button>
@@ -104,13 +105,13 @@
                       @click="selectAllBrands"
                       class="flex-1 text-xs px-2 py-1.5 bg-green-50 text-green-700 rounded hover:bg-green-100"
                     >
-                      Alle auswählen
+                      {{ t('models_list.filters.select_all') }}
                     </button>
                     <button
                       @click="clearAllBrands"
                       class="flex-1 text-xs px-2 py-1.5 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-100 dark:hover:bg-gray-600"
                     >
-                      Alle abwählen
+                      {{ t('models_list.filters.deselect_all') }}
                     </button>
                   </div>
                   <label
@@ -140,7 +141,7 @@
                   : 'border-gray-300 dark:border-gray-600'"
               >
                 <span class="text-sm">
-                  {{ selectedCategory === null ? 'Alle Kategorien' : categories.find(c => c.key === selectedCategory)?.displayName }}
+                  {{ selectedCategory === null ? t('models_list.filters.all_categories') : categories.find(c => c.key === selectedCategory)?.displayName }}
                 </span>
                 <span class="text-gray-400">▼</span>
               </button>
@@ -155,7 +156,7 @@
                     class="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                     :class="selectedCategory === null ? 'text-green-700 dark:text-green-400 font-medium bg-green-50 dark:bg-green-900/20' : 'text-gray-700 dark:text-gray-300'"
                   >
-                    Alle Kategorien
+                    {{ t('models_list.filters.all_categories') }}
                   </button>
                   <button
                     v-for="cat in categories"
@@ -172,7 +173,7 @@
 
             <!-- Active Filter Count -->
             <span v-if="selectedBrands.length > 0 || selectedCategory !== null" class="text-sm text-gray-500 dark:text-gray-400">
-              {{ filteredModels.length }} von {{ modelsWithData.length }} Modellen
+              {{ t('models_list.filters.results', { filtered: filteredModels.length, total: modelsWithData.length }) }}
             </span>
           </div>
         </div>
@@ -189,36 +190,36 @@
             ? 'border-green-500 ring-2 ring-green-200'
             : 'border-gray-200 dark:border-gray-700 hover:border-green-500'"
         >
-          <a :href="`/modelle/${model.brandDisplayName}/${model.modelUrlSlug}`" class="block flex-1">
+          <a :href="`${modelsBaseUrl}/${model.brandDisplayName}/${model.modelUrlSlug}`" class="block flex-1">
             <div class="mb-2">
               <h3 class="font-bold text-gray-900 dark:text-gray-100 text-base">{{ model.modelDisplayName }}</h3>
-              <span class="text-xs text-gray-400">{{ model.logCount }} Ladevorgänge</span>
+              <span class="text-xs text-gray-400">{{ model.logCount }} {{ t('models_list.card.charging_sessions') }}</span>
             </div>
             <div class="grid grid-cols-[auto_1fr] items-baseline gap-x-3 gap-y-0.5 mb-3 text-sm">
               <template v-if="model.minWltpConsumptionKwhPer100km">
-                <span class="text-xs text-gray-400">WLTP</span>
+                <span class="text-xs text-gray-400">{{ t('models_list.card.wltp_label') }}</span>
                 <span class="text-gray-500 dark:text-gray-400 font-medium">{{ formatWltpRange(model.minWltpConsumptionKwhPer100km, model.maxWltpConsumptionKwhPer100km) }} kWh/100km</span>
               </template>
               <template v-if="model.avgConsumptionKwhPer100km || model.minRealConsumptionKwhPer100km">
-                <span class="text-xs text-gray-400">Real</span>
+                <span class="text-xs text-gray-400">{{ t('models_list.card.real_label') }}</span>
                 <span class="text-gray-700 dark:text-gray-300 font-medium">{{ formatRealConsumption(model.avgConsumptionKwhPer100km, model.minRealConsumptionKwhPer100km, model.maxRealConsumptionKwhPer100km) }} kWh/100km</span>
               </template>
               <template v-if="model.avgCostPerKwh && model.avgConsumptionKwhPer100km">
-                <span class="text-xs text-gray-400">Kosten</span>
+                <span class="text-xs text-gray-400">{{ t('models_list.card.costs_label') }}</span>
                 <span class="flex flex-wrap items-center gap-x-1.5">
                   <span class="text-blue-500 font-medium">~{{ (model.avgCostPerKwh * model.avgConsumptionKwhPer100km).toFixed(1) }} €/100km</span>
                   <span class="relative group cursor-help inline-flex items-center gap-0.5 text-xs text-gray-400">
-                    <span>Ø {{ model.avgCostPerKwh.toFixed(2) }} €/kWh</span>
+                    <span>{{ t('models_list.card.avg_prefix') }} {{ model.avgCostPerKwh.toFixed(2) }} €/kWh</span>
                     <InformationCircleIcon class="h-3 w-3 flex-shrink-0" />
                     <span class="absolute bottom-full left-0 mb-1.5 px-2.5 py-2 bg-gray-800 text-white text-xs rounded-lg w-60 hidden group-hover:block z-20 pointer-events-none leading-snug shadow-lg">
-                      Basiert auf dem Ø-Strompreis der Community-Beiträge. Günstigeres Heimladen vs. teure Schnelllader erklärt Preisunterschiede zwischen Modellen.
+                      {{ t('models_list.card.cost_tooltip') }}
                     </span>
                   </span>
                 </span>
               </template>
             </div>
             <div class="text-green-600 font-medium flex items-center gap-1 text-sm mt-auto">
-              <span>Details ansehen</span>
+              <span>{{ t('models_list.card.view_details') }}</span>
               <ArrowRightIcon class="h-4 w-4" />
             </div>
           </a>
@@ -226,7 +227,7 @@
             <button
               @click.prevent="toggleCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`)"
               :disabled="!isSelectedForCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`) && selectedForCompare.length >= MAX_COMPARE"
-              :title="isSelectedForCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`) ? 'Aus Vergleich entfernen' : 'Zum Vergleich hinzufügen'"
+              :title="isSelectedForCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`) ? t('models_list.card.remove_compare') : t('models_list.card.add_compare')"
               class="p-1.5 rounded-full transition-colors flex-shrink-0"
               :class="isSelectedForCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`)
                 ? 'bg-green-500 text-white'
@@ -244,7 +245,7 @@
         <a
           v-for="model in mobileFillModels"
           :key="`fallback/${model.brand}/${model.model}`"
-          :href="`/modelle/${model.brand}/${model.model}`"
+          :href="`${modelsBaseUrl}/${model.brand}/${model.model}`"
           class="model-card bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 hover:border-green-400 hover:shadow-sm transition-all opacity-80"
         >
           <div class="flex items-start justify-between mb-2">
@@ -253,7 +254,7 @@
           </div>
           <div class="flex items-center gap-2 text-xs text-gray-400">
             <ChartBarIcon class="h-3.5 w-3.5" />
-            <span>WLTP-Daten verfügbar</span>
+            <span>{{ t('models_list.card.wltp_available') }}</span>
           </div>
         </a>
       </div>
@@ -261,38 +262,38 @@
       <!-- Empty state: No models at all -->
       <div v-else-if="!loading && modelsWithData.length === 0" class="text-center py-20">
         <TruckIcon class="h-16 w-16 text-gray-300 mb-4 mx-auto" />
-        <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-2">Noch keine Community-Daten</h2>
+        <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-2">{{ t('models_list.empty.no_data_title') }}</h2>
         <p class="text-gray-500 dark:text-gray-400 mb-6">
-          Sei der Erste der echte Verbrauchsdaten beisteuert und der Community hilft!
+          {{ t('models_list.empty.no_data_desc') }}
         </p>
-        <a href="/register" class="inline-block bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700">
-          Kostenlos registrieren
+        <a :href="registerPath" class="inline-block bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700">
+          {{ t('models_list.empty.free_register') }}
         </a>
       </div>
 
       <!-- Empty state: Filtered but no results -->
       <div v-else-if="!loading && (selectedBrands.length > 0 || selectedCategory !== null) && filteredModels.length === 0" class="text-center py-20">
         <div class="text-5xl mb-4">🔍</div>
-        <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-2">Keine Modelle gefunden</h2>
+        <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-2">{{ t('models_list.empty.no_results_title') }}</h2>
         <p class="text-gray-500 dark:text-gray-400 mb-6">
-          Für die ausgewählten Marken sind aktuell keine Community-Daten verfügbar.
+          {{ t('models_list.empty.no_results_desc') }}
         </p>
         <button
           @click="clearAllFilters"
           class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
         >
-          Filter zurücksetzen
+          {{ t('models_list.empty.reset_filters') }}
         </button>
       </div>
 
       <!-- Brand Grid -->
       <div v-if="!loading && (availableBrands.length > 0 || brandFillItems.length > 0)" class="mb-8 mt-8">
-        <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">Alle Marken</h2>
+        <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">{{ t('models_list.brands.title') }}</h2>
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
           <a
             v-for="brand in availableBrands"
             :key="brand"
-            :href="`/modelle/${brand}`"
+            :href="`${modelsBaseUrl}/${brand}`"
             class="brand-card bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center gap-2 hover:border-green-500 hover:shadow-sm transition-all"
           >
             <TruckIcon class="h-5 w-5 text-gray-400 flex-shrink-0" />
@@ -302,7 +303,7 @@
           <a
             v-for="brand in brandFillItems"
             :key="`fallback/${brand}`"
-            :href="`/modelle/${brand}`"
+            :href="`${modelsBaseUrl}/${brand}`"
             class="brand-card bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center gap-2 hover:border-green-400 hover:shadow-sm transition-all opacity-70"
           >
             <TruckIcon class="h-5 w-5 text-gray-300 flex-shrink-0" />
@@ -315,20 +316,19 @@
       <div v-if="!loading" class="bg-gradient-to-br from-green-600 to-green-700 rounded-2xl p-8 text-white mt-8">
         <div class="flex items-center gap-2 mb-3">
           <ArrowTrendingUpIcon class="h-7 w-7" />
-          <h2 class="text-2xl font-bold">Dein Fahrzeug fehlt?</h2>
+          <h2 class="text-2xl font-bold">{{ t('models_list.cta.missing_vehicle') }}</h2>
         </div>
         <p class="text-green-100 mb-6">
-          Registriere dich kostenlos und trage als Erster Verbrauchsdaten für dein Elektroauto ein.
-          Hilf der Community mit realen Daten!
+          {{ t('models_list.cta.contribute') }}
         </p>
         <div class="flex flex-wrap gap-3">
-          <a href="/register"
+          <a :href="registerPath"
              class="bg-white text-green-700 font-semibold px-6 py-3 rounded-lg hover:bg-green-50 transition-colors">
-            Kostenlos starten
+            {{ t('models_list.cta.free_start') }}
           </a>
-          <a href="/login"
+          <a :href="loginPath"
              class="border-2 border-white text-white px-6 py-3 rounded-lg hover:bg-green-600 transition-colors">
-            Anmelden
+            {{ t('models_list.cta.login') }}
           </a>
         </div>
       </div>
@@ -342,7 +342,7 @@
           <div class="bg-gray-900 text-white rounded-2xl shadow-2xl px-4 py-3 flex items-center gap-3">
             <ArrowsRightLeftIcon class="h-5 w-5 text-green-400 flex-shrink-0" />
             <div class="flex-1 min-w-0">
-              <div class="text-xs text-gray-400 mb-0.5">Vergleich ({{ selectedForCompare.length }}/{{ MAX_COMPARE }})</div>
+              <div class="text-xs text-gray-400 mb-0.5">{{ t('models_list.compare.title', { current: selectedForCompare.length, max: MAX_COMPARE }) }}</div>
               <div class="text-sm font-medium truncate">
                 {{ selectedForCompare.map(compareLabel).join(' · ') }}
               </div>
@@ -350,7 +350,7 @@
             <button
               @click="startCompare"
               class="flex-shrink-0 bg-green-500 hover:bg-green-400 text-white text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors">
-              Vergleichen
+              {{ t('models_list.compare.button') }}
             </button>
             <button @click="clearCompare" class="flex-shrink-0 p-1 text-gray-400 hover:text-white transition-colors">
               <XMarkIcon class="h-5 w-5" />
@@ -358,15 +358,16 @@
           </div>
         </div>
       </Transition>
+      </div>
     </main>
 
-    <footer class="max-w-6xl mx-auto px-4 py-8 mt-6 border-t border-gray-200 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400 text-center">
+    <footer v-if="!isAuthenticated" class="max-w-6xl mx-auto px-4 py-8 mt-6 border-t border-gray-200 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400 text-center">
       © {{ currentYear }} EV Monitor ·
-      <a href="/" class="hover:text-gray-700 dark:hover:text-gray-200">{{ isAuthenticated ? 'Dashboard' : 'Startseite' }}</a>
+      <a href="/" class="hover:text-gray-700 dark:hover:text-gray-200">{{ isAuthenticated ? t('nav.dashboard') : t('nav.login') }}</a>
       <template v-if="!isAuthenticated">
         ·
-        <a href="/register" class="hover:text-gray-700 dark:hover:text-gray-200">Kostenlos registrieren</a> ·
-        <a href="/login" class="hover:text-gray-700 dark:hover:text-gray-200">Anmelden</a>
+        <a :href="registerPath" class="hover:text-gray-700 dark:hover:text-gray-200">{{ t('common.free_start') }}</a> ·
+        <a :href="loginPath" class="hover:text-gray-700 dark:hover:text-gray-200">{{ t('common.login') }}</a>
       </template>
     </footer>
   </div>
@@ -375,13 +376,20 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useHead } from '@unhead/vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/auth'
 import { getTopModels, getPlatformStats, getCategories, type TopModelPreview, type PlatformStats, type VehicleCategoryItem } from '../api/publicModelService'
 import { TruckIcon, ChartBarIcon, ArrowTrendingUpIcon, ArrowsRightLeftIcon, XMarkIcon, CheckIcon, ArrowRightIcon, InformationCircleIcon } from '@heroicons/vue/24/outline'
 import PublicNav from '../components/PublicNav.vue'
 
+const { t } = useI18n()
 const router = useRouter()
+const route = useRoute()
+const isEn = computed(() => route.path.startsWith('/en'))
+const modelsBaseUrl = computed(() => isEn.value ? '/en/models' : '/modelle')
+const loginPath = computed(() => isEn.value ? '/en/login' : '/login')
+const registerPath = computed(() => isEn.value ? '/en/register' : '/register')
 
 const isRedditSource = new URLSearchParams(window.location.search).get('utm_source') === 'reddit'
 
@@ -417,7 +425,8 @@ function clearCompare() {
 }
 
 function startCompare() {
-  router.push(`/modelle/vergleich?models=${selectedForCompare.value.join(',')}`)
+  const comparePath = isEn.value ? '/en/models/compare' : '/modelle/vergleich'
+  router.push(`${comparePath}?models=${selectedForCompare.value.join(',')}`)
 }
 
 function compareLabel(key: string): string {
@@ -557,28 +566,37 @@ const breadcrumbJsonLd = {
   ]
 }
 
-useHead({
-  title: 'Elektroauto Verbrauch Vergleich – Alle Modelle | EV Monitor',
-  meta: [
-    {
-      name: 'description',
-      content: 'Vergleiche den realen Stromverbrauch aller Elektroautos. Community-Daten vs. WLTP für Tesla, VW ID, Hyundai Ioniq, BMW i4 und mehr – kein Marketing, nur echte Messwerte.'
-    },
-    { name: 'keywords', content: 'Elektroauto Verbrauch, EV kWh 100km, WLTP vs Real, Tesla Verbrauch, VW ID.3 Verbrauch, Elektroauto Reichweite, Ladekosten Vergleich' },
-    { name: 'robots', content: 'index, follow' },
-    { property: 'og:title', content: 'Elektroauto Verbrauch Vergleich – Reale Community-Daten' },
-    { property: 'og:description', content: 'Echte Verbrauchsdaten von der Community für alle Elektroautos. WLTP vs. Praxis im direkten Vergleich.' },
-    { property: 'og:type', content: 'website' },
-    { property: 'og:url', content: 'https://ev-monitor.net/modelle' }
-  ],
-  link: [
-    { rel: 'canonical', href: 'https://ev-monitor.net/modelle' }
-  ],
-  script: [
-    { type: 'application/ld+json', innerHTML: () => JSON.stringify(itemListJsonLd.value) },
-    { type: 'application/ld+json', innerHTML: JSON.stringify(breadcrumbJsonLd) },
-  ]
-})
+useHead(computed(() => {
+  const canonical = isEn.value ? 'https://ev-monitor.net/en/models' : 'https://ev-monitor.net/modelle'
+  return {
+    title: isEn.value ? 'Electric Car Consumption Comparison – All Models | EV Monitor' : 'Elektroauto Verbrauch Vergleich – Alle Modelle | EV Monitor',
+    meta: [
+      {
+        name: 'description',
+        content: isEn.value
+          ? 'Compare the real energy consumption of all electric cars. Community data vs. WLTP for Tesla, VW ID, Hyundai Ioniq, BMW i4 and more - no marketing, just real measurements.'
+          : 'Vergleiche den realen Stromverbrauch aller Elektroautos. Community-Daten vs. WLTP für Tesla, VW ID, Hyundai Ioniq, BMW i4 und mehr - kein Marketing, nur echte Messwerte.'
+      },
+      { name: 'keywords', content: isEn.value ? 'electric car consumption, EV kWh 100km, WLTP vs real, Tesla consumption, electric car range, charging cost comparison' : 'Elektroauto Verbrauch, EV kWh 100km, WLTP vs Real, Tesla Verbrauch, VW ID.3 Verbrauch, Elektroauto Reichweite, Ladekosten Vergleich' },
+      { name: 'robots', content: 'index, follow' },
+      { property: 'og:title', content: isEn.value ? 'Electric Car Consumption Comparison - Real Community Data' : 'Elektroauto Verbrauch Vergleich - Reale Community-Daten' },
+      { property: 'og:description', content: isEn.value ? 'Real consumption data from the community for all electric cars. WLTP vs. everyday reality in direct comparison.' : 'Echte Verbrauchsdaten von der Community für alle Elektroautos. WLTP vs. Praxis im direkten Vergleich.' },
+      { property: 'og:type', content: 'website' },
+      { property: 'og:url', content: canonical },
+      { property: 'og:locale', content: isEn.value ? 'en_GB' : 'de_DE' },
+    ],
+    link: [
+      { rel: 'canonical', href: canonical },
+      { rel: 'alternate', hreflang: 'de', href: 'https://ev-monitor.net/modelle' },
+      { rel: 'alternate', hreflang: 'en', href: 'https://ev-monitor.net/en/models' },
+      { rel: 'alternate', hreflang: 'x-default', href: 'https://ev-monitor.net/modelle' },
+    ],
+    script: [
+      { type: 'application/ld+json', innerHTML: () => JSON.stringify(itemListJsonLd.value) },
+      { type: 'application/ld+json', innerHTML: JSON.stringify(breadcrumbJsonLd) },
+    ]
+  }
+}))
 
 onMounted(async () => {
   try {

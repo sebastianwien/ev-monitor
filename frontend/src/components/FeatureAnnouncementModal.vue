@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { useFeatureAnnouncements } from '../composables/useFeatureAnnouncements'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { SparklesIcon } from '@heroicons/vue/24/outline'
 
 const { announcement, dismiss } = useFeatureAnnouncements()
 const router = useRouter()
+const { t } = useI18n()
 
 const handleCta = () => {
   dismiss()
@@ -24,25 +26,25 @@ const handleCta = () => {
         <div class="flex-shrink-0 w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center">
           <SparklesIcon class="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
         </div>
-        <h2 class="text-lg font-bold text-gray-800 dark:text-gray-100">{{ announcement.title }}</h2>
+        <h2 class="text-lg font-bold text-gray-800 dark:text-gray-100">{{ t(announcement.titleKey) }}</h2>
       </div>
 
       <p class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-5">
-        {{ announcement.body }}
+        {{ t(announcement.bodyKey) }}
       </p>
 
       <div class="flex gap-3">
         <button
-          v-if="announcement.ctaLabel"
+          v-if="announcement.ctaLabelKey"
           @click="handleCta"
           class="btn-3d flex-1 px-4 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-xl hover:bg-indigo-700 transition">
-          {{ announcement.ctaLabel }}
+          {{ t(announcement.ctaLabelKey) }}
         </button>
         <button
           @click="dismiss"
-          :class="announcement.ctaLabel ? 'flex-1' : 'w-full'"
+          :class="announcement.ctaLabelKey ? 'flex-1' : 'w-full'"
           class="btn-3d px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition">
-          {{ announcement.ctaLabel ? 'Schliessen' : 'Ok, verstanden' }}
+          {{ announcement.ctaLabelKey ? t('common.close') : t('common.ok_understood') }}
         </button>
       </div>
     </div>

@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { CameraIcon, XMarkIcon, ArrowPathIcon } from '@heroicons/vue/24/outline'
 import Tesseract from 'tesseract.js'
+
+const { t } = useI18n()
 
 interface OcrResult {
   kwh: number | null
@@ -36,7 +39,7 @@ const handleFileSelect = (event: Event) => {
 
   // Validate file type
   if (!file.type.startsWith('image/')) {
-    error.value = 'Bitte wähle ein Bild aus'
+    error.value = t('ocr.err_not_image')
     return
   }
 
@@ -178,7 +181,7 @@ const startOcr = async () => {
     }
   } catch (err: any) {
     console.error('OCR Error:', err)
-    error.value = 'OCR fehlgeschlagen. Bitte versuche es erneut oder gib die Daten manuell ein.'
+    error.value = t('ocr.err_ocr_failed')
   } finally {
     isProcessing.value = false
   }
@@ -214,7 +217,7 @@ const cancel = () => {
     <div class="flex justify-between items-center mb-6">
       <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
         <CameraIcon class="h-6 w-6 text-indigo-600" />
-        Foto scannen
+        {{ t('ocr.title') }}
       </h2>
       <button @click="cancel" class="p-2 hover:bg-gray-100 rounded-lg transition">
         <XMarkIcon class="h-6 w-6 text-gray-600" />
@@ -229,17 +232,17 @@ const cancel = () => {
     <!-- Step 1: Camera Button (No Image) -->
     <div v-if="!imagePreview" class="text-center py-8">
       <CameraIcon class="h-16 w-16 mx-auto mb-4 text-gray-400" />
-      <p class="text-gray-600 mb-6">Mache ein Foto vom Lade-Display oder wähle ein Bild aus der Galerie</p>
+      <p class="text-gray-600 mb-6">{{ t('ocr.step1_prompt') }}</p>
 
       <button
         @click="openCamera"
         class="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium">
         <CameraIcon class="h-5 w-5 inline mr-2" />
-        Foto aufnehmen
+        {{ t('ocr.take_photo_btn') }}
       </button>
 
       <p class="text-xs text-gray-500 mt-4">
-        💡 Tipp: Achte auf gute Beleuchtung und klare Sicht auf kWh, Kosten und Dauer
+        💡 {{ t('ocr.tip') }}
       </p>
 
       <!-- Hidden File Input -->
@@ -263,22 +266,22 @@ const cancel = () => {
           @click="startOcr"
           :disabled="isProcessing"
           class="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition font-medium">
-          <span v-if="!isProcessing">🔍 OCR starten</span>
+          <span v-if="!isProcessing">🔍 {{ t('ocr.start_ocr_btn') }}</span>
           <span v-else class="flex items-center justify-center">
             <ArrowPathIcon class="h-5 w-5 animate-spin mr-2" />
-            Wird gescannt...
+            {{ t('ocr.scanning') }}
           </span>
         </button>
         <button
           @click="reset"
           :disabled="isProcessing"
           class="px-6 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 disabled:opacity-50 transition font-medium">
-          Neu
+          {{ t('ocr.retry_btn') }}
         </button>
       </div>
 
       <p v-if="isProcessing" class="text-sm text-gray-600 mt-3 text-center">
-        ⏳ Bitte warten, das kann einige Sekunden dauern...
+        ⏳ {{ t('ocr.wait_hint') }}
       </p>
     </div>
 
@@ -295,23 +298,23 @@ const cancel = () => {
           'text-yellow-700 dark:text-yellow-300': ocrResults.confidence >= 33 && ocrResults.confidence < 66,
           'text-red-700 dark:text-red-300': ocrResults.confidence < 33
         }">
-          <span v-if="ocrResults.confidence >= 66">✅ {{ ocrResults.confidence }}% Daten erkannt</span>
-          <span v-else-if="ocrResults.confidence >= 33">⚠️ {{ ocrResults.confidence }}% Daten erkannt</span>
-          <span v-else>❌ Nur {{ ocrResults.confidence }}% Daten erkannt</span>
+          <span v-if="ocrResults.confidence >= 66">✅ {{ t('ocr.confidence_high', { pct: ocrResults.confidence }) }}</span>
+          <span v-else-if="ocrResults.confidence >= 33">⚠️ {{ t('ocr.confidence_medium', { pct: ocrResults.confidence }) }}</span>
+          <span v-else>❌ {{ t('ocr.confidence_low', { pct: ocrResults.confidence }) }}</span>
         </p>
       </div>
 
-      <h3 class="font-semibold text-gray-800">Erkannte Daten:</h3>
+      <h3 class="font-semibold text-gray-800">{{ t('ocr.detected_data') }}</h3>
 
       <!-- kWh -->
       <div class="result-item">
-        <label class="text-sm text-gray-600 mb-1 block">kWh geladen</label>
+        <label class="text-sm text-gray-600 mb-1 block">{{ t('ocr.label_kwh') }}</label>
         <div class="flex items-center gap-2">
           <input
             v-model.number="ocrResults.kwh"
             type="number"
             step="0.1"
-            placeholder="z.B. 45.5"
+            :placeholder="t('ocr.kwh_placeholder')"
             class="flex-1 px-3 py-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
             :class="ocrResults.kwh ? 'border-green-500 bg-green-50' : 'border-gray-300'"
           />
@@ -322,13 +325,13 @@ const cancel = () => {
 
       <!-- Cost -->
       <div class="result-item">
-        <label class="text-sm text-gray-600 mb-1 block">Kosten (€)</label>
+        <label class="text-sm text-gray-600 mb-1 block">{{ t('ocr.label_cost') }}</label>
         <div class="flex items-center gap-2">
           <input
             v-model.number="ocrResults.cost"
             type="number"
             step="0.01"
-            placeholder="z.B. 18.20"
+            :placeholder="t('ocr.cost_placeholder')"
             class="flex-1 px-3 py-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
             :class="ocrResults.cost ? 'border-green-500 bg-green-50' : 'border-gray-300'"
           />
@@ -339,12 +342,12 @@ const cancel = () => {
 
       <!-- Duration -->
       <div class="result-item">
-        <label class="text-sm text-gray-600 mb-1 block">Dauer (Minuten)</label>
+        <label class="text-sm text-gray-600 mb-1 block">{{ t('ocr.label_duration') }}</label>
         <div class="flex items-center gap-2">
           <input
             v-model.number="ocrResults.durationMinutes"
             type="number"
-            placeholder="z.B. 135"
+            :placeholder="t('ocr.duration_placeholder')"
             class="flex-1 px-3 py-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
             :class="ocrResults.durationMinutes ? 'border-green-500 bg-green-50' : 'border-gray-300'"
           />
@@ -358,18 +361,18 @@ const cancel = () => {
         <button
           @click="applyData"
           class="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium">
-          ✓ Daten übernehmen
+          ✓ {{ t('ocr.apply_btn') }}
         </button>
         <button
           @click="reset"
           class="px-6 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition font-medium">
-          Erneut scannen
+          {{ t('ocr.rescan_btn') }}
         </button>
       </div>
 
       <!-- Debug: Raw Text (collapsible) -->
       <details class="text-xs text-gray-500 mt-4">
-        <summary class="cursor-pointer hover:text-gray-700">🔍 OCR Roh-Text anzeigen (Debug)</summary>
+        <summary class="cursor-pointer hover:text-gray-700">🔍 {{ t('ocr.debug_toggle') }}</summary>
         <pre class="mt-2 p-2 bg-gray-100 rounded overflow-x-auto whitespace-pre-wrap">{{ ocrResults.rawText }}</pre>
       </details>
     </div>

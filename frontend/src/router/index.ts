@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
+import { i18n } from '../i18n';
 import LandingPageView from '../views/LandingPageView.vue';
 import LogFormView from '../views/LogFormView.vue';
 import LoginView from '../views/LoginView.vue';
@@ -151,6 +152,62 @@ const router = createRouter({
             component: PublicModelView
             // no auth guard - public page for SEO
         },
+        // EN auth routes
+        {
+            path: '/en/login',
+            name: 'login-en',
+            component: LoginView,
+            meta: { locale: 'en', guestOnly: true }
+        },
+        {
+            path: '/en/register',
+            name: 'register-en',
+            component: RegisterView,
+            meta: { locale: 'en', guestOnly: true }
+        },
+        {
+            path: '/en/forgot-password',
+            name: 'forgot-password-en',
+            component: ForgotPasswordView,
+            meta: { locale: 'en', guestOnly: true }
+        },
+        // EN public routes
+        {
+            path: '/en',
+            name: 'landing-en',
+            component: LandingPageView,
+            meta: { locale: 'en' },
+            beforeEnter: () => {
+                const authStore = useAuthStore();
+                if (authStore.isAuthenticated()) {
+                    return '/dashboard';
+                }
+            }
+        },
+        {
+            path: '/en/models',
+            name: 'public-models-list-en',
+            component: PublicModelsListView,
+            meta: { locale: 'en' }
+        },
+        {
+            path: '/en/models/compare',
+            name: 'public-models-compare-en',
+            component: PublicModelsCompareView,
+            meta: { locale: 'en' }
+        },
+        {
+            path: '/en/models/:brand',
+            name: 'public-brand-en',
+            component: PublicBrandView,
+            meta: { locale: 'en' }
+        },
+        {
+            path: '/en/models/:brand/:model',
+            name: 'public-model-en',
+            component: PublicModelView,
+            meta: { locale: 'en' }
+        },
         {
             path: '/datenschutz',
             name: 'datenschutz',
@@ -205,11 +262,25 @@ const router = createRouter({
 
 router.beforeEach((to, _from) => {
     const authStore = useAuthStore();
-    const isAuthenticated = authStore.isAuthenticated();
 
-    if (to.meta.requiresAuth && !isAuthenticated) {
-        return '/login';
-    } else if (to.meta.guestOnly && isAuthenticated) {
+    // Set locale only for routes with explicit locale signal.
+    // Auth-required routes (dashboard, settings, ...) inherit the current locale.
+    const explicitLocale = (to.meta.locale as string | undefined)
+        ?? (to.path.startsWith('/en') ? 'en' : null);
+    if (explicitLocale !== null) {
+        i18n.global.locale.value = explicitLocale as 'de' | 'en';
+        localStorage.setItem('ev-locale', explicitLocale);
+    }
+
+    if (to.meta.requiresAuth) {
+        if (!authStore.isAuthenticated()) {
+            return '/login';
+        }
+        if (authStore.isExpired()) {
+            authStore.logout(false);
+            return '/login?reason=session-expired';
+        }
+    } else if (to.meta.guestOnly && authStore.isAuthenticated() && !authStore.isExpired()) {
         return '/dashboard';
     }
 });

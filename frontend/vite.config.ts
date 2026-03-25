@@ -1,9 +1,13 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { VitePWA } from 'vite-plugin-pwa'
+import VueI18nPlugin from '@intlify/unplugin-vue-i18n/vite'
 import path from 'path'
 
 export default defineConfig({
+    define: {
+        __INTLIFY_JIT_COMPILATION__: true
+    },
     server: {
         proxy: {
             // Connectors service — must come before /api to take precedence
@@ -57,6 +61,10 @@ export default defineConfig({
     },
     plugins: [
         vue(),
+        VueI18nPlugin({
+            include: [path.resolve(__dirname, './src/locales/**')],
+            strictMessage: false
+        }),
         VitePWA({
             registerType: 'autoUpdate',
             includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],

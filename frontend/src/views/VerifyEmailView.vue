@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import api from '../api/axios';
 import { analytics } from '../services/analytics';
 import { BoltIcon } from '@heroicons/vue/24/outline';
+
+const { t } = useI18n();
 
 const router = useRouter();
 const route = useRoute();
@@ -52,8 +55,8 @@ const handleResend = async () => {
   } catch (err: any) {
     const code = err.response?.data?.code;
     resendError.value = code === 'RATE_LIMITED'
-      ? 'Kurz warten – du hast gerade erst eine E-Mail angefordert.'
-      : 'Fehler beim Senden. Bitte versuche es später erneut.';
+      ? t('auth.verify_email.resend_rate_limited')
+      : t('auth.verify_email.resend_error');
   }
 };
 </script>
@@ -65,27 +68,27 @@ const handleResend = async () => {
       <!-- Loading -->
       <div v-if="status === 'loading'">
         <BoltIcon class="h-16 w-16 text-green-600 mb-4 mx-auto" />
-        <h2 class="text-xl font-semibold text-gray-700">Bestätigung wird geprüft...</h2>
+        <h2 class="text-xl font-semibold text-gray-700">{{ t('auth.verify_email.loading') }}</h2>
       </div>
 
       <!-- Success -->
       <div v-else-if="status === 'success'">
         <div class="text-5xl mb-4">🎉</div>
-        <h2 class="text-2xl font-bold text-green-600 mb-2">E-Mail bestätigt!</h2>
-        <p class="text-gray-500">Du wirst gleich weitergeleitet...</p>
+        <h2 class="text-2xl font-bold text-green-600 mb-2">{{ t('auth.verify_email.success_title') }}</h2>
+        <p class="text-gray-500">{{ t('auth.verify_email.success_text') }}</p>
       </div>
 
       <!-- Expired -->
       <div v-else-if="status === 'expired'">
         <div class="text-5xl mb-4">⏰</div>
-        <h2 class="text-2xl font-bold text-orange-500 mb-2">Link abgelaufen</h2>
-        <p class="text-gray-500 mb-6">Der Bestätigungs-Link ist nicht mehr gültig. Fordere einen neuen an.</p>
+        <h2 class="text-2xl font-bold text-orange-500 mb-2">{{ t('auth.verify_email.expired_title') }}</h2>
+        <p class="text-gray-500 mb-6">{{ t('auth.verify_email.expired_text') }}</p>
 
         <div v-if="!resendSent">
           <input
             v-model="resendEmail"
             type="email"
-            placeholder="deine@email.de"
+            placeholder="your@email.com"
             class="block w-full px-4 py-3 mb-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
           />
           <div v-if="resendError" class="text-sm text-red-600 bg-red-50 p-2 rounded mb-3">{{ resendError }}</div>
@@ -93,21 +96,21 @@ const handleResend = async () => {
             @click="handleResend"
             class="w-full px-4 py-3 font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition"
           >
-            Neuen Link senden
+            {{ t('auth.verify_email.expired_resend') }}
           </button>
         </div>
         <div v-else class="text-green-600 font-medium">
-          ✅ E-Mail verschickt! Check dein Postfach.
+          ✅ {{ t('auth.verify_email.expired_sent') }}
         </div>
       </div>
 
       <!-- Invalid -->
       <div v-else-if="status === 'invalid'">
         <div class="text-5xl mb-4">❌</div>
-        <h2 class="text-2xl font-bold text-red-500 mb-2">Ungültiger Link</h2>
-        <p class="text-gray-500 mb-6">Dieser Bestätigungs-Link ist ungültig oder wurde bereits verwendet.</p>
+        <h2 class="text-2xl font-bold text-red-500 mb-2">{{ t('auth.verify_email.invalid_title') }}</h2>
+        <p class="text-gray-500 mb-6">{{ t('auth.verify_email.invalid_text') }}</p>
         <router-link to="/register" class="text-indigo-600 font-semibold hover:underline">
-          Zurück zur Registrierung
+          {{ t('auth.verify_email.invalid_back') }}
         </router-link>
       </div>
 
