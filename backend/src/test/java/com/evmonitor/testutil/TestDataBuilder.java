@@ -108,7 +108,8 @@ public class TestDataBuilder {
                 80, // socAfterChargePercent (required for tests)
                 LocalDateTime.now(),
                 ChargingType.UNKNOWN,
-                null, null
+                null, null,
+                false, null
         );
     }
 
@@ -128,7 +129,8 @@ public class TestDataBuilder {
                 80, // socAfterChargePercent (required for tests)
                 timestamp,
                 ChargingType.UNKNOWN,
-                null, null
+                null, null,
+                false, null
         );
     }
 

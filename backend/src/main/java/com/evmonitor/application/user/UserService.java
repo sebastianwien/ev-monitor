@@ -170,4 +170,5 @@ public class UserService {
         userEntity.setUpdatedAt(LocalDateTime.now());
         jpaUserRepository.save(userEntity);
     }
+
 }

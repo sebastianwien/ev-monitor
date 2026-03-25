@@ -15,8 +15,8 @@ import { tempBadgeClass } from '../utils/temperatureColor'
 import ConsumptionInfoBox from './ConsumptionInfoBox.vue'
 import EditLogModal from './EditLogModal.vue'
 
-const { haptic } = useHaptic()
 const { t } = useI18n()
+const { haptic } = useHaptic()
 const { formatNumber } = useLocaleFormat()
 const coinStore = useCoinStore()
 const carStore = useCarStore()
@@ -56,6 +56,8 @@ const formData = ref<LogFormData>({
   tireType: 'SUMMER',
   latitude: null,
   longitude: null,
+  isPublicCharging: false,
+  cpoName: null,
 })
 
 const isFormValid = computed(() => {
@@ -64,9 +66,7 @@ const isFormValid = computed(() => {
   return (
     !!selectedCarId.value &&
     hasValue(f.kwhCharged) && Number(f.kwhCharged) > 0 &&
-    hasValue(f.costEur) &&
-    hasValue(f.odometerKm) && Number(f.odometerKm) > 0 &&
-    hasValue(f.socAfterChargePercent) && Number(f.socAfterChargePercent) >= 0 && Number(f.socAfterChargePercent) <= 100
+    hasValue(f.costEur)
   )
 })
 
@@ -142,18 +142,13 @@ const submitLog = async () => {
 
   if (!f.kwhCharged || f.kwhCharged <= 0) { fieldErrors.value.add('kwh'); errors.push(t('logform.field_kwh')) }
   if (f.costEur === null || f.costEur === undefined) { fieldErrors.value.add('cost'); errors.push(t('logform.field_cost')) }
-  if (!f.odometerKm || f.odometerKm <= 0) {
-    fieldErrors.value.add('odometer'); errors.push(t('logform.field_odometer'))
-  } else {
+  if (f.odometerKm && f.odometerKm > 0) {
     const last = getLastOdometerReading(f.loggedAt || undefined)
     if (last !== null && f.odometerKm < last) {
       fieldErrors.value.add('odometer')
       odometerPlaceholderOverride.value = t('logform.odometer_min', { min: formatNumber(last) })
       errors.push(t('logform.field_odometer'))
     }
-  }
-  if (f.socAfterChargePercent === null || f.socAfterChargePercent < 0 || f.socAfterChargePercent > 100) {
-    fieldErrors.value.add('soc'); errors.push(t('logform.field_soc'))
   }
 
   if (errors.length > 0) {
@@ -182,6 +177,8 @@ const submitLog = async () => {
     payload.chargingType = f.chargingType
     payload.routeType = f.routeType
     payload.tireType = f.tireType
+    payload.isPublicCharging = f.isPublicCharging
+    if (f.isPublicCharging && f.cpoName) payload.cpoName = f.cpoName
 
     const isFirstLog = logs.value.length === 0
     const res = await api.post('/logs', payload)
@@ -199,6 +196,7 @@ const submitLog = async () => {
       chargingType: 'AC', routeType: 'COMBINED',
       tireType: savedTireType,
       latitude: null, longitude: null,
+      isPublicCharging: false, cpoName: null,
     }
     ocrUsed.value = false
     odometerPlaceholderOverride.value = null
@@ -207,7 +205,7 @@ const submitLog = async () => {
     await fetchLogs()
     emit('success')
   } catch (err: any) {
-    error.value = err.response?.data?.message || 'Ladevorgang konnte nicht gespeichert werden'
+    error.value = err.response?.data?.message || t('logform.error_save')
   }
 }
 
@@ -282,13 +280,28 @@ onMounted(async () => {
             :field-errors="fieldErrors"
             :odometer-placeholder="odometerPlaceholderOverride ?? getLastOdometerPlaceholder()"
             location-mode="create"
-          />
+            :hide-datetime="true"
+          >
+            <template #after-required>
+              <button :key="shakeKey" type="submit" @click="haptic(20)"
+                :disabled="!isFormValid"
+                :class="['w-full bg-indigo-600 text-white p-3 rounded-md btn-3d transition', !isFormValid ? 'opacity-40 cursor-not-allowed' : 'hover:bg-indigo-700', error ? 'ring-2 ring-red-400 ring-offset-2 animate-shake' : '']">
+                {{ t('logform.save_btn') }}
+              </button>
+            </template>
+          </LogFormFields>
 
-          <button :key="shakeKey" type="submit" @click="haptic(20)"
-            :disabled="!isFormValid"
-            :class="['w-full bg-indigo-600 text-white p-3 rounded-md btn-3d transition', !isFormValid ? 'opacity-40 cursor-not-allowed' : 'hover:bg-indigo-700', error ? 'ring-2 ring-red-400 ring-offset-2 animate-shake' : '']">
-            {{ t('logform.save_btn') }}
-          </button>
+          <!-- Ladezeitpunkt: optional, daher unter dem Submit -->
+          <div>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-400">{{ t('logfields.timestamp') }}</label>
+            <input
+              v-model="formData.loggedAt"
+              type="datetime-local"
+              :max="logFormFieldsRef?.getCurrentDateTimeLocal()"
+              class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
+            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ t('logfields.timestamp_hint') }}</p>
+          </div>
+
           <p class="text-xs text-gray-400 dark:text-gray-500 text-center mt-2">
             {{ t('logform.location_hint') }}
           </p>
@@ -314,7 +327,7 @@ onMounted(async () => {
                 <div class="flex items-center gap-2 min-w-0">
                   <BoltIcon class="w-4 h-4 text-indigo-600 flex-shrink-0" />
                   <span class="font-semibold text-indigo-700 whitespace-nowrap">{{ log.kwhCharged }} kWh</span>
-                  <span class="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{{ new Date(log.loggedAt).toLocaleDateString('de-DE') }}</span>
+                  <span class="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{{ new Date(log.loggedAt).toLocaleDateString() }}</span>
                 </div>
                 <div class="flex items-center gap-1.5 flex-shrink-0">
                   <span v-if="log.temperatureCelsius != null"
@@ -325,13 +338,13 @@ onMounted(async () => {
                     €{{ (log.costEur / log.kwhCharged).toFixed(2) }}/kWh
                   </span>
                   <button type="button" @click="editingLog = log"
-                    class="p-1 text-gray-400 dark:text-gray-500 hover:text-blue-500 hover:bg-blue-50 rounded transition" title="Ladevorgang bearbeiten">
+                    class="p-1 text-gray-400 dark:text-gray-500 hover:text-blue-500 hover:bg-blue-50 rounded transition" :title="t('logform.edit_title')">
                     <PencilSquareIcon class="w-4 h-4" />
                   </button>
                   <button type="button" @click="deleteLog(log.id)"
                     class="p-1 rounded transition"
                     :class="pendingDeleteId === log.id ? 'text-red-600 bg-red-50 ring-1 ring-red-300' : 'text-gray-400 dark:text-gray-500 hover:text-red-500 hover:bg-red-50'"
-                    :title="pendingDeleteId === log.id ? 'Nochmal klicken zum Bestätigen' : 'Ladevorgang löschen'">
+                    :title="pendingDeleteId === log.id ? t('logform.confirm_delete') : t('logform.delete_title')">
                     <TrashIcon class="w-4 h-4" />
                   </button>
                 </div>
@@ -345,7 +358,7 @@ onMounted(async () => {
                   <ClockIcon class="w-3 h-3" />{{ log.chargeDurationMinutes }}min
                 </span>
                 <span v-if="log.odometerKm" class="hidden min-[475px]:inline-flex items-center gap-1 px-2 py-0.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                  <TruckIcon class="w-3 h-3" />{{ log.odometerKm.toLocaleString('de-DE') }} km
+                  <TruckIcon class="w-3 h-3" />{{ log.odometerKm.toLocaleString() }} km
                 </span>
                 <span v-if="log.socAfterChargePercent !== null" class="inline-flex items-center gap-1 px-2 py-0.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">
                   <Battery0Icon class="w-3 h-3" />{{ log.socAfterChargePercent }}%

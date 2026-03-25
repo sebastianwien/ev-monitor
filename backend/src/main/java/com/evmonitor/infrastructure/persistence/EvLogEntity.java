@@ -25,7 +25,7 @@ public class EvLogEntity {
     @Column(name = "charge_duration_minutes")
     private Integer chargeDurationMinutes;
 
-    @Column(name = "geohash", length = 5)
+    @Column(name = "geohash", length = 7)
     private String geohash;
 
     @Column(name = "odometer_km")
@@ -76,6 +76,12 @@ public class EvLogEntity {
 
     @Column(name = "session_group_id")
     private UUID sessionGroupId;
+
+    @Column(name = "is_public_charging", nullable = false, columnDefinition = "BOOLEAN NOT NULL DEFAULT false")
+    private boolean publicCharging;
+
+    @Column(name = "cpo_name", length = 100)
+    private String cpoName;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -296,5 +302,21 @@ public class EvLogEntity {
 
     public void setSessionGroupId(UUID sessionGroupId) {
         this.sessionGroupId = sessionGroupId;
+    }
+
+    public boolean isPublicCharging() {
+        return publicCharging;
+    }
+
+    public void setPublicCharging(boolean publicCharging) {
+        this.publicCharging = publicCharging;
+    }
+
+    public String getCpoName() {
+        return cpoName;
+    }
+
+    public void setCpoName(String cpoName) {
+        this.cpoName = cpoName;
     }
 }
