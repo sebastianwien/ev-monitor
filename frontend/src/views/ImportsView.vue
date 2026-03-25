@@ -5,6 +5,7 @@ import { ArrowDownTrayIcon, BoltIcon, ExclamationTriangleIcon, CodeBracketIcon, 
 import SpritMonitorImport from '../components/SpritMonitorImport.vue'
 import GoeIntegration from '../components/GoeIntegration.vue'
 import TeslaFleetIntegration from '../components/TeslaFleetIntegration.vue'
+import SmartcarIntegration from '../components/SmartcarIntegration.vue'
 import ManualImportModal from '../components/ManualImportModal.vue'
 import TronityImport from '../components/TronityImport.vue'
 import CarSelectDropdown from '../components/CarSelectDropdown.vue'
@@ -131,6 +132,7 @@ const activeCars = computed(() =>
         <div class="flex gap-1">
           <button
             v-for="tab in ([
+              { id: 'smartcar' as const, label: t('imports.tab_smartcar') },
               { id: 'spritmonitor' as const, label: t('imports.tab_spritmonitor') },
               { id: 'goe' as const, label: t('imports.tab_goe') },
               { id: 'wallbox' as const, label: t('imports.tab_wallbox') },
@@ -151,6 +153,10 @@ const activeCars = computed(() =>
         </div>
         <!-- Tab panel -->
         <div class="border border-gray-200 dark:border-gray-700 rounded-b-xl rounded-tr-xl bg-white dark:bg-gray-800">
+        <!-- Tab: Smartcar -->
+        <div v-if="activeTab === 'smartcar'">
+          <SmartcarIntegration />
+        </div>
         <!-- Tab: Sprit-Monitor -->
         <div v-if="activeTab === 'spritmonitor'" class="p-6 space-y-4">
           <div class="flex items-start gap-4">

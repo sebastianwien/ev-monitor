@@ -1,9 +1,9 @@
 import { ref } from 'vue'
 
-type Tab = 'spritmonitor' | 'goe' | 'wallbox' | 'tesla' | 'tronity' | 'manuell' | 'api'
+type Tab = 'smartcar' | 'spritmonitor' | 'goe' | 'wallbox' | 'tesla' | 'tronity' | 'manuell' | 'api'
 
 // Module-level singleton — shared across all component instances
-const activeTab = ref<Tab>('spritmonitor')
+const activeTab = ref<Tab>('smartcar')
 
 export function useImportsTab() {
   return { activeTab }
