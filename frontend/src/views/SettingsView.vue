@@ -227,18 +227,30 @@ interface ChargingProvider {
 }
 
 const KNOWN_EMPS = [
+  // Deutschland
   'ADAC e-Charge',
-  'Maingau Energie',
+  'Aral Pulse',
+  'bp pulse',
+  'Charge Now (BMW)',
   'EnBW mobility+',
-  'Plugsurfing',
-  'Elli',
-  'IONITY Passport',
-  'Fastned Gold',
-  'Shell Recharge',
+  'Elli (VW)',
   'E.ON Drive',
-  'Lichtblick',
   'EWE Go',
+  'Fastned Gold',
+  'IONITY Passport',
+  'Lichtblick',
+  'Maingau Energie',
+  'Mercedes me Charge',
+  'NewMotion',
+  'Plugsurfing',
+  'Shell Recharge',
   'Stadtwerke',
+  'Tesla',
+  // Österreich
+  'Ella (AT)',
+  'SMATRICS EnBW (AT)',
+  // Schweiz
+  'Move (CH)',
   'Anderer Anbieter',
 ]
 

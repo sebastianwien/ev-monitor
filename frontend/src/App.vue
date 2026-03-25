@@ -14,6 +14,7 @@ import LeaderboardTicker from './components/LeaderboardTicker.vue'
 import LogFormModal from './components/LogFormModal.vue'
 import FloatingActionButton from './components/FloatingActionButton.vue'
 import OnboardingWelcome from './components/OnboardingWelcome.vue'
+import FeatureAnnouncementModal from './components/FeatureAnnouncementModal.vue'
 import DemoBanner from './components/DemoBanner.vue'
 import RedditConsentBanner from './components/RedditConsentBanner.vue'
 import FeedbackToast from './components/FeedbackToast.vue'
@@ -469,6 +470,7 @@ const closeMobileMenu = () => {
 
     <!-- Onboarding Welcome (First-time users) -->
     <OnboardingWelcome v-if="authStore.isAuthenticated()" />
+    <FeatureAnnouncementModal v-if="authStore.isAuthenticated()" />
 
     <!-- Reddit Consent Banner (only for paid Reddit traffic) -->
     <RedditConsentBanner />
