@@ -148,6 +148,9 @@
 
         </div>
 
+        <!-- Affiliate Banner: nur für nicht eingeloggte User -->
+        <AffiliateBanner v-if="!authStore.isAuthenticated" />
+
         <!-- Combined: Variant Switcher + Seasonal + WLTP -->
         <div v-if="stats.wltpVariants.length > 0 || showSeasonalBreakdown"
              class="bg-white dark:bg-gray-800 md:rounded-2xl md:border-x border-t md:border-b border-gray-200 dark:border-gray-700 md:mb-6 overflow-hidden">
@@ -570,6 +573,7 @@ import { useAuthStore } from '../stores/auth'
 import { getModelStats, type PublicModelStats } from '../api/publicModelService'
 import { ArrowTrendingUpIcon, ClipboardDocumentListIcon, Battery0Icon, SunIcon, ChartBarIcon, ExclamationTriangleIcon, BoltIcon } from '@heroicons/vue/24/outline'
 import PublicNav from '../components/PublicNav.vue'
+import AffiliateBanner from '../components/AffiliateBanner.vue'
 
 const route = useRoute()
 const { t } = useI18n()
