@@ -24,9 +24,9 @@ export interface LogFormData {
 const props = defineProps<{
   fieldErrors?: Set<string>
   odometerPlaceholder?: string
-  // create mode: GPS toggle + search; edit mode: search only (no GPS)
+  // create mode: GPS toggle sichtbar; edit mode: kein GPS (Nominatim-Suche im Container)
   locationMode?: 'create' | 'edit'
-  showSocBefore?: boolean
+  hideDatetime?: boolean
 }>()
 
 const form = defineModel<LogFormData>({ required: true })
@@ -118,23 +118,68 @@ watch([() => form.value.kwhCharged, priceEurPerKwh], () => {
 const toggleCostMode = (mode: 'eur' | 'eur_kwh') => {
   if (costMode.value === mode) return
   if (mode === 'eur_kwh') {
-    // € → €/kWh: Rückrechnung wenn kWh bekannt
     const kwh = form.value.kwhCharged
     const eur = form.value.costEur
     priceEurPerKwh.value = (kwh && eur) ? Math.round((eur / kwh) * 100) / 100 : null
   } else {
-    // €/kWh → €: berechneten Wert übernehmen
     form.value.costEur = calculatedEur.value
   }
   costMode.value = mode
 }
 
-// expose clearLocation so LogForm can call it on reset
-defineExpose({ clearLocation, locationEnabled, locationStatus })
+// ── CPO Dropdown ──────────────────────────────────────────────────────────────
+const CPO_LIST = [
+  'IONITY',
+  'Tesla Supercharger',
+  'EnBW',
+  'Aral Pulse',
+  'Shell Recharge',
+  'Fastned',
+  'Allego',
+  'Mer',
+  'E.ON Drive',
+  'TotalEnergies',
+  'REWE',
+  'Lidl',
+  'Kaufland',
+  'Avia',
+  'OMV',
+  'Q8',
+  'Smatrics',
+  'Wien Energie',
+  'Verbund',
+  'ÖAMTC',
+  'EWZ',
+  'ewb',
+  'ChargePoint',
+  'Clever',
+  'Greenway',
+  'Stadtwerke',
+] as const
+
+const cpoSelect = ref<string>(
+  form.value.cpoName
+    ? (CPO_LIST as readonly string[]).includes(form.value.cpoName) ? form.value.cpoName : 'OTHER'
+    : ''
+)
+
+watch(() => form.value.chargingType, (type) => {
+  if (type === 'DC') form.value.isPublicCharging = true
+})
+
+watch(cpoSelect, (val) => {
+  if (val !== 'OTHER') {
+    form.value.cpoName = val || null
+  } else {
+    form.value.cpoName = null
+  }
+})
+
+defineExpose({ clearLocation, locationEnabled, locationStatus, getCurrentDateTimeLocal })
 </script>
 
 <template>
-  <!-- Pflichtfelder-Gruppe: grauer Hintergrund nur im Create-Mode -->
+  <!-- Pflichtfelder-Gruppe -->
   <div :class="locationMode !== 'edit' ? 'bg-gray-100 dark:bg-gray-800 md:rounded-xl p-3 space-y-3 -mx-4 md:mx-0' : 'space-y-3'">
 
   <!-- Row 1: kWh + Kosten -->
@@ -173,7 +218,7 @@ defineExpose({ clearLocation, locationEnabled, locationStatus })
     </div>
   </div>
 
-  <!-- Row 2: Tachostand + SoC nach (+ SoC vorher wenn Edit) -->
+  <!-- Row 2: Tachostand + SoC nach -->
   <div class="grid grid-cols-2 gap-3">
     <div>
       <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('logfields.odometer') }}</label>
@@ -186,38 +231,11 @@ defineExpose({ clearLocation, locationEnabled, locationStatus })
       <input v-model="form.socAfterChargePercent" type="number" min="0" max="100" step="1"
         :class="inputClass('soc')" />
     </div>
-    <div v-if="showSocBefore">
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('logfields.soc_before') }}</label>
-      <input v-model="form.socBeforeChargePercent" type="number" min="0" max="100" :placeholder="t('logfields.optional')"
-        :class="inputClass('socBefore')" />
-    </div>
-    <!-- Ladeart im Edit-Mode: 2. Spalte neben SoC vorher -->
-    <div v-if="showSocBefore">
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('logfields.charge_type') }}</label>
-      <div class="mt-1 flex items-center h-[34px]">
-        <button
-          type="button"
-          @click="form.chargingType = form.chargingType === 'AC' ? 'DC' : 'AC'"
-          :class="[
-            'relative inline-flex h-8 w-16 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none',
-            form.chargingType === 'DC' ? 'bg-orange-500' : 'bg-blue-500'
-          ]">
-          <span
-            :class="[
-              'pointer-events-none inline-flex h-7 w-9 transform items-center justify-center rounded-full bg-white shadow text-xs font-bold transition duration-200 ease-in-out',
-              form.chargingType === 'DC' ? 'translate-x-6' : 'translate-x-0'
-            ]"
-            :style="{ color: form.chargingType === 'DC' ? '#f97316' : '#3b82f6' }">
-            {{ form.chargingType }}
-          </span>
-        </button>
-      </div>
-    </div>
   </div>
 
-  <!-- Row 3: Location toggle + AC/DC (create mode only) -->
-  <div v-if="locationMode !== 'edit'" class="flex items-center justify-center gap-8">
-    <div class="flex items-center gap-1.5">
+  <!-- Toggle-Zeile: GPS (nur create) + AC/DC + Öff. -->
+  <div class="flex items-center justify-around">
+    <div v-if="locationMode !== 'edit'" class="flex items-center gap-1.5">
       <GlobeAltIcon
         :class="[
           'h-5 w-5 transition-colors duration-300',
@@ -256,56 +274,97 @@ defineExpose({ clearLocation, locationEnabled, locationStatus })
         {{ form.chargingType }}
       </span>
     </button>
+    <div class="flex items-center gap-1.5">
+      <span class="text-[10px] leading-tight text-gray-400 dark:text-gray-500 font-medium text-right">{{ t('logfields.public_charging_short') }}<br>{{ t('logfields.public_charging_short2') }}</span>
+      <button
+        type="button"
+        @click="form.isPublicCharging = !form.isPublicCharging"
+        :class="[
+          'relative inline-flex h-8 w-14 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none',
+          form.isPublicCharging ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'
+        ]">
+        <span :class="[
+          'pointer-events-none inline-block h-7 w-7 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+          form.isPublicCharging ? 'translate-x-6' : 'translate-x-0'
+        ]" />
+      </button>
+    </div>
   </div>
 
-  <!-- Location error message (create mode) -->
-  <p v-if="locationMode === 'create' && locationErrorMessage" class="text-xs text-red-500">
-    {{ locationErrorMessage }}
-  </p>
+  <!-- Location error message -->
+  <p v-if="locationErrorMessage" class="text-xs text-red-500">{{ locationErrorMessage }}</p>
+
+  <!-- CPO Dropdown (innerhalb der Pflichtfelder-Gruppe, direkt über Submit) -->
+  <div v-if="form.isPublicCharging" class="space-y-1.5">
+    <select v-model="cpoSelect" :class="inputClass('cpoName')">
+      <option value="">{{ t('logfields.cpo_select_placeholder') }}</option>
+      <option v-for="cpo in CPO_LIST" :key="cpo" :value="cpo">{{ cpo }}</option>
+      <option value="OTHER">{{ t('logfields.cpo_other') }}</option>
+    </select>
+    <input
+      v-if="cpoSelect === 'OTHER'"
+      v-model="form.cpoName"
+      type="text"
+      :placeholder="t('logfields.cpo_name_placeholder')"
+      maxlength="100"
+      :class="inputClass('cpoName')"
+    />
+  </div>
 
   </div><!-- end Pflichtfelder-Gruppe -->
 
+  <slot name="after-required" />
+
+  <!-- Trennlinie optionale Felder -->
+  <div class="flex items-center gap-3 text-xs text-gray-400 dark:text-gray-500">
+    <div class="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+    <span>{{ t('logfields.optional_section') }}</span>
+    <div class="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+  </div>
+
   <!-- Streckenart + Reifen -->
   <div class="grid grid-cols-2 gap-3">
-    <!-- Streckenart -->
-    <div class="relative flex w-full rounded-full border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-700 p-0.5">
-      <!-- sliding white pill -->
-      <div class="absolute top-0.5 bottom-0.5 rounded-full bg-white dark:bg-gray-600 shadow-sm transition-transform duration-200 ease-in-out pointer-events-none" style="width: calc(33.333% - 2px)"
-        :style="{ transform: `translateX(${['CITY','COMBINED','HIGHWAY'].indexOf(form.routeType) * 100}%)` }" />
-      <button type="button" @click="form.routeType = 'CITY'"
-        :class="['relative z-10 flex-1 px-1 py-1.5 rounded-full text-xs font-medium transition-colors duration-200', form.routeType === 'CITY' ? 'text-indigo-700' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']">
-        {{ t('logfields.route_city') }}
-      </button>
-      <button type="button" @click="form.routeType = 'COMBINED'"
-        :class="['relative z-10 flex-1 px-1 py-1.5 rounded-full text-xs font-medium transition-colors duration-200', form.routeType === 'COMBINED' ? 'text-indigo-700' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']">
-        {{ t('logfields.route_mix') }}
-      </button>
-      <button type="button" @click="form.routeType = 'HIGHWAY'"
-        :class="['relative z-10 flex-1 px-1 py-1.5 rounded-full text-xs font-medium transition-colors duration-200', form.routeType === 'HIGHWAY' ? 'text-indigo-700' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']">
-        {{ t('logfields.route_highway') }}
-      </button>
+    <div>
+      <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 text-center">{{ t('logfields.route_type_label') }}</label>
+      <div class="relative flex w-full rounded-full border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-700 p-0.5">
+        <div class="absolute top-0.5 bottom-0.5 rounded-full bg-white dark:bg-gray-600 shadow-sm transition-transform duration-200 ease-in-out pointer-events-none" style="width: calc(33.333% - 2px)"
+          :style="{ transform: `translateX(${['CITY','COMBINED','HIGHWAY'].indexOf(form.routeType) * 100}%)` }" />
+        <button type="button" @click="form.routeType = 'CITY'"
+          :class="['relative z-10 flex-1 px-1 py-1.5 rounded-full text-xs font-medium transition-colors duration-200', form.routeType === 'CITY' ? 'text-indigo-700' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']">
+          {{ t('logfields.route_city') }}
+        </button>
+        <button type="button" @click="form.routeType = 'COMBINED'"
+          :class="['relative z-10 flex-1 px-1 py-1.5 rounded-full text-xs font-medium transition-colors duration-200', form.routeType === 'COMBINED' ? 'text-indigo-700' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']">
+          {{ t('logfields.route_mix') }}
+        </button>
+        <button type="button" @click="form.routeType = 'HIGHWAY'"
+          :class="['relative z-10 flex-1 px-1 py-1.5 rounded-full text-xs font-medium transition-colors duration-200', form.routeType === 'HIGHWAY' ? 'text-indigo-700' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']">
+          {{ t('logfields.route_highway') }}
+        </button>
+      </div>
     </div>
-    <!-- Reifenart -->
-    <div class="relative flex w-full rounded-full border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-700 p-0.5">
-      <!-- sliding white pill -->
-      <div class="absolute top-0.5 bottom-0.5 rounded-full bg-white dark:bg-gray-600 shadow-sm transition-transform duration-200 ease-in-out pointer-events-none" style="width: calc(33.333% - 2px)"
-        :style="{ transform: `translateX(${['SUMMER','ALL_YEAR','WINTER'].indexOf(form.tireType) * 100}%)` }" />
-      <button type="button" @click="form.tireType = 'SUMMER'"
-        :class="['relative z-10 flex-1 px-1 py-1.5 rounded-full text-xs font-medium transition-colors duration-200', form.tireType === 'SUMMER' ? 'text-indigo-700' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']">
-        {{ t('logfields.tire_summer') }}
-      </button>
-      <button type="button" @click="form.tireType = 'ALL_YEAR'"
-        :class="['relative z-10 flex-1 px-1 py-1.5 rounded-full text-xs font-medium transition-colors duration-200', form.tireType === 'ALL_YEAR' ? 'text-indigo-700' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']">
-        {{ t('logfields.tire_allyear') }}
-      </button>
-      <button type="button" @click="form.tireType = 'WINTER'"
-        :class="['relative z-10 flex-1 px-1 py-1.5 rounded-full text-xs font-medium transition-colors duration-200', form.tireType === 'WINTER' ? 'text-indigo-700' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']">
-        {{ t('logfields.tire_winter') }}
-      </button>
+    <div>
+      <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 text-center">{{ t('logfields.tire_type_label') }}</label>
+      <div class="relative flex w-full rounded-full border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-700 p-0.5">
+        <div class="absolute top-0.5 bottom-0.5 rounded-full bg-white dark:bg-gray-600 shadow-sm transition-transform duration-200 ease-in-out pointer-events-none" style="width: calc(33.333% - 2px)"
+          :style="{ transform: `translateX(${['SUMMER','ALL_YEAR','WINTER'].indexOf(form.tireType) * 100}%)` }" />
+        <button type="button" @click="form.tireType = 'SUMMER'"
+          :class="['relative z-10 flex-1 px-1 py-1.5 rounded-full text-xs font-medium transition-colors duration-200', form.tireType === 'SUMMER' ? 'text-indigo-700' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']">
+          {{ t('logfields.tire_summer') }}
+        </button>
+        <button type="button" @click="form.tireType = 'ALL_YEAR'"
+          :class="['relative z-10 flex-1 px-1 py-1.5 rounded-full text-xs font-medium transition-colors duration-200', form.tireType === 'ALL_YEAR' ? 'text-indigo-700' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']">
+          {{ t('logfields.tire_allyear') }}
+        </button>
+        <button type="button" @click="form.tireType = 'WINTER'"
+          :class="['relative z-10 flex-1 px-1 py-1.5 rounded-full text-xs font-medium transition-colors duration-200', form.tireType === 'WINTER' ? 'text-indigo-700' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']">
+          {{ t('logfields.tire_winter') }}
+        </button>
+      </div>
     </div>
   </div>
 
-  <!-- Dauer + Ladeleistung -->
+  <!-- Dauer + Ladeleistung + Akku vor Laden -->
   <div class="grid grid-cols-2 gap-3">
     <div>
       <label class="block text-sm font-medium text-gray-600 dark:text-gray-400">{{ t('logfields.duration') }}</label>
@@ -317,54 +376,15 @@ defineExpose({ clearLocation, locationEnabled, locationStatus })
       <input v-model="form.maxChargingPowerKw" type="number" step="0.1"
         class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
     </div>
-  </div>
-
-  <!-- Öffentliche Ladesäule -->
-  <div class="space-y-2">
-    <div class="flex items-center justify-between">
-      <label class="text-sm font-medium text-gray-600 dark:text-gray-400">{{ t('logfields.public_charging') }}</label>
-      <button
-        type="button"
-        @click="form.isPublicCharging = !form.isPublicCharging"
-        :class="[
-          'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none',
-          form.isPublicCharging ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'
-        ]">
-        <span :class="[
-          'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
-          form.isPublicCharging ? 'translate-x-5' : 'translate-x-0'
-        ]" />
-      </button>
-    </div>
-    <div v-if="form.isPublicCharging">
-      <input
-        v-model="form.cpoName"
-        type="text"
-        list="cpo-list"
-        :placeholder="t('logfields.cpo_name_placeholder')"
-        maxlength="100"
-        :class="inputClass('cpoName')"
-      />
-      <datalist id="cpo-list">
-        <option value="IONITY" />
-        <option value="EnBW" />
-        <option value="Allego" />
-        <option value="Fastned" />
-        <option value="Tesla Supercharger" />
-        <option value="Aral Pulse" />
-        <option value="Shell Recharge" />
-        <option value="REWE" />
-        <option value="Lidl" />
-        <option value="Mer" />
-        <option value="E.ON Drive" />
-        <option value="Vattenfall InCharge" />
-        <option value="Stadtwerke" />
-      </datalist>
+    <div>
+      <label class="block text-sm font-medium text-gray-600 dark:text-gray-400">{{ t('logfields.soc_before') }}</label>
+      <input v-model="form.socBeforeChargePercent" type="number" min="0" max="100" :placeholder="t('logfields.optional')"
+        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
     </div>
   </div>
 
   <!-- Datum/Uhrzeit -->
-  <div>
+  <div v-if="!hideDatetime">
     <label class="block text-sm font-medium text-gray-600 dark:text-gray-400">{{ t('logfields.timestamp') }}</label>
     <input
       v-model="form.loggedAt"

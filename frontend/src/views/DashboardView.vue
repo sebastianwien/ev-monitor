@@ -780,10 +780,10 @@ const deleteLog = async (id: string) => {
     <Transition name="fade" mode="out-in">
       <div v-if="!loading || !isInitialLoad">
         <div class="bg-white dark:bg-gray-800 md:rounded-xl md:shadow-lg p-4 md:p-6">
-          <div class="flex items-center gap-3 mb-6">
+          <div class="flex flex-wrap items-center gap-3 mb-6">
             <ChartBarIcon class="h-8 w-8 text-gray-700 dark:text-gray-300" />
             <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-200">Dashboard</h1>
-            <div class="ml-auto flex items-center gap-2">
+            <div class="w-full flex items-center gap-2 sm:w-auto sm:ml-auto">
               <router-link
                 to="/cars"
                 class="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1 transition-all duration-75">
@@ -959,7 +959,25 @@ const deleteLog = async (id: string) => {
 
           <!-- Filters (show if there are logs in any time range) -->
           <div v-if="selectedCarId && hasAnyLogs" class="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
-            <div class="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+            <!-- Mobile: two selects side by side -->
+            <div class="flex gap-3 md:hidden">
+              <div class="flex-1">
+                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{{ t('dashboard.time_range_label') }}</label>
+                <select v-model="selectedTimeRange"
+                  class="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                  <option v-for="option in timeRangeOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+                </select>
+              </div>
+              <div class="flex-1">
+                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{{ t('dashboard.group_by_label') }}</label>
+                <select v-model="selectedGroupBy"
+                  class="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                  <option v-for="opt in groupByOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                </select>
+              </div>
+            </div>
+            <!-- Desktop: buttons + select -->
+            <div class="hidden md:flex gap-4 items-start md:items-center justify-between">
               <div class="flex-1">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ t('dashboard.time_range_label') }}</label>
                 <div class="flex flex-wrap gap-2">
@@ -1051,8 +1069,8 @@ const deleteLog = async (id: string) => {
             <div class="h-1 bg-amber-500"></div>
             <div class="p-4">
               <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">{{ t('dashboard.metric_total_energy') }}</p>
-              <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ stats.totalKwhCharged?.toFixed(1) ?? '–' }}</p>
-              <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">kWh · {{ stats.totalCharges }} {{ t('dashboard.metric_charges') }}</p>
+              <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ stats.totalKwhCharged?.toFixed(1) ?? '–' }} kWh</p>
+              <p class="text-sm font-medium text-gray-400 dark:text-gray-500 mt-0.5">{{ stats.totalCharges }} {{ t('dashboard.metric_charges') }}</p>
             </div>
           </div>
           <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -1060,7 +1078,7 @@ const deleteLog = async (id: string) => {
             <div class="p-4">
               <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">{{ t('dashboard.metric_total_cost') }}</p>
               <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">€{{ stats.totalCostEur?.toFixed(2) ?? '–' }}</p>
-              <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Ø €{{ stats.avgCostPerKwh?.toFixed(2) ?? '–' }}/kWh</p>
+              <p class="text-sm font-medium text-gray-400 dark:text-gray-500 mt-0.5">Ø €{{ stats.avgCostPerKwh?.toFixed(2) ?? '–' }}/kWh</p>
             </div>
           </div>
           <div v-if="stats.totalDistanceKm != null"
@@ -1068,8 +1086,7 @@ const deleteLog = async (id: string) => {
             <div class="h-1 bg-green-500"></div>
             <div class="p-4">
               <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">{{ t('dashboard.metric_total_distance') }}</p>
-              <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ Math.round(stats.totalDistanceKm).toLocaleString() }}</p>
-              <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ t('dashboard.metric_km_driven') }}</p>
+              <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ Math.round(stats.totalDistanceKm).toLocaleString() }} km<span class="hidden sm:inline font-normal text-gray-400 dark:text-gray-500 text-lg"> gefahren</span></p>
             </div>
           </div>
           <div v-if="stats.avgConsumptionKwhPer100km != null"
@@ -1078,12 +1095,7 @@ const deleteLog = async (id: string) => {
             <div class="p-4">
               <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">{{ t('dashboard.metric_avg_consumption') }}</p>
               <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ stats.avgConsumptionKwhPer100km.toFixed(1) }}</p>
-              <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-                kWh/100km
-                <span v-if="wltp" class="font-medium">
-                  (WLTP: {{ wltp.wltpConsumptionKwhPer100km?.toFixed(1) ?? '–' }})
-                </span>
-              </p>
+              <p class="text-sm font-medium text-gray-400 dark:text-gray-500 mt-0.5">kWh/100km</p>
               <p v-if="stats.estimatedConsumptionCount > 0" class="text-xs text-red-500 mt-2 italic">
                 {{ t('dashboard.metric_estimated', { n: stats.estimatedConsumptionCount }) }}
               </p>
@@ -1095,7 +1107,7 @@ const deleteLog = async (id: string) => {
             <div class="p-4">
               <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">{{ t('dashboard.metric_avg_cost') }}</p>
               <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">€{{ (stats.totalCostEur / stats.totalDistanceKm * 100).toFixed(2) }}</p>
-              <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ t('dashboard.metric_per_100km') }}</p>
+              <p class="text-sm font-medium text-gray-400 dark:text-gray-500 mt-0.5">{{ t('dashboard.metric_per_100km') }}</p>
             </div>
           </div>
         </div>

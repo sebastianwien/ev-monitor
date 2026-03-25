@@ -66,9 +66,7 @@ const isFormValid = computed(() => {
   return (
     !!selectedCarId.value &&
     hasValue(f.kwhCharged) && Number(f.kwhCharged) > 0 &&
-    hasValue(f.costEur) &&
-    hasValue(f.odometerKm) && Number(f.odometerKm) > 0 &&
-    hasValue(f.socAfterChargePercent) && Number(f.socAfterChargePercent) >= 0 && Number(f.socAfterChargePercent) <= 100
+    hasValue(f.costEur)
   )
 })
 
@@ -144,18 +142,13 @@ const submitLog = async () => {
 
   if (!f.kwhCharged || f.kwhCharged <= 0) { fieldErrors.value.add('kwh'); errors.push(t('logform.field_kwh')) }
   if (f.costEur === null || f.costEur === undefined) { fieldErrors.value.add('cost'); errors.push(t('logform.field_cost')) }
-  if (!f.odometerKm || f.odometerKm <= 0) {
-    fieldErrors.value.add('odometer'); errors.push(t('logform.field_odometer'))
-  } else {
+  if (f.odometerKm && f.odometerKm > 0) {
     const last = getLastOdometerReading(f.loggedAt || undefined)
     if (last !== null && f.odometerKm < last) {
       fieldErrors.value.add('odometer')
       odometerPlaceholderOverride.value = t('logform.odometer_min', { min: formatNumber(last) })
       errors.push(t('logform.field_odometer'))
     }
-  }
-  if (f.socAfterChargePercent === null || f.socAfterChargePercent < 0 || f.socAfterChargePercent > 100) {
-    fieldErrors.value.add('soc'); errors.push(t('logform.field_soc'))
   }
 
   if (errors.length > 0) {
@@ -287,13 +280,28 @@ onMounted(async () => {
             :field-errors="fieldErrors"
             :odometer-placeholder="odometerPlaceholderOverride ?? getLastOdometerPlaceholder()"
             location-mode="create"
-          />
+            :hide-datetime="true"
+          >
+            <template #after-required>
+              <button :key="shakeKey" type="submit" @click="haptic(20)"
+                :disabled="!isFormValid"
+                :class="['w-full bg-indigo-600 text-white p-3 rounded-md btn-3d transition', !isFormValid ? 'opacity-40 cursor-not-allowed' : 'hover:bg-indigo-700', error ? 'ring-2 ring-red-400 ring-offset-2 animate-shake' : '']">
+                {{ t('logform.save_btn') }}
+              </button>
+            </template>
+          </LogFormFields>
 
-          <button :key="shakeKey" type="submit" @click="haptic(20)"
-            :disabled="!isFormValid"
-            :class="['w-full bg-indigo-600 text-white p-3 rounded-md btn-3d transition', !isFormValid ? 'opacity-40 cursor-not-allowed' : 'hover:bg-indigo-700', error ? 'ring-2 ring-red-400 ring-offset-2 animate-shake' : '']">
-            {{ t('logform.save_btn') }}
-          </button>
+          <!-- Ladezeitpunkt: optional, daher unter dem Submit -->
+          <div>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-400">{{ t('logfields.timestamp') }}</label>
+            <input
+              v-model="formData.loggedAt"
+              type="datetime-local"
+              :max="logFormFieldsRef?.getCurrentDateTimeLocal()"
+              class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
+            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ t('logfields.timestamp_hint') }}</p>
+          </div>
+
           <p class="text-xs text-gray-400 dark:text-gray-500 text-center mt-2">
             {{ t('logform.location_hint') }}
           </p>

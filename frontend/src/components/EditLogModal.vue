@@ -13,7 +13,6 @@
         <LogFormFields
           v-model="formData"
           location-mode="edit"
-          :show-soc-before="true"
           :field-errors="fieldErrors"
         />
 
@@ -122,9 +121,7 @@ const isFormValid = computed(() => {
   const hasValue = (v: any) => v !== null && v !== undefined && v !== ''
   return (
     hasValue(f.kwhCharged) && Number(f.kwhCharged) > 0 &&
-    hasValue(f.costEur) &&
-    hasValue(f.odometerKm) && Number(f.odometerKm) > 0 &&
-    hasValue(f.socAfterChargePercent) && Number(f.socAfterChargePercent) >= 0 && Number(f.socAfterChargePercent) <= 100
+    hasValue(f.costEur)
   )
 })
 
@@ -172,8 +169,6 @@ async function save() {
   const errors: string[] = []
   if (!kwh || kwh <= 0) { fieldErrors.value.add('kwh'); errors.push(t('logform.field_kwh')) }
   if (cost === null) { fieldErrors.value.add('cost'); errors.push(t('logform.field_cost')) }
-  if (!odometer || odometer <= 0) { fieldErrors.value.add('odometer'); errors.push(t('logform.field_odometer')) }
-  if (soc === null || soc < 0 || soc > 100) { fieldErrors.value.add('soc'); errors.push(t('logform.field_soc')) }
   if (errors.length > 0) {
     errorMsg.value = t('logform.error_required', { fields: errors.join(', ') })
     return

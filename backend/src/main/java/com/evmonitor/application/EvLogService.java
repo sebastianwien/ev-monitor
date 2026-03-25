@@ -279,6 +279,10 @@ public class EvLogService {
             int precision = updatedIsPublicCharging ? 7 : 5;
             geohash = GeoHash.withCharacterPrecision(request.latitude(), request.longitude(), precision).toBase32();
             geohashChanged = !geohash.equals(existing.getGeohash());
+        } else if (!updatedIsPublicCharging && geohash != null && geohash.length() > 5) {
+            // Privacy: if switched from public→private without new coordinates, truncate to 5-char precision.
+            geohash = geohash.substring(0, 5);
+            geohashChanged = true;
         }
 
         EvLog updated = new EvLog(
