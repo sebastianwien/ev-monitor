@@ -8,6 +8,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -16,7 +17,7 @@ import java.util.UUID;
 public record EvLogRequest(
                 @NotNull UUID carId,
                 @NotNull @Positive BigDecimal kwhCharged,
-                @NotNull @Positive BigDecimal costEur,
+                @NotNull @PositiveOrZero BigDecimal costEur,
                 @Positive Integer chargeDurationMinutes, // Optional: charging duration in minutes
                 Double latitude,  // Optional: for geolocation (not stored, converted to geohash)
                 Double longitude, // Optional: for geolocation (not stored, converted to geohash)

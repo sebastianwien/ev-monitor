@@ -256,13 +256,15 @@ onMounted(async () => {
 
       <!-- Mode Toggle: Photo OCR vs Manual -->
       <div class="flex justify-center mb-4">
-        <div class="inline-flex rounded-full border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-700 p-0.5">
+        <div class="relative grid grid-cols-2 rounded-full border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-700 p-0.5">
+          <div class="absolute top-0.5 bottom-0.5 rounded-full pill-slider transition-transform duration-200 ease-in-out pointer-events-none" style="width: calc(50% - 2px)"
+            :style="{ transform: `translateX(${showOcrCapture ? '0%' : '100%'})` }" />
           <button type="button" @click="showOcrCapture = true"
-            :class="['flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition', showOcrCapture ? 'bg-white dark:bg-gray-600 text-indigo-700 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']">
+            :class="['relative z-10 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors duration-200', showOcrCapture ? 'text-indigo-700 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']">
             <CameraIcon class="h-4 w-4" />{{ t('logform.mode_photo') }}
           </button>
           <button type="button" @click="showOcrCapture = false"
-            :class="['flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition', !showOcrCapture ? 'bg-white dark:bg-gray-600 text-indigo-700 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']">
+            :class="['relative z-10 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors duration-200', !showOcrCapture ? 'text-indigo-700 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']">
             <PencilSquareIcon class="h-4 w-4" />{{ t('logform.mode_manual') }}
           </button>
         </div>

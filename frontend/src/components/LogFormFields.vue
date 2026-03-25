@@ -190,31 +190,29 @@ defineExpose({ clearLocation, locationEnabled, locationStatus, getCurrentDateTim
         :class="inputClass('kwh')" />
     </div>
     <div>
-      <div class="flex items-center justify-between mb-1">
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ costMode === 'eur' ? t('logfields.cost_eur') : t('logfields.cost_per_kwh') }}</label>
-        <div class="relative flex rounded-full border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-700 p-0.5 text-xs">
-          <div class="absolute top-0.5 bottom-0.5 rounded-full bg-white dark:bg-gray-600 shadow-sm transition-transform duration-200 ease-in-out pointer-events-none" style="width: calc(50% - 2px)"
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('logfields.cost_eur') }}</label>
+      <div class="relative">
+        <input v-if="costMode === 'eur'" v-model="form.costEur" type="number" step="0.01" :placeholder="t('logfields.cost_eur_placeholder')"
+          :class="[inputClass('cost'), 'pr-14']" />
+        <input v-else v-model="priceEurPerKwh" type="number" step="0.01"
+          :placeholder="t('logfields.cost_per_kwh_placeholder')"
+          :class="[inputClass('cost'), 'pr-14']" />
+        <div class="absolute right-1.5 top-1/2 -translate-y-1/2 flex rounded-full border border-gray-300 dark:border-gray-500 bg-gray-200 dark:bg-gray-600 p-0.5 text-xs">
+          <div class="absolute top-0.5 bottom-0.5 rounded-full pill-slider transition-transform duration-200 ease-in-out pointer-events-none" style="width: calc(50% - 2px)"
             :style="{ transform: `translateX(${costMode === 'eur_kwh' ? '100%' : '0%'})` }" />
           <button type="button" @click="toggleCostMode('eur')"
-            :class="['relative z-10 px-1.5 py-0.5 rounded-full font-medium transition-colors duration-200', costMode === 'eur' ? 'text-indigo-700' : 'text-gray-500 dark:text-gray-400']">
+            :class="['relative z-10 px-1.5 py-0.5 rounded-full font-medium transition-colors duration-200', costMode === 'eur' ? 'text-indigo-700 dark:text-white' : 'text-gray-500 dark:text-gray-400']">
             €
           </button>
           <button type="button" @click="toggleCostMode('eur_kwh')"
-            :class="['relative z-10 px-1.5 py-0.5 rounded-full font-medium transition-colors duration-200', costMode === 'eur_kwh' ? 'text-indigo-700' : 'text-gray-500 dark:text-gray-400']">
+            :class="['relative z-10 px-1.5 py-0.5 rounded-full font-medium transition-colors duration-200', costMode === 'eur_kwh' ? 'text-indigo-700 dark:text-white' : 'text-gray-500 dark:text-gray-400']">
             ct
           </button>
         </div>
       </div>
-      <input v-if="costMode === 'eur'" v-model="form.costEur" type="number" step="0.01" :placeholder="t('logfields.cost_eur_placeholder')"
-        :class="inputClass('cost')" />
-      <div v-else class="relative">
-        <input v-model="priceEurPerKwh" type="number" step="0.01"
-          :placeholder="calculatedEur === null ? t('logfields.cost_per_kwh_placeholder') : ''"
-          :class="[inputClass('cost'), 'pr-16']" />
-        <span v-if="calculatedEur !== null" class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 dark:text-gray-500 pointer-events-none">
-          = {{ calculatedEur.toFixed(2) }} €
-        </span>
-      </div>
+      <p v-if="costMode === 'eur_kwh' && calculatedEur !== null" class="mt-1 text-xs text-gray-400 dark:text-gray-500">
+        = {{ calculatedEur.toFixed(2) }} €
+      </p>
     </div>
   </div>
 
@@ -253,7 +251,7 @@ defineExpose({ clearLocation, locationEnabled, locationStatus, getCurrentDateTim
           locationEnabled ? 'bg-green-500' : 'bg-gray-300'
         ]">
         <span :class="[
-          'pointer-events-none inline-flex h-7 w-7 transform items-center justify-center rounded-full bg-white shadow text-sm transition duration-200 ease-in-out',
+          'toggle-knob pointer-events-none inline-flex h-7 w-7 transform items-center justify-center rounded-full text-sm transition duration-200 ease-in-out',
           locationEnabled ? 'translate-x-6' : 'translate-x-0'
         ]">📍</span>
       </button>
@@ -267,7 +265,7 @@ defineExpose({ clearLocation, locationEnabled, locationStatus, getCurrentDateTim
       ]">
       <span
         :class="[
-          'pointer-events-none inline-flex h-7 w-9 transform items-center justify-center rounded-full bg-white shadow text-xs font-bold transition duration-200 ease-in-out',
+          'toggle-knob pointer-events-none inline-flex h-7 w-9 transform items-center justify-center rounded-full text-xs font-bold transition duration-200 ease-in-out',
           form.chargingType === 'DC' ? 'translate-x-6' : 'translate-x-0'
         ]"
         :style="{ color: form.chargingType === 'DC' ? '#f97316' : '#3b82f6' }">
@@ -284,7 +282,7 @@ defineExpose({ clearLocation, locationEnabled, locationStatus, getCurrentDateTim
           form.isPublicCharging ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'
         ]">
         <span :class="[
-          'pointer-events-none inline-block h-7 w-7 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+          'toggle-knob pointer-events-none inline-block h-7 w-7 transform rounded-full ring-0 transition duration-200 ease-in-out',
           form.isPublicCharging ? 'translate-x-6' : 'translate-x-0'
         ]" />
       </button>
@@ -327,18 +325,18 @@ defineExpose({ clearLocation, locationEnabled, locationStatus, getCurrentDateTim
     <div>
       <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 text-center">{{ t('logfields.route_type_label') }}</label>
       <div class="relative flex w-full rounded-full border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-700 p-0.5">
-        <div class="absolute top-0.5 bottom-0.5 rounded-full bg-white dark:bg-gray-600 shadow-sm transition-transform duration-200 ease-in-out pointer-events-none" style="width: calc(33.333% - 2px)"
+        <div class="absolute top-0.5 bottom-0.5 rounded-full pill-slider transition-transform duration-200 ease-in-out pointer-events-none" style="width: calc(33.333% - 2px)"
           :style="{ transform: `translateX(${['CITY','COMBINED','HIGHWAY'].indexOf(form.routeType) * 100}%)` }" />
         <button type="button" @click="form.routeType = 'CITY'"
-          :class="['relative z-10 flex-1 px-1 py-1.5 rounded-full text-xs font-medium transition-colors duration-200', form.routeType === 'CITY' ? 'text-indigo-700' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']">
+          :class="['relative z-10 flex-1 px-1 py-1.5 rounded-full text-xs font-medium transition-colors duration-200', form.routeType === 'CITY' ? 'text-indigo-700 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']">
           {{ t('logfields.route_city') }}
         </button>
         <button type="button" @click="form.routeType = 'COMBINED'"
-          :class="['relative z-10 flex-1 px-1 py-1.5 rounded-full text-xs font-medium transition-colors duration-200', form.routeType === 'COMBINED' ? 'text-indigo-700' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']">
+          :class="['relative z-10 flex-1 px-1 py-1.5 rounded-full text-xs font-medium transition-colors duration-200', form.routeType === 'COMBINED' ? 'text-indigo-700 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']">
           {{ t('logfields.route_mix') }}
         </button>
         <button type="button" @click="form.routeType = 'HIGHWAY'"
-          :class="['relative z-10 flex-1 px-1 py-1.5 rounded-full text-xs font-medium transition-colors duration-200', form.routeType === 'HIGHWAY' ? 'text-indigo-700' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']">
+          :class="['relative z-10 flex-1 px-1 py-1.5 rounded-full text-xs font-medium transition-colors duration-200', form.routeType === 'HIGHWAY' ? 'text-indigo-700 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']">
           {{ t('logfields.route_highway') }}
         </button>
       </div>
@@ -346,18 +344,18 @@ defineExpose({ clearLocation, locationEnabled, locationStatus, getCurrentDateTim
     <div>
       <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 text-center">{{ t('logfields.tire_type_label') }}</label>
       <div class="relative flex w-full rounded-full border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-700 p-0.5">
-        <div class="absolute top-0.5 bottom-0.5 rounded-full bg-white dark:bg-gray-600 shadow-sm transition-transform duration-200 ease-in-out pointer-events-none" style="width: calc(33.333% - 2px)"
+        <div class="absolute top-0.5 bottom-0.5 rounded-full pill-slider transition-transform duration-200 ease-in-out pointer-events-none" style="width: calc(33.333% - 2px)"
           :style="{ transform: `translateX(${['SUMMER','ALL_YEAR','WINTER'].indexOf(form.tireType) * 100}%)` }" />
         <button type="button" @click="form.tireType = 'SUMMER'"
-          :class="['relative z-10 flex-1 px-1 py-1.5 rounded-full text-xs font-medium transition-colors duration-200', form.tireType === 'SUMMER' ? 'text-indigo-700' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']">
+          :class="['relative z-10 flex-1 px-1 py-1.5 rounded-full text-xs font-medium transition-colors duration-200', form.tireType === 'SUMMER' ? 'text-indigo-700 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']">
           {{ t('logfields.tire_summer') }}
         </button>
         <button type="button" @click="form.tireType = 'ALL_YEAR'"
-          :class="['relative z-10 flex-1 px-1 py-1.5 rounded-full text-xs font-medium transition-colors duration-200', form.tireType === 'ALL_YEAR' ? 'text-indigo-700' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']">
+          :class="['relative z-10 flex-1 px-1 py-1.5 rounded-full text-xs font-medium transition-colors duration-200', form.tireType === 'ALL_YEAR' ? 'text-indigo-700 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']">
           {{ t('logfields.tire_allyear') }}
         </button>
         <button type="button" @click="form.tireType = 'WINTER'"
-          :class="['relative z-10 flex-1 px-1 py-1.5 rounded-full text-xs font-medium transition-colors duration-200', form.tireType === 'WINTER' ? 'text-indigo-700' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']">
+          :class="['relative z-10 flex-1 px-1 py-1.5 rounded-full text-xs font-medium transition-colors duration-200', form.tireType === 'WINTER' ? 'text-indigo-700 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']">
           {{ t('logfields.tire_winter') }}
         </button>
       </div>
@@ -394,3 +392,4 @@ defineExpose({ clearLocation, locationEnabled, locationStatus, getCurrentDateTim
     <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ t('logfields.timestamp_hint') }}</p>
   </div>
 </template>
+
