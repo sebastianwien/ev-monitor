@@ -17,7 +17,7 @@ set -euo pipefail
 
 SITE_URL="${1:-https://ev-monitor.net}"
 PRERENDER_URL="http://127.0.0.1:3000"
-DELAY=0.5  # seconds between requests — avoids hammering headless Chrome
+DELAY=0.2  # seconds between requests — avoids hammering headless Chrome
 
 echo "🔥 Prerender Cache Warmer"
 echo "   Site:       $SITE_URL"
