@@ -2,25 +2,28 @@
 import { computed } from 'vue'
 import { BoltIcon, CurrencyEuroIcon } from '@heroicons/vue/24/outline'
 
-const banners = [
-  {
-    id: 'thg',
-    icon: 'currency',
-    headline: 'Dein BEV bringt dir Geld',
-    text: 'Als Elektroauto-Fahrer kannst du deine jährliche THG-Quote verkaufen - bis zu 100 € Prämie.',
-    cta: 'THG-Prämie beantragen',
-    url: 'https://geld-fuer-eauto.de/?ref=ev-monitor',
-    weight: 60,
-  },
-  {
-    id: 'enbw',
-    icon: 'bolt',
-    headline: 'Laden an 300.000+ Ladepunkten',
-    text: 'Mit EnBW mobility+ europaweit an Schnellladern laden - transparent, ohne Grundgebühr.',
-    cta: 'EnBW mobility+ entdecken',
-    url: 'https://www.enbw.com/elektromobilitaet/produkte/laden-unterwegs/?ref=ev-monitor',
-    weight: 40,
-  },
+interface Banner { id: string; icon: string; headline: string; text: string; cta: string; url: string; weight: number }
+
+const banners: Banner[] = [
+  // URLs mit echten Awin-Tracking-Links ersetzen um Banner zu aktivieren
+  // {
+  //   id: 'thg',
+  //   icon: 'currency',
+  //   headline: 'Dein BEV bringt dir Geld',
+  //   text: 'Als Elektroauto-Fahrer kannst du deine jährliche THG-Quote verkaufen - bis zu 100 € Prämie.',
+  //   cta: 'THG-Prämie beantragen',
+  //   url: 'AWIN_TRACKING_URL_THG',
+  //   weight: 60,
+  // },
+  // {
+  //   id: 'enbw',
+  //   icon: 'bolt',
+  //   headline: 'Laden an 300.000+ Ladepunkten',
+  //   text: 'Mit EnBW mobility+ europaweit an Schnellladern laden - transparent, ohne Grundgebühr.',
+  //   cta: 'EnBW mobility+ entdecken',
+  //   url: 'AWIN_TRACKING_URL_ENBW',
+  //   weight: 40,
+  // },
 ]
 
 const banner = computed(() => {
