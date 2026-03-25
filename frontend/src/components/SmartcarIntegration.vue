@@ -70,7 +70,7 @@ const disconnect = async () => {
   disconnecting.value = true
   try {
     await smartcarService.disconnect()
-    status.value = { connected: false, vehicleName: null, carId: null, vin: null, vehicleState: null, lastCheckedAt: null, sessionActive: false }
+    status.value = { connected: false, vehicleName: null, carId: null, vin: null, vehicleState: null, lastCheckedAt: null, lastSoc: null, sessionActive: false, sessionStartedAt: null, sessionEnergyAdded: null }
   } catch (e: any) {
     error.value = e.message
   } finally {
