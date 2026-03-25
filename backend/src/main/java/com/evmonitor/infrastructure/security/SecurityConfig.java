@@ -62,6 +62,7 @@ public class SecurityConfig {
                                 "/api/auth/verify-email", "/api/auth/resend-verification",
                                 "/api/auth/forgot-password", "/api/auth/reset-password").permitAll()
                         .requestMatchers("/api/cars/brands", "/api/cars/brands/**").permitAll()
+                        .requestMatchers("/api/charging-provider-tariffs", "/api/charging-provider-tariffs/**").permitAll()
                         .requestMatchers("/api/vehicle-specifications/lookup").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
                         .requestMatchers("/api/errors/**").permitAll()
