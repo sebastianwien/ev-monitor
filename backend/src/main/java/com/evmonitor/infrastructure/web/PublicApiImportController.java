@@ -1,5 +1,6 @@
 package com.evmonitor.infrastructure.web;
 
+import com.evmonitor.application.publicapi.ApiSessionResponse;
 import com.evmonitor.application.publicapi.ImportApiResult;
 import com.evmonitor.application.publicapi.PatchSessionRequest;
 import com.evmonitor.application.publicapi.PublicApiImportService;
@@ -50,6 +51,9 @@ public class PublicApiImportController {
                     **Tier 3 (charging provider):** add `is_public_charging: true` and `cpo_name` to track where you charged.
                     Use `GET /api/v1/charging-providers` for the canonical list of CPO names.
 
+                    **Response:** returns `imported`, `skipped`, `errors` counts and `ids` (UUIDs of created sessions).
+                    Use the IDs to update sessions later via `PATCH /api/v1/sessions/{id}`.
+
                     **Deduplication:** Sessions with the same timestamp are skipped.
 
                     **Rate limit:** 60 requests/hour per API key. Max 100 sessions per request.
@@ -87,7 +91,8 @@ public class PublicApiImportController {
             return ResponseEntity.ok(Map.of(
                     "imported", result.imported(),
                     "skipped", result.skipped(),
-                    "errors", result.errors()
+                    "errors", result.errors(),
+                    "results", result.results()
             ));
         } catch (SecurityException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
@@ -99,6 +104,42 @@ public class PublicApiImportController {
             // Race condition: duplicate session slipped past the isDuplicate check
             // Return gracefully instead of 500
             return ResponseEntity.ok(Map.of("imported", 0, "skipped", 1, "errors", 0));
+        }
+    }
+
+    @GetMapping("/sessions/{id}")
+    @Operation(
+            summary = "Get a charging session",
+            description = """
+                    Returns a single charging session previously imported via the Public API.
+
+                    **Restrictions:** Only sessions with `data_source = API_UPLOAD` can be retrieved via this endpoint.
+
+                    **Authentication:** `Authorization: Bearer evm_<your-api-key>`
+                    """,
+            security = @SecurityRequirement(name = "ApiKey")
+    )
+    public ResponseEntity<?> getSession(
+            @PathVariable UUID id,
+            Authentication authentication,
+            HttpServletRequest httpRequest) {
+
+        String keyId = (String) httpRequest.getAttribute("apiKeyId");
+        if (keyId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Dieser Endpoint erfordert einen API Key (evm_...)."));
+        }
+
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        try {
+            ApiSessionResponse session = importService.getSession(principal.getUser().getId(), id);
+            return ResponseEntity.ok(session);
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 

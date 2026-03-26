@@ -117,6 +117,7 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     @Query("SELECT e FROM EvLogEntity e WHERE e.carId = :carId AND e.supersededBy IS NULL AND e.sessionGroupId IS NULL")
     List<EvLogEntity> findAllByCarIdExcludingSubSessions(@Param("carId") UUID carId);
 
+
     /**
      * Aggregated basic stats for a car model.
      * Returns: [logCount, uniqueContributors, avgCostPerKwh, avgKwhPerSession]

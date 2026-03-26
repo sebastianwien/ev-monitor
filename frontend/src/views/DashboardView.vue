@@ -1207,6 +1207,7 @@ const deleteLog = async (id: string) => {
                 · <span class="text-red-600 font-medium">{{ t('dashboard.chart_red_worse') }}</span>
               </span>
             </p>
+            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ t('model.wltp_measurement_note') }}</p>
           </div>
             <div :class="wltpChartScrollable ? 'overflow-y-auto' : ''" :style="{ height: wltpChartHeight }">
               <Bar :data="wltpChartData" :options="wltpChartOptions" />

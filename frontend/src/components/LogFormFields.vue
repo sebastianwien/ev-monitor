@@ -172,6 +172,7 @@ defineExpose({ clearLocation, locationEnabled, locationStatus, getCurrentDateTim
       <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('logfields.energy') }}</label>
       <input v-model="form.kwhCharged" type="number" step="0.1" :placeholder="t('logfields.kwh_placeholder')"
         :class="inputClass('kwh')" />
+      <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">{{ t('logfields.kwh_hint') }}</p>
     </div>
     <div>
       <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('logfields.cost_eur') }}</label>

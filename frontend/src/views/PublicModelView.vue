@@ -376,10 +376,11 @@
               </tbody>
             </table>
           </div>
-          <div class="px-6 py-4">
+          <div class="px-6 py-4 space-y-2">
             <span class="inline-block text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-2.5 py-1 rounded-full">
               {{ t('model.wltp_note') }}
             </span>
+            <p class="text-xs text-gray-400 dark:text-gray-500">{{ t('model.wltp_measurement_note') }}</p>
           </div>
           </div><!-- end WLTP section -->
         </div><!-- end combined card -->

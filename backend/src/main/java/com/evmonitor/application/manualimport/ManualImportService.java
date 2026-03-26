@@ -46,11 +46,11 @@ public class ManualImportService {
             rows = "json".equalsIgnoreCase(format) ? parseJson(data) : parseCsv(data);
         } catch (Exception e) {
             log.warn("ManualImport: Datei konnte nicht geparst werden: {}", e.getMessage());
-            return new ImportApiResult(0, 0, 1);
+            return ImportApiResult.withoutIds(0, 0, 1);
         }
 
         if (rows.isEmpty()) {
-            return new ImportApiResult(0, 0, 0);
+            return ImportApiResult.withoutIds(0, 0, 0);
         }
 
         List<PublicApiSessionRequest.SessionEntry> entries = new ArrayList<>();
@@ -65,12 +65,12 @@ public class ManualImportService {
         }
 
         if (entries.isEmpty()) {
-            return new ImportApiResult(0, 0, parseErrors);
+            return ImportApiResult.withoutIds(0, 0, parseErrors);
         }
 
         ImportApiResult result = publicApiImportService.importSessions(userId, new PublicApiSessionRequest(carId, entries), mergeSessions, true, dataSource);
         return parseErrors > 0
-                ? new ImportApiResult(result.imported(), result.skipped(), result.errors() + parseErrors)
+                ? ImportApiResult.withoutIds(result.imported(), result.skipped(), result.errors() + parseErrors)
                 : result;
     }
 

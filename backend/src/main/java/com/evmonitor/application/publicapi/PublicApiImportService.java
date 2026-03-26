@@ -15,6 +15,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
@@ -93,6 +94,7 @@ public class PublicApiImportService {
         int imported = 0;
         int skipped = 0;
         int errors = 0;
+        List<ImportApiResult.ImportedSession> importedResults = new ArrayList<>();
 
         for (PublicApiSessionRequest.SessionEntry entry : sortedEntries) {
             try {
@@ -153,6 +155,8 @@ public class PublicApiImportService {
                     }
                 }
 
+                importedResults.add(new ImportApiResult.ImportedSession(
+                        saved.getLoggedAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME), saved.getId()));
                 imported++;
 
             } catch (Exception e) {
@@ -161,7 +165,7 @@ public class PublicApiImportService {
             }
         }
 
-        return new ImportApiResult(imported, skipped, errors);
+        return new ImportApiResult(imported, skipped, errors, importedResults);
     }
 
     @Transactional
@@ -211,6 +215,23 @@ public class PublicApiImportService {
         );
 
         evLogRepository.save(patched);
+    }
+
+    public ApiSessionResponse getSession(UUID userId, UUID logId) {
+        EvLog existing = evLogRepository.findById(logId)
+                .orElseThrow(() -> new NoSuchElementException("Log nicht gefunden"));
+
+        if (existing.getDataSource() != DataSource.API_UPLOAD) {
+            throw new IllegalArgumentException("Nur via Public API importierte Logs können über diesen Endpoint abgefragt werden");
+        }
+
+        Car car = carRepository.findById(existing.getCarId())
+                .orElseThrow(() -> new IllegalArgumentException("Fahrzeug nicht gefunden"));
+        if (!car.getUserId().equals(userId)) {
+            throw new SecurityException("Kein Zugriff auf diesen Log");
+        }
+
+        return ApiSessionResponse.fromEvLog(existing);
     }
 
     private boolean isDuplicate(UUID carId, LocalDateTime loggedAt, Double kwh, DataSource dataSource) {
