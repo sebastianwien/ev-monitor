@@ -35,6 +35,7 @@ const expanded = ref(false)
           <ExclamationTriangleIcon class="w-3 h-3" />
         </span>{{ t('consumption_info.p2_post') }}
       </p>
+      <p v-html="t('consumption_info.p3')" class="border-t border-gray-100 dark:border-gray-700 pt-2" />
     </div>
   </div>
 </template>

@@ -46,3 +46,11 @@ stripe:
 
 internal:
   token: test-internal-token
+
+# Disable charging efficiency correction in tests — formula-math tests use neutral factors.
+# Dedicated unit tests in EvLogServiceChargingEfficiencyTest cover the correction itself.
+evmonitor:
+  consumption:
+    plausibility:
+      ac-charging-efficiency: 1.0
+      dc-charging-efficiency: 1.0

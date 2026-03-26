@@ -16,4 +16,10 @@ export const featureAnnouncements: FeatureAnnouncement[] = [
     ctaLabelKey: 'announcements.charging_provider_v1_cta',
     ctaRoute: '/settings',
   },
+  {
+    key: 'consumption-normalization-v1',
+    expiresAt: '2026-05-10',
+    titleKey: 'announcements.consumption_normalization_v1_title',
+    bodyKey: 'announcements.consumption_normalization_v1_body',
+  },
 ]

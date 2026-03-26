@@ -260,15 +260,15 @@
                   {{ t('model.wltp_no_trips') }}
                 </span>
                 <span v-else-if="selectedVariant.realConsumptionTripCount != null && selectedVariant.realConsumptionTripCount < 10"
-                      class="absolute right-0 inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-600">
+                      class="absolute right-0 inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-600 dark:bg-red-900/40 dark:border-red-700 dark:text-red-400">
                   ⚠ {{ selectedVariant.realConsumptionTripCount }} {{ t('model.seasonal_trips') }}
                 </span>
                 <span v-else-if="selectedVariant.realConsumptionTripCount != null && selectedVariant.realConsumptionTripCount < 50"
-                      class="absolute right-0 inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-yellow-50 border border-yellow-200 text-yellow-700">
+                      class="absolute right-0 inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-yellow-50 border border-yellow-200 text-yellow-700 dark:bg-yellow-900/40 dark:border-yellow-700 dark:text-yellow-400">
                   {{ selectedVariant.realConsumptionTripCount }} {{ t('model.seasonal_trips') }}
                 </span>
                 <span v-else-if="selectedVariant.realConsumptionTripCount != null"
-                      class="absolute right-0 inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-green-50 border border-green-200 text-green-700">
+                      class="absolute right-0 inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-green-50 border border-green-200 text-green-700 dark:bg-green-900/40 dark:border-green-700 dark:text-green-400">
                   {{ selectedVariant.realConsumptionTripCount }} {{ t('model.seasonal_trips') }}
                 </span>
               </div>
@@ -351,11 +351,11 @@
                           {{ deltaLabel(selectedVariant.realConsumptionKwhPer100km, selectedVariant.wltpConsumptionKwhPer100km) }}
                         </span>
                         <span v-if="selectedVariant.realConsumptionTripCount != null && selectedVariant.realConsumptionTripCount < 10"
-                              class="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-600">
+                              class="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-600 dark:bg-red-900/40 dark:border-red-700 dark:text-red-400">
                           ⚠ {{ selectedVariant.realConsumptionTripCount }} {{ t('model.seasonal_trips') }}
                         </span>
                         <span v-else-if="selectedVariant.realConsumptionTripCount != null && selectedVariant.realConsumptionTripCount < 50"
-                              class="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-yellow-50 border border-yellow-200 text-yellow-700">
+                              class="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-yellow-50 border border-yellow-200 text-yellow-700 dark:bg-yellow-900/40 dark:border-yellow-700 dark:text-yellow-400">
                           {{ selectedVariant.realConsumptionTripCount }} {{ t('model.seasonal_trips') }}
                         </span>
                       </div>
@@ -915,9 +915,9 @@ function consumptionDeltaClass(real: number, wltp: number): string {
 
 function deltaLabelClass(real: number, wltp: number): string {
   const percentDelta = ((real - wltp) / wltp) * 100
-  if (percentDelta <= 0) return 'bg-green-100 text-green-700'
-  if (percentDelta <= 15) return 'bg-yellow-100 text-yellow-700'
-  return 'bg-red-100 text-red-700'
+  if (percentDelta <= 0) return 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
+  if (percentDelta <= 15) return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400'
+  return 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'
 }
 
 function deltaLabel(real: number, wltp: number): string {

@@ -387,7 +387,7 @@ public class EvLogService {
             if (consumptionByLog.containsKey(log.getId())) continue;
             Integer dist = distanceByLogId.get(log.getId());
             if (dist == null || dist < plausibility.getMinTripDistanceKm()) continue;
-            double c = log.getKwhCharged().doubleValue() / dist * 100.0;
+            double c = effectiveKwhForConsumption(log).doubleValue() / dist * 100.0;
             boolean plausible = c >= plausibility.getAbsoluteMinKwhPer100km() && c <= plausibility.getAbsoluteMaxKwhPer100km();
             consumptionByLog.put(log.getId(), new ConsumptionResult(
                     BigDecimal.valueOf(c).setScale(2, RoundingMode.HALF_UP), plausible, dist, true));
@@ -515,7 +515,7 @@ public class EvLogService {
             if (log.getKwhCharged() == null) continue;
             Integer dist = distanceByLogId.get(log.getId());
             if (dist == null || dist < plausibility.getMinTripDistanceKm()) continue;
-            double c = log.getKwhCharged().doubleValue() / dist * 100.0;
+            double c = effectiveKwhForConsumption(log).doubleValue() / dist * 100.0;
             if (c < plausibility.getAbsoluteMinKwhPer100km() || c > plausibility.getAbsoluteMaxKwhPer100km()) continue;
             consumptionByLog.put(log.getId(), new ConsumptionResult(
                     BigDecimal.valueOf(c).setScale(2, RoundingMode.HALF_UP), true, dist, true));
@@ -531,8 +531,13 @@ public class EvLogService {
                 .filter(c -> c != null && c.compareTo(BigDecimal.ZERO) > 0)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal avgCostPerKwh = totalKwhCharged.compareTo(BigDecimal.ZERO) > 0
-                ? totalCostEur.divide(totalKwhCharged, 2, RoundingMode.HALF_UP)
+        // For avgCostPerKwh: normalize AT_VEHICLE logs to AT_CHARGER equivalent — because cost_eur
+        // reflects what was billed at the charger, not what entered the battery.
+        BigDecimal totalKwhForCost = logs.stream()
+                .map(this::effectiveKwhForCost)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal avgCostPerKwh = totalKwhForCost.compareTo(BigDecimal.ZERO) > 0
+                ? totalCostEur.divide(totalKwhForCost, 2, RoundingMode.HALF_UP)
                 : BigDecimal.ZERO;
 
         BigDecimal cheapestCharge = logs.stream()
@@ -632,6 +637,39 @@ public class EvLogService {
      *
      * @return consumption in kWh/100km, or empty if data is insufficient or result is invalid
      */
+    /**
+     * Normalizes kwhCharged to AT_VEHICLE level for consumption calculations.
+     * AT_CHARGER data is multiplied by the charging efficiency factor (AC: 0.90, DC: 0.95)
+     * to remove charging losses from the consumption metric — matching the SoC-delta perspective.
+     * AT_VEHICLE data (Smartcar, Tesla Live) is already at battery level and returned as-is.
+     */
+    private BigDecimal effectiveKwhForConsumption(EvLog log) {
+        if (log.getMeasurementType() == EnergyMeasurementType.AT_VEHICLE) return log.getKwhCharged();
+        return log.getKwhCharged().multiply(BigDecimal.valueOf(chargingEfficiency(log)));
+    }
+
+    /**
+     * Normalizes kwhCharged to AT_CHARGER level for cost calculations.
+     * AT_VEHICLE data is divided by the efficiency factor to get the grid-side equivalent —
+     * because cost_eur reflects what was billed at the charger, not what entered the battery.
+     * AT_CHARGER data is returned as-is.
+     */
+    BigDecimal effectiveKwhForCost(EvLog log) {
+        if (log.getMeasurementType() == EnergyMeasurementType.AT_CHARGER) return log.getKwhCharged();
+        return log.getKwhCharged().divide(BigDecimal.valueOf(chargingEfficiency(log)), 4, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Returns the charging efficiency factor for a log.
+     * DC fast charging: 0.95 (5% loss). AC: 0.90 (10% loss).
+     * When charging type is unknown, is_public_charging is used as proxy (public → DC, private → AC).
+     */
+    private double chargingEfficiency(EvLog log) {
+        if (log.getChargingType() == ChargingType.DC) return plausibility.getDcChargingEfficiency();
+        if (log.getChargingType() == ChargingType.AC) return plausibility.getAcChargingEfficiency();
+        return log.isPublicCharging() ? plausibility.getDcChargingEfficiency() : plausibility.getAcChargingEfficiency();
+    }
+
     Optional<BigDecimal> calculateConsumption(EvLog logX, EvLog logY, BigDecimal batteryCapacityKwh) {
         if (!logX.canBeUsedAsLogX() || !logY.isComplete()) return Optional.empty();
         if (batteryCapacityKwh == null || batteryCapacityKwh.compareTo(BigDecimal.ZERO) <= 0) return Optional.empty();
@@ -639,12 +677,13 @@ public class EvLogService {
         int distance = logY.getOdometerKm() - logX.getOdometerKm();
         if (distance <= 0) return Optional.empty();
 
-        // socBefore(logY): use stored value if available (loss-free, from BMS),
-        // otherwise derive from kwhCharged (includes charging losses → slight overestimate)
+        // socBefore(logY): use stored value if available (from BMS, exact).
+        // Otherwise derive from kwhCharged, normalized to AT_VEHICLE level — so charging losses
+        // don't inflate the reconstructed SoC delta and falsely raise consumption.
         BigDecimal socBeforeLogYPercent = logY.getSocBeforeChargePercent() != null
                 ? BigDecimal.valueOf(logY.getSocBeforeChargePercent())
                 : BigDecimal.valueOf(logY.getSocAfterChargePercent())
-                        .subtract(logY.getKwhCharged()
+                        .subtract(effectiveKwhForConsumption(logY)
                                 .divide(batteryCapacityKwh, 4, RoundingMode.HALF_UP)
                                 .multiply(HUNDRED));
 
@@ -783,7 +822,7 @@ public class EvLogService {
             return null;
         }
         BigDecimal totalKwh = logs.stream()
-                .map(EvLog::getKwhCharged)
+                .map(this::effectiveKwhForConsumption)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         return totalKwh
                 .multiply(HUNDRED)
@@ -902,7 +941,7 @@ public class EvLogService {
             Integer dist = distanceByLogId.get(log.getId());
             if (dist == null || dist < plausibility.getMinTripDistanceKm()) continue;
 
-            double c = log.getKwhCharged().doubleValue() / dist * 100;
+            double c = effectiveKwhForConsumption(log).doubleValue() / dist * 100;
             if (c < plausibility.getAbsoluteMinKwhPer100km() || c > plausibility.getAbsoluteMaxKwhPer100km()) continue;
 
             entries.add(new PlausibleEntry(log, BigDecimal.valueOf(c).setScale(2, RoundingMode.HALF_UP), dist, true));

@@ -95,6 +95,8 @@ evmonitor:
       sigma-multiplier: 2.5
       min-trips-for-statistical: 5
       min-trip-distance-km: 1
+      ac-charging-efficiency: 0.90
+      dc-charging-efficiency: 0.95
 
 app:
   base-url: ${APP_BASE_URL:http://localhost:5173}

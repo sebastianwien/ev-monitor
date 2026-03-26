@@ -103,7 +103,7 @@
                   <div class="flex gap-2 pb-2 mb-2 border-b border-gray-100 dark:border-gray-700">
                     <button
                       @click="selectAllBrands"
-                      class="flex-1 text-xs px-2 py-1.5 bg-green-50 text-green-700 rounded hover:bg-green-100"
+                      class="flex-1 text-xs px-2 py-1.5 bg-green-50 text-green-700 rounded hover:bg-green-100 dark:bg-green-900/40 dark:text-green-400 dark:hover:bg-green-900/60"
                     >
                       {{ t('models_list.filters.select_all') }}
                     </button>
@@ -141,7 +141,7 @@
                   : 'border-gray-300 dark:border-gray-600'"
               >
                 <span class="text-sm">
-                  {{ selectedCategory === null ? t('models_list.filters.all_categories') : categories.find(c => c.key === selectedCategory)?.displayName }}
+                  {{ selectedCategory === null ? t('models_list.filters.all_categories') : t(`models_list.filters.categories.${selectedCategory}`, categories.find(c => c.key === selectedCategory)?.displayName ?? '') }}
                 </span>
                 <span class="text-gray-400">▼</span>
               </button>
@@ -165,7 +165,7 @@
                     class="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                     :class="selectedCategory === cat.key ? 'text-green-700 dark:text-green-400 font-medium bg-green-50 dark:bg-green-900/20' : 'text-gray-700 dark:text-gray-300'"
                   >
-                    {{ cat.displayName }}
+                    {{ t(`models_list.filters.categories.${cat.key}`, cat.displayName) }}
                   </button>
                 </div>
               </div>
@@ -185,9 +185,9 @@
         <div
           v-for="model in filteredModels"
           :key="`${model.brandDisplayName}/${model.modelUrlSlug}`"
-          class="model-card flex flex-col bg-white dark:bg-gray-800 rounded-xl border p-4 transition-all"
+          class="model-card flex flex-col bg-white dark:bg-gray-800 rounded-xl border p-4 transition-all shadow-[0_10px_0_0_rgb(0_0_0/0.13)] dark:shadow-none hover:-translate-y-1 hover:shadow-[0_12px_0_0_rgb(0_0_0/0.17)] dark:hover:shadow-lg hover:z-10 active:translate-y-[4px] active:shadow-[0_6px_0_0_rgb(0_0_0/0.1)] relative"
           :class="isSelectedForCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`)
-            ? 'border-green-500 ring-2 ring-green-200'
+            ? 'border-green-500 ring-2 ring-green-200 dark:ring-green-900'
             : 'border-gray-200 dark:border-gray-700 hover:border-green-500'"
         >
           <a :href="`${modelsBaseUrl}/${model.brandDisplayName}/${model.modelUrlSlug}`" class="block flex-1">
@@ -211,34 +211,34 @@
                   <span class="relative group cursor-help inline-flex items-center gap-0.5 text-xs text-gray-400">
                     <span>{{ t('models_list.card.avg_prefix') }} {{ model.avgCostPerKwh.toFixed(2) }} €/kWh</span>
                     <InformationCircleIcon class="h-3 w-3 flex-shrink-0" />
-                    <span class="absolute bottom-full left-0 mb-1.5 px-2.5 py-2 bg-gray-800 text-white text-xs rounded-lg w-60 hidden group-hover:block z-20 pointer-events-none leading-snug shadow-lg">
+                    <span class="absolute bottom-full left-0 mb-1.5 px-2.5 py-2 bg-gray-900 ring-1 ring-white/10 text-white text-xs rounded-lg w-60 hidden group-hover:block z-50 pointer-events-none leading-snug shadow-xl">
                       {{ t('models_list.card.cost_tooltip') }}
                     </span>
                   </span>
                 </span>
               </template>
             </div>
-            <div class="text-green-600 font-medium flex items-center gap-1 text-sm mt-auto">
-              <span>{{ t('models_list.card.view_details') }}</span>
-              <ArrowRightIcon class="h-4 w-4" />
+            <div class="flex items-center justify-between mt-auto">
+              <div class="text-green-600 font-medium flex items-center gap-1 text-sm">
+                <span>{{ t('models_list.card.view_details') }}</span>
+                <ArrowRightIcon class="h-4 w-4" />
+              </div>
+              <button
+                @click.prevent="toggleCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`)"
+                :disabled="!isSelectedForCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`) && selectedForCompare.length >= MAX_COMPARE"
+                :title="isSelectedForCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`) ? t('models_list.card.remove_compare') : t('models_list.card.add_compare')"
+                class="p-1.5 rounded-full transition-all flex-shrink-0 shadow-[0_3px_0_0] active:translate-y-[2px] active:shadow-[0_1px_0_0]"
+                :class="isSelectedForCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`)
+                  ? 'bg-green-500 text-white shadow-green-700 hover:bg-green-400'
+                  : selectedForCompare.length >= MAX_COMPARE
+                    ? 'bg-gray-100 dark:bg-gray-700 text-gray-300 cursor-not-allowed shadow-gray-300 dark:shadow-gray-900'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-400 hover:bg-green-100 hover:text-green-600 shadow-gray-300 dark:shadow-gray-900 hover:shadow-green-300'"
+              >
+                <CheckIcon v-if="isSelectedForCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`)" class="h-4 w-4" />
+                <ArrowsRightLeftIcon v-else class="h-4 w-4" />
+              </button>
             </div>
           </a>
-          <div class="flex justify-end mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
-            <button
-              @click.prevent="toggleCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`)"
-              :disabled="!isSelectedForCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`) && selectedForCompare.length >= MAX_COMPARE"
-              :title="isSelectedForCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`) ? t('models_list.card.remove_compare') : t('models_list.card.add_compare')"
-              class="p-1.5 rounded-full transition-colors flex-shrink-0"
-              :class="isSelectedForCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`)
-                ? 'bg-green-500 text-white'
-                : selectedForCompare.length >= MAX_COMPARE
-                  ? 'bg-gray-100 dark:bg-gray-700 text-gray-300 cursor-not-allowed'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-400 hover:bg-green-100 hover:text-green-600'"
-            >
-              <CheckIcon v-if="isSelectedForCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`)" class="h-4 w-4" />
-              <ArrowsRightLeftIcon v-else class="h-4 w-4" />
-            </button>
-          </div>
         </div>
 
         <!-- Fallback filler models (mobile only, no brand filter active) — no compare toggle -->
@@ -336,7 +336,7 @@
       <!-- Floating Compare Bar (outside v-if/v-else chain) -->
       <Transition name="compare-bar">
         <div
-          v-if="selectedForCompare.length >= 2"
+          v-if="selectedForCompare.length >= 1"
           class="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 w-full max-w-lg px-4"
         >
           <div class="bg-gray-900 text-white rounded-2xl shadow-2xl px-4 py-3 flex items-center gap-3">

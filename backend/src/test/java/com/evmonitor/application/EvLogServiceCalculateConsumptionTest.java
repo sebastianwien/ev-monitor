@@ -44,10 +44,15 @@ class EvLogServiceCalculateConsumptionTest {
 
     @BeforeEach
     void setUp() {
+        // Neutral efficiency factors — these tests verify formula math, not charging loss correction.
+        // See EvLogServiceChargingEfficiencyTest for dedicated correction tests.
+        PlausibilityProperties props = new PlausibilityProperties();
+        props.setAcChargingEfficiency(1.0);
+        props.setDcChargingEfficiency(1.0);
         service = new EvLogService(
                 evLogRepository, carRepository, userRepository,
                 coinLogService, temperatureEnrichmentService,
-                vehicleSpecificationRepository, new PlausibilityProperties(),
+                vehicleSpecificationRepository, props,
                 mock(com.evmonitor.application.SessionGroupService.class));
     }
 
