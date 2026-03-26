@@ -16,6 +16,7 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -161,6 +162,55 @@ public class PublicApiImportService {
         }
 
         return new ImportApiResult(imported, skipped, errors);
+    }
+
+    @Transactional
+    public void patchApiSession(UUID userId, UUID logId, PatchSessionRequest patch) {
+        EvLog existing = evLogRepository.findById(logId)
+                .orElseThrow(() -> new NoSuchElementException("Log nicht gefunden"));
+
+        if (existing.getDataSource() != DataSource.API_UPLOAD) {
+            throw new IllegalArgumentException("Nur via Public API importierte Logs können über diesen Endpoint aktualisiert werden");
+        }
+
+        Car car = carRepository.findById(existing.getCarId())
+                .orElseThrow(() -> new IllegalArgumentException("Fahrzeug nicht gefunden"));
+        if (!car.getUserId().equals(userId)) {
+            throw new SecurityException("Kein Zugriff auf diesen Log");
+        }
+
+        boolean isPublic = patch.isPublicCharging() != null ? patch.isPublicCharging() : existing.isPublicCharging();
+        String geohash = patch.location() != null
+                ? parseGeohash(patch.location(), isPublic ? 7 : 5)
+                : existing.getGeohash();
+        String cpoName = patch.cpoName() != null
+                ? cpoNameNormalizer.normalize(patch.cpoName())
+                : existing.getCpoName();
+
+        ChargingType chargingType = patch.chargingType() != null
+                ? parseEnum(ChargingType.class, patch.chargingType(), null)
+                : null;
+        RouteType routeType = patch.routeType() != null
+                ? parseEnum(RouteType.class, patch.routeType(), null)
+                : null;
+        TireType tireType = patch.tireType() != null
+                ? parseEnum(TireType.class, patch.tireType(), null)
+                : null;
+
+        EvLog patched = existing.withPatch(
+                patch.kwh() != null ? BigDecimal.valueOf(patch.kwh()) : null,
+                patch.costEur() != null ? BigDecimal.valueOf(patch.costEur()) : null,
+                patch.durationMin(),
+                geohash,
+                patch.odometerKm(),
+                patch.socBefore(),
+                patch.socAfter(),
+                patch.maxChargingPowerKw() != null ? BigDecimal.valueOf(patch.maxChargingPowerKw()) : null,
+                chargingType, routeType, tireType,
+                isPublic, cpoName
+        );
+
+        evLogRepository.save(patched);
     }
 
     private boolean isDuplicate(UUID carId, LocalDateTime loggedAt, Double kwh, DataSource dataSource) {

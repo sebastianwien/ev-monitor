@@ -1,6 +1,7 @@
 package com.evmonitor.infrastructure.web;
 
 import com.evmonitor.application.publicapi.ImportApiResult;
+import com.evmonitor.application.publicapi.PatchSessionRequest;
 import com.evmonitor.application.publicapi.PublicApiImportService;
 import com.evmonitor.application.publicapi.PublicApiSessionRequest;
 import com.evmonitor.domain.ApiKey;
@@ -18,6 +19,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -96,6 +99,45 @@ public class PublicApiImportController {
             // Race condition: duplicate session slipped past the isDuplicate check
             // Return gracefully instead of 500
             return ResponseEntity.ok(Map.of("imported", 0, "skipped", 1, "errors", 0));
+        }
+    }
+
+    @PatchMapping("/sessions/{id}")
+    @Operation(
+            summary = "Update a charging session",
+            description = """
+                    Partially updates an existing charging session previously imported via the Public API.
+
+                    Only fields included in the request body are updated — omitted fields keep their existing value.
+
+                    **Restrictions:** Only sessions with `data_source = API_UPLOAD` can be updated via this endpoint.
+
+                    **Authentication:** `Authorization: Bearer evm_<your-api-key>`
+                    """,
+            security = @SecurityRequirement(name = "ApiKey")
+    )
+    public ResponseEntity<?> patchSession(
+            @PathVariable UUID id,
+            @Valid @RequestBody PatchSessionRequest patch,
+            Authentication authentication,
+            HttpServletRequest httpRequest) {
+
+        String keyId = (String) httpRequest.getAttribute("apiKeyId");
+        if (keyId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Dieser Endpoint erfordert einen API Key (evm_...)."));
+        }
+
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        try {
+            importService.patchApiSession(principal.getUser().getId(), id, patch);
+            return ResponseEntity.noContent().build();
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 }

@@ -291,6 +291,30 @@ public class EvLog {
         return cpoName;
     }
 
+    public EvLog withPatch(BigDecimal kwh, BigDecimal costEur, Integer durationMin,
+            String geohash, Integer odometerKm, Integer socBefore, Integer socAfter,
+            BigDecimal maxChargingPowerKw, ChargingType chargingType,
+            RouteType routeType, TireType tireType, Boolean isPublicCharging, String cpoName) {
+        return new EvLog(id, carId,
+                kwh != null ? kwh : this.kwhCharged,
+                costEur != null ? costEur : this.costEur,
+                durationMin != null ? durationMin : this.chargeDurationMinutes,
+                geohash != null ? geohash : this.geohash,
+                odometerKm != null ? odometerKm : this.odometerKm,
+                maxChargingPowerKw != null ? maxChargingPowerKw : this.maxChargingPowerKw,
+                socAfter != null ? socAfter : this.socAfterChargePercent,
+                socBefore != null ? socBefore : this.socBeforeChargePercent,
+                this.loggedAt, this.dataSource, this.includeInStatistics,
+                this.odometerSuggestionMinKm, this.odometerSuggestionMaxKm, this.temperatureCelsius,
+                chargingType != null ? chargingType : this.chargingType,
+                this.rawImportData, this.createdAt, LocalDateTime.now(),
+                routeType != null ? routeType : this.routeType,
+                tireType != null ? tireType : this.tireType,
+                this.supersededBy, this.sessionGroupId,
+                isPublicCharging != null ? isPublicCharging : this.isPublicCharging,
+                cpoName != null ? cpoName : this.cpoName);
+    }
+
     public EvLog withIncludeInStatistics(boolean includeInStatistics) {
         return new EvLog(id, carId, kwhCharged, costEur, chargeDurationMinutes, geohash, odometerKm,
                 maxChargingPowerKw, socAfterChargePercent, socBeforeChargePercent, loggedAt,

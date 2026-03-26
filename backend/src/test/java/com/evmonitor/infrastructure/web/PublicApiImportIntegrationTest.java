@@ -2,7 +2,10 @@ package com.evmonitor.infrastructure.web;
 
 import com.evmonitor.application.publicapi.ApiKeyService;
 import com.evmonitor.application.publicapi.ApiKeyCreatedResponse;
+import com.evmonitor.application.publicapi.CpoNameNormalizer;
 import com.evmonitor.domain.*;
+import com.evmonitor.infrastructure.persistence.ChargingNetworkEntity;
+import com.evmonitor.infrastructure.persistence.JpaChargingNetworkRepository;
 import com.evmonitor.testutil.AbstractIntegrationTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,6 +28,12 @@ class PublicApiImportIntegrationTest extends AbstractIntegrationTest {
     @Autowired
     private ApiKeyService apiKeyService;
 
+    @Autowired
+    private JpaChargingNetworkRepository networkRepository;
+
+    @Autowired
+    private CpoNameNormalizer cpoNameNormalizer;
+
     private User user;
     private Car car;
     private String plaintextKey;
@@ -35,6 +44,19 @@ class PublicApiImportIntegrationTest extends AbstractIntegrationTest {
         car  = createAndSaveCar(user.getId(), CarBrand.CarModel.MODEL_3);
         ApiKeyCreatedResponse created = apiKeyService.createKey(user.getId(), "Test Key");
         plaintextKey = created.plaintextKey();
+
+        // Seed CPO test data and reload normalizer (Flyway disabled in tests)
+        networkRepository.save(entity("IONITY", null));
+        networkRepository.save(entity("Fastned", null));
+        networkRepository.save(entity("EnBW", "DE"));
+        cpoNameNormalizer.init();
+    }
+
+    private ChargingNetworkEntity entity(String name, String countryCode) {
+        ChargingNetworkEntity e = new ChargingNetworkEntity();
+        e.setName(name);
+        e.setCountryCode(countryCode);
+        return e;
     }
 
     // ── Tier-1 minimal upload ─────────────────────────────────────────────────
@@ -244,6 +266,94 @@ class PublicApiImportIntegrationTest extends AbstractIntegrationTest {
         int totalCoins = coinLogRepository.findAllByUserId(user.getId())
                 .stream().mapToInt(c -> c.getAmount()).sum();
         assertEquals(4, totalCoins); // 2 coins per session × 2 sessions
+    }
+
+    // ── Tier-3: charging provider ─────────────────────────────────────────────
+
+    @Test
+    void tier3_publicCharging_storesCpoNameAndGeohash7() {
+        String body = """
+                {
+                  "car_id": "%s",
+                  "sessions": [
+                    {
+                      "date": "2024-11-15T14:30:00",
+                      "kwh": 32.5,
+                      "location": "48.1234,11.5678",
+                      "is_public_charging": true,
+                      "cpo_name": "IONITY"
+                    }
+                  ]
+                }
+                """.formatted(car.getId());
+
+        ResponseEntity<Map> response = post(body, plaintextKey);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(1, response.getBody().get("imported"));
+
+        EvLog log = evLogRepository.findAllByCarId(car.getId()).getFirst();
+        assertTrue(log.isPublicCharging());
+        assertEquals("IONITY", log.getCpoName());
+        assertNotNull(log.getGeohash());
+        assertEquals(7, log.getGeohash().length()); // public → 7 chars (~150m)
+    }
+
+    @Test
+    void tier3_privateCharging_geohash5() {
+        String body = """
+                {
+                  "car_id": "%s",
+                  "sessions": [
+                    {
+                      "date": "2024-11-15T14:30:00",
+                      "kwh": 32.5,
+                      "location": "48.1234,11.5678",
+                      "is_public_charging": false
+                    }
+                  ]
+                }
+                """.formatted(car.getId());
+
+        post(body, plaintextKey);
+
+        EvLog log = evLogRepository.findAllByCarId(car.getId()).getFirst();
+        assertFalse(log.isPublicCharging());
+        assertEquals(5, log.getGeohash().length()); // private → 5 chars (~5km)
+    }
+
+    @Test
+    void cpoName_lowercaseInput_normalizedToCanonical() {
+        String body = """
+                {
+                  "car_id": "%s",
+                  "sessions": [
+                    { "date": "2024-11-15T14:30:00", "kwh": 32.5, "is_public_charging": true, "cpo_name": "ionity" }
+                  ]
+                }
+                """.formatted(car.getId());
+
+        post(body, plaintextKey);
+
+        EvLog log = evLogRepository.findAllByCarId(car.getId()).getFirst();
+        assertEquals("IONITY", log.getCpoName()); // normalized
+    }
+
+    @Test
+    void cpoName_unknown_storedAsIs() {
+        String body = """
+                {
+                  "car_id": "%s",
+                  "sessions": [
+                    { "date": "2024-11-15T14:30:00", "kwh": 32.5, "is_public_charging": true, "cpo_name": "My Local Charger" }
+                  ]
+                }
+                """.formatted(car.getId());
+
+        post(body, plaintextKey);
+
+        EvLog log = evLogRepository.findAllByCarId(car.getId()).getFirst();
+        assertEquals("My Local Charger", log.getCpoName());
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

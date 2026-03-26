@@ -27,7 +27,7 @@ public class CpoNameNormalizer {
     }
 
     @PostConstruct
-    void init() {
+    public void init() {
         List<String> cpos = tariffRepository.findAllKnownCpoNames();
         this.knownCpos = Collections.unmodifiableList(cpos);
         this.lookup = cpos.stream().collect(Collectors.toMap(String::toLowerCase, s -> s));
