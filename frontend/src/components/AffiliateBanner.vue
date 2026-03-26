@@ -15,15 +15,15 @@ const banners: Banner[] = [
   //   url: 'AWIN_TRACKING_URL_THG',
   //   weight: 60,
   // },
-  // {
-  //   id: 'enbw',
-  //   icon: 'bolt',
-  //   headline: 'Laden an 300.000+ Ladepunkten',
-  //   text: 'Mit EnBW mobility+ europaweit an Schnellladern laden - transparent, ohne Grundgebühr.',
-  //   cta: 'EnBW mobility+ entdecken',
-  //   url: 'AWIN_TRACKING_URL_ENBW',
-  //   weight: 40,
-  // },
+  {
+    id: 'enbw',
+    icon: 'bolt',
+    headline: 'Laden an 900.000+ Ladepunkten',
+    text: 'EnBW mobility+ - europaweit unterwegs laden, transparente Preise, kein Mindesteinsatz.',
+    cta: 'EnBW mobility+ entdecken',
+    url: 'https://www.awin1.com/cread.php?s=3178475&v=15335&q=343652&r=2827948',
+    weight: 40,
+  },
 ]
 
 const banner = computed(() => {

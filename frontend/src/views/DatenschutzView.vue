@@ -127,15 +127,19 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
         <section>
           <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">5. Cookies & Tracking</h2>
           <p>
-            Wir verwenden <strong>keine Tracking-Cookies</strong> von Drittanbietern.
+            Unsere Website setzt beim Seitenaufruf <strong>keine Tracking-Cookies</strong> von Drittanbietern.
           </p>
           <p class="mt-4">
             Unsere Website nutzt ausschließlich:
           </p>
           <ul class="list-disc list-inside space-y-2">
             <li><strong>Session-Token (JWT):</strong> Im localStorage gespeichert für Authentifizierung (7 Tage Gültigkeit)</li>
-            <li><strong>Keine Cookies von Drittanbietern</strong> — kein Google Analytics, kein Facebook Pixel</li>
+            <li><strong>Keine Cookies von Drittanbietern beim Seitenaufruf</strong> — kein Google Analytics, kein Facebook Pixel</li>
           </ul>
+          <p class="mt-4">
+            Ausnahme: Wenn Sie auf einen Affiliate-Link klicken (siehe Abschnitt 10a), kann der jeweilige Anbieter ein Tracking-Cookie setzen.
+            Dies erfolgt erst durch Ihre aktive Interaktion, nicht automatisch beim Laden der Seite.
+          </p>
         </section>
 
         <section>
@@ -232,6 +236,30 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
           </p>
           <p class="mt-4">
             Die Nutzung dieser Dienste ist vollständig freiwillig und hat keinen Einfluss auf die Nutzung von EV Monitor.
+          </p>
+        </section>
+
+        <section>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">10a. Affiliate-Links (Awin)</h2>
+          <p>
+            Diese Website nimmt am Affiliate-Programm des Netzwerks <strong>Awin</strong> (Awin AG, Eichhornstraße 3, 10785 Berlin) teil.
+            Auf unseren Seiten sind Werbelinks von Partnerprogrammen eingebunden, die als "Anzeige" gekennzeichnet sind.
+          </p>
+          <p class="mt-4">
+            Wenn Sie auf einen solchen Link klicken, werden Sie über den Awin-Tracking-Server weitergeleitet.
+            Dabei kann Awin ein Cookie mit einer Laufzeit von bis zu 24 Stunden in Ihrem Browser setzen,
+            um nachzuvollziehen, ob ein Vertragsabschluss auf unsere Vermittlung zurückgeht.
+          </p>
+          <p class="mt-4">
+            Es werden dabei keine personenbezogenen Daten von uns an Awin übertragen.
+            Das Cookie enthält lediglich eine anonyme Kennung zur Zuordnung des Klicks.
+          </p>
+          <p class="mt-4">
+            <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an der Finanzierung des kostenfreien Angebots).
+          </p>
+          <p class="mt-4">
+            Weitere Informationen zum Datenschutz bei Awin:
+            <a href="https://www.awin.com/de/rechtliches/datenschutzrichtlinie" target="_blank" rel="noopener noreferrer" class="text-green-600 hover:text-green-700">awin.com/de/rechtliches/datenschutzrichtlinie</a>
           </p>
         </section>
 

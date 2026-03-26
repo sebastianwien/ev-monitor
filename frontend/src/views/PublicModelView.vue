@@ -139,7 +139,7 @@
         </div>
 
         <!-- Affiliate Banner: nur für nicht eingeloggte User -->
-        <AffiliateBanner v-if="!authStore.isAuthenticated" />
+        <AffiliateBanner v-if="!authStore.isAuthenticated()" />
 
         <!-- Combined: Variant Switcher + Seasonal + WLTP -->
         <div v-if="stats.wltpVariants.length > 0 || showSeasonalBreakdown"
