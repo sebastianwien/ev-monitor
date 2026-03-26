@@ -259,7 +259,7 @@ class CoinBackfillMigrationTest extends AbstractIntegrationTest {
     private UUID insertEvLog(UUID carId, String dataSource, LocalDateTime loggedAt) {
         UUID id = UUID.randomUUID();
         jdbc.update(
-                "INSERT INTO ev_log (id, car_id, kwh_charged, cost_eur, logged_at, created_at, updated_at, data_source, include_in_statistics) VALUES (?, ?, 30.0, 10.0, ?, NOW(), NOW(), ?, true)",
+                "INSERT INTO ev_log (id, car_id, kwh_charged, cost_eur, logged_at, created_at, updated_at, data_source, include_in_statistics, measurement_type) VALUES (?, ?, 30.0, 10.0, ?, NOW(), NOW(), ?, true, 'AT_CHARGER')",
                 id, carId, loggedAt, dataSource
         );
         return id;

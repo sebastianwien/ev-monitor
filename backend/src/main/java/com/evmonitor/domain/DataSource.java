@@ -11,6 +11,7 @@ public enum DataSource {
     WALLBOX_GOE,         // go-eCharger Cloud via ev-monitor-connectors
     API_UPLOAD,          // Public Upload API (Wallboxen, Skripte, Home-Automation)
     TRONITY_IMPORT,      // Tronity XLSX export import
+    SMARTCAR_LIVE,       // Smartcar webhook-based live session tracking
     SEED_DATA;
 
     public boolean includeInStatistics() {
@@ -18,6 +19,14 @@ public enum DataSource {
                 || this == WALLBOX_OCPP || this == WALLBOX_GOE
                 || this == TESLA_FLEET_IMPORT || this == TESLA_LIVE
                 || this == TESLA_MANUAL_IMPORT || this == API_UPLOAD
-                || this == TRONITY_IMPORT;
+                || this == TRONITY_IMPORT || this == SMARTCAR_LIVE;
+    }
+
+    /** Returns the measurement point for energy reported by this data source. */
+    public EnergyMeasurementType measurementType() {
+        return switch (this) {
+            case TESLA_LIVE, SMARTCAR_LIVE -> EnergyMeasurementType.AT_VEHICLE;
+            default -> EnergyMeasurementType.AT_CHARGER;
+        };
     }
 }

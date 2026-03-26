@@ -228,6 +228,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
         entity.setSessionGroupId(domain.getSessionGroupId());
         entity.setPublicCharging(domain.isPublicCharging());
         entity.setCpoName(domain.getCpoName());
+        entity.setMeasurementType(domain.getMeasurementType().name());
         return entity;
     }
 

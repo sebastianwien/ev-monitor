@@ -30,6 +30,7 @@ public class EvLog {
     private final UUID sessionGroupId;       // Optional: ID of the charging_session_group (sub-sessions only)
     private final boolean isPublicCharging;  // Whether this was at a public charger (CPO)
     private final String cpoName;            // Optional: CPO name (e.g. IONITY, EnBW) — only when isPublicCharging
+    private final EnergyMeasurementType measurementType; // At which point energy is measured (derived from dataSource)
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
 
@@ -54,6 +55,7 @@ public class EvLog {
         this.socBeforeChargePercent = socBeforeChargePercent;
         this.loggedAt = loggedAt != null ? loggedAt : LocalDateTime.now();
         this.dataSource = dataSource != null ? dataSource : DataSource.USER_LOGGED;
+        this.measurementType = this.dataSource.measurementType();
         this.includeInStatistics = includeInStatistics;
         this.odometerSuggestionMinKm = odometerSuggestionMinKm;
         this.odometerSuggestionMaxKm = odometerSuggestionMaxKm;
@@ -289,6 +291,10 @@ public class EvLog {
 
     public String getCpoName() {
         return cpoName;
+    }
+
+    public EnergyMeasurementType getMeasurementType() {
+        return measurementType;
     }
 
     public EvLog withPatch(BigDecimal kwh, BigDecimal costEur, Integer durationMin,
