@@ -136,16 +136,6 @@
             </div>
           </div>
 
-          <!-- 20-Minuten-Laden -->
-          <div v-if="kmIn20Min" class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-            <div class="flex items-center justify-center gap-2 flex-wrap">
-              <BoltIcon class="h-4 w-4 text-green-500 shrink-0" />
-              <span class="text-sm text-gray-500 dark:text-gray-400">{{ t('model.charging_20min_label') }}</span>
-              <span class="text-lg font-bold text-green-600 dark:text-green-400">~{{ kmIn20Min }} {{ t('model.charging_20min_unit') }}</span>
-              <span class="text-xs text-gray-400 dark:text-gray-500">({{ t('model.charging_20min_avg') }} {{ stats.avgChargingPowerKw?.toFixed(1) }} {{ t('model.charging_20min_power') }})</span>
-            </div>
-          </div>
-
         </div>
 
         <!-- Affiliate Banner: nur für nicht eingeloggte User -->
