@@ -34,6 +34,7 @@ public class EvLog {
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
 
+    // Backward-compatible constructor - derives measurementType from dataSource
     public EvLog(UUID id, UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
             Integer chargeDurationMinutes, String geohash, Integer odometerKm,
             BigDecimal maxChargingPowerKw, Integer socAfterChargePercent, Integer socBeforeChargePercent,
@@ -43,6 +44,23 @@ public class EvLog {
             LocalDateTime createdAt, LocalDateTime updatedAt,
             RouteType routeType, TireType tireType, UUID supersededBy, UUID sessionGroupId,
             boolean isPublicCharging, String cpoName) {
+        this(id, carId, kwhCharged, costEur, chargeDurationMinutes, geohash, odometerKm,
+                maxChargingPowerKw, socAfterChargePercent, socBeforeChargePercent, loggedAt,
+                dataSource, includeInStatistics, odometerSuggestionMinKm, odometerSuggestionMaxKm,
+                temperatureCelsius, chargingType, rawImportData, createdAt, updatedAt,
+                routeType, tireType, supersededBy, sessionGroupId, isPublicCharging, cpoName, null);
+    }
+
+    // Full constructor - accepts explicit measurementType (null = derive from dataSource)
+    public EvLog(UUID id, UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
+            Integer chargeDurationMinutes, String geohash, Integer odometerKm,
+            BigDecimal maxChargingPowerKw, Integer socAfterChargePercent, Integer socBeforeChargePercent,
+            LocalDateTime loggedAt, DataSource dataSource,
+            boolean includeInStatistics, Integer odometerSuggestionMinKm, Integer odometerSuggestionMaxKm,
+            Double temperatureCelsius, ChargingType chargingType, String rawImportData,
+            LocalDateTime createdAt, LocalDateTime updatedAt,
+            RouteType routeType, TireType tireType, UUID supersededBy, UUID sessionGroupId,
+            boolean isPublicCharging, String cpoName, EnergyMeasurementType measurementType) {
         this.id = id;
         this.carId = carId;
         this.kwhCharged = kwhCharged;
@@ -55,7 +73,7 @@ public class EvLog {
         this.socBeforeChargePercent = socBeforeChargePercent;
         this.loggedAt = loggedAt != null ? loggedAt : LocalDateTime.now();
         this.dataSource = dataSource != null ? dataSource : DataSource.USER_LOGGED;
-        this.measurementType = this.dataSource.measurementType();
+        this.measurementType = measurementType != null ? measurementType : this.dataSource.measurementType();
         this.includeInStatistics = includeInStatistics;
         this.odometerSuggestionMinKm = odometerSuggestionMinKm;
         this.odometerSuggestionMaxKm = odometerSuggestionMaxKm;
@@ -180,13 +198,24 @@ public class EvLog {
             BigDecimal maxChargingPowerKw, Integer socAfterChargePercent, Integer socBeforeChargePercent,
             LocalDateTime loggedAt, ChargingType chargingType, RouteType routeType, TireType tireType,
             DataSource dataSource, String rawImportData, boolean isPublicCharging, String cpoName) {
+        return createFromPublicApi(carId, kwhCharged, costEur, chargeDurationMinutes, geohash, odometerKm,
+                maxChargingPowerKw, socAfterChargePercent, socBeforeChargePercent, loggedAt,
+                chargingType, routeType, tireType, dataSource, rawImportData, isPublicCharging, cpoName, null);
+    }
+
+    public static EvLog createFromPublicApi(UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
+            Integer chargeDurationMinutes, String geohash, Integer odometerKm,
+            BigDecimal maxChargingPowerKw, Integer socAfterChargePercent, Integer socBeforeChargePercent,
+            LocalDateTime loggedAt, ChargingType chargingType, RouteType routeType, TireType tireType,
+            DataSource dataSource, String rawImportData, boolean isPublicCharging, String cpoName,
+            EnergyMeasurementType measurementType) {
         LocalDateTime now = LocalDateTime.now();
         return new EvLog(UUID.randomUUID(), carId, kwhCharged, costEur,
                 chargeDurationMinutes, geohash, odometerKm, maxChargingPowerKw,
                 socAfterChargePercent, socBeforeChargePercent, loggedAt,
                 dataSource, dataSource.includeInStatistics(),
                 null, null, null, chargingType, rawImportData, now, now, routeType, tireType, null, null,
-                isPublicCharging, cpoName);
+                isPublicCharging, cpoName, measurementType);
     }
 
     public UUID getId() {
@@ -301,6 +330,15 @@ public class EvLog {
             String geohash, Integer odometerKm, Integer socBefore, Integer socAfter,
             BigDecimal maxChargingPowerKw, ChargingType chargingType,
             RouteType routeType, TireType tireType, Boolean isPublicCharging, String cpoName) {
+        return withPatch(kwh, costEur, durationMin, geohash, odometerKm, socBefore, socAfter,
+                maxChargingPowerKw, chargingType, routeType, tireType, isPublicCharging, cpoName, null);
+    }
+
+    public EvLog withPatch(BigDecimal kwh, BigDecimal costEur, Integer durationMin,
+            String geohash, Integer odometerKm, Integer socBefore, Integer socAfter,
+            BigDecimal maxChargingPowerKw, ChargingType chargingType,
+            RouteType routeType, TireType tireType, Boolean isPublicCharging, String cpoName,
+            EnergyMeasurementType measurementType) {
         return new EvLog(id, carId,
                 kwh != null ? kwh : this.kwhCharged,
                 costEur != null ? costEur : this.costEur,
@@ -318,7 +356,8 @@ public class EvLog {
                 tireType != null ? tireType : this.tireType,
                 this.supersededBy, this.sessionGroupId,
                 isPublicCharging != null ? isPublicCharging : this.isPublicCharging,
-                cpoName != null ? cpoName : this.cpoName);
+                cpoName != null ? cpoName : this.cpoName,
+                measurementType != null ? measurementType : this.measurementType);
     }
 
     public EvLog withIncludeInStatistics(boolean includeInStatistics) {
@@ -326,7 +365,8 @@ public class EvLog {
                 maxChargingPowerKw, socAfterChargePercent, socBeforeChargePercent, loggedAt,
                 dataSource, includeInStatistics, odometerSuggestionMinKm, odometerSuggestionMaxKm,
                 temperatureCelsius, chargingType, rawImportData, createdAt, LocalDateTime.now(),
-                routeType, tireType, supersededBy, sessionGroupId, isPublicCharging, cpoName);
+                routeType, tireType, supersededBy, sessionGroupId, isPublicCharging, cpoName,
+                this.measurementType);
     }
 
     /**

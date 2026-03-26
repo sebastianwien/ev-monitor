@@ -56,6 +56,9 @@ public record PublicApiSessionRequest(
             @JsonProperty("is_public_charging") Boolean isPublicCharging,
 
             @Schema(description = "CPO (Charge Point Operator) name. Use canonical names from `GET /api/v1/charging-providers`. Unknown values are accepted and stored as-is.")
-            @Size(max = 100) @JsonProperty("cpo_name") String cpoName
+            @Size(max = 100) @JsonProperty("cpo_name") String cpoName,
+
+            @Schema(description = "At which point energy is measured. `AT_CHARGER` (default): gross energy at the wallbox/charger, ~7% higher than battery entry. `AT_VEHICLE`: net energy entering the battery (e.g. from vehicle APIs). `DRIVING_ONLY`: drive consumption only, excludes standby/preconditioning. If omitted, `AT_CHARGER` is assumed.", allowableValues = {"AT_CHARGER", "AT_VEHICLE", "DRIVING_ONLY"})
+            @Size(max = 20) @JsonProperty("measurement_type") String measurementType
     ) {}
 }

@@ -42,5 +42,8 @@ public record PatchSessionRequest(
         @JsonProperty("is_public_charging") Boolean isPublicCharging,
 
         @Schema(description = "CPO name. Use canonical names from `GET /api/v1/charging-providers`. Unknown values are accepted as-is.")
-        @Size(max = 100) @JsonProperty("cpo_name") String cpoName
+        @Size(max = 100) @JsonProperty("cpo_name") String cpoName,
+
+        @Schema(description = "At which point energy is measured. `AT_CHARGER`: gross energy at wallbox/charger. `AT_VEHICLE`: net energy entering the battery. `DRIVING_ONLY`: drive consumption only.", allowableValues = {"AT_CHARGER", "AT_VEHICLE", "DRIVING_ONLY"})
+        @Size(max = 20) @JsonProperty("measurement_type") String measurementType
 ) {}

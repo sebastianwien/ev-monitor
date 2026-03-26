@@ -22,7 +22,8 @@ public record ApiSessionResponse(
         @JsonProperty("route_type") String routeType,
         @JsonProperty("tire_type") String tireType,
         @JsonProperty("is_public_charging") boolean isPublicCharging,
-        @JsonProperty("cpo_name") String cpoName
+        @JsonProperty("cpo_name") String cpoName,
+        @JsonProperty("measurement_type") String measurementType
 ) {
     public static ApiSessionResponse fromEvLog(EvLog log) {
         return new ApiSessionResponse(
@@ -39,7 +40,8 @@ public record ApiSessionResponse(
                 log.getRouteType() != null ? log.getRouteType().name() : null,
                 log.getTireType() != null ? log.getTireType().name() : null,
                 log.isPublicCharging(),
-                log.getCpoName()
+                log.getCpoName(),
+                log.getMeasurementType() != null ? log.getMeasurementType().name() : null
         );
     }
 }

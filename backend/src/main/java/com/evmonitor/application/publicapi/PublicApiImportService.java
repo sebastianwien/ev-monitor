@@ -116,6 +116,7 @@ public class PublicApiImportService {
                 ChargingType chargingType = parseEnum(ChargingType.class, entry.chargingType(), ChargingType.UNKNOWN);
                 RouteType routeType = parseEnum(RouteType.class, entry.routeType(), null);
                 TireType tireType = parseEnum(TireType.class, entry.tireType(), null);
+                EnergyMeasurementType measurementType = parseEnum(EnergyMeasurementType.class, entry.measurementType(), null);
 
                 EvLog evLog = EvLog.createFromPublicApi(
                         request.carId(),
@@ -134,7 +135,8 @@ public class PublicApiImportService {
                         dataSource,
                         entry.rawImportData(),
                         isPublic,
-                        cpoName
+                        cpoName,
+                        measurementType
                 );
 
                 EvLog saved;
@@ -200,6 +202,9 @@ public class PublicApiImportService {
         TireType tireType = patch.tireType() != null
                 ? parseEnum(TireType.class, patch.tireType(), null)
                 : null;
+        EnergyMeasurementType measurementType = patch.measurementType() != null
+                ? parseEnum(EnergyMeasurementType.class, patch.measurementType(), null)
+                : null;
 
         EvLog patched = existing.withPatch(
                 patch.kwh() != null ? BigDecimal.valueOf(patch.kwh()) : null,
@@ -211,7 +216,7 @@ public class PublicApiImportService {
                 patch.socAfter(),
                 patch.maxChargingPowerKw() != null ? BigDecimal.valueOf(patch.maxChargingPowerKw()) : null,
                 chargingType, routeType, tireType,
-                isPublic, cpoName
+                isPublic, cpoName, measurementType
         );
 
         evLogRepository.save(patched);

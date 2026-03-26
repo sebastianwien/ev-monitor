@@ -2,6 +2,7 @@ package com.evmonitor.infrastructure.persistence;
 
 import com.evmonitor.domain.ChargingType;
 import com.evmonitor.domain.DataSource;
+import com.evmonitor.domain.EnergyMeasurementType;
 import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.EvLogRepository;
 import com.evmonitor.domain.RouteType;
@@ -259,6 +260,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 entity.getSupersededBy(),
                 entity.getSessionGroupId(),
                 entity.isPublicCharging(),
-                entity.getCpoName());
+                entity.getCpoName(),
+                entity.getMeasurementType() != null ? EnergyMeasurementType.valueOf(entity.getMeasurementType()) : null);
     }
 }

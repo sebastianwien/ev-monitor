@@ -100,12 +100,13 @@ public class ManualImportService {
         String rawImportData = get(row, "raw_import_data");
         Boolean isPublicCharging = parseBoolean(get(row, "is_public_charging"));
         String cpoName = get(row, "cpo_name");
+        String measurementType = get(row, "measurement_type");
 
         return new PublicApiSessionRequest.SessionEntry(
                 date, kwh, odometerKm, socBefore, socAfter,
                 costEur, durationMin, location, chargingType,
                 maxChargingPowerKw, routeType, tireType, rawImportData,
-                isPublicCharging, cpoName
+                isPublicCharging, cpoName, measurementType
         );
     }
 
