@@ -94,7 +94,7 @@ evmonitor:
       wltp-upper-factor: 2.2
       sigma-multiplier: 2.5
       min-trips-for-statistical: 5
-      min-trip-distance-km: 20
+      min-trip-distance-km: 1
 
 app:
   base-url: ${APP_BASE_URL:http://localhost:5173}

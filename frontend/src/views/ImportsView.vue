@@ -136,7 +136,7 @@ const activeCars = computed(() =>
         </div>
 
         <!-- Accordion -->
-        <div class="border border-gray-200 dark:border-gray-700 rounded-xl divide-y divide-gray-200 dark:divide-gray-700 overflow-hidden">
+        <div class="border border-gray-200 dark:border-gray-600 rounded-xl divide-y divide-gray-200 dark:divide-gray-700 overflow-hidden shadow-lg dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
 
         <!-- 1. SMARTCAR -->
         <div>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { BoltIcon, CheckCircleIcon, XCircleIcon, SparklesIcon } from '@heroicons/vue/24/outline'
+import { BoltIcon, CheckCircleIcon, XCircleIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
 import { useAuthStore } from '../stores/auth'
 import { useCarStore } from '../stores/car'
 import CarSelectDropdown from './CarSelectDropdown.vue'
@@ -95,19 +95,12 @@ const stateColor = (state: string | null) => {
 <template>
   <!-- TEASER: non-admin users -->
   <div v-if="!authStore.isAdmin" class="p-6 space-y-5">
-    <div class="flex items-start gap-4">
-      <div class="bg-indigo-600 rounded-lg p-2 shrink-0">
-        <SparklesIcon class="h-5 w-5 text-white" />
-      </div>
-      <div>
-        <h2 class="font-semibold text-gray-900 dark:text-gray-100 flex flex-wrap items-center gap-2">
-          {{ t('imports.smartcar_teaser_title') }}
-<span class="text-xs bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 px-2 py-0.5 rounded-full font-medium">
-            Premium
-          </span>
-        </h2>
-        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ t('imports.smartcar_teaser_desc') }}</p>
-      </div>
+    <div>
+      <h2 class="font-semibold text-gray-900 dark:text-gray-100 flex flex-wrap items-center gap-2">
+        {{ t('imports.smartcar_teaser_title') }}
+        <span class="text-xs bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 px-2 py-0.5 rounded-full font-medium">Premium</span>
+      </h2>
+      <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ t('imports.smartcar_teaser_desc') }}</p>
     </div>
 
     <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-1.5 list-disc list-inside">
@@ -123,25 +116,41 @@ const stateColor = (state: string | null) => {
         BMW, Mercedes-EQ, VW ID, Audi e-tron, Porsche Taycan, Hyundai, Kia, Volvo, Polestar, Renault, Ford, Tesla, ...
       </p>
     </div>
+
+    <details class="group border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden bg-white dark:bg-gray-700/50 shadow-md dark:shadow-[0_4px_16px_rgba(0,0,0,0.5)]">
+      <summary class="flex items-center justify-between px-4 py-3 cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 list-none select-none">
+        {{ t('imports.smartcar_how_title') }}
+        <ChevronDownIcon class="h-4 w-4 text-gray-400 transition-transform group-open:rotate-180 shrink-0" />
+      </summary>
+      <div class="px-4 pb-4 pt-3 space-y-4 border-t border-gray-200 dark:border-gray-700">
+        <div v-for="i in 5" :key="i">
+          <p class="text-sm font-semibold text-gray-800 dark:text-gray-200">{{ t(`imports.smartcar_how_q${i}`) }}</p>
+          <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ t(`imports.smartcar_how_a${i}`) }}</p>
+        </div>
+      </div>
+    </details>
   </div>
 
   <!-- ADMIN: full setup UI -->
   <div v-else class="p-6 space-y-5">
-    <div class="flex items-start gap-4">
-      <div class="bg-indigo-600 rounded-lg p-2 shrink-0">
-        <BoltIcon class="h-5 w-5 text-white" />
-      </div>
-      <div>
-        <h2 class="font-semibold text-gray-900 dark:text-gray-100">{{ t('imports.smartcar_title') }}</h2>
-        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-          {{ status?.connected ? t('imports.smartcar_desc_connected') : t('imports.smartcar_desc') }}
-        </p>
-      </div>
-    </div>
 
     <div v-if="loading" class="text-sm text-gray-500 dark:text-gray-400">{{ t('imports.smartcar_loading') }}</div>
 
     <template v-else>
+      <!-- How it works FAQ -->
+      <details class="group border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden bg-white dark:bg-gray-700/50 shadow-md dark:shadow-[0_4px_16px_rgba(0,0,0,0.5)]">
+        <summary class="flex items-center justify-between px-4 py-3 cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 list-none select-none">
+          {{ t('imports.smartcar_how_title') }}
+          <ChevronDownIcon class="h-4 w-4 text-gray-400 transition-transform group-open:rotate-180 shrink-0" />
+        </summary>
+        <div class="px-4 pb-4 pt-3 space-y-4 border-t border-gray-200 dark:border-gray-700">
+          <div v-for="i in 5" :key="i">
+            <p class="text-sm font-semibold text-gray-800 dark:text-gray-200">{{ t(`imports.smartcar_how_q${i}`) }}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ t(`imports.smartcar_how_a${i}`) }}</p>
+          </div>
+        </div>
+      </details>
+
       <!-- Error -->
       <div v-if="error" class="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg text-sm text-red-700 dark:text-red-300">
         {{ error }}
