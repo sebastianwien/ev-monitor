@@ -40,6 +40,7 @@ public class JwtService {
             extraClaims.put("demoAccount", principal.getUser().isSeedData());
             extraClaims.put("authProvider", principal.getUser().getAuthProvider().name());
             extraClaims.put("role", principal.getUser().getRole());
+            extraClaims.put("premium", principal.getUser().isPremium());
         }
         return generateToken(extraClaims, userDetails);
     }

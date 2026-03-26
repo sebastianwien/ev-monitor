@@ -180,7 +180,11 @@ defineExpose({ clearLocation, locationEnabled, locationStatus, getCurrentDateTim
           :class="[inputClass('cost'), 'pr-14']" />
         <input v-else v-model="priceEurPerKwh" type="number" step="0.01"
           :placeholder="t('logfields.cost_per_kwh_placeholder')"
-          :class="[inputClass('cost'), 'pr-14']" />
+          :class="[inputClass('cost'), calculatedEur !== null ? 'pr-28' : 'pr-14']" />
+        <span v-if="costMode === 'eur_kwh' && calculatedEur !== null"
+          class="absolute right-14 top-1/2 -translate-y-1/2 text-xs text-gray-400 dark:text-gray-500 pointer-events-none select-none whitespace-nowrap">
+          = {{ calculatedEur.toFixed(2) }} €
+        </span>
         <div class="absolute right-1.5 top-1/2 -translate-y-1/2 flex rounded-full border border-gray-300 dark:border-gray-500 bg-gray-200 dark:bg-gray-600 p-0.5 text-xs">
           <div class="absolute top-0.5 bottom-0.5 rounded-full pill-slider transition-transform duration-200 ease-in-out pointer-events-none" style="width: calc(50% - 2px)"
             :style="{ transform: `translateX(${costMode === 'eur_kwh' ? '100%' : '0%'})` }" />
@@ -194,9 +198,6 @@ defineExpose({ clearLocation, locationEnabled, locationStatus, getCurrentDateTim
           </button>
         </div>
       </div>
-      <p v-if="costMode === 'eur_kwh' && calculatedEur !== null" class="mt-1 text-xs text-gray-400 dark:text-gray-500">
-        = {{ calculatedEur.toFixed(2) }} €
-      </p>
     </div>
   </div>
   <p class="text-xs text-gray-400 dark:text-gray-500 -mt-1">{{ t('logfields.kwh_hint') }}</p>

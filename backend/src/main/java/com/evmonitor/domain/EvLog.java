@@ -156,11 +156,21 @@ public class EvLog {
             Integer chargeDurationMinutes, String geohash,
             LocalDateTime loggedAt, Integer odometerSuggestionMinKm, Integer odometerSuggestionMaxKm,
             DataSource dataSource, BigDecimal costEur, ChargingType chargingType) {
+        return createFromInternal(carId, kwhCharged, chargeDurationMinutes, geohash,
+                loggedAt, odometerSuggestionMinKm, odometerSuggestionMaxKm,
+                dataSource, costEur, chargingType, null, null, null, null);
+    }
+
+    public static EvLog createFromInternal(UUID carId, BigDecimal kwhCharged,
+            Integer chargeDurationMinutes, String geohash,
+            LocalDateTime loggedAt, Integer odometerSuggestionMinKm, Integer odometerSuggestionMaxKm,
+            DataSource dataSource, BigDecimal costEur, ChargingType chargingType,
+            Integer odometerKm, Integer socBefore, Integer socAfter, Double temperatureCelsius) {
         LocalDateTime now = LocalDateTime.now();
         return new EvLog(UUID.randomUUID(), carId, kwhCharged, costEur,
-                chargeDurationMinutes, geohash, null, null, null, null, loggedAt,
+                chargeDurationMinutes, geohash, odometerKm, null, socAfter, socBefore, loggedAt,
                 dataSource, dataSource.includeInStatistics(),
-                odometerSuggestionMinKm, odometerSuggestionMaxKm, null, chargingType, null, now, now, null, null, null, null,
+                odometerSuggestionMinKm, odometerSuggestionMaxKm, temperatureCelsius, chargingType, null, now, now, null, null, null, null,
                 false, null);
     }
 

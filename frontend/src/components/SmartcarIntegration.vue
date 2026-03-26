@@ -21,7 +21,7 @@ const cars = ref<Car[]>([])
 const selectedCarId = ref<string | null>(null)
 
 onMounted(async () => {
-  if (!authStore.isAdmin) return
+  if (!authStore.isAdmin && !authStore.isPremium) return
   try {
     const [s, c] = await Promise.all([
       smartcarService.getStatus(),
@@ -93,8 +93,8 @@ const stateColor = (state: string | null) => {
 </script>
 
 <template>
-  <!-- TEASER: non-admin users -->
-  <div v-if="!authStore.isAdmin" class="p-6 space-y-5">
+  <!-- TEASER: non-premium, non-admin users -->
+  <div v-if="!authStore.isAdmin && !authStore.isPremium" class="p-6 space-y-5">
     <div>
       <h2 class="font-semibold text-gray-900 dark:text-gray-100 flex flex-wrap items-center gap-2">
         {{ t('imports.smartcar_teaser_title') }}

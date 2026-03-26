@@ -19,8 +19,12 @@ public record InternalEvLogRequest(
         String geohash,
         Integer odometerSuggestionMinKm,
         Integer odometerSuggestionMaxKm,
-        String dataSource,    // optional: WALLBOX_OCPP | WALLBOX_GOE | TESLA_FLEET_IMPORT | TESLA_LIVE (defaults to WALLBOX_OCPP)
+        String dataSource,    // optional: WALLBOX_OCPP | WALLBOX_GOE | TESLA_FLEET_IMPORT | TESLA_LIVE | SMARTCAR_LIVE (defaults to WALLBOX_OCPP)
         BigDecimal costEur,   // optional: only available from sources that report cost (e.g. Tesla Supercharger)
         String chargingType,  // optional: AC | DC (defaults to UNKNOWN)
-        boolean mergeSessions) {  // optional: if true, merge with adjacent same-day sessions (WALLBOX_GOE only)
+        boolean mergeSessions, // optional: if true, merge with adjacent same-day sessions (WALLBOX_GOE only)
+        Integer odometerKm,   // optional: actual odometer reading from vehicle API (Smartcar, Tesla Live)
+        Integer socBefore,    // optional: State of Charge at session start (0-100)
+        Integer socAfter,     // optional: State of Charge at session end (0-100)
+        Double temperatureCelsius) { // optional: external temperature at charging location
 }

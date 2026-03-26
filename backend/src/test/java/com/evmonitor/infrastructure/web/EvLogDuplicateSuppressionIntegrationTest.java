@@ -132,7 +132,8 @@ class EvLogDuplicateSuppressionIntegrationTest extends AbstractIntegrationTest {
                 carId, userId, kwh, 55,
                 sessionTime.plusMinutes(5),
                 null, null, null,
-                "TESLA_FLEET_IMPORT", null, "DC", false);
+                "TESLA_FLEET_IMPORT", null, "DC", false,
+                null, null, null, null);
 
         HttpHeaders internalHeaders = new HttpHeaders();
         internalHeaders.set("X-Internal-Token", INTERNAL_TOKEN);

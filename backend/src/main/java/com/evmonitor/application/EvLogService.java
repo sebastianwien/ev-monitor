@@ -158,7 +158,11 @@ public class EvLogService {
                 request.odometerSuggestionMaxKm(),
                 source,
                 request.costEur(),
-                chargingType);
+                chargingType,
+                request.odometerKm(),
+                request.socBefore(),
+                request.socAfter(),
+                request.temperatureCelsius());
 
         EvLog savedLog = evLogRepository.save(newLog);
 

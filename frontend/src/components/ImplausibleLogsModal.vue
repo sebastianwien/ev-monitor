@@ -88,7 +88,7 @@ function formatDate(iso: string) {
       <div class="absolute inset-0 bg-black/50" @click="emit('close')" />
 
       <!-- Modal -->
-      <div class="relative w-full sm:max-w-2xl bg-white dark:bg-gray-800 sm:rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[90dvh]">
+      <div class="relative w-full sm:max-w-2xl bg-white dark:bg-gray-800 sm:rounded-2xl shadow-xl ring-1 ring-black/10 dark:ring-white/10 overflow-hidden flex flex-col max-h-[90dvh]">
         <!-- Header -->
         <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
           <div class="flex items-center gap-2">

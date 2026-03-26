@@ -107,8 +107,9 @@ const fetchLogs = async () => {
     logs.value = res.data.sort((a: any, b: any) =>
       new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime()
     )
-    if (logs.value.length > 0 && logs.value[0].tireType) {
-      formData.value.tireType = logs.value[0].tireType
+    if (logs.value.length > 0) {
+      if (logs.value[0].tireType) formData.value.tireType = logs.value[0].tireType
+      if (logs.value[0].routeType) formData.value.routeType = logs.value[0].routeType
     }
   } catch (err) {
     console.error('Failed to fetch logs:', err)
@@ -187,13 +188,14 @@ const submitLog = async () => {
     coinStore.refresh()
     analytics.trackLogCreated(ocrUsed.value ? 'ocr' : 'manual', isFirstLog)
 
-    // Reset form (keep car + tireType)
+    // Reset form (keep car + tireType + routeType)
     const savedTireType = f.tireType
+    const savedRouteType = f.routeType
     formData.value = {
       kwhCharged: null, costEur: null, odometerKm: null,
       socAfterChargePercent: null, socBeforeChargePercent: null,
       chargeDurationMinutes: null, maxChargingPowerKw: null, loggedAt: null,
-      chargingType: 'AC', routeType: 'COMBINED',
+      chargingType: 'AC', routeType: savedRouteType,
       tireType: savedTireType,
       latitude: null, longitude: null,
       isPublicCharging: false, cpoName: null,
@@ -290,6 +292,7 @@ onMounted(async () => {
                 :class="['w-full bg-indigo-600 text-white p-3 rounded-md btn-3d transition', !isFormValid ? 'opacity-40 cursor-not-allowed' : 'hover:bg-indigo-700', error ? 'ring-2 ring-red-400 ring-offset-2 animate-shake' : '']">
                 {{ t('logform.save_btn') }}
               </button>
+              <p v-if="error" class="text-red-500 dark:text-red-400 text-sm text-center mt-1">{{ error }}</p>
             </template>
           </LogFormFields>
 
