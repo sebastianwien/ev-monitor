@@ -1031,6 +1031,7 @@ manual_import:
   required_fields: "<strong>Pflichtfelder:</strong> date, kwh"
   date_formats: "<strong>date:</strong> ISO 8601, DD.MM.YYYY, MM/DD/YYYY oder Unix-Timestamp"
   location_hint: "<strong>location:</strong> Lat/Lon (z.B. <code>48.2082,16.3738</code>) - Ortsname wird ohne Kartenpin gespeichert"
+  cpo_hint: "<strong>cpo_name:</strong> Ladeanbieter (z.B. IONITY, EnBW, Tesla Supercharger) - optional, zusammen mit <code>is_public_charging: true</code>"
   upload_label: "Datei im EV Monitor Format hochladen"
   drop_hint: "Datei hierher ziehen oder <span class=\"text-green-600 font-medium\">auswählen</span>"
   paste_label: "Oder direkt einfügen"
