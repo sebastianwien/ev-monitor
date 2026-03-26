@@ -25,4 +25,9 @@ public class ChargingProviderTariffController {
     public List<String> getAvailableEmps() {
         return service.getAvailableEmps();
     }
+
+    @GetMapping("/cpos")
+    public List<String> getKnownCpos() {
+        return service.getKnownCpoNames();
+    }
 }

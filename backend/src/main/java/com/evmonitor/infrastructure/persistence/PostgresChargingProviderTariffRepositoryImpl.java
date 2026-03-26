@@ -5,20 +5,25 @@ import com.evmonitor.domain.ChargingProviderTariffRepository;
 import com.evmonitor.domain.ChargingType;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.TreeSet;
 
 @Component
 public class PostgresChargingProviderTariffRepositoryImpl implements ChargingProviderTariffRepository {
 
     private final JpaChargingProviderTariffRepository jpaRepository;
     private final JpaCpoEmpTierMappingRepository tierMappingRepository;
+    private final JpaChargingNetworkRepository networkRepository;
 
     public PostgresChargingProviderTariffRepositoryImpl(
             JpaChargingProviderTariffRepository jpaRepository,
-            JpaCpoEmpTierMappingRepository tierMappingRepository) {
+            JpaCpoEmpTierMappingRepository tierMappingRepository,
+            JpaChargingNetworkRepository networkRepository) {
         this.jpaRepository = jpaRepository;
         this.tierMappingRepository = tierMappingRepository;
+        this.networkRepository = networkRepository;
     }
 
     @Override
@@ -73,6 +78,12 @@ public class PostgresChargingProviderTariffRepositoryImpl implements ChargingPro
     @Override
     public Optional<String> findTierForCpo(String empName, String cpoName) {
         return tierMappingRepository.findTierByEmpAndCpo(empName, cpoName);
+    }
+
+    @Override
+    public List<String> findAllKnownCpoNames() {
+        // Primärquelle: charging_networks Tabelle (kanonische CPO-Liste)
+        return networkRepository.findAllNamesSorted();
     }
 
     private ChargingProviderTariff toDomain(ChargingProviderTariffEntity e) {

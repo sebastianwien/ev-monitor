@@ -98,11 +98,14 @@ public class ManualImportService {
         String routeType = get(row, "route_type");
         String tireType = get(row, "tire_type");
         String rawImportData = get(row, "raw_import_data");
+        Boolean isPublicCharging = parseBoolean(get(row, "is_public_charging"));
+        String cpoName = get(row, "cpo_name");
 
         return new PublicApiSessionRequest.SessionEntry(
                 date, kwh, odometerKm, socBefore, socAfter,
                 costEur, durationMin, location, chargingType,
-                maxChargingPowerKw, routeType, tireType, rawImportData
+                maxChargingPowerKw, routeType, tireType, rawImportData,
+                isPublicCharging, cpoName
         );
     }
 
@@ -178,5 +181,11 @@ public class ManualImportService {
         if (raw == null) return null;
         try { return Double.parseDouble(raw.replace(",", ".").trim()); }
         catch (NumberFormatException e) { return null; }
+    }
+
+    private Boolean parseBoolean(String raw) {
+        if (raw == null) return null;
+        String v = raw.trim();
+        return "true".equalsIgnoreCase(v) || "1".equals(v);
     }
 }

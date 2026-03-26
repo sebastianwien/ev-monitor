@@ -27,6 +27,10 @@ public class ChargingProviderTariffService {
         return tariffRepository.findAllEmpNames();
     }
 
+    public List<String> getKnownCpoNames() {
+        return tariffRepository.findAllKnownCpoNames();
+    }
+
     public List<String> getTariffVariantsForEmp(String empName) {
         return tariffRepository.findDistinctTariffVariantsByEmp(empName);
     }

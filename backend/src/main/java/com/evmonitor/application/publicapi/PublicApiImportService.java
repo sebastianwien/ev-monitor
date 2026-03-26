@@ -40,13 +40,16 @@ public class PublicApiImportService {
     private final CarRepository carRepository;
     private final CoinLogService coinLogService;
     private final SessionGroupService sessionGroupService;
+    private final CpoNameNormalizer cpoNameNormalizer;
 
     public PublicApiImportService(EvLogRepository evLogRepository, CarRepository carRepository,
-                                  CoinLogService coinLogService, SessionGroupService sessionGroupService) {
+                                  CoinLogService coinLogService, SessionGroupService sessionGroupService,
+                                  CpoNameNormalizer cpoNameNormalizer) {
         this.evLogRepository = evLogRepository;
         this.carRepository = carRepository;
         this.coinLogService = coinLogService;
         this.sessionGroupService = sessionGroupService;
+        this.cpoNameNormalizer = cpoNameNormalizer;
     }
 
     @Transactional
@@ -104,7 +107,9 @@ public class PublicApiImportService {
                     continue;
                 }
 
-                String geohash = parseGeohash(entry.location());
+                boolean isPublic = Boolean.TRUE.equals(entry.isPublicCharging());
+                String cpoName = cpoNameNormalizer.normalize(entry.cpoName());
+                String geohash = parseGeohash(entry.location(), isPublic ? 7 : 5);
                 ChargingType chargingType = parseEnum(ChargingType.class, entry.chargingType(), ChargingType.UNKNOWN);
                 RouteType routeType = parseEnum(RouteType.class, entry.routeType(), null);
                 TireType tireType = parseEnum(TireType.class, entry.tireType(), null);
@@ -124,7 +129,9 @@ public class PublicApiImportService {
                         routeType,
                         tireType,
                         dataSource,
-                        entry.rawImportData()
+                        entry.rawImportData(),
+                        isPublic,
+                        cpoName
                 );
 
                 EvLog saved;
@@ -177,14 +184,14 @@ public class PublicApiImportService {
         return null;
     }
 
-    private String parseGeohash(String location) {
+    private String parseGeohash(String location, int precision) {
         if (location == null || location.isBlank()) return null;
         Matcher m = LAT_LON_PATTERN.matcher(location.trim());
         if (!m.matches()) return null;
         try {
             double lat = Double.parseDouble(m.group(1));
             double lon = Double.parseDouble(m.group(2));
-            return GeoHash.geoHashStringWithCharacterPrecision(lat, lon, 5);
+            return GeoHash.geoHashStringWithCharacterPrecision(lat, lon, precision);
         } catch (NumberFormatException e) {
             return null;
         }

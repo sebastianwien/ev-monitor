@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { GlobeAltIcon } from '@heroicons/vue/24/outline'
+import api from '../api/axios'
 
 export interface LogFormData {
   kwhCharged: number | null
@@ -128,40 +129,23 @@ const toggleCostMode = (mode: 'eur' | 'eur_kwh') => {
 }
 
 // ── CPO Dropdown ──────────────────────────────────────────────────────────────
-const CPO_LIST = [
-  'IONITY',
-  'Tesla Supercharger',
-  'EnBW',
-  'Aral Pulse',
-  'Shell Recharge',
-  'Fastned',
-  'Allego',
-  'Mer',
-  'E.ON Drive',
-  'TotalEnergies',
-  'REWE',
-  'Lidl',
-  'Kaufland',
-  'Avia',
-  'OMV',
-  'Q8',
-  'Smatrics',
-  'Wien Energie',
-  'Verbund',
-  'ÖAMTC',
-  'EWZ',
-  'ewb',
-  'ChargePoint',
-  'Clever',
-  'Greenway',
-  'Stadtwerke',
-] as const
+const cpoList = ref<string[]>([])
 
-const cpoSelect = ref<string>(
-  form.value.cpoName
-    ? (CPO_LIST as readonly string[]).includes(form.value.cpoName) ? form.value.cpoName : 'OTHER'
-    : ''
-)
+const cpoSelect = ref<string>('')
+
+onMounted(async () => {
+  try {
+    const res = await api.get<string[]>('/charging-provider-tariffs/cpos')
+    cpoList.value = res.data
+    // Nach dem Laden: cpoSelect korrekt setzen (wichtig beim Editieren)
+    if (form.value.cpoName) {
+      cpoSelect.value = cpoList.value.includes(form.value.cpoName) ? form.value.cpoName : 'OTHER'
+    }
+  } catch {
+    // Fallback: leere Liste, User kann "Andere" wählen
+    if (form.value.cpoName) cpoSelect.value = 'OTHER'
+  }
+})
 
 watch(() => form.value.chargingType, (type) => {
   if (type === 'DC') form.value.isPublicCharging = true
@@ -296,7 +280,7 @@ defineExpose({ clearLocation, locationEnabled, locationStatus, getCurrentDateTim
   <div v-if="form.isPublicCharging" class="space-y-1.5">
     <select v-model="cpoSelect" :class="inputClass('cpoName')">
       <option value="">{{ t('logfields.cpo_select_placeholder') }}</option>
-      <option v-for="cpo in CPO_LIST" :key="cpo" :value="cpo">{{ cpo }}</option>
+      <option v-for="cpo in cpoList" :key="cpo" :value="cpo">{{ cpo }}</option>
       <option value="OTHER">{{ t('logfields.cpo_other') }}</option>
     </select>
     <input

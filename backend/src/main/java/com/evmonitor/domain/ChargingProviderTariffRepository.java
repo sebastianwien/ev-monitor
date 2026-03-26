@@ -33,4 +33,11 @@ public interface ChargingProviderTariffRepository {
      * Gibt null zurück wenn kein spezifisches Mapping existiert (→ STANDARD als Fallback).
      */
     Optional<String> findTierForCpo(String empName, String cpoName);
+
+    /**
+     * Alle bekannten CPO-Namen: UNION aus cpo_emp_tier_mapping.cpo_name und
+     * charging_provider_tariffs.emp_name (EMPs die auch eigene Netze betreiben).
+     * Sortiert, dedupliziert.
+     */
+    List<String> findAllKnownCpoNames();
 }

@@ -168,13 +168,23 @@ public class EvLog {
             BigDecimal maxChargingPowerKw, Integer socAfterChargePercent, Integer socBeforeChargePercent,
             LocalDateTime loggedAt, ChargingType chargingType, RouteType routeType, TireType tireType,
             DataSource dataSource, String rawImportData) {
+        return createFromPublicApi(carId, kwhCharged, costEur, chargeDurationMinutes, geohash, odometerKm,
+                maxChargingPowerKw, socAfterChargePercent, socBeforeChargePercent, loggedAt,
+                chargingType, routeType, tireType, dataSource, rawImportData, false, null);
+    }
+
+    public static EvLog createFromPublicApi(UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
+            Integer chargeDurationMinutes, String geohash, Integer odometerKm,
+            BigDecimal maxChargingPowerKw, Integer socAfterChargePercent, Integer socBeforeChargePercent,
+            LocalDateTime loggedAt, ChargingType chargingType, RouteType routeType, TireType tireType,
+            DataSource dataSource, String rawImportData, boolean isPublicCharging, String cpoName) {
         LocalDateTime now = LocalDateTime.now();
         return new EvLog(UUID.randomUUID(), carId, kwhCharged, costEur,
                 chargeDurationMinutes, geohash, odometerKm, maxChargingPowerKw,
                 socAfterChargePercent, socBeforeChargePercent, loggedAt,
                 dataSource, dataSource.includeInStatistics(),
                 null, null, null, chargingType, rawImportData, now, now, routeType, tireType, null, null,
-                false, null);
+                isPublicCharging, cpoName);
     }
 
     public UUID getId() {

@@ -44,8 +44,10 @@ public class PublicApiImportController {
 
                     **Tier 1 (minimal, e.g. Wallbox):** only `date` and `kwh` required.
                     **Tier 2 (full):** add `odometer_km` + `soc_after` to enable consumption calculation.
+                    **Tier 3 (charging provider):** add `is_public_charging: true` and `cpo_name` to track where you charged.
+                    Use `GET /api/v1/charging-providers` for the canonical list of CPO names.
 
-                    **Deduplication:** Sessions with the same odometer (±1h) or same timestamp (±30min) are skipped.
+                    **Deduplication:** Sessions with the same timestamp are skipped.
 
                     **Rate limit:** 60 requests/hour per API key. Max 100 sessions per request.
                     """,
