@@ -40,7 +40,7 @@ const banner = computed(() => {
 <template>
   <div
     v-if="banner"
-    class="relative bg-white dark:bg-gray-800 md:rounded-2xl md:border-x border-t md:border-b border-gray-200 dark:border-gray-700 md:mb-6 px-6 py-4"
+    class="relative bg-green-50/60 dark:bg-green-900/10 md:rounded-2xl md:border-x border-t md:border-b border-green-100 dark:border-green-900/40 md:mb-6 px-6 py-4"
   >
     <div class="flex items-center justify-between gap-4">
       <!-- Icon + Text -->
@@ -60,7 +60,7 @@ const banner = computed(() => {
         :href="banner.url"
         target="_blank"
         rel="noopener sponsored"
-        class="shrink-0 text-xs font-medium bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg transition-colors whitespace-nowrap"
+        class="shrink-0 text-xs font-medium bg-green-600 hover:bg-green-500 text-white px-3 py-2 rounded-lg whitespace-nowrap shadow-[0_4px_0_0_#15803d] active:shadow-[0_1px_0_0_#15803d] active:translate-y-[3px] transition-transform"
       >
         {{ banner.cta }}
       </a>

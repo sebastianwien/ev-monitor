@@ -182,9 +182,12 @@
       <!-- Models Grid -->
       <div v-if="filteredModels.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <!-- Real community models -->
+        <template v-for="(model, index) in filteredModels" :key="`${model.brandDisplayName}/${model.modelUrlSlug}`">
+        <!-- Affiliate Banner nach dem 3. Card -->
+        <div v-if="index === 3 && !isAuthenticated" class="col-span-full">
+          <AffiliateBanner />
+        </div>
         <div
-          v-for="model in filteredModels"
-          :key="`${model.brandDisplayName}/${model.modelUrlSlug}`"
           class="model-card flex flex-col bg-white dark:bg-gray-800 rounded-xl border p-4 transition-all shadow-[0_10px_0_0_rgb(0_0_0/0.13)] dark:shadow-none hover:-translate-y-1 hover:shadow-[0_12px_0_0_rgb(0_0_0/0.17)] dark:hover:shadow-lg hover:z-10 active:translate-y-[4px] active:shadow-[0_6px_0_0_rgb(0_0_0/0.1)] relative"
           :class="isSelectedForCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`)
             ? 'border-green-500 ring-2 ring-green-200 dark:ring-green-900'
@@ -240,6 +243,7 @@
             </div>
           </a>
         </div>
+        </template>
 
         <!-- Fallback filler models (mobile only, no brand filter active) — no compare toggle -->
         <a
@@ -382,6 +386,7 @@ import { useAuthStore } from '../stores/auth'
 import { getTopModels, getPlatformStats, getCategories, type TopModelPreview, type PlatformStats, type VehicleCategoryItem } from '../api/publicModelService'
 import { TruckIcon, ChartBarIcon, ArrowTrendingUpIcon, ArrowsRightLeftIcon, XMarkIcon, CheckIcon, ArrowRightIcon, InformationCircleIcon } from '@heroicons/vue/24/outline'
 import PublicNav from '../components/PublicNav.vue'
+import AffiliateBanner from '../components/AffiliateBanner.vue'
 
 const { t } = useI18n()
 const router = useRouter()
