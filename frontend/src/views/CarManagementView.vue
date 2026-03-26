@@ -785,7 +785,7 @@ onUnmounted(() => {
                       {{ t('cars.tesla_charging') }}
                     </span>
                     <span v-else-if="teslaStatus.vehicleState === 'online'"
-                      class="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-600 text-xs rounded-full font-medium border border-blue-200">
+                      class="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs rounded-full font-medium border border-blue-200 dark:border-blue-700">
                       <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
                       {{ t('cars.tesla_online') }}
                     </span>
