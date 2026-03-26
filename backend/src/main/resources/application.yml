@@ -16,7 +16,7 @@ spring:
   cache:
     type: caffeine
     caffeine:
-      spec: maximumSize=500,expireAfterWrite=15m
+      spec: maximumSize=500,expireAfterWrite=1h
     cache-names:
       - platformStats
       - modelsWithData

@@ -59,7 +59,7 @@
           <a
             v-for="model in brand.models"
             :key="model.modelEnum"
-            :href="`${modelsUrl}/${model.modelUrlSlug}`"
+            :href="`${modelsUrl}/${brand.brandDisplayName}/${model.modelUrlSlug}`"
             class="bg-white dark:bg-gray-800 sm:rounded-2xl border-t sm:border border-l-4 border-r-4 border-l-green-500 border-r-green-500 border-gray-200 dark:border-gray-700 p-5 hover:border-green-400 hover:shadow-md transition-all group"
           >
             <!-- Model name & log badge -->

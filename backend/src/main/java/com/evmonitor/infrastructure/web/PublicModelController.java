@@ -10,8 +10,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.http.CacheControl;
+import org.springframework.http.HttpHeaders;
+
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Public, unauthenticated API for car model statistics.
@@ -24,6 +28,9 @@ public class PublicModelController {
 
     private final PublicModelService publicModelService;
 
+    private static final CacheControl PUBLIC_1H = CacheControl.maxAge(1, TimeUnit.HOURS).cachePublic();
+    private static final CacheControl NO_STORE = CacheControl.noStore();
+
     public PublicModelController(PublicModelService publicModelService) {
         this.publicModelService = publicModelService;
     }
@@ -34,7 +41,9 @@ public class PublicModelController {
      */
     @GetMapping("/stats")
     public ResponseEntity<PlatformStatsResponse> getPlatformStats() {
-        return ResponseEntity.ok(publicModelService.getPlatformStats());
+        return ResponseEntity.ok()
+                .cacheControl(PUBLIC_1H)
+                .body(publicModelService.getPlatformStats());
     }
 
     /**
@@ -48,9 +57,10 @@ public class PublicModelController {
             @AuthenticationPrincipal UserPrincipal principal) {
 
         boolean isSeedUser = principal != null && principal.getUser().isSeedData();
+        CacheControl cc = isSeedUser ? NO_STORE : PUBLIC_1H;
 
         return publicModelService.getBrandModels(brand, isSeedUser)
-                .map(ResponseEntity::ok)
+                .map(body -> ResponseEntity.ok().cacheControl(cc).<PublicBrandResponse>body(body))
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -75,8 +85,10 @@ public class PublicModelController {
             isSeedUser = principal.getUser().isSeedData();
         }
 
+        CacheControl cc = isSeedUser ? NO_STORE : PUBLIC_1H;
+
         return publicModelService.getModelStats(brand, model, currentUserId, isSeedUser)
-                .map(ResponseEntity::ok)
+                .map(body -> ResponseEntity.ok().cacheControl(cc).<PublicModelStatsResponse>body(body))
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -91,7 +103,8 @@ public class PublicModelController {
             @AuthenticationPrincipal UserPrincipal principal) {
 
         boolean isSeedUser = principal != null && principal.getUser().isSeedData();
-        return ResponseEntity.ok(publicModelService.getTopModels(Math.min(limit, 50), isSeedUser));
+        CacheControl cc = isSeedUser ? NO_STORE : PUBLIC_1H;
+        return ResponseEntity.ok().cacheControl(cc).body(publicModelService.getTopModels(Math.min(limit, 50), isSeedUser));
     }
 
     /**
@@ -112,6 +125,7 @@ public class PublicModelController {
             isSeedUser = principal.getUser().isSeedData();
         }
 
-        return ResponseEntity.ok(publicModelService.getModelsWithWltpData(currentUserId, isSeedUser));
+        CacheControl cc = isSeedUser ? NO_STORE : PUBLIC_1H;
+        return ResponseEntity.ok().cacheControl(cc).body(publicModelService.getModelsWithWltpData(currentUserId, isSeedUser));
     }
 }
