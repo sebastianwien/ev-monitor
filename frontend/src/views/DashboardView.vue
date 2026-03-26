@@ -405,11 +405,40 @@ const efficiencyChartOptions = computed(() => ({
   }
 }))
 
+// ── Custom comparison value ───────────────────────────────────────────────────
+const CUSTOM_COMPARE_LS_KEY = 'ev_custom_compare_kwh'
+const customCompareValue = ref<number | null>(
+  (() => { const v = localStorage.getItem(CUSTOM_COMPARE_LS_KEY); return v ? parseFloat(v) : null })()
+)
+const customCompareInput = ref(customCompareValue.value?.toString() ?? '')
+const showCompareInput = ref(false)
+
+const effectiveCompareValue = computed(() =>
+  customCompareValue.value ?? wltp.value?.wltpConsumptionKwhPer100km ?? 0
+)
+const isCustomCompare = computed(() => customCompareValue.value !== null)
+
+function saveCustomCompare() {
+  const parsed = parseFloat(String(customCompareInput.value).replace(',', '.'))
+  if (!isNaN(parsed) && parsed > 0 && parsed < 100) {
+    customCompareValue.value = parsed
+    localStorage.setItem(CUSTOM_COMPARE_LS_KEY, String(parsed))
+    showCompareInput.value = false
+  }
+}
+
+function resetToWltp() {
+  customCompareValue.value = null
+  customCompareInput.value = ''
+  localStorage.removeItem(CUSTOM_COMPARE_LS_KEY)
+  showCompareInput.value = false
+}
+
 // ── WLTP delta bar chart ─────────────────────────────────────────────────────
 const wltpChartData = computed(() => {
   if (!stats.value || !wltp.value || !hasDistanceData.value) return null
 
-  const wltpVal = wltp.value.wltpConsumptionKwhPer100km
+  const wltpVal = effectiveCompareValue.value
   const points = stats.value.chargesOverTime.filter(d => d.consumptionKwhPer100km != null)
   if (points.length === 0) return null
 
@@ -419,7 +448,7 @@ const wltpChartData = computed(() => {
   return {
     labels,
     datasets: [{
-      label: 'Δ Verbrauch vs. WLTP (kWh/100km)',
+      label: `Δ Verbrauch vs. ${isCustomCompare.value ? effectiveCompareValue.value.toFixed(1) + ' kWh/100km' : 'WLTP'} (kWh/100km)`,
       data: deltas,
       backgroundColor: deltas.map(v => v > 0
         ? (isDark.value ? 'rgba(248,113,113,0.6)' : 'rgba(239,68,68,0.7)')
@@ -464,8 +493,8 @@ const wltpChartOptions = computed(() => {
         color: isDark.value ? '#d1d5db' : '#374151',
         font: { weight: 'bold' as const, size: 12 },
         formatter: (value: number) => {
-          const wltpVal = wltp.value?.wltpConsumptionKwhPer100km || 0
-          const percentDiff = (value / wltpVal) * 100
+          const compareVal = effectiveCompareValue.value || 0
+          const percentDiff = (value / compareVal) * 100
           return `${percentDiff > 0 ? '+' : ''}${percentDiff.toFixed(1)}%`
         }
       },
@@ -474,11 +503,12 @@ const wltpChartOptions = computed(() => {
           label: (ctx: any) => {
             const v = ctx.parsed.x // x for horizontal bars
             const sign = v > 0 ? '+' : ''
-            const wltpVal = wltp.value?.wltpConsumptionKwhPer100km || 0
-            const percentDiff = ((v / wltpVal) * 100).toFixed(1)
+            const compareVal = effectiveCompareValue.value || 0
+            const compareLabel = isCustomCompare.value ? `${compareVal.toFixed(1)} kWh/100km` : 'WLTP'
+            const percentDiff = ((v / compareVal) * 100).toFixed(1)
             return [
-              `${sign}${v.toFixed(2)} kWh/100km vs. WLTP`,
-              `WLTP: ${wltpVal.toFixed(1)} kWh/100km`,
+              `${sign}${v.toFixed(2)} kWh/100km vs. ${compareLabel}`,
+              `Vergleichswert: ${compareVal.toFixed(1)} kWh/100km`,
               `Abweichung: ${sign}${percentDiff}%`
             ]
           }
@@ -487,7 +517,13 @@ const wltpChartOptions = computed(() => {
     },
     scales: {
       x: {
-        title: { display: true, text: 'Δ kWh/100km (+ = mehr als WLTP)', color: isDark.value ? '#9ca3af' : '#6b7280' },
+        title: {
+          display: true,
+          text: isCustomCompare.value
+            ? `Δ kWh/100km (+ = mehr als ${effectiveCompareValue.value.toFixed(1)} kWh/100km)`
+            : 'Δ kWh/100km (+ = mehr als WLTP)',
+          color: isDark.value ? '#9ca3af' : '#6b7280'
+        },
         grid: { color: (ctx: any) => ctx.tick.value === 0 ? (isDark.value ? '#9ca3af' : '#6b7280') : (isDark.value ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)') },
         ticks: {
           callback: (v: any) => `${v > 0 ? '+' : ''}${v}`,
@@ -1199,7 +1235,12 @@ const deleteLog = async (id: string) => {
           <div v-if="!chartsReady && isInitialLoad" :style="{ height: wltpChartHeight }" class="bg-gray-100 dark:bg-gray-700 animate-pulse rounded mx-4 md:mx-0"></div>
           <template v-else>
           <div class="mb-4 text-center px-4 md:px-0">
-            <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">{{ t('dashboard.chart_consumption_vs_wltp') }}</h2>
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">
+              <template v-if="isCustomCompare">
+                {{ t('dashboard.chart_consumption_vs_custom_prefix') }} <strong>{{ customCompareValue?.toFixed(1) }} kWh/100km</strong>
+              </template>
+              <template v-else>{{ t('dashboard.chart_consumption_vs_wltp') }}</template>
+            </h2>
             <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
               WLTP: <strong>{{ wltp.wltpConsumptionKwhPer100km?.toFixed(1) ?? '–' }} kWh/100km</strong>
               ({{ wltp.wltpRangeKm }} km, {{ wltp.wltpType }})
@@ -1208,6 +1249,42 @@ const deleteLog = async (id: string) => {
                 · <span class="text-red-600 font-medium">{{ t('dashboard.chart_red_worse') }}</span>
               </span>
             </p>
+            <!-- Custom compare controls -->
+            <div class="mt-2 flex items-center justify-center gap-3 flex-wrap">
+              <button
+                @click="showCompareInput = !showCompareInput"
+                class="text-xs text-blue-600 dark:text-blue-400 underline underline-offset-2 hover:text-blue-700 dark:hover:text-blue-300"
+              >
+                {{ isCustomCompare ? t('dashboard.chart_compare_edit') : t('dashboard.chart_compare_customize') }}
+              </button>
+              <button
+                v-if="isCustomCompare"
+                @click="resetToWltp"
+                class="text-xs text-gray-400 dark:text-gray-500 underline underline-offset-2 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                {{ t('dashboard.chart_compare_reset') }}
+              </button>
+            </div>
+            <!-- Inline input form -->
+            <div v-if="showCompareInput" class="mt-2 flex items-center justify-center gap-2 flex-wrap">
+              <input
+                v-model="customCompareInput"
+                type="number"
+                step="0.1"
+                min="5"
+                max="99"
+                @keyup.enter="saveCustomCompare"
+                :placeholder="t('dashboard.chart_compare_placeholder')"
+                class="w-24 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+              <span class="text-sm text-gray-500 dark:text-gray-400">kWh/100km</span>
+              <button
+                @click="saveCustomCompare"
+                class="px-3 py-1 text-xs font-medium bg-emerald-600 text-white rounded hover:bg-emerald-700 active:bg-emerald-800"
+              >
+                {{ t('dashboard.chart_compare_save') }}
+              </button>
+            </div>
             <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ t('model.wltp_measurement_note') }}</p>
           </div>
             <div :class="wltpChartScrollable ? 'overflow-y-auto' : ''" :style="{ height: wltpChartHeight }">
