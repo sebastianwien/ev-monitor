@@ -149,11 +149,11 @@ const stateColor = (state: string | null) => {
 
       <!-- Connected -->
       <div v-if="status?.connected" class="space-y-4">
-        <div class="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg flex items-start gap-3">
-          <CheckCircleIcon class="h-5 w-5 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
+        <div class="p-4 bg-gray-100 dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600 rounded-lg flex items-start gap-3">
+          <CheckCircleIcon class="h-5 w-5 text-green-500 dark:text-green-400 shrink-0 mt-0.5" />
           <div class="flex-1 min-w-0">
-            <p class="font-medium text-green-800 dark:text-green-200 text-sm">{{ status.vehicleName }}</p>
-            <p v-if="status.vin" class="text-xs text-green-700 dark:text-green-300 font-mono mt-0.5">{{ status.vin }}</p>
+            <p class="font-medium text-gray-900 dark:text-gray-100 text-sm">{{ status.vehicleName }}</p>
+            <p v-if="status.vin" class="text-xs text-gray-500 dark:text-gray-400 font-mono mt-0.5">{{ status.vin }}</p>
             <div class="flex items-center gap-3 mt-1.5">
               <span v-if="status.vehicleState" :class="['text-xs font-medium', stateColor(status.vehicleState)]">
                 {{ stateLabel(status.vehicleState) }}
@@ -164,7 +164,7 @@ const stateColor = (state: string | null) => {
                 {{ t('imports.smartcar_session_active') }}
               </span>
             </div>
-            <div v-if="status.lastCheckedAt" class="mt-2 pt-2 border-t border-green-200 dark:border-green-800 flex flex-wrap gap-x-4 gap-y-1">
+            <div v-if="status.lastCheckedAt" class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600 flex flex-wrap gap-x-4 gap-y-1">
               <span class="text-xs text-gray-500 dark:text-gray-400">
                 {{ t('imports.smartcar_last_update') }}: {{ new Date(status.lastCheckedAt).toLocaleString() }}
               </span>
@@ -184,7 +184,7 @@ const stateColor = (state: string | null) => {
         <button
           @click="disconnect"
           :disabled="disconnecting"
-          class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 border border-red-300 dark:border-red-600 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50 transition"
+          class="btn-3d flex items-center gap-2 px-4 py-2 text-sm font-medium bg-red-100 dark:bg-red-700 text-red-800 dark:text-white rounded-lg hover:bg-red-200 dark:hover:bg-red-600 disabled:opacity-50 transition shadow-[0_4px_0_0_#fca5a5] dark:shadow-[0_4px_0_0_#b91c1c] active:shadow-none active:translate-y-1" style="transition: transform 0.075s ease, box-shadow 0.075s ease;"
         >
           <XCircleIcon class="h-4 w-4" />
           {{ disconnecting ? t('imports.smartcar_disconnecting') : t('imports.smartcar_disconnect_btn') }}

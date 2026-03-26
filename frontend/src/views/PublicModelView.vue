@@ -640,13 +640,6 @@ const consumptionDataQuality = computed((): 'good' | 'low' | 'scarce' => {
   return 'scarce'
 })
 
-// km that can be charged in 20 minutes, based on avg charging power and real-world consumption
-const kmIn20Min = computed(() => {
-  const power = stats.value?.avgChargingPowerKw
-  const consumption = displayConsumption.value
-  if (!power || !consumption) return null
-  return Math.round(power * (20 / 60) * 100 / consumption)
-})
 
 const showSeasonalBreakdown = computed(() => {
   const s = selectedVariant.value?.seasonalDistribution
