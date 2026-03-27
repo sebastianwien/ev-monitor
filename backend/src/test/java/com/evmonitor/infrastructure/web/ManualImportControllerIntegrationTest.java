@@ -176,6 +176,36 @@ class ManualImportControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void csvImport_germanDateFormat_parsedSuccessfully() {
+        String csv = """
+                date,kwh
+                01.11.2023,35.26
+                03.11.2023,24.5
+                """;
+
+        ResponseEntity<ImportApiResult> response = post(csv, "csv");
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(2, response.getBody().imported());
+        assertEquals(0, response.getBody().errors());
+    }
+
+    @Test
+    void csvImport_usDateFormat_parsedSuccessfully() {
+        String csv = """
+                date,kwh
+                11/01/2023,35.26
+                11/03/2023,24.5
+                """;
+
+        ResponseEntity<ImportApiResult> response = post(csv, "csv");
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(2, response.getBody().imported());
+        assertEquals(0, response.getBody().errors());
+    }
+
+    @Test
     void csvImport_latLon_computesGeohash() {
         String csv = """
                 date,kwh,location

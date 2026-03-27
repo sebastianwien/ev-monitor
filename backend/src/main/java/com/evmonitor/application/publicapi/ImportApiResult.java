@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 import java.util.UUID;
 
-public record ImportApiResult(int imported, int skipped, int errors, List<ImportedSession> results) {
+public record ImportApiResult(int imported, int skipped, int errors, int warnings, List<ImportedSession> results) {
 
     public record ImportedSession(
             @JsonProperty("date") String date,
@@ -13,6 +13,10 @@ public record ImportApiResult(int imported, int skipped, int errors, List<Import
     ) {}
 
     public static ImportApiResult withoutIds(int imported, int skipped, int errors) {
-        return new ImportApiResult(imported, skipped, errors, List.of());
+        return new ImportApiResult(imported, skipped, errors, 0, List.of());
+    }
+
+    public static ImportApiResult withoutIds(int imported, int skipped, int errors, int warnings) {
+        return new ImportApiResult(imported, skipped, errors, warnings, List.of());
     }
 }

@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -27,11 +28,19 @@ import java.util.regex.Pattern;
 public class PublicApiImportService {
 
     private static final List<DateTimeFormatter> DATE_FORMATTERS = List.of(
-            DateTimeFormatter.ISO_OFFSET_DATE_TIME,
             DateTimeFormatter.ISO_DATE_TIME,
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"),
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"),
-            DateTimeFormatter.ofPattern("yyyy-MM-dd")
+            DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss"),
+            DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"),
+            DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss"),
+            DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm")
+    );
+
+    private static final List<DateTimeFormatter> DATE_ONLY_FORMATTERS = List.of(
+            DateTimeFormatter.ofPattern("yyyy-MM-dd"),
+            DateTimeFormatter.ofPattern("dd.MM.yyyy"),
+            DateTimeFormatter.ofPattern("MM/dd/yyyy")
     );
 
     private static final Pattern LAT_LON_PATTERN = Pattern.compile(
@@ -167,7 +176,7 @@ public class PublicApiImportService {
             }
         }
 
-        return new ImportApiResult(imported, skipped, errors, importedResults);
+        return new ImportApiResult(imported, skipped, errors, 0, importedResults);
     }
 
     @Transactional
@@ -251,10 +260,16 @@ public class PublicApiImportService {
                     .withOffsetSameInstant(ZoneOffset.UTC)
                     .toLocalDateTime();
         } catch (DateTimeParseException ignored) {}
-        // Fall back to naive formats (assumed to be local/UTC — no offset info)
+        // Try datetime formats (include time component)
         for (DateTimeFormatter fmt : DATE_FORMATTERS) {
             try {
                 return LocalDateTime.parse(raw, fmt);
+            } catch (DateTimeParseException ignored) {}
+        }
+        // Try date-only formats (no time component — use start of day)
+        for (DateTimeFormatter fmt : DATE_ONLY_FORMATTERS) {
+            try {
+                return LocalDate.parse(raw, fmt).atStartOfDay();
             } catch (DateTimeParseException ignored) {}
         }
         return null;

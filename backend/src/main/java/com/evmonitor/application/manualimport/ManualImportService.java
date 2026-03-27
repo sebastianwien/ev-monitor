@@ -42,8 +42,15 @@ public class ManualImportService {
         }
 
         List<Map<String, String>> rows;
+        int columnMismatches = 0;
         try {
-            rows = "json".equalsIgnoreCase(format) ? parseJson(data) : parseCsv(data);
+            if ("json".equalsIgnoreCase(format)) {
+                rows = parseJson(data);
+            } else {
+                ParseCsvResult csvResult = parseCsvWithWarnings(data);
+                rows = csvResult.rows();
+                columnMismatches = csvResult.columnMismatches();
+            }
         } catch (Exception e) {
             log.warn("ManualImport: Datei konnte nicht geparst werden: {}", e.getMessage());
             return ImportApiResult.withoutIds(0, 0, 1);
@@ -65,13 +72,12 @@ public class ManualImportService {
         }
 
         if (entries.isEmpty()) {
-            return ImportApiResult.withoutIds(0, 0, parseErrors);
+            return ImportApiResult.withoutIds(0, 0, parseErrors, columnMismatches);
         }
 
         ImportApiResult result = publicApiImportService.importSessions(userId, new PublicApiSessionRequest(carId, entries), mergeSessions, true, dataSource);
-        return parseErrors > 0
-                ? ImportApiResult.withoutIds(result.imported(), result.skipped(), result.errors() + parseErrors)
-                : result;
+        int totalErrors = result.errors() + parseErrors;
+        return ImportApiResult.withoutIds(result.imported(), result.skipped(), totalErrors, columnMismatches);
     }
 
     private PublicApiSessionRequest.SessionEntry mapRowToEntry(Map<String, String> row) {
@@ -112,16 +118,22 @@ public class ManualImportService {
 
     // --- CSV / JSON parsing (quote-aware, trimmed headers) ---
 
-    private List<Map<String, String>> parseCsv(String data) {
+    private record ParseCsvResult(List<Map<String, String>> rows, int columnMismatches) {}
+
+    private ParseCsvResult parseCsvWithWarnings(String data) {
         String[] lines = data.strip().split("\\r?\\n");
-        if (lines.length < 2) return List.of();
+        if (lines.length < 2) return new ParseCsvResult(List.of(), 0);
 
         String[] headers = splitCsvLine(lines[0]);
         List<Map<String, String>> rows = new ArrayList<>();
+        int columnMismatches = 0;
         for (int i = 1; i < lines.length; i++) {
             String line = lines[i].trim();
             if (line.isEmpty()) continue;
             String[] values = splitCsvLine(line);
+            if (values.length < headers.length) {
+                columnMismatches++;
+            }
             Map<String, String> row = new LinkedHashMap<>();
             for (int j = 0; j < headers.length; j++) {
                 String value = j < values.length ? values[j].trim() : "";
@@ -129,7 +141,7 @@ public class ManualImportService {
             }
             rows.add(row);
         }
-        return rows;
+        return new ParseCsvResult(rows, columnMismatches);
     }
 
     private String[] splitCsvLine(String line) {

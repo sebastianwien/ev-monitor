@@ -92,7 +92,17 @@
           <p class="text-sm font-medium" :class="result.errors > 0 && result.imported === 0 ? 'text-red-700 dark:text-red-300' : 'text-green-700 dark:text-green-300'">
             {{ t('manual_import.result_summary', { imported: result.imported, skipped: result.skipped }) }}
             <template v-if="result.errors > 0">{{ t('manual_import.result_errors', { errors: result.errors }) }}</template>
+            <template v-if="(result.warnings ?? 0) > 0">{{ t('manual_import.result_warnings', { warnings: result.warnings }) }}</template>
           </p>
+          <p v-if="result.errors > 0 && result.imported === 0" class="text-xs text-red-600 dark:text-red-400">
+            {{ t('manual_import.hint_all_errors') }}
+          </p>
+        </div>
+
+        <!-- Column mismatch warning -->
+        <div v-if="(result?.warnings ?? 0) > 0" class="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-xl p-3 flex gap-2.5">
+          <ExclamationTriangleIcon class="w-4 h-4 text-amber-500 dark:text-amber-400 shrink-0 mt-0.5" />
+          <p class="text-sm text-amber-800 dark:text-amber-200">{{ t('manual_import.hint_column_mismatch') }}</p>
         </div>
 
         <!-- Error -->
