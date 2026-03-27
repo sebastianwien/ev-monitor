@@ -248,7 +248,7 @@ public class EvLog {
         if (maxPowerKw != null) {
             return maxPowerKw.compareTo(BigDecimal.valueOf(22)) > 0 ? ChargingType.DC : ChargingType.AC;
         }
-        if (kwhCharged != null && durationMinutes != null && durationMinutes >= 5) {
+        if (kwhCharged != null && durationMinutes != null && durationMinutes >= 1) {
             double avgKw = kwhCharged.doubleValue() / (durationMinutes / 60.0);
             return avgKw > 22 ? ChargingType.DC : ChargingType.AC;
         }

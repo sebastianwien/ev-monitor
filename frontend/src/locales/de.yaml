@@ -255,6 +255,7 @@ model:
   hero_consumption_label: "Ø Realer Verbrauch"
   unit_kwh_per_100km: "kWh/100km"
   unit_ct_per_kwh: "Ø ct/kWh"
+  ac_footnote: "* Gemeinschaftsdurchschnitte der EV Monitor Community. AC inkl. Heimladen & Solar - kann deutlich günstiger als öffentliches Laden sein."
   wltp_badge: "WLTP {consumption} kWh"
   avg_cost_prefix: "Nutzer zahlen im Schnitt"
   avg_cost_suffix: "auf 100km"

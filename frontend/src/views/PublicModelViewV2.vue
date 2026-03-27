@@ -91,11 +91,11 @@
                   <template v-if="stats.acAvgCostPerKwh || stats.dcAvgCostPerKwh">
                     <div v-if="stats.acAvgCostPerKwh" class="flex items-center gap-1.5 whitespace-nowrap">
                       <span class="text-sm font-semibold text-green-600 dark:text-green-400 flex items-center gap-0.5"><BoltIcon class="h-4 w-4" />AC</span>
-                      <span class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ (stats.acAvgCostPerKwh * 100).toFixed(1) }}<span class="text-xs font-normal text-gray-400"> {{ t('model.unit_ct_per_kwh') }}</span></span>
+                      <span class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ (stats.acAvgCostPerKwh * 100).toFixed(1) }}<sup class="text-xs text-gray-400">*</sup><span class="text-xs font-normal text-gray-400"> {{ t('model.unit_ct_per_kwh') }}</span></span>
                     </div>
                     <div v-if="stats.dcAvgCostPerKwh" class="flex items-center gap-1.5 whitespace-nowrap">
                       <span class="text-sm font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-0.5"><BoltIcon class="h-4 w-4" />DC</span>
-                      <span class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ (stats.dcAvgCostPerKwh * 100).toFixed(1) }}<span class="text-xs font-normal text-gray-400"> {{ t('model.unit_ct_per_kwh') }}</span></span>
+                      <span class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ (stats.dcAvgCostPerKwh * 100).toFixed(1) }}<sup class="text-xs text-gray-400">*</sup><span class="text-xs font-normal text-gray-400"> {{ t('model.unit_ct_per_kwh') }}</span></span>
                     </div>
                   </template>
                   <template v-else-if="stats.avgCostPerKwh">
@@ -143,7 +143,7 @@
                       <BoltIcon class="h-4 w-4" />AC
                     </span>
                     <span class="text-xl font-bold text-gray-900 dark:text-gray-100">
-                      {{ (stats.acAvgCostPerKwh * 100).toFixed(1) }}
+                      {{ (stats.acAvgCostPerKwh * 100).toFixed(1) }}<sup class="text-xs text-gray-400">*</sup>
                       <span class="text-sm font-normal text-gray-400">{{ t('model.unit_ct_per_kwh') }}</span>
                     </span>
                   </div>
@@ -152,7 +152,7 @@
                       <BoltIcon class="h-4 w-4" />DC
                     </span>
                     <span class="text-xl font-bold text-gray-900 dark:text-gray-100">
-                      {{ (stats.dcAvgCostPerKwh * 100).toFixed(1) }}
+                      {{ (stats.dcAvgCostPerKwh * 100).toFixed(1) }}<sup class="text-xs text-gray-400">*</sup>
                       <span class="text-sm font-normal text-gray-400">{{ t('model.unit_ct_per_kwh') }}</span>
                     </span>
                   </div>
@@ -203,6 +203,11 @@
             </div>
           </div>
         </div><!-- end Hero -->
+
+        <!-- AC Fußnote -->
+        <div v-if="stats.acAvgCostPerKwh" class="px-4 md:px-0 mt-1 mb-3 text-center">
+          <p class="text-xs text-gray-400 dark:text-gray-500">{{ t('model.ac_footnote') }}</p>
+        </div>
 
         <!-- Affiliate Banner -->
         <AffiliateBanner v-if="!authStore.isAuthenticated()" />

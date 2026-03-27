@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * Priority:
  * 1. Explicit type (AC/DC) → always kept as-is
  * 2. maxChargingPowerKw: >22 kW = DC, ≤22 kW = AC
- * 3. kWh / duration (if duration ≥ 5 min): >22 kW avg = DC, ≤22 kW avg = AC
+ * 3. kWh / duration (if duration ≥ 1 min): >22 kW avg = DC, ≤22 kW avg = AC
  * 4. No data → UNKNOWN
  */
 class EvLogChargingTypeInferenceTest {
@@ -78,9 +78,15 @@ class EvLogChargingTypeInferenceTest {
     }
 
     @Test
-    void kwhDuration_shortSession_belowMinDuration_remainsUnknown() {
-        // 4 minutes is below the 5-minute minimum → can't reliably infer
-        EvLog log = buildLog(ChargingType.UNKNOWN, null, new BigDecimal("50"), 4);
+    void kwhDuration_shortSession_1min_infersDc() {
+        // 0.5 kWh / 1 min = 30 kW → DC (1 minute is enough to infer)
+        EvLog log = buildLog(ChargingType.UNKNOWN, null, new BigDecimal("0.5"), 1);
+        assertEquals(ChargingType.DC, log.getChargingType());
+    }
+
+    @Test
+    void kwhDuration_zeroMinutes_remainsUnknown() {
+        EvLog log = buildLog(ChargingType.UNKNOWN, null, new BigDecimal("50"), 0);
         assertEquals(ChargingType.UNKNOWN, log.getChargingType());
     }
 
