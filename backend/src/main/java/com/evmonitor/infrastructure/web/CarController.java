@@ -74,6 +74,16 @@ public class CarController {
         return ResponseEntity.noContent().build();
     }
 
+    @PatchMapping("/{id}/business-car")
+    public ResponseEntity<CarResponse> setBusinessCar(
+            @PathVariable UUID id,
+            @RequestParam boolean isBusinessCar,
+            Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        CarResponse response = carService.setBusinessCar(id, principal.getUser().getId(), isBusinessCar);
+        return ResponseEntity.ok(response);
+    }
+
     @PutMapping("/{id}/activate")
     public ResponseEntity<CarResponse> activateCar(@PathVariable UUID id, Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();

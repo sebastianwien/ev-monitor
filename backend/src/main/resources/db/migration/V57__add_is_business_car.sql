@@ -1,0 +1,1 @@
+ALTER TABLE car ADD COLUMN is_business_car BOOLEAN NOT NULL DEFAULT false;

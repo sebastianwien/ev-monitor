@@ -51,6 +51,8 @@ const imageBlobUrls = ref<Record<string, string>>({})
 const imageUploading = ref<Record<string, boolean>>({})
 const imagePublicForUpload = ref<Record<string, boolean>>({})
 const visibilityTimers: Record<string, ReturnType<typeof setTimeout>> = {}
+const businessCarState = ref<Record<string, boolean>>({})
+const businessCarTimers: Record<string, ReturnType<typeof setTimeout>> = {}
 
 const sortedBrands = computed(() => {
   return [...brands.value].sort((a, b) => a.label.localeCompare(b.label))
@@ -100,8 +102,13 @@ const fetchCars = async () => {
     cars.value = await carStore.getCars(true) ?? []
     // Init checkbox state from server (shows current visibility per car)
     const visibility: Record<string, boolean> = {}
-    cars.value.forEach(c => { visibility[c.id] = c.imagePublic })
+    const businessCar: Record<string, boolean> = {}
+    cars.value.forEach(c => {
+      visibility[c.id] = c.imagePublic
+      businessCar[c.id] = c.isBusinessCar
+    })
     imagePublicForUpload.value = visibility
+    businessCarState.value = businessCar
     await loadCarImages(cars.value)
     await startTeslaPolling(cars.value.some((c: any) => c.brand?.toLowerCase() === 'tesla'))
     // Small delay to ensure fade-in transition is visible
@@ -304,6 +311,22 @@ const setActiveCar = async (id: string) => {
   }
 }
 
+const handleBusinessCarChange = (carId: string, value: boolean) => {
+  businessCarState.value = { ...businessCarState.value, [carId]: value }
+  clearTimeout(businessCarTimers[carId])
+  businessCarTimers[carId] = setTimeout(async () => {
+    try {
+      const updated = await carService.setBusinessCar(carId, value)
+      cars.value = cars.value.map(c => c.id === carId ? { ...c, isBusinessCar: updated.isBusinessCar } : c)
+      carStore.invalidateCars()
+    } catch (err: any) {
+      // Revert local state on error
+      businessCarState.value = { ...businessCarState.value, [carId]: !value }
+      error.value = err.response?.data?.message || t('cars.error_business_car')
+    }
+  }, 500)
+}
+
 const getModelLabel = (modelValue: string | null | undefined): string => {
   if (!modelValue) return ''
   const model = availableModels.value.find(m => m.value === modelValue)
@@ -471,6 +494,7 @@ onMounted(async () => {
 onUnmounted(() => {
   revokeAllBlobUrls()
   Object.values(visibilityTimers).forEach(clearTimeout)
+  Object.values(businessCarTimers).forEach(clearTimeout)
 })
 </script>
 
@@ -812,6 +836,13 @@ onUnmounted(() => {
                 <span class="font-semibold">{{ t('cars.power') }}</span> {{ car.powerKw }} kW ({{ Math.round(car.powerKw * 1.35962) }} PS)
               </p>
               <p class="text-xs text-gray-400 dark:text-gray-500 font-mono select-all" :title="t('cars.id_hint')">{{ car.id }}</p>
+              <label class="flex items-center gap-1.5 cursor-pointer mt-1">
+                <input type="checkbox"
+                  :checked="businessCarState[car.id] ?? false"
+                  @change="handleBusinessCarChange(car.id, ($event.target as HTMLInputElement).checked)"
+                  class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                <span class="text-xs text-gray-600 dark:text-gray-400">{{ t('cars.business_car') }}</span>
+              </label>
             </div>
 
             <div class="flex gap-2">
@@ -820,7 +851,7 @@ onUnmounted(() => {
                 class="btn-3d flex-1 bg-green-100 dark:bg-green-700 text-green-800 dark:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-green-200 dark:hover:bg-green-600 transition shadow-[0_4px_0_0_#86efac] dark:shadow-[0_4px_0_0_#15803d] active:shadow-none active:translate-y-1" style="transition: transform 0.075s ease, box-shadow 0.075s ease;">
                 {{ t('cars.set_active_btn') }}
               </button>
-              <button @click="openEditForm(car)"
+<button @click="openEditForm(car)"
                 v-haptic
                 class="btn-3d flex-1 bg-indigo-100 dark:bg-indigo-700 text-indigo-800 dark:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-200 dark:hover:bg-indigo-600 transition shadow-[0_4px_0_0_#a5b4fc] dark:shadow-[0_4px_0_0_#3730a3] active:shadow-none active:translate-y-1" style="transition: transform 0.075s ease, box-shadow 0.075s ease;">
                 {{ t('cars.edit_btn') }}

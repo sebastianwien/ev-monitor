@@ -24,6 +24,7 @@ public class Car {
     private final boolean imagePublic;
     private final boolean isPrimary;
     private final BigDecimal batteryDegradationPercent;
+    private final boolean isBusinessCar;
 
     public Car(UUID id, UUID userId, CarBrand.CarModel model, Integer year, String licensePlate,
             String trim, BigDecimal batteryCapacityKwh, BigDecimal powerKw,
@@ -32,7 +33,7 @@ public class Car {
             boolean isPrimary) {
         this(id, userId, model, year, licensePlate, trim, batteryCapacityKwh, powerKw,
                 registrationDate, deregistrationDate, status, createdAt, updatedAt, imagePath,
-                imagePublic, isPrimary, null);
+                imagePublic, isPrimary, null, false);
     }
 
     public Car(UUID id, UUID userId, CarBrand.CarModel model, Integer year, String licensePlate,
@@ -40,6 +41,16 @@ public class Car {
             LocalDate registrationDate, LocalDate deregistrationDate, CarStatus status,
             LocalDateTime createdAt, LocalDateTime updatedAt, String imagePath, boolean imagePublic,
             boolean isPrimary, BigDecimal batteryDegradationPercent) {
+        this(id, userId, model, year, licensePlate, trim, batteryCapacityKwh, powerKw,
+                registrationDate, deregistrationDate, status, createdAt, updatedAt, imagePath,
+                imagePublic, isPrimary, batteryDegradationPercent, false);
+    }
+
+    public Car(UUID id, UUID userId, CarBrand.CarModel model, Integer year, String licensePlate,
+            String trim, BigDecimal batteryCapacityKwh, BigDecimal powerKw,
+            LocalDate registrationDate, LocalDate deregistrationDate, CarStatus status,
+            LocalDateTime createdAt, LocalDateTime updatedAt, String imagePath, boolean imagePublic,
+            boolean isPrimary, BigDecimal batteryDegradationPercent, boolean isBusinessCar) {
         this.id = id;
         this.userId = userId;
         this.model = model;
@@ -57,6 +68,7 @@ public class Car {
         this.imagePublic = imagePublic;
         this.isPrimary = isPrimary;
         this.batteryDegradationPercent = batteryDegradationPercent;
+        this.isBusinessCar = isBusinessCar;
     }
 
     public static Car createNew(UUID userId, CarBrand.CarModel model, Integer year, String licensePlate,
@@ -72,25 +84,31 @@ public class Car {
     public Car deregister(LocalDate deregistrationDate) {
         return new Car(id, userId, model, year, licensePlate, trim, batteryCapacityKwh, powerKw,
                 registrationDate, deregistrationDate, CarStatus.INACTIVE, createdAt, LocalDateTime.now(),
-                imagePath, imagePublic, isPrimary, batteryDegradationPercent);
+                imagePath, imagePublic, isPrimary, batteryDegradationPercent, isBusinessCar);
     }
 
     public Car withImage(String imagePath, boolean imagePublic) {
         return new Car(id, userId, model, year, licensePlate, trim, batteryCapacityKwh, powerKw,
                 registrationDate, deregistrationDate, status, createdAt, LocalDateTime.now(),
-                imagePath, imagePublic, isPrimary, batteryDegradationPercent);
+                imagePath, imagePublic, isPrimary, batteryDegradationPercent, isBusinessCar);
     }
 
     public Car activate() {
         return new Car(id, userId, model, year, licensePlate, trim, batteryCapacityKwh, powerKw,
                 registrationDate, deregistrationDate, status, createdAt, LocalDateTime.now(),
-                imagePath, imagePublic, true, batteryDegradationPercent);
+                imagePath, imagePublic, true, batteryDegradationPercent, isBusinessCar);
     }
 
     public Car deactivate() {
         return new Car(id, userId, model, year, licensePlate, trim, batteryCapacityKwh, powerKw,
                 registrationDate, deregistrationDate, status, createdAt, LocalDateTime.now(),
-                imagePath, imagePublic, false, batteryDegradationPercent);
+                imagePath, imagePublic, false, batteryDegradationPercent, isBusinessCar);
+    }
+
+    public Car withBusinessCar(boolean businessCar) {
+        return new Car(id, userId, model, year, licensePlate, trim, batteryCapacityKwh, powerKw,
+                registrationDate, deregistrationDate, status, createdAt, LocalDateTime.now(),
+                imagePath, imagePublic, isPrimary, batteryDegradationPercent, businessCar);
     }
 
     public BigDecimal getEffectiveBatteryCapacityKwh() {
@@ -169,5 +187,9 @@ public class Car {
 
     public BigDecimal getBatteryDegradationPercent() {
         return batteryDegradationPercent;
+    }
+
+    public boolean isBusinessCar() {
+        return isBusinessCar;
     }
 }

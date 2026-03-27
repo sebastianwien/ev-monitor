@@ -46,6 +46,7 @@ dependencies {
 	testImplementation 'org.testcontainers:postgresql'
 	testImplementation 'org.springframework.security:spring-security-test'
 	testRuntimeOnly 'com.h2database:h2'
+	implementation 'com.github.librepdf:openpdf:1.3.43'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 

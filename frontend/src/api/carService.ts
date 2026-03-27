@@ -21,6 +21,7 @@ export interface Car {
     isPrimary: boolean;
     batteryDegradationPercent: number | null;
     effectiveBatteryCapacityKwh: number | null;
+    isBusinessCar: boolean;
 }
 
 export interface CarRequest {
@@ -114,6 +115,11 @@ export const carService = {
 
     async setActiveCar(carId: string): Promise<Car> {
         const response = await api.put(`/cars/${carId}/activate`);
+        return response.data;
+    },
+
+    async setBusinessCar(carId: string, isBusinessCar: boolean): Promise<Car> {
+        const response = await api.patch(`/cars/${carId}/business-car?isBusinessCar=${isBusinessCar}`);
         return response.data;
     }
 };

@@ -75,6 +75,7 @@ public class PostgresCarRepositoryImpl implements CarRepository {
         entity.setImagePublic(domain.isImagePublic());
         entity.setPrimary(domain.isPrimary());
         entity.setBatteryDegradationPercent(domain.getBatteryDegradationPercent());
+        entity.setBusinessCar(domain.isBusinessCar());
         return entity;
     }
 
@@ -96,6 +97,7 @@ public class PostgresCarRepositoryImpl implements CarRepository {
                 entity.getImagePath(),
                 entity.isImagePublic(),
                 entity.isPrimary(),
-                entity.getBatteryDegradationPercent());
+                entity.getBatteryDegradationPercent(),
+                entity.isBusinessCar());
     }
 }

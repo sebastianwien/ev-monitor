@@ -30,7 +30,8 @@ public record CarResponse(
         boolean imagePublic,
         boolean isPrimary,
         BigDecimal batteryDegradationPercent,
-        BigDecimal effectiveBatteryCapacityKwh) {
+        BigDecimal effectiveBatteryCapacityKwh,
+        boolean isBusinessCar) {
 
     public static CarResponse fromDomain(Car car) {
         String imageUrl = car.getImagePath() != null ? "/api/cars/" + car.getId() + "/image" : null;
@@ -54,6 +55,7 @@ public record CarResponse(
                 car.isImagePublic(),
                 car.isPrimary(),
                 car.getBatteryDegradationPercent(),
-                car.getEffectiveBatteryCapacityKwh());
+                car.getEffectiveBatteryCapacityKwh(),
+                car.isBusinessCar());
     }
 }

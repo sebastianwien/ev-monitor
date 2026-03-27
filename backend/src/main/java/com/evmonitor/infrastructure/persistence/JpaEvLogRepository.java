@@ -47,6 +47,20 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     @Query("SELECT e FROM EvLogEntity e WHERE e.geohash IS NOT NULL AND e.temperatureCelsius IS NULL")
     List<EvLogEntity> findAllWithGeohashAndNoTemperature();
 
+    @Query("""
+            SELECT e FROM EvLogEntity e
+            WHERE e.carId = :carId
+              AND e.publicCharging = false
+              AND e.supersededBy IS NULL
+              AND e.loggedAt >= :from
+              AND e.loggedAt < :to
+            ORDER BY e.loggedAt ASC
+            """)
+    List<EvLogEntity> findHomeChargingSessionsForExport(
+            @Param("carId") UUID carId,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to);
+
     @Modifying
     @Query("DELETE FROM EvLogEntity e WHERE e.carId IN (SELECT c.id FROM CarEntity c WHERE c.userId = :userId) AND e.dataSource = :dataSource")
     void deleteAllByUserIdAndDataSource(@Param("userId") UUID userId, @Param("dataSource") String dataSource);

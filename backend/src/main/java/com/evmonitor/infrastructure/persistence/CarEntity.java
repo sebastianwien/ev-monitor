@@ -66,6 +66,9 @@ public class CarEntity {
     @Column(name = "battery_degradation_percent")
     private BigDecimal batteryDegradationPercent;
 
+    @Column(name = "is_business_car", nullable = false)
+    private boolean isBusinessCar;
+
     public CarEntity() {
     }
 
@@ -205,5 +208,13 @@ public class CarEntity {
 
     public void setBatteryDegradationPercent(BigDecimal batteryDegradationPercent) {
         this.batteryDegradationPercent = batteryDegradationPercent;
+    }
+
+    public boolean isBusinessCar() {
+        return isBusinessCar;
+    }
+
+    public void setBusinessCar(boolean isBusinessCar) {
+        this.isBusinessCar = isBusinessCar;
     }
 }

@@ -92,7 +92,8 @@ public class CarService {
                 existingCar.getImagePath(),
                 existingCar.isImagePublic(),
                 existingCar.isPrimary(),
-                request.batteryDegradationPercent());
+                request.batteryDegradationPercent(),
+                existingCar.isBusinessCar());
 
         Car savedCar = carRepository.save(updatedCar);
         return CarResponse.fromDomain(savedCar);
@@ -174,6 +175,17 @@ public class CarService {
             coinsAwarded += coinLogService.awardCoinsForEvent(userId, CoinLogService.CoinEvent.IMAGE_PUBLIC, null);
         }
         return new CarImageResponse(CarResponse.fromDomain(saved), coinsAwarded);
+    }
+
+    @Transactional
+    public CarResponse setBusinessCar(UUID carId, UUID userId, boolean isBusinessCar) {
+        Car car = carRepository.findById(carId)
+                .orElseThrow(() -> new IllegalArgumentException("Car not found with ID: " + carId));
+        if (!car.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("User does not own the specified car");
+        }
+        Car saved = carRepository.save(car.withBusinessCar(isBusinessCar));
+        return CarResponse.fromDomain(saved);
     }
 
     @Transactional

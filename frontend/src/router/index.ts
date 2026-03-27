@@ -26,6 +26,7 @@ import ForgotPasswordView from '../views/ForgotPasswordView.vue';
 import ResetPasswordView from '../views/ResetPasswordView.vue';
 import AdminView from '../views/AdminView.vue';
 import LeaderboardView from '../views/LeaderboardView.vue';
+import TaxExportView from '../views/TaxExportView.vue';
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
@@ -92,6 +93,12 @@ const router = createRouter({
             path: '/imports',
             name: 'imports',
             component: ImportsView,
+            meta: { requiresAuth: true }
+        },
+        {
+            path: '/tax-export',
+            name: 'tax-export',
+            component: TaxExportView,
             meta: { requiresAuth: true }
         },
         {
