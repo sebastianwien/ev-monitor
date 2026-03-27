@@ -176,38 +176,38 @@ onMounted(() => {
           <div>
             <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">{{ t('coins.legend_logs') }}</p>
             <ul class="space-y-1 text-gray-600 dark:text-gray-400">
-              <li class="flex justify-between"><span>{{ t('coins.legend_log_first') }}</span><span class="font-semibold text-indigo-600">+25 ⚡</span></li>
-              <li class="flex justify-between"><span>{{ t('coins.legend_log_more') }}</span><span class="font-semibold text-indigo-600">+5 ⚡</span></li>
-              <li class="flex justify-between"><span>{{ t('coins.legend_log_ocr_first') }}</span><span class="font-semibold text-indigo-600">+27 ⚡</span></li>
-              <li class="flex justify-between"><span>{{ t('coins.legend_log_ocr') }}</span><span class="font-semibold text-indigo-600">+7 ⚡</span></li>
-              <li class="flex justify-between"><span>{{ t('coins.legend_log_delete') }}</span><span class="font-semibold text-red-500">− ⚡</span></li>
+              <li class="flex justify-between"><span>{{ t('coins.legend_log_first') }}</span><span class="font-semibold text-indigo-600 dark:text-indigo-400">+25 ⚡</span></li>
+              <li class="flex justify-between"><span>{{ t('coins.legend_log_more') }}</span><span class="font-semibold text-indigo-600 dark:text-indigo-400">+5 ⚡</span></li>
+              <li class="flex justify-between"><span>{{ t('coins.legend_log_ocr_first') }}</span><span class="font-semibold text-indigo-600 dark:text-indigo-400">+27 ⚡</span></li>
+              <li class="flex justify-between"><span>{{ t('coins.legend_log_ocr') }}</span><span class="font-semibold text-indigo-600 dark:text-indigo-400">+7 ⚡</span></li>
+              <li class="flex justify-between"><span>{{ t('coins.legend_log_delete') }}</span><span class="font-semibold text-red-500 dark:text-red-400">− ⚡</span></li>
             </ul>
           </div>
           <div>
             <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">{{ t('coins.legend_imports') }}</p>
             <ul class="space-y-1 text-gray-600 dark:text-gray-400">
-              <li class="flex justify-between"><span>{{ t('coins.legend_sprit_connect') }}</span><span class="font-semibold text-indigo-600">+50 ⚡</span></li>
-              <li class="flex justify-between"><span>{{ t('coins.legend_sprit_log') }}</span><span class="font-semibold text-indigo-600">+2 ⚡</span></li>
-              <li class="flex justify-between"><span>{{ t('coins.legend_tesla_connect') }}</span><span class="font-semibold text-indigo-600">+50 ⚡</span></li>
-              <li class="flex justify-between"><span>{{ t('coins.legend_tesla_logger') }}</span><span class="font-semibold text-indigo-600">+20 ⚡</span></li>
-              <li class="flex justify-between"><span>{{ t('coins.legend_tesla_logger_log') }}</span><span class="font-semibold text-indigo-600">+2 ⚡</span></li>
-              <li class="flex justify-between"><span>{{ t('coins.legend_tesla_sync_log') }}</span><span class="font-semibold text-indigo-600">+5 ⚡</span></li>
+              <li class="flex justify-between"><span>{{ t('coins.legend_sprit_connect') }}</span><span class="font-semibold text-indigo-600 dark:text-indigo-400">+50 ⚡</span></li>
+              <li class="flex justify-between"><span>{{ t('coins.legend_sprit_log') }}</span><span class="font-semibold text-indigo-600 dark:text-indigo-400">+2 ⚡</span></li>
+              <li class="flex justify-between"><span>{{ t('coins.legend_tesla_connect') }}</span><span class="font-semibold text-indigo-600 dark:text-indigo-400">+50 ⚡</span></li>
+              <li class="flex justify-between"><span>{{ t('coins.legend_tesla_logger') }}</span><span class="font-semibold text-indigo-600 dark:text-indigo-400">+20 ⚡</span></li>
+              <li class="flex justify-between"><span>{{ t('coins.legend_tesla_logger_log') }}</span><span class="font-semibold text-indigo-600 dark:text-indigo-400">+2 ⚡</span></li>
+              <li class="flex justify-between"><span>{{ t('coins.legend_tesla_sync_log') }}</span><span class="font-semibold text-indigo-600 dark:text-indigo-400">+5 ⚡</span></li>
             </ul>
           </div>
           <div>
             <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">{{ t('coins.legend_cars') }}</p>
             <ul class="space-y-1 text-gray-600 dark:text-gray-400">
-              <li class="flex justify-between"><span>{{ t('coins.legend_car_first') }}</span><span class="font-semibold text-indigo-600">+20 ⚡</span></li>
-              <li class="flex justify-between"><span>{{ t('coins.legend_car_more') }}</span><span class="font-semibold text-indigo-600">+5 ⚡</span></li>
-              <li class="flex justify-between"><span>{{ t('coins.legend_car_image_first') }}</span><span class="font-semibold text-indigo-600">+15 ⚡</span></li>
-              <li class="flex justify-between"><span>{{ t('coins.legend_car_image_public') }}</span><span class="font-semibold text-indigo-600">+10 ⚡</span></li>
+              <li class="flex justify-between"><span>{{ t('coins.legend_car_first') }}</span><span class="font-semibold text-indigo-600 dark:text-indigo-400">+20 ⚡</span></li>
+              <li class="flex justify-between"><span>{{ t('coins.legend_car_more') }}</span><span class="font-semibold text-indigo-600 dark:text-indigo-400">+5 ⚡</span></li>
+              <li class="flex justify-between"><span>{{ t('coins.legend_car_image_first') }}</span><span class="font-semibold text-indigo-600 dark:text-indigo-400">+15 ⚡</span></li>
+              <li class="flex justify-between"><span>{{ t('coins.legend_car_image_public') }}</span><span class="font-semibold text-indigo-600 dark:text-indigo-400">+10 ⚡</span></li>
             </ul>
           </div>
           <div>
             <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">{{ t('coins.legend_community') }}</p>
             <ul class="space-y-1 text-gray-600 dark:text-gray-400">
-              <li class="flex justify-between"><span>{{ t('coins.legend_referral') }}</span><span class="font-semibold text-indigo-600">+100 ⚡</span></li>
-              <li class="flex justify-between"><span>{{ t('coins.legend_referral_bonus') }}</span><span class="font-semibold text-indigo-600">+25 ⚡</span></li>
+              <li class="flex justify-between"><span>{{ t('coins.legend_referral') }}</span><span class="font-semibold text-indigo-600 dark:text-indigo-400">+100 ⚡</span></li>
+              <li class="flex justify-between"><span>{{ t('coins.legend_referral_bonus') }}</span><span class="font-semibold text-indigo-600 dark:text-indigo-400">+25 ⚡</span></li>
             </ul>
           </div>
         </div>
@@ -246,7 +246,7 @@ onMounted(() => {
               </p>
             </div>
           </div>
-          <span class="font-bold text-green-600 text-base">+{{ log.amount }}</span>
+          <span class="font-bold text-green-600 dark:text-green-400 text-base">+{{ log.amount }}</span>
         </li>
       </ul>
     </div>

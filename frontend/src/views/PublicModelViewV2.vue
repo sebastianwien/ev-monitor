@@ -39,22 +39,22 @@
             {{ t('model.back_link', { brand: stats.brandDisplayName }) }}
           </a>
           <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6 text-center md:text-left">
-            {{ stats.modelDisplayName }} - Verbrauch und Reichweite
+            {{ t('model.hero_title_v2', { model: stats.modelDisplayName }) }}
           </h1>
 
           <!-- Primary metric: Realer Verbrauch -->
           <div v-if="displayConsumption" class="flex flex-col items-center py-6 border-y border-gray-100 dark:border-gray-700">
             <div class="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-2">
-              Ø Realer Verbrauch
+              {{ t('model.hero_consumption_label') }}
             </div>
             <div class="flex items-baseline gap-2">
               <span class="text-5xl font-bold tabular-nums text-gray-900 dark:text-gray-100">
                 {{ displayConsumption.toFixed(1) }}
               </span>
-              <span class="text-xl text-gray-400 dark:text-gray-500">kWh/100km</span>
+              <span class="text-xl text-gray-400 dark:text-gray-500">{{ t('model.unit_kwh_per_100km') }}</span>
             </div>
             <div v-if="worstWltpConsumption" class="mt-3 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-              <span>WLTP {{ worstWltpConsumption.toFixed(1) }} kWh</span>
+              <span>{{ t('model.wltp_badge', { consumption: worstWltpConsumption.toFixed(1) }) }}</span>
               <span :class="deltaLabelClass(displayConsumption, worstWltpConsumption)"
                     class="px-2 py-0.5 rounded-full text-xs font-semibold">
                 {{ deltaLabel(displayConsumption, worstWltpConsumption) }}
@@ -73,11 +73,11 @@
           <!-- Kosten-Schnitt als Textzeile -->
           <div v-if="stats.avgCostPerKwh && displayConsumption"
                class="text-center text-sm text-gray-500 dark:text-gray-400 pt-3 pb-1">
-            Nutzer zahlen im Schnitt
+            {{ t('model.avg_cost_prefix') }}
             <span class="text-base font-bold text-gray-900 dark:text-gray-100">
               {{ (stats.avgCostPerKwh * displayConsumption).toFixed(2) }} €
             </span>
-            auf 100km
+            {{ t('model.avg_cost_suffix') }}
           </div>
 
           <!-- Secondary stats row: 2-col on mobile, 3-col on desktop -->
@@ -91,16 +91,16 @@
                   <template v-if="stats.acAvgCostPerKwh || stats.dcAvgCostPerKwh">
                     <div v-if="stats.acAvgCostPerKwh" class="flex items-center gap-1.5 whitespace-nowrap">
                       <span class="text-sm font-semibold text-green-600 dark:text-green-400 flex items-center gap-0.5"><BoltIcon class="h-4 w-4" />AC</span>
-                      <span class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ (stats.acAvgCostPerKwh * 100).toFixed(1) }}<span class="text-xs font-normal text-gray-400"> Ø ct/kWh</span></span>
+                      <span class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ (stats.acAvgCostPerKwh * 100).toFixed(1) }}<span class="text-xs font-normal text-gray-400"> {{ t('model.unit_ct_per_kwh') }}</span></span>
                     </div>
                     <div v-if="stats.dcAvgCostPerKwh" class="flex items-center gap-1.5 whitespace-nowrap">
                       <span class="text-sm font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-0.5"><BoltIcon class="h-4 w-4" />DC</span>
-                      <span class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ (stats.dcAvgCostPerKwh * 100).toFixed(1) }}<span class="text-xs font-normal text-gray-400"> Ø ct/kWh</span></span>
+                      <span class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ (stats.dcAvgCostPerKwh * 100).toFixed(1) }}<span class="text-xs font-normal text-gray-400"> {{ t('model.unit_ct_per_kwh') }}</span></span>
                     </div>
                   </template>
                   <template v-else-if="stats.avgCostPerKwh">
                     <div class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ (stats.avgCostPerKwh * 100).toFixed(1) }}</div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Ø ct/kWh</div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('model.unit_ct_per_kwh') }}</div>
                   </template>
                   <template v-else>
                     <div class="text-xl font-bold text-gray-400">-</div>
@@ -144,7 +144,7 @@
                     </span>
                     <span class="text-xl font-bold text-gray-900 dark:text-gray-100">
                       {{ (stats.acAvgCostPerKwh * 100).toFixed(1) }}
-                      <span class="text-sm font-normal text-gray-400">Ø ct/kWh</span>
+                      <span class="text-sm font-normal text-gray-400">{{ t('model.unit_ct_per_kwh') }}</span>
                     </span>
                   </div>
                   <div v-if="stats.dcAvgCostPerKwh" class="flex items-baseline gap-2">
@@ -153,7 +153,7 @@
                     </span>
                     <span class="text-xl font-bold text-gray-900 dark:text-gray-100">
                       {{ (stats.dcAvgCostPerKwh * 100).toFixed(1) }}
-                      <span class="text-sm font-normal text-gray-400">Ø ct/kWh</span>
+                      <span class="text-sm font-normal text-gray-400">{{ t('model.unit_ct_per_kwh') }}</span>
                     </span>
                   </div>
                 </div>
@@ -162,7 +162,7 @@
                 <div class="text-xl font-bold text-gray-900 dark:text-gray-100">
                   {{ (stats.avgCostPerKwh * 100).toFixed(1) }} ct
                 </div>
-                <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Ø ct/kWh</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('model.unit_ct_per_kwh') }}</div>
               </template>
               <template v-else>
                 <div class="text-xl font-bold text-gray-400">-</div>
@@ -483,64 +483,53 @@
           </h2>
           <div class="space-y-4 text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
             <p>
-              Der <strong>{{ stats.modelDisplayName }}</strong> ist ein Elektrofahrzeug
-              <template v-if="bestWltpRange">mit einer offiziellen WLTP-Reichweite von bis zu <strong>{{ bestWltpRange }} km</strong></template>.
+              {{ t('model.seo_intro', { model: stats.modelDisplayName }) }}
+              <template v-if="bestWltpRange"> {{ t('model.seo_wltp_range', { range: bestWltpRange }) }}</template>.
               <template v-if="stats.avgConsumptionKwhPer100km">
                 <template v-if="consumptionDataQuality === 'good'">
-                  Laut realen Messdaten von EV Monitor Nutzern liegt der Durchschnittsverbrauch
-                  bei <strong>{{ stats.avgConsumptionKwhPer100km.toFixed(1) }} kWh/100km</strong> -
-                  ermittelt aus <strong>{{ stats.logCount }} Ladevorgängen</strong>
-                  ({{ Math.min(consumptionDataCount, stats.logCount) }} davon mit Verbrauchsmessung).
+                  {{ t('model.seo_consumption_good', { consumption: stats.avgConsumptionKwhPer100km.toFixed(1), sessions: stats.logCount, count: Math.min(consumptionDataCount, stats.logCount) }) }}
                 </template>
                 <template v-else-if="consumptionDataQuality === 'low'">
-                  Laut bisherigen Nutzerdaten liegt der Verbrauch bei
-                  <strong>{{ stats.avgConsumptionKwhPer100km.toFixed(1) }} kWh/100km</strong> -
-                  basierend auf <strong>{{ Math.min(consumptionDataCount, stats.logCount) }} Fahrten mit Verbrauchsmessung</strong>.
+                  {{ t('model.seo_consumption_low', { consumption: stats.avgConsumptionKwhPer100km.toFixed(1), count: Math.min(consumptionDataCount, stats.logCount) }) }}
                 </template>
                 <template v-else>
-                  Erste Messwerte liegen vor: <strong>{{ stats.avgConsumptionKwhPer100km.toFixed(1) }} kWh/100km</strong>
-                  aus <strong>{{ Math.min(consumptionDataCount, stats.logCount) }} Fahrten mit Verbrauchsdaten</strong>.
+                  {{ t('model.seo_consumption_sparse', { consumption: stats.avgConsumptionKwhPer100km.toFixed(1), count: Math.min(consumptionDataCount, stats.logCount) }) }}
                 </template>
               </template>
               <template v-else>
-                Sei der Erste, der Ladevorgänge für diesen {{ stats.modelDisplayName }} einträgt!
+                {{ t('model.seo_no_data_cta', { model: stats.modelDisplayName }) }}
               </template>
             </p>
             <div v-if="stats.avgCostPerKwh">
-              <h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-1">Ladekosten im Alltag</h3>
+              <h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-1">{{ t('model.seo_costs_title') }}</h3>
               <p>
-                Der durchschnittliche Ladepreis für den {{ stats.modelDisplayName }} beträgt laut Nutzerdaten
-                <strong>{{ (stats.avgCostPerKwh * 100).toFixed(1) }} Cent pro kWh</strong>.
+                {{ t('model.seo_costs_intro', { model: stats.modelDisplayName, price: (stats.avgCostPerKwh * 100).toFixed(1) }) }}
                 <template v-if="stats.avgKwhPerSession">
-                  Eine typische Ladeeinheit von {{ stats.avgKwhPerSession.toFixed(1) }} kWh kostet damit
-                  rund <strong>{{ (stats.avgCostPerKwh * stats.avgKwhPerSession).toFixed(2) }} €</strong>.
+                  {{ t('model.seo_costs_session', { kwh: stats.avgKwhPerSession.toFixed(1), cost: (stats.avgCostPerKwh * stats.avgKwhPerSession).toFixed(2) }) }}
                 </template>
               </p>
             </div>
             <div v-if="stats.wltpVariants.length > 0 && consumptionDataCount >= 25">
-              <h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-1">WLTP vs. realer Verbrauch</h3>
+              <h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-1">{{ t('model.seo_wltp_title') }}</h3>
               <p>
-                Der WLTP-Zyklus wird unter standardisierten Laborbedingungen gemessen und weicht im Alltag häufig ab.
+                {{ t('model.seo_wltp_intro') }}
                 <template v-if="stats.avgConsumptionKwhPer100km && worstWltpConsumption">
-                  Im Community-Durchschnitt liegt der Realverbrauch <strong>{{ wltpDeltaPercent }}</strong> gegenüber dem WLTP-Wert.
+                  {{ t('model.seo_wltp_delta', { delta: wltpDeltaPercent }) }}
                 </template>
               </p>
             </div>
             <div>
-              <h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-1">Verbrauch im Winter und Sommer</h3>
-              <p v-if="showSeasonalBreakdown">
-                <template v-if="selectedVariant?.seasonalDistribution?.summerConsumptionKwhPer100km && selectedVariant?.seasonalDistribution?.winterConsumptionKwhPer100km">
-                  Laut Community-Daten verbraucht der {{ stats.modelDisplayName }} im Sommer (Mai-Aug)
-                  <strong>{{ selectedVariant.seasonalDistribution.summerConsumptionKwhPer100km.toFixed(1) }} kWh/100km</strong>
-                  und im Winter (Nov-Feb)
-                  <strong>{{ selectedVariant.seasonalDistribution.winterConsumptionKwhPer100km.toFixed(1) }} kWh/100km</strong> -
-                  ein Mehrverbrauch von
-                  <strong>{{ Math.round((selectedVariant.seasonalDistribution.winterConsumptionKwhPer100km / selectedVariant.seasonalDistribution.summerConsumptionKwhPer100km - 1) * 100) }}%</strong> im Winter.
-                </template>
+              <h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-1">{{ t('model.seo_seasonal_title') }}</h3>
+              <p v-if="showSeasonalBreakdown && selectedVariant?.seasonalDistribution?.summerConsumptionKwhPer100km && selectedVariant?.seasonalDistribution?.winterConsumptionKwhPer100km">
+                {{ t('model.seo_seasonal_data', {
+                  model: stats.modelDisplayName,
+                  summer: selectedVariant.seasonalDistribution.summerConsumptionKwhPer100km.toFixed(1),
+                  winter: selectedVariant.seasonalDistribution.winterConsumptionKwhPer100km.toFixed(1),
+                  pct: Math.round((selectedVariant.seasonalDistribution.winterConsumptionKwhPer100km / selectedVariant.seasonalDistribution.summerConsumptionKwhPer100km - 1) * 100)
+                }) }}
               </p>
               <p v-else>
-                Für den {{ stats.modelDisplayName }} liegen noch nicht genug saisonale Daten vor.
-                Allgemein gilt: Im Winter steigt der Verbrauch typischerweise um <strong>15-30%</strong>.
+                {{ t('model.seo_seasonal_no_data', { model: stats.modelDisplayName }) }}
               </p>
             </div>
           </div>
@@ -701,13 +690,18 @@ const faqItems = computed(() => {
     const n = consumptionDataCount.value
     const quality = consumptionDataQuality.value
     const dataNote = quality === 'good'
-      ? `basierend auf ${n} Fahrten mit Verbrauchsmessung`
+      ? t('model.faq_consumption_data_good', { n })
       : quality === 'low'
-        ? `basierend auf ${n} Fahrten mit Verbrauchsmessung - Wert wird mit mehr Daten genauer`
-        : `erst ${n} Fahrten mit Verbrauchsdaten - noch nicht repräsentativ`
+        ? t('model.faq_consumption_data_low', { n })
+        : t('model.faq_consumption_data_sparse', { n })
     items.push({
-      question: `Wie hoch ist der reale Verbrauch des ${name}?`,
-      answer: `Laut EV Monitor Nutzerdaten liegt der Verbrauch des ${name} bei ${stats.value.avgConsumptionKwhPer100km.toFixed(1)} kWh/100km (${dataNote}). Der offizielle WLTP-Wert beträgt ${worstWltpConsumption.value?.toFixed(1) ?? '-'} kWh/100km. Im Winter kann der Verbrauch durch Heizung und kältere Batterien 15-30% höher ausfallen.`
+      question: t('model.faq_q_consumption', { model: name }),
+      answer: t('model.faq_a_consumption', {
+        model: name,
+        consumption: stats.value.avgConsumptionKwhPer100km.toFixed(1),
+        dataNote,
+        wltp: worstWltpConsumption.value?.toFixed(1) ?? '-'
+      })
     })
   }
 
@@ -715,16 +709,25 @@ const faqItems = computed(() => {
     const largestBattery = Math.max(...stats.value.wltpVariants.map(v => v.batteryCapacityKwh))
     const realRange = Math.round(largestBattery / stats.value.avgConsumptionKwhPer100km * 100)
     items.push({
-      question: `Wie weit kommt der ${name} wirklich?`,
-      answer: `Der WLTP-Wert des ${name} beträgt bis zu ${bestWltpRange.value} km. In der Praxis erreichen Fahrer mit der ${largestBattery} kWh Batterie bei einem realen Verbrauch von ${stats.value.avgConsumptionKwhPer100km.toFixed(1)} kWh/100km etwa ${realRange} km. Im Winter kann die Reichweite auf 60-70% des WLTP-Wertes sinken.`
+      question: t('model.faq_q_range', { model: name }),
+      answer: t('model.faq_a_range', {
+        model: name,
+        wltpRange: bestWltpRange.value,
+        battery: largestBattery,
+        consumption: stats.value.avgConsumptionKwhPer100km.toFixed(1),
+        realRange
+      })
     })
   }
 
   if (stats.value.avgCostPerKwh && stats.value.avgKwhPerSession) {
-    const costPerSession = (stats.value.avgCostPerKwh * stats.value.avgKwhPerSession).toFixed(2)
     items.push({
-      question: `Was kostet eine Ladung des ${name}?`,
-      answer: `Im Durchschnitt kostet eine Ladeeinheit ${(stats.value.avgCostPerKwh * 100).toFixed(1)} Cent pro kWh. Bei einer typischen Ladung von ${stats.value.avgKwhPerSession.toFixed(1)} kWh entstehen Kosten von etwa ${costPerSession} €.`
+      question: t('model.faq_q_cost', { model: name }),
+      answer: t('model.faq_a_cost', {
+        price: (stats.value.avgCostPerKwh * 100).toFixed(1),
+        kwh: stats.value.avgKwhPerSession.toFixed(1),
+        cost: (stats.value.avgCostPerKwh * stats.value.avgKwhPerSession).toFixed(2)
+      })
     })
   }
 
@@ -732,18 +735,28 @@ const faqItems = computed(() => {
     const diff = (stats.value.avgConsumptionKwhPer100km - worstWltpConsumption.value).toFixed(1)
     const pct = Math.round((stats.value.avgConsumptionKwhPer100km / worstWltpConsumption.value - 1) * 100)
     items.push({
-      question: `Wie groß ist der Unterschied zwischen WLTP und realem Verbrauch beim ${name}?`,
-      answer: `Der offizielle WLTP-Verbrauch des ${name} liegt bei ${worstWltpConsumption.value.toFixed(1)} kWh/100km. Laut Community-Daten verbrauchen Fahrer im Alltag ${stats.value.avgConsumptionKwhPer100km.toFixed(1)} kWh/100km - das sind ${diff} kWh mehr (+${pct}%).`
+      question: t('model.faq_q_wltp_delta', { model: name }),
+      answer: t('model.faq_a_wltp_delta', {
+        model: name,
+        wltp: worstWltpConsumption.value.toFixed(1),
+        real: stats.value.avgConsumptionKwhPer100km.toFixed(1),
+        diff,
+        pct
+      })
     })
   }
 
   const seasonal = selectedVariant.value?.seasonalDistribution
   const hasSeasonalData = seasonal && seasonal.winterLogCount >= 10 && seasonal.summerLogCount >= 10
   items.push({
-    question: `Wie verändert sich der Verbrauch des ${name} im Winter?`,
+    question: t('model.faq_q_winter', { model: name }),
     answer: hasSeasonalData
-      ? `Laut Community-Daten verbraucht der ${name} im Winter (Nov-Feb) ${seasonal!.winterConsumptionKwhPer100km?.toFixed(1) ?? '-'} kWh/100km und im Sommer (Mai-Aug) ${seasonal!.summerConsumptionKwhPer100km?.toFixed(1) ?? '-'} kWh/100km.`
-      : `Für den ${name} liegen noch nicht genug saisonale Messdaten vor. Allgemein steigt der Verbrauch von Elektroautos im Winter typischerweise um 15-30%.`
+      ? t('model.faq_a_winter_data', {
+          model: name,
+          winter: seasonal!.winterConsumptionKwhPer100km?.toFixed(1) ?? '-',
+          summer: seasonal!.summerConsumptionKwhPer100km?.toFixed(1) ?? '-'
+        })
+      : t('model.faq_a_winter_no_data', { model: name })
   })
 
   return items
@@ -755,9 +768,11 @@ useHead(computed(() => {
   if (notFound.value) return { title: 'Modell nicht gefunden - EV Monitor', meta: [{ name: 'robots', content: 'noindex, nofollow' }] }
   if (!stats.value) return { title: 'EV Monitor', meta: [{ name: 'robots', content: 'index, follow' }] }
   const name = stats.value.modelDisplayName
+  const canonicalUrl = `https://ev-monitor.net/modelle/${canonicalBrand}/${model}`
   return {
-    title: `${name} Verbrauch & Reichweite (${currentYear}) - EV Monitor`,
+    title: t('model.meta_title', { model: name, year: currentYear }),
     meta: [{ name: 'robots', content: 'index, follow' }],
+    link: [{ rel: 'canonical', href: canonicalUrl }],
   }
 }))
 
