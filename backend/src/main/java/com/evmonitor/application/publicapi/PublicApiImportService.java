@@ -104,6 +104,7 @@ public class PublicApiImportService {
         int skipped = 0;
         int errors = 0;
         List<ImportApiResult.ImportedSession> importedResults = new ArrayList<>();
+        java.util.Set<LocalDateTime> batchUsedTimestamps = new java.util.HashSet<>();
 
         for (PublicApiSessionRequest.SessionEntry entry : sortedEntries) {
             try {
@@ -113,6 +114,13 @@ public class PublicApiImportService {
                     errors++;
                     continue;
                 }
+
+                // If multiple entries share the same timestamp (e.g. date-only imports with several
+                // sessions per day), bump each one by 10 minutes so they are distinguishable in the log feed.
+                while (batchUsedTimestamps.contains(loggedAt)) {
+                    loggedAt = loggedAt.plusMinutes(10);
+                }
+                batchUsedTimestamps.add(loggedAt);
 
                 if (isDuplicate(request.carId(), loggedAt, entry.kwh(), dataSource)) {
                     skipped++;

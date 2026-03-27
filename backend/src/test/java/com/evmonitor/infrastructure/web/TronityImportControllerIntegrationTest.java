@@ -124,7 +124,9 @@ class TronityImportControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void duplicateEntry_isSkipped() {
+    void duplicateEntry_withinBatch_bothImported() {
+        // Two identical entries in the same batch get a 10-minute timestamp offset and are both saved.
+        // On re-import the DB unique constraint catches them as duplicates (skipped).
         String json = """
                 [
                   {"date":"2026-03-15 20:10","kwh":50.69},
@@ -134,8 +136,8 @@ class TronityImportControllerIntegrationTest extends AbstractIntegrationTest {
 
         ResponseEntity<ImportApiResult> response = post(json);
 
-        assertEquals(2, response.getBody().imported() + response.getBody().skipped());
-        assertEquals(1, response.getBody().skipped());
+        assertEquals(2, response.getBody().imported());
+        assertEquals(0, response.getBody().skipped());
     }
 
     @Test

@@ -235,7 +235,10 @@ class ManualImportControllerIntegrationTest extends AbstractIntegrationTest {
     // ── Duplicate detection ───────────────────────────────────────────────────
 
     @Test
-    void csvImport_sameTimestampAndKwh_isSkipped() {
+    void csvImport_sameTimestampWithinBatch_bothImported() {
+        // Two entries with identical exact timestamps in the same batch.
+        // The second one gets bumped by 1s to avoid a collision — both are saved.
+        // On re-import the DB unique constraint catches them as duplicates.
         String csv = """
                 date,kwh
                 2025-08-20T10:00:00,24.5
@@ -246,14 +249,14 @@ class ManualImportControllerIntegrationTest extends AbstractIntegrationTest {
         ResponseEntity<ImportApiResult> response = post(csv, "csv");
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(2, response.getBody().imported());
-        assertEquals(1, response.getBody().skipped());
+        assertEquals(3, response.getBody().imported());
+        assertEquals(0, response.getBody().skipped());
     }
 
     @Test
-    void csvImport_sameTimestampDifferentKwh_isSkipped() {
-        // Same (carId, loggedAt, dataSource) = duplicate per DB constraint uq_ev_log_car_loggedat_datasource.
-        // kWh difference is irrelevant — the second entry is skipped.
+    void csvImport_sameTimestampDifferentKwh_bothImported() {
+        // Two sessions at the same timestamp but different kWh — both are intentional charges.
+        // The second one gets a 1s timestamp bump so both are saved.
         String csv = """
                 date,kwh
                 2025-08-20T10:00:00,24.5
@@ -262,8 +265,26 @@ class ManualImportControllerIntegrationTest extends AbstractIntegrationTest {
 
         ResponseEntity<ImportApiResult> response = post(csv, "csv");
 
-        assertEquals(1, response.getBody().imported());
-        assertEquals(1, response.getBody().skipped());
+        assertEquals(2, response.getBody().imported());
+        assertEquals(0, response.getBody().skipped());
+    }
+
+    @Test
+    void csvImport_multipleSessions_sameDayDateOnly_allImported() {
+        // Two sessions on the same day with date-only format (no time component).
+        // Both must be imported - neither should be skipped as a duplicate.
+        String csv = """
+                date,kwh
+                2025-08-20,24.5
+                2025-08-20,18.2
+                2025-08-21,10.0
+                """;
+
+        ResponseEntity<ImportApiResult> response = post(csv, "csv");
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(3, response.getBody().imported());
+        assertEquals(0, response.getBody().skipped());
     }
 
     // ── Session merging ───────────────────────────────────────────────────────
