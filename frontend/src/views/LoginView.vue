@@ -63,10 +63,10 @@ const handleResendFromLogin = async () => {
 
         <!-- Card header: branded strip -->
         <div class="bg-gradient-to-r from-indigo-600 to-violet-600 px-8 py-6 text-white text-center">
-          <div class="flex items-center justify-center gap-2 mb-2">
+          <router-link :to="locale === 'en' ? '/en' : '/'" class="inline-flex items-center justify-center gap-2 mb-2 hover:opacity-80 transition-opacity">
             <BoltIcon class="h-7 w-7" />
             <span class="text-2xl font-bold tracking-tight">EV Monitor</span>
-          </div>
+          </router-link>
           <p class="text-indigo-200 text-sm">{{ t('auth.login.tagline') }}</p>
         </div>
 

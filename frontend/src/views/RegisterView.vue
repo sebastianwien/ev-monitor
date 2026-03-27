@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 import api from '../api/axios';
+import { BoltIcon } from '@heroicons/vue/24/outline';
 import { analytics } from '../services/analytics';
 import { getStoredUtmParams, clearStoredUtmParams, trackRedditSignup, getStoredReferrer, clearStoredReferrer } from '../utils/reddit-pixel';
 
@@ -141,6 +142,10 @@ const handleResend = async () => {
 
       <!-- Registration Form -->
       <div v-else>
+        <router-link :to="locale === 'en' ? '/en' : '/'" class="flex items-center justify-center gap-2 mb-6 text-indigo-600 dark:text-indigo-400 hover:opacity-75 transition-opacity">
+          <BoltIcon class="h-6 w-6" />
+          <span class="text-xl font-bold tracking-tight">EV Monitor</span>
+        </router-link>
         <h2 class="text-3xl font-bold text-center text-gray-800 dark:text-gray-200 mb-6">{{ t('auth.register.title') }}</h2>
 
         <div class="bg-green-50 dark:bg-green-900/20 rounded-lg px-4 py-3 mb-6 space-y-1.5">
