@@ -3,6 +3,7 @@ package com.evmonitor.application;
 import com.evmonitor.domain.CoinType;
 import com.evmonitor.domain.LeaderboardCategory;
 import com.evmonitor.infrastructure.external.ExternalJokeService;
+import com.evmonitor.infrastructure.external.FuelPriceService;
 import com.evmonitor.infrastructure.persistence.LeaderboardQueryRepository;
 import org.springframework.stereotype.Service;
 
@@ -21,13 +22,16 @@ public class LeaderboardService {
     private final LeaderboardQueryRepository queryRepository;
     private final CoinLogService coinLogService;
     private final ExternalJokeService externalJokeService;
+    private final FuelPriceService fuelPriceService;
 
     public LeaderboardService(LeaderboardQueryRepository queryRepository,
                               CoinLogService coinLogService,
-                              ExternalJokeService externalJokeService) {
+                              ExternalJokeService externalJokeService,
+                              FuelPriceService fuelPriceService) {
         this.queryRepository = queryRepository;
         this.coinLogService = coinLogService;
         this.externalJokeService = externalJokeService;
+        this.fuelPriceService = fuelPriceService;
     }
 
     public LeaderboardResponseDTO getLeaderboard(LeaderboardCategory category, UUID requestingUserId) {
@@ -167,9 +171,14 @@ public class LeaderboardService {
             }
         }
 
-        // Community stat
+        // Community stats
         BigDecimal totalKwh = queryRepository.getTotalKwhThisMonth(startOfMonth, endOfToday);
         long totalCharges = queryRepository.getTotalChargesThisMonth(startOfMonth, endOfToday);
+        long totalMinutes = queryRepository.getTotalChargeDurationMinutes(startOfMonth, endOfToday);
+        BigDecimal totalCostEur = queryRepository.getTotalCostEur(startOfMonth, endOfToday);
+        double kwhDouble = totalKwh.doubleValue();
+
+        // Basis-Stat
         items.add(new TickerItemDTO(
                 "STAT",
                 "Community " + month + ": " + totalKwh.setScale(0, RoundingMode.HALF_UP).toPlainString()
@@ -177,14 +186,76 @@ public class LeaderboardService {
                 "bolt"
         ));
 
-        // External jokes - max 2
-        List<String> external = externalJokeService.getJokes();
-        int base = today.getDayOfMonth();
-        for (int i = 0; i < Math.min(2, external.size()); i++) {
-            items.add(new TickerItemDTO("JOKE", external.get((base + i) % external.size()), "face-smile"));
+        if (kwhDouble > 0) {
+            // Annahmen: 20 kWh/100km (EV-Durchschnitt), 380g CO2/kWh (dt. Strommix), 160g CO2/km (Verbrenner-Durchschnitt)
+            double distanceKm = kwhDouble / 20.0 * 100.0;
+            double iceCo2Kg = distanceKm * 0.160;
+            double evCo2Kg = kwhDouble * 0.380;
+            double savedCo2Kg = iceCo2Kg - evCo2Kg;
+
+            if (savedCo2Kg > 0) {
+                String co2Text = savedCo2Kg >= 1000
+                        ? String.format("%.1f Tonnen", savedCo2Kg / 1000.0)
+                        : String.format("%.0f kg", savedCo2Kg);
+                items.add(new TickerItemDTO("STAT",
+                        "Community " + month + ": " + co2Text + " CO2 gegenueber Verbrennern gespart",
+                        "bolt"));
+            }
+
+            // Haushalte (dt. Durchschnitt ~290 kWh/Monat)
+            long haushalte = Math.round(kwhDouble / 290.0);
+            if (haushalte > 0) {
+                items.add(new TickerItemDTO("STAT",
+                        "Mit unserem Strom im " + month + " haetten " + haushalte + " Haushalte einen Monat lang geleuchtet",
+                        "bolt"));
+            }
+
+            // Solarmodule (400W Panel, ~33 kWh/Monat in DE)
+            long panels = Math.round(kwhDouble / 33.0);
+            if (panels > 0) {
+                items.add(new TickerItemDTO("STAT",
+                        "Mit " + panels + " Solarmodulen auf dem Dach haette die Community ihren Strom im " + month + " selbst erzeugt",
+                        "bolt"));
+            }
+
+            // Windrad-Stunden (3 MW Onshore-Windrad)
+            double windStunden = kwhDouble / 3000.0;
+            if (windStunden >= 0.5) {
+                String windText = windStunden < 1
+                        ? String.format("%.0f Minuten", windStunden * 60)
+                        : String.format("%.1f Stunden", windStunden);
+                items.add(new TickerItemDTO("STAT",
+                        "Ein Windrad muesste " + windText + " laufen um unsere Community im " + month + " zu versorgen",
+                        "bolt"));
+            }
+
+            // Ersparnis vs. Benzin/Diesel (7L/100km Verbrenner-Durchschnitt)
+            double avgFuelPrice = fuelPriceService.getAvgFuelPrice();
+            double fuelCost = distanceKm / 100.0 * 7.0 * avgFuelPrice;
+            double evCost = totalCostEur.doubleValue();
+            if (evCost > 0) {
+                double savings = fuelCost - evCost;
+                if (savings > 0) {
+                    items.add(new TickerItemDTO("STAT",
+                            String.format("Community " + month + ": %.0f € gespart gegenueber Benzin/Diesel (%.2f €/L)",
+                                    savings, avgFuelPrice),
+                            "bolt"));
+                }
+            }
         }
 
-        Collections.shuffle(items, new Random(today.getDayOfYear()));
+        // Ladezeit
+        if (totalMinutes > 0) {
+            double ladeTage = totalMinutes / 60.0 / 24.0;
+            String ladeText = ladeTage >= 1
+                    ? String.format("%.1f Tage", ladeTage)
+                    : String.format("%.0f Stunden", totalMinutes / 60.0);
+            items.add(new TickerItemDTO("STAT",
+                    "Unsere Community hat im " + month + " insgesamt " + ladeText + " am Stueck geladen",
+                    "bolt"));
+        }
+
+        Collections.shuffle(items, new Random());
         return items;
     }
 
@@ -220,7 +291,6 @@ public class LeaderboardService {
             case MONTHLY_KWH -> queryRepository.getKwhRanking(start, end);
             case MONTHLY_CHARGES -> queryRepository.getChargesRanking(start, end);
             case MONTHLY_DISTANCE -> queryRepository.getDistanceRanking(start, end);
-            case MONTHLY_COINS -> queryRepository.getCoinsRanking(start, end);
             case MONTHLY_CHEAPEST -> queryRepository.getCheapestRanking(start, end);
             case MONTHLY_NIGHT_OWL -> queryRepository.getNightOwlRanking(start, end);
             case MONTHLY_ICE_CHARGER -> queryRepository.getIceChargerRanking(start, end);

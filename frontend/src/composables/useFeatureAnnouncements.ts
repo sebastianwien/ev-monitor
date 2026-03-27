@@ -20,24 +20,27 @@ const markSeen = (key: string) => {
 
 const today = new Date().toISOString().split('T')[0]
 
-const pendingAnnouncement = ref<FeatureAnnouncement | null>(
-  featureAnnouncements.find(a => {
-    if (a.expiresAt < today) return false
-    if (getSeenKeys().includes(a.key)) return false
-    return true
-  }) ?? null
+const pending = ref<FeatureAnnouncement[]>(
+  featureAnnouncements.filter(a => a.expiresAt >= today && !getSeenKeys().includes(a.key))
 )
 
+const currentIndex = ref(0)
+
 export const useFeatureAnnouncements = () => {
+  const announcement = computed(() => pending.value[currentIndex.value] ?? null)
+  const total = computed(() => pending.value.length)
+  const currentNumber = computed(() => total.value > 0 ? currentIndex.value + 1 : 0)
+
   const dismiss = () => {
-    if (pendingAnnouncement.value) {
-      markSeen(pendingAnnouncement.value.key)
-      pendingAnnouncement.value = null
+    if (!announcement.value) return
+    markSeen(announcement.value.key)
+    if (currentIndex.value < pending.value.length - 1) {
+      currentIndex.value++
+    } else {
+      pending.value = []
+      currentIndex.value = 0
     }
   }
 
-  return {
-    announcement: computed(() => pendingAnnouncement.value),
-    dismiss,
-  }
+  return { announcement, dismiss, total, currentNumber }
 }

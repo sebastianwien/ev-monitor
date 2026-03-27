@@ -454,7 +454,6 @@ leaderboard:
   cat_kwh: "Meiste kWh"
   cat_charges: "Ladevorgänge"
   cat_distance: "Längste Strecke"
-  cat_coins: "Meiste Watt"
   cat_cheapest: "Günstigster Lader"
   cat_night_owl: "Nacht-Eule"
   cat_ice_charger: "Eisbär"

@@ -29,7 +29,7 @@ public class ExternalJokeService {
     private static final String API_URL =
             "https://v2.jokeapi.dev/joke/Any?lang=de&safe-mode" +
             "&blacklistFlags=nsfw,religious,political,racist,sexist,explicit" +
-            "&type=single&amount=10";
+            "&type=single&amount=50";
 
     private volatile List<String> cachedJokes = new ArrayList<>();
 

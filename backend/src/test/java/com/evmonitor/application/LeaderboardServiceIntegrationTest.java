@@ -2,6 +2,7 @@ package com.evmonitor.application;
 
 import com.evmonitor.domain.LeaderboardCategory;
 import com.evmonitor.infrastructure.external.ExternalJokeService;
+import com.evmonitor.infrastructure.external.FuelPriceService;
 import com.evmonitor.infrastructure.persistence.LeaderboardQueryRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,6 +38,9 @@ class LeaderboardServiceIntegrationTest {
 
     @Mock
     private ExternalJokeService externalJokeService;
+
+    @Mock
+    private FuelPriceService fuelPriceService;
 
     @InjectMocks
     private LeaderboardService leaderboardService;
@@ -185,6 +189,9 @@ class LeaderboardServiceIntegrationTest {
         when(queryRepository.getPowerChargerRanking(any(), any())).thenReturn(List.of());
         when(queryRepository.getTotalKwhThisMonth(any(), any())).thenReturn(new BigDecimal("1234.5"));
         when(queryRepository.getTotalChargesThisMonth(any(), any())).thenReturn(42L);
+        when(queryRepository.getTotalChargeDurationMinutes(any(), any())).thenReturn(1200L);
+        when(queryRepository.getTotalCostEur(any(), any())).thenReturn(new BigDecimal("150.00"));
+        when(fuelPriceService.getAvgFuelPrice()).thenReturn(1.80);
 
         var items = leaderboardService.getTicker();
 
@@ -229,8 +236,8 @@ class LeaderboardServiceIntegrationTest {
 
         leaderboardService.awardMonthEndRewards(LocalDate.of(2025, 12, 1));
 
-        // 5 categories with hasMonthEndReward=true, 3 users each = 15 awardCoins calls
-        verify(coinLogService, times(15)).awardCoins(any(), any(), anyInt(), any());
+        // 4 categories with hasMonthEndReward=true (KWH, CHARGES, DISTANCE, CHEAPEST), 3 users each = 12 awardCoins calls
+        verify(coinLogService, times(12)).awardCoins(any(), any(), anyInt(), any());
     }
 
     @Test

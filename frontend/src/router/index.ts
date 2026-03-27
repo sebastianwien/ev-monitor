@@ -24,7 +24,7 @@ import WallboxSetupView from '../views/WallboxSetupView.vue';
 import ImportsView from '../views/ImportsView.vue';
 import ForgotPasswordView from '../views/ForgotPasswordView.vue';
 import ResetPasswordView from '../views/ResetPasswordView.vue';
-import AdminImpersonateView from '../views/AdminImpersonateView.vue';
+import AdminView from '../views/AdminView.vue';
 import LeaderboardView from '../views/LeaderboardView.vue';
 
 const router = createRouter({
@@ -247,9 +247,9 @@ const router = createRouter({
         },
         {
             path: '/admin',
-            name: 'admin-impersonate',
-            component: AdminImpersonateView
-            // no auth guard - secured by internal token in the form
+            name: 'admin',
+            component: AdminView,
+            meta: { requiresAuth: true, requiresAdmin: true }
         },
         {
             path: '/:pathMatch(.*)*',
@@ -279,6 +279,9 @@ router.beforeEach((to, _from) => {
         if (authStore.isExpired()) {
             authStore.logout(false);
             return '/login?reason=session-expired';
+        }
+        if (to.meta.requiresAdmin && !authStore.isAdmin) {
+            return '/dashboard';
         }
     } else if (to.meta.guestOnly && authStore.isAuthenticated() && !authStore.isExpired()) {
         return '/dashboard';

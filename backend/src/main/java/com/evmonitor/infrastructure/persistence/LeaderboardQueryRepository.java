@@ -254,6 +254,35 @@ public class LeaderboardQueryRepository {
         return ((Number) result).longValue();
     }
 
+    public long getTotalChargeDurationMinutes(LocalDateTime start, LocalDateTime endExclusive) {
+        Object result = em.createNativeQuery("""
+                SELECT COALESCE(SUM(e.charge_duration_minutes), 0)
+                FROM ev_log e
+                WHERE e.include_in_statistics = true
+                  AND e.logged_at >= :start
+                  AND e.logged_at < :end
+                """)
+                .setParameter("start", start)
+                .setParameter("end", endExclusive)
+                .getSingleResult();
+        return ((Number) result).longValue();
+    }
+
+    public BigDecimal getTotalCostEur(LocalDateTime start, LocalDateTime endExclusive) {
+        Object result = em.createNativeQuery("""
+                SELECT COALESCE(SUM(e.cost_eur), 0)
+                FROM ev_log e
+                WHERE e.include_in_statistics = true
+                  AND e.cost_eur IS NOT NULL
+                  AND e.logged_at >= :start
+                  AND e.logged_at < :end
+                """)
+                .setParameter("start", start)
+                .setParameter("end", endExclusive)
+                .getSingleResult();
+        return result instanceof BigDecimal bd ? bd : new BigDecimal(result.toString());
+    }
+
     // ---- Helpers ----
 
     private List<LeaderboardRankRow> mapRows(List<Object[]> rows) {

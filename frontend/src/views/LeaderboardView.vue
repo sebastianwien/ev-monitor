@@ -43,7 +43,6 @@ const CATEGORIES = computed(() => [
   { key: 'MONTHLY_KWH', label: t('leaderboard.cat_kwh'), icon: BoltIcon, color: 'text-yellow-500' },
   { key: 'MONTHLY_CHARGES', label: t('leaderboard.cat_charges'), icon: ArrowPathIcon, color: 'text-blue-500' },
   { key: 'MONTHLY_DISTANCE', label: t('leaderboard.cat_distance'), icon: FireIcon, color: 'text-orange-500' },
-  { key: 'MONTHLY_COINS', label: t('leaderboard.cat_coins'), icon: SparklesIcon, color: 'text-purple-500' },
   { key: 'MONTHLY_CHEAPEST', label: t('leaderboard.cat_cheapest'), icon: StarIcon, color: 'text-green-500' },
   { key: 'MONTHLY_NIGHT_OWL', label: t('leaderboard.cat_night_owl'), icon: MoonIcon, color: 'text-indigo-400' },
   { key: 'MONTHLY_ICE_CHARGER', label: t('leaderboard.cat_ice_charger'), icon: ArrowDownIcon, color: 'text-cyan-400' },

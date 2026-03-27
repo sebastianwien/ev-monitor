@@ -5,7 +5,6 @@ public enum LeaderboardCategory {
     MONTHLY_KWH("Meiste kWh", "kWh", false, true),
     MONTHLY_CHARGES("Meiste Ladevorgänge", "Ladevorgänge", false, true),
     MONTHLY_DISTANCE("Längste Strecke", "km", false, true),
-    MONTHLY_COINS("Meisten Watt", "Watt", false, true),
     MONTHLY_CHEAPEST("Günstigster Lader", "ct/kWh", true, true),
     MONTHLY_NIGHT_OWL("Nacht-Eule", "Nacht-Ladungen", false, false),
     MONTHLY_ICE_CHARGER("Eisbär des Monats", "°C", true, false),

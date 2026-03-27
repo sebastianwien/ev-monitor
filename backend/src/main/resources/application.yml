@@ -133,6 +133,10 @@ tesla:
 internal:
   token: ${INTERNAL_SERVICE_TOKEN}
 
+# Tankerkoenig Fuel Price API (kostenloser Key auf creativecommons.tankerkoenig.de)
+tankerkoenig:
+  api-key: ${TANKERKOENIG_API_KEY:}
+
 # Stripe Payment Integration
 stripe:
   secret-key: ${STRIPE_SECRET_KEY:}
