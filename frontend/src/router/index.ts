@@ -13,6 +13,7 @@ import SettingsView from '../views/SettingsView.vue';
 import PublicModelsListView from '../views/PublicModelsListView.vue';
 import PublicBrandView from '../views/PublicBrandView.vue';
 import PublicModelView from '../views/PublicModelView.vue';
+import PublicModelViewV2 from '../views/PublicModelViewV2.vue';
 import PublicModelsCompareView from '../views/PublicModelsCompareView.vue';
 import DatenschutzView from '../views/DatenschutzView.vue';
 import ImpressumView from '../views/ImpressumView.vue';
@@ -151,6 +152,11 @@ const router = createRouter({
             name: 'public-model',
             component: PublicModelView
             // no auth guard - public page for SEO
+        },
+        {
+            path: '/modelle-v2/:brand/:model',
+            name: 'public-model-v2',
+            component: PublicModelViewV2
         },
         // EN auth routes
         {

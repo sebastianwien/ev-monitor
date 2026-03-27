@@ -27,6 +27,8 @@ export interface PublicModelStats {
     logCount: number
     uniqueContributors: number
     avgCostPerKwh: number | null
+    acAvgCostPerKwh: number | null
+    dcAvgCostPerKwh: number | null
     avgKwhPerSession: number | null
     avgConsumptionKwhPer100km: number | null
     estimatedConsumptionCount: number

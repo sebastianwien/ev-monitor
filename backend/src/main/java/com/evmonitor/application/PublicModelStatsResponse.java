@@ -19,6 +19,8 @@ public record PublicModelStatsResponse(
         int logCount,
         int uniqueContributors,
         BigDecimal avgCostPerKwh,
+        BigDecimal acAvgCostPerKwh,   // AC-only (Heimladen/Wallbox), null if <5 sessions
+        BigDecimal dcAvgCostPerKwh,   // DC-only (Schnellladen), null if <5 sessions
         BigDecimal avgKwhPerSession,
         BigDecimal avgConsumptionKwhPer100km, // null if no odometer data
         int estimatedConsumptionCount,         // count of trips where consumption is estimated (kWh/distance fallback)

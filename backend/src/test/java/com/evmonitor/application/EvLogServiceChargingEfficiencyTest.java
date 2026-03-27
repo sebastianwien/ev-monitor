@@ -115,8 +115,9 @@ class EvLogServiceChargingEfficiencyTest {
      */
     @Test
     void atCharger_unknownType_publicCharging_usesDcProxy() {
-        EvLog logX = atChargerLog(10000, null, 80, ChargingType.UNKNOWN, true, T1);
-        EvLog logY = atChargerLog(10300, new BigDecimal("50.0"), 85, ChargingType.UNKNOWN, true, T2);
+        // maxPowerKw=null + duration=null → inference cannot resolve → UNKNOWN + publicCharging → DC proxy in service
+        EvLog logX = atChargerLog(10000, null,                   80, ChargingType.UNKNOWN, true, T1, null, null);
+        EvLog logY = atChargerLog(10300, new BigDecimal("50.0"), 85, ChargingType.UNKNOWN, true, T2, null, null);
 
         var result = service.calculateConsumption(logX, logY, BATTERY_75);
 
@@ -216,10 +217,22 @@ class EvLogServiceChargingEfficiencyTest {
 
     private EvLog atChargerLog(Integer odometerKm, BigDecimal kwhCharged, Integer socAfter,
                                 ChargingType chargingType, boolean publicCharging, LocalDateTime loggedAt) {
+        return atChargerLog(odometerKm, kwhCharged, socAfter, chargingType, publicCharging, loggedAt, new BigDecimal("11.0"));
+    }
+
+    private EvLog atChargerLog(Integer odometerKm, BigDecimal kwhCharged, Integer socAfter,
+                                ChargingType chargingType, boolean publicCharging, LocalDateTime loggedAt,
+                                BigDecimal maxChargingPowerKw) {
+        return atChargerLog(odometerKm, kwhCharged, socAfter, chargingType, publicCharging, loggedAt, maxChargingPowerKw, 60);
+    }
+
+    private EvLog atChargerLog(Integer odometerKm, BigDecimal kwhCharged, Integer socAfter,
+                                ChargingType chargingType, boolean publicCharging, LocalDateTime loggedAt,
+                                BigDecimal maxChargingPowerKw, Integer durationMinutes) {
         return new EvLog(
                 UUID.randomUUID(), UUID.randomUUID(),
-                kwhCharged, new BigDecimal("10.00"), 60, "u33d1",
-                odometerKm, new BigDecimal("11.0"), socAfter, null,
+                kwhCharged, new BigDecimal("10.00"), durationMinutes, "u33d1",
+                odometerKm, maxChargingPowerKw, socAfter, null,
                 loggedAt, DataSource.USER_LOGGED, true,
                 null, null, null, chargingType, null,
                 loggedAt, loggedAt, null, null, null, null,

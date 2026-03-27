@@ -144,6 +144,18 @@ public class PublicModelService {
                     seasonal.summerLogCount(), seasonal.winterLogCount());
         }
 
+        // Fetch AC/DC cost split (min 5 sessions per type, else null)
+        BigDecimal acAvgCostPerKwh = null;
+        BigDecimal dcAvgCostPerKwh = null;
+        Object[] acDcStats = evLogRepository.findAcDcCostStatsByModel(modelEnumName, isSeedUser);
+        if (acDcStats != null && acDcStats.length > 0) {
+            if (acDcStats[0] instanceof Object[]) acDcStats = (Object[]) acDcStats[0];
+            if (acDcStats.length >= 4) {
+                if (acDcStats[0] != null) acAvgCostPerKwh = toBigDecimal(acDcStats[0]).setScale(4, RoundingMode.HALF_UP);
+                if (acDcStats[2] != null) dcAvgCostPerKwh = toBigDecimal(acDcStats[2]).setScale(4, RoundingMode.HALF_UP);
+            }
+        }
+
         // Fetch average DC charging power from real fast-charging sessions (DC only, min 5 sessions)
         BigDecimal avgChargingPowerKw = evLogRepository.findAvgDcChargingPowerKwByModel(modelEnumName, isSeedUser);
         if (avgChargingPowerKw != null) {
@@ -202,6 +214,8 @@ public class PublicModelService {
                 (int) logCount,
                 uniqueContributors,
                 avgCostPerKwh,
+                acAvgCostPerKwh,
+                dcAvgCostPerKwh,
                 avgKwhPerSession,
                 avgConsumption,
                 communityResult.estimatedTripCount(),

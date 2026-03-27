@@ -78,7 +78,7 @@ public class EvLog {
         this.odometerSuggestionMinKm = odometerSuggestionMinKm;
         this.odometerSuggestionMaxKm = odometerSuggestionMaxKm;
         this.temperatureCelsius = temperatureCelsius;
-        this.chargingType = chargingType != null ? chargingType : ChargingType.UNKNOWN;
+        this.chargingType = inferChargingType(chargingType, maxChargingPowerKw, kwhCharged, chargeDurationMinutes);
         this.rawImportData = rawImportData;
         this.routeType = routeType;
         this.tireType = tireType;
@@ -226,6 +226,33 @@ public class EvLog {
                 dataSource, dataSource.includeInStatistics(),
                 null, null, null, chargingType, rawImportData, now, now, routeType, tireType, null, null,
                 isPublicCharging, cpoName, measurementType);
+    }
+
+    /**
+     * Infers AC/DC if type is unknown, using two heuristics in order:
+     * 1. max_charging_power_kw if available
+     * 2. avg power calculated from kWh / duration (only if duration >= 5 min to avoid noise)
+     * Threshold: >22 kW = DC, ≤22 kW = AC.
+     */
+    private static ChargingType inferChargingType(ChargingType given, BigDecimal maxPowerKw) {
+        if (given != null && given != ChargingType.UNKNOWN) return given;
+        if (maxPowerKw != null) {
+            return maxPowerKw.compareTo(BigDecimal.valueOf(22)) > 0 ? ChargingType.DC : ChargingType.AC;
+        }
+        return ChargingType.UNKNOWN;
+    }
+
+    private static ChargingType inferChargingType(ChargingType given, BigDecimal maxPowerKw,
+                                                   BigDecimal kwhCharged, Integer durationMinutes) {
+        if (given != null && given != ChargingType.UNKNOWN) return given;
+        if (maxPowerKw != null) {
+            return maxPowerKw.compareTo(BigDecimal.valueOf(22)) > 0 ? ChargingType.DC : ChargingType.AC;
+        }
+        if (kwhCharged != null && durationMinutes != null && durationMinutes >= 5) {
+            double avgKw = kwhCharged.doubleValue() / (durationMinutes / 60.0);
+            return avgKw > 22 ? ChargingType.DC : ChargingType.AC;
+        }
+        return ChargingType.UNKNOWN;
     }
 
     public UUID getId() {

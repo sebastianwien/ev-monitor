@@ -197,4 +197,30 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
             @Param("model") String model,
             @Param("isSeedUser") boolean isSeedUser);
 
+    /**
+     * Returns AC and DC average cost per kWh for a model.
+     * Only included if at least 5 sessions with cost data exist per type.
+     * Returns: [acAvgCostPerKwh, acCount, dcAvgCostPerKwh, dcCount]
+     */
+    @Query(value = """
+            SELECT
+                CASE WHEN COUNT(*) FILTER (WHERE l.charging_type = 'AC' AND l.cost_eur > 0 AND l.kwh_charged > 0) >= 5
+                     THEN AVG(l.cost_eur / l.kwh_charged) FILTER (WHERE l.charging_type = 'AC' AND l.cost_eur > 0 AND l.kwh_charged > 0)
+                     ELSE NULL END AS ac_avg_cost,
+                COUNT(*) FILTER (WHERE l.charging_type = 'AC' AND l.cost_eur > 0 AND l.kwh_charged > 0) AS ac_count,
+                CASE WHEN COUNT(*) FILTER (WHERE l.charging_type = 'DC' AND l.cost_eur > 0 AND l.kwh_charged > 0) >= 5
+                     THEN AVG(l.cost_eur / l.kwh_charged) FILTER (WHERE l.charging_type = 'DC' AND l.cost_eur > 0 AND l.kwh_charged > 0)
+                     ELSE NULL END AS dc_avg_cost,
+                COUNT(*) FILTER (WHERE l.charging_type = 'DC' AND l.cost_eur > 0 AND l.kwh_charged > 0) AS dc_count
+            FROM ev_log l
+            JOIN car c ON c.id = l.car_id
+            WHERE c.model = :model
+              AND (l.include_in_statistics = true
+                   OR (:isSeedUser = true
+                       AND c.user_id IN (SELECT id FROM app_user WHERE is_seed_data = true)))
+            """, nativeQuery = true)
+    Object[] findAcDcCostStatsByModel(
+            @Param("model") String model,
+            @Param("isSeedUser") boolean isSeedUser);
+
 }
