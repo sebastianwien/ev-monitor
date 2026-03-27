@@ -3,6 +3,8 @@ package com.evmonitor.infrastructure.web;
 import com.evmonitor.application.AdminChargingActivityRow;
 import com.evmonitor.application.AdminUserGrowthRow;
 import com.evmonitor.application.AdminUserRow;
+import com.evmonitor.application.PlausibleTrafficRow;
+import com.evmonitor.infrastructure.external.PlausibleService;
 import com.evmonitor.infrastructure.persistence.AdminQueryRepository;
 import com.evmonitor.infrastructure.weather.TemperatureBackfillJob;
 import org.springframework.http.ResponseEntity;
@@ -10,6 +12,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -20,11 +23,14 @@ public class AdminController {
 
     private final TemperatureBackfillJob temperatureBackfillJob;
     private final AdminQueryRepository adminQueryRepository;
+    private final PlausibleService plausibleService;
 
     public AdminController(TemperatureBackfillJob temperatureBackfillJob,
-                           AdminQueryRepository adminQueryRepository) {
+                           AdminQueryRepository adminQueryRepository,
+                           PlausibleService plausibleService) {
         this.temperatureBackfillJob = temperatureBackfillJob;
         this.adminQueryRepository = adminQueryRepository;
+        this.plausibleService = plausibleService;
     }
 
     /**
@@ -54,5 +60,12 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<AdminChargingActivityRow>> getChargingActivity() {
         return ResponseEntity.ok(adminQueryRepository.getChargingActivity());
+    }
+
+    @GetMapping("/stats/traffic")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<PlausibleTrafficRow>> getTraffic(
+            @RequestParam(defaultValue = "30d") String period) {
+        return ResponseEntity.ok(plausibleService.getTimeseries(period));
     }
 }

@@ -30,7 +30,7 @@ const router = useRouter()
 const authStore = useAuthStore()
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
-type Tab = 'impersonate' | 'users' | 'growth' | 'activity'
+type Tab = 'impersonate' | 'users' | 'growth' | 'activity' | 'traffic'
 const activeTab = ref<Tab>('users')
 
 // ── Impersonate ───────────────────────────────────────────────────────────────
@@ -263,11 +263,116 @@ const loadActivity = async () => {
   }
 }
 
+// ── Traffic & Conversions Chart (Plausible + User Growth) ────────────────────
+interface TrafficRow {
+  date: string
+  visitors: number
+  pageviews: number
+}
+
+const trafficData = ref<TrafficRow[]>([])
+const trafficLoading = ref(false)
+const trafficError = ref('')
+const trafficPeriod = ref('30d')
+
+const isHourly = computed(() => trafficPeriod.value === 'day')
+
+const trafficLabels = computed(() =>
+  trafficData.value.map(r => {
+    if (isHourly.value) {
+      // "2026-03-27 14:00:00" → "14:00"
+      const timePart = r.date.includes(' ') ? r.date.split(' ')[1] : r.date
+      return timePart.slice(0, 5)
+    }
+    return r.date
+  })
+)
+
+const trafficChartData = computed(() => {
+  const growthMap = new Map(growthData.value.map(r => [r.day, r.newUsers]))
+
+  const datasets: any[] = [
+    {
+      label: isHourly.value ? 'Visitors/Stunde' : 'Visitors/Tag',
+      data: trafficData.value.map(r => r.visitors),
+      borderColor: '#6366f1',
+      backgroundColor: 'rgba(99,102,241,0.12)',
+      fill: true,
+      tension: 0,
+      yAxisID: 'y',
+    },
+    {
+      label: isHourly.value ? 'Pageviews/Stunde' : 'Pageviews/Tag',
+      data: trafficData.value.map(r => r.pageviews),
+      borderColor: '#a5b4fc',
+      backgroundColor: 'transparent',
+      fill: false,
+      tension: 0,
+      borderDash: [4, 4],
+      yAxisID: 'y',
+    },
+  ]
+
+  if (!isHourly.value) {
+    datasets.push({
+      label: 'Neue Registrierungen',
+      data: trafficData.value.map(r => growthMap.get(r.date) ?? 0),
+      borderColor: '#10b981',
+      backgroundColor: 'transparent',
+      fill: false,
+      tension: 0,
+      yAxisID: 'y1',
+    })
+  }
+
+  return { labels: trafficLabels.value, datasets }
+})
+
+const trafficChartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  interaction: { mode: 'index' as const, intersect: false },
+  plugins: { legend: { position: 'top' as const } },
+  scales: {
+    y: {
+      type: 'linear' as const,
+      position: 'left' as const,
+      title: { display: true, text: 'Visitors / Pageviews' },
+    },
+    y1: {
+      type: 'linear' as const,
+      position: 'right' as const,
+      grid: { drawOnChartArea: false },
+      title: { display: true, text: 'Registrierungen' },
+      ticks: { precision: 0 },
+    },
+  },
+}
+
+const loadTraffic = async () => {
+  trafficLoading.value = true
+  trafficError.value = ''
+  try {
+    const res = await api.get(`/admin/stats/traffic?period=${trafficPeriod.value}`)
+    trafficData.value = res.data
+  } catch {
+    trafficError.value = 'Fehler beim Laden der Traffic-Daten.'
+  } finally {
+    trafficLoading.value = false
+  }
+}
+
+const setTrafficPreset = async (period: string) => {
+  trafficPeriod.value = period
+  await loadTraffic()
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 onMounted(() => {
   loadUsers()
   loadGrowth()
   loadActivity()
+  loadTraffic()
 })
 
 const setTab = (tab: Tab) => {
@@ -339,6 +444,7 @@ const onResizeUp = () => {
             { key: 'users', label: 'User' },
             { key: 'growth', label: 'User-Wachstum' },
             { key: 'activity', label: 'Ladeaktivitat' },
+            { key: 'traffic', label: 'Traffic' },
             { key: 'impersonate', label: 'Impersonieren' },
           ] as { key: Tab; label: string }[])"
           :key="tab.key"
@@ -536,6 +642,71 @@ const onResizeUp = () => {
             <div class="text-2xl font-bold text-emerald-400">{{ filteredActivityData.reduce((s, r) => s + Number(r.costTotal), 0).toFixed(2) }} €</div>
             <div class="text-xs text-gray-400 mt-1">Kosten im Zeitraum</div>
           </div>
+        </div>
+      </div>
+
+      <!-- Tab: Traffic & Conversions -->
+      <div v-else-if="activeTab === 'traffic'">
+        <div class="flex items-center justify-between mb-4 gap-3 flex-wrap">
+          <h2 class="text-lg font-semibold text-white">Traffic & Registrierungen</h2>
+          <div class="flex gap-1">
+            <button
+              v-for="preset in [{ label: 'Heute', period: 'day' }, { label: '7T', period: '7d' }, { label: '30T', period: '30d' }, { label: '90T', period: '90d' }]"
+              :key="preset.period"
+              @click="setTrafficPreset(preset.period)"
+              :class="[
+                'px-2.5 py-1 rounded-lg text-xs font-medium transition',
+                trafficPeriod === preset.period
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200'
+              ]"
+            >
+              {{ preset.label }}
+            </button>
+          </div>
+        </div>
+        <div v-if="trafficLoading" class="text-gray-400 text-sm py-8 text-center">Lade...</div>
+        <div v-else-if="trafficError" class="text-red-400 text-sm py-4">{{ trafficError }}</div>
+        <div v-else-if="trafficData.length === 0" class="text-gray-500 text-sm py-8 text-center">
+          Keine Daten - PLAUSIBLE_API_KEY gesetzt?
+        </div>
+        <div v-else class="bg-gray-900 rounded-xl p-4 border border-gray-800">
+          <div class="h-96">
+            <Line :data="trafficChartData" :options="trafficChartOptions" />
+          </div>
+        </div>
+        <!-- Summary -->
+        <div v-if="trafficData.length > 0" class="mt-4 flex gap-4 flex-wrap">
+          <div class="bg-gray-900 rounded-xl px-5 py-4 border border-gray-800 flex-1 min-w-40">
+            <div class="text-2xl font-bold text-indigo-400">{{ trafficData.reduce((s, r) => s + r.visitors, 0).toLocaleString() }}</div>
+            <div class="text-xs text-gray-400 mt-1">{{ isHourly ? 'Visitors heute' : 'Unique Visitors' }}</div>
+          </div>
+          <div class="bg-gray-900 rounded-xl px-5 py-4 border border-gray-800 flex-1 min-w-40">
+            <div class="text-2xl font-bold text-purple-400">{{ trafficData.reduce((s, r) => s + r.pageviews, 0).toLocaleString() }}</div>
+            <div class="text-xs text-gray-400 mt-1">{{ isHourly ? 'Pageviews heute' : 'Pageviews' }}</div>
+          </div>
+          <template v-if="!isHourly">
+            <div class="bg-gray-900 rounded-xl px-5 py-4 border border-gray-800 flex-1 min-w-40">
+              <div class="text-2xl font-bold text-emerald-400">
+                {{ trafficData.reduce((s, r) => s + (new Map(growthData.map(g => [g.day, g.newUsers])).get(r.date) ?? 0), 0) }}
+              </div>
+              <div class="text-xs text-gray-400 mt-1">Neue Registrierungen</div>
+            </div>
+            <div class="bg-gray-900 rounded-xl px-5 py-4 border border-gray-800 flex-1 min-w-40">
+              <div class="text-2xl font-bold text-amber-400">
+                {{
+                  (() => {
+                    const totalVisitors = trafficData.reduce((s, r) => s + r.visitors, 0)
+                    const growthMap = new Map(growthData.map(r => [r.day, r.newUsers]))
+                    const regs = trafficData.reduce((s, r) => s + (growthMap.get(r.date) ?? 0), 0)
+                    if (totalVisitors === 0) return '0%'
+                    return (regs / totalVisitors * 100).toFixed(1) + '%'
+                  })()
+                }}
+              </div>
+              <div class="text-xs text-gray-400 mt-1">Conversion Rate</div>
+            </div>
+          </template>
         </div>
       </div>
 

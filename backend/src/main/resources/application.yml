@@ -137,6 +137,11 @@ internal:
 tankerkoenig:
   api-key: ${TANKERKOENIG_API_KEY:}
 
+# Plausible Analytics
+plausible:
+  api-key: ${PLAUSIBLE_API_KEY:}
+  site-id: ${PLAUSIBLE_SITE_ID:ev-monitor.net}
+
 # Stripe Payment Integration
 stripe:
   secret-key: ${STRIPE_SECRET_KEY:}
