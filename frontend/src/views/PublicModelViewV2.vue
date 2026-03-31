@@ -38,13 +38,14 @@
           <a :href="`${modelsBaseUrl}/${canonicalBrand}`" class="inline-flex items-center gap-1 text-sm text-green-600 hover:underline mb-2">
             {{ t('model.back_link', { brand: stats.brandDisplayName }) }}
           </a>
-          <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6 text-center md:text-left">
+          <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-3 text-center md:text-left">
             <span class="md:hidden">{{ stats.modelDisplayName }}</span>
             <span class="hidden md:inline">{{ t('model.hero_title_v2', { model: stats.modelDisplayName }) }}</span>
           </h1>
+          <div class="h-1 w-16 bg-green-500 rounded-full mb-5 mx-auto md:mx-0"></div>
 
           <!-- Primary metric: Realer Verbrauch -->
-          <div v-if="displayConsumption" class="flex flex-col items-center py-6 border-y border-gray-100 dark:border-gray-700">
+          <div v-if="displayConsumption" class="flex flex-col items-center py-6 rounded-xl bg-gradient-to-b from-green-50 to-white dark:from-green-900/20 dark:to-gray-800/0 border border-green-100 dark:border-green-900/30 mb-3">
             <div class="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-2">
               {{ t('model.hero_consumption_label') }}
             </div>
@@ -82,7 +83,7 @@
           </div>
 
           <!-- Secondary stats row: 2-col on mobile, 3-col on desktop -->
-          <div class="mt-3 bg-gray-50 dark:bg-gray-700/30 rounded-xl py-4">
+          <div class="mt-3 bg-gradient-to-br from-indigo-50 via-gray-50 to-white dark:from-indigo-900/20 dark:via-gray-700/30 dark:to-gray-800/0 border border-indigo-100 dark:border-indigo-900/30 rounded-xl py-4">
             <div class="grid grid-cols-2 md:grid-cols-3">
             <!-- Links: AC/DC auf Mobile, Ladevorgänge auf Desktop -->
             <div class="px-4 text-center border-r border-gray-200 dark:border-gray-700">

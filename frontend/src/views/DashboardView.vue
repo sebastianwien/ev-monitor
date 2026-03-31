@@ -235,7 +235,7 @@ watch([selectedTimeRange, selectedGroupBy], () => {
 })
 
 const hasDistanceData = computed(() =>
-  stats.value?.chargesOverTime.some(d => d.distanceKm != null) ?? false
+  stats.value?.chargesOverTime?.some(d => d.distanceKm != null) ?? false
 )
 
 const rangeWindows = [

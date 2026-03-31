@@ -540,7 +540,7 @@ onMounted(() => {
               <div class="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-sm text-gray-600 dark:text-gray-300">
                 <span v-if="activeProvider.acPricePerKwh != null">AC: {{ formatPrice(activeProvider.acPricePerKwh) }}</span>
                 <span v-if="activeProvider.dcPricePerKwh != null">DC: {{ formatPrice(activeProvider.dcPricePerKwh) }}</span>
-                <span v-if="activeProvider.monthlyFeeEur > 0">{{ activeProvider.monthlyFeeEur.toFixed(2) }} €/Monat</span>
+                <span v-if="activeProvider.monthlyFeeEur > 0">{{ activeProvider.monthlyFeeEur?.toFixed(2) }} €/Monat</span>
               </div>
             </div>
             <button
