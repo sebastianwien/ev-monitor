@@ -10,8 +10,11 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.io.PrintWriter;
@@ -74,6 +77,23 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<Map<String, String>> handleNoResource(NoResourceFoundException ex) {
         return ResponseEntity.status(404).body(Map.of("code", "NOT_FOUND", "message", "Resource not found."));
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Map<String, String>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        return ResponseEntity.status(400).body(Map.of("code", "INVALID_PARAMETER",
+                "message", "Ungültiger Parameterwert: " + ex.getName()));
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<Map<String, String>> handleMissingParam(MissingServletRequestParameterException ex) {
+        return ResponseEntity.status(400).body(Map.of("code", "MISSING_PARAMETER",
+                "message", "Pflichtparameter fehlt: " + ex.getParameterName()));
+    }
+
+    @ExceptionHandler(AsyncRequestNotUsableException.class)
+    public void handleAsyncNotUsable(AsyncRequestNotUsableException ex) {
+        // Client hat die Verbindung getrennt - kein Logging, kein GitHub Issue
     }
 
     @ExceptionHandler(Exception.class)
