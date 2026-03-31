@@ -120,6 +120,7 @@ const demoLogin = async (source: 'hero' | 'models_section' = 'hero') => {
   try {
     const response = await import('../api/axios').then(m => m.default.post('/auth/demo-login'))
     authStore.setToken(response.data.token)
+    sessionStorage.setItem('ev_demo_entry_url', window.location.pathname)
     router.push('/dashboard')
   } catch {
     router.push('/login')

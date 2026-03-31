@@ -17,6 +17,7 @@ import FloatingActionButton from './components/FloatingActionButton.vue'
 import OnboardingWelcome from './components/OnboardingWelcome.vue'
 import FeatureAnnouncementModal from './components/FeatureAnnouncementModal.vue'
 import DemoBanner from './components/DemoBanner.vue'
+import DemoWelcomeModal from './components/DemoWelcomeModal.vue'
 import RedditConsentBanner from './components/RedditConsentBanner.vue'
 import FeedbackToast from './components/FeedbackToast.vue'
 import { Bars3Icon, XMarkIcon, HomeIcon, ArrowDownTrayIcon, UserIcon, BoltIcon, ChatBubbleLeftEllipsisIcon, ArrowsRightLeftIcon } from '@heroicons/vue/24/outline'
@@ -90,6 +91,25 @@ onMounted(() => {
   themeStore.init()
   captureUtmParams()
   captureReferrer()
+
+  // Auto-haptic for all btn-3d elements
+  const { haptic: triggerHaptic } = useHaptic()
+  document.addEventListener('pointerdown', (e) => {
+    if ((e.target as Element)?.closest('.btn-3d')) triggerHaptic()
+  })
+
+  // Auto-delay clicks on btn-3d-delay so the press animation is visible before navigation
+  document.addEventListener('click', (e) => {
+    const btn = (e.target as Element)?.closest('.btn-3d-delay')
+    if (!btn || (e as any).__delayed) return
+    e.stopImmediatePropagation()
+    e.preventDefault()
+    setTimeout(() => {
+      const evt = new MouseEvent('click', { bubbles: true, cancelable: true })
+      ;(evt as any).__delayed = true
+      btn.dispatchEvent(evt)
+    }, 150)
+  }, { capture: true })
 })
 
 // Impersonation
@@ -129,7 +149,7 @@ const closeMobileMenu = () => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-100 dark:bg-gray-950 ev-bg-pattern flex flex-col">
+  <div :class="['min-h-screen flex flex-col', authStore.isAuthenticated() ? 'app-wallpaper' : 'bg-gray-100 dark:bg-gray-950']">
     <!-- Navigation -->
     <nav class="bg-indigo-600 shadow-md text-white fixed top-0 left-0 right-0 z-40" v-if="authStore.isAuthenticated()">
       <div class="px-4 py-3">
@@ -215,7 +235,7 @@ const closeMobileMenu = () => {
           <!-- Compact Right Nav (768px - 1280px) -->
           <div class="hidden md:flex xl:hidden items-center space-x-2">
             <LocaleSwitcher variant="nav" />
-            <ThemeToggle class="text-white" />
+            <ThemeToggle v-if="!authStore.isDemoAccount" class="text-white" />
             <!-- Wallbox dot -->
             <button
               v-if="wallboxHasConnections"
@@ -258,7 +278,7 @@ const closeMobileMenu = () => {
           <!-- Full Right Nav (1280px+) -->
           <div class="hidden xl:flex items-center space-x-4">
             <LocaleSwitcher variant="nav" />
-            <ThemeToggle class="text-white" />
+            <ThemeToggle v-if="!authStore.isDemoAccount" class="text-white" />
             <!-- Wallbox chip -->
             <button
               v-if="wallboxHasConnections"
@@ -321,7 +341,7 @@ const closeMobileMenu = () => {
           <!-- Mobile: Icons + Hamburger Button -->
           <div class="md:hidden flex items-center gap-3">
             <LocaleSwitcher variant="nav" />
-            <ThemeToggle class="text-white" />
+            <ThemeToggle v-if="!authStore.isDemoAccount" class="text-white" />
             <!-- Wallbox dot -->
             <button
               v-if="wallboxHasConnections"
@@ -443,7 +463,12 @@ const closeMobileMenu = () => {
 
     <!-- Demo Banner (shown for seed/demo accounts) -->
     <DemoBanner v-if="authStore.isDemoAccount" />
-    <main :class="{ 'md:pb-10 md:px-4': authStore.isAuthenticated() }" :style="{ paddingTop: mainPaddingTop, transition: 'padding-top 0.3s ease' }">
+    <main
+      :class="[
+        authStore.isAuthenticated() ? 'md:px-4' : '',
+        authStore.isDemoAccount ? 'pb-14' : authStore.isAuthenticated() ? 'md:pb-10' : ''
+      ]"
+      :style="{ paddingTop: mainPaddingTop, transition: 'padding-top 0.3s ease' }">
       <router-view></router-view>
     </main>
 
@@ -469,24 +494,37 @@ const closeMobileMenu = () => {
     <SpritMonitorImport v-if="showImportOverlay" @close="showImportOverlay = false" />
 
     <!-- Floating Action Button (only when authenticated) -->
-    <FloatingActionButton v-if="authStore.isAuthenticated() && !isOnboardingVisible && $route.path !== '/erfassen'" @click="handleNewLog" />
+    <FloatingActionButton v-if="authStore.isAuthenticated() && !authStore.isDemoAccount && !isOnboardingVisible && $route.path !== '/erfassen'" @click="handleNewLog" />
 
     <!-- Log Form Modal (Desktop only) -->
     <LogFormModal v-if="showLogFormModal && authStore.isAuthenticated()" @close="showLogFormModal = false" />
 
     <!-- Onboarding Welcome (First-time users) -->
     <OnboardingWelcome v-if="authStore.isAuthenticated()" />
-    <FeatureAnnouncementModal v-if="authStore.isAuthenticated()" />
+    <FeatureAnnouncementModal v-if="authStore.isAuthenticated() && !authStore.isDemoAccount" />
 
     <!-- Reddit Consent Banner (only for paid Reddit traffic) -->
     <RedditConsentBanner />
 
     <!-- Feedback Toast (delayed, dismissible) -->
     <FeedbackToast />
+    <DemoWelcomeModal v-if="authStore.isDemoAccount" />
   </div>
 </template>
 
 <style scoped>
+.app-wallpaper {
+  background-image: url('/wallpaper-light.avif');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
+:global(.dark) .app-wallpaper {
+  background-image: url('/wallpaper-dark.avif');
+}
+
+
 @keyframes watt-bump {
   0%   { transform: scale(1);    box-shadow: none; background-color: transparent; border-color: rgba(129, 140, 248, 0.5); }
   25%  { transform: scale(1.45); box-shadow: 0 0 0 4px rgba(250, 204, 21, 0.4), 0 0 16px rgba(250, 204, 21, 0.6); background-color: rgba(250, 204, 21, 0.25); border-color: rgba(250, 204, 21, 0.9); color: #fef08a; }

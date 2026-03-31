@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { i18n } from '../i18n';
 import LandingPageView from '../views/LandingPageView.vue';
+import LandingPageV2View from '../views/LandingPageV2View.vue';
 import LogFormView from '../views/LogFormView.vue';
 import LoginView from '../views/LoginView.vue';
 import RegisterView from '../views/RegisterView.vue';
@@ -35,6 +36,11 @@ const router = createRouter({
             path: '/landing',
             name: 'landing-preview',
             component: LandingPageView,
+        },
+        {
+            path: '/start/:section?',
+            name: 'landing-v2',
+            component: LandingPageV2View,
         },
         {
             path: '/',
@@ -290,7 +296,7 @@ router.beforeEach((to, _from) => {
         if (to.meta.requiresAdmin && !authStore.isAdmin) {
             return '/dashboard';
         }
-    } else if (to.meta.guestOnly && authStore.isAuthenticated() && !authStore.isExpired()) {
+    } else if (to.meta.guestOnly && authStore.isAuthenticated() && !authStore.isExpired() && !authStore.isDemoAccount) {
         return '/dashboard';
     }
 });

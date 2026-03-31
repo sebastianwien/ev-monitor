@@ -15,6 +15,7 @@ import { useCarStore } from '../stores/car'
 import { useImportsTab } from '../composables/useImportsTab'
 import { apiKeyService, type ApiKeyResponse, type ApiKeyCreatedResponse } from '../api/apiKeyService'
 import { analytics } from '../services/analytics'
+import DemoImportsModal from '../components/DemoImportsModal.vue'
 
 const { t } = useI18n()
 const { activeTab, toggle } = useImportsTab()
@@ -442,6 +443,7 @@ const activeCars = computed(() =>
     @close="showManualImportModal = false"
     @imported="showManualImportModal = false"
   />
+  <DemoImportsModal v-if="authStore.isDemoAccount" />
 </template>
 
 <style scoped>

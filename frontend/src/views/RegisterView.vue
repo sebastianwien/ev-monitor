@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import api from '../api/axios';
 import { BoltIcon } from '@heroicons/vue/24/outline';
 import { analytics } from '../services/analytics';
@@ -9,8 +9,10 @@ import { getStoredUtmParams, clearStoredUtmParams, trackRedditSignup, getStoredR
 
 const { t, locale } = useI18n();
 const route = useRoute();
+const router = useRouter();
 
 const googleOauthEnabled = import.meta.env.VITE_GOOGLE_OAUTH_ENABLED === 'true'
+const fromDemo = window.history.state?.fromDemo === true
 const loginPath = computed(() => locale.value === 'en' ? '/en/login' : '/login')
 
 const email = ref('');
@@ -23,7 +25,8 @@ const referrerSource = ref('');
 const error = ref('');
 
 onMounted(() => {
-  analytics.track('register_page_viewed')
+  const demoSource = analytics.getDemoContext()
+  analytics.track('register_page_viewed', demoSource ? { demo_source: demoSource } : undefined)
   if (route.query.ref) {
     referralCode.value = String(route.query.ref);
   }
@@ -78,6 +81,13 @@ const handleRegister = async () => {
 
       // Track successful registration
       analytics.trackRegistrationCompleted();
+
+      // Track if user converted from a demo session
+      const demoSource = analytics.getDemoContext()
+      if (demoSource) {
+        analytics.track('demo_converted_to_register', { demo_source: demoSource })
+        analytics.clearDemoContext()
+      }
 
       // Track Reddit conversion if user came from Reddit ad
       trackRedditSignup();
@@ -204,4 +214,13 @@ const handleResend = async () => {
 
     </div>
   </div>
+
+  <Teleport to="body">
+    <div v-if="!fromDemo" class="fixed bottom-6 left-4 z-50">
+      <button @click="router.back()" class="btn-3d btn-3d-delay [--btn-shadow-color:#16a34a] inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-full px-4 py-2 shadow-lg">
+        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+        {{ t('common.back') }}
+      </button>
+    </div>
+  </Teleport>
 </template>

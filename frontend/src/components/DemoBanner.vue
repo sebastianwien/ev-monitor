@@ -2,9 +2,12 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { InformationCircleIcon } from '@heroicons/vue/24/outline'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
 
 const { t } = useI18n()
-
+const router = useRouter()
+const authStore = useAuthStore()
 const shaking = ref(false)
 
 const onBlocked = () => {
@@ -15,22 +18,48 @@ const onBlocked = () => {
   })
 }
 
+const goToRegister = () => {
+  sessionStorage.removeItem('ev_demo_entry_url')
+  authStore.logout(false)
+  router.push({ path: '/register', state: { fromDemo: true } })
+}
+
+const exitDemo = () => {
+  const entryUrl = sessionStorage.getItem('ev_demo_entry_url') || '/'
+  sessionStorage.removeItem('ev_demo_entry_url')
+  authStore.logout(false)
+  router.push(entryUrl)
+}
+
 onMounted(() => window.addEventListener('demo-account-blocked', onBlocked))
 onUnmounted(() => window.removeEventListener('demo-account-blocked', onBlocked))
 </script>
 
 <template>
   <div
-    :class="['bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-center justify-between gap-3 text-sm', { 'animate-shake': shaking }]">
-    <div class="flex items-center gap-2 text-amber-800">
-      <InformationCircleIcon class="h-5 w-5 flex-shrink-0 text-amber-500" />
-      <span><strong>{{ t('demo.title') }}</strong> · {{ t('demo.read_only') }}</span>
+    :class="[
+      'fixed bottom-0 left-0 right-0 z-40',
+      'bg-amber-400 border-t-2 border-amber-500',
+      'px-4 py-3 flex flex-col gap-2',
+      { 'animate-shake': shaking }
+    ]">
+    <div class="flex items-center gap-2 text-amber-900">
+      <InformationCircleIcon class="h-5 w-5 flex-shrink-0" />
+      <span class="font-bold">{{ t('demo.title') }}</span>
+      <span class="font-normal">· {{ t('demo.read_only') }}</span>
     </div>
-    <router-link
-      to="/register"
-      class="flex-shrink-0 px-3 py-1 rounded-md bg-amber-500 hover:bg-amber-600 text-white font-medium transition text-xs">
-      {{ t('demo.register_btn') }}
-    </router-link>
+    <div class="flex items-center gap-2">
+      <button
+        @click="goToRegister"
+        class="btn-3d flex-1 text-center px-3 py-1.5 rounded-md bg-amber-900 hover:bg-amber-800 text-amber-100 font-semibold transition text-xs whitespace-nowrap">
+        {{ t('demo.register_btn') }}
+      </button>
+      <button
+        @click="exitDemo"
+        class="btn-3d flex-1 px-3 py-1.5 rounded-md bg-amber-100 hover:bg-white text-amber-900 font-semibold transition text-xs border border-amber-600 whitespace-nowrap">
+        {{ t('demo.exit_btn') }}
+      </button>
+    </div>
   </div>
 </template>
 

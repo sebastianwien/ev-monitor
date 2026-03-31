@@ -3,8 +3,9 @@ import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import { UserIcon, KeyIcon, TrashIcon, ArrowDownTrayIcon, AcademicCapIcon, ShareIcon, ClipboardDocumentIcon, CheckIcon, HeartIcon, TrophyIcon, ArrowRightOnRectangleIcon, BoltIcon, CreditCardIcon, PlusIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/vue/24/outline'
+import { UserIcon, KeyIcon, TrashIcon, ArrowDownTrayIcon, AcademicCapIcon, ShareIcon, ClipboardDocumentIcon, CheckIcon, HeartIcon, ArrowRightOnRectangleIcon, BoltIcon, CreditCardIcon, PlusIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/vue/24/outline'
 import SupportPopover from '../components/SupportPopover.vue'
+import DemoSettingsModal from '../components/DemoSettingsModal.vue'
 import api from '../api/axios'
 
 const { t } = useI18n()
@@ -373,12 +374,6 @@ onMounted(() => {
       <div class="flex items-center gap-3 mb-6">
         <UserIcon class="h-8 w-8 text-gray-700 dark:text-gray-300" />
         <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-200">{{ t('settings.title') }}</h1>
-        <button
-          @click="authStore.logout()"
-          class="ml-auto flex items-center gap-2 px-3 py-1.5 rounded-lg border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/30 transition shadow-[0_4px_0_0_#fca5a5] dark:shadow-[0_4px_0_0_#7f1d1d] active:shadow-none active:translate-y-1 cursor-pointer" style="transition: transform 0.075s ease, box-shadow 0.075s ease;">
-          <ArrowRightOnRectangleIcon class="h-4 w-4" />
-          {{ t('settings.logout') }}
-        </button>
       </div>
 
       <!-- Message Banner -->
@@ -389,48 +384,17 @@ onMounted(() => {
         {{ message.text }}
       </div>
 
-      <!-- Watt Balance -->
-      <div class="mb-8 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
-        <div class="flex items-center gap-3 mb-2">
-          <BoltIcon class="h-6 w-6 text-gray-500 dark:text-gray-400" />
-          <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">{{ t('settings.watt_account') }}</h2>
-        </div>
-        <p class="text-3xl font-bold text-amber-600">{{ coinBalance }}</p>
-        <router-link to="/coins/history" class="text-sm text-amber-700 hover:text-amber-800 underline mt-2 inline-block">
-          {{ t('settings.watt_history') }}
-        </router-link>
-      </div>
-
-      <!-- Referral Section -->
-      <div v-if="referralCode" class="mb-8 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
-        <div class="flex items-center gap-3 mb-2">
-          <ShareIcon class="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
-          <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">{{ t('settings.referral_title') }}</h2>
-        </div>
-        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4" v-html="t('settings.referral_desc')" />
-        <div class="flex gap-2">
-          <input
-            :value="referralLink()"
-            readonly
-            class="flex-1 min-w-0 px-3 py-2 text-sm bg-white dark:bg-gray-700 border border-indigo-200 dark:border-indigo-700 rounded-lg text-gray-700 dark:text-gray-300 focus:outline-none cursor-default select-all" />
-          <button
-            @click="copyReferralLink"
-            class="btn-3d flex-shrink-0 flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition"
-            :class="referralCopied
-              ? 'bg-green-600 text-white'
-              : 'bg-indigo-600 text-white hover:bg-indigo-700'">
-            <CheckIcon v-if="referralCopied" class="h-4 w-4" />
-            <ClipboardDocumentIcon v-else class="h-4 w-4" />
-            {{ referralCopied ? t('settings.copied') : t('settings.copy') }}
-          </button>
-        </div>
-      </div>
-
       <!-- Account Section -->
       <div class="mb-8">
         <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
           <UserIcon class="h-6 w-6" />
           {{ t('settings.account') }}
+          <button
+            @click="authStore.logout()"
+            class="ml-auto flex items-center gap-2 px-3 py-1.5 rounded-lg border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/30 transition shadow-[0_4px_0_0_#fca5a5] dark:shadow-[0_4px_0_0_#7f1d1d] active:shadow-none active:translate-y-1 cursor-pointer" style="transition: transform 0.075s ease, box-shadow 0.075s ease;">
+            <ArrowRightOnRectangleIcon class="h-4 w-4" />
+            Logout
+          </button>
         </h2>
 
         <!-- Email -->
@@ -717,6 +681,104 @@ onMounted(() => {
         </div>
       </div>
 
+      <!-- Watt Balance -->
+      <div class="mb-8 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+        <div class="flex items-center gap-3 mb-3">
+          <BoltIcon class="h-6 w-6 text-gray-500 dark:text-gray-400" />
+          <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">{{ t('settings.watt_account') }}</h2>
+          <span class="ml-auto text-3xl font-bold text-amber-600">{{ coinBalance }}</span>
+        </div>
+        <div class="flex items-center justify-between mb-4">
+          <router-link to="/coins/history" class="btn-3d px-3 py-1.5 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-800 dark:bg-amber-900/30 dark:hover:bg-amber-900/50 dark:text-amber-300 text-xs font-semibold border border-amber-300 dark:border-amber-700 transition">
+            {{ t('settings.watt_history') }}
+          </router-link>
+          <router-link to="/leaderboard" class="btn-3d px-3 py-1.5 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-800 dark:bg-amber-900/30 dark:hover:bg-amber-900/50 dark:text-amber-300 text-xs font-semibold border border-amber-300 dark:border-amber-700 transition">
+            {{ t('coins.to_leaderboard') }}
+          </router-link>
+        </div>
+        <div class="pt-4 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between gap-4">
+          <div>
+            <p class="font-medium text-gray-800 dark:text-gray-200 text-sm">{{ t('settings.leaderboard_visible_label') }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('settings.leaderboard_visible_hint') }}</p>
+          </div>
+          <button
+            @click="toggleLeaderboardVisible"
+            :class="[
+              'relative flex-shrink-0 w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none',
+              leaderboardVisible ? 'bg-green-500' : 'bg-gray-300'
+            ]"
+            :title="leaderboardVisible ? t('settings.leaderboard_disable') : t('settings.leaderboard_enable')">
+            <span
+              :class="[
+                'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200',
+                leaderboardVisible ? 'translate-x-5' : 'translate-x-0'
+              ]" />
+          </button>
+        </div>
+      </div>
+
+      <!-- Referral Section -->
+      <div v-if="referralCode" class="mb-8 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+        <div class="flex items-center gap-3 mb-2">
+          <ShareIcon class="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+          <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">{{ t('settings.referral_title') }}</h2>
+        </div>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4" v-html="t('settings.referral_desc')" />
+        <div class="flex gap-2">
+          <input
+            :value="referralLink()"
+            readonly
+            class="flex-1 min-w-0 px-3 py-2 text-sm bg-white dark:bg-gray-700 border border-indigo-200 dark:border-indigo-700 rounded-lg text-gray-700 dark:text-gray-300 focus:outline-none cursor-default select-all" />
+          <button
+            @click="copyReferralLink"
+            class="btn-3d flex-shrink-0 flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition"
+            :class="referralCopied
+              ? 'bg-green-600 text-white'
+              : 'bg-indigo-600 text-white hover:bg-indigo-700'">
+            <CheckIcon v-if="referralCopied" class="h-4 w-4" />
+            <ClipboardDocumentIcon v-else class="h-4 w-4" />
+            {{ referralCopied ? t('settings.copied') : t('settings.copy') }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Help & Support Section -->
+      <div class="mb-8">
+        <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
+          <AcademicCapIcon class="h-6 w-6" />
+          {{ t('settings.help_title') }}
+        </h2>
+        <div class="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/30 dark:to-purple-900/30 border border-indigo-200 dark:border-indigo-700 rounded-lg">
+          <h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-2 flex items-center gap-2">
+            <span class="text-xl">👋</span>
+            {{ t('settings.tutorial_title') }}
+          </h3>
+          <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            {{ t('settings.tutorial_desc') }}
+          </p>
+          <button
+            @click="restartOnboarding"
+            class="btn-3d w-full flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
+            <AcademicCapIcon class="h-5 w-5" />
+            <span>{{ t('settings.tutorial_btn') }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Support Section -->
+      <div class="mb-8">
+        <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
+          <HeartIcon class="h-6 w-6 text-red-500" />
+          {{ t('settings.support_title') }}
+        </h2>
+        <div class="p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+          <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            {{ t('settings.support_desc') }}
+          </p>
+          <SupportPopover variant="block" />
+        </div>
+      </div>
+
       <!-- Data & Privacy Section -->
       <div class="mb-8">
         <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
@@ -754,71 +816,6 @@ onMounted(() => {
         </button>
       </div>
 
-      <!-- Community / Leaderboard Section -->
-      <div class="mb-8">
-        <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
-          <TrophyIcon class="h-6 w-6 text-yellow-500" />
-          {{ t('settings.leaderboard_title') }}
-        </h2>
-        <div class="p-4 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg flex items-center justify-between gap-4">
-          <div>
-            <p class="font-medium text-gray-800 dark:text-gray-200 text-sm">{{ t('settings.leaderboard_visible_label') }}</p>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('settings.leaderboard_visible_hint') }}</p>
-          </div>
-          <button
-            @click="toggleLeaderboardVisible"
-            :class="[
-              'relative flex-shrink-0 w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none',
-              leaderboardVisible ? 'bg-green-500' : 'bg-gray-300'
-            ]"
-            :title="leaderboardVisible ? t('settings.leaderboard_disable') : t('settings.leaderboard_enable')">
-            <span
-              :class="[
-                'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200',
-                leaderboardVisible ? 'translate-x-5' : 'translate-x-0'
-              ]" />
-          </button>
-        </div>
-      </div>
-
-      <!-- Help & Support Section -->
-      <div class="mb-8">
-        <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
-          <AcademicCapIcon class="h-6 w-6" />
-          {{ t('settings.help_title') }}
-        </h2>
-
-        <div class="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/30 dark:to-purple-900/30 border border-indigo-200 dark:border-indigo-700 rounded-lg">
-          <h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-2 flex items-center gap-2">
-            <span class="text-xl">👋</span>
-            {{ t('settings.tutorial_title') }}
-          </h3>
-          <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            {{ t('settings.tutorial_desc') }}
-          </p>
-          <button
-            @click="restartOnboarding"
-            class="btn-3d w-full flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
-            <AcademicCapIcon class="h-5 w-5" />
-            <span>{{ t('settings.tutorial_btn') }}</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Support Section -->
-      <div class="mb-8">
-        <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
-          <HeartIcon class="h-6 w-6 text-red-500" />
-          {{ t('settings.support_title') }}
-        </h2>
-        <div class="p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
-          <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            {{ t('settings.support_desc') }}
-          </p>
-          <SupportPopover variant="block" />
-        </div>
-      </div>
-
       <!-- Delete Confirmation Modal -->
       <div
         v-if="showDeleteConfirm"
@@ -851,4 +848,5 @@ onMounted(() => {
       </div>
     </div>
   </div>
+  <DemoSettingsModal />
 </template>

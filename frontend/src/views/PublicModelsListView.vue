@@ -375,6 +375,7 @@
       </template>
     </footer>
   </div>
+  <DemoModelsModal />
 </template>
 
 <script setup lang="ts">
@@ -387,6 +388,7 @@ import { getTopModels, getPlatformStats, getCategories, type TopModelPreview, ty
 import { TruckIcon, ChartBarIcon, ArrowTrendingUpIcon, ArrowsRightLeftIcon, XMarkIcon, CheckIcon, ArrowRightIcon, InformationCircleIcon } from '@heroicons/vue/24/outline'
 import PublicNav from '../components/PublicNav.vue'
 import AffiliateBanner from '../components/AffiliateBanner.vue'
+import DemoModelsModal from '../components/DemoModelsModal.vue'
 
 const { t } = useI18n()
 const router = useRouter()

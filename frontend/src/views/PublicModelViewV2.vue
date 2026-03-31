@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-950">
+  <div class="model-page min-h-screen bg-gray-50 dark:bg-gray-950">
     <PublicNav />
     <main class="max-w-4xl mx-auto md:px-4 py-2 md:py-8">
 
@@ -39,7 +39,8 @@
             {{ t('model.back_link', { brand: stats.brandDisplayName }) }}
           </a>
           <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6 text-center md:text-left">
-            {{ t('model.hero_title_v2', { model: stats.modelDisplayName }) }}
+            <span class="md:hidden">{{ stats.modelDisplayName }}</span>
+            <span class="hidden md:inline">{{ t('model.hero_title_v2', { model: stats.modelDisplayName }) }}</span>
           </h1>
 
           <!-- Primary metric: Realer Verbrauch -->
@@ -599,12 +600,27 @@
         <a :href="loginPath" class="hover:text-gray-700 dark:hover:text-gray-200">{{ t('common.login') }}</a>
       </template>
     </footer>
+
+    <!-- Floating back pill: only shown when navigating from LP v2 -->
+    <Teleport to="body">
+      <div v-if="showBackPill" class="fixed bottom-6 left-4 z-50">
+        <button
+          @click="goBackToLpV2"
+          class="back-pill btn-3d-delay inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-full px-4 py-2 shadow-lg"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="h-4 w-4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+          </svg>
+          Zurück
+        </button>
+      </div>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useHead } from '@unhead/vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/auth'
@@ -617,6 +633,7 @@ import PublicNav from '../components/PublicNav.vue'
 import AffiliateBanner from '../components/AffiliateBanner.vue'
 
 const route = useRoute()
+const router = useRouter()
 const { t } = useI18n()
 const isEn = computed(() => route.path.startsWith('/en/'))
 const modelsBaseUrl = computed(() => isEn.value ? '/en/models' : '/modelle')
@@ -626,6 +643,7 @@ const authStore = useAuthStore()
 const loading = ref(true)
 const notFound = ref(false)
 const apiError = ref(false)
+const showBackPill = ref(false)
 const stats = ref<PublicModelStats | null>(null)
 const selectedVariantIndex = ref(0)
 const pricePerKwh = ref(0.35)
@@ -782,6 +800,11 @@ useHead(computed(() => {
 }))
 
 onMounted(async () => {
+  if (sessionStorage.getItem('ev_from') === 'lp_v2') {
+    showBackPill.value = true
+    sessionStorage.removeItem('ev_from')
+  }
+
   try {
     const data = await getModelStats(brand, model)
     if (!data) {
@@ -827,4 +850,34 @@ function deltaLabel(real: number, wltp: number): string {
 
 function reload() { window.location.reload() }
 
+function goBackToLpV2() {
+  sessionStorage.setItem('ev_back_slide', '1')
+  router.back()
+}
+
 </script>
+
+<style scoped>
+.model-page {
+  animation: page-slide-in 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+@keyframes page-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.back-pill {
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+.back-pill:active {
+  transform: translate(1px, 1px);
+  box-shadow: none;
+}
+</style>

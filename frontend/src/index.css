@@ -53,14 +53,14 @@ html, body {
 
 /* Global 3D press effect */
 .btn-3d {
-  box-shadow: 0 4px 0 0 rgba(0,0,0,0.2);
-  transform: translateY(0);
+  box-shadow: 3px 4px 0 0 var(--btn-shadow-color, rgba(0,0,0,0.2));
+  transform: translate(0, 0);
   transition: transform 0.08s ease, box-shadow 0.08s ease;
   touch-action: manipulation;
 }
 .btn-3d:active {
-  box-shadow: 0 1px 0 0 rgba(0,0,0,0.2);
-  transform: translateY(3px);
+  box-shadow: 1px 1px 0 0 var(--btn-shadow-color, rgba(0,0,0,0.2));
+  transform: translate(2px, 3px);
   transition: transform 0.05s ease, box-shadow 0.05s ease;
 }
 .btn-3d:disabled {
@@ -68,8 +68,8 @@ html, body {
   transform: none;
 }
 .btn-3d.active {
-  box-shadow: 0 1px 0 0 rgba(0,0,0,0.2);
-  transform: translateY(3px);
+  box-shadow: 1px 1px 0 0 var(--btn-shadow-color, rgba(0,0,0,0.2));
+  transform: translate(2px, 3px);
 }
 
 body {

@@ -80,8 +80,26 @@ class AnalyticsService {
     this.track('feature_used', { feature })
   }
 
-  trackDemoLoginClicked(source: 'hero' | 'models_section') {
+  trackDemoLoginClicked(source: 'hero' | 'models_section' | 'lp_v2_weiche' | 'lp_v2_owner') {
     this.track('demo_login_clicked', { source })
+  }
+
+  trackDemoSessionStarted(source: string) {
+    this.track('demo_session_started', { source })
+  }
+
+  /** Persist demo source for cross-page tracking. Call after successful demo login. */
+  setDemoContext(source: string) {
+    sessionStorage.setItem('ev_demo_source', source)
+  }
+
+  /** Returns demo source if this is an active demo session, null otherwise. */
+  getDemoContext(): string | null {
+    return sessionStorage.getItem('ev_demo_source')
+  }
+
+  clearDemoContext() {
+    sessionStorage.removeItem('ev_demo_source')
   }
 
   trackCtaRegisterClicked(source: string) {
