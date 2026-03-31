@@ -5,37 +5,30 @@
     <main :class="isAuthenticated ? 'md:max-w-6xl md:mx-auto md:p-6' : 'max-w-6xl mx-auto px-4 py-8'">
       <div :class="isAuthenticated ? 'bg-white dark:bg-gray-800 md:rounded-xl md:shadow-lg p-4 md:p-6' : ''">
       <!-- Hero -->
-      <div class="rounded-2xl mb-8 overflow-hidden">
+      <div class="mb-6">
 
         <!-- Standard Hero -->
         <template v-if="!isRedditSource">
-          <div class="bg-gradient-to-br from-gray-900 to-gray-800 px-6 py-10 sm:px-10 sm:py-12">
-            <h1 class="text-3xl sm:text-4xl font-bold text-white mb-3 leading-tight">
-              {{ t('models_list.hero.title') }}
-            </h1>
-            <p class="text-gray-300 text-lg mb-6 max-w-xl leading-relaxed">
-              {{ t('models_list.hero.subtitle') }}
-            </p>
-            <!-- Stats Badges -->
-            <div class="flex flex-wrap gap-3">
-              <span class="inline-flex items-center gap-1.5 bg-white/10 text-white text-sm font-medium px-3.5 py-1.5 rounded-full">
-                <ChartBarIcon class="h-4 w-4 text-green-400" />
-                {{ modelsWithData.length }} {{ t('models_list.hero.models_count') }}
-              </span>
-              <span v-if="platformStats" class="inline-flex items-center gap-1.5 bg-white/10 text-white text-sm font-medium px-3.5 py-1.5 rounded-full">
-                <ArrowTrendingUpIcon class="h-4 w-4 text-green-400" />
-                {{ platformStats.validTripCount.toLocaleString() }} {{ t('models_list.hero.trips_count') }}
-              </span>
-              <span v-if="platformStats" class="inline-flex items-center gap-1.5 bg-white/10 text-white text-sm font-medium px-3.5 py-1.5 rounded-full">
-                <CheckIcon class="h-4 w-4 text-green-400" />
-                {{ platformStats.userCount.toLocaleString() }} {{ t('models_list.hero.drivers_count') }}
-              </span>
-            </div>
-          </div>
-          <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 border-t-0 rounded-b-2xl px-6 py-4 sm:px-10">
-            <p class="text-xs text-gray-400 leading-relaxed">
-              {{ t('models_list.hero.cost_note') }}
-            </p>
+          <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-1 leading-tight text-center">
+            {{ t('models_list.hero.title') }}
+          </h1>
+          <p class="text-gray-500 dark:text-gray-400 text-sm mb-4 text-center">
+            {{ t('models_list.hero.subtitle') }}
+          </p>
+          <!-- Stats Badges -->
+          <div class="flex flex-wrap gap-2 justify-center">
+            <span class="inline-flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-xs font-medium px-3 py-1.5 rounded-full">
+              <ChartBarIcon class="h-3.5 w-3.5 text-green-500" />
+              {{ modelsWithData.length }} {{ t('models_list.hero.models_count') }}
+            </span>
+            <span v-if="platformStats" class="inline-flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-xs font-medium px-3 py-1.5 rounded-full">
+              <ArrowTrendingUpIcon class="h-3.5 w-3.5 text-green-500" />
+              {{ platformStats.validTripCount.toLocaleString() }} {{ t('models_list.hero.trips_count') }}
+            </span>
+            <span v-if="platformStats" class="inline-flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-xs font-medium px-3 py-1.5 rounded-full">
+              <CheckIcon class="h-3.5 w-3.5 text-green-500" />
+              {{ platformStats.userCount.toLocaleString() }} {{ t('models_list.hero.drivers_count') }}
+            </span>
           </div>
         </template>
 
@@ -80,7 +73,7 @@
 
       <!-- Filters + Popular Models -->
       <div v-if="!loading && modelsWithData.length > 0" class="mb-6">
-        <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">{{ t('models_list.filters.popular') }}</h2>
+        <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 text-center">{{ t('models_list.filters.popular') }}</h2>
         <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
           <div class="flex flex-wrap items-center gap-3">
             <!-- Marken-Filter -->
@@ -179,12 +172,16 @@
         </div>
       </div>
 
+      <!-- THG Banner -->
+      <ThgBanner v-if="!isAuthenticated" />
+
       <!-- Models Grid -->
       <div v-if="filteredModels.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <!-- Real community models -->
         <template v-for="(model, index) in filteredModels" :key="`${model.brandDisplayName}/${model.modelUrlSlug}`">
-        <!-- Affiliate Banner nach dem 3. Card -->
-        <div v-if="index === 3 && !isAuthenticated" class="col-span-full">
+        <!-- Affiliate Banner: nach 4. Card (Mobile/2-Spalten), nach 6. Card (3-Spalten) -->
+        <div v-if="(index === 4 || index === 6) && !isAuthenticated"
+             :class="index === 4 ? 'col-span-full lg:hidden' : 'col-span-full hidden lg:block'">
           <AffiliateBanner />
         </div>
         <div
@@ -194,9 +191,9 @@
             : 'border-gray-200 dark:border-gray-700 hover:border-green-500'"
         >
           <a :href="`${modelsBaseUrl}/${model.brandDisplayName}/${model.modelUrlSlug}`" class="block flex-1">
-            <div class="mb-2">
+            <div class="flex items-baseline justify-between mb-2">
               <h3 class="font-bold text-gray-900 dark:text-gray-100 text-base">{{ model.modelDisplayName }}</h3>
-              <span class="text-xs text-gray-400">{{ model.logCount }} {{ t('models_list.card.charging_sessions') }}</span>
+              <span class="text-xs text-gray-400 shrink-0 ml-2">{{ model.logCount }} {{ t('models_list.card.charging_sessions') }}</span>
             </div>
             <div class="grid grid-cols-[auto_1fr] items-baseline gap-x-3 gap-y-0.5 mb-3 text-sm">
               <template v-if="model.minWltpConsumptionKwhPer100km">
@@ -388,6 +385,7 @@ import { getTopModels, getPlatformStats, getCategories, type TopModelPreview, ty
 import { TruckIcon, ChartBarIcon, ArrowTrendingUpIcon, ArrowsRightLeftIcon, XMarkIcon, CheckIcon, ArrowRightIcon, InformationCircleIcon } from '@heroicons/vue/24/outline'
 import PublicNav from '../components/PublicNav.vue'
 import AffiliateBanner from '../components/AffiliateBanner.vue'
+import ThgBanner from '../components/ThgBanner.vue'
 import DemoModelsModal from '../components/DemoModelsModal.vue'
 
 const { t } = useI18n()

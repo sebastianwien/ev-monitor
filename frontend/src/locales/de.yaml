@@ -142,7 +142,7 @@ models_list:
     subtitle: "Reale Verbrauchsdaten von der Community - WLTP vs. Praxis für alle Elektroautos."
     models_count: "Modelle"
     trips_count: "Fahrten"
-    drivers_count: "Fahrer*innen"
+    drivers_count: "Fahrer"
     cost_note: "Die Kosten pro 100 km basieren auf dem Ø-Strompreis der Community-Einträge je Modell. Preisunterschiede entstehen durch verschiedene Ladegewohnheiten - Heimladen ist deutlich günstiger als öffentliche Schnelllader."
   reddit:
     badge: "Keine Herstellerangaben"
