@@ -513,18 +513,6 @@ const closeMobileMenu = () => {
 </template>
 
 <style scoped>
-.app-wallpaper {
-  background-image: url('/wallpaper-light.avif');
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
-}
-
-:global(.dark) .app-wallpaper {
-  background-image: url('/wallpaper-dark.avif');
-}
-
-
 @keyframes watt-bump {
   0%   { transform: scale(1);    box-shadow: none; background-color: transparent; border-color: rgba(129, 140, 248, 0.5); }
   25%  { transform: scale(1.45); box-shadow: 0 0 0 4px rgba(250, 204, 21, 0.4), 0 0 16px rgba(250, 204, 21, 0.6); background-color: rgba(250, 204, 21, 0.25); border-color: rgba(250, 204, 21, 0.9); color: #fef08a; }

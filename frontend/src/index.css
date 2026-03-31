@@ -86,7 +86,8 @@ body {
 }
 
 /* EV wallpaper background */
-.ev-bg-pattern {
+.ev-bg-pattern,
+.app-wallpaper {
     background-image: url('/wallpaper-light.avif');
     background-size: cover;
     background-position: center;
@@ -94,6 +95,7 @@ body {
     background-attachment: fixed;
 }
 
-.dark .ev-bg-pattern {
+.dark .ev-bg-pattern,
+.dark .app-wallpaper {
     background-image: url('/wallpaper-dark.avif');
 }
