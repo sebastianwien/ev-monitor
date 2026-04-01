@@ -76,6 +76,7 @@ public class PostgresCarRepositoryImpl implements CarRepository {
         entity.setPrimary(domain.isPrimary());
         entity.setBatteryDegradationPercent(domain.getBatteryDegradationPercent());
         entity.setBusinessCar(domain.isBusinessCar());
+        entity.setHasHeatPump(domain.isHeatPump());
         return entity;
     }
 
@@ -98,6 +99,7 @@ public class PostgresCarRepositoryImpl implements CarRepository {
                 entity.isImagePublic(),
                 entity.isPrimary(),
                 entity.getBatteryDegradationPercent(),
-                entity.isBusinessCar());
+                entity.isBusinessCar(),
+                entity.isHasHeatPump());
     }
 }

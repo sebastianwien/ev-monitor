@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { carService, type Car, type CarRequest, type BrandInfo, type ModelInfo, type CarCreateResponse } from '../api/carService'
+import { carService, type Car, type CarRequest, type BrandInfo, type ModelInfo, type CarCreateResponse, type BatterySohEntry } from '../api/carService'
 import { useCarStore } from '../stores/car'
 import { vehicleSpecificationService, type VehicleSpecification } from '../api/vehicleSpecificationService'
 import { ChartBarIcon, TruckIcon, ArrowDownTrayIcon } from '@heroicons/vue/24/outline'
@@ -35,7 +35,15 @@ const customCapacity = ref<number | null>(null)
 const useCustomCapacity = ref(false)
 const powerKw = ref<number | null>(null)
 const batteryDegradationPercent = ref<number | null>(null)
-const showAdvancedSettings = ref(false)
+const hasHeatPump = ref(false)
+const isBusinessCar = ref(false)
+
+// SoH History
+const sohHistory = ref<BatterySohEntry[]>([])
+const showSohAddForm = ref(false)
+const sohEditingEntry = ref<BatterySohEntry | null>(null)
+const sohPercent = ref<number | null>(null)
+const sohDate = ref(new Date().toISOString().split('T')[0])
 
 // WLTP data
 const wltpData = ref<VehicleSpecification | null>(null)
@@ -51,8 +59,6 @@ const imageBlobUrls = ref<Record<string, string>>({})
 const imageUploading = ref<Record<string, boolean>>({})
 const imagePublicForUpload = ref<Record<string, boolean>>({})
 const visibilityTimers: Record<string, ReturnType<typeof setTimeout>> = {}
-const businessCarState = ref<Record<string, boolean>>({})
-const businessCarTimers: Record<string, ReturnType<typeof setTimeout>> = {}
 
 const sortedBrands = computed(() => {
   return [...brands.value].sort((a, b) => a.label.localeCompare(b.label))
@@ -100,15 +106,9 @@ const fetchCars = async () => {
     error.value = null
     revokeAllBlobUrls()
     cars.value = await carStore.getCars(true) ?? []
-    // Init checkbox state from server (shows current visibility per car)
     const visibility: Record<string, boolean> = {}
-    const businessCar: Record<string, boolean> = {}
-    cars.value.forEach(c => {
-      visibility[c.id] = c.imagePublic
-      businessCar[c.id] = c.isBusinessCar
-    })
+    cars.value.forEach(c => { visibility[c.id] = c.imagePublic })
     imagePublicForUpload.value = visibility
-    businessCarState.value = businessCar
     await loadCarImages(cars.value)
     await startTeslaPolling(cars.value.some((c: any) => c.brand?.toLowerCase() === 'tesla'))
     // Small delay to ensure fade-in transition is visible
@@ -205,10 +205,16 @@ const resetForm = () => {
   useCustomCapacity.value = false
   powerKw.value = null
   batteryDegradationPercent.value = null
-  showAdvancedSettings.value = false
+  hasHeatPump.value = false
+  isBusinessCar.value = false
   editingCar.value = null
   showForm.value = false
   availableModels.value = []
+  sohHistory.value = []
+  showSohAddForm.value = false
+  sohEditingEntry.value = null
+  sohPercent.value = null
+  sohDate.value = new Date().toISOString().split('T')[0]
 }
 
 const openAddForm = () => {
@@ -237,8 +243,15 @@ const openEditForm = async (car: Car) => {
   trim.value = car.trim || ''
   powerKw.value = car.powerKw
   batteryDegradationPercent.value = car.batteryDegradationPercent
-  showAdvancedSettings.value = car.batteryDegradationPercent != null
+  hasHeatPump.value = car.hasHeatPump ?? false
+  isBusinessCar.value = car.isBusinessCar ?? false
   showForm.value = true
+  // Load SoH history for this car
+  try {
+    sohHistory.value = await carService.getSohHistory(car.id)
+  } catch {
+    sohHistory.value = []
+  }
 }
 
 const submitForm = async () => {
@@ -257,11 +270,15 @@ const submitForm = async () => {
       trim: trim.value || null,
       batteryCapacityKwh: finalCapacity.value,
       powerKw: powerKw.value,
-      batteryDegradationPercent: batteryDegradationPercent.value
+      batteryDegradationPercent: batteryDegradationPercent.value,
+      hasHeatPump: hasHeatPump.value
     }
 
     if (editingCar.value) {
       await carService.updateCar(editingCar.value.id, carData)
+      if (isBusinessCar.value !== editingCar.value.isBusinessCar) {
+        await carService.setBusinessCar(editingCar.value.id, isBusinessCar.value)
+      }
       resetForm()
       await fetchCars()
     } else {
@@ -311,21 +328,6 @@ const setActiveCar = async (id: string) => {
   }
 }
 
-const handleBusinessCarChange = (carId: string, value: boolean) => {
-  businessCarState.value = { ...businessCarState.value, [carId]: value }
-  clearTimeout(businessCarTimers[carId])
-  businessCarTimers[carId] = setTimeout(async () => {
-    try {
-      const updated = await carService.setBusinessCar(carId, value)
-      cars.value = cars.value.map(c => c.id === carId ? { ...c, isBusinessCar: updated.isBusinessCar } : c)
-      carStore.invalidateCars()
-    } catch (err: any) {
-      // Revert local state on error
-      businessCarState.value = { ...businessCarState.value, [carId]: !value }
-      error.value = err.response?.data?.message || t('cars.error_business_car')
-    }
-  }, 500)
-}
 
 const getModelLabel = (modelValue: string | null | undefined): string => {
   if (!modelValue) return ''
@@ -486,6 +488,67 @@ const handleDeleteImage = async (carId: string) => {
   }
 }
 
+const openSohAddForm = () => {
+  sohEditingEntry.value = null
+  sohPercent.value = null
+  sohDate.value = new Date().toISOString().split('T')[0]
+  showSohAddForm.value = true
+}
+
+const openSohEditForm = (entry: BatterySohEntry) => {
+  sohEditingEntry.value = entry
+  sohPercent.value = entry.sohPercent
+  sohDate.value = entry.recordedAt
+  showSohAddForm.value = true
+}
+
+const cancelSohForm = () => {
+  showSohAddForm.value = false
+  sohEditingEntry.value = null
+  sohPercent.value = null
+  sohDate.value = new Date().toISOString().split('T')[0]
+}
+
+const submitSohForm = async () => {
+  if (!editingCar.value || !sohPercent.value || !sohDate.value) return
+  try {
+    error.value = null
+    if (sohEditingEntry.value) {
+      const updated = await carService.updateSohMeasurement(editingCar.value.id, sohEditingEntry.value.id, {
+        sohPercent: sohPercent.value,
+        recordedAt: sohDate.value
+      })
+      sohHistory.value = sohHistory.value.map(e => e.id === updated.id ? updated : e)
+    } else {
+      const created = await carService.addSohMeasurement(editingCar.value.id, {
+        sohPercent: sohPercent.value,
+        recordedAt: sohDate.value
+      })
+      sohHistory.value = [created, ...sohHistory.value]
+        .sort((a, b) => b.recordedAt.localeCompare(a.recordedAt))
+      // Sync car's batteryDegradationPercent for display
+      cars.value = cars.value.map(c => c.id === editingCar.value!.id
+        ? { ...c, batteryDegradationPercent: 100 - sohPercent.value!, effectiveBatteryCapacityKwh: c.batteryCapacityKwh * sohPercent.value! / 100 }
+        : c)
+    }
+    cancelSohForm()
+    carStore.invalidateCars()
+  } catch (err: any) {
+    error.value = err.response?.data?.message || t('cars.soh_error_save')
+  }
+}
+
+const deleteSohEntry = async (entry: BatterySohEntry) => {
+  if (!editingCar.value || !confirm(t('cars.soh_confirm_delete'))) return
+  try {
+    await carService.deleteSohMeasurement(editingCar.value.id, entry.id)
+    sohHistory.value = sohHistory.value.filter(e => e.id !== entry.id)
+    carStore.invalidateCars()
+  } catch (err: any) {
+    error.value = err.response?.data?.message || t('cars.soh_error_delete')
+  }
+}
+
 onMounted(async () => {
   await fetchBrands()
   await fetchCars()
@@ -494,7 +557,6 @@ onMounted(async () => {
 onUnmounted(() => {
   revokeAllBlobUrls()
   Object.values(visibilityTimers).forEach(clearTimeout)
-  Object.values(businessCarTimers).forEach(clearTimeout)
 })
 </script>
 
@@ -647,31 +709,117 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <!-- Erweiterte Einstellungen -->
+          <!-- Zusätzliche Einstellungen -->
           <div class="mt-4 border-t dark:border-gray-600 pt-4">
-            <button type="button" @click="showAdvancedSettings = !showAdvancedSettings"
-              class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
-                class="w-4 h-4 transition-transform" :class="{ 'rotate-180': showAdvancedSettings }">
-                <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-              </svg>
-              {{ t('cars.advanced_settings') }}
-            </button>
-            <div v-if="showAdvancedSettings" class="mt-3 space-y-2">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('cars.label_degradation') }}</label>
-              <div class="flex items-center gap-2">
-                <input v-model.number="batteryDegradationPercent" type="number" step="0.1" min="0" max="50"
-                  :placeholder="t('cars.degradation_placeholder')"
-                  class="w-32 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
-                <span class="text-sm text-gray-500 dark:text-gray-400">%</span>
-                <button v-if="batteryDegradationPercent != null" type="button"
-                  @click="batteryDegradationPercent = null"
-                  class="text-xs text-red-500 hover:text-red-700 ml-2">{{ t('cars.reset') }}</button>
+            <div class="space-y-4">
+              <!-- Wärmepumpe -->
+              <label class="flex items-start gap-3 cursor-pointer">
+                <div class="relative mt-0.5">
+                  <input type="checkbox" v-model="hasHeatPump" class="sr-only peer" />
+                  <div class="w-10 h-5 bg-gray-200 dark:bg-gray-600 rounded-full peer-checked:bg-blue-500 transition-colors"></div>
+                  <div class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5"></div>
+                </div>
+                <div>
+                  <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('cars.label_heat_pump') }}</span>
+                  <p class="text-xs text-gray-400 dark:text-gray-500">{{ t('cars.hint_heat_pump') }}</p>
+                </div>
+              </label>
+
+              <!-- Dienstwagen -->
+              <label class="flex items-start gap-3 cursor-pointer">
+                <div class="relative mt-0.5">
+                  <input type="checkbox" v-model="isBusinessCar" class="sr-only peer" />
+                  <div class="w-10 h-5 bg-gray-200 dark:bg-gray-600 rounded-full peer-checked:bg-violet-500 transition-colors"></div>
+                  <div class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5"></div>
+                </div>
+                <div>
+                  <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('cars.business_car_label') }}</span>
+                  <p class="text-xs text-gray-400 dark:text-gray-500">{{ t('cars.business_car_hint') }}</p>
+                </div>
+              </label>
+
+              <!-- Batteriedegradation (Legacy-Feld, nur sichtbar wenn noch kein SoH-Verlauf) -->
+              <div v-if="!editingCar">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('cars.label_degradation') }}</label>
+                <div class="flex items-center gap-2">
+                  <input v-model.number="batteryDegradationPercent" type="number" step="0.1" min="0" max="50"
+                    :placeholder="t('cars.degradation_placeholder')"
+                    class="w-32 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
+                  <span class="text-sm text-gray-500 dark:text-gray-400">%</span>
+                  <button v-if="batteryDegradationPercent != null" type="button"
+                    @click="batteryDegradationPercent = null"
+                    class="text-xs text-red-500 hover:text-red-700 ml-2">{{ t('cars.reset') }}</button>
+                </div>
+                <p v-if="batteryDegradationPercent && finalCapacity" class="text-xs text-amber-600 mt-1">
+                  {{ t('cars.effective_capacity', { eff: (finalCapacity * (1 - batteryDegradationPercent / 100)).toFixed(2), nom: finalCapacity }) }}
+                </p>
+                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ t('cars.hint_degradation') }}</p>
               </div>
-              <p v-if="batteryDegradationPercent && finalCapacity" class="text-xs text-amber-600">
-                {{ t('cars.effective_capacity', { eff: (finalCapacity * (1 - batteryDegradationPercent / 100)).toFixed(2), nom: finalCapacity }) }}
-              </p>
-              <p class="text-xs text-gray-400 dark:text-gray-500">{{ t('cars.hint_degradation') }}</p>
+
+              <!-- SoH-Verlauf (nur im Edit-Modus) -->
+              <div v-if="editingCar">
+                <div class="flex items-center justify-between mb-2">
+                  <label class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('cars.soh_section_title') }}</label>
+                  <button v-if="!showSohAddForm" type="button" @click="openSohAddForm"
+                    class="text-xs text-indigo-600 hover:text-indigo-700 font-medium">
+                    + {{ t('cars.soh_add_btn') }}
+                  </button>
+                </div>
+                <p class="text-xs text-gray-400 dark:text-gray-500 mb-2">{{ t('cars.soh_hint') }}</p>
+
+                <!-- SoH Eingabeformular -->
+                <div v-if="showSohAddForm" class="p-3 bg-gray-50 dark:bg-gray-600 rounded-lg space-y-2 mb-3">
+                  <div class="grid grid-cols-2 gap-2">
+                    <div>
+                      <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">{{ t('cars.soh_label_percent') }}</label>
+                      <div class="relative">
+                        <input v-model.number="sohPercent" type="number" step="0.1" min="50" max="100"
+                          placeholder="z.B. 92"
+                          class="w-full rounded-md border-gray-300 dark:border-gray-500 p-2 border text-sm dark:bg-gray-700 dark:text-gray-100 pr-6" />
+                        <span class="absolute right-2 top-2 text-xs text-gray-400">%</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">{{ t('cars.soh_label_date') }}</label>
+                      <input v-model="sohDate" type="date"
+                        class="w-full rounded-md border-gray-300 dark:border-gray-500 p-2 border text-sm dark:bg-gray-700 dark:text-gray-100" />
+                    </div>
+                  </div>
+                  <div v-if="sohPercent && finalCapacity" class="text-xs text-amber-600">
+                    Effektive Kapazität: {{ (finalCapacity * sohPercent / 100).toFixed(1) }} kWh
+                  </div>
+                  <div class="flex gap-2">
+                    <button type="button" @click="submitSohForm"
+                      class="text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-md hover:bg-indigo-700 transition">
+                      {{ t('cars.soh_save_btn') }}
+                    </button>
+                    <button type="button" @click="cancelSohForm"
+                      class="text-xs bg-gray-200 dark:bg-gray-500 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-md hover:bg-gray-300 transition">
+                      {{ t('cars.cancel') }}
+                    </button>
+                  </div>
+                </div>
+
+                <!-- SoH Verlaufsliste -->
+                <div v-if="sohHistory.length === 0 && !showSohAddForm" class="text-xs text-gray-400 dark:text-gray-500 italic">
+                  {{ t('cars.soh_history_empty') }}
+                </div>
+                <div v-else class="space-y-1">
+                  <div v-for="entry in sohHistory" :key="entry.id"
+                    class="flex items-center justify-between py-1.5 px-2 rounded bg-gray-50 dark:bg-gray-600 text-sm">
+                    <div class="flex items-center gap-3">
+                      <span class="font-semibold text-gray-800 dark:text-gray-100">{{ entry.sohPercent }}%</span>
+                      <span class="text-gray-500 dark:text-gray-400 text-xs">{{ entry.recordedAt }}</span>
+                    </div>
+                    <div class="flex gap-2">
+                      <button type="button" @click="openSohEditForm(entry)"
+                        class="text-xs text-indigo-500 hover:text-indigo-700">{{ t('cars.soh_correct_btn') }}</button>
+                      <button type="button" @click="deleteSohEntry(entry)"
+                        class="text-xs text-red-400 hover:text-red-600">{{ t('cars.soh_delete_btn') }}</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -762,8 +910,8 @@ onUnmounted(() => {
             </span>
           </div>
 
-          <!-- Upload controls -->
-          <div class="px-5 pt-3 pb-1 flex items-center gap-3">
+          <!-- Photo controls row -->
+          <div class="px-4 py-2 flex items-center gap-3 border-b border-gray-100 dark:border-gray-600">
             <label class="flex items-center gap-1.5 cursor-pointer">
               <input type="checkbox"
                 :checked="imagePublicForUpload[car.id] ?? false"
@@ -775,90 +923,106 @@ onUnmounted(() => {
               <span :class="[
                 'text-xs px-3 py-1.5 rounded-md font-medium transition',
                 imageUploading[car.id]
-                  ? 'bg-gray-100 dark:bg-gray-600 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                  : 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-900/60'
+                  ? 'bg-gray-100 dark:bg-gray-600 text-gray-400 cursor-not-allowed'
+                  : 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200'
               ]">
                 {{ imageUploading[car.id] ? t('cars.uploading') : (car.imageUrl ? t('cars.change_photo') : t('cars.upload_photo')) }}
               </span>
-              <input
-                type="file"
-                accept="image/jpeg,image/png"
-                class="hidden"
+              <input type="file" accept="image/jpeg,image/png" class="hidden"
                 :disabled="imageUploading[car.id]"
                 @change="handleImageUpload(car.id, $event)" />
             </label>
           </div>
 
-          <div class="px-5 pt-2 pb-5">
-            <div class="flex justify-between items-start mb-3">
-              <div>
+          <!-- Card body -->
+          <div class="px-4 pt-3 pb-4 space-y-3">
+
+            <!-- Title row -->
+            <div class="flex justify-between items-start gap-2">
+              <div class="min-w-0">
                 <div class="flex items-center gap-2 flex-wrap">
-                  <h3 class="text-xl font-bold text-indigo-700 dark:text-indigo-300">
+                  <h3 class="text-lg font-bold text-indigo-700 dark:text-indigo-300 leading-tight">
                     {{ getModelLabel(car.model) }}
-                    <span v-if="car.trim" class="text-base font-normal text-indigo-600 dark:text-indigo-400">{{ car.trim }}</span>
+                    <span v-if="car.trim" class="text-sm font-normal text-indigo-500 dark:text-indigo-400">{{ car.trim }}</span>
                   </h3>
                   <span v-if="car.isPrimary"
-                    class="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium border border-green-200">
+                    class="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium border border-green-200 shrink-0">
                     {{ t('cars.active') }}
                   </span>
-                  <!-- Tesla vehicle state badge -->
+                  <!-- Tesla state badge -->
                   <template v-if="car.brand?.toLowerCase() === 'tesla' && teslaStatus?.connected && (teslaStatus.carId === car.id || teslaStatus.carId === null)">
                     <span v-if="teslaStatus.vehicleState === 'charging'"
-                      class="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium border border-green-200">
+                      class="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium border border-green-200 shrink-0">
                       <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
                       {{ t('cars.tesla_charging') }}
                     </span>
                     <span v-else-if="teslaStatus.vehicleState === 'online'"
-                      class="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs rounded-full font-medium border border-blue-200 dark:border-blue-700">
+                      class="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs rounded-full font-medium border border-blue-200 dark:border-blue-700 shrink-0">
                       <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
                       {{ t('cars.tesla_online') }}
                     </span>
                     <span v-else-if="teslaStatus.vehicleState === 'asleep'"
-                      class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-300 text-xs rounded-full font-medium border border-gray-200 dark:border-gray-500">
+                      class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-300 text-xs rounded-full font-medium border border-gray-200 dark:border-gray-500 shrink-0">
                       <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
                       {{ t('cars.tesla_sleeping') }}
                     </span>
                   </template>
                 </div>
-                <p class="text-sm text-gray-600 dark:text-gray-400">{{ car.year }}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{{ car.year }}</p>
               </div>
-              <LicensePlate v-if="car.licensePlate" :plate="car.licensePlate" />
+              <LicensePlate v-if="car.licensePlate" :plate="car.licensePlate" class="shrink-0" />
             </div>
 
-            <div class="mb-4 space-y-1">
-              <p class="text-sm text-gray-600 dark:text-gray-400">
-                <span class="font-semibold">{{ t('cars.battery') }}</span> {{ car.batteryCapacityKwh }} kWh
-                <span v-if="car.batteryDegradationPercent" class="text-amber-600 text-xs ml-1">
-                  {{ t('cars.degradation_info', { pct: car.batteryDegradationPercent, kwh: car.effectiveBatteryCapacityKwh }) }}
-                </span>
-              </p>
-              <p v-if="car.powerKw" class="text-sm text-gray-600 dark:text-gray-400">
-                <span class="font-semibold">{{ t('cars.power') }}</span> {{ car.powerKw }} kW ({{ Math.round(car.powerKw * 1.35962) }} PS)
-              </p>
-              <p class="text-xs text-gray-400 dark:text-gray-500 font-mono select-all" :title="t('cars.id_hint')">{{ car.id }}</p>
-              <label class="flex items-center gap-1.5 cursor-pointer mt-1">
-                <input type="checkbox"
-                  :checked="businessCarState[car.id] ?? false"
-                  @change="handleBusinessCarChange(car.id, ($event.target as HTMLInputElement).checked)"
-                  class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-                <span class="text-xs text-gray-600 dark:text-gray-400">{{ t('cars.business_car') }}</span>
-              </label>
+            <!-- Specs row -->
+            <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+              <div class="text-gray-600 dark:text-gray-400">
+                <span class="text-gray-400 dark:text-gray-500 text-xs uppercase tracking-wide">{{ t('cars.battery') }}</span>
+                <div class="font-medium text-gray-800 dark:text-gray-200">
+                  {{ car.batteryCapacityKwh }} kWh
+                  <span v-if="car.batteryDegradationPercent" class="text-amber-500 text-xs font-normal ml-1">
+                    - effektiv {{ car.effectiveBatteryCapacityKwh }} kWh
+                  </span>
+                </div>
+              </div>
+              <div v-if="car.powerKw" class="text-gray-600 dark:text-gray-400">
+                <span class="text-gray-400 dark:text-gray-500 text-xs uppercase tracking-wide">{{ t('cars.power') }}</span>
+                <div class="font-medium text-gray-800 dark:text-gray-200">
+                  {{ car.powerKw }} kW <span class="text-gray-500 text-xs">({{ Math.round(car.powerKw * 1.35962) }} PS)</span>
+                </div>
+              </div>
             </div>
 
-            <div class="flex gap-2">
+            <!-- Badges row: SoH, Wärmepumpe, Dienstwagen -->
+            <div class="flex flex-wrap gap-1.5">
+              <span v-if="car.batteryDegradationPercent"
+                class="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-xs rounded-full border border-amber-200 dark:border-amber-700">
+                {{ t('cars.soh_badge', { pct: 100 - car.batteryDegradationPercent }) }}
+              </span>
+              <span v-if="car.hasHeatPump"
+                class="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-xs rounded-full border border-blue-200 dark:border-blue-700">
+                {{ t('cars.heat_pump_badge') }}
+              </span>
+              <span v-if="car.isBusinessCar"
+                class="inline-flex items-center gap-1 px-2 py-0.5 bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 text-xs rounded-full border border-violet-200 dark:border-violet-700">
+                {{ t('cars.business_car_label') }}
+              </span>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex gap-2 pt-1">
               <button v-if="!car.isPrimary" @click="setActiveCar(car.id)"
                 v-haptic
-                class="btn-3d flex-1 bg-green-100 dark:bg-green-700 text-green-800 dark:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-green-200 dark:hover:bg-green-600 transition shadow-[0_4px_0_0_#86efac] dark:shadow-[0_4px_0_0_#15803d] active:shadow-none active:translate-y-1" style="transition: transform 0.075s ease, box-shadow 0.075s ease;">
+                class="btn-3d flex-1 bg-green-100 dark:bg-green-700 text-green-800 dark:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-green-200 dark:hover:bg-green-600 transition">
                 {{ t('cars.set_active_btn') }}
               </button>
-<button @click="openEditForm(car)"
+              <button @click="openEditForm(car)"
                 v-haptic
-                class="btn-3d flex-1 bg-indigo-100 dark:bg-indigo-700 text-indigo-800 dark:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-200 dark:hover:bg-indigo-600 transition shadow-[0_4px_0_0_#a5b4fc] dark:shadow-[0_4px_0_0_#3730a3] active:shadow-none active:translate-y-1" style="transition: transform 0.075s ease, box-shadow 0.075s ease;">
+                class="btn-3d flex-1 bg-indigo-100 dark:bg-indigo-700 text-indigo-800 dark:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-200 dark:hover:bg-indigo-600 transition">
                 {{ t('cars.edit_btn') }}
               </button>
               <button @click="deleteCar(car.id)"
                 v-haptic
-                class="btn-3d flex-1 bg-red-100 dark:bg-red-700 text-red-800 dark:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-red-200 dark:hover:bg-red-600 transition shadow-[0_4px_0_0_#fca5a5] dark:shadow-[0_4px_0_0_#b91c1c] active:shadow-none active:translate-y-1" style="transition: transform 0.075s ease, box-shadow 0.075s ease;">
+                class="btn-3d flex-1 bg-red-100 dark:bg-red-700 text-red-800 dark:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-red-200 dark:hover:bg-red-600 transition">
                 {{ t('cars.delete_btn') }}
               </button>
             </div>
@@ -958,31 +1122,117 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <!-- Erweiterte Einstellungen -->
+          <!-- Zusätzliche Einstellungen -->
           <div class="mt-4 border-t dark:border-gray-600 pt-4">
-            <button type="button" @click="showAdvancedSettings = !showAdvancedSettings"
-              class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
-                class="w-4 h-4 transition-transform" :class="{ 'rotate-180': showAdvancedSettings }">
-                <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-              </svg>
-              {{ t('cars.advanced_settings') }}
-            </button>
-            <div v-if="showAdvancedSettings" class="mt-3 space-y-2">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('cars.label_degradation') }}</label>
-              <div class="flex items-center gap-2">
-                <input v-model.number="batteryDegradationPercent" type="number" step="0.1" min="0" max="50"
-                  :placeholder="t('cars.degradation_placeholder')"
-                  class="w-32 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
-                <span class="text-sm text-gray-500 dark:text-gray-400">%</span>
-                <button v-if="batteryDegradationPercent != null" type="button"
-                  @click="batteryDegradationPercent = null"
-                  class="text-xs text-red-500 hover:text-red-700 ml-2">{{ t('cars.reset') }}</button>
+            <div class="space-y-4">
+              <!-- Wärmepumpe -->
+              <label class="flex items-start gap-3 cursor-pointer">
+                <div class="relative mt-0.5">
+                  <input type="checkbox" v-model="hasHeatPump" class="sr-only peer" />
+                  <div class="w-10 h-5 bg-gray-200 dark:bg-gray-600 rounded-full peer-checked:bg-blue-500 transition-colors"></div>
+                  <div class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5"></div>
+                </div>
+                <div>
+                  <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('cars.label_heat_pump') }}</span>
+                  <p class="text-xs text-gray-400 dark:text-gray-500">{{ t('cars.hint_heat_pump') }}</p>
+                </div>
+              </label>
+
+              <!-- Dienstwagen -->
+              <label class="flex items-start gap-3 cursor-pointer">
+                <div class="relative mt-0.5">
+                  <input type="checkbox" v-model="isBusinessCar" class="sr-only peer" />
+                  <div class="w-10 h-5 bg-gray-200 dark:bg-gray-600 rounded-full peer-checked:bg-violet-500 transition-colors"></div>
+                  <div class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5"></div>
+                </div>
+                <div>
+                  <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('cars.business_car_label') }}</span>
+                  <p class="text-xs text-gray-400 dark:text-gray-500">{{ t('cars.business_car_hint') }}</p>
+                </div>
+              </label>
+
+              <!-- Batteriedegradation (Legacy-Feld, nur sichtbar wenn noch kein SoH-Verlauf) -->
+              <div v-if="!editingCar">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('cars.label_degradation') }}</label>
+                <div class="flex items-center gap-2">
+                  <input v-model.number="batteryDegradationPercent" type="number" step="0.1" min="0" max="50"
+                    :placeholder="t('cars.degradation_placeholder')"
+                    class="w-32 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
+                  <span class="text-sm text-gray-500 dark:text-gray-400">%</span>
+                  <button v-if="batteryDegradationPercent != null" type="button"
+                    @click="batteryDegradationPercent = null"
+                    class="text-xs text-red-500 hover:text-red-700 ml-2">{{ t('cars.reset') }}</button>
+                </div>
+                <p v-if="batteryDegradationPercent && finalCapacity" class="text-xs text-amber-600 mt-1">
+                  {{ t('cars.effective_capacity', { eff: (finalCapacity * (1 - batteryDegradationPercent / 100)).toFixed(2), nom: finalCapacity }) }}
+                </p>
+                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ t('cars.hint_degradation') }}</p>
               </div>
-              <p v-if="batteryDegradationPercent && finalCapacity" class="text-xs text-amber-600">
-                {{ t('cars.effective_capacity', { eff: (finalCapacity * (1 - batteryDegradationPercent / 100)).toFixed(2), nom: finalCapacity }) }}
-              </p>
-              <p class="text-xs text-gray-400 dark:text-gray-500">{{ t('cars.hint_degradation') }}</p>
+
+              <!-- SoH-Verlauf (nur im Edit-Modus) -->
+              <div v-if="editingCar">
+                <div class="flex items-center justify-between mb-2">
+                  <label class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('cars.soh_section_title') }}</label>
+                  <button v-if="!showSohAddForm" type="button" @click="openSohAddForm"
+                    class="text-xs text-indigo-600 hover:text-indigo-700 font-medium">
+                    + {{ t('cars.soh_add_btn') }}
+                  </button>
+                </div>
+                <p class="text-xs text-gray-400 dark:text-gray-500 mb-2">{{ t('cars.soh_hint') }}</p>
+
+                <!-- SoH Eingabeformular -->
+                <div v-if="showSohAddForm" class="p-3 bg-gray-50 dark:bg-gray-600 rounded-lg space-y-2 mb-3">
+                  <div class="grid grid-cols-2 gap-2">
+                    <div>
+                      <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">{{ t('cars.soh_label_percent') }}</label>
+                      <div class="relative">
+                        <input v-model.number="sohPercent" type="number" step="0.1" min="50" max="100"
+                          placeholder="z.B. 92"
+                          class="w-full rounded-md border-gray-300 dark:border-gray-500 p-2 border text-sm dark:bg-gray-700 dark:text-gray-100 pr-6" />
+                        <span class="absolute right-2 top-2 text-xs text-gray-400">%</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">{{ t('cars.soh_label_date') }}</label>
+                      <input v-model="sohDate" type="date"
+                        class="w-full rounded-md border-gray-300 dark:border-gray-500 p-2 border text-sm dark:bg-gray-700 dark:text-gray-100" />
+                    </div>
+                  </div>
+                  <div v-if="sohPercent && finalCapacity" class="text-xs text-amber-600">
+                    Effektive Kapazität: {{ (finalCapacity * sohPercent / 100).toFixed(1) }} kWh
+                  </div>
+                  <div class="flex gap-2">
+                    <button type="button" @click="submitSohForm"
+                      class="text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-md hover:bg-indigo-700 transition">
+                      {{ t('cars.soh_save_btn') }}
+                    </button>
+                    <button type="button" @click="cancelSohForm"
+                      class="text-xs bg-gray-200 dark:bg-gray-500 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-md hover:bg-gray-300 transition">
+                      {{ t('cars.cancel') }}
+                    </button>
+                  </div>
+                </div>
+
+                <!-- SoH Verlaufsliste -->
+                <div v-if="sohHistory.length === 0 && !showSohAddForm" class="text-xs text-gray-400 dark:text-gray-500 italic">
+                  {{ t('cars.soh_history_empty') }}
+                </div>
+                <div v-else class="space-y-1">
+                  <div v-for="entry in sohHistory" :key="entry.id"
+                    class="flex items-center justify-between py-1.5 px-2 rounded bg-gray-50 dark:bg-gray-600 text-sm">
+                    <div class="flex items-center gap-3">
+                      <span class="font-semibold text-gray-800 dark:text-gray-100">{{ entry.sohPercent }}%</span>
+                      <span class="text-gray-500 dark:text-gray-400 text-xs">{{ entry.recordedAt }}</span>
+                    </div>
+                    <div class="flex gap-2">
+                      <button type="button" @click="openSohEditForm(entry)"
+                        class="text-xs text-indigo-500 hover:text-indigo-700">{{ t('cars.soh_correct_btn') }}</button>
+                      <button type="button" @click="deleteSohEntry(entry)"
+                        class="text-xs text-red-400 hover:text-red-600">{{ t('cars.soh_delete_btn') }}</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 

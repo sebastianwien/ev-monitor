@@ -11,8 +11,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -41,11 +43,12 @@ public class EvLogService {
     private final VehicleSpecificationRepository vehicleSpecificationRepository;
     private final PlausibilityProperties plausibility;
     private final SessionGroupService sessionGroupService;
+    private final BatterySohRepository batterySohRepository;
 
     public EvLogService(EvLogRepository evLogRepository, CarRepository carRepository, UserRepository userRepository,
             CoinLogService coinLogService, TemperatureEnrichmentService temperatureEnrichmentService,
             VehicleSpecificationRepository vehicleSpecificationRepository, PlausibilityProperties plausibility,
-            SessionGroupService sessionGroupService) {
+            SessionGroupService sessionGroupService, BatterySohRepository batterySohRepository) {
         this.evLogRepository = evLogRepository;
         this.carRepository = carRepository;
         this.userRepository = userRepository;
@@ -54,6 +57,7 @@ public class EvLogService {
         this.vehicleSpecificationRepository = vehicleSpecificationRepository;
         this.plausibility = plausibility;
         this.sessionGroupService = sessionGroupService;
+        this.batterySohRepository = batterySohRepository;
     }
 
     @Transactional
@@ -379,8 +383,8 @@ public class EvLogService {
                 .collect(Collectors.toList());
 
         // Compute per-log consumption + plausibility on the full dataset (SoC-based)
-        Map<UUID, ConsumptionResult> consumptionByLog = new LinkedHashMap<>(car.getEffectiveBatteryCapacityKwh() != null
-                ? calculateConsumptionPerLog(allLogsSorted, car.getEffectiveBatteryCapacityKwh(), lookupWltp(car))
+        Map<UUID, ConsumptionResult> consumptionByLog = new LinkedHashMap<>(car.getBatteryCapacityKwh() != null
+                ? calculateConsumptionPerLog(allLogsSorted, buildCapacityLookup(car), lookupWltp(car))
                 : Map.of());
 
         // Distance since last charge — covers logs with odometer regardless of SoC availability
@@ -429,10 +433,10 @@ public class EvLogService {
                 .sorted(Comparator.comparing(EvLog::getLoggedAt))
                 .collect(Collectors.toList());
 
-        if (car.getEffectiveBatteryCapacityKwh() == null) return List.of();
+        if (car.getBatteryCapacityKwh() == null) return List.of();
 
         Map<UUID, ConsumptionResult> consumptionByLog =
-                calculateConsumptionPerLog(allLogs, car.getEffectiveBatteryCapacityKwh(), lookupWltp(car));
+                calculateConsumptionPerLog(allLogs, buildCapacityLookup(car), lookupWltp(car));
 
         return allLogs.stream()
                 .map(log -> {
@@ -509,8 +513,8 @@ public class EvLogService {
         }
 
         // Compute per-log consumption once — used for both chart data and overall average
-        Map<UUID, ConsumptionResult> consumptionByLog = new LinkedHashMap<>(car.getEffectiveBatteryCapacityKwh() != null
-                ? calculateConsumptionPerLog(allLogsForCar, car.getEffectiveBatteryCapacityKwh(), lookupWltp(car))
+        Map<UUID, ConsumptionResult> consumptionByLog = new LinkedHashMap<>(car.getBatteryCapacityKwh() != null
+                ? calculateConsumptionPerLog(allLogsForCar, buildCapacityLookup(car), lookupWltp(car))
                 : Map.of());
 
         // Fallback: for logs with distance but no SoC-based consumption, estimate via kWh/distance.
@@ -717,6 +721,10 @@ public class EvLogService {
      * @return map of logId (logY) → ConsumptionResult(value, plausible, distanceKm)
      */
     Map<UUID, ConsumptionResult> calculateConsumptionPerLog(List<EvLog> allLogs, BigDecimal batteryCapacityKwh, BigDecimal wltpKwh) {
+        return calculateConsumptionPerLog(allLogs, date -> batteryCapacityKwh, wltpKwh);
+    }
+
+    Map<UUID, ConsumptionResult> calculateConsumptionPerLog(List<EvLog> allLogs, Function<LocalDate, BigDecimal> capacityForDate, BigDecimal wltpKwh) {
         // Always sort — correctness must not depend on caller discipline
         List<EvLog> sorted = allLogs.stream()
                 .sorted(Comparator.comparing(EvLog::getLoggedAt))
@@ -734,7 +742,9 @@ public class EvLogService {
                     if (logX == null) return;
                     int dist = logY.getOdometerKm() - logX.getOdometerKm();
                     if (dist < plausibility.getMinTripDistanceKm()) return;
-                    calculateConsumption(logX, logY, batteryCapacityKwh).ifPresent(c -> {
+                    BigDecimal capacity = capacityForDate.apply(logY.getLoggedAt().toLocalDate());
+                    if (capacity == null) return;
+                    calculateConsumption(logX, logY, capacity).ifPresent(c -> {
                         ids.add(logY.getId());
                         values.add(c);
                         distances.add(dist);
@@ -911,6 +921,16 @@ public class EvLogService {
         return result;
     }
 
+    /**
+     * Baut eine datum-bewusste Kapazitäts-Lookup-Funktion für ein Auto.
+     * Nutzt SoH-History wenn vorhanden, sonst Fallback auf batteryDegradationPercent.
+     */
+    private Function<LocalDate, BigDecimal> buildCapacityLookup(Car car) {
+        if (car.getBatteryCapacityKwh() == null) return date -> null;
+        List<BatterySohEntry> history = batterySohRepository.findByCarId(car.getId());
+        return date -> car.getEffectiveBatteryCapacityKwhAt(date, history);
+    }
+
     /** Distance-weighted average, null if no data. */
     private BigDecimal weightedAverage(BigDecimal totalWeighted, int totalKm) {
         if (totalKm == 0) return null;
@@ -925,7 +945,7 @@ public class EvLogService {
      */
     private List<PlausibleEntry> getPlausibleEntriesForCar(Car car, List<EvLog> allLogs, List<EvLog> statsLogs) {
         Map<UUID, ConsumptionResult> perLog = calculateConsumptionPerLog(
-                allLogs, car.getEffectiveBatteryCapacityKwh(), lookupWltp(car));
+                allLogs, buildCapacityLookup(car), lookupWltp(car));
 
         List<PlausibleEntry> entries = new ArrayList<>();
 

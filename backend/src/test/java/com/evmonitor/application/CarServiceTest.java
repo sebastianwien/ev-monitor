@@ -61,7 +61,8 @@ class CarServiceTest {
                 "Long Range",
                 new BigDecimal("79.0"),
                 new BigDecimal("350.0"),
-                null
+                null,
+                false
         );
 
         when(carRepository.save(any(Car.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -158,7 +159,8 @@ class CarServiceTest {
                 "Performance",
                 new BigDecimal("82.0"),
                 new BigDecimal("450.0"),
-                null
+                null,
+                false
         );
 
         // When
@@ -192,7 +194,8 @@ class CarServiceTest {
                 "Stolen",
                 new BigDecimal("80.0"),
                 new BigDecimal("400.0"),
-                null
+                null,
+                false
         );
 
         // When & Then
@@ -309,7 +312,8 @@ class CarServiceTest {
                 "Performance",
                 new BigDecimal("75.0"),
                 new BigDecimal("200.0"),
-                new BigDecimal("10.0")
+                new BigDecimal("10.0"),
+                false
         );
 
         // When

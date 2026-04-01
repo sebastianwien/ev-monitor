@@ -69,6 +69,9 @@ public class CarEntity {
     @Column(name = "is_business_car", nullable = false)
     private boolean isBusinessCar;
 
+    @Column(name = "has_heat_pump", nullable = false)
+    private boolean hasHeatPump;
+
     public CarEntity() {
     }
 
@@ -216,5 +219,13 @@ public class CarEntity {
 
     public void setBusinessCar(boolean isBusinessCar) {
         this.isBusinessCar = isBusinessCar;
+    }
+
+    public boolean isHasHeatPump() {
+        return hasHeatPump;
+    }
+
+    public void setHasHeatPump(boolean hasHeatPump) {
+        this.hasHeatPump = hasHeatPump;
     }
 }

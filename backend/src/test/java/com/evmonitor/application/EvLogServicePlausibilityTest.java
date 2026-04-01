@@ -52,7 +52,7 @@ class EvLogServicePlausibilityTest {
                 evLogRepository, carRepository, userRepository, coinLogService,
                 temperatureEnrichmentService, mock(VehicleSpecificationRepository.class),
                 new PlausibilityProperties(),
-                mock(com.evmonitor.application.SessionGroupService.class)
+                mock(com.evmonitor.application.SessionGroupService.class), mock(com.evmonitor.domain.BatterySohRepository.class)
         );
     }
 

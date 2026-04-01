@@ -22,4 +22,12 @@ export const featureAnnouncements: FeatureAnnouncement[] = [
     titleKey: 'announcements.consumption_normalization_v1_title',
     bodyKey: 'announcements.consumption_normalization_v1_body',
   },
+  {
+    key: 'battery-soh-heatpump-v1',
+    expiresAt: '2026-05-15',
+    titleKey: 'announcements.battery_soh_heatpump_v1_title',
+    bodyKey: 'announcements.battery_soh_heatpump_v1_body',
+    ctaLabelKey: 'announcements.battery_soh_heatpump_v1_cta',
+    ctaRoute: '/cars',
+  },
 ]

@@ -29,5 +29,7 @@ public record CarRequest(
 
         @DecimalMin(value = "0.0", message = "Battery degradation must be >= 0")
         @DecimalMax(value = "50.0", message = "Battery degradation must be <= 50")
-        BigDecimal batteryDegradationPercent) {
+        BigDecimal batteryDegradationPercent,
+
+        boolean hasHeatPump) {
 }

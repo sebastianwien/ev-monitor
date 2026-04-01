@@ -22,6 +22,7 @@ export interface Car {
     batteryDegradationPercent: number | null;
     effectiveBatteryCapacityKwh: number | null;
     isBusinessCar: boolean;
+    hasHeatPump: boolean;
 }
 
 export interface CarRequest {
@@ -32,6 +33,7 @@ export interface CarRequest {
     batteryCapacityKwh: number; // Selected or custom capacity
     powerKw: number | null; // Power in kW (optional)
     batteryDegradationPercent: number | null;
+    hasHeatPump: boolean;
 }
 
 export interface BrandInfo {
@@ -53,6 +55,19 @@ export interface CarCreateResponse {
 export interface CarImageResponse {
     car: Car;
     coinsAwarded: number;
+}
+
+export interface BatterySohEntry {
+    id: string;
+    carId: string;
+    sohPercent: number;
+    recordedAt: string; // ISO date
+    createdAt: string;
+}
+
+export interface BatterySohRequest {
+    sohPercent: number;
+    recordedAt: string; // ISO date
 }
 
 export const carService = {
@@ -121,5 +136,25 @@ export const carService = {
     async setBusinessCar(carId: string, isBusinessCar: boolean): Promise<Car> {
         const response = await api.patch(`/cars/${carId}/business-car?isBusinessCar=${isBusinessCar}`);
         return response.data;
+    },
+
+    // SoH History
+    async getSohHistory(carId: string): Promise<BatterySohEntry[]> {
+        const response = await api.get(`/cars/${carId}/soh`);
+        return response.data;
+    },
+
+    async addSohMeasurement(carId: string, data: BatterySohRequest): Promise<BatterySohEntry> {
+        const response = await api.post(`/cars/${carId}/soh`, data);
+        return response.data;
+    },
+
+    async updateSohMeasurement(carId: string, entryId: string, data: BatterySohRequest): Promise<BatterySohEntry> {
+        const response = await api.put(`/cars/${carId}/soh/${entryId}`, data);
+        return response.data;
+    },
+
+    async deleteSohMeasurement(carId: string, entryId: string): Promise<void> {
+        await api.delete(`/cars/${carId}/soh/${entryId}`);
     }
 };

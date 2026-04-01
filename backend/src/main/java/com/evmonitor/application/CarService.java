@@ -25,15 +25,11 @@ public class CarService {
 
     @Transactional
     public CarCreateResponse createCar(UUID userId, CarRequest request) {
-        Car newCar = Car.createNew(
-                userId,
-                request.model(),
-                request.year(),
-                request.licensePlate(),
-                request.trim(),
-                request.batteryCapacityKwh(),
-                request.powerKw(),
-                request.batteryDegradationPercent());
+        Car newCar = new Car(UUID.randomUUID(), userId, request.model(), request.year(),
+                request.licensePlate(), request.trim(), request.batteryCapacityKwh(), request.powerKw(),
+                java.time.LocalDate.of(request.year(), 1, 1), null, com.evmonitor.domain.CarStatus.ACTIVE,
+                java.time.LocalDateTime.now(), java.time.LocalDateTime.now(), null, false, false,
+                request.batteryDegradationPercent(), false, request.hasHeatPump());
 
         Car savedCar = carRepository.save(newCar);
 
@@ -93,7 +89,8 @@ public class CarService {
                 existingCar.isImagePublic(),
                 existingCar.isPrimary(),
                 request.batteryDegradationPercent(),
-                existingCar.isBusinessCar());
+                existingCar.isBusinessCar(),
+                request.hasHeatPump());
 
         Car savedCar = carRepository.save(updatedCar);
         return CarResponse.fromDomain(savedCar);

@@ -159,6 +159,7 @@ const startImport = async () => {
           batteryCapacityKwh: 50, // Default placeholder (user can edit later)
           powerKw: null,
           batteryDegradationPercent: null,
+          hasHeatPump: false,
           licensePlate: '', // Empty string (user can add later)
           trim: null,
         });
