@@ -1034,7 +1034,7 @@ imports:
   smartcar_how_q2: "Warum über einen Mittelsmann?"
   smartcar_how_a2: "Kein Hersteller gibt Dritten direkt Zugriff auf Fahrzeugdaten. Smartcar ist der genehmigte Weg - sie haben offizielle Partnerschaften mit den Herstellern und dürfen im Auftrag des Fahrzeugbesitzers auf die Daten zugreifen. EV Monitor hat keine eigene Verbindung zu deinem Auto - das läuft alles über Smartcar."
   smartcar_how_q3: "Was passiert beim Verbinden?"
-  smartcar_how_a3: "Du wirst kurz zu Smartcar weitergeleitet und loggst dich dort mit deinem Hersteller-Account ein (z.B. BMW Connected Drive, myVolkswagen, Mercedes me). EV Monitor sieht dabei dein Passwort nie - das funktioniert genau wie \"Mit Google einloggen\": du gibst Google dein Passwort, nicht der Dienst der Google nutzt. Du kannst den Zugriff jederzeit direkt bei Smartcar oder hier widerrufen."
+  smartcar_how_a3: "Du wirst zur Login-Seite deines Herstellers weitergeleitet - direkt zu BMW, Volkswagen, Mercedes etc. Dort gibst du deine Zugangsdaten ein, und nur dein Hersteller sieht sie. Weder Smartcar noch EV Monitor sehen dein Passwort je. Der Hersteller gibt Smartcar danach nur einen temporären Zugriffsschlüssel - das funktioniert genau wie 'Mit Google einloggen': du gibst dein Passwort Google, nicht dem Dienst der Google nutzt. Du kannst den Zugriff jederzeit direkt beim Hersteller oder hier widerrufen."
   smartcar_how_q4: "Was passiert beim Laden?"
   smartcar_how_a4: "Sobald eine Ladesession beginnt und endet, schickt Smartcar die Daten automatisch an EV Monitor. Die kWh kommen direkt vom Fahrzeug - genauer als jede Schätzung. Du musst gar nichts tun."
   smartcar_how_q5: "Muss ich danach noch etwas tun?"
@@ -1438,6 +1438,9 @@ announcements:
   battery_soh_heatpump_v1_title: "Batterie-Gesundheit & Wärmepumpe erfassen"
   battery_soh_heatpump_v1_body: "Ihr könnt jetzt den Batteriezustand (SoH) eures Fahrzeugs mit Datum hinterlegen. Verbrauchsberechnungen für ältere Ladevorgänge werden damit automatisch angepasst - ein 5 Jahre altes Auto hatte eben damals noch mehr Akkukapazität. Außerdem gibt es jetzt ein Wärmepumpen-Flag, das bei der Plausibilitätsprüfung von Winterverbräuchen hilft."
   battery_soh_heatpump_v1_cta: "Zum Fahrzeug"
+  survey_premium_april_2026_title: "Kurze Frage - 60 Sekunden"
+  survey_premium_april_2026_body: "Ich plane ein Premium-Feature für das vollautomatische Erfassen von Ladevorgängen. Dein Auto verbindet sich einmalig und Ladesessions kommen von selbst. Was hältst du davon?"
+  survey_premium_april_2026_cta: "Zur Umfrage"
   consumption_normalization_v1_title: "Genauere Verbrauchswerte: Ladeverluste herausgerechnet"
   consumption_normalization_v1_body: "Dein angezeigter Verbrauch (kWh/100km) entspricht jetzt dem echten Fahrverbrauch aus dem Akku. Wallbox-Messungen enthalten Ladeverluste durch den Ladevorgang selbst - diese werden jetzt automatisch herausgerechnet (AC-Laden: 10%, DC-Schnellladen: 5%). Deine Verbrauchswerte sinken dadurch leicht und sind jetzt besser mit WLTP und anderen Datenquellen vergleichbar. Die Kostenkalkulation bleibt davon unberührt."
 

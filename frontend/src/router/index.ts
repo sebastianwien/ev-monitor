@@ -28,6 +28,7 @@ import ResetPasswordView from '../views/ResetPasswordView.vue';
 import AdminView from '../views/AdminView.vue';
 import LeaderboardView from '../views/LeaderboardView.vue';
 import TaxExportView from '../views/TaxExportView.vue';
+import SurveyView from '../views/SurveyView.vue';
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
@@ -112,6 +113,12 @@ const router = createRouter({
             path: '/tax-export',
             name: 'tax-export',
             component: TaxExportView,
+            meta: { requiresAuth: true }
+        },
+        {
+            path: '/umfrage/:slug',
+            name: 'survey',
+            component: SurveyView,
             meta: { requiresAuth: true }
         },
         {

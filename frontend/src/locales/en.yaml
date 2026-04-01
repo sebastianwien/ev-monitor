@@ -1034,7 +1034,7 @@ imports:
   smartcar_how_q2: "Why through a middleman?"
   smartcar_how_a2: "No manufacturer gives third parties direct access to vehicle data. Smartcar is the approved route - they have official partnerships with manufacturers and are authorised to access data on behalf of the vehicle owner. EV Monitor has no direct connection to your car - everything goes through Smartcar."
   smartcar_how_q3: "What happens when connecting?"
-  smartcar_how_a3: "You'll be briefly redirected to Smartcar and log in there with your manufacturer account (e.g. BMW Connected Drive, myVolkswagen, Mercedes me). EV Monitor never sees your password - it works just like 'Sign in with Google': you give your password to Google, not the service using Google. You can revoke access at any time directly at Smartcar or here."
+  smartcar_how_a3: "You'll be redirected to your manufacturer's login page - directly to BMW, Volkswagen, Mercedes etc. You enter your credentials there, and only your manufacturer sees them. Neither Smartcar nor EV Monitor ever sees your password. The manufacturer then gives Smartcar a temporary access token only - it works just like 'Sign in with Google': you give your password to Google, not the service using Google. You can revoke access at any time directly at your manufacturer or here."
   smartcar_how_q4: "What happens when charging?"
   smartcar_how_a4: "As soon as a charging session begins and ends, Smartcar automatically sends the data to EV Monitor. The kWh come directly from the vehicle - more accurate than any estimate. You don't need to do anything."
   smartcar_how_q5: "Do I need to do anything afterwards?"
@@ -1438,6 +1438,9 @@ announcements:
   battery_soh_heatpump_v1_title: "Track battery health & heat pump"
   battery_soh_heatpump_v1_body: "You can now record your battery's State of Health (SoH) with a date. Consumption calculations for older charging sessions are automatically adjusted - a 5-year-old car had more battery capacity back then. There's also a new heat pump flag that helps with plausibility checks for winter consumption values."
   battery_soh_heatpump_v1_cta: "Go to vehicle"
+  survey_premium_april_2026_title: "Quick question - 60 seconds"
+  survey_premium_april_2026_body: "I'm planning a premium feature for automatic charge tracking. Connect your car once and sessions come in automatically. What do you think?"
+  survey_premium_april_2026_cta: "To the survey"
   consumption_normalization_v1_title: "More accurate consumption: charging losses removed"
   consumption_normalization_v1_body: "Your displayed consumption (kWh/100km) now reflects true driving consumption from the battery. Wallbox measurements include charging losses from the charging process itself - these are now automatically removed (AC charging: 10%, DC fast charging: 5%). Your consumption values will decrease slightly and are now better comparable with WLTP and other data sources. Cost calculations are not affected."
 

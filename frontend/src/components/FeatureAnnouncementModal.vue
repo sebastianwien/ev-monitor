@@ -9,9 +9,10 @@ const router = useRouter()
 const { t } = useI18n()
 
 const handleCta = () => {
+  const route = announcement.value?.ctaRoute
   dismiss()
-  if (announcement.value?.ctaRoute) {
-    router.push(announcement.value.ctaRoute)
+  if (route) {
+    router.push(route)
   }
 }
 </script>
