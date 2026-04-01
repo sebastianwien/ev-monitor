@@ -51,6 +51,13 @@ const router = createRouter({
                 if (authStore.isAuthenticated()) {
                     return '/dashboard';
                 }
+                // First visit without saved locale preference → detect browser language
+                if (!localStorage.getItem('ev-locale')) {
+                    const browserLang = navigator.language ?? '';
+                    if (browserLang.toLowerCase().startsWith('en')) {
+                        return '/en';
+                    }
+                }
             }
             // public landing page, but redirects to /dashboard if authenticated
         },
@@ -145,7 +152,15 @@ const router = createRouter({
         {
             path: '/modelle',
             name: 'public-models-list',
-            component: PublicModelsListView
+            component: PublicModelsListView,
+            beforeEnter: () => {
+                if (!localStorage.getItem('ev-locale')) {
+                    const browserLang = navigator.language ?? '';
+                    if (browserLang.toLowerCase().startsWith('en')) {
+                        return '/en/models';
+                    }
+                }
+            }
             // no auth guard - public page for SEO
         },
         {
@@ -157,12 +172,28 @@ const router = createRouter({
         {
             path: '/modelle/:brand',
             name: 'public-brand',
-            component: PublicBrandView
+            component: PublicBrandView,
+            beforeEnter: (to) => {
+                if (!localStorage.getItem('ev-locale')) {
+                    const browserLang = navigator.language ?? '';
+                    if (browserLang.toLowerCase().startsWith('en')) {
+                        return `/en/models/${to.params.brand}`;
+                    }
+                }
+            }
         },
         {
             path: '/modelle/:brand/:model',
             name: 'public-model',
-            component: PublicModelView
+            component: PublicModelView,
+            beforeEnter: (to) => {
+                if (!localStorage.getItem('ev-locale')) {
+                    const browserLang = navigator.language ?? '';
+                    if (browserLang.toLowerCase().startsWith('en')) {
+                        return `/en/models/${to.params.brand}/${to.params.model}`;
+                    }
+                }
+            }
             // no auth guard - public page for SEO
         },
         // EN auth routes
