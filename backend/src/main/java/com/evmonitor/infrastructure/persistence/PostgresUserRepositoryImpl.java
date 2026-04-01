@@ -136,6 +136,7 @@ public class PostgresUserRepositoryImpl implements UserRepository {
         entity.setUtmMedium(domain.getUtmMedium());
         entity.setUtmCampaign(domain.getUtmCampaign());
         entity.setReferrerSource(domain.getReferrerSource());
+        entity.setRegistrationLocale(domain.getRegistrationLocale());
         return entity;
     }
 
@@ -158,6 +159,7 @@ public class PostgresUserRepositoryImpl implements UserRepository {
                 entity.getUtmMedium(),
                 entity.getUtmCampaign(),
                 entity.getReferrerSource(),
+                entity.getRegistrationLocale(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt());
     }

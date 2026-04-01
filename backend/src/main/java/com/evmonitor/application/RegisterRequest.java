@@ -31,5 +31,8 @@ public record RegisterRequest(
         String utmCampaign,
 
         @Size(max = 255, message = "Referrer source must be max 255 characters")
-        String referrerSource) {
+        String referrerSource,
+
+        @Size(max = 10, message = "Registration locale must be max 10 characters")
+        String registrationLocale) {
 }

@@ -71,28 +71,16 @@ public class AuthService {
             }
         }
 
-        // Check if user has campaign tracking data (utm_* or referrer)
-        boolean hasCampaignData = (request.utmSource() != null && !request.utmSource().isBlank())
-                               || (request.utmMedium() != null && !request.utmMedium().isBlank())
-                               || (request.utmCampaign() != null && !request.utmCampaign().isBlank())
-                               || (request.referrerSource() != null && !request.referrerSource().isBlank());
-
-        User user;
-        if (hasCampaignData) {
-            user = User.createNewLocalUserWithCampaign(
-                    request.email(),
-                    username,
-                    encodedPassword,
-                    referrerId,
-                    request.utmSource(),
-                    request.utmMedium(),
-                    request.utmCampaign(),
-                    request.referrerSource());
-        } else if (referrerId != null) {
-            user = User.createNewLocalUserWithReferrer(request.email(), username, encodedPassword, referrerId);
-        } else {
-            user = User.createNewLocalUser(request.email(), username, encodedPassword);
-        }
+        User user = User.createNewLocalUserWithLocale(
+                request.email(),
+                username,
+                encodedPassword,
+                referrerId,
+                request.utmSource(),
+                request.utmMedium(),
+                request.utmCampaign(),
+                request.referrerSource(),
+                request.registrationLocale());
 
         User savedUser = userRepository.save(user);
 

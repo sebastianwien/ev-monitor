@@ -75,6 +75,7 @@ const handleRegister = async () => {
       utmMedium: utmMedium.value || undefined,
       utmCampaign: utmCampaign.value || undefined,
       referrerSource: referrerSource.value || undefined,
+      registrationLocale: locale.value || undefined,
     });
     if (response.data.status === 'PENDING_VERIFICATION') {
       pendingEmail.value = response.data.email;

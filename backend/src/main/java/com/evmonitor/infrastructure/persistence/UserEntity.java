@@ -61,6 +61,9 @@ public class UserEntity {
     @Column(name = "referrer_source", length = 255)
     private String referrerSource;
 
+    @Column(name = "registration_locale", length = 10)
+    private String registrationLocale;
+
     @Column(name = "leaderboard_visible", nullable = false)
     private boolean leaderboardVisible = true;
 
@@ -250,6 +253,14 @@ public class UserEntity {
 
     public void setLeaderboardVisible(boolean leaderboardVisible) {
         this.leaderboardVisible = leaderboardVisible;
+    }
+
+    public String getRegistrationLocale() {
+        return registrationLocale;
+    }
+
+    public void setRegistrationLocale(String registrationLocale) {
+        this.registrationLocale = registrationLocale;
     }
 
 }

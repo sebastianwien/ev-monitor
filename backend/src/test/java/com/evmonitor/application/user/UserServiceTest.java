@@ -70,6 +70,7 @@ class UserServiceTest {
                 null, // utmMedium
                 null, // utmCampaign
                 null, // referrerSource
+                null, // registrationLocale
                 LocalDateTime.now(),
                 LocalDateTime.now()
         );
