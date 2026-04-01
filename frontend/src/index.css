@@ -2,7 +2,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 html, body {
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* Leaflet: Tailwind Preflight sets max-width: 100% on all images,
@@ -11,6 +11,14 @@ html, body {
     max-width: none;
     max-height: none;
 }
+
+/* Delta chips for WLTP comparison */
+.chip-green { background-color: #dcfce7; color: #15803d; }
+.chip-yellow { background-color: #fef9c3; color: #a16207; }
+.chip-red { background-color: #fee2e2; color: #b91c1c; }
+.dark .chip-green { background-color: rgb(20 83 45 / 0.3); color: #86efac; }
+.dark .chip-yellow { background-color: rgb(113 63 18 / 0.3); color: #fde047; }
+.dark .chip-red { background-color: rgb(127 29 29 / 0.3); color: #fca5a5; }
 
 /* Gold shimmer badge for excellent charging prices (< €0.20/kWh) */
 @keyframes gold-shimmer {
