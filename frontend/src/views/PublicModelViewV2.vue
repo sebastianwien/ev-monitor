@@ -791,12 +791,71 @@ const currentYear = new Date().getFullYear()
 useHead(computed(() => {
   if (notFound.value) return { title: 'Modell nicht gefunden - EV Monitor', meta: [{ name: 'robots', content: 'noindex, nofollow' }] }
   if (!stats.value) return { title: 'EV Monitor', meta: [{ name: 'robots', content: 'index, follow' }] }
+
   const name = stats.value.modelDisplayName
-  const canonicalUrl = `https://ev-monitor.net/modelle/${canonicalBrand}/${model}`
+  const consumption = displayConsumption.value
+  const wltp = worstWltpConsumption.value
+
+  const canonicalUrl = isEn.value
+    ? `https://ev-monitor.net/en/models/${canonicalBrand.value}/${model}`
+    : `https://ev-monitor.net/modelle/${canonicalBrand.value}/${model}`
+  const deUrl = `https://ev-monitor.net/modelle/${canonicalBrand.value}/${model}`
+  const enUrl = `https://ev-monitor.net/en/models/${canonicalBrand.value}/${model}`
+
+  const description = consumption && wltp
+    ? t('model.meta_description_with_data', { model: name, consumption: consumption.toFixed(1), wltp: wltp.toFixed(1) })
+    : t('model.meta_description_no_data', { model: name })
+
+  const title = t('model.meta_title', { model: name, year: currentYear })
+
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'EV Monitor', item: 'https://ev-monitor.net' },
+      { '@type': 'ListItem', position: 2, name: isEn.value ? 'Electric Cars' : 'Elektroautos', item: isEn.value ? 'https://ev-monitor.net/en/models' : 'https://ev-monitor.net/modelle' },
+      { '@type': 'ListItem', position: 3, name: stats.value.brandDisplayName, item: isEn.value ? `https://ev-monitor.net/en/models/${canonicalBrand.value}` : `https://ev-monitor.net/modelle/${canonicalBrand.value}` },
+      { '@type': 'ListItem', position: 4, name, item: canonicalUrl },
+    ]
+  }
+
+  const productJsonLd: Record<string, unknown> = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name,
+    description,
+    brand: { '@type': 'Brand', name: stats.value.brandDisplayName },
+    url: canonicalUrl,
+  }
+  if (consumption) {
+    productJsonLd['additionalProperty'] = [
+      { '@type': 'PropertyValue', name: isEn.value ? 'Real Consumption' : 'Realverbrauch', value: `${consumption.toFixed(1)} kWh/100km` },
+      ...(wltp ? [{ '@type': 'PropertyValue', name: 'WLTP', value: `${wltp.toFixed(1)} kWh/100km` }] : []),
+    ]
+  }
+
   return {
-    title: t('model.meta_title', { model: name, year: currentYear }),
-    meta: [{ name: 'robots', content: 'index, follow' }],
-    link: [{ rel: 'canonical', href: canonicalUrl }],
+    title,
+    meta: [
+      { name: 'description', content: description },
+      { name: 'keywords', content: t('model.meta_keywords', { model: name }) },
+      { name: 'robots', content: 'index, follow' },
+      { property: 'og:title', content: title },
+      { property: 'og:description', content: description },
+      { property: 'og:type', content: 'website' },
+      { property: 'og:url', content: canonicalUrl },
+      { property: 'og:locale', content: isEn.value ? 'en_GB' : 'de_DE' },
+    ],
+    link: [
+      { rel: 'canonical', href: canonicalUrl },
+      { rel: 'alternate', hreflang: 'de', href: deUrl },
+      { rel: 'alternate', hreflang: 'en', href: enUrl },
+      { rel: 'alternate', hreflang: 'x-default', href: deUrl },
+    ],
+    script: [
+      { type: 'application/ld+json', innerHTML: JSON.stringify(breadcrumbJsonLd) },
+      { type: 'application/ld+json', innerHTML: JSON.stringify(productJsonLd) },
+    ]
   }
 }))
 
