@@ -71,7 +71,8 @@ public class EvLog {
         this.maxChargingPowerKw = maxChargingPowerKw;
         this.socAfterChargePercent = socAfterChargePercent;
         this.socBeforeChargePercent = socBeforeChargePercent;
-        this.loggedAt = loggedAt != null ? loggedAt : LocalDateTime.now();
+        LocalDateTime base = loggedAt != null ? loggedAt : LocalDateTime.now();
+        this.loggedAt = base.withSecond(0).withNano(0);
         this.dataSource = dataSource != null ? dataSource : DataSource.USER_LOGGED;
         this.measurementType = measurementType != null ? measurementType : this.dataSource.measurementType();
         this.includeInStatistics = includeInStatistics;

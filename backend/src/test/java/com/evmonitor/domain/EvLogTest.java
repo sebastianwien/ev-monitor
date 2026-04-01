@@ -125,7 +125,7 @@ class EvLogTest {
         Integer odometerKm = 75000;
         BigDecimal maxChargingPowerKw = BigDecimal.valueOf(175.5);
         Integer socAfterChargePercent = 95;
-        LocalDateTime loggedAt = LocalDateTime.now();
+        LocalDateTime loggedAt = LocalDateTime.now().withSecond(0).withNano(0);
         DataSource dataSource = DataSource.USER_LOGGED;
         LocalDateTime createdAt = LocalDateTime.now();
         LocalDateTime updatedAt = LocalDateTime.now();

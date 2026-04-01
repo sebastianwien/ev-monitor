@@ -121,7 +121,7 @@ public class SpritMonitorImportService {
 
                     // Assign a per-day index so multiple charges on the same day get unique timestamps
                     int dayIndex = perDateCounter.merge(fueling.date(), 1, Integer::sum) - 1;
-                    LocalDateTime loggedAt = LocalDate.parse(fueling.date(), DD_MM_YYYY).atStartOfDay().plusSeconds(dayIndex);
+                    LocalDateTime loggedAt = LocalDate.parse(fueling.date(), DD_MM_YYYY).atStartOfDay().plusMinutes(dayIndex);
 
                     // Skip if already imported (same car + timestamp + source)
                     if (evLogRepository.existsByCarIdAndLoggedAtAndDataSource(evMonitorCarId, loggedAt, DATA_SOURCE)) {

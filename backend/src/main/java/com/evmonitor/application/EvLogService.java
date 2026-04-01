@@ -138,8 +138,10 @@ public class EvLogService {
             try { source = DataSource.valueOf(request.dataSource()); } catch (IllegalArgumentException ignored) {}
         }
 
-        // Idempotent: skip if already imported (same car + timestamp + data source)
-        if (evLogRepository.existsByCarIdAndLoggedAtAndDataSource(request.carId(), request.loggedAt(), source)) {
+        // Idempotent: skip if already imported (same car + timestamp + data source).
+        // loggedAt wird im EvLog-Konstruktor auf Minuten truncated, daher exakter Match sicher.
+        LocalDateTime loggedAtTruncated = request.loggedAt() != null ? request.loggedAt().withSecond(0).withNano(0) : LocalDateTime.now().withSecond(0).withNano(0);
+        if (evLogRepository.existsByCarIdAndLoggedAtAndDataSource(request.carId(), loggedAtTruncated, source)) {
             return null;
         }
 
