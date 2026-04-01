@@ -7,6 +7,7 @@ export interface SurveyOption {
 export interface SurveyQuestion {
     key: string
     label: string
+    multiple?: boolean
     options: SurveyOption[]
 }
 
@@ -14,6 +15,7 @@ export interface SurveyConfig {
     slug: string
     title: string
     description: string
+    info?: string[]  // optionale Infobox-Absätze über den Fragen
     questions: SurveyQuestion[]
 }
 
@@ -22,6 +24,10 @@ export const surveys: Record<string, SurveyConfig> = {
         slug: 'premium-april-2026',
         title: 'Kurze Frage zu EV Monitor',
         description: 'Hilf mir dabei, das richtige Angebot zu bauen. Dauert 60 Sekunden.',
+        info: [
+            'Ich plane ein Feature, das Ladevorgänge vollautomatisch erfasst - ohne manuelle Eingabe. Dazu verbindest du dein Auto einmalig über Smartcar.',
+            'Sobald du lädst, kommen die Daten automatisch rein. Du musst danach nichts mehr tun.',
+        ],
         questions: [
             {
                 key: 'current_tracking',
@@ -53,7 +59,8 @@ export const surveys: Record<string, SurveyConfig> = {
             },
             {
                 key: 'concern',
-                label: 'Was spricht aus deiner Sicht dagegen?',
+                label: 'Was spricht aus deiner Sicht dagegen? (Mehrfachauswahl möglich)',
+                multiple: true,
                 options: [
                     { value: 'privacy', label: 'Ich weiß nicht wer Zugriff auf meine Fahrzeugdaten hat' },
                     { value: 'no_more_subscriptions', label: 'Ich möchte kein weiteres Abo abschließen' },

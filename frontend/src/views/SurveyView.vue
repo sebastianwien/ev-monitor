@@ -13,13 +13,17 @@ const alreadyResponded = ref(false)
 const submitted = ref(false)
 const submitting = ref(false)
 const error = ref<string | null>(null)
-const answers = ref<Record<string, string>>({})
+const answers = ref<Record<string, string | string[]>>({})
 const freeTextValues = ref<Record<string, string>>({})
 
 onMounted(async () => {
     if (!survey.value) {
         loading.value = false
         return
+    }
+    // Initialize multiple-choice questions as empty arrays
+    for (const q of survey.value.questions) {
+        if (q.multiple) answers.value[q.key] = []
     }
     try {
         const status = await getSurveyStatus(slug)
@@ -32,7 +36,11 @@ onMounted(async () => {
 })
 
 const allAnswered = computed(() =>
-    survey.value?.questions.every(q => answers.value[q.key]) ?? false
+    survey.value?.questions.every(q => {
+        const val = answers.value[q.key]
+        if (q.multiple) return Array.isArray(val) && val.length > 0
+        return !!val
+    }) ?? false
 )
 
 async function submit() {
@@ -84,6 +92,11 @@ async function submit() {
                     <p class="text-gray-500 dark:text-gray-400 text-sm mt-1">{{ survey.description }}</p>
                 </div>
 
+
+                <div v-if="survey.info" class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                    <p v-for="(paragraph, i) in survey.info" :key="i">{{ paragraph }}</p>
+                </div>
+
                 <div v-for="question in survey.questions" :key="question.key"
                      class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-5 space-y-3">
                     <p class="font-medium text-gray-900 dark:text-gray-100 text-sm">{{ question.label }}</p>
@@ -91,10 +104,19 @@ async function submit() {
                         <div v-for="option in question.options" :key="option.value" class="space-y-2">
                             <label
                                 class="flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors"
-                                :class="answers[question.key] === option.value
+                                :class="(question.multiple ? (answers[question.key] as string[] ?? []).includes(option.value) : answers[question.key] === option.value)
                                     ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
                                     : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'">
                                 <input
+                                    v-if="question.multiple"
+                                    type="checkbox"
+                                    :value="option.value"
+                                    v-model="(answers[question.key] as string[])"
+                                    @change="() => { if (!answers[question.key]) answers[question.key] = [] }"
+                                    class="accent-green-600"
+                                />
+                                <input
+                                    v-else
                                     type="radio"
                                     :name="question.key"
                                     :value="option.value"
