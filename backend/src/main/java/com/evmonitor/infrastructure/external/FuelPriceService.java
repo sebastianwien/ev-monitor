@@ -29,8 +29,8 @@ public class FuelPriceService {
     private static final Logger log = LoggerFactory.getLogger(FuelPriceService.class);
 
     // Fallback prices (updated roughly quarterly)
-    private static final double FALLBACK_BENZIN = 1.82;
-    private static final double FALLBACK_DIESEL = 1.75;
+    private static final double FALLBACK_BENZIN = 2.15;
+    private static final double FALLBACK_DIESEL = 2.32;
 
     @Value("${tankerkoenig.api-key:}")
     private String apiKey;
@@ -70,12 +70,11 @@ public class FuelPriceService {
 
             if (response.statusCode() == 200) {
                 JsonNode root = objectMapper.readTree(response.body());
-                if (root.path("ok").asBoolean(false)) {
-                    JsonNode data = root.path("data");
-                    double e5 = data.path("e5").path("mean").asDouble(0);
-                    double e10 = data.path("e10").path("mean").asDouble(0);
-                    double diesel = data.path("diesel").path("mean").asDouble(0);
+                double e5 = root.path("E5").path("mean").asDouble(0);
+                double e10 = root.path("E10").path("mean").asDouble(0);
+                double diesel = root.path("Diesel").path("mean").asDouble(0);
 
+                if (e5 > 0 || e10 > 0 || diesel > 0) {
                     // Benzin = Mittelwert E5 + E10 (beide Super-Sorten)
                     double benzin = (e5 > 0 && e10 > 0) ? (e5 + e10) / 2.0
                             : (e5 > 0 ? e5 : e10);
@@ -86,7 +85,7 @@ public class FuelPriceService {
                     log.info("FuelPriceService: Benzin={} €/L, Diesel={} €/L (Tankerkoenig national avg)",
                             String.format("%.3f", benzinPrice), String.format("%.3f", dieselPrice));
                 } else {
-                    log.warn("FuelPriceService: API returned ok=false: {}", response.body());
+                    log.warn("FuelPriceService: unexpected response format: {}", response.body());
                 }
             } else {
                 log.warn("FuelPriceService: HTTP {}", response.statusCode());
