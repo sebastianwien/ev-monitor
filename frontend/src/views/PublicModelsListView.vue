@@ -185,7 +185,7 @@
           <AffiliateBanner />
         </div>
         <div
-          class="model-card flex flex-col bg-white dark:bg-gray-800 rounded-xl border p-4 transition-all shadow-[0_10px_0_0_rgb(0_0_0/0.13)] dark:shadow-none hover:-translate-y-1 hover:shadow-[0_12px_0_0_rgb(0_0_0/0.17)] dark:hover:shadow-lg hover:z-10 active:translate-y-[4px] active:shadow-[0_6px_0_0_rgb(0_0_0/0.1)] relative"
+          class="model-card flex flex-col bg-white dark:bg-gray-800 rounded-xl border p-4 transition-all shadow-[0_10px_0_0_rgb(0_0_0/0.13)] dark:shadow-none hover:-translate-y-1 hover:shadow-[0_12px_0_0_rgb(0_0_0/0.17)] dark:hover:shadow-lg hover:z-10 active:translate-y-0 active:shadow-[0_10px_0_0_rgb(0_0_0/0.13)] relative"
           :class="isSelectedForCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`)
             ? 'border-green-500 ring-2 ring-green-200 dark:ring-green-900'
             : 'border-gray-200 dark:border-gray-700 hover:border-green-500'"

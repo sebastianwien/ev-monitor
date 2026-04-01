@@ -430,7 +430,7 @@ const onResizeUp = () => {
 
 <template>
   <div class="p-4 sm:p-8 text-gray-100">
-    <div class="max-w-5xl mx-auto bg-gray-900/80 backdrop-blur-sm rounded-2xl p-4 sm:p-6 border border-white/10">
+    <div class="max-w-7xl mx-auto bg-gray-900/80 backdrop-blur-sm rounded-2xl p-4 sm:p-6 border border-white/10">
       <!-- Header -->
       <div class="mb-6">
         <h1 class="text-2xl font-bold text-white">Admin Dashboard</h1>
