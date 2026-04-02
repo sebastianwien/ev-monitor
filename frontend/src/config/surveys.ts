@@ -63,7 +63,6 @@ export const surveys: Record<string, SurveyConfig> = {
                 multiple: true,
                 options: [
                     { value: 'privacy', label: 'Ich weiß nicht wer Zugriff auf meine Fahrzeugdaten hat' },
-                    { value: 'no_more_subscriptions', label: 'Ich möchte kein weiteres Abo abschließen' },
                     { value: 'too_expensive', label: 'Zu teuer' },
                     { value: 'not_needed', label: 'Brauche ich nicht' },
                     { value: 'car_not_supported', label: 'Mein Auto wird nicht unterstützt' },
