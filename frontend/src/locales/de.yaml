@@ -1441,6 +1441,8 @@ announcements:
   survey_premium_april_2026_title: "Kurze Frage - 60 Sekunden"
   survey_premium_april_2026_body: "Ich plane ein Premium-Feature für das vollautomatische Erfassen von Ladevorgängen. Dein Auto verbindet sich einmalig und Ladesessions kommen von selbst. Was hältst du davon?"
   survey_premium_april_2026_cta: "Zur Umfrage"
+  price_suggestion_v1_title: "Preisvorschlag beim Erfassen"
+  price_suggestion_v1_body: "Der Preis pro kWh wird jetzt automatisch vorausgefüllt - basierend auf dem letzten Ladevorgang am gleichen Standort. Das funktioniert sowohl zuhause als auch an öffentlichen Säulen. Dafür wurde die Genauigkeit der Standorterfassung erhöht: öffentliche Ladesäulen werden auf ~150m lokalisiert, private Ladevorgänge auf ~600m. Exakte GPS-Koordinaten werden weiterhin nie gespeichert."
   consumption_normalization_v1_title: "Genauere Verbrauchswerte: Ladeverluste herausgerechnet"
   consumption_normalization_v1_body: "Dein angezeigter Verbrauch (kWh/100km) entspricht jetzt dem echten Fahrverbrauch aus dem Akku. Wallbox-Messungen enthalten Ladeverluste durch den Ladevorgang selbst - diese werden jetzt automatisch herausgerechnet (AC-Laden: 10%, DC-Schnellladen: 5%). Deine Verbrauchswerte sinken dadurch leicht und sind jetzt besser mit WLTP und anderen Datenquellen vergleichbar. Die Kostenkalkulation bleibt davon unberührt."
 

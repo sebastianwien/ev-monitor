@@ -165,7 +165,7 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
 
         EvLog importedLog = importedLogs.get(0);
         assertNotNull(importedLog.getGeohash(), "Geohash must be set");
-        assertEquals(5, importedLog.getGeohash().length(), "Geohash must be 5 characters");
+        assertEquals(6, importedLog.getGeohash().length(), "Geohash must be 6 characters");
         assertEquals(0, new BigDecimal("50.0").compareTo(importedLog.getKwhCharged()));
         assertEquals(0, new BigDecimal("12.50").compareTo(importedLog.getCostEur()));
     }

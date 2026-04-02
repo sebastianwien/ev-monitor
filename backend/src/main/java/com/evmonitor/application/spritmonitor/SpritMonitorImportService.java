@@ -183,7 +183,7 @@ public class SpritMonitorImportService {
             geohash = GeoHash.withCharacterPrecision(
                 fueling.position().lat().doubleValue(),
                 fueling.position().lon().doubleValue(),
-                5
+                6
             ).toBase32();
         }
 

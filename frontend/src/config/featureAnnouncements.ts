@@ -9,22 +9,20 @@ export interface FeatureAnnouncement {
 
 export const featureAnnouncements: FeatureAnnouncement[] = [
   {
-    key: 'charging-provider-v1',
-    expiresAt: '2026-04-04',
-    titleKey: 'announcements.charging_provider_v1_title',
-    bodyKey: 'announcements.charging_provider_v1_body',
-    ctaLabelKey: 'announcements.charging_provider_v1_cta',
-    ctaRoute: '/settings',
+    key: 'price-suggestion-v1',
+    expiresAt: '2026-04-12',
+    titleKey: 'announcements.price_suggestion_v1_title',
+    bodyKey: 'announcements.price_suggestion_v1_body',
   },
   {
     key: 'consumption-normalization-v1',
-    expiresAt: '2026-05-10',
+    expiresAt: '2026-04-12',
     titleKey: 'announcements.consumption_normalization_v1_title',
     bodyKey: 'announcements.consumption_normalization_v1_body',
   },
   {
     key: 'battery-soh-heatpump-v1',
-    expiresAt: '2026-05-15',
+    expiresAt: '2026-04-12',
     titleKey: 'announcements.battery_soh_heatpump_v1_title',
     bodyKey: 'announcements.battery_soh_heatpump_v1_body',
     ctaLabelKey: 'announcements.battery_soh_heatpump_v1_cta',

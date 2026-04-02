@@ -129,7 +129,7 @@ public class PublicApiImportService {
 
                 boolean isPublic = Boolean.TRUE.equals(entry.isPublicCharging());
                 String cpoName = cpoNameNormalizer.normalize(entry.cpoName());
-                String geohash = parseGeohash(entry.location(), isPublic ? 7 : 5);
+                String geohash = parseGeohash(entry.location(), isPublic ? 7 : 6);
                 ChargingType chargingType = parseEnum(ChargingType.class, entry.chargingType(), ChargingType.UNKNOWN);
                 RouteType routeType = parseEnum(RouteType.class, entry.routeType(), null);
                 TireType tireType = parseEnum(TireType.class, entry.tireType(), null);
@@ -204,7 +204,7 @@ public class PublicApiImportService {
 
         boolean isPublic = patch.isPublicCharging() != null ? patch.isPublicCharging() : existing.isPublicCharging();
         String geohash = patch.location() != null
-                ? parseGeohash(patch.location(), isPublic ? 7 : 5)
+                ? parseGeohash(patch.location(), isPublic ? 7 : 6)
                 : existing.getGeohash();
         String cpoName = patch.cpoName() != null
                 ? cpoNameNormalizer.normalize(patch.cpoName())

@@ -1441,6 +1441,8 @@ announcements:
   survey_premium_april_2026_title: "Quick question - 60 seconds"
   survey_premium_april_2026_body: "I'm planning a premium feature for automatic charge tracking. Connect your car once and sessions come in automatically. What do you think?"
   survey_premium_april_2026_cta: "To the survey"
+  price_suggestion_v1_title: "Price suggestion when logging"
+  price_suggestion_v1_body: "The price per kWh is now automatically pre-filled - based on the last charging session at the same location. This works both at home and at public chargers. To make this possible, location accuracy has been increased: public chargers are localised to ~150m, private sessions to ~600m. Exact GPS coordinates are still never stored."
   consumption_normalization_v1_title: "More accurate consumption: charging losses removed"
   consumption_normalization_v1_body: "Your displayed consumption (kWh/100km) now reflects true driving consumption from the battery. Wallbox measurements include charging losses from the charging process itself - these are now automatically removed (AC charging: 10%, DC fast charging: 5%). Your consumption values will decrease slightly and are now better comparable with WLTP and other data sources. Cost calculations are not affected."
 

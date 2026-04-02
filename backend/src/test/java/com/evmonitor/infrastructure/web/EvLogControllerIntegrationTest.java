@@ -96,7 +96,7 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
         // PRIVACY CHECK: Verify geohash is stored in database (not lat/lon)
         EvLog savedLog = evLogRepository.findById(response.getBody().log().id()).orElseThrow();
         assertNotNull(savedLog.getGeohash());
-        assertEquals(5, savedLog.getGeohash().length(), "Geohash must be 5 characters");
+        assertEquals(6, savedLog.getGeohash().length(), "Geohash must be 6 characters");
     }
 
     @Test
@@ -458,8 +458,8 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody().geohash());
-        assertEquals(5, response.getBody().geohash().length());
-        // Vienna (48.2082, 16.3738) at precision 5 → geohash starts with "u2ed" or "u2ee"
+        assertEquals(6, response.getBody().geohash().length());
+        // Vienna (48.2082, 16.3738) at precision 6 → geohash starts with "u2ed" or "u2ee"
         assertTrue(response.getBody().geohash().startsWith("u2e"),
                 "Vienna geohash should start with u2e, got: " + response.getBody().geohash());
     }

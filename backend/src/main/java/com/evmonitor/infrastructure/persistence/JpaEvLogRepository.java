@@ -48,6 +48,18 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     List<EvLogEntity> findAllWithGeohashAndNoTemperature();
 
     @Query("""
+        SELECT e FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id
+        WHERE c.userId = :userId
+          AND e.geohash = :geohash
+          AND e.costEur IS NOT NULL AND e.costEur > 0
+          AND e.kwhCharged IS NOT NULL AND e.kwhCharged > 0
+          AND e.supersededBy IS NULL
+        ORDER BY e.loggedAt DESC
+        """)
+    List<EvLogEntity> findRecentByUserIdAndGeohash(@Param("userId") UUID userId, @Param("geohash") String geohash,
+            org.springframework.data.domain.Pageable pageable);
+
+    @Query("""
             SELECT e FROM EvLogEntity e
             WHERE e.carId = :carId
               AND e.publicCharging = false

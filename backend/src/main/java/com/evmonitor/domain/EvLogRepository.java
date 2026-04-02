@@ -72,4 +72,6 @@ public interface EvLogRepository {
      * Für Dashboard-Anzeige: Sub-Sessions werden durch Gruppen-Einträge ersetzt.
      */
     List<EvLog> findAllByCarIdExcludingSubSessions(UUID carId);
+
+    Optional<BigDecimal> findMostRecentCostPerKwhByUserIdAndGeohash(UUID userId, String geohash);
 }

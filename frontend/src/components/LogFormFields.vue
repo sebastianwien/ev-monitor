@@ -43,6 +43,19 @@ const locationEnabled = ref(
 const locationStatus = ref<'idle' | 'loading' | 'success' | 'error' | 'manual'>('idle')
 const locationErrorMessage = ref<string | null>(null)
 
+const fetchPriceSuggestion = async (lat: number, lon: number, isPublic: boolean) => {
+  if (form.value.costEur != null || priceEurPerKwh.value != null) return
+  try {
+    const res = await api.get('/logs/price-suggestion', { params: { lat, lon, isPublic } })
+    if (res.status === 200 && res.data?.costPerKwh != null) {
+      costMode.value = 'eur_kwh'
+      priceEurPerKwh.value = Number(res.data.costPerKwh)
+    }
+  } catch {
+    // kein Vorschlag verfügbar - kein Problem
+  }
+}
+
 const requestCurrentLocation = () => {
   if (!navigator.geolocation) {
     locationStatus.value = 'error'
@@ -56,6 +69,7 @@ const requestCurrentLocation = () => {
       form.value.latitude = pos.coords.latitude
       form.value.longitude = pos.coords.longitude
       locationStatus.value = 'success'
+      fetchPriceSuggestion(pos.coords.latitude, pos.coords.longitude, form.value.isPublicCharging)
     },
     (err) => {
       console.error('Geolocation error:', err)
@@ -145,10 +159,23 @@ onMounted(async () => {
     // Fallback: leere Liste, User kann "Andere" wählen
     if (form.value.cpoName) cpoSelect.value = 'OTHER'
   }
+
+  // Wenn Location aus vorherigem Besuch aktiviert war: direkt GPS holen
+  if (locationEnabled.value && props.locationMode === 'create') {
+    requestCurrentLocation()
+  }
 })
 
 watch(() => form.value.chargingType, (type) => {
   if (type === 'DC') form.value.isPublicCharging = true
+})
+
+watch(() => form.value.isPublicCharging, (isPublic) => {
+  if (form.value.latitude != null && form.value.longitude != null) {
+    priceEurPerKwh.value = null
+    costMode.value = 'eur'
+    fetchPriceSuggestion(form.value.latitude, form.value.longitude, isPublic)
+  }
 })
 
 watch(cpoSelect, (val) => {

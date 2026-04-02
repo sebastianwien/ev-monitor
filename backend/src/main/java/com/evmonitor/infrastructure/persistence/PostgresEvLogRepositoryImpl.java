@@ -195,6 +195,16 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
+    public Optional<java.math.BigDecimal> findMostRecentCostPerKwhByUserIdAndGeohash(UUID userId, String geohash) {
+        var results = jpaRepository.findRecentByUserIdAndGeohash(userId, geohash,
+                org.springframework.data.domain.PageRequest.of(0, 1));
+        if (results.isEmpty()) return Optional.empty();
+        EvLogEntity log = results.get(0);
+        java.math.BigDecimal costPerKwh = log.getCostEur().divide(log.getKwhCharged(), 4, java.math.RoundingMode.HALF_UP);
+        return Optional.of(costPerKwh);
+    }
+
+    @Override
     public List<com.evmonitor.domain.GeohashPoint> findGeohashDataByCarId(UUID carId) {
         return jpaRepository.findGeohashDataByCarId(carId).stream()
                 .map(row -> new com.evmonitor.domain.GeohashPoint((String) row[0], (java.math.BigDecimal) row[1]))

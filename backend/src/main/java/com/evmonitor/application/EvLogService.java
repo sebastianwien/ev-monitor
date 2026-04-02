@@ -69,11 +69,11 @@ public class EvLogService {
             throw new IllegalArgumentException("User does not own the specified car");
         }
 
-        // Convert lat/lon to geohash for privacy. Public chargers get 7-char (~150m), private get 5-char (~5km).
+        // Convert lat/lon to geohash for privacy. Public chargers get 7-char (~150m), private get 6-char (~600m).
         // Lat/lon are never stored, only the anonymized geohash.
         String geohash = null;
         if (request.latitude() != null && request.longitude() != null) {
-            int precision = Boolean.TRUE.equals(request.isPublicCharging()) ? 7 : 5;
+            int precision = Boolean.TRUE.equals(request.isPublicCharging()) ? 7 : 6;
             geohash = GeoHash.withCharacterPrecision(request.latitude(), request.longitude(), precision).toBase32();
         }
 
@@ -286,12 +286,12 @@ public class EvLogService {
         String geohash = existing.getGeohash();
         boolean geohashChanged = false;
         if (request.latitude() != null && request.longitude() != null) {
-            int precision = updatedIsPublicCharging ? 7 : 5;
+            int precision = updatedIsPublicCharging ? 7 : 6;
             geohash = GeoHash.withCharacterPrecision(request.latitude(), request.longitude(), precision).toBase32();
             geohashChanged = !geohash.equals(existing.getGeohash());
-        } else if (!updatedIsPublicCharging && geohash != null && geohash.length() > 5) {
-            // Privacy: if switched from public→private without new coordinates, truncate to 5-char precision.
-            geohash = geohash.substring(0, 5);
+        } else if (!updatedIsPublicCharging && geohash != null && geohash.length() > 6) {
+            // Privacy: if switched from public→private without new coordinates, truncate to 6-char precision.
+            geohash = geohash.substring(0, 6);
             geohashChanged = true;
         }
 
@@ -1154,5 +1154,15 @@ public class EvLogService {
             case "MONTH" -> String.format("%d-%02d", date.getYear(), date.getMonthValue());
             default -> String.format("%d-%02d", date.getYear(), date.getMonthValue());
         };
+    }
+
+    /**
+     * Returns the cost per kWh from the most recent log at the same geohash for this user.
+     * Used to pre-fill the price field in the log form.
+     */
+    public Optional<BigDecimal> getPriceSuggestion(UUID userId, double latitude, double longitude, boolean isPublicCharging) {
+        int precision = isPublicCharging ? 7 : 6;
+        String geohash = GeoHash.withCharacterPrecision(latitude, longitude, precision).toBase32();
+        return evLogRepository.findMostRecentCostPerKwhByUserIdAndGeohash(userId, geohash);
     }
 }

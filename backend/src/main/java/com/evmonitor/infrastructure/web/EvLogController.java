@@ -65,6 +65,18 @@ public class EvLogController {
         return ResponseEntity.ok(logs);
     }
 
+    @GetMapping("/price-suggestion")
+    public ResponseEntity<?> getPriceSuggestion(
+            @RequestParam double lat,
+            @RequestParam double lon,
+            @RequestParam(defaultValue = "false") boolean isPublic,
+            Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        return evLogService.getPriceSuggestion(principal.getUser().getId(), lat, lon, isPublic)
+                .map(price -> ResponseEntity.ok(Map.of("costPerKwh", price)))
+                .orElse(ResponseEntity.noContent().build());
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<EvLogResponse> getLogById(@PathVariable UUID id, Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();

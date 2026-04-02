@@ -216,7 +216,7 @@ class ManualImportControllerIntegrationTest extends AbstractIntegrationTest {
 
         EvLog log = evLogRepository.findAllByCarId(car.getId()).getFirst();
         assertNotNull(log.getGeohash());
-        assertEquals(5, log.getGeohash().length());
+        assertEquals(6, log.getGeohash().length());
     }
 
     @Test
