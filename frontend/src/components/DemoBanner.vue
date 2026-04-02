@@ -4,6 +4,7 @@ import { InformationCircleIcon } from '@heroicons/vue/24/outline'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { analytics } from '../services/analytics'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -19,12 +20,14 @@ const onBlocked = () => {
 }
 
 const goToRegister = () => {
+  analytics.track('demo_banner_register_clicked')
   sessionStorage.removeItem('ev_demo_entry_url')
   authStore.logout(false)
   router.push({ path: '/register', state: { fromDemo: true } })
 }
 
 const exitDemo = () => {
+  analytics.track('demo_banner_exit_clicked')
   const entryUrl = sessionStorage.getItem('ev_demo_entry_url') || '/'
   sessionStorage.removeItem('ev_demo_entry_url')
   authStore.logout(false)

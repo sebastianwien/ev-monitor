@@ -194,6 +194,7 @@ public class PublicModelService {
                     }
                     return new PublicModelStatsResponse.WltpVariant(
                             e.getBatteryCapacityKwh(),
+                            e.getVariantName(),
                             e.getWltpRangeKm(),
                             e.getWltpConsumptionKwhPer100km(),
                             variantConsumption,
@@ -325,6 +326,7 @@ public class PublicModelService {
                                         ? variantResult.value().setScale(1, java.math.RoundingMode.HALF_UP) : null;
                                 return new PublicBrandResponse.WltpVariantSummary(
                                         e.getBatteryCapacityKwh(),
+                                        e.getVariantName(),
                                         e.getWltpRangeKm(),
                                         e.getWltpConsumptionKwhPer100km(),
                                         variantReal

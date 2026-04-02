@@ -12,12 +12,13 @@ public class VehicleSpecification {
     private final BigDecimal wltpRangeKm;
     private final BigDecimal wltpConsumptionKwhPer100km;
     private final WltpType wltpType;
+    private final String variantName; // nullable — e.g. "Long Range", "Performance", "Pro S"
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
 
     public VehicleSpecification(UUID id, String carBrand, String carModel, BigDecimal batteryCapacityKwh,
                                 BigDecimal wltpRangeKm, BigDecimal wltpConsumptionKwhPer100km, WltpType wltpType,
-                                LocalDateTime createdAt, LocalDateTime updatedAt) {
+                                String variantName, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.carBrand = carBrand;
         this.carModel = carModel;
@@ -25,6 +26,7 @@ public class VehicleSpecification {
         this.wltpRangeKm = wltpRangeKm;
         this.wltpConsumptionKwhPer100km = wltpConsumptionKwhPer100km;
         this.wltpType = wltpType;
+        this.variantName = variantName;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -34,7 +36,7 @@ public class VehicleSpecification {
                                                   WltpType wltpType) {
         LocalDateTime now = LocalDateTime.now();
         return new VehicleSpecification(UUID.randomUUID(), carBrand, carModel, batteryCapacityKwh,
-                wltpRangeKm, wltpConsumptionKwhPer100km, wltpType, now, now);
+                wltpRangeKm, wltpConsumptionKwhPer100km, wltpType, null, now, now);
     }
 
     public UUID getId() {
@@ -63,6 +65,10 @@ public class VehicleSpecification {
 
     public WltpType getWltpType() {
         return wltpType;
+    }
+
+    public String getVariantName() {
+        return variantName;
     }
 
     public LocalDateTime getCreatedAt() {

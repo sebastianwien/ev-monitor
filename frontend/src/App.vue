@@ -494,7 +494,7 @@ const closeMobileMenu = () => {
     <SpritMonitorImport v-if="showImportOverlay" @close="showImportOverlay = false" />
 
     <!-- Floating Action Button (only when authenticated) -->
-    <FloatingActionButton v-if="authStore.isAuthenticated() && !authStore.isDemoAccount && !isOnboardingVisible && $route.path !== '/erfassen'" @click="handleNewLog" />
+    <FloatingActionButton v-if="authStore.isAuthenticated() && !authStore.isDemoAccount && !isOnboardingVisible && !showLogFormModal && $route.path !== '/erfassen'" @click="handleNewLog" />
 
     <!-- Log Form Modal (Desktop only) -->
     <LogFormModal v-if="showLogFormModal && authStore.isAuthenticated()" @close="showLogFormModal = false" />

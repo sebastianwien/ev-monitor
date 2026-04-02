@@ -2,6 +2,7 @@ import apiClient from './axios'
 
 export interface WltpVariant {
     batteryCapacityKwh: number
+    variantName: string | null
     wltpRangeKm: number
     wltpConsumptionKwhPer100km: number
     realConsumptionKwhPer100km: number | null
@@ -94,6 +95,7 @@ export interface PlatformStats {
 
 export interface BrandWltpVariant {
     batteryCapacityKwh: number
+    variantName: string | null
     wltpRangeKm: number | null
     wltpConsumptionKwhPer100km: number | null
     realConsumptionKwhPer100km: number | null

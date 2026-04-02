@@ -22,6 +22,7 @@ public record PublicBrandResponse(
 
     public record WltpVariantSummary(
             BigDecimal batteryCapacityKwh,
+            String variantName,                   // nullable — e.g. "Long Range", "Performance", "Pro S"
             BigDecimal wltpRangeKm,
             BigDecimal wltpConsumptionKwhPer100km,
             BigDecimal realConsumptionKwhPer100km  // null if no data for this variant
