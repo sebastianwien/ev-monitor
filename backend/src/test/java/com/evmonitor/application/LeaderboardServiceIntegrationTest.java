@@ -277,6 +277,8 @@ class LeaderboardServiceIntegrationTest {
     // ---- Helper ----
 
     private LeaderboardRankRow row(UUID userId, String username, String value) {
-        return new LeaderboardRankRow(userId, username, new BigDecimal(value));
+        // Derive a stable carId from userId so today/yesterday rows for the same user match on entityId
+        UUID carId = UUID.nameUUIDFromBytes(userId.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        return new LeaderboardRankRow(carId, userId, username, "Tesla Model 3", new BigDecimal(value));
     }
 }

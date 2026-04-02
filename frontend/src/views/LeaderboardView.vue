@@ -20,6 +20,7 @@ import {
 interface LeaderboardEntry {
   rank: number
   username: string
+  carLabel: string | null
   value: number
   unit: string
   previousRank: number | null
@@ -198,7 +199,7 @@ const periodLabel = computed(() => {
           <!-- Username -->
           <div class="flex-1 min-w-0">
             <div class="font-semibold text-gray-900 dark:text-gray-100 truncate">{{ entry.username }}</div>
-            <div class="text-xs text-gray-500 dark:text-gray-400">{{ t('leaderboard.rank', { n: entry.rank }) }}</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ entry.carLabel ?? t('leaderboard.rank', { n: entry.rank }) }}</div>
           </div>
 
           <!-- Value -->
@@ -226,7 +227,7 @@ const periodLabel = computed(() => {
             </div>
             <div class="flex-1 min-w-0">
               <div class="font-semibold text-indigo-900 dark:text-indigo-200 truncate">{{ data.ownEntry.username }} <span class="text-xs font-normal text-indigo-500">{{ t('leaderboard.you') }}</span></div>
-              <div class="text-xs text-indigo-400">{{ t('leaderboard.rank', { n: data.ownEntry.rank }) }}</div>
+              <div class="text-xs text-indigo-400 truncate">{{ data.ownEntry.carLabel ?? t('leaderboard.rank', { n: data.ownEntry.rank }) }}</div>
             </div>
             <div class="text-right flex-shrink-0">
               <div class="font-bold text-indigo-900 dark:text-indigo-200 tabular-nums">{{ data.ownEntry.value }}</div>

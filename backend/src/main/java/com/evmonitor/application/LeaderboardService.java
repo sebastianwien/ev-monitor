@@ -43,50 +43,56 @@ public class LeaderboardService {
         List<LeaderboardRankRow> todayRanking = getRanking(category, startOfMonth, endOfToday);
         List<LeaderboardRankRow> yesterdayRanking = getRanking(category, startOfMonth, endOfYesterday);
 
+        // Rank delta is tracked by entityId (carId for car-based, userId for coins)
         Map<UUID, Integer> yesterdayRanks = buildRankMap(yesterdayRanking);
         boolean hasDeltaData = !yesterdayRanking.isEmpty();
 
         List<LeaderboardEntryDTO> top10 = new ArrayList<>();
+        Set<UUID> top10EntityIds = new HashSet<>();
         Set<UUID> top10UserIds = new HashSet<>();
 
         for (int i = 0; i < Math.min(TOP_N, todayRanking.size()); i++) {
             LeaderboardRankRow row = todayRanking.get(i);
             int currentRank = i + 1;
-            Integer prevRank = yesterdayRanks.get(row.userId());
+            Integer prevRank = yesterdayRanks.get(row.entityId());
             Integer delta = (hasDeltaData && prevRank != null) ? prevRank - currentRank : null;
             boolean isNew = hasDeltaData && prevRank == null;
 
             top10.add(new LeaderboardEntryDTO(
                     currentRank,
                     row.username(),
+                    row.carLabel(),
                     formatValue(category, row.value()),
                     category.getUnit(),
                     prevRank,
                     delta,
                     isNew
             ));
+            top10EntityIds.add(row.entityId());
             top10UserIds.add(row.userId());
         }
 
+        // Show ownEntry only if NONE of the user's entries are in top 10
         LeaderboardEntryDTO ownEntry = null;
         if (requestingUserId != null && !top10UserIds.contains(requestingUserId)) {
-            for (int i = 0; i < todayRanking.size(); i++) {
+            for (int i = TOP_N; i < todayRanking.size(); i++) {
                 LeaderboardRankRow row = todayRanking.get(i);
                 if (row.userId().equals(requestingUserId)) {
                     int currentRank = i + 1;
-                    Integer prevRank = yesterdayRanks.get(requestingUserId);
+                    Integer prevRank = yesterdayRanks.get(row.entityId());
                     Integer delta = (hasDeltaData && prevRank != null) ? prevRank - currentRank : null;
                     boolean isNew = hasDeltaData && prevRank == null;
                     ownEntry = new LeaderboardEntryDTO(
                             currentRank,
                             row.username(),
+                            row.carLabel(),
                             formatValue(category, row.value()),
                             category.getUnit(),
                             prevRank,
                             delta,
                             isNew
                     );
-                    break;
+                    break; // first match = best-ranked car for this user
                 }
             }
         }
@@ -121,16 +127,18 @@ public class LeaderboardService {
             BigDecimal value = null;
             Integer rankDelta = null;
             boolean isNew = false;
+            String carLabel = null;
 
             for (int i = 0; i < todayRanking.size(); i++) {
                 LeaderboardRankRow row = todayRanking.get(i);
                 if (row.userId().equals(userId)) {
                     rank = i + 1;
                     value = formatValue(cat, row.value());
-                    Integer prevRank = yesterdayRanks.get(userId);
+                    carLabel = row.carLabel();
+                    Integer prevRank = yesterdayRanks.get(row.entityId());
                     rankDelta = (hasDeltaData && prevRank != null) ? prevRank - rank : null;
                     isNew = hasDeltaData && prevRank == null;
-                    break;
+                    break; // first match = best-ranked car for this user
                 }
             }
 
@@ -142,7 +150,8 @@ public class LeaderboardService {
                     rank,
                     value,
                     rankDelta,
-                    isNew
+                    isNew,
+                    carLabel
             ));
         }
 
@@ -163,9 +172,12 @@ public class LeaderboardService {
             if (!ranking.isEmpty()) {
                 LeaderboardRankRow leader = ranking.get(0);
                 String valueStr = formatValue(cat, leader.value()).toPlainString();
+                String displayName = leader.carLabel() != null
+                        ? leader.username() + " (" + leader.carLabel() + ")"
+                        : leader.username();
                 items.add(new TickerItemDTO(
                         "LEADER",
-                        "#1 " + cat.getDisplayName() + ": " + leader.username() + " mit " + valueStr + " " + cat.getUnit(),
+                        "#1 " + cat.getDisplayName() + ": " + displayName + " mit " + valueStr + " " + cat.getUnit(),
                         "trophy"
                 ));
             }
@@ -301,7 +313,7 @@ public class LeaderboardService {
     private Map<UUID, Integer> buildRankMap(List<LeaderboardRankRow> ranking) {
         Map<UUID, Integer> map = new HashMap<>();
         for (int i = 0; i < ranking.size(); i++) {
-            map.put(ranking.get(i).userId(), i + 1);
+            map.put(ranking.get(i).entityId(), i + 1);
         }
         return map;
     }

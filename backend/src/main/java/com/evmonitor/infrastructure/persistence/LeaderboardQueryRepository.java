@@ -1,6 +1,7 @@
 package com.evmonitor.infrastructure.persistence;
 
 import com.evmonitor.application.LeaderboardRankRow;
+import com.evmonitor.domain.CarBrand;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Repository;
@@ -13,6 +14,7 @@ import java.util.UUID;
 /**
  * Native SQL queries for leaderboard aggregations.
  * Uses EntityManager directly because each category has a structurally different query.
+ * All car-based queries group by car (not user) so each entry represents one vehicle.
  * All queries filter: include_in_statistics=true, is_seed_data=false, leaderboard_visible=true.
  */
 @Repository
@@ -26,7 +28,8 @@ public class LeaderboardQueryRepository {
     @SuppressWarnings("unchecked")
     public List<LeaderboardRankRow> getKwhRanking(LocalDateTime start, LocalDateTime endExclusive) {
         List<Object[]> rows = em.createNativeQuery("""
-                SELECT CAST(u.id AS TEXT), u.username, SUM(e.kwh_charged) AS value
+                SELECT CAST(c.id AS TEXT), CAST(u.id AS TEXT), u.username, c.model,
+                       SUM(e.kwh_charged) AS value
                 FROM ev_log e
                 JOIN car c ON e.car_id = c.id
                 JOIN app_user u ON c.user_id = u.id
@@ -35,13 +38,13 @@ public class LeaderboardQueryRepository {
                   AND u.leaderboard_visible = true
                   AND e.logged_at >= :start
                   AND e.logged_at < :end
-                GROUP BY u.id, u.username
+                GROUP BY c.id, c.model, u.id, u.username
                 ORDER BY value DESC
                 """)
                 .setParameter("start", start)
                 .setParameter("end", endExclusive)
                 .getResultList();
-        return mapRows(rows);
+        return mapCarRows(rows);
     }
 
     // ---- MONTHLY_CHARGES ----
@@ -49,7 +52,8 @@ public class LeaderboardQueryRepository {
     @SuppressWarnings("unchecked")
     public List<LeaderboardRankRow> getChargesRanking(LocalDateTime start, LocalDateTime endExclusive) {
         List<Object[]> rows = em.createNativeQuery("""
-                SELECT CAST(u.id AS TEXT), u.username, CAST(COUNT(e.id) AS NUMERIC) AS value
+                SELECT CAST(c.id AS TEXT), CAST(u.id AS TEXT), u.username, c.model,
+                       CAST(COUNT(e.id) AS NUMERIC) AS value
                 FROM ev_log e
                 JOIN car c ON e.car_id = c.id
                 JOIN app_user u ON c.user_id = u.id
@@ -58,26 +62,25 @@ public class LeaderboardQueryRepository {
                   AND u.leaderboard_visible = true
                   AND e.logged_at >= :start
                   AND e.logged_at < :end
-                GROUP BY u.id, u.username
+                GROUP BY c.id, c.model, u.id, u.username
                 ORDER BY value DESC
                 """)
                 .setParameter("start", start)
                 .setParameter("end", endExclusive)
                 .getResultList();
-        return mapRows(rows);
+        return mapCarRows(rows);
     }
 
-    // ---- MONTHLY_DISTANCE (per-car max-min odometer, summed across cars per user) ----
-    // Plausibility: per-car delta must be between 0 and 5000 km (prevents odometer resets
-    // and wildly wrong manual entries from inflating the ranking).
+    // ---- MONTHLY_DISTANCE (per-car max-min odometer) ----
+    // Plausibility: delta must be between 0 and 5000 km per car per month.
 
     @SuppressWarnings("unchecked")
     public List<LeaderboardRankRow> getDistanceRanking(LocalDateTime start, LocalDateTime endExclusive) {
         List<Object[]> rows = em.createNativeQuery("""
-                SELECT CAST(u.id AS TEXT), u.username,
-                       CAST(SUM(car_dist.delta_km) AS NUMERIC) AS value
+                SELECT CAST(car_dist.car_id AS TEXT), CAST(u.id AS TEXT), u.username, car_dist.car_model,
+                       CAST(car_dist.delta_km AS NUMERIC) AS value
                 FROM (
-                    SELECT c.user_id,
+                    SELECT c.id AS car_id, c.user_id, c.model AS car_model,
                            MAX(e.odometer_km) - MIN(e.odometer_km) AS delta_km
                     FROM ev_log e
                     JOIN car c ON e.car_id = c.id
@@ -85,23 +88,22 @@ public class LeaderboardQueryRepository {
                       AND e.odometer_km IS NOT NULL
                       AND e.logged_at >= :start
                       AND e.logged_at < :end
-                    GROUP BY c.id, c.user_id
+                    GROUP BY c.id, c.user_id, c.model
                     HAVING COUNT(e.id) >= 2
                        AND MAX(e.odometer_km) - MIN(e.odometer_km) BETWEEN 1 AND 5000
                 ) car_dist
                 JOIN app_user u ON car_dist.user_id = u.id
                 WHERE u.is_seed_data = false
                   AND u.leaderboard_visible = true
-                GROUP BY u.id, u.username
                 ORDER BY value DESC
                 """)
                 .setParameter("start", start)
                 .setParameter("end", endExclusive)
                 .getResultList();
-        return mapRows(rows);
+        return mapCarRows(rows);
     }
 
-    // ---- MONTHLY_COINS ----
+    // ---- MONTHLY_COINS (user-based, not per-car) ----
 
     @SuppressWarnings("unchecked")
     public List<LeaderboardRankRow> getCoinsRanking(LocalDateTime start, LocalDateTime endExclusive) {
@@ -120,7 +122,7 @@ public class LeaderboardQueryRepository {
                 .setParameter("start", start)
                 .setParameter("end", endExclusive)
                 .getResultList();
-        return mapRows(rows);
+        return mapUserRows(rows);
     }
 
     // ---- MONTHLY_CHEAPEST (avg ct/kWh, lower is better, min 3 logs with cost data) ----
@@ -128,7 +130,7 @@ public class LeaderboardQueryRepository {
     @SuppressWarnings("unchecked")
     public List<LeaderboardRankRow> getCheapestRanking(LocalDateTime start, LocalDateTime endExclusive) {
         List<Object[]> rows = em.createNativeQuery("""
-                SELECT CAST(u.id AS TEXT), u.username,
+                SELECT CAST(c.id AS TEXT), CAST(u.id AS TEXT), u.username, c.model,
                        ROUND(AVG(e.cost_eur / NULLIF(e.kwh_charged, 0)) * 100, 2) AS value
                 FROM ev_log e
                 JOIN car c ON e.car_id = c.id
@@ -140,14 +142,14 @@ public class LeaderboardQueryRepository {
                   AND e.kwh_charged > 0
                   AND e.logged_at >= :start
                   AND e.logged_at < :end
-                GROUP BY u.id, u.username
+                GROUP BY c.id, c.model, u.id, u.username
                 HAVING COUNT(e.id) >= 3
                 ORDER BY value ASC
                 """)
                 .setParameter("start", start)
                 .setParameter("end", endExclusive)
                 .getResultList();
-        return mapRows(rows);
+        return mapCarRows(rows);
     }
 
     // ---- MONTHLY_NIGHT_OWL (charges between 22:00-06:00) ----
@@ -155,7 +157,8 @@ public class LeaderboardQueryRepository {
     @SuppressWarnings("unchecked")
     public List<LeaderboardRankRow> getNightOwlRanking(LocalDateTime start, LocalDateTime endExclusive) {
         List<Object[]> rows = em.createNativeQuery("""
-                SELECT CAST(u.id AS TEXT), u.username, CAST(COUNT(e.id) AS NUMERIC) AS value
+                SELECT CAST(c.id AS TEXT), CAST(u.id AS TEXT), u.username, c.model,
+                       CAST(COUNT(e.id) AS NUMERIC) AS value
                 FROM ev_log e
                 JOIN car c ON e.car_id = c.id
                 JOIN app_user u ON c.user_id = u.id
@@ -165,13 +168,13 @@ public class LeaderboardQueryRepository {
                   AND e.logged_at >= :start
                   AND e.logged_at < :end
                   AND (EXTRACT(HOUR FROM e.logged_at) >= 22 OR EXTRACT(HOUR FROM e.logged_at) < 6)
-                GROUP BY u.id, u.username
+                GROUP BY c.id, c.model, u.id, u.username
                 ORDER BY value DESC
                 """)
                 .setParameter("start", start)
                 .setParameter("end", endExclusive)
                 .getResultList();
-        return mapRows(rows);
+        return mapCarRows(rows);
     }
 
     // ---- MONTHLY_ICE_CHARGER (lowest temperature, lower = better) ----
@@ -179,7 +182,7 @@ public class LeaderboardQueryRepository {
     @SuppressWarnings("unchecked")
     public List<LeaderboardRankRow> getIceChargerRanking(LocalDateTime start, LocalDateTime endExclusive) {
         List<Object[]> rows = em.createNativeQuery("""
-                SELECT CAST(u.id AS TEXT), u.username,
+                SELECT CAST(c.id AS TEXT), CAST(u.id AS TEXT), u.username, c.model,
                        CAST(MIN(e.temperature_celsius) AS NUMERIC) AS value
                 FROM ev_log e
                 JOIN car c ON e.car_id = c.id
@@ -190,13 +193,13 @@ public class LeaderboardQueryRepository {
                   AND e.temperature_celsius IS NOT NULL
                   AND e.logged_at >= :start
                   AND e.logged_at < :end
-                GROUP BY u.id, u.username
+                GROUP BY c.id, c.model, u.id, u.username
                 ORDER BY value ASC
                 """)
                 .setParameter("start", start)
                 .setParameter("end", endExclusive)
                 .getResultList();
-        return mapRows(rows);
+        return mapCarRows(rows);
     }
 
     // ---- MONTHLY_POWER_CHARGER (highest max_charging_power_kw) ----
@@ -204,7 +207,7 @@ public class LeaderboardQueryRepository {
     @SuppressWarnings("unchecked")
     public List<LeaderboardRankRow> getPowerChargerRanking(LocalDateTime start, LocalDateTime endExclusive) {
         List<Object[]> rows = em.createNativeQuery("""
-                SELECT CAST(u.id AS TEXT), u.username,
+                SELECT CAST(c.id AS TEXT), CAST(u.id AS TEXT), u.username, c.model,
                        MAX(e.max_charging_power_kw) AS value
                 FROM ev_log e
                 JOIN car c ON e.car_id = c.id
@@ -215,13 +218,13 @@ public class LeaderboardQueryRepository {
                   AND e.max_charging_power_kw IS NOT NULL
                   AND e.logged_at >= :start
                   AND e.logged_at < :end
-                GROUP BY u.id, u.username
+                GROUP BY c.id, c.model, u.id, u.username
                 ORDER BY value DESC
                 """)
                 .setParameter("start", start)
                 .setParameter("end", endExclusive)
                 .getResultList();
-        return mapRows(rows);
+        return mapCarRows(rows);
     }
 
     // ---- Community totals for ticker ----
@@ -285,13 +288,41 @@ public class LeaderboardQueryRepository {
 
     // ---- Helpers ----
 
-    private List<LeaderboardRankRow> mapRows(List<Object[]> rows) {
+    /** Maps car-based query rows: [carId, userId, username, carModel, value] */
+    private List<LeaderboardRankRow> mapCarRows(List<Object[]> rows) {
         return rows.stream()
                 .map(r -> new LeaderboardRankRow(
                         UUID.fromString((String) r[0]),
-                        (String) r[1],
-                        r[2] != null ? new BigDecimal(r[2].toString()) : BigDecimal.ZERO
+                        UUID.fromString((String) r[1]),
+                        (String) r[2],
+                        carLabelFromModel((String) r[3]),
+                        r[4] != null ? new BigDecimal(r[4].toString()) : BigDecimal.ZERO
                 ))
                 .toList();
+    }
+
+    /** Maps user-based query rows (coins): [userId, username, value] */
+    private List<LeaderboardRankRow> mapUserRows(List<Object[]> rows) {
+        return rows.stream()
+                .map(r -> {
+                    UUID userId = UUID.fromString((String) r[0]);
+                    return new LeaderboardRankRow(
+                            userId,
+                            userId,
+                            (String) r[1],
+                            null,
+                            r[2] != null ? new BigDecimal(r[2].toString()) : BigDecimal.ZERO
+                    );
+                })
+                .toList();
+    }
+
+    private String carLabelFromModel(String modelName) {
+        try {
+            CarBrand.CarModel m = CarBrand.CarModel.valueOf(modelName);
+            return m.getBrand().getDisplayString() + " " + m.getDisplayName();
+        } catch (IllegalArgumentException e) {
+            return modelName;
+        }
     }
 }

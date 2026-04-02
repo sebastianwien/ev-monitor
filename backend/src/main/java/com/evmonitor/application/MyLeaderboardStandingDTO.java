@@ -12,5 +12,6 @@ public record MyLeaderboardStandingDTO(
         Integer rank,         // null = not ranked this month
         BigDecimal value,     // null = not ranked this month
         Integer rankDelta,
-        boolean isNew
+        boolean isNew,
+        String carLabel       // nullable - "Tesla Model 3", null for user-based categories
 ) {}
