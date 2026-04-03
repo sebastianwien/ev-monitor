@@ -750,7 +750,7 @@ useHead(computed(() => {
   if (realConsumption && wltpConsumption) {
     const delta = wltpDeltaPercent.value
     descParts.push(`Community-Durchschnitt aus ${logCount} Ladevorgängen: ${realConsumption.toFixed(1)} kWh/100km`)
-    if (delta) descParts.push(` (${delta} gegenuber WLTP)`)
+    if (delta) descParts.push(` (${delta} gegenüber WLTP)`)
     descParts.push(`. `)
   } else if (realConsumption) {
     descParts.push(`Community-Durchschnitt aus ${logCount} Ladevorgängen: ${realConsumption.toFixed(1)} kWh/100km. `)
@@ -793,8 +793,8 @@ useHead(computed(() => {
 
   const articleJsonLd = {
     '@context': 'https://schema.org',
-    '@type': 'Article',
-    headline: `${name} Verbrauch & Reichweite – Realer WLTP Vergleich`,
+    '@type': 'WebPage',
+    name: `${name} Verbrauch & Reichweite – Realer WLTP Vergleich`,
     description,
     author: { '@type': 'Organization', name: 'EV Monitor' },
     publisher: { '@type': 'Organization', name: 'EV Monitor', url: 'https://ev-monitor.net' },

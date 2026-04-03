@@ -71,7 +71,7 @@ useHead(computed(() => ({
       property: 'og:description',
       content: isEn.value
         ? 'Track real EV charging costs and consumption. Compare WLTP vs. real-world data for Tesla, VW ID, Hyundai Ioniq and more.'
-        : 'Echte Ladekosten und Verbrauch tracken. WLTP vs. Realität fur Tesla, VW ID, Hyundai Ioniq und mehr.'
+        : 'Echte Ladekosten und Verbrauch tracken. WLTP vs. Realität für Tesla, VW ID, Hyundai Ioniq und mehr.'
     },
     { property: 'og:locale', content: isEn.value ? 'en_GB' : 'de_DE' },
   ],
