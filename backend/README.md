@@ -61,7 +61,7 @@ Produces `build/libs/app.jar` (used by the Docker multi-stage build).
 
 - **JWT Auth**: 7-day tokens, validated via `JwtAuthenticationFilter`. Claims include `sub` (userId), `email`, `exp`.
 - **Email Verification**: 256-bit `SecureRandom` tokens, 24h TTL. Login requires verified email.
-- **Geohashing**: `lat/lon` from the client is converted to a 5-char geohash (~5km precision) and the coordinates are immediately discarded. Never stored.
+- **Geohashing**: `lat/lon` from the client is converted to a 6-char geohash (~600m precision for private, 7-char ~150m for public) and the coordinates are immediately discarded. Never stored.
 - **CarBrand Enum**: 68 brands with nested `CarModel` enum. Stored as `STRING` (not ordinal) for safe migrations.
 - **Flyway**: DB migrations in `src/main/resources/db/migration/`.
 - **OAuth2**: Infrastructure is prepared (Google/Facebook/Apple). Activate via `SPRING_PROFILES_ACTIVE=prod,oauth` + provider env vars.

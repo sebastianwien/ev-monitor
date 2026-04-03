@@ -117,11 +117,11 @@ function startEditLocation() {
 }
 
 function selectLocation(result: { display_name: string; lat: string; lon: string }) {
-  // 5-char geohash = ~5km precision, matches privacy policy
+  // 6-char geohash = ~600m precision, matches privacy policy
   const lat = parseFloat(result.lat)
   const lon = parseFloat(result.lon)
-  // Manual base32 geohash encoding (5 chars)
-  selectedGeohash.value = encodeGeohash(lat, lon, 5)
+  // Manual base32 geohash encoding (6 chars)
+  selectedGeohash.value = encodeGeohash(lat, lon, 6)
   selectedLocationName.value = result.display_name
   locationQuery.value = result.display_name
   locationResults.value = []

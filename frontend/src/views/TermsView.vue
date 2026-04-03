@@ -61,9 +61,9 @@
 
           <p class="mt-4">
             <strong>3.2 Privacy-First Geohashing:</strong>
-            GPS-Koordinaten werden NIEMALS gespeichert. Stattdessen wird ein 5-Zeichen-Geohash
-            (~5km Präzision) berechnet und gespeichert. Beispiel: <code class="bg-gray-100 px-2 py-1 rounded">u33d1</code>
-            = ca. 5km Radius um Berlin Mitte.
+            GPS-Koordinaten werden NIEMALS gespeichert. Stattdessen wird ein anonymisierter Geohash berechnet und gespeichert:
+            private Ladevorgänge auf ~600m, öffentliche Ladesäulen auf ~150m Präzision. Beispiel: <code class="bg-gray-100 px-2 py-1 rounded">u33db1</code>
+            = ca. 600m Radius um Berlin Mitte.
           </p>
 
           <p>
@@ -132,7 +132,7 @@
                 werden nicht an Sprit-Monitor zurückgesendet
               </li>
               <li>
-                <strong>Privacy-Schutz:</strong> GPS-Koordinaten werden zu 5km-Geohashes
+                <strong>Privacy-Schutz:</strong> GPS-Koordinaten werden zu anonymisierten Geohashes
                 konvertiert (siehe 3.2)
               </li>
               <li>

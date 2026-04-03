@@ -34,7 +34,7 @@ public record PublicApiSessionRequest(
             @Schema(description = "Duration of the charging session in minutes.")
             @Min(0) @Max(100_000) @JsonProperty("duration_min") Integer durationMin,
 
-            @Schema(description = "Location as `lat lon` or `lat,lon`, e.g. `48.2082 16.3738`. Stored as geohash (5 chars ~5km for private, 7 chars ~150m for public chargers).")
+            @Schema(description = "Location as `lat lon` or `lat,lon`, e.g. `48.2082 16.3738`. Stored as geohash (6 chars ~600m for private, 7 chars ~150m for public chargers).")
             @Size(max = 50) @JsonProperty("location") String location,
 
             @Schema(description = "Charging current type. Allowed values: `AC`, `DC`, `UNKNOWN`.", allowableValues = {"AC", "DC", "UNKNOWN"})

@@ -12,7 +12,7 @@ Live at **[ev-monitor.net](https://ev-monitor.net)**
 - **Charging Logs** — kWh, costs in EUR, location (geohashed for privacy), duration, date
 - **Vehicle Management** — 68+ brands, 100+ models with battery capacity specs
 - **Statistics Dashboard** — charts, seasonal breakdowns, WLTP delta analysis (Chart.js)
-- **Interactive Heatmap** — visualize charging locations on a map (Leaflet, ~5km precision)
+- **Interactive Heatmap** — visualize charging locations on a map (Leaflet, ~600m precision for private, ~150m for public)
 - **WLTP Crowdsourcing** — community-contributed real-world range & consumption data per model
 - **Gamification** — earn coins for logging data, adding vehicle specs, and referring users
 - **Leaderboard** — community ranking with optional visibility toggle

@@ -71,12 +71,12 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
             <strong>WICHTIG:</strong> Wir speichern KEINE exakten GPS-Koordinaten!
           </p>
           <p>
-            Stattdessen verwenden wir <strong>Geohashing</strong> mit 5 Zeichen Präzision (~5km Radius).
+            Stattdessen verwenden wir <strong>Geohashing</strong>: private Ladevorgänge werden auf ~600m, öffentliche Ladesäulen auf ~150m anonymisiert.
             Wenn Sie einen Standort eingeben, wird dieser in einen anonymisierten Geohash umgewandelt.
             Ihre exakte Position kann daraus nicht rekonstruiert werden.
           </p>
           <p class="mt-4">
-            <strong>Beispiel:</strong> Standort "Berlin Mitte" wird zu Geohash "u33d1" (deckt ~5km Gebiet ab)
+            <strong>Beispiel:</strong> Standort "Berlin Mitte" wird zu Geohash "u33db1" (deckt ~600m Gebiet ab)
           </p>
 
           <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">2.4 Tesla Import (optional)</h3>

@@ -11,7 +11,7 @@ public class EvLog {
     private final BigDecimal kwhCharged;
     private final BigDecimal costEur;
     private final Integer chargeDurationMinutes;
-    private final String geohash; // 5-char geohash (~5km) for private charging, 7-char (~150m) for public chargers
+    private final String geohash; // 6-char geohash (~600m) for private charging, 7-char (~150m) for public chargers
     private final Integer odometerKm; // Optional: odometer reading in km
     private final BigDecimal maxChargingPowerKw; // Optional: max charging power in kW
     private final Integer socAfterChargePercent; // Optional: State of Charge after charging (0-100%)
