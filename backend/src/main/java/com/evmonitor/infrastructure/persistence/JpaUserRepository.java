@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -65,4 +66,8 @@ public interface JpaUserRepository extends JpaRepository<UserEntity, UUID> {
     @Modifying
     @Query("UPDATE UserEntity u SET u.passwordHash = :passwordHash WHERE u.id = :userId")
     void updatePassword(@Param("userId") UUID userId, @Param("passwordHash") String passwordHash);
+
+    @Modifying
+    @Query("UPDATE UserEntity u SET u.lastSeen = :now WHERE u.id IN :ids")
+    void batchUpdateLastSeen(@Param("ids") List<UUID> ids, @Param("now") LocalDateTime now);
 }

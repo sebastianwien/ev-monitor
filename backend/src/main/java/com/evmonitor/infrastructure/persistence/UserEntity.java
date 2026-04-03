@@ -67,6 +67,9 @@ public class UserEntity {
     @Column(name = "leaderboard_visible", nullable = false)
     private boolean leaderboardVisible = true;
 
+    @Column(name = "last_seen")
+    private LocalDateTime lastSeen;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
