@@ -22,7 +22,7 @@ public class AppScheduler {
 
     private static final Logger log = LoggerFactory.getLogger(AppScheduler.class);
     private static final int REMINDER_DAYS_AFTER_REGISTRATION = 14;
-    private static final int RE_ENGAGEMENT_DAYS_INACTIVE = 10;
+    private static final int RE_ENGAGEMENT_DAYS_INACTIVE = 14;
 
     private final UserRepository userRepository;
     private final CarRepository carRepository;
