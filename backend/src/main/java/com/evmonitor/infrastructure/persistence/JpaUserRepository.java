@@ -67,6 +67,21 @@ public interface JpaUserRepository extends JpaRepository<UserEntity, UUID> {
     @Query("UPDATE UserEntity u SET u.passwordHash = :passwordHash WHERE u.id = :userId")
     void updatePassword(@Param("userId") UUID userId, @Param("passwordHash") String passwordHash);
 
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE UserEntity u SET u.email = :email, u.emailVerified = false, u.updatedAt = current_timestamp WHERE u.id = :userId")
+    void updateEmail(@Param("userId") UUID userId, @Param("email") String email);
+
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE UserEntity u SET u.username = :username, u.updatedAt = current_timestamp WHERE u.id = :userId")
+    void updateUsername(@Param("userId") UUID userId, @Param("username") String username);
+
+    @Query("SELECT u.leaderboardVisible FROM UserEntity u WHERE u.id = :userId")
+    boolean isLeaderboardVisible(@Param("userId") UUID userId);
+
+    @Modifying
+    @Query("UPDATE UserEntity u SET u.leaderboardVisible = :visible, u.updatedAt = current_timestamp WHERE u.id = :userId")
+    void setLeaderboardVisible(@Param("userId") UUID userId, @Param("visible") boolean visible);
+
     @Modifying
     @Query("UPDATE UserEntity u SET u.lastSeen = :now WHERE u.id IN :ids")
     void batchUpdateLastSeen(@Param("ids") List<UUID> ids, @Param("now") LocalDateTime now);

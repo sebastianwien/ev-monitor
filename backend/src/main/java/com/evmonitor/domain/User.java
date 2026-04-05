@@ -62,7 +62,7 @@ public class User {
     }
 
     private static String generateReferralCode() {
-        return UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
+        return UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase();
     }
 
     public static User createNewLocalUser(String email, String username, String passwordHash) {

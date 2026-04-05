@@ -115,6 +115,29 @@ public class PostgresUserRepositoryImpl implements UserRepository {
         jpaUserRepository.updatePassword(userId, passwordHash);
     }
 
+    @Override
+    @Transactional
+    public void updateEmail(UUID userId, String email) {
+        jpaUserRepository.updateEmail(userId, email);
+    }
+
+    @Override
+    @Transactional
+    public void updateUsername(UUID userId, String username) {
+        jpaUserRepository.updateUsername(userId, username);
+    }
+
+    @Override
+    public boolean isLeaderboardVisible(UUID userId) {
+        return jpaUserRepository.isLeaderboardVisible(userId);
+    }
+
+    @Override
+    @Transactional
+    public void setLeaderboardVisible(UUID userId, boolean visible) {
+        jpaUserRepository.setLeaderboardVisible(userId, visible);
+    }
+
     private UserEntity toEntity(User domain) {
         UserEntity entity = new UserEntity(
                 domain.getId(),

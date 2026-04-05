@@ -12,13 +12,14 @@ import static org.junit.jupiter.api.Assertions.*;
 class CarDegradationTest {
 
     private Car carWith(BigDecimal batteryCapacityKwh, BigDecimal degradationPercent) {
-        return new Car(
-                UUID.randomUUID(), UUID.randomUUID(), CarBrand.CarModel.MODEL_3,
-                2024, "TEST", "Std", batteryCapacityKwh, new BigDecimal("200"),
-                LocalDate.now(), null, CarStatus.ACTIVE,
-                LocalDateTime.now(), LocalDateTime.now(), null, false, false,
-                degradationPercent
-        );
+        return Car.builder()
+                .id(UUID.randomUUID()).userId(UUID.randomUUID()).model(CarBrand.CarModel.MODEL_3)
+                .year(2024).licensePlate("TEST").trim("Std")
+                .batteryCapacityKwh(batteryCapacityKwh).powerKw(new BigDecimal("200"))
+                .registrationDate(LocalDate.now()).status(CarStatus.ACTIVE)
+                .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
+                .batteryDegradationPercent(degradationPercent)
+                .build();
     }
 
     @Test

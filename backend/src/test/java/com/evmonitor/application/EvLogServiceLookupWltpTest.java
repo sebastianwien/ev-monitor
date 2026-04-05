@@ -144,19 +144,11 @@ class EvLogServiceLookupWltpTest extends AbstractIntegrationTest {
 
     private Car carWithCapacity(CarBrand.CarModel model, BigDecimal batteryCapacityKwh) {
         LocalDateTime now = LocalDateTime.now();
-        return new Car(
-                UUID.randomUUID(),
-                UUID.randomUUID(),
-                model,
-                2023,
-                "TEST-1",
-                "Long Range",
-                batteryCapacityKwh,
-                new BigDecimal("280.0"),
-                null, null,
-                CarStatus.ACTIVE,
-                now, now,
-                null, false, false
-        );
+        return Car.builder()
+                .id(UUID.randomUUID()).userId(UUID.randomUUID()).model(model).year(2023)
+                .licensePlate("TEST-1").trim("Long Range")
+                .batteryCapacityKwh(batteryCapacityKwh).powerKw(new BigDecimal("280.0"))
+                .status(CarStatus.ACTIVE).createdAt(now).updatedAt(now)
+                .build();
     }
 }

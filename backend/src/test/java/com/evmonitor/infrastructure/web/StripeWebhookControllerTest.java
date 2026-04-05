@@ -64,8 +64,8 @@ class StripeWebhookControllerTest {
     }
 
     @Test
-    void handleWebhook_whenServiceThrowsGenericException_returns200() throws Exception {
-        // Non-signature errors return 200 to prevent Stripe from retrying indefinitely
+    void handleWebhook_whenServiceThrowsGenericException_returns500() throws Exception {
+        // Application errors return 500 so Stripe retries the event
         doThrow(new RuntimeException("Unexpected processing error"))
                 .when(stripeService).handleWebhookEvent(any(), any());
 
@@ -73,8 +73,8 @@ class StripeWebhookControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("Stripe-Signature", "valid-sig")
                         .content(STRIPE_PAYLOAD))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("ignored"));
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.error").exists());
     }
 
     @Test

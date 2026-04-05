@@ -39,4 +39,12 @@ public interface UserRepository {
     void setStripeCustomerId(UUID userId, String stripeCustomerId);
 
     void updatePassword(UUID userId, String passwordHash);
+
+    void updateEmail(UUID userId, String email);
+
+    void updateUsername(UUID userId, String username);
+
+    boolean isLeaderboardVisible(UUID userId);
+
+    void setLeaderboardVisible(UUID userId, boolean visible);
 }

@@ -3,6 +3,8 @@ package com.evmonitor.application;
 import com.evmonitor.domain.ChargingType;
 import com.evmonitor.domain.RouteType;
 import com.evmonitor.domain.TireType;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -18,8 +20,8 @@ public record EvLogRequest(
                 @NotNull @Positive BigDecimal kwhCharged,
                 @NotNull @PositiveOrZero BigDecimal costEur,
                 @Positive Integer chargeDurationMinutes, // Optional: charging duration in minutes
-                Double latitude,  // Optional: for geolocation (not stored, converted to geohash)
-                Double longitude, // Optional: for geolocation (not stored, converted to geohash)
+                @DecimalMin("-90.0") @DecimalMax("90.0") Double latitude,
+                @DecimalMin("-180.0") @DecimalMax("180.0") Double longitude,
                 Integer odometerKm, // Optional for imports, required in frontend for manual entry
                 BigDecimal maxChargingPowerKw, // Optional: max charging power in kW
                 @Min(0) @Max(100) Integer socAfterChargePercent, // Optional for imports, required in frontend for manual entry

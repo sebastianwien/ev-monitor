@@ -4,15 +4,12 @@ import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.User;
 import com.evmonitor.domain.UserRepository;
 import com.evmonitor.domain.EvLogRepository;
-import com.evmonitor.infrastructure.persistence.JpaUserRepository;
-import com.evmonitor.infrastructure.persistence.UserEntity;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -22,7 +19,6 @@ import java.util.UUID;
 public class UserService {
 
     private final UserRepository userRepository;
-    private final JpaUserRepository jpaUserRepository;
     private final EvLogRepository evLogRepository;
     private final CarRepository carRepository;
     private final PasswordEncoder passwordEncoder;
@@ -33,7 +29,6 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        // Get stats from EvLogs
         var logs = evLogRepository.findAllByUserId(userId);
         int totalLogs = logs.size();
         double totalKwh = logs.stream().mapToDouble(log -> log.getKwhCharged().doubleValue()).sum();
@@ -42,78 +37,58 @@ public class UserService {
                 .mapToDouble(log -> log.getCostEur().doubleValue())
                 .sum();
 
-        UserEntity userEntity = jpaUserRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-
         return new UserStatsResponse(
                 user.getCreatedAt(),
                 totalLogs,
                 totalKwh,
                 totalCostEur,
                 user.getReferralCode(),
-                userEntity.isLeaderboardVisible()
+                userRepository.isLeaderboardVisible(userId)
         );
     }
 
     @Transactional
     public void changeEmail(UUID userId, ChangeEmailRequest request) {
-        UserEntity userEntity = jpaUserRepository.findById(userId)
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        if (userEntity.getAuthProvider() != com.evmonitor.domain.AuthProvider.LOCAL) {
+        if (user.getAuthProvider() != com.evmonitor.domain.AuthProvider.LOCAL) {
             throw new IllegalArgumentException("Email-Änderung nur für lokal registrierte Accounts möglich");
         }
 
-        // Verify current password before allowing email change
-        if (!passwordEncoder.matches(request.currentPassword(), userEntity.getPasswordHash())) {
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
             throw new IllegalArgumentException("Aktuelles Passwort ist falsch");
         }
 
-        // Check if new email is already taken
         if (userRepository.existsByEmail(request.newEmail())) {
             throw new IllegalArgumentException("Email bereits vergeben");
         }
 
-        userEntity.setEmail(request.newEmail());
-        userEntity.setEmailVerified(false); // Re-verification required!
-        userEntity.setUpdatedAt(LocalDateTime.now());
-
-        jpaUserRepository.save(userEntity);
-
-        // TODO: Send verification email (implement EmailVerificationService call)
+        userRepository.updateEmail(userId, request.newEmail());
     }
 
     @Transactional
     public void changeUsername(UUID userId, ChangeUsernameRequest request) {
-        UserEntity userEntity = jpaUserRepository.findById(userId)
+        userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        // Check if username is already taken
         if (userRepository.existsByUsername(request.newUsername())) {
             throw new IllegalArgumentException("Username bereits vergeben");
         }
 
-        userEntity.setUsername(request.newUsername());
-        userEntity.setUpdatedAt(LocalDateTime.now());
-
-        jpaUserRepository.save(userEntity);
+        userRepository.updateUsername(userId, request.newUsername());
     }
 
     @Transactional
     public void changePassword(UUID userId, ChangePasswordRequest request) {
-        UserEntity userEntity = jpaUserRepository.findById(userId)
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        // Verify current password
-        if (!passwordEncoder.matches(request.currentPassword(), userEntity.getPasswordHash())) {
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
             throw new IllegalArgumentException("Aktuelles Passwort ist falsch");
         }
 
-        // Set new password
-        userEntity.setPasswordHash(passwordEncoder.encode(request.newPassword()));
-        userEntity.setUpdatedAt(LocalDateTime.now());
-
-        jpaUserRepository.save(userEntity);
+        userRepository.updatePassword(userId, passwordEncoder.encode(request.newPassword()));
     }
 
     @Transactional(readOnly = true)
@@ -164,11 +139,7 @@ public class UserService {
 
     @Transactional
     public void setLeaderboardVisible(UUID userId, boolean visible) {
-        UserEntity userEntity = jpaUserRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-        userEntity.setLeaderboardVisible(visible);
-        userEntity.setUpdatedAt(LocalDateTime.now());
-        jpaUserRepository.save(userEntity);
+        userRepository.setLeaderboardVisible(userId, visible);
     }
 
 }

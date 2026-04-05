@@ -41,7 +41,7 @@ public class TestDataBuilder {
                 false, // seedData
                 true, // emailNotificationsEnabled
                 false, // premium
-                UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase(),
+                UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase(),
                 null, // referredByUserId
                 null, // stripeCustomerId
                 null, // utmSource
@@ -74,24 +74,13 @@ public class TestDataBuilder {
      * Create a test car with custom ID (for testing queries).
      */
     public static Car createTestCarWithId(UUID carId, UUID userId, CarBrand.CarModel model) {
-        return new Car(
-                carId,
-                userId,
-                model,
-                2024,
-                "TEST-456",
-                "Performance",
-                new BigDecimal("75.0"),
-                new BigDecimal("200.0"),
-                LocalDate.now(),
-                null,
-                CarStatus.ACTIVE,
-                LocalDateTime.now(),
-                LocalDateTime.now(),
-                null,   // imagePath
-                false,  // imagePublic
-                false   // isPrimary
-        );
+        return Car.builder()
+                .id(carId).userId(userId).model(model).year(2024)
+                .licensePlate("TEST-456").trim("Performance")
+                .batteryCapacityKwh(new BigDecimal("75.0")).powerKw(new BigDecimal("200.0"))
+                .registrationDate(LocalDate.now()).status(CarStatus.ACTIVE)
+                .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
+                .build();
     }
 
     /**

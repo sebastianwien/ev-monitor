@@ -30,34 +30,68 @@ public class Car {
     private final boolean isBusinessCar;
     private final boolean hasHeatPump;
 
-    public Car(UUID id, UUID userId, CarBrand.CarModel model, Integer year, String licensePlate,
-            String trim, BigDecimal batteryCapacityKwh, BigDecimal powerKw,
-            LocalDate registrationDate, LocalDate deregistrationDate, CarStatus status,
-            LocalDateTime createdAt, LocalDateTime updatedAt, String imagePath, boolean imagePublic,
-            boolean isPrimary) {
-        this(id, userId, model, year, licensePlate, trim, batteryCapacityKwh, powerKw,
-                registrationDate, deregistrationDate, status, createdAt, updatedAt, imagePath,
-                imagePublic, isPrimary, null, false, false);
+    public static Builder builder() {
+        return new Builder();
     }
 
-    public Car(UUID id, UUID userId, CarBrand.CarModel model, Integer year, String licensePlate,
-            String trim, BigDecimal batteryCapacityKwh, BigDecimal powerKw,
-            LocalDate registrationDate, LocalDate deregistrationDate, CarStatus status,
-            LocalDateTime createdAt, LocalDateTime updatedAt, String imagePath, boolean imagePublic,
-            boolean isPrimary, BigDecimal batteryDegradationPercent) {
-        this(id, userId, model, year, licensePlate, trim, batteryCapacityKwh, powerKw,
-                registrationDate, deregistrationDate, status, createdAt, updatedAt, imagePath,
-                imagePublic, isPrimary, batteryDegradationPercent, false, false);
+    public Builder toBuilder() {
+        return new Builder()
+                .id(this.id).userId(this.userId).model(this.model).year(this.year)
+                .licensePlate(this.licensePlate).trim(this.trim)
+                .batteryCapacityKwh(this.batteryCapacityKwh).powerKw(this.powerKw)
+                .registrationDate(this.registrationDate).deregistrationDate(this.deregistrationDate)
+                .status(this.status).createdAt(this.createdAt).updatedAt(this.updatedAt)
+                .imagePath(this.imagePath).imagePublic(this.imagePublic).isPrimary(this.isPrimary)
+                .batteryDegradationPercent(this.batteryDegradationPercent)
+                .isBusinessCar(this.isBusinessCar).hasHeatPump(this.hasHeatPump);
     }
 
-    public Car(UUID id, UUID userId, CarBrand.CarModel model, Integer year, String licensePlate,
-            String trim, BigDecimal batteryCapacityKwh, BigDecimal powerKw,
-            LocalDate registrationDate, LocalDate deregistrationDate, CarStatus status,
-            LocalDateTime createdAt, LocalDateTime updatedAt, String imagePath, boolean imagePublic,
-            boolean isPrimary, BigDecimal batteryDegradationPercent, boolean isBusinessCar) {
-        this(id, userId, model, year, licensePlate, trim, batteryCapacityKwh, powerKw,
-                registrationDate, deregistrationDate, status, createdAt, updatedAt, imagePath,
-                imagePublic, isPrimary, batteryDegradationPercent, isBusinessCar, false);
+    public static class Builder {
+        private UUID id;
+        private UUID userId;
+        private CarBrand.CarModel model;
+        private Integer year;
+        private String licensePlate;
+        private String trim;
+        private BigDecimal batteryCapacityKwh;
+        private BigDecimal powerKw;
+        private LocalDate registrationDate;
+        private LocalDate deregistrationDate;
+        private CarStatus status;
+        private LocalDateTime createdAt;
+        private LocalDateTime updatedAt;
+        private String imagePath;
+        private boolean imagePublic;
+        private boolean isPrimary;
+        private BigDecimal batteryDegradationPercent;
+        private boolean isBusinessCar;
+        private boolean hasHeatPump;
+
+        public Builder id(UUID id) { this.id = id; return this; }
+        public Builder userId(UUID userId) { this.userId = userId; return this; }
+        public Builder model(CarBrand.CarModel model) { this.model = model; return this; }
+        public Builder year(Integer year) { this.year = year; return this; }
+        public Builder licensePlate(String licensePlate) { this.licensePlate = licensePlate; return this; }
+        public Builder trim(String trim) { this.trim = trim; return this; }
+        public Builder batteryCapacityKwh(BigDecimal v) { this.batteryCapacityKwh = v; return this; }
+        public Builder powerKw(BigDecimal v) { this.powerKw = v; return this; }
+        public Builder registrationDate(LocalDate v) { this.registrationDate = v; return this; }
+        public Builder deregistrationDate(LocalDate v) { this.deregistrationDate = v; return this; }
+        public Builder status(CarStatus status) { this.status = status; return this; }
+        public Builder createdAt(LocalDateTime v) { this.createdAt = v; return this; }
+        public Builder updatedAt(LocalDateTime v) { this.updatedAt = v; return this; }
+        public Builder imagePath(String imagePath) { this.imagePath = imagePath; return this; }
+        public Builder imagePublic(boolean v) { this.imagePublic = v; return this; }
+        public Builder isPrimary(boolean v) { this.isPrimary = v; return this; }
+        public Builder batteryDegradationPercent(BigDecimal v) { this.batteryDegradationPercent = v; return this; }
+        public Builder isBusinessCar(boolean v) { this.isBusinessCar = v; return this; }
+        public Builder hasHeatPump(boolean v) { this.hasHeatPump = v; return this; }
+
+        public Car build() {
+            return new Car(id, userId, model, year, licensePlate, trim, batteryCapacityKwh, powerKw,
+                    registrationDate, deregistrationDate, status, createdAt, updatedAt, imagePath,
+                    imagePublic, isPrimary, batteryDegradationPercent, isBusinessCar, hasHeatPump);
+        }
     }
 
     public Car(UUID id, UUID userId, CarBrand.CarModel model, Integer year, String licensePlate,
@@ -97,39 +131,28 @@ public class Car {
     }
 
     public Car deregister(LocalDate deregistrationDate) {
-        return new Car(id, userId, model, year, licensePlate, trim, batteryCapacityKwh, powerKw,
-                registrationDate, deregistrationDate, CarStatus.INACTIVE, createdAt, LocalDateTime.now(),
-                imagePath, imagePublic, isPrimary, batteryDegradationPercent, isBusinessCar, hasHeatPump);
+        return toBuilder().deregistrationDate(deregistrationDate).status(CarStatus.INACTIVE)
+                .updatedAt(LocalDateTime.now()).build();
     }
 
     public Car withImage(String imagePath, boolean imagePublic) {
-        return new Car(id, userId, model, year, licensePlate, trim, batteryCapacityKwh, powerKw,
-                registrationDate, deregistrationDate, status, createdAt, LocalDateTime.now(),
-                imagePath, imagePublic, isPrimary, batteryDegradationPercent, isBusinessCar, hasHeatPump);
+        return toBuilder().imagePath(imagePath).imagePublic(imagePublic).updatedAt(LocalDateTime.now()).build();
     }
 
     public Car activate() {
-        return new Car(id, userId, model, year, licensePlate, trim, batteryCapacityKwh, powerKw,
-                registrationDate, deregistrationDate, status, createdAt, LocalDateTime.now(),
-                imagePath, imagePublic, true, batteryDegradationPercent, isBusinessCar, hasHeatPump);
+        return toBuilder().isPrimary(true).updatedAt(LocalDateTime.now()).build();
     }
 
     public Car deactivate() {
-        return new Car(id, userId, model, year, licensePlate, trim, batteryCapacityKwh, powerKw,
-                registrationDate, deregistrationDate, status, createdAt, LocalDateTime.now(),
-                imagePath, imagePublic, false, batteryDegradationPercent, isBusinessCar, hasHeatPump);
+        return toBuilder().isPrimary(false).updatedAt(LocalDateTime.now()).build();
     }
 
     public Car withBusinessCar(boolean businessCar) {
-        return new Car(id, userId, model, year, licensePlate, trim, batteryCapacityKwh, powerKw,
-                registrationDate, deregistrationDate, status, createdAt, LocalDateTime.now(),
-                imagePath, imagePublic, isPrimary, batteryDegradationPercent, businessCar, hasHeatPump);
+        return toBuilder().isBusinessCar(businessCar).updatedAt(LocalDateTime.now()).build();
     }
 
     public Car withHeatPump(boolean heatPump) {
-        return new Car(id, userId, model, year, licensePlate, trim, batteryCapacityKwh, powerKw,
-                registrationDate, deregistrationDate, status, createdAt, LocalDateTime.now(),
-                imagePath, imagePublic, isPrimary, batteryDegradationPercent, isBusinessCar, heatPump);
+        return toBuilder().hasHeatPump(heatPump).updatedAt(LocalDateTime.now()).build();
     }
 
     public BigDecimal getEffectiveBatteryCapacityKwh() {

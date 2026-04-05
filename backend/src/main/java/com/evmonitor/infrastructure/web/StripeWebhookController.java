@@ -3,6 +3,8 @@ package com.evmonitor.infrastructure.web;
 import com.evmonitor.application.StripeService;
 import com.stripe.exception.SignatureVerificationException;
 import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -20,6 +22,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/webhooks")
 public class StripeWebhookController {
+
+    private static final Logger log = LoggerFactory.getLogger(StripeWebhookController.class);
 
     private final StripeService stripeService;
 
@@ -49,8 +53,8 @@ public class StripeWebhookController {
         } catch (SignatureVerificationException e) {
             return ResponseEntity.badRequest().body(Map.of("error", "Invalid Stripe signature"));
         } catch (Exception e) {
-            // Return 200 for all other errors to prevent Stripe from retrying
-            return ResponseEntity.ok(Map.of("status", "ignored"));
+            log.error("Stripe webhook processing failed - Stripe will retry", e);
+            return ResponseEntity.internalServerError().body(Map.of("error", "Internal processing error"));
         }
     }
 }
