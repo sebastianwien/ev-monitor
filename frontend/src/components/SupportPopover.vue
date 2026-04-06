@@ -62,7 +62,7 @@ onUnmounted(() => document.removeEventListener('click', handleOutsideClick))
     <button
       v-if="variant === 'nav'"
       @click.stop="open = !open"
-      class="inline-flex items-center gap-1.5 px-3 py-1.5 text-white hover:text-indigo-200 transition text-sm font-medium"
+      class="inline-flex items-center gap-1.5 px-3 py-1.5 text-white hover:text-indigo-200 transition text-sm font-medium cursor-pointer"
       :title="t('support.footer_btn')">
       <HeartIcon class="h-4 w-4 text-red-400" />
       {{ t('support.nav_btn') }}
@@ -70,7 +70,7 @@ onUnmounted(() => document.removeEventListener('click', handleOutsideClick))
     <button
       v-else
       @click.stop="open = !open"
-      class="inline-flex items-center gap-1.5 text-red-500 hover:text-red-600 transition font-medium">
+      class="inline-flex items-center gap-1.5 text-red-500 hover:text-red-600 transition font-medium cursor-pointer">
       <HeartIcon class="h-4 w-4" />
       {{ t('support.footer_btn') }}
     </button>
@@ -90,13 +90,13 @@ onUnmounted(() => document.removeEventListener('click', handleOutsideClick))
         <div class="p-1">
           <button
             @click="openPaypal"
-            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-700 transition">
+            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-700 transition cursor-pointer">
             <img src="https://www.paypalobjects.com/webstatic/icon/pp16.png" alt="PayPal" class="h-4 w-4" />
             PayPal
           </button>
           <button
             @click="openKofi"
-            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 transition">
+            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 transition cursor-pointer">
             <HeartIcon class="h-4 w-4 text-red-400" />
             Ko-fi
           </button>
