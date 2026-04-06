@@ -737,7 +737,7 @@ carselector:
   error_load: "Fehler beim Laden der Fahrzeuge"
 
 consumption_info:
-  trigger: "Wie berechnen wir deinen Verbrauch?"
+  trigger: "Wie wird dein Verbrauch berechnet?"
   p1: "Der Verbrauch wird aus <strong>geladenen kWh</strong>, <strong>Ladezustand (SoC)</strong> und <strong>Kilometerstand</strong> zweier aufeinanderfolgender Ladevorgänge berechnet - alle drei Angaben müssen bei beiden Einträgen vorhanden sein. Fehlt eine davon, kann der Verbrauch für den nächsten Eintrag nicht berechnet werden."
   p2_pre: "Ab <strong>{minTrips} auswertbaren Fahrten</strong> vergleichen wir jeden Wert mit deinem persönlichen Durchschnitt. Davor wird der WLTP-Richtwert deines Fahrzeugs als Referenz genutzt. Ladevorgänge mit stark abweichendem Verbrauch werden mit"
   p2_post: "markiert - meist ein Zeichen, dass zwischen zwei Einträgen ein Ladevorgang fehlt."

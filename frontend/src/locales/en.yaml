@@ -737,7 +737,7 @@ carselector:
   error_load: "Error loading vehicles"
 
 consumption_info:
-  trigger: "How do we calculate your consumption?"
+  trigger: "How is your consumption calculated?"
   p1: "Consumption is calculated from <strong>charged kWh</strong>, <strong>state of charge (SoC)</strong> and <strong>odometer</strong> of two consecutive charging sessions - all three values must be present in both entries. If one is missing, consumption for the next entry cannot be calculated."
   p2_pre: "After <strong>{minTrips} evaluable trips</strong>, we compare each value against your personal average. Before that, your vehicle's WLTP reference value is used. Sessions with strongly deviating consumption are"
   p2_post: "flagged - usually a sign that a charging session is missing between two entries."

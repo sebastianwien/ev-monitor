@@ -784,6 +784,12 @@ const scrollToLogs = async () => {
   logsSection.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
+const fetchLogsAndScroll = async (page: number) => {
+  await fetchLogs(page)
+  await nextTick()
+  logsSection.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
 watch(selectedCarId, () => {
   logs.value = []
   sessionGroups.value = []
@@ -1401,7 +1407,6 @@ const deleteLog = async (id: string) => {
         <div ref="logsSection" class="border-t border-gray-100 dark:border-gray-700 pt-3 scroll-mt-4 pb-6">
           <div class="flex items-center justify-between mb-3">
             <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">{{ t('dashboard.logs_title') }}</h2>
-            <span v-if="!logsLoading" class="text-sm text-gray-400">{{ t('dashboard.logs_page', { n: logsPage + 1 }) }}</span>
           </div>
 
           <!-- Consumption info accordion -->
@@ -1419,6 +1424,8 @@ const deleteLog = async (id: string) => {
             </div>
             <span class="text-xs text-amber-700 dark:text-amber-400 font-medium shrink-0">{{ t('dashboard.implausible_check') }}</span>
           </button>
+
+          <div v-if="!logsLoading && logsPage > 0" class="text-sm text-gray-400 mb-2 text-right">{{ t('dashboard.logs_page', { n: logsPage + 1 }) }}</div>
 
           <div class="space-y-2">
             <div v-if="logsLoading && !hasAnyLogs" class="py-8 text-center text-gray-400 text-sm">{{ t('dashboard.loading') }}</div>
@@ -1730,13 +1737,13 @@ const deleteLog = async (id: string) => {
           <!-- Pagination -->
           <div class="flex items-center justify-between mt-4">
             <button
-              @click="fetchLogs(logsPage - 1)"
+              @click="fetchLogsAndScroll(logsPage - 1)"
               :disabled="logsPage === 0"
               class="flex items-center gap-1 px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-600 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition">
               <ChevronLeftIcon class="w-4 h-4" />{{ t('dashboard.prev') }}
             </button>
             <button
-              @click="fetchLogs(logsPage + 1)"
+              @click="fetchLogsAndScroll(logsPage + 1)"
               :disabled="!hasMoreLogs"
               class="flex items-center gap-1 px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-600 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition">
               {{ t('dashboard.next') }}<ChevronRightIcon class="w-4 h-4" />
