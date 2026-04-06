@@ -225,6 +225,9 @@ function formatDate(d: string) {
         <ArrowTopRightOnSquareIcon class="h-4 w-4" />
         {{ isLoading ? t('tesla.connect_btn_loading') : t('tesla.connect_btn') }}
       </button>
+      <p class="text-xs text-gray-500 dark:text-gray-400 text-center">
+        Die Tesla Fleet API ist gebührenpflichtig - über einen Kaffee würde ich mich freuen ☕
+      </p>
     </template>
 
     <template v-else>

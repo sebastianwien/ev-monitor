@@ -35,6 +35,7 @@ import {
   CloudIcon,
   XMarkIcon,
   HomeIcon,
+  CalendarIcon,
 } from '@heroicons/vue/24/outline'
 import type { Component } from 'vue'
 import { useRouter } from 'vue-router'
@@ -112,6 +113,8 @@ const carImageUrls = ref<Record<string, string>>({})
 
 const selectedTimeRange = ref<string>('LAST_3_MONTHS')
 const selectedGroupBy = ref<string>('DAY')
+const customStartDate = ref<string>('')
+const customEndDate = ref<string>('')
 
 const showOdometer = ref(false)
 const showCostAbsolute = ref(false)
@@ -149,7 +152,8 @@ const timeRangeOptions = computed(() => [
   { value: 'LAST_6_MONTHS', label: t('dashboard.time_last_6m') },
   { value: 'LAST_12_MONTHS', label: t('dashboard.time_last_12m') },
   { value: 'THIS_YEAR', label: t('dashboard.time_this_year') },
-  { value: 'ALL_TIME', label: t('dashboard.time_all') }
+  { value: 'ALL_TIME', label: t('dashboard.time_all') },
+  { value: 'CUSTOM', label: t('dashboard.time_custom') }
 ])
 
 const groupByOptions = computed(() => [
@@ -197,9 +201,19 @@ const fetchStatistics = async () => {
     error.value = null
     const params = new URLSearchParams({
       carId: selectedCarId.value,
-      timeRange: selectedTimeRange.value,
       groupBy: selectedGroupBy.value
     })
+    if (selectedTimeRange.value === 'CUSTOM') {
+      if (!customStartDate.value || !customEndDate.value) {
+        loading.value = false
+        chartsReady.value = true
+        return
+      }
+      params.set('startDate', customStartDate.value)
+      params.set('endDate', customEndDate.value)
+    } else {
+      params.set('timeRange', selectedTimeRange.value)
+    }
     const response = await api.get(`/logs/statistics?${params}`)
     stats.value = response.data
   } catch (err: any) {
@@ -232,6 +246,10 @@ watch(selectedCarId, async (newId) => {
 
 watch([selectedTimeRange, selectedGroupBy], () => {
   if (selectedCarId.value) fetchStatistics()
+})
+
+watch([customStartDate, customEndDate], () => {
+  if (selectedCarId.value && selectedTimeRange.value === 'CUSTOM') fetchStatistics()
 })
 
 const hasDistanceData = computed(() =>
@@ -997,47 +1015,98 @@ const deleteLog = async (id: string) => {
           <!-- Filters (show if there are logs in any time range) -->
           <div v-if="selectedCarId && hasAnyLogs" class="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
             <!-- Mobile: two selects side by side -->
-            <div class="flex gap-3 md:hidden">
-              <div class="flex-1">
-                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{{ t('dashboard.time_range_label') }}</label>
-                <select v-model="selectedTimeRange"
-                  class="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500">
-                  <option v-for="option in timeRangeOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-                </select>
+            <div class="md:hidden">
+              <div class="flex gap-3">
+                <div class="flex-1">
+                  <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{{ t('dashboard.time_range_label') }}</label>
+                  <div class="relative">
+                    <select v-model="selectedTimeRange"
+                      class="block w-full appearance-none px-3 pr-8 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                      <option v-for="option in timeRangeOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+                    </select>
+                    <ChevronDownIcon class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
+                  </div>
+                </div>
+                <div class="flex-1">
+                  <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{{ t('dashboard.group_by_label') }}</label>
+                  <div class="relative">
+                    <select v-model="selectedGroupBy"
+                      class="block w-full appearance-none px-3 pr-8 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                      <option v-for="opt in groupByOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                    </select>
+                    <ChevronDownIcon class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
+                  </div>
+                </div>
               </div>
-              <div class="flex-1">
-                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{{ t('dashboard.group_by_label') }}</label>
-                <select v-model="selectedGroupBy"
-                  class="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500">
-                  <option v-for="opt in groupByOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-                </select>
+              <!-- Mobile: custom date inputs -->
+              <div v-if="selectedTimeRange === 'CUSTOM'" class="flex gap-3 mt-3">
+                <div class="flex-1">
+                  <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{{ t('dashboard.time_custom_from') }}</label>
+                  <div class="relative">
+                    <input type="date" v-model="customStartDate" :max="customEndDate || undefined"
+                      class="block w-full px-3 pr-9 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-9 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer" />
+                    <CalendarIcon class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
+                  </div>
+                </div>
+                <div class="flex-1">
+                  <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{{ t('dashboard.time_custom_to') }}</label>
+                  <div class="relative">
+                    <input type="date" v-model="customEndDate" :min="customStartDate || undefined"
+                      class="block w-full px-3 pr-9 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-9 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer" />
+                    <CalendarIcon class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
+                  </div>
+                </div>
               </div>
             </div>
             <!-- Desktop: buttons + select -->
-            <div class="hidden md:flex gap-4 items-start md:items-center justify-between">
-              <div class="flex-1">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ t('dashboard.time_range_label') }}</label>
-                <div class="flex flex-wrap gap-2">
-                  <button
-                    v-for="option in timeRangeOptions"
-                    :key="option.value"
-                    @click="selectedTimeRange = option.value"
-                    :class="[
-                      'px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
-                      selectedTimeRange === option.value
-                        ? 'bg-indigo-600 text-white translate-y-[2px] shadow-[0_2px_0_0_#3730a3] active:shadow-none active:translate-y-1 transition-all duration-75 cursor-pointer'
-                        : 'bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-500 shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] active:shadow-none active:translate-y-1 transition-all duration-75 cursor-pointer'
-                    ]">
-                    {{ option.label }}
-                  </button>
+            <div class="hidden md:block">
+              <div class="flex gap-4 items-start md:items-center justify-between">
+                <div class="flex-1">
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ t('dashboard.time_range_label') }}</label>
+                  <div class="flex flex-wrap gap-2">
+                    <button
+                      v-for="option in timeRangeOptions"
+                      :key="option.value"
+                      @click="selectedTimeRange = option.value"
+                      :class="[
+                        'px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
+                        selectedTimeRange === option.value
+                          ? 'bg-indigo-600 text-white translate-y-[2px] shadow-[0_2px_0_0_#3730a3] active:shadow-none active:translate-y-1 transition-all duration-75 cursor-pointer'
+                          : 'bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-500 shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] active:shadow-none active:translate-y-1 transition-all duration-75 cursor-pointer'
+                      ]">
+                      {{ option.label }}
+                    </button>
+                  </div>
+                </div>
+                <div class="w-full md:w-auto">
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ t('dashboard.group_by_label') }}</label>
+                  <div class="relative">
+                    <select v-model="selectedGroupBy"
+                      class="block w-full md:w-auto appearance-none px-4 pr-10 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                      <option v-for="opt in groupByOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                    </select>
+                    <ChevronDownIcon class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
+                  </div>
                 </div>
               </div>
-              <div class="w-full md:w-auto">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ t('dashboard.group_by_label') }}</label>
-                <select v-model="selectedGroupBy"
-                  class="block w-full md:w-auto px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                  <option v-for="opt in groupByOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-                </select>
+              <!-- Desktop: custom date inputs -->
+              <div v-if="selectedTimeRange === 'CUSTOM'" class="flex gap-3 mt-3">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('dashboard.time_custom_from') }}</label>
+                  <div class="relative">
+                    <input type="date" v-model="customStartDate" :max="customEndDate || undefined"
+                      class="px-3 pr-9 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-9 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer" />
+                    <CalendarIcon class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('dashboard.time_custom_to') }}</label>
+                  <div class="relative">
+                    <input type="date" v-model="customEndDate" :min="customStartDate || undefined"
+                      class="px-3 pr-9 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-9 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer" />
+                    <CalendarIcon class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
