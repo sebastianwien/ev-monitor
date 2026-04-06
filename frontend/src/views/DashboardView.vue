@@ -111,10 +111,15 @@ const error = ref<string | null>(null)
 const cars = ref<any[]>([]) // Track available cars for empty state
 const carImageUrls = ref<Record<string, string>>({})
 
-const selectedTimeRange = ref<string>('LAST_3_MONTHS')
-const selectedGroupBy = ref<string>('DAY')
-const customStartDate = ref<string>('')
-const customEndDate = ref<string>('')
+const LS_TIME_RANGE = 'dashboard_time_range'
+const LS_GROUP_BY = 'dashboard_group_by'
+const LS_CUSTOM_START = 'dashboard_custom_start'
+const LS_CUSTOM_END = 'dashboard_custom_end'
+
+const selectedTimeRange = ref<string>(localStorage.getItem(LS_TIME_RANGE) ?? 'LAST_3_MONTHS')
+const selectedGroupBy = ref<string>(localStorage.getItem(LS_GROUP_BY) ?? 'DAY')
+const customStartDate = ref<string>(localStorage.getItem(LS_CUSTOM_START) ?? '')
+const customEndDate = ref<string>(localStorage.getItem(LS_CUSTOM_END) ?? '')
 
 const showOdometer = ref(false)
 const showCostAbsolute = ref(false)
@@ -245,10 +250,14 @@ watch(selectedCarId, async (newId) => {
 })
 
 watch([selectedTimeRange, selectedGroupBy], () => {
+  localStorage.setItem(LS_TIME_RANGE, selectedTimeRange.value)
+  localStorage.setItem(LS_GROUP_BY, selectedGroupBy.value)
   if (selectedCarId.value) fetchStatistics()
 })
 
 watch([customStartDate, customEndDate], () => {
+  localStorage.setItem(LS_CUSTOM_START, customStartDate.value)
+  localStorage.setItem(LS_CUSTOM_END, customEndDate.value)
   if (selectedCarId.value && selectedTimeRange.value === 'CUSTOM') fetchStatistics()
 })
 
