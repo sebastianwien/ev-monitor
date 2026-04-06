@@ -28,7 +28,7 @@ Live at **[ev-monitor.net](https://ev-monitor.net)**
 - **Charging Logs** - kWh, costs in EUR, location (geohashed for privacy), duration, date
 - **Vehicle Management** - 68+ brands, 100+ models with battery capacity specs
 - **Statistics Dashboard** - charts, seasonal breakdowns, WLTP delta analysis (Chart.js)
-- **Interactive Heatmap** - visualize charging locations on a map (Leaflet, ~600m precision for private, ~150m for public)
+- **Interactive Heatmap** - visualize charging locations on a map (Leaflet, ~600m precision for private, ~150m for public charging stations)
 - **WLTP Crowdsourcing** - community-contributed real-world range & consumption data per model
 - **Gamification** - earn coins for logging data, adding vehicle specs, and referring users
 - **Leaderboard** - community ranking with optional visibility toggle
@@ -38,18 +38,18 @@ Live at **[ev-monitor.net](https://ev-monitor.net)**
 - **JWT Authentication** - token-based, 7-day sessions
 - **Email Verification** - 24h token with resend + rate limiting
 - **Password Reset** - email-based two-step flow
-- **OAuth2** - infrastructure ready (Google/GitHub)
+- **OAuth2** - infrastructure ready (Google/Facebook/Apple)
 - **User Settings** - profile, notification preferences, leaderboard visibility
 
 ### Import & Integrations
 - **SmartCar** - live sync for 40+ brands via SmartCar API (webhook-driven, no polling)
 - **Tesla** - automatic session sync via Tesla Fleet API (with encrypted token storage)
-- **Tronity** - import via Tronity connector
+- **Tronity** - manual import of Tronity exports
 - **Spritmonitor** - one-click import of existing Spritmonitor history
-- **go-eCharger** - automatic wallbox import (BETA)
+- **go-eCharger** - automatic wallbox import API
 - **OCPP Wallbox** - generic OCPP wallbox support (BETA)
 - **Manual Import** - CSV/JSON import with session grouping logic
-- **Public Upload API** - REST API with API keys for wallboxes, scripts, home automation
+- **Public Upload API** - REST API with API keys for wallboxes, scripts, home automation, etc. ...
 
 ### Public Pages (SEO-optimized)
 - **Model Overview** (`/modelle`) - community averages per EV model
@@ -90,6 +90,7 @@ Live at **[ev-monitor.net](https://ev-monitor.net)**
 ### Infrastructure
 - **Docker Compose** - multi-container setup
 - **Nginx** - reverse proxy + static file serving
+- **Prerender** (`tvanro/prerender-alpine`) - server-side rendering for bots/crawlers, in-memory cache (TTL 24h)
 - **Certbot** - Let's Encrypt SSL (auto-renewal)
 - **Hosting** - Hetzner Cloud
 
