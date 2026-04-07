@@ -107,13 +107,22 @@ class EvLogChargingTypeInferenceTest {
     private EvLog buildLog(ChargingType chargingType, BigDecimal maxPowerKw,
                             BigDecimal kwhCharged, Integer durationMinutes) {
         LocalDateTime now = LocalDateTime.now();
-        return new EvLog(
-                UUID.randomUUID(), UUID.randomUUID(),
-                kwhCharged, new BigDecimal("10.00"), durationMinutes, "u33d1",
-                10000, maxPowerKw, 80, null,
-                now, DataSource.USER_LOGGED, true,
-                null, null, null, chargingType, null,
-                now, now, null, null, null, null,
-                false, null);
+        return EvLog.builder()
+                .id(UUID.randomUUID())
+                .carId(UUID.randomUUID())
+                .kwhCharged(kwhCharged)
+                .costEur(new BigDecimal("10.00"))
+                .chargeDurationMinutes(durationMinutes)
+                .geohash("u33d1")
+                .odometerKm(10000)
+                .maxChargingPowerKw(maxPowerKw)
+                .socAfterChargePercent(80)
+                .loggedAt(now)
+                .dataSource(DataSource.USER_LOGGED)
+                .includeInStatistics(true)
+                .chargingType(chargingType)
+                .createdAt(now)
+                .updatedAt(now)
+                .build();
     }
 }

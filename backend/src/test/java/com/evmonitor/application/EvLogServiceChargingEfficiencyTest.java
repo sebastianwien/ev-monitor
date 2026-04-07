@@ -197,14 +197,22 @@ class EvLogServiceChargingEfficiencyTest {
     void effectiveKwhForCost_atVehicleDcPublic_dividedByDcEfficiency() {
         // Smartcar at public DC charger — but SMARTCAR_LIVE doesn't expose charging type,
         // so we use AT_VEHICLE with UNKNOWN type + publicCharging=true to trigger DC proxy
-        EvLog log = new EvLog(
-                UUID.randomUUID(), UUID.randomUUID(),
-                new BigDecimal("30.0"), new BigDecimal("10.00"), 60, "u33d1",
-                null, new BigDecimal("50.0"), null, null,
-                T1, DataSource.SMARTCAR_LIVE, true,
-                null, null, null, ChargingType.UNKNOWN, null,
-                T1, T1, null, null, null, null,
-                true, null); // publicCharging=true → DC proxy
+        EvLog log = EvLog.builder()
+                .id(UUID.randomUUID())
+                .carId(UUID.randomUUID())
+                .kwhCharged(new BigDecimal("30.0"))
+                .costEur(new BigDecimal("10.00"))
+                .chargeDurationMinutes(60)
+                .geohash("u33d1")
+                .maxChargingPowerKw(new BigDecimal("50.0"))
+                .loggedAt(T1)
+                .dataSource(DataSource.SMARTCAR_LIVE)
+                .includeInStatistics(true)
+                .chargingType(ChargingType.UNKNOWN)
+                .isPublicCharging(true) // publicCharging=true → DC proxy
+                .createdAt(T1)
+                .updatedAt(T1)
+                .build();
 
         BigDecimal result = service.effectiveKwhForCost(log);
 
@@ -229,25 +237,44 @@ class EvLogServiceChargingEfficiencyTest {
     private EvLog atChargerLog(Integer odometerKm, BigDecimal kwhCharged, Integer socAfter,
                                 ChargingType chargingType, boolean publicCharging, LocalDateTime loggedAt,
                                 BigDecimal maxChargingPowerKw, Integer durationMinutes) {
-        return new EvLog(
-                UUID.randomUUID(), UUID.randomUUID(),
-                kwhCharged, new BigDecimal("10.00"), durationMinutes, "u33d1",
-                odometerKm, maxChargingPowerKw, socAfter, null,
-                loggedAt, DataSource.USER_LOGGED, true,
-                null, null, null, chargingType, null,
-                loggedAt, loggedAt, null, null, null, null,
-                publicCharging, null);
+        return EvLog.builder()
+                .id(UUID.randomUUID())
+                .carId(UUID.randomUUID())
+                .kwhCharged(kwhCharged)
+                .costEur(new BigDecimal("10.00"))
+                .chargeDurationMinutes(durationMinutes)
+                .geohash("u33d1")
+                .odometerKm(odometerKm)
+                .maxChargingPowerKw(maxChargingPowerKw)
+                .socAfterChargePercent(socAfter)
+                .loggedAt(loggedAt)
+                .dataSource(DataSource.USER_LOGGED)
+                .includeInStatistics(true)
+                .chargingType(chargingType)
+                .isPublicCharging(publicCharging)
+                .createdAt(loggedAt)
+                .updatedAt(loggedAt)
+                .build();
     }
 
     private EvLog atVehicleLog(Integer odometerKm, BigDecimal kwhCharged, Integer socAfter,
                                 LocalDateTime loggedAt) {
-        return new EvLog(
-                UUID.randomUUID(), UUID.randomUUID(),
-                kwhCharged, new BigDecimal("10.00"), 60, "u33d1",
-                odometerKm, new BigDecimal("11.0"), socAfter, null,
-                loggedAt, DataSource.SMARTCAR_LIVE, true,
-                null, null, null, ChargingType.UNKNOWN, null,
-                loggedAt, loggedAt, null, null, null, null,
-                false, null);
+        return EvLog.builder()
+                .id(UUID.randomUUID())
+                .carId(UUID.randomUUID())
+                .kwhCharged(kwhCharged)
+                .costEur(new BigDecimal("10.00"))
+                .chargeDurationMinutes(60)
+                .geohash("u33d1")
+                .odometerKm(odometerKm)
+                .maxChargingPowerKw(new BigDecimal("11.0"))
+                .socAfterChargePercent(socAfter)
+                .loggedAt(loggedAt)
+                .dataSource(DataSource.SMARTCAR_LIVE)
+                .includeInStatistics(true)
+                .chargingType(ChargingType.UNKNOWN)
+                .createdAt(loggedAt)
+                .updatedAt(loggedAt)
+                .build();
     }
 }

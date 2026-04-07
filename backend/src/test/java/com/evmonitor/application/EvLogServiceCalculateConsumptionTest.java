@@ -380,27 +380,23 @@ class EvLogServiceCalculateConsumptionTest {
 
     private EvLog evLog(UUID id, Integer odometerKm, BigDecimal kwhCharged,
                         Integer socAfterChargePercent, Integer socBeforeChargePercent, LocalDateTime loggedAt) {
-        return new EvLog(
-                id,
-                UUID.randomUUID(),          // carId
-                kwhCharged,
-                new BigDecimal("10.00"),    // costEur
-                60,                          // chargeDurationMinutes
-                "u33d1",                     // geohash
-                odometerKm,
-                new BigDecimal("11.0"),      // maxChargingPowerKw
-                socAfterChargePercent,
-                socBeforeChargePercent,
-                loggedAt,
-                DataSource.USER_LOGGED,
-                true,
-                null, null,
-                null,
-                ChargingType.UNKNOWN,
-                null,
-                loggedAt, loggedAt,
-                null, null, null, null,
-                false, null
-        );
+        return EvLog.builder()
+                .id(id)
+                .carId(UUID.randomUUID())
+                .kwhCharged(kwhCharged)
+                .costEur(new BigDecimal("10.00"))
+                .chargeDurationMinutes(60)
+                .geohash("u33d1")
+                .odometerKm(odometerKm)
+                .maxChargingPowerKw(new BigDecimal("11.0"))
+                .socAfterChargePercent(socAfterChargePercent)
+                .socBeforeChargePercent(socBeforeChargePercent)
+                .loggedAt(loggedAt)
+                .dataSource(DataSource.USER_LOGGED)
+                .includeInStatistics(true)
+                .chargingType(ChargingType.UNKNOWN)
+                .createdAt(loggedAt)
+                .updatedAt(loggedAt)
+                .build();
     }
 }

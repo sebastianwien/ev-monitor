@@ -109,26 +109,22 @@ class EvLogValidationTest {
      * All other fields are set to reasonable defaults or null.
      */
     private EvLog log(Integer odometerKm, BigDecimal kwhCharged, Integer socAfterChargePercent) {
-        return new EvLog(
-                UUID.randomUUID(), CAR_ID,
-                kwhCharged,
-                new BigDecimal("10.00"),    // costEur (irrelevant for validation)
-                60,                          // chargeDurationMinutes
-                "u33d1",                     // geohash
-                odometerKm,
-                new BigDecimal("11.0"),      // maxChargingPowerKw
-                socAfterChargePercent,
-                null,                        // socBeforeChargePercent
-                NOW,
-                DataSource.USER_LOGGED,
-                true,
-                null, null,                  // odometerSuggestions
-                null,                        // temperatureCelsius
-                ChargingType.UNKNOWN,
-                null,                        // rawImportData
-                NOW, NOW,
-                null, null, null, null,       // routeType, tireType, supersededBy, sessionGroupId
-                false, null                  // isPublicCharging, cpoName
-        );
+        return EvLog.builder()
+                .id(UUID.randomUUID())
+                .carId(CAR_ID)
+                .kwhCharged(kwhCharged)
+                .costEur(new BigDecimal("10.00"))
+                .chargeDurationMinutes(60)
+                .geohash("u33d1")
+                .odometerKm(odometerKm)
+                .maxChargingPowerKw(new BigDecimal("11.0"))
+                .socAfterChargePercent(socAfterChargePercent)
+                .loggedAt(NOW)
+                .dataSource(DataSource.USER_LOGGED)
+                .includeInStatistics(true)
+                .chargingType(ChargingType.UNKNOWN)
+                .createdAt(NOW)
+                .updatedAt(NOW)
+                .build();
     }
 }

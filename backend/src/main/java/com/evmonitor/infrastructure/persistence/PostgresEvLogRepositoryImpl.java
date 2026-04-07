@@ -244,33 +244,34 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     private EvLog toDomain(EvLogEntity entity) {
-        return new EvLog(
-                entity.getId(),
-                entity.getCarId(),
-                entity.getKwhCharged(),
-                entity.getCostEur(),
-                entity.getChargeDurationMinutes(),
-                entity.getGeohash(),
-                entity.getOdometerKm(),
-                entity.getMaxChargingPowerKw(),
-                entity.getSocAfterChargePercent(),
-                entity.getSocBeforeChargePercent(),
-                entity.getLoggedAt(),
-                DataSource.valueOf(entity.getDataSource()),
-                entity.isIncludeInStatistics(),
-                entity.getOdometerSuggestionMinKm(),
-                entity.getOdometerSuggestionMaxKm(),
-                entity.getTemperatureCelsius(),
-                entity.getChargingType() != null ? ChargingType.valueOf(entity.getChargingType()) : ChargingType.UNKNOWN,
-                entity.getRawImportData(),
-                entity.getCreatedAt(),
-                entity.getUpdatedAt(),
-                entity.getRouteType() != null ? RouteType.valueOf(entity.getRouteType()) : null,
-                entity.getTireType() != null ? TireType.valueOf(entity.getTireType()) : null,
-                entity.getSupersededBy(),
-                entity.getSessionGroupId(),
-                entity.isPublicCharging(),
-                entity.getCpoName(),
-                entity.getMeasurementType() != null ? EnergyMeasurementType.valueOf(entity.getMeasurementType()) : null);
+        return EvLog.builder()
+                .id(entity.getId())
+                .carId(entity.getCarId())
+                .kwhCharged(entity.getKwhCharged())
+                .costEur(entity.getCostEur())
+                .chargeDurationMinutes(entity.getChargeDurationMinutes())
+                .geohash(entity.getGeohash())
+                .odometerKm(entity.getOdometerKm())
+                .maxChargingPowerKw(entity.getMaxChargingPowerKw())
+                .socAfterChargePercent(entity.getSocAfterChargePercent())
+                .socBeforeChargePercent(entity.getSocBeforeChargePercent())
+                .loggedAt(entity.getLoggedAt())
+                .dataSource(DataSource.valueOf(entity.getDataSource()))
+                .includeInStatistics(entity.isIncludeInStatistics())
+                .odometerSuggestionMinKm(entity.getOdometerSuggestionMinKm())
+                .odometerSuggestionMaxKm(entity.getOdometerSuggestionMaxKm())
+                .temperatureCelsius(entity.getTemperatureCelsius())
+                .chargingType(entity.getChargingType() != null ? ChargingType.valueOf(entity.getChargingType()) : ChargingType.UNKNOWN)
+                .rawImportData(entity.getRawImportData())
+                .routeType(entity.getRouteType() != null ? RouteType.valueOf(entity.getRouteType()) : null)
+                .tireType(entity.getTireType() != null ? TireType.valueOf(entity.getTireType()) : null)
+                .supersededBy(entity.getSupersededBy())
+                .sessionGroupId(entity.getSessionGroupId())
+                .isPublicCharging(entity.isPublicCharging())
+                .cpoName(entity.getCpoName())
+                .measurementType(entity.getMeasurementType() != null ? EnergyMeasurementType.valueOf(entity.getMeasurementType()) : null)
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
+                .build();
     }
 }

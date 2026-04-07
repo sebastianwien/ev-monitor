@@ -295,34 +295,23 @@ public class EvLogService {
             geohashChanged = true;
         }
 
-        EvLog updated = new EvLog(
-                existing.getId(),
-                existing.getCarId(),
-                request.kwhCharged()             != null ? request.kwhCharged()             : existing.getKwhCharged(),
-                request.costEur()                != null ? request.costEur()                : existing.getCostEur(),
-                request.chargeDurationMinutes()  != null ? request.chargeDurationMinutes()  : existing.getChargeDurationMinutes(),
-                geohash,
-                request.odometerKm()             != null ? request.odometerKm()             : existing.getOdometerKm(),
-                request.maxChargingPowerKw()     != null ? request.maxChargingPowerKw()     : existing.getMaxChargingPowerKw(),
-                request.socAfterChargePercent()  != null ? request.socAfterChargePercent()  : existing.getSocAfterChargePercent(),
-                request.socBeforeChargePercent() != null ? request.socBeforeChargePercent() : existing.getSocBeforeChargePercent(),
-                request.loggedAt()               != null ? request.loggedAt()               : existing.getLoggedAt(),
-                existing.getDataSource(),
-                existing.isIncludeInStatistics(),
-                existing.getOdometerSuggestionMinKm(),
-                existing.getOdometerSuggestionMaxKm(),
-                existing.getTemperatureCelsius(),
-                request.chargingType() != null ? request.chargingType() : existing.getChargingType(),
-                existing.getRawImportData(),
-                existing.getCreatedAt(),
-                LocalDateTime.now(),
-                request.routeType() != null ? request.routeType() : existing.getRouteType(),
-                request.tireType() != null ? request.tireType() : existing.getTireType(),
-                existing.getSupersededBy(),
-                existing.getSessionGroupId(),
-                updatedIsPublicCharging,
-                request.cpoName() != null ? request.cpoName() : existing.getCpoName()
-        );
+        EvLog updated = existing.toBuilder()
+                .kwhCharged(request.kwhCharged()             != null ? request.kwhCharged()             : existing.getKwhCharged())
+                .costEur(request.costEur()                   != null ? request.costEur()                : existing.getCostEur())
+                .chargeDurationMinutes(request.chargeDurationMinutes() != null ? request.chargeDurationMinutes() : existing.getChargeDurationMinutes())
+                .geohash(geohash)
+                .odometerKm(request.odometerKm()             != null ? request.odometerKm()             : existing.getOdometerKm())
+                .maxChargingPowerKw(request.maxChargingPowerKw() != null ? request.maxChargingPowerKw() : existing.getMaxChargingPowerKw())
+                .socAfterChargePercent(request.socAfterChargePercent() != null ? request.socAfterChargePercent() : existing.getSocAfterChargePercent())
+                .socBeforeChargePercent(request.socBeforeChargePercent() != null ? request.socBeforeChargePercent() : existing.getSocBeforeChargePercent())
+                .loggedAt(request.loggedAt()                 != null ? request.loggedAt()               : existing.getLoggedAt())
+                .chargingType(request.chargingType()         != null ? request.chargingType()            : existing.getChargingType())
+                .routeType(request.routeType()               != null ? request.routeType()               : existing.getRouteType())
+                .tireType(request.tireType()                 != null ? request.tireType()                : existing.getTireType())
+                .isPublicCharging(updatedIsPublicCharging)
+                .cpoName(request.cpoName()                   != null ? request.cpoName()                 : existing.getCpoName())
+                .updatedAt(LocalDateTime.now())
+                .build();
 
         EvLog savedLog = evLogRepository.save(updated);
 

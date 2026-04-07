@@ -131,10 +131,23 @@ class EvLogTest {
         LocalDateTime updatedAt = LocalDateTime.now();
 
         // When
-        EvLog evLog = new EvLog(id, carId, kwhCharged, costEur, chargeDurationMinutes,
-                geohash, odometerKm, maxChargingPowerKw, socAfterChargePercent, null, loggedAt, dataSource, true, null, null, null,
-                ChargingType.UNKNOWN, null, createdAt, updatedAt, null, null, null, null,
-                false, null);
+        EvLog evLog = EvLog.builder()
+                .id(id)
+                .carId(carId)
+                .kwhCharged(kwhCharged)
+                .costEur(costEur)
+                .chargeDurationMinutes(chargeDurationMinutes)
+                .geohash(geohash)
+                .odometerKm(odometerKm)
+                .maxChargingPowerKw(maxChargingPowerKw)
+                .socAfterChargePercent(socAfterChargePercent)
+                .loggedAt(loggedAt)
+                .dataSource(dataSource)
+                .includeInStatistics(true)
+                .chargingType(ChargingType.UNKNOWN)
+                .createdAt(createdAt)
+                .updatedAt(updatedAt)
+                .build();
 
         // Then
         assertEquals(id, evLog.getId());
