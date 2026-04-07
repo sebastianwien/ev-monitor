@@ -64,7 +64,7 @@ class AuthServiceTest {
         String password = "SecurePassword123";
         String hashedPassword = "$2a$10$hashedPasswordExample";
 
-        RegisterRequest request = new RegisterRequest(email, "testuser_" + System.currentTimeMillis(), password, null, null, null, null, null, null);
+        RegisterRequest request = new RegisterRequest(email, "testuser_" + System.currentTimeMillis(), password, null, null, null, null, null, null, null);
 
         when(userRepository.existsByEmail(email)).thenReturn(false);
         when(userRepository.existsByUsername(any())).thenReturn(false);
@@ -92,7 +92,7 @@ class AuthServiceTest {
     void shouldRejectRegistrationWithDuplicateEmail() {
         // Given
         String email = "existing@example.com";
-        RegisterRequest request = new RegisterRequest(email, "testuser_" + System.currentTimeMillis(), "Password123", null, null, null, null, null, null);
+        RegisterRequest request = new RegisterRequest(email, "testuser_" + System.currentTimeMillis(), "Password123", null, null, null, null, null, null, null);
 
         when(userRepository.existsByEmail(email)).thenReturn(true);
 
@@ -115,7 +115,7 @@ class AuthServiceTest {
 
         User user = new User(userId, email, "testuser", "$2a$10$hashedPassword",
                 AuthProvider.LOCAL, "USER", true /* emailVerified */, false, true, false,
-                false, "TESTCODE", null, null, null, null, null, null, null, LocalDateTime.now(), LocalDateTime.now());
+                false, "TESTCODE", null, null, null, null, null, null, null, null, LocalDateTime.now(), LocalDateTime.now());
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(null);
@@ -139,7 +139,7 @@ class AuthServiceTest {
 
         User unverifiedUser = new User(userId, email, "unverified", "$2a$10$hash",
                 AuthProvider.LOCAL, "USER", false /* emailVerified */, false, true, false,
-                false, "TESTCODE", null, null, null, null, null, null, null, LocalDateTime.now(), LocalDateTime.now());
+                false, "TESTCODE", null, null, null, null, null, null, null, null, LocalDateTime.now(), LocalDateTime.now());
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(unverifiedUser));
         when(authenticationManager.authenticate(any())).thenReturn(null);
@@ -164,7 +164,7 @@ class AuthServiceTest {
 
         User user = new User(userId, "user@example.com", "user", "$2a$10$hash",
                 AuthProvider.LOCAL, "USER", true, false, true, false,
-                false, "TESTCODE", null, null, null, null, null, null, null, LocalDateTime.now(), LocalDateTime.now());
+                false, "TESTCODE", null, null, null, null, null, null, null, null, LocalDateTime.now(), LocalDateTime.now());
 
         when(tokenRepository.findByToken(rawToken)).thenReturn(Optional.of(verificationToken));
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
@@ -205,7 +205,7 @@ class AuthServiceTest {
         String plainPassword = "PlainTextPassword123";
         String expectedHash = "$2a$10$hashedPasswordExample";
         RegisterRequest request = new RegisterRequest("user@example.com",
-                "testuser_" + System.currentTimeMillis(), plainPassword, null, null, null, null, null, null);
+                "testuser_" + System.currentTimeMillis(), plainPassword, null, null, null, null, null, null, null);
 
         when(userRepository.existsByEmail(any())).thenReturn(false);
         when(userRepository.existsByUsername(any())).thenReturn(false);
@@ -228,7 +228,7 @@ class AuthServiceTest {
     void shouldCreateUnverifiedLocalUserOnRegistration() {
         // Given
         RegisterRequest request = new RegisterRequest("user@example.com",
-                "testuser_" + System.currentTimeMillis(), "Password123", null, null, null, null, null, null);
+                "testuser_" + System.currentTimeMillis(), "Password123", null, null, null, null, null, null, null);
 
         when(userRepository.existsByEmail(any())).thenReturn(false);
         when(userRepository.existsByUsername(any())).thenReturn(false);
@@ -267,7 +267,8 @@ class AuthServiceTest {
                 utmMedium,
                 utmCampaign,
                 null, // no referrerSource
-                null  // no registrationLocale
+                null, // no registrationLocale
+                null  // no country
         );
 
         when(userRepository.existsByEmail(any())).thenReturn(false);
@@ -301,7 +302,8 @@ class AuthServiceTest {
                 null, // no utm_medium
                 null, // no utm_campaign
                 null, // no referrerSource
-                null  // no registrationLocale
+                null, // no registrationLocale
+                null  // no country
         );
 
         when(userRepository.existsByEmail(any())).thenReturn(false);
@@ -327,7 +329,7 @@ class AuthServiceTest {
 
     @Test
     void shouldAutoGenerateUsername_fromEmailPrefix_whenNotProvided() {
-        RegisterRequest request = new RegisterRequest("max@example.com", null, "Password123", null, null, null, null, null, null);
+        RegisterRequest request = new RegisterRequest("max@example.com", null, "Password123", null, null, null, null, null, null, null);
 
         when(userRepository.existsByEmail(any())).thenReturn(false);
         when(userRepository.existsByUsername("max")).thenReturn(false);
@@ -344,7 +346,7 @@ class AuthServiceTest {
 
     @Test
     void shouldAutoGenerateUsername_withNumericSuffix_whenPrefixAlreadyTaken() {
-        RegisterRequest request = new RegisterRequest("max@example.com", null, "Password123", null, null, null, null, null, null);
+        RegisterRequest request = new RegisterRequest("max@example.com", null, "Password123", null, null, null, null, null, null, null);
 
         when(userRepository.existsByEmail(any())).thenReturn(false);
         when(userRepository.existsByUsername("max")).thenReturn(true);
@@ -363,7 +365,7 @@ class AuthServiceTest {
 
     @Test
     void shouldSanitizeEmailPrefix_replacingSpecialCharsWithUnderscore() {
-        RegisterRequest request = new RegisterRequest("test.user+extra@example.com", null, "Password123", null, null, null, null, null, null);
+        RegisterRequest request = new RegisterRequest("test.user+extra@example.com", null, "Password123", null, null, null, null, null, null, null);
 
         when(userRepository.existsByEmail(any())).thenReturn(false);
         when(userRepository.existsByUsername(any())).thenReturn(false);
@@ -382,7 +384,7 @@ class AuthServiceTest {
 
     @Test
     void shouldUseExplicitUsername_whenProvidedAndAvailable() {
-        RegisterRequest request = new RegisterRequest("user@example.com", "mywantedname", "Password123", null, null, null, null, null, null);
+        RegisterRequest request = new RegisterRequest("user@example.com", "mywantedname", "Password123", null, null, null, null, null, null, null);
 
         when(userRepository.existsByEmail(any())).thenReturn(false);
         when(userRepository.existsByUsername("mywantedname")).thenReturn(false);
@@ -399,7 +401,7 @@ class AuthServiceTest {
 
     @Test
     void shouldRejectExplicitUsername_whenAlreadyTaken() {
-        RegisterRequest request = new RegisterRequest("user@example.com", "takenname", "Password123", null, null, null, null, null, null);
+        RegisterRequest request = new RegisterRequest("user@example.com", "takenname", "Password123", null, null, null, null, null, null, null);
 
         when(userRepository.existsByEmail(any())).thenReturn(false);
         when(userRepository.existsByUsername("takenname")).thenReturn(true);
@@ -426,12 +428,13 @@ class AuthServiceTest {
                 "cpc",
                 "referral_boost_2026",
                 null, // no referrerSource
-                null  // no registrationLocale
+                null, // no registrationLocale
+                null  // no country
         );
 
         User referrer = new User(referrerId, "referrer@example.com", "referrer", "$2a$10$hash",
                 AuthProvider.LOCAL, "USER", true, false, true, false,
-                false, referralCode, null, null, null, null, null, null, null, LocalDateTime.now(), LocalDateTime.now());
+                false, referralCode, null, null, null, null, null, null, null, null, LocalDateTime.now(), LocalDateTime.now());
 
         when(userRepository.existsByEmail(any())).thenReturn(false);
         when(userRepository.existsByUsername(any())).thenReturn(false);

@@ -4,8 +4,10 @@ import { useI18n } from 'vue-i18n'
 import { BoltIcon, ClockIcon, CheckCircleIcon, ExclamationTriangleIcon, XMarkIcon, PencilIcon, CheckIcon, MapPinIcon } from '@heroicons/vue/24/outline'
 import goeService, { type GoeConnection } from '@/api/goeService'
 import { useWallboxStore } from '@/stores/wallbox'
+import { useLocaleFormat } from '../composables/useLocaleFormat'
 
 const { t } = useI18n()
+const { formatCostPerKwh } = useLocaleFormat()
 const wallboxStore = useWallboxStore()
 
 const props = defineProps<{ connectionId: string; mockConnection?: GoeConnection }>()
@@ -287,7 +289,7 @@ async function saveTariff() {
         <span class="text-xs text-gray-500 dark:text-gray-400">
           {{ t('goe.tariff_label') }}
           <span class="font-medium text-gray-700 dark:text-gray-300">
-            {{ conn.tariffCentsPerKwh > 0 ? `${Number(conn.tariffCentsPerKwh).toLocaleString(undefined, { maximumFractionDigits: 4 })} ct/kWh` : t('goe.tariff_unset') }}
+            {{ conn.tariffCentsPerKwh > 0 ? formatCostPerKwh(Number(conn.tariffCentsPerKwh) / 100) : t('goe.tariff_unset') }}
           </span>
         </span>
         <button @click="startEditTariff"

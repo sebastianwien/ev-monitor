@@ -9,8 +9,10 @@ import { useCoinStore } from '../stores/coins'
 import LicensePlate from '../components/LicensePlate.vue'
 import { analytics } from '../services/analytics'
 import { useTeslaStatus } from '../composables/useTeslaStatus'
+import { useLocaleFormat } from '../composables/useLocaleFormat'
 
 const { t } = useI18n()
+const { consumptionUnitLabel, distanceUnitLabel } = useLocaleFormat()
 const coinStore = useCoinStore()
 const carStore = useCarStore()
 
@@ -675,8 +677,8 @@ onUnmounted(() => {
                   <div>
                     <p class="text-sm font-medium text-blue-900 dark:text-blue-300">{{ t('cars.wltp_available') }}</p>
                     <p class="text-sm text-blue-700 dark:text-blue-400 mt-1">
-                      {{ t('cars.wltp_range') }}: <span class="font-semibold">{{ wltpData.wltpRangeKm }} km</span>
-                      | {{ t('cars.wltp_consumption') }}: <span class="font-semibold">{{ wltpData.wltpConsumptionKwhPer100km }} kWh/100km</span>
+                      {{ t('cars.wltp_range') }}: <span class="font-semibold">{{ wltpData.wltpRangeKm }} {{ distanceUnitLabel() }}</span>
+                      | {{ t('cars.wltp_consumption') }}: <span class="font-semibold">{{ wltpData.wltpConsumptionKwhPer100km }} {{ consumptionUnitLabel() }}</span>
                     </p>
                   </div>
                 </div>
@@ -1301,7 +1303,7 @@ onUnmounted(() => {
                 required
                 :placeholder="t('cars.wltp_range_placeholder')"
                 class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 border pr-12 dark:bg-gray-700 dark:text-gray-100" />
-              <span class="absolute right-3 top-3 text-gray-500 dark:text-gray-400 text-sm">km</span>
+              <span class="absolute right-3 top-3 text-gray-500 dark:text-gray-400 text-sm">{{ distanceUnitLabel() }}</span>
             </div>
           </div>
 
@@ -1319,7 +1321,7 @@ onUnmounted(() => {
                 required
                 :placeholder="t('cars.wltp_consumption_placeholder')"
                 class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 border pr-24 dark:bg-gray-700 dark:text-gray-100" />
-              <span class="absolute right-3 top-3 text-gray-500 dark:text-gray-400 text-sm">kWh/100km</span>
+              <span class="absolute right-3 top-3 text-gray-500 dark:text-gray-400 text-sm">{{ consumptionUnitLabel() }}</span>
             </div>
           </div>
 

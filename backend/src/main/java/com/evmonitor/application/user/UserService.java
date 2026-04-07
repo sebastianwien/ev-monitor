@@ -142,4 +142,15 @@ public class UserService {
         userRepository.setLeaderboardVisible(userId, visible);
     }
 
+    private static final java.util.Set<String> VALID_COUNTRIES = java.util.Set.of(
+            "DE", "AT", "CH", "GB", "NL", "BE", "DK", "NO", "SE");
+
+    @Transactional
+    public void updateCountry(UUID userId, String country) {
+        if (country == null || !VALID_COUNTRIES.contains(country)) {
+            throw new IllegalArgumentException("Invalid country code: " + country);
+        }
+        userRepository.updateCountry(userId, country);
+    }
+
 }

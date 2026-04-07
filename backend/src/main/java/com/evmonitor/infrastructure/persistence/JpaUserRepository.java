@@ -95,4 +95,8 @@ public interface JpaUserRepository extends JpaRepository<UserEntity, UUID> {
     @Modifying
     @Query("UPDATE UserEntity u SET u.lastSeen = :now WHERE u.id IN :ids")
     void batchUpdateLastSeen(@Param("ids") List<UUID> ids, @Param("now") LocalDateTime now);
+
+    @Modifying
+    @Query("UPDATE UserEntity u SET u.country = :country, u.updatedAt = current_timestamp WHERE u.id = :userId")
+    void updateCountry(@Param("userId") UUID userId, @Param("country") String country);
 }

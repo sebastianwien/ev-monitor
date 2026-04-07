@@ -65,6 +65,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/charging-provider-tariffs", "/api/charging-provider-tariffs/**").permitAll()
                         .requestMatchers("/api/vehicle-specifications/lookup").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
+                        .requestMatchers("/api/geoip/**").permitAll()
                         .requestMatchers("/api/errors/**").permitAll()
                         .requestMatchers("/api/unsubscribe").permitAll()
                         // Stripe webhooks — secured by signature verification, not JWT

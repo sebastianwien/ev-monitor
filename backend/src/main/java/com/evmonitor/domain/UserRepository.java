@@ -53,4 +53,6 @@ public interface UserRepository {
     boolean isLeaderboardVisible(UUID userId);
 
     void setLeaderboardVisible(UUID userId, boolean visible);
+
+    void updateCountry(UUID userId, String country);
 }

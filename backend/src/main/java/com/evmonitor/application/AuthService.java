@@ -71,7 +71,7 @@ public class AuthService {
             }
         }
 
-        User user = User.createNewLocalUserWithLocale(
+        User user = User.createNewLocalUserWithLocaleAndCountry(
                 request.email(),
                 username,
                 encodedPassword,
@@ -80,7 +80,8 @@ public class AuthService {
                 request.utmMedium(),
                 request.utmCampaign(),
                 request.referrerSource(),
-                request.registrationLocale());
+                request.registrationLocale(),
+                request.country());
 
         User savedUser = userRepository.save(user);
 

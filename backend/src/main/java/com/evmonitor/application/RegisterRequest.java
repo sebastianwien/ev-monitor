@@ -34,5 +34,8 @@ public record RegisterRequest(
         String referrerSource,
 
         @Size(max = 10, message = "Registration locale must be max 10 characters")
-        String registrationLocale) {
+        String registrationLocale,
+
+        @Size(max = 2, message = "Country code must be max 2 characters")
+        String country) {
 }

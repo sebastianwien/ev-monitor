@@ -57,6 +57,8 @@ import SupportPopover from '../components/SupportPopover.vue'
 import { useThemeStore } from '../stores/theme'
 import { storeToRefs } from 'pinia'
 import ImplausibleLogsModal from '../components/ImplausibleLogsModal.vue'
+import { useLocaleFormat } from '../composables/useLocaleFormat'
+import { convertFromEur } from '../config/exchangeRates'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend, Filler, ChartDataLabels)
 
@@ -93,6 +95,7 @@ interface CarInfo {
 
 const { t, locale } = useI18n()
 const router = useRouter()
+const { formatConsumption, consumptionUnitLabel, convertConsumption, formatDistance, distanceUnitLabel, formatCurrency, formatCostPerKwh, formatCostPerDistance, currencySymbol, currency, convertDistance } = useLocaleFormat()
 const carStore = useCarStore()
 const selectedCarId = ref<string | null>(null)
 const importBannerDismissed = ref(localStorage.getItem('import_banner_dismissed') === 'true')
@@ -275,7 +278,8 @@ const rangeWindows = [
 const calcRange = (batteryKwh: number, socMax: number, socMin: number, consumptionKwhPer100km: number): string => {
   const usableKwh = batteryKwh * (socMax - socMin) / 100
   const km = Math.floor(usableKwh / consumptionKwhPer100km * 100 / 10) * 10
-  return `~${km}`
+  const converted = Math.round(convertDistance(km))
+  return `~${converted}`
 }
 
 const formatLabel = (timestamp: string) => {
@@ -300,9 +304,9 @@ const chargingChartData = computed(() => {
 
   if (showCostPerKwh.value) {
     datasets.push({
-      label: t('dashboard.chart_cost_per_kwh'),
+      label: `${t('dashboard.chart_cost_per_kwh_label')} (${currencySymbol.value}/kWh)`,
       data: stats.value.chargesOverTime.map(d =>
-        d.kwhCharged > 0 ? +(d.costEur / d.kwhCharged).toFixed(3) : null
+        d.kwhCharged > 0 ? +(convertFromEur(d.costEur / d.kwhCharged, currency.value)).toFixed(3) : null
       ),
       borderColor: isDark.value ? '#818cf8' : '#4f46e5',
       backgroundColor: isDark.value ? 'rgba(129,140,248,0.13)' : 'rgba(79,70,229,0.1)',
@@ -336,7 +340,7 @@ const chargingChartOptions = computed(() => ({
           const lbl = ctx.dataset.label
           const v = ctx.parsed.y
           if (v == null) return `${lbl}: –`
-          if (lbl.includes('€/kWh')) return `${lbl}: €${v.toFixed(2)}`
+          if (ctx.datasetIndex === 0 && showCostPerKwh.value) return `${lbl}: ${v.toFixed(2)} ${currencySymbol.value}/kWh`
           if (lbl.includes('kWh')) return `${lbl}: ${v.toFixed(1)} kWh`
           return `${lbl}: ${v}`
         }
@@ -347,7 +351,7 @@ const chargingChartOptions = computed(() => ({
     y: {
       type: 'linear' as const,
       position: 'left' as const,
-      title: { display: true, text: '€/kWh', color: isDark.value ? '#9ca3af' : '#6b7280' },
+      title: { display: true, text: `${currencySymbol.value}/kWh`, color: isDark.value ? '#9ca3af' : '#6b7280' },
       beginAtZero: true,
       grid: { color: isDark.value ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' },
       ticks: { color: isDark.value ? '#9ca3af' : '#6b7280' }
@@ -372,8 +376,8 @@ const efficiencyChartData = computed(() => {
 
   if (showConsumption.value) {
     datasets.push({
-      label: 'Verbrauch (kWh/100km)',
-      data: stats.value.chargesOverTime.map(d => d.consumptionKwhPer100km),
+      label: `${t('dashboard.chart_consumption_label')} (${consumptionUnitLabel()})`,
+      data: stats.value.chargesOverTime.map(d => d.consumptionKwhPer100km != null ? +convertConsumption(d.consumptionKwhPer100km).toFixed(2) : null),
       borderColor: isDark.value ? '#f87171' : '#ef4444',
       backgroundColor: isDark.value ? 'rgba(248,113,113,0.13)' : 'rgba(239,68,68,0.1)',
       tension: 0, fill: true, pointRadius: 4, pointHoverRadius: 6, yAxisID: 'y'
@@ -382,8 +386,8 @@ const efficiencyChartData = computed(() => {
 
   if (showDistance.value) {
     datasets.push({
-      label: 'Strecke (km)',
-      data: stats.value.chargesOverTime.map(d => d.distanceKm),
+      label: `${t('dashboard.chart_distance_label')} (${distanceUnitLabel()})`,
+      data: stats.value.chargesOverTime.map(d => d.distanceKm != null ? Math.round(convertDistance(d.distanceKm)) : null),
       borderColor: isDark.value ? '#34d399' : '#10b981',
       backgroundColor: isDark.value ? 'rgba(52,211,153,0.13)' : 'rgba(16,185,129,0.1)',
       tension: 0, fill: true, pointRadius: 4, pointHoverRadius: 6, yAxisID: 'y1'
@@ -406,8 +410,8 @@ const efficiencyChartOptions = computed(() => ({
           const lbl = ctx.dataset.label
           const v = ctx.parsed.y
           if (v == null) return `${lbl}: –`
-          if (lbl.includes('kWh/100km')) return `${lbl}: ${v.toFixed(1)}`
-          if (lbl.includes('km')) return `${lbl}: ${Math.round(v).toLocaleString()} km`
+          if (lbl.includes(consumptionUnitLabel())) return `${lbl}: ${v.toFixed(1)}`
+          if (lbl.includes(distanceUnitLabel())) return `${lbl}: ${Math.round(v).toLocaleString()} ${distanceUnitLabel()}`
           return `${lbl}: ${v}`
         }
       }
@@ -417,7 +421,7 @@ const efficiencyChartOptions = computed(() => ({
     y: {
       type: 'linear' as const,
       position: 'left' as const,
-      title: { display: true, text: 'kWh/100km', color: isDark.value ? '#9ca3af' : '#6b7280' },
+      title: { display: true, text: consumptionUnitLabel(), color: isDark.value ? '#9ca3af' : '#6b7280' },
       beginAtZero: true,
       grid: { color: isDark.value ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' },
       ticks: { color: isDark.value ? '#9ca3af' : '#6b7280' }
@@ -425,7 +429,7 @@ const efficiencyChartOptions = computed(() => ({
     y1: {
       type: 'linear' as const,
       position: 'right' as const,
-      title: { display: true, text: 'km', color: isDark.value ? '#9ca3af' : '#6b7280' },
+      title: { display: true, text: distanceUnitLabel(), color: isDark.value ? '#9ca3af' : '#6b7280' },
       beginAtZero: true,
       grid: { drawOnChartArea: false },
       ticks: { color: isDark.value ? '#9ca3af' : '#6b7280' }
@@ -471,18 +475,25 @@ const wltpChartData = computed(() => {
   if (points.length === 0) return null
 
   const labels = points.map(d => formatLabel(d.timestamp))
-  const deltas = points.map(d => +(d.consumptionKwhPer100km! - wltpVal).toFixed(2))
+  // Compute deltas in original kWh/100km space so positive always means "worse than reference"
+  const rawDeltas = points.map(d => d.consumptionKwhPer100km! - wltpVal)
+  // Convert absolute magnitude to user's unit for display, keeping original sign
+  const deltas = rawDeltas.map(d => {
+    const absDelta = Math.abs(d)
+    const convertedAbs = Math.abs(convertConsumption(wltpVal + absDelta) - convertConsumption(wltpVal))
+    return +(Math.sign(d) * convertedAbs).toFixed(2)
+  })
 
   return {
     labels,
     datasets: [{
-      label: `Δ Verbrauch vs. ${isCustomCompare.value ? effectiveCompareValue.value.toFixed(1) + ' kWh/100km' : 'WLTP'} (kWh/100km)`,
+      label: `Δ ${t('dashboard.chart_consumption_label')} vs. ${isCustomCompare.value ? formatConsumption(effectiveCompareValue.value) : 'WLTP'} (${consumptionUnitLabel()})`,
       data: deltas,
-      backgroundColor: deltas.map(v => v > 0
+      backgroundColor: rawDeltas.map(v => v > 0
         ? (isDark.value ? 'rgba(248,113,113,0.6)' : 'rgba(239,68,68,0.7)')
         : (isDark.value ? 'rgba(52,211,153,0.6)' : 'rgba(16,185,129,0.7)')
       ),
-      borderColor: deltas.map(v => v > 0
+      borderColor: rawDeltas.map(v => v > 0
         ? (isDark.value ? '#f87171' : '#dc2626')
         : (isDark.value ? '#34d399' : '#059669')
       ),
@@ -521,8 +532,8 @@ const wltpChartOptions = computed(() => {
         color: isDark.value ? '#d1d5db' : '#374151',
         font: { weight: 'bold' as const, size: 12 },
         formatter: (value: number) => {
-          const compareVal = effectiveCompareValue.value || 0
-          const percentDiff = (value / compareVal) * 100
+          const convertedCompare = convertConsumption(effectiveCompareValue.value || 0)
+          const percentDiff = convertedCompare !== 0 ? (value / convertedCompare) * 100 : 0
           return `${percentDiff > 0 ? '+' : ''}${percentDiff.toFixed(1)}%`
         }
       },
@@ -531,13 +542,13 @@ const wltpChartOptions = computed(() => {
           label: (ctx: any) => {
             const v = ctx.parsed.x // x for horizontal bars
             const sign = v > 0 ? '+' : ''
-            const compareVal = effectiveCompareValue.value || 0
-            const compareLabel = isCustomCompare.value ? `${compareVal.toFixed(1)} kWh/100km` : 'WLTP'
-            const percentDiff = ((v / compareVal) * 100).toFixed(1)
+            const convertedCompare = convertConsumption(effectiveCompareValue.value || 0)
+            const compareLabel = isCustomCompare.value ? formatConsumption(effectiveCompareValue.value) : 'WLTP'
+            const percentDiff = convertedCompare !== 0 ? ((v / convertedCompare) * 100).toFixed(1) : '0.0'
             return [
-              `${sign}${v.toFixed(2)} kWh/100km vs. ${compareLabel}`,
-              `Vergleichswert: ${compareVal.toFixed(1)} kWh/100km`,
-              `Abweichung: ${sign}${percentDiff}%`
+              `${sign}${v.toFixed(2)} ${consumptionUnitLabel()} vs. ${compareLabel}`,
+              `${t('dashboard.chart_compare_value')}: ${formatConsumption(effectiveCompareValue.value || 0)}`,
+              `${t('dashboard.chart_deviation')}: ${sign}${percentDiff}%`
             ]
           }
         }
@@ -548,8 +559,8 @@ const wltpChartOptions = computed(() => {
         title: {
           display: true,
           text: isCustomCompare.value
-            ? `Δ kWh/100km (+ = mehr als ${effectiveCompareValue.value.toFixed(1)} kWh/100km)`
-            : 'Δ kWh/100km (+ = mehr als WLTP)',
+            ? `Δ ${consumptionUnitLabel()} (+ = ${t('dashboard.chart_more_than')} ${formatConsumption(effectiveCompareValue.value)})`
+            : `Δ ${consumptionUnitLabel()} (+ = ${t('dashboard.chart_more_than')} WLTP)`,
           color: isDark.value ? '#9ca3af' : '#6b7280'
         },
         grid: { color: (ctx: any) => ctx.tick.value === 0 ? (isDark.value ? '#9ca3af' : '#6b7280') : (isDark.value ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)') },
@@ -1034,18 +1045,18 @@ const deleteLog = async (id: string) => {
                     <span class="inline-flex items-center justify-end gap-1">
                       <SunIcon class="w-4 h-4" />
                       <span class="hidden sm:inline">{{ t('dashboard.range_summer') }}</span>
-                      <span class="font-normal">({{ stats.summerConsumptionKwhPer100km.toFixed(1) }}<span class="hidden sm:inline"> kWh/100km</span><span class="sm:hidden"> kWh</span>)</span>
+                      <span class="font-normal">({{ formatConsumption(stats.summerConsumptionKwhPer100km, { showUnit: false }) }}<span class="hidden sm:inline"> {{ consumptionUnitLabel() }}</span>)</span>
                     </span>
                   </th>
                   <th v-if="stats?.winterConsumptionKwhPer100km" class="text-right pb-2 font-medium text-blue-600 dark:text-blue-300 whitespace-nowrap pl-4">
                     <span class="inline-flex items-center justify-end gap-1">
                       <CloudIcon class="w-4 h-4" />
                       <span class="hidden sm:inline">{{ t('dashboard.range_winter') }}</span>
-                      <span class="font-normal">({{ stats.winterConsumptionKwhPer100km.toFixed(1) }}<span class="hidden sm:inline"> kWh/100km</span><span class="sm:hidden"> kWh</span>)</span>
+                      <span class="font-normal">({{ formatConsumption(stats.winterConsumptionKwhPer100km, { showUnit: false }) }}<span class="hidden sm:inline"> {{ consumptionUnitLabel() }}</span>)</span>
                     </span>
                   </th>
                   <th v-if="!stats?.summerConsumptionKwhPer100km && !stats?.winterConsumptionKwhPer100km && stats?.avgConsumptionKwhPer100km != null" class="text-right pb-2 font-medium text-gray-600 dark:text-gray-300 whitespace-nowrap pl-4">
-                    <span class="font-normal">Ø ({{ stats.avgConsumptionKwhPer100km.toFixed(1) }}<span class="hidden sm:inline"> kWh/100km</span><span class="sm:hidden"> kWh</span>)</span>
+                    <span class="font-normal">Ø ({{ formatConsumption(stats.avgConsumptionKwhPer100km, { showUnit: false }) }}<span class="hidden sm:inline"> {{ consumptionUnitLabel() }}</span>)</span>
                   </th>
                 </tr>
               </thead>
@@ -1053,13 +1064,13 @@ const deleteLog = async (id: string) => {
                 <tr v-for="window in rangeWindows" :key="window.label">
                   <td class="py-2 pr-4 whitespace-nowrap font-medium text-gray-800 dark:text-gray-200">{{ window.label }}</td>
                   <td v-if="stats?.summerConsumptionKwhPer100km" class="py-2 text-right font-bold text-amber-700">
-                    {{ calcRange(carInfo.batteryCapacityKwh, window.socMax, window.socMin, stats.summerConsumptionKwhPer100km) }} km
+                    {{ calcRange(carInfo.batteryCapacityKwh, window.socMax, window.socMin, stats.summerConsumptionKwhPer100km) }} {{ distanceUnitLabel() }}
                   </td>
                   <td v-if="stats?.winterConsumptionKwhPer100km" class="py-2 text-right font-bold text-blue-700 dark:text-blue-300">
-                    {{ calcRange(carInfo.batteryCapacityKwh, window.socMax, window.socMin, stats.winterConsumptionKwhPer100km) }} km
+                    {{ calcRange(carInfo.batteryCapacityKwh, window.socMax, window.socMin, stats.winterConsumptionKwhPer100km) }} {{ distanceUnitLabel() }}
                   </td>
                   <td v-if="!stats?.summerConsumptionKwhPer100km && !stats?.winterConsumptionKwhPer100km" class="py-2 text-right font-bold text-gray-700 dark:text-gray-200">
-                    {{ calcRange(carInfo.batteryCapacityKwh, window.socMax, window.socMin, stats.avgConsumptionKwhPer100km!) }} km
+                    {{ calcRange(carInfo.batteryCapacityKwh, window.socMax, window.socMin, stats.avgConsumptionKwhPer100km!) }} {{ distanceUnitLabel() }}
                   </td>
                 </tr>
               </tbody>
@@ -1239,8 +1250,8 @@ const deleteLog = async (id: string) => {
             <div class="h-1 bg-indigo-500"></div>
             <div class="p-4">
               <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">{{ t('dashboard.metric_total_cost') }}</p>
-              <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">€{{ stats.totalCostEur?.toFixed(2) ?? '–' }}</p>
-              <p class="text-sm font-medium text-gray-400 dark:text-gray-500 mt-0.5">Ø €{{ stats.avgCostPerKwh?.toFixed(2) ?? '–' }}/kWh</p>
+              <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ stats.totalCostEur != null ? formatCurrency(stats.totalCostEur) : '–' }}</p>
+              <p class="text-sm font-medium text-gray-400 dark:text-gray-500 mt-0.5">Ø {{ stats.avgCostPerKwh != null ? formatCostPerKwh(stats.avgCostPerKwh) : '–' }}</p>
             </div>
           </div>
           <div v-if="stats.totalDistanceKm != null"
@@ -1248,7 +1259,7 @@ const deleteLog = async (id: string) => {
             <div class="h-1 bg-green-500"></div>
             <div class="p-4">
               <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">{{ t('dashboard.metric_total_distance') }}</p>
-              <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ Math.round(stats.totalDistanceKm).toLocaleString() }} km<span class="hidden sm:inline font-normal text-gray-400 dark:text-gray-500 text-lg"> gefahren</span></p>
+              <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ formatDistance(stats.totalDistanceKm) }}<span class="hidden sm:inline font-normal text-gray-400 dark:text-gray-500 text-lg"> {{ t('dashboard.metric_driven') }}</span></p>
             </div>
           </div>
           <div v-if="stats.avgConsumptionKwhPer100km != null"
@@ -1256,8 +1267,8 @@ const deleteLog = async (id: string) => {
             <div class="h-1 bg-red-500"></div>
             <div class="p-4">
               <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">{{ t('dashboard.metric_avg_consumption') }}</p>
-              <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ stats.avgConsumptionKwhPer100km.toFixed(1) }}</p>
-              <p class="text-sm font-medium text-gray-400 dark:text-gray-500 mt-0.5">kWh/100km</p>
+              <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ formatConsumption(stats.avgConsumptionKwhPer100km, { showUnit: false }) }}</p>
+              <p class="text-sm font-medium text-gray-400 dark:text-gray-500 mt-0.5">{{ consumptionUnitLabel() }}</p>
               <p v-if="stats.estimatedConsumptionCount > 0" class="text-xs text-red-500 mt-2 italic">
                 {{ t('dashboard.metric_estimated', { n: stats.estimatedConsumptionCount }) }}
               </p>
@@ -1268,8 +1279,7 @@ const deleteLog = async (id: string) => {
             <div class="h-1 bg-teal-500"></div>
             <div class="p-4">
               <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">{{ t('dashboard.metric_avg_cost') }}</p>
-              <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">€{{ (stats.totalCostEur / stats.totalDistanceKm * 100).toFixed(2) }}</p>
-              <p class="text-sm font-medium text-gray-400 dark:text-gray-500 mt-0.5">{{ t('dashboard.metric_per_100km') }}</p>
+              <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ formatCostPerDistance(stats.totalCostEur / stats.totalDistanceKm * 100) }}</p>
             </div>
           </div>
         </div>
@@ -1287,7 +1297,7 @@ const deleteLog = async (id: string) => {
                       class="w-3 h-3 sm:w-4 sm:h-4 rounded accent-indigo-600 cursor-pointer" />
                     <span class="font-medium text-gray-700 dark:text-gray-300">
                       <span class="inline-block w-2 sm:w-3 h-0.5 bg-indigo-600 mr-1 align-middle"></span>
-                      €/kWh
+                      {{ currencySymbol }}/kWh
                     </span>
                   </label>
                   <label class="flex items-center gap-1 sm:gap-2 cursor-pointer">
@@ -1307,7 +1317,7 @@ const deleteLog = async (id: string) => {
                 {{ t('dashboard.chart_no_data') }}
               </div>
               <div class="flex flex-wrap gap-x-6 gap-y-1 mt-3 text-xs text-gray-400 px-4 md:px-0">
-                <span>{{ t('dashboard.chart_left_axis') }}: €/kWh</span>
+                <span>{{ t('dashboard.chart_left_axis') }}: {{ currencySymbol }}/kWh</span>
                 <span>{{ t('dashboard.chart_right_axis') }}: kWh</span>
               </div>
             </template>
@@ -1327,7 +1337,7 @@ const deleteLog = async (id: string) => {
                       class="w-3 h-3 sm:w-4 sm:h-4 rounded accent-red-500 cursor-pointer" />
                     <span class="font-medium text-gray-700 dark:text-gray-300">
                       <span class="inline-block w-2 sm:w-3 h-0.5 bg-red-500 mr-1 align-middle"></span>
-                      kWh/100km
+                      {{ consumptionUnitLabel() }}
                     </span>
                   </label>
                   <label class="flex items-center gap-1 sm:gap-2 cursor-pointer">
@@ -1335,7 +1345,7 @@ const deleteLog = async (id: string) => {
                       class="w-3 h-3 sm:w-4 sm:h-4 rounded accent-emerald-500 cursor-pointer" />
                     <span class="font-medium text-gray-700 dark:text-gray-300">
                       <span class="inline-block w-2 sm:w-3 h-0.5 bg-emerald-500 mr-1 align-middle"></span>
-                      km
+                      {{ distanceUnitLabel() }}
                     </span>
                   </label>
                 </div>
@@ -1347,8 +1357,8 @@ const deleteLog = async (id: string) => {
                 {{ t('dashboard.chart_no_data') }}
               </div>
               <div class="flex flex-wrap gap-x-6 gap-y-1 mt-3 text-xs text-gray-400 px-4 md:px-0">
-                <span>{{ t('dashboard.chart_left_axis') }}: kWh/100km</span>
-                <span>{{ t('dashboard.chart_right_axis') }}: km</span>
+                <span>{{ t('dashboard.chart_left_axis') }}: {{ consumptionUnitLabel() }}</span>
+                <span>{{ t('dashboard.chart_right_axis') }}: {{ distanceUnitLabel() }}</span>
               </div>
             </template>
           </div>
@@ -1362,13 +1372,13 @@ const deleteLog = async (id: string) => {
           <div class="mb-4 text-center px-4 md:px-0">
             <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">
               <template v-if="isCustomCompare">
-                {{ t('dashboard.chart_consumption_vs_custom_prefix') }} <strong>{{ customCompareValue?.toFixed(1) }} kWh/100km</strong>
+                {{ t('dashboard.chart_consumption_vs_custom_prefix') }} <strong>{{ customCompareValue != null ? formatConsumption(customCompareValue) : '–' }}</strong>
               </template>
               <template v-else>{{ t('dashboard.chart_consumption_vs_wltp') }}</template>
             </h2>
             <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
-              WLTP: <strong>{{ wltp.wltpConsumptionKwhPer100km?.toFixed(1) ?? '–' }} kWh/100km</strong>
-              ({{ wltp.wltpRangeKm }} km, {{ wltp.wltpType }})
+              WLTP: <strong>{{ wltp.wltpConsumptionKwhPer100km != null ? formatConsumption(wltp.wltpConsumptionKwhPer100km) : '–' }}</strong>
+              ({{ wltp.wltpRangeKm != null ? formatDistance(wltp.wltpRangeKm) : '–' }}, {{ wltp.wltpType }})
               <span class="hidden sm:inline">
                 · <span class="text-emerald-600 font-medium">{{ t('dashboard.chart_green_better') }}</span>
                 · <span class="text-red-600 font-medium">{{ t('dashboard.chart_red_worse') }}</span>
@@ -1402,7 +1412,7 @@ const deleteLog = async (id: string) => {
                 :placeholder="t('dashboard.chart_compare_placeholder')"
                 class="w-24 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
-              <span class="text-sm text-gray-500 dark:text-gray-400">kWh/100km</span>
+              <span class="text-sm text-gray-500 dark:text-gray-400">{{ consumptionUnitLabel() }}</span>
               <button
                 @click="saveCustomCompare"
                 class="px-3 py-1 text-xs font-medium bg-emerald-600 text-white rounded hover:bg-emerald-700 active:bg-emerald-800"
@@ -1520,8 +1530,8 @@ const deleteLog = async (id: string) => {
                                ? 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'
                                : [(costBadgeClass(entry.costEur, entry.totalKwhCharged) ?? 'bg-green-50 border-green-200 text-green-700'), 'shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'].join(' ')]"
                     @click.stop="showCostAbsolute = !showCostAbsolute">
-                    <template v-if="showCostAbsolute">€{{ entry.costEur }}</template>
-                    <template v-else>€{{ (entry.costEur / entry.totalKwhCharged).toFixed(2) }}/kWh</template>
+                    <template v-if="showCostAbsolute">{{ formatCurrency(entry.costEur) }}</template>
+                    <template v-else>{{ formatCostPerKwh(entry.costEur / entry.totalKwhCharged) }}</template>
                   </span>
                   <span v-if="entry.totalDurationMinutes"
                     class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">
@@ -1543,7 +1553,7 @@ const deleteLog = async (id: string) => {
                       {{ new Date(sub.loggedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}
                     </span>
                     <span v-if="sub.chargeDurationMinutes" class="text-gray-400">{{ sub.chargeDurationMinutes }}min</span>
-                    <span v-if="sub.costEur != null" class="text-gray-400">€{{ sub.costEur }}</span>
+                    <span v-if="sub.costEur != null" class="text-gray-400">{{ formatCurrency(sub.costEur) }}</span>
                     <div class="ml-auto flex items-center gap-1 flex-shrink-0">
                       <button @click="editingLog = sub" class="p-1 rounded text-gray-300 hover:text-blue-500 hover:bg-blue-50 transition" :title="t('dashboard.edit_title')">
                         <PencilSquareIcon class="w-3.5 h-3.5" />
@@ -1597,8 +1607,8 @@ const deleteLog = async (id: string) => {
                                  : [(costBadgeClass(entry._totalCostEur, entry._totalKwh) ?? 'bg-green-50 border-green-200 text-green-700'), 'shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'].join(' ')]"
                       @click.stop="showCostAbsolute = !showCostAbsolute"
                       @mousedown.stop>
-                      <template v-if="showCostAbsolute">€{{ entry._totalCostEur }}</template>
-                      <template v-else>€{{ (entry._totalCostEur / entry._totalKwh).toFixed(2) }}/kWh</template>
+                      <template v-if="showCostAbsolute">{{ formatCurrency(entry._totalCostEur) }}</template>
+                      <template v-else>{{ formatCostPerKwh(entry._totalCostEur / entry._totalKwh) }}</template>
                     </span>
                     <span
                       v-if="entry.distanceSinceLastChargeKm != null || entry.odometerKm"
@@ -1607,13 +1617,13 @@ const deleteLog = async (id: string) => {
                       @click.stop="toggleOdometerDisplay(entry.distanceSinceLastChargeKm, entry.odometerKm)"
                       @mousedown.stop
                     >
-                      <template v-if="entry.distanceSinceLastChargeKm != null && !showOdometer">+{{ entry.distanceSinceLastChargeKm.toLocaleString() }} km</template>
-                      <template v-else>{{ entry.odometerKm?.toLocaleString() }} km</template>
+                      <template v-if="entry.distanceSinceLastChargeKm != null && !showOdometer">+{{ formatDistance(entry.distanceSinceLastChargeKm) }}</template>
+                      <template v-else>{{ entry.odometerKm != null ? formatDistance(entry.odometerKm) : '' }}</template>
                     </span>
                     <span v-if="entry._totalConsumption != null"
                       :class="['inline-flex items-center gap-1 text-xs font-medium whitespace-nowrap',
                                consumptionTextClass(entry._totalConsumption, stats?.avgConsumptionKwhPer100km ?? null)]">
-                      {{ entry._totalConsumption }} kWh/100km
+                      {{ formatConsumption(entry._totalConsumption) }}
                     </span>
                     <span v-if="entry._maxSoc != null" class="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
                       <Battery0Icon class="w-3 h-3" />{{ entry._maxSoc }}%
@@ -1691,8 +1701,8 @@ const deleteLog = async (id: string) => {
                                ? 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'
                                : [(costBadgeClass(entry.costEur, entry.kwhCharged) ?? 'bg-green-50 border-green-200 text-green-700'), 'shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'].join(' ')]"
                     @click="showCostAbsolute = !showCostAbsolute">
-                    <template v-if="showCostAbsolute">€{{ entry.costEur }}</template>
-                    <template v-else>€{{ (entry.costEur / entry.kwhCharged).toFixed(2) }}/kWh</template>
+                    <template v-if="showCostAbsolute">{{ formatCurrency(entry.costEur) }}</template>
+                    <template v-else>{{ formatCostPerKwh(entry.costEur / entry.kwhCharged) }}</template>
                   </span>
                   <span
                     v-if="entry.distanceSinceLastChargeKm != null || entry.odometerKm"
@@ -1702,8 +1712,8 @@ const deleteLog = async (id: string) => {
                       : ''"
                     @click="toggleOdometerDisplay(entry.distanceSinceLastChargeKm, entry.odometerKm)"
                   >
-                    <template v-if="entry.distanceSinceLastChargeKm != null && !showOdometer">+{{ entry.distanceSinceLastChargeKm.toLocaleString() }} km</template>
-                    <template v-else>{{ entry.odometerKm?.toLocaleString() }} km</template>
+                    <template v-if="entry.distanceSinceLastChargeKm != null && !showOdometer">+{{ formatDistance(entry.distanceSinceLastChargeKm) }}</template>
+                    <template v-else>{{ entry.odometerKm != null ? formatDistance(entry.odometerKm) : '' }}</template>
                   </span>
                   <span v-if="entry.consumptionKwhPer100km != null"
                     :class="['inline-flex items-center gap-1 text-xs font-medium whitespace-nowrap',
@@ -1719,10 +1729,10 @@ const deleteLog = async (id: string) => {
                       @click.stop="openTooltipLogId = openTooltipLogId === entry.id ? null : entry.id">
                       <ExclamationTriangleIcon class="w-3 h-3" />
                     </button>
-                    {{ entry.consumptionIsEstimated ? '~' : '' }}{{ entry.consumptionKwhPer100km }} kWh/100km
+                    {{ entry.consumptionIsEstimated ? '~' : '' }}{{ formatConsumption(entry.consumptionKwhPer100km) }}
                   </span>
                   <span v-if="entry.costEur != null && !entry.kwhCharged" class="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                    €{{ entry.costEur }}
+                    {{ formatCurrency(entry.costEur) }}
                   </span>
                   <span v-if="entry.chargeDurationMinutes" class="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
                     <ClockIcon class="w-3 h-3" />{{ entry.chargeDurationMinutes }}min
@@ -1739,7 +1749,7 @@ const deleteLog = async (id: string) => {
                   v-if="!entry._isLadegruppe && entry.consumptionImplausible && openTooltipLogId === entry.id"
                   class="mt-1 p-2.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-xs text-amber-800 dark:text-amber-300 space-y-1">
                   <p class="font-medium">{{ t('dashboard.implausible_tooltip_title') }}</p>
-                  <p>{{ t('dashboard.implausible_tooltip_desc', { value: entry.consumptionKwhPer100km }) }}</p>
+                  <p>{{ t('dashboard.implausible_tooltip_desc', { value: formatConsumption(entry.consumptionKwhPer100km) }) }}</p>
                   <ul class="list-disc list-inside space-y-0.5 mt-1">
                     <li>{{ t('dashboard.implausible_tooltip_cause1') }}</li>
                     <li>{{ t('dashboard.implausible_tooltip_cause2') }}</li>

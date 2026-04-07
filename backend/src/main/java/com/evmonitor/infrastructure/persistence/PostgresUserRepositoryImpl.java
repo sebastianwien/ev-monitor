@@ -138,6 +138,12 @@ public class PostgresUserRepositoryImpl implements UserRepository {
         jpaUserRepository.setLeaderboardVisible(userId, visible);
     }
 
+    @Override
+    @Transactional
+    public void updateCountry(UUID userId, String country) {
+        jpaUserRepository.updateCountry(userId, country);
+    }
+
     private UserEntity toEntity(User domain) {
         UserEntity entity = new UserEntity(
                 domain.getId(),
@@ -160,6 +166,7 @@ public class PostgresUserRepositoryImpl implements UserRepository {
         entity.setUtmCampaign(domain.getUtmCampaign());
         entity.setReferrerSource(domain.getReferrerSource());
         entity.setRegistrationLocale(domain.getRegistrationLocale());
+        entity.setCountry(domain.getCountry());
         return entity;
     }
 
@@ -190,6 +197,7 @@ public class PostgresUserRepositoryImpl implements UserRepository {
                 entity.getUtmCampaign(),
                 entity.getReferrerSource(),
                 entity.getRegistrationLocale(),
+                entity.getCountry(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt());
     }

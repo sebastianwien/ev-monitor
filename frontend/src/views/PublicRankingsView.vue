@@ -96,10 +96,10 @@
               <!-- Consumption + WLTP -->
               <div class="flex-shrink-0 text-right">
                 <div class="font-semibold text-green-700 dark:text-green-400">
-                  {{ model.avgConsumptionKwhPer100km!.toFixed(1) }} kWh/100km
+                  {{ formatConsumption(model.avgConsumptionKwhPer100km!) }}
                 </div>
                 <div v-if="model.minWltpConsumptionKwhPer100km" class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-                  WLTP {{ model.minWltpConsumptionKwhPer100km.toFixed(1) }} kWh
+                  WLTP {{ formatConsumption(model.minWltpConsumptionKwhPer100km) }}
                 </div>
               </div>
 
@@ -124,8 +124,10 @@ import { useI18n } from 'vue-i18n'
 import { BoltIcon, ChevronRightIcon } from '@heroicons/vue/24/outline'
 import PublicNav from '../components/PublicNav.vue'
 import { getMostEfficientModels, getCategories, type TopModelPreview, type VehicleCategoryItem } from '../api/publicModelService'
+import { useLocaleFormat } from '../composables/useLocaleFormat'
 
 const { t } = useI18n()
+const { formatConsumption } = useLocaleFormat()
 
 useHead({
     title: 'EV Rankings - EV Monitor',

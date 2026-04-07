@@ -62,6 +62,7 @@ class UserServiceTest {
                 null,
                 null,
                 null, null, null, null, null,
+                null,
                 LocalDateTime.now(),
                 LocalDateTime.now()
         );

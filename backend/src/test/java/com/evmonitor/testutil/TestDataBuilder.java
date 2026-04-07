@@ -50,6 +50,7 @@ public class TestDataBuilder {
                 null, // utmCampaign
                 null, // referrerSource
                 null, // registrationLocale
+                null, // country
                 LocalDateTime.now(),
                 LocalDateTime.now()
         );

@@ -184,7 +184,7 @@
                   </td>
                   <td v-for="(_, i) in validModels" :key="i"
                       class="px-3 py-3 text-center" :class="cellClass(i, realConsumptions)">
-                    {{ validModels[i].avgConsumptionKwhPer100km ? validModels[i].avgConsumptionKwhPer100km.toFixed(1) : '–' }}
+                    {{ validModels[i].avgConsumptionKwhPer100km ? formatConsumption(validModels[i].avgConsumptionKwhPer100km) : '–' }}
                   </td>
                 </tr>
                 <!-- WLTP consumption -->
@@ -194,7 +194,7 @@
                   </td>
                   <td v-for="(_, i) in validModels" :key="i"
                       class="px-3 py-3 text-center text-gray-700 dark:text-gray-300">
-                    {{ wltpConsumptions[i] ? wltpConsumptions[i]!.toFixed(1) : '–' }}
+                    {{ wltpConsumptions[i] ? formatConsumption(wltpConsumptions[i]!) : '–' }}
                   </td>
                 </tr>
                 <!-- Delta WLTP -->
@@ -221,7 +221,7 @@
                   </td>
                   <td v-for="(_, i) in validModels" :key="i"
                       class="px-3 py-3 text-center" :class="cellClass(i, realRanges, false)">
-                    {{ realRanges[i] ? realRanges[i] + ' km' : '–' }}
+                    {{ realRanges[i] ? formatDistance(realRanges[i]!) : '–' }}
                   </td>
                 </tr>
                 <tr class="border-t border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
@@ -230,7 +230,7 @@
                   </td>
                   <td v-for="(_, i) in validModels" :key="i"
                       class="px-3 py-3 text-center text-gray-700 dark:text-gray-300">
-                    {{ wltpRanges[i] ? wltpRanges[i] + ' km' : '–' }}
+                    {{ wltpRanges[i] ? formatDistance(wltpRanges[i]!) : '–' }}
                   </td>
                 </tr>
 
@@ -246,7 +246,7 @@
                   </td>
                   <td v-for="(_, i) in validModels" :key="i"
                       class="px-3 py-3 text-center" :class="cellClass(i, costsPerHundred)">
-                    {{ costsPerHundred[i] ? costsPerHundred[i]!.toFixed(2) + ' €' : '–' }}
+                    {{ costsPerHundred[i] ? formatCostPerDistance(costsPerHundred[i]!) : '–' }}
                   </td>
                 </tr>
                 <tr class="border-t border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
@@ -255,7 +255,7 @@
                   </td>
                   <td v-for="(_, i) in validModels" :key="i"
                       class="px-3 py-3 text-center" :class="cellClass(i, costsPerKwh)">
-                    {{ costsPerKwh[i] ? costsPerKwh[i]!.toFixed(1) + ' ct' : '–' }}
+                    {{ costsPerKwh[i] != null ? formatCostPerKwh(costsPerKwh[i]!) : '–' }}
                   </td>
                 </tr>
 
@@ -271,7 +271,7 @@
                   </td>
                   <td v-for="(_, i) in validModels" :key="i"
                       class="px-3 py-3 text-center" :class="cellClass(i, summerConsumptions)">
-                    {{ summerConsumptions[i] ? summerConsumptions[i]!.toFixed(1) : '–' }}
+                    {{ summerConsumptions[i] ? formatConsumption(summerConsumptions[i]!) : '–' }}
                   </td>
                 </tr>
                 <tr class="border-t border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
@@ -280,7 +280,7 @@
                   </td>
                   <td v-for="(_, i) in validModels" :key="i"
                       class="px-3 py-3 text-center" :class="cellClass(i, winterConsumptions)">
-                    {{ winterConsumptions[i] ? winterConsumptions[i]!.toFixed(1) : '–' }}
+                    {{ winterConsumptions[i] ? formatConsumption(winterConsumptions[i]!) : '–' }}
                   </td>
                 </tr>
 
@@ -374,8 +374,10 @@ import { TruckIcon, ArrowLeftIcon, ChartBarIcon } from '@heroicons/vue/24/outlin
 import PublicNav from '../components/PublicNav.vue'
 import { useAuthStore } from '../stores/auth'
 import { useTickerState } from '../composables/useTickerState'
+import { useLocaleFormat } from '../composables/useLocaleFormat'
 
 const { t, locale } = useI18n()
+const { formatConsumption, formatDistance, formatCostPerKwh, formatCostPerDistance } = useLocaleFormat()
 const authStore = useAuthStore()
 const { tickerHasItems, tickerCollapsed } = useTickerState()
 const floatingHeaderTop = computed(() => {
@@ -499,7 +501,7 @@ const costsPerHundred = computed(() =>
 )
 
 const costsPerKwh = computed(() =>
-  validModels.value.map(m => m.avgCostPerKwh ? m.avgCostPerKwh * 100 : null)
+  validModels.value.map(m => m.avgCostPerKwh ?? null)
 )
 
 const summerConsumptions = computed(() =>
@@ -551,11 +553,11 @@ const mobileSections = computed((): MobileSection[] => {
       rows: [
         {
           label: t2('compare.row_real_consumption'),
-          cells: buildCells(realConsumptions.value, v => v.toFixed(1))
+          cells: buildCells(realConsumptions.value, v => formatConsumption(v))
         },
         {
           label: t2('compare.row_wltp_consumption'),
-          cells: wltpConsumptions.value.map(v => ({ value: v != null ? v.toFixed(1) : '–', highlight: 'text-gray-700 dark:text-gray-300', isBest: false, isWorst: false, chip: false, chipClass: '' }))
+          cells: wltpConsumptions.value.map(v => ({ value: v != null ? formatConsumption(v) : '–', highlight: 'text-gray-700 dark:text-gray-300', isBest: false, isWorst: false, chip: false, chipClass: '' }))
         },
         {
           label: t2('compare.row_wltp_delta'),
@@ -569,11 +571,11 @@ const mobileSections = computed((): MobileSection[] => {
         {
           label: t2('compare.row_real_range'),
           sublabel: t2('compare.row_real_range_sub'),
-          cells: buildCells(realRanges.value, v => v + ' km', false)
+          cells: buildCells(realRanges.value, v => formatDistance(v), false)
         },
         {
           label: t2('compare.row_wltp_range'),
-          cells: wltpRanges.value.map(v => ({ value: v != null ? v + ' km' : '–', highlight: 'text-gray-700 dark:text-gray-300', isBest: false, isWorst: false, chip: false, chipClass: '' }))
+          cells: wltpRanges.value.map(v => ({ value: v != null ? formatDistance(v) : '–', highlight: 'text-gray-700 dark:text-gray-300', isBest: false, isWorst: false, chip: false, chipClass: '' }))
         }
       ]
     },
@@ -582,11 +584,11 @@ const mobileSections = computed((): MobileSection[] => {
       rows: [
         {
           label: t2('compare.row_costs_per_100'),
-          cells: buildCells(costsPerHundred.value, v => v.toFixed(2) + ' €')
+          cells: buildCells(costsPerHundred.value, v => formatCostPerDistance(v))
         },
         {
           label: t2('compare.row_costs_per_kwh'),
-          cells: buildCells(costsPerKwh.value, v => v.toFixed(1) + ' ct')
+          cells: buildCells(costsPerKwh.value, v => formatCostPerKwh(v))
         }
       ]
     },
@@ -596,12 +598,12 @@ const mobileSections = computed((): MobileSection[] => {
         {
           label: '🌞 ' + t2('compare.row_summer'),
           labelClass: 'text-orange-600 dark:text-orange-400 font-medium',
-          cells: buildCells(summerConsumptions.value, v => v.toFixed(1))
+          cells: buildCells(summerConsumptions.value, v => formatConsumption(v))
         },
         {
           label: '❄️ ' + t2('compare.row_winter'),
           labelClass: 'text-blue-700 dark:text-blue-400 font-medium',
-          cells: buildCells(winterConsumptions.value, v => v.toFixed(1))
+          cells: buildCells(winterConsumptions.value, v => formatConsumption(v))
         }
       ]
     },
