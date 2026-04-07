@@ -41,6 +41,9 @@ public class JwtService {
             extraClaims.put("authProvider", principal.getUser().getAuthProvider().name());
             extraClaims.put("role", principal.getUser().getRole());
             extraClaims.put("premium", principal.getUser().isPremium());
+            if (principal.getUser().getCountry() != null) {
+                extraClaims.put("country", principal.getUser().getCountry());
+            }
         }
         return generateToken(extraClaims, userDetails);
     }

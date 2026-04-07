@@ -35,7 +35,19 @@ public class AuthController {
         if (!rateLimitService.tryConsumeRegister(clientIp(httpRequest))) {
             return tooManyRequests(600);
         }
-        return ResponseEntity.ok(authService.register(request));
+        // Enrich with GeoIP country from nginx header if not already set in request
+        RegisterRequest enriched = request;
+        if (request.country() == null || request.country().isBlank()) {
+            String geoCountry = httpRequest.getHeader("X-Country-Code");
+            if (geoCountry != null && geoCountry.length() == 2) {
+                enriched = new RegisterRequest(
+                        request.email(), request.username(), request.password(),
+                        request.referralCode(), request.utmSource(), request.utmMedium(),
+                        request.utmCampaign(), request.referrerSource(),
+                        request.registrationLocale(), geoCountry.toUpperCase());
+            }
+        }
+        return ResponseEntity.ok(authService.register(enriched));
     }
 
     @PostMapping("/demo-login")

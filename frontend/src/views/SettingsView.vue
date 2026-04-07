@@ -3,14 +3,31 @@ import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useCountryStore } from '../stores/country'
+import type { CountryCode } from '../config/unitSystems'
 import { UserIcon, KeyIcon, TrashIcon, ArrowDownTrayIcon, AcademicCapIcon, ShareIcon, ClipboardDocumentIcon, CheckIcon, HeartIcon, ArrowRightOnRectangleIcon, BoltIcon, CreditCardIcon, PlusIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/vue/24/outline'
 import SupportPopover from '../components/SupportPopover.vue'
 import DemoSettingsModal from '../components/DemoSettingsModal.vue'
 import api from '../api/axios'
+import { useLocaleFormat } from '../composables/useLocaleFormat'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const { formatCostPerKwh, formatCurrency } = useLocaleFormat()
 const router = useRouter()
 const authStore = useAuthStore()
+const countryStore = useCountryStore()
+
+const countries: { code: CountryCode; flag: string; name: Record<string, string> }[] = [
+  { code: 'DE', flag: '🇩🇪', name: { de: 'Deutschland', en: 'Germany' } },
+  { code: 'AT', flag: '🇦🇹', name: { de: 'Österreich', en: 'Austria' } },
+  { code: 'CH', flag: '🇨🇭', name: { de: 'Schweiz', en: 'Switzerland' } },
+  { code: 'GB', flag: '🇬🇧', name: { de: 'Großbritannien', en: 'United Kingdom' } },
+  { code: 'NL', flag: '🇳🇱', name: { de: 'Niederlande', en: 'Netherlands' } },
+  { code: 'BE', flag: '🇧🇪', name: { de: 'Belgien', en: 'Belgium' } },
+  { code: 'DK', flag: '🇩🇰', name: { de: 'Dänemark', en: 'Denmark' } },
+  { code: 'NO', flag: '🇳🇴', name: { de: 'Norwegen', en: 'Norway' } },
+  { code: 'SE', flag: '🇸🇪', name: { de: 'Schweden', en: 'Sweden' } },
+]
 
 // Account Data
 const email = ref('')
@@ -334,10 +351,10 @@ const deleteChargingProvider = async (id: string) => {
 }
 
 const formatPrice = (val: number | null) =>
-  val != null ? `${val.toFixed(4).replace(/\.?0+$/, '')} €/kWh` : '-'
+  val != null ? formatCostPerKwh(val) : '-'
 
 const formatDate = (dateStr: string) =>
-  new Date(dateStr).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  new Date(dateStr).toLocaleDateString(locale.value === 'en' ? 'en-GB' : 'de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
 
 // Leaderboard visibility
 const toggleLeaderboardVisible = async () => {
@@ -524,6 +541,25 @@ onMounted(() => {
         </div>
       </div>
 
+      <!-- Country / Region -->
+      <div class="mb-8">
+        <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-1">{{ t('settings.country_title') }}</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">{{ t('settings.country_desc') }}</p>
+        <div class="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
+          <button
+            v-for="c in countries"
+            :key="c.code"
+            @click="countryStore.setCountry(c.code)"
+            class="flex flex-col items-center gap-1 min-w-[72px] px-3 py-2.5 rounded-xl border-2 transition-all shrink-0 cursor-pointer"
+            :class="countryStore.country === c.code
+              ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+              : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'">
+            <span class="text-2xl">{{ c.flag }}</span>
+            <span class="text-xs font-medium" :class="countryStore.country === c.code ? 'text-green-700 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'">{{ c.name[locale] || c.name.en }}</span>
+          </button>
+        </div>
+      </div>
+
       <!-- Ladetarif Section -->
       <div class="mb-8">
         <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
@@ -540,7 +576,7 @@ onMounted(() => {
               <div class="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-sm text-gray-600 dark:text-gray-300">
                 <span v-if="activeProvider.acPricePerKwh != null">AC: {{ formatPrice(activeProvider.acPricePerKwh) }}</span>
                 <span v-if="activeProvider.dcPricePerKwh != null">DC: {{ formatPrice(activeProvider.dcPricePerKwh) }}</span>
-                <span v-if="activeProvider.monthlyFeeEur > 0">{{ activeProvider.monthlyFeeEur?.toFixed(2) }} €/Monat</span>
+                <span v-if="activeProvider.monthlyFeeEur > 0">{{ formatCurrency(activeProvider.monthlyFeeEur!) }}/{{ t('settings.month_short') }}</span>
               </div>
             </div>
             <button
@@ -794,7 +830,7 @@ onMounted(() => {
           <p class="text-sm text-gray-600 dark:text-gray-400">
             <strong>{{ totalLogs }}</strong> Ladevorgänge ·
             <strong>{{ Math.round(totalKwh) }}</strong> kWh ·
-            <strong>€{{ (totalCostEur ?? 0).toFixed(2) }}</strong>
+            <strong>{{ formatCurrency(totalCostEur ?? 0) }}</strong>
           </p>
         </div>
 

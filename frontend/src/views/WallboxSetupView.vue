@@ -20,8 +20,10 @@ import {
   EyeSlashIcon,
   KeyIcon
 } from '@heroicons/vue/24/outline'
+import { useLocaleFormat } from '../composables/useLocaleFormat'
 
 const { t } = useI18n()
+const { formatCostPerKwh } = useLocaleFormat()
 const authStore = useAuthStore()
 const carStore = useCarStore()
 const userId = computed(() => authStore.user?.userId || '')
@@ -395,7 +397,7 @@ onMounted(load)
                 {{ t('wallbox.tariff_label') }}
                 <span class="font-medium text-gray-700 dark:text-gray-300">
                   {{ conn.tariffCentsPerKwh > 0
-                    ? `${Number(conn.tariffCentsPerKwh).toLocaleString(undefined, { maximumFractionDigits: 4 })} ct/kWh`
+                    ? formatCostPerKwh(Number(conn.tariffCentsPerKwh) / 100)
                     : t('wallbox.tariff_unset') }}
                 </span>
               </span>

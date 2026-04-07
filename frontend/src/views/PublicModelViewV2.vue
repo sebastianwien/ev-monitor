@@ -51,15 +51,15 @@
             </div>
             <div class="flex items-baseline gap-2">
               <span class="text-5xl font-bold tabular-nums text-gray-900 dark:text-gray-100">
-                {{ displayConsumption.toFixed(1) }}
+                {{ formatConsumption(displayConsumption, { showUnit: false }) }}
               </span>
-              <span class="text-xl text-gray-400 dark:text-gray-500">{{ t('model.unit_kwh_per_100km') }}</span>
+              <span class="text-xl text-gray-400 dark:text-gray-500">{{ consumptionUnitLabel() }}</span>
             </div>
             <div v-if="worstWltpConsumption" class="mt-3 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-              <span>{{ t('model.wltp_badge', { consumption: worstWltpConsumption.toFixed(1) }) }}</span>
+              <span>{{ t('model.wltp_badge', { consumption: formatConsumption(worstWltpConsumption, { showUnit: false }) }) }}</span>
               <span :class="deltaLabelClass(displayConsumption, worstWltpConsumption)"
                     class="px-2 py-0.5 rounded-full text-xs font-semibold">
-                {{ deltaLabel(displayConsumption, worstWltpConsumption) }}
+                {{ consumptionDeltaLabel(displayConsumption, worstWltpConsumption) }}
               </span>
             </div>
           </div>
@@ -77,7 +77,7 @@
                class="text-center text-sm text-gray-500 dark:text-gray-400 pt-3 pb-1">
             {{ t('model.avg_cost_prefix') }}
             <span class="text-base font-bold text-gray-900 dark:text-gray-100">
-              {{ (stats.avgCostPerKwh * displayConsumption).toFixed(2) }} €
+              {{ formatCostPerDistance(stats.avgCostPerKwh * displayConsumption) }}
             </span>
             {{ t('model.avg_cost_suffix') }}
           </div>
@@ -93,16 +93,15 @@
                   <template v-if="stats.acAvgCostPerKwh || stats.dcAvgCostPerKwh">
                     <div v-if="stats.acAvgCostPerKwh" class="flex items-center gap-1.5 whitespace-nowrap">
                       <span class="text-sm font-semibold text-green-600 dark:text-green-400 flex items-center gap-0.5"><BoltIcon class="h-4 w-4" />AC</span>
-                      <span class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ (stats.acAvgCostPerKwh * 100).toFixed(1) }}<sup class="text-xs text-gray-400">*</sup><span class="text-xs font-normal text-gray-400"> {{ t('model.unit_ct_per_kwh') }}</span></span>
+                      <span class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ formatCostPerKwh(stats.acAvgCostPerKwh) }}<sup class="text-xs text-gray-400">*</sup></span>
                     </div>
                     <div v-if="stats.dcAvgCostPerKwh" class="flex items-center gap-1.5 whitespace-nowrap">
                       <span class="text-sm font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-0.5"><BoltIcon class="h-4 w-4" />DC</span>
-                      <span class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ (stats.dcAvgCostPerKwh * 100).toFixed(1) }}<sup class="text-xs text-gray-400">*</sup><span class="text-xs font-normal text-gray-400"> {{ t('model.unit_ct_per_kwh') }}</span></span>
+                      <span class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ formatCostPerKwh(stats.dcAvgCostPerKwh) }}<sup class="text-xs text-gray-400">*</sup></span>
                     </div>
                   </template>
                   <template v-else-if="stats.avgCostPerKwh">
-                    <div class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ (stats.avgCostPerKwh * 100).toFixed(1) }}</div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('model.unit_ct_per_kwh') }}</div>
+                    <div class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ formatCostPerKwh(stats.avgCostPerKwh) }}</div>
                   </template>
                   <template v-else>
                     <div class="text-xl font-bold text-gray-400">-</div>
@@ -124,7 +123,7 @@
             <!-- Reichweite -->
             <div class="px-4 text-center">
               <template v-if="displayRange">
-                <div class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ displayRange }} km</div>
+                <div class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ formatDistance(displayRange) }}</div>
                 <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('model.metrics_range') }}</div>
                 <div class="flex items-center justify-center gap-1 mt-1">
                   <Battery0Icon class="h-3 w-3 text-gray-400" />
@@ -145,8 +144,7 @@
                       <BoltIcon class="h-4 w-4" />AC
                     </span>
                     <span class="text-xl font-bold text-gray-900 dark:text-gray-100">
-                      {{ (stats.acAvgCostPerKwh * 100).toFixed(1) }}<sup class="text-xs text-gray-400">*</sup>
-                      <span class="text-sm font-normal text-gray-400">{{ t('model.unit_ct_per_kwh') }}</span>
+                      {{ formatCostPerKwh(stats.acAvgCostPerKwh) }}<sup class="text-xs text-gray-400">*</sup>
                     </span>
                   </div>
                   <div v-if="stats.dcAvgCostPerKwh" class="flex items-baseline gap-2">
@@ -154,17 +152,15 @@
                       <BoltIcon class="h-4 w-4" />DC
                     </span>
                     <span class="text-xl font-bold text-gray-900 dark:text-gray-100">
-                      {{ (stats.dcAvgCostPerKwh * 100).toFixed(1) }}<sup class="text-xs text-gray-400">*</sup>
-                      <span class="text-sm font-normal text-gray-400">{{ t('model.unit_ct_per_kwh') }}</span>
+                      {{ formatCostPerKwh(stats.dcAvgCostPerKwh) }}<sup class="text-xs text-gray-400">*</sup>
                     </span>
                   </div>
                 </div>
               </template>
               <template v-else-if="stats.avgCostPerKwh">
                 <div class="text-xl font-bold text-gray-900 dark:text-gray-100">
-                  {{ (stats.avgCostPerKwh * 100).toFixed(1) }} ct
+                  {{ formatCostPerKwh(stats.avgCostPerKwh) }}
                 </div>
-                <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('model.unit_ct_per_kwh') }}</div>
               </template>
               <template v-else>
                 <div class="text-xl font-bold text-gray-400">-</div>
@@ -190,11 +186,11 @@
             <div class="flex items-center justify-center gap-2 mb-3 flex-wrap">
               <BoltIcon class="h-4 w-4 text-yellow-500 shrink-0" />
               <span class="text-sm text-gray-500 dark:text-gray-400">
-                {{ t('model.calculator_label') }} {{ Math.round(pricePerKwh * 100) }} {{ t('model.calculator_unit') }}
+                {{ t('model.calculator_label') }} {{ formatCostPerKwh(pricePerKwh) }}
               </span>
               <span class="text-sm text-gray-300 dark:text-gray-600">~</span>
               <span class="text-lg font-bold text-yellow-600 dark:text-yellow-400">
-                {{ (pricePerKwh * displayConsumption).toFixed(2) }} {{ t('model.calculator_result') }}
+                {{ formatCostPerDistance(pricePerKwh * displayConsumption) }}
               </span>
             </div>
             <div class="flex items-center gap-3">
@@ -209,6 +205,12 @@
         <!-- AC Fußnote -->
         <div v-if="stats.acAvgCostPerKwh" class="px-4 md:px-0 mt-1 mb-3 text-center">
           <p class="text-xs text-gray-400 dark:text-gray-500">{{ t('model.ac_footnote') }}</p>
+        </div>
+        <!-- Cost disclaimer for non-EUR countries -->
+        <div v-if="!isEurZone && (stats.avgCostPerKwh || stats.acAvgCostPerKwh)" class="px-4 md:px-0 mt-1 mb-3 text-center">
+          <p class="text-xs text-gray-400 dark:text-gray-500 italic">
+            {{ t('model.cost_disclaimer', { rate: EUR_EXCHANGE_RATES[currency], currency: currencySymbol, date: RATES_LAST_UPDATED }) }}
+          </p>
         </div>
 
         <!-- Affiliate Banner -->
@@ -257,11 +259,11 @@
                 <div class="flex items-center gap-3">
                   <span v-if="selectedVariant!.seasonalDistribution!.summerConsumptionKwhPer100km"
                         class="font-bold text-amber-600 dark:text-amber-400">
-                    {{ selectedVariant!.seasonalDistribution!.summerConsumptionKwhPer100km.toFixed(1) }} kWh/100km
+                    {{ formatConsumption(selectedVariant!.seasonalDistribution!.summerConsumptionKwhPer100km) }}
                   </span>
                   <span v-if="selectedVariant && selectedVariant!.seasonalDistribution!.summerConsumptionKwhPer100km"
                         class="text-sm font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                    ~ {{ Math.round(selectedVariant.batteryCapacityKwh * 0.8 / selectedVariant!.seasonalDistribution!.summerConsumptionKwhPer100km * 10) * 10 }} km
+                    ~ {{ formatDistance(Math.round(selectedVariant.batteryCapacityKwh * 0.8 / selectedVariant!.seasonalDistribution!.summerConsumptionKwhPer100km * 10) * 10) }}
                   </span>
                   <span class="hidden md:inline text-xs"
                         :class="selectedVariant!.seasonalDistribution!.summerLogCount < 30 ? 'text-yellow-600 font-medium' : 'text-gray-400'">
@@ -292,11 +294,11 @@
                 <div class="flex items-center gap-3">
                   <span v-if="selectedVariant!.seasonalDistribution!.winterConsumptionKwhPer100km"
                         class="font-bold text-blue-500 dark:text-blue-400">
-                    {{ selectedVariant!.seasonalDistribution!.winterConsumptionKwhPer100km.toFixed(1) }} kWh/100km
+                    {{ formatConsumption(selectedVariant!.seasonalDistribution!.winterConsumptionKwhPer100km) }}
                   </span>
                   <span v-if="selectedVariant && selectedVariant!.seasonalDistribution!.winterConsumptionKwhPer100km"
                         class="text-sm font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                    ~ {{ Math.round(selectedVariant.batteryCapacityKwh * 0.8 / selectedVariant!.seasonalDistribution!.winterConsumptionKwhPer100km * 10) * 10 }} km
+                    ~ {{ formatDistance(Math.round(selectedVariant.batteryCapacityKwh * 0.8 / selectedVariant!.seasonalDistribution!.winterConsumptionKwhPer100km * 10) * 10) }}
                   </span>
                   <span class="hidden md:inline text-xs"
                         :class="selectedVariant!.seasonalDistribution!.winterLogCount < 30 ? 'text-yellow-600 font-medium' : 'text-gray-400'">
@@ -319,7 +321,7 @@
               </div>
               <span class="font-bold text-gray-900 dark:text-gray-100">
                 {{ selectedVariant!.seasonalDistribution!.totalConsumptionKwhPer100km != null
-                  ? selectedVariant!.seasonalDistribution!.totalConsumptionKwhPer100km.toFixed(1) + ' kWh/100km'
+                  ? formatConsumption(selectedVariant!.seasonalDistribution!.totalConsumptionKwhPer100km)
                   : '-' }}
               </span>
             </div>
@@ -357,17 +359,17 @@
                 <div class="grid grid-cols-2 gap-2 text-sm">
                   <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
                     <div class="text-xs text-gray-500 mb-0.5">{{ t('model.wltp_wltp_range') }}</div>
-                    <div class="font-medium text-gray-800 dark:text-gray-200">{{ selectedVariant.wltpRangeKm }} km</div>
+                    <div class="font-medium text-gray-800 dark:text-gray-200">{{ formatDistance(selectedVariant.wltpRangeKm) }}</div>
                   </div>
                   <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
                     <div class="text-xs text-gray-500 mb-0.5">{{ t('model.wltp_wltp_consumption') }}</div>
-                    <div class="font-medium text-gray-800 dark:text-gray-200">{{ selectedVariant.wltpConsumptionKwhPer100km }} kWh/100km</div>
+                    <div class="font-medium text-gray-800 dark:text-gray-200">{{ formatConsumption(selectedVariant.wltpConsumptionKwhPer100km) }}</div>
                   </div>
                   <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
                     <div class="text-xs text-gray-500 mb-0.5">{{ t('model.wltp_real_range') }}</div>
                     <div class="font-medium text-gray-800 dark:text-gray-200">
                       {{ selectedVariant.realConsumptionKwhPer100km
-                        ? Math.round(selectedVariant.batteryCapacityKwh / selectedVariant.realConsumptionKwhPer100km * 10) * 10 + ' km'
+                        ? formatDistance(Math.round(selectedVariant.batteryCapacityKwh / selectedVariant.realConsumptionKwhPer100km * 10) * 10)
                         : '-' }}
                     </div>
                     <div class="text-xs text-gray-400">{{ t('model.wltp_full_range') }}</div>
@@ -376,11 +378,11 @@
                     <div class="text-xs text-gray-500 mb-0.5">{{ t('model.wltp_real_consumption') }}</div>
                     <template v-if="selectedVariant.realConsumptionKwhPer100km">
                       <div :class="consumptionDeltaClass(selectedVariant.realConsumptionKwhPer100km, selectedVariant.wltpConsumptionKwhPer100km)" class="font-medium">
-                        {{ selectedVariant.realConsumptionKwhPer100km.toFixed(1) }} kWh/100km
+                        {{ formatConsumption(selectedVariant.realConsumptionKwhPer100km) }}
                       </div>
                       <span :class="deltaLabelClass(selectedVariant.realConsumptionKwhPer100km, selectedVariant.wltpConsumptionKwhPer100km)"
                             class="text-xs px-1.5 py-0.5 rounded-full mt-1 inline-block">
-                        {{ deltaLabel(selectedVariant.realConsumptionKwhPer100km, selectedVariant.wltpConsumptionKwhPer100km) }}
+                        {{ consumptionDeltaLabel(selectedVariant.realConsumptionKwhPer100km, selectedVariant.wltpConsumptionKwhPer100km) }}
                       </span>
                     </template>
                     <div v-else class="text-gray-400 text-sm">-</div>
@@ -406,13 +408,13 @@
                 <tbody>
                   <tr v-if="selectedVariant" class="border-b border-gray-50 dark:border-gray-700">
                     <td class="py-3 pr-4 font-medium text-gray-900 dark:text-gray-100">{{ selectedVariant.batteryCapacityKwh }} kWh</td>
-                    <td class="py-3 pr-4 text-gray-700 dark:text-gray-300">{{ selectedVariant.wltpRangeKm }} km</td>
+                    <td class="py-3 pr-4 text-gray-700 dark:text-gray-300">{{ formatDistance(selectedVariant.wltpRangeKm) }}</td>
                     <td class="py-3 pr-4 whitespace-nowrap">
                       <div v-if="selectedVariant?.seasonalDistribution?.summerConsumptionKwhPer100km || selectedVariant?.seasonalDistribution?.winterConsumptionKwhPer100km"
                            class="flex items-center gap-1.5">
                         <span class="flex items-center gap-1 text-amber-600">
                           <SunIcon class="h-3.5 w-3.5" />
-                          <span>{{ selectedVariant?.seasonalDistribution?.summerConsumptionKwhPer100km ? Math.round(selectedVariant.batteryCapacityKwh / selectedVariant.seasonalDistribution.summerConsumptionKwhPer100km * 10) * 10 + ' km' : '-' }}</span>
+                          <span>{{ selectedVariant?.seasonalDistribution?.summerConsumptionKwhPer100km ? formatDistance(Math.round(selectedVariant.batteryCapacityKwh / selectedVariant.seasonalDistribution.summerConsumptionKwhPer100km * 10) * 10) : '-' }}</span>
                         </span>
                         <span class="text-gray-300">/</span>
                         <span class="flex items-center gap-1 text-blue-500">
@@ -421,22 +423,22 @@
                             <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/><line x1="19.07" y1="4.93" x2="4.93" y2="19.07"/>
                             <circle cx="12" cy="12" r="2" fill="currentColor"/>
                           </svg>
-                          <span>{{ selectedVariant?.seasonalDistribution?.winterConsumptionKwhPer100km ? Math.round(selectedVariant.batteryCapacityKwh / selectedVariant.seasonalDistribution.winterConsumptionKwhPer100km * 10) * 10 + ' km' : '-' }}</span>
+                          <span>{{ selectedVariant?.seasonalDistribution?.winterConsumptionKwhPer100km ? formatDistance(Math.round(selectedVariant.batteryCapacityKwh / selectedVariant.seasonalDistribution.winterConsumptionKwhPer100km * 10) * 10) : '-' }}</span>
                         </span>
                       </div>
                       <span v-else class="text-gray-400">-</span>
                     </td>
-                    <td class="py-3 pr-4 text-gray-700 dark:text-gray-300">{{ selectedVariant.wltpConsumptionKwhPer100km }} kWh/100km</td>
+                    <td class="py-3 pr-4 text-gray-700 dark:text-gray-300">{{ formatConsumption(selectedVariant.wltpConsumptionKwhPer100km) }}</td>
                     <td class="py-3 align-top">
                       <div v-if="selectedVariant.realConsumptionKwhPer100km" class="flex flex-col items-start gap-1">
                         <span :class="consumptionDeltaClass(selectedVariant.realConsumptionKwhPer100km, selectedVariant.wltpConsumptionKwhPer100km)"
                               class="font-medium whitespace-nowrap">
-                          {{ selectedVariant.realConsumptionKwhPer100km.toFixed(1) }} kWh/100km
+                          {{ formatConsumption(selectedVariant.realConsumptionKwhPer100km) }}
                         </span>
                         <div class="flex items-center gap-1.5">
                           <span :class="deltaLabelClass(selectedVariant.realConsumptionKwhPer100km, selectedVariant.wltpConsumptionKwhPer100km)"
                                 class="text-xs px-1.5 py-0.5 rounded-full">
-                            {{ deltaLabel(selectedVariant.realConsumptionKwhPer100km, selectedVariant.wltpConsumptionKwhPer100km) }}
+                            {{ consumptionDeltaLabel(selectedVariant.realConsumptionKwhPer100km, selectedVariant.wltpConsumptionKwhPer100km) }}
                           </span>
                           <span v-if="selectedVariant.realConsumptionTripCount != null && selectedVariant.realConsumptionTripCount < 10"
                                 class="text-xs px-1.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-600 dark:bg-red-900/40 dark:border-red-700 dark:text-red-400">
@@ -491,16 +493,16 @@
           <div class="space-y-4 text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
             <p>
               {{ t('model.seo_intro', { model: stats.modelDisplayName }) }}
-              <template v-if="bestWltpRange"> {{ t('model.seo_wltp_range', { range: bestWltpRange }) }}</template>.
+              <template v-if="bestWltpRange"> {{ t('model.seo_wltp_range', { range: formatDistance(bestWltpRange) }) }}</template>.
               <template v-if="stats.avgConsumptionKwhPer100km">
                 <template v-if="consumptionDataQuality === 'good'">
-                  {{ t('model.seo_consumption_good', { consumption: stats.avgConsumptionKwhPer100km.toFixed(1), sessions: stats.logCount, count: Math.min(consumptionDataCount, stats.logCount) }) }}
+                  {{ t('model.seo_consumption_good', { consumption: formatConsumption(stats.avgConsumptionKwhPer100km), sessions: stats.logCount, count: Math.min(consumptionDataCount, stats.logCount) }) }}
                 </template>
                 <template v-else-if="consumptionDataQuality === 'low'">
-                  {{ t('model.seo_consumption_low', { consumption: stats.avgConsumptionKwhPer100km.toFixed(1), count: Math.min(consumptionDataCount, stats.logCount) }) }}
+                  {{ t('model.seo_consumption_low', { consumption: formatConsumption(stats.avgConsumptionKwhPer100km), count: Math.min(consumptionDataCount, stats.logCount) }) }}
                 </template>
                 <template v-else>
-                  {{ t('model.seo_consumption_sparse', { consumption: stats.avgConsumptionKwhPer100km.toFixed(1), count: Math.min(consumptionDataCount, stats.logCount) }) }}
+                  {{ t('model.seo_consumption_sparse', { consumption: formatConsumption(stats.avgConsumptionKwhPer100km), count: Math.min(consumptionDataCount, stats.logCount) }) }}
                 </template>
               </template>
               <template v-else>
@@ -510,9 +512,9 @@
             <div v-if="stats.avgCostPerKwh">
               <h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-1">{{ t('model.seo_costs_title') }}</h3>
               <p>
-                {{ t('model.seo_costs_intro', { model: stats.modelDisplayName, price: (stats.avgCostPerKwh * 100).toFixed(1) }) }}
+                {{ t('model.seo_costs_intro', { model: stats.modelDisplayName, price: formatCostPerKwh(stats.avgCostPerKwh) }) }}
                 <template v-if="stats.avgKwhPerSession">
-                  {{ t('model.seo_costs_session', { kwh: stats.avgKwhPerSession.toFixed(1), cost: (stats.avgCostPerKwh * stats.avgKwhPerSession).toFixed(2) }) }}
+                  {{ t('model.seo_costs_session', { kwh: stats.avgKwhPerSession.toFixed(1), cost: formatCurrency(stats.avgCostPerKwh * stats.avgKwhPerSession) }) }}
                 </template>
               </p>
             </div>
@@ -530,8 +532,8 @@
               <p v-if="showSeasonalBreakdown && selectedVariant?.seasonalDistribution?.summerConsumptionKwhPer100km && selectedVariant?.seasonalDistribution?.winterConsumptionKwhPer100km">
                 {{ t('model.seo_seasonal_data', {
                   model: stats.modelDisplayName,
-                  summer: selectedVariant.seasonalDistribution.summerConsumptionKwhPer100km.toFixed(1),
-                  winter: selectedVariant.seasonalDistribution.winterConsumptionKwhPer100km.toFixed(1),
+                  summer: formatConsumption(selectedVariant.seasonalDistribution.summerConsumptionKwhPer100km),
+                  winter: formatConsumption(selectedVariant.seasonalDistribution.winterConsumptionKwhPer100km),
                   pct: Math.round((selectedVariant.seasonalDistribution.winterConsumptionKwhPer100km / selectedVariant.seasonalDistribution.summerConsumptionKwhPer100km - 1) * 100)
                 }) }}
               </p>
@@ -632,10 +634,13 @@ import {
 } from '@heroicons/vue/24/outline'
 import PublicNav from '../components/PublicNav.vue'
 import AffiliateBanner from '../components/AffiliateBanner.vue'
+import { useLocaleFormat } from '../composables/useLocaleFormat'
+import { EUR_EXCHANGE_RATES, RATES_LAST_UPDATED } from '../config/exchangeRates'
 
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
+const { formatConsumption, consumptionUnitLabel, formatDistance, formatCurrency, formatCostPerKwh, formatCostPerDistance, consumptionDeltaLabel, consumptionDeltaClass, isEurZone, currency, currencySymbol } = useLocaleFormat()
 const isEn = computed(() => route.path.startsWith('/en/'))
 const modelsBaseUrl = computed(() => isEn.value ? '/en/models' : '/modelle')
 const loginPath = computed(() => isEn.value ? '/en/login' : '/login')
@@ -722,9 +727,9 @@ const faqItems = computed(() => {
       question: t('model.faq_q_consumption', { model: name }),
       answer: t('model.faq_a_consumption', {
         model: name,
-        consumption: stats.value.avgConsumptionKwhPer100km.toFixed(1),
+        consumption: formatConsumption(stats.value.avgConsumptionKwhPer100km),
         dataNote,
-        wltp: worstWltpConsumption.value?.toFixed(1) ?? '-'
+        wltp: worstWltpConsumption.value ? formatConsumption(worstWltpConsumption.value) : '-'
       })
     })
   }
@@ -736,10 +741,10 @@ const faqItems = computed(() => {
       question: t('model.faq_q_range', { model: name }),
       answer: t('model.faq_a_range', {
         model: name,
-        wltpRange: bestWltpRange.value,
+        wltpRange: formatDistance(bestWltpRange.value),
         battery: largestBattery,
-        consumption: stats.value.avgConsumptionKwhPer100km.toFixed(1),
-        realRange
+        consumption: formatConsumption(stats.value.avgConsumptionKwhPer100km),
+        realRange: formatDistance(realRange)
       })
     })
   }
@@ -748,23 +753,22 @@ const faqItems = computed(() => {
     items.push({
       question: t('model.faq_q_cost', { model: name }),
       answer: t('model.faq_a_cost', {
-        price: (stats.value.avgCostPerKwh * 100).toFixed(1),
+        price: formatCostPerKwh(stats.value.avgCostPerKwh),
         kwh: stats.value.avgKwhPerSession.toFixed(1),
-        cost: (stats.value.avgCostPerKwh * stats.value.avgKwhPerSession).toFixed(2)
+        cost: formatCurrency(stats.value.avgCostPerKwh * stats.value.avgKwhPerSession)
       })
     })
   }
 
   if (worstWltpConsumption.value && stats.value.avgConsumptionKwhPer100km && consumptionDataCount.value >= 25) {
-    const diff = (stats.value.avgConsumptionKwhPer100km - worstWltpConsumption.value).toFixed(1)
     const pct = Math.round((stats.value.avgConsumptionKwhPer100km / worstWltpConsumption.value - 1) * 100)
     items.push({
       question: t('model.faq_q_wltp_delta', { model: name }),
       answer: t('model.faq_a_wltp_delta', {
         model: name,
-        wltp: worstWltpConsumption.value.toFixed(1),
-        real: stats.value.avgConsumptionKwhPer100km.toFixed(1),
-        diff,
+        wltp: formatConsumption(worstWltpConsumption.value),
+        real: formatConsumption(stats.value.avgConsumptionKwhPer100km),
+        diff: formatConsumption(Math.abs(stats.value.avgConsumptionKwhPer100km - worstWltpConsumption.value)),
         pct
       })
     })
@@ -777,8 +781,8 @@ const faqItems = computed(() => {
     answer: hasSeasonalData
       ? t('model.faq_a_winter_data', {
           model: name,
-          winter: seasonal!.winterConsumptionKwhPer100km?.toFixed(1) ?? '-',
-          summer: seasonal!.summerConsumptionKwhPer100km?.toFixed(1) ?? '-'
+          winter: seasonal!.winterConsumptionKwhPer100km ? formatConsumption(seasonal!.winterConsumptionKwhPer100km) : '-',
+          summer: seasonal!.summerConsumptionKwhPer100km ? formatConsumption(seasonal!.summerConsumptionKwhPer100km) : '-'
         })
       : t('model.faq_a_winter_no_data', { model: name })
   })
@@ -803,7 +807,7 @@ useHead(computed(() => {
   const enUrl = `https://ev-monitor.net/en/models/${canonicalBrand.value}/${model}`
 
   const description = consumption && wltp
-    ? t('model.meta_description_with_data', { model: name, consumption: consumption.toFixed(1), wltp: wltp.toFixed(1) })
+    ? t('model.meta_description_with_data', { model: name, consumption: formatConsumption(consumption), wltp: formatConsumption(wltp) })
     : t('model.meta_description_no_data', { model: name })
 
   const title = t('model.meta_title', { model: name, year: currentYear })
@@ -829,8 +833,8 @@ useHead(computed(() => {
   }
   if (consumption) {
     productJsonLd['additionalProperty'] = [
-      { '@type': 'PropertyValue', name: isEn.value ? 'Real Consumption' : 'Realverbrauch', value: `${consumption.toFixed(1)} kWh/100km` },
-      ...(wltp ? [{ '@type': 'PropertyValue', name: 'WLTP', value: `${wltp.toFixed(1)} kWh/100km` }] : []),
+      { '@type': 'PropertyValue', name: isEn.value ? 'Real Consumption' : 'Realverbrauch', value: formatConsumption(consumption) },
+      ...(wltp ? [{ '@type': 'PropertyValue', name: 'WLTP', value: formatConsumption(wltp) }] : []),
     ]
   }
 
@@ -888,24 +892,11 @@ onMounted(async () => {
   }
 })
 
-function consumptionDeltaClass(real: number, wltp: number): string {
-  const pct = ((real - wltp) / wltp) * 100
-  if (pct <= 0) return 'text-green-600'
-  if (pct <= 15) return 'text-yellow-600 dark:text-yellow-400'
-  return 'text-red-500'
-}
-
 function deltaLabelClass(real: number, wltp: number): string {
   const pct = ((real - wltp) / wltp) * 100
   if (pct <= 0) return 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
   if (pct <= 15) return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400'
   return 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'
-}
-
-function deltaLabel(real: number, wltp: number): string {
-  const pct = ((real - wltp) / wltp) * 100
-  const sign = pct > 0 ? '+' : ''
-  return `${sign}${pct.toFixed(1)}%`
 }
 
 function reload() { window.location.reload() }

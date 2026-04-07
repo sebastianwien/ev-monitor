@@ -87,6 +87,18 @@ public class UserController {
                 .body(resource);
     }
 
+    @PutMapping("/me/country")
+    public ResponseEntity<Map<String, String>> updateCountry(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @RequestParam @Size(min = 2, max = 2) String country
+    ) {
+        UUID userId = UUID.fromString(principal.getUser().getId().toString());
+        userService.updateCountry(userId, country.toUpperCase());
+        UserDetails updatedUser = customUserDetailsService.loadUserById(userId);
+        String newToken = jwtService.generateToken(updatedUser);
+        return ResponseEntity.ok(Map.of("token", newToken));
+    }
+
     @PutMapping("/me/leaderboard-visible")
     public ResponseEntity<Void> setLeaderboardVisible(
             @AuthenticationPrincipal UserPrincipal principal,

@@ -23,6 +23,7 @@ import FeedbackToast from './components/FeedbackToast.vue'
 import { Bars3Icon, XMarkIcon, HomeIcon, ArrowDownTrayIcon, UserIcon, BoltIcon, ChatBubbleLeftEllipsisIcon, ArrowsRightLeftIcon } from '@heroicons/vue/24/outline'
 // Note: showImportOverlay kept for backward compat but SpritMonitor moved to /imports
 import { captureUtmParams, captureReferrer } from './utils/reddit-pixel'
+import { detectCountry } from './composables/useCountryDetection'
 import { useHaptic } from './composables/useHaptic'
 import { useThemeStore } from './stores/theme'
 import ThemeToggle from './components/ThemeToggle.vue'
@@ -91,6 +92,7 @@ onMounted(() => {
   themeStore.init()
   captureUtmParams()
   captureReferrer()
+  detectCountry()
 
   // Auto-haptic for all btn-3d elements
   const { haptic: triggerHaptic } = useHaptic()

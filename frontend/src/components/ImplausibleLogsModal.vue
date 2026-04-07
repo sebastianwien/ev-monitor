@@ -4,8 +4,10 @@ import { useI18n } from 'vue-i18n'
 import { XMarkIcon, ExclamationTriangleIcon, CheckCircleIcon, InformationCircleIcon, PencilSquareIcon, TrashIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
 import api from '@/api/axios'
 import EditLogModal from './EditLogModal.vue'
+import { useLocaleFormat } from '../composables/useLocaleFormat'
 
 const { t } = useI18n()
+const { formatConsumption, formatDistance } = useLocaleFormat()
 const props = defineProps<{ carId: string | null; open: boolean }>()
 const emit = defineEmits<{ close: []; updated: [] }>()
 
@@ -154,15 +156,15 @@ function formatDate(iso: string) {
                   <div class="flex items-center gap-3 mt-1 flex-wrap">
                     <span v-if="log.consumptionKwhPer100km != null"
                       class="text-xs font-semibold text-red-600 dark:text-red-400">
-                      {{ log.consumptionKwhPer100km.toFixed(1) }} kWh/100km
+                      {{ formatConsumption(log.consumptionKwhPer100km) }}
                     </span>
                     <span v-if="log.distanceSinceLastChargeKm != null"
                       class="text-xs text-gray-500 dark:text-gray-400">
-                      {{ log.distanceSinceLastChargeKm }} km
+                      {{ formatDistance(log.distanceSinceLastChargeKm) }}
                     </span>
                     <span v-if="log.odometerKm != null"
                       class="text-xs text-gray-400 dark:text-gray-500">
-                      Odo: {{ log.odometerKm.toLocaleString('de-DE') }} km
+                      Odo: {{ formatDistance(log.odometerKm) }}
                     </span>
                   </div>
                 </div>
@@ -211,11 +213,11 @@ function formatDate(iso: string) {
                     <div class="flex items-center gap-3 mt-1 flex-wrap">
                       <span v-if="log.consumptionKwhPer100km != null"
                         class="text-xs font-semibold text-red-400 dark:text-red-500">
-                        {{ log.consumptionKwhPer100km.toFixed(1) }} kWh/100km
+                        {{ formatConsumption(log.consumptionKwhPer100km) }}
                       </span>
                       <span v-if="log.distanceSinceLastChargeKm != null"
                         class="text-xs text-gray-400 dark:text-gray-500">
-                        {{ log.distanceSinceLastChargeKm }} km
+                        {{ formatDistance(log.distanceSinceLastChargeKm) }}
                       </span>
                     </div>
                   </div>

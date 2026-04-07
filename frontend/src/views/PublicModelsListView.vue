@@ -198,18 +198,18 @@
             <div class="grid grid-cols-[auto_1fr] items-baseline gap-x-3 gap-y-0.5 mb-3 text-sm">
               <template v-if="model.minWltpConsumptionKwhPer100km">
                 <span class="text-xs text-gray-400">{{ t('models_list.card.wltp_label') }}</span>
-                <span class="text-gray-500 dark:text-gray-400 font-medium">{{ formatWltpRange(model.minWltpConsumptionKwhPer100km, model.maxWltpConsumptionKwhPer100km) }} kWh/100km</span>
+                <span class="text-gray-500 dark:text-gray-400 font-medium">{{ formatWltpRange(model.minWltpConsumptionKwhPer100km, model.maxWltpConsumptionKwhPer100km) }} {{ consumptionUnitLabel() }}</span>
               </template>
               <template v-if="model.avgConsumptionKwhPer100km || model.minRealConsumptionKwhPer100km">
                 <span class="text-xs text-gray-400">{{ t('models_list.card.real_label') }}</span>
-                <span class="text-gray-700 dark:text-gray-300 font-medium">{{ formatRealConsumption(model.avgConsumptionKwhPer100km, model.minRealConsumptionKwhPer100km, model.maxRealConsumptionKwhPer100km) }} kWh/100km</span>
+                <span class="text-gray-700 dark:text-gray-300 font-medium">{{ formatRealConsumption(model.avgConsumptionKwhPer100km, model.minRealConsumptionKwhPer100km, model.maxRealConsumptionKwhPer100km) }} {{ consumptionUnitLabel() }}</span>
               </template>
               <template v-if="model.avgCostPerKwh && model.avgConsumptionKwhPer100km">
                 <span class="text-xs text-gray-400">{{ t('models_list.card.costs_label') }}</span>
                 <span class="flex flex-wrap items-center gap-x-1.5">
-                  <span class="text-blue-500 font-medium">~{{ (model.avgCostPerKwh * model.avgConsumptionKwhPer100km).toFixed(1) }} €/100km</span>
+                  <span class="text-blue-500 font-medium">~{{ formatCostPerDistance(model.avgCostPerKwh * model.avgConsumptionKwhPer100km) }}</span>
                   <span class="relative group cursor-help inline-flex items-center gap-0.5 text-xs text-gray-400">
-                    <span>{{ t('models_list.card.avg_prefix') }} {{ model.avgCostPerKwh.toFixed(2) }} €/kWh</span>
+                    <span>{{ t('models_list.card.avg_prefix') }} {{ formatCostPerKwh(model.avgCostPerKwh) }}</span>
                     <InformationCircleIcon class="h-3 w-3 flex-shrink-0" />
                     <span class="absolute bottom-full left-0 mb-1.5 px-2.5 py-2 bg-gray-900 ring-1 ring-white/10 text-white text-xs rounded-lg w-60 hidden group-hover:block z-50 pointer-events-none leading-snug shadow-xl">
                       {{ t('models_list.card.cost_tooltip') }}
@@ -387,8 +387,10 @@ import PublicNav from '../components/PublicNav.vue'
 import AffiliateBanner from '../components/AffiliateBanner.vue'
 import ThgBanner from '../components/ThgBanner.vue'
 import DemoModelsModal from '../components/DemoModelsModal.vue'
+import { useLocaleFormat } from '../composables/useLocaleFormat'
 
 const { t } = useI18n()
+const { consumptionUnitLabel, formatCostPerDistance, formatCostPerKwh, formatDecimal, convertConsumption } = useLocaleFormat()
 const router = useRouter()
 const route = useRoute()
 const isEn = computed(() => route.path.startsWith('/en'))
@@ -439,13 +441,13 @@ function compareLabel(key: string): string {
 }
 
 function formatWltpRange(min: number, max: number | null): string {
-  if (!max || Math.abs(max - min) < 0.05) return min.toFixed(1)
-  return `${min.toFixed(1)} - ${max.toFixed(1)}`
+  if (!max || Math.abs(max - min) < 0.05) return formatDecimal(convertConsumption(min))
+  return `${formatDecimal(convertConsumption(min))} - ${formatDecimal(convertConsumption(max))}`
 }
 
 function formatRealConsumption(avg: number | null, min: number | null, max: number | null): string {
   if (min !== null && max !== null) return formatWltpRange(min, max)
-  if (avg !== null) return avg.toFixed(1)
+  if (avg !== null) return formatDecimal(convertConsumption(avg))
   return '—'
 }
 

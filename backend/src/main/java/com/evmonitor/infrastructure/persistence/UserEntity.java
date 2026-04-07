@@ -67,6 +67,9 @@ public class UserEntity {
     @Column(name = "registration_locale", length = 10)
     private String registrationLocale;
 
+    @Column(name = "country", length = 2)
+    private String country;
+
     @Column(name = "leaderboard_visible", nullable = false)
     private boolean leaderboardVisible = true;
 
@@ -275,6 +278,14 @@ public class UserEntity {
 
     public void setRegistrationLocale(String registrationLocale) {
         this.registrationLocale = registrationLocale;
+    }
+
+    public String getCountry() {
+        return country;
+    }
+
+    public void setCountry(String country) {
+        this.country = country;
     }
 
 }

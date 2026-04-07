@@ -4,8 +4,11 @@ import { useI18n } from 'vue-i18n'
 import { carService, type Car } from '../api/carService'
 import { taxExportService, type TaxExportPreview } from '../api/taxExportService'
 import { DocumentArrowDownIcon, InformationCircleIcon } from '@heroicons/vue/24/outline'
+import { useCountryStore } from '../stores/country'
 
 const { t } = useI18n()
+const countryStore = useCountryStore()
+const isGerman = computed(() => countryStore.country === 'DE' || countryStore.country === 'AT')
 
 const cars = ref<Car[]>([])
 const loading = ref(true)
@@ -117,6 +120,9 @@ const downloadFile = async (type: 'csv' | 'pdf') => {
       <div class="mb-6">
         <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ t('tax_export.title') }}</h1>
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ t('tax_export.subtitle') }}</p>
+        <div v-if="!isGerman" class="mt-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg px-4 py-3">
+          <p class="text-sm text-amber-700 dark:text-amber-300">{{ t('tax_export.german_only_note') }}</p>
+        </div>
       </div>
 
       <!-- Kein Dienstwagen -->
