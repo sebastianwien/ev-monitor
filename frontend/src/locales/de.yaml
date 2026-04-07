@@ -747,7 +747,7 @@ consumption_info:
   p1: "Der Verbrauch wird aus <strong>geladenen kWh</strong>, <strong>Ladezustand (SoC)</strong> und <strong>Kilometerstand</strong> zweier aufeinanderfolgender Ladevorgänge berechnet - alle drei Angaben müssen bei beiden Einträgen vorhanden sein. Fehlt eine davon, kann der Verbrauch für den nächsten Eintrag nicht berechnet werden."
   p2_pre: "Ab <strong>{minTrips} auswertbaren Fahrten</strong> vergleichen wir jeden Wert mit deinem persönlichen Durchschnitt. Davor wird der WLTP-Richtwert deines Fahrzeugs als Referenz genutzt. Ladevorgänge mit stark abweichendem Verbrauch werden mit"
   p2_post: "markiert - meist ein Zeichen, dass zwischen zwei Einträgen ein Ladevorgang fehlt."
-  p3: "<strong>Ladeverluste herausgerechnet:</strong> Wallbox-Werte (was du bezahlt hast) enthalten Ladeverluste, die nichts mit dem Fahrverbrauch zu tun haben. Wir rechnen diese automatisch heraus - AC-Laden 10%, DC-Schnellladen 5% - damit deine Werte mit WLTP und anderen Datenquellen vergleichbar sind."
+  p3: "<strong>Ladeverluste - je nach Kontext:</strong> Wallboxen und Ladesäulen messen was an der Steckdose fließt - inklusive Ladeverlusten (Wärme die beim Laden entsteht, ca. 5-10%). Für den <strong>Verbrauch (kWh/100km)</strong> werden diese Verluste herausgerechnet (AC: 10%, DC: 5%), damit der Wert dem echten Fahrverbrauch entspricht und mit WLTP vergleichbar ist. Für die <strong>Kosten (€/kWh)</strong> bleiben sie drin - du hast sie schließlich bezahlt."
 
 editlog:
   title: "Ladevorgang bearbeiten"

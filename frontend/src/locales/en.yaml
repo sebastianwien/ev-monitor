@@ -747,7 +747,7 @@ consumption_info:
   p1: "Consumption is calculated from <strong>charged kWh</strong>, <strong>state of charge (SoC)</strong> and <strong>odometer</strong> of two consecutive charging sessions - all three values must be present in both entries. If one is missing, consumption for the next entry cannot be calculated."
   p2_pre: "After <strong>{minTrips} evaluable trips</strong>, we compare each value against your personal average. Before that, your vehicle's WLTP reference value is used. Sessions with strongly deviating consumption are"
   p2_post: "flagged - usually a sign that a charging session is missing between two entries."
-  p3: "<strong>Charging losses removed:</strong> Wallbox values (what you paid for) include charging losses that are unrelated to driving efficiency. We automatically remove these - AC charging 10%, DC fast charging 5% - so your figures are comparable with WLTP and other data sources."
+  p3: "<strong>Charging losses - context-dependent:</strong> Wallboxes and charging stations measure what flows at the socket - including charging losses (heat generated during charging, approx. 5-10%). For <strong>consumption (kWh/100km)</strong>, these losses are removed (AC: 10%, DC: 5%) so the value reflects your actual driving efficiency and is comparable to WLTP. For <strong>costs (€/kWh)</strong>, they stay in - you paid for them after all."
 
 editlog:
   title: "Edit charging session"
