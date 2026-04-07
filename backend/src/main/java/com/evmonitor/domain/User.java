@@ -14,6 +14,7 @@ public class User {
     private final boolean seedData;
     private final boolean emailNotificationsEnabled;
     private final boolean premium;
+    private final boolean referralRewardGiven;
     private final String referralCode;
     private final UUID referredByUserId;
     private final String stripeCustomerId;
@@ -27,7 +28,7 @@ public class User {
 
     public User(UUID id, String email, String username, String passwordHash, AuthProvider authProvider, String role,
             boolean emailVerified, boolean seedData, boolean emailNotificationsEnabled, boolean premium,
-            String referralCode, UUID referredByUserId, String stripeCustomerId,
+            boolean referralRewardGiven, String referralCode, UUID referredByUserId, String stripeCustomerId,
             String utmSource, String utmMedium, String utmCampaign, String referrerSource,
             String registrationLocale, LocalDateTime createdAt, LocalDateTime updatedAt) {
         if (id == null)
@@ -49,6 +50,7 @@ public class User {
         this.seedData = seedData;
         this.emailNotificationsEnabled = emailNotificationsEnabled;
         this.premium = premium;
+        this.referralRewardGiven = referralRewardGiven;
         this.referralCode = referralCode;
         this.referredByUserId = referredByUserId;
         this.stripeCustomerId = stripeCustomerId;
@@ -67,37 +69,37 @@ public class User {
 
     public static User createNewLocalUser(String email, String username, String passwordHash) {
         LocalDateTime now = LocalDateTime.now();
-        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", false, false, true, false, generateReferralCode(), null, null, null, null, null, null, null, now, now);
+        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", false, false, true, false, false, generateReferralCode(), null, null, null, null, null, null, null, now, now);
     }
 
     public static User createNewLocalUserWithReferrer(String email, String username, String passwordHash, UUID referredByUserId) {
         LocalDateTime now = LocalDateTime.now();
-        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", false, false, true, false, generateReferralCode(), referredByUserId, null, null, null, null, null, null, now, now);
+        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", false, false, true, false, false, generateReferralCode(), referredByUserId, null, null, null, null, null, null, now, now);
     }
 
     public static User createNewLocalUserWithCampaign(String email, String username, String passwordHash, UUID referredByUserId, String utmSource, String utmMedium, String utmCampaign, String referrerSource) {
         LocalDateTime now = LocalDateTime.now();
-        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", false, false, true, false, generateReferralCode(), referredByUserId, null, utmSource, utmMedium, utmCampaign, referrerSource, null, now, now);
+        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", false, false, true, false, false, generateReferralCode(), referredByUserId, null, utmSource, utmMedium, utmCampaign, referrerSource, null, now, now);
     }
 
     public static User createNewLocalUserWithLocale(String email, String username, String passwordHash, UUID referredByUserId, String utmSource, String utmMedium, String utmCampaign, String referrerSource, String registrationLocale) {
         LocalDateTime now = LocalDateTime.now();
-        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", false, false, true, false, generateReferralCode(), referredByUserId, null, utmSource, utmMedium, utmCampaign, referrerSource, registrationLocale, now, now);
+        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", false, false, true, false, false, generateReferralCode(), referredByUserId, null, utmSource, utmMedium, utmCampaign, referrerSource, registrationLocale, now, now);
     }
 
     public static User createVerifiedLocalUser(String email, String username, String passwordHash) {
         LocalDateTime now = LocalDateTime.now();
-        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", true, false, true, false, generateReferralCode(), null, null, null, null, null, null, null, now, now);
+        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", true, false, true, false, false, generateReferralCode(), null, null, null, null, null, null, null, now, now);
     }
 
     public static User createSeedUser(String email, String username, String passwordHash) {
         LocalDateTime now = LocalDateTime.now();
-        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", true, true, false, false, generateReferralCode(), null, null, null, null, null, null, null, now, now);
+        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", true, true, false, false, false, generateReferralCode(), null, null, null, null, null, null, null, now, now);
     }
 
     public static User createNewSsoUser(String email, String username, AuthProvider authProvider) {
         LocalDateTime now = LocalDateTime.now();
-        return new User(UUID.randomUUID(), email, username, null, authProvider, "USER", true, false, true, false, generateReferralCode(), null, null, null, null, null, null, null, now, now);
+        return new User(UUID.randomUUID(), email, username, null, authProvider, "USER", true, false, true, false, false, generateReferralCode(), null, null, null, null, null, null, null, now, now);
     }
 
     public UUID getId() { return id; }
@@ -112,6 +114,7 @@ public class User {
     public boolean isSeedData() { return seedData; }
     public boolean isEmailNotificationsEnabled() { return emailNotificationsEnabled; }
     public boolean isPremium() { return premium; }
+    public boolean isReferralRewardGiven() { return referralRewardGiven; }
     public String getReferralCode() { return referralCode; }
     public UUID getReferredByUserId() { return referredByUserId; }
     public String getStripeCustomerId() { return stripeCustomerId; }

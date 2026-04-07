@@ -41,6 +41,7 @@ public class TestDataBuilder {
                 false, // seedData
                 true, // emailNotificationsEnabled
                 false, // premium
+                false, // referralRewardGiven
                 UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase(),
                 null, // referredByUserId
                 null, // stripeCustomerId

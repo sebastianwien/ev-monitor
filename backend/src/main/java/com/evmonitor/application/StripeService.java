@@ -13,8 +13,11 @@ import com.stripe.model.StripeObject;
 import com.stripe.model.Subscription;
 import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
+import com.stripe.param.CustomerBalanceTransactionCollectionCreateParams;
 import com.stripe.param.CustomerCreateParams;
 import com.stripe.param.checkout.SessionCreateParams;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -23,6 +26,8 @@ import java.util.Optional;
 
 @Service
 public class StripeService {
+
+    private static final Logger log = LoggerFactory.getLogger(StripeService.class);
 
     @Value("${stripe.secret-key:}")
     private String secretKey;
@@ -35,6 +40,12 @@ public class StripeService {
 
     @Value("${stripe.price-id-yearly:}")
     private String priceIdYearly;
+
+    @Value("${stripe.referral-coupon-id:}")
+    private String referralCouponId;
+
+    @Value("${stripe.referral-reward-cents:399}")
+    private long referralRewardCents;
 
     private final UserRepository userRepository;
 
@@ -64,7 +75,7 @@ public class StripeService {
 
         String priceId = "yearly".equals(plan) ? priceIdYearly : priceIdMonthly;
 
-        SessionCreateParams params = SessionCreateParams.builder()
+        SessionCreateParams.Builder builder = SessionCreateParams.builder()
                 .setMode(SessionCreateParams.Mode.SUBSCRIPTION)
                 .setCustomer(customerId)
                 .addLineItem(SessionCreateParams.LineItem.builder()
@@ -72,10 +83,18 @@ public class StripeService {
                         .setQuantity(1L)
                         .build())
                 .setSuccessUrl(successUrl)
-                .setCancelUrl(cancelUrl)
-                .build();
+                .setCancelUrl(cancelUrl);
 
-        Session session = Session.create(params);
+        // Referral discount: only for monthly plan.
+        // A "100% off, once" coupon on a yearly subscription would waive the full
+        // annual price (~€45) instead of one month (~€3.99) — never apply to yearly.
+        if ("monthly".equals(plan) && user.getReferredByUserId() != null && !referralCouponId.isBlank()) {
+            builder.addDiscount(SessionCreateParams.Discount.builder()
+                    .setCoupon(referralCouponId)
+                    .build());
+        }
+
+        Session session = Session.create(builder.build());
         return session.getUrl();
     }
 
@@ -112,6 +131,46 @@ public class StripeService {
                 if (obj instanceof Invoice invoice) {
                     findUserByCustomerId(invoice.getCustomer())
                             .ifPresent(u -> userRepository.setPremium(u.getId(), false));
+                }
+            }
+            case "invoice.payment_succeeded" -> {
+                // Only trigger on invoices with actual payment (not the free referral month, amount=0).
+                if (obj instanceof Invoice invoice && invoice.getAmountPaid() > 0) {
+                    findUserByCustomerId(invoice.getCustomer()).ifPresent(u -> {
+                        if (u.getReferredByUserId() == null) return;
+
+                        // Atomic DB claim BEFORE any Stripe call.
+                        // Uses UPDATE WHERE referral_reward_given = false — only one concurrent
+                        // webhook delivery can win this race. The loser gets false and exits.
+                        // If the subsequent Stripe call fails, the reward is permanently lost for
+                        // this user (no retry possible). This is intentional: under-rewarding is
+                        // always preferable to double-crediting real money.
+                        boolean claimed = userRepository.claimReferralReward(u.getId());
+                        if (!claimed) {
+                            log.debug("Referral reward already claimed for user {}, skipping", u.getId());
+                            return;
+                        }
+
+                        userRepository.findById(u.getReferredByUserId()).ifPresent(referrer -> {
+                            try {
+                                String referrerCustomerId = ensureCustomer(referrer);
+                                Customer referrerCustomer = Customer.retrieve(referrerCustomerId);
+                                CustomerBalanceTransactionCollectionCreateParams params = CustomerBalanceTransactionCollectionCreateParams.builder()
+                                        .setAmount(-referralRewardCents)
+                                        .setCurrency("eur")
+                                        .setDescription("Referral reward: friend subscribed")
+                                        .build();
+                                referrerCustomer.balanceTransactions().create(params);
+                                log.info("Referral reward credited: referrer={} for referred user={}",
+                                        referrer.getId(), u.getId());
+                            } catch (StripeException e) {
+                                // DB flag is already set to true — this reward is permanently lost.
+                                // Manual recovery required: check logs and credit referrer manually.
+                                log.error("REFERRAL_REWARD_FAILED: Stripe credit failed for referrer={} (referred={}). " +
+                                        "DB flag already set. Manual credit required.", referrer.getId(), u.getId(), e);
+                            }
+                        });
+                    });
                 }
             }
             default -> {

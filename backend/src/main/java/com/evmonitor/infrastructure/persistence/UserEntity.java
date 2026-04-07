@@ -40,6 +40,9 @@ public class UserEntity {
     @Column(name = "is_premium", nullable = false)
     private boolean premium;
 
+    @Column(name = "referral_reward_given", nullable = false)
+    private boolean referralRewardGiven;
+
     @Column(name = "referral_code", nullable = false, unique = true)
     private String referralCode;
 
@@ -192,6 +195,14 @@ public class UserEntity {
 
     public void setPremium(boolean premium) {
         this.premium = premium;
+    }
+
+    public boolean isReferralRewardGiven() {
+        return referralRewardGiven;
+    }
+
+    public void setReferralRewardGiven(boolean referralRewardGiven) {
+        this.referralRewardGiven = referralRewardGiven;
     }
 
     public String getReferralCode() {

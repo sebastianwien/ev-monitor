@@ -163,6 +163,12 @@ public class PostgresUserRepositoryImpl implements UserRepository {
         return entity;
     }
 
+    @Override
+    @Transactional
+    public boolean claimReferralReward(UUID userId) {
+        return jpaUserRepository.claimReferralReward(userId) > 0;
+    }
+
     private User toDomain(UserEntity entity) {
         return new User(
                 entity.getId(),
@@ -175,6 +181,7 @@ public class PostgresUserRepositoryImpl implements UserRepository {
                 entity.isSeedData(),
                 entity.isEmailNotificationsEnabled(),
                 entity.isPremium(),
+                entity.isReferralRewardGiven(),
                 entity.getReferralCode(),
                 entity.getReferredByUserId(),
                 entity.getStripeCustomerId(),

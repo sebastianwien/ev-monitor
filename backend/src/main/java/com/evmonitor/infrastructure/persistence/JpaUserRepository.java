@@ -63,6 +63,16 @@ public interface JpaUserRepository extends JpaRepository<UserEntity, UUID> {
     @Query("UPDATE UserEntity u SET u.stripeCustomerId = :customerId WHERE u.id = :userId")
     void setStripeCustomerId(@Param("userId") UUID userId, @Param("customerId") String customerId);
 
+    /**
+     * Atomically claims the referral reward for a user.
+     * Only updates if referral_reward_given is currently false.
+     * Returns 1 if the claim succeeded (this thread "won"), 0 if already claimed.
+     * This prevents double-crediting under concurrent webhook delivery.
+     */
+    @Modifying
+    @Query("UPDATE UserEntity u SET u.referralRewardGiven = true WHERE u.id = :userId AND u.referralRewardGiven = false")
+    int claimReferralReward(@Param("userId") UUID userId);
+
     @Modifying
     @Query("UPDATE UserEntity u SET u.passwordHash = :passwordHash WHERE u.id = :userId")
     void updatePassword(@Param("userId") UUID userId, @Param("passwordHash") String passwordHash);

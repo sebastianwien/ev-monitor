@@ -38,6 +38,12 @@ public interface UserRepository {
 
     void setStripeCustomerId(UUID userId, String stripeCustomerId);
 
+    /**
+     * Atomically claims the referral reward. Returns true if this call won the race
+     * (i.e. the reward was not yet given), false if already claimed.
+     */
+    boolean claimReferralReward(UUID userId);
+
     void updatePassword(UUID userId, String passwordHash);
 
     void updateEmail(UUID userId, String email);

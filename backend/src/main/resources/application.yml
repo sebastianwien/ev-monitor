@@ -148,3 +148,5 @@ stripe:
   webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
   price-id-monthly: ${STRIPE_PRICE_ID_MONTHLY:}
   price-id-yearly: ${STRIPE_PRICE_ID_YEARLY:}
+  referral-coupon-id: ${STRIPE_REFERRAL_COUPON_ID:}
+  referral-reward-cents: ${STRIPE_REFERRAL_REWARD_CENTS:399}

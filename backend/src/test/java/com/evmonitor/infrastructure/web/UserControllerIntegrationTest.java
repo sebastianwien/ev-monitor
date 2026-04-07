@@ -90,6 +90,7 @@ class UserControllerIntegrationTest {
                 testUserEntity.isSeedData(),
                 testUserEntity.isEmailNotificationsEnabled(),
                 testUserEntity.isPremium(),
+                testUserEntity.isReferralRewardGiven(),
                 testUserEntity.getReferralCode(),
                 testUserEntity.getReferredByUserId(),
                 testUserEntity.getStripeCustomerId(),
@@ -216,7 +217,7 @@ class UserControllerIntegrationTest {
         User oauthUser = new User(
                 oauthUserEntity.getId(), oauthUserEntity.getEmail(), oauthUserEntity.getUsername(),
                 null, oauthUserEntity.getAuthProvider(), oauthUserEntity.getRole(),
-                true, false, true, false, oauthUserEntity.getReferralCode(), null, null, null, null, null, null, null,
+                true, false, true, false, false, oauthUserEntity.getReferralCode(), null, null, null, null, null, null, null,
                 now, now
         );
 
