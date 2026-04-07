@@ -164,7 +164,7 @@
                   class="relative flex-1 text-center px-4 text-sm font-medium py-1.5 rounded-full transition-colors duration-300 z-10 whitespace-nowrap"
                   :class="i === selectedVariantIndex ? 'text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'"
                 >
-                  {{ v.batteryCapacityKwh }} kWh
+                  {{ v.variantName ? `${v.variantName} · ${v.batteryCapacityKwh} kWh` : `${v.batteryCapacityKwh} kWh` }}
                 </button>
               </div>
               <span v-if="selectedVariant?.seasonalDistribution && (selectedVariant.seasonalDistribution.summerLogCount < 30 || selectedVariant.seasonalDistribution.winterLogCount < 30)"

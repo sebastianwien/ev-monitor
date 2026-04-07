@@ -8,6 +8,7 @@ export interface VehicleSpecification {
     wltpRangeKm: number;
     wltpConsumptionKwhPer100km: number;
     wltpType: string;
+    variantName: string | null;
     createdAt: string;
     updatedAt: string;
 }

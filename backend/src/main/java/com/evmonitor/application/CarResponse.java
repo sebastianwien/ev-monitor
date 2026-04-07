@@ -7,7 +7,6 @@ import com.evmonitor.domain.CarStatus;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
 
 public record CarResponse(
@@ -20,7 +19,6 @@ public record CarResponse(
         String trim,
         BigDecimal batteryCapacityKwh,
         BigDecimal powerKw,
-        List<Double> availableCapacities,
         LocalDate registrationDate,
         LocalDate deregistrationDate,
         CarStatus status,
@@ -46,7 +44,6 @@ public record CarResponse(
                 car.getTrim(),
                 car.getBatteryCapacityKwh(),
                 car.getPowerKw(),
-                car.getModel().getCapacities(),
                 car.getRegistrationDate(),
                 car.getDeregistrationDate(),
                 car.getStatus(),

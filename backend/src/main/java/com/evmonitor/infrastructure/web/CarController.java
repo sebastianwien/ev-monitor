@@ -6,6 +6,7 @@ import com.evmonitor.application.CarImageService;
 import com.evmonitor.application.CarRequest;
 import com.evmonitor.application.CarResponse;
 import com.evmonitor.application.CarService;
+import com.evmonitor.domain.CapacityEntry;
 import com.evmonitor.domain.CarBrand;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import jakarta.validation.Valid;
@@ -157,7 +158,7 @@ public class CarController {
                 .map(model -> new ModelInfo(
                         model.name(),
                         model.getDisplayName(),
-                        model.getCapacities()
+                        model.getCapacityEntries()
                 ))
                 .collect(Collectors.toList());
         return ResponseEntity.ok(models);
@@ -165,5 +166,5 @@ public class CarController {
 
     public record BrandInfo(String value, String label) {}
 
-    public record ModelInfo(String value, String label, List<Double> capacities) {}
+    public record ModelInfo(String value, String label, List<CapacityEntry> capacities) {}
 }

@@ -166,6 +166,7 @@ public class PublicModelService {
         List<VehicleSpecificationEntity> wltpEntities =
                 vehicleSpecificationRepository.findByCarModelOrderByBatteryCapacityKwhAsc(modelEnumName);
 
+        final CarBrand.CarModel resolvedCarModel = carModel;
         List<PublicModelStatsResponse.WltpVariant> wltpVariants = wltpEntities.stream()
                 .map(e -> {
                     List<Car> carsForVariant = carsForModel.stream()
@@ -192,9 +193,10 @@ public class PublicModelService {
                                     vs.summerLogCount(), vs.winterLogCount());
                         }
                     }
+                    String variantName = resolvedCarModel.variantNameFor(e.getBatteryCapacityKwh()).orElse(null);
                     return new PublicModelStatsResponse.WltpVariant(
                             e.getBatteryCapacityKwh(),
-                            e.getVariantName(),
+                            variantName,
                             e.getWltpRangeKm(),
                             e.getWltpConsumptionKwhPer100km(),
                             variantConsumption,
@@ -324,9 +326,10 @@ public class PublicModelService {
                                         : evLogService.calculateCommunityAvgConsumption(carsForVariant, isSeedUser);
                                 BigDecimal variantReal = variantResult.value() != null
                                         ? variantResult.value().setScale(1, java.math.RoundingMode.HALF_UP) : null;
+                                String variantName = model.variantNameFor(e.getBatteryCapacityKwh()).orElse(null);
                                 return new PublicBrandResponse.WltpVariantSummary(
                                         e.getBatteryCapacityKwh(),
-                                        e.getVariantName(),
+                                        variantName,
                                         e.getWltpRangeKm(),
                                         e.getWltpConsumptionKwhPer100km(),
                                         variantReal

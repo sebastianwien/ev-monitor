@@ -230,7 +230,7 @@ const openEditForm = async (car: Car) => {
   selectedModel.value = car.model
 
   const foundModel = availableModels.value.find(m => m.value === car.model)
-  if (foundModel && foundModel.capacities.includes(car.batteryCapacityKwh)) {
+  if (foundModel && foundModel.capacities.some(c => c.kWh === car.batteryCapacityKwh)) {
     selectedCapacity.value = car.batteryCapacityKwh
     useCustomCapacity.value = false
   } else {
@@ -626,16 +626,16 @@ onUnmounted(() => {
                 <div class="flex gap-2 flex-wrap">
                   <button
                     v-for="capacity in selectedModelCapacities"
-                    :key="capacity"
+                    :key="capacity.kWh"
                     type="button"
-                    @click="selectedCapacity = capacity"
+                    @click="selectedCapacity = capacity.kWh"
                     :class="[
                       'px-4 py-2 rounded-md text-sm font-medium transition',
-                      selectedCapacity === capacity
+                      selectedCapacity === capacity.kWh
                         ? 'bg-indigo-600 text-white shadow-md'
                         : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
                     ]">
-                    {{ capacity }} kWh
+                    {{ capacity.variantName ? `${capacity.variantName} · ${capacity.kWh} kWh` : `${capacity.kWh} kWh` }}
                   </button>
                 </div>
                 <button
@@ -1078,11 +1078,11 @@ onUnmounted(() => {
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ t('cars.label_capacity') }}</label>
               <div v-if="!useCustomCapacity" class="space-y-2">
                 <div class="flex gap-2 flex-wrap">
-                  <button v-for="capacity in selectedModelCapacities" :key="capacity" type="button"
-                    @click="selectedCapacity = capacity"
+                  <button v-for="capacity in selectedModelCapacities" :key="capacity.kWh" type="button"
+                    @click="selectedCapacity = capacity.kWh"
                     :class="['px-4 py-2 rounded-md text-sm font-medium transition',
-                      selectedCapacity === capacity ? 'bg-indigo-600 text-white shadow-md' : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200']">
-                    {{ capacity }} kWh
+                      selectedCapacity === capacity.kWh ? 'bg-indigo-600 text-white shadow-md' : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200']">
+                    {{ capacity.variantName ? `${capacity.variantName} · ${capacity.kWh} kWh` : `${capacity.kWh} kWh` }}
                   </button>
                 </div>
                 <button type="button" @click="useCustomCapacity = true; selectedCapacity = null"

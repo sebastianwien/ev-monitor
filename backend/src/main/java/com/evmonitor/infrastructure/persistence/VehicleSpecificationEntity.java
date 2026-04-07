@@ -36,9 +36,6 @@ public class VehicleSpecificationEntity {
     @Column(name = "wltp_type", nullable = false)
     private String wltpType;
 
-    @Column(name = "variant_name")
-    private String variantName;
-
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -104,14 +101,6 @@ public class VehicleSpecificationEntity {
 
     public void setWltpType(String wltpType) {
         this.wltpType = wltpType;
-    }
-
-    public String getVariantName() {
-        return variantName;
-    }
-
-    public void setVariantName(String variantName) {
-        this.variantName = variantName;
     }
 
     public LocalDateTime getCreatedAt() {

@@ -60,7 +60,6 @@ public class PostgresVehicleSpecificationRepositoryImpl implements VehicleSpecif
         entity.setWltpRangeKm(domain.getWltpRangeKm());
         entity.setWltpConsumptionKwhPer100km(domain.getWltpConsumptionKwhPer100km());
         entity.setWltpType(domain.getWltpType().name());
-        entity.setVariantName(domain.getVariantName());
         entity.setCreatedAt(domain.getCreatedAt());
         entity.setUpdatedAt(domain.getUpdatedAt());
         return entity;
@@ -75,7 +74,6 @@ public class PostgresVehicleSpecificationRepositoryImpl implements VehicleSpecif
                 entity.getWltpRangeKm(),
                 entity.getWltpConsumptionKwhPer100km(),
                 VehicleSpecification.WltpType.valueOf(entity.getWltpType()),
-                entity.getVariantName(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt()
         );

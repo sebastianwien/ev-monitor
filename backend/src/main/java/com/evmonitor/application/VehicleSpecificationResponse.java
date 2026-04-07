@@ -1,5 +1,6 @@
 package com.evmonitor.application;
 
+import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.VehicleSpecification;
 
 import java.math.BigDecimal;
@@ -14,10 +15,19 @@ public record VehicleSpecificationResponse(
         BigDecimal wltpRangeKm,
         BigDecimal wltpConsumptionKwhPer100km,
         String wltpType,
+        String variantName,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
     public static VehicleSpecificationResponse fromDomain(VehicleSpecification spec) {
+        String variantName = null;
+        try {
+            variantName = CarBrand.CarModel.valueOf(spec.getCarModel())
+                    .variantNameFor(spec.getBatteryCapacityKwh())
+                    .orElse(null);
+        } catch (IllegalArgumentException ignored) {
+            // User-contributed entry with custom model key — no catalog match
+        }
         return new VehicleSpecificationResponse(
                 spec.getId(),
                 spec.getCarBrand(),
@@ -26,6 +36,7 @@ public record VehicleSpecificationResponse(
                 spec.getWltpRangeKm(),
                 spec.getWltpConsumptionKwhPer100km(),
                 spec.getWltpType().name(),
+                variantName,
                 spec.getCreatedAt(),
                 spec.getUpdatedAt()
         );

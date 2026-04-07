@@ -10,7 +10,6 @@ export interface Car {
     trim: string | null; // Trim level (e.g., "GTX", "Pro Performance")
     batteryCapacityKwh: number; // Selected capacity
     powerKw: number | null; // Power in kW (optional)
-    availableCapacities: number[]; // Available capacities from enum
     registrationDate: string; // ISO date (YYYY-MM-DD)
     deregistrationDate: string | null; // ISO date or null if still active
     status: 'ACTIVE' | 'INACTIVE';
@@ -41,10 +40,15 @@ export interface BrandInfo {
     label: string; // Display name
 }
 
+export interface CapacityOption {
+    kWh: number;
+    variantName: string | null;
+}
+
 export interface ModelInfo {
     value: string; // CarModel enum name (e.g., "MODEL_3")
     label: string; // Display name (e.g., "Model 3")
-    capacities: number[]; // Available battery capacities
+    capacities: CapacityOption[]; // Available battery capacities with optional variant names
 }
 
 export interface CarCreateResponse {
