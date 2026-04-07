@@ -74,4 +74,8 @@ public interface EvLogRepository {
     List<EvLog> findAllByCarIdExcludingSubSessions(UUID carId);
 
     Optional<BigDecimal> findMostRecentCostPerKwhByUserIdAndGeohash(UUID userId, String geohash);
+
+    void updateCarIdBySessionGroupId(UUID groupId, UUID targetCarId);
+
+    void updateCarIdForLog(UUID logId, UUID targetCarId);
 }

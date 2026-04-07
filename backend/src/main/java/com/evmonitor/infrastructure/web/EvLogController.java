@@ -204,6 +204,49 @@ public class EvLogController {
         }
     }
 
+    /**
+     * Weist eine Session-Gruppe einem anderen Fahrzeug desselben Users zu.
+     * Alle Sub-Sessions der Gruppe werden ebenfalls umgeschrieben.
+     */
+    @PatchMapping("/groups/{groupId}/car")
+    public ResponseEntity<Void> reassignGroupCar(
+            @PathVariable UUID groupId,
+            @RequestBody Map<String, UUID> body,
+            Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        UUID targetCarId = body.get("targetCarId");
+        if (targetCarId == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        try {
+            sessionGroupService.reassignCar(groupId, targetCarId, principal.getUser().getId());
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    /**
+     * Weist einen einzelnen (ungruppierten) Log einem anderen Fahrzeug desselben Users zu.
+     */
+    @PatchMapping("/{logId}/car")
+    public ResponseEntity<Void> reassignLogCar(
+            @PathVariable UUID logId,
+            @RequestBody Map<String, UUID> body,
+            Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        UUID targetCarId = body.get("targetCarId");
+        if (targetCarId == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        try {
+            evLogService.reassignLog(logId, targetCarId, principal.getUser().getId());
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     @GetMapping("/statistics")
     public ResponseEntity<EvLogStatisticsResponse> getStatistics(
             @RequestParam UUID carId,

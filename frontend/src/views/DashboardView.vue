@@ -36,6 +36,7 @@ import {
   XMarkIcon,
   HomeIcon,
   CalendarIcon,
+  ArrowsRightLeftIcon,
 } from '@heroicons/vue/24/outline'
 import type { Component } from 'vue'
 import { useRouter } from 'vue-router'
@@ -667,6 +668,45 @@ const toggleGroupExpand = async (groupId: string) => {
 /// Schneller Exists-Check ohne den teuren Merge+Sort zu triggern
 const hasAnyLogs = computed(() => logs.value.length > 0 || sessionGroups.value.length > 0)
 
+// Fahrzeug-Zuordnung Modal
+const reassignModalEntry = ref<any | null>(null)
+const reassignSelectedCarId = ref<string | null>(null)
+const reassignSaving = ref(false)
+const reassignError = ref<string | null>(null)
+const reassignSuccessMessage = ref<string | null>(null)
+const otherCars = computed(() => cars.value.filter((c: any) => c.id !== selectedCarId.value))
+
+const openReassignModal = (entry: any) => {
+  reassignModalEntry.value = entry
+  reassignSelectedCarId.value = null
+  reassignError.value = null
+}
+
+const saveReassign = async () => {
+  if (!reassignModalEntry.value || !reassignSelectedCarId.value) return
+  const entry = reassignModalEntry.value
+  const targetCar = cars.value.find((c: any) => c.id === reassignSelectedCarId.value)
+  reassignSaving.value = true
+  try {
+    if (entry._isGroup) {
+      await api.patch(`/logs/groups/${entry.id}/car`, { targetCarId: reassignSelectedCarId.value })
+      sessionGroups.value = sessionGroups.value.filter((g: any) => g.id !== entry.id)
+    } else {
+      await api.patch(`/logs/${entry.id}/car`, { targetCarId: reassignSelectedCarId.value })
+      logs.value = logs.value.filter((l: any) => l.id !== entry.id)
+    }
+    const carLabel = targetCar ? `${enumToLabel(targetCar.brand)} ${enumToLabel(targetCar.model)}`.trim() : ''
+    reassignSuccessMessage.value = t('dashboard.reassign_success', { car: carLabel })
+    setTimeout(() => { reassignSuccessMessage.value = null }, 3000)
+    reassignModalEntry.value = null
+    fetchStatistics()
+  } catch {
+    reassignError.value = t('dashboard.err_load')
+  } finally {
+    reassignSaving.value = false
+  }
+}
+
 // Merged + sorted feed: normale Logs und Gruppen nach Datum zusammenführen
 const mergedLogFeed = computed(() => {
   const safeGroups = Array.isArray(sessionGroups.value) ? sessionGroups.value : []
@@ -797,6 +837,7 @@ watch(selectedCarId, () => {
   subSessionsCache.value = {}
   logsPage.value = 0
   hasMoreLogs.value = false
+  reassignModalEntry.value = null
 })
 
 const formatLogDate = (loggedAt: string) => {
@@ -1427,6 +1468,13 @@ const deleteLog = async (id: string) => {
 
           <div v-if="!logsLoading && logsPage > 0" class="text-sm text-gray-400 mb-2 text-right">{{ t('dashboard.logs_page', { n: logsPage + 1 }) }}</div>
 
+          <Transition enter-active-class="transition duration-200 ease-out" enter-from-class="opacity-0 -translate-y-1" enter-to-class="opacity-100 translate-y-0" leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100" leave-to-class="opacity-0">
+            <div v-if="reassignSuccessMessage" class="mb-2 px-3 py-2 rounded-lg bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
+              <ArrowsRightLeftIcon class="w-4 h-4 flex-shrink-0" />
+              {{ reassignSuccessMessage }}
+            </div>
+          </Transition>
+
           <div class="space-y-2">
             <div v-if="logsLoading && !hasAnyLogs" class="py-8 text-center text-gray-400 text-sm">{{ t('dashboard.loading') }}</div>
             <template v-else-if="!hasAnyLogs">
@@ -1450,12 +1498,19 @@ const deleteLog = async (id: string) => {
                       {{ new Date(entry.sessionEnd).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}
                     </span>
                   </div>
-                  <button @click.stop="toggleGroupExpand(entry.id)"
-                    class="p-1 rounded text-blue-400 dark:text-blue-500 flex-shrink-0 flex items-center gap-1">
-                    <span class="text-xs">{{ entry.sessionCount }}×</span>
-                    <ChevronDownIcon v-if="!expandedGroups.has(entry.id)" class="w-4 h-4" />
-                    <ChevronUpIcon v-else class="w-4 h-4" />
-                  </button>
+                  <div class="flex items-center gap-1 flex-shrink-0">
+                    <button v-if="otherCars.length > 0" @click.stop="openReassignModal(entry)"
+                      class="p-1 rounded text-gray-300 dark:text-gray-600 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition"
+                      :title="t('dashboard.reassign_car')">
+                      <ArrowsRightLeftIcon class="w-4 h-4" />
+                    </button>
+                    <button @click.stop="toggleGroupExpand(entry.id)"
+                      class="p-1 rounded text-blue-400 dark:text-blue-500 flex items-center gap-1">
+                      <span class="text-xs">{{ entry.sessionCount }}×</span>
+                      <ChevronDownIcon v-if="!expandedGroups.has(entry.id)" class="w-4 h-4" />
+                      <ChevronUpIcon v-else class="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
                 <!-- Group Badges -->
                 <div class="flex flex-wrap gap-1.5">
@@ -1588,6 +1643,11 @@ const deleteLog = async (id: string) => {
                       :class="['inline-flex items-center gap-0.5 px-2 py-0.5 border rounded-full text-xs whitespace-nowrap', tempBadgeClass(entry.temperatureCelsius)]">
                       <SunIcon class="w-3 h-3" />{{ entry.temperatureCelsius.toFixed(1) }}°C
                     </span>
+                    <button v-if="otherCars.length > 0" @click.stop="openReassignModal(entry)"
+                      class="p-1 rounded text-gray-300 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition"
+                      :title="t('dashboard.reassign_car')">
+                      <ArrowsRightLeftIcon class="w-3.5 h-3.5" />
+                    </button>
                     <button @click="editingLog = entry"
                       :class="['p-1 rounded text-gray-300 hover:text-blue-500 hover:bg-blue-50 transition',
                                entry.temperatureCelsius != null ? 'hidden md:block' : '']"
@@ -1779,6 +1839,51 @@ const deleteLog = async (id: string) => {
     @close="() => { showImplausibleModal = false; if (implausibleModalDirty) { fetchStatistics(); implausibleModalDirty = false } }"
     @updated="() => { fetchImplausibleCount(); implausibleModalDirty = true }"
   />
+
+  <!-- Fahrzeug-Zuordnung Modal -->
+  <Teleport to="body">
+    <Transition enter-active-class="transition duration-200 ease-out" enter-from-class="opacity-0" enter-to-class="opacity-100" leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100" leave-to-class="opacity-0">
+      <div v-if="reassignModalEntry" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" @click.self="reassignModalEntry = null">
+        <div class="absolute inset-0 bg-black/40" @click="reassignModalEntry = null" />
+        <div class="relative w-full sm:max-w-sm bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-2xl shadow-2xl p-6 space-y-5">
+          <div>
+            <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100">{{ t('dashboard.reassign_car') }}</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ t('dashboard.reassign_car_hint') }}</p>
+          </div>
+
+          <div class="space-y-2">
+            <button
+              v-for="car in otherCars"
+              :key="car.id"
+              @click="reassignSelectedCarId = car.id; reassignError = null"
+              :class="['w-full flex items-center gap-3 p-3 rounded-xl border-2 transition text-left',
+                       reassignSelectedCarId === car.id
+                         ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30'
+                         : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500']">
+              <TruckIcon class="w-5 h-5 flex-shrink-0" :class="reassignSelectedCarId === car.id ? 'text-indigo-600' : 'text-gray-400'" />
+              <span class="font-medium text-gray-800 dark:text-gray-200">{{ enumToLabel(car.brand) }} {{ enumToLabel(car.model) }}</span>
+              <div v-if="reassignSelectedCarId === car.id" class="ml-auto w-4 h-4 rounded-full bg-indigo-500 flex-shrink-0" />
+            </button>
+          </div>
+
+          <p v-if="reassignError" class="text-sm text-red-600 dark:text-red-400">{{ reassignError }}</p>
+
+          <div class="flex gap-3 pt-1">
+            <button @click="reassignModalEntry = null"
+              class="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+              {{ t('common.cancel') }}
+            </button>
+            <button @click="saveReassign"
+              :disabled="!reassignSelectedCarId || reassignSaving"
+              class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white transition disabled:opacity-40"
+              :class="reassignSelectedCarId ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-gray-300 dark:bg-gray-600'">
+              {{ reassignSaving ? t('common.saving') : t('common.save') }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
 
 <style scoped>

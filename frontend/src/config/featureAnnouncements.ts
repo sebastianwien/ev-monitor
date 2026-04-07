@@ -48,4 +48,10 @@ export const featureAnnouncements: FeatureAnnouncement[] = [
     bodyKey: 'announcements.goe_statistics_fix_v1_body',
     condition: (ctx) => ctx.hasGoeConnection,
   },
+  {
+    key: 'car-reassignment-v1',
+    expiresAt: '2026-05-18',
+    titleKey: 'announcements.car_reassignment_v1_title',
+    bodyKey: 'announcements.car_reassignment_v1_body',
+  },
 ]

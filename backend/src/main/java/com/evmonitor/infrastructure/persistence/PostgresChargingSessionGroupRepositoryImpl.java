@@ -41,6 +41,11 @@ public class PostgresChargingSessionGroupRepositoryImpl implements ChargingSessi
     }
 
     @Override
+    public void updateCarId(UUID groupId, UUID targetCarId) {
+        jpa.updateCarId(groupId, targetCarId);
+    }
+
+    @Override
     public Optional<ChargingSessionGroup> findOpenGroupForCar(UUID carId, LocalDateTime threshold,
             LocalDate sessionDay, String dataSource) {
         LocalDateTime dayStart = sessionDay.atStartOfDay();

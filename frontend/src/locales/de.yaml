@@ -10,6 +10,9 @@ common:
   real: "Real"
   battery: "Akku"
   close: "Schliessen"
+  cancel: "Abbrechen"
+  save: "Speichern"
+  saving: "Wird gespeichert..."
   back: "Zurück"
   ok_understood: "Ok, verstanden"
   next: "Weiter"
@@ -507,6 +510,9 @@ dashboard:
   week_abbr: "KW"
   top_up: "Nachladen"
   edit_title: "Ladevorgang bearbeiten"
+  reassign_car: "Fahrzeug zuordnen"
+  reassign_car_hint: "Welchem Fahrzeug soll dieser Ladevorgang zugeordnet werden?"
+  reassign_success: "Ladevorgang wurde {car} zugeordnet"
   prev: "Zurück"
   next: "Weiter"
   free_text: "EV Monitor ist kostenlos."
@@ -1450,6 +1456,8 @@ announcements:
   consumption_normalization_v1_body: "Dein angezeigter Verbrauch (kWh/100km) entspricht jetzt dem echten Fahrverbrauch aus dem Akku. Wallbox-Messungen enthalten Ladeverluste durch den Ladevorgang selbst - diese werden jetzt automatisch herausgerechnet (AC-Laden: 10%, DC-Schnellladen: 5%). Deine Verbrauchswerte sinken dadurch leicht und sind jetzt besser mit WLTP und anderen Datenquellen vergleichbar. Die Kostenkalkulation bleibt davon unberührt."
   goe_statistics_fix_v1_title: "go-eCharger: Statistik-Fix"
   goe_statistics_fix_v1_body: "Deine go-eCharger-Ladevorgänge werden jetzt korrekt in der Statistik gezählt - kWh, Kosten und Verbrauchsberechnung inklusive."
+  car_reassignment_v1_title: "Fahrzeug nachträglich ändern"
+  car_reassignment_v1_body: "Ladevorgang dem falschen Auto zugeordnet? Kein Problem - im Dashboard kannst du jeden Ladevorgang (oder eine ganze Ladegruppe) mit einem Klick einem anderen Fahrzeug zuordnen."
 
 tax_export:
   title: "Steuernachweis Heimladen"

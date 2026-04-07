@@ -32,6 +32,10 @@ public interface JpaChargingSessionGroupRepository extends JpaRepository<Chargin
      *
      * Kein CAST AS date — stattdessen range-Vergleich für H2 + PostgreSQL Kompatibilität.
      */
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE ChargingSessionGroupEntity g SET g.carId = :targetCarId WHERE g.id = :groupId")
+    void updateCarId(@Param("groupId") UUID groupId, @Param("targetCarId") UUID targetCarId);
+
     @Query("""
             SELECT g FROM ChargingSessionGroupEntity g
             WHERE g.carId = :carId

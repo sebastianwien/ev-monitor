@@ -174,6 +174,98 @@ class SessionGroupControllerIntegrationTest extends AbstractIntegrationTest {
         assertEquals("USER_LOGGED", logs[0].get("dataSource"));
     }
 
+    // ── PATCH /api/logs/groups/{groupId}/car ─────────────────────────────────
+
+    @Test
+    void reassignGroupCar_succeeds_groupAndSubSessionsMovedToTargetCar() {
+        Car targetCar = createAndSaveCar(testUser.getId(), CarBrand.CarModel.IONIQ_5);
+        LocalDateTime base = LocalDateTime.now().minusHours(4);
+        createInternalGoeLog(testCar.getId(), testUser.getId(), "5.0", base, null);
+        createInternalGoeLog(testCar.getId(), testUser.getId(), "3.0", base.plusMinutes(20), null);
+
+        // Gruppe holen
+        ResponseEntity<Map[]> groupsRes = restTemplate.exchange(
+                "/api/logs/groups?carId=" + testCar.getId(),
+                HttpMethod.GET,
+                createAuthRequest(testUser.getId(), testUser.getEmail()),
+                Map[].class);
+        String groupId = groupsRes.getBody()[0].get("id").toString();
+
+        // Reassign
+        ResponseEntity<Void> patchRes = restTemplate.exchange(
+                "/api/logs/groups/" + groupId + "/car",
+                HttpMethod.PATCH,
+                createAuthRequest(Map.of("targetCarId", targetCar.getId().toString()), testUser.getId(), testUser.getEmail()),
+                Void.class);
+        assertEquals(HttpStatus.OK, patchRes.getStatusCode());
+
+        // Gruppe ist jetzt beim targetCar
+        ResponseEntity<Map[]> targetGroupsRes = restTemplate.exchange(
+                "/api/logs/groups?carId=" + targetCar.getId(),
+                HttpMethod.GET,
+                createAuthRequest(testUser.getId(), testUser.getEmail()),
+                Map[].class);
+        assertEquals(1, targetGroupsRes.getBody().length, "Gruppe soll beim targetCar liegen");
+
+        // Beim Quell-Auto keine Gruppen mehr
+        ResponseEntity<Map[]> sourceGroupsRes = restTemplate.exchange(
+                "/api/logs/groups?carId=" + testCar.getId(),
+                HttpMethod.GET,
+                createAuthRequest(testUser.getId(), testUser.getEmail()),
+                Map[].class);
+        assertEquals(0, sourceGroupsRes.getBody().length, "Quell-Auto soll keine Gruppen mehr haben");
+    }
+
+    @Test
+    void reassignGroupCar_withForeignTargetCar_returns404() {
+        User otherUser = createAndSaveUser("other-reassign-" + System.nanoTime() + "@test.com");
+        Car foreignCar = createAndSaveCar(otherUser.getId(), CarBrand.CarModel.MODEL_3);
+
+        LocalDateTime base = LocalDateTime.now().minusHours(4);
+        createInternalGoeLog(testCar.getId(), testUser.getId(), "5.0", base, null);
+
+        ResponseEntity<Map[]> groupsRes = restTemplate.exchange(
+                "/api/logs/groups?carId=" + testCar.getId(),
+                HttpMethod.GET,
+                createAuthRequest(testUser.getId(), testUser.getEmail()),
+                Map[].class);
+        String groupId = groupsRes.getBody()[0].get("id").toString();
+
+        ResponseEntity<Void> patchRes = restTemplate.exchange(
+                "/api/logs/groups/" + groupId + "/car",
+                HttpMethod.PATCH,
+                createAuthRequest(Map.of("targetCarId", foreignCar.getId().toString()), testUser.getId(), testUser.getEmail()),
+                Void.class);
+        assertEquals(HttpStatus.NOT_FOUND, patchRes.getStatusCode());
+    }
+
+    @Test
+    void reassignLogCar_withGroupedLog_returns404() {
+        Car targetCar = createAndSaveCar(testUser.getId(), CarBrand.CarModel.IONIQ_5);
+        LocalDateTime base = LocalDateTime.now().minusHours(3);
+        createInternalGoeLog(testCar.getId(), testUser.getId(), "5.0", base, null);
+
+        // Sub-Session-ID holen
+        ResponseEntity<Map[]> groupsRes = restTemplate.exchange(
+                "/api/logs/groups?carId=" + testCar.getId(),
+                HttpMethod.GET,
+                createAuthRequest(testUser.getId(), testUser.getEmail()),
+                Map[].class);
+        String groupId = groupsRes.getBody()[0].get("id").toString();
+        ResponseEntity<Map[]> subRes = restTemplate.exchange(
+                "/api/logs/group/" + groupId, HttpMethod.GET,
+                createAuthRequest(testUser.getId(), testUser.getEmail()), Map[].class);
+        String subLogId = subRes.getBody()[0].get("id").toString();
+
+        // Versuch, eine Sub-Session direkt umzuschreiben → soll 404 geben
+        ResponseEntity<Void> patchRes = restTemplate.exchange(
+                "/api/logs/" + subLogId + "/car",
+                HttpMethod.PATCH,
+                createAuthRequest(Map.of("targetCarId", targetCar.getId().toString()), testUser.getId(), testUser.getEmail()),
+                Void.class);
+        assertEquals(HttpStatus.NOT_FOUND, patchRes.getStatusCode());
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private void createInternalGoeLog(java.util.UUID carId, java.util.UUID userId,

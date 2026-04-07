@@ -29,4 +29,6 @@ public interface ChargingSessionGroupRepository {
      */
     Optional<ChargingSessionGroup> findOpenGroupForCar(UUID carId, LocalDateTime threshold,
             LocalDate sessionDay, String dataSource);
+
+    void updateCarId(UUID groupId, UUID targetCarId);
 }

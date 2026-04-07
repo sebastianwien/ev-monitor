@@ -461,6 +461,34 @@ public class EvLogService {
     }
 
     /**
+     * Weist einen einzelnen (ungruppierten) Log einem anderen Fahrzeug zu.
+     * Beide Fahrzeuge müssen dem gleichen User gehören.
+     */
+    @Transactional
+    public void reassignLog(UUID logId, UUID targetCarId, UUID userId) {
+        EvLog log = evLogRepository.findById(logId)
+                .orElseThrow(() -> new IllegalArgumentException("Log not found"));
+
+        if (log.getSessionGroupId() != null) {
+            throw new IllegalArgumentException("Log is part of a session group — use the group reassign endpoint");
+        }
+
+        Car sourceCar = carRepository.findById(log.getCarId())
+                .orElseThrow(() -> new IllegalArgumentException("Source car not found"));
+        if (!sourceCar.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("User does not own this log");
+        }
+
+        Car targetCar = carRepository.findById(targetCarId)
+                .orElseThrow(() -> new IllegalArgumentException("Target car not found"));
+        if (!targetCar.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("User does not own the target car");
+        }
+
+        evLogRepository.updateCarIdForLog(logId, targetCarId);
+    }
+
+    /**
      * Get statistics for a specific car.
      * Includes key metrics for charging events and charge over time data.
      *

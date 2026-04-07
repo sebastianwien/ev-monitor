@@ -10,6 +10,9 @@ common:
   real: "Real"
   battery: "Battery"
   close: "Close"
+  cancel: "Cancel"
+  save: "Save"
+  saving: "Saving..."
   back: "Back"
   ok_understood: "Ok, got it"
   next: "Next"
@@ -507,6 +510,9 @@ dashboard:
   week_abbr: "W"
   top_up: "Top-up"
   edit_title: "Edit charging session"
+  reassign_car: "Assign to vehicle"
+  reassign_car_hint: "Which vehicle should this charging session be assigned to?"
+  reassign_success: "Charging session assigned to {car}"
   prev: "Previous"
   next: "Next"
   free_text: "EV Monitor is free."
@@ -1450,6 +1456,8 @@ announcements:
   consumption_normalization_v1_body: "Your displayed consumption (kWh/100km) now reflects true driving consumption from the battery. Wallbox measurements include charging losses from the charging process itself - these are now automatically removed (AC charging: 10%, DC fast charging: 5%). Your consumption values will decrease slightly and are now better comparable with WLTP and other data sources. Cost calculations are not affected."
   goe_statistics_fix_v1_title: "go-eCharger: Statistics fix"
   goe_statistics_fix_v1_body: "Your go-eCharger sessions are now correctly counted in statistics - including kWh, costs and consumption calculations."
+  car_reassignment_v1_title: "Reassign sessions to a different vehicle"
+  car_reassignment_v1_body: "Assigned a session to the wrong car? No problem - in the dashboard you can reassign any session (or an entire group) to a different vehicle with one click."
 
 tax_export:
   title: "Tax report home charging"

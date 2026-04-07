@@ -1,5 +1,7 @@
 package com.evmonitor.application;
 
+import com.evmonitor.domain.Car;
+import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.ChargingSessionGroup;
 import com.evmonitor.domain.ChargingSessionGroupRepository;
 import com.evmonitor.domain.DataSource;
@@ -44,11 +46,13 @@ public class SessionGroupService {
 
     private final ChargingSessionGroupRepository groupRepository;
     private final EvLogRepository evLogRepository;
+    private final CarRepository carRepository;
 
     public SessionGroupService(ChargingSessionGroupRepository groupRepository,
-            EvLogRepository evLogRepository) {
+            EvLogRepository evLogRepository, CarRepository carRepository) {
         this.groupRepository = groupRepository;
         this.evLogRepository = evLogRepository;
+        this.carRepository = carRepository;
     }
 
     /**
@@ -186,5 +190,33 @@ public class SessionGroupService {
         return groupRepository.findAllByCarId(carId).stream()
                 .map(SessionGroupResponse::fromDomain)
                 .toList();
+    }
+
+    /**
+     * Weist eine Session-Gruppe (und alle zugehörigen Sub-Sessions) einem anderen Fahrzeug zu.
+     * Beide Fahrzeuge müssen dem gleichen User gehören.
+     */
+    @Transactional
+    public void reassignCar(UUID groupId, UUID targetCarId, UUID userId) {
+        ChargingSessionGroup group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new IllegalArgumentException("Session group not found"));
+
+        Car sourceCar = carRepository.findById(group.getCarId())
+                .orElseThrow(() -> new IllegalArgumentException("Source car not found"));
+        if (!sourceCar.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("User does not own this session group");
+        }
+
+        Car targetCar = carRepository.findById(targetCarId)
+                .orElseThrow(() -> new IllegalArgumentException("Target car not found"));
+        if (!targetCar.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("User does not own the target car");
+        }
+
+        groupRepository.updateCarId(groupId, targetCarId);
+        evLogRepository.updateCarIdBySessionGroupId(groupId, targetCarId);
+
+        log.info("Session group {} reassigned from car {} to car {} by user {}",
+                groupId, group.getCarId(), targetCarId, userId);
     }
 }
