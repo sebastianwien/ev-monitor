@@ -1,3 +1,7 @@
+export interface AnnouncementContext {
+  hasGoeConnection: boolean
+}
+
 export interface FeatureAnnouncement {
   key: string
   expiresAt: string   // ISO date string - nach diesem Datum wird die Ankündigung nicht mehr gezeigt
@@ -5,6 +9,7 @@ export interface FeatureAnnouncement {
   bodyKey: string     // i18n key
   ctaLabelKey?: string // i18n key, optional
   ctaRoute?: string
+  condition?: (ctx: AnnouncementContext) => boolean
 }
 
 export const featureAnnouncements: FeatureAnnouncement[] = [
@@ -35,5 +40,12 @@ export const featureAnnouncements: FeatureAnnouncement[] = [
     bodyKey: 'announcements.survey_premium_april_2026_body',
     ctaLabelKey: 'announcements.survey_premium_april_2026_cta',
     ctaRoute: '/umfrage/premium-april-2026',
+  },
+  {
+    key: 'goe-statistics-fix-v1',
+    expiresAt: '2026-04-17',
+    titleKey: 'announcements.goe_statistics_fix_v1_title',
+    bodyKey: 'announcements.goe_statistics_fix_v1_body',
+    condition: (ctx) => ctx.hasGoeConnection,
   },
 ]

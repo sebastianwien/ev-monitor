@@ -508,7 +508,18 @@ public class EvLogService {
                 .filter(log -> log.isLoggedWithin(startDate, endDate))
                 .collect(Collectors.toList());
 
-        if (logs.isEmpty()) {
+        // Session groups (WALLBOX_GOE/API_UPLOAD Ladegruppen) — stored in separate table,
+        // their sub-sessions have include_in_statistics=false to avoid double-counting.
+        // Must be included here so energy/cost from go-e charger sessions appear in statistics.
+        List<SessionGroupResponse> sessionGroups = sessionGroupService.findAllByCarId(carId).stream()
+                .filter(g -> {
+                    java.time.LocalDate groupDate = g.sessionStart().toLocalDate();
+                    return (startDate == null || !groupDate.isBefore(startDate))
+                            && (endDate == null || !groupDate.isAfter(endDate));
+                })
+                .collect(Collectors.toList());
+
+        if (logs.isEmpty() && sessionGroups.isEmpty()) {
             return createEmptyStatistics();
         }
 
@@ -573,6 +584,56 @@ public class EvLogService {
         List<EvLogStatisticsResponse.ChargeDataPoint> chargesOverTime =
                 groupChargesByPeriod(logs, groupBy != null ? groupBy : "MONTH", consumptionByLog);
 
+        // Merge session groups (WALLBOX_GOE Ladegruppen) into stats — kWh, cost, chart data
+        if (!sessionGroups.isEmpty()) {
+            BigDecimal sgKwh = sessionGroups.stream()
+                    .map(SessionGroupResponse::totalKwhCharged)
+                    .filter(Objects::nonNull)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal sgCost = sessionGroups.stream()
+                    .map(SessionGroupResponse::costEur)
+                    .filter(g -> g != null && g.compareTo(BigDecimal.ZERO) > 0)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            totalKwhCharged = totalKwhCharged.add(sgKwh);
+            totalCostEur = totalCostEur.add(sgCost);
+            totalKwhForCost = totalKwhForCost.add(sgKwh);
+            avgCostPerKwh = totalKwhForCost.compareTo(BigDecimal.ZERO) > 0
+                    ? totalCostEur.divide(totalKwhForCost, 2, RoundingMode.HALF_UP)
+                    : BigDecimal.ZERO;
+
+            String effectiveGroupBy = groupBy != null ? groupBy : "MONTH";
+            Map<String, EvLogStatisticsResponse.ChargeDataPoint> periodMap = chargesOverTime.stream()
+                    .collect(Collectors.toMap(
+                            dp -> getPeriodKey(dp.timestamp(), effectiveGroupBy),
+                            dp -> dp,
+                            (a, b) -> a,
+                            java.util.LinkedHashMap::new));
+
+            for (SessionGroupResponse group : sessionGroups) {
+                String key = getPeriodKey(group.sessionStart(), effectiveGroupBy);
+                BigDecimal gKwh = group.totalKwhCharged() != null ? group.totalKwhCharged() : BigDecimal.ZERO;
+                BigDecimal gCost = group.costEur() != null ? group.costEur() : BigDecimal.ZERO;
+                EvLogStatisticsResponse.ChargeDataPoint existing = periodMap.get(key);
+                if (existing == null) {
+                    periodMap.put(key, new EvLogStatisticsResponse.ChargeDataPoint(
+                            group.sessionStart(), gCost, gKwh, null, null));
+                } else {
+                    periodMap.put(key, new EvLogStatisticsResponse.ChargeDataPoint(
+                            existing.timestamp(),
+                            existing.costEur().add(gCost),
+                            existing.kwhCharged().add(gKwh),
+                            existing.distanceKm(),
+                            existing.consumptionKwhPer100km()));
+                }
+            }
+
+            chargesOverTime = periodMap.entrySet().stream()
+                    .sorted(Map.Entry.comparingByKey())
+                    .map(Map.Entry::getValue)
+                    .collect(Collectors.toList());
+        }
+
         // Total distance and avg consumption — SoC-based from pre-computed consumptionByLog
         BigDecimal totalWeighted = BigDecimal.ZERO;
         int totalDist = 0;        // all logs with consumption data, for avg consumption calculation
@@ -612,7 +673,7 @@ public class EvLogService {
                 cheapestCharge,
                 mostExpensiveCharge,
                 avgChargeDuration,
-                logs.size(),
+                logs.size() + sessionGroups.size(),
                 totalDistanceKm,
                 avgConsumptionKwhPer100km,
                 estimatedCount,
@@ -681,6 +742,16 @@ public class EvLogService {
     }
 
     Optional<BigDecimal> calculateConsumption(EvLog logX, EvLog logY, BigDecimal batteryCapacityKwh) {
+        return calculateConsumption(logX, logY, batteryCapacityKwh, BigDecimal.ZERO);
+    }
+
+    /**
+     * @param intermediateKwh kWh charged by transparent intermediate logs (e.g. go-e sub-sessions)
+     *                        between logX and logY. Added to the SoC-delta energy to get total
+     *                        energy consumed over the full distance logX→logY.
+     */
+    Optional<BigDecimal> calculateConsumption(EvLog logX, EvLog logY, BigDecimal batteryCapacityKwh,
+            BigDecimal intermediateKwh) {
         if (!logX.canBeUsedAsLogX() || !logY.isComplete()) return Optional.empty();
         if (batteryCapacityKwh == null || batteryCapacityKwh.compareTo(BigDecimal.ZERO) <= 0) return Optional.empty();
 
@@ -697,11 +768,13 @@ public class EvLogService {
                                 .divide(batteryCapacityKwh, 4, RoundingMode.HALF_UP)
                                 .multiply(HUNDRED));
 
-        // energyConsumed = (socAfter(logX) - socBefore(logY)) * batteryCapacity / 100
+        // energyConsumed = (socAfter(logX) - socBefore(logY)) * battery/100 + intermediateKwh
+        // intermediateKwh covers energy charged by transparent logs (e.g. go-e) between logX and logY.
         BigDecimal energyConsumedKwh = BigDecimal.valueOf(logX.getSocAfterChargePercent())
                 .subtract(socBeforeLogYPercent)
                 .multiply(batteryCapacityKwh)
-                .divide(HUNDRED, 4, RoundingMode.HALF_UP);
+                .divide(HUNDRED, 4, RoundingMode.HALF_UP)
+                .add(intermediateKwh);
 
         if (energyConsumedKwh.compareTo(BigDecimal.ZERO) <= 0) return Optional.empty();
 
@@ -738,13 +811,13 @@ public class EvLogService {
         sorted.stream()
                 .filter(EvLog::isComplete)
                 .forEach(logY -> {
-                    EvLog logX = findPreviousLog(sorted, logY);
-                    if (logX == null) return;
-                    int dist = logY.getOdometerKm() - logX.getOdometerKm();
+                    PreviousLogResult prev = findPreviousLog(sorted, logY);
+                    if (prev == null) return;
+                    int dist = logY.getOdometerKm() - prev.logX().getOdometerKm();
                     if (dist < plausibility.getMinTripDistanceKm()) return;
                     BigDecimal capacity = capacityForDate.apply(logY.getLoggedAt().toLocalDate());
                     if (capacity == null) return;
-                    calculateConsumption(logX, logY, capacity).ifPresent(c -> {
+                    calculateConsumption(prev.logX(), logY, capacity, prev.intermediateKwh()).ifPresent(c -> {
                         ids.add(logY.getId());
                         values.add(c);
                         distances.add(dist);
@@ -866,24 +939,43 @@ public class EvLogService {
     }
 
     /**
-     * Returns the immediately preceding log (by loggedAt) as a candidate for logX.
-     * Returns null if the directly previous log does not satisfy canBeUsedAsLogX().
+    /** logX candidate + kWh accumulated from transparent intermediate logs. */
+    private record PreviousLogResult(EvLog logX, BigDecimal intermediateKwh) {}
+
+    /**
+     * Searches backwards for the nearest valid logX predecessor of logY.
      *
-     * Strict-by-design: any log between logX and logY — even an incomplete one —
-     * represents an unknown energy event. Skipping over it would silently corrupt
-     * the SoC-delta calculation. If the direct predecessor isn't usable, the trip
-     * cannot be calculated at all.
+     * Transparent logs (e.g. WALLBOX_GOE sub-sessions without SoC) are skipped:
+     * their kWh is accumulated in intermediateKwh so it can be added to the
+     * SoC-delta energy in calculateConsumption().
+     *
+     * Non-transparent logs that fail canBeUsedAsLogX() (e.g. a manual log without SoC)
+     * still break the chain — they represent a real data gap.
      *
      * Callers must pass a list sorted ascending by loggedAt.
      * calculateConsumptionPerLog() guarantees this internally.
      */
-    private EvLog findPreviousLog(List<EvLog> sortedLogs, EvLog logY) {
+    private PreviousLogResult findPreviousLog(List<EvLog> sortedLogs, EvLog logY) {
         for (int i = 0; i < sortedLogs.size(); i++) {
-            if (sortedLogs.get(i).getId().equals(logY.getId())) {
-                if (i == 0) return null;
-                EvLog candidate = sortedLogs.get(i - 1);
-                return candidate.canBeUsedAsLogX() ? candidate : null;
+            if (!sortedLogs.get(i).getId().equals(logY.getId())) continue;
+            if (i == 0) return null;
+
+            BigDecimal intermediateKwh = BigDecimal.ZERO;
+            for (int j = i - 1; j >= 0; j--) {
+                EvLog candidate = sortedLogs.get(j);
+                if (candidate.canBeUsedAsLogX()) {
+                    return new PreviousLogResult(candidate, intermediateKwh);
+                }
+                if (candidate.getDataSource().isTransparentForConsumptionChain()) {
+                    if (candidate.hasKwhCharged()) {
+                        intermediateKwh = intermediateKwh.add(candidate.getKwhCharged());
+                    }
+                    // transparent → weiter zurückgehen
+                } else {
+                    return null; // echter Kettenbruch (manueller Log ohne SoC)
+                }
             }
+            return null;
         }
         return null;
     }

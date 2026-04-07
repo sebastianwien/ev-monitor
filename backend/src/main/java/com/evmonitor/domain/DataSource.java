@@ -22,6 +22,18 @@ public enum DataSource {
                 || this == TRONITY_IMPORT || this == SMARTCAR_LIVE;
     }
 
+    /**
+     * True if logs from this source may lack SoC/odometer data due to automatic import,
+     * and should therefore be skipped — with their kWh accumulated — when searching for
+     * a valid logX predecessor in the consumption chain.
+     *
+     * A transparent log is never a real trip boundary: it represents intermediate charging
+     * the user couldn't control (e.g. solar surplus). The chain continues past it.
+     */
+    public boolean isTransparentForConsumptionChain() {
+        return this == WALLBOX_GOE;
+    }
+
     /** Returns the measurement point for energy reported by this data source. */
     public EnergyMeasurementType measurementType() {
         return switch (this) {

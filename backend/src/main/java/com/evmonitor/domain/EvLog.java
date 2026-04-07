@@ -125,34 +125,6 @@ public class EvLog {
                 false, null);
     }
 
-    public static EvLog createNewWithSourceAndSocBefore(UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
-            Integer chargeDurationMinutes, String geohash, Integer odometerKm,
-            BigDecimal maxChargingPowerKw, Integer socAfterChargePercent, Integer socBeforeChargePercent,
-            LocalDateTime loggedAt, DataSource dataSource, ChargingType chargingType,
-            Double temperatureCelsius, String rawImportData) {
-        LocalDateTime now = LocalDateTime.now();
-        return new EvLog(UUID.randomUUID(), carId, kwhCharged, costEur,
-                chargeDurationMinutes, geohash, odometerKm, maxChargingPowerKw, socAfterChargePercent,
-                socBeforeChargePercent, loggedAt, dataSource, dataSource.includeInStatistics(),
-                null, null, temperatureCelsius, chargingType, rawImportData, now, now, null, null, null, null,
-                false, null);
-    }
-
-    public static EvLog createFromOcpp(UUID carId, BigDecimal kwhCharged,
-            Integer chargeDurationMinutes, String geohash,
-            LocalDateTime loggedAt, Integer odometerSuggestionMinKm, Integer odometerSuggestionMaxKm) {
-        return createFromInternal(carId, kwhCharged, chargeDurationMinutes, geohash,
-                loggedAt, odometerSuggestionMinKm, odometerSuggestionMaxKm, DataSource.WALLBOX_OCPP, null);
-    }
-
-    public static EvLog createFromInternal(UUID carId, BigDecimal kwhCharged,
-            Integer chargeDurationMinutes, String geohash,
-            LocalDateTime loggedAt, Integer odometerSuggestionMinKm, Integer odometerSuggestionMaxKm,
-            DataSource dataSource, BigDecimal costEur) {
-        return createFromInternal(carId, kwhCharged, chargeDurationMinutes, geohash,
-                loggedAt, odometerSuggestionMinKm, odometerSuggestionMaxKm, dataSource, costEur, null);
-    }
-
     public static EvLog createFromInternal(UUID carId, BigDecimal kwhCharged,
             Integer chargeDurationMinutes, String geohash,
             LocalDateTime loggedAt, Integer odometerSuggestionMinKm, Integer odometerSuggestionMaxKm,
@@ -173,25 +145,6 @@ public class EvLog {
                 dataSource, dataSource.includeInStatistics(),
                 odometerSuggestionMinKm, odometerSuggestionMaxKm, temperatureCelsius, chargingType, null, now, now, null, null, null, null,
                 false, null);
-    }
-
-    public static EvLog createFromPublicApi(UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
-            Integer chargeDurationMinutes, String geohash, Integer odometerKm,
-            BigDecimal maxChargingPowerKw, Integer socAfterChargePercent, Integer socBeforeChargePercent,
-            LocalDateTime loggedAt, ChargingType chargingType, RouteType routeType, TireType tireType) {
-        return createFromPublicApi(carId, kwhCharged, costEur, chargeDurationMinutes, geohash, odometerKm,
-                maxChargingPowerKw, socAfterChargePercent, socBeforeChargePercent, loggedAt,
-                chargingType, routeType, tireType, DataSource.API_UPLOAD);
-    }
-
-    public static EvLog createFromPublicApi(UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
-            Integer chargeDurationMinutes, String geohash, Integer odometerKm,
-            BigDecimal maxChargingPowerKw, Integer socAfterChargePercent, Integer socBeforeChargePercent,
-            LocalDateTime loggedAt, ChargingType chargingType, RouteType routeType, TireType tireType,
-            DataSource dataSource) {
-        return createFromPublicApi(carId, kwhCharged, costEur, chargeDurationMinutes, geohash, odometerKm,
-                maxChargingPowerKw, socAfterChargePercent, socBeforeChargePercent, loggedAt,
-                chargingType, routeType, tireType, dataSource, null);
     }
 
     public static EvLog createFromPublicApi(UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
@@ -227,20 +180,6 @@ public class EvLog {
                 dataSource, dataSource.includeInStatistics(),
                 null, null, null, chargingType, rawImportData, now, now, routeType, tireType, null, null,
                 isPublicCharging, cpoName, measurementType);
-    }
-
-    /**
-     * Infers AC/DC if type is unknown, using two heuristics in order:
-     * 1. max_charging_power_kw if available
-     * 2. avg power calculated from kWh / duration (only if duration >= 5 min to avoid noise)
-     * Threshold: >22 kW = DC, ≤22 kW = AC.
-     */
-    private static ChargingType inferChargingType(ChargingType given, BigDecimal maxPowerKw) {
-        if (given != null && given != ChargingType.UNKNOWN) return given;
-        if (maxPowerKw != null) {
-            return maxPowerKw.compareTo(BigDecimal.valueOf(22)) > 0 ? ChargingType.DC : ChargingType.AC;
-        }
-        return ChargingType.UNKNOWN;
     }
 
     private static ChargingType inferChargingType(ChargingType given, BigDecimal maxPowerKw,
@@ -367,14 +306,6 @@ public class EvLog {
     public EvLog withPatch(BigDecimal kwh, BigDecimal costEur, Integer durationMin,
             String geohash, Integer odometerKm, Integer socBefore, Integer socAfter,
             BigDecimal maxChargingPowerKw, ChargingType chargingType,
-            RouteType routeType, TireType tireType, Boolean isPublicCharging, String cpoName) {
-        return withPatch(kwh, costEur, durationMin, geohash, odometerKm, socBefore, socAfter,
-                maxChargingPowerKw, chargingType, routeType, tireType, isPublicCharging, cpoName, null);
-    }
-
-    public EvLog withPatch(BigDecimal kwh, BigDecimal costEur, Integer durationMin,
-            String geohash, Integer odometerKm, Integer socBefore, Integer socAfter,
-            BigDecimal maxChargingPowerKw, ChargingType chargingType,
             RouteType routeType, TireType tireType, Boolean isPublicCharging, String cpoName,
             EnergyMeasurementType measurementType) {
         return new EvLog(id, carId,
@@ -424,10 +355,10 @@ public class EvLog {
     }
 
     /**
-     * True if kwhCharged is present — the minimum required for any energy accounting.
+     * True if kwhCharged is present and positive — the minimum required for any energy accounting.
      */
     public boolean hasKwhCharged() {
-        return kwhCharged != null;
+        return kwhCharged != null && kwhCharged.compareTo(java.math.BigDecimal.ZERO) > 0;
     }
 
     /**

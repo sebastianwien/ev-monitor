@@ -1436,47 +1436,48 @@ const deleteLog = async (id: string) => {
               <!-- Session Group (Überschussladen) -->
               <div v-for="entry in mergedLogFeed" :key="entry.id" :class="entry._isLadegruppe ? 'pb-[5px]' : ''">
               <div v-if="entry._isGroup"
-                class="p-3 border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/30 rounded-lg space-y-2">
+                class="p-3 border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/30 rounded-lg space-y-2 cursor-pointer"
+                @click="toggleGroupExpand(entry.id)">
                 <!-- Group Header -->
                 <div class="flex items-center justify-between gap-2">
                   <div class="flex items-center gap-2 min-w-0">
                     <SunIcon class="w-4 h-4 text-blue-600 flex-shrink-0" />
-                    <span class="font-semibold text-blue-700 whitespace-nowrap">{{ entry.totalKwhCharged }} kWh</span>
+                    <span class="font-semibold text-blue-700 dark:text-blue-300 whitespace-nowrap">{{ entry.totalKwhCharged }} kWh</span>
                     <span class="text-xs text-gray-400 whitespace-nowrap">
-                      {{ new Date(entry.sessionStart).toLocaleDateString() }}
+                      {{ new Date(entry.sessionStart).toLocaleDateString(locale === 'en' ? 'en-GB' : 'de-DE', { day: 'numeric', month: 'numeric' }) }},
                       {{ new Date(entry.sessionStart).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}
                       –
                       {{ new Date(entry.sessionEnd).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}
                     </span>
                   </div>
-                  <button @click="toggleGroupExpand(entry.id)"
-                    class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-medium hover:bg-blue-200 transition flex-shrink-0">
-                    <HomeIcon class="w-3 h-3" />
-                    {{ entry.sessionCount }} {{ t('dashboard.logs_btn') }}
-                    <ChevronDownIcon v-if="!expandedGroups.has(entry.id)" class="w-3 h-3" />
-                    <ChevronUpIcon v-else class="w-3 h-3" />
+                  <button @click.stop="toggleGroupExpand(entry.id)"
+                    class="p-1 rounded text-blue-400 dark:text-blue-500 flex-shrink-0 flex items-center gap-1">
+                    <span class="text-xs">{{ entry.sessionCount }}×</span>
+                    <ChevronDownIcon v-if="!expandedGroups.has(entry.id)" class="w-4 h-4" />
+                    <ChevronUpIcon v-else class="w-4 h-4" />
                   </button>
                 </div>
                 <!-- Group Badges -->
                 <div class="flex flex-wrap gap-1.5">
                   <span v-if="entry.costEur != null && entry.totalKwhCharged"
-                    class="inline-flex items-center px-2 py-0.5 border border-blue-200 bg-white text-xs rounded-full text-blue-700 whitespace-nowrap">
-                    €{{ (entry.costEur / entry.totalKwhCharged).toFixed(2) }}/kWh
-                  </span>
-                  <span v-if="entry.costEur != null"
-                    class="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-blue-200 rounded-full text-xs text-blue-700 whitespace-nowrap">
-                    €{{ entry.costEur }}
+                    :class="['inline-flex items-center px-2 py-0.5 border text-xs rounded-full font-medium whitespace-nowrap cursor-pointer transition-all duration-75',
+                             showCostAbsolute
+                               ? 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'
+                               : [(costBadgeClass(entry.costEur, entry.totalKwhCharged) ?? 'bg-green-50 border-green-200 text-green-700'), 'shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'].join(' ')]"
+                    @click.stop="showCostAbsolute = !showCostAbsolute">
+                    <template v-if="showCostAbsolute">€{{ entry.costEur }}</template>
+                    <template v-else>€{{ (entry.costEur / entry.totalKwhCharged).toFixed(2) }}/kWh</template>
                   </span>
                   <span v-if="entry.totalDurationMinutes"
-                    class="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-blue-200 rounded-full text-xs text-blue-700 whitespace-nowrap">
+                    class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">
                     <ClockIcon class="w-3 h-3" />{{ entry.totalDurationMinutes }}min
                   </span>
-                  <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700 whitespace-nowrap">
+                  <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-700 whitespace-nowrap">
                     <HomeIcon class="w-3 h-3" />{{ t('dashboard.excess_solar') }}
                   </span>
                 </div>
                 <!-- Sub-Sessions expandiert -->
-                <div v-if="expandedGroups.has(entry.id)" class="mt-2 space-y-1 pl-3 border-l-2 border-blue-200">
+                <div v-if="expandedGroups.has(entry.id)" class="mt-2 space-y-1 pl-3 border-l-2 border-blue-200 dark:border-blue-700">
                   <div v-if="!subSessionsCache[entry.id]" class="text-xs text-gray-400">{{ t('dashboard.sub_loading') }}</div>
                   <div v-else-if="subSessionsCache[entry.id].length === 0" class="text-xs text-gray-400">{{ t('dashboard.sub_none') }}</div>
                   <div v-else v-for="sub in subSessionsCache[entry.id]" :key="sub.id"
