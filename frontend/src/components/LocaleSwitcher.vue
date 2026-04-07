@@ -1,7 +1,7 @@
 <template>
   <div class="flex items-center gap-1 text-sm font-medium">
     <a
-      href="#"
+      :href="getAlternateUrl('de')"
       @click.prevent="switchLocale('de')"
       :class="[
         'px-1.5 py-0.5 rounded transition-colors cursor-pointer',
@@ -12,7 +12,7 @@
     >DE</a>
     <span :class="variant === 'nav' ? 'text-indigo-400' : 'text-gray-300 dark:text-gray-600'">|</span>
     <a
-      href="#"
+      :href="getAlternateUrl('en')"
       @click.prevent="switchLocale('en')"
       :class="[
         'px-1.5 py-0.5 rounded transition-colors cursor-pointer',

@@ -861,7 +861,7 @@ useHead(computed(() => {
       { rel: 'canonical', href: canonicalHref },
       { rel: 'alternate', hreflang: 'de', href: dePath },
       { rel: 'alternate', hreflang: 'en', href: enPath },
-      { rel: 'alternate', hreflang: 'x-default', href: dePath },
+      { rel: 'alternate', hreflang: 'x-default', href: enPath },
     ],
     script: [
       { type: 'application/ld+json', innerHTML: JSON.stringify(breadcrumbJsonLd) },

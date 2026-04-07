@@ -71,7 +71,7 @@ public class SitemapController {
         if (deHref != null && enHref != null) {
             sb.append("    <xhtml:link rel=\"alternate\" hreflang=\"de\" href=\"").append(deHref).append("\"/>\n");
             sb.append("    <xhtml:link rel=\"alternate\" hreflang=\"en\" href=\"").append(enHref).append("\"/>\n");
-            sb.append("    <xhtml:link rel=\"alternate\" hreflang=\"x-default\" href=\"").append(deHref).append("\"/>\n");
+            sb.append("    <xhtml:link rel=\"alternate\" hreflang=\"x-default\" href=\"").append(enHref).append("\"/>\n");
         }
         sb.append("  </url>\n");
     }

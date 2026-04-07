@@ -594,7 +594,7 @@ useHead(computed(() => {
       { rel: 'canonical', href: canonical },
       { rel: 'alternate', hreflang: 'de', href: 'https://ev-monitor.net/modelle' },
       { rel: 'alternate', hreflang: 'en', href: 'https://ev-monitor.net/en/models' },
-      { rel: 'alternate', hreflang: 'x-default', href: 'https://ev-monitor.net/modelle' },
+      { rel: 'alternate', hreflang: 'x-default', href: 'https://ev-monitor.net/en/models' },
     ],
     script: [
       { type: 'application/ld+json', innerHTML: () => JSON.stringify(itemListJsonLd.value) },

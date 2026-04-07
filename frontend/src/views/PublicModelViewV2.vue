@@ -850,7 +850,7 @@ useHead(computed(() => {
       { rel: 'canonical', href: canonicalUrl },
       { rel: 'alternate', hreflang: 'de', href: deUrl },
       { rel: 'alternate', hreflang: 'en', href: enUrl },
-      { rel: 'alternate', hreflang: 'x-default', href: deUrl },
+      { rel: 'alternate', hreflang: 'x-default', href: enUrl },
     ],
     script: [
       { type: 'application/ld+json', innerHTML: JSON.stringify(breadcrumbJsonLd) },
