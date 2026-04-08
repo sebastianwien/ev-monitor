@@ -152,7 +152,43 @@ import { BoltIcon } from '@heroicons/vue/24/outline'
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">7. Änderungen der AGB</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">7. Datennutzung durch Dritte</h2>
+
+          <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">7.1 Community-Daten und aggregierte Statistiken</h3>
+          <p>
+            Die auf EV Monitor veröffentlichten Community-Statistiken (z.B. Realverbrauch, Reichweite, Ladekosten)
+            basieren auf anonymisierten Beiträgen registrierter Nutzer. Diese Daten sind urheberrechtlich
+            geschützt und Eigentum von EV Monitor.
+          </p>
+
+          <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">7.2 Verbotene Nutzung durch Dritte</h3>
+          <p>Ohne ausdrückliche schriftliche Genehmigung ist es Dritten untersagt:</p>
+          <ul class="list-disc list-inside space-y-2 mt-2">
+            <li>Inhalte, Statistiken oder Daten automatisiert auszulesen (Scraping, Crawling)</li>
+            <li>Daten von EV Monitor auf eigenen Webseiten oder Produkten einzubetten oder wiederzuverwenden</li>
+            <li>Aggregierte Community-Daten für kommerzielle Zwecke zu nutzen</li>
+            <li>Die Daten in verarbeiteter oder unveränderter Form weiterzuverbreiten</li>
+          </ul>
+
+          <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">7.3 Genehmigungspflichtige Nutzung</h3>
+          <p>
+            Wer Community-Daten oder Statistiken von EV Monitor auf externen Seiten einbetten oder
+            kommerziell nutzen möchte, muss vorab eine schriftliche Genehmigung einholen. Anfragen
+            können über die im Impressum angegebene Kontaktadresse gestellt werden. Eine Genehmigung
+            kann an Bedingungen geknüpft werden, insbesondere an eine prominente Attribution mit
+            Verlinkung auf die jeweilige Quellseite auf ev-monitor.net.
+          </p>
+
+          <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">7.4 Öffentliche API</h3>
+          <p>
+            EV Monitor stellt eine öffentliche Upload-API bereit. Die Nutzung dieser API ist ausschließlich
+            zum Übermitteln eigener Ladedaten durch den jeweiligen API-Key-Inhaber erlaubt. Eine
+            Massenabfrage oder automatisierte Auswertung von Fremddaten über die API ist nicht gestattet.
+          </p>
+        </section>
+
+        <section>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">8. Änderungen der AGB</h2>
           <p>
             Wir behalten uns vor, diese AGB jederzeit zu ändern. Änderungen werden per E-Mail angekündigt.
             Wenn Sie den Änderungen nicht zustimmen, können Sie Ihren Account löschen.
@@ -163,7 +199,7 @@ import { BoltIcon } from '@heroicons/vue/24/outline'
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">8. Kündigung</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">9. Kündigung</h2>
           <p>
             Beide Parteien können das Nutzungsverhältnis jederzeit ohne Einhaltung einer Frist kündigen.
           </p>
@@ -173,7 +209,7 @@ import { BoltIcon } from '@heroicons/vue/24/outline'
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">9. Salvatorische Klausel</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">10. Salvatorische Klausel</h2>
           <p>
             Sollten einzelne Bestimmungen dieser AGB unwirksam sein, bleibt die Wirksamkeit der übrigen
             Bestimmungen unberührt.
@@ -181,7 +217,7 @@ import { BoltIcon } from '@heroicons/vue/24/outline'
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">10. Anwendbares Recht</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">11. Anwendbares Recht</h2>
           <p>
             Für diese AGB gilt deutsches Recht unter Ausschluss des UN-Kaufrechts (CISG).
           </p>
