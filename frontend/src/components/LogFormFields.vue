@@ -3,10 +3,15 @@ import { ref, watch, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { GlobeAltIcon } from '@heroicons/vue/24/outline'
 import api from '../api/axios'
+import { useCountryStore } from '../stores/country'
+import { EUR_EXCHANGE_RATES } from '../config/exchangeRates'
+import { EUR_ZONE_COUNTRIES } from '../config/unitSystems'
 
 export interface LogFormData {
   kwhCharged: number | null
   costEur: number | null
+  costExchangeRate: number | null
+  costCurrency: string | null
   odometerKm: number | null
   socAfterChargePercent: number | null
   socBeforeChargePercent: number | null
@@ -32,7 +37,19 @@ const props = defineProps<{
 
 const form = defineModel<LogFormData>({ required: true })
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const countryStore = useCountryStore()
+
+const isEurCountry = computed(() => EUR_ZONE_COUNTRIES.includes(countryStore.country))
+const localCurrency = computed(() => countryStore.unitSystem.currency)
+const localSymbol = computed(() => countryStore.unitSystem.currencySymbol)
+const localSubunit = computed(() => countryStore.unitSystem.currencySubunit)
+const exchangeRate = computed(() => EUR_EXCHANGE_RATES[localCurrency.value])
+
+/** Convert local currency amount to EUR */
+const localToEur = (local: number) => local / exchangeRate.value
+/** Convert EUR to local currency amount */
+const eurToLocal = (eur: number) => eur * exchangeRate.value
 
 // ── Location ─────────────────────────────────────────────────────────────────
 const locationEnabled = ref(
@@ -44,12 +61,14 @@ const locationStatus = ref<'idle' | 'loading' | 'success' | 'error' | 'manual'>(
 const locationErrorMessage = ref<string | null>(null)
 
 const fetchPriceSuggestion = async (lat: number, lon: number, isPublic: boolean) => {
-  if (form.value.costEur != null || priceEurPerKwh.value != null) return
+  if (form.value.costEur != null || costLocalPerKwh.value != null) return
   try {
     const res = await api.get('/logs/price-suggestion', { params: { lat, lon, isPublic } })
     if (res.status === 200 && res.data?.costPerKwh != null) {
-      costMode.value = 'eur_kwh'
-      priceEurPerKwh.value = Number(res.data.costPerKwh)
+      costMode.value = 'per_kwh'
+      // Price suggestion comes in EUR - convert to local
+      const eurPrice = Number(res.data.costPerKwh)
+      costLocalPerKwh.value = isEurCountry.value ? eurPrice : Math.round(eurToLocal(eurPrice) * 100) / 100
     }
   } catch {
     // kein Vorschlag verfügbar - kein Problem
@@ -114,33 +133,84 @@ const inputClass = (field: string) =>
   ].join(' ')
 
 // ── Cost Mode ─────────────────────────────────────────────────────────────────
-const costMode = ref<'eur' | 'eur_kwh'>('eur')
-const priceEurPerKwh = ref<number | null>(null)
+const costMode = ref<'total' | 'per_kwh'>('total')
 
-const calculatedEur = computed(() => {
+// User-facing values in LOCAL currency
+const costLocalTotal = ref<number | null>(null)
+const costLocalPerKwh = ref<number | null>(null)
+
+// Sync local → EUR whenever local values change
+const syncCostToEur = () => {
+  let eurValue: number | null = null
+  if (costMode.value === 'total' && costLocalTotal.value != null) {
+    eurValue = isEurCountry.value ? costLocalTotal.value : localToEur(costLocalTotal.value)
+  } else if (costMode.value === 'per_kwh' && costLocalPerKwh.value != null && form.value.kwhCharged) {
+    const localTotal = costLocalPerKwh.value * form.value.kwhCharged
+    eurValue = isEurCountry.value ? localTotal : localToEur(localTotal)
+  }
+  form.value.costEur = eurValue != null ? Math.round(eurValue * 100) / 100 : null
+
+  // Set currency metadata for non-EUR
+  if (!isEurCountry.value && eurValue != null) {
+    form.value.costExchangeRate = exchangeRate.value
+    form.value.costCurrency = localCurrency.value
+  } else {
+    form.value.costExchangeRate = null
+    form.value.costCurrency = null
+  }
+}
+
+const calculatedLocalTotal = computed(() => {
   const kwh = form.value.kwhCharged
-  const price = priceEurPerKwh.value
+  const price = costLocalPerKwh.value
   if (kwh != null && price != null) return Math.round(kwh * price * 100) / 100
   return null
 })
 
-watch([() => form.value.kwhCharged, priceEurPerKwh], () => {
-  if (costMode.value === 'eur_kwh') {
-    form.value.costEur = calculatedEur.value
-  }
+const calculatedLocalPerKwh = computed(() => {
+  const kwh = form.value.kwhCharged
+  const total = costLocalTotal.value
+  if (kwh != null && kwh > 0 && total != null) return Math.round(total / kwh * 100) / 100
+  return null
 })
 
-const toggleCostMode = (mode: 'eur' | 'eur_kwh') => {
+watch([costLocalTotal, costLocalPerKwh, () => form.value.kwhCharged], syncCostToEur)
+
+const toggleCostMode = (mode: 'total' | 'per_kwh') => {
   if (costMode.value === mode) return
-  if (mode === 'eur_kwh') {
+  if (mode === 'per_kwh') {
     const kwh = form.value.kwhCharged
-    const eur = form.value.costEur
-    priceEurPerKwh.value = (kwh && eur) ? Math.round((eur / kwh) * 100) / 100 : null
+    const total = costLocalTotal.value
+    costLocalPerKwh.value = (kwh && total) ? Math.round((total / kwh) * 100) / 100 : null
   } else {
-    form.value.costEur = calculatedEur.value
+    costLocalTotal.value = calculatedLocalTotal.value
   }
   costMode.value = mode
 }
+
+// Initialize local cost from EUR (for edit mode or price suggestion)
+const initLocalCostFromEur = () => {
+  if (form.value.costEur == null) return
+  // Use stored exchange rate if available (exact roundtrip), otherwise current rate
+  const rate = (form.value as any).costExchangeRate ?? exchangeRate.value
+  const localAmount = isEurCountry.value ? form.value.costEur : form.value.costEur * rate
+  if (costMode.value === 'total') {
+    costLocalTotal.value = Math.round(localAmount * 100) / 100
+  } else {
+    const kwh = form.value.kwhCharged
+    costLocalPerKwh.value = kwh ? Math.round((localAmount / kwh) * 100) / 100 : null
+  }
+}
+
+// Watch for external costEur changes (price suggestion, edit mode load)
+let skipExternalSync = false
+watch(() => form.value.costEur, (newVal) => {
+  if (skipExternalSync) { skipExternalSync = false; return }
+  // Only react to external changes (not our own syncCostToEur)
+  if (newVal != null && costLocalTotal.value == null && costLocalPerKwh.value == null) {
+    initLocalCostFromEur()
+  }
+}, { immediate: true })
 
 // ── CPO Dropdown ──────────────────────────────────────────────────────────────
 const cpoList = ref<string[]>([])
@@ -172,8 +242,9 @@ watch(() => form.value.chargingType, (type) => {
 
 watch(() => form.value.isPublicCharging, (isPublic) => {
   if (form.value.latitude != null && form.value.longitude != null) {
-    priceEurPerKwh.value = null
-    costMode.value = 'eur'
+    costLocalPerKwh.value = null
+    costLocalTotal.value = null
+    costMode.value = 'total'
     fetchPriceSuggestion(form.value.latitude, form.value.longitude, isPublic)
   }
 })
@@ -203,25 +274,27 @@ defineExpose({ clearLocation, locationEnabled, locationStatus, getCurrentDateTim
     <div>
       <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('logfields.cost_eur') }}</label>
       <div class="relative">
-        <input v-if="costMode === 'eur'" v-model="form.costEur" type="number" step="0.01" :placeholder="t('logfields.cost_eur_placeholder')"
-          :class="[inputClass('cost'), 'pr-14']" />
-        <input v-else v-model="priceEurPerKwh" type="number" step="0.01"
+        <input v-if="costMode === 'total'" v-model="costLocalTotal" type="number" step="0.01" :placeholder="t('logfields.cost_eur_placeholder')"
+          :class="[inputClass('cost'), 'pr-24']" />
+        <input v-else v-model="costLocalPerKwh" type="number" step="0.01"
           :placeholder="t('logfields.cost_per_kwh_placeholder')"
-          :class="[inputClass('cost'), calculatedEur !== null ? 'pr-28' : 'pr-14']" />
-        <span v-if="costMode === 'eur_kwh' && calculatedEur !== null"
-          class="absolute right-14 top-1/2 -translate-y-1/2 text-xs text-gray-400 dark:text-gray-500 pointer-events-none select-none whitespace-nowrap">
-          = {{ calculatedEur.toFixed(2) }} €
+          :class="[inputClass('cost'), 'pr-24']" />
+        <span v-if="costMode === 'total' && calculatedLocalPerKwh !== null"
+          class="hidden sm:block absolute right-24 top-1/2 -translate-y-1/2 text-xs text-gray-400 dark:text-gray-500 pointer-events-none select-none whitespace-nowrap">
+          = {{ calculatedLocalPerKwh.toFixed(2) }} {{ (localSubunit || localSymbol) + '/kWh' }}
+        </span>
+        <span v-if="costMode === 'per_kwh' && calculatedLocalTotal !== null"
+          class="hidden sm:block absolute right-24 top-1/2 -translate-y-1/2 text-xs text-gray-400 dark:text-gray-500 pointer-events-none select-none whitespace-nowrap">
+          = {{ calculatedLocalTotal.toFixed(2) }} {{ localSymbol }}
         </span>
         <div class="absolute right-1.5 top-1/2 -translate-y-1/2 flex rounded-full border border-gray-300 dark:border-gray-500 bg-gray-200 dark:bg-gray-600 p-0.5 text-xs">
-          <div class="absolute top-0.5 bottom-0.5 rounded-full pill-slider transition-transform duration-200 ease-in-out pointer-events-none" style="width: calc(50% - 2px)"
-            :style="{ transform: `translateX(${costMode === 'eur_kwh' ? '100%' : '0%'})` }" />
-          <button type="button" @click="toggleCostMode('eur')"
-            :class="['relative z-10 px-1.5 py-0.5 rounded-full font-medium transition-colors duration-200', costMode === 'eur' ? 'text-indigo-700 dark:text-white' : 'text-gray-500 dark:text-gray-400']">
-            €
+          <button type="button" @click="toggleCostMode('total')"
+            :class="['px-1.5 py-0.5 rounded-full font-medium transition-all duration-200', costMode === 'total' ? 'bg-white dark:bg-gray-500 text-indigo-700 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400']">
+            {{ localSymbol }}
           </button>
-          <button type="button" @click="toggleCostMode('eur_kwh')"
-            :class="['relative z-10 px-1.5 py-0.5 rounded-full font-medium transition-colors duration-200', costMode === 'eur_kwh' ? 'text-indigo-700 dark:text-white' : 'text-gray-500 dark:text-gray-400']">
-            ct
+          <button type="button" @click="toggleCostMode('per_kwh')"
+            :class="['px-1.5 py-0.5 rounded-full font-medium transition-all duration-200', costMode === 'per_kwh' ? 'bg-white dark:bg-gray-500 text-indigo-700 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400']">
+            {{ (localSubunit || localSymbol) + '/kWh' }}
           </button>
         </div>
       </div>
@@ -305,8 +378,8 @@ defineExpose({ clearLocation, locationEnabled, locationStatus, getCurrentDateTim
   <!-- Location error message -->
   <p v-if="locationErrorMessage" class="text-xs text-red-500">{{ locationErrorMessage }}</p>
 
-  <!-- CPO Dropdown (innerhalb der Pflichtfelder-Gruppe, direkt über Submit) -->
-  <div v-if="form.isPublicCharging" class="space-y-1.5">
+  <!-- CPO Dropdown (nur DE - CPO-Daten sind DACH-spezifisch) -->
+  <div v-if="form.isPublicCharging && locale === 'de'" class="space-y-1.5">
     <select v-model="cpoSelect" :class="inputClass('cpoName')">
       <option value="">{{ t('logfields.cpo_select_placeholder') }}</option>
       <option v-for="cpo in cpoList" :key="cpo" :value="cpo">{{ cpo }}</option>

@@ -584,7 +584,7 @@ logform:
 
 logfields:
   energy: "Energy (kWh)"
-  cost_eur: "Cost (€)"
+  cost_eur: "Cost"
   cost_per_kwh: "Price (€/kWh)"
   odometer: "Odometer (km)"
   soc_after: "Battery after charging (%)"

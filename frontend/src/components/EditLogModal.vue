@@ -72,6 +72,8 @@ export interface EvLogResponse {
   carId: string
   kwhCharged: number
   costEur: number | null
+  costExchangeRate: number | null
+  costCurrency: string | null
   chargeDurationMinutes: number | null
   geohash: string | null
   odometerKm: number | null
@@ -97,6 +99,8 @@ const toDatetimeLocal = (iso: string) => iso.slice(0, 16)
 const formData = ref<LogFormData>({
   kwhCharged: props.log.kwhCharged,
   costEur: props.log.costEur ?? null,
+  costExchangeRate: (props.log as any).costExchangeRate ?? null,
+  costCurrency: (props.log as any).costCurrency ?? null,
   odometerKm: props.log.odometerKm ?? null,
   socAfterChargePercent: props.log.socAfterChargePercent ?? null,
   socBeforeChargePercent: props.log.socBeforeChargePercent ?? null,
@@ -188,6 +192,8 @@ async function save() {
       chargingType: f.chargingType,
       routeType: f.routeType,
       tireType: f.tireType,
+      costExchangeRate: f.costExchangeRate,
+      costCurrency: f.costCurrency,
     }
     if (f.latitude !== null && f.longitude !== null) {
       payload.latitude = f.latitude

@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { BoltIcon, CurrencyEuroIcon } from '@heroicons/vue/24/outline'
+import { useCountryStore } from '../stores/country'
+
+const countryStore = useCountryStore()
+const isGerman = computed(() => countryStore.country === 'DE')
 
 interface Banner { id: string; icon: string; headline: string; text: string; cta: string; url: string; weight: number }
 
@@ -39,7 +43,7 @@ const banner = computed(() => {
 
 <template>
   <div
-    v-if="banner"
+    v-if="banner && isGerman"
     class="relative bg-green-50/60 dark:bg-green-900/10 md:rounded-2xl md:border-x border-t md:border-b border-green-100 dark:border-green-900/40 px-6 py-4"
   >
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">

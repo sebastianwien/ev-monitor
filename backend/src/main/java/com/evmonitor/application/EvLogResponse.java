@@ -36,7 +36,9 @@ public record EvLogResponse(
         DataSource dataSource,
         boolean includeInStatistics,
         boolean isPublicCharging,
-        String cpoName) {
+        String cpoName,
+        BigDecimal costExchangeRate,
+        String costCurrency) {
 
     public static EvLogResponse fromDomain(EvLog evLog) {
         return fromDomain(evLog, null, null);
@@ -74,6 +76,8 @@ public record EvLogResponse(
                 evLog.getDataSource(),
                 evLog.isIncludeInStatistics(),
                 evLog.isPublicCharging(),
-                evLog.getCpoName());
+                evLog.getCpoName(),
+                evLog.getCostExchangeRate(),
+                evLog.getCostCurrency());
     }
 }

@@ -54,9 +54,10 @@ const router = createRouter({
                     return '/dashboard';
                 }
                 // First visit without saved locale preference → detect browser language
+                // Default to English for all non-German browsers (NO, SE, DK, NL, BE, GB, etc.)
                 if (!localStorage.getItem('ev-locale')) {
                     const browserLang = navigator.language ?? '';
-                    if (browserLang.toLowerCase().startsWith('en')) {
+                    if (!browserLang.toLowerCase().startsWith('de')) {
                         return '/en';
                     }
                 }
@@ -164,7 +165,7 @@ const router = createRouter({
             beforeEnter: () => {
                 if (!localStorage.getItem('ev-locale')) {
                     const browserLang = navigator.language ?? '';
-                    if (browserLang.toLowerCase().startsWith('en')) {
+                    if (!browserLang.toLowerCase().startsWith('de')) {
                         return '/en/models';
                     }
                 }
@@ -184,7 +185,7 @@ const router = createRouter({
             beforeEnter: (to) => {
                 if (!localStorage.getItem('ev-locale')) {
                     const browserLang = navigator.language ?? '';
-                    if (browserLang.toLowerCase().startsWith('en')) {
+                    if (!browserLang.toLowerCase().startsWith('de')) {
                         return `/en/models/${to.params.brand}`;
                     }
                 }
@@ -197,7 +198,7 @@ const router = createRouter({
             beforeEnter: (to) => {
                 if (!localStorage.getItem('ev-locale')) {
                     const browserLang = navigator.language ?? '';
-                    if (browserLang.toLowerCase().startsWith('en')) {
+                    if (!browserLang.toLowerCase().startsWith('de')) {
                         return `/en/models/${to.params.brand}/${to.params.model}`;
                     }
                 }
