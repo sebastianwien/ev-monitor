@@ -33,6 +33,8 @@ public class EvLog {
     private final boolean isPublicCharging;  // Whether this was at a public charger (CPO)
     private final String cpoName;            // Optional: CPO name (e.g. IONITY, EnBW) — only when isPublicCharging
     private final EnergyMeasurementType measurementType; // At which point energy is measured (derived from dataSource)
+    private final BigDecimal costExchangeRate; // EUR→local rate used at entry time (null = EUR direct)
+    private final String costCurrency;         // ISO 4217 currency code (null = EUR)
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
 
@@ -46,7 +48,8 @@ public class EvLog {
             Double temperatureCelsius, ChargingType chargingType, String rawImportData,
             LocalDateTime createdAt, LocalDateTime updatedAt,
             RouteType routeType, TireType tireType, UUID supersededBy, UUID sessionGroupId,
-            boolean isPublicCharging, String cpoName, EnergyMeasurementType measurementType) {
+            boolean isPublicCharging, String cpoName, EnergyMeasurementType measurementType,
+            BigDecimal costExchangeRate, String costCurrency) {
         this.id = id;
         this.carId = carId;
         this.kwhCharged = kwhCharged;
@@ -73,6 +76,8 @@ public class EvLog {
         this.sessionGroupId = sessionGroupId;
         this.isPublicCharging = isPublicCharging;
         this.cpoName = cpoName;
+        this.costExchangeRate = costExchangeRate;
+        this.costCurrency = costCurrency;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -352,14 +357,25 @@ public class EvLog {
         return measurementType;
     }
 
+    public BigDecimal getCostExchangeRate() {
+        return costExchangeRate;
+    }
+
+    public String getCostCurrency() {
+        return costCurrency;
+    }
+
     public EvLog withPatch(BigDecimal kwh, BigDecimal costEur, Integer durationMin,
             String geohash, Integer odometerKm, Integer socBefore, Integer socAfter,
             BigDecimal maxChargingPowerKw, ChargingType chargingType,
             RouteType routeType, TireType tireType, Boolean isPublicCharging, String cpoName,
-            EnergyMeasurementType measurementType) {
+            EnergyMeasurementType measurementType,
+            BigDecimal costExchangeRate, String costCurrency) {
         return toBuilder()
                 .kwhCharged(kwh != null ? kwh : this.kwhCharged)
                 .costEur(costEur != null ? costEur : this.costEur)
+                .costExchangeRate(costExchangeRate != null ? costExchangeRate : this.costExchangeRate)
+                .costCurrency(costCurrency != null ? costCurrency : this.costCurrency)
                 .chargeDurationMinutes(durationMin != null ? durationMin : this.chargeDurationMinutes)
                 .geohash(geohash != null ? geohash : this.geohash)
                 .odometerKm(odometerKm != null ? odometerKm : this.odometerKm)

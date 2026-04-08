@@ -32,7 +32,9 @@ public record EvLogUpdateRequest(
         RouteType routeType,
         TireType tireType,
         Boolean isPublicCharging,
-        @Size(max = 100) String cpoName) {
+        @Size(max = 100) String cpoName,
+        BigDecimal costExchangeRate,
+        @Size(max = 3) String costCurrency) {
 
     // Backward-compatible constructor for existing callers (tests)
     public EvLogUpdateRequest(BigDecimal kwhCharged, BigDecimal costEur,
@@ -43,6 +45,6 @@ public record EvLogUpdateRequest(
             RouteType routeType, TireType tireType) {
         this(kwhCharged, costEur, chargeDurationMinutes, latitude, longitude,
                 odometerKm, maxChargingPowerKw, socAfterChargePercent, socBeforeChargePercent,
-                loggedAt, chargingType, routeType, tireType, null, null);
+                loggedAt, chargingType, routeType, tireType, null, null, null, null);
     }
 }

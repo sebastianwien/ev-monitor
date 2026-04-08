@@ -252,6 +252,8 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
         entity.setPublicCharging(domain.isPublicCharging());
         entity.setCpoName(domain.getCpoName());
         entity.setMeasurementType(domain.getMeasurementType().name());
+        entity.setCostExchangeRate(domain.getCostExchangeRate());
+        entity.setCostCurrency(domain.getCostCurrency());
         return entity;
     }
 
@@ -282,6 +284,8 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 .isPublicCharging(entity.isPublicCharging())
                 .cpoName(entity.getCpoName())
                 .measurementType(entity.getMeasurementType() != null ? EnergyMeasurementType.valueOf(entity.getMeasurementType()) : null)
+                .costExchangeRate(entity.getCostExchangeRate())
+                .costCurrency(entity.getCostCurrency())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .build();

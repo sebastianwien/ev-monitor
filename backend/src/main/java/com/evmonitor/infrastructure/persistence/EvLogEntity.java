@@ -86,6 +86,12 @@ public class EvLogEntity {
     @Column(name = "measurement_type", length = 20, nullable = false)
     private String measurementType = "AT_CHARGER";
 
+    @Column(name = "cost_exchange_rate", precision = 10, scale = 6)
+    private BigDecimal costExchangeRate;
+
+    @Column(name = "cost_currency", length = 3)
+    private String costCurrency;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -329,5 +335,21 @@ public class EvLogEntity {
 
     public void setMeasurementType(String measurementType) {
         this.measurementType = measurementType;
+    }
+
+    public BigDecimal getCostExchangeRate() {
+        return costExchangeRate;
+    }
+
+    public void setCostExchangeRate(BigDecimal costExchangeRate) {
+        this.costExchangeRate = costExchangeRate;
+    }
+
+    public String getCostCurrency() {
+        return costCurrency;
+    }
+
+    public void setCostCurrency(String costCurrency) {
+        this.costCurrency = costCurrency;
     }
 }

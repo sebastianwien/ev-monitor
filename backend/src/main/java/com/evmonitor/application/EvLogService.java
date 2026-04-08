@@ -93,6 +93,14 @@ public class EvLogService {
                 Boolean.TRUE.equals(request.isPublicCharging()),
                 request.cpoName());
 
+        // Attach original currency metadata if provided (non-EUR entry)
+        if (request.costCurrency() != null && request.costExchangeRate() != null) {
+            newLog = newLog.toBuilder()
+                    .costExchangeRate(request.costExchangeRate())
+                    .costCurrency(request.costCurrency())
+                    .build();
+        }
+
         EvLog savedLog = evLogRepository.save(newLog);
 
         // Suppress any matching import logs (e.g. Tesla auto-import of the same session)
@@ -310,6 +318,8 @@ public class EvLogService {
                 .tireType(request.tireType()                 != null ? request.tireType()                : existing.getTireType())
                 .isPublicCharging(updatedIsPublicCharging)
                 .cpoName(request.cpoName()                   != null ? request.cpoName()                 : existing.getCpoName())
+                .costExchangeRate(request.costExchangeRate() != null ? request.costExchangeRate()     : existing.getCostExchangeRate())
+                .costCurrency(request.costCurrency()         != null ? request.costCurrency()          : existing.getCostCurrency())
                 .updatedAt(LocalDateTime.now())
                 .build();
 

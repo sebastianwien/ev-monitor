@@ -1,5 +1,11 @@
+<script setup lang="ts">
+import { useCountryStore } from '../stores/country'
+const countryStore = useCountryStore()
+</script>
+
 <template>
   <a
+    v-if="countryStore.country === 'DE'"
     href="https://Geld-fuer-eAuto.de/ref/evmonitor"
     target="_blank"
     rel="noopener sponsored"

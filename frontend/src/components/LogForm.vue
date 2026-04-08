@@ -45,6 +45,8 @@ const carCount = ref(0)
 const formData = ref<LogFormData>({
   kwhCharged: null,
   costEur: null,
+  costExchangeRate: null,
+  costCurrency: null,
   odometerKm: null,
   socAfterChargePercent: null,
   socBeforeChargePercent: null,
@@ -180,6 +182,8 @@ const submitLog = async () => {
     payload.tireType = f.tireType
     payload.isPublicCharging = f.isPublicCharging
     if (f.isPublicCharging && f.cpoName) payload.cpoName = f.cpoName
+    if (f.costExchangeRate != null) payload.costExchangeRate = f.costExchangeRate
+    if (f.costCurrency != null) payload.costCurrency = f.costCurrency
 
     const isFirstLog = logs.value.length === 0
     const res = await api.post('/logs', payload)
@@ -192,7 +196,7 @@ const submitLog = async () => {
     const savedTireType = f.tireType
     const savedRouteType = f.routeType
     formData.value = {
-      kwhCharged: null, costEur: null, odometerKm: null,
+      kwhCharged: null, costEur: null, costExchangeRate: null, costCurrency: null, odometerKm: null,
       socAfterChargePercent: null, socBeforeChargePercent: null,
       chargeDurationMinutes: null, maxChargingPowerKw: null, loggedAt: null,
       chargingType: 'AC', routeType: savedRouteType,

@@ -233,7 +233,8 @@ public class PublicApiImportService {
                 patch.socAfter(),
                 patch.maxChargingPowerKw() != null ? BigDecimal.valueOf(patch.maxChargingPowerKw()) : null,
                 chargingType, routeType, tireType,
-                isPublic, cpoName, measurementType
+                isPublic, cpoName, measurementType,
+                null, null // costExchangeRate, costCurrency (public API always EUR)
         );
 
         evLogRepository.save(patched);
