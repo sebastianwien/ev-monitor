@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/auth'
-import { ArrowDownTrayIcon, BoltIcon, ExclamationTriangleIcon, CodeBracketIcon, TrashIcon, ClipboardDocumentIcon, CheckIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
+import { ArrowDownTrayIcon, ArrowPathIcon, BoltIcon, ExclamationTriangleIcon, CodeBracketIcon, TrashIcon, ClipboardDocumentIcon, CheckIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
 import SpritMonitorImport from '../components/SpritMonitorImport.vue'
 import GoeIntegration from '../components/GoeIntegration.vue'
 import TeslaFleetIntegration from '../components/TeslaFleetIntegration.vue'
@@ -167,8 +167,8 @@ const activeCars = computed(() =>
             @click="toggle('smartcar'); analytics.trackImportTabClicked('smartcar')"
             class="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
           >
-            <div class="shrink-0 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-2 w-10 h-10 flex items-center justify-center">
-              <img src="/logos/smartcar.svg" alt="Smartcar" class="h-5 w-auto dark:invert" />
+            <div class="shrink-0 rounded-lg p-2 w-10 h-10 flex items-center justify-center bg-gradient-to-br from-indigo-500 to-green-500">
+              <ArrowPathIcon class="h-5 w-5 text-white" />
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 flex-wrap">
