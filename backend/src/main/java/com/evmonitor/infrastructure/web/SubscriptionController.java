@@ -49,7 +49,8 @@ public class SubscriptionController {
             @AuthenticationPrincipal UserPrincipal principal,
             @RequestBody CheckoutRequest request) {
 
-        if (!premiumProperties.isEnabled()) {
+        boolean isAdmin = "ADMIN".equals(principal.getUser().getRole());
+        if (!premiumProperties.isEnabled() && !isAdmin) {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                     .body(Map.of("message", "Premium not yet available"));
         }
