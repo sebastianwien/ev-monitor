@@ -1023,7 +1023,7 @@ imports:
   autosync_teaser_desc: "Möchtest du, dass alle Ladevorgänge deines Autos künftig vollautomatisch importiert werden - ohne manuelle Eingabe? EV Monitor AutoSync macht das möglich. Unterstützte Marken: BMW, VW, Mercedes, Audi, Hyundai, Volvo, Polestar, Renault, Ford, Tesla u.v.m."
   autosync_teaser_cta: "AutoSync freischalten"
   autosync_teaser_price: "3,90 €/Monat - jederzeit kündbar"
-  smartcar_upgrade_cta: "Jetzt freischalten - ab 3,90 €/Monat"
+  smartcar_upgrade_cta: "Jetzt freischalten - 3,90 €/Monat"
   smartcar_upgrade_price: "Jederzeit kündbar. Sichere Zahlung über Stripe."
   smartcar_teaser_title: "Automatische Ladesessions - alle Marken"
   smartcar_coming_soon: "Demnächst"

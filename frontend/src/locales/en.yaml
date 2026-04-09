@@ -1023,7 +1023,7 @@ imports:
   autosync_teaser_desc: "Want all your car's charging sessions imported automatically - no manual entry needed? EV Monitor AutoSync makes it possible for BMW, VW, Mercedes, Audi, Hyundai, Volvo, Polestar, Renault, Ford, Tesla and many more."
   autosync_teaser_cta: "Unlock AutoSync"
   autosync_teaser_price: "€3.90/month - cancel anytime"
-  smartcar_upgrade_cta: "Unlock now - from €3.90/month"
+  smartcar_upgrade_cta: "Unlock now - €3.90/month"
   smartcar_upgrade_price: "Cancel anytime. Secure payment via Stripe."
   smartcar_teaser_title: "Automatic charging sessions - all brands"
   smartcar_coming_soon: "Coming soon"
