@@ -74,6 +74,13 @@ const LANGUAGE_COUNTRY_MAP: Record<string, CountryCode> = {
     'de-at': 'AT',
     'de-CH': 'CH',
     'de-ch': 'CH',
+    'fr-CH': 'CH',
+    'fr-ch': 'CH',
+    'it-CH': 'CH',
+    'it-ch': 'CH',
+    'de-DE': 'DE',
+    'de-de': 'DE',
+    'de':    'DE',
 }
 
 function detectCountryFromLanguage(): CountryCode | null {
