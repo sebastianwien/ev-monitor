@@ -215,4 +215,16 @@ public class AuthService {
         }
         return candidate;
     }
+
+    /**
+     * Re-issues a JWT with current DB state (e.g. after premium status change via Stripe webhook).
+     * The caller's existing token is valid — we just refresh the claims.
+     */
+    public AuthResponse refreshToken(UserPrincipal principal) {
+        User freshUser = userRepository.findById(principal.getUser().getId())
+                .orElseThrow(() -> new IllegalStateException("User not found"));
+        String jwtToken = jwtService.generateToken(UserPrincipal.create(freshUser));
+        return new AuthResponse(jwtToken, freshUser.getId(), freshUser.getEmail(),
+                freshUser.getRole(), freshUser.isSeedData(), freshUser.isPremium());
+    }
 }

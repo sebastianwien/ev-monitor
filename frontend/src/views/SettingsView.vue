@@ -395,6 +395,7 @@ const restartOnboarding = () => {
 onMounted(() => {
   fetchUserData()
   fetchChargingProviders()
+  authStore.refreshPremiumStatus()
 })
 </script>
 

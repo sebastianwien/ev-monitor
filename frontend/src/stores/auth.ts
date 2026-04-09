@@ -2,7 +2,6 @@ import { defineStore } from 'pinia';
 import api from '../api/axios';
 import { ref, computed } from 'vue';
 import { jwtDecode, type JwtPayload } from 'jwt-decode';
-import { subscriptionService } from '../api/subscriptionService';
 import { useCarStore } from './car';
 
 function safeLocalStorage(op: () => void): void {
@@ -71,13 +70,20 @@ export const useAuthStore = defineStore('auth', () => {
         return response.data;
     };
 
-    const refreshPremiumStatus = async () => {
+    const refreshToken = async () => {
         try {
-            const status = await subscriptionService.getStatus();
-            setPremium(status.isPremium);
+            const response = await api.post('/auth/refresh');
+            if (response.data.token) {
+                setToken(response.data.token);
+            }
+            setPremium(response.data.isPremium ?? false);
         } catch {
             // Ignore errors — don't disrupt the user
         }
+    };
+
+    const refreshPremiumStatus = async () => {
+        await refreshToken();
     };
 
     const isExpired = (): boolean => {
@@ -96,7 +102,7 @@ export const useAuthStore = defineStore('auth', () => {
     return {
         token, user, isDemoAccount, isPremium, isAdmin,
         setToken, setPremium, logout, login, register,
-        refreshPremiumStatus,
+        refreshToken, refreshPremiumStatus,
         isAuthenticated: () => !!token.value,
         isExpired,
     };

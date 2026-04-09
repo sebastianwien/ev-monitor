@@ -6,6 +6,7 @@ import com.evmonitor.application.LoginRequest;
 import com.evmonitor.application.RegisterRequest;
 import com.evmonitor.application.RegisterResponse;
 import com.evmonitor.infrastructure.security.RateLimitService;
+import com.evmonitor.infrastructure.security.UserPrincipal;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
@@ -13,6 +14,7 @@ import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -65,6 +67,11 @@ public class AuthController {
             return tooManyRequests(300);
         }
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> refreshToken(@AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.ok(authService.refreshToken(principal));
     }
 
     @GetMapping("/verify-email")

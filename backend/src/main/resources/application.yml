@@ -133,6 +133,9 @@ tesla:
 internal:
   token: ${INTERNAL_SERVICE_TOKEN}
 
+connectors:
+  base-url: ${CONNECTORS_BASE_URL:http://connectors-service:8081}
+
 # Tankerkoenig Fuel Price API (kostenloser Key auf creativecommons.tankerkoenig.de)
 tankerkoenig:
   api-key: ${TANKERKOENIG_API_KEY:}

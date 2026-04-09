@@ -11,6 +11,11 @@ import com.stripe.model.Customer;
 import com.stripe.model.Event;
 import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.web.client.RestTemplate;
 import com.stripe.param.CustomerBalanceTransactionCollectionCreateParams;
 import com.stripe.param.CustomerCreateParams;
 import com.stripe.param.checkout.SessionCreateParams;
@@ -21,6 +26,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class StripeService {
@@ -45,7 +51,21 @@ public class StripeService {
     @Value("${stripe.referral-reward-cents:390}")
     private long referralRewardCents;
 
+    @Value("${connectors.base-url:http://connectors-service:8081}")
+    private String connectorsBaseUrl;
+
+    @Value("${internal.token:}")
+    private String internalToken;
+
+    private final RestTemplate restTemplate = buildRestTemplate();
     private final UserRepository userRepository;
+
+    private static RestTemplate buildRestTemplate() {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(3_000);
+        factory.setReadTimeout(10_000);
+        return new RestTemplate(factory);
+    }
 
     public StripeService(UserRepository userRepository) {
         this.userRepository = userRepository;
@@ -124,15 +144,18 @@ public class StripeService {
             }
             case "customer.subscription.deleted" -> {
                 String customerId = data.get("customer").getAsString();
-                findUserByCustomerId(customerId)
-                        .ifPresent(u -> userRepository.setPremium(u.getId(), false));
+                findUserByCustomerId(customerId).ifPresent(u -> {
+                    userRepository.setPremium(u.getId(), false);
+                    disconnectSmartcar(u.getId());
+                });
                 log.info("[STRIPE] subscription deleted → isPremium=false for customer={}", customerId);
             }
             case "invoice.payment_failed" -> {
+                // Do NOT revoke premium immediately — Stripe retries the payment.
+                // Access is revoked naturally when the subscription transitions to
+                // past_due (via customer.subscription.updated) or is deleted.
                 String customerId = data.get("customer").getAsString();
-                findUserByCustomerId(customerId)
-                        .ifPresent(u -> userRepository.setPremium(u.getId(), false));
-                log.warn("[STRIPE] payment failed → isPremium=false for customer={}", customerId);
+                log.warn("[STRIPE] payment failed for customer={} — Stripe will retry", customerId);
             }
             case "invoice.payment_succeeded" -> {
                 long amountPaid = data.get("amount_paid").getAsLong();
@@ -215,5 +238,20 @@ public class StripeService {
 
     private Optional<User> findUserByCustomerId(String customerId) {
         return userRepository.findByStripeCustomerId(customerId);
+    }
+
+    private void disconnectSmartcar(UUID userId) {
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("X-Internal-Token", internalToken);
+            restTemplate.exchange(
+                    connectorsBaseUrl + "/api/internal/smartcar/disconnect/" + userId,
+                    HttpMethod.DELETE,
+                    new HttpEntity<>(headers),
+                    Void.class);
+            log.info("[STRIPE] Smartcar disconnected for userId={}", userId);
+        } catch (Exception e) {
+            log.warn("[STRIPE] Smartcar disconnect failed for userId={}: {}", userId, e.getMessage());
+        }
     }
 }

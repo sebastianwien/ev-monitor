@@ -33,7 +33,12 @@ const { t } = useI18n();
 const authStore = useAuthStore();
 
 onMounted(async () => {
-    await authStore.refreshPremiumStatus();
+    // Poll up to 5x with 1s delay — webhook processing may lag slightly behind redirect
+    for (let i = 0; i < 5; i++) {
+        await authStore.refreshToken();
+        if (authStore.isPremium) break;
+        if (i < 4) await new Promise(resolve => setTimeout(resolve, 1000));
+    }
     analytics.trackCheckoutCompleted();
 });
 </script>

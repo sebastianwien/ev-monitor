@@ -18,6 +18,8 @@ import java.util.Map;
 @RequestMapping("/api/subscription")
 public class SubscriptionController {
 
+    private static final String ROLE_ADMIN = "ADMIN";
+
     private final StripeService stripeService;
     private final UserRepository userRepository;
     private final PremiumProperties premiumProperties;
@@ -37,7 +39,7 @@ public class SubscriptionController {
     public ResponseEntity<Map<String, Object>> getStatus(@AuthenticationPrincipal UserPrincipal principal) {
         User user = userRepository.findById(principal.getUser().getId())
                 .orElseThrow(() -> new IllegalStateException("User not found"));
-        boolean isAdmin = "ADMIN".equals(principal.getUser().getRole());
+        boolean isAdmin = ROLE_ADMIN.equals(principal.getUser().getRole());
         return ResponseEntity.ok(Map.of(
                 "isPremium", user.isPremium(),
                 "premiumEnabled", premiumProperties.isEnabled() || isAdmin
@@ -49,7 +51,7 @@ public class SubscriptionController {
             @AuthenticationPrincipal UserPrincipal principal,
             @RequestBody CheckoutRequest request) {
 
-        boolean isAdmin = "ADMIN".equals(principal.getUser().getRole());
+        boolean isAdmin = ROLE_ADMIN.equals(principal.getUser().getRole());
         if (!premiumProperties.isEnabled() && !isAdmin) {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                     .body(Map.of("message", "Premium not yet available"));
