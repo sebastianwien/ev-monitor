@@ -1057,7 +1057,7 @@ imports:
   smartcar_connect_btn: "Fahrzeug verbinden"
   smartcar_how_title: "Wie funktioniert AutoSync?"
   smartcar_how_q1: "Was ist Smartcar?"
-  smartcar_how_a1: "Smartcar ist ein etablierter Dienst, der als offizielle Schnittstelle zwischen Fahrzeugherstellern und Apps arbeitet. Über 30 Hersteller haben Smartcar offiziell freigegeben - darunter BMW, Volkswagen, Mercedes, Volvo und viele mehr. Hunderte Apps und Dienste weltweit nutzen diese Schnittstelle, darunter Versicherungen, Flottenmanagement-Dienste und Ladeanbieter."
+  smartcar_how_a1: "AutoSync nutzt im Hintergrund einen Dienst namens Smartcar - eine offizielle Schnittstelle, über die Fahrzeughersteller Apps autorisiert Zugriff auf Fahrzeugdaten gewähren. Über 30 Hersteller haben Smartcar offiziell freigegeben, darunter BMW, Volkswagen, Mercedes und Volvo."
   smartcar_how_q2: "Warum über einen Mittelsmann?"
   smartcar_how_a2: "Kein Hersteller gibt Dritten direkt Zugriff auf Fahrzeugdaten. Smartcar ist der genehmigte Weg - sie haben offizielle Partnerschaften mit den Herstellern und dürfen im Auftrag des Fahrzeugbesitzers auf die Daten zugreifen. EV Monitor hat keine eigene Verbindung zu deinem Auto - das läuft alles über Smartcar."
   smartcar_how_q3: "Was passiert beim Verbinden?"
