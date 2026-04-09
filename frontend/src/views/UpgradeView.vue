@@ -107,17 +107,18 @@
                             <button
                                 @click="selectedPlan = 'monthly'"
                                 :class="selectedPlan === 'monthly' ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'"
-                                class="px-4 py-2 rounded-lg font-medium text-sm transition-colors"
+                                class="flex flex-col items-center px-4 py-2 rounded-lg font-medium text-sm transition-colors"
                             >
-                                {{ t('upgrade.plan_monthly') }} · {{ t('upgrade.price_monthly') }}
+                                <span>{{ t('upgrade.plan_monthly') }}</span>
+                                <span>{{ t('upgrade.price_monthly') }}</span>
                             </button>
                             <button
                                 @click="selectedPlan = 'yearly'"
                                 :class="selectedPlan === 'yearly' ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'"
-                                class="px-4 py-2 rounded-lg font-medium text-sm transition-colors"
+                                class="flex flex-col items-center px-4 py-2 rounded-lg font-medium text-sm transition-colors"
                             >
-                                {{ t('upgrade.plan_yearly') }} · {{ t('upgrade.price_yearly') }}
-                                <span class="ml-1 text-xs bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded">{{ t('upgrade.plan_yearly_badge') }}</span>
+                                <span>{{ t('upgrade.plan_yearly') }} · {{ t('upgrade.price_yearly') }}</span>
+                                <span class="text-xs bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400 px-1.5 py-0.5 rounded mt-1">{{ t('upgrade.plan_yearly_badge') }}</span>
                             </button>
                         </div>
                     </div>
