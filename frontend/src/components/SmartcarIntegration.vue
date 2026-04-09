@@ -132,7 +132,7 @@ const stateColor = (state: string | null) => {
       </summary>
       <div class="px-4 pb-4 pt-3 space-y-4 border-t border-gray-200 dark:border-gray-700">
         <div v-for="i in 5" :key="i">
-          <p class="text-sm font-semibold text-gray-800 dark:text-gray-200">{{ t(`imports.smartcar_how_q${i}`) }}</p>
+          <p v-if="i > 1" class="text-sm font-semibold text-gray-800 dark:text-gray-200">{{ t(`imports.smartcar_how_q${i}`) }}</p>
           <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ t(`imports.smartcar_how_a${i}`) }}</p>
         </div>
       </div>

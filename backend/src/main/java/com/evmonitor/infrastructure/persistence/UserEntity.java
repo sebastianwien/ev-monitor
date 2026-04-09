@@ -2,6 +2,7 @@ package com.evmonitor.infrastructure.persistence;
 
 import com.evmonitor.domain.AuthProvider;
 import jakarta.persistence.*;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -75,6 +76,9 @@ public class UserEntity {
 
     @Column(name = "last_seen")
     private LocalDateTime lastSeen;
+
+    @Column(name = "subscription_period_end")
+    private Instant subscriptionPeriodEnd;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -286,6 +290,14 @@ public class UserEntity {
 
     public void setCountry(String country) {
         this.country = country;
+    }
+
+    public Instant getSubscriptionPeriodEnd() {
+        return subscriptionPeriodEnd;
+    }
+
+    public void setSubscriptionPeriodEnd(Instant subscriptionPeriodEnd) {
+        this.subscriptionPeriodEnd = subscriptionPeriodEnd;
     }
 
 }

@@ -37,7 +37,7 @@ spring:
 jwt:
   secret: dev-secret-key-CHANGE-IN-PRODUCTION-THIS-MUST-BE-AT-LEAST-64-CHARS-LONG-FOR-HS512-ALGORITHM-12345678901234567890
   expiration:
-    ms: 604800000  # 7 days
+    ms: 86400000  # 24 hours
 
 server:
   port: 8080

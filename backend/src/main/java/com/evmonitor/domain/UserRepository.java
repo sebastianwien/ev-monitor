@@ -1,5 +1,6 @@
 package com.evmonitor.domain;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -37,6 +38,8 @@ public interface UserRepository {
     void setPremium(UUID userId, boolean premium);
 
     void setStripeCustomerId(UUID userId, String stripeCustomerId);
+
+    void setSubscriptionPeriodEnd(UUID userId, Instant periodEnd);
 
     /**
      * Atomically claims the referral reward. Returns true if this call won the race

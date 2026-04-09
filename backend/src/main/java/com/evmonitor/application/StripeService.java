@@ -25,6 +25,7 @@ import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -137,14 +138,29 @@ public class StripeService {
                 .getAsJsonObject("data")
                 .getAsJsonObject("object");
 
-        switch (event.getType()) {
+        dispatch(event.getType(), data);
+    }
+
+    /**
+     * Dispatches a validated Stripe event to the appropriate handler.
+     * Package-private to allow unit testing without a real Stripe signature.
+     */
+    void dispatch(String eventType, JsonObject data) {
+        switch (eventType) {
             case "customer.subscription.created", "customer.subscription.updated" -> {
                 String customerId = data.get("customer").getAsString();
                 String status = data.get("status").getAsString();
                 boolean isActive = "active".equals(status) || "trialing".equals(status);
-                findUserByCustomerId(customerId)
-                        .ifPresent(u -> userRepository.setPremium(u.getId(), isActive));
-                log.info("[STRIPE] subscription {} → isPremium={} for customer={}", status, isActive, customerId);
+                Instant periodEnd = data.has("current_period_end") && !data.get("current_period_end").isJsonNull()
+                        ? Instant.ofEpochSecond(data.get("current_period_end").getAsLong())
+                        : null;
+                findUserByCustomerId(customerId).ifPresent(u -> {
+                    userRepository.setPremium(u.getId(), isActive);
+                    if (periodEnd != null) {
+                        userRepository.setSubscriptionPeriodEnd(u.getId(), periodEnd);
+                    }
+                });
+                log.info("[STRIPE] subscription {} -> isPremium={} for customer={}", status, isActive, customerId);
             }
             case "customer.subscription.deleted" -> {
                 String customerId = data.get("customer").getAsString();
@@ -152,7 +168,7 @@ public class StripeService {
                     userRepository.setPremium(u.getId(), false);
                     disconnectSmartcar(u.getId());
                 });
-                log.info("[STRIPE] subscription deleted → isPremium=false for customer={}", customerId);
+                log.info("[STRIPE] subscription deleted -> isPremium=false for customer={}", customerId);
             }
             case "invoice.payment_failed" -> {
                 // Do NOT revoke premium immediately — Stripe retries the payment.

@@ -51,6 +51,7 @@ public class TestDataBuilder {
                 null, // referrerSource
                 null, // registrationLocale
                 null, // country
+                null, // subscriptionPeriodEnd
                 LocalDateTime.now(),
                 LocalDateTime.now()
         );
