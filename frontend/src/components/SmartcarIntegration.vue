@@ -9,6 +9,13 @@ import smartcarService, { type SmartcarConnectionStatus } from '../api/smartcarS
 import type { Car } from '../api/carService'
 
 const { t } = useI18n()
+
+const brands = [
+    'BMW', 'MINI', 'VW', 'Mercedes', 'Audi', 'Porsche', 'Skoda', 'SEAT', 'CUPRA', 'Opel',
+    'Hyundai', 'Kia', 'Volvo', 'Polestar', 'Renault', 'Dacia', 'Nissan', 'Ford',
+    'Fiat', 'Alfa Romeo', 'Peugeot', 'Citroën', 'Mazda', 'MG', 'BYD',
+    'Jaguar', 'Land Rover', 'Tesla',
+]
 const authStore = useAuthStore()
 const carStore = useCarStore()
 
@@ -111,9 +118,9 @@ const stateColor = (state: string | null) => {
 
     <div class="p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700 rounded-lg">
       <p class="text-sm font-medium text-indigo-800 dark:text-indigo-200 mb-2">{{ t('imports.smartcar_brands_title') }}</p>
-      <p class="text-xs text-indigo-700 dark:text-indigo-300">
-        BMW, Mercedes-EQ, VW ID, Audi e-tron, Porsche Taycan, Hyundai, Kia, Volvo, Polestar, Renault, Ford, Tesla, ...
-      </p>
+      <div class="flex flex-wrap gap-1.5">
+        <span v-for="brand in brands" :key="brand" class="text-xs bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 px-2.5 py-1 rounded-full">{{ brand }}</span>
+      </div>
     </div>
 
     <details class="group border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden bg-white dark:bg-gray-700/50 shadow-md dark:shadow-[0_4px_16px_rgba(0,0,0,0.5)]">
