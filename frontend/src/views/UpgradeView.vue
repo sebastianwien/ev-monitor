@@ -118,7 +118,7 @@
                                 class="flex flex-col items-center px-4 py-2 rounded-lg font-medium text-sm transition-colors"
                             >
                                 <span>{{ t('upgrade.plan_yearly') }} · {{ t('upgrade.price_yearly') }}</span>
-                                <span class="text-xs bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400 px-1.5 py-0.5 rounded mt-1">{{ t('upgrade.plan_yearly_badge') }}</span>
+                                <span :class="selectedPlan === 'yearly' ? 'bg-white/20 text-white' : 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400'" class="text-xs px-1.5 py-0.5 rounded mt-1">{{ t('upgrade.plan_yearly_badge') }}</span>
                             </button>
                         </div>
                     </div>
