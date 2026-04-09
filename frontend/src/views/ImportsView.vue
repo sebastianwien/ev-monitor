@@ -148,7 +148,7 @@ const activeCars = computed(() =>
               <div class="flex flex-col sm:flex-row sm:items-center gap-2">
                 <router-link
                   to="/upgrade"
-                  class="inline-flex items-center justify-center gap-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+                  class="inline-flex items-center justify-center gap-1.5 bg-green-600 hover:bg-green-500 active:translate-y-1 active:shadow-none text-white text-sm font-semibold px-4 py-2 rounded-lg transition-all shadow-[0_4px_0_0_#166534]"
                 >
                   {{ t('imports.autosync_teaser_cta') }}
                 </router-link>
