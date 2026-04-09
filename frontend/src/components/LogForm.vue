@@ -110,8 +110,10 @@ const fetchLogs = async () => {
       new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime()
     )
     if (logs.value.length > 0) {
-      if (logs.value[0].tireType) formData.value.tireType = logs.value[0].tireType
-      if (logs.value[0].routeType) formData.value.routeType = logs.value[0].routeType
+      const lastWithTireType = logs.value.find(l => l.tireType)
+      if (lastWithTireType) formData.value.tireType = lastWithTireType.tireType
+      const lastWithRouteType = logs.value.find(l => l.routeType)
+      if (lastWithRouteType) formData.value.routeType = lastWithRouteType.routeType
     }
   } catch (err) {
     console.error('Failed to fetch logs:', err)

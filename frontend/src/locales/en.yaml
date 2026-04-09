@@ -488,6 +488,7 @@ dashboard:
   map_title: "Charging locations"
   map_subtitle: "Geographic overview of your charging sessions · Color-coded by energy (kWh)"
   logs_title: "Your charging sessions"
+  logs_title_short: "Charging sessions"
   logs_page: "Page {n}"
   implausible_banner: "{n} {noun} with implausible consumption"
   implausible_entry: "entry"

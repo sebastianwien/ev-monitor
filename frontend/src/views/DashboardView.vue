@@ -916,7 +916,8 @@ const deleteLog = async (id: string) => {
                 @click="scrollToLogs"
                 class="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium shadow-[0_4px_0_0_#3730a3] hover:shadow-[0_2px_0_0_#3730a3] hover:translate-y-0.5 active:shadow-none active:translate-y-1 transition-all duration-75">
                 <ListBulletIcon class="w-4 h-4" />
-                {{ t('dashboard.logs_btn') }}
+                <span class="min-[381px]:hidden">{{ t('dashboard.logs_title_short') }}</span>
+                <span class="hidden min-[381px]:inline">{{ t('dashboard.logs_btn') }}</span>
                 <ChevronRightIcon class="w-3.5 h-3.5 opacity-75" />
               </button>
             </div>

@@ -488,6 +488,7 @@ dashboard:
   map_title: "Lade-Standorte"
   map_subtitle: "Geografische Übersicht deiner Ladevorgänge · Farbcodiert nach geladener Energie (kWh)"
   logs_title: "Deine Ladevorgänge"
+  logs_title_short: "Ladevorgänge"
   logs_page: "Seite {n}"
   implausible_banner: "{n} {noun} mit unplausiblem Verbrauch"
   implausible_entry: "Eintrag"
