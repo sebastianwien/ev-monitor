@@ -40,4 +40,10 @@ public interface ChargingProviderTariffRepository {
      * Sortiert, dedupliziert.
      */
     List<String> findAllKnownCpoNames();
+
+    /**
+     * Bekannte CPO-Namen gefiltert nach Land: internationale CPOs (country_code IS NULL)
+     * + länderspezifische CPOs (country_code = country).
+     */
+    List<String> findKnownCpoNamesByCountry(String country);
 }

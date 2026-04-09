@@ -27,7 +27,10 @@ public class ChargingProviderTariffService {
         return tariffRepository.findAllEmpNames();
     }
 
-    public List<String> getKnownCpoNames() {
+    public List<String> getKnownCpoNames(String country) {
+        if (country != null && country.length() == 2) {
+            return tariffRepository.findKnownCpoNamesByCountry(country.toUpperCase());
+        }
         return tariffRepository.findAllKnownCpoNames();
     }
 

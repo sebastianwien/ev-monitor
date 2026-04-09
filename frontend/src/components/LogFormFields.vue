@@ -219,7 +219,7 @@ const cpoSelect = ref<string>('')
 
 onMounted(async () => {
   try {
-    const res = await api.get<string[]>('/charging-provider-tariffs/cpos')
+    const res = await api.get<string[]>('/charging-provider-tariffs/cpos', { params: { country: countryStore.country } })
     cpoList.value = res.data
     // Nach dem Laden: cpoSelect korrekt setzen (wichtig beim Editieren)
     if (form.value.cpoName) {

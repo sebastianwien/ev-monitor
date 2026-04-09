@@ -82,8 +82,12 @@ public class PostgresChargingProviderTariffRepositoryImpl implements ChargingPro
 
     @Override
     public List<String> findAllKnownCpoNames() {
-        // Primärquelle: charging_networks Tabelle (kanonische CPO-Liste)
         return networkRepository.findAllNamesSorted();
+    }
+
+    @Override
+    public List<String> findKnownCpoNamesByCountry(String country) {
+        return networkRepository.findNamesByCountry(country);
     }
 
     private ChargingProviderTariff toDomain(ChargingProviderTariffEntity e) {
