@@ -2,15 +2,13 @@ package com.evmonitor.application;
 
 import com.evmonitor.domain.User;
 import com.evmonitor.domain.UserRepository;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.stripe.Stripe;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
 import com.stripe.model.Event;
-import com.stripe.model.EventDataObjectDeserializer;
-import com.stripe.model.Invoice;
-import com.stripe.model.StripeObject;
-import com.stripe.model.Subscription;
 import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
 import com.stripe.param.CustomerBalanceTransactionCollectionCreateParams;
@@ -103,43 +101,45 @@ public class StripeService {
 
     /**
      * Verifies the Stripe webhook signature and dispatches the event.
+     * Uses raw JSON parsing to stay compatible across all Stripe API versions —
+     * the SDK's EventDataObjectDeserializer silently returns empty when the webhook
+     * API version is newer than the SDK was built against.
      */
     public void handleWebhookEvent(String payload, String sigHeader) throws SignatureVerificationException {
         Event event = Webhook.constructEvent(payload, sigHeader, webhookSecret);
 
-        EventDataObjectDeserializer deserializer = event.getDataObjectDeserializer();
-        Optional<StripeObject> stripeObjectOpt = deserializer.getObject();
-
-        if (stripeObjectOpt.isEmpty()) {
-            return;
-        }
-
-        StripeObject obj = stripeObjectOpt.get();
+        JsonObject data = JsonParser.parseString(payload)
+                .getAsJsonObject()
+                .getAsJsonObject("data")
+                .getAsJsonObject("object");
 
         switch (event.getType()) {
             case "customer.subscription.created", "customer.subscription.updated" -> {
-                if (obj instanceof Subscription sub) {
-                    boolean isActive = "active".equals(sub.getStatus()) || "trialing".equals(sub.getStatus());
-                    findUserByCustomerId(sub.getCustomer())
-                            .ifPresent(u -> userRepository.setPremium(u.getId(), isActive));
-                }
+                String customerId = data.get("customer").getAsString();
+                String status = data.get("status").getAsString();
+                boolean isActive = "active".equals(status) || "trialing".equals(status);
+                findUserByCustomerId(customerId)
+                        .ifPresent(u -> userRepository.setPremium(u.getId(), isActive));
+                log.info("[STRIPE] subscription {} → isPremium={} for customer={}", status, isActive, customerId);
             }
             case "customer.subscription.deleted" -> {
-                if (obj instanceof Subscription sub) {
-                    findUserByCustomerId(sub.getCustomer())
-                            .ifPresent(u -> userRepository.setPremium(u.getId(), false));
-                }
+                String customerId = data.get("customer").getAsString();
+                findUserByCustomerId(customerId)
+                        .ifPresent(u -> userRepository.setPremium(u.getId(), false));
+                log.info("[STRIPE] subscription deleted → isPremium=false for customer={}", customerId);
             }
             case "invoice.payment_failed" -> {
-                if (obj instanceof Invoice invoice) {
-                    findUserByCustomerId(invoice.getCustomer())
-                            .ifPresent(u -> userRepository.setPremium(u.getId(), false));
-                }
+                String customerId = data.get("customer").getAsString();
+                findUserByCustomerId(customerId)
+                        .ifPresent(u -> userRepository.setPremium(u.getId(), false));
+                log.warn("[STRIPE] payment failed → isPremium=false for customer={}", customerId);
             }
             case "invoice.payment_succeeded" -> {
+                long amountPaid = data.get("amount_paid").getAsLong();
                 // Only trigger on invoices with actual payment (not the free referral month, amount=0).
-                if (obj instanceof Invoice invoice && invoice.getAmountPaid() > 0) {
-                    findUserByCustomerId(invoice.getCustomer()).ifPresent(u -> {
+                if (amountPaid > 0) {
+                    String customerId = data.get("customer").getAsString();
+                    findUserByCustomerId(customerId).ifPresent(u -> {
                         if (u.getReferredByUserId() == null) return;
 
                         // Atomic DB claim BEFORE any Stripe call.
