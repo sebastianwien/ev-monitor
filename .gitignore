@@ -41,10 +41,6 @@ docker-compose.local.yml
 docker-compose.frontend-dev.yml
 docker-compose.full.yml
 
-# WIP Frontend Views (not ready for public)
-frontend/src/views/UpgradeView.vue
-frontend/src/views/UpgradeSuccessView.vue
-frontend/src/views/UpgradeCancelView.vue
 
 # Server/Deployment Scripts (stored on server, not in repo)
 backup.sh
