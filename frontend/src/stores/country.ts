@@ -30,7 +30,7 @@ export const useCountryStore = defineStore('country', () => {
         // If authenticated, persist to backend and get fresh JWT
         const authStore = useAuthStore()
         if (authStore.isAuthenticated() && !authStore.isExpired()) {
-            api.put(`/api/users/me/country?country=${code}`)
+            api.put(`/users/me/country?country=${code}`)
                 .then(response => {
                     if (response.data?.token) {
                         authStore.setToken(response.data.token)

@@ -33,7 +33,7 @@ export async function detectCountry(): Promise<void> {
 
     // Step 3: Try GeoIP endpoint
     try {
-        const response = await api.get('/api/geoip/country')
+        const response = await api.get('/geoip/country')
         const geoCountry = response.data?.country
         if (geoCountry && isValidCountryCode(geoCountry)) {
             store.setCountry(geoCountry as CountryCode)
