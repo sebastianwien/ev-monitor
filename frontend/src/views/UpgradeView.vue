@@ -95,7 +95,7 @@
                     </button>
 
                     <p class="text-xs text-gray-400 dark:text-gray-500 text-center mb-5">
-                        {{ selectedPlan === 'monthly' ? t('upgrade.trial_hint_monthly') : t('upgrade.trial_hint_yearly') }}
+                        {{ selectedPlan === 'monthly' ? t('upgrade.trial_hint_monthly', { priceMonthly: t('upgrade.price_monthly') }) : t('upgrade.trial_hint_yearly', { priceYearly: t('upgrade.price_yearly') }) }}
                     </p>
 
                     <p v-if="checkoutError" class="mb-4 text-sm text-red-600 dark:text-red-400 text-center">{{ checkoutError }}</p>

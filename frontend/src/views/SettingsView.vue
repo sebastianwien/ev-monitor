@@ -579,7 +579,7 @@ onMounted(() => {
           </button>
         </div>
         <div v-else class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl">
-          <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('upgrade.pro_upgrade_hint') }}</p>
+          <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('upgrade.pro_upgrade_hint', { priceMonthly: t('upgrade.price_monthly') }) }}</p>
           <router-link to="/upgrade" class="shrink-0 ml-4 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-200 transition-colors whitespace-nowrap">
             {{ t('upgrade.pro_upgrade_btn') }}
           </router-link>

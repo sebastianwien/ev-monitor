@@ -152,7 +152,7 @@ const activeCars = computed(() =>
                 >
                   {{ t('imports.autosync_teaser_cta') }}
                 </router-link>
-                <span class="text-xs text-gray-400 dark:text-gray-500">{{ t('imports.autosync_teaser_price') }}</span>
+                <span class="text-xs text-gray-400 dark:text-gray-500">{{ t('imports.autosync_teaser_price', { priceMonthly: t('upgrade.price_monthly') }) }}</span>
               </div>
             </div>
           </div>
