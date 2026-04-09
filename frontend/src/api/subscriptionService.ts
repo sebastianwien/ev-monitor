@@ -18,5 +18,10 @@ export const subscriptionService = {
     async createCheckoutSession(plan: 'monthly' | 'yearly'): Promise<CheckoutResponse> {
         const response = await api.post('/subscription/checkout', { plan });
         return response.data;
+    },
+
+    async createPortalSession(): Promise<{ portalUrl: string }> {
+        const response = await api.post('/subscription/portal');
+        return response.data;
     }
 };
