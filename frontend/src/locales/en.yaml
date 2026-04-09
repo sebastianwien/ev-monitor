@@ -1031,7 +1031,7 @@ imports:
   smartcar_feat1: "All major brands: BMW, VW, Mercedes, Hyundai, Audi, Porsche and more"
   smartcar_feat2: "Fully automatic - no app, no OBD dongle required"
   smartcar_feat3: "Precise kWh directly from the vehicle"
-  smartcar_feat4: "Cloud-to-cloud via Smartcar API"
+  smartcar_feat4: "Secure connection directly with your vehicle manufacturer"
   smartcar_brands_title: "Supported vehicle brands"
   smartcar_title: "Smartcar vehicle connection"
   smartcar_desc: "Connect a vehicle via Smartcar for fully automatic charging sessions."
