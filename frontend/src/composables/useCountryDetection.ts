@@ -1,24 +1,33 @@
 import { useCountryStore } from '../stores/country'
+import { useAuthStore } from '../stores/auth'
 import { isValidCountryCode, type CountryCode } from '../config/unitSystems'
 import api from '../api/axios'
 
 /**
  * Country detection waterfall (called once on app init):
  * 1. JWT claim 'country' (already handled by store.initFromJwt)
- * 2. localStorage 'ev-country' (already handled by store init)
+ * 2. localStorage 'ev-country' (only for unauthenticated users)
  * 3. GeoIP endpoint (nginx X-Country-Code header echo)
  * 4. navigator.language heuristic
  * 5. Default: DE
+ *
+ * For authenticated users without JWT country claim, GeoIP always runs
+ * to populate the DB exactly once — localStorage alone is not sufficient.
  */
 export async function detectCountry(): Promise<void> {
     const store = useCountryStore()
+    const authStore = useAuthStore()
 
-    // Step 1+2: JWT and localStorage are already handled by store initialization
+    // Step 1: JWT claim — if present, DB is already populated, nothing to do
     store.initFromJwt()
+    const jwtCountry = (authStore.user as any)?.country
+    if (jwtCountry && isValidCountryCode(jwtCountry)) {
+        return
+    }
 
-    // If we already have a non-default country from JWT or localStorage, done
+    // Step 2: For unauthenticated users, localStorage is sufficient
     const saved = localStorage.getItem('ev-country')
-    if (saved && isValidCountryCode(saved)) {
+    if (!authStore.isAuthenticated() && saved && isValidCountryCode(saved)) {
         return
     }
 
