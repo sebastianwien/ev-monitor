@@ -16,6 +16,7 @@ import { useImportsTab } from '../composables/useImportsTab'
 import { apiKeyService, type ApiKeyResponse, type ApiKeyCreatedResponse } from '../api/apiKeyService'
 import { analytics } from '../services/analytics'
 import DemoImportsModal from '../components/DemoImportsModal.vue'
+import { subscriptionService } from '../api/subscriptionService'
 
 const { t } = useI18n()
 const { activeTab, toggle } = useImportsTab()
@@ -26,6 +27,7 @@ const manualImportCarId = ref<string | null>(null)
 const showManualImportModal = ref(false)
 const cars = ref<Car[]>([])
 const loading = ref(true)
+const premiumEnabled = ref(false)
 
 onMounted(async () => {
   const params = new URLSearchParams(window.location.search)
@@ -40,6 +42,7 @@ onMounted(async () => {
     loading.value = false
   }
   fetchApiKeys()
+  subscriptionService.getStatus().then(s => { premiumEnabled.value = s.premiumEnabled }).catch(() => {})
 })
 
 // ── API Keys ──────────────────────────────────────────────────────────────────
@@ -136,8 +139,8 @@ const activeCars = computed(() =>
           </p>
         </div>
 
-        <!-- AutoSync Pro Teaser — nur für nicht-Premium-User -->
-        <div v-if="!authStore.isAdmin && !authStore.isPremium" class="mb-4 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-4">
+        <!-- AutoSync Pro Teaser — nur wenn Premium-Kauf möglich und User noch kein Abonnent -->
+        <div v-if="premiumEnabled && !authStore.isPremium" class="mb-4 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-4">
           <div class="flex items-start gap-3">
             <div class="shrink-0 bg-green-600 rounded-lg p-2 mt-0.5">
               <BoltIcon class="h-5 w-5 text-white" />
@@ -173,14 +176,14 @@ const activeCars = computed(() =>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 flex-wrap">
                 <span class="font-medium text-gray-900 dark:text-gray-100 text-sm">{{ t('imports.tab_smartcar') }}</span>
-                <span v-if="!authStore.isAdmin && !authStore.isPremium" class="text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 font-semibold px-1.5 py-0.5 rounded-full leading-none">Premium</span>
+                <span v-if="premiumEnabled && !authStore.isPremium" class="text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 font-semibold px-1.5 py-0.5 rounded-full leading-none">Premium</span>
               </div>
             </div>
             <ChevronDownIcon :class="['h-5 w-5 text-gray-400 shrink-0 transition-transform duration-200', activeTab === 'smartcar' ? 'rotate-180' : '']" />
           </button>
           <Transition name="accordion">
             <div v-if="activeTab === 'smartcar'" class="border-t border-gray-100 dark:border-gray-700">
-              <SmartcarIntegration />
+              <SmartcarIntegration :premium-enabled="premiumEnabled" />
             </div>
           </Transition>
         </div>

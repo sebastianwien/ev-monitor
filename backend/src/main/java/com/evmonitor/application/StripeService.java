@@ -89,6 +89,7 @@ public class StripeService {
      * @return the Stripe Checkout URL
      */
     public String createCheckoutSession(User user, String plan, String successUrl, String cancelUrl) throws StripeException {
+        boolean isNewCustomer = user.getStripeCustomerId() == null || user.getStripeCustomerId().isBlank();
         String customerId = ensureCustomer(user);
 
         String priceId = "yearly".equals(plan) ? priceIdYearly : priceIdMonthly;
@@ -100,11 +101,14 @@ public class StripeService {
                         .setPrice(priceId)
                         .setQuantity(1L)
                         .build())
-                .setSubscriptionData(SessionCreateParams.SubscriptionData.builder()
-                        .setTrialPeriodDays(7L)
-                        .build())
                 .setSuccessUrl(successUrl)
                 .setCancelUrl(cancelUrl);
+
+        if (isNewCustomer) {
+            builder.setSubscriptionData(SessionCreateParams.SubscriptionData.builder()
+                    .setTrialPeriodDays(7L)
+                    .build());
+        }
 
         // Referral discount: only for monthly plan.
         // A "100% off, once" coupon on a yearly subscription would waive the full
