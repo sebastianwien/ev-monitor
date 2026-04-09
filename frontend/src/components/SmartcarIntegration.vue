@@ -129,6 +129,16 @@ const stateColor = (state: string | null) => {
         </div>
       </div>
     </details>
+
+    <div class="pt-1">
+      <router-link
+        to="/upgrade"
+        class="btn-3d w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-xl font-semibold text-sm transition-colors"
+      >
+        {{ t('imports.smartcar_upgrade_cta') }}
+      </router-link>
+      <p class="text-xs text-gray-400 dark:text-gray-500 text-center mt-2">{{ t('imports.smartcar_upgrade_price') }}</p>
+    </div>
   </div>
 
   <!-- ADMIN: full setup UI -->

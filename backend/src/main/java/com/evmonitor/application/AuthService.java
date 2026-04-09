@@ -64,6 +64,7 @@ public class AuthService {
         java.util.UUID referrerId = null;
         if (request.referralCode() != null && !request.referralCode().isBlank()) {
             User referrer = userRepository.findByReferralCode(request.referralCode().toUpperCase())
+                    .filter(r -> !r.getEmail().equalsIgnoreCase(request.email()))
                     .filter(r -> userRepository.countVerifiedReferrals(r.getId()) < MAX_REFERRALS)
                     .orElse(null);
             if (referrer != null) {

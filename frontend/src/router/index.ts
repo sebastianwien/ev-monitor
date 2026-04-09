@@ -29,6 +29,9 @@ import AdminView from '../views/AdminView.vue';
 import LeaderboardView from '../views/LeaderboardView.vue';
 import TaxExportView from '../views/TaxExportView.vue';
 import SurveyView from '../views/SurveyView.vue';
+import UpgradeView from '../views/UpgradeView.vue';
+import UpgradeSuccessView from '../views/UpgradeSuccessView.vue';
+import UpgradeCancelView from '../views/UpgradeCancelView.vue';
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
@@ -109,6 +112,24 @@ const router = createRouter({
             path: '/imports',
             name: 'imports',
             component: ImportsView,
+            meta: { requiresAuth: true }
+        },
+        {
+            path: '/upgrade',
+            name: 'upgrade',
+            component: UpgradeView,
+            meta: { requiresAuth: true }
+        },
+        {
+            path: '/upgrade/success',
+            name: 'upgrade-success',
+            component: UpgradeSuccessView,
+            meta: { requiresAuth: true }
+        },
+        {
+            path: '/upgrade/cancel',
+            name: 'upgrade-cancel',
+            component: UpgradeCancelView,
             meta: { requiresAuth: true }
         },
         {

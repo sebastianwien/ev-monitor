@@ -44,7 +44,7 @@ public class StripeService {
     @Value("${stripe.referral-coupon-id:}")
     private String referralCouponId;
 
-    @Value("${stripe.referral-reward-cents:399}")
+    @Value("${stripe.referral-reward-cents:390}")
     private long referralRewardCents;
 
     private final UserRepository userRepository;
@@ -82,6 +82,9 @@ public class StripeService {
                         .setPrice(priceId)
                         .setQuantity(1L)
                         .build())
+                .setSubscriptionData(SessionCreateParams.SubscriptionData.builder()
+                        .setTrialPeriodDays(7L)
+                        .build())
                 .setSuccessUrl(successUrl)
                 .setCancelUrl(cancelUrl);
 
@@ -116,7 +119,7 @@ public class StripeService {
         switch (event.getType()) {
             case "customer.subscription.created", "customer.subscription.updated" -> {
                 if (obj instanceof Subscription sub) {
-                    boolean isActive = "active".equals(sub.getStatus());
+                    boolean isActive = "active".equals(sub.getStatus()) || "trialing".equals(sub.getStatus());
                     findUserByCustomerId(sub.getCustomer())
                             .ifPresent(u -> userRepository.setPremium(u.getId(), isActive));
                 }
@@ -177,6 +180,21 @@ public class StripeService {
                 // Unhandled event type — ignore silently
             }
         }
+    }
+
+    /**
+     * Creates a Stripe Billing Portal session for self-service subscription management.
+     */
+    public String createPortalSession(User user, String returnUrl) throws StripeException {
+        String customerId = ensureCustomer(user);
+        com.stripe.param.billingportal.SessionCreateParams params =
+                com.stripe.param.billingportal.SessionCreateParams.builder()
+                        .setCustomer(customerId)
+                        .setReturnUrl(returnUrl)
+                        .build();
+        com.stripe.model.billingportal.Session session =
+                com.stripe.model.billingportal.Session.create(params);
+        return session.getUrl();
     }
 
     private String ensureCustomer(User user) throws StripeException {

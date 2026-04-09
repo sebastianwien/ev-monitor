@@ -136,6 +136,28 @@ const activeCars = computed(() =>
           </p>
         </div>
 
+        <!-- AutoSync Pro Teaser — nur für nicht-Premium-User -->
+        <div v-if="!authStore.isAdmin && !authStore.isPremium" class="mb-4 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-4">
+          <div class="flex items-start gap-3">
+            <div class="shrink-0 bg-green-600 rounded-lg p-2 mt-0.5">
+              <BoltIcon class="h-5 w-5 text-white" />
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="font-semibold text-gray-900 dark:text-gray-100 text-sm mb-1">{{ t('imports.autosync_teaser_title') }}</p>
+              <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">{{ t('imports.autosync_teaser_desc') }}</p>
+              <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+                <router-link
+                  to="/upgrade"
+                  class="inline-flex items-center justify-center gap-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+                >
+                  {{ t('imports.autosync_teaser_cta') }}
+                </router-link>
+                <span class="text-xs text-gray-400 dark:text-gray-500">{{ t('imports.autosync_teaser_price') }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Accordion -->
         <div class="border border-gray-200 dark:border-gray-600 rounded-xl divide-y divide-gray-200 dark:divide-gray-700 overflow-hidden shadow-lg dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
 

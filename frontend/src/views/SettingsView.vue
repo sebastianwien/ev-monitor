@@ -9,6 +9,7 @@ import { UserIcon, KeyIcon, TrashIcon, ArrowDownTrayIcon, AcademicCapIcon, Share
 import SupportPopover from '../components/SupportPopover.vue'
 import DemoSettingsModal from '../components/DemoSettingsModal.vue'
 import api from '../api/axios'
+import { subscriptionService } from '../api/subscriptionService'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 
 const { t, locale } = useI18n()
@@ -46,6 +47,19 @@ const referralCopied = ref(false)
 
 // Community
 const leaderboardVisible = ref(true)
+
+const portalLoading = ref(false)
+const openPortal = async () => {
+  portalLoading.value = true
+  try {
+    const { portalUrl } = await subscriptionService.createPortalSession()
+    window.location.href = portalUrl
+  } catch {
+    // ignore - portal link not available (no subscription yet)
+  } finally {
+    portalLoading.value = false
+  }
+}
 
 const referralLink = () => `${window.location.origin}/register?ref=${referralCode.value}`
 
@@ -538,6 +552,37 @@ onMounted(() => {
               </button>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- Pro Subscription -->
+      <div class="mb-8">
+        <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
+          {{ t('upgrade.pro_section_title') }}
+          <span class="text-xs font-bold bg-indigo-600 text-white px-2 py-0.5 rounded-full">PRO</span>
+        </h2>
+        <div v-if="authStore.isPremium" class="flex items-center justify-between p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-indigo-100 dark:bg-indigo-900/40 rounded-full flex items-center justify-center shrink-0">
+              <svg class="w-4 h-4 text-indigo-600 dark:text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+              </svg>
+            </div>
+            <span class="text-sm font-medium text-indigo-800 dark:text-indigo-200">{{ t('upgrade.pro_active') }}</span>
+          </div>
+          <button
+            @click="openPortal"
+            :disabled="portalLoading"
+            class="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-200 disabled:opacity-50 transition-colors"
+          >
+            {{ portalLoading ? t('upgrade.pro_manage_loading') : t('upgrade.pro_manage_btn') }}
+          </button>
+        </div>
+        <div v-else class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl">
+          <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('upgrade.pro_upgrade_hint') }}</p>
+          <router-link to="/upgrade" class="shrink-0 ml-4 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-200 transition-colors whitespace-nowrap">
+            {{ t('upgrade.pro_upgrade_btn') }}
+          </router-link>
         </div>
       </div>
 

@@ -37,9 +37,10 @@ public class SubscriptionController {
     public ResponseEntity<Map<String, Object>> getStatus(@AuthenticationPrincipal UserPrincipal principal) {
         User user = userRepository.findById(principal.getUser().getId())
                 .orElseThrow(() -> new IllegalStateException("User not found"));
+        boolean isAdmin = "ADMIN".equals(principal.getUser().getRole());
         return ResponseEntity.ok(Map.of(
                 "isPremium", user.isPremium(),
-                "premiumEnabled", premiumProperties.isEnabled()
+                "premiumEnabled", premiumProperties.isEnabled() || isAdmin
         ));
     }
 
@@ -64,6 +65,28 @@ public class SubscriptionController {
         } catch (StripeException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("message", "Failed to create checkout session"));
+        }
+    }
+
+    @PostMapping("/portal")
+    public ResponseEntity<Map<String, Object>> createPortalSession(
+            @AuthenticationPrincipal UserPrincipal principal) {
+
+        User user = userRepository.findById(principal.getUser().getId())
+                .orElseThrow(() -> new IllegalStateException("User not found"));
+
+        if (user.getStripeCustomerId() == null || user.getStripeCustomerId().isBlank()) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "No Stripe customer found"));
+        }
+
+        try {
+            String returnUrl = appBaseUrl + "/settings";
+            String portalUrl = stripeService.createPortalSession(user, returnUrl);
+            return ResponseEntity.ok(Map.of("portalUrl", portalUrl));
+        } catch (StripeException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Failed to create portal session"));
         }
     }
 
