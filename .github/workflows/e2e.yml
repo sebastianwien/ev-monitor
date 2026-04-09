@@ -54,6 +54,7 @@ jobs:
           SPRING_DATASOURCE_USERNAME: evmonitor
           SPRING_DATASOURCE_PASSWORD: evmonitor
           JWT_SECRET: test-secret-for-ci-only-not-used-in-prod
+          INTERNAL_SERVICE_TOKEN: ci-internal-token-not-used-in-prod
           SPRING_MAIL_HOST: localhost
           SPRING_MAIL_PORT: 1025
           FRONTEND_BASE_URL: http://localhost:5173
