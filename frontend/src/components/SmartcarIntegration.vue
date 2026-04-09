@@ -104,7 +104,6 @@ const stateColor = (state: string | null) => {
     </div>
 
     <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-1.5 list-disc list-inside">
-      <li>{{ t('imports.smartcar_feat1') }}</li>
       <li>{{ t('imports.smartcar_feat2') }}</li>
       <li>{{ t('imports.smartcar_feat3') }}</li>
       <li>{{ t('imports.smartcar_feat4') }}</li>

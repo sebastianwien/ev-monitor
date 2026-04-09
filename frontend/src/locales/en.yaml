@@ -1028,7 +1028,7 @@ imports:
   smartcar_teaser_title: "Automatic charging sessions - all brands"
   smartcar_coming_soon: "Coming soon"
   smartcar_teaser_desc: "Connect your vehicle once and EV-Monitor records every charging session automatically - no manual input needed."
-  smartcar_feat1: "All major brands: BMW, VW, Mercedes, Hyundai, Audi, Porsche and more"
+
   smartcar_feat2: "Fully automatic - no app, no OBD dongle required"
   smartcar_feat3: "Precise kWh directly from the vehicle"
   smartcar_feat4: "Secure connection directly with your vehicle manufacturer"
