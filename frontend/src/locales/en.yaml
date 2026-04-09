@@ -1018,7 +1018,7 @@ compare:
 imports:
   title: "Import charging sessions"
   subtitle: "Import your past charging sessions or connect a home wallbox for automatic import."
-  tab_smartcar: "SmartCar Live Sync"
+  tab_smartcar: "AutoSync"
   autosync_teaser_title: "Record all charging sessions automatically"
   autosync_teaser_desc: "Want all your car's charging sessions imported automatically - no manual entry needed? EV Monitor AutoSync makes it possible for BMW, VW, Mercedes, Audi, Hyundai, Volvo, Polestar, Renault, Ford, Tesla and many more."
   autosync_teaser_cta: "Unlock EV Monitor AutoSync"
@@ -1055,7 +1055,7 @@ imports:
   smartcar_select_car: "Select vehicle"
   smartcar_connecting: "Connecting..."
   smartcar_connect_btn: "Connect vehicle"
-  smartcar_how_title: "How does the Smartcar connection work?"
+  smartcar_how_title: "How does AutoSync work?"
   smartcar_how_q1: "What is Smartcar?"
   smartcar_how_a1: "Smartcar is an established service that acts as an official interface between vehicle manufacturers and apps. Over 30 manufacturers have officially approved Smartcar - including BMW, Volkswagen, Mercedes, Volvo and many more. Hundreds of apps and services worldwide use this interface, including insurance companies, fleet management services and charging providers."
   smartcar_how_q2: "Why through a middleman?"

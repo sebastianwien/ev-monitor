@@ -1018,7 +1018,7 @@ compare:
 imports:
   title: "Ladevorgänge importieren"
   subtitle: "Importiere deine bisherigen Ladevorgänge oder verbinde eine Heimwallbox für automatischen Import."
-  tab_smartcar: "SmartCar Live-Synchronisation"
+  tab_smartcar: "AutoSync"
   autosync_teaser_title: "Ladevorgänge vollautomatisch aufzeichnen"
   autosync_teaser_desc: "Möchtest du, dass alle Ladevorgänge deines Autos künftig vollautomatisch importiert werden - ohne manuelle Eingabe? EV Monitor AutoSync macht das möglich. Unterstützte Marken: BMW, VW, Mercedes, Audi, Hyundai, Volvo, Polestar, Renault, Ford, Tesla u.v.m."
   autosync_teaser_cta: "EV Monitor AutoSync freischalten"
@@ -1055,7 +1055,7 @@ imports:
   smartcar_select_car: "Fahrzeug auswählen"
   smartcar_connecting: "Verbindung wird hergestellt..."
   smartcar_connect_btn: "Fahrzeug verbinden"
-  smartcar_how_title: "Wie funktioniert die Smartcar-Anbindung?"
+  smartcar_how_title: "Wie funktioniert AutoSync?"
   smartcar_how_q1: "Was ist Smartcar?"
   smartcar_how_a1: "Smartcar ist ein etablierter Dienst, der als offizielle Schnittstelle zwischen Fahrzeugherstellern und Apps arbeitet. Über 30 Hersteller haben Smartcar offiziell freigegeben - darunter BMW, Volkswagen, Mercedes, Volvo und viele mehr. Hunderte Apps und Dienste weltweit nutzen diese Schnittstelle, darunter Versicherungen, Flottenmanagement-Dienste und Ladeanbieter."
   smartcar_how_q2: "Warum über einen Mittelsmann?"
