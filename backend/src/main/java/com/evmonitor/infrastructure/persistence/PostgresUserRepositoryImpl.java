@@ -151,6 +151,12 @@ public class PostgresUserRepositoryImpl implements UserRepository {
         jpaUserRepository.setSubscriptionPeriodEnd(userId, periodEnd);
     }
 
+    @Override
+    @Transactional
+    public void markTrialUsed(UUID userId) {
+        jpaUserRepository.markTrialUsed(userId);
+    }
+
     private UserEntity toEntity(User domain) {
         UserEntity entity = new UserEntity();
         entity.setId(domain.getId());
@@ -163,6 +169,7 @@ public class PostgresUserRepositoryImpl implements UserRepository {
         entity.setSeedData(domain.isSeedData());
         entity.setEmailNotificationsEnabled(domain.isEmailNotificationsEnabled());
         entity.setPremium(domain.isPremium());
+        entity.setTrialUsed(domain.isTrialUsed());
         entity.setReferralCode(domain.getReferralCode());
         entity.setReferredByUserId(domain.getReferredByUserId());
         entity.setStripeCustomerId(domain.getStripeCustomerId());
@@ -207,6 +214,7 @@ public class PostgresUserRepositoryImpl implements UserRepository {
                 .registrationLocale(entity.getRegistrationLocale())
                 .country(entity.getCountry())
                 .subscriptionPeriodEnd(entity.getSubscriptionPeriodEnd())
+                .trialUsed(entity.isTrialUsed())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .build();

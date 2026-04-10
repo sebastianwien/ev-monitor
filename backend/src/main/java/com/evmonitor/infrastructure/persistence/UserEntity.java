@@ -87,6 +87,9 @@ public class UserEntity {
     @Column(name = "subscription_period_end")
     private Instant subscriptionPeriodEnd;
 
+    @Column(name = "trial_used", nullable = false)
+    private boolean trialUsed;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

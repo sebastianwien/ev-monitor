@@ -88,6 +88,7 @@ class UserControllerIntegrationTest {
                 .registrationLocale(testUserEntity.getRegistrationLocale())
                 .country(testUserEntity.getCountry())
                 .subscriptionPeriodEnd(testUserEntity.getSubscriptionPeriodEnd())
+                .trialUsed(testUserEntity.isTrialUsed())
                 .createdAt(testUserEntity.getCreatedAt())
                 .updatedAt(testUserEntity.getUpdatedAt())
                 .build();

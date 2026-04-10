@@ -68,6 +68,10 @@ public interface JpaUserRepository extends JpaRepository<UserEntity, UUID> {
     @Query("UPDATE UserEntity u SET u.subscriptionPeriodEnd = :periodEnd WHERE u.id = :userId")
     void setSubscriptionPeriodEnd(@Param("userId") UUID userId, @Param("periodEnd") Instant periodEnd);
 
+    @Modifying
+    @Query("UPDATE UserEntity u SET u.trialUsed = true WHERE u.id = :userId")
+    void markTrialUsed(@Param("userId") UUID userId);
+
     /**
      * Atomically claims the referral reward for a user.
      * Only updates if referral_reward_given is currently false.

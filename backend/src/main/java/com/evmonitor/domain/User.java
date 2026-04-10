@@ -30,6 +30,7 @@ public class User {
     private final String registrationLocale;
     private final String country;
     private final Instant subscriptionPeriodEnd;
+    private final boolean trialUsed;
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
 
@@ -38,7 +39,7 @@ public class User {
             boolean emailVerified, boolean seedData, boolean emailNotificationsEnabled, boolean premium,
             boolean referralRewardGiven, String referralCode, UUID referredByUserId, String stripeCustomerId,
             String utmSource, String utmMedium, String utmCampaign, String referrerSource,
-            String registrationLocale, String country, Instant subscriptionPeriodEnd,
+            String registrationLocale, String country, Instant subscriptionPeriodEnd, boolean trialUsed,
             LocalDateTime createdAt, LocalDateTime updatedAt) {
         if (id == null)
             throw new IllegalArgumentException("User ID cannot be null");
@@ -70,6 +71,7 @@ public class User {
         this.registrationLocale = registrationLocale;
         this.country = country;
         this.subscriptionPeriodEnd = subscriptionPeriodEnd;
+        this.trialUsed = trialUsed;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
