@@ -115,7 +115,7 @@ class AuthServiceTest {
 
         User user = new User(userId, email, "testuser", "$2a$10$hashedPassword",
                 AuthProvider.LOCAL, "USER", true /* emailVerified */, false, true, false,
-                false, "TESTCODE", null, null, null, null, null, null, null, null, null, LocalDateTime.now(), LocalDateTime.now());
+                false, "TESTCODE", null, null, null, null, null, null, null, null, null, false, LocalDateTime.now(), LocalDateTime.now());
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(null);
@@ -139,7 +139,7 @@ class AuthServiceTest {
 
         User unverifiedUser = new User(userId, email, "unverified", "$2a$10$hash",
                 AuthProvider.LOCAL, "USER", false /* emailVerified */, false, true, false,
-                false, "TESTCODE", null, null, null, null, null, null, null, null, null, LocalDateTime.now(), LocalDateTime.now());
+                false, "TESTCODE", null, null, null, null, null, null, null, null, null, false, LocalDateTime.now(), LocalDateTime.now());
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(unverifiedUser));
         when(authenticationManager.authenticate(any())).thenReturn(null);
@@ -164,7 +164,7 @@ class AuthServiceTest {
 
         User user = new User(userId, "user@example.com", "user", "$2a$10$hash",
                 AuthProvider.LOCAL, "USER", true, false, true, false,
-                false, "TESTCODE", null, null, null, null, null, null, null, null, null, LocalDateTime.now(), LocalDateTime.now());
+                false, "TESTCODE", null, null, null, null, null, null, null, null, null, false, LocalDateTime.now(), LocalDateTime.now());
 
         when(tokenRepository.findByToken(rawToken)).thenReturn(Optional.of(verificationToken));
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
@@ -434,7 +434,7 @@ class AuthServiceTest {
 
         User referrer = new User(referrerId, "referrer@example.com", "referrer", "$2a$10$hash",
                 AuthProvider.LOCAL, "USER", true, false, true, false,
-                false, referralCode, null, null, null, null, null, null, null, null, null, LocalDateTime.now(), LocalDateTime.now());
+                false, referralCode, null, null, null, null, null, null, null, null, null, false, LocalDateTime.now(), LocalDateTime.now());
 
         when(userRepository.existsByEmail(any())).thenReturn(false);
         when(userRepository.existsByUsername(any())).thenReturn(false);

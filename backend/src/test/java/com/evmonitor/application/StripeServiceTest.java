@@ -65,7 +65,7 @@ class StripeServiceTest {
                 true, false, true, false, false,
                 "REFERRALCODE1", referredByUserId,
                 CUSTOMER_ID,
-                null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, false,
                 LocalDateTime.now(), LocalDateTime.now()
         );
     }
@@ -77,7 +77,7 @@ class StripeServiceTest {
                 true, false, true, false, false,
                 "REFERRALCODE1", null,
                 stripeCustomerId,
-                null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, false,
                 LocalDateTime.now(), LocalDateTime.now()
         );
     }

@@ -52,6 +52,7 @@ public class TestDataBuilder {
                 null, // registrationLocale
                 null, // country
                 null, // subscriptionPeriodEnd
+                false, // trialUsed
                 LocalDateTime.now(),
                 LocalDateTime.now()
         );

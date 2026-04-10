@@ -90,7 +90,7 @@ public class StripeService {
      * @return the Stripe Checkout URL
      */
     public String createCheckoutSession(User user, String plan, String successUrl, String cancelUrl) throws StripeException {
-        boolean isNewCustomer = user.getStripeCustomerId() == null || user.getStripeCustomerId().isBlank();
+        boolean eligibleForTrial = !user.isTrialUsed();
         String customerId = ensureCustomer(user);
 
         String priceId = "yearly".equals(plan) ? priceIdYearly : priceIdMonthly;
@@ -105,7 +105,7 @@ public class StripeService {
                 .setSuccessUrl(successUrl)
                 .setCancelUrl(cancelUrl);
 
-        if (isNewCustomer) {
+        if (eligibleForTrial) {
             builder.setSubscriptionData(SessionCreateParams.SubscriptionData.builder()
                     .setTrialPeriodDays(7L)
                     .build());
@@ -150,7 +150,8 @@ public class StripeService {
             case "customer.subscription.created", "customer.subscription.updated" -> {
                 String customerId = data.get("customer").getAsString();
                 String status = data.get("status").getAsString();
-                boolean isActive = "active".equals(status) || "trialing".equals(status);
+                boolean isTrialing = "trialing".equals(status);
+                boolean isActive = "active".equals(status) || isTrialing;
                 Instant periodEnd = data.has("current_period_end") && !data.get("current_period_end").isJsonNull()
                         ? Instant.ofEpochSecond(data.get("current_period_end").getAsLong())
                         : null;
@@ -158,6 +159,9 @@ public class StripeService {
                     userRepository.setPremium(u.getId(), isActive);
                     if (periodEnd != null) {
                         userRepository.setSubscriptionPeriodEnd(u.getId(), periodEnd);
+                    }
+                    if (isTrialing) {
+                        userRepository.markTrialUsed(u.getId());
                     }
                 });
                 log.info("[STRIPE] subscription {} -> isPremium={} for customer={}", status, isActive, customerId);

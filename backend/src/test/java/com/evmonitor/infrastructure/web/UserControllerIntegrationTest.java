@@ -101,6 +101,7 @@ class UserControllerIntegrationTest {
                 testUserEntity.getRegistrationLocale(),
                 testUserEntity.getCountry(),
                 testUserEntity.getSubscriptionPeriodEnd(),
+                testUserEntity.isTrialUsed(),
                 testUserEntity.getCreatedAt(),
                 testUserEntity.getUpdatedAt()
         );
@@ -219,7 +220,7 @@ class UserControllerIntegrationTest {
         User oauthUser = new User(
                 oauthUserEntity.getId(), oauthUserEntity.getEmail(), oauthUserEntity.getUsername(),
                 null, oauthUserEntity.getAuthProvider(), oauthUserEntity.getRole(),
-                true, false, true, false, false, oauthUserEntity.getReferralCode(), null, null, null, null, null, null, null, null, null,
+                true, false, true, false, false, oauthUserEntity.getReferralCode(), null, null, null, null, null, null, null, null, null, false,
                 now, now
         );
 

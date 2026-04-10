@@ -41,6 +41,8 @@ public interface UserRepository {
 
     void setSubscriptionPeriodEnd(UUID userId, Instant periodEnd);
 
+    void markTrialUsed(UUID userId);
+
     /**
      * Atomically claims the referral reward. Returns true if this call won the race
      * (i.e. the reward was not yet given), false if already claimed.

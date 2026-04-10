@@ -64,6 +64,7 @@ class UserServiceTest {
                 null, null, null, null, null,
                 null,
                 null, // subscriptionPeriodEnd
+                false, // trialUsed
                 LocalDateTime.now(),
                 LocalDateTime.now()
         );
