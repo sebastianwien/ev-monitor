@@ -7,8 +7,8 @@ import com.evmonitor.domain.ChargingSessionGroupRepository;
 import com.evmonitor.domain.DataSource;
 import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.EvLogRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,9 +37,9 @@ import java.util.stream.Collectors;
  *    Unterstützte Quellen: SPRITMONITOR_IMPORT
  */
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class SessionGroupService {
-
-    private static final Logger log = LoggerFactory.getLogger(SessionGroupService.class);
 
     /** Default: Sessions mit weniger als 90 Minuten Pause werden gruppiert. */
     public static final int DEFAULT_MERGE_GAP_MINUTES = 90;
@@ -47,13 +47,6 @@ public class SessionGroupService {
     private final ChargingSessionGroupRepository groupRepository;
     private final EvLogRepository evLogRepository;
     private final CarRepository carRepository;
-
-    public SessionGroupService(ChargingSessionGroupRepository groupRepository,
-            EvLogRepository evLogRepository, CarRepository carRepository) {
-        this.groupRepository = groupRepository;
-        this.evLogRepository = evLogRepository;
-        this.carRepository = carRepository;
-    }
 
     /**
      * Verarbeitet einen neu gespeicherten Log und gruppiert ihn zeitbasiert mit bestehenden Sessions.

@@ -1,7 +1,7 @@
 package com.evmonitor.application;
 
+import com.evmonitor.application.consumption.ConsumptionCalculationService;
 import com.evmonitor.domain.*;
-import com.evmonitor.infrastructure.weather.TemperatureEnrichmentService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,14 +29,9 @@ import static org.mockito.Mockito.mock;
 @ExtendWith(MockitoExtension.class)
 class EvLogServiceCalculateConsumptionTest {
 
-    @Mock private EvLogRepository evLogRepository;
-    @Mock private CarRepository carRepository;
-    @Mock private UserRepository userRepository;
-    @Mock private CoinLogService coinLogService;
-    @Mock private TemperatureEnrichmentService temperatureEnrichmentService;
     @Mock private VehicleSpecificationRepository vehicleSpecificationRepository;
 
-    private EvLogService service;
+    private ConsumptionCalculationService service;
 
     private static final BigDecimal BATTERY_75 = new BigDecimal("75.0");
     private static final LocalDateTime T1 = LocalDateTime.of(2026, 1, 1, 10, 0);
@@ -49,11 +44,7 @@ class EvLogServiceCalculateConsumptionTest {
         PlausibilityProperties props = new PlausibilityProperties();
         props.setAcChargingEfficiency(1.0);
         props.setDcChargingEfficiency(1.0);
-        service = new EvLogService(
-                evLogRepository, carRepository, userRepository,
-                coinLogService, temperatureEnrichmentService,
-                vehicleSpecificationRepository, props,
-                mock(com.evmonitor.application.SessionGroupService.class), mock(com.evmonitor.domain.BatterySohRepository.class));
+        service = new ConsumptionCalculationService(vehicleSpecificationRepository, props, mock(BatterySohRepository.class));
     }
 
     // -------------------------------------------------------------------------

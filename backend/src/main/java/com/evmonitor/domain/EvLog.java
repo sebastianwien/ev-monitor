@@ -1,11 +1,14 @@
 package com.evmonitor.domain;
 
 import lombok.Builder;
+import lombok.Getter;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+@Getter
 public class EvLog {
 
     private final UUID id;
@@ -30,15 +33,16 @@ public class EvLog {
     private final TireType tireType;         // Optional: SUMMER, ALL_YEAR, or WINTER
     private final UUID supersededBy;         // Optional: ID of the USER_LOGGED log that supersedes this import
     private final UUID sessionGroupId;       // Optional: ID of the charging_session_group (sub-sessions only)
-    private final boolean isPublicCharging;  // Whether this was at a public charger (CPO)
-    private final String cpoName;            // Optional: CPO name (e.g. IONITY, EnBW) — only when isPublicCharging
+    private final boolean publicCharging;    // Whether this was at a public charger (CPO)
+    private final String cpoName;            // Optional: CPO name (e.g. IONITY, EnBW) - only when isPublicCharging
     private final EnergyMeasurementType measurementType; // At which point energy is measured (derived from dataSource)
-    private final BigDecimal costExchangeRate; // EUR→local rate used at entry time (null = EUR direct)
+    private final BigDecimal costExchangeRate; // EUR->local rate used at entry time (null = EUR direct)
     private final String costCurrency;         // ISO 4217 currency code (null = EUR)
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
 
-    // Full constructor - only called by the Lombok-generated builder
+    // Full constructor - only called by the Lombok-generated builder.
+    // Applies normalisation of loggedAt, dataSource defaults, and charging-type inference.
     @Builder(toBuilder = true)
     private EvLog(UUID id, UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
             Integer chargeDurationMinutes, String geohash, Integer odometerKm,
@@ -48,7 +52,7 @@ public class EvLog {
             Double temperatureCelsius, ChargingType chargingType, String rawImportData,
             LocalDateTime createdAt, LocalDateTime updatedAt,
             RouteType routeType, TireType tireType, UUID supersededBy, UUID sessionGroupId,
-            boolean isPublicCharging, String cpoName, EnergyMeasurementType measurementType,
+            boolean publicCharging, String cpoName, EnergyMeasurementType measurementType,
             BigDecimal costExchangeRate, String costCurrency) {
         this.id = id;
         this.carId = carId;
@@ -74,7 +78,7 @@ public class EvLog {
         this.tireType = tireType;
         this.supersededBy = supersededBy;
         this.sessionGroupId = sessionGroupId;
-        this.isPublicCharging = isPublicCharging;
+        this.publicCharging = publicCharging;
         this.cpoName = cpoName;
         this.costExchangeRate = costExchangeRate;
         this.costCurrency = costCurrency;
@@ -82,21 +86,11 @@ public class EvLog {
         this.updatedAt = updatedAt;
     }
 
-    // Backward-compatible overload for existing callers (tests, imports)
-    public static EvLog createNew(UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
-            Integer chargeDurationMinutes, String geohash, Integer odometerKm,
-            BigDecimal maxChargingPowerKw, Integer socAfterChargePercent, LocalDateTime loggedAt,
-            ChargingType chargingType, RouteType routeType, TireType tireType) {
-        return createNew(carId, kwhCharged, costEur, chargeDurationMinutes, geohash, odometerKm,
-                maxChargingPowerKw, socAfterChargePercent, loggedAt, chargingType, routeType, tireType,
-                false, null);
-    }
-
     public static EvLog createNew(UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
             Integer chargeDurationMinutes, String geohash, Integer odometerKm,
             BigDecimal maxChargingPowerKw, Integer socAfterChargePercent, LocalDateTime loggedAt,
             ChargingType chargingType, RouteType routeType, TireType tireType,
-            boolean isPublicCharging, String cpoName) {
+            boolean publicCharging, String cpoName) {
         LocalDateTime now = LocalDateTime.now();
         return EvLog.builder()
                 .id(UUID.randomUUID())
@@ -114,7 +108,7 @@ public class EvLog {
                 .chargingType(chargingType)
                 .routeType(routeType)
                 .tireType(tireType)
-                .isPublicCharging(isPublicCharging)
+                .publicCharging(publicCharging)
                 .cpoName(cpoName)
                 .createdAt(now)
                 .updatedAt(now)
@@ -149,15 +143,6 @@ public class EvLog {
     public static EvLog createFromInternal(UUID carId, BigDecimal kwhCharged,
             Integer chargeDurationMinutes, String geohash,
             LocalDateTime loggedAt, Integer odometerSuggestionMinKm, Integer odometerSuggestionMaxKm,
-            DataSource dataSource, BigDecimal costEur, ChargingType chargingType) {
-        return createFromInternal(carId, kwhCharged, chargeDurationMinutes, geohash,
-                loggedAt, odometerSuggestionMinKm, odometerSuggestionMaxKm,
-                dataSource, costEur, chargingType, null, null, null, null);
-    }
-
-    public static EvLog createFromInternal(UUID carId, BigDecimal kwhCharged,
-            Integer chargeDurationMinutes, String geohash,
-            LocalDateTime loggedAt, Integer odometerSuggestionMinKm, Integer odometerSuggestionMaxKm,
             DataSource dataSource, BigDecimal costEur, ChargingType chargingType,
             Integer odometerKm, Integer socBefore, Integer socAfter, Double temperatureCelsius) {
         LocalDateTime now = LocalDateTime.now();
@@ -187,27 +172,7 @@ public class EvLog {
             Integer chargeDurationMinutes, String geohash, Integer odometerKm,
             BigDecimal maxChargingPowerKw, Integer socAfterChargePercent, Integer socBeforeChargePercent,
             LocalDateTime loggedAt, ChargingType chargingType, RouteType routeType, TireType tireType,
-            DataSource dataSource, String rawImportData) {
-        return createFromPublicApi(carId, kwhCharged, costEur, chargeDurationMinutes, geohash, odometerKm,
-                maxChargingPowerKw, socAfterChargePercent, socBeforeChargePercent, loggedAt,
-                chargingType, routeType, tireType, dataSource, rawImportData, false, null);
-    }
-
-    public static EvLog createFromPublicApi(UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
-            Integer chargeDurationMinutes, String geohash, Integer odometerKm,
-            BigDecimal maxChargingPowerKw, Integer socAfterChargePercent, Integer socBeforeChargePercent,
-            LocalDateTime loggedAt, ChargingType chargingType, RouteType routeType, TireType tireType,
-            DataSource dataSource, String rawImportData, boolean isPublicCharging, String cpoName) {
-        return createFromPublicApi(carId, kwhCharged, costEur, chargeDurationMinutes, geohash, odometerKm,
-                maxChargingPowerKw, socAfterChargePercent, socBeforeChargePercent, loggedAt,
-                chargingType, routeType, tireType, dataSource, rawImportData, isPublicCharging, cpoName, null);
-    }
-
-    public static EvLog createFromPublicApi(UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
-            Integer chargeDurationMinutes, String geohash, Integer odometerKm,
-            BigDecimal maxChargingPowerKw, Integer socAfterChargePercent, Integer socBeforeChargePercent,
-            LocalDateTime loggedAt, ChargingType chargingType, RouteType routeType, TireType tireType,
-            DataSource dataSource, String rawImportData, boolean isPublicCharging, String cpoName,
+            DataSource dataSource, String rawImportData, boolean publicCharging, String cpoName,
             EnergyMeasurementType measurementType) {
         LocalDateTime now = LocalDateTime.now();
         return EvLog.builder()
@@ -228,7 +193,7 @@ public class EvLog {
                 .rawImportData(rawImportData)
                 .routeType(routeType)
                 .tireType(tireType)
-                .isPublicCharging(isPublicCharging)
+                .publicCharging(publicCharging)
                 .cpoName(cpoName)
                 .measurementType(measurementType)
                 .createdAt(now)
@@ -249,126 +214,10 @@ public class EvLog {
         return ChargingType.UNKNOWN;
     }
 
-    public UUID getId() {
-        return id;
-    }
-
-    public UUID getCarId() {
-        return carId;
-    }
-
-    public BigDecimal getKwhCharged() {
-        return kwhCharged;
-    }
-
-    public BigDecimal getCostEur() {
-        return costEur;
-    }
-
-    public Integer getChargeDurationMinutes() {
-        return chargeDurationMinutes;
-    }
-
-    public String getGeohash() {
-        return geohash;
-    }
-
-    public LocalDateTime getLoggedAt() {
-        return loggedAt;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public Integer getOdometerKm() {
-        return odometerKm;
-    }
-
-    public BigDecimal getMaxChargingPowerKw() {
-        return maxChargingPowerKw;
-    }
-
-    public Integer getSocAfterChargePercent() {
-        return socAfterChargePercent;
-    }
-
-    public Integer getSocBeforeChargePercent() {
-        return socBeforeChargePercent;
-    }
-
-    public DataSource getDataSource() {
-        return dataSource;
-    }
-
-    public boolean isIncludeInStatistics() {
-        return includeInStatistics;
-    }
-
-    public Integer getOdometerSuggestionMinKm() {
-        return odometerSuggestionMinKm;
-    }
-
-    public Integer getOdometerSuggestionMaxKm() {
-        return odometerSuggestionMaxKm;
-    }
-
-    public Double getTemperatureCelsius() {
-        return temperatureCelsius;
-    }
-
-    public ChargingType getChargingType() {
-        return chargingType;
-    }
-
-    public String getRawImportData() {
-        return rawImportData;
-    }
-
-    public RouteType getRouteType() {
-        return routeType;
-    }
-
-    public TireType getTireType() {
-        return tireType;
-    }
-
-    public UUID getSupersededBy() {
-        return supersededBy;
-    }
-
-    public UUID getSessionGroupId() {
-        return sessionGroupId;
-    }
-
-    public boolean isPublicCharging() {
-        return isPublicCharging;
-    }
-
-    public String getCpoName() {
-        return cpoName;
-    }
-
-    public EnergyMeasurementType getMeasurementType() {
-        return measurementType;
-    }
-
-    public BigDecimal getCostExchangeRate() {
-        return costExchangeRate;
-    }
-
-    public String getCostCurrency() {
-        return costCurrency;
-    }
-
     public EvLog withPatch(BigDecimal kwh, BigDecimal costEur, Integer durationMin,
             String geohash, Integer odometerKm, Integer socBefore, Integer socAfter,
             BigDecimal maxChargingPowerKw, ChargingType chargingType,
-            RouteType routeType, TireType tireType, Boolean isPublicCharging, String cpoName,
+            RouteType routeType, TireType tireType, Boolean publicCharging, String cpoName,
             EnergyMeasurementType measurementType,
             BigDecimal costExchangeRate, String costCurrency) {
         return toBuilder()
@@ -385,7 +234,7 @@ public class EvLog {
                 .chargingType(chargingType != null ? chargingType : this.chargingType)
                 .routeType(routeType != null ? routeType : this.routeType)
                 .tireType(tireType != null ? tireType : this.tireType)
-                .isPublicCharging(isPublicCharging != null ? isPublicCharging : this.isPublicCharging)
+                .publicCharging(publicCharging != null ? publicCharging : this.publicCharging)
                 .cpoName(cpoName != null ? cpoName : this.cpoName)
                 .measurementType(measurementType != null ? measurementType : this.measurementType)
                 .updatedAt(LocalDateTime.now())
@@ -416,18 +265,18 @@ public class EvLog {
     }
 
     /**
-     * True if kwhCharged is present and positive — the minimum required for any energy accounting.
+     * True if kwhCharged is present and positive - the minimum required for any energy accounting.
      */
     public boolean hasKwhCharged() {
-        return kwhCharged != null && kwhCharged.compareTo(java.math.BigDecimal.ZERO) > 0;
+        return kwhCharged != null && kwhCharged.compareTo(BigDecimal.ZERO) > 0;
     }
 
     /**
      * True if this log falls within the given date range (both bounds inclusive, both nullable).
      * A null startDate means no lower bound; a null endDate means no upper bound.
      */
-    public boolean isLoggedWithin(java.time.LocalDate startDate, java.time.LocalDate endDate) {
-        java.time.LocalDate logDate = loggedAt.toLocalDate();
+    public boolean isLoggedWithin(LocalDate startDate, LocalDate endDate) {
+        LocalDate logDate = loggedAt.toLocalDate();
         boolean afterStart = startDate == null || !logDate.isBefore(startDate);
         boolean beforeEnd = endDate == null || !logDate.isAfter(endDate);
         return afterStart && beforeEnd;

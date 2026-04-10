@@ -2,11 +2,11 @@ package com.evmonitor.infrastructure.security;
 
 import com.evmonitor.application.publicapi.ApiKeyService;
 import com.evmonitor.domain.ApiKey;
-import com.evmonitor.domain.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -24,6 +24,7 @@ import java.util.Optional;
  */
 @Component
 @Slf4j
+@RequiredArgsConstructor
 public class ApiKeyAuthFilter extends OncePerRequestFilter {
 
     private static final String API_V1_PATH = "/api/v1/";
@@ -31,11 +32,6 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
 
     private final ApiKeyService apiKeyService;
     private final CustomUserDetailsService userDetailsService;
-
-    public ApiKeyAuthFilter(ApiKeyService apiKeyService, CustomUserDetailsService userDetailsService) {
-        this.apiKeyService = apiKeyService;
-        this.userDetailsService = userDetailsService;
-    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,

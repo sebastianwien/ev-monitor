@@ -4,12 +4,12 @@ import com.evmonitor.application.PremiumProperties;
 import com.evmonitor.domain.UserRepository;
 import com.evmonitor.infrastructure.security.CustomUserDetailsService;
 import com.evmonitor.infrastructure.security.JwtService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
-import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.Map;
 import java.util.UUID;
@@ -20,22 +20,14 @@ import java.util.UUID;
  */
 @RestController
 @RequestMapping("/api/internal")
+@RequiredArgsConstructor
+@Slf4j
 public class InternalUserController {
-
-    private static final Logger log = LoggerFactory.getLogger(InternalUserController.class);
 
     private final UserRepository userRepository;
     private final PremiumProperties premiumProperties;
     private final JwtService jwtService;
     private final CustomUserDetailsService userDetailsService;
-
-    public InternalUserController(UserRepository userRepository, PremiumProperties premiumProperties,
-                                  JwtService jwtService, CustomUserDetailsService userDetailsService) {
-        this.userRepository = userRepository;
-        this.premiumProperties = premiumProperties;
-        this.jwtService = jwtService;
-        this.userDetailsService = userDetailsService;
-    }
 
     public record ImpersonateRequest(String email) {}
     public record ImpersonateResponse(String token, String email, String username) {}

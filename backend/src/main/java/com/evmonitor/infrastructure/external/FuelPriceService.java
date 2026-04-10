@@ -2,8 +2,7 @@ package com.evmonitor.infrastructure.external;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
@@ -24,9 +23,8 @@ import java.time.Duration;
  * Key beantragen: https://creativecommons.tankerkoenig.de/
  */
 @Service
+@Slf4j
 public class FuelPriceService {
-
-    private static final Logger log = LoggerFactory.getLogger(FuelPriceService.class);
 
     // Fallback prices (updated roughly quarterly)
     private static final double FALLBACK_BENZIN = 2.15;

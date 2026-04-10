@@ -1,6 +1,9 @@
 package com.evmonitor.infrastructure.persistence;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -9,6 +12,9 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "charging_provider_tariffs")
+@Getter
+@Setter
+@NoArgsConstructor
 public class ChargingProviderTariffEntity {
 
     @Id
@@ -45,7 +51,7 @@ public class ChargingProviderTariffEntity {
     private Integer blockingFeeAfterMin;
 
     @Column(name = "is_dynamic_pricing", nullable = false)
-    private boolean isDynamicPricing;
+    private boolean dynamicPricing;
 
     @Column(name = "valid_from", nullable = false)
     private LocalDate validFrom;
@@ -58,54 +64,4 @@ public class ChargingProviderTariffEntity {
 
     @Column(name = "last_verified_at", nullable = false)
     private LocalDateTime lastVerifiedAt;
-
-    public ChargingProviderTariffEntity() {}
-
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
-
-    public String getEmpName() { return empName; }
-    public void setEmpName(String empName) { this.empName = empName; }
-
-    public String getTariffVariant() { return tariffVariant; }
-    public void setTariffVariant(String tariffVariant) { this.tariffVariant = tariffVariant; }
-
-    public String getCpoName() { return cpoName; }
-    public void setCpoName(String cpoName) { this.cpoName = cpoName; }
-
-    public String getPriceTier() { return priceTier; }
-    public void setPriceTier(String priceTier) { this.priceTier = priceTier; }
-
-    public String getChargingType() { return chargingType; }
-    public void setChargingType(String chargingType) { this.chargingType = chargingType; }
-
-    public BigDecimal getPricePerKwh() { return pricePerKwh; }
-    public void setPricePerKwh(BigDecimal pricePerKwh) { this.pricePerKwh = pricePerKwh; }
-
-    public BigDecimal getSessionFeeEur() { return sessionFeeEur; }
-    public void setSessionFeeEur(BigDecimal sessionFeeEur) { this.sessionFeeEur = sessionFeeEur; }
-
-    public BigDecimal getMonthlyFeeEur() { return monthlyFeeEur; }
-    public void setMonthlyFeeEur(BigDecimal monthlyFeeEur) { this.monthlyFeeEur = monthlyFeeEur; }
-
-    public BigDecimal getBlockingFeePerMin() { return blockingFeePerMin; }
-    public void setBlockingFeePerMin(BigDecimal blockingFeePerMin) { this.blockingFeePerMin = blockingFeePerMin; }
-
-    public Integer getBlockingFeeAfterMin() { return blockingFeeAfterMin; }
-    public void setBlockingFeeAfterMin(Integer blockingFeeAfterMin) { this.blockingFeeAfterMin = blockingFeeAfterMin; }
-
-    public boolean isDynamicPricing() { return isDynamicPricing; }
-    public void setDynamicPricing(boolean dynamicPricing) { isDynamicPricing = dynamicPricing; }
-
-    public LocalDate getValidFrom() { return validFrom; }
-    public void setValidFrom(LocalDate validFrom) { this.validFrom = validFrom; }
-
-    public LocalDate getValidUntil() { return validUntil; }
-    public void setValidUntil(LocalDate validUntil) { this.validUntil = validUntil; }
-
-    public String getSourceUrl() { return sourceUrl; }
-    public void setSourceUrl(String sourceUrl) { this.sourceUrl = sourceUrl; }
-
-    public LocalDateTime getLastVerifiedAt() { return lastVerifiedAt; }
-    public void setLastVerifiedAt(LocalDateTime lastVerifiedAt) { this.lastVerifiedAt = lastVerifiedAt; }
 }

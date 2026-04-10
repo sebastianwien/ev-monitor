@@ -61,48 +61,35 @@ class UserControllerIntegrationTest {
         testUserId = UUID.randomUUID();
         LocalDateTime now = LocalDateTime.now();
 
-        testUserEntity = new UserEntity(
-                testUserId,
-                "integration-test@example.com",
-                "integrationuser",
-                passwordEncoder.encode("password123"),
-                AuthProvider.LOCAL,
-                "USER",
-                true,
-                false,
-                true,
-                "TESTCODE1",
-                null,
-                now,
-                now
-        );
+        testUserEntity = newEntity(testUserId, "integration-test@example.com", "integrationuser",
+                passwordEncoder.encode("password123"), AuthProvider.LOCAL, "TESTCODE1", now);
 
         testUserEntity = jpaUserRepository.save(testUserEntity);
 
-        testUser = new User(
-                testUserEntity.getId(),
-                testUserEntity.getEmail(),
-                testUserEntity.getUsername(),
-                testUserEntity.getPasswordHash(),
-                testUserEntity.getAuthProvider(),
-                testUserEntity.getRole(),
-                testUserEntity.isEmailVerified(),
-                testUserEntity.isSeedData(),
-                testUserEntity.isEmailNotificationsEnabled(),
-                testUserEntity.isPremium(),
-                testUserEntity.isReferralRewardGiven(),
-                testUserEntity.getReferralCode(),
-                testUserEntity.getReferredByUserId(),
-                testUserEntity.getStripeCustomerId(),
-                testUserEntity.getUtmSource(),
-                testUserEntity.getUtmMedium(),
-                testUserEntity.getUtmCampaign(),
-                testUserEntity.getReferrerSource(),
-                testUserEntity.getRegistrationLocale(),
-                testUserEntity.getCountry(),
-                testUserEntity.getCreatedAt(),
-                testUserEntity.getUpdatedAt()
-        );
+        testUser = User.builder()
+                .id(testUserEntity.getId())
+                .email(testUserEntity.getEmail())
+                .username(testUserEntity.getUsername())
+                .passwordHash(testUserEntity.getPasswordHash())
+                .authProvider(testUserEntity.getAuthProvider())
+                .role(testUserEntity.getRole())
+                .emailVerified(testUserEntity.isEmailVerified())
+                .seedData(testUserEntity.isSeedData())
+                .emailNotificationsEnabled(testUserEntity.isEmailNotificationsEnabled())
+                .premium(testUserEntity.isPremium())
+                .referralRewardGiven(testUserEntity.isReferralRewardGiven())
+                .referralCode(testUserEntity.getReferralCode())
+                .referredByUserId(testUserEntity.getReferredByUserId())
+                .stripeCustomerId(testUserEntity.getStripeCustomerId())
+                .utmSource(testUserEntity.getUtmSource())
+                .utmMedium(testUserEntity.getUtmMedium())
+                .utmCampaign(testUserEntity.getUtmCampaign())
+                .referrerSource(testUserEntity.getReferrerSource())
+                .registrationLocale(testUserEntity.getRegistrationLocale())
+                .country(testUserEntity.getCountry())
+                .createdAt(testUserEntity.getCreatedAt())
+                .updatedAt(testUserEntity.getUpdatedAt())
+                .build();
     }
 
     @AfterEach
@@ -148,23 +135,10 @@ class UserControllerIntegrationTest {
     }
 
     @Test
-    void changeEmail_shouldReturnBadRequestWhenEmailAlreadyExists() throws Exception {
+    void changeEmail_shouldReturnConflictWhenEmailAlreadyExists() throws Exception {
         // Create another user with the target email
-        UserEntity anotherUser = new UserEntity(
-                UUID.randomUUID(),
-                "existing@example.com",
-                "existinguser",
-                "hashedPassword",
-                AuthProvider.LOCAL,
-                "USER",
-                true,
-                false,
-                true,
-                "TESTCODE2",
-                null,
-                LocalDateTime.now(),
-                LocalDateTime.now()
-        );
+        UserEntity anotherUser = newEntity(UUID.randomUUID(), "existing@example.com", "existinguser",
+                "hashedPassword", AuthProvider.LOCAL, "TESTCODE2", LocalDateTime.now());
         jpaUserRepository.save(anotherUser);
 
         Map<String, String> request = new HashMap<>();
@@ -175,7 +149,7 @@ class UserControllerIntegrationTest {
                         .with(authentication(createAuthentication(testUser)))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isConflict());
     }
 
     @Test
@@ -199,28 +173,17 @@ class UserControllerIntegrationTest {
     @Test
     void changeEmail_shouldReturnBadRequestForOAuthUser() throws Exception {
         LocalDateTime now = LocalDateTime.now();
-        UserEntity oauthUserEntity = new UserEntity(
-                UUID.randomUUID(),
-                "oauth-user@example.com",
-                "oauthuser",
-                null,
-                AuthProvider.GOOGLE,
-                "USER",
-                true,
-                false,
-                true,
-                "OAUTHCODE1",
-                null,
-                now,
-                now
-        );
+        UserEntity oauthUserEntity = newEntity(UUID.randomUUID(), "oauth-user@example.com", "oauthuser",
+                null, AuthProvider.GOOGLE, "OAUTHCODE1", now);
         oauthUserEntity = jpaUserRepository.save(oauthUserEntity);
-        User oauthUser = new User(
-                oauthUserEntity.getId(), oauthUserEntity.getEmail(), oauthUserEntity.getUsername(),
-                null, oauthUserEntity.getAuthProvider(), oauthUserEntity.getRole(),
-                true, false, true, false, false, oauthUserEntity.getReferralCode(), null, null, null, null, null, null, null, null,
-                now, now
-        );
+        User oauthUser = User.builder()
+                .id(oauthUserEntity.getId())
+                .email(oauthUserEntity.getEmail()).username(oauthUserEntity.getUsername())
+                .authProvider(oauthUserEntity.getAuthProvider()).role(oauthUserEntity.getRole())
+                .emailVerified(true).emailNotificationsEnabled(true)
+                .referralCode(oauthUserEntity.getReferralCode())
+                .createdAt(now).updatedAt(now)
+                .build();
 
         Map<String, String> request = new HashMap<>();
         request.put("newEmail", "newemail@example.com");
@@ -373,5 +336,22 @@ class UserControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isForbidden());
+    }
+
+    private static UserEntity newEntity(UUID id, String email, String username, String passwordHash,
+                                        AuthProvider authProvider, String referralCode, LocalDateTime now) {
+        UserEntity entity = new UserEntity();
+        entity.setId(id);
+        entity.setEmail(email);
+        entity.setUsername(username);
+        entity.setPasswordHash(passwordHash);
+        entity.setAuthProvider(authProvider);
+        entity.setRole("USER");
+        entity.setEmailVerified(true);
+        entity.setEmailNotificationsEnabled(true);
+        entity.setReferralCode(referralCode);
+        entity.setCreatedAt(now);
+        entity.setUpdatedAt(now);
+        return entity;
     }
 }

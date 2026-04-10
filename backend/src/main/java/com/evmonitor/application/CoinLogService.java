@@ -3,6 +3,7 @@ package com.evmonitor.application;
 import com.evmonitor.domain.CoinLog;
 import com.evmonitor.domain.CoinLogRepository;
 import com.evmonitor.domain.CoinType;
+import lombok.RequiredArgsConstructor;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 
@@ -15,6 +16,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class CoinLogService {
 
     /**
@@ -79,10 +81,6 @@ public class CoinLogService {
     }
 
     private final CoinLogRepository coinLogRepository;
-
-    public CoinLogService(CoinLogRepository coinLogRepository) {
-        this.coinLogRepository = coinLogRepository;
-    }
 
     /**
      * Returns true if the user has EVER received a coin for this action.

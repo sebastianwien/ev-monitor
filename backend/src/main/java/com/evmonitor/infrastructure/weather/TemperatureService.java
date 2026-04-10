@@ -1,7 +1,7 @@
 package com.evmonitor.infrastructure.weather;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -17,9 +17,9 @@ import java.util.Optional;
  * Free, no API key, GDPR-compliant (only anonymous coordinates sent).
  */
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class TemperatureService {
-
-    private static final Logger log = LoggerFactory.getLogger(TemperatureService.class);
 
     private static final String FORECAST_URL = "https://api.open-meteo.com/v1/forecast";
     private static final String ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive";
@@ -28,10 +28,6 @@ public class TemperatureService {
     private static final int ARCHIVE_THRESHOLD_DAYS = 5;
 
     private final RestTemplate restTemplate;
-
-    public TemperatureService(RestTemplate restTemplate) {
-        this.restTemplate = restTemplate;
-    }
 
     /**
      * Returns temperature in °C at the given coordinates and datetime.

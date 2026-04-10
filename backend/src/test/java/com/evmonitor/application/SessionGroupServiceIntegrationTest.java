@@ -195,7 +195,8 @@ class SessionGroupServiceIntegrationTest extends AbstractIntegrationTest {
                     null, null,
                     DataSource.WALLBOX_GOE,
                     new BigDecimal("0.80"),
-                    ChargingType.AC);
+                    ChargingType.AC,
+                    null, null, null, null);
             EvLog saved = evLogRepository.save(log);
             sessionGroupService.processSessionForGrouping(saved);
         }
@@ -319,7 +320,8 @@ class SessionGroupServiceIntegrationTest extends AbstractIntegrationTest {
                 null, null,
                 DataSource.WALLBOX_GOE,
                 null,
-                ChargingType.AC);
+                ChargingType.AC,
+                null, null, null, null);
         return evLogRepository.save(log);
     }
 
@@ -334,7 +336,8 @@ class SessionGroupServiceIntegrationTest extends AbstractIntegrationTest {
                 null, null,
                 source,
                 null,
-                ChargingType.AC);
+                ChargingType.AC,
+                null, null, null, null);
         return evLogRepository.save(log);
     }
 

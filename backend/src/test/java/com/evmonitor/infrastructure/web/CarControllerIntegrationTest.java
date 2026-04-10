@@ -182,7 +182,7 @@ class CarControllerIntegrationTest extends AbstractIntegrationTest {
         );
 
         // Then: Should be rejected
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
     }
 
     @Test
@@ -225,7 +225,7 @@ class CarControllerIntegrationTest extends AbstractIntegrationTest {
         );
 
         // Then: Should be rejected
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
 
         // Verify car still exists
         assertTrue(carRepository.findById(otherUserCar.getId()).isPresent());
@@ -332,7 +332,7 @@ class CarControllerIntegrationTest extends AbstractIntegrationTest {
         );
 
         // Then: Rejected
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
 
         // Verify car was not changed
         Car notChanged = carRepository.findById(otherUserCar.getId()).orElseThrow();

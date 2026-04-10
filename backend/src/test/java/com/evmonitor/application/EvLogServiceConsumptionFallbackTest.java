@@ -1,11 +1,10 @@
 package com.evmonitor.application;
 
+import com.evmonitor.application.consumption.ConsumptionCalculationService;
 import com.evmonitor.domain.*;
-import com.evmonitor.infrastructure.weather.TemperatureEnrichmentService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
@@ -24,18 +23,7 @@ import static org.mockito.Mockito.mock;
 @ExtendWith(MockitoExtension.class)
 class EvLogServiceConsumptionFallbackTest {
 
-    @Mock
-    private EvLogRepository evLogRepository;
-    @Mock
-    private CarRepository carRepository;
-    @Mock
-    private UserRepository userRepository;
-    @Mock
-    private CoinLogService coinLogService;
-    @Mock
-    private TemperatureEnrichmentService temperatureEnrichmentService;
-
-    private EvLogService evLogService;
+    private ConsumptionCalculationService evLogService;
     private UUID carId;
 
     @BeforeEach
@@ -43,7 +31,7 @@ class EvLogServiceConsumptionFallbackTest {
         PlausibilityProperties props = new PlausibilityProperties();
         props.setAcChargingEfficiency(1.0);
         props.setDcChargingEfficiency(1.0);
-        evLogService = new EvLogService(evLogRepository, carRepository, userRepository, coinLogService, temperatureEnrichmentService, mock(VehicleSpecificationRepository.class), props, mock(com.evmonitor.application.SessionGroupService.class), mock(com.evmonitor.domain.BatterySohRepository.class));
+        evLogService = new ConsumptionCalculationService(mock(VehicleSpecificationRepository.class), props, mock(BatterySohRepository.class));
         carId = UUID.randomUUID();
     }
 
@@ -259,7 +247,8 @@ class EvLogServiceConsumptionFallbackTest {
             null,
             LocalDateTime.now(),
             ChargingType.UNKNOWN,
-            null, null
+            null, null,
+            false, null
         );
     }
 }

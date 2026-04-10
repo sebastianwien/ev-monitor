@@ -2,6 +2,7 @@ package com.evmonitor.infrastructure.web;
 
 import com.evmonitor.infrastructure.github.GitHubIssueService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -11,13 +12,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/errors")
+@RequiredArgsConstructor
 public class FrontendErrorController {
 
     private final GitHubIssueService gitHubIssueService;
-
-    public FrontendErrorController(GitHubIssueService gitHubIssueService) {
-        this.gitHubIssueService = gitHubIssueService;
-    }
 
     @PostMapping("/frontend")
     public ResponseEntity<Void> reportError(@RequestBody @Valid FrontendErrorRequest request) {

@@ -1,12 +1,20 @@
 package com.evmonitor.infrastructure.persistence;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
 @Table(name = "api_key")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class ApiKeyEntity {
 
     @Id
@@ -32,36 +40,4 @@ public class ApiKeyEntity {
 
     @Column(name = "merge_sessions", nullable = false)
     private boolean mergeSessions = false;
-
-    public ApiKeyEntity() {}
-
-    public ApiKeyEntity(UUID id, UUID userId, String keyHash, String keyPrefix,
-                        String name, LocalDateTime lastUsedAt, LocalDateTime createdAt,
-                        boolean mergeSessions) {
-        this.id = id;
-        this.userId = userId;
-        this.keyHash = keyHash;
-        this.keyPrefix = keyPrefix;
-        this.name = name;
-        this.lastUsedAt = lastUsedAt;
-        this.createdAt = createdAt;
-        this.mergeSessions = mergeSessions;
-    }
-
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
-    public UUID getUserId() { return userId; }
-    public void setUserId(UUID userId) { this.userId = userId; }
-    public String getKeyHash() { return keyHash; }
-    public void setKeyHash(String keyHash) { this.keyHash = keyHash; }
-    public String getKeyPrefix() { return keyPrefix; }
-    public void setKeyPrefix(String keyPrefix) { this.keyPrefix = keyPrefix; }
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-    public LocalDateTime getLastUsedAt() { return lastUsedAt; }
-    public void setLastUsedAt(LocalDateTime lastUsedAt) { this.lastUsedAt = lastUsedAt; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
-    public boolean isMergeSessions() { return mergeSessions; }
-    public void setMergeSessions(boolean mergeSessions) { this.mergeSessions = mergeSessions; }
 }

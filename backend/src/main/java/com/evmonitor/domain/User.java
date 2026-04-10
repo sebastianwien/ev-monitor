@@ -1,8 +1,12 @@
 package com.evmonitor.domain;
 
+import lombok.Builder;
+import lombok.Getter;
+
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+@Getter
 public class User {
     private final UUID id;
     private final String email;
@@ -27,7 +31,8 @@ public class User {
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
 
-    public User(UUID id, String email, String username, String passwordHash, AuthProvider authProvider, String role,
+    @Builder(toBuilder = true)
+    private User(UUID id, String email, String username, String passwordHash, AuthProvider authProvider, String role,
             boolean emailVerified, boolean seedData, boolean emailNotificationsEnabled, boolean premium,
             boolean referralRewardGiven, String referralCode, UUID referredByUserId, String stripeCustomerId,
             String utmSource, String utmMedium, String utmCampaign, String referrerSource,
@@ -70,65 +75,63 @@ public class User {
     }
 
     public static User createNewLocalUser(String email, String username, String passwordHash) {
-        LocalDateTime now = LocalDateTime.now();
-        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", false, false, true, false, false, generateReferralCode(), null, null, null, null, null, null, null, null, now, now);
+        return newLocalUserBuilder(email, username, passwordHash).build();
     }
 
     public static User createNewLocalUserWithReferrer(String email, String username, String passwordHash, UUID referredByUserId) {
-        LocalDateTime now = LocalDateTime.now();
-        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", false, false, true, false, false, generateReferralCode(), referredByUserId, null, null, null, null, null, null, null, now, now);
+        return newLocalUserBuilder(email, username, passwordHash)
+                .referredByUserId(referredByUserId)
+                .build();
     }
 
-    public static User createNewLocalUserWithCampaign(String email, String username, String passwordHash, UUID referredByUserId, String utmSource, String utmMedium, String utmCampaign, String referrerSource) {
-        LocalDateTime now = LocalDateTime.now();
-        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", false, false, true, false, false, generateReferralCode(), referredByUserId, null, utmSource, utmMedium, utmCampaign, referrerSource, null, null, now, now);
-    }
-
-    public static User createNewLocalUserWithLocale(String email, String username, String passwordHash, UUID referredByUserId, String utmSource, String utmMedium, String utmCampaign, String referrerSource, String registrationLocale) {
-        LocalDateTime now = LocalDateTime.now();
-        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", false, false, true, false, false, generateReferralCode(), referredByUserId, null, utmSource, utmMedium, utmCampaign, referrerSource, registrationLocale, null, now, now);
-    }
-
-    public static User createNewLocalUserWithLocaleAndCountry(String email, String username, String passwordHash, UUID referredByUserId, String utmSource, String utmMedium, String utmCampaign, String referrerSource, String registrationLocale, String country) {
-        LocalDateTime now = LocalDateTime.now();
-        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", false, false, true, false, false, generateReferralCode(), referredByUserId, null, utmSource, utmMedium, utmCampaign, referrerSource, registrationLocale, country, now, now);
+    public static User createNewLocalUserWithLocaleAndCountry(String email, String username, String passwordHash,
+            UUID referredByUserId, String utmSource, String utmMedium, String utmCampaign, String referrerSource,
+            String registrationLocale, String country) {
+        return newLocalUserBuilder(email, username, passwordHash)
+                .referredByUserId(referredByUserId)
+                .utmSource(utmSource).utmMedium(utmMedium).utmCampaign(utmCampaign).referrerSource(referrerSource)
+                .registrationLocale(registrationLocale).country(country)
+                .build();
     }
 
     public static User createVerifiedLocalUser(String email, String username, String passwordHash) {
-        LocalDateTime now = LocalDateTime.now();
-        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", true, false, true, false, false, generateReferralCode(), null, null, null, null, null, null, null, null, now, now);
+        return newLocalUserBuilder(email, username, passwordHash)
+                .emailVerified(true)
+                .build();
     }
 
     public static User createSeedUser(String email, String username, String passwordHash) {
         LocalDateTime now = LocalDateTime.now();
-        return new User(UUID.randomUUID(), email, username, passwordHash, AuthProvider.LOCAL, "USER", true, true, false, false, false, generateReferralCode(), null, null, null, null, null, null, null, null, now, now);
+        return User.builder()
+                .id(UUID.randomUUID())
+                .email(email).username(username).passwordHash(passwordHash)
+                .authProvider(AuthProvider.LOCAL).role("USER")
+                .emailVerified(true).seedData(true).emailNotificationsEnabled(false)
+                .referralCode(generateReferralCode())
+                .createdAt(now).updatedAt(now)
+                .build();
     }
 
     public static User createNewSsoUser(String email, String username, AuthProvider authProvider) {
         LocalDateTime now = LocalDateTime.now();
-        return new User(UUID.randomUUID(), email, username, null, authProvider, "USER", true, false, true, false, false, generateReferralCode(), null, null, null, null, null, null, null, null, now, now);
+        return User.builder()
+                .id(UUID.randomUUID())
+                .email(email).username(username)
+                .authProvider(authProvider).role("USER")
+                .emailVerified(true).emailNotificationsEnabled(true)
+                .referralCode(generateReferralCode())
+                .createdAt(now).updatedAt(now)
+                .build();
     }
 
-    public UUID getId() { return id; }
-    public String getEmail() { return email; }
-    public String getPasswordHash() { return passwordHash; }
-    public AuthProvider getAuthProvider() { return authProvider; }
-    public String getRole() { return role; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-    public String getUsername() { return username; }
-    public boolean isEmailVerified() { return emailVerified; }
-    public boolean isSeedData() { return seedData; }
-    public boolean isEmailNotificationsEnabled() { return emailNotificationsEnabled; }
-    public boolean isPremium() { return premium; }
-    public boolean isReferralRewardGiven() { return referralRewardGiven; }
-    public String getReferralCode() { return referralCode; }
-    public UUID getReferredByUserId() { return referredByUserId; }
-    public String getStripeCustomerId() { return stripeCustomerId; }
-    public String getUtmSource() { return utmSource; }
-    public String getUtmMedium() { return utmMedium; }
-    public String getUtmCampaign() { return utmCampaign; }
-    public String getReferrerSource() { return referrerSource; }
-    public String getRegistrationLocale() { return registrationLocale; }
-    public String getCountry() { return country; }
+    private static UserBuilder newLocalUserBuilder(String email, String username, String passwordHash) {
+        LocalDateTime now = LocalDateTime.now();
+        return User.builder()
+                .id(UUID.randomUUID())
+                .email(email).username(username).passwordHash(passwordHash)
+                .authProvider(AuthProvider.LOCAL).role("USER")
+                .emailNotificationsEnabled(true)
+                .referralCode(generateReferralCode())
+                .createdAt(now).updatedAt(now);
+    }
 }

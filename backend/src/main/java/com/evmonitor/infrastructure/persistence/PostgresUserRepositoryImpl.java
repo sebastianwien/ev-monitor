@@ -145,21 +145,19 @@ public class PostgresUserRepositoryImpl implements UserRepository {
     }
 
     private UserEntity toEntity(User domain) {
-        UserEntity entity = new UserEntity(
-                domain.getId(),
-                domain.getEmail(),
-                domain.getUsername(),
-                domain.getPasswordHash(),
-                domain.getAuthProvider(),
-                domain.getRole(),
-                domain.isEmailVerified(),
-                domain.isSeedData(),
-                domain.isEmailNotificationsEnabled(),
-                domain.getReferralCode(),
-                domain.getReferredByUserId(),
-                domain.getCreatedAt(),
-                domain.getUpdatedAt());
+        UserEntity entity = new UserEntity();
+        entity.setId(domain.getId());
+        entity.setEmail(domain.getEmail());
+        entity.setUsername(domain.getUsername());
+        entity.setPasswordHash(domain.getPasswordHash());
+        entity.setAuthProvider(domain.getAuthProvider());
+        entity.setRole(domain.getRole());
+        entity.setEmailVerified(domain.isEmailVerified());
+        entity.setSeedData(domain.isSeedData());
+        entity.setEmailNotificationsEnabled(domain.isEmailNotificationsEnabled());
         entity.setPremium(domain.isPremium());
+        entity.setReferralCode(domain.getReferralCode());
+        entity.setReferredByUserId(domain.getReferredByUserId());
         entity.setStripeCustomerId(domain.getStripeCustomerId());
         entity.setUtmSource(domain.getUtmSource());
         entity.setUtmMedium(domain.getUtmMedium());
@@ -167,6 +165,8 @@ public class PostgresUserRepositoryImpl implements UserRepository {
         entity.setReferrerSource(domain.getReferrerSource());
         entity.setRegistrationLocale(domain.getRegistrationLocale());
         entity.setCountry(domain.getCountry());
+        entity.setCreatedAt(domain.getCreatedAt());
+        entity.setUpdatedAt(domain.getUpdatedAt());
         return entity;
     }
 
@@ -177,28 +177,29 @@ public class PostgresUserRepositoryImpl implements UserRepository {
     }
 
     private User toDomain(UserEntity entity) {
-        return new User(
-                entity.getId(),
-                entity.getEmail(),
-                entity.getUsername(),
-                entity.getPasswordHash(),
-                entity.getAuthProvider(),
-                entity.getRole(),
-                entity.isEmailVerified(),
-                entity.isSeedData(),
-                entity.isEmailNotificationsEnabled(),
-                entity.isPremium(),
-                entity.isReferralRewardGiven(),
-                entity.getReferralCode(),
-                entity.getReferredByUserId(),
-                entity.getStripeCustomerId(),
-                entity.getUtmSource(),
-                entity.getUtmMedium(),
-                entity.getUtmCampaign(),
-                entity.getReferrerSource(),
-                entity.getRegistrationLocale(),
-                entity.getCountry(),
-                entity.getCreatedAt(),
-                entity.getUpdatedAt());
+        return User.builder()
+                .id(entity.getId())
+                .email(entity.getEmail())
+                .username(entity.getUsername())
+                .passwordHash(entity.getPasswordHash())
+                .authProvider(entity.getAuthProvider())
+                .role(entity.getRole())
+                .emailVerified(entity.isEmailVerified())
+                .seedData(entity.isSeedData())
+                .emailNotificationsEnabled(entity.isEmailNotificationsEnabled())
+                .premium(entity.isPremium())
+                .referralRewardGiven(entity.isReferralRewardGiven())
+                .referralCode(entity.getReferralCode())
+                .referredByUserId(entity.getReferredByUserId())
+                .stripeCustomerId(entity.getStripeCustomerId())
+                .utmSource(entity.getUtmSource())
+                .utmMedium(entity.getUtmMedium())
+                .utmCampaign(entity.getUtmCampaign())
+                .referrerSource(entity.getReferrerSource())
+                .registrationLocale(entity.getRegistrationLocale())
+                .country(entity.getCountry())
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
+                .build();
     }
 }

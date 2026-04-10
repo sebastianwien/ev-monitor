@@ -5,6 +5,7 @@ import com.evmonitor.application.CoinLogResponse;
 import com.evmonitor.application.CoinLogService;
 import com.evmonitor.domain.CoinType;
 import com.evmonitor.infrastructure.security.UserPrincipal;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -13,13 +14,10 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/coins")
+@RequiredArgsConstructor
 public class CoinLogController {
 
     private final CoinLogService coinLogService;
-
-    public CoinLogController(CoinLogService coinLogService) {
-        this.coinLogService = coinLogService;
-    }
 
     /**
      * Get current user's coin balance.

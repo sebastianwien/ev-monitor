@@ -1,6 +1,7 @@
 package com.evmonitor.application;
 
 import com.evmonitor.infrastructure.persistence.JpaUserRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,14 +14,11 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
+@RequiredArgsConstructor
 public class LastSeenService {
 
     private final Set<UUID> activeUsers = ConcurrentHashMap.newKeySet();
     private final JpaUserRepository jpaUserRepository;
-
-    public LastSeenService(JpaUserRepository jpaUserRepository) {
-        this.jpaUserRepository = jpaUserRepository;
-    }
 
     public void recordActivity(UUID userId) {
         activeUsers.add(userId);

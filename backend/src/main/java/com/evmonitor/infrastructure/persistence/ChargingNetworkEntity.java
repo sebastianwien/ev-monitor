@@ -1,9 +1,15 @@
 package com.evmonitor.infrastructure.persistence;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "charging_networks")
+@Getter
+@Setter
+@NoArgsConstructor
 public class ChargingNetworkEntity {
 
     @Id
@@ -12,12 +18,4 @@ public class ChargingNetworkEntity {
 
     @Column(name = "country_code")
     private String countryCode;
-
-    public ChargingNetworkEntity() {}
-
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-
-    public String getCountryCode() { return countryCode; }
-    public void setCountryCode(String countryCode) { this.countryCode = countryCode; }
 }

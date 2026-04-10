@@ -1,14 +1,20 @@
 package com.evmonitor.infrastructure.web;
 
+import com.evmonitor.domain.exception.AuthException;
+import com.evmonitor.domain.exception.ConflictException;
+import com.evmonitor.domain.exception.DomainException;
+import com.evmonitor.domain.exception.ForbiddenException;
+import com.evmonitor.domain.exception.NotFoundException;
+import com.evmonitor.domain.exception.ValidationException;
 import com.evmonitor.infrastructure.github.GitHubIssueService;
 import jakarta.servlet.http.HttpServletRequest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -23,16 +29,47 @@ import java.time.Instant;
 import java.util.Map;
 
 @RestControllerAdvice
+@RequiredArgsConstructor
+@Slf4j
 public class GlobalExceptionHandler {
-
-    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     private final GitHubIssueService gitHubIssueService;
 
-    public GlobalExceptionHandler(GitHubIssueService gitHubIssueService) {
-        this.gitHubIssueService = gitHubIssueService;
+    // ── Domain exception hierarchy ───────────────────────────────────────────
+
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleNotFound(NotFoundException ex) {
+        return body(HttpStatus.NOT_FOUND, ex);
     }
 
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<Map<String, String>> handleForbidden(ForbiddenException ex) {
+        return body(HttpStatus.FORBIDDEN, ex);
+    }
+
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<Map<String, String>> handleConflict(ConflictException ex) {
+        return body(HttpStatus.CONFLICT, ex);
+    }
+
+    @ExceptionHandler(ValidationException.class)
+    public ResponseEntity<Map<String, String>> handleDomainValidation(ValidationException ex) {
+        return body(HttpStatus.BAD_REQUEST, ex);
+    }
+
+    @ExceptionHandler(AuthException.class)
+    public ResponseEntity<Map<String, String>> handleAuth(AuthException ex) {
+        HttpStatus status = switch (ex.getCode()) {
+            case "TOKEN_EXPIRED" -> HttpStatus.GONE;
+            case "EMAIL_NOT_VERIFIED" -> HttpStatus.FORBIDDEN;
+            case "RATE_LIMITED" -> HttpStatus.TOO_MANY_REQUESTS;
+            default -> HttpStatus.BAD_REQUEST; // INVALID_TOKEN and friends
+        };
+        return body(status, ex);
+    }
+
+    // Fallback: Legacy IllegalArgumentException aus noch nicht migrierten Services.
+    // Sollte mittelfristig leer laufen – jede neue Ausnahme gehört in die DomainException-Hierarchie.
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, String>> handleIllegalArgument(IllegalArgumentException ex) {
         String code = ex.getMessage();
@@ -45,6 +82,8 @@ public class GlobalExceptionHandler {
         };
         return ResponseEntity.status(status).body(Map.of("code", code, "message", friendlyMessage(code)));
     }
+
+    // ── Spring / Validation errors ───────────────────────────────────────────
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> handleValidation(MethodArgumentNotValidException ex) {
@@ -62,7 +101,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Map<String, String>> handleAccessDenied(AccessDeniedException ex) {
-        return ResponseEntity.status(403).body(Map.of("code", "FORBIDDEN", "message", "Zugriff verweigert."));
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("code", "FORBIDDEN", "message", "Zugriff verweigert."));
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
@@ -73,21 +112,21 @@ public class GlobalExceptionHandler {
         ));
     }
 
-    // Spring MVC 4xx – kein Alert, kein Log-Spam
+    // Spring MVC 4xx - kein Alert, kein Log-Spam
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<Map<String, String>> handleNoResource(NoResourceFoundException ex) {
-        return ResponseEntity.status(404).body(Map.of("code", "NOT_FOUND", "message", "Resource not found."));
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("code", "NOT_FOUND", "message", "Resource not found."));
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<Map<String, String>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
-        return ResponseEntity.status(400).body(Map.of("code", "INVALID_PARAMETER",
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("code", "INVALID_PARAMETER",
                 "message", "Ungültiger Parameterwert: " + ex.getName()));
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<Map<String, String>> handleMissingParam(MissingServletRequestParameterException ex) {
-        return ResponseEntity.status(400).body(Map.of("code", "MISSING_PARAMETER",
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("code", "MISSING_PARAMETER",
                 "message", "Pflichtparameter fehlt: " + ex.getParameterName()));
     }
 
@@ -104,10 +143,22 @@ public class GlobalExceptionHandler {
         String subject = "🚨 [EV Monitor BE] " + ex.getClass().getSimpleName();
         gitHubIssueService.createIssue(errorKey, subject, buildGitHubIssueBody(ex, request));
 
-        return ResponseEntity.status(500).body(Map.of(
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
                 "code", "INTERNAL_ERROR",
                 "message", "Ein interner Fehler ist aufgetreten."
         ));
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    private ResponseEntity<Map<String, String>> body(HttpStatus status, DomainException ex) {
+        // DomainException liefert bereits eine user-facing (deutsche) Message.
+        // Für reine Error-Codes wie "EMAIL_NOT_VERIFIED" mappen wir zusätzlich auf einen
+        // freundlichen Text, weil Tests und Frontend bisher darauf setzen.
+        String code = ex.getCode();
+        String rawMessage = ex.getMessage();
+        String message = friendlyMessage(rawMessage);
+        return ResponseEntity.status(status).body(Map.of("code", code, "message", message));
     }
 
     private String buildGitHubIssueBody(Exception ex, HttpServletRequest request) {

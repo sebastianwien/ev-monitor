@@ -6,6 +6,8 @@ import com.evmonitor.domain.EmailVerificationTokenRepository;
 import com.evmonitor.domain.PasswordResetTokenRepository;
 import com.evmonitor.domain.User;
 import com.evmonitor.domain.UserRepository;
+import com.evmonitor.domain.exception.AuthException;
+import com.evmonitor.domain.exception.ConflictException;
 import com.evmonitor.infrastructure.email.EmailService;
 import com.evmonitor.infrastructure.security.JwtService;
 import com.evmonitor.infrastructure.security.UserPrincipal;
@@ -97,8 +99,9 @@ class AuthServiceTest {
         when(userRepository.existsByEmail(email)).thenReturn(true);
 
         // When & Then
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+        ConflictException ex = assertThrows(ConflictException.class,
                 () -> authService.register(request));
+        assertEquals("EMAIL_TAKEN", ex.getCode());
         assertEquals("Email is already in use.", ex.getMessage());
 
         verify(userRepository, never()).save(any());
@@ -113,9 +116,7 @@ class AuthServiceTest {
         String jwtToken = "jwt.token.here";
         UUID userId = UUID.randomUUID();
 
-        User user = new User(userId, email, "testuser", "$2a$10$hashedPassword",
-                AuthProvider.LOCAL, "USER", true /* emailVerified */, false, true, false,
-                false, "TESTCODE", null, null, null, null, null, null, null, null, LocalDateTime.now(), LocalDateTime.now());
+        User user = verifiedUser(userId, email, "testuser", "$2a$10$hashedPassword", "TESTCODE");
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(null);
@@ -137,17 +138,22 @@ class AuthServiceTest {
         String email = "unverified@example.com";
         UUID userId = UUID.randomUUID();
 
-        User unverifiedUser = new User(userId, email, "unverified", "$2a$10$hash",
-                AuthProvider.LOCAL, "USER", false /* emailVerified */, false, true, false,
-                false, "TESTCODE", null, null, null, null, null, null, null, null, LocalDateTime.now(), LocalDateTime.now());
+        LocalDateTime now = LocalDateTime.now();
+        User unverifiedUser = User.builder()
+                .id(userId).email(email).username("unverified").passwordHash("$2a$10$hash")
+                .authProvider(AuthProvider.LOCAL).role("USER")
+                .emailNotificationsEnabled(true)
+                .referralCode("TESTCODE")
+                .createdAt(now).updatedAt(now)
+                .build();
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(unverifiedUser));
         when(authenticationManager.authenticate(any())).thenReturn(null);
 
         // When & Then
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+        AuthException ex = assertThrows(AuthException.class,
                 () -> authService.login(new LoginRequest(email, "Password123")));
-        assertEquals("EMAIL_NOT_VERIFIED", ex.getMessage());
+        assertEquals("EMAIL_NOT_VERIFIED", ex.getCode());
 
         verify(jwtService, never()).generateToken(any());
     }
@@ -162,9 +168,7 @@ class AuthServiceTest {
         EmailVerificationToken verificationToken = new EmailVerificationToken(
                 UUID.randomUUID(), userId, rawToken, LocalDateTime.now().plusHours(24), LocalDateTime.now());
 
-        User user = new User(userId, "user@example.com", "user", "$2a$10$hash",
-                AuthProvider.LOCAL, "USER", true, false, true, false,
-                false, "TESTCODE", null, null, null, null, null, null, null, null, LocalDateTime.now(), LocalDateTime.now());
+        User user = verifiedUser(userId, "user@example.com", "user", "$2a$10$hash", "TESTCODE");
 
         when(tokenRepository.findByToken(rawToken)).thenReturn(Optional.of(verificationToken));
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
@@ -192,9 +196,9 @@ class AuthServiceTest {
         when(tokenRepository.findByToken(rawToken)).thenReturn(Optional.of(expiredToken));
 
         // When & Then
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+        AuthException ex = assertThrows(AuthException.class,
                 () -> authService.verifyEmail(rawToken));
-        assertEquals("TOKEN_EXPIRED", ex.getMessage());
+        assertEquals("TOKEN_EXPIRED", ex.getCode());
 
         verify(userRepository, never()).markEmailVerified(any());
     }
@@ -406,8 +410,9 @@ class AuthServiceTest {
         when(userRepository.existsByEmail(any())).thenReturn(false);
         when(userRepository.existsByUsername("takenname")).thenReturn(true);
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+        ConflictException ex = assertThrows(ConflictException.class,
                 () -> authService.register(request));
+        assertEquals("USERNAME_TAKEN", ex.getCode());
         assertEquals("Username is already taken.", ex.getMessage());
 
         verify(userRepository, never()).save(any());
@@ -432,9 +437,7 @@ class AuthServiceTest {
                 null  // no country
         );
 
-        User referrer = new User(referrerId, "referrer@example.com", "referrer", "$2a$10$hash",
-                AuthProvider.LOCAL, "USER", true, false, true, false,
-                false, referralCode, null, null, null, null, null, null, null, null, LocalDateTime.now(), LocalDateTime.now());
+        User referrer = verifiedUser(referrerId, "referrer@example.com", "referrer", "$2a$10$hash", referralCode);
 
         when(userRepository.existsByEmail(any())).thenReturn(false);
         when(userRepository.existsByUsername(any())).thenReturn(false);
@@ -457,5 +460,16 @@ class AuthServiceTest {
         assertEquals("reddit", savedUser.getUtmSource());
         assertEquals("cpc", savedUser.getUtmMedium());
         assertEquals("referral_boost_2026", savedUser.getUtmCampaign());
+    }
+
+    private static User verifiedUser(UUID id, String email, String username, String passwordHash, String referralCode) {
+        LocalDateTime now = LocalDateTime.now();
+        return User.builder()
+                .id(id).email(email).username(username).passwordHash(passwordHash)
+                .authProvider(AuthProvider.LOCAL).role("USER")
+                .emailVerified(true).emailNotificationsEnabled(true)
+                .referralCode(referralCode)
+                .createdAt(now).updatedAt(now)
+                .build();
     }
 }

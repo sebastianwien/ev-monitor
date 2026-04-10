@@ -4,8 +4,8 @@ import ch.hsr.geohash.GeoHash;
 import ch.hsr.geohash.WGS84Point;
 import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.EvLogRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -19,18 +19,14 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Rate limiting: 50ms sleep between requests to be a good Open-Meteo citizen.
  */
 @Component
+@RequiredArgsConstructor
+@Slf4j
 public class TemperatureBackfillJob {
 
-    private static final Logger log = LoggerFactory.getLogger(TemperatureBackfillJob.class);
     private static final long SLEEP_MS_BETWEEN_REQUESTS = 50;
 
     private final EvLogRepository evLogRepository;
     private final TemperatureService temperatureService;
-
-    public TemperatureBackfillJob(EvLogRepository evLogRepository, TemperatureService temperatureService) {
-        this.evLogRepository = evLogRepository;
-        this.temperatureService = temperatureService;
-    }
 
     /**
      * Fetches and persists temperatures for all logs that have a geohash but no temperature yet.

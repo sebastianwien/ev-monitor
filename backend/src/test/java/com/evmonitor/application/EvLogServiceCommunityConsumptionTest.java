@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class EvLogServiceCommunityConsumptionTest extends AbstractIntegrationTest {
 
     @Autowired
-    private EvLogService evLogService;
+    private EvLogStatisticsService evLogService;
 
     private UUID userId;
 
@@ -145,7 +145,7 @@ class EvLogServiceCommunityConsumptionTest extends AbstractIntegrationTest {
         saveLog(car.getId(), 10000, new BigDecimal("45.0"), 80, june);
         saveLog(car.getId(), 10300, new BigDecimal("52.5"), 85, june.plusDays(1));
 
-        EvLogService.SeasonalConsumptionResult result =
+        SeasonalConsumptionResult result =
                 evLogService.calculateSeasonalConsumption(List.of(car), false);
 
         assertNotNull(result.summerConsumptionKwhPer100km());
@@ -165,7 +165,7 @@ class EvLogServiceCommunityConsumptionTest extends AbstractIntegrationTest {
         saveLog(car.getId(), 10000, new BigDecimal("45.0"), 80, january);
         saveLog(car.getId(), 10300, new BigDecimal("52.5"), 85, january.plusDays(1));
 
-        EvLogService.SeasonalConsumptionResult result =
+        SeasonalConsumptionResult result =
                 evLogService.calculateSeasonalConsumption(List.of(car), false);
 
         assertNull(result.summerConsumptionKwhPer100km(), "No summer data");
@@ -189,7 +189,7 @@ class EvLogServiceCommunityConsumptionTest extends AbstractIntegrationTest {
         saveLog(car.getId(), 10000, new BigDecimal("45.0"), 80, jun1);
         saveLog(car.getId(), 10300, new BigDecimal("52.5"), 85, jun1.plusDays(1));
 
-        EvLogService.SeasonalConsumptionResult result =
+        SeasonalConsumptionResult result =
                 evLogService.calculateSeasonalConsumption(List.of(car), false);
 
         assertEquals(new BigDecimal("16.25"), result.summerConsumptionKwhPer100km());
@@ -202,7 +202,7 @@ class EvLogServiceCommunityConsumptionTest extends AbstractIntegrationTest {
 
     @Test
     void seasonal_emptyCarList_returnsNullConsumptions() {
-        EvLogService.SeasonalConsumptionResult result =
+        SeasonalConsumptionResult result =
                 evLogService.calculateSeasonalConsumption(List.of(), false);
 
         assertNull(result.summerConsumptionKwhPer100km());
@@ -228,13 +228,15 @@ class EvLogServiceCommunityConsumptionTest extends AbstractIntegrationTest {
                          int socAfter, LocalDateTime loggedAt) {
         evLogRepository.save(EvLog.createNew(
                 carId, kwhCharged, new BigDecimal("10.00"), 60,
-                "u33d1", odometerKm, new BigDecimal("11.0"), socAfter, loggedAt, ChargingType.UNKNOWN, null, null));
+                "u33d1", odometerKm, new BigDecimal("11.0"), socAfter, loggedAt, ChargingType.UNKNOWN, null, null,
+                false, null));
     }
 
     private void saveLogNoSoc(UUID carId, int odometerKm, BigDecimal kwhCharged,
                                LocalDateTime loggedAt) {
         evLogRepository.save(EvLog.createNew(
                 carId, kwhCharged, new BigDecimal("10.00"), 60,
-                "u33d1", odometerKm, new BigDecimal("11.0"), null, loggedAt, ChargingType.UNKNOWN, null, null));
+                "u33d1", odometerKm, new BigDecimal("11.0"), null, loggedAt, ChargingType.UNKNOWN, null, null,
+                false, null));
     }
 }

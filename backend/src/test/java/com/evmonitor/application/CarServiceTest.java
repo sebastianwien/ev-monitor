@@ -3,6 +3,8 @@ package com.evmonitor.application;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.CarRepository;
+import com.evmonitor.domain.exception.ForbiddenException;
+import com.evmonitor.domain.exception.NotFoundException;
 import com.evmonitor.testutil.TestDataBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -127,11 +129,7 @@ class CarServiceTest {
         when(carRepository.findById(carId)).thenReturn(Optional.of(otherUserCar));
 
         // When & Then
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            carService.getCarByIdForUser(carId, userId);
-        });
-
-        assertEquals("User does not own the specified car", exception.getMessage());
+        assertThrows(ForbiddenException.class, () -> carService.getCarByIdForUser(carId, userId));
     }
 
     @Test
@@ -140,9 +138,7 @@ class CarServiceTest {
         when(carRepository.findById(carId)).thenReturn(Optional.empty());
 
         // When & Then
-        assertThrows(IllegalArgumentException.class, () -> {
-            carService.getCarByIdForUser(carId, userId);
-        });
+        assertThrows(NotFoundException.class, () -> carService.getCarByIdForUser(carId, userId));
     }
 
     @Test
@@ -199,9 +195,7 @@ class CarServiceTest {
         );
 
         // When & Then
-        assertThrows(IllegalArgumentException.class, () -> {
-            carService.updateCar(carId, userId, updateRequest);
-        });
+        assertThrows(ForbiddenException.class, () -> carService.updateCar(carId, userId, updateRequest));
 
         // Verify no save happened
         verify(carRepository, never()).save(any(Car.class));
@@ -229,9 +223,7 @@ class CarServiceTest {
         when(carRepository.findById(carId)).thenReturn(Optional.of(otherUserCar));
 
         // When & Then
-        assertThrows(IllegalArgumentException.class, () -> {
-            carService.deleteCar(carId, userId);
-        });
+        assertThrows(ForbiddenException.class, () -> carService.deleteCar(carId, userId));
 
         // Verify no deletion happened
         verify(carRepository, never()).deleteById(any(UUID.class));
@@ -243,9 +235,7 @@ class CarServiceTest {
         when(carRepository.findById(carId)).thenReturn(Optional.empty());
 
         // When & Then
-        assertThrows(IllegalArgumentException.class, () -> {
-            carService.deleteCar(carId, userId);
-        });
+        assertThrows(NotFoundException.class, () -> carService.deleteCar(carId, userId));
 
         // Verify no deletion happened
         verify(carRepository, never()).deleteById(any(UUID.class));
@@ -290,11 +280,7 @@ class CarServiceTest {
         when(carRepository.findById(carId)).thenReturn(Optional.of(otherUserCar));
 
         // When & Then
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            carService.setActiveCar(carId, userId);
-        });
-
-        assertEquals("User does not own the specified car", exception.getMessage());
+        assertThrows(ForbiddenException.class, () -> carService.setActiveCar(carId, userId));
         verify(carRepository, never()).save(any(Car.class));
     }
 
@@ -334,10 +320,7 @@ class CarServiceTest {
         when(carRepository.findById(carId)).thenReturn(Optional.empty());
 
         // When & Then
-        assertThrows(IllegalArgumentException.class, () -> {
-            carService.setActiveCar(carId, userId);
-        });
-
+        assertThrows(NotFoundException.class, () -> carService.setActiveCar(carId, userId));
         verify(carRepository, never()).save(any(Car.class));
     }
 }

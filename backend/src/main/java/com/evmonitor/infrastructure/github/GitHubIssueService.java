@@ -1,7 +1,6 @@
 package com.evmonitor.infrastructure.github;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -20,9 +19,9 @@ import java.util.concurrent.ConcurrentHashMap;
  * Rate-limited identically to AlertEmailService (1 issue per error key per hour).
  */
 @Service
+@Slf4j
 public class GitHubIssueService {
 
-    private static final Logger log = LoggerFactory.getLogger(GitHubIssueService.class);
     private static final Duration COOLDOWN = Duration.ofHours(1);
 
     private final Map<String, Instant> lastIssueTime = new ConcurrentHashMap<>();

@@ -3,8 +3,7 @@ package com.evmonitor.infrastructure.external;
 import com.evmonitor.application.PlausibleTrafficRow;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -18,9 +17,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@Slf4j
 public class PlausibleService {
 
-    private static final Logger log = LoggerFactory.getLogger(PlausibleService.class);
     private static final String BASE_URL = "https://plausible.io/api/v1/stats/timeseries";
 
     @Value("${plausible.api-key:}")

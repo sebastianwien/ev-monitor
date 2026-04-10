@@ -3,6 +3,7 @@ package com.evmonitor.infrastructure.web;
 import com.evmonitor.domain.DataSource;
 import com.evmonitor.domain.EvLogRepository;
 import com.evmonitor.infrastructure.security.UserPrincipal;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -22,15 +23,12 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/import/tesla")
 @Slf4j
+@RequiredArgsConstructor
 public class TeslaImportController {
 
     private static final List<DataSource> TESLA_FLEET_SOURCES = List.of(DataSource.TESLA_FLEET_IMPORT, DataSource.TESLA_LIVE);
 
     private final EvLogRepository evLogRepository;
-
-    public TeslaImportController(EvLogRepository evLogRepository) {
-        this.evLogRepository = evLogRepository;
-    }
 
     @DeleteMapping("/delete-all")
     @Transactional

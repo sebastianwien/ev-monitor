@@ -1,6 +1,9 @@
 package com.evmonitor.infrastructure.persistence;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -9,6 +12,9 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "car_battery_soh_log")
+@Getter
+@Setter
+@NoArgsConstructor
 public class BatterySohEntity {
 
     @Id
@@ -25,21 +31,4 @@ public class BatterySohEntity {
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
-
-    public BatterySohEntity() {}
-
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
-
-    public UUID getCarId() { return carId; }
-    public void setCarId(UUID carId) { this.carId = carId; }
-
-    public BigDecimal getSohPercent() { return sohPercent; }
-    public void setSohPercent(BigDecimal sohPercent) { this.sohPercent = sohPercent; }
-
-    public LocalDate getRecordedAt() { return recordedAt; }
-    public void setRecordedAt(LocalDate recordedAt) { this.recordedAt = recordedAt; }
-
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

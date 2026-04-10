@@ -4,6 +4,7 @@ import com.evmonitor.domain.BatterySohEntry;
 import com.evmonitor.domain.BatterySohRepository;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,15 +14,11 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class BatterySohService {
 
     private final BatterySohRepository sohRepository;
     private final CarRepository carRepository;
-
-    public BatterySohService(BatterySohRepository sohRepository, CarRepository carRepository) {
-        this.sohRepository = sohRepository;
-        this.carRepository = carRepository;
-    }
 
     public List<BatterySohResponse> getHistory(UUID carId, UUID userId) {
         verifyOwnership(carId, userId);

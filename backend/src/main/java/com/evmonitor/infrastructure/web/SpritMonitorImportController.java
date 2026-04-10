@@ -7,6 +7,7 @@ import com.evmonitor.infrastructure.security.UserPrincipal;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.HttpClientErrorException;
@@ -19,13 +20,10 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/import/sprit-monitor")
 @Slf4j
+@RequiredArgsConstructor
 public class SpritMonitorImportController {
 
     private final SpritMonitorImportService importService;
-
-    public SpritMonitorImportController(SpritMonitorImportService importService) {
-        this.importService = importService;
-    }
 
     /**
      * Fetches electric vehicles from Sprit-Monitor

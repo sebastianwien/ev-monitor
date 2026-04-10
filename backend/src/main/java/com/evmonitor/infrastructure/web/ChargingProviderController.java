@@ -3,6 +3,7 @@ package com.evmonitor.infrastructure.web;
 import com.evmonitor.application.publicapi.CpoNameNormalizer;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -13,13 +14,10 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1")
 @Tag(name = "Public API", description = "External upload API for charging sessions (Wallboxen, Skripte, Home-Automation)")
+@RequiredArgsConstructor
 public class ChargingProviderController {
 
     private final CpoNameNormalizer cpoNameNormalizer;
-
-    public ChargingProviderController(CpoNameNormalizer cpoNameNormalizer) {
-        this.cpoNameNormalizer = cpoNameNormalizer;
-    }
 
     @GetMapping("/charging-providers")
     @Operation(
