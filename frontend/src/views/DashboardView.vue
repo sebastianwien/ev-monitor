@@ -604,7 +604,12 @@ onMounted(async () => {
     cars.value = carList
     // Auto-select: primary car, fallback to first
     const primary = carList.find((c: any) => c.isPrimary) ?? carList[0]
-    if (primary) selectedCarId.value = primary.id
+    if (primary) {
+      selectedCarId.value = primary.id
+    } else {
+      // No cars: the watch on selectedCarId won't fire (null → null), so unlock loading manually
+      loading.value = false
+    }
     // Load images in background — non-critical
     for (const car of carList.filter((c: any) => c.imageUrl)) {
       carService.getCarImageBlobUrl(car.id)
