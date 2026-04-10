@@ -390,7 +390,7 @@ const closeMobileMenu = () => {
     <Transition name="mobile-menu">
       <div
         v-if="mobileMenuOpen"
-        class="fixed inset-0 z-30 md:hidden"
+        class="fixed inset-0 z-50 md:hidden"
         @click.self="closeMobileMenu">
         <!-- Backdrop -->
         <div class="absolute inset-0 bg-black bg-opacity-50" @click="closeMobileMenu"></div>

@@ -48,6 +48,8 @@ const referralCopied = ref(false)
 // Community
 const leaderboardVisible = ref(true)
 
+const subscriptionPeriodEnd = ref<string | null>(null)
+
 const portalLoading = ref(false)
 const openPortal = async () => {
   portalLoading.value = true
@@ -392,10 +394,16 @@ const restartOnboarding = () => {
 }
 
 
-onMounted(() => {
+onMounted(async () => {
   fetchUserData()
   fetchChargingProviders()
   authStore.refreshPremiumStatus()
+  try {
+    const status = await subscriptionService.getStatus()
+    subscriptionPeriodEnd.value = status.subscriptionPeriodEnd
+  } catch {
+    // non-critical
+  }
 })
 </script>
 
@@ -569,7 +577,12 @@ onMounted(() => {
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
               </svg>
             </div>
-            <span class="text-sm font-medium text-indigo-800 dark:text-indigo-200">{{ t('upgrade.pro_active') }}</span>
+            <div>
+              <span class="text-sm font-medium text-indigo-800 dark:text-indigo-200">{{ t('upgrade.pro_active') }}</span>
+              <p v-if="subscriptionPeriodEnd" class="text-xs text-indigo-600/70 dark:text-indigo-400/70 mt-0.5">
+                {{ t('upgrade.pro_active_until', { date: new Date(subscriptionPeriodEnd).toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' }) }) }}
+              </p>
+            </div>
           </div>
           <button
             @click="openPortal"

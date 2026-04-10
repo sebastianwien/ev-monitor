@@ -132,7 +132,7 @@ const stateColor = (state: string | null) => {
       </summary>
       <div class="px-4 pb-4 pt-3 space-y-4 border-t border-gray-200 dark:border-gray-700">
         <div v-for="i in 5" :key="i">
-          <p class="text-sm font-semibold text-gray-800 dark:text-gray-200">{{ t(`imports.smartcar_how_q${i}`) }}</p>
+          <p v-if="i > 1" class="text-sm font-semibold text-gray-800 dark:text-gray-200">{{ t(`imports.smartcar_how_q${i}`) }}</p>
           <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ t(`imports.smartcar_how_a${i}`) }}</p>
         </div>
       </div>
@@ -146,6 +146,10 @@ const stateColor = (state: string | null) => {
         {{ t('imports.smartcar_upgrade_cta', { priceMonthly: t('upgrade.price_monthly') }) }}
       </router-link>
       <p class="text-xs text-gray-400 dark:text-gray-500 text-center mt-2">{{ t('imports.smartcar_upgrade_price') }}</p>
+      <p class="text-xs text-gray-400 dark:text-gray-500 text-center mt-3">
+        {{ t('imports.smartcar_support_hint') }}
+        <a href="mailto:support@ev-monitor.net" class="underline hover:no-underline">support@ev-monitor.net</a>
+      </p>
     </div>
   </div>
 
@@ -170,8 +174,12 @@ const stateColor = (state: string | null) => {
       </details>
 
       <!-- Error -->
-      <div v-if="error" class="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg text-sm text-red-700 dark:text-red-300">
-        {{ error }}
+      <div v-if="error" class="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg text-sm text-red-700 dark:text-red-300 space-y-1">
+        <p>{{ error }}</p>
+        <p class="text-xs text-red-500 dark:text-red-400">
+          {{ t('imports.smartcar_support_hint') }}
+          <a href="mailto:support@ev-monitor.net" class="font-medium underline hover:no-underline">support@ev-monitor.net</a>
+        </p>
       </div>
 
       <!-- Connected -->
@@ -237,6 +245,10 @@ const stateColor = (state: string | null) => {
             <BoltIcon class="h-4 w-4" />
             {{ connecting ? t('imports.smartcar_connecting') : t('imports.smartcar_connect_btn') }}
           </button>
+          <p class="text-xs text-gray-400 dark:text-gray-500">
+            {{ t('imports.smartcar_support_hint') }}
+            <a href="mailto:support@ev-monitor.net" class="underline hover:no-underline">support@ev-monitor.net</a>
+          </p>
         </template>
       </div>
     </template>

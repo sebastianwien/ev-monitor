@@ -33,14 +33,7 @@ export const featureAnnouncements: FeatureAnnouncement[] = [
     ctaLabelKey: 'announcements.battery_soh_heatpump_v1_cta',
     ctaRoute: '/cars',
   },
-  {
-    key: 'survey-premium-april-2026',
-    expiresAt: '2026-04-28',
-    titleKey: 'announcements.survey_premium_april_2026_title',
-    bodyKey: 'announcements.survey_premium_april_2026_body',
-    ctaLabelKey: 'announcements.survey_premium_april_2026_cta',
-    ctaRoute: '/umfrage/premium-april-2026',
-  },
+
   {
     key: 'goe-statistics-fix-v1',
     expiresAt: '2026-04-17',
@@ -53,5 +46,13 @@ export const featureAnnouncements: FeatureAnnouncement[] = [
     expiresAt: '2026-05-18',
     titleKey: 'announcements.car_reassignment_v1_title',
     bodyKey: 'announcements.car_reassignment_v1_body',
+  },
+  {
+    key: 'autosync-premium-v1',
+    expiresAt: '2026-05-09',
+    titleKey: 'announcements.autosync_premium_v1_title',
+    bodyKey: 'announcements.autosync_premium_v1_body',
+    ctaLabelKey: 'announcements.autosync_premium_v1_cta',
+    ctaRoute: '/upgrade',
   },
 ]

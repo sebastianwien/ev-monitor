@@ -87,6 +87,7 @@ class UserControllerIntegrationTest {
                 .referrerSource(testUserEntity.getReferrerSource())
                 .registrationLocale(testUserEntity.getRegistrationLocale())
                 .country(testUserEntity.getCountry())
+                .subscriptionPeriodEnd(testUserEntity.getSubscriptionPeriodEnd())
                 .createdAt(testUserEntity.getCreatedAt())
                 .updatedAt(testUserEntity.getUpdatedAt())
                 .build();

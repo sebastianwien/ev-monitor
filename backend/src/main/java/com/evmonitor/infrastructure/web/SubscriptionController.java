@@ -40,10 +40,13 @@ public class SubscriptionController {
         User user = userRepository.findById(principal.getUser().getId())
                 .orElseThrow(() -> new IllegalStateException("User not found"));
         boolean isAdmin = ROLE_ADMIN.equals(principal.getUser().getRole());
-        return ResponseEntity.ok(Map.of(
-                "isPremium", user.isPremium(),
-                "premiumEnabled", premiumProperties.isEnabled() || isAdmin
-        ));
+        var response = new java.util.HashMap<String, Object>();
+        response.put("isPremium", user.isPremium());
+        response.put("premiumEnabled", premiumProperties.isEnabled() || isAdmin);
+        response.put("subscriptionPeriodEnd", user.getSubscriptionPeriodEnd() != null
+                ? user.getSubscriptionPeriodEnd().toString()
+                : null);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/checkout")

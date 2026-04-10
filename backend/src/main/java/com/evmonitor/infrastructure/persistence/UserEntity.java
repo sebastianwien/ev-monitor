@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -82,6 +83,9 @@ public class UserEntity {
 
     @Column(name = "last_seen")
     private LocalDateTime lastSeen;
+
+    @Column(name = "subscription_period_end")
+    private Instant subscriptionPeriodEnd;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;

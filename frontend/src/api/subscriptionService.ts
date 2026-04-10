@@ -3,6 +3,7 @@ import api from './axios';
 export interface SubscriptionStatus {
     isPremium: boolean;
     premiumEnabled: boolean;
+    subscriptionPeriodEnd: string | null;
 }
 
 export interface CheckoutResponse {

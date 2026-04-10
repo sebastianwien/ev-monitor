@@ -3,6 +3,7 @@ package com.evmonitor.domain;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -28,6 +29,7 @@ public class User {
     private final String referrerSource;
     private final String registrationLocale;
     private final String country;
+    private final Instant subscriptionPeriodEnd;
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
 
@@ -36,7 +38,8 @@ public class User {
             boolean emailVerified, boolean seedData, boolean emailNotificationsEnabled, boolean premium,
             boolean referralRewardGiven, String referralCode, UUID referredByUserId, String stripeCustomerId,
             String utmSource, String utmMedium, String utmCampaign, String referrerSource,
-            String registrationLocale, String country, LocalDateTime createdAt, LocalDateTime updatedAt) {
+            String registrationLocale, String country, Instant subscriptionPeriodEnd,
+            LocalDateTime createdAt, LocalDateTime updatedAt) {
         if (id == null)
             throw new IllegalArgumentException("User ID cannot be null");
         if (email == null || email.isBlank())
@@ -66,6 +69,7 @@ public class User {
         this.referrerSource = referrerSource;
         this.registrationLocale = registrationLocale;
         this.country = country;
+        this.subscriptionPeriodEnd = subscriptionPeriodEnd;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -81,6 +85,24 @@ public class User {
     public static User createNewLocalUserWithReferrer(String email, String username, String passwordHash, UUID referredByUserId) {
         return newLocalUserBuilder(email, username, passwordHash)
                 .referredByUserId(referredByUserId)
+                .build();
+    }
+
+    public static User createNewLocalUserWithCampaign(String email, String username, String passwordHash,
+            UUID referredByUserId, String utmSource, String utmMedium, String utmCampaign, String referrerSource) {
+        return newLocalUserBuilder(email, username, passwordHash)
+                .referredByUserId(referredByUserId)
+                .utmSource(utmSource).utmMedium(utmMedium).utmCampaign(utmCampaign).referrerSource(referrerSource)
+                .build();
+    }
+
+    public static User createNewLocalUserWithLocale(String email, String username, String passwordHash,
+            UUID referredByUserId, String utmSource, String utmMedium, String utmCampaign, String referrerSource,
+            String registrationLocale) {
+        return newLocalUserBuilder(email, username, passwordHash)
+                .referredByUserId(referredByUserId)
+                .utmSource(utmSource).utmMedium(utmMedium).utmCampaign(utmCampaign).referrerSource(referrerSource)
+                .registrationLocale(registrationLocale)
                 .build();
     }
 

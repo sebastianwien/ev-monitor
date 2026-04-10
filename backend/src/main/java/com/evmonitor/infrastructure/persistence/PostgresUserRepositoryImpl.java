@@ -5,6 +5,7 @@ import com.evmonitor.domain.UserRepository;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -144,6 +145,12 @@ public class PostgresUserRepositoryImpl implements UserRepository {
         jpaUserRepository.updateCountry(userId, country);
     }
 
+    @Override
+    @Transactional
+    public void setSubscriptionPeriodEnd(UUID userId, Instant periodEnd) {
+        jpaUserRepository.setSubscriptionPeriodEnd(userId, periodEnd);
+    }
+
     private UserEntity toEntity(User domain) {
         UserEntity entity = new UserEntity();
         entity.setId(domain.getId());
@@ -165,6 +172,7 @@ public class PostgresUserRepositoryImpl implements UserRepository {
         entity.setReferrerSource(domain.getReferrerSource());
         entity.setRegistrationLocale(domain.getRegistrationLocale());
         entity.setCountry(domain.getCountry());
+        entity.setSubscriptionPeriodEnd(domain.getSubscriptionPeriodEnd());
         entity.setCreatedAt(domain.getCreatedAt());
         entity.setUpdatedAt(domain.getUpdatedAt());
         return entity;
@@ -198,6 +206,7 @@ public class PostgresUserRepositoryImpl implements UserRepository {
                 .referrerSource(entity.getReferrerSource())
                 .registrationLocale(entity.getRegistrationLocale())
                 .country(entity.getCountry())
+                .subscriptionPeriodEnd(entity.getSubscriptionPeriodEnd())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .build();

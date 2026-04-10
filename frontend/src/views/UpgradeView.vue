@@ -1,6 +1,6 @@
 <template>
-    <div class="min-h-screen bg-gray-50 dark:bg-gray-900 py-10 px-4">
-        <div class="max-w-lg mx-auto">
+    <div class="py-6 md:py-10 px-4">
+        <div class="max-w-lg md:max-w-xl mx-auto bg-gray-50/80 dark:bg-gray-900/80 rounded-3xl p-3">
             <div v-if="loading" class="text-center py-16 text-gray-500 dark:text-gray-400">{{ t('upgrade.loading') }}</div>
 
             <!-- Bereits Pro -->
@@ -28,7 +28,6 @@
 
                 <!-- Wie es funktioniert -->
                 <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-5 mb-4">
-                    <p class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-4 text-center">{{ t('upgrade.how_title') }}</p>
                     <div class="flex items-start gap-1">
                         <div class="flex-1 text-center">
                             <div class="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center mx-auto mb-2">
@@ -36,8 +35,8 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
                                 </svg>
                             </div>
-                            <p class="text-xs font-medium text-gray-700 dark:text-gray-300">{{ t('upgrade.how_step1_title') }}</p>
-                            <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ t('upgrade.how_step1_desc') }}</p>
+                            <p class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('upgrade.how_step1_title') }}</p>
+                            <p class="hidden md:block text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ t('upgrade.how_step1_desc') }}</p>
                         </div>
                         <div class="shrink-0 pt-4">
                             <svg class="w-5 h-5 text-gray-300 dark:text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
@@ -50,8 +49,8 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
                                 </svg>
                             </div>
-                            <p class="text-xs font-medium text-gray-700 dark:text-gray-300">{{ t('upgrade.how_step2_title') }}</p>
-                            <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ t('upgrade.how_step2_desc') }}</p>
+                            <p class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('upgrade.how_step2_title') }}</p>
+                            <p class="hidden md:block text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ t('upgrade.how_step2_desc') }}</p>
                         </div>
                         <div class="shrink-0 pt-4">
                             <svg class="w-5 h-5 text-gray-300 dark:text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
@@ -64,7 +63,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                                 </svg>
                             </div>
-                            <p class="text-xs font-medium text-gray-700 dark:text-gray-300">{{ t('upgrade.how_step3_title') }}</p>
+                            <p class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('upgrade.how_step3_title') }}</p>
                         </div>
                     </div>
                 </div>
@@ -77,31 +76,29 @@
                     </div>
                 </div>
 
+                <!-- FAQ: Wie funktioniert AutoSync? -->
+                <details class="group bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-4">
+                    <summary class="flex items-center justify-center gap-2 px-5 py-4 cursor-pointer list-none select-none hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                        <p class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">{{ t('imports.smartcar_how_title') }}</p>
+                        <ChevronDownIcon class="h-4 w-4 text-gray-400 shrink-0 transition-transform group-open:rotate-180" />
+                    </summary>
+                    <div class="border-t border-gray-100 dark:border-gray-700 px-5 pb-5 space-y-4">
+                        <div v-for="i in 5" :key="i" class="pt-4">
+                            <p v-if="i > 1" class="text-sm font-semibold text-gray-800 dark:text-gray-200">{{ t(`imports.smartcar_how_q${i}`) }}</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ t(`imports.smartcar_how_a${i}`) }}</p>
+                        </div>
+                    </div>
+                </details>
+
                 <!-- Pricing -->
                 <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
-                    <!-- Trial Hero + CTA -->
-                    <div class="text-center mb-5">
+                    <!-- Trial Hero -->
+                    <div class="text-center mb-4">
                         <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ t('upgrade.trial_days') }}</p>
                     </div>
 
-                    <button
-                        @click="handleCheckout"
-                        :disabled="checkoutLoading || !premiumEnabled"
-                        class="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 text-white font-semibold py-3.5 rounded-xl transition-colors mb-2"
-                    >
-                        <span v-if="checkoutLoading">{{ t('upgrade.cta_loading') }}</span>
-                        <span v-else-if="!premiumEnabled">{{ t('upgrade.cta_coming_soon') }}</span>
-                        <span v-else>{{ t('upgrade.cta') }}</span>
-                    </button>
-
-                    <p class="text-xs text-gray-400 dark:text-gray-500 text-center mb-5">
-                        {{ selectedPlan === 'monthly' ? t('upgrade.trial_hint_monthly', { priceMonthly: t('upgrade.price_monthly') }) : t('upgrade.trial_hint_yearly', { priceYearly: t('upgrade.price_yearly') }) }}
-                    </p>
-
-                    <p v-if="checkoutError" class="mb-4 text-sm text-red-600 dark:text-red-400 text-center">{{ checkoutError }}</p>
-
                     <!-- Plan Toggle -->
-                    <div class="border-t border-gray-100 dark:border-gray-700 pt-4">
+                    <div class="mb-5">
                         <p class="text-xs text-gray-400 dark:text-gray-500 text-center mb-3">{{ t('upgrade.plan_after_trial') }}</p>
                         <div class="flex justify-center gap-2">
                             <button
@@ -118,18 +115,56 @@
                                 class="flex flex-col items-center px-4 py-2 rounded-lg font-medium text-sm transition-colors"
                             >
                                 <span>{{ t('upgrade.plan_yearly') }} · {{ t('upgrade.price_yearly') }}</span>
-                                <span :class="selectedPlan === 'yearly' ? 'bg-white/20 text-white' : 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400'" class="text-xs px-1.5 py-0.5 rounded mt-1">{{ t('upgrade.plan_yearly_badge') }}</span>
+                                <span :class="selectedPlan === 'yearly' ? 'bg-white/20 text-white' : 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400'" class="text-xs px-1.5 py-0.5 rounded mt-1">{{ t('upgrade.plan_yearly_badge') }}</span>
                             </button>
                         </div>
                     </div>
 
+                    <div class="border-t border-gray-100 dark:border-gray-700 mb-5"></div>
+
+                    <button
+                        @click="handleCheckout"
+                        :disabled="checkoutLoading || !premiumEnabled"
+                        class="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 text-white font-semibold py-3.5 rounded-xl transition-colors mb-4"
+                    >
+                        <span v-if="checkoutLoading">{{ t('upgrade.cta_loading') }}</span>
+                        <span v-else-if="!premiumEnabled">{{ t('upgrade.cta_coming_soon') }}</span>
+                        <span v-else>{{ t('upgrade.cta') }}</span>
+                    </button>
+
+                    <!-- Payment method trust indicators -->
+                    <div class="flex items-center justify-center gap-1.5 mb-3 flex-wrap">
+                        <span class="text-xs text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-500 rounded px-2 py-0.5">Visa</span>
+                        <span class="text-xs text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-500 rounded px-2 py-0.5">Mastercard</span>
+                        <span class="text-xs text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-500 rounded px-2 py-0.5">Apple Pay</span>
+                        <span class="text-xs text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-500 rounded px-2 py-0.5">Google Pay</span>
+                        <span class="text-xs text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-500 rounded px-2 py-0.5">Amazon Pay</span>
+                        <span class="text-xs text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-500 rounded px-2 py-0.5">Klarna</span>
+                    </div>
+
+                    <p class="text-sm font-semibold text-gray-600 dark:text-gray-300 text-center mb-3">
+                        {{ selectedPlan === 'monthly' ? t('upgrade.trial_hint_monthly', { priceMonthly: t('upgrade.price_monthly') }) : t('upgrade.trial_hint_yearly', { priceYearly: t('upgrade.price_yearly') }) }}
+                    </p>
+
+                    <div v-if="checkoutError" class="mb-4 text-center space-y-1">
+                        <p class="text-sm text-red-600 dark:text-red-400">{{ checkoutError }}</p>
+                        <p class="text-xs text-gray-400 dark:text-gray-500">
+                            {{ t('upgrade.support_hint') }}
+                            <a href="mailto:support@ev-monitor.net" class="underline hover:no-underline">support@ev-monitor.net</a>
+                        </p>
+                    </div>
+
                     <!-- Trust -->
-                    <div class="mt-4 flex items-start gap-2 text-xs text-gray-400 dark:text-gray-500">
-                        <svg class="w-4 h-4 shrink-0 mt-0.5 text-gray-300 dark:text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <div class="mt-4 flex items-center justify-center gap-2 text-xs text-gray-400 dark:text-gray-500">
+                        <svg class="w-4 h-4 shrink-0 text-gray-300 dark:text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
                         </svg>
                         <span>{{ t('upgrade.trust') }}</span>
                     </div>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 text-center mt-2">
+                        {{ t('upgrade.support_hint') }}
+                        <a href="mailto:support@ev-monitor.net" class="underline hover:no-underline">support@ev-monitor.net</a>
+                    </p>
                 </div>
             </div>
         </div>
@@ -141,6 +176,7 @@ import { ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { subscriptionService } from '../api/subscriptionService';
 import { analytics } from '../services/analytics';
+import { ChevronDownIcon } from '@heroicons/vue/24/outline';
 
 const { t } = useI18n();
 
