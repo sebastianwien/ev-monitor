@@ -146,7 +146,13 @@
                         {{ selectedPlan === 'monthly' ? t('upgrade.trial_hint_monthly', { priceMonthly: t('upgrade.price_monthly') }) : t('upgrade.trial_hint_yearly', { priceYearly: t('upgrade.price_yearly') }) }}
                     </p>
 
-                    <p v-if="checkoutError" class="mb-4 text-sm text-red-600 dark:text-red-400 text-center">{{ checkoutError }}</p>
+                    <div v-if="checkoutError" class="mb-4 text-center space-y-1">
+                        <p class="text-sm text-red-600 dark:text-red-400">{{ checkoutError }}</p>
+                        <p class="text-xs text-gray-400 dark:text-gray-500">
+                            {{ t('upgrade.support_hint') }}
+                            <a href="mailto:support@ev-monitor.net" class="underline hover:no-underline">support@ev-monitor.net</a>
+                        </p>
+                    </div>
 
                     <!-- Trust -->
                     <div class="mt-4 flex items-center justify-center gap-2 text-xs text-gray-400 dark:text-gray-500">
@@ -155,6 +161,10 @@
                         </svg>
                         <span>{{ t('upgrade.trust') }}</span>
                     </div>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 text-center mt-2">
+                        {{ t('upgrade.support_hint') }}
+                        <a href="mailto:support@ev-monitor.net" class="underline hover:no-underline">support@ev-monitor.net</a>
+                    </p>
                 </div>
             </div>
         </div>
