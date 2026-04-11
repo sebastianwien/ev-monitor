@@ -1,7 +1,6 @@
 package com.evmonitor.infrastructure.web;
 
 import com.evmonitor.domain.*;
-import com.evmonitor.infrastructure.persistence.ChargingSessionGroupEntity;
 import com.evmonitor.testutil.AbstractIntegrationTest;
 import com.evmonitor.testutil.TestDataBuilder;
 import org.junit.jupiter.api.BeforeEach;

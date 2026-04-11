@@ -105,16 +105,6 @@ const formatDate = (dateStr: string | null) => {
   return new Date(dateStr).toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
-async function toggleMergeSessions(key: ApiKeyResponse) {
-  try {
-    const updated = await apiKeyService.updateMergeSessions(key.id, !key.mergeSessions)
-    const idx = apiKeys.value.findIndex(k => k.id === key.id)
-    if (idx !== -1) apiKeys.value[idx] = updated
-  } catch (e) {
-    console.error('Failed to toggle merge sessions', e)
-  }
-}
-
 const hasActiveTesla = computed(() =>
   Array.isArray(cars.value) && cars.value.some(c => c.brand?.toLowerCase() === 'tesla' && c.status === 'ACTIVE')
 )
@@ -241,12 +231,6 @@ const activeCars = computed(() =>
                       · {{ t('imports.api_last_used') }} {{ formatDate(key.lastUsedAt) }}
                       · {{ t('imports.api_created') }} {{ formatDate(key.createdAt) }}
                     </p>
-                    <div class="flex items-center gap-2 mt-1">
-                      <button @click="toggleMergeSessions(key)" :class="['relative inline-flex h-5 w-9 items-center rounded-full transition-colors', key.mergeSessions ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-600']" :title="key.mergeSessions ? t('imports.api_merge_active') : t('imports.api_merge_inactive')">
-                        <span :class="['inline-block h-3 w-3 transform rounded-full bg-white transition-transform', key.mergeSessions ? 'translate-x-5' : 'translate-x-1']" />
-                      </button>
-                      <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('imports.api_merge_sessions') }}</span>
-                    </div>
                   </div>
                   <button @click="deleteApiKey(key.id, key.name)" :disabled="deletingKeyId === key.id" class="flex-shrink-0 p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition disabled:opacity-50" :title="t('imports.api_revoke_title')">
                     <TrashIcon class="h-5 w-5" />

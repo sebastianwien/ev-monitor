@@ -43,7 +43,7 @@ class EvLogServiceConsumptionFallbackTest {
         PlausibilityProperties props = new PlausibilityProperties();
         props.setAcChargingEfficiency(1.0);
         props.setDcChargingEfficiency(1.0);
-        evLogService = new EvLogService(evLogRepository, carRepository, userRepository, coinLogService, temperatureEnrichmentService, mock(VehicleSpecificationRepository.class), props, mock(com.evmonitor.application.SessionGroupService.class), mock(com.evmonitor.domain.BatterySohRepository.class));
+        evLogService = new EvLogService(evLogRepository, carRepository, userRepository, coinLogService, temperatureEnrichmentService, mock(VehicleSpecificationRepository.class), props, mock(com.evmonitor.domain.BatterySohRepository.class));
         carId = UUID.randomUUID();
     }
 

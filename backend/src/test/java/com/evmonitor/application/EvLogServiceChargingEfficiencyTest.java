@@ -50,7 +50,7 @@ class EvLogServiceChargingEfficiencyTest {
                 evLogRepository, carRepository, userRepository,
                 coinLogService, temperatureEnrichmentService,
                 vehicleSpecificationRepository, new PlausibilityProperties(),
-                mock(SessionGroupService.class), mock(com.evmonitor.domain.BatterySohRepository.class));
+                mock(com.evmonitor.domain.BatterySohRepository.class));
     }
 
     /**

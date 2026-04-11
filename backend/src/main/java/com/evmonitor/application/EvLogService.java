@@ -42,13 +42,12 @@ public class EvLogService {
     private final TemperatureEnrichmentService temperatureEnrichmentService;
     private final VehicleSpecificationRepository vehicleSpecificationRepository;
     private final PlausibilityProperties plausibility;
-    private final SessionGroupService sessionGroupService;
     private final BatterySohRepository batterySohRepository;
 
     public EvLogService(EvLogRepository evLogRepository, CarRepository carRepository, UserRepository userRepository,
             CoinLogService coinLogService, TemperatureEnrichmentService temperatureEnrichmentService,
             VehicleSpecificationRepository vehicleSpecificationRepository, PlausibilityProperties plausibility,
-            SessionGroupService sessionGroupService, BatterySohRepository batterySohRepository) {
+            BatterySohRepository batterySohRepository) {
         this.evLogRepository = evLogRepository;
         this.carRepository = carRepository;
         this.userRepository = userRepository;
@@ -56,7 +55,6 @@ public class EvLogService {
         this.temperatureEnrichmentService = temperatureEnrichmentService;
         this.vehicleSpecificationRepository = vehicleSpecificationRepository;
         this.plausibility = plausibility;
-        this.sessionGroupService = sessionGroupService;
         this.batterySohRepository = batterySohRepository;
     }
 
@@ -198,18 +196,6 @@ public class EvLogService {
             coinLogService.awardCoinsForEvent(request.userId(), CoinLogService.CoinEvent.TESLA_DAILY_LOG, savedLog.getId());
         }
 
-        // Überschussladen-Grouping: WALLBOX_GOE Sessions mit kurzem Abstand zusammenfassen.
-        // Nur wenn merge_sessions am Request aktiv ist (go-e Verbindung muss es explizit anfordern).
-        // Fehler beim Grouping sollen den Log-Save NICHT rückgängig machen — daher try-catch.
-        if (!isSuperseded && request.mergeSessions()) {
-            try {
-                sessionGroupService.processSessionForGrouping(savedLog);
-            } catch (Exception e) {
-                logger.error("Session grouping failed for log {}, log was saved but not grouped: {}",
-                        savedLog.getId(), e.getMessage(), e);
-            }
-        }
-
         return EvLogResponse.fromDomain(savedLog);
     }
 
@@ -255,7 +241,6 @@ public class EvLogService {
 
     public List<EvLogResponse> getStandaloneLogsForUser(UUID userId) {
         return evLogRepository.findAllByUserId(userId).stream()
-                .filter(log -> log.getSessionGroupId() == null) // Sub-Sessions ausblenden
                 .map(EvLogResponse::fromDomain)
                 .toList();
     }
@@ -403,14 +388,9 @@ public class EvLogService {
         }
 
         // Return the requested page, enriched with consumption and distance data.
-        // Sub-Sessions (sessionGroupId != null) are excluded — they are represented by their group entry.
         List<EvLog> page_logs = (limit != null && limit > 0)
-                ? evLogRepository.findLatestByCarId(carId, limit, page).stream()
-                    .filter(log -> log.getSessionGroupId() == null)
-                    .toList()
-                : allLogsSorted.reversed().stream()
-                    .filter(log -> log.getSessionGroupId() == null)
-                    .toList();
+                ? evLogRepository.findLatestByCarId(carId, limit, page)
+                : allLogsSorted.reversed();
 
         return page_logs.stream()
                 .map(log -> EvLogResponse.fromDomain(log, consumptionByLog.get(log.getId()), distanceByLogId.get(log.getId())))
@@ -479,10 +459,6 @@ public class EvLogService {
         EvLog log = evLogRepository.findById(logId)
                 .orElseThrow(() -> new IllegalArgumentException("Log not found"));
 
-        if (log.getSessionGroupId() != null) {
-            throw new IllegalArgumentException("Log is part of a session group — use the group reassign endpoint");
-        }
-
         Car sourceCar = carRepository.findById(log.getCarId())
                 .orElseThrow(() -> new IllegalArgumentException("Source car not found"));
         if (!sourceCar.getUserId().equals(userId)) {
@@ -535,18 +511,7 @@ public class EvLogService {
                 .filter(log -> log.isLoggedWithin(startDate, endDate))
                 .collect(Collectors.toList());
 
-        // Session groups (WALLBOX_GOE/API_UPLOAD Ladegruppen) — stored in separate table,
-        // their sub-sessions have include_in_statistics=false to avoid double-counting.
-        // Must be included here so energy/cost from go-e charger sessions appear in statistics.
-        List<SessionGroupResponse> sessionGroups = sessionGroupService.findAllByCarId(carId).stream()
-                .filter(g -> {
-                    java.time.LocalDate groupDate = g.sessionStart().toLocalDate();
-                    return (startDate == null || !groupDate.isBefore(startDate))
-                            && (endDate == null || !groupDate.isAfter(endDate));
-                })
-                .collect(Collectors.toList());
-
-        if (logs.isEmpty() && sessionGroups.isEmpty()) {
+        if (logs.isEmpty()) {
             return createEmptyStatistics();
         }
 
@@ -611,63 +576,19 @@ public class EvLogService {
         List<EvLogStatisticsResponse.ChargeDataPoint> chargesOverTime =
                 groupChargesByPeriod(logs, groupBy != null ? groupBy : "MONTH", consumptionByLog);
 
-        // Merge session groups (WALLBOX_GOE Ladegruppen) into stats — kWh, cost, chart data
-        if (!sessionGroups.isEmpty()) {
-            BigDecimal sgKwh = sessionGroups.stream()
-                    .map(SessionGroupResponse::totalKwhCharged)
-                    .filter(Objects::nonNull)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-            BigDecimal sgCost = sessionGroups.stream()
-                    .map(SessionGroupResponse::costEur)
-                    .filter(g -> g != null && g.compareTo(BigDecimal.ZERO) > 0)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-            totalKwhCharged = totalKwhCharged.add(sgKwh);
-            totalCostEur = totalCostEur.add(sgCost);
-            totalKwhForCost = totalKwhForCost.add(sgKwh);
-            avgCostPerKwh = totalKwhForCost.compareTo(BigDecimal.ZERO) > 0
-                    ? totalCostEur.divide(totalKwhForCost, 2, RoundingMode.HALF_UP)
-                    : BigDecimal.ZERO;
-
-            String effectiveGroupBy = groupBy != null ? groupBy : "MONTH";
-            Map<String, EvLogStatisticsResponse.ChargeDataPoint> periodMap = chargesOverTime.stream()
-                    .collect(Collectors.toMap(
-                            dp -> getPeriodKey(dp.timestamp(), effectiveGroupBy),
-                            dp -> dp,
-                            (a, b) -> a,
-                            java.util.LinkedHashMap::new));
-
-            for (SessionGroupResponse group : sessionGroups) {
-                String key = getPeriodKey(group.sessionStart(), effectiveGroupBy);
-                BigDecimal gKwh = group.totalKwhCharged() != null ? group.totalKwhCharged() : BigDecimal.ZERO;
-                BigDecimal gCost = group.costEur() != null ? group.costEur() : BigDecimal.ZERO;
-                EvLogStatisticsResponse.ChargeDataPoint existing = periodMap.get(key);
-                if (existing == null) {
-                    periodMap.put(key, new EvLogStatisticsResponse.ChargeDataPoint(
-                            group.sessionStart(), gCost, gKwh, null, null));
-                } else {
-                    periodMap.put(key, new EvLogStatisticsResponse.ChargeDataPoint(
-                            existing.timestamp(),
-                            existing.costEur().add(gCost),
-                            existing.kwhCharged().add(gKwh),
-                            existing.distanceKm(),
-                            existing.consumptionKwhPer100km()));
-                }
-            }
-
-            chargesOverTime = periodMap.entrySet().stream()
-                    .sorted(Map.Entry.comparingByKey())
-                    .map(Map.Entry::getValue)
-                    .collect(Collectors.toList());
-        }
-
-        // Total distance and avg consumption — SoC-based from pre-computed consumptionByLog
+        // Total distance and avg consumption — SoC-based from pre-computed consumptionByLog.
+        // Iterate consumptionByLog directly so WALLBOX_GOE logs (which contribute to the chain
+        // but may have different include_in_statistics state) are never accidentally skipped.
+        Map<UUID, EvLog> logById = allLogsForCar.stream()
+                .collect(Collectors.toMap(EvLog::getId, l -> l));
         BigDecimal totalWeighted = BigDecimal.ZERO;
         int totalDist = 0;        // all logs with consumption data, for avg consumption calculation
         int totalDistAll = 0;     // all logs with distance, for display
         int estimatedCount = 0;   // count logs with estimated consumption (kWh/distance fallback)
-        for (EvLog log : logs) {
-            ConsumptionResult cr = consumptionByLog.get(log.getId());
+        for (Map.Entry<UUID, ConsumptionResult> entry : consumptionByLog.entrySet()) {
+            EvLog log = logById.get(entry.getKey());
+            if (log == null || !log.isLoggedWithin(startDate, endDate)) continue;
+            ConsumptionResult cr = entry.getValue();
             if (cr == null) continue;
             if (cr.distanceKm() > 0) totalDistAll += cr.distanceKm();
             if (cr.estimated()) estimatedCount++;
@@ -700,7 +621,7 @@ public class EvLogService {
                 cheapestCharge,
                 mostExpensiveCharge,
                 avgChargeDuration,
-                logs.size() + sessionGroups.size(),
+                logs.size(),
                 totalDistanceKm,
                 avgConsumptionKwhPer100km,
                 estimatedCount,

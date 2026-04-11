@@ -29,11 +29,11 @@ public class ManualImportService {
         this.objectMapper = objectMapper;
     }
 
-    public ImportApiResult importData(UUID userId, UUID carId, String format, String data, boolean mergeSessions) {
-        return importData(userId, carId, format, data, mergeSessions, DataSource.API_UPLOAD);
+    public ImportApiResult importData(UUID userId, UUID carId, String format, String data) {
+        return importData(userId, carId, format, data, DataSource.API_UPLOAD);
     }
 
-    public ImportApiResult importData(UUID userId, UUID carId, String format, String data, boolean mergeSessions, DataSource dataSource) {
+    public ImportApiResult importData(UUID userId, UUID carId, String format, String data, DataSource dataSource) {
         // Ownership check before parsing
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new IllegalArgumentException("Fahrzeug nicht gefunden"));
@@ -75,7 +75,7 @@ public class ManualImportService {
             return ImportApiResult.withoutIds(0, 0, parseErrors, columnMismatches);
         }
 
-        ImportApiResult result = publicApiImportService.importSessions(userId, new PublicApiSessionRequest(carId, entries), mergeSessions, true, dataSource);
+        ImportApiResult result = publicApiImportService.importSessions(userId, new PublicApiSessionRequest(carId, entries), dataSource);
         int totalErrors = result.errors() + parseErrors;
         return ImportApiResult.withoutIds(result.imported(), result.skipped(), totalErrors, columnMismatches);
     }

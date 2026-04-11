@@ -53,7 +53,7 @@ class EvLogServiceCalculateConsumptionTest {
                 evLogRepository, carRepository, userRepository,
                 coinLogService, temperatureEnrichmentService,
                 vehicleSpecificationRepository, props,
-                mock(com.evmonitor.application.SessionGroupService.class), mock(com.evmonitor.domain.BatterySohRepository.class));
+                mock(com.evmonitor.domain.BatterySohRepository.class));
     }
 
     // -------------------------------------------------------------------------

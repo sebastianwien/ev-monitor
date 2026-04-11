@@ -176,34 +176,8 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
 
     @Override
     @Transactional
-    public void setSessionGroupId(UUID logId, UUID groupId) {
-        jpaRepository.setSessionGroupId(logId, groupId);
-    }
-
-    @Override
-    @Transactional
-    public void updateCarIdBySessionGroupId(UUID groupId, UUID targetCarId) {
-        jpaRepository.updateCarIdBySessionGroupId(groupId, targetCarId);
-    }
-
-    @Override
-    @Transactional
     public void updateCarIdForLog(UUID logId, UUID targetCarId) {
         jpaRepository.updateCarIdForLog(logId, targetCarId);
-    }
-
-    @Override
-    public List<EvLog> findAllBySessionGroupId(UUID groupId) {
-        return jpaRepository.findAllBySessionGroupId(groupId).stream()
-                .map(this::toDomain)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<EvLog> findAllByCarIdExcludingSubSessions(UUID carId) {
-        return jpaRepository.findAllByCarIdExcludingSubSessions(carId).stream()
-                .map(this::toDomain)
-                .collect(Collectors.toList());
     }
 
     @Override

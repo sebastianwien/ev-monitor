@@ -54,8 +54,7 @@ public class ManualImportController {
                     principal.getUser().getId(),
                     request.carId(),
                     format,
-                    request.data(),
-                    request.mergeSessions() != null && request.mergeSessions()
+                    request.data()
             );
             return ResponseEntity.ok(result);
         } catch (SecurityException e) {
