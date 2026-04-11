@@ -705,7 +705,8 @@ const mergedLogFeed = computed(() => {
     const firstDate = new Date(allSubs[0].loggedAt)
     const lastDate = new Date(allSubs[allSubs.length - 1].loggedAt)
     const dateRangeLabel = spansMultipleDays ? `${fmtDate(firstDate)} - ${fmtDate(lastDate)}` : fmtDate(firstDate)
-    const newestConsumption = allSubs[allSubs.length - 1].consumptionKwhPer100km
+    // Verbrauch: ältestes Sub-Log (allSubs[0]) hat echten Vorgänger-Abstand → korrekte Consumption
+    const newestConsumption = allSubs[0].consumptionKwhPer100km ?? null
     const ds = commonDataSource ?? (new Set(allSubs.map((l: any) => l.dataSource)).size === 1 ? allSubs[0].dataSource : null)
     return {
       ...allSubs[0],
