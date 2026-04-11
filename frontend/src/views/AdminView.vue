@@ -384,12 +384,12 @@ function sourceInfo(ds: string): { label: string; icon: Component; classes: stri
     case 'USER_LOGGED':         return { label: 'Manuell',      icon: PencilSquareIcon,  classes: 'bg-green-900/40 text-green-300 border border-green-700' }
     case 'TESLA_FLEET_IMPORT':  return { label: 'Supercharger', icon: BoltIcon,          classes: 'bg-red-900/40 text-red-300 border border-red-700' }
     case 'TESLA_LIVE':          return { label: 'Tesla Live',   icon: BoltIcon,          classes: 'bg-red-900/40 text-red-300 border border-red-700' }
-    case 'TESLA_IMPORT':        return { label: 'Tesla',        icon: ArrowDownTrayIcon, classes: 'bg-purple-900/40 text-purple-300 border border-purple-700' }
-    case 'TESLA_MANUAL_IMPORT': return { label: 'Tesla',        icon: ArrowDownTrayIcon, classes: 'bg-purple-900/40 text-purple-300 border border-purple-700' }
+    case 'TESLA_IMPORT':        return { label: 'Tesla',        icon: ArrowDownTrayIcon, classes: 'bg-red-900/40 text-red-300 border border-red-700' }
+    case 'TESLA_MANUAL_IMPORT': return { label: 'Tesla',        icon: ArrowDownTrayIcon, classes: 'bg-red-900/40 text-red-300 border border-red-700' }
     case 'SPRITMONITOR_IMPORT': return { label: 'SpritMonitor', icon: ArrowDownTrayIcon, classes: 'bg-purple-900/40 text-purple-300 border border-purple-700' }
     case 'WALLBOX_OCPP':
     case 'WALLBOX_GOE':         return { label: 'Wallbox',      icon: HomeIcon,          classes: 'bg-blue-900/40 text-blue-300 border border-blue-700' }
-    case 'SMARTCAR_LIVE':       return { label: 'Smartcar',     icon: BoltIcon,          classes: 'bg-teal-900/40 text-teal-300 border border-teal-700' }
+    case 'SMARTCAR_LIVE':       return { label: 'AutoSync',     icon: BoltIcon,          classes: 'bg-indigo-900/40 text-indigo-300 border border-indigo-700' }
     case 'PUBLIC_API':          return { label: 'API',          icon: CommandLineIcon,   classes: 'bg-amber-900/40 text-amber-300 border border-amber-700' }
     default:                    return null
   }
