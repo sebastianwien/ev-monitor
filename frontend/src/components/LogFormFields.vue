@@ -32,6 +32,8 @@ interface UserProvider {
   id: string
   providerName: string
   label: string | null
+  acPricePerKwh: number | null
+  dcPricePerKwh: number | null
 }
 
 const props = defineProps<{
@@ -253,6 +255,17 @@ onMounted(async () => {
 
 watch(() => form.value.chargingType, (type) => {
   if (type === 'DC') form.value.isPublicCharging = true
+})
+
+watch(() => form.value.chargingProviderId, (providerId) => {
+  if (!providerId) return
+  if (costLocalTotal.value != null || costLocalPerKwh.value != null) return
+  const provider = userProviders.value.find(p => p.id === providerId)
+  if (!provider) return
+  const price = form.value.chargingType === 'DC' ? provider.dcPricePerKwh : provider.acPricePerKwh
+  if (price == null) return
+  costMode.value = 'per_kwh'
+  costLocalPerKwh.value = isEurCountry.value ? price : Math.round(eurToLocal(price) * 100) / 100
 })
 
 watch(() => form.value.isPublicCharging, (isPublic) => {

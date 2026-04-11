@@ -59,5 +59,7 @@ public interface EvLogRepository {
 
     Optional<EvLog> findMostRecentLogAtGeohash(UUID userId, String geohash);
 
+    Optional<UUID> findMostRecentChargingProviderAtGeohash(UUID userId, String geohash);
+
     void updateCarIdForLog(UUID logId, UUID targetCarId);
 }

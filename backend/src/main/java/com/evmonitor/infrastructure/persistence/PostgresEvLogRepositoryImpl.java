@@ -187,6 +187,14 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
+    public Optional<UUID> findMostRecentChargingProviderAtGeohash(UUID userId, String geohash) {
+        var results = jpaRepository.findRecentWithProviderByUserIdAndGeohash(userId, geohash,
+                org.springframework.data.domain.PageRequest.of(0, 1));
+        if (results.isEmpty()) return Optional.empty();
+        return Optional.ofNullable(results.get(0).getChargingProviderId());
+    }
+
+    @Override
     public List<com.evmonitor.domain.GeohashPoint> findGeohashDataByCarId(UUID carId) {
         return jpaRepository.findGeohashDataByCarId(carId).stream()
                 .map(row -> new com.evmonitor.domain.GeohashPoint((String) row[0], (java.math.BigDecimal) row[1]))

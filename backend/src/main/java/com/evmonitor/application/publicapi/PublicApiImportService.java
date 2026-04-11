@@ -136,6 +136,13 @@ public class PublicApiImportService {
                         measurementType
                 );
 
+                if (geohash != null) {
+                    var builder = evLog.toBuilder();
+                    evLogRepository.findMostRecentChargingProviderAtGeohash(userId, geohash)
+                            .ifPresent(builder::chargingProviderId);
+                    evLog = builder.build();
+                }
+
                 EvLog saved;
                 try {
                     saved = evLogRepository.save(evLog);

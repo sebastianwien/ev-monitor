@@ -80,6 +80,9 @@ public class EvLogService {
                 throw new IllegalArgumentException("Charging provider not found for current user");
             }
             builder.chargingProviderId(request.chargingProviderId());
+        } else if (geohash != null) {
+            evLogRepository.findMostRecentChargingProviderAtGeohash(userId, geohash)
+                    .ifPresent(builder::chargingProviderId);
         }
         newLog = builder.build();
 
@@ -159,6 +162,13 @@ public class EvLogService {
                 request.socBefore(),
                 request.socAfter(),
                 request.temperatureCelsius());
+
+        if (request.geohash() != null) {
+            var builder = newLog.toBuilder();
+            evLogRepository.findMostRecentChargingProviderAtGeohash(request.userId(), request.geohash())
+                    .ifPresent(builder::chargingProviderId);
+            newLog = builder.build();
+        }
 
         EvLog savedLog = evLogRepository.save(newLog);
 
