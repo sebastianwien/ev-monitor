@@ -632,8 +632,8 @@ import {
   ArrowTrendingUpIcon, ClipboardDocumentListIcon, Battery0Icon,
   SunIcon, ChartBarIcon, ExclamationTriangleIcon, BoltIcon
 } from '@heroicons/vue/24/outline'
-import PublicNav from '../components/PublicNav.vue'
-import AffiliateBanner from '../components/AffiliateBanner.vue'
+import PublicNav from '../components/shared/PublicNav.vue'
+import AffiliateBanner from '../components/shared/AffiliateBanner.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { EUR_EXCHANGE_RATES, RATES_LAST_UPDATED } from '../config/exchangeRates'
 

@@ -4,7 +4,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/auth'
 import { analytics } from '../services/analytics'
-import LocaleSwitcher from '../components/LocaleSwitcher.vue'
+import LocaleSwitcher from '../components/shared/LocaleSwitcher.vue'
 import { getTopModels, getPlatformStats, type TopModelPreview } from '../api/publicModelService'
 import {
   BoltIcon,

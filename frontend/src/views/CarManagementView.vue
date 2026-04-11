@@ -1,564 +1,62 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
+import { onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { carService, type Car, type CarRequest, type BrandInfo, type ModelInfo, type CarCreateResponse, type BatterySohEntry } from '../api/carService'
-import { useCarStore } from '../stores/car'
-import { vehicleSpecificationService, type VehicleSpecification } from '../api/vehicleSpecificationService'
 import { ChartBarIcon, TruckIcon, ArrowDownTrayIcon } from '@heroicons/vue/24/outline'
-import { useCoinStore } from '../stores/coins'
-import LicensePlate from '../components/LicensePlate.vue'
-import { analytics } from '../services/analytics'
-import { useTeslaStatus } from '../composables/useTeslaStatus'
+import LicensePlate from '../components/car/LicensePlate.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
+import { useCarForm } from '../composables/useCarForm'
+import { useCarImages } from '../composables/useCarImages'
+import { useSohHistory } from '../composables/useSohHistory'
+import { useWltpLookup } from '../composables/useWltpLookup'
 
 const { t } = useI18n()
 const { consumptionUnitLabel, distanceUnitLabel } = useLocaleFormat()
-const coinStore = useCoinStore()
-const carStore = useCarStore()
 
-const { teslaStatus, start: startTeslaPolling } = useTeslaStatus()
+// -- Car Form --
+const {
+  cars, availableModels, loading, error, showForm, editingCar,
+  showToast, toastMessage, teslaStatus,
+  selectedBrand, selectedModel, year, licensePlate, trim,
+  selectedCapacity, customCapacity, useCustomCapacity,
+  powerKw, batteryDegradationPercent, hasHeatPump, isBusinessCar,
+  sohHistory, showSohAddForm, sohEditingEntry, sohPercent, sohDate,
+  sortedBrands, isSonstige, selectedModelCapacities, finalCapacity, powerPs,
+  fetchCars, fetchBrands, resetForm,
+  openAddForm, openEditForm, submitForm, deleteCar, setActiveCar, getModelLabel,
+} = useCarForm()
 
-const cars = ref<Car[]>([])
-const brands = ref<BrandInfo[]>([])
-const availableModels = ref<ModelInfo[]>([])
-const loading = ref(true) // Initial true to prevent flicker on mount
-const error = ref<string | null>(null)
-const showForm = ref(false)
-const editingCar = ref<Car | null>(null)
+// -- Car Images --
+const {
+  imageBlobUrls, imageUploading, imagePublicForUpload,
+  revokeAllBlobUrls, loadCarImages, initVisibility,
+  handleVisibilityChange, handleImageUpload, handleDeleteImage,
+} = useCarImages(cars, error, showToast, toastMessage)
 
-// Form fields
-const selectedBrand = ref('')
-const selectedModel = ref('')
-const year = ref<number>(new Date().getFullYear())
-const licensePlate = ref('')
-const trim = ref('')
-const selectedCapacity = ref<number | null>(null)
-const customCapacity = ref<number | null>(null)
-const useCustomCapacity = ref(false)
-const powerKw = ref<number | null>(null)
-const batteryDegradationPercent = ref<number | null>(null)
-const hasHeatPump = ref(false)
-const isBusinessCar = ref(false)
+// -- SoH History --
+const {
+  openSohAddForm, openSohEditForm, cancelSohForm, submitSohForm, deleteSohEntry,
+} = useSohHistory(editingCar, cars, error, sohHistory, showSohAddForm, sohEditingEntry, sohPercent, sohDate)
 
-// SoH History
-const sohHistory = ref<BatterySohEntry[]>([])
-const showSohAddForm = ref(false)
-const sohEditingEntry = ref<BatterySohEntry | null>(null)
-const sohPercent = ref<number | null>(null)
-const sohDate = ref(new Date().toISOString().split('T')[0])
+// -- WLTP Lookup --
+const {
+  wltpData, showWltpQuestion, showWltpForm,
+  wltpRangeKm, wltpConsumptionKwhPer100km,
+  closeWltpQuestion, openWltpForm, closeWltpForm, submitWltpData,
+} = useWltpLookup(selectedBrand, selectedModel, finalCapacity, editingCar, error, showToast, toastMessage)
 
-// WLTP data
-const wltpData = ref<VehicleSpecification | null>(null)
-const showWltpQuestion = ref(false)
-const showWltpForm = ref(false)
-const wltpRangeKm = ref<number | null>(null)
-const wltpConsumptionKwhPer100km = ref<number | null>(null)
-const showToast = ref(false)
-const toastMessage = ref('')
-
-// Image state
-const imageBlobUrls = ref<Record<string, string>>({})
-const imageUploading = ref<Record<string, boolean>>({})
-const imagePublicForUpload = ref<Record<string, boolean>>({})
-const visibilityTimers: Record<string, ReturnType<typeof setTimeout>> = {}
-
-const sortedBrands = computed(() => {
-  return [...brands.value].sort((a, b) => a.label.localeCompare(b.label))
-})
-
-const isSonstige = computed(() => selectedBrand.value === 'SONSTIGE')
-
-const selectedModelCapacities = computed(() => {
-  if (!selectedModel.value) return []
-  const model = availableModels.value.find(m => m.value === selectedModel.value)
-  return model?.capacities || []
-})
-
-const finalCapacity = computed(() => {
-  if (useCustomCapacity.value) return customCapacity.value
-  return selectedCapacity.value
-})
-
-// kW to PS conversion (1 kW = 1.35962 PS)
-const powerPs = computed(() => {
-  if (!powerKw.value) return null
-  return Math.round(powerKw.value * 1.35962)
-})
-
-const revokeAllBlobUrls = () => {
-  Object.values(imageBlobUrls.value).forEach(url => URL.revokeObjectURL(url))
-  imageBlobUrls.value = {}
+// -- Orchestration --
+const doFetchCars = async () => {
+  await fetchCars(loadCarImages, revokeAllBlobUrls)
+  initVisibility(cars.value)
 }
 
-const loadCarImages = async (carList: Car[]) => {
-  const carsWithImages = carList.filter(c => c.imageUrl)
-  for (const car of carsWithImages) {
-    try {
-      const blobUrl = await carService.getCarImageBlobUrl(car.id)
-      imageBlobUrls.value = { ...imageBlobUrls.value, [car.id]: blobUrl }
-    } catch {
-      // Image might not be accessible (e.g. private) — ignore silently
-    }
-  }
-}
-
-const fetchCars = async () => {
-  try {
-    loading.value = true
-    error.value = null
-    revokeAllBlobUrls()
-    cars.value = await carStore.getCars(true) ?? []
-    const visibility: Record<string, boolean> = {}
-    cars.value.forEach(c => { visibility[c.id] = c.imagePublic })
-    imagePublicForUpload.value = visibility
-    await loadCarImages(cars.value)
-    await startTeslaPolling(cars.value.some((c: any) => c.brand?.toLowerCase() === 'tesla'))
-    // Small delay to ensure fade-in transition is visible
-    await new Promise(resolve => setTimeout(resolve, 150))
-  } catch (err: any) {
-    error.value = err.response?.data?.message || t('cars.error_load')
-    console.error('Failed to fetch cars:', err)
-  } finally {
-    loading.value = false
-  }
-}
-
-const fetchBrands = async () => {
-  try {
-    brands.value = await carStore.getBrands()
-  } catch (err: any) {
-    error.value = t('cars.error_brands')
-    console.error('Failed to fetch brands:', err)
-  }
-}
-
-const loadModelsForBrand = async (brand: string) => {
-  if (!brand) {
-    availableModels.value = []
-    return
-  }
-
-  try {
-    availableModels.value = await carStore.getModelsForBrand(brand)
-  } catch (err: any) {
-    error.value = t('cars.error_models')
-    console.error('Failed to fetch models:', err)
-  }
-}
-
-let suppressNextBrandWatch = false
-
-watch(selectedBrand, (newBrand) => {
-  if (suppressNextBrandWatch) {
-    suppressNextBrandWatch = false
-    return
-  }
-  if (newBrand) {
-    loadModelsForBrand(newBrand)
-  } else {
-    availableModels.value = []
-  }
-  if (!editingCar.value) {
-    selectedCapacity.value = null
-    if (newBrand === 'SONSTIGE') {
-      selectedModel.value = 'SONSTIGE_CUSTOM'
-      useCustomCapacity.value = true
-    } else {
-      selectedModel.value = ''
-      useCustomCapacity.value = false
-    }
-  }
-})
-
-watch(selectedModel, (newModel) => {
-  if (!editingCar.value) {
-    selectedCapacity.value = null
-    if (newModel === 'SONSTIGE_CUSTOM') {
-      useCustomCapacity.value = true
-    } else {
-      useCustomCapacity.value = false
-      customCapacity.value = null
-    }
-  }
-  // Reset WLTP data when model changes
-  wltpData.value = null
-})
-
-// Watch for capacity changes to lookup WLTP data
-watch([selectedBrand, selectedModel, finalCapacity], async ([brand, model, capacity]) => {
-  wltpData.value = null
-  showWltpQuestion.value = false
-
-  if (!brand || !model || !capacity || editingCar.value) {
-    return
-  }
-
-  await lookupWltpData()
-})
-
-const resetForm = () => {
-  selectedBrand.value = ''
-  selectedModel.value = ''
-  year.value = new Date().getFullYear()
-  licensePlate.value = ''
-  trim.value = ''
-  selectedCapacity.value = null
-  customCapacity.value = null
-  useCustomCapacity.value = false
-  powerKw.value = null
-  batteryDegradationPercent.value = null
-  hasHeatPump.value = false
-  isBusinessCar.value = false
-  editingCar.value = null
-  showForm.value = false
-  availableModels.value = []
-  sohHistory.value = []
-  showSohAddForm.value = false
-  sohEditingEntry.value = null
-  sohPercent.value = null
-  sohDate.value = new Date().toISOString().split('T')[0]
-}
-
-const openAddForm = () => {
-  resetForm()
-  showForm.value = true
-}
-
-const openEditForm = async (car: Car) => {
-  editingCar.value = car
-  suppressNextBrandWatch = true
-  selectedBrand.value = car.brand
-  await loadModelsForBrand(car.brand)
-  selectedModel.value = car.model
-
-  const foundModel = availableModels.value.find(m => m.value === car.model)
-  if (foundModel && foundModel.capacities.some(c => c.kWh === car.batteryCapacityKwh)) {
-    selectedCapacity.value = car.batteryCapacityKwh
-    useCustomCapacity.value = false
-  } else {
-    customCapacity.value = car.batteryCapacityKwh
-    useCustomCapacity.value = true
-  }
-
-  year.value = car.year
-  licensePlate.value = car.licensePlate
-  trim.value = car.trim || ''
-  powerKw.value = car.powerKw
-  batteryDegradationPercent.value = car.batteryDegradationPercent
-  hasHeatPump.value = car.hasHeatPump ?? false
-  isBusinessCar.value = car.isBusinessCar ?? false
-  showForm.value = true
-  // Load SoH history for this car
-  try {
-    sohHistory.value = await carService.getSohHistory(car.id)
-  } catch {
-    sohHistory.value = []
-  }
-}
-
-const submitForm = async () => {
-  try {
-    error.value = null
-
-    if (!finalCapacity.value) {
-      error.value = t('cars.error_capacity')
-      return
-    }
-
-    const carData: CarRequest = {
-      model: selectedModel.value,
-      year: year.value,
-      licensePlate: licensePlate.value,
-      trim: trim.value || null,
-      batteryCapacityKwh: finalCapacity.value,
-      powerKw: powerKw.value,
-      batteryDegradationPercent: batteryDegradationPercent.value,
-      hasHeatPump: hasHeatPump.value
-    }
-
-    if (editingCar.value) {
-      await carService.updateCar(editingCar.value.id, carData)
-      if (isBusinessCar.value !== editingCar.value.isBusinessCar) {
-        await carService.setBusinessCar(editingCar.value.id, isBusinessCar.value)
-      }
-      resetForm()
-      await fetchCars()
-    } else {
-      const result: CarCreateResponse = await carService.createCar(carData)
-      resetForm()
-      await fetchCars()
-      coinStore.refresh()
-      const isFirst = result.coinsAwarded === 20
-      analytics.trackCarAdded(isFirst)
-      toastMessage.value = isFirst
-        ? t('cars.toast_first', { n: result.coinsAwarded })
-        : t('cars.toast_coins', { n: result.coinsAwarded })
-      showToast.value = true
-      setTimeout(() => { showToast.value = false }, 5000)
-    }
-  } catch (err: any) {
-    error.value = err.response?.data?.message || t('cars.error_save')
-    console.error('Failed to save car:', err)
-  }
-}
-
-const deleteCar = async (id: string) => {
-  if (!confirm(t('cars.confirm_delete'))) return
-
-  try {
-    error.value = null
-    await carService.deleteCar(id)
-    await fetchCars()
-  } catch (err: any) {
-    error.value = err.response?.data?.message || t('cars.error_delete')
-    console.error('Failed to delete car:', err)
-  }
-}
-
-const setActiveCar = async (id: string) => {
-  try {
-    error.value = null
-    const updatedCar = await carService.setActiveCar(id)
-    cars.value = cars.value.map(c => ({
-      ...c,
-      isPrimary: c.id === updatedCar.id
-    }))
-    carStore.invalidateCars()
-  } catch (err: any) {
-    error.value = err.response?.data?.message || t('cars.error_activate')
-    console.error('Failed to set active car:', err)
-  }
-}
-
-
-const getModelLabel = (modelValue: string | null | undefined): string => {
-  if (!modelValue) return ''
-  const model = availableModels.value.find(m => m.value === modelValue)
-  if (model) return model.label
-  return modelValue.replace(/_/g, ' ').toLowerCase()
-    .split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ')
-}
-
-// WLTP Lookup
-const lookupWltpData = async () => {
-  if (!selectedBrand.value || !selectedModel.value || !finalCapacity.value) {
-    return
-  }
-
-  try {
-    const data = await vehicleSpecificationService.lookup(
-      selectedBrand.value,
-      selectedModel.value,
-      finalCapacity.value
-    )
-
-    if (data) {
-      wltpData.value = data
-    } else {
-      // No WLTP data found - ask user if they want to contribute
-      showWltpQuestion.value = true
-    }
-  } catch (err) {
-    console.error('Failed to lookup WLTP data:', err)
-  }
-}
-
-const closeWltpQuestion = () => {
-  showWltpQuestion.value = false
-}
-
-const openWltpForm = () => {
-  showWltpQuestion.value = false
-  showWltpForm.value = true
-  wltpRangeKm.value = null
-  wltpConsumptionKwhPer100km.value = null
-}
-
-const closeWltpForm = () => {
-  showWltpForm.value = false
-  wltpRangeKm.value = null
-  wltpConsumptionKwhPer100km.value = null
-}
-
-const submitWltpData = async () => {
-  if (!wltpRangeKm.value || !wltpConsumptionKwhPer100km.value) {
-    error.value = t('cars.error_wltp')
-    return
-  }
-
-  try {
-    error.value = null
-    const response = await vehicleSpecificationService.create({
-      carBrand: selectedBrand.value,
-      carModel: selectedModel.value,
-      batteryCapacityKwh: finalCapacity.value!,
-      wltpRangeKm: wltpRangeKm.value,
-      wltpConsumptionKwhPer100km: wltpConsumptionKwhPer100km.value
-    })
-
-    // Close form and show toast
-    closeWltpForm()
-    toastMessage.value = t('cars.toast_wltp', { n: response.coinsAwarded })
-    showToast.value = true
-
-    // Auto-hide toast after 5 seconds
-    setTimeout(() => {
-      showToast.value = false
-    }, 5000)
-
-    // Reload WLTP data
-    wltpData.value = response.specification
-  } catch (err: any) {
-    error.value = err.response?.data?.message || t('cars.error_wltp_save')
-    console.error('Failed to save WLTP data:', err)
-  }
-}
-
-const handleVisibilityChange = (carId: string, isPublic: boolean) => {
-  imagePublicForUpload.value = { ...imagePublicForUpload.value, [carId]: isPublic }
-
-  const car = cars.value.find(c => c.id === carId)
-  if (!car?.imageUrl) return // No image yet — just store preference for next upload
-
-  // Debounce: cancel pending request, wait 500ms before sending
-  clearTimeout(visibilityTimers[carId])
-  visibilityTimers[carId] = setTimeout(async () => {
-    try {
-      const result = await carService.updateCarImageVisibility(carId, isPublic)
-      cars.value = cars.value.map(c => c.id === carId ? result.car : c)
-      carStore.invalidateCars()
-      if (result.coinsAwarded > 0) {
-        coinStore.refresh()
-        toastMessage.value = t('cars.toast_image_public', { n: result.coinsAwarded })
-        showToast.value = true
-        setTimeout(() => { showToast.value = false }, 5000)
-      }
-    } catch (err: any) {
-      error.value = err.response?.data?.message || t('cars.error_visibility')
-    }
-  }, 500)
-}
-
-const handleImageUpload = async (carId: string, event: Event) => {
-  const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
-  if (!file) return
-
-  imageUploading.value = { ...imageUploading.value, [carId]: true }
-  try {
-    error.value = null
-    const isPublic = imagePublicForUpload.value[carId] ?? false
-    const result = await carService.uploadCarImage(carId, file, isPublic)
-    // Update car in list
-    cars.value = cars.value.map(c => c.id === carId ? result.car : c)
-    carStore.invalidateCars()
-    if (result.coinsAwarded > 0) {
-      coinStore.refresh()
-      toastMessage.value = t('cars.toast_upload', { n: result.coinsAwarded })
-      showToast.value = true
-      setTimeout(() => { showToast.value = false }, 5000)
-    }
-    // Revoke old blob and load new one
-    if (imageBlobUrls.value[carId]) URL.revokeObjectURL(imageBlobUrls.value[carId])
-    const blobUrl = await carService.getCarImageBlobUrl(carId)
-    imageBlobUrls.value = { ...imageBlobUrls.value, [carId]: blobUrl }
-  } catch (err: any) {
-    error.value = err.response?.data?.message || t('cars.error_upload')
-    console.error('Failed to upload image:', err)
-  } finally {
-    imageUploading.value = { ...imageUploading.value, [carId]: false }
-    input.value = ''
-  }
-}
-
-const handleDeleteImage = async (carId: string) => {
-  if (!confirm(t('cars.confirm_delete_image'))) return
-  try {
-    error.value = null
-    await carService.deleteCarImage(carId)
-    if (imageBlobUrls.value[carId]) URL.revokeObjectURL(imageBlobUrls.value[carId])
-    const { [carId]: _, ...rest } = imageBlobUrls.value
-    imageBlobUrls.value = rest
-    // Update car in list
-    cars.value = cars.value.map(c => c.id === carId ? { ...c, imageUrl: null, imagePublic: false } : c)
-    carStore.invalidateCars()
-  } catch (err: any) {
-    error.value = err.response?.data?.message || t('cars.error_delete_image')
-    console.error('Failed to delete image:', err)
-  }
-}
-
-const openSohAddForm = () => {
-  sohEditingEntry.value = null
-  sohPercent.value = null
-  sohDate.value = new Date().toISOString().split('T')[0]
-  showSohAddForm.value = true
-}
-
-const openSohEditForm = (entry: BatterySohEntry) => {
-  sohEditingEntry.value = entry
-  sohPercent.value = entry.sohPercent
-  sohDate.value = entry.recordedAt
-  showSohAddForm.value = true
-}
-
-const cancelSohForm = () => {
-  showSohAddForm.value = false
-  sohEditingEntry.value = null
-  sohPercent.value = null
-  sohDate.value = new Date().toISOString().split('T')[0]
-}
-
-const submitSohForm = async () => {
-  if (!editingCar.value || !sohPercent.value || !sohDate.value) return
-  try {
-    error.value = null
-    if (sohEditingEntry.value) {
-      const updated = await carService.updateSohMeasurement(editingCar.value.id, sohEditingEntry.value.id, {
-        sohPercent: sohPercent.value,
-        recordedAt: sohDate.value
-      })
-      sohHistory.value = sohHistory.value.map(e => e.id === updated.id ? updated : e)
-    } else {
-      const created = await carService.addSohMeasurement(editingCar.value.id, {
-        sohPercent: sohPercent.value,
-        recordedAt: sohDate.value
-      })
-      sohHistory.value = [created, ...sohHistory.value]
-        .sort((a, b) => b.recordedAt.localeCompare(a.recordedAt))
-      // Sync car's batteryDegradationPercent for display
-      cars.value = cars.value.map(c => c.id === editingCar.value!.id
-        ? { ...c, batteryDegradationPercent: 100 - sohPercent.value!, effectiveBatteryCapacityKwh: c.batteryCapacityKwh * sohPercent.value! / 100 }
-        : c)
-    }
-    cancelSohForm()
-    carStore.invalidateCars()
-  } catch (err: any) {
-    error.value = err.response?.data?.message || t('cars.soh_error_save')
-  }
-}
-
-const deleteSohEntry = async (entry: BatterySohEntry) => {
-  if (!editingCar.value || !confirm(t('cars.soh_confirm_delete'))) return
-  try {
-    await carService.deleteSohMeasurement(editingCar.value.id, entry.id)
-    sohHistory.value = sohHistory.value.filter(e => e.id !== entry.id)
-    carStore.invalidateCars()
-  } catch (err: any) {
-    error.value = err.response?.data?.message || t('cars.soh_error_delete')
-  }
-}
+const doSubmitForm = () => submitForm(doFetchCars)
+const doDeleteCar = (id: string) => deleteCar(id, doFetchCars)
 
 onMounted(async () => {
   await fetchBrands()
-  await fetchCars()
-})
-
-onUnmounted(() => {
-  revokeAllBlobUrls()
-  Object.values(visibilityTimers).forEach(clearTimeout)
+  await fetchCars(loadCarImages, revokeAllBlobUrls)
+  initVisibility(cars.value)
 })
 </script>
 
@@ -586,7 +84,7 @@ onUnmounted(() => {
       <div v-if="showForm && !editingCar" class="mb-8 p-6 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
         <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">{{ t('cars.add_title') }}</h2>
 
-        <form @submit.prevent="submitForm" class="space-y-4">
+        <form @submit.prevent="doSubmitForm" class="space-y-4">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('cars.label_brand') }}</label>
@@ -1022,7 +520,7 @@ onUnmounted(() => {
                 class="btn-3d flex-1 bg-indigo-100 dark:bg-indigo-700 text-indigo-800 dark:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-200 dark:hover:bg-indigo-600 transition">
                 {{ t('cars.edit_btn') }}
               </button>
-              <button @click="deleteCar(car.id)"
+              <button @click="doDeleteCar(car.id)"
                 v-haptic
                 class="btn-3d flex-1 bg-red-100 dark:bg-red-700 text-red-800 dark:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-red-200 dark:hover:bg-red-600 transition">
                 {{ t('cars.delete_btn') }}
@@ -1045,7 +543,7 @@ onUnmounted(() => {
           </button>
         </div>
 
-        <form @submit.prevent="submitForm" class="p-6 space-y-4">
+        <form @submit.prevent="doSubmitForm" class="p-6 space-y-4">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('cars.label_brand') }}</label>
