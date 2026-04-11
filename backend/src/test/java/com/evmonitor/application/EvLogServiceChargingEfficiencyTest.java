@@ -1,7 +1,7 @@
 package com.evmonitor.application;
 
+import com.evmonitor.application.consumption.ConsumptionCalculationService;
 import com.evmonitor.domain.*;
-import com.evmonitor.infrastructure.weather.TemperatureEnrichmentService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,14 +30,9 @@ import static org.mockito.Mockito.mock;
 @ExtendWith(MockitoExtension.class)
 class EvLogServiceChargingEfficiencyTest {
 
-    @Mock private EvLogRepository evLogRepository;
-    @Mock private CarRepository carRepository;
-    @Mock private UserRepository userRepository;
-    @Mock private CoinLogService coinLogService;
-    @Mock private TemperatureEnrichmentService temperatureEnrichmentService;
     @Mock private VehicleSpecificationRepository vehicleSpecificationRepository;
 
-    private EvLogService service;
+    private ConsumptionCalculationService service;
 
     private static final BigDecimal BATTERY_75 = new BigDecimal("75.0");
     private static final LocalDateTime T1 = LocalDateTime.of(2026, 1, 1, 10, 0);
@@ -46,11 +41,7 @@ class EvLogServiceChargingEfficiencyTest {
     @BeforeEach
     void setUp() {
         // Use real efficiency values (AC=0.90, DC=0.95)
-        service = new EvLogService(
-                evLogRepository, carRepository, userRepository,
-                coinLogService, temperatureEnrichmentService,
-                vehicleSpecificationRepository, new PlausibilityProperties(),
-                mock(com.evmonitor.domain.BatterySohRepository.class));
+        service = new ConsumptionCalculationService(vehicleSpecificationRepository, new PlausibilityProperties(), mock(BatterySohRepository.class));
     }
 
     /**
@@ -209,7 +200,7 @@ class EvLogServiceChargingEfficiencyTest {
                 .dataSource(DataSource.SMARTCAR_LIVE)
                 .includeInStatistics(true)
                 .chargingType(ChargingType.UNKNOWN)
-                .isPublicCharging(true) // publicCharging=true → DC proxy
+                .publicCharging(true) // publicCharging=true → DC proxy
                 .createdAt(T1)
                 .updatedAt(T1)
                 .build();
@@ -251,7 +242,7 @@ class EvLogServiceChargingEfficiencyTest {
                 .dataSource(DataSource.USER_LOGGED)
                 .includeInStatistics(true)
                 .chargingType(chargingType)
-                .isPublicCharging(publicCharging)
+                .publicCharging(publicCharging)
                 .createdAt(loggedAt)
                 .updatedAt(loggedAt)
                 .build();

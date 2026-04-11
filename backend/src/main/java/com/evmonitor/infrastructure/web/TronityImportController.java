@@ -4,6 +4,7 @@ import com.evmonitor.application.manualimport.ManualImportService;
 import com.evmonitor.application.publicapi.ImportApiResult;
 import com.evmonitor.domain.DataSource;
 import com.evmonitor.infrastructure.security.UserPrincipal;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -24,13 +25,10 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/import/tronity")
 @Slf4j
+@RequiredArgsConstructor
 public class TronityImportController {
 
     private final ManualImportService importService;
-
-    public TronityImportController(ManualImportService importService) {
-        this.importService = importService;
-    }
 
     @PostMapping
     public ResponseEntity<?> importData(

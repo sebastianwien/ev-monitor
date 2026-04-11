@@ -106,7 +106,7 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
                 new RegisterRequest(email, "user_" + System.currentTimeMillis(), "DifferentPassword456", null, null, null, null, null, null, null),
                 String.class);
 
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
     }
 
     @Test

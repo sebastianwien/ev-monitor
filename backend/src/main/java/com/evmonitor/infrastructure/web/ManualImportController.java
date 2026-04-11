@@ -3,6 +3,7 @@ package com.evmonitor.infrastructure.web;
 import com.evmonitor.application.manualimport.ManualImportService;
 import com.evmonitor.application.publicapi.ImportApiResult;
 import com.evmonitor.infrastructure.security.UserPrincipal;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -25,13 +26,10 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/import/sessions")
 @Slf4j
+@RequiredArgsConstructor
 public class ManualImportController {
 
     private final ManualImportService importService;
-
-    public ManualImportController(ManualImportService importService) {
-        this.importService = importService;
-    }
 
     @PostMapping
     public ResponseEntity<?> importData(

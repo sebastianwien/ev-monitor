@@ -2,6 +2,7 @@ package com.evmonitor.application.publicapi;
 
 import com.evmonitor.domain.ChargingProviderTariffRepository;
 import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
@@ -15,16 +16,13 @@ import java.util.stream.Collectors;
  * Case-insensitive match; unknown names are kept as-is.
  */
 @Service
+@RequiredArgsConstructor
 public class CpoNameNormalizer {
 
     private final ChargingProviderTariffRepository tariffRepository;
 
     private List<String> knownCpos = List.of();
     private Map<String, String> lookup = Map.of();
-
-    public CpoNameNormalizer(ChargingProviderTariffRepository tariffRepository) {
-        this.tariffRepository = tariffRepository;
-    }
 
     @PostConstruct
     public void init() {

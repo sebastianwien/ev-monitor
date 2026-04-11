@@ -4,6 +4,7 @@ import com.evmonitor.application.EvLogResponse;
 import com.evmonitor.application.EvLogService;
 import com.evmonitor.application.InternalEvLogRequest;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,13 +17,10 @@ import java.util.UUID;
  */
 @RestController
 @RequestMapping("/api/internal")
+@RequiredArgsConstructor
 public class InternalEvLogController {
 
     private final EvLogService evLogService;
-
-    public InternalEvLogController(EvLogService evLogService) {
-        this.evLogService = evLogService;
-    }
 
     @PostMapping("/logs")
     public ResponseEntity<EvLogResponse> createWallboxLog(@RequestBody InternalEvLogRequest request) {

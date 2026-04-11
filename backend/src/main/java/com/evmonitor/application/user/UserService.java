@@ -1,9 +1,13 @@
 package com.evmonitor.application.user;
 
+import com.evmonitor.domain.AuthProvider;
 import com.evmonitor.domain.CarRepository;
+import com.evmonitor.domain.EvLogRepository;
 import com.evmonitor.domain.User;
 import com.evmonitor.domain.UserRepository;
-import com.evmonitor.domain.EvLogRepository;
+import com.evmonitor.domain.exception.ConflictException;
+import com.evmonitor.domain.exception.NotFoundException;
+import com.evmonitor.domain.exception.ValidationException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -12,11 +16,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class UserService {
+
+    private static final Set<String> VALID_COUNTRIES = Set.of(
+            "DE", "AT", "CH", "GB", "NL", "BE", "DK", "NO", "SE");
 
     private final UserRepository userRepository;
     private final EvLogRepository evLogRepository;
@@ -26,8 +34,7 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public UserStatsResponse getUserStats(UUID userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        User user = requireUser(userId);
 
         var logs = evLogRepository.findAllByUserId(userId);
         int totalLogs = logs.size();
@@ -49,19 +56,18 @@ public class UserService {
 
     @Transactional
     public void changeEmail(UUID userId, ChangeEmailRequest request) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        User user = requireUser(userId);
 
-        if (user.getAuthProvider() != com.evmonitor.domain.AuthProvider.LOCAL) {
-            throw new IllegalArgumentException("Email-Änderung nur für lokal registrierte Accounts möglich");
+        if (user.getAuthProvider() != AuthProvider.LOCAL) {
+            throw new ValidationException("OAUTH_ACCOUNT", "Email-Änderung nur für lokal registrierte Accounts möglich");
         }
 
         if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
-            throw new IllegalArgumentException("Aktuelles Passwort ist falsch");
+            throw new ValidationException("WRONG_PASSWORD", "Aktuelles Passwort ist falsch");
         }
 
         if (userRepository.existsByEmail(request.newEmail())) {
-            throw new IllegalArgumentException("Email bereits vergeben");
+            throw new ConflictException("EMAIL_TAKEN", "Email bereits vergeben");
         }
 
         userRepository.updateEmail(userId, request.newEmail());
@@ -69,11 +75,10 @@ public class UserService {
 
     @Transactional
     public void changeUsername(UUID userId, ChangeUsernameRequest request) {
-        userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        requireUser(userId);
 
         if (userRepository.existsByUsername(request.newUsername())) {
-            throw new IllegalArgumentException("Username bereits vergeben");
+            throw new ConflictException("USERNAME_TAKEN", "Username bereits vergeben");
         }
 
         userRepository.updateUsername(userId, request.newUsername());
@@ -81,11 +86,10 @@ public class UserService {
 
     @Transactional
     public void changePassword(UUID userId, ChangePasswordRequest request) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        User user = requireUser(userId);
 
         if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
-            throw new IllegalArgumentException("Aktuelles Passwort ist falsch");
+            throw new ValidationException("WRONG_PASSWORD", "Aktuelles Passwort ist falsch");
         }
 
         userRepository.updatePassword(userId, passwordEncoder.encode(request.newPassword()));
@@ -93,8 +97,7 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public byte[] exportUserData(UUID userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        User user = requireUser(userId);
 
         try {
             Map<String, Object> exportData = new HashMap<>();
@@ -125,12 +128,11 @@ public class UserService {
 
     @Transactional
     public void deleteAccount(UUID userId, DeleteAccountRequest request) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        User user = requireUser(userId);
 
         // Verify password
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
-            throw new IllegalArgumentException("Passwort ist falsch");
+            throw new ValidationException("WRONG_PASSWORD", "Passwort ist falsch");
         }
 
         // Delete user (CASCADE will delete all related data: Cars, EvLogs, CoinLogs, Tokens)
@@ -142,15 +144,16 @@ public class UserService {
         userRepository.setLeaderboardVisible(userId, visible);
     }
 
-    private static final java.util.Set<String> VALID_COUNTRIES = java.util.Set.of(
-            "DE", "AT", "CH", "GB", "NL", "BE", "DK", "NO", "SE");
-
     @Transactional
     public void updateCountry(UUID userId, String country) {
         if (country == null || !VALID_COUNTRIES.contains(country)) {
-            throw new IllegalArgumentException("Invalid country code: " + country);
+            throw new ValidationException("INVALID_COUNTRY", "Invalid country code: " + country);
         }
         userRepository.updateCountry(userId, country);
     }
 
+    private User requireUser(UUID userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> NotFoundException.forEntity("User", userId));
+    }
 }

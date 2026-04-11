@@ -1,6 +1,9 @@
 package com.evmonitor.infrastructure.persistence;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -10,6 +13,9 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "survey_response")
+@Getter
+@Setter
+@NoArgsConstructor
 public class SurveyResponseEntity {
 
     @Id
@@ -28,13 +34,4 @@ public class SurveyResponseEntity {
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
-
-    public UUID getId() { return id; }
-    public String getSurveySlug() { return surveySlug; }
-    public void setSurveySlug(String surveySlug) { this.surveySlug = surveySlug; }
-    public UUID getUserId() { return userId; }
-    public void setUserId(UUID userId) { this.userId = userId; }
-    public Map<String, Object> getAnswers() { return answers; }
-    public void setAnswers(Map<String, Object> answers) { this.answers = answers; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
 }

@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class EvLogServiceSocVerificationTest extends AbstractIntegrationTest {
 
     @Autowired
-    private EvLogService evLogService;
+    private EvLogStatisticsService evLogService;
 
     private UUID userId;
     private UUID carId;
@@ -67,7 +67,8 @@ class EvLogServiceSocVerificationTest extends AbstractIntegrationTest {
             80,                             // SoC AFTER charge
             LocalDateTime.now().minusDays(2),
             ChargingType.UNKNOWN,
-            null, null
+            null, null,
+            false, null
         );
         evLogRepository.save(log1);
 
@@ -90,7 +91,8 @@ class EvLogServiceSocVerificationTest extends AbstractIntegrationTest {
             85,                             // SoC AFTER charge
             LocalDateTime.now().minusDays(1),
             ChargingType.UNKNOWN,
-            null, null
+            null, null,
+            false, null
         );
         evLogRepository.save(log2);
 
@@ -148,7 +150,8 @@ class EvLogServiceSocVerificationTest extends AbstractIntegrationTest {
             80,
             LocalDateTime.now().minusDays(2),
             ChargingType.UNKNOWN,
-            null, null
+            null, null,
+            false, null
         );
         evLogRepository.save(log1);
 
@@ -169,7 +172,8 @@ class EvLogServiceSocVerificationTest extends AbstractIntegrationTest {
             90,
             LocalDateTime.now().minusDays(1),
             ChargingType.UNKNOWN,
-            null, null
+            null, null,
+            false, null
         );
         evLogRepository.save(log2);
 
@@ -219,7 +223,8 @@ class EvLogServiceSocVerificationTest extends AbstractIntegrationTest {
             80,
             LocalDateTime.now().minusDays(2),
             ChargingType.UNKNOWN,
-            null, null
+            null, null,
+            false, null
         );
         evLogRepository.save(log1);
 
@@ -234,7 +239,8 @@ class EvLogServiceSocVerificationTest extends AbstractIntegrationTest {
             85,
             LocalDateTime.now().minusDays(1),
             ChargingType.UNKNOWN,
-            null, null
+            null, null,
+            false, null
         );
         evLogRepository.save(log2);
 

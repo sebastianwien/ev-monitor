@@ -1,5 +1,6 @@
 package com.evmonitor.application;
 
+import com.evmonitor.application.consumption.ConsumptionCalculationService;
 import com.evmonitor.domain.*;
 import com.evmonitor.testutil.AbstractIntegrationTest;
 import org.junit.jupiter.api.Test;
@@ -27,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class EvLogServiceLookupWltpTest extends AbstractIntegrationTest {
 
     @Autowired
-    private EvLogService evLogService;
+    private ConsumptionCalculationService evLogService;
 
     private static final BigDecimal WLTP_CONSUMPTION = new BigDecimal("14.90");
     private static final BigDecimal WLTP_RANGE       = new BigDecimal("560.0");

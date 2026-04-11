@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class EvLogServiceSocIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
-    private EvLogService evLogService;
+    private EvLogStatisticsService evLogService;
 
     private UUID userId;
     private UUID carId;
@@ -58,7 +58,8 @@ class EvLogServiceSocIntegrationTest extends AbstractIntegrationTest {
             null, // No SoC
             LocalDateTime.now().minusDays(2),
             ChargingType.UNKNOWN,
-            null, null
+            null, null,
+            false, null
         );
         evLogRepository.save(log1);
 
@@ -73,7 +74,8 @@ class EvLogServiceSocIntegrationTest extends AbstractIntegrationTest {
             null, // No SoC
             LocalDateTime.now().minusDays(1),
             ChargingType.UNKNOWN,
-            null, null
+            null, null,
+            false, null
         );
         evLogRepository.save(log2);
 
@@ -101,7 +103,8 @@ class EvLogServiceSocIntegrationTest extends AbstractIntegrationTest {
             80,
             LocalDateTime.now().minusDays(3),
             ChargingType.UNKNOWN,
-            null, null
+            null, null,
+            false, null
         );
         evLogRepository.save(log1);
 
@@ -119,7 +122,8 @@ class EvLogServiceSocIntegrationTest extends AbstractIntegrationTest {
             85,
             LocalDateTime.now().minusDays(2),
             ChargingType.UNKNOWN,
-            null, null
+            null, null,
+            false, null
         );
         evLogRepository.save(log2);
 
@@ -147,7 +151,8 @@ class EvLogServiceSocIntegrationTest extends AbstractIntegrationTest {
             80,
             LocalDateTime.now().minusDays(5),
             ChargingType.UNKNOWN,
-            null, null
+            null, null,
+            false, null
         );
         evLogRepository.save(log1);
 
@@ -163,7 +168,8 @@ class EvLogServiceSocIntegrationTest extends AbstractIntegrationTest {
             90,
             LocalDateTime.now().minusDays(3),
             ChargingType.UNKNOWN,
-            null, null
+            null, null,
+            false, null
         );
         evLogRepository.save(log2);
 
@@ -179,7 +185,8 @@ class EvLogServiceSocIntegrationTest extends AbstractIntegrationTest {
             75,
             LocalDateTime.now().minusDays(1),
             ChargingType.UNKNOWN,
-            null, null
+            null, null,
+            false, null
         );
         evLogRepository.save(log3);
 
@@ -210,7 +217,8 @@ class EvLogServiceSocIntegrationTest extends AbstractIntegrationTest {
             70,
             LocalDateTime.now().minusDays(5),
             ChargingType.UNKNOWN,
-            null, null
+            null, null,
+            false, null
         );
         evLogRepository.save(log1);
 
@@ -226,7 +234,8 @@ class EvLogServiceSocIntegrationTest extends AbstractIntegrationTest {
             80,
             LocalDateTime.now().minusDays(4),
             ChargingType.UNKNOWN,
-            null, null
+            null, null,
+            false, null
         );
         evLogRepository.save(log2);
 
@@ -242,7 +251,8 @@ class EvLogServiceSocIntegrationTest extends AbstractIntegrationTest {
             75,
             LocalDateTime.now().minusDays(3),
             ChargingType.UNKNOWN,
-            null, null
+            null, null,
+            false, null
         );
         evLogRepository.save(log3);
 
@@ -258,7 +268,8 @@ class EvLogServiceSocIntegrationTest extends AbstractIntegrationTest {
             85,
             LocalDateTime.now().minusDays(2),
             ChargingType.UNKNOWN,
-            null, null
+            null, null,
+            false, null
         );
         evLogRepository.save(log4);
 
@@ -274,7 +285,8 @@ class EvLogServiceSocIntegrationTest extends AbstractIntegrationTest {
             70,
             LocalDateTime.now().minusDays(1),
             ChargingType.UNKNOWN,
-            null, null
+            null, null,
+            false, null
         );
         evLogRepository.save(log5);
 

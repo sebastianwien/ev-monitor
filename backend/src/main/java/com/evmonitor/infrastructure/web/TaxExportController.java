@@ -2,6 +2,7 @@ package com.evmonitor.infrastructure.web;
 
 import com.evmonitor.application.TaxExportService;
 import com.evmonitor.infrastructure.security.UserPrincipal;
+import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -18,13 +19,10 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/tax-export")
+@RequiredArgsConstructor
 public class TaxExportController {
 
     private final TaxExportService taxExportService;
-
-    public TaxExportController(TaxExportService taxExportService) {
-        this.taxExportService = taxExportService;
-    }
 
     @GetMapping("/preview")
     public ResponseEntity<TaxExportPreviewResponse> preview(

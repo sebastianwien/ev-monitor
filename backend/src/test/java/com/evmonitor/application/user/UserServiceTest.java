@@ -46,28 +46,15 @@ class UserServiceTest {
     @BeforeEach
     void setUp() {
         userId = UUID.randomUUID();
-        testUser = new User(
-                userId,
-                "test@example.com",
-                "testuser",
-                "hashedPassword",
-                AuthProvider.LOCAL,
-                "USER",
-                true,
-                false,
-                true,
-                false,
-                false,
-                "TESTCODETESTCO",
-                null,
-                null,
-                null, null, null, null, null,
-                null,
-                null, // subscriptionPeriodEnd
-                false, // trialUsed
-                LocalDateTime.now(),
-                LocalDateTime.now()
-        );
+        LocalDateTime now = LocalDateTime.now();
+        testUser = User.builder()
+                .id(userId)
+                .email("test@example.com").username("testuser").passwordHash("hashedPassword")
+                .authProvider(AuthProvider.LOCAL).role("USER")
+                .emailVerified(true).emailNotificationsEnabled(true)
+                .referralCode("TESTCODETESTCO")
+                .createdAt(now).updatedAt(now)
+                .build();
     }
 
     @Test
@@ -91,7 +78,7 @@ class UserServiceTest {
     void getUserStats_shouldThrowExceptionWhenUserNotFound() {
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
-        assertThrows(IllegalArgumentException.class, () -> userService.getUserStats(userId));
+        assertThrows(com.evmonitor.domain.exception.NotFoundException.class, () -> userService.getUserStats(userId));
     }
 
     @Test
@@ -112,11 +99,11 @@ class UserServiceTest {
         when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
         when(passwordEncoder.matches("wrongPassword", "hashedPassword")).thenReturn(false);
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        com.evmonitor.domain.exception.ValidationException exception = assertThrows(
+                com.evmonitor.domain.exception.ValidationException.class,
                 () -> userService.changeEmail(userId, request)
         );
-        assertEquals("Aktuelles Passwort ist falsch", exception.getMessage());
+        assertEquals("WRONG_PASSWORD", exception.getCode());
         verify(userRepository, never()).updateEmail(any(), any());
     }
 
@@ -127,11 +114,11 @@ class UserServiceTest {
         when(passwordEncoder.matches("correctPassword", "hashedPassword")).thenReturn(true);
         when(userRepository.existsByEmail(request.newEmail())).thenReturn(true);
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        com.evmonitor.domain.exception.ConflictException exception = assertThrows(
+                com.evmonitor.domain.exception.ConflictException.class,
                 () -> userService.changeEmail(userId, request)
         );
-        assertEquals("Email bereits vergeben", exception.getMessage());
+        assertEquals("EMAIL_TAKEN", exception.getCode());
         verify(userRepository, never()).updateEmail(any(), any());
     }
 
@@ -152,11 +139,11 @@ class UserServiceTest {
         when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
         when(userRepository.existsByUsername(request.newUsername())).thenReturn(true);
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        com.evmonitor.domain.exception.ConflictException exception = assertThrows(
+                com.evmonitor.domain.exception.ConflictException.class,
                 () -> userService.changeUsername(userId, request)
         );
-        assertEquals("Username bereits vergeben", exception.getMessage());
+        assertEquals("USERNAME_TAKEN", exception.getCode());
         verify(userRepository, never()).updateUsername(any(), any());
     }
 
@@ -178,11 +165,11 @@ class UserServiceTest {
         when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
         when(passwordEncoder.matches("wrongPassword", "hashedPassword")).thenReturn(false);
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        com.evmonitor.domain.exception.ValidationException exception = assertThrows(
+                com.evmonitor.domain.exception.ValidationException.class,
                 () -> userService.changePassword(userId, request)
         );
-        assertEquals("Aktuelles Passwort ist falsch", exception.getMessage());
+        assertEquals("WRONG_PASSWORD", exception.getCode());
         verify(userRepository, never()).updatePassword(any(), any());
     }
 
@@ -217,11 +204,11 @@ class UserServiceTest {
         when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
         when(passwordEncoder.matches("wrongPassword", "hashedPassword")).thenReturn(false);
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        com.evmonitor.domain.exception.ValidationException exception = assertThrows(
+                com.evmonitor.domain.exception.ValidationException.class,
                 () -> userService.deleteAccount(userId, request)
         );
-        assertEquals("Passwort ist falsch", exception.getMessage());
+        assertEquals("WRONG_PASSWORD", exception.getCode());
         verify(userRepository, never()).delete(any());
     }
 }

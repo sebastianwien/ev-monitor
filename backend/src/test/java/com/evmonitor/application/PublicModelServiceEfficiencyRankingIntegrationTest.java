@@ -139,7 +139,8 @@ class PublicModelServiceEfficiencyRankingIntegrationTest extends AbstractIntegra
                     null,
                     LocalDateTime.now().minusDays(logCount - i),
                     ChargingType.UNKNOWN,
-                    null, null
+                    null, null,
+                    false, null
             ));
         }
     }

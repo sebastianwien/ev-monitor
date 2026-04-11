@@ -2,6 +2,7 @@ package com.evmonitor.application;
 
 import com.evmonitor.infrastructure.persistence.JpaSurveyResponseRepository;
 import com.evmonitor.infrastructure.persistence.SurveyResponseEntity;
+import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
@@ -9,13 +10,10 @@ import java.util.Map;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class SurveyService {
 
     private final JpaSurveyResponseRepository repo;
-
-    public SurveyService(JpaSurveyResponseRepository repo) {
-        this.repo = repo;
-    }
 
     public boolean hasResponded(String surveySlug, UUID userId) {
         return repo.existsBySurveySlugAndUserId(surveySlug, userId);

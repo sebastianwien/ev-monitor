@@ -19,9 +19,8 @@ import org.springframework.web.client.RestTemplate;
 import com.stripe.param.CustomerBalanceTransactionCollectionCreateParams;
 import com.stripe.param.CustomerCreateParams;
 import com.stripe.param.checkout.SessionCreateParams;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import jakarta.annotation.PostConstruct;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -30,9 +29,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
+@Slf4j
 public class StripeService {
-
-    private static final Logger log = LoggerFactory.getLogger(StripeService.class);
 
     @Value("${stripe.secret-key:}")
     private String secretKey;

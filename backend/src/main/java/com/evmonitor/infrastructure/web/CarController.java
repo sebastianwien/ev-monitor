@@ -10,6 +10,7 @@ import com.evmonitor.domain.CapacityEntry;
 import com.evmonitor.domain.CarBrand;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
@@ -29,15 +30,11 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/cars")
+@RequiredArgsConstructor
 public class CarController {
 
     private final CarService carService;
     private final CarImageService carImageService;
-
-    public CarController(CarService carService, CarImageService carImageService) {
-        this.carService = carService;
-        this.carImageService = carImageService;
-    }
 
     @PostMapping
     public ResponseEntity<CarCreateResponse> createCar(@Valid @RequestBody CarRequest request, Authentication authentication) {

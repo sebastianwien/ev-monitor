@@ -7,6 +7,7 @@ import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.EvLogRepository;
 import com.evmonitor.domain.RouteType;
 import com.evmonitor.domain.TireType;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,13 +20,10 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Component
+@RequiredArgsConstructor
 public class PostgresEvLogRepositoryImpl implements EvLogRepository {
 
     private final JpaEvLogRepository jpaRepository;
-
-    public PostgresEvLogRepositoryImpl(JpaEvLogRepository jpaRepository) {
-        this.jpaRepository = jpaRepository;
-    }
 
     @Override
     public EvLog save(EvLog evLog) {
@@ -48,14 +46,14 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     public List<EvLog> findAll() {
         return jpaRepository.findAll().stream()
                 .map(this::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
     public List<EvLog> findAllByCarId(UUID carId) {
         return jpaRepository.findAllByCarId(carId).stream()
                 .map(this::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -63,14 +61,14 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
         if (carIds.isEmpty()) return List.of();
         return jpaRepository.findAllByCarIdIn(carIds).stream()
                 .map(this::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
     public List<EvLog> findAllByUserId(UUID userId) {
         return jpaRepository.findAllByUserId(userId).stream()
                 .map(this::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -128,14 +126,14 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
         return jpaRepository.findAllByCarIdOrderByLoggedAtDesc(carId, PageRequest.of(page, limit))
                 .stream()
                 .map(this::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
     public List<EvLog> findAllWithGeohashAndNoTemperature() {
         return jpaRepository.findAllWithGeohashAndNoTemperature().stream()
                 .map(this::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -151,7 +149,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                                                    BigDecimal kwhMin, BigDecimal kwhMax) {
         return jpaRepository.findImportLogsInTimeWindow(carId, from, to, kwhMin, kwhMax).stream()
                 .map(this::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -159,7 +157,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                                                   BigDecimal kwhMin, BigDecimal kwhMax) {
         return jpaRepository.findUserLoggedInTimeWindow(carId, from, to, kwhMin, kwhMax).stream()
                 .map(this::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -194,26 +192,24 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     public List<com.evmonitor.domain.GeohashPoint> findGeohashDataByCarId(UUID carId) {
         return jpaRepository.findGeohashDataByCarId(carId).stream()
                 .map(row -> new com.evmonitor.domain.GeohashPoint((String) row[0], (java.math.BigDecimal) row[1]))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private EvLogEntity toEntity(EvLog domain) {
-        EvLogEntity entity = new EvLogEntity(
-                domain.getId(),
-                domain.getCarId(),
-                domain.getKwhCharged(),
-                domain.getCostEur(),
-                domain.getChargeDurationMinutes(),
-                domain.getGeohash(),
-                domain.getOdometerKm(),
-                domain.getMaxChargingPowerKw(),
-                domain.getSocAfterChargePercent(),
-                domain.getLoggedAt(),
-                domain.getDataSource().name(),
-                domain.isIncludeInStatistics(),
-                domain.getCreatedAt(),
-                domain.getUpdatedAt());
+        EvLogEntity entity = new EvLogEntity();
+        entity.setId(domain.getId());
+        entity.setCarId(domain.getCarId());
+        entity.setKwhCharged(domain.getKwhCharged());
+        entity.setCostEur(domain.getCostEur());
+        entity.setChargeDurationMinutes(domain.getChargeDurationMinutes());
+        entity.setGeohash(domain.getGeohash());
+        entity.setOdometerKm(domain.getOdometerKm());
+        entity.setMaxChargingPowerKw(domain.getMaxChargingPowerKw());
+        entity.setSocAfterChargePercent(domain.getSocAfterChargePercent());
         entity.setSocBeforeChargePercent(domain.getSocBeforeChargePercent());
+        entity.setLoggedAt(domain.getLoggedAt());
+        entity.setDataSource(domain.getDataSource().name());
+        entity.setIncludeInStatistics(domain.isIncludeInStatistics());
         entity.setOdometerSuggestionMinKm(domain.getOdometerSuggestionMinKm());
         entity.setOdometerSuggestionMaxKm(domain.getOdometerSuggestionMaxKm());
         entity.setTemperatureCelsius(domain.getTemperatureCelsius());
@@ -228,6 +224,8 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
         entity.setMeasurementType(domain.getMeasurementType().name());
         entity.setCostExchangeRate(domain.getCostExchangeRate());
         entity.setCostCurrency(domain.getCostCurrency());
+        entity.setCreatedAt(domain.getCreatedAt());
+        entity.setUpdatedAt(domain.getUpdatedAt());
         return entity;
     }
 
@@ -255,7 +253,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 .tireType(entity.getTireType() != null ? TireType.valueOf(entity.getTireType()) : null)
                 .supersededBy(entity.getSupersededBy())
                 .sessionGroupId(entity.getSessionGroupId())
-                .isPublicCharging(entity.isPublicCharging())
+                .publicCharging(entity.isPublicCharging())
                 .cpoName(entity.getCpoName())
                 .measurementType(entity.getMeasurementType() != null ? EnergyMeasurementType.valueOf(entity.getMeasurementType()) : null)
                 .costExchangeRate(entity.getCostExchangeRate())

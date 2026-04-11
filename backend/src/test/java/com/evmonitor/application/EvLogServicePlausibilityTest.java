@@ -1,11 +1,10 @@
 package com.evmonitor.application;
 
+import com.evmonitor.application.consumption.ConsumptionCalculationService;
 import com.evmonitor.domain.*;
-import com.evmonitor.infrastructure.weather.TemperatureEnrichmentService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
@@ -25,13 +24,7 @@ import static org.mockito.Mockito.mock;
 @ExtendWith(MockitoExtension.class)
 class EvLogServicePlausibilityTest {
 
-    @Mock private EvLogRepository evLogRepository;
-    @Mock private CarRepository carRepository;
-    @Mock private UserRepository userRepository;
-    @Mock private CoinLogService coinLogService;
-    @Mock private TemperatureEnrichmentService temperatureEnrichmentService;
-
-    private EvLogService evLogService;
+    private ConsumptionCalculationService evLogService;
 
     // Five typical values clustered around 18 kWh/100km (mean=18, stdDev≈1)
     private static final List<BigDecimal> FIVE_TYPICAL = List.of(
@@ -48,11 +41,10 @@ class EvLogServicePlausibilityTest {
 
     @BeforeEach
     void setUp() {
-        evLogService = new EvLogService(
-                evLogRepository, carRepository, userRepository, coinLogService,
-                temperatureEnrichmentService, mock(VehicleSpecificationRepository.class),
+        evLogService = new ConsumptionCalculationService(
+                mock(VehicleSpecificationRepository.class),
                 new PlausibilityProperties(),
-                mock(com.evmonitor.domain.BatterySohRepository.class)
+                mock(BatterySohRepository.class)
         );
     }
 

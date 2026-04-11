@@ -2,19 +2,17 @@ package com.evmonitor.infrastructure.persistence;
 
 import com.evmonitor.domain.VehicleSpecification;
 import com.evmonitor.domain.VehicleSpecificationRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.util.Optional;
 
 @Component
+@RequiredArgsConstructor
 public class PostgresVehicleSpecificationRepositoryImpl implements VehicleSpecificationRepository {
 
     private final JpaVehicleSpecificationRepository jpaRepository;
-
-    public PostgresVehicleSpecificationRepositoryImpl(JpaVehicleSpecificationRepository jpaRepository) {
-        this.jpaRepository = jpaRepository;
-    }
 
     @Override
     public VehicleSpecification save(VehicleSpecification vehicleSpecification) {

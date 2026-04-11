@@ -4,13 +4,16 @@ import com.evmonitor.application.EvLogCreateResponse;
 import com.evmonitor.application.EvLogRequest;
 import com.evmonitor.application.EvLogResponse;
 import com.evmonitor.application.EvLogStatisticsResponse;
+import com.evmonitor.application.EvLogStatisticsService;
 import com.evmonitor.application.EvLogUpdateRequest;
 import com.evmonitor.application.EvLogService;
+import com.evmonitor.application.GeohashResponse;
 import com.evmonitor.infrastructure.security.UserPrincipal;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import jakarta.validation.Valid;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,13 +23,12 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/logs")
+@RequiredArgsConstructor
 public class EvLogController {
 
     private final EvLogService evLogService;
+    private final EvLogStatisticsService evLogStatisticsService;
 
-    public EvLogController(EvLogService evLogService) {
-        this.evLogService = evLogService;
-    }
 
     @PostMapping
     public ResponseEntity<?> logCharging(@Valid @RequestBody EvLogRequest request, Authentication authentication) {
@@ -68,7 +70,7 @@ public class EvLogController {
             @RequestParam(defaultValue = "false") boolean isPublic,
             Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        return evLogService.getPriceSuggestion(principal.getUser().getId(), lat, lon, isPublic)
+        return evLogStatisticsService.getPriceSuggestion(principal.getUser().getId(), lat, lon, isPublic)
                 .map(price -> ResponseEntity.ok(Map.of("costPerKwh", price)))
                 .orElse(ResponseEntity.noContent().build());
     }
@@ -118,12 +120,12 @@ public class EvLogController {
     }
 
     @GetMapping("/geohashes")
-    public ResponseEntity<List<com.evmonitor.application.GeohashResponse>> getGeohashData(
+    public ResponseEntity<List<GeohashResponse>> getGeohashData(
             @RequestParam UUID carId,
             Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         try {
-            List<com.evmonitor.application.GeohashResponse> data = evLogService.getGeohashData(carId, principal.getUser().getId());
+            List<GeohashResponse> data = evLogStatisticsService.getGeohashData(carId, principal.getUser().getId());
             return ResponseEntity.ok(data);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
@@ -136,7 +138,7 @@ public class EvLogController {
             Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         try {
-            List<EvLogResponse> logs = evLogService.getImplausibleLogs(carId, principal.getUser().getId());
+            List<EvLogResponse> logs = evLogStatisticsService.getImplausibleLogs(carId, principal.getUser().getId());
             return ResponseEntity.ok(logs);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
@@ -225,7 +227,7 @@ public class EvLogController {
             }
         }
 
-        EvLogStatisticsResponse stats = evLogService.getStatistics(
+        EvLogStatisticsResponse stats = evLogStatisticsService.getStatistics(
                 carId,
                 principal.getUser().getId(),
                 computedStartDate,

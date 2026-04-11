@@ -3,21 +3,18 @@ package com.evmonitor.infrastructure.persistence;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.CarRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Component
+@RequiredArgsConstructor
 public class PostgresCarRepositoryImpl implements CarRepository {
 
     private final JpaCarRepository jpaCarRepository;
-
-    public PostgresCarRepositoryImpl(JpaCarRepository jpaCarRepository) {
-        this.jpaCarRepository = jpaCarRepository;
-    }
 
     @Override
     public Car save(Car car) {
@@ -36,7 +33,7 @@ public class PostgresCarRepositoryImpl implements CarRepository {
         return jpaCarRepository.findAllByUserId(userId)
                 .stream()
                 .map(this::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -48,7 +45,7 @@ public class PostgresCarRepositoryImpl implements CarRepository {
     public List<Car> findAllByModel(CarBrand.CarModel model) {
         return jpaCarRepository.findAllByModel(model).stream()
                 .map(this::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -76,30 +73,31 @@ public class PostgresCarRepositoryImpl implements CarRepository {
         entity.setPrimary(domain.isPrimary());
         entity.setBatteryDegradationPercent(domain.getBatteryDegradationPercent());
         entity.setBusinessCar(domain.isBusinessCar());
-        entity.setHasHeatPump(domain.isHeatPump());
+        entity.setHeatPump(domain.isHeatPump());
         return entity;
     }
 
     private Car toDomain(CarEntity entity) {
-        return new Car(
-                entity.getId(),
-                entity.getUserId(),
-                entity.getModel(),
-                entity.getYear(),
-                entity.getLicensePlate(),
-                entity.getTrim(),
-                entity.getBatteryCapacityKwh(),
-                entity.getPowerKw(),
-                entity.getRegistrationDate(),
-                entity.getDeregistrationDate(),
-                entity.getStatus(),
-                entity.getCreatedAt(),
-                entity.getUpdatedAt(),
-                entity.getImagePath(),
-                entity.isImagePublic(),
-                entity.isPrimary(),
-                entity.getBatteryDegradationPercent(),
-                entity.isBusinessCar(),
-                entity.isHasHeatPump());
+        return Car.builder()
+                .id(entity.getId())
+                .userId(entity.getUserId())
+                .model(entity.getModel())
+                .year(entity.getYear())
+                .licensePlate(entity.getLicensePlate())
+                .trim(entity.getTrim())
+                .batteryCapacityKwh(entity.getBatteryCapacityKwh())
+                .powerKw(entity.getPowerKw())
+                .registrationDate(entity.getRegistrationDate())
+                .deregistrationDate(entity.getDeregistrationDate())
+                .status(entity.getStatus())
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
+                .imagePath(entity.getImagePath())
+                .imagePublic(entity.isImagePublic())
+                .primary(entity.isPrimary())
+                .batteryDegradationPercent(entity.getBatteryDegradationPercent())
+                .businessCar(entity.isBusinessCar())
+                .heatPump(entity.isHeatPump())
+                .build();
     }
 }

@@ -3,6 +3,7 @@ package com.evmonitor.application.publicapi;
 import ch.hsr.geohash.GeoHash;
 import com.evmonitor.application.CoinLogService;
 import com.evmonitor.domain.*;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,7 @@ import java.util.regex.Pattern;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class PublicApiImportService {
 
     private static final List<DateTimeFormatter> DATE_FORMATTERS = List.of(
@@ -50,14 +52,6 @@ public class PublicApiImportService {
     private final CarRepository carRepository;
     private final CoinLogService coinLogService;
     private final CpoNameNormalizer cpoNameNormalizer;
-
-    public PublicApiImportService(EvLogRepository evLogRepository, CarRepository carRepository,
-                                  CoinLogService coinLogService, CpoNameNormalizer cpoNameNormalizer) {
-        this.evLogRepository = evLogRepository;
-        this.carRepository = carRepository;
-        this.coinLogService = coinLogService;
-        this.cpoNameNormalizer = cpoNameNormalizer;
-    }
 
     @Transactional
     public ImportApiResult importSessions(UUID userId, PublicApiSessionRequest request, ApiKey apiKey) {

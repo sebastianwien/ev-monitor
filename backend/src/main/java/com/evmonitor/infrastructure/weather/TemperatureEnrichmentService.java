@@ -3,8 +3,9 @@ package com.evmonitor.infrastructure.weather;
 import ch.hsr.geohash.GeoHash;
 import ch.hsr.geohash.WGS84Point;
 import com.evmonitor.domain.EvLogRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.evmonitor.domain.weather.TemperatureEnricher;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -13,27 +14,24 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Enriches charging logs with ambient temperature data from Open-Meteo.
- * All operations run asynchronously so users are never blocked waiting for the weather API.
+ * Adapter für {@link TemperatureEnricher}: reichert Charging-Logs mit
+ * Umgebungstemperatur von Open-Meteo an. Läuft asynchron, damit User beim
+ * Anlegen eines Logs nicht auf die Wetter-API warten.
  */
 @Service
-public class TemperatureEnrichmentService {
-
-    private static final Logger log = LoggerFactory.getLogger(TemperatureEnrichmentService.class);
+@RequiredArgsConstructor
+@Slf4j
+public class TemperatureEnrichmentService implements TemperatureEnricher {
 
     private final TemperatureService temperatureService;
     private final EvLogRepository evLogRepository;
 
-    public TemperatureEnrichmentService(TemperatureService temperatureService, EvLogRepository evLogRepository) {
-        this.temperatureService = temperatureService;
-        this.evLogRepository = evLogRepository;
-    }
-
     /**
      * Fetches temperature for a newly created log and persists it asynchronously.
-     * Called right after log creation — geohash and loggedAt are available at that point.
+     * Called right after log creation - geohash and loggedAt are available at that point.
      */
     @Async
+    @Override
     public void enrichLog(UUID logId, String geohash, LocalDateTime loggedAt) {
         if (geohash == null || geohash.isBlank()) {
             return;

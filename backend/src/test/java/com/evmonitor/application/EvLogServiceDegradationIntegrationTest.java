@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class EvLogServiceDegradationIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
-    private EvLogService evLogService;
+    private EvLogStatisticsService evLogService;
 
     /**
      * Without degradation: 75 kWh battery
@@ -47,13 +47,15 @@ class EvLogServiceDegradationIntegrationTest extends AbstractIntegrationTest {
         evLogRepository.save(EvLog.createNew(
                 carNoDeg.getId(), new BigDecimal("30.0"), new BigDecimal("8.0"),
                 60, "u33d1", 15000, null, 80,
-                LocalDateTime.now().minusDays(3), ChargingType.UNKNOWN, null, null));
+                LocalDateTime.now().minusDays(3), ChargingType.UNKNOWN, null, null,
+                false, null));
 
         // second log (arrived at 15%, charged back to 80% = 48.75 kWh with 75 kWh battery)
         evLogRepository.save(EvLog.createNew(
                 carNoDeg.getId(), new BigDecimal("48.75"), new BigDecimal("14.0"),
                 45, "u33d2", 15300, null, 80,
-                LocalDateTime.now().minusDays(2), ChargingType.UNKNOWN, null, null));
+                LocalDateTime.now().minusDays(2), ChargingType.UNKNOWN, null, null,
+                false, null));
 
         // --- Car WITH 10% degradation ---
         User userB = createAndSaveUser("degradation-b-" + System.currentTimeMillis() + "@example.com");
@@ -66,13 +68,15 @@ class EvLogServiceDegradationIntegrationTest extends AbstractIntegrationTest {
         evLogRepository.save(EvLog.createNew(
                 carWithDeg.getId(), new BigDecimal("30.0"), new BigDecimal("8.0"),
                 60, "u33d3", 15000, null, 80,
-                LocalDateTime.now().minusDays(3), ChargingType.UNKNOWN, null, null));
+                LocalDateTime.now().minusDays(3), ChargingType.UNKNOWN, null, null,
+                false, null));
 
         // arrived at 15%, charged back to 80% = 43.875 kWh with 67.5 kWh effective battery (10% degradation)
         evLogRepository.save(EvLog.createNew(
                 carWithDeg.getId(), new BigDecimal("43.875"), new BigDecimal("14.0"),
                 45, "u33d4", 15300, null, 80,
-                LocalDateTime.now().minusDays(2), ChargingType.UNKNOWN, null, null));
+                LocalDateTime.now().minusDays(2), ChargingType.UNKNOWN, null, null,
+                false, null));
 
         // --- Compare ---
         EvLogStatisticsResponse statsNoDeg = evLogService.getStatistics(carNoDeg.getId(), userA.getId(), null, null, null);
@@ -107,13 +111,15 @@ class EvLogServiceDegradationIntegrationTest extends AbstractIntegrationTest {
         evLogRepository.save(EvLog.createNew(
                 car.getId(), new BigDecimal("30.0"), new BigDecimal("8.0"),
                 60, "u33d5", 15000, null, 80,
-                LocalDateTime.now().minusDays(2), ChargingType.UNKNOWN, null, null));
+                LocalDateTime.now().minusDays(2), ChargingType.UNKNOWN, null, null,
+                false, null));
 
         // arrived at 15%, charged back to 80% = 48.75 kWh with 75 kWh battery
         evLogRepository.save(EvLog.createNew(
                 car.getId(), new BigDecimal("48.75"), new BigDecimal("14.0"),
                 45, "u33d6", 15300, null, 80,
-                LocalDateTime.now().minusDays(1), ChargingType.UNKNOWN, null, null));
+                LocalDateTime.now().minusDays(1), ChargingType.UNKNOWN, null, null,
+                false, null));
 
         EvLogStatisticsResponse stats = evLogService.getStatistics(car.getId(), user.getId(), null, null, null);
 

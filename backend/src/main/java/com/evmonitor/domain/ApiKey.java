@@ -1,8 +1,13 @@
 package com.evmonitor.domain;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+@Getter
+@AllArgsConstructor
 public class ApiKey {
 
     private final UUID id;
@@ -14,29 +19,7 @@ public class ApiKey {
     private final LocalDateTime createdAt;
     private final boolean mergeSessions;
 
-    public ApiKey(UUID id, UUID userId, String keyHash, String keyPrefix,
-                  String name, LocalDateTime lastUsedAt, LocalDateTime createdAt,
-                  boolean mergeSessions) {
-        this.id = id;
-        this.userId = userId;
-        this.keyHash = keyHash;
-        this.keyPrefix = keyPrefix;
-        this.name = name;
-        this.lastUsedAt = lastUsedAt;
-        this.createdAt = createdAt;
-        this.mergeSessions = mergeSessions;
-    }
-
     public static ApiKey createNew(UUID userId, String keyHash, String keyPrefix, String name) {
         return new ApiKey(UUID.randomUUID(), userId, keyHash, keyPrefix, name, null, LocalDateTime.now(), false);
     }
-
-    public UUID getId() { return id; }
-    public UUID getUserId() { return userId; }
-    public String getKeyHash() { return keyHash; }
-    public String getKeyPrefix() { return keyPrefix; }
-    public String getName() { return name; }
-    public LocalDateTime getLastUsedAt() { return lastUsedAt; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public boolean isMergeSessions() { return mergeSessions; }
 }

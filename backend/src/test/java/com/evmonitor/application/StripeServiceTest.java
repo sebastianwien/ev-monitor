@@ -59,27 +59,29 @@ class StripeServiceTest {
     // -------------------------------------------------------------------------
 
     private User buildUser(UUID id, UUID referredByUserId) {
-        return new User(
-                id, "test@example.com", "testuser", "hash",
-                AuthProvider.LOCAL, "USER",
-                true, false, true, false, false,
-                "REFERRALCODE1", referredByUserId,
-                CUSTOMER_ID,
-                null, null, null, null, null, null, null, false,
-                LocalDateTime.now(), LocalDateTime.now()
-        );
+        LocalDateTime now = LocalDateTime.now();
+        return User.builder()
+                .id(id)
+                .email("test@example.com").username("testuser").passwordHash("hash")
+                .authProvider(AuthProvider.LOCAL).role("USER")
+                .emailVerified(true).emailNotificationsEnabled(true)
+                .referralCode("REFERRALCODE1").referredByUserId(referredByUserId)
+                .stripeCustomerId(CUSTOMER_ID)
+                .createdAt(now).updatedAt(now)
+                .build();
     }
 
     private User buildUserWithStripeId(UUID id, String stripeCustomerId) {
-        return new User(
-                id, "test@example.com", "testuser", "hash",
-                AuthProvider.LOCAL, "USER",
-                true, false, true, false, false,
-                "REFERRALCODE1", null,
-                stripeCustomerId,
-                null, null, null, null, null, null, null, false,
-                LocalDateTime.now(), LocalDateTime.now()
-        );
+        LocalDateTime now = LocalDateTime.now();
+        return User.builder()
+                .id(id)
+                .email("test@example.com").username("testuser").passwordHash("hash")
+                .authProvider(AuthProvider.LOCAL).role("USER")
+                .emailVerified(true).emailNotificationsEnabled(true)
+                .referralCode("REFERRALCODE1")
+                .stripeCustomerId(stripeCustomerId)
+                .createdAt(now).updatedAt(now)
+                .build();
     }
 
     private JsonObject subscriptionPayload(String customerId, String status, Long periodEndEpoch) {

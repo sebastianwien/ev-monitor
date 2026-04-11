@@ -8,6 +8,7 @@ import com.evmonitor.domain.Car;
 import com.evmonitor.domain.DataSource;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -15,19 +16,12 @@ import java.util.*;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class ManualImportService {
 
     private final PublicApiImportService publicApiImportService;
     private final CarRepository carRepository;
     private final ObjectMapper objectMapper;
-
-    public ManualImportService(PublicApiImportService publicApiImportService,
-                               CarRepository carRepository,
-                               ObjectMapper objectMapper) {
-        this.publicApiImportService = publicApiImportService;
-        this.carRepository = carRepository;
-        this.objectMapper = objectMapper;
-    }
 
     public ImportApiResult importData(UUID userId, UUID carId, String format, String data) {
         return importData(userId, carId, format, data, DataSource.API_UPLOAD);

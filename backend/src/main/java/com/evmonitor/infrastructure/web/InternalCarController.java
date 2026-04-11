@@ -2,6 +2,7 @@ package com.evmonitor.infrastructure.web;
 
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,13 +16,10 @@ import java.util.UUID;
  */
 @RestController
 @RequestMapping("/api/internal/cars")
+@RequiredArgsConstructor
 public class InternalCarController {
 
     private final CarRepository carRepository;
-
-    public InternalCarController(CarRepository carRepository) {
-        this.carRepository = carRepository;
-    }
 
     @GetMapping("/{carId}/battery-capacity")
     public ResponseEntity<Map<String, BigDecimal>> getBatteryCapacity(@PathVariable UUID carId) {

@@ -2,6 +2,7 @@ package com.evmonitor.infrastructure.persistence;
 
 import com.evmonitor.domain.BatterySohEntry;
 import com.evmonitor.domain.BatterySohRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -9,13 +10,10 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Component
+@RequiredArgsConstructor
 public class PostgresBatterySohRepositoryImpl implements BatterySohRepository {
 
     private final JpaBatterySohRepository jpaRepository;
-
-    public PostgresBatterySohRepositoryImpl(JpaBatterySohRepository jpaRepository) {
-        this.jpaRepository = jpaRepository;
-    }
 
     @Override
     public List<BatterySohEntry> findByCarId(UUID carId) {

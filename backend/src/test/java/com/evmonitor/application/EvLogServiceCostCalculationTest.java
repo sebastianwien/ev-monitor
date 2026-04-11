@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class EvLogServiceCostCalculationTest extends AbstractIntegrationTest {
 
     @Autowired
-    private EvLogService evLogService;
+    private EvLogStatisticsService evLogService;
 
     private UUID userId;
     private UUID carId;
@@ -48,12 +48,14 @@ class EvLogServiceCostCalculationTest extends AbstractIntegrationTest {
         // 30 kWh @ 0.30 €/kWh = 9.00 € → valid
         evLogRepository.save(EvLog.createNew(carId, new BigDecimal("30.0"), new BigDecimal("9.00"),
                 60, "u33d1", 10000, new BigDecimal("50.0"), null,
-                LocalDateTime.now().minusDays(2), ChargingType.UNKNOWN, null, null));
+                LocalDateTime.now().minusDays(2), ChargingType.UNKNOWN, null, null,
+                false, null));
 
         // 20 kWh @ 0.00 € → should be excluded
         evLogRepository.save(EvLog.createNew(carId, new BigDecimal("20.0"), BigDecimal.ZERO,
                 60, "u33d2", 10100, new BigDecimal("50.0"), null,
-                LocalDateTime.now().minusDays(1), ChargingType.UNKNOWN, null, null));
+                LocalDateTime.now().minusDays(1), ChargingType.UNKNOWN, null, null,
+                false, null));
 
         EvLogStatisticsResponse stats = evLogService.getStatistics(carId, userId, null, null, null);
 
@@ -70,11 +72,13 @@ class EvLogServiceCostCalculationTest extends AbstractIntegrationTest {
     void avgCostPerKwh_shouldBeZeroWhenAllLogsHaveZeroCost() {
         evLogRepository.save(EvLog.createNew(carId, new BigDecimal("30.0"), BigDecimal.ZERO,
                 60, "u33d1", 10000, new BigDecimal("50.0"), null,
-                LocalDateTime.now().minusDays(2), ChargingType.UNKNOWN, null, null));
+                LocalDateTime.now().minusDays(2), ChargingType.UNKNOWN, null, null,
+                false, null));
 
         evLogRepository.save(EvLog.createNew(carId, new BigDecimal("20.0"), BigDecimal.ZERO,
                 60, "u33d2", 10100, new BigDecimal("50.0"), null,
-                LocalDateTime.now().minusDays(1), ChargingType.UNKNOWN, null, null));
+                LocalDateTime.now().minusDays(1), ChargingType.UNKNOWN, null, null,
+                false, null));
 
         EvLogStatisticsResponse stats = evLogService.getStatistics(carId, userId, null, null, null);
 
@@ -87,12 +91,14 @@ class EvLogServiceCostCalculationTest extends AbstractIntegrationTest {
         // 40 kWh @ 12.00 € → valid
         evLogRepository.save(EvLog.createNew(carId, new BigDecimal("40.0"), new BigDecimal("12.00"),
                 60, "u33d1", 10000, new BigDecimal("50.0"), null,
-                LocalDateTime.now().minusDays(2), ChargingType.UNKNOWN, null, null));
+                LocalDateTime.now().minusDays(2), ChargingType.UNKNOWN, null, null,
+                false, null));
 
         // 20 kWh @ null cost → no cost contribution
         evLogRepository.save(EvLog.createNew(carId, new BigDecimal("20.0"), null,
                 60, "u33d2", 10100, new BigDecimal("50.0"), null,
-                LocalDateTime.now().minusDays(1), ChargingType.UNKNOWN, null, null));
+                LocalDateTime.now().minusDays(1), ChargingType.UNKNOWN, null, null,
+                false, null));
 
         EvLogStatisticsResponse stats = evLogService.getStatistics(carId, userId, null, null, null);
 

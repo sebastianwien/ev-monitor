@@ -2,6 +2,7 @@ package com.evmonitor.infrastructure.persistence;
 
 import com.evmonitor.domain.PasswordResetToken;
 import com.evmonitor.domain.PasswordResetTokenRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -9,13 +10,10 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Component
+@RequiredArgsConstructor
 public class PostgresPasswordResetTokenRepositoryImpl implements PasswordResetTokenRepository {
 
     private final JpaPasswordResetTokenRepository jpa;
-
-    public PostgresPasswordResetTokenRepositoryImpl(JpaPasswordResetTokenRepository jpa) {
-        this.jpa = jpa;
-    }
 
     @Override
     public PasswordResetToken save(PasswordResetToken token) {

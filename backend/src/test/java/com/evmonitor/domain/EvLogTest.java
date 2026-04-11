@@ -25,7 +25,8 @@ class EvLogTest {
 
         // When
         EvLog evLog = EvLog.createNew(carId, kwhCharged, costEur, chargeDurationMinutes,
-                geohash, odometerKm, maxChargingPowerKw, socAfterChargePercent, loggedAt, ChargingType.UNKNOWN, null, null);
+                geohash, odometerKm, maxChargingPowerKw, socAfterChargePercent, loggedAt, ChargingType.UNKNOWN, null, null,
+                false, null);
 
         // Then
         assertNotNull(evLog.getId());
@@ -58,7 +59,8 @@ class EvLogTest {
 
         // When
         EvLog evLog = EvLog.createNew(carId, kwhCharged, costEur, chargeDurationMinutes,
-                geohash, odometerKm, maxChargingPowerKw, socAfterChargePercent, loggedAt, ChargingType.UNKNOWN, null, null);
+                geohash, odometerKm, maxChargingPowerKw, socAfterChargePercent, loggedAt, ChargingType.UNKNOWN, null, null,
+                false, null);
 
         // Then
         assertNotNull(evLog.getId());
@@ -77,7 +79,8 @@ class EvLogTest {
 
         // When
         EvLog evLog = EvLog.createNew(carId, BigDecimal.TEN, BigDecimal.ONE, 30,
-                geohash, null, null, null, LocalDateTime.now(), ChargingType.UNKNOWN, null, null);
+                geohash, null, null, null, LocalDateTime.now(), ChargingType.UNKNOWN, null, null,
+                false, null);
 
         // Then
         assertNull(evLog.getGeohash());

@@ -3,6 +3,9 @@ package com.evmonitor.infrastructure.persistence;
 import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.CarStatus;
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -11,6 +14,9 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "car")
+@Getter
+@Setter
+@NoArgsConstructor
 public class CarEntity {
 
     @Id
@@ -61,171 +67,14 @@ public class CarEntity {
     private boolean imagePublic;
 
     @Column(name = "is_primary", nullable = false)
-    private boolean isPrimary;
+    private boolean primary;
 
     @Column(name = "battery_degradation_percent")
     private BigDecimal batteryDegradationPercent;
 
     @Column(name = "is_business_car", nullable = false)
-    private boolean isBusinessCar;
+    private boolean businessCar;
 
     @Column(name = "has_heat_pump", nullable = false)
-    private boolean hasHeatPump;
-
-    public CarEntity() {
-    }
-
-    // Getters and Setters
-
-    public UUID getId() {
-        return id;
-    }
-
-    public void setId(UUID id) {
-        this.id = id;
-    }
-
-    public UUID getUserId() {
-        return userId;
-    }
-
-    public void setUserId(UUID userId) {
-        this.userId = userId;
-    }
-
-    public CarBrand.CarModel getModel() {
-        return model;
-    }
-
-    public void setModel(CarBrand.CarModel model) {
-        this.model = model;
-    }
-
-    public Integer getYear() {
-        return year;
-    }
-
-    public void setYear(Integer year) {
-        this.year = year;
-    }
-
-    public String getLicensePlate() {
-        return licensePlate;
-    }
-
-    public void setLicensePlate(String licensePlate) {
-        this.licensePlate = licensePlate;
-    }
-
-    public String getTrim() {
-        return trim;
-    }
-
-    public void setTrim(String trim) {
-        this.trim = trim;
-    }
-
-    public BigDecimal getBatteryCapacityKwh() {
-        return batteryCapacityKwh;
-    }
-
-    public void setBatteryCapacityKwh(BigDecimal batteryCapacityKwh) {
-        this.batteryCapacityKwh = batteryCapacityKwh;
-    }
-
-    public BigDecimal getPowerKw() {
-        return powerKw;
-    }
-
-    public void setPowerKw(BigDecimal powerKw) {
-        this.powerKw = powerKw;
-    }
-
-    public LocalDate getRegistrationDate() {
-        return registrationDate;
-    }
-
-    public void setRegistrationDate(LocalDate registrationDate) {
-        this.registrationDate = registrationDate;
-    }
-
-    public LocalDate getDeregistrationDate() {
-        return deregistrationDate;
-    }
-
-    public void setDeregistrationDate(LocalDate deregistrationDate) {
-        this.deregistrationDate = deregistrationDate;
-    }
-
-    public CarStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(CarStatus status) {
-        this.status = status;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-
-    public String getImagePath() {
-        return imagePath;
-    }
-
-    public void setImagePath(String imagePath) {
-        this.imagePath = imagePath;
-    }
-
-    public boolean isImagePublic() {
-        return imagePublic;
-    }
-
-    public void setImagePublic(boolean imagePublic) {
-        this.imagePublic = imagePublic;
-    }
-
-    public boolean isPrimary() {
-        return isPrimary;
-    }
-
-    public void setPrimary(boolean isPrimary) {
-        this.isPrimary = isPrimary;
-    }
-
-    public BigDecimal getBatteryDegradationPercent() {
-        return batteryDegradationPercent;
-    }
-
-    public void setBatteryDegradationPercent(BigDecimal batteryDegradationPercent) {
-        this.batteryDegradationPercent = batteryDegradationPercent;
-    }
-
-    public boolean isBusinessCar() {
-        return isBusinessCar;
-    }
-
-    public void setBusinessCar(boolean isBusinessCar) {
-        this.isBusinessCar = isBusinessCar;
-    }
-
-    public boolean isHasHeatPump() {
-        return hasHeatPump;
-    }
-
-    public void setHasHeatPump(boolean hasHeatPump) {
-        this.hasHeatPump = hasHeatPump;
-    }
+    private boolean heatPump;
 }
