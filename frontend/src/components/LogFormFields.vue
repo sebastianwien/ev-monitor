@@ -68,7 +68,7 @@ const locationStatus = ref<'idle' | 'loading' | 'success' | 'error' | 'manual'>(
 const locationErrorMessage = ref<string | null>(null)
 
 const fetchPriceSuggestion = async (lat: number, lon: number, isPublic: boolean) => {
-  if (form.value.costEur != null || costLocalPerKwh.value != null) return
+  if (costLocalTotal.value != null || costLocalPerKwh.value != null) return
   try {
     const res = await api.get('/logs/price-suggestion', { params: { lat, lon, isPublic } })
     if (res.status === 200 && res.data?.costPerKwh != null) {
@@ -192,9 +192,16 @@ const toggleCostMode = (mode: 'total' | 'per_kwh') => {
   if (mode === 'per_kwh') {
     const kwh = form.value.kwhCharged
     const total = costLocalTotal.value
-    costLocalPerKwh.value = (kwh && total) ? Math.round((total / kwh) * 100) / 100 : null
+    if (kwh && total) {
+      costLocalPerKwh.value = Math.round((total / kwh) * 100) / 100
+    }
+    // else: bestehenden costLocalPerKwh behalten (z.B. Preisvorschlag)
   } else {
-    costLocalTotal.value = calculatedLocalTotal.value
+    const calc = calculatedLocalTotal.value
+    if (calc != null) {
+      costLocalTotal.value = calc
+    }
+    // else: bestehenden costLocalTotal behalten
   }
   costMode.value = mode
 }
@@ -300,7 +307,8 @@ defineExpose({ clearLocation, locationEnabled, locationStatus, getCurrentDateTim
       </div>
     </div>
   </div>
-  <p class="text-xs text-gray-400 dark:text-gray-500 -mt-1">{{ t('logfields.kwh_hint') }}</p>
+  <p class="sm:hidden text-xs text-gray-400 dark:text-gray-500 -mt-1">{{ t('logfields.kwh_hint_mobile') }}</p>
+  <p class="hidden sm:block text-xs text-gray-400 dark:text-gray-500 -mt-1">{{ t('logfields.kwh_hint') }}</p>
 
   <!-- Row 2: Tachostand + SoC nach -->
   <div class="grid grid-cols-2 gap-3">
@@ -381,17 +389,17 @@ defineExpose({ clearLocation, locationEnabled, locationStatus, getCurrentDateTim
   <!-- Tarif-Chips (wenn User Tarife hinterlegt hat) -->
   <div v-if="userProviders.length > 0" class="space-y-1">
     <p class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('logfields.tariff_chip_label') }}</p>
-    <div class="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+    <div class="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
       <button
         v-for="p in userProviders"
         :key="p.id"
         type="button"
         @click="form.chargingProviderId = form.chargingProviderId === p.id ? null : p.id"
         :class="[
-          'flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition border',
+          'chip-3d flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium border select-none',
           form.chargingProviderId === p.id
-            ? 'bg-indigo-600 text-white border-indigo-600'
-            : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-indigo-400'
+            ? 'chip-selected bg-indigo-600 text-white border-indigo-700'
+            : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600'
         ]">
         {{ p.label || p.providerName }}
       </button>
@@ -481,4 +489,23 @@ defineExpose({ clearLocation, locationEnabled, locationStatus, getCurrentDateTim
     <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ t('logfields.timestamp_hint') }}</p>
   </div>
 </template>
+
+<style scoped>
+.chip-3d {
+  box-shadow: 0 3px 0 0 rgba(0, 0, 0, 0.15);
+  transform: translateY(0);
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+.chip-3d:active {
+  box-shadow: 0 1px 0 0 rgba(0, 0, 0, 0.10);
+  transform: translateY(2px);
+}
+.chip-3d.chip-selected {
+  box-shadow: 0 3px 0 0 rgba(55, 48, 163, 0.6);
+}
+.chip-3d.chip-selected:active {
+  box-shadow: 0 1px 0 0 rgba(55, 48, 163, 0.4);
+  transform: translateY(2px);
+}
+</style>
 

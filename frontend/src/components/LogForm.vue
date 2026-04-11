@@ -223,6 +223,7 @@ const handleOcrData = (ocrResult: any) => {
   if (ocrResult.kwh !== null) formData.value.kwhCharged = ocrResult.kwh
   if (ocrResult.cost !== null) formData.value.costEur = ocrResult.cost
   if (ocrResult.durationMinutes !== null) formData.value.chargeDurationMinutes = ocrResult.durationMinutes
+  if (ocrResult.maxChargingPowerKw !== null) formData.value.maxChargingPowerKw = ocrResult.maxChargingPowerKw
   ocrUsed.value = true
   showOcrCapture.value = false
 }

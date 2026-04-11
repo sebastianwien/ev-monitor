@@ -10,6 +10,7 @@ interface OcrResult {
   kwh: number | null
   cost: number | null
   durationMinutes: number | null
+  maxChargingPowerKw: number | null
   confidence: number
   rawText: string
 }
@@ -77,6 +78,17 @@ const extractChargingData = (text: string): OcrResult => {
     /Price[:\s]+(\d+[.,]\d+)/i
   ]
 
+  // Patterns for max charging power (kW) — (?!h) verhindert Match auf kWh
+  const powerPatterns = [
+    /(\d+[.,]\d+)\s*kW(?!h)/i,
+    /(\d+)\s*kW(?!h)/i,
+    /Ladeleistung[:\s]+(\d+[.,]?\d*)/i,
+    /Max\.?\s*Leistung[:\s]+(\d+[.,]?\d*)/i,
+    /Power[:\s]+(\d+[.,]?\d*)/i,
+    /Max\.?\s*Power[:\s]+(\d+[.,]?\d*)/i,
+    /Peak[:\s]+(\d+[.,]?\d*)\s*kW(?!h)/i,
+  ]
+
   // Patterns for duration (hours + minutes)
   const durationPatterns = [
     /(\d+)h\s*(\d+)m/i,
@@ -132,14 +144,30 @@ const extractChargingData = (text: string): OcrResult => {
     }
   }
 
+  // Extract max charging power
+  let maxChargingPowerKw: number | null = null
+  for (const pattern of powerPatterns) {
+    const match = text.match(pattern)
+    if (match) {
+      const val = parseFloat(match[1].replace(',', '.'))
+      // Sanity check: plausible charging power range 1-350 kW
+      if (val >= 1 && val <= 350) {
+        maxChargingPowerKw = val
+        console.log('✅ Ladeleistung gefunden:', maxChargingPowerKw, 'kW')
+        break
+      }
+    }
+  }
+
   // Calculate confidence (how many fields were found)
-  const fieldsFound = [kwh, cost, durationMinutes].filter(v => v !== null).length
-  const confidence = Math.round((fieldsFound / 3) * 100)
+  const fieldsFound = [kwh, cost, durationMinutes, maxChargingPowerKw].filter(v => v !== null).length
+  const confidence = Math.round((fieldsFound / 4) * 100)
 
   return {
     kwh,
     cost,
     durationMinutes,
+    maxChargingPowerKw,
     confidence,
     rawText: text
   }
@@ -352,6 +380,23 @@ const cancel = () => {
             :class="ocrResults.durationMinutes ? 'border-green-500 bg-green-50' : 'border-gray-300'"
           />
           <span v-if="ocrResults.durationMinutes" class="text-green-600 font-medium">✓</span>
+          <span v-else class="text-gray-400">—</span>
+        </div>
+      </div>
+
+      <!-- Max Charging Power -->
+      <div class="result-item">
+        <label class="text-sm text-gray-600 mb-1 block">{{ t('ocr.label_power') }}</label>
+        <div class="flex items-center gap-2">
+          <input
+            v-model.number="ocrResults.maxChargingPowerKw"
+            type="number"
+            step="0.1"
+            :placeholder="t('ocr.power_placeholder')"
+            class="flex-1 px-3 py-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+            :class="ocrResults.maxChargingPowerKw ? 'border-green-500 bg-green-50' : 'border-gray-300'"
+          />
+          <span v-if="ocrResults.maxChargingPowerKw" class="text-green-600 font-medium">✓</span>
           <span v-else class="text-gray-400">—</span>
         </div>
       </div>
