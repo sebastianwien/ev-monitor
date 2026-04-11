@@ -86,6 +86,7 @@ export interface EvLogResponse {
   chargingType: 'AC' | 'DC' | 'UNKNOWN' | null
   isPublicCharging: boolean
   cpoName: string | null
+  chargingProviderId: string | null
 }
 
 const props = defineProps<{ log: EvLogResponse }>()
@@ -114,6 +115,7 @@ const formData = ref<LogFormData>({
   longitude: null,
   isPublicCharging: props.log.isPublicCharging ?? false,
   cpoName: props.log.cpoName ?? null,
+  chargingProviderId: props.log.chargingProviderId ?? null,
 })
 
 const loading = ref(false)
@@ -194,6 +196,7 @@ async function save() {
       tireType: f.tireType,
       costExchangeRate: f.costExchangeRate,
       costCurrency: f.costCurrency,
+      chargingProviderId: f.chargingProviderId ?? null,
     }
     if (f.latitude !== null && f.longitude !== null) {
       payload.latitude = f.latitude

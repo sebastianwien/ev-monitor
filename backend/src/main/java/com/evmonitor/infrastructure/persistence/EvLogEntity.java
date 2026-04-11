@@ -100,6 +100,9 @@ public class EvLogEntity {
     @Column(name = "cost_currency", length = 3)
     private String costCurrency;
 
+    @Column(name = "charging_provider_id")
+    private UUID chargingProviderId;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

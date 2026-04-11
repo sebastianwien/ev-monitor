@@ -10,6 +10,7 @@ import java.time.LocalDate;
 
 public record UserChargingProviderRequest(
         @NotBlank @Size(max = 100) String providerName,
+        @Size(max = 100) String label,
         BigDecimal acPricePerKwh,
         BigDecimal dcPricePerKwh,
         BigDecimal monthlyFeeEur,

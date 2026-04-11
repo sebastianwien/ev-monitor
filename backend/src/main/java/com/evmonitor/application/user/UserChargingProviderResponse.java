@@ -7,6 +7,7 @@ import java.util.UUID;
 public record UserChargingProviderResponse(
         UUID id,
         String providerName,
+        String label,
         BigDecimal acPricePerKwh,
         BigDecimal dcPricePerKwh,
         BigDecimal monthlyFeeEur,

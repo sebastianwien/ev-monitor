@@ -28,16 +28,6 @@ public class UserChargingProviderController {
         return service.getAll(userId);
     }
 
-    @GetMapping("/active")
-    public ResponseEntity<UserChargingProviderResponse> getActive(
-            @AuthenticationPrincipal UserPrincipal principal
-    ) {
-        UUID userId = UUID.fromString(principal.getUser().getId().toString());
-        return service.getActive(userId)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.noContent().build());
-    }
-
     @PostMapping
     public UserChargingProviderResponse add(
             @AuthenticationPrincipal UserPrincipal principal,
@@ -45,6 +35,16 @@ public class UserChargingProviderController {
     ) {
         UUID userId = UUID.fromString(principal.getUser().getId().toString());
         return service.add(userId, request);
+    }
+
+    @PutMapping("/{id}")
+    public UserChargingProviderResponse update(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable UUID id,
+            @Valid @RequestBody UserChargingProviderRequest request
+    ) {
+        UUID userId = UUID.fromString(principal.getUser().getId().toString());
+        return service.update(userId, id, request);
     }
 
     @DeleteMapping("/{id}")

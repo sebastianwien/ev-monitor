@@ -71,7 +71,14 @@ public class EvLogController {
             Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         return evLogStatisticsService.getPriceSuggestion(principal.getUser().getId(), lat, lon, isPublic)
-                .map(price -> ResponseEntity.ok(Map.of("costPerKwh", price)))
+                .map(suggestion -> {
+                    Map<String, Object> body = new java.util.HashMap<>();
+                    body.put("costPerKwh", suggestion.costPerKwh());
+                    if (suggestion.chargingProviderId() != null) {
+                        body.put("chargingProviderId", suggestion.chargingProviderId());
+                    }
+                    return ResponseEntity.ok(body);
+                })
                 .orElse(ResponseEntity.noContent().build());
     }
 

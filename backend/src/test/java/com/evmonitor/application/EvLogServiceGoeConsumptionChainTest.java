@@ -157,7 +157,7 @@ class EvLogServiceGoeConsumptionChainTest extends AbstractIntegrationTest {
 
     /**
      * Stellt sicher dass Verbrauch angezeigt wird wenn alle logY-Kandidaten WALLBOX_GOE sind.
-     * Seit V75 haben GOE-Logs include=true, kein Session-Group-Mechanismus mehr nötig.
+     * Seit V77 haben GOE-Logs include=true, kein Session-Group-Mechanismus mehr nötig.
      *
      * Aufbau:
      *   GOE A (odometer=10000, SoC=80%)
@@ -194,38 +194,50 @@ class EvLogServiceGoeConsumptionChainTest extends AbstractIntegrationTest {
     // ── Szenario 5: gemischte DataSources — TESLA_FLEET_IMPORT + GOE + USER_LOGGED ─
 
     /**
-     * TESLA_FLEET_IMPORT ohne Odometer bricht die Kette.
-     * WALLBOX_GOE danach bildet eine eigene Teilkette.
-     * Stellt sicher dass die GOE-Teilkette sichtbar ist.
+     * Reproduziert den gemeldeten Production-Bug von florianbehr0.
+     *
+     * TESLA_FLEET_IMPORT Logs erhalten ihr Odometer NICHT aus der Fleet API (Charging History
+     * enthält kein Odometer), sondern aus tesla_charging_snapshot — dem 5-Minuten-Polling
+     * während des Ladevorgangs. Wenn das Polling keinen Snapshot erwischt, bleibt odometer=null.
+     * Das ist KEIN Bug im Import, sondern erwartetes Verhalten (Snapshot-Lookup miss).
+     *
+     * TESLA_FLEET_IMPORT ist NICHT transparent für die Consumption Chain (nur WALLBOX_GOE ist es).
+     * Ein TESLA_FLEET_IMPORT ohne Odometer bricht die Kette — korrekt, weil er ein unbekanntes
+     * Energieereignis darstellt das den SoC-Delta korrumpieren würde.
      *
      * Aufbau:
      *   T1: TESLA_FLEET_IMPORT (odometer=5000, soc=90)
-     *   T2: TESLA_FLEET_IMPORT (kein odometer, soc=75) → KETTENBRUCH für G1
-     *   G1: WALLBOX_GOE (odometer=10000, soc=80) → kein Verbrauch (T2 davor bricht die Kette)
+     *   T2: TESLA_FLEET_IMPORT (kein odometer, soc=75) — Snapshot miss → KETTENBRUCH für G1
+     *   G1: WALLBOX_GOE (odometer=10000, soc=80) → kein Verbrauch berechenbar (T2 davor bricht die Kette)
      *   G2: WALLBOX_GOE (odometer=10300, soc=85, 52.5 kWh) → logX=G1 → 16.25 kWh/100km
      */
     @Test
     void mixedSources_teslaFleetImportWithoutOdometerBreaksChain_goeSubChainStillVisible() {
         LocalDateTime base = LocalDateTime.now().minusDays(10).withHour(8);
 
+        // T1 — TESLA_FLEET_IMPORT mit Odometer
         evLogRepository.save(EvLog.createFromInternal(
                 carId, new BigDecimal("40.0"), 120, null,
                 base,
                 null, null, DataSource.TESLA_FLEET_IMPORT, null, ChargingType.DC,
                 5000, null, 90, null));
 
+        // T2 — TESLA_FLEET_IMPORT ohne Odometer (Snapshot-Lookup miss)
+        // Bricht die Kette: canBeUsedAsLogX()=false, nicht transparent → Kettenbruch für G1
         evLogRepository.save(EvLog.createFromInternal(
                 carId, new BigDecimal("20.0"), 45, null,
                 base.plusDays(1),
                 null, null, DataSource.TESLA_FLEET_IMPORT, null, ChargingType.DC,
                 null, null, 75, null));
 
+        // G1 — GOE mit Odometer+SoC, kein Verbrauch berechenbar (T2 davor bricht die Kette)
         evLogRepository.save(EvLog.createFromInternal(
                 carId, new BigDecimal("30.0"), 90, null,
                 base.plusDays(2),
                 null, null, DataSource.WALLBOX_GOE, new BigDecimal("8.40"), ChargingType.AC,
                 LOG_A_ODOMETER, null, LOG_A_SOC, null));
 
+        // G2 — logX=G1 → 300 km Trip → 16.25 kWh/100km
         evLogRepository.save(EvLog.createFromInternal(
                 carId, LOG_B_KWH, 90, null,
                 base.plusDays(4),
@@ -239,7 +251,7 @@ class EvLogServiceGoeConsumptionChainTest extends AbstractIntegrationTest {
         assertEquals(new BigDecimal("16.25"), stats.avgConsumptionKwhPer100km(),
                 "Nur G1→G2 Trip berechenbar: 48.75 kWh / 300 km = 16.25 kWh/100km");
         assertEquals(new BigDecimal("300"), stats.totalDistanceKm(),
-                "Nur die 300 km des G1→G2 Trips sind bekannt");
+                "Nur die 300 km des G1→G2 Trips sind bekannt — T2→G1 hat keinen Odometer-Anker");
         assertEquals(0, stats.estimatedConsumptionCount(),
                 "SoC-basiert — kein Fallback-Schätzer");
     }

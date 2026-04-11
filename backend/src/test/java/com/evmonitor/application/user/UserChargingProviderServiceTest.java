@@ -22,7 +22,7 @@ import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for UserChargingProviderService.
- * Focuses on the auto-deactivation business logic and ownership enforcement.
+ * Portfolio-Modell: mehrere Tarife gleichzeitig aktiv, kein Auto-Deactivate mehr.
  */
 @ExtendWith(MockitoExtension.class)
 class UserChargingProviderServiceTest {
@@ -38,30 +38,43 @@ class UserChargingProviderServiceTest {
     @BeforeEach
     void setUp() {
         service = new UserChargingProviderService(repository);
-        // save returns the entity as-is (ID and timestamps not relevant for logic tests)
         lenient().when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
     }
 
-    // ── add() — auto-deactivation ─────────────────────────────────────────────
+    // ── add() — Portfolio-Modell: kein deactivateCurrent ─────────────────────
 
     @Test
-    void shouldCallDeactivateCurrent_WithDayBeforeNewActiveFrom() {
-        LocalDate newActiveFrom = LocalDate.of(2026, 3, 1);
+    void shouldNotDeactivateExisting_WhenAddingNewProvider() {
         UserChargingProviderRequest request = new UserChargingProviderRequest(
-                "IONITY", new BigDecimal("0.29"), new BigDecimal("0.49"),
-                BigDecimal.ZERO, BigDecimal.ZERO, newActiveFrom);
+                "IONITY", null, new BigDecimal("0.29"), new BigDecimal("0.49"),
+                BigDecimal.ZERO, BigDecimal.ZERO, LocalDate.now());
 
         service.add(userId, request);
 
-        ArgumentCaptor<LocalDate> dateCaptor = ArgumentCaptor.forClass(LocalDate.class);
-        verify(repository).deactivateCurrent(eq(userId), dateCaptor.capture());
-        assertThat(dateCaptor.getValue()).isEqualTo(LocalDate.of(2026, 2, 28));
+        // Portfolio: keine anderen Provider deaktivieren
+        verify(repository, never()).deleteAll(any());
+        verify(repository, never()).deleteAllById(any());
+    }
+
+    @Test
+    void shouldSaveMultipleActiveProviders_WithoutConflict() {
+        UserChargingProviderRequest request1 = new UserChargingProviderRequest(
+                "EnBW", "Arbeit RFID", new BigDecimal("0.29"), new BigDecimal("0.49"),
+                new BigDecimal("4.99"), BigDecimal.ZERO, LocalDate.now());
+        UserChargingProviderRequest request2 = new UserChargingProviderRequest(
+                "Maingau", null, new BigDecimal("0.39"), new BigDecimal("0.52"),
+                BigDecimal.ZERO, BigDecimal.ZERO, LocalDate.now());
+
+        service.add(userId, request1);
+        service.add(userId, request2);
+
+        verify(repository, times(2)).save(any());
     }
 
     @Test
     void shouldSetCorrectUserId_WhenSavingNewProvider() {
         UserChargingProviderRequest request = new UserChargingProviderRequest(
-                "Fastned", null, null, null, null, LocalDate.now());
+                "Fastned", null, null, null, null, null, LocalDate.now());
 
         service.add(userId, request);
 
@@ -73,9 +86,22 @@ class UserChargingProviderServiceTest {
     }
 
     @Test
+    void shouldSetLabel_WhenProvidedOnAdd() {
+        UserChargingProviderRequest request = new UserChargingProviderRequest(
+                "EnBW", "Meine EnBW Karte", null, null, null, null, LocalDate.now());
+
+        service.add(userId, request);
+
+        ArgumentCaptor<UserChargingProviderEntity> captor =
+                ArgumentCaptor.forClass(UserChargingProviderEntity.class);
+        verify(repository).save(captor.capture());
+        assertThat(captor.getValue().getLabel()).isEqualTo("Meine EnBW Karte");
+    }
+
+    @Test
     void shouldDefaultFeesToZero_WhenNullPassedIn() {
         UserChargingProviderRequest request = new UserChargingProviderRequest(
-                "EnBW", null, null, null, null, LocalDate.now());
+                "EnBW", null, null, null, null, null, LocalDate.now());
 
         service.add(userId, request);
 
@@ -84,6 +110,40 @@ class UserChargingProviderServiceTest {
         verify(repository).save(captor.capture());
         assertThat(captor.getValue().getMonthlyFeeEur()).isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(captor.getValue().getSessionFeeEur()).isEqualByComparingTo(BigDecimal.ZERO);
+    }
+
+    // ── update() ─────────────────────────────────────────────────────────────
+
+    @Test
+    void shouldUpdateProvider_WhenOwnershipMatches() {
+        UUID providerId = UUID.randomUUID();
+        UserChargingProviderEntity entity = entityForUser(providerId, userId);
+        when(repository.findById(providerId)).thenReturn(Optional.of(entity));
+
+        UserChargingProviderRequest request = new UserChargingProviderRequest(
+                "EnBW updated", "Neues Label", new BigDecimal("0.25"), new BigDecimal("0.45"),
+                new BigDecimal("2.99"), BigDecimal.ZERO, LocalDate.now());
+
+        service.update(userId, providerId, request);
+
+        verify(repository).save(entity);
+        assertThat(entity.getProviderName()).isEqualTo("EnBW updated");
+        assertThat(entity.getLabel()).isEqualTo("Neues Label");
+        assertThat(entity.getAcPricePerKwh()).isEqualByComparingTo(new BigDecimal("0.25"));
+    }
+
+    @Test
+    void shouldThrowIllegalArgument_WhenUpdatingOtherUsersProvider() {
+        UUID providerId = UUID.randomUUID();
+        UserChargingProviderEntity entity = entityForUser(providerId, otherUserId);
+        when(repository.findById(providerId)).thenReturn(Optional.of(entity));
+
+        UserChargingProviderRequest request = new UserChargingProviderRequest(
+                "Hacked", null, null, null, null, null, LocalDate.now());
+
+        assertThatThrownBy(() -> service.update(userId, providerId, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Provider does not belong to user");
     }
 
     // ── delete() — ownership ──────────────────────────────────────────────────
@@ -133,6 +193,21 @@ class UserChargingProviderServiceTest {
         assertThat(result).hasSize(1);
         assertThat(result.get(0).providerName()).isEqualTo("IONITY");
         verify(repository).findByUserIdOrderByActiveFromDesc(userId);
+    }
+
+    @Test
+    void shouldReturnMultipleProviders_ForPortfolio() {
+        UserChargingProviderEntity e1 = entityForUser(UUID.randomUUID(), userId);
+        e1.setProviderName("EnBW");
+        UserChargingProviderEntity e2 = entityForUser(UUID.randomUUID(), userId);
+        e2.setProviderName("Maingau");
+        when(repository.findByUserIdOrderByActiveFromDesc(userId)).thenReturn(List.of(e1, e2));
+
+        List<UserChargingProviderResponse> result = service.getAll(userId);
+
+        assertThat(result).hasSize(2);
+        assertThat(result).extracting(UserChargingProviderResponse::providerName)
+                .containsExactly("EnBW", "Maingau");
     }
 
     // ── Helper ────────────────────────────────────────────────────────────────

@@ -58,16 +58,6 @@ class UserChargingProviderControllerIntegrationTest extends AbstractIntegrationT
         assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
     }
 
-    // ── GET /active ───────────────────────────────────────────────────────────
-
-    @Test
-    void shouldReturn204_WhenNoActiveProvider() {
-        HttpEntity<Void> auth = createAuthRequest(userA.getId(), userA.getEmail());
-        ResponseEntity<Void> response = restTemplate.exchange(
-                "/api/users/me/charging-providers/active", HttpMethod.GET, auth, Void.class);
-        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
-    }
-
     // ── POST ─────────────────────────────────────────────────────────────────
 
     @Test
@@ -87,22 +77,6 @@ class UserChargingProviderControllerIntegrationTest extends AbstractIntegrationT
         assertEquals(LocalDate.of(2026, 1, 1), body.activeFrom());
         assertNull(body.activeUntil());
         assertNotNull(body.id());
-    }
-
-    // ── GET /active after POST ────────────────────────────────────────────────
-
-    @Test
-    void shouldGetActiveProvider_AfterAdding() {
-        addProvider(userA, "EnBW", LocalDate.of(2026, 1, 1));
-
-        HttpEntity<Void> auth = createAuthRequest(userA.getId(), userA.getEmail());
-        ResponseEntity<UserChargingProviderResponse> response = restTemplate.exchange(
-                "/api/users/me/charging-providers/active", HttpMethod.GET, auth,
-                UserChargingProviderResponse.class);
-
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals("EnBW", response.getBody().providerName());
     }
 
     // ── GET all ───────────────────────────────────────────────────────────────
@@ -140,13 +114,11 @@ class UserChargingProviderControllerIntegrationTest extends AbstractIntegrationT
         assertEquals("IONITY", response.getBody().get(0).providerName());
     }
 
-    // ── Auto-deactivation ─────────────────────────────────────────────────────
+    // ── Portfolio model: multiple simultaneous providers ──────────────────────
 
     @Test
-    void shouldDeactivatePreviousProvider_WhenAddingNew() {
+    void shouldKeepBothProviders_WhenAddingSecondOne() {
         addProvider(userA, "EnBW", LocalDate.of(2025, 6, 1));
-
-        // Add a new provider starting 2026-01-01 — EnBW should get active_until = 2025-12-31
         addProvider(userA, "IONITY", LocalDate.of(2026, 1, 1));
 
         HttpEntity<Void> auth = createAuthRequest(userA.getId(), userA.getEmail());
@@ -158,13 +130,44 @@ class UserChargingProviderControllerIntegrationTest extends AbstractIntegrationT
         assertNotNull(providers);
         assertEquals(2, providers.size());
 
-        UserChargingProviderResponse ionity = providers.stream()
-                .filter(p -> "IONITY".equals(p.providerName())).findFirst().orElseThrow();
-        UserChargingProviderResponse enbw = providers.stream()
-                .filter(p -> "EnBW".equals(p.providerName())).findFirst().orElseThrow();
+        // Portfolio: both remain active (no auto-deactivation)
+        assertTrue(providers.stream().allMatch(p -> p.activeUntil() == null));
+    }
 
-        assertNull(ionity.activeUntil());
-        assertEquals(LocalDate.of(2025, 12, 31), enbw.activeUntil());
+    // ── PUT update ────────────────────────────────────────────────────────────
+
+    @Test
+    void shouldUpdateProvider_WhenOwnerMatches() {
+        UserChargingProviderResponse created = addProvider(userA, "EnBW", LocalDate.of(2026, 1, 1));
+
+        UserChargingProviderRequest updateRequest = new UserChargingProviderRequest(
+                "EnBW updated", "Meine Karte", new BigDecimal("0.25"), new BigDecimal("0.45"),
+                BigDecimal.ZERO, BigDecimal.ZERO, LocalDate.of(2026, 1, 1));
+        HttpEntity<UserChargingProviderRequest> auth = createAuthRequest(updateRequest, userA.getId(), userA.getEmail());
+
+        ResponseEntity<UserChargingProviderResponse> response = restTemplate.exchange(
+                "/api/users/me/charging-providers/" + created.id(),
+                HttpMethod.PUT, auth, UserChargingProviderResponse.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("EnBW updated", response.getBody().providerName());
+        assertEquals("Meine Karte", response.getBody().label());
+        assertEquals(0, new BigDecimal("0.25").compareTo(response.getBody().acPricePerKwh()));
+    }
+
+    @Test
+    void shouldReturn400_WhenUpdatingOtherUsersProvider() {
+        UserChargingProviderResponse userBProvider = addProvider(userB, "Fastned", LocalDate.of(2026, 1, 1));
+
+        UserChargingProviderRequest updateRequest = buildRequest("Hacked", LocalDate.of(2026, 1, 1));
+        HttpEntity<UserChargingProviderRequest> authA = createAuthRequest(updateRequest, userA.getId(), userA.getEmail());
+
+        ResponseEntity<String> response = restTemplate.exchange(
+                "/api/users/me/charging-providers/" + userBProvider.id(),
+                HttpMethod.PUT, authA, String.class);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     }
 
     // ── DELETE ────────────────────────────────────────────────────────────────
@@ -204,7 +207,7 @@ class UserChargingProviderControllerIntegrationTest extends AbstractIntegrationT
     @Test
     void shouldReturn400_WhenProviderNameIsBlank() {
         UserChargingProviderRequest request = new UserChargingProviderRequest(
-                "", null, null, null, null, LocalDate.now());
+                "", null, null, null, null, null, LocalDate.now());
         HttpEntity<UserChargingProviderRequest> auth = createAuthRequest(request, userA.getId(), userA.getEmail());
 
         ResponseEntity<String> response = restTemplate.postForEntity(
@@ -216,7 +219,7 @@ class UserChargingProviderControllerIntegrationTest extends AbstractIntegrationT
     @Test
     void shouldReturn400_WhenActiveDateIsInFuture() {
         UserChargingProviderRequest request = new UserChargingProviderRequest(
-                "IONITY", null, null, null, null, LocalDate.now().plusDays(1));
+                "IONITY", null, null, null, null, null, LocalDate.now().plusDays(1));
         HttpEntity<UserChargingProviderRequest> auth = createAuthRequest(request, userA.getId(), userA.getEmail());
 
         ResponseEntity<String> response = restTemplate.postForEntity(
@@ -230,6 +233,7 @@ class UserChargingProviderControllerIntegrationTest extends AbstractIntegrationT
     private UserChargingProviderRequest buildRequest(String providerName, LocalDate activeFrom) {
         return new UserChargingProviderRequest(
                 providerName,
+                null,
                 new BigDecimal("0.29"),
                 new BigDecimal("0.49"),
                 BigDecimal.ZERO,

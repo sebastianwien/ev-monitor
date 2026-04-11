@@ -4,6 +4,7 @@ import ch.hsr.geohash.GeoHash;
 import com.evmonitor.application.consumption.ConsumptionCalculationService;
 import com.evmonitor.domain.*;
 import com.evmonitor.domain.weather.TemperatureEnricher;
+import com.evmonitor.infrastructure.persistence.JpaUserChargingProviderRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -33,6 +34,7 @@ public class EvLogService {
     private final TemperatureEnricher temperatureEnricher;
     private final PlausibilityProperties plausibility;
     private final ConsumptionCalculationService calculationService;
+    private final JpaUserChargingProviderRepository chargingProviderRepository;
 
     @Transactional
     public EvLogCreateResponse logCharging(UUID userId, EvLogRequest request) {
@@ -67,13 +69,19 @@ public class EvLogService {
                 Boolean.TRUE.equals(request.isPublicCharging()),
                 request.cpoName());
 
-        // Attach original currency metadata if provided (non-EUR entry)
+        // Attach original currency metadata and charging provider if provided
+        var builder = newLog.toBuilder();
         if (request.costCurrency() != null && request.costExchangeRate() != null) {
-            newLog = newLog.toBuilder()
-                    .costExchangeRate(request.costExchangeRate())
-                    .costCurrency(request.costCurrency())
-                    .build();
+            builder.costExchangeRate(request.costExchangeRate())
+                   .costCurrency(request.costCurrency());
         }
+        if (request.chargingProviderId() != null) {
+            if (!chargingProviderRepository.existsByIdAndUserId(request.chargingProviderId(), userId)) {
+                throw new IllegalArgumentException("Charging provider not found for current user");
+            }
+            builder.chargingProviderId(request.chargingProviderId());
+        }
+        newLog = builder.build();
 
         EvLog savedLog = evLogRepository.save(newLog);
 
@@ -264,6 +272,14 @@ public class EvLogService {
             geohashChanged = true;
         }
 
+        UUID updatedChargingProviderId = existing.getChargingProviderId();
+        if (request.chargingProviderId() != null) {
+            if (!chargingProviderRepository.existsByIdAndUserId(request.chargingProviderId(), userId)) {
+                throw new IllegalArgumentException("Charging provider not found for current user");
+            }
+            updatedChargingProviderId = request.chargingProviderId();
+        }
+
         EvLog updated = existing.toBuilder()
                 .kwhCharged(request.kwhCharged()             != null ? request.kwhCharged()             : existing.getKwhCharged())
                 .costEur(request.costEur()                   != null ? request.costEur()                : existing.getCostEur())
@@ -281,6 +297,7 @@ public class EvLogService {
                 .cpoName(request.cpoName()                   != null ? request.cpoName()                 : existing.getCpoName())
                 .costExchangeRate(request.costExchangeRate() != null ? request.costExchangeRate()     : existing.getCostExchangeRate())
                 .costCurrency(request.costCurrency()         != null ? request.costCurrency()          : existing.getCostCurrency())
+                .chargingProviderId(updatedChargingProviderId)
                 .updatedAt(LocalDateTime.now())
                 .build();
 

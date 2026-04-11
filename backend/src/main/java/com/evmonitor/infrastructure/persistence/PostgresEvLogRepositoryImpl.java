@@ -179,13 +179,11 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
-    public Optional<java.math.BigDecimal> findMostRecentCostPerKwhByUserIdAndGeohash(UUID userId, String geohash) {
+    public Optional<EvLog> findMostRecentLogAtGeohash(UUID userId, String geohash) {
         var results = jpaRepository.findRecentByUserIdAndGeohash(userId, geohash,
                 org.springframework.data.domain.PageRequest.of(0, 1));
         if (results.isEmpty()) return Optional.empty();
-        EvLogEntity log = results.get(0);
-        java.math.BigDecimal costPerKwh = log.getCostEur().divide(log.getKwhCharged(), 4, java.math.RoundingMode.HALF_UP);
-        return Optional.of(costPerKwh);
+        return Optional.of(toDomain(results.get(0)));
     }
 
     @Override
@@ -224,6 +222,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
         entity.setMeasurementType(domain.getMeasurementType().name());
         entity.setCostExchangeRate(domain.getCostExchangeRate());
         entity.setCostCurrency(domain.getCostCurrency());
+        entity.setChargingProviderId(domain.getChargingProviderId());
         entity.setCreatedAt(domain.getCreatedAt());
         entity.setUpdatedAt(domain.getUpdatedAt());
         return entity;
@@ -258,6 +257,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 .measurementType(entity.getMeasurementType() != null ? EnergyMeasurementType.valueOf(entity.getMeasurementType()) : null)
                 .costExchangeRate(entity.getCostExchangeRate())
                 .costCurrency(entity.getCostCurrency())
+                .chargingProviderId(entity.getChargingProviderId())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .build();

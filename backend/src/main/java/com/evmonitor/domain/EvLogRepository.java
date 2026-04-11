@@ -57,7 +57,7 @@ public interface EvLogRepository {
 
     List<GeohashPoint> findGeohashDataByCarId(UUID carId);
 
-    Optional<BigDecimal> findMostRecentCostPerKwhByUserIdAndGeohash(UUID userId, String geohash);
+    Optional<EvLog> findMostRecentLogAtGeohash(UUID userId, String geohash);
 
     void updateCarIdForLog(UUID logId, UUID targetCarId);
 }

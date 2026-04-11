@@ -25,6 +25,13 @@ export interface LogFormData {
   longitude: number | null
   isPublicCharging: boolean
   cpoName: string | null
+  chargingProviderId: string | null
+}
+
+interface UserProvider {
+  id: string
+  providerName: string
+  label: string | null
 }
 
 const props = defineProps<{
@@ -37,7 +44,7 @@ const props = defineProps<{
 
 const form = defineModel<LogFormData>({ required: true })
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 const countryStore = useCountryStore()
 
 const isEurCountry = computed(() => EUR_ZONE_COUNTRIES.includes(countryStore.country))
@@ -69,6 +76,10 @@ const fetchPriceSuggestion = async (lat: number, lon: number, isPublic: boolean)
       // Price suggestion comes in EUR - convert to local
       const eurPrice = Number(res.data.costPerKwh)
       costLocalPerKwh.value = isEurCountry.value ? eurPrice : Math.round(eurToLocal(eurPrice) * 100) / 100
+      // Auto-select tariff if suggestion includes one
+      if (res.data.chargingProviderId && !form.value.chargingProviderId) {
+        form.value.chargingProviderId = res.data.chargingProviderId
+      }
     }
   } catch {
     // kein Vorschlag verfügbar - kein Problem
@@ -212,22 +223,19 @@ watch(() => form.value.costEur, (newVal) => {
   }
 }, { immediate: true })
 
-// ── CPO Dropdown ──────────────────────────────────────────────────────────────
-const cpoList = ref<string[]>([])
-
-const cpoSelect = ref<string>('')
+// ── Tarif-Chips ───────────────────────────────────────────────────────────────
+const userProviders = ref<UserProvider[]>([])
 
 onMounted(async () => {
   try {
-    const res = await api.get<string[]>('/charging-provider-tariffs/cpos', { params: { country: countryStore.country } })
-    cpoList.value = res.data
-    // Nach dem Laden: cpoSelect korrekt setzen (wichtig beim Editieren)
-    if (form.value.cpoName) {
-      cpoSelect.value = cpoList.value.includes(form.value.cpoName) ? form.value.cpoName : 'OTHER'
+    const res = await api.get<UserProvider[]>('/users/me/charging-providers')
+    userProviders.value = res.data
+    // Auto-select wenn nur ein Tarif vorhanden und noch keiner gewählt
+    if (res.data.length === 1 && !form.value.chargingProviderId) {
+      form.value.chargingProviderId = res.data[0].id
     }
   } catch {
-    // Fallback: leere Liste, User kann "Andere" wählen
-    if (form.value.cpoName) cpoSelect.value = 'OTHER'
+    // nicht kritisch
   }
 
   // Wenn Location aus vorherigem Besuch aktiviert war: direkt GPS holen
@@ -246,14 +254,6 @@ watch(() => form.value.isPublicCharging, (isPublic) => {
     costLocalTotal.value = null
     costMode.value = 'total'
     fetchPriceSuggestion(form.value.latitude, form.value.longitude, isPublic)
-  }
-})
-
-watch(cpoSelect, (val) => {
-  if (val !== 'OTHER') {
-    form.value.cpoName = val || null
-  } else {
-    form.value.cpoName = null
   }
 })
 
@@ -378,21 +378,24 @@ defineExpose({ clearLocation, locationEnabled, locationStatus, getCurrentDateTim
   <!-- Location error message -->
   <p v-if="locationErrorMessage" class="text-xs text-red-500">{{ locationErrorMessage }}</p>
 
-  <!-- CPO Dropdown (nur DE - CPO-Daten sind DACH-spezifisch) -->
-  <div v-if="form.isPublicCharging && locale === 'de'" class="space-y-1.5">
-    <select v-model="cpoSelect" :class="inputClass('cpoName')">
-      <option value="">{{ t('logfields.cpo_select_placeholder') }}</option>
-      <option v-for="cpo in cpoList" :key="cpo" :value="cpo">{{ cpo }}</option>
-      <option value="OTHER">{{ t('logfields.cpo_other') }}</option>
-    </select>
-    <input
-      v-if="cpoSelect === 'OTHER'"
-      v-model="form.cpoName"
-      type="text"
-      :placeholder="t('logfields.cpo_name_placeholder')"
-      maxlength="100"
-      :class="inputClass('cpoName')"
-    />
+  <!-- Tarif-Chips (wenn User Tarife hinterlegt hat) -->
+  <div v-if="userProviders.length > 0" class="space-y-1">
+    <p class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('logfields.tariff_chip_label') }}</p>
+    <div class="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+      <button
+        v-for="p in userProviders"
+        :key="p.id"
+        type="button"
+        @click="form.chargingProviderId = form.chargingProviderId === p.id ? null : p.id"
+        :class="[
+          'flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition border',
+          form.chargingProviderId === p.id
+            ? 'bg-indigo-600 text-white border-indigo-600'
+            : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-indigo-400'
+        ]">
+        {{ p.label || p.providerName }}
+      </button>
+    </div>
   </div>
 
   </div><!-- end Pflichtfelder-Gruppe -->

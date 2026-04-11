@@ -446,12 +446,19 @@ public class EvLogStatisticsService {
     }
 
     /**
-     * Returns the cost per kWh from the most recent log at the same geohash for this user.
-     * Used to pre-fill the price field in the log form.
+     * Returns a price suggestion for the log form based on the most recent log at the same geohash.
+     * Includes the cost per kWh and the charging provider (tariff) that was used there.
      */
-    public Optional<BigDecimal> getPriceSuggestion(UUID userId, double latitude, double longitude, boolean isPublicCharging) {
+    public Optional<PriceSuggestion> getPriceSuggestion(UUID userId, double latitude, double longitude, boolean isPublicCharging) {
         int precision = isPublicCharging ? 7 : 6;
         String geohash = GeoHash.withCharacterPrecision(latitude, longitude, precision).toBase32();
-        return evLogRepository.findMostRecentCostPerKwhByUserIdAndGeohash(userId, geohash);
+        return evLogRepository.findMostRecentLogAtGeohash(userId, geohash)
+                .filter(log -> log.getCostEur() != null && log.getKwhCharged() != null
+                        && log.getCostEur().compareTo(BigDecimal.ZERO) > 0
+                        && log.getKwhCharged().compareTo(BigDecimal.ZERO) > 0)
+                .map(log -> {
+                    BigDecimal costPerKwh = log.getCostEur().divide(log.getKwhCharged(), 4, RoundingMode.HALF_UP);
+                    return new PriceSuggestion(costPerKwh, log.getChargingProviderId());
+                });
     }
 }

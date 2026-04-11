@@ -14,27 +14,6 @@ export interface FeatureAnnouncement {
 
 export const featureAnnouncements: FeatureAnnouncement[] = [
   {
-    key: 'price-suggestion-v1',
-    expiresAt: '2026-04-12',
-    titleKey: 'announcements.price_suggestion_v1_title',
-    bodyKey: 'announcements.price_suggestion_v1_body',
-  },
-  {
-    key: 'consumption-normalization-v1',
-    expiresAt: '2026-04-12',
-    titleKey: 'announcements.consumption_normalization_v1_title',
-    bodyKey: 'announcements.consumption_normalization_v1_body',
-  },
-  {
-    key: 'battery-soh-heatpump-v1',
-    expiresAt: '2026-04-12',
-    titleKey: 'announcements.battery_soh_heatpump_v1_title',
-    bodyKey: 'announcements.battery_soh_heatpump_v1_body',
-    ctaLabelKey: 'announcements.battery_soh_heatpump_v1_cta',
-    ctaRoute: '/cars',
-  },
-
-  {
     key: 'goe-statistics-fix-v1',
     expiresAt: '2026-04-17',
     titleKey: 'announcements.goe_statistics_fix_v1_title',
@@ -54,5 +33,13 @@ export const featureAnnouncements: FeatureAnnouncement[] = [
     bodyKey: 'announcements.autosync_premium_v1_body',
     ctaLabelKey: 'announcements.autosync_premium_v1_cta',
     ctaRoute: '/upgrade',
+  },
+  {
+    key: 'charging-cards-portfolio-v1',
+    expiresAt: '2026-05-02',
+    titleKey: 'announcements.charging_cards_portfolio_v1_title',
+    bodyKey: 'announcements.charging_cards_portfolio_v1_body',
+    ctaLabelKey: 'announcements.charging_cards_portfolio_v1_cta',
+    ctaRoute: '/settings',
   },
 ]

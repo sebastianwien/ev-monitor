@@ -5,7 +5,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useCountryStore } from '../stores/country'
 import type { CountryCode } from '../config/unitSystems'
-import { UserIcon, KeyIcon, TrashIcon, ArrowDownTrayIcon, AcademicCapIcon, ShareIcon, ClipboardDocumentIcon, CheckIcon, HeartIcon, ArrowRightOnRectangleIcon, BoltIcon, CreditCardIcon, PlusIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/vue/24/outline'
+import { UserIcon, KeyIcon, TrashIcon, ArrowDownTrayIcon, AcademicCapIcon, ShareIcon, ClipboardDocumentIcon, CheckIcon, HeartIcon, ArrowRightOnRectangleIcon, BoltIcon, CreditCardIcon, PlusIcon, PencilIcon } from '@heroicons/vue/24/outline'
 import SupportPopover from '../components/SupportPopover.vue'
 import DemoSettingsModal from '../components/DemoSettingsModal.vue'
 import api from '../api/axios'
@@ -254,6 +254,7 @@ const deleteAccount = async () => {
 interface ChargingProvider {
   id: string
   providerName: string
+  label: string | null
   acPricePerKwh: number | null
   dcPricePerKwh: number | null
   monthlyFeeEur: number
@@ -291,11 +292,12 @@ const KNOWN_EMPS = [
 ]
 
 const chargingProviders = ref<ChargingProvider[]>([])
-const showProviderForm = ref(false)
-const showProviderHistory = ref(false)
+// null = nicht am bearbeiten, 'new' = neue Karte, uuid = bestehende bearbeiten
+const editingProviderId = ref<string | null>(null)
 const providerForm = ref({
   providerName: '',
   customProviderName: '',
+  label: '',
   acPricePerKwh: '' as string | number,
   dcPricePerKwh: '' as string | number,
   monthlyFeeEur: 0,
@@ -303,13 +305,35 @@ const providerForm = ref({
   activeFrom: new Date().toISOString().split('T')[0],
 })
 
-const activeProvider = computed(() =>
-  chargingProviders.value.find(p => p.activeUntil === null) ?? null
-)
-const pastProviders = computed(() =>
-  chargingProviders.value.filter(p => p.activeUntil !== null)
-)
 const isCustomProvider = computed(() => providerForm.value.providerName === 'Anderer Anbieter')
+
+const resetProviderForm = () => {
+  providerForm.value = {
+    providerName: '',
+    customProviderName: '',
+    label: '',
+    acPricePerKwh: '',
+    dcPricePerKwh: '',
+    monthlyFeeEur: 0,
+    sessionFeeEur: 0,
+    activeFrom: new Date().toISOString().split('T')[0],
+  }
+}
+
+const startEditProvider = (provider: ChargingProvider) => {
+  editingProviderId.value = provider.id
+  const isKnown = KNOWN_EMPS.includes(provider.providerName)
+  providerForm.value = {
+    providerName: isKnown ? provider.providerName : 'Anderer Anbieter',
+    customProviderName: isKnown ? '' : provider.providerName,
+    label: provider.label || '',
+    acPricePerKwh: provider.acPricePerKwh ?? '',
+    dcPricePerKwh: provider.dcPricePerKwh ?? '',
+    monthlyFeeEur: provider.monthlyFeeEur,
+    sessionFeeEur: provider.sessionFeeEur,
+    activeFrom: provider.activeFrom,
+  }
+}
 
 const fetchChargingProviders = async () => {
   try {
@@ -330,25 +354,23 @@ const saveChargingProvider = async () => {
   loading.value = true
   message.value = null
   try {
-    await api.post('/users/me/charging-providers', {
+    const payload = {
       providerName: name,
+      label: providerForm.value.label.trim() || null,
       acPricePerKwh: providerForm.value.acPricePerKwh !== '' ? providerForm.value.acPricePerKwh : null,
       dcPricePerKwh: providerForm.value.dcPricePerKwh !== '' ? providerForm.value.dcPricePerKwh : null,
       monthlyFeeEur: providerForm.value.monthlyFeeEur || 0,
       sessionFeeEur: providerForm.value.sessionFeeEur || 0,
       activeFrom: providerForm.value.activeFrom,
-    })
-    await fetchChargingProviders()
-    showProviderForm.value = false
-    providerForm.value = {
-      providerName: '',
-      customProviderName: '',
-      acPricePerKwh: '',
-      dcPricePerKwh: '',
-      monthlyFeeEur: 0,
-      sessionFeeEur: 0,
-      activeFrom: new Date().toISOString().split('T')[0],
     }
+    if (editingProviderId.value === 'new') {
+      await api.post('/users/me/charging-providers', payload)
+    } else {
+      await api.put(`/users/me/charging-providers/${editingProviderId.value}`, payload)
+    }
+    await fetchChargingProviders()
+    editingProviderId.value = null
+    resetProviderForm()
     message.value = { type: 'success', text: t('settings.tariff_ok') }
   } catch (error: any) {
     message.value = { type: 'error', text: error.response?.data?.message || t('settings.tariff_err_save') }
@@ -619,160 +641,185 @@ onMounted(async () => {
         </div>
       </div>
 
-      <!-- Ladetarif Section -->
+      <!-- Meine Ladekarten Section -->
       <div class="mb-8">
         <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
           <CreditCardIcon class="h-6 w-6" />
           {{ t('settings.tariff_title') }}
         </h2>
 
-        <!-- Aktueller Tarif -->
-        <div class="mb-3 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-          <div v-if="activeProvider" class="flex items-start justify-between gap-4">
-            <div class="min-w-0">
-              <p class="font-semibold text-gray-800 dark:text-gray-100 truncate">{{ activeProvider.providerName }}</p>
-              <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{{ t('settings.tariff_active_since') }} {{ formatDate(activeProvider.activeFrom) }}</p>
-              <div class="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-sm text-gray-600 dark:text-gray-300">
-                <span v-if="activeProvider.acPricePerKwh != null">AC: {{ formatPrice(activeProvider.acPricePerKwh) }}</span>
-                <span v-if="activeProvider.dcPricePerKwh != null">DC: {{ formatPrice(activeProvider.dcPricePerKwh) }}</span>
-                <span v-if="activeProvider.monthlyFeeEur > 0">{{ formatCurrency(activeProvider.monthlyFeeEur!) }}/{{ t('settings.month_short') }}</span>
+        <div class="space-y-3">
+          <!-- Bestehende Karten -->
+          <template v-for="provider in chargingProviders" :key="provider.id">
+            <!-- Card (normale Ansicht) -->
+            <div v-if="editingProviderId !== provider.id"
+              class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg flex items-start justify-between gap-4">
+              <div class="min-w-0 flex-1">
+                <p class="font-semibold text-gray-800 dark:text-gray-100 truncate">{{ provider.providerName }}</p>
+                <p v-if="provider.label" class="text-sm text-gray-500 dark:text-gray-400 mt-0.5 truncate">{{ provider.label }}</p>
+                <div class="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-sm text-gray-600 dark:text-gray-300">
+                  <span v-if="provider.acPricePerKwh != null">AC: {{ formatPrice(provider.acPricePerKwh) }}</span>
+                  <span v-if="provider.dcPricePerKwh != null">DC: {{ formatPrice(provider.dcPricePerKwh) }}</span>
+                  <span v-if="provider.monthlyFeeEur > 0">{{ formatCurrency(provider.monthlyFeeEur) }}/{{ t('settings.month_short') }}</span>
+                </div>
+                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ t('settings.tariff_active_since') }} {{ formatDate(provider.activeFrom) }}</p>
+              </div>
+              <div class="flex gap-1 flex-shrink-0 mt-0.5">
+                <button @click="startEditProvider(provider)"
+                  class="p-1.5 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition rounded">
+                  <PencilIcon class="h-4 w-4" />
+                </button>
+                <button @click="deleteChargingProvider(provider.id)"
+                  class="p-1.5 text-gray-400 hover:text-red-500 transition rounded">
+                  <TrashIcon class="h-4 w-4" />
+                </button>
               </div>
             </div>
-            <button
-              @click="showProviderForm = !showProviderForm"
-              class="btn-3d flex-shrink-0 px-3 py-1 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition">
-              {{ t('settings.tariff_switch_btn') }}
-            </button>
-          </div>
-          <div v-else class="flex items-center justify-between gap-4">
-            <div>
-              <p class="font-medium text-gray-700 dark:text-gray-300">{{ t('settings.tariff_none_title') }}</p>
-              <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{{ t('settings.tariff_none_desc') }}</p>
-            </div>
-            <button
-              @click="showProviderForm = !showProviderForm"
-              class="btn-3d flex-shrink-0 flex items-center gap-1 px-3 py-1 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition">
-              <PlusIcon class="h-4 w-4" />
-              {{ t('settings.tariff_add_btn') }}
-            </button>
-          </div>
-        </div>
 
-        <!-- Formular -->
-        <div v-if="showProviderForm" class="mb-3 p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700 rounded-lg space-y-3">
-          <p class="text-sm font-medium text-indigo-800 dark:text-indigo-300">
-            {{ activeProvider ? t('settings.tariff_form_title_switch') : t('settings.tariff_form_title_new') }}
-          </p>
-
-          <!-- Anbieter -->
-          <div>
-            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ t('settings.tariff_provider_label') }}</label>
-            <select
-              v-model="providerForm.providerName"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500">
-              <option value="" disabled>{{ t('settings.tariff_provider_placeholder') }}</option>
-              <option v-for="emp in KNOWN_EMPS" :key="emp" :value="emp">{{ emp }}</option>
-            </select>
-          </div>
-          <div v-if="isCustomProvider">
-            <input
-              v-model="providerForm.customProviderName"
-              type="text"
-              :placeholder="t('settings.tariff_provider_custom_placeholder')"
-              maxlength="100"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500" />
-          </div>
-
-          <!-- Preise -->
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ t('settings.tariff_ac_label') }}</label>
-              <input
-                v-model="providerForm.acPricePerKwh"
-                type="number" step="0.0001" min="0" max="5"
-                placeholder="z.B. 0.39"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500" />
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ t('settings.tariff_dc_label') }}</label>
-              <input
-                v-model="providerForm.dcPricePerKwh"
-                type="number" step="0.0001" min="0" max="5"
-                placeholder="z.B. 0.49"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500" />
-            </div>
-          </div>
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ t('settings.tariff_monthly_label') }}</label>
-              <input
-                v-model="providerForm.monthlyFeeEur"
-                type="number" step="0.01" min="0"
-                placeholder="0.00"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500" />
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ t('settings.tariff_session_label') }}</label>
-              <input
-                v-model="providerForm.sessionFeeEur"
-                type="number" step="0.0001" min="0"
-                placeholder="0.00"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500" />
-            </div>
-          </div>
-
-          <!-- Aktiv seit -->
-          <div>
-            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ t('settings.tariff_active_from_label') }}</label>
-            <input
-              v-model="providerForm.activeFrom"
-              type="date"
-              :max="new Date().toISOString().split('T')[0]"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500" />
-          </div>
-
-          <div class="flex gap-2 pt-1">
-            <button
-              @click="saveChargingProvider"
-              :disabled="loading || !providerForm.providerName || (isCustomProvider && !providerForm.customProviderName)"
-              class="btn-3d flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 transition text-sm">
-              {{ t('settings.tariff_save') }}
-            </button>
-            <button
-              @click="showProviderForm = false"
-              class="btn-3d flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-400 transition text-sm">
-              {{ t('settings.tariff_cancel') }}
-            </button>
-          </div>
-        </div>
-
-        <!-- History -->
-        <div v-if="pastProviders.length > 0">
-          <button
-            @click="showProviderHistory = !showProviderHistory"
-            class="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition">
-            <ChevronDownIcon v-if="!showProviderHistory" class="h-4 w-4" />
-            <ChevronUpIcon v-else class="h-4 w-4" />
-            {{ pastProviders.length === 1 ? t('settings.tariff_history_one') : t('settings.tariff_history_many', { n: pastProviders.length }) }}
-          </button>
-          <div v-if="showProviderHistory" class="mt-2 space-y-2">
-            <div
-              v-for="provider in pastProviders"
-              :key="provider.id"
-              class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg text-sm">
-              <div class="min-w-0">
-                <p class="font-medium text-gray-700 dark:text-gray-300 truncate">{{ provider.providerName }}</p>
-                <p class="text-xs text-gray-400 mt-0.5">
-                  {{ formatDate(provider.activeFrom) }} - {{ provider.activeUntil ? formatDate(provider.activeUntil) : '' }}
-                </p>
+            <!-- Inline-Edit Formular -->
+            <div v-else class="p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700 rounded-lg space-y-3">
+              <p class="text-sm font-medium text-indigo-800 dark:text-indigo-300">{{ t('settings.tariff_form_edit') }}</p>
+              <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ t('settings.tariff_provider_label') }}</label>
+                <select v-model="providerForm.providerName"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                  <option value="" disabled>{{ t('settings.tariff_provider_placeholder') }}</option>
+                  <option v-for="emp in KNOWN_EMPS" :key="emp" :value="emp">{{ emp }}</option>
+                </select>
               </div>
-              <button
-                @click="deleteChargingProvider(provider.id)"
-                class="flex-shrink-0 ml-3 p-1.5 text-gray-400 hover:text-red-500 transition rounded">
-                <TrashIcon class="h-4 w-4" />
+              <div v-if="isCustomProvider">
+                <input v-model="providerForm.customProviderName" type="text"
+                  :placeholder="t('settings.tariff_provider_custom_placeholder')" maxlength="100"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500" />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ t('settings.tariff_label_label') }}</label>
+                <input v-model="providerForm.label" type="text"
+                  :placeholder="t('settings.tariff_label_placeholder')" maxlength="100"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500" />
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ t('settings.tariff_ac_label') }}</label>
+                  <input v-model="providerForm.acPricePerKwh" type="number" step="0.0001" min="0" max="5" placeholder="0.39"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500" />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ t('settings.tariff_dc_label') }}</label>
+                  <input v-model="providerForm.dcPricePerKwh" type="number" step="0.0001" min="0" max="5" placeholder="0.49"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500" />
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ t('settings.tariff_monthly_label') }}</label>
+                  <input v-model="providerForm.monthlyFeeEur" type="number" step="0.01" min="0" placeholder="0.00"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500" />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ t('settings.tariff_session_label') }}</label>
+                  <input v-model="providerForm.sessionFeeEur" type="number" step="0.0001" min="0" placeholder="0.00"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500" />
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ t('settings.tariff_active_from_label') }}</label>
+                <input v-model="providerForm.activeFrom" type="date" :max="new Date().toISOString().split('T')[0]"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500" />
+              </div>
+              <div class="flex gap-2 pt-1">
+                <button @click="saveChargingProvider"
+                  :disabled="loading || !providerForm.providerName || (isCustomProvider && !providerForm.customProviderName)"
+                  class="btn-3d flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 transition text-sm">
+                  {{ t('settings.tariff_save') }}
+                </button>
+                <button @click="editingProviderId = null; resetProviderForm()"
+                  class="btn-3d flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-400 transition text-sm">
+                  {{ t('settings.tariff_cancel') }}
+                </button>
+              </div>
+            </div>
+          </template>
+
+          <!-- Empty State -->
+          <div v-if="chargingProviders.length === 0 && editingProviderId !== 'new'"
+            class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <p class="font-medium text-gray-700 dark:text-gray-300">{{ t('settings.tariff_none_title') }}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{{ t('settings.tariff_none_desc') }}</p>
+          </div>
+
+          <!-- Neue Karte Formular -->
+          <div v-if="editingProviderId === 'new'"
+            class="p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700 rounded-lg space-y-3">
+            <p class="text-sm font-medium text-indigo-800 dark:text-indigo-300">{{ t('settings.tariff_form_title_new') }}</p>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ t('settings.tariff_provider_label') }}</label>
+              <select v-model="providerForm.providerName"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                <option value="" disabled>{{ t('settings.tariff_provider_placeholder') }}</option>
+                <option v-for="emp in KNOWN_EMPS" :key="emp" :value="emp">{{ emp }}</option>
+              </select>
+            </div>
+            <div v-if="isCustomProvider">
+              <input v-model="providerForm.customProviderName" type="text"
+                :placeholder="t('settings.tariff_provider_custom_placeholder')" maxlength="100"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ t('settings.tariff_label_label') }}</label>
+              <input v-model="providerForm.label" type="text"
+                :placeholder="t('settings.tariff_label_placeholder')" maxlength="100"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500" />
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ t('settings.tariff_ac_label') }}</label>
+                <input v-model="providerForm.acPricePerKwh" type="number" step="0.0001" min="0" max="5" placeholder="0.39"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500" />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ t('settings.tariff_dc_label') }}</label>
+                <input v-model="providerForm.dcPricePerKwh" type="number" step="0.0001" min="0" max="5" placeholder="0.49"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500" />
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ t('settings.tariff_monthly_label') }}</label>
+                <input v-model="providerForm.monthlyFeeEur" type="number" step="0.01" min="0" placeholder="0.00"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500" />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ t('settings.tariff_session_label') }}</label>
+                <input v-model="providerForm.sessionFeeEur" type="number" step="0.0001" min="0" placeholder="0.00"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500" />
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ t('settings.tariff_active_from_label') }}</label>
+              <input v-model="providerForm.activeFrom" type="date" :max="new Date().toISOString().split('T')[0]"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500" />
+            </div>
+            <div class="flex gap-2 pt-1">
+              <button @click="saveChargingProvider"
+                :disabled="loading || !providerForm.providerName || (isCustomProvider && !providerForm.customProviderName)"
+                class="btn-3d flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 transition text-sm">
+                {{ t('settings.tariff_save') }}
+              </button>
+              <button @click="editingProviderId = null; resetProviderForm()"
+                class="btn-3d flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-400 transition text-sm">
+                {{ t('settings.tariff_cancel') }}
               </button>
             </div>
           </div>
+
+          <!-- Neue Ladekarte Button -->
+          <button v-if="editingProviderId === null"
+            @click="editingProviderId = 'new'; resetProviderForm()"
+            class="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-500 dark:text-gray-400 hover:border-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition text-sm">
+            <PlusIcon class="h-4 w-4" />
+            {{ t('settings.tariff_add_btn') }}
+          </button>
         </div>
       </div>
 

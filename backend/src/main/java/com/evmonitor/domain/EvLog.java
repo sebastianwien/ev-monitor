@@ -38,6 +38,7 @@ public class EvLog {
     private final EnergyMeasurementType measurementType; // At which point energy is measured (derived from dataSource)
     private final BigDecimal costExchangeRate; // EUR->local rate used at entry time (null = EUR direct)
     private final String costCurrency;         // ISO 4217 currency code (null = EUR)
+    private final UUID chargingProviderId;   // Optional: FK to user_charging_providers (which tariff was used)
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
 
@@ -53,7 +54,7 @@ public class EvLog {
             LocalDateTime createdAt, LocalDateTime updatedAt,
             RouteType routeType, TireType tireType, UUID supersededBy, UUID sessionGroupId,
             boolean publicCharging, String cpoName, EnergyMeasurementType measurementType,
-            BigDecimal costExchangeRate, String costCurrency) {
+            BigDecimal costExchangeRate, String costCurrency, UUID chargingProviderId) {
         this.id = id;
         this.carId = carId;
         this.kwhCharged = kwhCharged;
@@ -82,6 +83,7 @@ public class EvLog {
         this.cpoName = cpoName;
         this.costExchangeRate = costExchangeRate;
         this.costCurrency = costCurrency;
+        this.chargingProviderId = chargingProviderId;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -219,7 +221,7 @@ public class EvLog {
             BigDecimal maxChargingPowerKw, ChargingType chargingType,
             RouteType routeType, TireType tireType, Boolean publicCharging, String cpoName,
             EnergyMeasurementType measurementType,
-            BigDecimal costExchangeRate, String costCurrency) {
+            BigDecimal costExchangeRate, String costCurrency, UUID chargingProviderId) {
         return toBuilder()
                 .kwhCharged(kwh != null ? kwh : this.kwhCharged)
                 .costEur(costEur != null ? costEur : this.costEur)
@@ -237,6 +239,7 @@ public class EvLog {
                 .publicCharging(publicCharging != null ? publicCharging : this.publicCharging)
                 .cpoName(cpoName != null ? cpoName : this.cpoName)
                 .measurementType(measurementType != null ? measurementType : this.measurementType)
+                .chargingProviderId(chargingProviderId != null ? chargingProviderId : this.chargingProviderId)
                 .updatedAt(LocalDateTime.now())
                 .build();
     }

@@ -60,6 +60,7 @@ const formData = ref<LogFormData>({
   longitude: null,
   isPublicCharging: false,
   cpoName: null,
+  chargingProviderId: null,
 })
 
 const isFormValid = computed(() => {
@@ -184,6 +185,7 @@ const submitLog = async () => {
     payload.tireType = f.tireType
     payload.isPublicCharging = f.isPublicCharging
     if (f.isPublicCharging && f.cpoName) payload.cpoName = f.cpoName
+    if (f.chargingProviderId) payload.chargingProviderId = f.chargingProviderId
     if (f.costExchangeRate != null) payload.costExchangeRate = f.costExchangeRate
     if (f.costCurrency != null) payload.costCurrency = f.costCurrency
 
@@ -204,7 +206,7 @@ const submitLog = async () => {
       chargingType: 'AC', routeType: savedRouteType,
       tireType: savedTireType,
       latitude: null, longitude: null,
-      isPublicCharging: false, cpoName: null,
+      isPublicCharging: false, cpoName: null, chargingProviderId: null,
     }
     ocrUsed.value = false
     odometerPlaceholderOverride.value = null

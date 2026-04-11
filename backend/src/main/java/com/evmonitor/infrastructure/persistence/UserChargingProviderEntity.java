@@ -45,6 +45,9 @@ public class UserChargingProviderEntity {
     @Column(name = "active_until")
     private LocalDate activeUntil;
 
+    @Column(name = "label", length = 100)
+    private String label;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 }

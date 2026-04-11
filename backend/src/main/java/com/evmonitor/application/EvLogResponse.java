@@ -38,7 +38,8 @@ public record EvLogResponse(
         boolean isPublicCharging,
         String cpoName,
         BigDecimal costExchangeRate,
-        String costCurrency) {
+        String costCurrency,
+        UUID chargingProviderId) {
 
     public static EvLogResponse fromDomain(EvLog evLog) {
         return fromDomain(evLog, null, null);
@@ -78,6 +79,7 @@ public record EvLogResponse(
                 evLog.isPublicCharging(),
                 evLog.getCpoName(),
                 evLog.getCostExchangeRate(),
-                evLog.getCostCurrency());
+                evLog.getCostCurrency(),
+                evLog.getChargingProviderId());
     }
 }
