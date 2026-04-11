@@ -31,7 +31,6 @@ public class EvLogStatisticsService {
     private final EvLogRepository evLogRepository;
     private final CarRepository carRepository;
     private final UserRepository userRepository;
-    private final SessionGroupService sessionGroupService;
     private final ConsumptionCalculationService calculationService;
     private final PlausibilityProperties plausibility;
 
@@ -113,18 +112,7 @@ public class EvLogStatisticsService {
                 .filter(log -> log.isLoggedWithin(startDate, endDate))
                 .toList();
 
-        // Session groups (WALLBOX_GOE/API_UPLOAD Ladegruppen) — stored in separate table,
-        // their sub-sessions have include_in_statistics=false to avoid double-counting.
-        // Must be included here so energy/cost from go-e charger sessions appear in statistics.
-        List<SessionGroupResponse> sessionGroups = sessionGroupService.findAllByCarId(carId).stream()
-                .filter(g -> {
-                    java.time.LocalDate groupDate = g.sessionStart().toLocalDate();
-                    return (startDate == null || !groupDate.isBefore(startDate))
-                            && (endDate == null || !groupDate.isAfter(endDate));
-                })
-                .toList();
-
-        if (logs.isEmpty() && sessionGroups.isEmpty()) {
+        if (logs.isEmpty()) {
             return createEmptyStatistics();
         }
 
@@ -189,63 +177,19 @@ public class EvLogStatisticsService {
         List<EvLogStatisticsResponse.ChargeDataPoint> chargesOverTime =
                 groupChargesByPeriod(logs, groupBy != null ? groupBy : "MONTH", consumptionByLog);
 
-        // Merge session groups (WALLBOX_GOE Ladegruppen) into stats — kWh, cost, chart data
-        if (!sessionGroups.isEmpty()) {
-            BigDecimal sgKwh = sessionGroups.stream()
-                    .map(SessionGroupResponse::totalKwhCharged)
-                    .filter(Objects::nonNull)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-            BigDecimal sgCost = sessionGroups.stream()
-                    .map(SessionGroupResponse::costEur)
-                    .filter(g -> g != null && g.compareTo(BigDecimal.ZERO) > 0)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-            totalKwhCharged = totalKwhCharged.add(sgKwh);
-            totalCostEur = totalCostEur.add(sgCost);
-            totalKwhForCost = totalKwhForCost.add(sgKwh);
-            avgCostPerKwh = totalKwhForCost.compareTo(BigDecimal.ZERO) > 0
-                    ? totalCostEur.divide(totalKwhForCost, 2, RoundingMode.HALF_UP)
-                    : BigDecimal.ZERO;
-
-            String effectiveGroupBy = groupBy != null ? groupBy : "MONTH";
-            Map<String, EvLogStatisticsResponse.ChargeDataPoint> periodMap = chargesOverTime.stream()
-                    .collect(Collectors.toMap(
-                            dp -> getPeriodKey(dp.timestamp(), effectiveGroupBy),
-                            dp -> dp,
-                            (a, b) -> a,
-                            java.util.LinkedHashMap::new));
-
-            for (SessionGroupResponse group : sessionGroups) {
-                String key = getPeriodKey(group.sessionStart(), effectiveGroupBy);
-                BigDecimal gKwh = group.totalKwhCharged() != null ? group.totalKwhCharged() : BigDecimal.ZERO;
-                BigDecimal gCost = group.costEur() != null ? group.costEur() : BigDecimal.ZERO;
-                EvLogStatisticsResponse.ChargeDataPoint existing = periodMap.get(key);
-                if (existing == null) {
-                    periodMap.put(key, new EvLogStatisticsResponse.ChargeDataPoint(
-                            group.sessionStart(), gCost, gKwh, null, null));
-                } else {
-                    periodMap.put(key, new EvLogStatisticsResponse.ChargeDataPoint(
-                            existing.timestamp(),
-                            existing.costEur().add(gCost),
-                            existing.kwhCharged().add(gKwh),
-                            existing.distanceKm(),
-                            existing.consumptionKwhPer100km()));
-                }
-            }
-
-            chargesOverTime = periodMap.entrySet().stream()
-                    .sorted(Map.Entry.comparingByKey())
-                    .map(Map.Entry::getValue)
-                    .toList();
-        }
-
         // Total distance and avg consumption — SoC-based from pre-computed consumptionByLog
+        // Bug-fix: iterate consumptionByLog.entrySet() with isLoggedWithin filter so time-filtered
+        // views don't include consumption data from outside the selected period.
+        Map<UUID, EvLog> logById = allLogsForCar.stream()
+                .collect(Collectors.toMap(EvLog::getId, l -> l));
         BigDecimal totalWeighted = BigDecimal.ZERO;
         int totalDist = 0;        // all logs with consumption data, for avg consumption calculation
         int totalDistAll = 0;     // all logs with distance, for display
         int estimatedCount = 0;   // count logs with estimated consumption (kWh/distance fallback)
-        for (EvLog log : logs) {
-            ConsumptionResult cr = consumptionByLog.get(log.getId());
+        for (Map.Entry<UUID, ConsumptionResult> entry : consumptionByLog.entrySet()) {
+            EvLog log = logById.get(entry.getKey());
+            if (log == null || !log.isLoggedWithin(startDate, endDate)) continue;
+            ConsumptionResult cr = entry.getValue();
             if (cr == null) continue;
             if (cr.distanceKm() > 0) totalDistAll += cr.distanceKm();
             if (cr.estimated()) estimatedCount++;
@@ -278,7 +222,7 @@ public class EvLogStatisticsService {
                 cheapestCharge,
                 mostExpensiveCharge,
                 avgChargeDuration,
-                logs.size() + sessionGroups.size(),
+                logs.size(),
                 totalDistanceKm,
                 avgConsumptionKwhPer100km,
                 estimatedCount,

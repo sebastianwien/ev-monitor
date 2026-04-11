@@ -32,7 +32,6 @@ public class EvLogService {
     private final CoinLogService coinLogService;
     private final TemperatureEnricher temperatureEnricher;
     private final PlausibilityProperties plausibility;
-    private final SessionGroupService sessionGroupService;
     private final ConsumptionCalculationService calculationService;
 
     @Transactional
@@ -173,18 +172,6 @@ public class EvLogService {
             coinLogService.awardCoinsForEvent(request.userId(), CoinLogService.CoinEvent.TESLA_DAILY_LOG, savedLog.getId());
         }
 
-        // Überschussladen-Grouping: WALLBOX_GOE Sessions mit kurzem Abstand zusammenfassen.
-        // Nur wenn merge_sessions am Request aktiv ist (go-e Verbindung muss es explizit anfordern).
-        // Fehler beim Grouping sollen den Log-Save NICHT rückgängig machen — daher try-catch.
-        if (!isSuperseded && request.mergeSessions()) {
-            try {
-                sessionGroupService.processSessionForGrouping(savedLog);
-            } catch (Exception e) {
-                log.error("Session grouping failed for log {}, log was saved but not grouped: {}",
-                        savedLog.getId(), e.getMessage(), e);
-            }
-        }
-
         return EvLogResponse.fromDomain(savedLog);
     }
 
@@ -230,7 +217,6 @@ public class EvLogService {
 
     public List<EvLogResponse> getStandaloneLogsForUser(UUID userId) {
         return evLogRepository.findAllByUserId(userId).stream()
-                .filter(log -> log.getSessionGroupId() == null) // Sub-Sessions ausblenden
                 .map(EvLogResponse::fromDomain)
                 .toList();
     }
@@ -378,14 +364,9 @@ public class EvLogService {
         }
 
         // Return the requested page, enriched with consumption and distance data.
-        // Sub-Sessions (sessionGroupId != null) are excluded — they are represented by their group entry.
         List<EvLog> page_logs = (limit != null && limit > 0)
-                ? evLogRepository.findLatestByCarId(carId, limit, page).stream()
-                    .filter(log -> log.getSessionGroupId() == null)
-                    .toList()
-                : allLogsSorted.reversed().stream()
-                    .filter(log -> log.getSessionGroupId() == null)
-                    .toList();
+                ? evLogRepository.findLatestByCarId(carId, limit, page)
+                : allLogsSorted.reversed();
 
         return page_logs.stream()
                 .map(log -> EvLogResponse.fromDomain(log, consumptionByLog.get(log.getId()), distanceByLogId.get(log.getId())))
@@ -417,10 +398,6 @@ public class EvLogService {
     public void reassignLog(UUID logId, UUID targetCarId, UUID userId) {
         EvLog log = evLogRepository.findById(logId)
                 .orElseThrow(() -> new IllegalArgumentException("Log not found"));
-
-        if (log.getSessionGroupId() != null) {
-            throw new IllegalArgumentException("Log is part of a session group — use the group reassign endpoint");
-        }
 
         Car sourceCar = carRepository.findById(log.getCarId())
                 .orElseThrow(() -> new IllegalArgumentException("Source car not found"));

@@ -48,7 +48,6 @@ public class TronityImportController {
                     request.carId(),
                     "json",
                     request.data(),
-                    request.mergeSessions() != null && request.mergeSessions(),
                     DataSource.TRONITY_IMPORT
             );
             return ResponseEntity.ok(result);

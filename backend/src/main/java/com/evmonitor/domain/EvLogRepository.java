@@ -57,25 +57,7 @@ public interface EvLogRepository {
 
     List<GeohashPoint> findGeohashDataByCarId(UUID carId);
 
-    /**
-     * Setzt die session_group_id für einen einzelnen Log-Eintrag (Sub-Session Linking).
-     */
-    void setSessionGroupId(UUID logId, UUID groupId);
-
-    /**
-     * Gibt alle Logs zurück, die zu einer bestimmten Gruppe gehören (Sub-Sessions).
-     */
-    List<EvLog> findAllBySessionGroupId(UUID groupId);
-
-    /**
-     * Gibt alle Logs zurück, die KEINE Sub-Session sind (session_group_id IS NULL).
-     * Für Dashboard-Anzeige: Sub-Sessions werden durch Gruppen-Einträge ersetzt.
-     */
-    List<EvLog> findAllByCarIdExcludingSubSessions(UUID carId);
-
     Optional<BigDecimal> findMostRecentCostPerKwhByUserIdAndGeohash(UUID userId, String geohash);
-
-    void updateCarIdBySessionGroupId(UUID groupId, UUID targetCarId);
 
     void updateCarIdForLog(UUID logId, UUID targetCarId);
 }

@@ -25,7 +25,6 @@ import static org.junit.jupiter.api.Assertions.*;
 class EvLogServiceGoeConsumptionChainTest extends AbstractIntegrationTest {
 
     @Autowired private EvLogStatisticsService evLogService;
-    @Autowired private SessionGroupService sessionGroupService;
 
     private UUID userId;
     private UUID carId;
@@ -77,19 +76,17 @@ class EvLogServiceGoeConsumptionChainTest extends AbstractIntegrationTest {
                 base, ChargingType.AC, null, null,
                 false, null));
 
-        EvLog goe1 = evLogRepository.save(EvLog.createFromInternal(
+        evLogRepository.save(EvLog.createFromInternal(
                 carId, new BigDecimal("8.5"), 90, null,
                 base.plusDays(1).withHour(10),
                 null, null, DataSource.WALLBOX_GOE, new BigDecimal("2.38"), ChargingType.AC,
                 null, null, null, null));
-        sessionGroupService.processSessionForGrouping(goe1);
 
-        EvLog goe2 = evLogRepository.save(EvLog.createFromInternal(
+        evLogRepository.save(EvLog.createFromInternal(
                 carId, new BigDecimal("5.2"), 60, null,
                 base.plusDays(1).withHour(10).plusMinutes(45),
                 null, null, DataSource.WALLBOX_GOE, new BigDecimal("1.46"), ChargingType.AC,
                 null, null, null, null));
-        sessionGroupService.processSessionForGrouping(goe2);
 
         evLogRepository.save(EvLog.createNew(carId, LOG_B_KWH, LOG_B_COST,
                 90, null, LOG_B_ODOMETER, null, LOG_B_SOC,
@@ -104,9 +101,9 @@ class EvLogServiceGoeConsumptionChainTest extends AbstractIntegrationTest {
         assertEquals(new BigDecimal("20.82"), stats.avgConsumptionKwhPer100km(),
                 "Verbrauch = (48.75 SoC-Delta + 13.7 go-e kWh) / 300km * 100 = 20.82 kWh/100km");
 
-        // go-e kWh + Kosten in Statistiken (aus Session-Group-Fix)
+        // go-e kWh + Kosten in Statistiken (alle Logs haben include=true)
         assertEquals(0, new BigDecimal("106.20").compareTo(stats.totalKwhCharged()),
-                "40.0 (A) + 13.7 (go-e Gruppe) + 52.5 (B) = 106.2 kWh");
+                "40.0 (A) + 8.5 + 5.2 (go-e) + 52.5 (B) = 106.2 kWh");
         BigDecimal expectedCost = new BigDecimal("11.00").add(new BigDecimal("2.38"))
                 .add(new BigDecimal("1.46")).add(LOG_B_COST);
         assertEquals(0, expectedCost.compareTo(stats.totalCostEur()));
@@ -156,6 +153,97 @@ class EvLogServiceGoeConsumptionChainTest extends AbstractIntegrationTest {
                 "SoC-basierter Verbrauch: 48.75 kWh / 300 km = 16.25 kWh/100km");
     }
 
+    // ── Szenario 4: nur go-e Sessions mit Odometer/SoC ──────────────────────────
+
+    /**
+     * Stellt sicher dass Verbrauch angezeigt wird wenn alle logY-Kandidaten WALLBOX_GOE sind.
+     * Seit V75 haben GOE-Logs include=true, kein Session-Group-Mechanismus mehr nötig.
+     *
+     * Aufbau:
+     *   GOE A (odometer=10000, SoC=80%)
+     *   GOE B (odometer=10300, SoC=85%, 52.5 kWh)
+     *
+     * Erwartung: avgConsumptionKwhPer100km = 16.25 kWh/100km (SoC-basiert, nicht geschätzt)
+     */
+    @Test
+    void goeOnlySessionsWithSocAndOdometer_consumptionVisible() {
+        LocalDateTime base = LocalDateTime.now().minusDays(5).withHour(8);
+
+        evLogRepository.save(EvLog.createFromInternal(
+                carId, new BigDecimal("40.0"), 180, null,
+                base,
+                null, null, DataSource.WALLBOX_GOE, new BigDecimal("11.00"), ChargingType.AC,
+                LOG_A_ODOMETER, null, LOG_A_SOC, null));
+
+        evLogRepository.save(EvLog.createFromInternal(
+                carId, LOG_B_KWH, 90, null,
+                base.plusDays(2),
+                null, null, DataSource.WALLBOX_GOE, LOG_B_COST, ChargingType.AC,
+                LOG_B_ODOMETER, null, LOG_B_SOC, null));
+
+        EvLogStatisticsResponse stats = evLogService.getStatistics(carId, userId, null, null, null);
+
+        assertNotNull(stats.avgConsumptionKwhPer100km(),
+                "Verbrauch muss bei reinen GOE-Sessions sichtbar sein");
+        assertEquals(new BigDecimal("16.25"), stats.avgConsumptionKwhPer100km(),
+                "SoC-basierter Verbrauch: 48.75 kWh / 300 km = 16.25 kWh/100km");
+        assertEquals(0, stats.estimatedConsumptionCount(),
+                "SoC-Daten vorhanden — kein Fallback-Schätzer");
+    }
+
+    // ── Szenario 5: gemischte DataSources — TESLA_FLEET_IMPORT + GOE + USER_LOGGED ─
+
+    /**
+     * TESLA_FLEET_IMPORT ohne Odometer bricht die Kette.
+     * WALLBOX_GOE danach bildet eine eigene Teilkette.
+     * Stellt sicher dass die GOE-Teilkette sichtbar ist.
+     *
+     * Aufbau:
+     *   T1: TESLA_FLEET_IMPORT (odometer=5000, soc=90)
+     *   T2: TESLA_FLEET_IMPORT (kein odometer, soc=75) → KETTENBRUCH für G1
+     *   G1: WALLBOX_GOE (odometer=10000, soc=80) → kein Verbrauch (T2 davor bricht die Kette)
+     *   G2: WALLBOX_GOE (odometer=10300, soc=85, 52.5 kWh) → logX=G1 → 16.25 kWh/100km
+     */
+    @Test
+    void mixedSources_teslaFleetImportWithoutOdometerBreaksChain_goeSubChainStillVisible() {
+        LocalDateTime base = LocalDateTime.now().minusDays(10).withHour(8);
+
+        evLogRepository.save(EvLog.createFromInternal(
+                carId, new BigDecimal("40.0"), 120, null,
+                base,
+                null, null, DataSource.TESLA_FLEET_IMPORT, null, ChargingType.DC,
+                5000, null, 90, null));
+
+        evLogRepository.save(EvLog.createFromInternal(
+                carId, new BigDecimal("20.0"), 45, null,
+                base.plusDays(1),
+                null, null, DataSource.TESLA_FLEET_IMPORT, null, ChargingType.DC,
+                null, null, 75, null));
+
+        evLogRepository.save(EvLog.createFromInternal(
+                carId, new BigDecimal("30.0"), 90, null,
+                base.plusDays(2),
+                null, null, DataSource.WALLBOX_GOE, new BigDecimal("8.40"), ChargingType.AC,
+                LOG_A_ODOMETER, null, LOG_A_SOC, null));
+
+        evLogRepository.save(EvLog.createFromInternal(
+                carId, LOG_B_KWH, 90, null,
+                base.plusDays(4),
+                null, null, DataSource.WALLBOX_GOE, LOG_B_COST, ChargingType.AC,
+                LOG_B_ODOMETER, null, LOG_B_SOC, null));
+
+        EvLogStatisticsResponse stats = evLogService.getStatistics(carId, userId, null, null, null);
+
+        assertNotNull(stats.avgConsumptionKwhPer100km(),
+                "GOE Sub-Kette muss sichtbar sein — auch wenn TESLA_FLEET_IMPORT davor die Kette gebrochen hat");
+        assertEquals(new BigDecimal("16.25"), stats.avgConsumptionKwhPer100km(),
+                "Nur G1→G2 Trip berechenbar: 48.75 kWh / 300 km = 16.25 kWh/100km");
+        assertEquals(new BigDecimal("300"), stats.totalDistanceKm(),
+                "Nur die 300 km des G1→G2 Trips sind bekannt");
+        assertEquals(0, stats.estimatedConsumptionCount(),
+                "SoC-basiert — kein Fallback-Schätzer");
+    }
+
     // ── Szenario 3: go-e Sub-Sessions MIT Odometer/SoC (User pflegt manuell) ───
 
     /**
@@ -173,12 +261,11 @@ class EvLogServiceGoeConsumptionChainTest extends AbstractIntegrationTest {
                 false, null));
 
         // go-e Sub-Sessions MIT Odometer + SoC (User hat manuell befüllt)
-        EvLog goe1 = evLogRepository.save(EvLog.createFromInternal(
+        evLogRepository.save(EvLog.createFromInternal(
                 carId, new BigDecimal("8.5"), 90, null,
                 base.plusDays(1).withHour(10),
                 null, null, DataSource.WALLBOX_GOE, new BigDecimal("2.38"), ChargingType.AC,
                 LOG_A_ODOMETER, null, LOG_A_SOC, null)); // odometerKm + socAfter gesetzt
-        sessionGroupService.processSessionForGrouping(goe1);
 
         // Manual Log B — direkter Vorgänger ist jetzt go-e mit SoC → canBeUsedAsLogX()=true
         evLogRepository.save(EvLog.createNew(carId, LOG_B_KWH, LOG_B_COST,

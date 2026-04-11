@@ -2,7 +2,6 @@ package com.evmonitor.application.publicapi;
 
 import ch.hsr.geohash.GeoHash;
 import com.evmonitor.application.CoinLogService;
-import com.evmonitor.application.SessionGroupService;
 import com.evmonitor.domain.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -52,26 +51,15 @@ public class PublicApiImportService {
     private final EvLogRepository evLogRepository;
     private final CarRepository carRepository;
     private final CoinLogService coinLogService;
-    private final SessionGroupService sessionGroupService;
     private final CpoNameNormalizer cpoNameNormalizer;
 
     @Transactional
     public ImportApiResult importSessions(UUID userId, PublicApiSessionRequest request, ApiKey apiKey) {
-        return importSessions(userId, request, apiKey != null && apiKey.isMergeSessions());
+        return importSessions(userId, request, DataSource.API_UPLOAD);
     }
 
     @Transactional
-    public ImportApiResult importSessions(UUID userId, PublicApiSessionRequest request, boolean mergeSessions) {
-        return importSessions(userId, request, mergeSessions, false, DataSource.API_UPLOAD);
-    }
-
-    @Transactional
-    public ImportApiResult importSessions(UUID userId, PublicApiSessionRequest request, boolean mergeSessions, boolean allowBatchMerge) {
-        return importSessions(userId, request, mergeSessions, allowBatchMerge, DataSource.API_UPLOAD);
-    }
-
-    @Transactional
-    public ImportApiResult importSessions(UUID userId, PublicApiSessionRequest request, boolean mergeSessions, boolean allowBatchMerge, DataSource dataSource) {
+    public ImportApiResult importSessions(UUID userId, PublicApiSessionRequest request, DataSource dataSource) {
         Car car = carRepository.findById(request.carId())
                 .orElseThrow(() -> new IllegalArgumentException("Fahrzeug nicht gefunden"));
 
@@ -157,14 +145,6 @@ public class PublicApiImportService {
                     continue;
                 }
                 coinLogService.awardCoinsForEvent(userId, CoinLogService.CoinEvent.API_UPLOAD_LOG, saved.getId());
-
-                if (mergeSessions && (allowBatchMerge || sortedEntries.size() == 1)) {
-                    try {
-                        sessionGroupService.processSessionForGrouping(saved);
-                    } catch (Exception e) {
-                        log.warn("Session merging failed for API upload log {}: {}", saved.getId(), e.getMessage());
-                    }
-                }
 
                 importedResults.add(new ImportApiResult.ImportedSession(
                         saved.getLoggedAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME), saved.getId()));

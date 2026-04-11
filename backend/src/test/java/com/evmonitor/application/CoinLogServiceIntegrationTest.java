@@ -123,7 +123,7 @@ class CoinLogServiceIntegrationTest extends AbstractIntegrationTest {
                 2025-10-01T10:00:00,21.0,13500,85
                 """;
 
-        manualImportService.importData(user.getId(), car.getId(), "csv", csv, false);
+        manualImportService.importData(user.getId(), car.getId(), "csv", csv);
 
         List<CoinLog> perLogCoins = perLogCoins(CoinLogService.CoinEvent.API_UPLOAD_LOG.getDescription());
         assertThat(perLogCoins).hasSize(3);
@@ -145,7 +145,7 @@ class CoinLogServiceIntegrationTest extends AbstractIntegrationTest {
                 ,18.0,12800,72
                 """;
 
-        manualImportService.importData(user.getId(), car.getId(), "csv", csv, false);
+        manualImportService.importData(user.getId(), car.getId(), "csv", csv);
 
         assertThat(perLogCoins(CoinLogService.CoinEvent.API_UPLOAD_LOG.getDescription())).hasSize(1);
     }

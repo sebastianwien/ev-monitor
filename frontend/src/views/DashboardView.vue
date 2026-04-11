@@ -604,7 +604,12 @@ onMounted(async () => {
     cars.value = carList
     // Auto-select: primary car, fallback to first
     const primary = carList.find((c: any) => c.isPrimary) ?? carList[0]
-    if (primary) selectedCarId.value = primary.id
+    if (primary) {
+      selectedCarId.value = primary.id
+    } else {
+      // No cars: the watch on selectedCarId won't fire (null → null), so unlock loading manually
+      loading.value = false
+    }
     // Load images in background — non-critical
     for (const car of carList.filter((c: any) => c.imageUrl)) {
       carService.getCarImageBlobUrl(car.id)
@@ -630,34 +635,8 @@ const hasMoreLogs = ref(false)
 const logsSection = ref<HTMLElement | null>(null)
 const editingLog = ref<any | null>(null)
 
-// Session Groups (Überschussladen)
-const sessionGroups = ref<any[]>([])
+// Ladegruppen-Aufklapp-Status (für same-day GOE und same-odometer Gruppen)
 const expandedGroups = ref<Set<string>>(new Set())
-const subSessionsCache = ref<Record<string, any[]>>({})
-
-const fetchSubSessions = async (groupId: string) => {
-  if (subSessionsCache.value[groupId]) return
-  try {
-    const res = await api.get(`/logs/group/${groupId}`)
-    subSessionsCache.value[groupId] = res.data
-  } catch {
-    subSessionsCache.value[groupId] = []
-  }
-}
-
-const fetchGroups = async () => {
-  if (!selectedCarId.value) return
-  try {
-    const res = await api.get(`/logs/groups?carId=${selectedCarId.value}`)
-    sessionGroups.value = res.data
-    // Spritmonitor-Gruppen werden inline wie Nachladen dargestellt — Sub-Sessions sofort laden
-    const spritGroups = res.data.filter((g: any) => g.dataSource === 'SPRITMONITOR_IMPORT')
-    await Promise.all(spritGroups.map((g: any) => fetchSubSessions(g.id)))
-  } catch {
-    // Kein Session-Grouping-Feature aktiv oder Netzwerkfehler — ignorieren
-    sessionGroups.value = []
-  }
-}
 
 const toggleLadegruppe = (id: string) => {
   if (expandedGroups.value.has(id)) {
@@ -667,17 +646,8 @@ const toggleLadegruppe = (id: string) => {
   }
 }
 
-const toggleGroupExpand = async (groupId: string) => {
-  if (expandedGroups.value.has(groupId)) {
-    expandedGroups.value.delete(groupId)
-    return
-  }
-  expandedGroups.value.add(groupId)
-  await fetchSubSessions(groupId)
-}
-
 /// Schneller Exists-Check ohne den teuren Merge+Sort zu triggern
-const hasAnyLogs = computed(() => logs.value.length > 0 || sessionGroups.value.length > 0)
+const hasAnyLogs = computed(() => logs.value.length > 0)
 
 // Fahrzeug-Zuordnung Modal
 const reassignModalEntry = ref<any | null>(null)
@@ -699,13 +669,8 @@ const saveReassign = async () => {
   const targetCar = cars.value.find((c: any) => c.id === reassignSelectedCarId.value)
   reassignSaving.value = true
   try {
-    if (entry._isGroup) {
-      await api.patch(`/logs/groups/${entry.id}/car`, { targetCarId: reassignSelectedCarId.value })
-      sessionGroups.value = sessionGroups.value.filter((g: any) => g.id !== entry.id)
-    } else {
-      await api.patch(`/logs/${entry.id}/car`, { targetCarId: reassignSelectedCarId.value })
-      logs.value = logs.value.filter((l: any) => l.id !== entry.id)
-    }
+    await api.patch(`/logs/${entry.id}/car`, { targetCarId: reassignSelectedCarId.value })
+    logs.value = logs.value.filter((l: any) => l.id !== entry.id)
     const carLabel = targetCar ? `${enumToLabel(targetCar.brand)} ${enumToLabel(targetCar.model)}`.trim() : ''
     reassignSuccessMessage.value = t('dashboard.reassign_success', { car: carLabel })
     setTimeout(() => { reassignSuccessMessage.value = null }, 3000)
@@ -718,43 +683,89 @@ const saveReassign = async () => {
   }
 }
 
-// Merged + sorted feed: normale Logs und Gruppen nach Datum zusammenführen
+// Merged + sorted log feed mit zwei Gruppierungsstrategien:
+// 1. Same-day-Gruppierung für WALLBOX_GOE/API_UPLOAD ohne Odometer (Überschussladen)
+// 2. Same-odometer-Gruppierung für Nachladen (konsekutive Logs gleicher km-Stand)
 const mergedLogFeed = computed(() => {
-  const safeGroups = Array.isArray(sessionGroups.value) ? sessionGroups.value : []
   const safeLogs = Array.isArray(logs.value) ? logs.value : []
-  const groupsForPage = safeGroups
-    .filter((g: any) => g.dataSource !== 'SPRITMONITOR_IMPORT')
-    .map((g: any) => ({ ...g, _isGroup: true }))
-  const logsWithFlag = safeLogs
+  const fmtDate = (d: Date) => d.toLocaleDateString(locale.value === 'en' ? 'en-GB' : 'de-DE', { day: 'numeric', month: 'numeric' })
+
+  const makeLadegruppe = (subs: any[], commonDataSource?: string): any => {
+    const allSubs = [...subs].sort((a, b) => new Date(a.loggedAt).getTime() - new Date(b.loggedAt).getTime())
+    const totalKwh = allSubs.reduce((s: number, l: any) => s + (l.kwhCharged ?? 0), 0)
+    const totalCostEur = allSubs.every((l: any) => l.costEur != null)
+      ? allSubs.reduce((s: number, l: any) => s + (l.costEur ?? 0), 0)
+      : null
+    const maxSoc = allSubs.reduce((m: number | null, l: any) =>
+      l.socAfterChargePercent != null ? Math.max(m ?? 0, l.socAfterChargePercent) : m, null)
+    const maxPower = allSubs.reduce((m: number | null, l: any) =>
+      l.maxChargingPowerKw != null ? Math.max(m ?? 0, l.maxChargingPowerKw) : m, null)
+    const dates = allSubs.map((l: any) => new Date(l.loggedAt).toDateString())
+    const spansMultipleDays = new Set(dates).size > 1
+    const firstDate = new Date(allSubs[0].loggedAt)
+    const lastDate = new Date(allSubs[allSubs.length - 1].loggedAt)
+    const dateRangeLabel = spansMultipleDays ? `${fmtDate(firstDate)} - ${fmtDate(lastDate)}` : fmtDate(firstDate)
+    const newestConsumption = allSubs[allSubs.length - 1].consumptionKwhPer100km
+    const ds = commonDataSource ?? (new Set(allSubs.map((l: any) => l.dataSource)).size === 1 ? allSubs[0].dataSource : null)
+    return {
+      ...allSubs[0],
+      id: allSubs[0].id,
+      _isTopUp: false,
+      _isLadegruppe: true,
+      _topUps: allSubs,
+      _totalKwh: Math.round(totalKwh * 100) / 100,
+      _totalCostEur: totalCostEur !== null ? Math.round(totalCostEur * 100) / 100 : null,
+      _maxSoc: maxSoc,
+      _maxPower: maxPower,
+      _spansMultipleDays: spansMultipleDays,
+      _dateRangeLabel: dateRangeLabel,
+      _totalConsumption: newestConsumption,
+      _commonDataSource: ds,
+    }
+  }
+
+  // ── Schritt 1: WALLBOX_GOE/API_UPLOAD ohne Odometer nach Kalendertag gruppieren ──
+  const goeLogs = safeLogs.filter((l: any) =>
+    (l.dataSource === 'WALLBOX_GOE' || l.dataSource === 'API_UPLOAD') && l.odometerKm == null
+  )
+  const goeByDay = new Map<string, any[]>()
+  for (const log of goeLogs) {
+    const day = (log.loggedAt as string).substring(0, 10)
+    if (!goeByDay.has(day)) goeByDay.set(day, [])
+    goeByDay.get(day)!.push(log)
+  }
+
+  const goeGroupedIds = new Set<string>()
+  const goeDayGroupEntries: any[] = []
+  for (const [, dayLogs] of goeByDay) {
+    if (dayLogs.length < 2) continue
+    for (const l of dayLogs) goeGroupedIds.add(l.id)
+    goeDayGroupEntries.push(makeLadegruppe(dayLogs, dayLogs[0].dataSource))
+  }
+
+  // ── Schritt 2: Verbleibende Logs (same-odometer Nachladen-Erkennung) ──
+  const remainingLogs = safeLogs
+    .filter((l: any) => !goeGroupedIds.has(l.id))
     .filter((l: any) => l.includeInStatistics || !l.consumptionImplausible)
-    .map((l: any) => ({ ...l, _isGroup: false }))
-  const sorted = [...logsWithFlag, ...groupsForPage].sort((a, b) => {
-    const dateA = new Date(a._isGroup ? a.sessionStart : a.loggedAt).getTime()
-    const dateB = new Date(b._isGroup ? b.sessionStart : b.loggedAt).getTime()
-    return dateB - dateA  // Neueste zuerst
-  })
+
+  const sorted = remainingLogs.sort((a: any, b: any) =>
+    new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime()
+  )
 
   // Nachladen-Erkennung: konsekutive Eintraege mit gleichem Kilometerstand
-  // sorted ist newest-first. Aeltester Eintrag im Run = Parent, alle neueren = Top-Ups.
-  const topUpChildren = new Map<number, any[]>() // parent-index → [top-up entries]
+  const topUpChildren = new Map<number, any[]>()
   const skipIndices = new Set<number>()
 
   let i = 0
   while (i < sorted.length) {
-    if (sorted[i]._isGroup || sorted[i].odometerKm == null) {
-      i++
-      continue
-    }
-    // Konsekutiven Run mit gleichem odometerKm finden
+    if (sorted[i].odometerKm == null) { i++; continue }
     let j = i + 1
     while (j < sorted.length &&
-           !sorted[j]._isGroup &&
            sorted[j].odometerKm != null &&
            sorted[j].odometerKm === sorted[i].odometerKm) {
       j++
     }
     if (j > i + 1) {
-      // Run von i bis j-1: sorted[j-1] ist der aelteste = Parent
       const parentIdx = j - 1
       topUpChildren.set(parentIdx, [])
       for (let k = i; k < j - 1; k++) {
@@ -767,50 +778,23 @@ const mergedLogFeed = computed(() => {
     }
   }
 
-  const result: any[] = []
+  const odometerGroupEntries: any[] = []
   for (let i = 0; i < sorted.length; i++) {
     if (skipIndices.has(i)) continue
     const topUps: any[] = topUpChildren.get(i) ?? []
     if (topUps.length > 0) {
-      // Ladegruppe: oldest=parent, newer=topUps. All subs sorted oldest-first.
-      const allSubs = [...topUps, { ...sorted[i] }].sort(
-        (a, b) => new Date(a.loggedAt).getTime() - new Date(b.loggedAt).getTime()
-      )
-      const totalKwh = allSubs.reduce((s, l) => s + (l.kwhCharged ?? 0), 0)
-      const totalCostEur = allSubs.every((l: any) => l.costEur != null)
-        ? allSubs.reduce((s: number, l: any) => s + (l.costEur ?? 0), 0)
-        : null
-      const maxSoc = allSubs.reduce((m: number | null, l: any) =>
-        l.socAfterChargePercent != null ? Math.max(m ?? 0, l.socAfterChargePercent) : m, null)
-      const maxPower = allSubs.reduce((m: number | null, l: any) =>
-        l.maxChargingPowerKw != null ? Math.max(m ?? 0, l.maxChargingPowerKw) : m, null)
-      const dates = allSubs.map((l: any) => new Date(l.loggedAt).toDateString())
-      const spansMultipleDays = new Set(dates).size > 1
-      const firstDate = new Date(allSubs[0].loggedAt)
-      const lastDate = new Date(allSubs[allSubs.length - 1].loggedAt)
-      const fmtDate = (d: Date) => d.toLocaleDateString(locale.value === 'en' ? 'en-GB' : 'de-DE', { day: 'numeric', month: 'numeric' })
-      const dateRangeLabel = spansMultipleDays ? `${fmtDate(firstDate)} - ${fmtDate(lastDate)}` : fmtDate(firstDate)
-      // consumption comes from the parent (oldest) entry
-      const parentConsumption = sorted[i].consumptionKwhPer100km
-      result.push({
-        ...sorted[i],
-        _isTopUp: false,
-        _isLadegruppe: true,
-        _topUps: allSubs,
-        _totalKwh: Math.round(totalKwh * 100) / 100,
-        _totalCostEur: totalCostEur !== null ? Math.round(totalCostEur * 100) / 100 : null,
-        _maxSoc: maxSoc,
-        _maxPower: maxPower,
-        _spansMultipleDays: spansMultipleDays,
-        _dateRangeLabel: dateRangeLabel,
-        _totalConsumption: parentConsumption,
-        _commonDataSource: new Set(allSubs.map((l: any) => l.dataSource)).size === 1 ? allSubs[0].dataSource : null,
-      })
+      odometerGroupEntries.push(makeLadegruppe([...topUps, sorted[i]]))
     } else {
-      result.push({ ...sorted[i], _isTopUp: false, _isLadegruppe: false, _topUps: [] })
+      odometerGroupEntries.push({ ...sorted[i], _isTopUp: false, _isLadegruppe: false, _topUps: [] })
     }
   }
-  return result
+
+  // ── Schritt 3: Zusammenführen und sortieren ──
+  return [...goeDayGroupEntries, ...odometerGroupEntries].sort((a: any, b: any) => {
+    const dateA = new Date(a._isLadegruppe ? a._topUps[a._topUps.length - 1].loggedAt : a.loggedAt).getTime()
+    const dateB = new Date(b._isLadegruppe ? b._topUps[b._topUps.length - 1].loggedAt : b.loggedAt).getTime()
+    return dateB - dateA
+  })
 })
 
 const fetchLogs = async (page = 0) => {
@@ -821,7 +805,6 @@ const fetchLogs = async (page = 0) => {
     logs.value = res.data
     logsPage.value = page
     hasMoreLogs.value = res.data.length === PAGE_SIZE
-    if (page === 0) await fetchGroups()
   } catch {
     // Network error — keep existing log list, don't crash
   } finally {
@@ -843,9 +826,7 @@ const fetchLogsAndScroll = async (page: number) => {
 
 watch(selectedCarId, () => {
   logs.value = []
-  sessionGroups.value = []
   expandedGroups.value = new Set()
-  subSessionsCache.value = {}
   logsPage.value = 0
   hasMoreLogs.value = false
   reassignModalEntry.value = null
@@ -880,9 +861,7 @@ function sourceInfo(ds?: string): { label: string; icon: Component; classes: str
 }
 
 const refreshLogsAndGroups = () => {
-  subSessionsCache.value = {}
   fetchLogs(logsPage.value)
-  fetchGroups()
 }
 
 const deleteLog = async (id: string) => {
@@ -1492,82 +1471,7 @@ const deleteLog = async (id: string) => {
               <p class="py-8 text-center text-gray-400 text-sm">{{ t('dashboard.no_logs_empty') }}</p>
             </template>
             <template v-else>
-              <!-- Session Group (Überschussladen) -->
               <div v-for="entry in mergedLogFeed" :key="entry.id" :class="entry._isLadegruppe ? 'pb-[5px]' : ''">
-              <div v-if="entry._isGroup"
-                class="p-3 border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/30 rounded-lg space-y-2 cursor-pointer"
-                @click="toggleGroupExpand(entry.id)">
-                <!-- Group Header -->
-                <div class="flex items-center justify-between gap-2">
-                  <div class="flex items-center gap-2 min-w-0">
-                    <SunIcon class="w-4 h-4 text-blue-600 flex-shrink-0" />
-                    <span class="font-semibold text-blue-700 dark:text-blue-300 whitespace-nowrap">{{ entry.totalKwhCharged }} kWh</span>
-                    <span class="text-xs text-gray-400 whitespace-nowrap">
-                      {{ new Date(entry.sessionStart).toLocaleDateString(locale === 'en' ? 'en-GB' : 'de-DE', { day: 'numeric', month: 'numeric' }) }},
-                      {{ new Date(entry.sessionStart).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}
-                      –
-                      {{ new Date(entry.sessionEnd).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}
-                    </span>
-                  </div>
-                  <div class="flex items-center gap-1 flex-shrink-0">
-                    <button v-if="otherCars.length > 0" @click.stop="openReassignModal(entry)"
-                      class="p-1 rounded text-gray-300 dark:text-gray-600 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition"
-                      :title="t('dashboard.reassign_car')">
-                      <ArrowsRightLeftIcon class="w-4 h-4" />
-                    </button>
-                    <button @click.stop="toggleGroupExpand(entry.id)"
-                      class="p-1 rounded text-blue-400 dark:text-blue-500 flex items-center gap-1">
-                      <span class="text-xs">{{ entry.sessionCount }}×</span>
-                      <ChevronDownIcon v-if="!expandedGroups.has(entry.id)" class="w-4 h-4" />
-                      <ChevronUpIcon v-else class="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-                <!-- Group Badges -->
-                <div class="flex flex-wrap gap-1.5">
-                  <span v-if="entry.costEur != null && entry.totalKwhCharged"
-                    :class="['inline-flex items-center px-2 py-0.5 border text-xs rounded-full font-medium whitespace-nowrap cursor-pointer transition-all duration-75',
-                             showCostAbsolute
-                               ? 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'
-                               : [(costBadgeClass(entry.costEur, entry.totalKwhCharged) ?? 'bg-green-50 border-green-200 text-green-700'), 'shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'].join(' ')]"
-                    @click.stop="showCostAbsolute = !showCostAbsolute">
-                    <template v-if="showCostAbsolute">{{ formatCurrency(entry.costEur) }}</template>
-                    <template v-else>{{ formatCostPerKwh(entry.costEur / entry.totalKwhCharged) }}</template>
-                  </span>
-                  <span v-if="entry.totalDurationMinutes"
-                    class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">
-                    <ClockIcon class="w-3 h-3" />{{ entry.totalDurationMinutes }}min
-                  </span>
-                  <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-700 whitespace-nowrap">
-                    <HomeIcon class="w-3 h-3" />{{ t('dashboard.excess_solar') }}
-                  </span>
-                </div>
-                <!-- Sub-Sessions expandiert -->
-                <div v-if="expandedGroups.has(entry.id)" class="mt-2 space-y-1 pl-3 border-l-2 border-blue-200 dark:border-blue-700">
-                  <div v-if="!subSessionsCache[entry.id]" class="text-xs text-gray-400">{{ t('dashboard.sub_loading') }}</div>
-                  <div v-else-if="subSessionsCache[entry.id].length === 0" class="text-xs text-gray-400">{{ t('dashboard.sub_none') }}</div>
-                  <div v-else v-for="sub in subSessionsCache[entry.id]" :key="sub.id"
-                    class="text-xs text-gray-600 flex items-center gap-2 py-1">
-                    <BoltIcon class="w-3 h-3 text-blue-400 flex-shrink-0" />
-                    <span class="font-medium">{{ sub.kwhCharged }} kWh</span>
-                    <span class="text-gray-400">
-                      {{ new Date(sub.loggedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}
-                    </span>
-                    <span v-if="sub.chargeDurationMinutes" class="text-gray-400">{{ sub.chargeDurationMinutes }}min</span>
-                    <span v-if="sub.costEur != null" class="text-gray-400">{{ formatCurrency(sub.costEur) }}</span>
-                    <div class="ml-auto flex items-center gap-1 flex-shrink-0">
-                      <button @click="editingLog = sub" class="p-1 rounded text-gray-300 hover:text-blue-500 hover:bg-blue-50 transition" :title="t('dashboard.edit_title')">
-                        <PencilSquareIcon class="w-3.5 h-3.5" />
-                      </button>
-                      <button @click="deleteLog(sub.id)" class="p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition">
-                        <TrashIcon class="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <!-- Normal Log -->
-              <div v-else>
               <div
                 :class="['p-3 border rounded-lg space-y-2',
                          entry._isLadegruppe
@@ -1802,7 +1706,6 @@ const deleteLog = async (id: string) => {
                   </div>
                 </Transition>
               </template>
-              </div><!-- end normal log wrapper -->
               </div><!-- end v-for entry in mergedLogFeed -->
             </template>
           </div>

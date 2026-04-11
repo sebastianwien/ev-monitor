@@ -59,6 +59,9 @@ onMounted(async () => {
     return
   }
 
+  // Without a real user ID we can't track per-user onboarding state — skip silently
+  if (!authStore.user?.sub) return
+
   const hasSeenOnboarding = localStorage.getItem(onboardingKey())
   if (hasSeenOnboarding) return
 
@@ -75,7 +78,7 @@ onMounted(async () => {
     }
   } catch (err) {
     console.error('Failed to check cars for onboarding:', err)
-    localStorage.setItem(onboardingKey(), 'true')
+    // Do NOT mark as seen on error — let it retry on next page load
   }
 })
 

@@ -8,8 +8,6 @@ import com.evmonitor.application.EvLogStatisticsService;
 import com.evmonitor.application.EvLogUpdateRequest;
 import com.evmonitor.application.EvLogService;
 import com.evmonitor.application.GeohashResponse;
-import com.evmonitor.application.SessionGroupResponse;
-import com.evmonitor.application.SessionGroupService;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +28,7 @@ public class EvLogController {
 
     private final EvLogService evLogService;
     private final EvLogStatisticsService evLogStatisticsService;
-    private final SessionGroupService sessionGroupService;
+
 
     @PostMapping
     public ResponseEntity<?> logCharging(@Valid @RequestBody EvLogRequest request, Authentication authentication) {
@@ -121,45 +119,6 @@ public class EvLogController {
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * Gibt alle Gruppen (Überschussladen-Zusammenfassungen) für ein Fahrzeug zurück.
-     * Jede Gruppe repräsentiert mehrere Micro-Sessions als einen logischen Ladevorgang.
-     */
-    @GetMapping("/groups")
-    public ResponseEntity<List<SessionGroupResponse>> getGroups(
-            @RequestParam UUID carId,
-            Authentication authentication) {
-        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        try {
-            evLogService.verifyCarOwnership(carId, principal.getUser().getId());
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
-        }
-        List<SessionGroupResponse> groups = sessionGroupService.findAllByCarId(carId);
-        return ResponseEntity.ok(groups);
-    }
-
-    /**
-     * Gibt alle Sub-Sessions einer Gruppe zurück (für die Aufklapp-Ansicht im Dashboard).
-     */
-    @GetMapping("/group/{groupId}")
-    public ResponseEntity<List<EvLogResponse>> getGroupSubSessions(
-            @PathVariable UUID groupId,
-            Authentication authentication) {
-        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        SessionGroupResponse group = sessionGroupService.findById(groupId).orElse(null);
-        if (group == null) {
-            return ResponseEntity.notFound().build();
-        }
-        try {
-            evLogService.verifyCarOwnership(group.carId(), principal.getUser().getId());
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build(); // Car not found or ownership mismatch → 404
-        }
-        List<EvLogResponse> subSessions = sessionGroupService.getSubSessions(groupId);
-        return ResponseEntity.ok(subSessions);
-    }
-
     @GetMapping("/geohashes")
     public ResponseEntity<List<GeohashResponse>> getGeohashData(
             @RequestParam UUID carId,
@@ -205,29 +164,7 @@ public class EvLogController {
     }
 
     /**
-     * Weist eine Session-Gruppe einem anderen Fahrzeug desselben Users zu.
-     * Alle Sub-Sessions der Gruppe werden ebenfalls umgeschrieben.
-     */
-    @PatchMapping("/groups/{groupId}/car")
-    public ResponseEntity<Void> reassignGroupCar(
-            @PathVariable UUID groupId,
-            @RequestBody Map<String, UUID> body,
-            Authentication authentication) {
-        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        UUID targetCarId = body.get("targetCarId");
-        if (targetCarId == null) {
-            return ResponseEntity.badRequest().build();
-        }
-        try {
-            sessionGroupService.reassignCar(groupId, targetCarId, principal.getUser().getId());
-            return ResponseEntity.ok().build();
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
-        }
-    }
-
-    /**
-     * Weist einen einzelnen (ungruppierten) Log einem anderen Fahrzeug desselben Users zu.
+     * Weist einen einzelnen Log einem anderen Fahrzeug desselben Users zu.
      */
     @PatchMapping("/{logId}/car")
     public ResponseEntity<Void> reassignLogCar(
