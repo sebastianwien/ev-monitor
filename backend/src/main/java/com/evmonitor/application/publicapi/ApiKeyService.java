@@ -2,6 +2,7 @@ package com.evmonitor.application.publicapi;
 
 import com.evmonitor.domain.ApiKey;
 import com.evmonitor.domain.ApiKeyRepository;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +18,7 @@ import java.util.UUID;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class ApiKeyService {
 
     private static final String KEY_PREFIX = "evm_";
@@ -25,10 +27,6 @@ public class ApiKeyService {
 
     private final ApiKeyRepository apiKeyRepository;
     private final SecureRandom secureRandom = new SecureRandom();
-
-    public ApiKeyService(ApiKeyRepository apiKeyRepository) {
-        this.apiKeyRepository = apiKeyRepository;
-    }
 
     /**
      * Erstellt einen neuen API Key. Der Plaintext-Key wird nur hier einmalig zurückgegeben

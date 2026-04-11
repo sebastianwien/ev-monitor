@@ -30,32 +30,15 @@ public class TestDataBuilder {
      */
     public static User createTestUserWithId(UUID userId, String email, String passwordHash) {
         String username = email.split("@")[0];
-        return new User(
-                userId,
-                email,
-                username,
-                passwordHash,
-                AuthProvider.LOCAL,
-                "USER",
-                true, // emailVerified
-                false, // seedData
-                true, // emailNotificationsEnabled
-                false, // premium
-                false, // referralRewardGiven
-                UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase(),
-                null, // referredByUserId
-                null, // stripeCustomerId
-                null, // utmSource
-                null, // utmMedium
-                null, // utmCampaign
-                null, // referrerSource
-                null, // registrationLocale
-                null, // country
-                null, // subscriptionPeriodEnd
-                false, // trialUsed
-                LocalDateTime.now(),
-                LocalDateTime.now()
-        );
+        LocalDateTime now = LocalDateTime.now();
+        return User.builder()
+                .id(userId)
+                .email(email).username(username).passwordHash(passwordHash)
+                .authProvider(AuthProvider.LOCAL).role("USER")
+                .emailVerified(true).emailNotificationsEnabled(true)
+                .referralCode(UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase())
+                .createdAt(now).updatedAt(now)
+                .build();
     }
 
     /**

@@ -7,6 +7,7 @@ import com.evmonitor.application.VehicleSpecificationService;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -19,13 +20,10 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/vehicle-specifications")
 @Validated
+@RequiredArgsConstructor
 public class VehicleSpecificationController {
 
     private final VehicleSpecificationService vehicleSpecificationService;
-
-    public VehicleSpecificationController(VehicleSpecificationService vehicleSpecificationService) {
-        this.vehicleSpecificationService = vehicleSpecificationService;
-    }
 
     /**
      * Lookup WLTP data for a specific vehicle configuration.

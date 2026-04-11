@@ -2,6 +2,7 @@ package com.evmonitor.infrastructure.persistence;
 
 import com.evmonitor.domain.EmailVerificationToken;
 import com.evmonitor.domain.EmailVerificationTokenRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -9,13 +10,10 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Component
+@RequiredArgsConstructor
 public class PostgresEmailVerificationTokenRepositoryImpl implements EmailVerificationTokenRepository {
 
     private final JpaEmailVerificationTokenRepository jpa;
-
-    public PostgresEmailVerificationTokenRepositoryImpl(JpaEmailVerificationTokenRepository jpa) {
-        this.jpa = jpa;
-    }
 
     @Override
     public EmailVerificationToken save(EmailVerificationToken token) {

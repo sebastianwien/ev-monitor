@@ -1,6 +1,9 @@
 package com.evmonitor.infrastructure.persistence;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -13,6 +16,9 @@ import java.util.UUID;
         columnNames = {"car_brand", "car_model", "battery_capacity_kwh", "wltp_type"}
     )
 )
+@Getter
+@Setter
+@NoArgsConstructor
 public class VehicleSpecificationEntity {
 
     @Id
@@ -41,81 +47,4 @@ public class VehicleSpecificationEntity {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
-
-    public VehicleSpecificationEntity() {
-    }
-
-    // Getters and Setters
-
-    public UUID getId() {
-        return id;
-    }
-
-    public void setId(UUID id) {
-        this.id = id;
-    }
-
-    public String getCarBrand() {
-        return carBrand;
-    }
-
-    public void setCarBrand(String carBrand) {
-        this.carBrand = carBrand;
-    }
-
-    public String getCarModel() {
-        return carModel;
-    }
-
-    public void setCarModel(String carModel) {
-        this.carModel = carModel;
-    }
-
-    public BigDecimal getBatteryCapacityKwh() {
-        return batteryCapacityKwh;
-    }
-
-    public void setBatteryCapacityKwh(BigDecimal batteryCapacityKwh) {
-        this.batteryCapacityKwh = batteryCapacityKwh;
-    }
-
-    public BigDecimal getWltpRangeKm() {
-        return wltpRangeKm;
-    }
-
-    public void setWltpRangeKm(BigDecimal wltpRangeKm) {
-        this.wltpRangeKm = wltpRangeKm;
-    }
-
-    public BigDecimal getWltpConsumptionKwhPer100km() {
-        return wltpConsumptionKwhPer100km;
-    }
-
-    public void setWltpConsumptionKwhPer100km(BigDecimal wltpConsumptionKwhPer100km) {
-        this.wltpConsumptionKwhPer100km = wltpConsumptionKwhPer100km;
-    }
-
-    public String getWltpType() {
-        return wltpType;
-    }
-
-    public void setWltpType(String wltpType) {
-        this.wltpType = wltpType;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
 }

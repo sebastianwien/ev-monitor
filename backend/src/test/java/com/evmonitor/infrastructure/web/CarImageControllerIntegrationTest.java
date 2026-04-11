@@ -71,7 +71,7 @@ class CarImageControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void nonOwnerCannotUploadImage_Returns400() throws IOException {
+    void nonOwnerCannotUploadImage_Returns403() throws IOException {
         HttpEntity<MultiValueMap<String, Object>> request = buildUploadRequest(
                 otherUser, createMinimalJpeg(), "image/jpeg", false);
 
@@ -81,7 +81,7 @@ class CarImageControllerIntegrationTest extends AbstractIntegrationTest {
                 request,
                 String.class);
 
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
 
         // Verify no image was saved on the car
         Car carInDb = carRepository.findById(ownerCar.getId()).orElseThrow();
@@ -229,7 +229,7 @@ class CarImageControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void nonOwnerCannotUpdateImageVisibility_Returns400() throws IOException {
+    void nonOwnerCannotUpdateImageVisibility_Returns403() throws IOException {
         uploadImage(owner, ownerCar, false);
 
         HttpEntity<Void> request = createAuthRequest(otherUser.getId(), otherUser.getEmail());
@@ -237,7 +237,7 @@ class CarImageControllerIntegrationTest extends AbstractIntegrationTest {
                 "/api/cars/" + ownerCar.getId() + "/image?isPublic=true",
                 HttpMethod.PATCH, request, String.class);
 
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
 
         Car carInDb = carRepository.findById(ownerCar.getId()).orElseThrow();
         assertFalse(carInDb.isImagePublic(), "imagePublic must not be changed by non-owner");
@@ -325,7 +325,7 @@ class CarImageControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void nonOwnerCannotDeleteImage_Returns400() throws IOException {
+    void nonOwnerCannotDeleteImage_Returns403() throws IOException {
         uploadImage(owner, ownerCar, false);
 
         HttpEntity<Void> request = createAuthRequest(otherUser.getId(), otherUser.getEmail());
@@ -333,7 +333,7 @@ class CarImageControllerIntegrationTest extends AbstractIntegrationTest {
                 "/api/cars/" + ownerCar.getId() + "/image",
                 HttpMethod.DELETE, request, String.class);
 
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
 
         // DB: image still set
         Car carInDb = carRepository.findById(ownerCar.getId()).orElseThrow();

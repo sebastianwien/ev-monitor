@@ -3,19 +3,17 @@ package com.evmonitor.application;
 import com.evmonitor.domain.ChargingProviderTariff;
 import com.evmonitor.domain.ChargingProviderTariffRepository;
 import com.evmonitor.domain.ChargingType;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class ChargingProviderTariffService {
 
     private final ChargingProviderTariffRepository tariffRepository;
-
-    public ChargingProviderTariffService(ChargingProviderTariffRepository tariffRepository) {
-        this.tariffRepository = tariffRepository;
-    }
 
     public List<ChargingProviderTariffResponse> getAllCurrentTariffs() {
         return tariffRepository.findAllCurrentTariffs().stream()

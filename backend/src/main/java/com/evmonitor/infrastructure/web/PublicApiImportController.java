@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -26,17 +27,13 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1")
 @Tag(name = "Public API", description = "External upload API for charging sessions (Wallboxen, Skripte, Home-Automation)")
+@RequiredArgsConstructor
 public class PublicApiImportController {
 
     private static final int MAX_SESSIONS_PER_REQUEST = 100;
 
     private final PublicApiImportService importService;
     private final RateLimitService rateLimitService;
-
-    public PublicApiImportController(PublicApiImportService importService, RateLimitService rateLimitService) {
-        this.importService = importService;
-        this.rateLimitService = rateLimitService;
-    }
 
     @PostMapping("/sessions")
     @Operation(

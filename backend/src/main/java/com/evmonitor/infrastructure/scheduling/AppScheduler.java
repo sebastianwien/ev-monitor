@@ -8,8 +8,7 @@ import com.evmonitor.domain.UserRepository;
 import com.evmonitor.infrastructure.email.EmailService;
 import com.evmonitor.infrastructure.github.GitHubIssueService;
 import com.evmonitor.infrastructure.weather.TemperatureBackfillJob;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -18,9 +17,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Component
+@Slf4j
 public class AppScheduler {
 
-    private static final Logger log = LoggerFactory.getLogger(AppScheduler.class);
     private static final int REMINDER_DAYS_AFTER_REGISTRATION = 14;
     private static final int RE_ENGAGEMENT_DAYS_INACTIVE = 14;
 

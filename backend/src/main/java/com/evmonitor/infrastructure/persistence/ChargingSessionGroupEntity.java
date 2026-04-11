@@ -1,6 +1,9 @@
 package com.evmonitor.infrastructure.persistence;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -8,6 +11,9 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "charging_session_group")
+@Getter
+@Setter
+@NoArgsConstructor
 public class ChargingSessionGroupEntity {
 
     @Id
@@ -45,42 +51,4 @@ public class ChargingSessionGroupEntity {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
-
-    public ChargingSessionGroupEntity() {}
-
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
-
-    public UUID getCarId() { return carId; }
-    public void setCarId(UUID carId) { this.carId = carId; }
-
-    public BigDecimal getTotalKwhCharged() { return totalKwhCharged; }
-    public void setTotalKwhCharged(BigDecimal totalKwhCharged) { this.totalKwhCharged = totalKwhCharged; }
-
-    public Integer getTotalDurationMinutes() { return totalDurationMinutes; }
-    public void setTotalDurationMinutes(Integer totalDurationMinutes) { this.totalDurationMinutes = totalDurationMinutes; }
-
-    public LocalDateTime getSessionStart() { return sessionStart; }
-    public void setSessionStart(LocalDateTime sessionStart) { this.sessionStart = sessionStart; }
-
-    public LocalDateTime getSessionEnd() { return sessionEnd; }
-    public void setSessionEnd(LocalDateTime sessionEnd) { this.sessionEnd = sessionEnd; }
-
-    public int getSessionCount() { return sessionCount; }
-    public void setSessionCount(int sessionCount) { this.sessionCount = sessionCount; }
-
-    public String getGeohash() { return geohash; }
-    public void setGeohash(String geohash) { this.geohash = geohash; }
-
-    public BigDecimal getCostEur() { return costEur; }
-    public void setCostEur(BigDecimal costEur) { this.costEur = costEur; }
-
-    public String getDataSource() { return dataSource; }
-    public void setDataSource(String dataSource) { this.dataSource = dataSource; }
-
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
-
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

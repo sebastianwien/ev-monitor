@@ -5,6 +5,7 @@ import com.evmonitor.application.BatterySohResponse;
 import com.evmonitor.application.BatterySohService;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -15,13 +16,10 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/cars/{carId}/soh")
+@RequiredArgsConstructor
 public class BatterySohController {
 
     private final BatterySohService sohService;
-
-    public BatterySohController(BatterySohService sohService) {
-        this.sohService = sohService;
-    }
 
     @GetMapping
     public ResponseEntity<List<BatterySohResponse>> getHistory(

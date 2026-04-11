@@ -361,7 +361,8 @@ class CoinRewardIntegrationTest extends AbstractIntegrationTest {
         EvLog rawLog = EvLog.createNew(
                 car.getId(), new BigDecimal("30"), new BigDecimal("7.50"),
                 45, null, 10000, null, 80, LocalDateTime.now().minusDays(1),
-                ChargingType.AC, null, null);
+                ChargingType.AC, null, null,
+                false, null);
         EvLog saved = evLogRepository.save(rawLog);
 
         // When: Log is deleted via API

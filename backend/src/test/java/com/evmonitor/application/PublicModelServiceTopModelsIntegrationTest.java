@@ -163,7 +163,8 @@ class PublicModelServiceTopModelsIntegrationTest extends AbstractIntegrationTest
                     null,                     // no SoC → fallback path
                     LocalDateTime.now().minusDays(logCount - i),
                     ChargingType.UNKNOWN,
-                    null, null
+                    null, null,
+                    false, null
             ));
         }
     }

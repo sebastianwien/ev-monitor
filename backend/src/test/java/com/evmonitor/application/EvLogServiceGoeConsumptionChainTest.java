@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class EvLogServiceGoeConsumptionChainTest extends AbstractIntegrationTest {
 
-    @Autowired private EvLogService evLogService;
+    @Autowired private EvLogStatisticsService evLogService;
     @Autowired private SessionGroupService sessionGroupService;
 
     private UUID userId;
@@ -74,23 +74,27 @@ class EvLogServiceGoeConsumptionChainTest extends AbstractIntegrationTest {
 
         evLogRepository.save(EvLog.createNew(carId, new BigDecimal("40.0"), new BigDecimal("11.00"),
                 180, null, LOG_A_ODOMETER, null, LOG_A_SOC,
-                base, ChargingType.AC, null, null));
+                base, ChargingType.AC, null, null,
+                false, null));
 
         EvLog goe1 = evLogRepository.save(EvLog.createFromInternal(
                 carId, new BigDecimal("8.5"), 90, null,
                 base.plusDays(1).withHour(10),
-                null, null, DataSource.WALLBOX_GOE, new BigDecimal("2.38"), ChargingType.AC));
+                null, null, DataSource.WALLBOX_GOE, new BigDecimal("2.38"), ChargingType.AC,
+                null, null, null, null));
         sessionGroupService.processSessionForGrouping(goe1);
 
         EvLog goe2 = evLogRepository.save(EvLog.createFromInternal(
                 carId, new BigDecimal("5.2"), 60, null,
                 base.plusDays(1).withHour(10).plusMinutes(45),
-                null, null, DataSource.WALLBOX_GOE, new BigDecimal("1.46"), ChargingType.AC));
+                null, null, DataSource.WALLBOX_GOE, new BigDecimal("1.46"), ChargingType.AC,
+                null, null, null, null));
         sessionGroupService.processSessionForGrouping(goe2);
 
         evLogRepository.save(EvLog.createNew(carId, LOG_B_KWH, LOG_B_COST,
                 90, null, LOG_B_ODOMETER, null, LOG_B_SOC,
-                base.plusDays(2), ChargingType.AC, null, null));
+                base.plusDays(2), ChargingType.AC, null, null,
+                false, null));
 
         EvLogStatisticsResponse stats = evLogService.getStatistics(carId, userId, null, null, null);
 
@@ -127,17 +131,20 @@ class EvLogServiceGoeConsumptionChainTest extends AbstractIntegrationTest {
         // Manual Log A
         evLogRepository.save(EvLog.createNew(carId, new BigDecimal("40.0"), new BigDecimal("11.00"),
                 180, null, LOG_A_ODOMETER, null, LOG_A_SOC,
-                base, ChargingType.AC, null, null));
+                base, ChargingType.AC, null, null,
+                false, null));
 
         // Nachlader — gleicher Odometer, SoC auch 80 (spielt keine Rolle für die Kette)
         evLogRepository.save(EvLog.createNew(carId, new BigDecimal("5.0"), new BigDecimal("1.50"),
                 30, null, LOG_A_ODOMETER, null, LOG_A_SOC,
-                base.plusDays(1), ChargingType.AC, null, null));
+                base.plusDays(1), ChargingType.AC, null, null,
+                false, null));
 
         // Manual Log B — direkter Vorgänger ist der Nachlader mit odometerKm+SoC
         evLogRepository.save(EvLog.createNew(carId, LOG_B_KWH, LOG_B_COST,
                 90, null, LOG_B_ODOMETER, null, LOG_B_SOC,
-                base.plusDays(2), ChargingType.AC, null, null));
+                base.plusDays(2), ChargingType.AC, null, null,
+                false, null));
 
         EvLogStatisticsResponse stats = evLogService.getStatistics(carId, userId, null, null, null);
 
@@ -162,7 +169,8 @@ class EvLogServiceGoeConsumptionChainTest extends AbstractIntegrationTest {
         // Manual Log A
         evLogRepository.save(EvLog.createNew(carId, new BigDecimal("40.0"), new BigDecimal("11.00"),
                 180, null, LOG_A_ODOMETER, null, LOG_A_SOC,
-                base, ChargingType.AC, null, null));
+                base, ChargingType.AC, null, null,
+                false, null));
 
         // go-e Sub-Sessions MIT Odometer + SoC (User hat manuell befüllt)
         EvLog goe1 = evLogRepository.save(EvLog.createFromInternal(
@@ -175,7 +183,8 @@ class EvLogServiceGoeConsumptionChainTest extends AbstractIntegrationTest {
         // Manual Log B — direkter Vorgänger ist jetzt go-e mit SoC → canBeUsedAsLogX()=true
         evLogRepository.save(EvLog.createNew(carId, LOG_B_KWH, LOG_B_COST,
                 90, null, LOG_B_ODOMETER, null, LOG_B_SOC,
-                base.plusDays(2), ChargingType.AC, null, null));
+                base.plusDays(2), ChargingType.AC, null, null,
+                false, null));
 
         EvLogStatisticsResponse stats = evLogService.getStatistics(carId, userId, null, null, null);
 

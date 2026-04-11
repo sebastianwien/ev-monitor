@@ -3,6 +3,7 @@ package com.evmonitor.application;
 import com.evmonitor.domain.CoinType;
 import com.evmonitor.domain.VehicleSpecification;
 import com.evmonitor.domain.VehicleSpecificationRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,18 +13,13 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class VehicleSpecificationService {
 
     private static final int WLTP_CONTRIBUTION_COINS = 50;
 
     private final VehicleSpecificationRepository vehicleSpecificationRepository;
     private final CoinLogService coinLogService;
-
-    public VehicleSpecificationService(VehicleSpecificationRepository vehicleSpecificationRepository,
-                                       CoinLogService coinLogService) {
-        this.vehicleSpecificationRepository = vehicleSpecificationRepository;
-        this.coinLogService = coinLogService;
-    }
 
     /**
      * Lookup WLTP data for a specific car configuration.

@@ -1,10 +1,15 @@
 package com.evmonitor.domain;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.UUID;
 
+@Getter
+@AllArgsConstructor
 public class PasswordResetToken {
 
     private final UUID id;
@@ -12,15 +17,6 @@ public class PasswordResetToken {
     private final String token;
     private final LocalDateTime expiresAt;
     private final LocalDateTime createdAt;
-
-    public PasswordResetToken(UUID id, UUID userId, String token,
-                              LocalDateTime expiresAt, LocalDateTime createdAt) {
-        this.id = id;
-        this.userId = userId;
-        this.token = token;
-        this.expiresAt = expiresAt;
-        this.createdAt = createdAt;
-    }
 
     public static PasswordResetToken createFor(UUID userId) {
         SecureRandom random = new SecureRandom();
@@ -34,10 +30,4 @@ public class PasswordResetToken {
     public boolean isExpired() {
         return LocalDateTime.now().isAfter(expiresAt);
     }
-
-    public UUID getId() { return id; }
-    public UUID getUserId() { return userId; }
-    public String getToken() { return token; }
-    public LocalDateTime getExpiresAt() { return expiresAt; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
 }

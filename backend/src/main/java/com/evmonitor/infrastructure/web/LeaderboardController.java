@@ -6,6 +6,7 @@ import com.evmonitor.application.MyLeaderboardStandingDTO;
 import com.evmonitor.application.TickerItemDTO;
 import com.evmonitor.domain.LeaderboardCategory;
 import com.evmonitor.infrastructure.security.UserPrincipal;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -20,13 +21,10 @@ import java.util.UUID;
  */
 @RestController
 @RequestMapping("/api/public/leaderboard")
+@RequiredArgsConstructor
 public class LeaderboardController {
 
     private final LeaderboardService leaderboardService;
-
-    public LeaderboardController(LeaderboardService leaderboardService) {
-        this.leaderboardService = leaderboardService;
-    }
 
     /**
      * GET /api/public/leaderboard/{category}

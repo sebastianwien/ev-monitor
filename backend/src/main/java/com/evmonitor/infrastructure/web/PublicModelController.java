@@ -6,6 +6,7 @@ import com.evmonitor.application.PublicModelService;
 import com.evmonitor.application.PublicModelStatsResponse;
 import com.evmonitor.application.TopModelResponse;
 import com.evmonitor.infrastructure.security.UserPrincipal;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -24,16 +25,13 @@ import java.util.concurrent.TimeUnit;
  */
 @RestController
 @RequestMapping("/api/public")
+@RequiredArgsConstructor
 public class PublicModelController {
 
     private final PublicModelService publicModelService;
 
     private static final CacheControl PUBLIC_1H = CacheControl.maxAge(1, TimeUnit.HOURS).cachePublic();
     private static final CacheControl NO_STORE = CacheControl.noStore();
-
-    public PublicModelController(PublicModelService publicModelService) {
-        this.publicModelService = publicModelService;
-    }
 
     /**
      * GET /api/public/stats

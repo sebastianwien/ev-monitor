@@ -3,8 +3,8 @@ package com.evmonitor.infrastructure.web;
 import com.evmonitor.application.StripeService;
 import com.stripe.exception.SignatureVerificationException;
 import jakarta.servlet.http.HttpServletRequest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -21,15 +21,11 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/webhooks")
+@RequiredArgsConstructor
+@Slf4j
 public class StripeWebhookController {
 
-    private static final Logger log = LoggerFactory.getLogger(StripeWebhookController.class);
-
     private final StripeService stripeService;
-
-    public StripeWebhookController(StripeService stripeService) {
-        this.stripeService = stripeService;
-    }
 
     @PostMapping("/stripe")
     public ResponseEntity<Map<String, String>> handleStripeWebhook(

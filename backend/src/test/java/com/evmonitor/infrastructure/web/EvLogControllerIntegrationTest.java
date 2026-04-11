@@ -295,7 +295,7 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
         );
 
         // Then: Should be rejected
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
     }
 
     @Test
@@ -376,7 +376,8 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
         EvLog existing = evLogRepository.save(EvLog.createNew(
                 carId, new BigDecimal("30.0"), new BigDecimal("9.00"),
                 60, null, 12000, null, 75, LocalDateTime.parse("2025-08-20T10:00:00"), ChargingType.UNKNOWN,
-                null, null));
+                null, null,
+                false, null));
 
         EvLogUpdateRequest update = new EvLogUpdateRequest(
                 new BigDecimal("35.5"),   // kwhCharged
@@ -415,7 +416,8 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
         EvLog existing = evLogRepository.save(EvLog.createNew(
                 carId, new BigDecimal("30.0"), new BigDecimal("9.00"),
                 60, "u33d1", 12000, null, 75, LocalDateTime.parse("2025-08-20T10:00:00"), ChargingType.UNKNOWN,
-                null, null));
+                null, null,
+                false, null));
 
         // Only update kwhCharged, everything else null → keep existing
         EvLogUpdateRequest update = new EvLogUpdateRequest(
@@ -442,7 +444,8 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
         EvLog existing = evLogRepository.save(EvLog.createNew(
                 carId, new BigDecimal("20.0"), new BigDecimal("6.00"),
                 45, null, 10000, null, 60, LocalDateTime.parse("2025-07-15T09:00:00"), ChargingType.UNKNOWN,
-                null, null));
+                null, null,
+                false, null));
 
         EvLogUpdateRequest update = new EvLogUpdateRequest(
                 null, null, null,
@@ -471,7 +474,8 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
         EvLog otherLog = evLogRepository.save(EvLog.createNew(
                 otherCar.getId(), new BigDecimal("20.0"), new BigDecimal("5.00"),
                 30, null, 5000, null, 50, LocalDateTime.now(), ChargingType.UNKNOWN,
-                null, null));
+                null, null,
+                false, null));
 
         EvLogUpdateRequest update = new EvLogUpdateRequest(
                 new BigDecimal("99.0"), null, null, null, null, null, null, null, null, null, null, null, null);
@@ -491,7 +495,8 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
         EvLog existing = evLogRepository.save(EvLog.createNew(
                 carId, new BigDecimal("20.0"), new BigDecimal("5.00"),
                 30, null, 5000, null, 50, LocalDateTime.now(), ChargingType.UNKNOWN,
-                null, null));
+                null, null,
+                false, null));
 
         EvLogUpdateRequest update = new EvLogUpdateRequest(
                 new BigDecimal("99.0"), null, null, null, null, null, null, null, null, null, null, null, null);
@@ -599,7 +604,8 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
         EvLog existing = evLogRepository.save(EvLog.createNew(
                 carId, new BigDecimal("25.0"), new BigDecimal("7.00"),
                 40, null, 9000, null, 70, LocalDateTime.now(), ChargingType.UNKNOWN,
-                RouteType.CITY, TireType.SUMMER));
+                RouteType.CITY, TireType.SUMMER,
+                false, null));
 
         EvLogUpdateRequest update = new EvLogUpdateRequest(
                 null, null, null, null, null, null, null, null, null, null, null,

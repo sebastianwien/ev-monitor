@@ -3,6 +3,7 @@ package com.evmonitor.infrastructure.web;
 import com.evmonitor.application.SurveyService;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import jakarta.validation.constraints.NotEmpty;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -11,13 +12,10 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/surveys")
+@RequiredArgsConstructor
 public class SurveyController {
 
     private final SurveyService surveyService;
-
-    public SurveyController(SurveyService surveyService) {
-        this.surveyService = surveyService;
-    }
 
     @GetMapping("/{slug}/status")
     public ResponseEntity<Map<String, Boolean>> getStatus(

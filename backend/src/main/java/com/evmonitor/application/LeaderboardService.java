@@ -5,6 +5,7 @@ import com.evmonitor.domain.LeaderboardCategory;
 import com.evmonitor.infrastructure.external.ExternalJokeService;
 import com.evmonitor.infrastructure.external.FuelPriceService;
 import com.evmonitor.infrastructure.persistence.LeaderboardQueryRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -15,6 +16,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 @Service
+@RequiredArgsConstructor
 public class LeaderboardService {
 
     private static final int TOP_N = 10;
@@ -23,16 +25,6 @@ public class LeaderboardService {
     private final CoinLogService coinLogService;
     private final ExternalJokeService externalJokeService;
     private final FuelPriceService fuelPriceService;
-
-    public LeaderboardService(LeaderboardQueryRepository queryRepository,
-                              CoinLogService coinLogService,
-                              ExternalJokeService externalJokeService,
-                              FuelPriceService fuelPriceService) {
-        this.queryRepository = queryRepository;
-        this.coinLogService = coinLogService;
-        this.externalJokeService = externalJokeService;
-        this.fuelPriceService = fuelPriceService;
-    }
 
     public LeaderboardResponseDTO getLeaderboard(LeaderboardCategory category, UUID requestingUserId) {
         LocalDate today = LocalDate.now();

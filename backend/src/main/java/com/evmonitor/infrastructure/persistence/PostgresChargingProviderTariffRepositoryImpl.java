@@ -3,6 +3,7 @@ package com.evmonitor.infrastructure.persistence;
 import com.evmonitor.domain.ChargingProviderTariff;
 import com.evmonitor.domain.ChargingProviderTariffRepository;
 import com.evmonitor.domain.ChargingType;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -11,20 +12,12 @@ import java.util.Optional;
 import java.util.TreeSet;
 
 @Component
+@RequiredArgsConstructor
 public class PostgresChargingProviderTariffRepositoryImpl implements ChargingProviderTariffRepository {
 
     private final JpaChargingProviderTariffRepository jpaRepository;
     private final JpaCpoEmpTierMappingRepository tierMappingRepository;
     private final JpaChargingNetworkRepository networkRepository;
-
-    public PostgresChargingProviderTariffRepositoryImpl(
-            JpaChargingProviderTariffRepository jpaRepository,
-            JpaCpoEmpTierMappingRepository tierMappingRepository,
-            JpaChargingNetworkRepository networkRepository) {
-        this.jpaRepository = jpaRepository;
-        this.tierMappingRepository = tierMappingRepository;
-        this.networkRepository = networkRepository;
-    }
 
     @Override
     public List<ChargingProviderTariff> findAllCurrentTariffs() {

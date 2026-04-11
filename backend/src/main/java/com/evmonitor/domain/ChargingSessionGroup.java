@@ -1,5 +1,8 @@
 package com.evmonitor.domain;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -8,6 +11,8 @@ import java.util.UUID;
  * Repräsentiert eine logische Ladegruppe aus mehreren Micro-Sessions (Überschussladen).
  * Mehrere WALLBOX_GOE-Sessions mit kurzem Abstand (< merge_gap_minutes) werden zu einer Gruppe zusammengefasst.
  */
+@Getter
+@AllArgsConstructor
 public class ChargingSessionGroup {
 
     private final UUID id;
@@ -22,24 +27,6 @@ public class ChargingSessionGroup {
     private final String dataSource;
     private final LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-
-    public ChargingSessionGroup(UUID id, UUID carId, BigDecimal totalKwhCharged,
-            Integer totalDurationMinutes, LocalDateTime sessionStart, LocalDateTime sessionEnd,
-            int sessionCount, String geohash, BigDecimal costEur, String dataSource,
-            LocalDateTime createdAt, LocalDateTime updatedAt) {
-        this.id = id;
-        this.carId = carId;
-        this.totalKwhCharged = totalKwhCharged;
-        this.totalDurationMinutes = totalDurationMinutes;
-        this.sessionStart = sessionStart;
-        this.sessionEnd = sessionEnd;
-        this.sessionCount = sessionCount;
-        this.geohash = geohash;
-        this.costEur = costEur;
-        this.dataSource = dataSource;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-    }
 
     /**
      * Erstellt eine neue Gruppe aus der ersten Sub-Session.
@@ -89,17 +76,4 @@ public class ChargingSessionGroup {
         this.sessionCount++;
         this.updatedAt = LocalDateTime.now();
     }
-
-    public UUID getId() { return id; }
-    public UUID getCarId() { return carId; }
-    public BigDecimal getTotalKwhCharged() { return totalKwhCharged; }
-    public Integer getTotalDurationMinutes() { return totalDurationMinutes; }
-    public LocalDateTime getSessionStart() { return sessionStart; }
-    public LocalDateTime getSessionEnd() { return sessionEnd; }
-    public int getSessionCount() { return sessionCount; }
-    public String getGeohash() { return geohash; }
-    public BigDecimal getCostEur() { return costEur; }
-    public String getDataSource() { return dataSource; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
 }

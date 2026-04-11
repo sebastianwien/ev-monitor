@@ -70,7 +70,8 @@ class EvLogDuplicateDetectionIntegrationTest extends AbstractIntegrationTest {
                 null, null,
                 DataSource.TESLA_FLEET_IMPORT,
                 null,
-                ChargingType.DC));
+                ChargingType.DC,
+                null, null, null, null));
 
         assertNull(importLog.getSupersededBy(), "Import should not be suppressed yet");
 
@@ -124,7 +125,8 @@ class EvLogDuplicateDetectionIntegrationTest extends AbstractIntegrationTest {
                 carId, kwh, new BigDecimal("11.00"),
                 55, null, 51000, null, 82,
                 sessionTime,
-                ChargingType.AC, null, null));
+                ChargingType.AC, null, null,
+                false, null));
 
         // When: Tesla import comes in for the same session (5 min later, same kWh)
         InternalEvLogRequest importRequest = new InternalEvLogRequest(
@@ -193,7 +195,8 @@ class EvLogDuplicateDetectionIntegrationTest extends AbstractIntegrationTest {
                 null, null,
                 DataSource.TESLA_LIVE,
                 null,
-                ChargingType.AC));
+                ChargingType.AC,
+                null, null, null, null));
 
         // Create user log via API (this triggers suppressDuplicateImports)
         EvLogRequest request = new EvLogRequest(
@@ -315,7 +318,8 @@ class EvLogDuplicateDetectionIntegrationTest extends AbstractIntegrationTest {
         evLogRepository.save(EvLog.createNew(
                 carId, kwh, new BigDecimal("9.00"),
                 50, null, 52000, null, 78,
-                sessionTime, ChargingType.AC, null, null));
+                sessionTime, ChargingType.AC, null, null,
+                false, null));
 
         // When: Tesla import arrives for the same session
         InternalEvLogRequest importRequest = new InternalEvLogRequest(
@@ -358,7 +362,8 @@ class EvLogDuplicateDetectionIntegrationTest extends AbstractIntegrationTest {
                 null, null,
                 DataSource.TESLA_FLEET_IMPORT,
                 null,
-                ChargingType.DC));
+                ChargingType.DC,
+                null, null, null, null));
 
         // When: User logs a very different amount (28 kWh — >15% difference)
         EvLogRequest request = new EvLogRequest(

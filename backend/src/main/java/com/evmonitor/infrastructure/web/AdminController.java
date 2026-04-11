@@ -7,6 +7,7 @@ import com.evmonitor.application.PlausibleTrafficRow;
 import com.evmonitor.infrastructure.external.PlausibleService;
 import com.evmonitor.infrastructure.persistence.AdminQueryRepository;
 import com.evmonitor.infrastructure.weather.TemperatureBackfillJob;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,19 +20,12 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin")
+@RequiredArgsConstructor
 public class AdminController {
 
     private final TemperatureBackfillJob temperatureBackfillJob;
     private final AdminQueryRepository adminQueryRepository;
     private final PlausibleService plausibleService;
-
-    public AdminController(TemperatureBackfillJob temperatureBackfillJob,
-                           AdminQueryRepository adminQueryRepository,
-                           PlausibleService plausibleService) {
-        this.temperatureBackfillJob = temperatureBackfillJob;
-        this.adminQueryRepository = adminQueryRepository;
-        this.plausibleService = plausibleService;
-    }
 
     /**
      * Triggers one-time temperature backfill for all logs with geohash but no temperature.

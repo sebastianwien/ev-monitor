@@ -6,9 +6,13 @@ import com.evmonitor.domain.PasswordResetToken;
 import com.evmonitor.domain.PasswordResetTokenRepository;
 import com.evmonitor.domain.User;
 import com.evmonitor.domain.UserRepository;
+import com.evmonitor.domain.exception.AuthException;
+import com.evmonitor.domain.exception.ConflictException;
+import com.evmonitor.domain.exception.ValidationException;
 import com.evmonitor.infrastructure.email.EmailService;
 import com.evmonitor.infrastructure.security.JwtService;
 import com.evmonitor.infrastructure.security.UserPrincipal;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -18,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 
 @Service
+@RequiredArgsConstructor
 public class AuthService {
 
     private static final int MAX_REFERRALS = 20;
@@ -31,29 +36,10 @@ public class AuthService {
     private final EmailService emailService;
     private final CoinLogService coinLogService;
 
-    public AuthService(
-            UserRepository userRepository,
-            PasswordEncoder passwordEncoder,
-            JwtService jwtService,
-            AuthenticationManager authenticationManager,
-            EmailVerificationTokenRepository tokenRepository,
-            PasswordResetTokenRepository passwordResetTokenRepository,
-            EmailService emailService,
-            CoinLogService coinLogService) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.jwtService = jwtService;
-        this.authenticationManager = authenticationManager;
-        this.tokenRepository = tokenRepository;
-        this.passwordResetTokenRepository = passwordResetTokenRepository;
-        this.emailService = emailService;
-        this.coinLogService = coinLogService;
-    }
-
     @Transactional
     public RegisterResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.email())) {
-            throw new IllegalArgumentException("Email is already in use.");
+            throw ConflictException.emailTaken();
         }
 
         String username = resolveUsername(request.username(), request.email());
@@ -97,11 +83,11 @@ public class AuthService {
     @Transactional
     public AuthResponse verifyEmail(String token) {
         EmailVerificationToken verificationToken = tokenRepository.findByToken(token)
-                .orElseThrow(() -> new IllegalArgumentException("INVALID_TOKEN"));
+                .orElseThrow(AuthException::invalidToken);
 
         if (verificationToken.isExpired()) {
             tokenRepository.deleteById(verificationToken.getId());
-            throw new IllegalArgumentException("TOKEN_EXPIRED");
+            throw AuthException.tokenExpired();
         }
 
         userRepository.markEmailVerified(verificationToken.getUserId());
@@ -132,7 +118,7 @@ public class AuthService {
             // Rate limit: refuse if last token was created less than 1 minute ago
             tokenRepository.findMostRecentByUserId(user.getId()).ifPresent(recent -> {
                 if (recent.getCreatedAt().isAfter(LocalDateTime.now().minusMinutes(1))) {
-                    throw new IllegalArgumentException("RATE_LIMITED");
+                    throw AuthException.rateLimited();
                 }
             });
 
@@ -157,11 +143,11 @@ public class AuthService {
     @Transactional
     public void resetPassword(String token, String newPassword) {
         PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token)
-                .orElseThrow(() -> new IllegalArgumentException("INVALID_TOKEN"));
+                .orElseThrow(AuthException::invalidToken);
 
         if (resetToken.isExpired()) {
             passwordResetTokenRepository.deleteById(resetToken.getId());
-            throw new IllegalArgumentException("TOKEN_EXPIRED");
+            throw AuthException.tokenExpired();
         }
 
         String hashedPassword = passwordEncoder.encode(newPassword);
@@ -182,13 +168,13 @@ public class AuthService {
     public AuthResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.email())
                 .or(() -> userRepository.findByUsername(request.email()))
-                .orElseThrow(() -> new IllegalArgumentException("Invalid credentials"));
+                .orElseThrow(() -> new ValidationException("INVALID_CREDENTIALS", "Invalid credentials"));
 
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(user.getEmail(), request.password()));
 
         if (!user.isEmailVerified()) {
-            throw new IllegalArgumentException("EMAIL_NOT_VERIFIED");
+            throw AuthException.emailNotVerified();
         }
 
         String jwtToken = jwtService.generateToken(UserPrincipal.create(user));
@@ -199,7 +185,7 @@ public class AuthService {
         // Use provided username if valid and available
         if (requested != null && !requested.isBlank() && requested.matches("^[a-zA-Z0-9_]{3,20}$")) {
             if (userRepository.existsByUsername(requested)) {
-                throw new IllegalArgumentException("Username is already taken.");
+                throw ConflictException.usernameTaken();
             }
             return requested;
         }

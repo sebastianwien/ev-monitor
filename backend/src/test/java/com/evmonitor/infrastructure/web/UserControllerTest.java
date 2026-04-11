@@ -71,7 +71,7 @@ class UserControllerTest extends AbstractIntegrationTest {
                 new ParameterizedTypeReference<>() {}
         );
 
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
     }
 
     @Test

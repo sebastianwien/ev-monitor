@@ -13,7 +13,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -40,7 +40,7 @@ import static org.mockito.Mockito.when;
  */
 class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
 
-    @MockBean
+    @MockitoBean
     private SpritMonitorClient spritMonitorClient;
 
     private User testUser;

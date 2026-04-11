@@ -8,6 +8,7 @@ import com.evmonitor.infrastructure.persistence.JpaEvLogRepository;
 import com.evmonitor.infrastructure.persistence.JpaUserRepository;
 import com.evmonitor.infrastructure.persistence.JpaVehicleSpecificationRepository;
 import com.evmonitor.infrastructure.persistence.VehicleSpecificationEntity;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -23,24 +24,23 @@ import java.util.UUID;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class PublicModelService {
 
     private final JpaEvLogRepository evLogRepository;
     private final JpaVehicleSpecificationRepository vehicleSpecificationRepository;
     private final JpaUserRepository userRepository;
     private final CarRepository carRepository;
-    private final EvLogService evLogService;
+    private final EvLogStatisticsService evLogStatisticsService;
 
-    public PublicModelService(JpaEvLogRepository evLogRepository,
-                              JpaVehicleSpecificationRepository vehicleSpecificationRepository,
-                              JpaUserRepository userRepository,
-                              CarRepository carRepository,
-                              EvLogService evLogService) {
-        this.evLogRepository = evLogRepository;
-        this.vehicleSpecificationRepository = vehicleSpecificationRepository;
-        this.userRepository = userRepository;
-        this.carRepository = carRepository;
-        this.evLogService = evLogService;
+    private static boolean isValidCarModelEnumName(String name) {
+        if (name == null) return false;
+        try {
+            CarBrand.CarModel.valueOf(name);
+            return true;
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
     }
 
     @Cacheable("platformStats")
@@ -121,14 +121,14 @@ public class PublicModelService {
         // Fetch consumption via EvLogService (authoritative calculation, same logic as user stats)
         // Demo Mode: If seed user, includes ALL seed data
         List<Car> carsForModel = carRepository.findAllByModel(carModel);
-        CommunityConsumptionResult communityResult = evLogService.calculateCommunityAvgConsumption(carsForModel, isSeedUser);
+        CommunityConsumptionResult communityResult = evLogStatisticsService.calculateCommunityAvgConsumption(carsForModel, isSeedUser);
         BigDecimal avgConsumption = communityResult.value() != null
                 ? communityResult.value().setScale(2, RoundingMode.HALF_UP) : null;
 
         // Fetch seasonal distribution via EvLogService (same SoC-based logic as overall consumption)
         // Demo Mode: If seed user, includes ALL seed data
         PublicModelStatsResponse.SeasonalDistribution seasonalDistribution = null;
-        EvLogService.SeasonalConsumptionResult seasonal = evLogService.calculateSeasonalConsumption(carsForModel, isSeedUser);
+        SeasonalConsumptionResult seasonal = evLogStatisticsService.calculateSeasonalConsumption(carsForModel, isSeedUser);
         long totalKm = (long) seasonal.summerKm() + seasonal.winterKm();
         if (totalKm > 0) {
             int summerPct = (int) Math.round((seasonal.summerKm() * 100.0) / totalKm);
@@ -175,12 +175,12 @@ public class PublicModelService {
                             .toList();
                     CommunityConsumptionResult variantResult = carsForVariant.isEmpty()
                             ? CommunityConsumptionResult.EMPTY
-                            : evLogService.calculateCommunityAvgConsumption(carsForVariant, isSeedUser);
+                            : evLogStatisticsService.calculateCommunityAvgConsumption(carsForVariant, isSeedUser);
                     BigDecimal variantConsumption = variantResult.value() != null
                             ? variantResult.value().setScale(1, RoundingMode.HALF_UP) : null;
                     PublicModelStatsResponse.SeasonalDistribution variantSeasonal = null;
                     if (!carsForVariant.isEmpty()) {
-                        EvLogService.SeasonalConsumptionResult vs = evLogService.calculateSeasonalConsumption(carsForVariant, isSeedUser);
+                        SeasonalConsumptionResult vs = evLogStatisticsService.calculateSeasonalConsumption(carsForVariant, isSeedUser);
                         long vsKm = (long) vs.summerKm() + vs.winterKm();
                         if (vsKm > 0) {
                             int sPct = (int) Math.round((vs.summerKm() * 100.0) / vsKm);
@@ -236,10 +236,15 @@ public class PublicModelService {
      */
     @Cacheable("modelsWithData")
     public List<String> getModelsWithWltpData(UUID currentUserId, boolean isSeedUser) {
-        // Get all models with WLTP data
+        // Get all models with WLTP data.
+        // Filter out rows whose car_model is not a valid CarBrand.CarModel enum name —
+        // defensive guard against accidentally persisted display names like "Model 3"
+        // (vs. the canonical "MODEL_3"). Such rows would otherwise crash the downstream
+        // SQL query, which compares against the car_model enum column.
         List<String> modelsWithWltp = vehicleSpecificationRepository.findAll().stream()
                 .map(VehicleSpecificationEntity::getCarModel)
                 .distinct()
+                .filter(PublicModelService::isValidCarModelEnumName)
                 .toList();
 
         // Filter to only include models with real community logs, keep count for sorting
@@ -307,7 +312,7 @@ public class PublicModelService {
 
                     // Get community avg consumption (model-level)
                     List<Car> carsForModel = carRepository.findAllByModel(model);
-                    CommunityConsumptionResult communityResult = evLogService.calculateCommunityAvgConsumption(carsForModel, isSeedUser);
+                    CommunityConsumptionResult communityResult = evLogStatisticsService.calculateCommunityAvgConsumption(carsForModel, isSeedUser);
                     BigDecimal avgConsumption = communityResult.value() != null
                             ? communityResult.value().setScale(1, java.math.RoundingMode.HALF_UP) : null;
 
@@ -323,7 +328,7 @@ public class PublicModelService {
                                         .toList();
                                 CommunityConsumptionResult variantResult = carsForVariant.isEmpty()
                                         ? CommunityConsumptionResult.EMPTY
-                                        : evLogService.calculateCommunityAvgConsumption(carsForVariant, isSeedUser);
+                                        : evLogStatisticsService.calculateCommunityAvgConsumption(carsForVariant, isSeedUser);
                                 BigDecimal variantReal = variantResult.value() != null
                                         ? variantResult.value().setScale(1, java.math.RoundingMode.HALF_UP) : null;
                                 String variantName = model.variantNameFor(e.getBatteryCapacityKwh()).orElse(null);
@@ -397,7 +402,7 @@ public class PublicModelService {
                     }
 
                     List<Car> cars = carRepository.findAllByModel(carModel);
-                    CommunityConsumptionResult result = evLogService.calculateCommunityAvgConsumption(cars, isSeedUser);
+                    CommunityConsumptionResult result = evLogStatisticsService.calculateCommunityAvgConsumption(cars, isSeedUser);
                     BigDecimal avgConsumption = result.value() != null
                             ? result.value().setScale(1, RoundingMode.HALF_UP) : null;
 
@@ -418,7 +423,7 @@ public class PublicModelService {
                                                 && c.getBatteryCapacityKwh().compareTo(spec.getBatteryCapacityKwh()) == 0)
                                         .toList();
                                 if (carsForVariant.isEmpty()) return null;
-                                CommunityConsumptionResult r = evLogService.calculateCommunityAvgConsumption(carsForVariant, isSeedUser);
+                                CommunityConsumptionResult r = evLogStatisticsService.calculateCommunityAvgConsumption(carsForVariant, isSeedUser);
                                 return (r.tripCount() >= 100 && r.value() != null)
                                         ? r.value().setScale(1, RoundingMode.HALF_UP) : null;
                             })

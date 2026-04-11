@@ -8,6 +8,7 @@ import com.lowagie.text.*;
 import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.awt.Color;
@@ -20,6 +21,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class TaxExportService {
 
     public static final BigDecimal BMF_PAUSCHALE_2026 = new BigDecimal("0.3436");
@@ -28,11 +30,6 @@ public class TaxExportService {
 
     private final CarRepository carRepository;
     private final JpaEvLogRepository jpaEvLogRepository;
-
-    public TaxExportService(CarRepository carRepository, JpaEvLogRepository jpaEvLogRepository) {
-        this.carRepository = carRepository;
-        this.jpaEvLogRepository = jpaEvLogRepository;
-    }
 
     public record TaxExportData(
             Car car,

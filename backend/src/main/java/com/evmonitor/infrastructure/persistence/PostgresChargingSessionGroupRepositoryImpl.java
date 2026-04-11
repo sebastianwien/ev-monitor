@@ -2,6 +2,7 @@ package com.evmonitor.infrastructure.persistence;
 
 import com.evmonitor.domain.ChargingSessionGroup;
 import com.evmonitor.domain.ChargingSessionGroupRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -11,13 +12,10 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Component
+@RequiredArgsConstructor
 public class PostgresChargingSessionGroupRepositoryImpl implements ChargingSessionGroupRepository {
 
     private final JpaChargingSessionGroupRepository jpa;
-
-    public PostgresChargingSessionGroupRepositoryImpl(JpaChargingSessionGroupRepository jpa) {
-        this.jpa = jpa;
-    }
 
     @Override
     public ChargingSessionGroup save(ChargingSessionGroup group) {

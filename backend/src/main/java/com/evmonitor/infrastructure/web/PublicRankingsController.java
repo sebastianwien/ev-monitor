@@ -3,6 +3,7 @@ package com.evmonitor.infrastructure.web;
 import com.evmonitor.application.PublicModelService;
 import com.evmonitor.application.TopModelResponse;
 import com.evmonitor.infrastructure.security.UserPrincipal;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -15,13 +16,10 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/public/rankings")
+@RequiredArgsConstructor
 public class PublicRankingsController {
 
     private final PublicModelService publicModelService;
-
-    public PublicRankingsController(PublicModelService publicModelService) {
-        this.publicModelService = publicModelService;
-    }
 
     /**
      * GET /api/public/rankings/efficiency?limit=5

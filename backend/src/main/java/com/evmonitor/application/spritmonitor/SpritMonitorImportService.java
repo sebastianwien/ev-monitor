@@ -11,6 +11,7 @@ import com.evmonitor.domain.EvLogRepository;
 import com.evmonitor.infrastructure.external.SpritMonitorClient;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +29,7 @@ import java.util.UUID;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class SpritMonitorImportService {
 
     public static final DateTimeFormatter DD_MM_YYYY = DateTimeFormatter.ofPattern("dd.MM.yyyy");
@@ -38,16 +40,6 @@ public class SpritMonitorImportService {
     private final CarRepository carRepository;
     private final CoinLogService coinLogService;
     private final ObjectMapper objectMapper;
-
-    public SpritMonitorImportService(SpritMonitorClient client, EvLogRepository evLogRepository,
-                                     CarRepository carRepository, CoinLogService coinLogService,
-                                     ObjectMapper objectMapper) {
-        this.client = client;
-        this.evLogRepository = evLogRepository;
-        this.carRepository = carRepository;
-        this.coinLogService = coinLogService;
-        this.objectMapper = objectMapper;
-    }
 
     /**
      * Fetches electric vehicles from Sprit-Monitor

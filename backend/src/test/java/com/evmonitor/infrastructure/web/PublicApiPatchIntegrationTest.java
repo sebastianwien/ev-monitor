@@ -128,7 +128,8 @@ class PublicApiPatchIntegrationTest extends AbstractIntegrationTest {
     void patch_nonApiUploadLog_returns400() {
         EvLog userLog = EvLog.createNew(car.getId(), BigDecimal.valueOf(20.0), null,
                 30, null, null, null, 80, LocalDateTime.now(),
-                ChargingType.AC, null, null);
+                ChargingType.AC, null, null,
+                false, null);
         EvLog saved = evLogRepository.save(userLog);
 
         ResponseEntity<Map> response = patchForMap(saved.getId(), """
@@ -184,7 +185,8 @@ class PublicApiPatchIntegrationTest extends AbstractIntegrationTest {
                 BigDecimal.valueOf(11.0), 85, 20,
                 LocalDateTime.now().minusHours(1),
                 ChargingType.AC, RouteType.COMBINED, TireType.SUMMER,
-                DataSource.API_UPLOAD, null);
+                DataSource.API_UPLOAD, null,
+                false, null, null);
         return evLogRepository.save(log);
     }
 

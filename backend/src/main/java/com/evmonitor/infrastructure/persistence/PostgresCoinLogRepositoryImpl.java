@@ -3,6 +3,7 @@ package com.evmonitor.infrastructure.persistence;
 import com.evmonitor.domain.CoinLog;
 import com.evmonitor.domain.CoinLogRepository;
 import com.evmonitor.domain.CoinType;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -12,13 +13,10 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Component
+@RequiredArgsConstructor
 public class PostgresCoinLogRepositoryImpl implements CoinLogRepository {
 
     private final JpaCoinLogRepository jpaRepository;
-
-    public PostgresCoinLogRepositoryImpl(JpaCoinLogRepository jpaRepository) {
-        this.jpaRepository = jpaRepository;
-    }
 
     @Override
     public CoinLog save(CoinLog coinLog) {
@@ -36,14 +34,14 @@ public class PostgresCoinLogRepositoryImpl implements CoinLogRepository {
     public List<CoinLog> findAllByUserId(UUID userId) {
         return jpaRepository.findAllByUserId(userId).stream()
                 .map(this::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
     public List<CoinLog> findAllByUserIdAndCoinType(UUID userId, CoinType coinType) {
         return jpaRepository.findAllByUserIdAndCoinType(userId, coinType).stream()
                 .map(this::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override

@@ -2,6 +2,7 @@ package com.evmonitor.infrastructure.persistence;
 
 import com.evmonitor.domain.ApiKey;
 import com.evmonitor.domain.ApiKeyRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,13 +12,10 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Component
+@RequiredArgsConstructor
 public class PostgresApiKeyRepositoryImpl implements ApiKeyRepository {
 
     private final JpaApiKeyRepository jpaRepository;
-
-    public PostgresApiKeyRepositoryImpl(JpaApiKeyRepository jpaRepository) {
-        this.jpaRepository = jpaRepository;
-    }
 
     @Override
     public ApiKey save(ApiKey apiKey) {
