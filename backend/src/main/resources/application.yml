@@ -153,3 +153,12 @@ stripe:
   price-id-yearly: ${STRIPE_PRICE_ID_YEARLY:}
   referral-coupon-id: ${STRIPE_REFERRAL_COUPON_ID:}
   referral-reward-cents: ${STRIPE_REFERRAL_REWARD_CENTS:399}
+
+logging:
+  file:
+    name: ${LOG_FILE:}
+  logback:
+    rollingpolicy:
+      max-file-size: 50MB
+      max-history: 30
+      total-size-cap: 500MB
