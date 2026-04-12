@@ -100,6 +100,15 @@ const copyApiKey = async () => {
   } catch { /* ignore */ }
 }
 
+const copiedCarId = ref<string | null>(null)
+const copyCarId = async (id: string) => {
+  try {
+    await navigator.clipboard.writeText(id)
+    copiedCarId.value = id
+    setTimeout(() => { copiedCarId.value = null }, 2000)
+  } catch { /* ignore */ }
+}
+
 const formatDate = (dateStr: string | null) => {
   if (!dateStr) return t('imports.api_never')
   return new Date(dateStr).toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -205,6 +214,24 @@ const activeCars = computed(() =>
                 <p class="text-xs mt-1">{{ t('imports.api_dedup') }}</p>
                 <a href="/swagger-ui/index.html" target="_blank" class="inline-block mt-2 text-indigo-700 hover:underline font-medium text-xs">{{ t('imports.api_docs') }}</a>
               </div>
+              <!-- Fahrzeug-IDs -->
+              <div v-if="activeCars.length > 0" class="space-y-1.5">
+                <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">{{ t('imports.api_car_ids_title') }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400" v-html="t('imports.api_car_ids_hint')" />
+                <div v-for="car in activeCars" :key="car.id"
+                  class="flex items-center gap-2 p-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg">
+                  <div class="flex-1 min-w-0">
+                    <p class="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">{{ car.year }} {{ car.model.replace(/_/g, ' ') }}<span v-if="car.licensePlate" class="text-gray-400 dark:text-gray-500"> · {{ car.licensePlate }}</span></p>
+                    <p class="text-[11px] font-mono text-gray-500 dark:text-gray-400 mt-0.5 select-all">{{ car.id }}</p>
+                  </div>
+                  <button @click="copyCarId(car.id)" :title="t('cars.api_id_copy')"
+                    class="shrink-0 p-1.5 text-gray-400 hover:text-indigo-500 dark:hover:text-indigo-400 hover:bg-gray-100 dark:hover:bg-gray-600 rounded transition">
+                    <CheckIcon v-if="copiedCarId === car.id" class="h-4 w-4 text-green-500" />
+                    <ClipboardDocumentIcon v-else class="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
               <div v-if="apiKeyMessage" :class="['p-3 rounded-lg text-sm', apiKeyMessage.type === 'success' ? 'bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 text-green-700 dark:text-green-300' : 'bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300']">{{ apiKeyMessage.text }}</div>
               <div v-if="createdKey" class="p-4 bg-green-50 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded-lg">
                 <p class="font-semibold text-green-800 dark:text-green-200 mb-1 text-sm">{{ t('imports.api_new_key_title') }}</p>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ChartBarIcon, TruckIcon, ArrowDownTrayIcon } from '@heroicons/vue/24/outline'
+import { ChartBarIcon, TruckIcon, ArrowDownTrayIcon, ClipboardDocumentIcon, CheckIcon } from '@heroicons/vue/24/outline'
 import LicensePlate from '../components/car/LicensePlate.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useCarForm } from '../composables/useCarForm'
@@ -58,6 +58,15 @@ onMounted(async () => {
   await fetchCars(loadCarImages, revokeAllBlobUrls)
   initVisibility(cars.value)
 })
+
+const copiedCarId = ref<string | null>(null)
+const copyCarId = async (id: string) => {
+  try {
+    await navigator.clipboard.writeText(id)
+    copiedCarId.value = id
+    setTimeout(() => { copiedCarId.value = null }, 2000)
+  } catch { /* ignore */ }
+}
 </script>
 
 <template>
@@ -469,6 +478,14 @@ onMounted(async () => {
                   </template>
                 </div>
                 <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{{ car.year }}</p>
+                <div class="flex items-center gap-1 mt-1">
+                  <span class="text-[10px] text-gray-400 dark:text-gray-500 font-mono leading-none">{{ car.id }}</span>
+                  <button @click.stop="copyCarId(car.id)" :title="t('cars.api_id_copy')"
+                    class="shrink-0 p-0.5 text-gray-400 hover:text-indigo-500 dark:hover:text-indigo-400 transition">
+                    <CheckIcon v-if="copiedCarId === car.id" class="h-3 w-3 text-green-500" />
+                    <ClipboardDocumentIcon v-else class="h-3 w-3" />
+                  </button>
+                </div>
               </div>
               <LicensePlate v-if="car.licensePlate" :plate="car.licensePlate" class="shrink-0" />
             </div>

@@ -741,6 +741,8 @@ cars:
   degradation_placeholder: "e.g. 8"
   wltp_range_placeholder: "e.g. 450"
   wltp_consumption_placeholder: "e.g. 16.5"
+  api_id_copy: "Copy vehicle ID"
+  api_id_copied: "Copied"
 
 carselector:
   label: "Vehicle"
@@ -1128,6 +1130,9 @@ imports:
   api_confirm_revoke: "Really revoke API key \"{name}\"? All integrations using this key will stop working immediately."
   api_confirm_name_fallback: "unnamed"
   api_copy_title: "Copy"
+  api_car_ids_title: "Vehicle IDs"
+  api_car_ids_hint: "You need these as the <code>car_id</code> in your API request."
+  api_car_id_copied: "Copied"
 
 spritmonitor:
   title: "Sprit-Monitor Import"
