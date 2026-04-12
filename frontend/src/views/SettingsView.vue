@@ -1,21 +1,17 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
 import { useCountryStore } from '../stores/country'
 import type { CountryCode } from '../config/unitSystems'
 import { UserIcon, KeyIcon, TrashIcon, ArrowDownTrayIcon, AcademicCapIcon, ShareIcon, ClipboardDocumentIcon, CheckIcon, HeartIcon, ArrowRightOnRectangleIcon, BoltIcon, CreditCardIcon, PlusIcon, PencilIcon } from '@heroicons/vue/24/outline'
-import SupportPopover from '../components/SupportPopover.vue'
-import DemoSettingsModal from '../components/DemoSettingsModal.vue'
-import api from '../api/axios'
-import { subscriptionService } from '../api/subscriptionService'
+import SupportPopover from '../components/settings/SupportPopover.vue'
+import DemoSettingsModal from '../components/demo/DemoSettingsModal.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
+import { useAccountSettings } from '../composables/useAccountSettings'
+import { useChargingProviders } from '../composables/useChargingProviders'
 
 const { t, locale } = useI18n()
-const { formatCostPerKwh, formatCurrency } = useLocaleFormat()
-const router = useRouter()
-const authStore = useAuthStore()
+const { formatCurrency } = useLocaleFormat()
 const countryStore = useCountryStore()
 
 const countries: { code: CountryCode; flag: string; name: Record<string, string> }[] = [
@@ -30,402 +26,38 @@ const countries: { code: CountryCode; flag: string; name: Record<string, string>
   { code: 'SE', flag: '🇸🇪', name: { de: 'Schweden', en: 'Sweden' } },
 ]
 
-// Account Data
-const email = ref('')
-const username = ref('')
-const registeredSince = ref('')
-const totalLogs = ref(0)
-const totalKwh = ref(0)
-const totalCostEur = ref(0)
-
-// Coin Balance
-const coinBalance = ref(0)
-
-// Referral
-const referralCode = ref('')
-const referralCopied = ref(false)
-
-// Community
-const leaderboardVisible = ref(true)
-
-const subscriptionPeriodEnd = ref<string | null>(null)
-
-const portalLoading = ref(false)
-const openPortal = async () => {
-  portalLoading.value = true
-  try {
-    const { portalUrl } = await subscriptionService.createPortalSession()
-    window.location.href = portalUrl
-  } catch {
-    // ignore - portal link not available (no subscription yet)
-  } finally {
-    portalLoading.value = false
-  }
-}
-
-const referralLink = () => `${window.location.origin}/register?ref=${referralCode.value}`
-
-const copyReferralLink = async () => {
-  try {
-    await navigator.clipboard.writeText(referralLink())
-    referralCopied.value = true
-    setTimeout(() => { referralCopied.value = false }, 2000)
-  } catch {
-    // fallback: select the input text
-  }
-}
-
-// Forms
-const showEmailForm = ref(false)
-const showUsernameForm = ref(false)
-const showPasswordForm = ref(false)
-
-const newEmail = ref('')
-const emailCurrentPassword = ref('')
-const newUsername = ref('')
-const currentPassword = ref('')
-const newPassword = ref('')
-const confirmPassword = ref('')
-
-// Delete Account
-const showDeleteConfirm = ref(false)
-const deletePassword = ref('')
-
-// Loading & Messages
+// Shared state
 const loading = ref(false)
 const message = ref<{ type: 'success' | 'error', text: string } | null>(null)
 
-// Fetch user data
-const fetchUserData = async () => {
-  try {
-    // Get user from JWT token (already decoded in authStore)
-    const user = authStore.user
-    if (user) {
-      email.value = user.email || user.sub || ''
-      username.value = user.username || user.email?.split('@')[0] || ''
-    }
+// -- Account Settings --
+const {
+  email, username, registeredSince, totalLogs, totalKwh, totalCostEur,
+  coinBalance, referralCode, referralCopied, leaderboardVisible,
+  subscriptionPeriodEnd, portalLoading,
+  showEmailForm, showUsernameForm, showPasswordForm,
+  newEmail, emailCurrentPassword, newUsername,
+  currentPassword, newPassword, confirmPassword,
+  showDeleteConfirm, deletePassword,
+  referralLink, copyReferralLink, openPortal,
+  fetchUserData, changeEmail, changeUsername, changePassword,
+  exportData, deleteAccount, toggleLeaderboardVisible, restartOnboarding,
+  initSubscription, authStore,
+} = useAccountSettings(loading, message)
 
-    // Fetch stats and coins from API
-    const [statsRes, coinsRes] = await Promise.all([
-      api.get('/users/me/stats'),
-      api.get('/coins/balance')
-    ])
+// -- Charging Providers --
+const {
+  chargingProviders, editingProviderId, providerForm, isCustomProvider,
+  KNOWN_EMPS,
+  resetProviderForm, startEditProvider,
+  fetchChargingProviders, saveChargingProvider, deleteChargingProvider,
+  formatPrice, formatDate,
+} = useChargingProviders(loading, message)
 
-    const stats = statsRes.data
-    registeredSince.value = new Date(stats.registeredSince).toLocaleDateString()
-    totalLogs.value = stats.totalLogs
-    totalKwh.value = stats.totalKwh
-    totalCostEur.value = stats.totalCostEur ?? 0
-    referralCode.value = stats.referralCode || ''
-    leaderboardVisible.value = stats.leaderboardVisible ?? true
-
-    coinBalance.value = coinsRes.data.totalCoins || 0
-  } catch (error: any) {
-    console.error('Failed to fetch user data:', error)
-  }
-}
-
-// Change Email
-const changeEmail = async () => {
-  if (!newEmail.value || !emailCurrentPassword.value) return
-
-  loading.value = true
-  message.value = null
-
-  try {
-    await api.put('/users/me/email', { newEmail: newEmail.value, currentPassword: emailCurrentPassword.value })
-    // JWT is now invalid (email changed) — logout and redirect to login
-    authStore.logout()
-    router.push('/login?reason=email-changed')
-  } catch (error: any) {
-    message.value = { type: 'error', text: error.response?.data?.message || t('settings.err_email_change') }
-    loading.value = false
-  }
-}
-
-// Change Username
-const changeUsername = async () => {
-  if (!newUsername.value) return
-
-  loading.value = true
-  message.value = null
-
-  try {
-    const response = await api.put('/users/me/username', { newUsername: newUsername.value })
-    authStore.setToken(response.data.token)
-    username.value = authStore.user?.username || newUsername.value
-    message.value = { type: 'success', text: t('settings.ok_username') }
-    showUsernameForm.value = false
-    newUsername.value = ''
-  } catch (error: any) {
-    message.value = { type: 'error', text: error.response?.data?.message || t('settings.err_username_change') }
-  } finally {
-    loading.value = false
-  }
-}
-
-// Change Password
-const changePassword = async () => {
-  if (!currentPassword.value || !newPassword.value || !confirmPassword.value) {
-    message.value = { type: 'error', text: t('settings.err_fill_all') }
-    return
-  }
-
-  if (newPassword.value !== confirmPassword.value) {
-    message.value = { type: 'error', text: t('settings.err_passwords_mismatch') }
-    return
-  }
-
-  if (newPassword.value.length < 8) {
-    message.value = { type: 'error', text: t('settings.err_password_short') }
-    return
-  }
-
-  loading.value = true
-  message.value = null
-
-  try {
-    await api.put('/users/me/password', {
-      currentPassword: currentPassword.value,
-      newPassword: newPassword.value
-    })
-    message.value = { type: 'success', text: t('settings.ok_password') }
-    showPasswordForm.value = false
-    currentPassword.value = ''
-    newPassword.value = ''
-    confirmPassword.value = ''
-  } catch (error: any) {
-    message.value = { type: 'error', text: error.response?.data?.message || t('settings.err_password_change') }
-  } finally {
-    loading.value = false
-  }
-}
-
-// Export Data
-const exportData = async () => {
-  loading.value = true
-  message.value = null
-
-  try {
-    const response = await api.get('/users/me/export', { responseType: 'blob' })
-
-    // Create download link
-    const url = window.URL.createObjectURL(new Blob([response.data]))
-    const link = document.createElement('a')
-    link.href = url
-    link.setAttribute('download', `ev-monitor-export-${Date.now()}.json`)
-    document.body.appendChild(link)
-    link.click()
-    link.remove()
-
-    message.value = { type: 'success', text: t('settings.ok_export') }
-  } catch (error: any) {
-    message.value = { type: 'error', text: error.response?.data?.message || t('settings.err_export') }
-  } finally {
-    loading.value = false
-  }
-}
-
-// Delete Account
-const deleteAccount = async () => {
-  if (!deletePassword.value) {
-    message.value = { type: 'error', text: t('settings.err_password_enter') }
-    return
-  }
-
-  loading.value = true
-  message.value = null
-
-  try {
-    await api.delete('/users/me', {
-      data: { password: deletePassword.value }
-    })
-
-    // Logout and redirect
-    authStore.logout()
-    router.push('/login')
-  } catch (error: any) {
-    message.value = { type: 'error', text: error.response?.data?.message || t('settings.err_delete') }
-    loading.value = false
-  }
-}
-
-// Charging Providers
-interface ChargingProvider {
-  id: string
-  providerName: string
-  label: string | null
-  acPricePerKwh: number | null
-  dcPricePerKwh: number | null
-  monthlyFeeEur: number
-  sessionFeeEur: number
-  activeFrom: string
-  activeUntil: string | null
-}
-
-const KNOWN_EMPS = [
-  // Deutschland
-  'ADAC e-Charge',
-  'Aral Pulse',
-  'bp pulse',
-  'Charge Now (BMW)',
-  'EnBW mobility+',
-  'Elli (VW)',
-  'E.ON Drive',
-  'EWE Go',
-  'Fastned Gold',
-  'IONITY Passport',
-  'Lichtblick',
-  'Maingau Energie',
-  'Mercedes me Charge',
-  'NewMotion',
-  'Plugsurfing',
-  'Shell Recharge',
-  'Stadtwerke',
-  'Tesla',
-  // Österreich
-  'Ella (AT)',
-  'SMATRICS EnBW (AT)',
-  // Schweiz
-  'Move (CH)',
-  'Anderer Anbieter',
-]
-
-const chargingProviders = ref<ChargingProvider[]>([])
-// null = nicht am bearbeiten, 'new' = neue Karte, uuid = bestehende bearbeiten
-const editingProviderId = ref<string | null>(null)
-const providerForm = ref({
-  providerName: '',
-  customProviderName: '',
-  label: '',
-  acPricePerKwh: '' as string | number,
-  dcPricePerKwh: '' as string | number,
-  monthlyFeeEur: 0,
-  sessionFeeEur: 0,
-  activeFrom: new Date().toISOString().split('T')[0],
-})
-
-const isCustomProvider = computed(() => providerForm.value.providerName === 'Anderer Anbieter')
-
-const resetProviderForm = () => {
-  providerForm.value = {
-    providerName: '',
-    customProviderName: '',
-    label: '',
-    acPricePerKwh: '',
-    dcPricePerKwh: '',
-    monthlyFeeEur: 0,
-    sessionFeeEur: 0,
-    activeFrom: new Date().toISOString().split('T')[0],
-  }
-}
-
-const startEditProvider = (provider: ChargingProvider) => {
-  editingProviderId.value = provider.id
-  const isKnown = KNOWN_EMPS.includes(provider.providerName)
-  providerForm.value = {
-    providerName: isKnown ? provider.providerName : 'Anderer Anbieter',
-    customProviderName: isKnown ? '' : provider.providerName,
-    label: provider.label || '',
-    acPricePerKwh: provider.acPricePerKwh ?? '',
-    dcPricePerKwh: provider.dcPricePerKwh ?? '',
-    monthlyFeeEur: provider.monthlyFeeEur,
-    sessionFeeEur: provider.sessionFeeEur,
-    activeFrom: provider.activeFrom,
-  }
-}
-
-const fetchChargingProviders = async () => {
-  try {
-    const res = await api.get('/users/me/charging-providers')
-    chargingProviders.value = res.data
-  } catch {
-    // not critical - section just stays empty
-  }
-}
-
-const saveChargingProvider = async () => {
-  const name = isCustomProvider.value
-    ? providerForm.value.customProviderName.trim()
-    : providerForm.value.providerName
-
-  if (!name || !providerForm.value.activeFrom) return
-
-  loading.value = true
-  message.value = null
-  try {
-    const payload = {
-      providerName: name,
-      label: providerForm.value.label.trim() || null,
-      acPricePerKwh: providerForm.value.acPricePerKwh !== '' ? providerForm.value.acPricePerKwh : null,
-      dcPricePerKwh: providerForm.value.dcPricePerKwh !== '' ? providerForm.value.dcPricePerKwh : null,
-      monthlyFeeEur: providerForm.value.monthlyFeeEur || 0,
-      sessionFeeEur: providerForm.value.sessionFeeEur || 0,
-      activeFrom: providerForm.value.activeFrom,
-    }
-    if (editingProviderId.value === 'new') {
-      await api.post('/users/me/charging-providers', payload)
-    } else {
-      await api.put(`/users/me/charging-providers/${editingProviderId.value}`, payload)
-    }
-    await fetchChargingProviders()
-    editingProviderId.value = null
-    resetProviderForm()
-    message.value = { type: 'success', text: t('settings.tariff_ok') }
-  } catch (error: any) {
-    message.value = { type: 'error', text: error.response?.data?.message || t('settings.tariff_err_save') }
-  } finally {
-    loading.value = false
-  }
-}
-
-const deleteChargingProvider = async (id: string) => {
-  try {
-    await api.delete(`/users/me/charging-providers/${id}`)
-    await fetchChargingProviders()
-  } catch {
-    message.value = { type: 'error', text: t('settings.tariff_err_delete') }
-  }
-}
-
-const formatPrice = (val: number | null) =>
-  val != null ? formatCostPerKwh(val) : '-'
-
-const formatDate = (dateStr: string) =>
-  new Date(dateStr).toLocaleDateString(locale.value === 'en' ? 'en-GB' : 'de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
-
-// Leaderboard visibility
-const toggleLeaderboardVisible = async () => {
-  const newVal = !leaderboardVisible.value
-  try {
-    await api.put(`/users/me/leaderboard-visible?visible=${newVal}`)
-    leaderboardVisible.value = newVal
-  } catch {
-    message.value = { type: 'error', text: t('settings.err_leaderboard') }
-  }
-}
-
-// Restart Onboarding Tutorial
-const restartOnboarding = () => {
-  localStorage.removeItem('onboarding-completed')
-  localStorage.setItem('onboarding-force', 'true')
-  message.value = { type: 'success', text: t('settings.tutorial_restarting') }
-  setTimeout(() => {
-    window.location.reload()
-  }, 1000)
-}
-
-
-onMounted(async () => {
+onMounted(() => {
   fetchUserData()
   fetchChargingProviders()
-  authStore.refreshPremiumStatus()
-  try {
-    const status = await subscriptionService.getStatus()
-    subscriptionPeriodEnd.value = status.subscriptionPeriodEnd
-  } catch {
-    // non-critical
-  }
+  initSubscription()
 })
 </script>
 

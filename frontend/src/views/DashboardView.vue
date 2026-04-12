@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, computed, nextTick } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Line, Bar } from 'vue-chartjs'
 import {
@@ -34,241 +34,68 @@ import {
   ExclamationTriangleIcon,
   CloudIcon,
   XMarkIcon,
-  HomeIcon,
   CalendarIcon,
   ArrowsRightLeftIcon,
 } from '@heroicons/vue/24/outline'
-import type { Component } from 'vue'
 import { useRouter } from 'vue-router'
-import api from '../api/axios'
 import { tempBadgeClass } from '../utils/temperatureColor'
 import { consumptionTextClass } from '../utils/consumptionColor'
-import ConsumptionInfoBox from '../components/ConsumptionInfoBox.vue'
-import EditLogModal from '../components/EditLogModal.vue'
+import ConsumptionInfoBox from '../components/dashboard/ConsumptionInfoBox.vue'
+import EditLogModal from '../components/dashboard/EditLogModal.vue'
 import { costBadgeClass } from '../utils/costColor'
-import { carService } from '../api/carService'
-import { useCarStore } from '../stores/car'
-import LicensePlate from '../components/LicensePlate.vue'
-import { useTeslaStatus } from '../composables/useTeslaStatus'
-import ChargingHeatMap from '../components/ChargingHeatMap.vue'
-import { vehicleSpecificationService, type VehicleSpecification } from '../api/vehicleSpecificationService'
-import RewardSystemUpdateBanner from '../components/RewardSystemUpdateBanner.vue'
-import SupportPopover from '../components/SupportPopover.vue'
-import { useThemeStore } from '../stores/theme'
-import { storeToRefs } from 'pinia'
-import ImplausibleLogsModal from '../components/ImplausibleLogsModal.vue'
+import LicensePlate from '../components/car/LicensePlate.vue'
+import ChargingHeatMap from '../components/dashboard/ChargingHeatMap.vue'
+import RewardSystemUpdateBanner from '../components/shared/RewardSystemUpdateBanner.vue'
+import SupportPopover from '../components/settings/SupportPopover.vue'
+import ImplausibleLogsModal from '../components/dashboard/ImplausibleLogsModal.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
-import { convertFromEur } from '../config/exchangeRates'
+import { useDashboardStats } from '../composables/useDashboardStats'
+import { useDashboardCharts } from '../composables/useDashboardCharts'
+import { useLogList } from '../composables/useLogList'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend, Filler, ChartDataLabels)
 
-interface ChargeDataPoint {
-  timestamp: string
-  costEur: number
-  kwhCharged: number
-  distanceKm: number | null
-  consumptionKwhPer100km: number | null
-}
-
-interface StatisticsData {
-  totalKwhCharged: number
-  totalCostEur: number
-  avgCostPerKwh: number
-  cheapestChargeEur: number
-  mostExpensiveChargeEur: number
-  avgChargeDurationMinutes: number
-  totalCharges: number
-  totalDistanceKm: number | null
-  avgConsumptionKwhPer100km: number | null
-  estimatedConsumptionCount: number
-  summerConsumptionKwhPer100km: number | null
-  winterConsumptionKwhPer100km: number | null
-  chargesOverTime: ChargeDataPoint[]
-}
-
-interface CarInfo {
-  id: string
-  brand: string
-  model: string
-  batteryCapacityKwh: number
-}
-
-const { t, locale } = useI18n()
+const { t } = useI18n()
 const router = useRouter()
-const { formatConsumption, consumptionUnitLabel, convertConsumption, formatDistance, distanceUnitLabel, formatCurrency, formatCostPerKwh, formatCostPerDistance, currencySymbol, currency, convertDistance } = useLocaleFormat()
-const carStore = useCarStore()
-const selectedCarId = ref<string | null>(null)
-const importBannerDismissed = ref(localStorage.getItem('import_banner_dismissed') === 'true')
+const { formatConsumption, consumptionUnitLabel, formatDistance, distanceUnitLabel, formatCurrency, formatCostPerKwh, formatCostPerDistance, currencySymbol, convertDistance } = useLocaleFormat()
 
-const dismissImportBanner = (e: Event) => {
-  e.preventDefault()
-  importBannerDismissed.value = true
-  localStorage.setItem('import_banner_dismissed', 'true')
-}
-const stats = ref<StatisticsData | null>(null)
-const carInfo = ref<CarInfo | null>(null)
-const wltp = ref<VehicleSpecification | null>(null)
-const loading = ref(true) // Initial true to prevent flicker on mount
-const chartsReady = ref(false) // Charts render after fade-in
-const isInitialLoad = ref(true) // Track if this is the first load
-const error = ref<string | null>(null)
-const cars = ref<any[]>([]) // Track available cars for empty state
-const carImageUrls = ref<Record<string, string>>({})
+// -- Dashboard Stats --
+const {
+  selectedCarId, stats, carInfo, wltp, loading, chartsReady, isInitialLoad, error,
+  cars, carImageUrls, selectedTimeRange, selectedGroupBy, customStartDate, customEndDate,
+  importBannerDismissed, teslaStatus, implausibleCount, hasDistanceData,
+  timeRangeOptions, groupByOptions, dismissImportBanner, fetchImplausibleCount,
+  fetchCarAndWltp, fetchStatistics, initCars,
+} = useDashboardStats()
 
-const LS_TIME_RANGE = 'dashboard_time_range'
-const LS_GROUP_BY = 'dashboard_group_by'
-const LS_CUSTOM_START = 'dashboard_custom_start'
-const LS_CUSTOM_END = 'dashboard_custom_end'
+// -- Charts --
+const {
+  showCostPerKwh, showKwh, showDistance, showConsumption,
+  customCompareValue, customCompareInput, showCompareInput,
+  isCustomCompare, saveCustomCompare, resetToWltp,
+  chargingChartData, chargingChartOptions, efficiencyChartData, efficiencyChartOptions,
+  wltpChartData, wltpChartOptions, wltpChartHeight, wltpChartScrollable,
+} = useDashboardCharts(stats, wltp, hasDistanceData, selectedGroupBy)
 
-const selectedTimeRange = ref<string>(localStorage.getItem(LS_TIME_RANGE) ?? 'LAST_3_MONTHS')
-const selectedGroupBy = ref<string>(localStorage.getItem(LS_GROUP_BY) ?? 'DAY')
-const customStartDate = ref<string>(localStorage.getItem(LS_CUSTOM_START) ?? '')
-const customEndDate = ref<string>(localStorage.getItem(LS_CUSTOM_END) ?? '')
+// -- Log List --
+const logsSection = ref<HTMLElement | null>(null)
+const {
+  logsPage, logsLoading, hasMoreLogs, editingLog,
+  expandedGroups, toggleLadegruppe, hasAnyLogs, showOdometer, showCostAbsolute,
+  openTooltipLogId, reassignModalEntry, reassignSelectedCarId, reassignSaving,
+  reassignError, reassignSuccessMessage, otherCars, openReassignModal, saveReassign,
+  fetchLogs, scrollToLogs, fetchLogsAndScroll, refreshLogsAndGroups, deleteLog,
+  formatLogDate, toggleOdometerDisplay, sourceInfo, mergedLogFeed,
+} = useLogList(selectedCarId, cars, logsSection)
 
-const showOdometer = ref(false)
-const showCostAbsolute = ref(false)
-const openTooltipLogId = ref<string | null>(null)
-const { teslaStatus, start: startTeslaPolling } = useTeslaStatus()
-const { isDark } = storeToRefs(useThemeStore())
+// saveReassign needs fetchStatistics, so wrap it
+const doSaveReassign = () => saveReassign(fetchStatistics)
 
-// Dataset toggles - Chart 1 (Charging & Costs)
-const showCostPerKwh = ref(true)
-const showKwh = ref(true)
-
-// Dataset toggles - Chart 2 (Range & Efficiency)
-const showDistance = ref(true)
-const showConsumption = ref(true)
-
-// Implausible logs
+// -- Implausible logs modal --
 const showImplausibleModal = ref(false)
-const implausibleCount = ref(0)
 const implausibleModalDirty = ref(false)
 
-const fetchImplausibleCount = async () => {
-  if (!selectedCarId.value) { implausibleCount.value = 0; return }
-  try {
-    const res = await api.get(`/logs/implausible?carId=${selectedCarId.value}`)
-    implausibleCount.value = res.data.filter((l: any) => l.includeInStatistics).length
-  } catch {
-    implausibleCount.value = 0
-  }
-}
-
-const timeRangeOptions = computed(() => [
-  { value: 'THIS_MONTH', label: t('dashboard.time_this_month') },
-  { value: 'LAST_MONTH', label: t('dashboard.time_last_month') },
-  { value: 'LAST_3_MONTHS', label: t('dashboard.time_last_3m') },
-  { value: 'LAST_6_MONTHS', label: t('dashboard.time_last_6m') },
-  { value: 'LAST_12_MONTHS', label: t('dashboard.time_last_12m') },
-  { value: 'THIS_YEAR', label: t('dashboard.time_this_year') },
-  { value: 'ALL_TIME', label: t('dashboard.time_all') },
-  { value: 'CUSTOM', label: t('dashboard.time_custom') }
-])
-
-const groupByOptions = computed(() => [
-  { value: 'DAY', label: t('dashboard.group_day') },
-  { value: 'WEEK', label: t('dashboard.group_week') },
-  { value: 'MONTH', label: t('dashboard.group_month') }
-])
-
-// Fetch car details + WLTP when car changes (uses already-loaded cars.value — no extra API call)
-const fetchCarAndWltp = async (carId: string) => {
-  try {
-    const car = cars.value.find((c: any) => c.id === carId)
-    if (!car) return
-
-    carInfo.value = {
-      id: car.id,
-      brand: car.brand,
-      model: car.model,
-      batteryCapacityKwh: car.batteryCapacityKwh
-    }
-
-    wltp.value = await vehicleSpecificationService.lookup(
-      car.brand,
-      car.model,
-      car.batteryCapacityKwh
-    )
-  } catch {
-    wltp.value = null
-  }
-}
-
-const fetchStatistics = async () => {
-  if (!selectedCarId.value) {
-    stats.value = null
-    loading.value = false
-    chartsReady.value = false
-    return
-  }
-  try {
-    loading.value = true
-    // Only hide charts on initial load, keep them visible on filter changes
-    if (isInitialLoad.value) {
-      chartsReady.value = false
-    }
-    error.value = null
-    const params = new URLSearchParams({
-      carId: selectedCarId.value,
-      groupBy: selectedGroupBy.value
-    })
-    if (selectedTimeRange.value === 'CUSTOM') {
-      if (!customStartDate.value || !customEndDate.value) {
-        loading.value = false
-        chartsReady.value = true
-        return
-      }
-      params.set('startDate', customStartDate.value)
-      params.set('endDate', customEndDate.value)
-    } else {
-      params.set('timeRange', selectedTimeRange.value)
-    }
-    const response = await api.get(`/logs/statistics?${params}`)
-    stats.value = response.data
-  } catch (err: any) {
-    error.value = err.response?.data?.message || t('dashboard.err_load')
-  } finally {
-    loading.value = false
-    // Delay only on initial load, immediate on filter changes
-    if (isInitialLoad.value) {
-      setTimeout(() => {
-        chartsReady.value = true
-        isInitialLoad.value = false
-      }, 300)
-    } else {
-      chartsReady.value = true
-    }
-  }
-}
-
-watch(selectedCarId, async (newId) => {
-  if (newId) {
-    await fetchCarAndWltp(newId)
-    await Promise.all([fetchStatistics(), fetchLogs(0), fetchImplausibleCount()])
-  } else {
-    stats.value = null
-    carInfo.value = null
-    wltp.value = null
-    implausibleCount.value = 0
-  }
-})
-
-watch([selectedTimeRange, selectedGroupBy], () => {
-  localStorage.setItem(LS_TIME_RANGE, selectedTimeRange.value)
-  localStorage.setItem(LS_GROUP_BY, selectedGroupBy.value)
-  if (selectedCarId.value) fetchStatistics()
-})
-
-watch([customStartDate, customEndDate], () => {
-  localStorage.setItem(LS_CUSTOM_START, customStartDate.value)
-  localStorage.setItem(LS_CUSTOM_END, customEndDate.value)
-  if (selectedCarId.value && selectedTimeRange.value === 'CUSTOM') fetchStatistics()
-})
-
-const hasDistanceData = computed(() =>
-  stats.value?.chargesOverTime?.some(d => d.distanceKm != null) ?? false
-)
-
+// -- Range calculator --
 const rangeWindows = [
   { label: '100 → 0 %', socMax: 100, socMin: 0,  recommended: false },
   { label: '90 → 10 %',  socMax: 90,  socMin: 10, recommended: true  },
@@ -282,598 +109,26 @@ const calcRange = (batteryKwh: number, socMax: number, socMin: number, consumpti
   return `~${converted}`
 }
 
-const formatLabel = (timestamp: string) => {
-  const date = new Date(timestamp)
-  const currentYear = new Date().getFullYear()
-  const year = date.getFullYear()
-  const yearSuffix = year !== currentYear ? ` '${String(year).slice(-2)}` : ''
-
-  if (selectedGroupBy.value === 'DAY')
-    return date.toLocaleDateString(locale.value === 'en' ? 'en-GB' : 'de-DE', { month: 'short', day: 'numeric' }) + yearSuffix
-  if (selectedGroupBy.value === 'WEEK')
-    return `${t('dashboard.week_abbr')} ${Math.ceil(date.getDate() / 7)} ${date.toLocaleDateString(locale.value === 'en' ? 'en-GB' : 'de-DE', { month: 'short' })}${yearSuffix}`
-  return date.toLocaleDateString(locale.value === 'en' ? 'en-GB' : 'de-DE', { month: 'short', year: 'numeric' })
-}
-
-// ── Chart 1: Charging & Costs ───────────────────────────────────────────────
-const chargingChartData = computed(() => {
-  if (!stats.value || stats.value.chargesOverTime.length === 0) return null
-
-  const labels = stats.value.chargesOverTime.map(d => formatLabel(d.timestamp))
-  const datasets: any[] = []
-
-  if (showCostPerKwh.value) {
-    datasets.push({
-      label: `${t('dashboard.chart_cost_per_kwh_label')} (${currencySymbol.value}/kWh)`,
-      data: stats.value.chargesOverTime.map(d =>
-        d.kwhCharged > 0 ? +(convertFromEur(d.costEur / d.kwhCharged, currency.value)).toFixed(3) : null
-      ),
-      borderColor: isDark.value ? '#818cf8' : '#4f46e5',
-      backgroundColor: isDark.value ? 'rgba(129,140,248,0.13)' : 'rgba(79,70,229,0.1)',
-      tension: 0, fill: true, pointRadius: 4, pointHoverRadius: 6, yAxisID: 'y'
-    })
-  }
-
-  if (showKwh.value) {
-    datasets.push({
-      label: t('dashboard.chart_kwh'),
-      data: stats.value.chargesOverTime.map(d => d.kwhCharged),
-      borderColor: isDark.value ? '#fcd34d' : '#f59e0b',
-      backgroundColor: isDark.value ? 'rgba(252,211,77,0.13)' : 'rgba(245,158,11,0.1)',
-      tension: 0, fill: true, pointRadius: 4, pointHoverRadius: 6, yAxisID: 'y1'
-    })
-  }
-
-  return { labels, datasets }
-})
-
-const chargingChartOptions = computed(() => ({
-  responsive: true,
-  maintainAspectRatio: false,
-  interaction: { mode: 'index' as const, intersect: false },
-  plugins: {
-    legend: { display: false },
-    datalabels: { display: false },
-    tooltip: {
-      callbacks: {
-        label: (ctx: any) => {
-          const lbl = ctx.dataset.label
-          const v = ctx.parsed.y
-          if (v == null) return `${lbl}: –`
-          if (ctx.datasetIndex === 0 && showCostPerKwh.value) return `${lbl}: ${v.toFixed(2)} ${currencySymbol.value}/kWh`
-          if (lbl.includes('kWh')) return `${lbl}: ${v.toFixed(1)} kWh`
-          return `${lbl}: ${v}`
-        }
-      }
-    }
-  },
-  scales: {
-    y: {
-      type: 'linear' as const,
-      position: 'left' as const,
-      title: { display: true, text: `${currencySymbol.value}/kWh`, color: isDark.value ? '#9ca3af' : '#6b7280' },
-      beginAtZero: true,
-      grid: { color: isDark.value ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' },
-      ticks: { color: isDark.value ? '#9ca3af' : '#6b7280' }
-    },
-    y1: {
-      type: 'linear' as const,
-      position: 'right' as const,
-      title: { display: true, text: 'kWh', color: isDark.value ? '#9ca3af' : '#6b7280' },
-      beginAtZero: true,
-      grid: { drawOnChartArea: false },
-      ticks: { color: isDark.value ? '#9ca3af' : '#6b7280' }
-    }
-  }
-}))
-
-// ── Chart 2: Range & Efficiency ──────────────────────────────────────────────
-const efficiencyChartData = computed(() => {
-  if (!stats.value || stats.value.chargesOverTime.length === 0 || !hasDistanceData.value) return null
-
-  const labels = stats.value.chargesOverTime.map(d => formatLabel(d.timestamp))
-  const datasets: any[] = []
-
-  if (showConsumption.value) {
-    datasets.push({
-      label: `${t('dashboard.chart_consumption_label')} (${consumptionUnitLabel()})`,
-      data: stats.value.chargesOverTime.map(d => d.consumptionKwhPer100km != null ? +convertConsumption(d.consumptionKwhPer100km).toFixed(2) : null),
-      borderColor: isDark.value ? '#f87171' : '#ef4444',
-      backgroundColor: isDark.value ? 'rgba(248,113,113,0.13)' : 'rgba(239,68,68,0.1)',
-      tension: 0, fill: true, pointRadius: 4, pointHoverRadius: 6, yAxisID: 'y'
-    })
-  }
-
-  if (showDistance.value) {
-    datasets.push({
-      label: `${t('dashboard.chart_distance_label')} (${distanceUnitLabel()})`,
-      data: stats.value.chargesOverTime.map(d => d.distanceKm != null ? Math.round(convertDistance(d.distanceKm)) : null),
-      borderColor: isDark.value ? '#34d399' : '#10b981',
-      backgroundColor: isDark.value ? 'rgba(52,211,153,0.13)' : 'rgba(16,185,129,0.1)',
-      tension: 0, fill: true, pointRadius: 4, pointHoverRadius: 6, yAxisID: 'y1'
-    })
-  }
-
-  return { labels, datasets }
-})
-
-const efficiencyChartOptions = computed(() => ({
-  responsive: true,
-  maintainAspectRatio: false,
-  interaction: { mode: 'index' as const, intersect: false },
-  plugins: {
-    legend: { display: false },
-    datalabels: { display: false },
-    tooltip: {
-      callbacks: {
-        label: (ctx: any) => {
-          const lbl = ctx.dataset.label
-          const v = ctx.parsed.y
-          if (v == null) return `${lbl}: –`
-          if (lbl.includes(consumptionUnitLabel())) return `${lbl}: ${v.toFixed(1)}`
-          if (lbl.includes(distanceUnitLabel())) return `${lbl}: ${Math.round(v).toLocaleString()} ${distanceUnitLabel()}`
-          return `${lbl}: ${v}`
-        }
-      }
-    }
-  },
-  scales: {
-    y: {
-      type: 'linear' as const,
-      position: 'left' as const,
-      title: { display: true, text: consumptionUnitLabel(), color: isDark.value ? '#9ca3af' : '#6b7280' },
-      beginAtZero: true,
-      grid: { color: isDark.value ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' },
-      ticks: { color: isDark.value ? '#9ca3af' : '#6b7280' }
-    },
-    y1: {
-      type: 'linear' as const,
-      position: 'right' as const,
-      title: { display: true, text: distanceUnitLabel(), color: isDark.value ? '#9ca3af' : '#6b7280' },
-      beginAtZero: true,
-      grid: { drawOnChartArea: false },
-      ticks: { color: isDark.value ? '#9ca3af' : '#6b7280' }
-    }
-  }
-}))
-
-// ── Custom comparison value ───────────────────────────────────────────────────
-const CUSTOM_COMPARE_LS_KEY = 'ev_custom_compare_kwh'
-const customCompareValue = ref<number | null>(
-  (() => { const v = localStorage.getItem(CUSTOM_COMPARE_LS_KEY); return v ? parseFloat(v) : null })()
-)
-const customCompareInput = ref(customCompareValue.value?.toString() ?? '')
-const showCompareInput = ref(false)
-
-const effectiveCompareValue = computed(() =>
-  customCompareValue.value ?? wltp.value?.wltpConsumptionKwhPer100km ?? 0
-)
-const isCustomCompare = computed(() => customCompareValue.value !== null)
-
-function saveCustomCompare() {
-  const parsed = parseFloat(String(customCompareInput.value).replace(',', '.'))
-  if (!isNaN(parsed) && parsed > 0 && parsed < 100) {
-    customCompareValue.value = parsed
-    localStorage.setItem(CUSTOM_COMPARE_LS_KEY, String(parsed))
-    showCompareInput.value = false
-  }
-}
-
-function resetToWltp() {
-  customCompareValue.value = null
-  customCompareInput.value = ''
-  localStorage.removeItem(CUSTOM_COMPARE_LS_KEY)
-  showCompareInput.value = false
-}
-
-// ── WLTP delta bar chart ─────────────────────────────────────────────────────
-const wltpChartData = computed(() => {
-  if (!stats.value || !wltp.value || !hasDistanceData.value) return null
-
-  const wltpVal = effectiveCompareValue.value
-  const points = stats.value.chargesOverTime.filter(d => d.consumptionKwhPer100km != null)
-  if (points.length === 0) return null
-
-  const labels = points.map(d => formatLabel(d.timestamp))
-  // Compute deltas in original kWh/100km space so positive always means "worse than reference"
-  const rawDeltas = points.map(d => d.consumptionKwhPer100km! - wltpVal)
-  // Convert absolute magnitude to user's unit for display, keeping original sign
-  const deltas = rawDeltas.map(d => {
-    const absDelta = Math.abs(d)
-    const convertedAbs = Math.abs(convertConsumption(wltpVal + absDelta) - convertConsumption(wltpVal))
-    return +(Math.sign(d) * convertedAbs).toFixed(2)
-  })
-
-  return {
-    labels,
-    datasets: [{
-      label: `Δ ${t('dashboard.chart_consumption_label')} vs. ${isCustomCompare.value ? formatConsumption(effectiveCompareValue.value) : 'WLTP'} (${consumptionUnitLabel()})`,
-      data: deltas,
-      backgroundColor: rawDeltas.map(v => v > 0
-        ? (isDark.value ? 'rgba(248,113,113,0.6)' : 'rgba(239,68,68,0.7)')
-        : (isDark.value ? 'rgba(52,211,153,0.6)' : 'rgba(16,185,129,0.7)')
-      ),
-      borderColor: rawDeltas.map(v => v > 0
-        ? (isDark.value ? '#f87171' : '#dc2626')
-        : (isDark.value ? '#34d399' : '#059669')
-      ),
-      borderWidth: 1,
-      borderRadius: 3,
-    }]
-  }
-})
-
-const wltpChartOptions = computed(() => {
-  const dataPoints = wltpChartData.value?.labels?.length || 0
-  // Dynamic bar thickness: thinner as more data points
-  let barPercentage = 0.8
-  let categoryPercentage = 0.9
-
-  if (dataPoints >= 20) {
-    barPercentage = 0.6
-    categoryPercentage = 0.8
-  } else if (dataPoints >= 10) {
-    barPercentage = 0.7
-    categoryPercentage = 0.85
-  }
-
-  return {
-    indexAxis: 'y' as const, // Horizontal bars (like demographic pyramid)
-    responsive: true,
-    maintainAspectRatio: false,
-    datasets: {
-      bar: { barPercentage, categoryPercentage }
-    },
-    plugins: {
-      legend: { display: false },
-      datalabels: {
-        align: 'end' as const,
-        anchor: 'end' as const,
-        color: isDark.value ? '#d1d5db' : '#374151',
-        font: { weight: 'bold' as const, size: 12 },
-        formatter: (value: number) => {
-          const convertedCompare = convertConsumption(effectiveCompareValue.value || 0)
-          const percentDiff = convertedCompare !== 0 ? (value / convertedCompare) * 100 : 0
-          return `${percentDiff > 0 ? '+' : ''}${percentDiff.toFixed(1)}%`
-        }
-      },
-      tooltip: {
-        callbacks: {
-          label: (ctx: any) => {
-            const v = ctx.parsed.x // x for horizontal bars
-            const sign = v > 0 ? '+' : ''
-            const convertedCompare = convertConsumption(effectiveCompareValue.value || 0)
-            const compareLabel = isCustomCompare.value ? formatConsumption(effectiveCompareValue.value) : 'WLTP'
-            const percentDiff = convertedCompare !== 0 ? ((v / convertedCompare) * 100).toFixed(1) : '0.0'
-            return [
-              `${sign}${v.toFixed(2)} ${consumptionUnitLabel()} vs. ${compareLabel}`,
-              `${t('dashboard.chart_compare_value')}: ${formatConsumption(effectiveCompareValue.value || 0)}`,
-              `${t('dashboard.chart_deviation')}: ${sign}${percentDiff}%`
-            ]
-          }
-        }
-      }
-    },
-    scales: {
-      x: {
-        title: {
-          display: true,
-          text: isCustomCompare.value
-            ? `Δ ${consumptionUnitLabel()} (+ = ${t('dashboard.chart_more_than')} ${formatConsumption(effectiveCompareValue.value)})`
-            : `Δ ${consumptionUnitLabel()} (+ = ${t('dashboard.chart_more_than')} WLTP)`,
-          color: isDark.value ? '#9ca3af' : '#6b7280'
-        },
-        grid: { color: (ctx: any) => ctx.tick.value === 0 ? (isDark.value ? '#9ca3af' : '#6b7280') : (isDark.value ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)') },
-        ticks: {
-          callback: (v: any) => `${v > 0 ? '+' : ''}${v}`,
-          color: isDark.value ? '#9ca3af' : '#6b7280'
-        }
-      },
-      y: {
-        grid: { display: false },
-        ticks: { color: isDark.value ? '#9ca3af' : '#6b7280' }
-      }
-    }
-  }
-})
-
-
-// Dynamic chart height: 35px per bar, minimum 400px, max 1150px (30 bars) then scroll
-const wltpChartHeight = computed(() => {
-  const dataPoints = wltpChartData.value?.labels?.length || 0
-  const dynamicHeight = Math.max(400, dataPoints * 35 + 100)
-  const maxHeight = 1150 // ~30 bars
-  return `${Math.min(dynamicHeight, maxHeight)}px`
-})
-
-const wltpChartScrollable = computed(() => {
-  const dataPoints = wltpChartData.value?.labels?.length || 0
-  return dataPoints >= 30
-})
-
 const enumToLabel = (value: string | undefined | null): string =>
   (value ?? '').replace(/_/g, ' ').toLowerCase()
     .split(' ')
     .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(' ')
 
-onMounted(async () => {
-  // Pre-fetch cars so the desktop card selector is populated before CarSelector emits
-  try {
-    const carList = await carStore.getCars()
-    cars.value = carList
-    // Auto-select: primary car, fallback to first
-    const primary = carList.find((c: any) => c.isPrimary) ?? carList[0]
-    if (primary) {
-      selectedCarId.value = primary.id
-    } else {
-      // No cars: the watch on selectedCarId won't fire (null → null), so unlock loading manually
-      loading.value = false
-    }
-    // Load images in background — non-critical
-    for (const car of carList.filter((c: any) => c.imageUrl)) {
-      carService.getCarImageBlobUrl(car.id)
-        .then(url => { carImageUrls.value = { ...carImageUrls.value, [car.id]: url } })
-        .catch(() => {})
-    }
-    startTeslaPolling(carList.some((c: any) => c.brand?.toLowerCase() === 'tesla'))
-  } catch { /* non-critical */ }
-  // fetchStatistics() is NOT called here — setting selectedCarId above already triggers the watch,
-  // which calls fetchCarAndWltp + fetchStatistics + fetchLogs in sequence.
-})
-
-watch(isDark, () => {
-  // charts re-render automatically via computed reactivity
-})
-
-// ── Log List with Pagination ─────────────────────────────────────────────────
-const PAGE_SIZE = 20
-const logs = ref<any[]>([])
-const logsPage = ref(0)
-const logsLoading = ref(false)
-const hasMoreLogs = ref(false)
-const logsSection = ref<HTMLElement | null>(null)
-const editingLog = ref<any | null>(null)
-
-// Ladegruppen-Aufklapp-Status (für same-day GOE und same-odometer Gruppen)
-const expandedGroups = ref<Set<string>>(new Set())
-
-const toggleLadegruppe = (id: string) => {
-  if (expandedGroups.value.has(id)) {
-    expandedGroups.value.delete(id)
+// -- Lifecycle --
+watch(selectedCarId, async (newId) => {
+  if (newId) {
+    await fetchCarAndWltp(newId)
+    await Promise.all([fetchStatistics(), fetchLogs(0), fetchImplausibleCount()])
   } else {
-    expandedGroups.value.add(id)
+    stats.value = null
+    carInfo.value = null
+    wltp.value = null
+    implausibleCount.value = 0
   }
-}
-
-/// Schneller Exists-Check ohne den teuren Merge+Sort zu triggern
-const hasAnyLogs = computed(() => logs.value.length > 0)
-
-// Fahrzeug-Zuordnung Modal
-const reassignModalEntry = ref<any | null>(null)
-const reassignSelectedCarId = ref<string | null>(null)
-const reassignSaving = ref(false)
-const reassignError = ref<string | null>(null)
-const reassignSuccessMessage = ref<string | null>(null)
-const otherCars = computed(() => cars.value.filter((c: any) => c.id !== selectedCarId.value))
-
-const openReassignModal = (entry: any) => {
-  reassignModalEntry.value = entry
-  reassignSelectedCarId.value = null
-  reassignError.value = null
-}
-
-const saveReassign = async () => {
-  if (!reassignModalEntry.value || !reassignSelectedCarId.value) return
-  const entry = reassignModalEntry.value
-  const targetCar = cars.value.find((c: any) => c.id === reassignSelectedCarId.value)
-  reassignSaving.value = true
-  try {
-    await api.patch(`/logs/${entry.id}/car`, { targetCarId: reassignSelectedCarId.value })
-    logs.value = logs.value.filter((l: any) => l.id !== entry.id)
-    const carLabel = targetCar ? `${enumToLabel(targetCar.brand)} ${enumToLabel(targetCar.model)}`.trim() : ''
-    reassignSuccessMessage.value = t('dashboard.reassign_success', { car: carLabel })
-    setTimeout(() => { reassignSuccessMessage.value = null }, 3000)
-    reassignModalEntry.value = null
-    fetchStatistics()
-  } catch {
-    reassignError.value = t('dashboard.err_load')
-  } finally {
-    reassignSaving.value = false
-  }
-}
-
-// Merged + sorted log feed mit zwei Gruppierungsstrategien:
-// 1. Same-day-Gruppierung für WALLBOX_GOE/API_UPLOAD ohne Odometer (Überschussladen)
-// 2. Same-odometer-Gruppierung für Nachladen (konsekutive Logs gleicher km-Stand)
-const mergedLogFeed = computed(() => {
-  const safeLogs = Array.isArray(logs.value) ? logs.value : []
-  const fmtDate = (d: Date) => d.toLocaleDateString(locale.value === 'en' ? 'en-GB' : 'de-DE', { day: 'numeric', month: 'numeric' })
-
-  const makeLadegruppe = (subs: any[], commonDataSource?: string): any => {
-    const allSubs = [...subs].sort((a, b) => new Date(a.loggedAt).getTime() - new Date(b.loggedAt).getTime())
-    const totalKwh = allSubs.reduce((s: number, l: any) => s + (l.kwhCharged ?? 0), 0)
-    const totalCostEur = allSubs.every((l: any) => l.costEur != null)
-      ? allSubs.reduce((s: number, l: any) => s + (l.costEur ?? 0), 0)
-      : null
-    const maxSoc = allSubs.reduce((m: number | null, l: any) =>
-      l.socAfterChargePercent != null ? Math.max(m ?? 0, l.socAfterChargePercent) : m, null)
-    const maxPower = allSubs.reduce((m: number | null, l: any) =>
-      l.maxChargingPowerKw != null ? Math.max(m ?? 0, l.maxChargingPowerKw) : m, null)
-    const dates = allSubs.map((l: any) => new Date(l.loggedAt).toDateString())
-    const spansMultipleDays = new Set(dates).size > 1
-    const firstDate = new Date(allSubs[0].loggedAt)
-    const lastDate = new Date(allSubs[allSubs.length - 1].loggedAt)
-    const dateRangeLabel = spansMultipleDays ? `${fmtDate(firstDate)} - ${fmtDate(lastDate)}` : fmtDate(firstDate)
-    // Verbrauch: ältestes Sub-Log (allSubs[0]) hat echten Vorgänger-Abstand → korrekte Consumption
-    const newestConsumption = allSubs[0].consumptionKwhPer100km ?? null
-    const ds = commonDataSource ?? (new Set(allSubs.map((l: any) => l.dataSource)).size === 1 ? allSubs[0].dataSource : null)
-    return {
-      ...allSubs[0],
-      id: allSubs[0].id,
-      _isTopUp: false,
-      _isLadegruppe: true,
-      _topUps: allSubs,
-      _totalKwh: Math.round(totalKwh * 100) / 100,
-      _totalCostEur: totalCostEur !== null ? Math.round(totalCostEur * 100) / 100 : null,
-      _maxSoc: maxSoc,
-      _maxPower: maxPower,
-      _spansMultipleDays: spansMultipleDays,
-      _dateRangeLabel: dateRangeLabel,
-      _totalConsumption: newestConsumption,
-      _commonDataSource: ds,
-    }
-  }
-
-  // ── Schritt 1: WALLBOX_GOE/API_UPLOAD ohne Odometer nach Kalendertag gruppieren ──
-  const goeLogs = safeLogs.filter((l: any) =>
-    (l.dataSource === 'WALLBOX_GOE' || l.dataSource === 'API_UPLOAD') && l.odometerKm == null
-  )
-  const goeByDay = new Map<string, any[]>()
-  for (const log of goeLogs) {
-    const day = (log.loggedAt as string).substring(0, 10)
-    if (!goeByDay.has(day)) goeByDay.set(day, [])
-    goeByDay.get(day)!.push(log)
-  }
-
-  const goeGroupedIds = new Set<string>()
-  const goeDayGroupEntries: any[] = []
-  for (const [, dayLogs] of goeByDay) {
-    if (dayLogs.length < 2) continue
-    for (const l of dayLogs) goeGroupedIds.add(l.id)
-    goeDayGroupEntries.push(makeLadegruppe(dayLogs, dayLogs[0].dataSource))
-  }
-
-  // ── Schritt 2: Verbleibende Logs (same-odometer Nachladen-Erkennung) ──
-  const remainingLogs = safeLogs
-    .filter((l: any) => !goeGroupedIds.has(l.id))
-    .filter((l: any) => l.includeInStatistics || !l.consumptionImplausible)
-
-  const sorted = remainingLogs.sort((a: any, b: any) =>
-    new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime()
-  )
-
-  // Nachladen-Erkennung: konsekutive Eintraege mit gleichem Kilometerstand
-  const topUpChildren = new Map<number, any[]>()
-  const skipIndices = new Set<number>()
-
-  let i = 0
-  while (i < sorted.length) {
-    if (sorted[i].odometerKm == null) { i++; continue }
-    let j = i + 1
-    while (j < sorted.length &&
-           sorted[j].odometerKm != null &&
-           sorted[j].odometerKm === sorted[i].odometerKm) {
-      j++
-    }
-    if (j > i + 1) {
-      const parentIdx = j - 1
-      topUpChildren.set(parentIdx, [])
-      for (let k = i; k < j - 1; k++) {
-        topUpChildren.get(parentIdx)!.push({ ...sorted[k], _isTopUp: true })
-        skipIndices.add(k)
-      }
-      i = j
-    } else {
-      i++
-    }
-  }
-
-  const odometerGroupEntries: any[] = []
-  for (let i = 0; i < sorted.length; i++) {
-    if (skipIndices.has(i)) continue
-    const topUps: any[] = topUpChildren.get(i) ?? []
-    if (topUps.length > 0) {
-      odometerGroupEntries.push(makeLadegruppe([...topUps, sorted[i]]))
-    } else {
-      odometerGroupEntries.push({ ...sorted[i], _isTopUp: false, _isLadegruppe: false, _topUps: [] })
-    }
-  }
-
-  // ── Schritt 3: Zusammenführen und sortieren ──
-  return [...goeDayGroupEntries, ...odometerGroupEntries].sort((a: any, b: any) => {
-    const dateA = new Date(a._isLadegruppe ? a._topUps[a._topUps.length - 1].loggedAt : a.loggedAt).getTime()
-    const dateB = new Date(b._isLadegruppe ? b._topUps[b._topUps.length - 1].loggedAt : b.loggedAt).getTime()
-    return dateB - dateA
-  })
 })
 
-const fetchLogs = async (page = 0) => {
-  if (!selectedCarId.value) return
-  logsLoading.value = true
-  try {
-    const res = await api.get(`/logs?carId=${selectedCarId.value}&limit=${PAGE_SIZE}&page=${page}`)
-    logs.value = res.data
-    logsPage.value = page
-    hasMoreLogs.value = res.data.length === PAGE_SIZE
-  } catch {
-    // Network error — keep existing log list, don't crash
-  } finally {
-    logsLoading.value = false
-  }
-}
-
-const scrollToLogs = async () => {
-  await fetchLogs(0)
-  await nextTick()
-  logsSection.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-}
-
-const fetchLogsAndScroll = async (page: number) => {
-  await fetchLogs(page)
-  await nextTick()
-  logsSection.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-}
-
-watch(selectedCarId, () => {
-  logs.value = []
-  expandedGroups.value = new Set()
-  logsPage.value = 0
-  hasMoreLogs.value = false
-  reassignModalEntry.value = null
-})
-
-const formatLogDate = (loggedAt: string) => {
-  const d = new Date(loggedAt)
-  const isCurrentYear = d.getFullYear() === new Date().getFullYear()
-  const loc = locale.value === 'en' ? 'en-GB' : 'de-DE'
-  const date = d.toLocaleDateString(loc, { day: 'numeric', month: 'numeric', ...(isCurrentYear ? {} : { year: 'numeric' }) })
-  const time = d.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' })
-  return `${date}, ${time}`
-}
-
-const toggleOdometerDisplay = (distanceKm: number | null, odometerKm: number | null) => {
-  if (distanceKm == null || odometerKm == null) return
-  showOdometer.value = !showOdometer.value
-}
-
-function sourceInfo(ds?: string): { label: string; icon: Component; classes: string } | null {
-  switch (ds) {
-    case 'TESLA_FLEET_IMPORT':  return { label: 'Supercharger',    icon: BoltIcon,          classes: 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-700' }
-    case 'TESLA_LIVE':          return { label: 'Tesla',            icon: BoltIcon,          classes: 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-700' }
-    case 'TESLA_IMPORT':        return { label: 'Tesla',            icon: ArrowDownTrayIcon, classes: 'bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-700' }
-    case 'TESLA_MANUAL_IMPORT': return { label: 'Tesla',            icon: ArrowDownTrayIcon, classes: 'bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-700' }
-    case 'SPRITMONITOR_IMPORT': return { label: 'SpritMonitor',     icon: ArrowDownTrayIcon, classes: 'bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-700' }
-    case 'WALLBOX_OCPP':
-    case 'WALLBOX_GOE':         return { label: 'Wallbox',          icon: HomeIcon,          classes: 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-700' }
-    case 'SMARTCAR_LIVE':       return { label: 'Smartcar',         icon: BoltIcon,          classes: 'bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400 border border-teal-200 dark:border-teal-700' }
-    default:                    return null
-  }
-}
-
-const refreshLogsAndGroups = () => {
-  fetchLogs(logsPage.value)
-}
-
-const deleteLog = async (id: string) => {
-  if (!confirm(t('dashboard.delete_confirm'))) return
-  try {
-    await api.delete(`/logs/${id}`)
-    refreshLogsAndGroups()
-  } catch {
-    // Network error — ignore, log list stays unchanged
-  }
-}
+onMounted(() => initCars())
 </script>
 
 <template>
@@ -1240,7 +495,7 @@ const deleteLog = async (id: string) => {
             <div class="h-1 bg-green-500"></div>
             <div class="p-4">
               <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">{{ t('dashboard.metric_total_distance') }}</p>
-              <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ formatDistance(stats.totalDistanceKm) }}<span class="hidden sm:inline font-normal text-gray-400 dark:text-gray-500 text-lg"> {{ t('dashboard.metric_driven') }}</span></p>
+              <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ formatDistance(stats.totalDistanceKm) }}<span class="hidden sm:inline-block font-normal text-gray-400 dark:text-gray-500 text-lg ml-1">{{ t('dashboard.metric_driven') }}</span></p>
             </div>
           </div>
           <div v-if="stats.avgConsumptionKwhPer100km != null"
@@ -1788,7 +1043,7 @@ const deleteLog = async (id: string) => {
               class="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
               {{ t('common.cancel') }}
             </button>
-            <button @click="saveReassign"
+            <button @click="doSaveReassign"
               :disabled="!reassignSelectedCarId || reassignSaving"
               class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white transition disabled:opacity-40"
               :class="reassignSelectedCarId ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-gray-300 dark:bg-gray-600'">

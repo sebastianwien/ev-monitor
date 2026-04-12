@@ -563,8 +563,8 @@ import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/auth'
 import { getModelStats, type PublicModelStats } from '../api/publicModelService'
 import { ArrowTrendingUpIcon, ClipboardDocumentListIcon, Battery0Icon, SunIcon, ChartBarIcon, ExclamationTriangleIcon, BoltIcon } from '@heroicons/vue/24/outline'
-import PublicNav from '../components/PublicNav.vue'
-import AffiliateBanner from '../components/AffiliateBanner.vue'
+import PublicNav from '../components/shared/PublicNav.vue'
+import AffiliateBanner from '../components/shared/AffiliateBanner.vue'
 
 const route = useRoute()
 const { t } = useI18n()

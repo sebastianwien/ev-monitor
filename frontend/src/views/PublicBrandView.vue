@@ -171,7 +171,7 @@ import { useHead } from '@unhead/vue'
 import { useI18n } from 'vue-i18n'
 import { getBrandModels, type PublicBrandResponse } from '../api/publicModelService'
 import { ArrowTrendingUpIcon, ChevronRightIcon } from '@heroicons/vue/24/outline'
-import PublicNav from '../components/PublicNav.vue'
+import PublicNav from '../components/shared/PublicNav.vue'
 import { useLocaleFormat, useLocaleRoutes } from '../composables/useLocaleFormat'
 
 const { t } = useI18n()

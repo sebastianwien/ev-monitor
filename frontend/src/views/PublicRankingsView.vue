@@ -122,7 +122,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useHead } from '@unhead/vue'
 import { useI18n } from 'vue-i18n'
 import { BoltIcon, ChevronRightIcon } from '@heroicons/vue/24/outline'
-import PublicNav from '../components/PublicNav.vue'
+import PublicNav from '../components/shared/PublicNav.vue'
 import { getMostEfficientModels, getCategories, type TopModelPreview, type VehicleCategoryItem } from '../api/publicModelService'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 
