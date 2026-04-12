@@ -191,9 +191,9 @@
             : 'border-gray-200 dark:border-gray-700 hover:border-green-500'"
         >
           <a :href="`${modelsBaseUrl}/${model.brandDisplayName}/${model.modelUrlSlug}`" class="block flex-1">
-            <div class="flex items-baseline justify-between mb-2">
-              <h3 class="font-bold text-gray-900 dark:text-gray-100 text-base">{{ model.modelDisplayName }}</h3>
-              <span class="text-xs text-gray-400 shrink-0 ml-2">{{ model.logCount }} {{ t('models_list.card.charging_sessions') }}</span>
+            <div class="mb-3 text-center">
+              <h3 class="font-bold text-gray-900 dark:text-gray-100 text-base leading-tight">{{ model.modelDisplayName }}</h3>
+              <span class="text-xs text-gray-400">{{ model.logCount }} {{ t('models_list.card.charging_sessions') }}</span>
             </div>
             <div class="grid grid-cols-[auto_1fr] items-baseline gap-x-3 gap-y-0.5 mb-3 text-sm">
               <template v-if="model.minWltpConsumptionKwhPer100km">
