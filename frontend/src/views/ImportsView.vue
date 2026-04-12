@@ -100,6 +100,9 @@ const copyApiKey = async () => {
   } catch { /* ignore */ }
 }
 
+const toModelLabel = (model: string) =>
+  model.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
+
 const copiedCarId = ref<string | null>(null)
 const copyCarId = async (id: string) => {
   try {
@@ -221,7 +224,7 @@ const activeCars = computed(() =>
                 <div v-for="car in activeCars" :key="car.id"
                   class="flex items-center gap-2 p-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg">
                   <div class="flex-1 min-w-0">
-                    <p class="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">{{ car.year }} {{ car.model.replace(/_/g, ' ') }}<span v-if="car.licensePlate" class="text-gray-400 dark:text-gray-500"> · {{ car.licensePlate }}</span></p>
+                    <p class="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">{{ car.year }} {{ toModelLabel(car.model) }}<span v-if="car.licensePlate" class="text-gray-400 dark:text-gray-500"> · {{ car.licensePlate }}</span></p>
                     <p class="text-[11px] font-mono text-gray-500 dark:text-gray-400 mt-0.5 select-all">{{ car.id }}</p>
                   </div>
                   <button @click="copyCarId(car.id)" :title="t('cars.api_id_copy')"

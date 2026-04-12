@@ -483,16 +483,15 @@ const copyCarId = async (id: string) => {
             </div>
 
             <!-- Fahrzeug-ID -->
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 cursor-pointer group" @click.stop="copyCarId(car.id)" :title="t('cars.api_id_copy')">
               <div class="flex-1 min-w-0">
                 <p class="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wide">{{ t('cars.api_id_label') }}</p>
-                <p class="text-xs text-gray-500 dark:text-gray-400 font-mono select-all">{{ car.id }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-300 font-mono bg-gray-100 dark:bg-gray-600 rounded px-1.5 py-0.5 mt-0.5 select-all group-hover:bg-gray-200 dark:group-hover:bg-gray-500 transition-colors">{{ car.id }}</p>
               </div>
-              <button @click.stop="copyCarId(car.id)" :title="t('cars.api_id_copy')"
-                class="shrink-0 p-1.5 text-gray-400 hover:text-indigo-500 dark:hover:text-indigo-400 hover:bg-gray-100 dark:hover:bg-gray-600 rounded transition">
+              <div class="shrink-0 p-1.5 text-gray-400 group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors">
                 <CheckIcon v-if="copiedCarId === car.id" class="h-4 w-4 text-green-500" />
                 <ClipboardDocumentIcon v-else class="h-4 w-4" />
-              </button>
+              </div>
             </div>
 
             <!-- Specs row -->
