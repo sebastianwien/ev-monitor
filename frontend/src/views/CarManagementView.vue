@@ -478,17 +478,21 @@ const copyCarId = async (id: string) => {
                   </template>
                 </div>
                 <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{{ car.year }}</p>
-                <div class="flex items-center gap-1.5 mt-1.5">
-                  <span class="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wide shrink-0">{{ t('cars.api_id_label') }}</span>
-                  <span class="text-[10px] text-gray-400 dark:text-gray-500 font-mono leading-none" :title="car.id">{{ car.id.slice(0, 13) }}…</span>
-                  <button @click.stop="copyCarId(car.id)" :title="t('cars.api_id_copy')"
-                    class="shrink-0 p-0.5 text-gray-400 hover:text-indigo-500 dark:hover:text-indigo-400 transition">
-                    <CheckIcon v-if="copiedCarId === car.id" class="h-3 w-3 text-green-500" />
-                    <ClipboardDocumentIcon v-else class="h-3 w-3" />
-                  </button>
-                </div>
               </div>
               <LicensePlate v-if="car.licensePlate" :plate="car.licensePlate" class="shrink-0" />
+            </div>
+
+            <!-- Fahrzeug-ID -->
+            <div class="flex items-center gap-2">
+              <div class="flex-1 min-w-0">
+                <p class="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wide">{{ t('cars.api_id_label') }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 font-mono select-all">{{ car.id }}</p>
+              </div>
+              <button @click.stop="copyCarId(car.id)" :title="t('cars.api_id_copy')"
+                class="shrink-0 p-1.5 text-gray-400 hover:text-indigo-500 dark:hover:text-indigo-400 hover:bg-gray-100 dark:hover:bg-gray-600 rounded transition">
+                <CheckIcon v-if="copiedCarId === car.id" class="h-4 w-4 text-green-500" />
+                <ClipboardDocumentIcon v-else class="h-4 w-4" />
+              </button>
             </div>
 
             <!-- Specs row -->
