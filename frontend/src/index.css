@@ -27,18 +27,20 @@ html, body {
 }
 
 .cost-badge-gold {
-  background: linear-gradient(90deg, #fde68a, #fef9c3, #fbbf24, #fef9c3, #fde68a);
+  background: linear-gradient(90deg, #78350f, #b45309, #92400e, #b45309, #78350f);
   background-size: 200% auto;
-  animation: gold-shimmer 2.5s linear infinite;
-  border-color: #f59e0b;
-  color: #78350f;
+  animation: gold-shimmer 8s linear infinite;
+  border-color: #92400e;
+  color: #fef3c7;
+  box-shadow: 0 4px 0 0 #92400e;
 }
 
 .dark .cost-badge-gold {
-  background: linear-gradient(90deg, #92400e, #fbbf24, #d97706, #fbbf24, #92400e);
+  background: linear-gradient(90deg, #92400e, #c2710c, #78350f, #c2710c, #92400e);
   background-size: 200% auto;
-  border-color: #d97706;
-  color: #fef3c7;
+  border-color: #92400e;
+  color: #fde68a;
+  box-shadow: 0 4px 0 0 #451a03;
 }
 
 /* 3D pill slider - gleiche visuelle Sprache wie btn-3d (harter Bodenschatten) */
