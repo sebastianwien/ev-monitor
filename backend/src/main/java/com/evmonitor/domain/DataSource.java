@@ -11,8 +11,7 @@ public enum DataSource {
     WALLBOX_GOE,         // go-eCharger Cloud via ev-monitor-connectors
     API_UPLOAD,          // Public Upload API (Wallboxen, Skripte, Home-Automation)
     TRONITY_IMPORT,      // Tronity XLSX export import
-    SMARTCAR_LIVE,       // Smartcar webhook-based live session tracking
-    SEED_DATA;
+    SMARTCAR_LIVE;       // Smartcar webhook-based live session tracking
 
     public boolean includeInStatistics() {
         return this == USER_LOGGED || this == SPRITMONITOR_IMPORT

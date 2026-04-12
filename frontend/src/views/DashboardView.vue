@@ -495,7 +495,7 @@ onMounted(() => initCars())
             <div class="h-1 bg-green-500"></div>
             <div class="p-4">
               <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">{{ t('dashboard.metric_total_distance') }}</p>
-              <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ formatDistance(stats.totalDistanceKm) }}<span class="hidden sm:inline font-normal text-gray-400 dark:text-gray-500 text-lg"> {{ t('dashboard.metric_driven') }}</span></p>
+              <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ formatDistance(stats.totalDistanceKm) }}<span class="hidden sm:inline-block font-normal text-gray-400 dark:text-gray-500 text-lg ml-1">{{ t('dashboard.metric_driven') }}</span></p>
             </div>
           </div>
           <div v-if="stats.avgConsumptionKwhPer100km != null"

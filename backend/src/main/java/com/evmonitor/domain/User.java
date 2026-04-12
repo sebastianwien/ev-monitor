@@ -124,18 +124,6 @@ public class User {
                 .build();
     }
 
-    public static User createSeedUser(String email, String username, String passwordHash) {
-        LocalDateTime now = LocalDateTime.now();
-        return User.builder()
-                .id(UUID.randomUUID())
-                .email(email).username(username).passwordHash(passwordHash)
-                .authProvider(AuthProvider.LOCAL).role("USER")
-                .emailVerified(true).seedData(true).emailNotificationsEnabled(false)
-                .referralCode(generateReferralCode())
-                .createdAt(now).updatedAt(now)
-                .build();
-    }
-
     public static User createNewSsoUser(String email, String username, AuthProvider authProvider) {
         LocalDateTime now = LocalDateTime.now();
         return User.builder()

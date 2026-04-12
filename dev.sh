@@ -3,7 +3,7 @@
 # EV Monitor - Local Development Startup Script
 # Starts the core development stack:
 # - PostgreSQL + Mailpit (via Docker)
-# - Backend (Spring Boot, dev profile + seed data)
+# - Backend (Spring Boot, dev profile)
 # - Frontend (Vite dev server, hot reload)
 
 set -e
@@ -23,7 +23,7 @@ if ! docker info > /dev/null 2>&1; then
 fi
 
 # Step 1: Start PostgreSQL + Mailpit
-echo -e "${BLUE}Step 1/3: Starting PostgreSQL + Mailpit...${NC}"
+echo -e "${BLUE}Step 1/2: Starting PostgreSQL + Mailpit...${NC}"
 docker compose -f docker-compose.dev.yml up -d
 
 echo -e "${YELLOW}Waiting for PostgreSQL...${NC}"
@@ -42,30 +42,10 @@ echo ""
 echo -e "${GREEN}PostgreSQL ready${NC}"
 echo ""
 
-# Step 2: Database reset (optional)
-echo -e "${BLUE}Step 2/3: Database Setup${NC}"
-read -p "Drop all tables for a fresh start? (y/N): " -n 1 -r
-echo ""
-FRESH_START=false
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-    echo -e "${YELLOW}Dropping all tables...${NC}"
-    docker compose -f docker-compose.dev.yml exec -T db psql -U evmonitor -d ev_monitor <<EOF
-DROP SCHEMA public CASCADE;
-CREATE SCHEMA public;
-GRANT ALL ON SCHEMA public TO evmonitor;
-GRANT ALL ON SCHEMA public TO public;
-EOF
-    echo -e "${GREEN}Database reset${NC}"
-    FRESH_START=true
-else
-    echo -e "${YELLOW}Skipping table drop${NC}"
-fi
-echo ""
-
 mkdir -p logs
 
-# Step 3: Start Backend
-echo -e "${BLUE}Step 3/3: Starting Backend...${NC}"
+# Step 2: Start Backend
+echo -e "${BLUE}Step 2/2: Starting Backend...${NC}"
 echo -e "${YELLOW}Backend -> http://localhost:8080${NC}"
 echo ""
 
@@ -98,7 +78,7 @@ echo ""
 echo -e "${GREEN}Backend ready${NC}"
 echo ""
 
-# Step 4: Start Frontend
+# Step 3: Start Frontend
 echo -e "${BLUE}Starting Frontend...${NC}"
 echo -e "${YELLOW}Frontend -> http://localhost:5173${NC}"
 echo ""
@@ -121,13 +101,6 @@ echo -e "${BLUE}Backend:${NC}    http://localhost:8080"
 echo -e "${BLUE}Mailpit:${NC}    http://localhost:8025"
 echo -e "${BLUE}Database:${NC}   localhost:5432  (user: evmonitor / pass: evmonitor)"
 echo ""
-if [ "$FRESH_START" = true ]; then
-    echo -e "${YELLOW}Test Users (DevDataSeeder):${NC}"
-    echo "   test1@ev-monitor.net  /  123!\"§  (max_e_driver)"
-    echo "   test2@ev-monitor.net  /  123!\"§  (anna_ampere)"
-    echo "   test3@ev-monitor.net  /  123!\"§  (kurt_kilowatt)"
-    echo ""
-fi
 echo -e "${RED}Stop: ./stop-dev.sh or Ctrl+C${NC}"
 echo ""
 
