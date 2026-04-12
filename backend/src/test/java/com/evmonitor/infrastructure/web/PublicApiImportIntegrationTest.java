@@ -356,6 +356,25 @@ class PublicApiImportIntegrationTest extends AbstractIntegrationTest {
         assertEquals("My Local Charger", log.getCpoName());
     }
 
+    // ── Error handling ────────────────────────────────────────────────────────
+
+    @Test
+    void invalidUuidForCarId_returns400_withFieldName() {
+        String body = """
+                {
+                  "car_id": "not-a-valid-uuid",
+                  "sessions": [{ "date": "2024-11-15T14:30:00", "kwh": 32.5 }]
+                }
+                """;
+
+        ResponseEntity<Map> response = post(body, plaintextKey);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        String message = (String) response.getBody().get("message");
+        assertNotNull(message);
+        assertTrue(message.contains("car_id"), "Error message should mention the field name, got: " + message);
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private ResponseEntity<Map> post(String jsonBody, String apiKey) {

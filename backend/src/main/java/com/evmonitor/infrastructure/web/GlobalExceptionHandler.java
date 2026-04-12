@@ -10,11 +10,14 @@ import com.evmonitor.infrastructure.github.GitHubIssueService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -22,6 +25,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+
+import java.util.stream.Collectors;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -106,9 +111,35 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Map<String, String>> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
+        Throwable cause = ex.getCause();
+        if (cause instanceof InvalidFormatException ife && !ife.getPath().isEmpty()) {
+            String fieldName = ife.getPath().stream()
+                    .map(ref -> ref.getFieldName() != null ? ref.getFieldName() : "[" + ref.getIndex() + "]")
+                    .collect(Collectors.joining("."));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                    "code", "INVALID_FORMAT",
+                    "message", "Ungültiges Format für Feld '" + fieldName + "'."
+            ));
+        }
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
                 "code", "INVALID_JSON",
                 "message", "Ungültiges JSON-Format. Bitte überprüfe deine Anfrage."
+        ));
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<Map<String, String>> handleUnsupportedMediaType(HttpMediaTypeNotSupportedException ex) {
+        return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).body(Map.of(
+                "code", "UNSUPPORTED_MEDIA_TYPE",
+                "message", "Content-Type nicht unterstützt. Bitte 'Content-Type: application/json' verwenden."
+        ));
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<Map<String, String>> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex) {
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(Map.of(
+                "code", "METHOD_NOT_ALLOWED",
+                "message", "HTTP-Methode '" + ex.getMethod() + "' wird für diesen Endpoint nicht unterstützt."
         ));
     }
 
