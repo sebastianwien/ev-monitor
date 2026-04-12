@@ -741,6 +741,7 @@ cars:
   degradation_placeholder: "e.g. 8"
   wltp_range_placeholder: "e.g. 450"
   wltp_consumption_placeholder: "e.g. 16.5"
+  api_id_label: "Vehicle ID"
   api_id_copy: "Copy vehicle ID"
   api_id_copied: "Copied"
 
