@@ -146,6 +146,10 @@ function dismissThgBanner() {
   thgDismissedAt.value = now
   localStorage.setItem('thg_banner_dismissed_at', String(now))
 }
+function handleThgCardClick() {
+  analytics.trackAffiliateBannerClicked('thg')
+  window.open('https://Geld-fuer-eAuto.de/ref/evmonitor', '_blank', 'noopener,noreferrer')
+}
 
 onMounted(() => initCars())
 </script>
@@ -539,13 +543,13 @@ onMounted(() => initCars())
           </div>
 
           <!-- THG Card (mobile/tablet only, fills empty grid slot) -->
-          <a
+          <div
             v-if="showThgBanner && isGerman"
-            href="https://Geld-fuer-eAuto.de/ref/evmonitor"
-            target="_blank"
-            rel="noopener sponsored"
-            class="lg:hidden relative bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700 overflow-hidden shadow-[0_4px_0_0_#bbf7d0] dark:shadow-[0_4px_0_0_#14532d] hover:shadow-[0_2px_0_0_#bbf7d0] dark:hover:shadow-[0_2px_0_0_#14532d] hover:translate-y-0.5 active:shadow-none active:translate-y-1 transition-all duration-75 group"
-            @click="analytics.trackAffiliateBannerClicked('thg')"
+            role="link"
+            tabindex="0"
+            @click="handleThgCardClick"
+            @keydown.enter="handleThgCardClick"
+            class="lg:hidden relative bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700 overflow-hidden shadow-[0_4px_0_0_#bbf7d0] dark:shadow-[0_4px_0_0_#14532d] hover:shadow-[0_2px_0_0_#bbf7d0] dark:hover:shadow-[0_2px_0_0_#14532d] hover:translate-y-0.5 active:shadow-none active:translate-y-1 transition-all duration-75 group cursor-pointer"
           >
             <div class="h-1 bg-green-500"></div>
             <div class="p-4 pr-8">
@@ -553,14 +557,14 @@ onMounted(() => initCars())
               <p class="text-xs text-gray-500 dark:text-gray-400 leading-snug mt-1">Falls nicht, kannst du das hier tun und gleichzeitig den Betrieb der Seite unterstützen.</p>
             </div>
             <button
-              @click.prevent.stop="dismissThgBanner"
+              @click.stop="dismissThgBanner"
               class="absolute top-4 right-2 h-5 w-5 rounded-full bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-500 dark:text-gray-300 flex items-center justify-center transition"
               title="Hinweis ausblenden"
             >
               <XMarkIcon class="h-3 w-3" />
             </button>
             <span class="absolute bottom-1 right-3 text-[10px] text-gray-300 dark:text-gray-600">Affiliate-Link</span>
-          </a>
+          </div>
         </div>
 
         <!-- THG Banner (desktop only, stripe) -->
