@@ -344,6 +344,7 @@ router.beforeEach((to, _from) => {
     if (explicitLocale !== null) {
         i18n.global.locale.value = explicitLocale as 'de' | 'en';
         localStorage.setItem('ev-locale', explicitLocale);
+        document.documentElement.lang = explicitLocale;
     }
 
     if (to.meta.requiresAuth) {
