@@ -46,7 +46,6 @@ import { costBadgeClass } from '../utils/costColor'
 import LicensePlate from '../components/car/LicensePlate.vue'
 import ChargingHeatMap from '../components/dashboard/ChargingHeatMap.vue'
 import RewardSystemUpdateBanner from '../components/shared/RewardSystemUpdateBanner.vue'
-import ThgBanner from '../components/shared/ThgBanner.vue'
 import { useCountryStore } from '../stores/country'
 import { analytics } from '../services/analytics'
 import SupportPopover from '../components/settings/SupportPopover.vue'
@@ -496,7 +495,7 @@ onMounted(() => initCars())
           <div v-else-if="stats" class="space-y-0">
 
         <!-- Key Metrics -->
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 pb-6 mb-0">
+        <div :class="['grid grid-cols-2 md:grid-cols-3 gap-4 pb-6 mb-0', showThgBanner && isGerman ? 'lg:grid-cols-6' : 'lg:grid-cols-5']">
           <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="h-1 bg-amber-500"></div>
             <div class="p-4">
@@ -535,21 +534,22 @@ onMounted(() => initCars())
           </div>
           <div v-if="stats.totalDistanceKm != null && stats.totalCostEur != null && stats.totalDistanceKm > 0"
             class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <div class="h-1 bg-teal-500"></div>
+            <div class="h-1 bg-pink-500"></div>
             <div class="p-4">
               <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">{{ t('dashboard.metric_avg_cost') }}</p>
               <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ formatCostPerDistance(stats.totalCostEur / stats.totalDistanceKm * 100) }}</p>
             </div>
           </div>
 
-          <!-- THG Card (mobile/tablet only, fills empty grid slot) -->
+          <!-- THG Card (alle Viewports, füllt leeren Grid-Slot) -->
           <div
             v-if="showThgBanner && isGerman"
             role="link"
             tabindex="0"
             @click="handleThgCardClick"
             @keydown.enter="handleThgCardClick"
-            class="lg:hidden relative bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700 overflow-hidden shadow-[0_4px_0_0_#bbf7d0] dark:shadow-[0_4px_0_0_#14532d] hover:shadow-[0_2px_0_0_#bbf7d0] dark:hover:shadow-[0_2px_0_0_#14532d] hover:translate-y-0.5 active:shadow-none active:translate-y-1 transition-all duration-75 group cursor-pointer"
+            @keydown.space.prevent="handleThgCardClick"
+            class="relative bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700 overflow-hidden shadow-[0_4px_0_0_#bbf7d0] dark:shadow-[0_4px_0_0_#14532d] hover:shadow-[0_2px_0_0_#bbf7d0] dark:hover:shadow-[0_2px_0_0_#14532d] hover:translate-y-0.5 active:shadow-none active:translate-y-1 transition-all duration-75 group cursor-pointer"
           >
             <div class="h-1 bg-green-500"></div>
             <div class="p-4 pr-8">
@@ -565,11 +565,6 @@ onMounted(() => initCars())
             </button>
             <span class="absolute bottom-1 right-3 text-[10px] text-gray-300 dark:text-gray-600">Affiliate-Link</span>
           </div>
-        </div>
-
-        <!-- THG Banner (desktop only, stripe) -->
-        <div v-if="showThgBanner" class="hidden lg:block border-t border-gray-100 dark:border-gray-700 pt-4">
-          <ThgBanner dismissable personal @dismiss="dismissThgBanner" />
         </div>
 
         <!-- Chart 1: Charging & Costs -->
