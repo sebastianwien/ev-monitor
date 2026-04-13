@@ -131,7 +131,9 @@ public class LeaderboardQueryRepository {
     public List<LeaderboardRankRow> getCheapestRanking(LocalDateTime start, LocalDateTime endExclusive) {
         List<Object[]> rows = em.createNativeQuery("""
                 SELECT CAST(c.id AS TEXT), CAST(u.id AS TEXT), u.username, c.model,
-                       ROUND(AVG(e.cost_eur / NULLIF(e.kwh_charged, 0)) * 100, 2) AS value
+                       ROUND(SUM(e.cost_eur) / NULLIF(SUM(e.kwh_charged), 0) * 100, 2) AS value,
+                       SUM(e.kwh_charged) AS kwh_total,
+                       COUNT(e.id) AS session_count
                 FROM ev_log e
                 JOIN car c ON e.car_id = c.id
                 JOIN app_user u ON c.user_id = u.id
@@ -144,12 +146,12 @@ public class LeaderboardQueryRepository {
                   AND e.logged_at < :end
                 GROUP BY c.id, c.model, u.id, u.username
                 HAVING COUNT(e.id) >= 3
-                ORDER BY value ASC
+                ORDER BY value ASC, SUM(e.kwh_charged) DESC
                 """)
                 .setParameter("start", start)
                 .setParameter("end", endExclusive)
                 .getResultList();
-        return mapCarRows(rows);
+        return mapCheapestRows(rows);
     }
 
     // ---- MONTHLY_NIGHT_OWL (charges between 22:00-06:00) ----
@@ -296,7 +298,24 @@ public class LeaderboardQueryRepository {
                         UUID.fromString((String) r[1]),
                         (String) r[2],
                         carLabelFromModel((String) r[3]),
-                        r[4] != null ? new BigDecimal(r[4].toString()) : BigDecimal.ZERO
+                        r[4] != null ? new BigDecimal(r[4].toString()) : BigDecimal.ZERO,
+                        null,
+                        null
+                ))
+                .toList();
+    }
+
+    /** Maps cheapest-ranking rows: [carId, userId, username, carModel, value, kwhTotal, sessionCount] */
+    private List<LeaderboardRankRow> mapCheapestRows(List<Object[]> rows) {
+        return rows.stream()
+                .map(r -> new LeaderboardRankRow(
+                        UUID.fromString((String) r[0]),
+                        UUID.fromString((String) r[1]),
+                        (String) r[2],
+                        carLabelFromModel((String) r[3]),
+                        r[4] != null ? new BigDecimal(r[4].toString()) : BigDecimal.ZERO,
+                        r[5] != null ? new BigDecimal(r[5].toString()) : null,
+                        r[6] != null ? ((Number) r[6]).longValue() : null
                 ))
                 .toList();
     }
@@ -311,7 +330,9 @@ public class LeaderboardQueryRepository {
                             userId,
                             (String) r[1],
                             null,
-                            r[2] != null ? new BigDecimal(r[2].toString()) : BigDecimal.ZERO
+                            r[2] != null ? new BigDecimal(r[2].toString()) : BigDecimal.ZERO,
+                            null,
+                            null
                     );
                 })
                 .toList();

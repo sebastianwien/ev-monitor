@@ -10,6 +10,8 @@ public record LeaderboardEntryDTO(
         String unit,
         Integer previousRank,
         Integer rankDelta,   // positive = moved up (e.g. was 5th, now 3rd -> delta +2), negative = moved down
-        boolean isNew        // true if this car was not in top 10 yesterday (only meaningful if top10)
+        boolean isNew,       // true if this car was not in top 10 yesterday (only meaningful if top10)
+        BigDecimal kwhTotal,    // nullable - only populated for MONTHLY_CHEAPEST
+        Long sessionCount       // nullable - only populated for MONTHLY_CHEAPEST
 ) {
 }

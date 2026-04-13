@@ -26,6 +26,8 @@ interface LeaderboardEntry {
   previousRank: number | null
   rankDelta: number | null
   isNew: boolean
+  kwhTotal: number | null
+  sessionCount: number | null
 }
 
 interface LeaderboardResponse {
@@ -38,7 +40,7 @@ interface LeaderboardResponse {
   ownEntry: LeaderboardEntry | null
 }
 
-const { t, locale } = useI18n()
+const { t, locale, n } = useI18n()
 
 const CATEGORIES = computed(() => [
   { key: 'MONTHLY_KWH', label: t('leaderboard.cat_kwh'), icon: BoltIcon, color: 'text-yellow-500' },
@@ -197,6 +199,9 @@ const periodLabel = computed(() => {
             <div class="flex-1 min-w-0">
               <div class="font-semibold text-gray-900 dark:text-gray-100 truncate">{{ entry.username }}</div>
               <div class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ entry.carLabel ?? t('leaderboard.rank', { n: entry.rank }) }}</div>
+              <div v-if="entry.kwhTotal != null && entry.sessionCount != null" class="text-xs text-gray-400 dark:text-gray-500 truncate">
+                {{ t('leaderboard.cheapest_subtitle', { kwh: n(Number(entry.kwhTotal), { minimumFractionDigits: 1, maximumFractionDigits: 1 }), sessions: entry.sessionCount }) }}
+              </div>
             </div>
             <div class="text-right flex-shrink-0">
               <div class="font-bold text-gray-900 dark:text-gray-100 tabular-nums">{{ entry.value }}</div>
@@ -221,6 +226,9 @@ const periodLabel = computed(() => {
               <div class="flex-1 min-w-0">
                 <div class="font-semibold text-indigo-900 dark:text-indigo-200 truncate">{{ data.ownEntry.username }} <span class="text-xs font-normal text-indigo-500">{{ t('leaderboard.you') }}</span></div>
                 <div class="text-xs text-indigo-400 truncate">{{ data.ownEntry.carLabel ?? t('leaderboard.rank', { n: data.ownEntry.rank }) }}</div>
+                <div v-if="data.ownEntry.kwhTotal != null && data.ownEntry.sessionCount != null" class="text-xs text-indigo-300 dark:text-indigo-500 truncate">
+                  {{ t('leaderboard.cheapest_subtitle', { kwh: n(Number(data.ownEntry.kwhTotal), { minimumFractionDigits: 1, maximumFractionDigits: 1 }), sessions: data.ownEntry.sessionCount }) }}
+                </div>
               </div>
               <div class="text-right flex-shrink-0">
                 <div class="font-bold text-indigo-900 dark:text-indigo-200 tabular-nums">{{ data.ownEntry.value }}</div>

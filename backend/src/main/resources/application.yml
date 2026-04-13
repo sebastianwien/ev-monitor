@@ -16,13 +16,14 @@ spring:
   cache:
     type: caffeine
     caffeine:
-      spec: maximumSize=500,expireAfterWrite=1h
+      spec: maximumSize=500,expireAfterWrite=4h
     cache-names:
       - platformStats
       - modelsWithData
       - modelStats
       - topModels
       - efficientModels
+      - leaderboard
 
   flyway:
     enabled: true

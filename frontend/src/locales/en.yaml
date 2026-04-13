@@ -547,6 +547,7 @@ leaderboard:
   cat_charges: "Charging sessions"
   cat_distance: "Longest distance"
   cat_cheapest: "Cheapest charger"
+  cheapest_subtitle: "for {kwh} kWh over {sessions} charges"
   cat_night_owl: "Night Owl"
   cat_ice_charger: "Ice Charger"
   cat_power_charger: "Fastest Charger"

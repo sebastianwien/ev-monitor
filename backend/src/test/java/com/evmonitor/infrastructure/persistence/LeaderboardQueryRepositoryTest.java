@@ -159,12 +159,68 @@ class LeaderboardQueryRepositoryTest {
         return id;
     }
 
+    // ---- MONTHLY_CHEAPEST: SUM/SUM vs AVG(ratio) ----
+
+    @Test
+    void cheapestRanking_usesSumDividedBySumNotAvgOfRatios() {
+        // Anna: 5kWh@2.50€ (50ct/kWh) + 50kWh@10€ (20ct/kWh) + 50kWh@10€ (20ct/kWh)
+        //   AVG(ratio) = (50+20+20)/3 = 30.00 ct/kWh  ← falsches Ergebnis
+        //   SUM/SUM    = 22.50/105    = 21.43 ct/kWh  ← korrektes Ergebnis
+        UUID userA = createUser("anna@test.com", "anna", false, true);
+        UUID carA = createCar(userA);
+        createLogWithCost(carA, "5.0",  "2.50",  true);
+        createLogWithCost(carA, "50.0", "10.00", true);
+        createLogWithCost(carA, "50.0", "10.00", true);
+
+        // Bob: 3x 25kWh@5.75€ = 23 ct/kWh (beide Methoden identisch)
+        UUID userB = createUser("bob@test.com", "bob", false, true);
+        UUID carB = createCar(userB);
+        createLogWithCost(carB, "25.0", "5.75", true);
+        createLogWithCost(carB, "25.0", "5.75", true);
+        createLogWithCost(carB, "25.0", "5.75", true);
+
+        // SUM/SUM: Anna 21.43 < Bob 23 → Anna gewinnt (korrekt)
+        // AVG(ratio): Anna 30 > Bob 23 → Bob würde gewinnen (falsch)
+        List<LeaderboardRankRow> rows = repo.getCheapestRanking(START, END);
+
+        assertThat(rows).extracting(LeaderboardRankRow::username)
+                .containsExactly("anna", "bob");
+    }
+
+    @Test
+    void cheapestRanking_tiebreakerByKwhDescWhenSamePrice() {
+        // Beide laden gratis (0 ct/kWh), Tiebreaker: mehr kWh gewinnt
+        UUID userA = createUser("anna@test.com", "anna", false, true);
+        UUID carA = createCar(userA);
+        createLogWithCost(carA, "40.0", "0.00", true);
+        createLogWithCost(carA, "35.0", "0.00", true);
+        createLogWithCost(carA, "25.0", "0.00", true); // 100 kWh gesamt
+
+        UUID userB = createUser("bob@test.com", "bob", false, true);
+        UUID carB = createCar(userB);
+        createLogWithCost(carB, "10.0", "0.00", true);
+        createLogWithCost(carB, "10.0", "0.00", true);
+        createLogWithCost(carB, "10.0", "0.00", true); // 30 kWh gesamt
+
+        // Beide 0.00 ct/kWh, aber Anna hat mehr kWh → Anna zuerst
+        List<LeaderboardRankRow> rows = repo.getCheapestRanking(START, END);
+
+        assertThat(rows).extracting(LeaderboardRankRow::username)
+                .containsExactly("anna", "bob");
+    }
+
+    // ---- Helpers ----
+
     private void createLog(UUID carId, String kwh, boolean includeInStatistics) {
+        createLogWithCost(carId, kwh, "10.00", includeInStatistics);
+    }
+
+    private void createLogWithCost(UUID carId, String kwh, String costEur, boolean includeInStatistics) {
         EvLogEntity e = new EvLogEntity();
         e.setId(UUID.randomUUID());
         e.setCarId(carId);
         e.setKwhCharged(new BigDecimal(kwh));
-        e.setCostEur(new BigDecimal("10.00"));
+        e.setCostEur(new BigDecimal(costEur));
         e.setChargeDurationMinutes(60);
         e.setLoggedAt(LocalDateTime.now());
         e.setDataSource("USER_LOGGED");

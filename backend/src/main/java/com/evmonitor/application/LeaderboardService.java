@@ -6,6 +6,7 @@ import com.evmonitor.infrastructure.external.ExternalJokeService;
 import com.evmonitor.infrastructure.external.FuelPriceService;
 import com.evmonitor.infrastructure.persistence.LeaderboardQueryRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -26,6 +27,7 @@ public class LeaderboardService {
     private final ExternalJokeService externalJokeService;
     private final FuelPriceService fuelPriceService;
 
+    @Cacheable(value = "leaderboard", key = "'board:' + #category.name() + ':' + #requestingUserId")
     public LeaderboardResponseDTO getLeaderboard(LeaderboardCategory category, UUID requestingUserId) {
         LocalDate today = LocalDate.now();
         LocalDateTime startOfMonth = today.withDayOfMonth(1).atStartOfDay();
@@ -50,16 +52,7 @@ public class LeaderboardService {
             Integer delta = (hasDeltaData && prevRank != null) ? prevRank - currentRank : null;
             boolean isNew = hasDeltaData && prevRank == null;
 
-            top10.add(new LeaderboardEntryDTO(
-                    currentRank,
-                    row.username(),
-                    row.carLabel(),
-                    formatValue(category, row.value()),
-                    category.getUnit(),
-                    prevRank,
-                    delta,
-                    isNew
-            ));
+            top10.add(buildEntry(category, row, currentRank, prevRank, delta, isNew));
             top10EntityIds.add(row.entityId());
             top10UserIds.add(row.userId());
         }
@@ -74,16 +67,7 @@ public class LeaderboardService {
                     Integer prevRank = yesterdayRanks.get(row.entityId());
                     Integer delta = (hasDeltaData && prevRank != null) ? prevRank - currentRank : null;
                     boolean isNew = hasDeltaData && prevRank == null;
-                    ownEntry = new LeaderboardEntryDTO(
-                            currentRank,
-                            row.username(),
-                            row.carLabel(),
-                            formatValue(category, row.value()),
-                            category.getUnit(),
-                            prevRank,
-                            delta,
-                            isNew
-                    );
+                    ownEntry = buildEntry(category, row, currentRank, prevRank, delta, isNew);
                     break; // first match = best-ranked car for this user
                 }
             }
@@ -150,6 +134,7 @@ public class LeaderboardService {
         return result;
     }
 
+    @Cacheable(value = "leaderboard", key = "'ticker'")
     public List<TickerItemDTO> getTicker() {
         LocalDate today = LocalDate.now();
         LocalDateTime startOfMonth = today.withDayOfMonth(1).atStartOfDay();
@@ -308,6 +293,23 @@ public class LeaderboardService {
             map.put(ranking.get(i).entityId(), i + 1);
         }
         return map;
+    }
+
+    private LeaderboardEntryDTO buildEntry(LeaderboardCategory category, LeaderboardRankRow row,
+                                           int rank, Integer prevRank, Integer delta, boolean isNew) {
+        boolean isCheapest = category == LeaderboardCategory.MONTHLY_CHEAPEST;
+        return new LeaderboardEntryDTO(
+                rank,
+                row.username(),
+                row.carLabel(),
+                formatValue(category, row.value()),
+                category.getUnit(),
+                prevRank,
+                delta,
+                isNew,
+                isCheapest ? row.kwhTotal() : null,
+                isCheapest ? row.sessionCount() : null
+        );
     }
 
     private BigDecimal formatValue(LeaderboardCategory category, BigDecimal raw) {

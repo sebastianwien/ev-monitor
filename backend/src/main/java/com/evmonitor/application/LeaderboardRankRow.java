@@ -9,5 +9,6 @@ import java.util.UUID;
  * entityId = carId for car-based categories, userId for user-based (coins).
  * carLabel = "Tesla Model 3" for car-based, null for user-based.
  */
-public record LeaderboardRankRow(UUID entityId, UUID userId, String username, String carLabel, BigDecimal value) {
+public record LeaderboardRankRow(UUID entityId, UUID userId, String username, String carLabel, BigDecimal value,
+                                 BigDecimal kwhTotal, Long sessionCount) {
 }

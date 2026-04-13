@@ -274,11 +274,43 @@ class LeaderboardServiceIntegrationTest {
         verify(coinLogService, never()).awardCoins(any(), any(), anyInt(), any());
     }
 
+    // ---- MONTHLY_CHEAPEST: kwhTotal + sessionCount in DTO ----
+
+    @Test
+    void getLeaderboard_cheapestEntry_includesKwhTotalAndSessionCount() {
+        var row = rowWithMeta(userA, "anna", "21.43", new BigDecimal("105.0"), 3L);
+        when(queryRepository.getCheapestRanking(any(), any())).thenReturn(List.of(row));
+
+        var result = leaderboardService.getLeaderboard(LeaderboardCategory.MONTHLY_CHEAPEST, null);
+
+        var entry = result.entries().get(0);
+        assertThat(entry.kwhTotal()).isEqualByComparingTo(new BigDecimal("105.0"));
+        assertThat(entry.sessionCount()).isEqualTo(3L);
+    }
+
+    @Test
+    void getLeaderboard_nonCheapestEntry_hasNullKwhTotalAndSessionCount() {
+        when(queryRepository.getKwhRanking(any(), any())).thenReturn(List.of(row(userA, "anna", "80.0")));
+        when(queryRepository.getTotalKwhThisMonth(any(), any())).thenReturn(BigDecimal.ZERO);
+        when(queryRepository.getTotalChargesThisMonth(any(), any())).thenReturn(0L);
+
+        var result = leaderboardService.getLeaderboard(LeaderboardCategory.MONTHLY_KWH, null);
+
+        var entry = result.entries().get(0);
+        assertThat(entry.kwhTotal()).isNull();
+        assertThat(entry.sessionCount()).isNull();
+    }
+
     // ---- Helper ----
 
     private LeaderboardRankRow row(UUID userId, String username, String value) {
         // Derive a stable carId from userId so today/yesterday rows for the same user match on entityId
         UUID carId = UUID.nameUUIDFromBytes(userId.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
-        return new LeaderboardRankRow(carId, userId, username, "Tesla Model 3", new BigDecimal(value));
+        return new LeaderboardRankRow(carId, userId, username, "Tesla Model 3", new BigDecimal(value), null, null);
+    }
+
+    private LeaderboardRankRow rowWithMeta(UUID userId, String username, String value, BigDecimal kwhTotal, Long sessionCount) {
+        UUID carId = UUID.nameUUIDFromBytes(userId.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        return new LeaderboardRankRow(carId, userId, username, "Tesla Model 3", new BigDecimal(value), kwhTotal, sessionCount);
     }
 }
