@@ -794,7 +794,7 @@ const currentYear = new Date().getFullYear()
 
 useHead(computed(() => {
   if (notFound.value) return { title: 'Modell nicht gefunden - EV Monitor', meta: [{ name: 'robots', content: 'noindex, nofollow' }] }
-  if (!stats.value) return { title: 'EV Monitor', meta: [{ name: 'robots', content: 'index, follow' }] }
+  if (!stats.value) return { title: 'EV Monitor', meta: [{ name: 'robots', content: 'noindex, follow' }] }
 
   const name = stats.value.modelDisplayName
   const consumption = displayConsumption.value
