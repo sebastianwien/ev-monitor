@@ -823,19 +823,29 @@ useHead(computed(() => {
     ]
   }
 
-  const productJsonLd: Record<string, unknown> = {
+  const webPageJsonLd: Record<string, unknown> = {
     '@context': 'https://schema.org',
-    '@type': 'Product',
-    name,
+    '@type': 'WebPage',
+    name: title,
     description,
-    brand: { '@type': 'Brand', name: stats.value.brandDisplayName },
     url: canonicalUrl,
+    author: { '@type': 'Organization', name: 'EV Monitor', url: 'https://ev-monitor.net' },
   }
   if (consumption) {
-    productJsonLd['additionalProperty'] = [
+    webPageJsonLd['about'] = [
       { '@type': 'PropertyValue', name: isEn.value ? 'Real Consumption' : 'Realverbrauch', value: formatConsumption(consumption) },
       ...(wltp ? [{ '@type': 'PropertyValue', name: 'WLTP', value: formatConsumption(wltp) }] : []),
     ]
+  }
+
+  const faqJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqItems.value.map(f => ({
+      '@type': 'Question',
+      name: f.question,
+      acceptedAnswer: { '@type': 'Answer', text: f.answer }
+    }))
   }
 
   return {
@@ -847,7 +857,7 @@ useHead(computed(() => {
       { name: 'robots', content: consumptionDataCount.value >= 25 ? 'index, follow' : 'noindex, follow' },
       { property: 'og:title', content: title },
       { property: 'og:description', content: description },
-      { property: 'og:type', content: 'website' },
+      { property: 'og:type', content: 'article' },
       { property: 'og:url', content: canonicalUrl },
       { property: 'og:locale', content: isEn.value ? 'en_GB' : 'de_DE' },
     ],
@@ -859,7 +869,10 @@ useHead(computed(() => {
     ],
     script: [
       { type: 'application/ld+json', innerHTML: JSON.stringify(breadcrumbJsonLd) },
-      { type: 'application/ld+json', innerHTML: JSON.stringify(productJsonLd) },
+      { type: 'application/ld+json', innerHTML: JSON.stringify(webPageJsonLd) },
+      ...(faqItems.value.length > 0
+        ? [{ type: 'application/ld+json', innerHTML: JSON.stringify(faqJsonLd) }]
+        : [])
     ]
   }
 }))
