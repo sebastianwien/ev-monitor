@@ -843,7 +843,8 @@ useHead(computed(() => {
     meta: [
       { name: 'description', content: description },
       { name: 'keywords', content: t('model.meta_keywords', { model: name }) },
-      { name: 'robots', content: 'index, follow' },
+      // threshold in sync with PublicModelService.SITEMAP_MIN_LOG_COUNT = 25
+      { name: 'robots', content: consumptionDataCount.value >= 25 ? 'index, follow' : 'noindex, follow' },
       { property: 'og:title', content: title },
       { property: 'og:description', content: description },
       { property: 'og:type', content: 'website' },

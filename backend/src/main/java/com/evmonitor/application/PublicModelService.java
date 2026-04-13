@@ -20,12 +20,18 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class PublicModelService {
+
+    /** Minimum real community log count for a model to be included in the sitemap.
+     *  Keep in sync with consumptionDataCount >= 25 in PublicModelViewV2.vue. */
+    static final int SITEMAP_MIN_LOG_COUNT = 25;
 
     private final JpaEvLogRepository evLogRepository;
     private final JpaVehicleSpecificationRepository vehicleSpecificationRepository;
@@ -272,6 +278,26 @@ public class PublicModelService {
                     }
                 })
                 .toList();
+    }
+
+    /**
+     * Returns enum names of models with at least SITEMAP_MIN_LOG_COUNT real community logs.
+     * Used by the sitemap to exclude thin-content model pages from crawling.
+     * Iterates all CarModel enum values (no WLTP dependency) and checks log counts in batch.
+     */
+    public Set<String> getModelEnumNamesForSitemap(boolean isSeedUser) {
+        return Arrays.stream(CarBrand.CarModel.values())
+                .filter(model -> model.getBrand() != CarBrand.SONSTIGE)
+                .filter(model -> {
+                    Object[] stats = evLogRepository.findPublicBasicStatsByModel(model.name(), isSeedUser);
+                    if (stats == null || stats.length == 0) return false;
+                    Object first = stats[0];
+                    if (first instanceof Object[]) stats = (Object[]) first;
+                    long count = stats[0] != null ? ((Number) stats[0]).longValue() : 0;
+                    return count >= SITEMAP_MIN_LOG_COUNT;
+                })
+                .map(CarBrand.CarModel::name)
+                .collect(Collectors.toSet());
     }
 
     /**
