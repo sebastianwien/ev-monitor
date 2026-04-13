@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Line, Bar } from 'vue-chartjs'
 import {
@@ -46,6 +46,9 @@ import { costBadgeClass } from '../utils/costColor'
 import LicensePlate from '../components/car/LicensePlate.vue'
 import ChargingHeatMap from '../components/dashboard/ChargingHeatMap.vue'
 import RewardSystemUpdateBanner from '../components/shared/RewardSystemUpdateBanner.vue'
+import ThgBanner from '../components/shared/ThgBanner.vue'
+import { useCountryStore } from '../stores/country'
+import { analytics } from '../services/analytics'
 import SupportPopover from '../components/settings/SupportPopover.vue'
 import ImplausibleLogsModal from '../components/dashboard/ImplausibleLogsModal.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
@@ -127,6 +130,22 @@ watch(selectedCarId, async (newId) => {
     implausibleCount.value = 0
   }
 })
+
+// -- THG Banner --
+const countryStore = useCountryStore()
+const isGerman = computed(() => countryStore.country === 'DE')
+const thgDismissedAt = ref<number | null>(
+  Number(localStorage.getItem('thg_banner_dismissed_at')) || null
+)
+const showThgBanner = computed(() => {
+  if (!thgDismissedAt.value) return true
+  return (Date.now() - thgDismissedAt.value) / 86_400_000 >= 90
+})
+function dismissThgBanner() {
+  const now = Date.now()
+  thgDismissedAt.value = now
+  localStorage.setItem('thg_banner_dismissed_at', String(now))
+}
 
 onMounted(() => initCars())
 </script>
@@ -518,6 +537,35 @@ onMounted(() => initCars())
               <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ formatCostPerDistance(stats.totalCostEur / stats.totalDistanceKm * 100) }}</p>
             </div>
           </div>
+
+          <!-- THG Card (mobile/tablet only, fills empty grid slot) -->
+          <a
+            v-if="showThgBanner && isGerman"
+            href="https://Geld-fuer-eAuto.de/ref/evmonitor"
+            target="_blank"
+            rel="noopener sponsored"
+            class="lg:hidden relative bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700 overflow-hidden shadow-[0_4px_0_0_#bbf7d0] dark:shadow-[0_4px_0_0_#14532d] hover:shadow-[0_2px_0_0_#bbf7d0] dark:hover:shadow-[0_2px_0_0_#14532d] hover:translate-y-0.5 active:shadow-none active:translate-y-1 transition-all duration-75 group"
+            @click="analytics.trackAffiliateBannerClicked('thg')"
+          >
+            <div class="h-1 bg-green-500"></div>
+            <div class="p-4 pr-8">
+              <p class="text-xs text-gray-700 dark:text-gray-200 font-medium mb-1">THG-Prämie schon beantragt?</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400 leading-snug mt-1">Falls nicht, kannst du das hier tun und gleichzeitig den Betrieb der Seite unterstützen.</p>
+            </div>
+            <button
+              @click.prevent.stop="dismissThgBanner"
+              class="absolute top-4 right-2 h-5 w-5 rounded-full bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-500 dark:text-gray-300 flex items-center justify-center transition"
+              title="Hinweis ausblenden"
+            >
+              <XMarkIcon class="h-3 w-3" />
+            </button>
+            <span class="absolute bottom-1 right-3 text-[10px] text-gray-300 dark:text-gray-600">Affiliate-Link</span>
+          </a>
+        </div>
+
+        <!-- THG Banner (desktop only, stripe) -->
+        <div v-if="showThgBanner" class="hidden lg:block border-t border-gray-100 dark:border-gray-700 pt-4">
+          <ThgBanner dismissable personal @dismiss="dismissThgBanner" />
         </div>
 
         <!-- Chart 1: Charging & Costs -->

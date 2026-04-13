@@ -168,6 +168,11 @@ class AnalyticsService {
   trackCheckoutCompleted() {
     this.track('checkout_completed')
   }
+
+  // Affiliate Events
+  trackAffiliateBannerClicked(banner: 'thg' | 'enbw') {
+    this.track('affiliate_banner_clicked', { banner })
+  }
 }
 
 export const analytics = new AnalyticsService()

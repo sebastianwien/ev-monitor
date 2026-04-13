@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { BoltIcon, CurrencyEuroIcon } from '@heroicons/vue/24/outline'
 import { useCountryStore } from '../../stores/country'
+import { analytics } from '../../services/analytics'
 
 const countryStore = useCountryStore()
 const isGerman = computed(() => countryStore.country === 'DE')
@@ -29,6 +30,10 @@ const banners: Banner[] = [
     weight: 40,
   },
 ]
+
+function handleClick() {
+  analytics.trackAffiliateBannerClicked('enbw')
+}
 
 const banner = computed(() => {
   const total = banners.reduce((sum, b) => sum + b.weight, 0)
@@ -64,6 +69,7 @@ const banner = computed(() => {
         :href="banner.url"
         target="_blank"
         rel="noopener sponsored"
+        @click="handleClick"
         class="shrink-0 self-center sm:self-auto text-xs font-medium bg-green-600 hover:bg-green-500 text-white px-3 py-2 rounded-lg whitespace-nowrap shadow-[0_4px_0_0_#15803d] active:shadow-[0_1px_0_0_#15803d] active:translate-y-[3px] transition-transform"
       >
         {{ banner.cta }}
