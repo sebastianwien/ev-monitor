@@ -75,7 +75,7 @@ public class AuthService {
         EmailVerificationToken verificationToken = EmailVerificationToken.createFor(savedUser.getId());
         tokenRepository.save(verificationToken);
 
-        emailService.sendVerificationEmail(savedUser.getEmail(), verificationToken.getToken());
+        emailService.sendVerificationEmail(savedUser.getEmail(), verificationToken.getToken(), savedUser.getRegistrationLocale());
 
         return new RegisterResponse("PENDING_VERIFICATION", savedUser.getEmail());
     }
@@ -125,7 +125,7 @@ public class AuthService {
             tokenRepository.deleteByUserId(user.getId());
             EmailVerificationToken newToken = EmailVerificationToken.createFor(user.getId());
             tokenRepository.save(newToken);
-            emailService.sendVerificationEmail(user.getEmail(), newToken.getToken());
+            emailService.sendVerificationEmail(user.getEmail(), newToken.getToken(), user.getRegistrationLocale());
         });
     }
 
@@ -136,7 +136,7 @@ public class AuthService {
             passwordResetTokenRepository.deleteByUserId(user.getId()); // invalidate any old token
             PasswordResetToken resetToken = PasswordResetToken.createFor(user.getId());
             passwordResetTokenRepository.save(resetToken);
-            emailService.sendPasswordResetEmail(user.getEmail(), resetToken.getToken());
+            emailService.sendPasswordResetEmail(user.getEmail(), resetToken.getToken(), user.getRegistrationLocale());
         });
     }
 

@@ -60,7 +60,7 @@ public class AppScheduler {
                 boolean hasNoActivity = carRepository.countByUserId(user.getId()) == 0
                         || evLogRepository.countByUserId(user.getId()) == 0;
                 if (hasNoActivity) {
-                    emailService.sendOnboardingReminderEmail(user.getEmail(), user.getUsername());
+                    emailService.sendOnboardingReminderEmail(user.getEmail(), user.getUsername(), user.getRegistrationLocale());
                     reminded.add(user.getUsername());
                     log.info("Sent onboarding reminder to user {}", user.getId());
                 } else {
@@ -95,7 +95,7 @@ public class AppScheduler {
 
         try {
             for (User user : candidates) {
-                emailService.sendReEngagementEmail(user.getEmail(), user.getUsername());
+                emailService.sendReEngagementEmail(user.getEmail(), user.getUsername(), user.getRegistrationLocale());
                 reminded.add(user.getUsername());
                 log.info("Sent re-engagement email to user {}", user.getId());
             }

@@ -34,36 +34,63 @@ public class EmailService {
         return baseUrl + "/api/unsubscribe?token=" + token;
     }
 
-    public void sendVerificationEmail(String toEmail, String token) {
+    /**
+     * Normalizes a raw locale string (e.g. "en-US", "en", "de-DE", null) to "en" or "de".
+     * Defaults to "de" for any unrecognized or null locale.
+     */
+    private String resolveLocale(String rawLocale) {
+        if (rawLocale != null && rawLocale.toLowerCase().startsWith("en")) {
+            return "en";
+        }
+        return "de";
+    }
+
+    public void sendVerificationEmail(String toEmail, String token, String locale) {
+        String lang = resolveLocale(locale);
         String verificationUrl = baseUrl + "/verify-email?token=" + token;
-        String html = loadTemplate("verification.html", Map.of(
+        String html = loadTemplate("verification.html", lang, Map.of(
                 "verificationUrl", verificationUrl
         ));
-        sendHtmlEmail(toEmail, "EV Monitor – E-Mail bestätigen", html);
+        String subject = "en".equals(lang)
+                ? "EV Monitor - Confirm your email"
+                : "EV Monitor - E-Mail bestätigen";
+        sendHtmlEmail(toEmail, subject, html);
     }
 
-    public void sendPasswordResetEmail(String toEmail, String token) {
+    public void sendPasswordResetEmail(String toEmail, String token, String locale) {
+        String lang = resolveLocale(locale);
         String resetUrl = baseUrl + "/reset-password?token=" + token;
-        String html = loadTemplate("password-reset.html", Map.of("resetUrl", resetUrl));
-        sendHtmlEmail(toEmail, "EV Monitor – Passwort zurücksetzen", html);
+        String html = loadTemplate("password-reset.html", lang, Map.of("resetUrl", resetUrl));
+        String subject = "en".equals(lang)
+                ? "EV Monitor - Reset your password"
+                : "EV Monitor - Passwort zurücksetzen";
+        sendHtmlEmail(toEmail, subject, html);
     }
 
-    public void sendReEngagementEmail(String toEmail, String username) {
-        String html = loadTemplate("re-engagement.html", Map.of(
+    public void sendReEngagementEmail(String toEmail, String username, String locale) {
+        String lang = resolveLocale(locale);
+        String html = loadTemplate("re-engagement.html", lang, Map.of(
                 "username", username,
                 "dashboardUrl", baseUrl + "/dashboard",
                 "unsubscribeUrl", buildUnsubscribeUrl(toEmail)
         ));
-        sendHtmlEmail(toEmail, "Kurze Nachricht von mir", html);
+        String subject = "en".equals(lang)
+                ? "A quick note from me"
+                : "Kurze Nachricht von mir";
+        sendHtmlEmail(toEmail, subject, html);
     }
 
-    public void sendOnboardingReminderEmail(String toEmail, String username) {
-        String html = loadTemplate("onboarding-reminder.html", Map.of(
+    public void sendOnboardingReminderEmail(String toEmail, String username, String locale) {
+        String lang = resolveLocale(locale);
+        String html = loadTemplate("onboarding-reminder.html", lang, Map.of(
                 "username", username,
                 "dashboardUrl", baseUrl + "/dashboard",
                 "unsubscribeUrl", buildUnsubscribeUrl(toEmail)
         ));
-        sendHtmlEmail(toEmail, "EV Monitor – Alles bereit für dein erstes Ladetagebuch?", html);
+        String subject = "en".equals(lang)
+                ? "EV Monitor - Ready for your first charging log?"
+                : "EV Monitor - Alles bereit für dein erstes Ladetagebuch?";
+        sendHtmlEmail(toEmail, subject, html);
     }
 
     private void sendHtmlEmail(String toEmail, String subject, String html) {
@@ -80,10 +107,18 @@ public class EmailService {
         }
     }
 
-    private String loadTemplate(String templateName, Map<String, String> variables) {
+    /**
+     * Loads a template from email-templates/{locale}/{templateName}.
+     * Falls back to email-templates/{templateName} if the locale-specific file doesn't exist.
+     */
+    private String loadTemplate(String templateName, String lang, Map<String, String> variables) {
         try {
-            ClassPathResource resource = new ClassPathResource("email-templates/" + templateName);
+            ClassPathResource localeResource = new ClassPathResource("email-templates/" + lang + "/" + templateName);
+            ClassPathResource fallbackResource = new ClassPathResource("email-templates/" + templateName);
+
+            ClassPathResource resource = localeResource.exists() ? localeResource : fallbackResource;
             String template = resource.getContentAsString(StandardCharsets.UTF_8);
+
             for (Map.Entry<String, String> entry : variables.entrySet()) {
                 template = template.replace("{{" + entry.getKey() + "}}", escapeHtml(entry.getValue()));
             }

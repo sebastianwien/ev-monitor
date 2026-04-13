@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
 
@@ -30,7 +31,7 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
     private EmailService emailService;
 
     private RegisterResponse registerUser(String email, String username, String password) {
-        doNothing().when(emailService).sendVerificationEmail(anyString(), anyString());
+        doNothing().when(emailService).sendVerificationEmail(anyString(), anyString(), any());
         RegisterRequest request = new RegisterRequest(email, username, password, null, null, null, null, null, null, null);
         ResponseEntity<RegisterResponse> response = restTemplate.postForEntity(
                 "/api/auth/register", request, RegisterResponse.class);
@@ -57,7 +58,7 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
     @Test
     void shouldRegisterUser_andReturnPendingVerification() {
         String email = "newuser-" + System.currentTimeMillis() + "@example.com";
-        doNothing().when(emailService).sendVerificationEmail(anyString(), anyString());
+        doNothing().when(emailService).sendVerificationEmail(anyString(), anyString(), any());
 
         ResponseEntity<RegisterResponse> response = restTemplate.postForEntity(
                 "/api/auth/register",
@@ -100,7 +101,7 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
         String email = "duplicate-" + System.currentTimeMillis() + "@example.com";
         registerUser(email, "user_" + System.currentTimeMillis(), "Password123");
 
-        doNothing().when(emailService).sendVerificationEmail(anyString(), anyString());
+        doNothing().when(emailService).sendVerificationEmail(anyString(), anyString(), any());
         ResponseEntity<String> response = restTemplate.postForEntity(
                 "/api/auth/register",
                 new RegisterRequest(email, "user_" + System.currentTimeMillis(), "DifferentPassword456", null, null, null, null, null, null, null),

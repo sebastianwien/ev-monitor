@@ -10,6 +10,7 @@ import com.evmonitor.infrastructure.email.EmailService;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
 
@@ -30,7 +31,7 @@ class ReferralCoinIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void referrer_receives100Coins_whenReferredUserVerifiesEmail() {
-        doNothing().when(emailService).sendVerificationEmail(anyString(), anyString());
+        doNothing().when(emailService).sendVerificationEmail(anyString(), anyString(), any());
 
         User referrer = createAndSaveVerifiedUser();
         User referred  = saveUnverifiedUserWithReferrer(referrer.getId());
@@ -47,7 +48,7 @@ class ReferralCoinIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void referredUser_receives25Coins_whenVerifyingEmail() {
-        doNothing().when(emailService).sendVerificationEmail(anyString(), anyString());
+        doNothing().when(emailService).sendVerificationEmail(anyString(), anyString(), any());
 
         User referrer = createAndSaveVerifiedUser();
         User referred  = saveUnverifiedUserWithReferrer(referrer.getId());
@@ -64,7 +65,7 @@ class ReferralCoinIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void noCoins_whenUserVerifiesEmail_withoutReferrer() {
-        doNothing().when(emailService).sendVerificationEmail(anyString(), anyString());
+        doNothing().when(emailService).sendVerificationEmail(anyString(), anyString(), any());
 
         User user  = saveUnverifiedUserWithReferrer(null);
         String token = saveVerificationToken(user.getId());
@@ -76,7 +77,7 @@ class ReferralCoinIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void referrer_doesNotReceiveCoins_beyondMaxReferrals() {
-        doNothing().when(emailService).sendVerificationEmail(anyString(), anyString());
+        doNothing().when(emailService).sendVerificationEmail(anyString(), anyString(), any());
 
         User referrer = createAndSaveVerifiedUser();
 

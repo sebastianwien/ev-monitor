@@ -83,7 +83,7 @@ class AuthServiceTest {
         assertEquals(email, response.email());
 
         // Verification email must be sent
-        verify(emailService).sendVerificationEmail(eq(email), anyString());
+        verify(emailService).sendVerificationEmail(eq(email), anyString(), any());
         verify(tokenRepository).save(any(EmailVerificationToken.class));
 
         // No JWT should be issued yet
@@ -105,7 +105,7 @@ class AuthServiceTest {
         assertEquals("Email is already in use.", ex.getMessage());
 
         verify(userRepository, never()).save(any());
-        verify(emailService, never()).sendVerificationEmail(any(), any());
+        verify(emailService, never()).sendVerificationEmail(any(), any(), any());
     }
 
     @Test

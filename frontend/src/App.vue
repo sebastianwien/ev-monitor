@@ -29,9 +29,11 @@ import { useThemeStore } from './stores/theme'
 import ThemeToggle from './components/shared/ThemeToggle.vue'
 import LocaleSwitcher from './components/shared/LocaleSwitcher.vue'
 import { useTickerState } from './composables/useTickerState'
+import { useCountryStore } from './stores/country'
 
 const { haptic } = useHaptic()
-const { t, locale } = useI18n()
+const { t } = useI18n()
+const countryStore = useCountryStore()
 const themeStore = useThemeStore()
 const { tickerHasItems, tickerCollapsed } = useTickerState()
 
@@ -384,7 +386,7 @@ const closeMobileMenu = () => {
     </nav>
 
     <!-- Leaderboard Ticker (below nav, only when authenticated) -->
-    <LeaderboardTicker v-if="authStore.isAuthenticated() && !authStore.isDemoAccount && locale === 'de'" />
+    <LeaderboardTicker v-if="authStore.isAuthenticated() && !authStore.isDemoAccount && ['DE', 'AT', 'CH'].includes(countryStore.country)" />
 
     <!-- Mobile Menu Overlay -->
     <Transition name="mobile-menu">
