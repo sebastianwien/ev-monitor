@@ -5,6 +5,7 @@ import com.evmonitor.application.PublicBrandResponse;
 import com.evmonitor.application.PublicModelService;
 import com.evmonitor.application.PublicModelStatsResponse;
 import com.evmonitor.application.TopModelResponse;
+import com.evmonitor.domain.CarBrand;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -86,6 +87,45 @@ public class PublicModelController {
         CacheControl cc = isSeedUser ? NO_STORE : PUBLIC_1H;
 
         return publicModelService.getModelStats(brand, model, currentUserId, isSeedUser)
+                .map(body -> ResponseEntity.ok().cacheControl(cc).<PublicModelStatsResponse>body(body))
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * GET /api/public/models/by-enum/{modelEnum}
+     * Accepts the Java enum name directly (e.g. "MODEL_3", "IONIQ_5").
+     * Used by the authenticated Dashboard to show community stats without requiring
+     * a display-name conversion on the frontend side.
+     * Delegates to the same cached logic as /models/{brand}/{model}.
+     */
+    @GetMapping("/models/by-enum/{modelEnum}")
+    public ResponseEntity<PublicModelStatsResponse> getModelStatsByEnum(
+            @PathVariable String modelEnum,
+            @AuthenticationPrincipal UserPrincipal principal) {
+
+        CarBrand.CarModel model;
+        try {
+            model = CarBrand.CarModel.valueOf(modelEnum.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+
+        if (model.getBrand() == CarBrand.SONSTIGE) {
+            return ResponseEntity.notFound().build();
+        }
+
+        UUID currentUserId = null;
+        boolean isSeedUser = false;
+        if (principal != null) {
+            currentUserId = principal.getUser().getId();
+            isSeedUser = principal.getUser().isSeedData();
+        }
+
+        CacheControl cc = isSeedUser ? NO_STORE : PUBLIC_1H;
+        String brandName = model.getBrand().getDisplayString();
+        String modelName = model.getDisplayName().replace(" ", "_");
+
+        return publicModelService.getModelStats(brandName, modelName, currentUserId, isSeedUser)
                 .map(body -> ResponseEntity.ok().cacheControl(cc).<PublicModelStatsResponse>body(body))
                 .orElse(ResponseEntity.notFound().build());
     }

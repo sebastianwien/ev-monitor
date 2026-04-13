@@ -50,6 +50,20 @@ export async function getModelStats(brand: string, model: string): Promise<Publi
     }
 }
 
+/** Fetches community stats by Java enum name (e.g. "MODEL_3", "IONIQ_5").
+ *  Used by the Dashboard empty state to avoid display-name conversion on the frontend. */
+export async function getModelStatsByEnum(modelEnum: string): Promise<PublicModelStats | null> {
+    try {
+        const response = await apiClient.get<PublicModelStats>(
+            `/public/models/by-enum/${modelEnum}`
+        )
+        return response.data
+    } catch (err: any) {
+        if (err.response?.status === 404) return null
+        throw err
+    }
+}
+
 export async function getAllModelsWithWltpData(): Promise<string[]> {
     const response = await apiClient.get<string[]>('/public/models')
     return response.data

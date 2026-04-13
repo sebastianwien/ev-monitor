@@ -19,7 +19,6 @@ import {
   ChartBarIcon,
   TruckIcon,
   BoltIcon,
-  CameraIcon,
   PencilSquareIcon,
   ArrowDownTrayIcon,
   ClockIcon,
@@ -50,6 +49,7 @@ import { useCountryStore } from '../stores/country'
 import { analytics } from '../services/analytics'
 import SupportPopover from '../components/settings/SupportPopover.vue'
 import ImplausibleLogsModal from '../components/dashboard/ImplausibleLogsModal.vue'
+import DashboardEmptyState from '../components/dashboard/DashboardEmptyState.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useDashboardStats } from '../composables/useDashboardStats'
 import { useDashboardCharts } from '../composables/useDashboardCharts'
@@ -116,6 +116,10 @@ const enumToLabel = (value: string | undefined | null): string =>
     .split(' ')
     .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(' ')
+
+const selectedCar = computed(() =>
+  cars.value.find(c => c.id === selectedCarId.value) ?? cars.value[0] ?? null
+)
 
 // -- Lifecycle --
 watch(selectedCarId, async (newId) => {
@@ -466,30 +470,8 @@ onMounted(() => initCars())
           </div>
 
           <!-- Empty State: Truly no logs at all -->
-          <div v-else-if="stats && stats.totalCharges === 0" class="min-h-[60vh] flex items-center justify-center">
-            <div class="text-center max-w-md px-4">
-              <BoltIcon class="h-24 w-24 mx-auto text-green-500 mb-6" />
-              <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-3">
-                {{ t('dashboard.no_logs_title') }}
-              </h2>
-              <p class="text-gray-600 dark:text-gray-400 mb-8">
-                {{ t('dashboard.no_logs_desc') }}
-              </p>
-              <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                <button
-                  @click="router.push('/erfassen')"
-                  class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 justify-center shadow-lg hover:shadow-xl transition font-medium">
-                  <CameraIcon class="h-5 w-5" />
-                  {{ t('dashboard.scan_photo') }}
-                </button>
-                <button
-                  @click="router.push('/erfassen')"
-                  class="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center gap-2 justify-center transition font-medium">
-                  <PencilSquareIcon class="h-5 w-5" />
-                  {{ t('dashboard.enter_manual') }}
-                </button>
-              </div>
-            </div>
+          <div v-else-if="stats && stats.totalCharges === 0">
+            <DashboardEmptyState v-if="selectedCar" :car="selectedCar" />
           </div>
 
           <div v-else-if="stats" class="space-y-0">
