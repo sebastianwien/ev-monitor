@@ -4,6 +4,20 @@ import { ref, computed } from 'vue';
 import { jwtDecode, type JwtPayload } from 'jwt-decode';
 import { useCarStore } from './car';
 
+export interface JwtClaims {
+    sub: string           // email (JWT standard subject)
+    iat: number           // issued at (JWT standard, seconds since epoch)
+    exp: number           // expiration (JWT standard, seconds since epoch)
+    userId: string
+    username: string
+    demoAccount: boolean
+    authProvider: string
+    role: string
+    premium: boolean
+    country?: string
+    registeredAt?: string // ISO date YYYY-MM-DD, present for tokens generated after 2026-04
+}
+
 function safeLocalStorage(op: () => void): void {
     try { op() } catch { /* localStorage blocked (Private Mode, strict tracking protection) */ }
 }
@@ -14,11 +28,11 @@ function safeLocalStorageGet(key: string): string | null {
 
 export const useAuthStore = defineStore('auth', () => {
     const token = ref<string | null>(safeLocalStorageGet('token'));
-    const user = ref<any>(null);
+    const user = ref<JwtClaims | null>(null);
     const isPremium = ref<boolean>(safeLocalStorageGet('isPremium') === 'true');
     if (token.value) {
         try {
-            user.value = jwtDecode(token.value);
+            user.value = jwtDecode<JwtClaims>(token.value);
         } catch (e) {
             token.value = null;
             safeLocalStorage(() => localStorage.removeItem('token'));
@@ -29,9 +43,9 @@ export const useAuthStore = defineStore('auth', () => {
         token.value = newToken;
         safeLocalStorage(() => localStorage.setItem('token', newToken));
         try {
-            user.value = jwtDecode(newToken);
+            user.value = jwtDecode<JwtClaims>(newToken);
             // Mark browser as "was real user" so feedback toast is suppressed after logout
-            if (!(user.value as any)?.demoAccount) {
+            if (!user.value?.demoAccount) {
                 safeLocalStorage(() => localStorage.setItem('wasRealUser', '1'));
             }
         } catch (e) {
@@ -96,8 +110,8 @@ export const useAuthStore = defineStore('auth', () => {
         }
     };
 
-    const isDemoAccount = computed(() => (user.value as any)?.demoAccount === true);
-    const isAdmin = computed(() => (user.value as any)?.role === 'ADMIN');
+    const isDemoAccount = computed(() => user.value?.demoAccount === true);
+    const isAdmin = computed(() => user.value?.role === 'ADMIN');
 
     return {
         token, user, isDemoAccount, isPremium, isAdmin,

@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -156,5 +157,22 @@ class JwtServiceTest {
         // Then
         assertNotNull(expiration);
         assertTrue(expiration.after(new java.util.Date())); // Should be in the future
+    }
+
+    @Test
+    void shouldIncludeRegisteredAtClaimInToken() {
+        // Given
+        UUID userId = UUID.randomUUID();
+        String email = "test@example.com";
+        com.evmonitor.domain.User testUser = com.evmonitor.testutil.TestDataBuilder.createTestUserWithId(userId, email, "dummy-hash");
+        UserDetails userPrincipal = UserPrincipal.create(testUser);
+
+        // When
+        String token = jwtService.generateToken(userPrincipal);
+        String registeredAt = jwtService.extractClaim(token, claims -> claims.get("registeredAt", String.class));
+
+        // Then
+        assertNotNull(registeredAt, "registeredAt claim must be present in JWT");
+        assertEquals(LocalDate.now().toString(), registeredAt);
     }
 }

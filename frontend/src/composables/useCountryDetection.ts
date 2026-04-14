@@ -20,7 +20,7 @@ export async function detectCountry(): Promise<void> {
 
     // Step 1: JWT claim — if present, DB is already populated, nothing to do
     store.initFromJwt()
-    const jwtCountry = (authStore.user as any)?.country
+    const jwtCountry = authStore.user?.country
     if (jwtCountry && isValidCountryCode(jwtCountry)) {
         return
     }

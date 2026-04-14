@@ -71,7 +71,7 @@ watch(() => authStore.token, (newToken) => {
   if (newToken) {
     balanceInitialized.value = false
     coinStore.fetchBalance()
-    wallboxStore.init(!!(authStore.user as any)?.demoAccount)
+    wallboxStore.init(!!authStore.user?.demoAccount)
   } else {
     wallboxStore.reset()
   }

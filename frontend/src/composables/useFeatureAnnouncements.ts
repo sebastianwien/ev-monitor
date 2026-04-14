@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 import { featureAnnouncements, type FeatureAnnouncement } from '../config/featureAnnouncements'
 import { useWallboxStore } from '../stores/wallbox'
+import { useAuthStore } from '../stores/auth'
 
 const STORAGE_KEY = 'seen-announcements'
 
@@ -27,13 +28,16 @@ const currentIndex = ref(0)
 
 export const useFeatureAnnouncements = () => {
   const wallboxStore = useWallboxStore()
+  const authStore = useAuthStore()
 
   const pending = computed<FeatureAnnouncement[]>(() => {
     const ctx = { hasGoeConnection: wallboxStore.hasConnections }
+    const registeredAt = authStore.user?.registeredAt
     return featureAnnouncements.filter(a =>
       a.expiresAt >= today &&
       !seenKeys.value.includes(a.key) &&
-      (!a.condition || a.condition(ctx))
+      (!a.condition || a.condition(ctx)) &&
+      (!a.releasedAt || !registeredAt || registeredAt < a.releasedAt)
     )
   })
 

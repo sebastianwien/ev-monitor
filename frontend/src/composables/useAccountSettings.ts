@@ -71,8 +71,8 @@ export function useAccountSettings(
     try {
       const user = authStore.user
       if (user) {
-        email.value = user.email || user.sub || ''
-        username.value = user.username || user.email?.split('@')[0] || ''
+        email.value = user.sub || ''
+        username.value = user.username || user.sub.split('@')[0] || ''
       }
       const [statsRes, coinsRes] = await Promise.all([
         api.get('/users/me/stats'),

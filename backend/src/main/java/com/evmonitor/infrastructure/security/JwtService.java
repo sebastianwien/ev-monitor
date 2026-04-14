@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -44,6 +45,7 @@ public class JwtService {
             if (principal.getUser().getCountry() != null) {
                 extraClaims.put("country", principal.getUser().getCountry());
             }
+            extraClaims.put("registeredAt", principal.getUser().getCreatedAt().format(DateTimeFormatter.ISO_LOCAL_DATE));
         }
         return generateToken(extraClaims, userDetails);
     }

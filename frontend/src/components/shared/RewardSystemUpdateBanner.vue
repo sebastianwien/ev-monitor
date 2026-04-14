@@ -11,9 +11,8 @@ const dismissed = ref(!!localStorage.getItem(LS_KEY))
 
 const show = computed(() => {
   if (dismissed.value) return false
-  const user = authStore.user as any
-  if (!user?.iat) return false
-  return (user.iat as number) * 1000 < REWARD_UPDATE_DEPLOYMENT_TS
+  if (!authStore.user?.iat) return false
+  return authStore.user.iat * 1000 < REWARD_UPDATE_DEPLOYMENT_TS
 })
 
 function dismiss() {

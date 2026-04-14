@@ -99,12 +99,12 @@ onMounted(() => {
               <p class="font-medium">{{ email }}</p>
             </div>
             <button
-              v-if="(authStore.user as any)?.authProvider === 'LOCAL'"
+              v-if="authStore.user?.authProvider === 'LOCAL'"
               @click="showEmailForm = !showEmailForm"
               class="btn-3d px-3 py-1 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition">
               {{ t('settings.email_change') }}
             </button>
-            <span v-else class="text-xs text-gray-400">{{ t('settings.via_provider', { provider: (authStore.user as any)?.authProvider }) }}</span>
+            <span v-else class="text-xs text-gray-400">{{ t('settings.via_provider', { provider: authStore.user?.authProvider }) }}</span>
           </div>
 
           <div v-if="showEmailForm" class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600 space-y-3">

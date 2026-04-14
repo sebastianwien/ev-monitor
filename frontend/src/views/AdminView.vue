@@ -434,7 +434,7 @@ const onResizeUp = () => {
       <!-- Header -->
       <div class="mb-6">
         <h1 class="text-2xl font-bold text-white">Admin Dashboard</h1>
-        <p class="text-sm text-gray-400 mt-1">Eingeloggt als {{ authStore.user?.email }}</p>
+        <p class="text-sm text-gray-400 mt-1">Eingeloggt als {{ authStore.user?.sub }}</p>
       </div>
 
       <!-- Tabs -->

@@ -44,7 +44,7 @@ export const useCountryStore = defineStore('country', () => {
     function initFromJwt() {
         const authStore = useAuthStore()
         if (authStore.user) {
-            const jwtCountry = (authStore.user as any)?.country
+            const jwtCountry = authStore.user?.country
             if (jwtCountry && isValidCountryCode(jwtCountry)) {
                 country.value = jwtCountry
                 safeLocalStorage(() => localStorage.setItem('ev-country', jwtCountry))
