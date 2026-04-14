@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useCountryStore } from '../stores/country'
-import type { CountryCode } from '../config/unitSystems'
+import { COUNTRY_OPTIONS } from '../config/countries'
 import { UserIcon, KeyIcon, TrashIcon, ArrowDownTrayIcon, AcademicCapIcon, ShareIcon, ClipboardDocumentIcon, CheckIcon, HeartIcon, ArrowRightOnRectangleIcon, BoltIcon, CreditCardIcon, PlusIcon, PencilIcon } from '@heroicons/vue/24/outline'
 import SupportPopover from '../components/settings/SupportPopover.vue'
 import DemoSettingsModal from '../components/demo/DemoSettingsModal.vue'
@@ -13,18 +13,6 @@ import { useChargingProviders } from '../composables/useChargingProviders'
 const { t, locale } = useI18n()
 const { formatCurrency } = useLocaleFormat()
 const countryStore = useCountryStore()
-
-const countries: { code: CountryCode; flag: string; name: Record<string, string> }[] = [
-  { code: 'DE', flag: '🇩🇪', name: { de: 'Deutschland', en: 'Germany' } },
-  { code: 'AT', flag: '🇦🇹', name: { de: 'Österreich', en: 'Austria' } },
-  { code: 'CH', flag: '🇨🇭', name: { de: 'Schweiz', en: 'Switzerland' } },
-  { code: 'GB', flag: '🇬🇧', name: { de: 'Großbritannien', en: 'United Kingdom' } },
-  { code: 'NL', flag: '🇳🇱', name: { de: 'Niederlande', en: 'Netherlands' } },
-  { code: 'BE', flag: '🇧🇪', name: { de: 'Belgien', en: 'Belgium' } },
-  { code: 'DK', flag: '🇩🇰', name: { de: 'Dänemark', en: 'Denmark' } },
-  { code: 'NO', flag: '🇳🇴', name: { de: 'Norwegen', en: 'Norway' } },
-  { code: 'SE', flag: '🇸🇪', name: { de: 'Schweden', en: 'Sweden' } },
-]
 
 // Shared state
 const loading = ref(false)
@@ -260,7 +248,7 @@ onMounted(() => {
         <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">{{ t('settings.country_desc') }}</p>
         <div class="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
           <button
-            v-for="c in countries"
+            v-for="c in COUNTRY_OPTIONS"
             :key="c.code"
             @click="countryStore.setCountry(c.code)"
             class="flex flex-col items-center gap-1 min-w-[72px] px-3 py-2.5 rounded-xl border-2 transition-all shrink-0 cursor-pointer"

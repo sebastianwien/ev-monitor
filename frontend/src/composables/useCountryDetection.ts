@@ -81,9 +81,15 @@ const LANGUAGE_COUNTRY_MAP: Record<string, CountryCode> = {
     'de-DE': 'DE',
     'de-de': 'DE',
     'de':    'DE',
+    'en-US': 'US',
+    'en-us': 'US',
 }
 
-function detectCountryFromLanguage(): CountryCode | null {
+// Languages where detection maps to a country but the result is unreliable
+// (en-US is used by many non-US English speakers, plain 'en' has no region)
+const AMBIGUOUS_LANGUAGES = new Set(['en-US', 'en-us', 'en'])
+
+export function detectCountryFromLanguage(): CountryCode | null {
     const languages = navigator.languages ?? [navigator.language]
     for (const lang of languages) {
         // Try exact match first (e.g. 'en-GB' -> GB)
@@ -95,4 +101,19 @@ function detectCountryFromLanguage(): CountryCode | null {
         if (normalized) return normalized
     }
     return null
+}
+
+/**
+ * Returns true when the primary browser language is too vague to reliably
+ * determine the user's country — e.g. plain 'en', 'en-US' (used by many
+ * non-US English speakers), or when no language matches our map at all.
+ * In these cases the registration form should ask the user to confirm.
+ */
+export function isDetectionAmbiguous(): boolean {
+    const languages = navigator.languages ?? [navigator.language]
+    const primary = languages[0] ?? ''
+    // Can't map the browser language to any country
+    if (!detectCountryFromLanguage()) return true
+    // Non-specific English — could be UK, US, or anything else
+    return AMBIGUOUS_LANGUAGES.has(primary)
 }
