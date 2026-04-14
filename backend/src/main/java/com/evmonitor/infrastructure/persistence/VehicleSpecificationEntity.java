@@ -13,7 +13,7 @@ import java.util.UUID;
 @Table(
     name = "vehicle_specification",
     uniqueConstraints = @UniqueConstraint(
-        columnNames = {"car_brand", "car_model", "battery_capacity_kwh", "wltp_type"}
+        columnNames = {"car_brand", "car_model", "battery_capacity_kwh", "wltp_type", "rating_source"}
     )
 )
 @Getter
@@ -33,14 +33,17 @@ public class VehicleSpecificationEntity {
     @Column(name = "battery_capacity_kwh", nullable = false, precision = 10, scale = 2)
     private BigDecimal batteryCapacityKwh;
 
-    @Column(name = "wltp_range_km", nullable = false, precision = 10, scale = 2)
-    private BigDecimal wltpRangeKm;
+    @Column(name = "official_range_km", nullable = false, precision = 10, scale = 2)
+    private BigDecimal officialRangeKm;
 
-    @Column(name = "wltp_consumption_kwh_per_100km", nullable = false, precision = 10, scale = 2)
-    private BigDecimal wltpConsumptionKwhPer100km;
+    @Column(name = "official_consumption_kwh_per_100km", nullable = false, precision = 10, scale = 2)
+    private BigDecimal officialConsumptionKwhPer100km;
 
     @Column(name = "wltp_type", nullable = false)
     private String wltpType;
+
+    @Column(name = "rating_source", nullable = false)
+    private String ratingSource;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;

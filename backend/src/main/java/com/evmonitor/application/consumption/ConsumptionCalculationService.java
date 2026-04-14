@@ -279,7 +279,7 @@ public class ConsumptionCalculationService {
                         car.getModel().name(),
                         car.getBatteryCapacityKwh(),
                         VehicleSpecification.WltpType.COMBINED)
-                .map(VehicleSpecification::getWltpConsumptionKwhPer100km)
+                .map(VehicleSpecification::getOfficialConsumptionKwhPer100km)
                 .orElse(null);
     }
 

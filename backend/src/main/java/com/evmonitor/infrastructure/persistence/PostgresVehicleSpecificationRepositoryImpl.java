@@ -27,25 +27,45 @@ public class PostgresVehicleSpecificationRepositoryImpl implements VehicleSpecif
             String carModel,
             BigDecimal batteryCapacityKwh,
             VehicleSpecification.WltpType wltpType) {
-        return jpaRepository.findByCarBrandAndCarModelAndBatteryCapacityKwhAndWltpType(
+        // Lookup is always WLTP-specific (used in car-setup flow)
+        return jpaRepository.findByCarBrandAndCarModelAndBatteryCapacityKwhAndWltpTypeAndRatingSource(
                 carBrand,
                 carModel,
                 batteryCapacityKwh,
-                wltpType.name()
+                wltpType.name(),
+                VehicleSpecification.RatingSource.WLTP.name()
         ).map(this::toDomain);
     }
 
     @Override
-    public boolean existsByCarBrandAndModelAndCapacityAndType(
+    public Optional<VehicleSpecification> findByCarBrandAndModelAndCapacityAndTypeAndSource(
             String carBrand,
             String carModel,
             BigDecimal batteryCapacityKwh,
-            VehicleSpecification.WltpType wltpType) {
-        return jpaRepository.existsByCarBrandAndCarModelAndBatteryCapacityKwhAndWltpType(
+            VehicleSpecification.WltpType wltpType,
+            VehicleSpecification.RatingSource ratingSource) {
+        return jpaRepository.findByCarBrandAndCarModelAndBatteryCapacityKwhAndWltpTypeAndRatingSource(
                 carBrand,
                 carModel,
                 batteryCapacityKwh,
-                wltpType.name()
+                wltpType.name(),
+                ratingSource.name()
+        ).map(this::toDomain);
+    }
+
+    @Override
+    public boolean existsByCarBrandAndModelAndCapacityAndTypeAndSource(
+            String carBrand,
+            String carModel,
+            BigDecimal batteryCapacityKwh,
+            VehicleSpecification.WltpType wltpType,
+            VehicleSpecification.RatingSource ratingSource) {
+        return jpaRepository.existsByCarBrandAndCarModelAndBatteryCapacityKwhAndWltpTypeAndRatingSource(
+                carBrand,
+                carModel,
+                batteryCapacityKwh,
+                wltpType.name(),
+                ratingSource.name()
         );
     }
 
@@ -55,23 +75,28 @@ public class PostgresVehicleSpecificationRepositoryImpl implements VehicleSpecif
         entity.setCarBrand(domain.getCarBrand());
         entity.setCarModel(domain.getCarModel());
         entity.setBatteryCapacityKwh(domain.getBatteryCapacityKwh());
-        entity.setWltpRangeKm(domain.getWltpRangeKm());
-        entity.setWltpConsumptionKwhPer100km(domain.getWltpConsumptionKwhPer100km());
+        entity.setOfficialRangeKm(domain.getOfficialRangeKm());
+        entity.setOfficialConsumptionKwhPer100km(domain.getOfficialConsumptionKwhPer100km());
         entity.setWltpType(domain.getWltpType().name());
+        entity.setRatingSource(domain.getRatingSource().name());
         entity.setCreatedAt(domain.getCreatedAt());
         entity.setUpdatedAt(domain.getUpdatedAt());
         return entity;
     }
 
     private VehicleSpecification toDomain(VehicleSpecificationEntity entity) {
+        VehicleSpecification.RatingSource ratingSource = entity.getRatingSource() != null
+                ? VehicleSpecification.RatingSource.valueOf(entity.getRatingSource())
+                : VehicleSpecification.RatingSource.WLTP;
         return new VehicleSpecification(
                 entity.getId(),
                 entity.getCarBrand(),
                 entity.getCarModel(),
                 entity.getBatteryCapacityKwh(),
-                entity.getWltpRangeKm(),
-                entity.getWltpConsumptionKwhPer100km(),
+                entity.getOfficialRangeKm(),
+                entity.getOfficialConsumptionKwhPer100km(),
                 VehicleSpecification.WltpType.valueOf(entity.getWltpType()),
+                ratingSource,
                 entity.getCreatedAt(),
                 entity.getUpdatedAt()
         );

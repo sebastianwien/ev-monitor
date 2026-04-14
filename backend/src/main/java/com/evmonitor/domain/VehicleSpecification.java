@@ -14,23 +14,36 @@ public class VehicleSpecification {
     private final String carBrand;
     private final String carModel;
     private final BigDecimal batteryCapacityKwh;
-    private final BigDecimal wltpRangeKm;
-    private final BigDecimal wltpConsumptionKwhPer100km;
+    private final BigDecimal officialRangeKm;
+    private final BigDecimal officialConsumptionKwhPer100km;
     private final WltpType wltpType;
+    private final RatingSource ratingSource;
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
 
     public static VehicleSpecification createNew(String carBrand, String carModel, BigDecimal batteryCapacityKwh,
-                                                  BigDecimal wltpRangeKm, BigDecimal wltpConsumptionKwhPer100km,
-                                                  WltpType wltpType) {
+                                                  BigDecimal rangeKm, BigDecimal consumptionKwhPer100km,
+                                                  WltpType cycleType, RatingSource ratingSource) {
         LocalDateTime now = LocalDateTime.now();
         return new VehicleSpecification(UUID.randomUUID(), carBrand, carModel, batteryCapacityKwh,
-                wltpRangeKm, wltpConsumptionKwhPer100km, wltpType, now, now);
+                rangeKm, consumptionKwhPer100km, cycleType, ratingSource, now, now);
+    }
+
+    /** Backward-compat factory that defaults to WLTP. */
+    public static VehicleSpecification createNew(String carBrand, String carModel, BigDecimal batteryCapacityKwh,
+                                                  BigDecimal rangeKm, BigDecimal consumptionKwhPer100km,
+                                                  WltpType cycleType) {
+        return createNew(carBrand, carModel, batteryCapacityKwh, rangeKm, consumptionKwhPer100km, cycleType, RatingSource.WLTP);
     }
 
     public enum WltpType {
         COMBINED,
         HIGHWAY,
         CITY
+    }
+
+    public enum RatingSource {
+        WLTP,
+        EPA
     }
 }

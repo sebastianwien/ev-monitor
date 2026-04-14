@@ -6,10 +6,15 @@ import api from '../api/axios';
 import { BoltIcon } from '@heroicons/vue/24/outline';
 import { analytics } from '../services/analytics';
 import { getStoredUtmParams, clearStoredUtmParams, trackRedditSignup, getStoredReferrer, clearStoredReferrer } from '../utils/reddit-pixel';
+import { isDetectionAmbiguous } from '../composables/useCountryDetection';
+import { useCountryStore } from '../stores/country';
+import type { CountryCode } from '../config/unitSystems';
+import { COUNTRY_OPTIONS } from '../config/countries';
 
 const { t, locale } = useI18n();
 const route = useRoute();
 const router = useRouter();
+const countryStore = useCountryStore();
 
 const googleOauthEnabled = import.meta.env.VITE_GOOGLE_OAUTH_ENABLED === 'true'
 const fromDemo = window.history.state?.fromDemo === true
@@ -23,6 +28,10 @@ const utmMedium = ref('');
 const utmCampaign = ref('');
 const referrerSource = ref('');
 const error = ref('');
+
+// Country picker - shown only when detection is ambiguous (static: navigator.languages doesn't change at runtime)
+const showCountryPicker = isDetectionAmbiguous()
+const selectedCountry = ref<CountryCode>(countryStore.country)
 
 onMounted(() => {
   const demoSource = analytics.getDemoContext()
@@ -67,6 +76,9 @@ const handleRegister = async () => {
   }
   try {
     error.value = '';
+    if (showCountryPicker) {
+      countryStore.setCountry(selectedCountry.value)
+    }
     const response = await api.post('/auth/register', {
       email: email.value,
       password: password.value,
@@ -76,6 +88,7 @@ const handleRegister = async () => {
       utmCampaign: utmCampaign.value || undefined,
       referrerSource: referrerSource.value || undefined,
       registrationLocale: locale.value || undefined,
+      country: showCountryPicker ? selectedCountry.value : undefined,
     });
     if (response.data.status === 'PENDING_VERIFICATION') {
       pendingEmail.value = response.data.email;
@@ -180,6 +193,26 @@ const handleResend = async () => {
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('auth.register.password') }}</label>
             <input v-model="password" type="password" required autocomplete="new-password" class="block w-full px-4 py-3 mt-1 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ t('auth.register.password_hint') }}</p>
+          </div>
+          <!-- Country picker: only shown when browser language is ambiguous -->
+          <div v-if="showCountryPicker" data-testid="country-picker">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('auth.register.country_label') }}</label>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">{{ t('auth.register.country_hint') }}</p>
+            <div class="flex gap-1.5 flex-wrap">
+              <button
+                v-for="c in COUNTRY_OPTIONS"
+                :key="c.code"
+                type="button"
+                @click="selectedCountry = c.code"
+                class="flex items-center gap-1.5 px-3 py-2 rounded-lg border-2 text-sm transition-all"
+                :class="selectedCountry === c.code
+                  ? 'border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 font-medium'
+                  : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-500'"
+              >
+                <span>{{ c.flag }}</span>
+                <span>{{ c.name[locale] || c.name.en }}</span>
+              </button>
+            </div>
           </div>
           <div v-if="error" class="text-sm font-medium text-red-600 bg-red-50 p-3 rounded-lg">{{ error }}</div>
           <button type="submit" v-haptic class="btn-3d w-full px-4 py-3 font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition">{{ t('auth.register.submit') }}</button>

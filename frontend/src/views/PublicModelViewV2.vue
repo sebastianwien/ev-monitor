@@ -55,11 +55,13 @@
               </span>
               <span class="text-xl text-gray-400 dark:text-gray-500">{{ consumptionUnitLabel() }}</span>
             </div>
-            <div v-if="worstWltpConsumption" class="mt-3 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-              <span>{{ t('model.wltp_badge', { consumption: formatConsumption(worstWltpConsumption, { showUnit: false }) }) }}</span>
-              <span :class="deltaLabelClass(displayConsumption, worstWltpConsumption)"
+            <div v-if="worstOfficialConsumption" class="mt-3 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+              <span>{{ ratingLabel === 'EPA'
+                ? t('model.epa_badge', { consumption: formatConsumption(worstOfficialConsumption, { showUnit: false }) })
+                : t('model.wltp_badge', { consumption: formatConsumption(worstOfficialConsumption, { showUnit: false }) }) }}</span>
+              <span :class="deltaLabelClass(displayConsumption, worstOfficialConsumption)"
                     class="px-2 py-0.5 rounded-full text-xs font-semibold">
-                {{ consumptionDeltaLabel(displayConsumption, worstWltpConsumption) }}
+                {{ consumptionDeltaLabel(displayConsumption, worstOfficialConsumption) }}
               </span>
             </div>
           </div>
@@ -217,17 +219,17 @@
         <AffiliateBanner v-if="!authStore.isAuthenticated()" />
 
         <!-- Variant Switcher + Seasonal + WLTP -->
-        <div v-if="stats.wltpVariants.length > 0 || showSeasonalBreakdown"
+        <div v-if="activeVariants.length > 0 || showSeasonalBreakdown"
              class="bg-white dark:bg-gray-800 md:rounded-2xl md:border-x border-t md:border-b border-gray-200 dark:border-gray-700 md:shadow-sm md:mb-6 overflow-hidden">
 
           <!-- Variant Switcher -->
-          <div v-if="stats.wltpVariants.length > 1" class="px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+          <div v-if="activeVariants.length > 1" class="px-6 py-4 border-b border-gray-100 dark:border-gray-700">
             <div class="flex items-center gap-3 flex-wrap">
               <span class="text-sm font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ t('model.variant_title') }}</span>
               <div class="relative flex bg-gray-100 dark:bg-gray-700 rounded-full p-1 w-fit">
                 <div class="absolute top-1 bottom-1 left-1 rounded-full bg-blue-600 shadow-sm transition-transform duration-300 ease-in-out"
-                     :style="{ width: `calc((100% - 8px) / ${stats.wltpVariants.length})`, transform: `translateX(calc(${selectedVariantIndex * 100}%))` }" />
-                <button v-for="(v, i) in stats.wltpVariants" :key="v.batteryCapacityKwh"
+                     :style="{ width: `calc((100% - 8px) / ${activeVariants.length})`, transform: `translateX(calc(${selectedVariantIndex * 100}%))` }" />
+                <button v-for="(v, i) in activeVariants" :key="v.batteryCapacityKwh"
                         @click="selectedVariantIndex = i"
                         class="relative flex-1 text-center px-4 text-sm font-medium py-1.5 rounded-full transition-colors duration-300 z-10 whitespace-nowrap"
                         :class="i === selectedVariantIndex ? 'text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'">
@@ -327,12 +329,18 @@
             </div>
           </div><!-- end seasonal -->
 
-          <!-- WLTP Section -->
-          <div v-if="stats.wltpVariants.length > 0">
+          <!-- Rating Section (WLTP for EU, EPA for US) -->
+          <div v-if="activeVariants.length > 0">
             <h2 class="text-base font-semibold text-gray-700 dark:text-gray-300 px-6 pt-5 pb-3 flex items-center gap-2">
               <ClipboardDocumentListIcon class="h-5 w-5 text-gray-400" />
-              {{ t('model.wltp_section_title') }}
+              {{ ratingLabel === 'EPA' ? t('model.epa_section_title') : t('model.wltp_section_title') }}
             </h2>
+
+            <!-- US fallback: no EPA data yet for this model -->
+            <p v-if="isUS && ratingLabel !== 'EPA'"
+               class="mx-6 mb-3 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
+              {{ t('model.epa_not_available') }}
+            </p>
 
             <!-- Mobile Card -->
             <div class="md:hidden">
@@ -358,12 +366,12 @@
                 </div>
                 <div class="grid grid-cols-2 gap-2 text-sm">
                   <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
-                    <div class="text-xs text-gray-500 mb-0.5">{{ t('model.wltp_wltp_range') }}</div>
-                    <div class="font-medium text-gray-800 dark:text-gray-200">{{ formatDistance(selectedVariant.wltpRangeKm) }}</div>
+                    <div class="text-xs text-gray-500 mb-0.5">{{ ratingLabel === 'EPA' ? t('model.epa_range_label') : t('model.wltp_wltp_range') }}</div>
+                    <div class="font-medium text-gray-800 dark:text-gray-200">{{ formatDistance(selectedVariant.officialRangeKm) }}</div>
                   </div>
                   <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
-                    <div class="text-xs text-gray-500 mb-0.5">{{ t('model.wltp_wltp_consumption') }}</div>
-                    <div class="font-medium text-gray-800 dark:text-gray-200">{{ formatConsumption(selectedVariant.wltpConsumptionKwhPer100km) }}</div>
+                    <div class="text-xs text-gray-500 mb-0.5">{{ ratingLabel === 'EPA' ? t('model.epa_consumption_label') : t('model.wltp_wltp_consumption') }}</div>
+                    <div class="font-medium text-gray-800 dark:text-gray-200">{{ formatConsumption(selectedVariant.officialConsumptionKwhPer100km) }}</div>
                   </div>
                   <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
                     <div class="text-xs text-gray-500 mb-0.5">{{ t('model.wltp_real_range') }}</div>
@@ -377,12 +385,12 @@
                   <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
                     <div class="text-xs text-gray-500 mb-0.5">{{ t('model.wltp_real_consumption') }}</div>
                     <template v-if="selectedVariant.realConsumptionKwhPer100km">
-                      <div :class="consumptionDeltaClass(selectedVariant.realConsumptionKwhPer100km, selectedVariant.wltpConsumptionKwhPer100km)" class="font-medium">
+                      <div :class="consumptionDeltaClass(selectedVariant.realConsumptionKwhPer100km, selectedVariant.officialConsumptionKwhPer100km)" class="font-medium">
                         {{ formatConsumption(selectedVariant.realConsumptionKwhPer100km) }}
                       </div>
-                      <span :class="deltaLabelClass(selectedVariant.realConsumptionKwhPer100km, selectedVariant.wltpConsumptionKwhPer100km)"
+                      <span :class="deltaLabelClass(selectedVariant.realConsumptionKwhPer100km, selectedVariant.officialConsumptionKwhPer100km)"
                             class="text-xs px-1.5 py-0.5 rounded-full mt-1 inline-block">
-                        {{ consumptionDeltaLabel(selectedVariant.realConsumptionKwhPer100km, selectedVariant.wltpConsumptionKwhPer100km) }}
+                        {{ consumptionDeltaLabel(selectedVariant.realConsumptionKwhPer100km, selectedVariant.officialConsumptionKwhPer100km) }}
                       </span>
                     </template>
                     <div v-else class="text-gray-400 text-sm">-</div>
@@ -397,18 +405,18 @@
                 <thead>
                   <tr class="text-left text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700">
                     <th class="pb-3 pr-4 font-medium whitespace-nowrap">{{ t('model.wltp_table_battery') }}</th>
-                    <th class="pb-3 pr-4 font-medium whitespace-nowrap">{{ t('model.wltp_table_range') }}</th>
+                    <th class="pb-3 pr-4 font-medium whitespace-nowrap">{{ ratingLabel === 'EPA' ? t('model.epa_range_label') : t('model.wltp_table_range') }}</th>
                     <th class="pb-3 pr-4 font-medium whitespace-nowrap">
                       {{ t('model.wltp_table_real_range') }} <span class="text-xs">{{ t('model.wltp_table_full_to_empty') }}</span>
                     </th>
-                    <th class="pb-3 pr-4 font-medium whitespace-nowrap">{{ t('model.wltp_table_consumption') }}</th>
+                    <th class="pb-3 pr-4 font-medium whitespace-nowrap">{{ ratingLabel === 'EPA' ? t('model.epa_consumption_label') : t('model.wltp_table_consumption') }}</th>
                     <th class="pb-3 font-medium whitespace-nowrap">{{ t('model.wltp_table_real_consumption') }}</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-if="selectedVariant" class="border-b border-gray-50 dark:border-gray-700">
                     <td class="py-3 pr-4 font-medium text-gray-900 dark:text-gray-100">{{ selectedVariant.batteryCapacityKwh }} kWh</td>
-                    <td class="py-3 pr-4 text-gray-700 dark:text-gray-300">{{ formatDistance(selectedVariant.wltpRangeKm) }}</td>
+                    <td class="py-3 pr-4 text-gray-700 dark:text-gray-300">{{ formatDistance(selectedVariant.officialRangeKm) }}</td>
                     <td class="py-3 pr-4 whitespace-nowrap">
                       <div v-if="selectedVariant?.seasonalDistribution?.summerConsumptionKwhPer100km || selectedVariant?.seasonalDistribution?.winterConsumptionKwhPer100km"
                            class="flex items-center gap-1.5">
@@ -428,17 +436,17 @@
                       </div>
                       <span v-else class="text-gray-400">-</span>
                     </td>
-                    <td class="py-3 pr-4 text-gray-700 dark:text-gray-300">{{ formatConsumption(selectedVariant.wltpConsumptionKwhPer100km) }}</td>
+                    <td class="py-3 pr-4 text-gray-700 dark:text-gray-300">{{ formatConsumption(selectedVariant.officialConsumptionKwhPer100km) }}</td>
                     <td class="py-3 align-top">
                       <div v-if="selectedVariant.realConsumptionKwhPer100km" class="flex flex-col items-start gap-1">
-                        <span :class="consumptionDeltaClass(selectedVariant.realConsumptionKwhPer100km, selectedVariant.wltpConsumptionKwhPer100km)"
+                        <span :class="consumptionDeltaClass(selectedVariant.realConsumptionKwhPer100km, selectedVariant.officialConsumptionKwhPer100km)"
                               class="font-medium whitespace-nowrap">
                           {{ formatConsumption(selectedVariant.realConsumptionKwhPer100km) }}
                         </span>
                         <div class="flex items-center gap-1.5">
-                          <span :class="deltaLabelClass(selectedVariant.realConsumptionKwhPer100km, selectedVariant.wltpConsumptionKwhPer100km)"
+                          <span :class="deltaLabelClass(selectedVariant.realConsumptionKwhPer100km, selectedVariant.officialConsumptionKwhPer100km)"
                                 class="text-xs px-1.5 py-0.5 rounded-full">
-                            {{ consumptionDeltaLabel(selectedVariant.realConsumptionKwhPer100km, selectedVariant.wltpConsumptionKwhPer100km) }}
+                            {{ consumptionDeltaLabel(selectedVariant.realConsumptionKwhPer100km, selectedVariant.officialConsumptionKwhPer100km) }}
                           </span>
                           <span v-if="selectedVariant.realConsumptionTripCount != null && selectedVariant.realConsumptionTripCount < 10"
                                 class="text-xs px-1.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-600 dark:bg-red-900/40 dark:border-red-700 dark:text-red-400">
@@ -457,12 +465,12 @@
               </table>
             </div>
 
-            <!-- WLTP Notes -->
+            <!-- Rating Notes -->
             <div class="px-6 py-4 space-y-2">
               <span class="inline-block text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-2.5 py-1 rounded-full">
-                {{ t('model.wltp_note') }}
+                {{ ratingLabel === 'EPA' ? t('model.epa_note') : t('model.wltp_note') }}
               </span>
-              <p class="text-xs text-gray-400 dark:text-gray-500">{{ t('model.wltp_measurement_note') }}</p>
+              <p class="text-xs text-gray-400 dark:text-gray-500">{{ ratingLabel === 'EPA' ? t('model.epa_measurement_note') : t('model.wltp_measurement_note') }}</p>
             </div>
           </div><!-- end wltp -->
 
@@ -493,7 +501,7 @@
           <div class="space-y-4 text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
             <p>
               {{ t('model.seo_intro', { model: stats.modelDisplayName }) }}
-              <template v-if="bestWltpRange"> {{ t('model.seo_wltp_range', { range: formatDistance(bestWltpRange) }) }}</template>.
+              <template v-if="bestOfficialRange"> {{ t('model.seo_wltp_range', { range: formatDistance(bestOfficialRange) }) }}</template>.
               <template v-if="stats.avgConsumptionKwhPer100km">
                 <template v-if="consumptionDataQuality === 'good'">
                   {{ t('model.seo_consumption_good', { consumption: formatConsumption(stats.avgConsumptionKwhPer100km), sessions: stats.logCount, count: Math.min(consumptionDataCount, stats.logCount) }) }}
@@ -518,11 +526,11 @@
                 </template>
               </p>
             </div>
-            <div v-if="stats.wltpVariants.length > 0 && consumptionDataCount >= 25">
+            <div v-if="activeVariants.length > 0 && consumptionDataCount >= 25">
               <h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-1">{{ t('model.seo_wltp_title') }}</h3>
               <p>
                 {{ t('model.seo_wltp_intro') }}
-                <template v-if="stats.avgConsumptionKwhPer100km && worstWltpConsumption">
+                <template v-if="stats.avgConsumptionKwhPer100km && worstOfficialConsumption">
                   {{ t('model.seo_wltp_delta', { delta: wltpDeltaPercent }) }}
                 </template>
               </p>
@@ -595,6 +603,9 @@
     </div>
 
     <footer class="max-w-4xl mx-auto px-4 py-8 mt-6 border-t border-gray-200 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400 text-center">
+      <div v-if="!isAuthenticated" class="flex justify-center mb-4">
+        <RegionChip />
+      </div>
       © {{ currentYear }} EV Monitor ·
       <a href="/" class="hover:text-gray-700 dark:hover:text-gray-200">{{ isAuthenticated ? t('nav.dashboard') : t('common.home') }}</a>
       <template v-if="!isAuthenticated">
@@ -622,20 +633,33 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useHead } from '@unhead/vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/auth'
-import { getModelStats, type PublicModelStats } from '../api/publicModelService'
+import { useCountryStore } from '../stores/country'
+import { getModelStats, type PublicModelStats, type SeasonalDistribution } from '../api/publicModelService'
 import {
   ArrowTrendingUpIcon, ClipboardDocumentListIcon, Battery0Icon,
   SunIcon, ChartBarIcon, ExclamationTriangleIcon, BoltIcon
 } from '@heroicons/vue/24/outline'
 import PublicNav from '../components/shared/PublicNav.vue'
 import AffiliateBanner from '../components/shared/AffiliateBanner.vue'
+import RegionChip from '../components/shared/RegionChip.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { EUR_EXCHANGE_RATES, RATES_LAST_UPDATED } from '../config/exchangeRates'
+
+/** Normalized variant - same shape regardless of WLTP or EPA source */
+interface ActiveVariant {
+  batteryCapacityKwh: number
+  variantName: string | null
+  officialRangeKm: number
+  officialConsumptionKwhPer100km: number
+  realConsumptionKwhPer100km: number | null
+  realConsumptionTripCount: number | null
+  seasonalDistribution: SeasonalDistribution | null
+}
 
 const route = useRoute()
 const router = useRouter()
@@ -646,6 +670,7 @@ const modelsBaseUrl = computed(() => isEn.value ? '/en/models' : '/modelle')
 const loginPath = computed(() => isEn.value ? '/en/login' : '/login')
 const registerPath = computed(() => isEn.value ? '/en/register' : '/register')
 const authStore = useAuthStore()
+const countryStore = useCountryStore()
 const loading = ref(true)
 const notFound = ref(false)
 const apiError = ref(false)
@@ -662,8 +687,39 @@ const model = route.params.model as string
 const canonicalBrand = computed(() => stats.value?.brandDisplayName ?? brand)
 // canonicalModelSlug unused in V2 (no redirect logic)
 
+const isUS = computed(() => countryStore.country === 'US')
+const ratingLabel = computed(() =>
+  isUS.value && (stats.value?.epaVariants?.length ?? 0) > 0 ? 'EPA' : 'WLTP'
+)
 
-const selectedVariant = computed(() => stats.value?.wltpVariants[selectedVariantIndex.value] ?? null)
+// Reset variant selection when switching between EPA and WLTP (e.g. user changes Country)
+watch(ratingLabel, () => { selectedVariantIndex.value = 0 })
+
+const activeVariants = computed<ActiveVariant[]>(() => {
+  if (!stats.value) return []
+  if (isUS.value && stats.value.epaVariants?.length) {
+    return stats.value.epaVariants.map(v => ({
+      batteryCapacityKwh: v.batteryCapacityKwh,
+      variantName: v.variantName,
+      officialRangeKm: v.epaRangeKm,
+      officialConsumptionKwhPer100km: v.epaConsumptionKwhPer100km,
+      realConsumptionKwhPer100km: v.realConsumptionKwhPer100km,
+      realConsumptionTripCount: v.realConsumptionTripCount,
+      seasonalDistribution: v.seasonalDistribution,
+    }))
+  }
+  return stats.value.wltpVariants.map(v => ({
+    batteryCapacityKwh: v.batteryCapacityKwh,
+    variantName: v.variantName,
+    officialRangeKm: v.wltpRangeKm,
+    officialConsumptionKwhPer100km: v.wltpConsumptionKwhPer100km,
+    realConsumptionKwhPer100km: v.realConsumptionKwhPer100km,
+    realConsumptionTripCount: v.realConsumptionTripCount,
+    seasonalDistribution: v.seasonalDistribution,
+  }))
+})
+
+const selectedVariant = computed(() => activeVariants.value[selectedVariantIndex.value] ?? null)
 
 const displayConsumption = computed(() =>
   selectedVariant.value?.realConsumptionKwhPer100km ?? stats.value?.avgConsumptionKwhPer100km ?? null
@@ -674,26 +730,26 @@ const displayRange = computed(() => {
   return Math.round(selectedVariant.value.batteryCapacityKwh * 0.8 / displayConsumption.value * 10) * 10
 })
 
-const bestWltpRange = computed(() => {
-  if (!stats.value?.wltpVariants.length) return null
-  return Math.max(...stats.value.wltpVariants.map(v => v.wltpRangeKm))
+const bestOfficialRange = computed(() => {
+  if (!activeVariants.value.length) return null
+  return Math.max(...activeVariants.value.map(v => v.officialRangeKm))
 })
 
 const wltpDeltaPercent = computed(() => {
-  if (!stats.value?.avgConsumptionKwhPer100km || !worstWltpConsumption.value) return null
-  const pct = ((stats.value.avgConsumptionKwhPer100km - worstWltpConsumption.value) / worstWltpConsumption.value) * 100
+  if (!stats.value?.avgConsumptionKwhPer100km || !worstOfficialConsumption.value) return null
+  const pct = ((stats.value.avgConsumptionKwhPer100km - worstOfficialConsumption.value) / worstOfficialConsumption.value) * 100
   const sign = pct > 0 ? '+' : ''
   return `${sign}${pct.toFixed(0)}%`
 })
 
-const worstWltpConsumption = computed(() => {
-  if (!stats.value?.wltpVariants.length) return null
-  return Math.max(...stats.value.wltpVariants.map(v => v.wltpConsumptionKwhPer100km))
+const worstOfficialConsumption = computed(() => {
+  if (!activeVariants.value.length) return null
+  return Math.max(...activeVariants.value.map(v => v.officialConsumptionKwhPer100km))
 })
 
 const consumptionDataCount = computed(() => {
   if (!stats.value) return 0
-  const socCount = stats.value.wltpVariants.reduce((sum, v) => sum + (v.realConsumptionTripCount ?? 0), 0)
+  const socCount = activeVariants.value.reduce((sum, v) => sum + (v.realConsumptionTripCount ?? 0), 0)
   return socCount + (stats.value.estimatedConsumptionCount ?? 0)
 })
 
@@ -729,19 +785,19 @@ const faqItems = computed(() => {
         model: name,
         consumption: formatConsumption(stats.value.avgConsumptionKwhPer100km),
         dataNote,
-        wltp: worstWltpConsumption.value ? formatConsumption(worstWltpConsumption.value) : '-'
+        wltp: worstOfficialConsumption.value ? formatConsumption(worstOfficialConsumption.value) : '-'
       })
     })
   }
 
-  if (bestWltpRange.value && stats.value.avgConsumptionKwhPer100km && stats.value.wltpVariants.length > 0) {
-    const largestBattery = Math.max(...stats.value.wltpVariants.map(v => v.batteryCapacityKwh))
+  if (bestOfficialRange.value && stats.value.avgConsumptionKwhPer100km && activeVariants.value.length > 0) {
+    const largestBattery = Math.max(...activeVariants.value.map(v => v.batteryCapacityKwh))
     const realRange = Math.round(largestBattery / stats.value.avgConsumptionKwhPer100km * 100)
     items.push({
       question: t('model.faq_q_range', { model: name }),
       answer: t('model.faq_a_range', {
         model: name,
-        wltpRange: formatDistance(bestWltpRange.value),
+        wltpRange: formatDistance(bestOfficialRange.value),
         battery: largestBattery,
         consumption: formatConsumption(stats.value.avgConsumptionKwhPer100km),
         realRange: formatDistance(realRange)
@@ -760,15 +816,15 @@ const faqItems = computed(() => {
     })
   }
 
-  if (worstWltpConsumption.value && stats.value.avgConsumptionKwhPer100km && consumptionDataCount.value >= 25) {
-    const pct = Math.round((stats.value.avgConsumptionKwhPer100km / worstWltpConsumption.value - 1) * 100)
+  if (worstOfficialConsumption.value && stats.value.avgConsumptionKwhPer100km && consumptionDataCount.value >= 25) {
+    const pct = Math.round((stats.value.avgConsumptionKwhPer100km / worstOfficialConsumption.value - 1) * 100)
     items.push({
       question: t('model.faq_q_wltp_delta', { model: name }),
       answer: t('model.faq_a_wltp_delta', {
         model: name,
-        wltp: formatConsumption(worstWltpConsumption.value),
+        wltp: formatConsumption(worstOfficialConsumption.value),
         real: formatConsumption(stats.value.avgConsumptionKwhPer100km),
-        diff: formatConsumption(Math.abs(stats.value.avgConsumptionKwhPer100km - worstWltpConsumption.value)),
+        diff: formatConsumption(Math.abs(stats.value.avgConsumptionKwhPer100km - worstOfficialConsumption.value)),
         pct
       })
     })
@@ -798,7 +854,7 @@ useHead(computed(() => {
 
   const name = stats.value.modelDisplayName
   const consumption = displayConsumption.value
-  const wltp = worstWltpConsumption.value
+  const wltp = worstOfficialConsumption.value
 
   const canonicalUrl = isEn.value
     ? `https://ev-monitor.net/en/models/${canonicalBrand.value}/${model}`
@@ -834,7 +890,7 @@ useHead(computed(() => {
   if (consumption) {
     webPageJsonLd['about'] = [
       { '@type': 'PropertyValue', name: isEn.value ? 'Real Consumption' : 'Realverbrauch', value: formatConsumption(consumption) },
-      ...(wltp ? [{ '@type': 'PropertyValue', name: 'WLTP', value: formatConsumption(wltp) }] : []),
+      ...(wltp ? [{ '@type': 'PropertyValue', name: ratingLabel.value, value: formatConsumption(wltp) }] : []),
     ]
   }
 
@@ -889,9 +945,10 @@ onMounted(async () => {
       notFound.value = true
     } else {
       stats.value = data
-      if (data.wltpVariants.length > 1) {
+      // Select variant with most real-world trips as default
+      if (activeVariants.value.length > 1) {
         let maxTrips = -1
-        data.wltpVariants.forEach((v, i) => {
+        activeVariants.value.forEach((v, i) => {
           if ((v.realConsumptionTripCount ?? 0) > maxTrips) {
             maxTrips = v.realConsumptionTripCount ?? 0
             selectedVariantIndex.value = i

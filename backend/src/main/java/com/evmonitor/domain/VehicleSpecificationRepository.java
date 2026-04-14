@@ -13,10 +13,19 @@ public interface VehicleSpecificationRepository {
         VehicleSpecification.WltpType wltpType
     );
 
-    boolean existsByCarBrandAndModelAndCapacityAndType(
+    Optional<VehicleSpecification> findByCarBrandAndModelAndCapacityAndTypeAndSource(
         String carBrand,
         String carModel,
         BigDecimal batteryCapacityKwh,
-        VehicleSpecification.WltpType wltpType
+        VehicleSpecification.WltpType wltpType,
+        VehicleSpecification.RatingSource ratingSource
+    );
+
+    boolean existsByCarBrandAndModelAndCapacityAndTypeAndSource(
+        String carBrand,
+        String carModel,
+        BigDecimal batteryCapacityKwh,
+        VehicleSpecification.WltpType wltpType,
+        VehicleSpecification.RatingSource ratingSource
     );
 }

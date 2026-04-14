@@ -26,16 +26,18 @@ public class VehicleSpecificationController {
     private final VehicleSpecificationService vehicleSpecificationService;
 
     /**
-     * Lookup WLTP data for a specific vehicle configuration.
+     * Lookup official rating data for a specific vehicle configuration.
+     * ratingSource defaults to WLTP; pass "EPA" for US users.
      * Returns 404 if no data exists.
      */
     @GetMapping("/lookup")
     public ResponseEntity<VehicleSpecificationResponse> lookup(
             @RequestParam @NotBlank @Size(max = 100) String brand,
             @RequestParam @NotBlank @Size(max = 100) String model,
-            @RequestParam @NotNull @Positive @DecimalMax("500.0") BigDecimal capacityKwh) {
+            @RequestParam @NotNull @Positive @DecimalMax("500.0") BigDecimal capacityKwh,
+            @RequestParam(required = false, defaultValue = "WLTP") @Pattern(regexp = "WLTP|EPA") String ratingSource) {
 
-        Optional<VehicleSpecificationResponse> result = vehicleSpecificationService.lookup(brand, model, capacityKwh);
+        Optional<VehicleSpecificationResponse> result = vehicleSpecificationService.lookup(brand, model, capacityKwh, ratingSource);
 
         return result
                 .map(ResponseEntity::ok)

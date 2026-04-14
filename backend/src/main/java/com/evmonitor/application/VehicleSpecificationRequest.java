@@ -18,14 +18,18 @@ public record VehicleSpecificationRequest(
         @DecimalMax(value = "500.0", message = "Battery capacity unrealistic (max 500 kWh)")
         BigDecimal batteryCapacityKwh,
 
-        @NotNull(message = "WLTP range is required")
-        @Positive(message = "WLTP range must be positive")
-        @DecimalMax(value = "2000.0", message = "WLTP range unrealistic (max 2000 km)")
-        BigDecimal wltpRangeKm,
+        @NotNull(message = "Official range is required")
+        @Positive(message = "Official range must be positive")
+        @DecimalMax(value = "2000.0", message = "Official range unrealistic (max 2000 km)")
+        BigDecimal officialRangeKm,
 
-        @NotNull(message = "WLTP consumption is required")
-        @Positive(message = "WLTP consumption must be positive")
-        @DecimalMax(value = "100.0", message = "WLTP consumption unrealistic (max 100 kWh/100km)")
-        BigDecimal wltpConsumptionKwhPer100km
+        @NotNull(message = "Official consumption is required")
+        @Positive(message = "Official consumption must be positive")
+        @DecimalMax(value = "100.0", message = "Official consumption unrealistic (max 100 kWh/100km)")
+        BigDecimal officialConsumptionKwhPer100km,
+
+        /** Optional: "WLTP" or "EPA". Null defaults to "WLTP" for backward compatibility. */
+        @Pattern(regexp = "WLTP|EPA", message = "ratingSource must be WLTP or EPA")
+        String ratingSource
 ) {
 }

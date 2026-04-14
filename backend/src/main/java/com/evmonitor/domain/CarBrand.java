@@ -37,6 +37,10 @@ public enum CarBrand {
    TESLA("Tesla"),
    FORD("Ford"),
    CHEVROLET("Chevrolet"),
+   GMC("GMC"),
+   CADILLAC("Cadillac"),
+   DODGE("Dodge"),
+   JEEP("Jeep"),
    LUCID("Lucid"),
    RIVIAN("Rivian"),
    FISKER("Fisker"),
@@ -410,6 +414,44 @@ public enum CarBrand {
             cap(85.0)),
       EQUINOX_EV(CarBrand.CHEVROLET, VehicleCategory.SUV, "Equinox EV",
             cap(85.0)),
+      // TODO: Silverado EV - Netto-kWh gegen fueleconomy.gov verifizieren (nominell ~200 kWh brutto)
+      SILVERADO_EV(CarBrand.CHEVROLET, VehicleCategory.PICKUP, "Silverado EV",
+            cap(200.0, "Work Truck"),
+            cap(200.0, "LT"),
+            cap(200.0, "RST")),
+
+      // --- GMC ---
+      // TODO: Hummer EV / Sierra EV - Netto-kWh verifizieren (212.7 kWh brutto 3-Motor / ~170 kWh brutto 2-Motor)
+      HUMMER_EV(CarBrand.GMC, VehicleCategory.PICKUP, "Hummer EV",
+            cap(200.0, "EV3X"),
+            cap(200.0, "Edition 1"),
+            cap(170.0, "EV2X")),
+      HUMMER_EV_SUV(CarBrand.GMC, VehicleCategory.LARGE_SUV, "Hummer EV SUV",
+            cap(200.0),
+            cap(170.0)),
+      SIERRA_EV(CarBrand.GMC, VehicleCategory.PICKUP, "Sierra EV",
+            cap(200.0, "Denali Edition 1")),
+
+      // --- CADILLAC ---
+      // TODO: Lyriq/Optiq/Escalade IQ - Netto-kWh gegen fueleconomy.gov verifizieren
+      LYRIQ(CarBrand.CADILLAC, VehicleCategory.LARGE_SUV, "Lyriq",
+            cap(102.0, "RWD"),
+            cap(102.0, "AWD")),
+      OPTIQ(CarBrand.CADILLAC, VehicleCategory.SUV, "Optiq",
+            cap(85.0)),
+      ESCALADE_IQ(CarBrand.CADILLAC, VehicleCategory.LARGE_SUV, "Escalade IQ",
+            cap(200.0)),
+
+      // --- DODGE ---
+      // TODO: Charger Daytona - Netto-kWh verifizieren (nominell 100.5 kWh)
+      CHARGER_DAYTONA(CarBrand.DODGE, VehicleCategory.SPORTS, "Charger Daytona",
+            cap(100.5, "R/T"),
+            cap(100.5, "Scat Pack")),
+
+      // --- JEEP ---
+      // TODO: Wagoneer S - Netto-kWh verifizieren (nominell ~100 kWh)
+      WAGONEER_S(CarBrand.JEEP, VehicleCategory.LARGE_SUV, "Wagoneer S",
+            cap(100.0)),
 
       // --- RIVIAN ---
       R1T(CarBrand.RIVIAN, VehicleCategory.PICKUP, "R1T",
@@ -492,6 +534,10 @@ public enum CarBrand {
             cap(35.5)),
       E_NY1(CarBrand.HONDA, VehicleCategory.COMPACT, "e:Ny1",
             cap(68.8)),
+      // TODO: Prologue - Netto-kWh gegen fueleconomy.gov verifizieren (nominell 85 kWh, GM Ultium)
+      PROLOGUE(CarBrand.HONDA, VehicleCategory.SUV, "Prologue",
+            cap(85.0, "FWD"),
+            cap(85.0, "AWD")),
 
       // --- SUBARU ---
       SOLTERRA(CarBrand.SUBARU, VehicleCategory.SUV, "Solterra",

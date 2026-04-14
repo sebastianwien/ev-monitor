@@ -36,7 +36,7 @@ export function useDashboardCharts(
   const showCompareInput = ref(false)
 
   const effectiveCompareValue = computed(() =>
-    customCompareValue.value ?? wltp.value?.wltpConsumptionKwhPer100km ?? 0
+    customCompareValue.value ?? wltp.value?.officialConsumptionKwhPer100km ?? 0
   )
   const isCustomCompare = computed(() => customCompareValue.value !== null)
 

@@ -37,10 +37,11 @@ const {
   openSohAddForm, openSohEditForm, cancelSohForm, submitSohForm, deleteSohEntry,
 } = useSohHistory(editingCar, cars, error, sohHistory, showSohAddForm, sohEditingEntry, sohPercent, sohDate)
 
-// -- WLTP Lookup --
+// -- WLTP / EPA Lookup --
 const {
   wltpData, showWltpQuestion, showWltpForm,
-  wltpRangeKm, wltpConsumptionKwhPer100km,
+  officialRangeKm, officialConsumptionKwhPer100km,
+  ratingSource,
   closeWltpQuestion, openWltpForm, closeWltpForm, submitWltpData,
 } = useWltpLookup(selectedBrand, selectedModel, finalCapacity, editingCar, error, showToast, toastMessage)
 
@@ -182,10 +183,10 @@ const copyCarId = async (id: string) => {
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                   </svg>
                   <div>
-                    <p class="text-sm font-medium text-blue-900 dark:text-blue-300">{{ t('cars.wltp_available') }}</p>
+                    <p class="text-sm font-medium text-blue-900 dark:text-blue-300">{{ ratingSource === 'EPA' ? t('cars.epa_available') : t('cars.wltp_available') }}</p>
                     <p class="text-sm text-blue-700 dark:text-blue-400 mt-1">
-                      {{ t('cars.wltp_range') }}: <span class="font-semibold">{{ wltpData.wltpRangeKm }} {{ distanceUnitLabel() }}</span>
-                      | {{ t('cars.wltp_consumption') }}: <span class="font-semibold">{{ wltpData.wltpConsumptionKwhPer100km }} {{ consumptionUnitLabel() }}</span>
+                      {{ t('cars.wltp_range') }}: <span class="font-semibold">{{ wltpData.officialRangeKm }} {{ distanceUnitLabel() }}</span>
+                      | {{ t('cars.wltp_consumption') }}: <span class="font-semibold">{{ wltpData.officialConsumptionKwhPer100km }} {{ consumptionUnitLabel() }}</span>
                     </p>
                   </div>
                 </div>
@@ -776,9 +777,9 @@ const copyCarId = async (id: string) => {
     <!-- WLTP Question Overlay -->
     <div v-if="showWltpQuestion" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6">
-        <h3 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4">🎯 {{ t('cars.wltp_question_title') }}</h3>
+        <h3 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4">🎯 {{ ratingSource === 'EPA' ? t('cars.epa_question_title') : t('cars.wltp_question_title') }}</h3>
         <p class="text-gray-600 dark:text-gray-400 mb-6">
-          {{ t('cars.wltp_question_desc') }}
+          {{ ratingSource === 'EPA' ? t('cars.epa_question_desc') : t('cars.wltp_question_desc') }}
         </p>
         <div class="flex gap-3">
           <button
@@ -800,7 +801,7 @@ const copyCarId = async (id: string) => {
       <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-lg w-full p-6">
         <div class="flex items-center gap-2 mb-4">
           <ChartBarIcon class="h-6 w-6 text-gray-700 dark:text-gray-300" />
-          <h3 class="text-xl font-bold text-gray-800 dark:text-gray-200">{{ t('cars.wltp_form_title') }}</h3>
+          <h3 class="text-xl font-bold text-gray-800 dark:text-gray-200">{{ ratingSource === 'EPA' ? t('cars.epa_form_title') : t('cars.wltp_form_title') }}</h3>
         </div>
         <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
           {{ t('cars.wltp_form_for') }}: <span class="font-semibold">{{ selectedBrand }} {{ getModelLabel(selectedModel) }}</span>
@@ -810,17 +811,17 @@ const copyCarId = async (id: string) => {
         <form @submit.prevent="submitWltpData" class="space-y-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              {{ t('cars.wltp_range_label') }}
+              {{ ratingSource === 'EPA' ? t('cars.epa_range_label') : t('cars.wltp_range_label') }}
             </label>
             <div class="relative">
               <input
-                v-model.number="wltpRangeKm"
+                v-model.number="officialRangeKm"
                 type="number"
                 step="0.1"
                 min="0"
                 max="2000"
                 required
-                :placeholder="t('cars.wltp_range_placeholder')"
+                :placeholder="ratingSource === 'EPA' ? t('cars.epa_range_placeholder') : t('cars.wltp_range_placeholder')"
                 class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 border pr-12 dark:bg-gray-700 dark:text-gray-100" />
               <span class="absolute right-3 top-3 text-gray-500 dark:text-gray-400 text-sm">{{ distanceUnitLabel() }}</span>
             </div>
@@ -828,17 +829,17 @@ const copyCarId = async (id: string) => {
 
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              {{ t('cars.wltp_consumption_label') }}
+              {{ ratingSource === 'EPA' ? t('cars.epa_consumption_label') : t('cars.wltp_consumption_label') }}
             </label>
             <div class="relative">
               <input
-                v-model.number="wltpConsumptionKwhPer100km"
+                v-model.number="officialConsumptionKwhPer100km"
                 type="number"
                 step="0.1"
                 min="0"
                 max="100"
                 required
-                :placeholder="t('cars.wltp_consumption_placeholder')"
+                :placeholder="ratingSource === 'EPA' ? t('cars.epa_consumption_placeholder') : t('cars.wltp_consumption_placeholder')"
                 class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 border pr-24 dark:bg-gray-700 dark:text-gray-100" />
               <span class="absolute right-3 top-3 text-gray-500 dark:text-gray-400 text-sm">{{ consumptionUnitLabel() }}</span>
             </div>

@@ -12,8 +12,10 @@ import com.evmonitor.testutil.TestDataBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
 import java.math.BigDecimal;
@@ -50,7 +52,8 @@ class VehicleSpecificationControllerIntegrationTest extends AbstractIntegrationT
                 "TESTMODEL_A",
                 uniqueCapacity,
                 new BigDecimal("450.0"),
-                new BigDecimal("16.5")
+                new BigDecimal("16.5"),
+                null  // defaults to WLTP
         );
 
         HttpEntity<VehicleSpecificationRequest> requestWithAuth = createAuthRequest(request, userId, testUser.getEmail());
@@ -75,8 +78,8 @@ class VehicleSpecificationControllerIntegrationTest extends AbstractIntegrationT
         assertNotNull(spec);
         assertEquals("TESTBRAND_" + userId.toString().substring(0, 8), spec.carBrand());
         assertEquals("TESTMODEL_A", spec.carModel());
-        assertEquals(0, new BigDecimal("450.0").compareTo(spec.wltpRangeKm()));
-        assertEquals(0, new BigDecimal("16.5").compareTo(spec.wltpConsumptionKwhPer100km()));
+        assertEquals(0, new BigDecimal("450.0").compareTo(spec.officialRangeKm()));
+        assertEquals(0, new BigDecimal("16.5").compareTo(spec.officialConsumptionKwhPer100km()));
 
         // Verify coins were awarded
         List<CoinLog> coinLogs = coinLogRepository.findAllByUserId(userId);
@@ -137,7 +140,8 @@ class VehicleSpecificationControllerIntegrationTest extends AbstractIntegrationT
                 "IONIQ_5",
                 uniqueCapacity,
                 new BigDecimal("450.0"),
-                new BigDecimal("16.5")
+                new BigDecimal("16.5"),
+                null  // defaults to WLTP
         );
 
         HttpEntity<VehicleSpecificationRequest> requestWithAuth = createAuthRequest(request, userId, testUser.getEmail());
@@ -172,7 +176,8 @@ class VehicleSpecificationControllerIntegrationTest extends AbstractIntegrationT
                 "TESTMODEL_XSS<img src=x onerror=alert(1)>",
                 uniqueCapacity,
                 new BigDecimal("450.0"),
-                new BigDecimal("16.5")
+                new BigDecimal("16.5"),
+                null  // defaults to WLTP
         );
 
         HttpEntity<VehicleSpecificationRequest> requestWithAuth = createAuthRequest(request, userId, testUser.getEmail());
@@ -208,7 +213,8 @@ class VehicleSpecificationControllerIntegrationTest extends AbstractIntegrationT
                 "  MODEL_3  ",
                 uniqueCapacity,
                 new BigDecimal("450.0"),
-                new BigDecimal("16.5")
+                new BigDecimal("16.5"),
+                null  // defaults to WLTP
         );
 
         HttpEntity<VehicleSpecificationRequest> requestWithAuth = createAuthRequest(request, userId, testUser.getEmail());
@@ -241,7 +247,8 @@ class VehicleSpecificationControllerIntegrationTest extends AbstractIntegrationT
                 "MODEL_3",
                 new BigDecimal("75.0"),
                 new BigDecimal("450.0"),
-                new BigDecimal("16.5")
+                new BigDecimal("16.5"),
+                null  // defaults to WLTP
         );
 
         // When: Try to create WLTP data without auth
@@ -312,5 +319,66 @@ class VehicleSpecificationControllerIntegrationTest extends AbstractIntegrationT
         assertEquals(0, new BigDecimal("57.5").compareTo(response57.getBody().batteryCapacityKwh()));
         assertEquals(0, new BigDecimal("75.0").compareTo(response75.getBody().batteryCapacityKwh()));
         assertEquals(0, new BigDecimal("79.0").compareTo(response79.getBody().batteryCapacityKwh()));
+    }
+
+    @Test
+    void shouldLookupEpaData_WhenRatingSourceEpa() {
+        // Given: EPA VehicleSpecification saved directly via repository
+        VehicleSpecification epaSpec = VehicleSpecification.createNew(
+                "RIVIAN", "R1T",
+                new BigDecimal("135.0"),
+                new BigDecimal("505"),
+                new BigDecimal("26.7"),
+                VehicleSpecification.WltpType.COMBINED,
+                VehicleSpecification.RatingSource.EPA
+        );
+        vehicleSpecificationRepository.save(epaSpec);
+
+        // When: Lookup with ratingSource=EPA
+        ResponseEntity<VehicleSpecificationResponse> epaResponse = restTemplate.getForEntity(
+                "/api/vehicle-specifications/lookup?brand=RIVIAN&model=R1T&capacityKwh=135.0&ratingSource=EPA",
+                VehicleSpecificationResponse.class
+        );
+
+        // Then: EPA data returned
+        assertEquals(HttpStatus.OK, epaResponse.getStatusCode());
+        assertNotNull(epaResponse.getBody());
+        assertEquals("RIVIAN", epaResponse.getBody().carBrand());
+
+        // And: WLTP lookup for same brand/model/capacity returns 404 (different ratingSource)
+        ResponseEntity<String> wltpResponse = restTemplate.getForEntity(
+                "/api/vehicle-specifications/lookup?brand=RIVIAN&model=R1T&capacityKwh=135.0&ratingSource=WLTP",
+                String.class
+        );
+        assertEquals(HttpStatus.NOT_FOUND, wltpResponse.getStatusCode());
+    }
+
+    @Test
+    void shouldCreateEpaData_AndAwardCoins() {
+        // Given: EPA contribution request for a model not yet in DB
+        VehicleSpecificationRequest request = new VehicleSpecificationRequest(
+                "RIVIAN", "R2",
+                new BigDecimal("60.0"),
+                new BigDecimal("350"),
+                new BigDecimal("17.1"),
+                "EPA"
+        );
+        HttpEntity<VehicleSpecificationRequest> requestWithAuth = createAuthRequest(request, userId, testUser.getEmail());
+
+        // When: POST EPA specification
+        ResponseEntity<VehicleSpecificationCreateResponse> response = restTemplate.exchange(
+                "/api/vehicle-specifications",
+                HttpMethod.POST,
+                requestWithAuth,
+                VehicleSpecificationCreateResponse.class
+        );
+
+        // Then: Created with coins awarded
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertNotNull(response.getBody().specification());
+        assertEquals("RIVIAN", response.getBody().specification().carBrand());
+        assertEquals("R2", response.getBody().specification().carModel());
+        assertTrue(response.getBody().coinsAwarded() > 0);
     }
 }
