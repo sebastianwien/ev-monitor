@@ -4,7 +4,7 @@ import App from './App.vue'
 import router from './router'
 import { createPinia } from 'pinia'
 import { createHead } from '@unhead/vue/client'
-import { i18n } from './i18n'
+import { i18n, getSavedLocale, loadLocaleMessages } from './i18n'
 
 const app = createApp(App)
 
@@ -40,6 +40,12 @@ app.use(createPinia())
 app.use(router)
 app.use(createHead())
 app.use(i18n)
+
+// Pre-load NB/SV before first render to avoid a brief flash of untranslated content
+const initialLocale = getSavedLocale()
+if (initialLocale === 'nb' || initialLocale === 'sv') {
+    await loadLocaleMessages(initialLocale)
+}
 
 // Global error reporting (production only)
 if (import.meta.env.PROD) {

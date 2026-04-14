@@ -1,0 +1,1570 @@
+common:
+  loading: Laster...
+  error_load: Det gikk ikke å laste inn data
+  error_retry: Prøv igjen om noen sekunder.
+  all_models: Vis alle modeller
+  free_start: Kom i gang gratis
+  login: Logg inn
+  register: Registrer deg
+  wltp: WLTP
+  real: Ekte
+  battery: Batteri
+  close: Lukk
+  cancel: Avbryt
+  save: Lagre
+  saving: Lagrer...
+  back: Tilbake
+  ok_understood: Ok, skjønner
+  next: Neste
+  details: Detaljer →
+  be_first: Vær den første
+  no_specs: Det foreligger ingen spesifikasjonsdata
+  reload: Last inn på nytt
+  home: EV Monitor
+  models_nav: Modeller
+nav:
+  login: Logg inn
+  register: Registrer deg
+  dashboard: Dashbord
+  models_compare: Modeller
+landing:
+  hero:
+    title: Hvor langt kommer du egentlig – og hva koster det deg?
+    subtitle: Faktiske forbruks- og ladekostnader fra brukerne – WLTP møter hverdagen. Med wallbox-integrasjon og API-synkronisering.
+    charging_sessions: Ladingsøkter
+    real_label: Ekte
+    wltp_label: WLTP
+    costs_label: Kostnad
+    avg_prefix: gj.snitt
+    cost_tooltip: Basert på gjennomsnittlig strømpris fra innspill fra brukerne. Billigere hjemmelading sammenlignet med dyre hurtigladere forklarer prisforskjellene mellom modellene.
+    view_details: Vis detaljer
+    demo_button: Prøv appen nå →
+    loading_button: Laster...
+    models_button: Vis alle modeller
+    or: eller
+    register_link: registrer deg gratis
+    track_data: og følge med på dine egne data
+    trips_label: Reiser
+    models_label: Modeller
+    drivers_label: Sjåfører
+  features:
+    open_source_title: 100 % åpen kildekode
+    open_source_desc: Fullstendig åpen på GitHub. Ingen leverandørbinding.
+    open_source_link: Vis kildekode →
+    auto_import_title: Automatisk import
+    auto_import_desc: Tesla, Sprit-Monitor, go-eCharger og OCPP-ladestasjoner.
+    auto_import_beta: BETA
+    privacy_title: Personvern først
+    privacy_desc: Geohashing i stedet for sporing. Dataene dine tilhører deg.
+    community_title: Samfunnsdata
+    community_desc: WLTP kontra virkeligheten, sett med bilistenes øyne. Bidra og tjen mynter.
+  models_section:
+    title: Hva koster det egentlig å lade?
+    subtitle: Ekte data fra brukerfellesskapet
+    loading: Laster inn kjøretøydata...
+    view_details: Vis detaljer
+    compare_button: Sammenlign alle modeller
+    demo_button: Prøv demoen
+    loading_button: Laster...
+    no_data: Det foreligger ikke data for dette samfunnet ennå.
+  gamification:
+    title: Belønninger for bidrag til fellesskapet
+    log_entry: Registrer en ladesesjon
+    add_vehicle: Legg til et kjøretøy
+    invite_friend: Inviter en venn
+    import_data: Importer data
+  import:
+    title: Du trenger aldri å skrive manuelt igjen
+    subtitle: Koble til datakildene dine – ladesesjonene hentes inn automatisk.
+    tesla_title: Tesla Fleet API
+    tesla_status: Tilgjengelig
+    tesla_desc: Importer betalingshistorikken automatisk – uten å skrive eller kopiere.
+    spritmonitor_title: Sprit-Monitor
+    spritmonitor_status: Tilgjengelig
+    spritmonitor_desc: Engangsimport av hele ladingshistorikken din fra Sprit-Monitor.
+    gocharger_title: go-eCharger Cloud
+    gocharger_status: Tilgjengelig
+    gocharger_beta: BETA
+    gocharger_desc: Importer Wallbox-økter automatisk etter hver lading.
+    ocpp_title: OCPP-vegglader
+    ocpp_status: Tilgjengelig
+    ocpp_beta: BETA
+    ocpp_desc: Universell protokoll for alle OCPP-kompatible ladestasjoner for hjemmet.
+  cta:
+    title: Er du klar for gjennomsiktige ladekostnader?
+    subtitle: Registrer deg gratis og kom i gang.
+    subtitle2: Bekreft e-postadressen din – ferdig.
+    button: Kom i gang gratis nå
+  footer:
+    made_with: Laget med ⚡ for elbilmiljøet
+    models: Modeller
+    privacy: Personvernpolicy
+    imprint: Impressum
+    terms: Vilkår
+    github: GitHub
+    feedback: Tilbakemelding
+landing_v2:
+  weiche:
+    question: Hvor langt kommer du egentlig – og hva koster det deg?
+    question_sub: |-
+      Faktiske forbruksdata samlet inn av brukerne.
+      Gratis og åpen kildekode.
+    owner_title: Har du en elbil?
+    owner_desc: Se hvordan modellen din egentlig ligger an – og følg med på ditt eget forbruk.
+    browser_title: Leter du etter din første elbil?
+    browser_desc: Hvor langt rekker den egentlig – og hva vil det koste deg per måned? Over 80 modeller, vedlikeholdt av ekte sjåfører.
+    demo_link: Eller bare prøv demoen
+    demo_hint: ""
+    trust: Gratis og åpen kildekode
+  owner:
+    demo_link: eller prøv bare demoen →
+    title: Hvilken bil kjører du?
+    search_placeholder: Modellen din...
+    popular: Populære modeller
+    all_models: Vis alle modeller →
+    no_results: "Ingen modeller funnet – vis alle:"
+    charging_sessions: ladingsøkter
+    cta_register: Registrer deg og følg med på forbruket ditt →
+    back: Tilbake
+  browser:
+    title: Hvilken modell er du interessert i?
+    search_placeholder: Tesla, VW ID, Ioniq...
+    popular: Populære modeller
+    all_models: Vis alle modeller →
+    no_results: "Ingen modeller funnet – vis alle:"
+    back: Tilbake
+    charging_sessions: ladingsøkter
+  stats:
+    trips: registrerte turer
+    models: modeller
+    drivers: sjåfører
+models_list:
+  hero:
+    title: Sammenligning av elbiler
+    subtitle: Reelle forbruksdata fra brukerne – WLTP kontra virkeligheten i hverdagen for alle elbiler.
+    models_count: Modeller
+    trips_count: Reiser
+    drivers_count: Sjåfører
+    cost_note: Kostnaden per 100 km er beregnet ut fra gjennomsnittsprisen på strøm basert på opplysningene fra brukerne for hver modell. Prisforskjellene skyldes ulike ladingsvaner – hjemmelading er betydelig billigere enn offentlige hurtigladere.
+  reddit:
+    badge: Ingen produsent påstår
+    title: Hvor mye strøm bruker elbilen din egentlig?
+    subtitle: Produsentene lover WLTP-rekkevidder som sjelden stemmer i praksis. Her finner du reelle tall fra elbilister – fra hverdagen, ikke fra laboratoriet.
+    trips: ekte reiser
+    cta: Bli medlem gratis
+    no_subscription: Ingen abonnement, ingen betalingsmur
+  filters:
+    popular: Populære modeller
+    all_brands: Alle merker
+    brand_count: "{count} merker"
+    all_categories: Alle kategorier
+    categories:
+      CITY_CAR: Bybil
+      COMPACT: Kompakt
+      SEDAN: Mellomstor
+      SUV: SUV
+      LARGE_SUV: Stor SUV
+      LUXURY: Luksus
+      SPORTS: Sportsbil
+      VAN: Varebil
+      PICKUP: Henting
+    select_all: Velg alt
+    deselect_all: Fjern merket for alle
+    results: "{filtered} av {total}-modellene"
+  card:
+    charging_sessions: Ladingsøkter
+    wltp_label: WLTP
+    real_label: Ekte
+    costs_label: Kostnad
+    avg_prefix: gj.snitt
+    cost_tooltip: Basert på gjennomsnittlig strømpris fra innspill fra brukerne. Billigere hjemmelading sammenlignet med dyre hurtigladere forklarer prisforskjellene mellom modellene.
+    view_details: Vis detaljer
+    add_compare: Legg til i sammenligning
+    remove_compare: Fjern fra sammenligningen
+    wltp_available: WLTP-data tilgjengelig
+  empty:
+    no_data_title: Det finnes ingen data for dette fellesskapet ennå
+    no_data_desc: Bli den første til å dele reelle forbruksdata og hjelp fellesskapet!
+    free_register: Registrer deg gratis
+    no_results_title: Ingen modeller funnet
+    no_results_desc: Det foreligger foreløpig ingen markedsdata for de valgte merkene.
+    reset_filters: Tilbakestill filtre
+  brands:
+    title: Alle merker
+  cta:
+    missing_vehicle: Mangler du kjøretøyet ditt?
+    contribute: Registrer deg gratis og vær den første til å legge inn forbruksdata for elbilen din. Hjelp fellesskapet med reelle data!
+    free_start: Kom i gang gratis
+    login: Logg inn
+  compare:
+    title: Sammenlign ({current} / {max})
+    button: Sammenlign
+brand:
+  not_found_title: Merke ikke funnet
+  not_found_text: Vi kjenner ikke dette merket.
+  error_title: Det gikk ikke å laste inn data
+  error_text: Prøv igjen om noen sekunder.
+  breadcrumb_models: Modeller
+  hero_title: "{brand} Elbiler – Forbruk og WLTP-sammenligning"
+  hero_subtitle: "Alle EV-modeller fra {brand} på ett blikk: WLTP-rekkevidde og reelle forbrukstall fra brukerne."
+  models_count: "{count} modeller"
+  with_data: "{count} med data fra lokalsamfunnet"
+  total_logs: "{count} ladingsøkter"
+  table_battery: Batteri
+  table_wltp: WLTP
+  table_real: gj.snitt. Reelt
+  be_first: Vær den første
+  no_specs: Det foreligger ingen spesifikasjonsdata
+  seo_title: "{brand} Elbiler – faktisk forbruk vs. WLTP"
+  seo_text: På denne siden får du oversikt over alle elektriske modeller fra {brand}. EV Monitor samler inn reelle forbruksdata fra {brand}-sjåfører og sammenligner dem med offisielle WLTP-verdier.
+  seo_data_count: Det finnes allerede data fra lokalsamfunnet på {count} {noun}.
+  seo_model_singular: modell
+  seo_model_plural: modeller
+  seo_contribute: Registrer ladningene dine og hjelp andre {brand}-eiere med realistiske forbrukstall.
+  cta_title: "{brand} Er du sjåfør? Del dataene dine!"
+  cta_text: Følg med på ladningene dine, sammenlign det faktiske forbruket ditt med WLTP og bidra til fellesskapet med reelle data.
+  free_start: Kom i gang gratis
+  login: Logg inn
+model:
+  breadcrumb_home: EV Monitor
+  breadcrumb_models: Modeller
+  breadcrumb_brand_models: Alle modeller fra {brand}
+  not_found_title: Modellen ble ikke funnet
+  not_found_desc: Vi har ikke data for denne bilmodellen.
+  goto_home: Gå til hjemmesiden
+  error_title: Det gikk ikke å laste inn data
+  error_desc: Prøv igjen om noen sekunder.
+  reload: Last inn på nytt
+  back_link: ← Alle modeller fra {brand}
+  hero_title: "{model} - Faktisk forbruk og sammenligning med WLTP"
+  hero_desc: Reelle forbruksdata fra brukere av EV Monitor – ingen markedsføring, bare fakta.
+  metrics_consumption: Gjennomsnittlig forbruk / 100 km
+  metrics_costs: Gjennomsnittlig kostnad per 100 km
+  metrics_sessions: Ladingsøkter
+  metrics_estimated: anslått (uten SoC)
+  metrics_range: Rekkevidde
+  metrics_range_label: Intervall 90 %→10 %
+  calculator_label: "Din strømpris: på"
+  calculator_unit: ct/kWh
+  calculator_result: €/100 km
+  charging_20min_label: "20 minutters lading:"
+  charging_20min_unit: km
+  charging_20min_avg: gj.snitt
+  charging_20min_power: Ladehastighet i kW
+  variant_title: Batterivariant
+  variant_low_trips: Få turer
+  seasonal_title: Forbruk etter årstid
+  seasonal_summer: Sommer
+  seasonal_summer_months: (mai–august)
+  seasonal_winter: Vinter
+  seasonal_winter_months: (nov–feb)
+  seasonal_weighted_avg: Gjennomsnittlig vektet (totalt)
+  seasonal_split: "{summer} % sommer, {winter} % vinter (etter kjørt kilometer)"
+  seasonal_trips: turer
+  seasonal_no_trips: ingen turer
+  wltp_section_title: WLTP-data og faktisk forbruk
+  wltp_no_trips: ingen turer
+  wltp_range: Rekkevidde
+  wltp_wltp_range: WLTP-rekkevidde
+  wltp_wltp_consumption: WLTP-forbruk
+  wltp_real_range: Reell rekkevidde
+  wltp_real_consumption: Faktisk forbruk
+  wltp_full_range: 100 % → 0 %
+  wltp_table_battery: Batteri
+  wltp_table_range: Rekkevidde
+  wltp_table_real_range: Reell rekkevidde
+  wltp_table_full_to_empty: (100 % → 0 %)
+  wltp_table_consumption: Forbruk
+  wltp_table_real_consumption: Faktisk forbruk
+  wltp_no_data: ingen data ennå
+  wltp_note: WLTP = produsentens offisielle tall (KOMBINERT). Det faktiske forbruket er basert på brukerdata fra EV Monitor.
+  wltp_measurement_note: "Forbruksverdiene fra brukerfellesskapet viser normalisert kjøreforbruk – ladetap er trukket fra (vekselstrøm: 10 %, likestrøm: 5 %). WLTP måler kun kjøreforbruk uten standby og forhåndskondisjonering – en avvik på 5–15 % er derfor normalt."
+  epa_section_title: Data fra EPA og faktisk forbruk
+  epa_range_label: EPA-rekkevidde
+  epa_consumption_label: EPA-forbruk
+  epa_note: EPA = offisiell amerikansk produsentangivelse (kombinert). Det faktiske forbruket er basert på brukerdata fra EV Monitor.
+  epa_measurement_note: EPA-verdiene er målt under amerikanske forhold og ligger vanligvis nærmere det faktiske forbruket enn WLTP-verdiene.
+  epa_badge: EPA-{consumption}, mil/kWh
+  epa_not_available: Det foreligger ennå ingen EPA-data for denne modellen. Vi viser derfor WLTP-verdier i stedet.
+  cta_title: Del dataene dine!
+  cta_desc: EV Monitor er en fellesskapsplattform for elbilister. Følg med på ladingen din, sammenlign det faktiske forbruket ditt med WLTP-verdiene, og hjelp andre bilister med dataene dine.
+  cta_free_start: Kom i gang gratis
+  cta_login: Logg inn
+  cost_disclaimer: "Prisene er basert på data fra brukergruppen (hovedsakelig DACH-markedet). Omregning: 1 EUR = {rate} {currency} (per {date})."
+  seo_section_title: "{model} - Forbruk, rekkevidde og ladekostnader"
+  related_title: Andre populære elbilmodeller
+  faq_title: Ofte stilte spørsmål om {model}
+  hero_title_v2: "{model} - Forbruk og rekkevidde"
+  hero_consumption_label: Gjennomsnittlig faktisk forbruk
+  unit_kwh_per_100km: kWh/100 km
+  unit_ct_per_kwh: Gj.snitt. ct/kWh
+  ac_footnote: "* Gjennomsnittstall fra EV Monitor-brukere. AC-lading inkluderer hjemmelading og solenergi – kan være betydelig billigere enn offentlig lading."
+  wltp_badge: WLTP {consumption} kWh
+  avg_cost_prefix: Brukerne betaler i gjennomsnitt
+  avg_cost_suffix: per 100 km
+  meta_title: "{model} Forbruk og rekkevidde ({year}) – EV Monitor"
+  meta_description_with_data: "{model}: Gjennomsnittlig {consumption} kWh/100 km i reelle kjøreforhold (WLTP: {wltp} kWh/100 km). Forbruk, rekkevidde og ladekostnader – reelle kjøreopplysninger på EV Monitor."
+  meta_description_no_data: "{model}: WLTP-forbruk, rekkevidde og brukerdata på EV Monitor. Vær den første til å dele reelle målinger!"
+  meta_keywords: "{model} forbruk, {model} rekkevidde, {model} kWh/100 km, {model} WLTP reell, {model} ladekostnad"
+  seo_intro: "{model}en er en elbil"
+  seo_wltp_range: med en offisiell WLTP-rekkevidde på opptil {range} km
+  seo_consumption_good: Ifølge reelle data fra brukere av EV Monitor ligger gjennomsnittsforbruket på {consumption} kWh/100 km – basert på {sessions} ladinger ({count} med forbruksmåling).
+  seo_consumption_low: Basert på brukerdata er forbruket {consumption} kWh/100 km – basert på {count} kjøreturer med forbrukmåling.
+  seo_consumption_sparse: "De første målingene er nå tilgjengelige: {consumption} kWh/100 km fra {count}-turer med forbruksdata."
+  seo_no_data_cta: Bli den første til å registrere ladinger for denne {model}!
+  seo_costs_title: Ladekostnader ved daglig bruk
+  seo_costs_intro: Den gjennomsnittlige ladekostnaden for {model} er, ifølge brukerdata, {price} cent per kWh.
+  seo_costs_session: En typisk ladeøkt på {kwh} kWh koster derfor rundt {cost} €.
+  seo_wltp_title: WLTP vs. faktisk forbruk
+  seo_wltp_intro: WLTP-syklusen måles under standardiserte laboratorieforhold og avviker ofte fra virkeligheten i daglig bruk.
+  seo_wltp_delta: I gjennomsnitt ligger det faktiske forbruket på {delta} sammenlignet med WLTP-verdien.
+  seo_seasonal_title: Forbruk etter årstid
+  seo_seasonal_data: Ifølge data fra brukerne bruker {model} {summer} kWh/100 km om sommeren (mai–august) og {winter} kWh/100 km om vinteren (november–februar) – {pct} % mer om vinteren.
+  seo_seasonal_no_data: Det foreligger ennå ikke nok sesongdata for {model}. Generelt sett øker forbruket av elbiler vanligvis med 15–30 % om vinteren.
+  faq_consumption_data_good: basert på {n}-turer med forbruksmåling
+  faq_consumption_data_low: basert på {n}-turer med forbruksmåling – verdien vil bli mer nøyaktig etter hvert som det kommer inn mer data
+  faq_consumption_data_sparse: kun {n}-turer med forbruksdata – ikke representativt ennå
+  faq_q_consumption: Hva er det faktiske forbruket til {model}?
+  faq_a_consumption: Ifølge brukerdata fra EV Monitor har {model} et forbruk på {consumption} kWh/100 km ({dataNote}). Den offisielle WLTP-verdien er {wltp} kWh/100 km. Om vinteren kan forbruket være 15–30 % høyere på grunn av oppvarming og kaldere batterier.
+  faq_q_range: Hvor langt strekker egentlig {model} seg?
+  faq_a_range: WLTP-rekkevidden til {model} er opptil {wltpRange} km. I praksis oppnår førere med {battery}-kWh-batteriet rundt {realRange} km ved et reelt forbruk på {consumption} kWh/100 km. Om vinteren kan rekkevidden falle til 60–70 % av WLTP-verdien.
+  faq_q_cost: Hvor mye koster en lading for en {model}?
+  faq_a_cost: I gjennomsnitt koster en lading {price} cent per kWh. For en typisk lading på {kwh} kWh ligger kostnaden på rundt {cost} €.
+  faq_q_wltp_delta: Hva er forskjellen mellom WLTP-verdiene og det faktiske forbruket for {model}?
+  faq_a_wltp_delta: Det offisielle WLTP-forbruket til {model} er {wltp} kWh/100 km. Ifølge brukerdata bruker bilistene {real} kWh/100 km i hverdagen – det vil si {diff} kWh mer (+{pct} %).
+  faq_q_winter: Hvordan endrer forbruket av {model} seg om vinteren?
+  faq_a_winter_data: Ifølge data fra brukerne bruker {model} {winter} kWh/100 km om vinteren (nov.–feb.) og {summer} kWh/100 km om sommeren (mai–aug.).
+  faq_a_winter_no_data: Det foreligger ennå ikke nok sesongbaserte måledata for {model}. Generelt sett øker forbruket av elektriske biler vanligvis med 15–30 % om vinteren.
+auth:
+  login:
+    tagline: Ladeloggen din for elbiler
+    welcome: Velkommen tilbake
+    email_or_username: E-post eller brukernavn
+    email_placeholder: din{'@'}e-postadresse.com
+    password: Passord
+    submit: Logg inn
+    or: eller
+    google: Logg inn med Google
+    forgot_password: Glemt passordet?
+    no_account: Har du ikke en konto ennå?
+    register_link: Registrer deg her
+    free: Gratis
+    gdpr: I samsvar med GDPR
+    no_tracking: Ingen sporing
+    error_not_verified: Bekreft e-postadressen din først.
+    error_invalid: Ugyldig e-postadresse/brukernavn eller passord
+    resend_email: Send bekreftelses-e-posten på nytt
+    resend_sent: E-posten er sendt!
+    email_changed: E-postadressen er endret. Logg inn med den nye e-postadressen din.
+    session_expired: Økten din har utløpt. Vennligst logg inn på nytt.
+  register:
+    title: Registrer deg
+    benefit_1: Følg med på forbruket og ladekostnadene dine
+    benefit_2: Sammenlign WLTP med din faktiske rekkevidde
+    benefit_3: Gratis – ingen abonnement, ingen betalingsmur
+    email: E-post
+    password: Passord
+    password_hint: Minst 8 tegn
+    submit: Opprett konto
+    or_faster: eller registrer deg raskere
+    google: Registrer deg med Google
+    have_account: Har du allerede en konto?
+    login_link: Logg inn her
+    error_email_invalid: Vennligst oppgi en gyldig e-postadresse (f.eks. navn{'@'}eksempel.com)
+    error_password_short: Passordet må bestå av minst 8 tegn
+    error_generic: Registreringen mislyktes
+    pending_title: Sjekk e-postene dine!
+    pending_sent_to: Vi har sendt en bekreftelseskobling til
+    pending_instructions: Klikk på lenken i e-posten for å aktivere kontoen din.
+    pending_expires: Koblingen er gyldig i 24 timer.
+    pending_resend: Har du ikke mottatt e-posten? Send den på nytt
+    pending_resent: E-posten er sendt på nytt!
+    pending_back_login: Tilbake til pålogging
+    resend_rate_limited: Vennligst vent – du har nettopp bedt om å motta en e-post.
+    resend_error: Det oppstod en feil ved sending av e-post. Prøv igjen senere.
+    country_label: Din region
+    country_hint: Regionen kunne ikke oppdages automatisk. Vennligst velg den, slik at riktige enheter og valuta vises.
+  forgot_password:
+    title: Glemt passord
+    intro: Skriv inn e-postadressen din. Vi sender deg en lenke for å tilbakestille passordet ditt.
+    email: E-postadresse
+    email_placeholder: din{'@'}e-postadresse.com
+    submit: Send tilbakestillingslenke
+    sending: Sender...
+    back_login: Tilbake til pålogging
+    success_title: Sjekk e-postene dine!
+    success_text: Hvis det finnes en konto med denne e-postadressen, har vi sendt deg en lenke for å tilbakestille passordet.
+    success_expires: Koblingen er gyldig i 1 time.
+    error_rate_limited: For mange forsøk. Vennligst vent og prøv igjen.
+    error_generic: Det oppstod en feil. Prøv på nytt.
+  verify_email:
+    loading: Bekrefter...
+    success_title: E-postadressen er bekreftet!
+    success_text: Du blir snart omdirigert...
+    expired_title: Koblingen er utløpt
+    expired_text: Bekreftelseskoblingen er ikke lenger gyldig. Be om en ny.
+    expired_resend: Send ny lenke
+    expired_sent: E-posten er sendt! Sjekk innboksen din.
+    invalid_title: Ugyldig lenke
+    invalid_text: Denne bekreftelseskoblingen er ugyldig eller har allerede blitt brukt.
+    invalid_back: Tilbake til registreringen
+    resend_rate_limited: Vennligst vent – du har nettopp bedt om å motta en e-post.
+    resend_error: Det oppstod en feil ved sending av e-post. Prøv igjen senere.
+  reset_password:
+    title: Nytt passord
+    new_password: Nytt passord
+    new_password_placeholder: Minst 8 tegn
+    confirm_password: Bekreft passord
+    confirm_password_placeholder: Skriv inn passordet på nytt
+    submit: Endre passord
+    saving: Lagrer...
+    request_new: Be om ny tilbakestillingslenke
+    success_title: Passordet er endret!
+    success_redirect: Du blir snart omdirigert til innloggingssiden...
+    error_invalid_link: Ugyldig lenke. Be om en ny tilbakestillingslenke.
+    error_too_short: Passordet må bestå av minst 8 tegn.
+    error_mismatch: Passordene stemmer ikke overens.
+    error_expired: Tilbakestillingslenken har utløpt. Be om en ny.
+    error_invalid: Ugyldig tilbakestillingslenke. Be om en ny.
+    error_generic: Det oppstod en feil. Prøv på nytt.
+dashboard:
+  title: Dashbord
+  vehicles_btn: Kjøretøy
+  logs_btn: Ladingsøktene dine
+  import_banner: Importer ladingsøkter
+  import_banner_sources: "- Sprit-Monitor, go-eCharger Cloud, OCPP Wallbox"
+  active: Aktiv
+  tesla_charging: Lading
+  tesla_online: På nettet
+  tesla_sleeping: Søvn
+  real_range_title: Din reelle rekkevidde
+  range_window: Ladevindu
+  range_summer: Sommer
+  range_winter: Vinter
+  time_range_label: Periode
+  group_by_label: Gruppering
+  time_this_month: Denne måneden
+  time_last_month: I forrige måned
+  time_last_3m: De siste 3 månedene
+  time_last_6m: De siste 6 månedene
+  time_last_12m: I fjor
+  time_this_year: I år
+  time_all: Gjennom tidene
+  time_custom: Spesialtilpasset utvalg
+  time_custom_from: Fra
+  time_custom_to: Til
+  group_day: Daglig
+  group_week: Ukentlig
+  group_month: Månedlig
+  no_car_title: Det er ikke lagt til noen biler ennå
+  no_car_desc: Legg til din første elbil for å spore ladinger og se statistikk.
+  no_car_btn: Legg til kjøretøy →
+  no_logs_period_title: Ingen data for den valgte perioden
+  no_logs_period_desc: Velg en annen periode, eller bla nedover for å se alle ladinger.
+  no_logs_title: Det er ikke registrert noen ladinger ennå
+  no_logs_desc: Registrer din første lading for å se statistikk, diagrammer og WLTP-sammenligninger!
+  scan_photo: Skann bildet
+  enter_manual: Skriv inn manuelt
+  empty_community_title: Hvordan {model} fungerer i lokalsamfunnet
+  empty_community_trips: turer
+  empty_community_drivers: sjåfører
+  empty_community_avg_cost: gjennomsnitt pr. kWh
+  empty_community_cta: Registrer din første økt for å se hvordan du sammenligner deg.
+  empty_pioneer_title: Det finnes ingen data for dette fellesskapet ennå
+  empty_pioneer_desc: Ingen i vårt fellesskap registrerer kjørelengde for en {model} ennå. Registrer kjørelengden din og hjelp andre med å få et reelt bilde av forbruk og rekkevidde.
+  empty_pioneer_coins: Hver oppføring gir deg Watt-poeng
+  empty_start_title: Hvordan vil du begynne?
+  empty_manual_title: Registrer en ladesesjon
+  empty_manual_desc: Kom i gang med en gang – ta et bilde eller skriv inn opplysningene manuelt
+  empty_import_title: Importer data
+  empty_import_desc: Importer eksisterende data fra andre apper
+  empty_autosync_title: Automatisk synkronisering
+  empty_autosync_desc: Koble til bilen én gang – så skjer alt automatisk
+  empty_autosync_price: fra {price} /måned
+  metric_total_energy: Total energi
+  metric_charges: ladinger
+  metric_total_cost: Totalkostnad
+  metric_total_distance: Total distanse
+  metric_km_driven: kjørte kilometer
+  metric_avg_consumption: Gjennomsnittlig forbruk
+  metric_estimated: "{n} Anslått ladetid (uten SoC)"
+  metric_avg_cost: Gjennomsnittlig pris
+  metric_per_100km: per 100 km
+  chart_charging_costs: Lading og kostnader
+  chart_no_data: Det er ikke valgt noe datasett, eller det er ikke nok data.
+  chart_left_axis: Venstre akse
+  chart_right_axis: Høyre akse
+  chart_range_efficiency: Rekkevidde og effektivitet
+  chart_consumption_vs_wltp: Forbruk vs. WLTP
+  chart_consumption_vs_custom_prefix: Forbruket ditt sammenlignet med
+  chart_compare_customize: Tilpass sammenligningen
+  chart_compare_edit: Sammenligning av endringer
+  chart_compare_reset: Tilbakestill til WLTP
+  chart_compare_save: Lagre
+  chart_compare_placeholder: f.eks. 18,5
+  chart_green_better: grønn = mer effektiv
+  chart_red_worse: rød = høyere forbruk
+  map_title: Ladestasjoner
+  map_subtitle: Geografisk oversikt over ladingsøktene dine · Fargekodet etter energiforbruk (kWh)
+  logs_title: Ladingsøktene dine
+  logs_title_short: Ladingsøkter
+  logs_page: Side {n}
+  implausible_banner: "{n} {noun} med et usannsynlig forbruk"
+  implausible_entry: oppføring
+  implausible_entries: oppføringer
+  implausible_check: Les anmeldelsen nå ->
+  loading: Laster...
+  no_logs_empty: Det ble ikke funnet noen ladesesjoner.
+  charge_group: Ladningsgruppe
+  delete_confirm: Slette ladesesjonen?
+  wltp_missing: Det er ikke lagret noen WLTP-data for dette kjøretøyet. Du kan legge dem til
+  wltp_missing_link: kjøretøyadministrasjon
+  wltp_missing_suffix: og tjen 50 watt!
+  implausible_tooltip_title: Uvanlig forbruksverdi
+  implausible_tooltip_desc: "Det beregnede forbruket på {value} virker urealistisk. Mulige årsaker:"
+  implausible_tooltip_cause1: Sluttverdien for SoC (ladningsnivå i %) for forrige oppføring mangler
+  implausible_tooltip_cause2: Det mangler en ladeøkt mellom denne og forrige oppføring
+  estimated_tooltip: "Anslått verdi: beregnet ut fra ladet energi ÷ avstand; ingen SoC-verdi tilgjengelig."
+  week_abbr: W
+  top_up: Påfyll
+  edit_title: Rediger ladesesjon
+  reassign_car: Tilordne til kjøretøy
+  reassign_car_hint: Hvilket kjøretøy skal denne ladingen tilordnes?
+  reassign_success: Ladingsøkt tilordnet {car}
+  prev: Forrige
+  next: Neste
+  free_text: EV Monitor er gratis.
+  coins_total: Totalt
+  coins_this_month: Denne måneden
+  chart_cost_per_kwh: Pris (€/kWh)
+  chart_cost_per_kwh_label: Kostnad
+  chart_kwh: Ladet (kWh)
+  chart_consumption_label: Forbruk
+  chart_distance_label: Avstand
+  chart_compare_value: Sammenligning
+  chart_deviation: Avvik
+  chart_more_than: mer enn
+  metric_driven: drevet
+  err_load: Feil ved innlasting av statistikk
+leaderboard:
+  title: Poengliste
+  subtitle: Månedlig rangering av det mest aktive EV Monitor-fellesskapet
+  loading: Laster resultatlisten...
+  lower_is_better: Lavere = Bedre
+  no_data: Det foreligger ingen data for denne måneden ennå.
+  no_data_subtitle: Lad opp og sikre deg plassen din!
+  rank: Rangering {n}
+  you: (Du)
+  login_hint: Logg inn
+  login_hint_suffix: for å se din egen rangering.
+  coins_history: Vis din Watt-historikk
+  top3_reward: "De tre beste får bonus-watt ved månedsslutt:"
+  not_ranked: Du er ikke med på rangeringen ennå – kom i gang!
+  new_entry: NYTT
+  cat_kwh: Flest kWh
+  cat_charges: Ladingsøkter
+  cat_distance: Lengste avstand
+  cat_cheapest: Den billigste laderen
+  cheapest_subtitle: "{kwh} kWh på {sessions} ladinger"
+  cat_night_owl: Nattugle
+  cat_ice_charger: Islader
+  cat_power_charger: Den raskeste laderen
+logform:
+  title: Registrer ladeøkt
+  no_car_title: Det er ikke lagt til noen biler ennå
+  no_car_desc: Legg til et kjøretøy før du registrerer en ladesesjon.
+  no_car_btn: Legg til kjøretøy
+  mode_photo: Foto
+  mode_manual: Manuell
+  save_btn: ⚡ Lagre ladingsøkt
+  location_hint: 📍 Stedsdata hjelper oss med å beregne utetemperaturen under lading — disse lagres anonymisert, aldri som eksakte GPS-koordinater.
+  last_5_title: De siste 5 ladningene
+  no_car_selected: Velg et kjøretøy for å se ladingsøkter.
+  no_logs_yet: Det er foreløpig ikke registrert noen ladinger for dette kjøretøyet.
+  coin_toast: + {n}-watt mottatt!
+  delete_confirm: Vil du slette denne ladesesjonen?
+  delete_failed: Slettingen mislyktes. Prøv på nytt.
+  error_no_car: Vennligst velg et kjøretøy
+  error_required: "Fyll ut alle obligatoriske felt riktig: {fields}"
+  error_save: Ladingsøkten kunne ikke lagres
+  odometer_last: siste {km} km
+  odometer_placeholder: Kilometerteller (km)
+  odometer_min: børde være minst {min} km
+  field_kwh: Energi (kWh)
+  field_cost: Pris (€)
+  field_odometer: Kilometerteller
+  field_soc: Batteriet etter lading (0–100 %)
+  confirm_delete: Klikk igjen for å bekrefte
+  delete_title: Slett ladesesjon
+  edit_title: Rediger ladesesjon
+logfields:
+  energy: Energi (kWh)
+  cost_eur: Kostnad
+  cost_per_kwh: Pris (€/kWh)
+  odometer: Kilometerteller (km)
+  soc_after: Batterinivå etter lading (%)
+  soc_before: Batterinivå før lading (%)
+  charge_type: Ladetype
+  location_not_supported: Nettleseren din støtter ikke geolokalisering
+  location_denied: Tilgang til stedet nektet. Du kan søke etter et sted manuelt nedenfor.
+  route_city: By
+  route_mix: Blandet
+  route_highway: Motorvei
+  tire_summer: Somm.
+  tire_allyear: Hele året
+  tire_winter: Vint.
+  duration: Varighet (min)
+  max_power: Maks. effekt (kW)
+  max_power_full: Maks. ladeeffekt (kW)
+  timestamp: Ladetid
+  timestamp_hint: La feltet stå tomt for gjeldende klokkeslett
+  optional: valgfritt
+  kwh_placeholder: f.eks. 42,5
+  kwh_hint: "Verdien for veggmontert ladeboks eller ladestasjon (brutto). Ladetap trekkes automatisk fra ved beregning av forbruk (vekselstrøm: 10 %, likestrøm: 5 %)."
+  kwh_hint_mobile: "Verdien av veggmontert ladeboks eller ladestasjon (brutto!). Ladetap trekkes automatisk fra (vekselstrøm: 10 %, likestrøm: 5 %)."
+  cost_eur_placeholder: f.eks. 12,50
+  cost_per_kwh_placeholder: f.eks. 0,20
+  public_charging: Offentlig ladestasjon
+  optional_section: valgfrie opplysninger
+  route_type_label: Rutetype
+  tire_type_label: Dekketype
+  public_charging_short: Offentlig
+  public_charging_short2: Lading
+  cpo_select_placeholder: Velg nettverksoperatør
+  cpo_other: Annen leverandør
+  cpo_name_placeholder: Leverandørnavn
+  tariff_chip_label: Ladekort
+  update_location: Oppdater sted
+  location_search_placeholder: Søk etter sted (erstatter eksisterende)...
+  new_location: "Ny adresse:"
+  current_location: "Nåværende posisjon lagret (Geohash: {geohash})"
+  save: Lagre
+cars:
+  select_placeholder: Velg kjøretøy…
+  title: Mine kjøretøy
+  add_btn: + Legg til kjøretøy
+  add_title: Legg til nytt kjøretøy
+  add_submit_btn: Legg til
+  add_first_btn: Legg til første kjøretøy
+  update_btn: Oppdatering
+  cancel: Avbryt
+  edit_btn: Rediger
+  delete_btn: Slett
+  set_active_btn: Angi som aktiv
+  mark_business_btn: Merk som firmabil
+  unmark_business_btn: Ikke en firmabil
+  business_car: Firmabil
+  edit_title: Rediger kjøretøy
+  active: Aktiv
+  no_photo: Ingen bilde
+  delete_photo: Slett bilde
+  public: Offentlig
+  private: Privat
+  share_photo: Del bildet offentlig
+  uploading: Laster...
+  change_photo: Bytt bilde
+  upload_photo: Last opp bilde
+  label_brand: Merke *
+  select_brand: Velg merke...
+  label_model: Modell *
+  select_model: Velg modell...
+  select_brand_first: Velg merke først...
+  label_trim: Trim (valgfritt)
+  hint_trim: Utførelse/utstyrsnivå
+  label_capacity: Batterikapasitet (kWh) *
+  custom_capacity: Angi egendefinert kapasitet
+  preset_capacity: Velg blant tilgjengelige kapasiteter
+  wltp_available: WLTP-verdier tilgjengelig
+  epa_available: Data fra EPA er tilgjengelige
+  wltp_range: Rekkevidde
+  wltp_consumption: Forbruk
+  label_year: År *
+  label_plate: Nummerplate (valgfritt)
+  label_power: Strøm (valgfritt)
+  hint_power: Skriv inn kW for å se omregningen til hk
+  advanced_settings: Avanserte innstillinger
+  label_degradation: Batteriets ytelsesnedgang (valgfritt)
+  reset: Tilbakestill
+  effective_capacity: "Effektiv kapasitet: {eff} kWh (i stedet for {nom} kWh)"
+  hint_degradation: Forbruksberegningene baserer seg på den effektive kapasiteten.
+  battery: "Batteri:"
+  power: "Effekt:"
+  degradation_info: ({pct} % nedbrytning – effektiv {kwh} kWh)
+  id_hint: Kjøretøy-ID for API-opplasting
+  label_heat_pump: Varmepumpe
+  hint_heat_pump: Reduserer rekkeviddetapet betydelig om vinteren.
+  soh_section_title: Batteriets tilstand (SoH)
+  soh_history_empty: Det er ikke registrert noen målinger ennå.
+  soh_add_btn: Legg til måling
+  soh_correct_btn: Riktig
+  soh_delete_btn: Slett
+  soh_label_percent: SoH i %
+  soh_label_date: Måledato
+  soh_hint: SoH = helsetilstand. 100 % = nytt batteri. Forbruksberegningene justeres automatisk for eldre loggdata.
+  soh_badge: "{pct} % SoH"
+  soh_save_btn: Lagre
+  soh_error_save: Feil ved lagring av SoH-måling
+  soh_error_delete: Feil ved sletting av SoH-måling
+  soh_confirm_delete: Skal denne SoH-oppføringen slettes?
+  heat_pump_badge: Varmepumpe
+  business_car_label: Firmabil
+  business_car_hint: For skatterapportering og kostnadsanalyse.
+  tesla_charging: Lading
+  tesla_online: På nettet
+  tesla_sleeping: Søvn
+  empty_title: Ingen kjøretøy ennå
+  empty_desc: Legg til din første elbil for å registrere ladinger og se statistikk!
+  feat_models_title: Over 140 modeller
+  feat_models_desc: 68 merker i databasen vår
+  feat_wltp_title: WLTP-data
+  feat_wltp_desc: Automatisk forbrukssammenligning
+  feat_privacy_title: Privat
+  feat_privacy_desc: Dataene dine forblir hos deg
+  wltp_question_title: WLTP-verdiene mangler!
+  wltp_question_desc: Det finnes ennå ingen WLTP-verdier for denne modellen i databasen. Vil du legge dem til og tjene poeng?
+  wltp_yes: Ja, tjen poeng! ✨
+  wltp_no: Nei takk
+  wltp_form_title: Angi WLTP-verdier
+  wltp_form_for: For
+  wltp_range_label: Rekkevidde (WLTP kombinert) *
+  wltp_consumption_label: Forbruk (WLTP kombinert) *
+  epa_question_title: EPA-data mangler!
+  epa_question_desc: Det finnes ennå ingen EPA-data for denne modellen. Kjenner du den offisielle EPA-klassifiseringen? Del den og tjen poeng!
+  epa_form_title: Legg inn EPA-data
+  epa_range_label: Rekkevidde (EPA kombinert) *
+  epa_consumption_label: Forbruk (EPA kombinert) *
+  wltp_save_btn: Spar og tjen Watts 🎉
+  import_title: Importalternativer
+  error_load: Feil ved innlasting av kjøretøy
+  error_brands: Feil ved innlasting av merker
+  error_models: Feil ved lasting av modeller
+  error_capacity: Velg eller skriv inn batterikapasitet
+  error_save: Feil ved lagring av kjøretøy
+  error_delete: Feil ved sletting av kjøretøy
+  error_activate: Feil ved aktivering av kjøretøy
+  error_business_car: Feil ved oppdatering av status for firmabil
+  error_wltp: Vennligst fyll ut alle WLTP-feltene
+  error_wltp_save: Feil ved lagring av WLTP-data
+  error_visibility: Feil ved oppdatering av synlighet
+  error_upload: Feil ved opplasting av bilde
+  error_delete_image: Feil ved sletting av bilde
+  confirm_delete: Vil du slette dette kjøretøyet? Denne handlingen kan ikke angres.
+  confirm_delete_image: Slette bildet?
+  toast_first: Din første bil! + {n}-poeng opptjent!
+  toast_coins: + {n}-poeng opptjent!
+  toast_wltp: 🎉 Takk! {n} Watt opptjent! Samfunnet drar nytte av dataene dine.
+  toast_image_public: Bildet er delt offentlig! + {n}-poeng opptjent!
+  toast_upload: Bildet er lastet opp! + {n}-poeng opptjent!
+  trim_placeholder: f.eks. GTX, Pro Performance, Long Range
+  trim_placeholder_sonstige: f.eks. C10 ProMax, BX3, Elroq 50
+  capacity_custom_placeholder: f.eks. 82,5
+  plate_placeholder: f.eks. AB-123 CD
+  power_placeholder: f.eks. 150
+  degradation_placeholder: f.eks. 8
+  wltp_range_placeholder: f.eks. 450
+  wltp_consumption_placeholder: f.eks. 16,5
+  epa_range_placeholder: f.eks. 438
+  epa_consumption_placeholder: f.eks. 15,8
+  api_id_label: Kjøretøy-ID
+  api_id_copy: Kopier kjøretøy-ID
+  api_id_copied: Kopiert
+carselector:
+  label: Kjøretøy
+  loading: Laster inn kjøretøy...
+  no_cars: Du må først legge til et kjøretøy for å kunne registrere ladinger.
+  go_to_cars: Gå til kjøretøyadministrasjon
+  select: Velg kjøretøy
+  error_load: Feil ved innlasting av kjøretøy
+consumption_info:
+  trigger: Hvordan beregnes forbruket ditt?
+  p1: Forbruket beregnes ut fra <strong>ladet kWh</strong>, <strong>ladetilstand (SoC)</strong> og <strong>kilometerteller</strong> for to påfølgende ladeøkter – alle tre verdiene må være oppgitt i begge oppføringene. Hvis en av dem mangler, kan ikke forbruket for den neste oppføringen beregnes.
+  p2_pre: Etter <strong>{minTrips} utregningsbare kjøreturer</strong>, sammenligner vi hver verdi med ditt personlige gjennomsnitt. Før det brukes kjøretøyets WLTP-referanseverdi. Kjøreturer med sterkt avvikende forbruk er
+  p2_post: merket – vanligvis et tegn på at det mangler en ladeøkt mellom to oppføringer.
+  p3: "<strong>Ladetap – avhengig av situasjonen:</strong> Ladebokser og ladestasjoner måler strømforbruket ved stikkontakten – inkludert ladetap (varme som genereres under lading, ca. 5–10 %). For <strong>forbruk (kWh/100 km)</strong> blir disse tapene fjernet (AC: 10 %, DC: 5 %), slik at verdien gjenspeiler din faktiske kjøreffektivitet og er sammenlignbar med WLTP. For <strong>kostnader (€/kWh)</strong> blir de med – du har tross alt betalt for dem."
+editlog:
+  title: Rediger ladesesjon
+  location_label: Oppdater sted
+  location_placeholder: Søk etter sted (erstatter eksisterende)...
+  new_location: "Ny adresse: {name}"
+  current_location: "Nåværende posisjon lagret (Geohash: {hash})"
+  field_kwh: Energi (kWh)
+  field_cost: Pris (€)
+  field_odometer: Kilometerteller
+  field_soc: SoC etter lading (0–100 %)
+  error_required: "Fyll ut alle obligatoriske felt riktig: {fields}"
+  error_save: Lagringen mislyktes
+  cancel: Avbryt
+  save: Lagre
+implausible:
+  title: Kontroller datakvaliteten
+  info: Disse oppføringene har usannsynlige forbruksverdier – ofte på grunn av korte turer, oppvarming i standby-modus eller manglende registreringer. Du kan ekskludere dem fra statistikken, redigere eller slette dem.
+  all_clear: Alle oppføringene virker troverdige.
+  all_excluded: Alle oppføringer er utelatt fra statistikken.
+  confirm_delete: Vil du virkelig slette denne ladesesjonen?
+  exclude_title: Ekskluder fra statistikken
+  include_title: Ta med i statistikken igjen
+  edit_title: Rediger
+  delete_title: Slett
+  excluded_count: "{n} skjult oppføring | {n} skjulte oppføringer"
+  close: Lukk
+coins:
+  title: Watts historie
+  unit: Watt
+  to_leaderboard: Gå til resultatlisten
+  ranking_title: Din rangering denne måneden
+  collapse: skjul ▲
+  expand: vis mer ▼
+  standings_loading: Laster...
+  delta_new: NYTT
+  type_achievement: Prestasjon
+  type_social: Fellesskap
+  type_green: Miljø
+  type_distance: Avstand
+  type_streak: Serie
+  type_efficiency: Effektivitet
+  error_load: Feil ved innlasting av Watt-historikk
+  loading: Laster inn Watt-historikk...
+  empty_title: Ingen poeng opptjent ennå
+  empty_desc: Registrer din første lading eller legg til et kjøretøy for å tjene mynter!
+  legend_title: Hvordan tjener man Watt?
+  legend_logs: Ladingsøkter
+  legend_log_first: Første økt registrert
+  legend_log_more: Neste økt
+  legend_log_ocr_first: Økt via OCR (første)
+  legend_log_ocr: Økt via OCR
+  legend_log_delete: Økten er slettet
+  legend_imports: Import (engangsimport)
+  legend_sprit_connect: Sprit-Monitor er tilkoblet
+  legend_sprit_log: Økt via Sprit-Monitor
+  legend_tesla_connect: Tesla tilkoblet
+  legend_tesla_logger: TeslaLogger er tilkoblet
+  legend_tesla_logger_log: Økt via TeslaLogger (logg)
+  legend_tesla_sync_log: Synkronisering via Tesla Sync (daglig)
+  legend_cars: Kjøretøy
+  legend_car_first: Første kjøretøy lagt til
+  legend_car_more: Et annet kjøretøy
+  legend_car_image_first: Første bilbilde lastet opp (engangs)
+  legend_car_image_public: Bildet deles offentlig (én gang)
+  legend_community: Fellesskap
+  legend_referral: En venn inviterte
+  legend_referral_bonus: Velkomstbonus (når du blir invitert av noen)
+settings:
+  title: Innstillinger
+  logout: Logg ut
+  watt_account: Watt-konto
+  watt_history: Vis Watt-historikk →
+  referral_title: Inviter venner
+  referral_desc: Del din personlige invitasjonslenke. Du tjener <strong>100 Watt</strong> for hver venn som registrerer seg og bekrefter e-postadressen sin. Vennen din får <strong>25 Watt</strong> som velkomstbonus.
+  copied: Kopiert!
+  copy: Kopier
+  account: Konto
+  email_label: E-post
+  email_change: Endre
+  email_new_placeholder: Ny e-postadresse
+  email_password_placeholder: Nåværende passord for bekreftelse
+  email_logout_hint: Du blir logget ut etterpå og må logge inn med den nye e-postadressen.
+  save: Lagre
+  cancel: Avbryt
+  username_label: Brukernavn
+  username_new_placeholder: Nytt brukernavn
+  password_label: Passord
+  password_current_placeholder: Nåværende passord
+  password_new_placeholder: Nytt passord (min. 8 tegn)
+  password_confirm_placeholder: Bekreft nytt passord
+  privacy_title: Data og personvern
+  registered_since: Registrert siden
+  export_btn: Eksporter dataene mine (JSON)
+  delete_btn: Slett kontoen permanent
+  leaderboard_title: Poengliste
+  leaderboard_visible_label: Vises på topplistene
+  leaderboard_visible_hint: Når denne funksjonen er deaktivert, vises ikke brukernavnet ditt i noen kategorier.
+  leaderboard_enable: Aktiver
+  leaderboard_disable: Deaktiver
+  help_title: Hjelp og støtte
+  tutorial_title: Se veiledningen på nytt
+  tutorial_desc: Vil du gå gjennom velkomstveiledningen igjen? Perfekt hvis du trenger en oppfriskning eller ønsker å oppdage nye funksjoner.
+  tutorial_btn: Veiledning for omstart
+  support_title: Støtt EV Monitor
+  support_desc: EV Monitor er gratis og uten reklame. Hvis appen er til hjelp for deg, setter jeg pris på en kaffe ☕
+  delete_modal_title: Slette kontoen?
+  delete_modal_desc: Denne handlingen <strong>kan ikke angres</strong>. Alle dine data (ladinger, kjøretøy, watt) vil bli slettet permanent.
+  delete_password_placeholder: Bekreft passord
+  delete_confirm_btn: Slett permanent
+  tariff_title: Mine ladekort
+  tariff_active_since: siden
+  tariff_none_title: Det er ikke lagt inn noe ladekort ennå
+  tariff_none_desc: Legg til ladekontraktene dine – du kan administrere flere samtidig.
+  tariff_add_btn: Nytt ladekort
+  tariff_form_title_new: Nytt ladekort
+  tariff_form_edit: Rediger ladekort
+  tariff_label_label: Etikett (valgfritt)
+  tariff_label_placeholder: f.eks. EnBW-arbeid med RFID, Maingau-hjem
+  tariff_provider_label: Leverandør
+  tariff_provider_placeholder: Velg leverandør...
+  tariff_provider_custom_placeholder: Skriv inn leverandørnavn
+  tariff_ac_label: Strømpris (€/kWh)
+  tariff_dc_label: DC-pris (€/kWh)
+  tariff_monthly_label: Månedlig avgift (€/måned)
+  tariff_session_label: Pris per time (€/time)
+  tariff_active_from_label: Aktiv siden
+  tariff_save: Lagre
+  tariff_cancel: Avbryt
+  tariff_ok: Betalingskortet er lagret!
+  tariff_err_save: Lagringen mislyktes
+  tariff_err_delete: Sletningen mislyktes
+  month_short: måned
+  err_email_change: Det gikk ikke å endre e-postadressen
+  err_username_change: Det gikk ikke å endre brukernavn
+  err_fill_all: Vennligst fyll ut alle feltene
+  err_passwords_mismatch: Passordene stemmer ikke overens
+  err_password_short: Passordet må bestå av minst 8 tegn
+  err_password_change: Det gikk ikke å endre passordet
+  err_export: Det gikk ikke å eksportere data
+  err_delete: Det gikk ikke å slette kontoen
+  err_leaderboard: Det gikk ikke an å lagre innstillingen.
+  err_password_enter: Vennligst skriv inn passordet ditt
+  ok_username: Brukernavnet er endret!
+  ok_password: Passordet er endret!
+  ok_export: Dataene er eksportert!
+  tutorial_restarting: Veiledningen starter på nytt...
+  via_provider: via {provider}
+  country_title: Land / Region
+  country_desc: Bestemmer hvilke enheter og hvilken valuta som vises.
+onboarding:
+  skip_title: Hopp over
+  badge: Innledning
+  step1_title: Velkommen til EV Monitor!
+  step1_desc: Følg med på ladningene dine, sammenlign forbruket ditt med <strong>WLTP</strong>, og del erfaringene dine med fellesskapet.
+  feat_logs: Ladingslogger
+  feat_stats: Statistikk
+  feat_community: Fellesskap
+  start_btn: Kom igjen! →
+  skip_hint: Du kan hoppe over veiledningen når som helst
+  step2_title: Legg til din elbil
+  step2_desc: Velg din bil blant over <strong>100 modeller</strong>.
+  step2_feat_wltp: Automatiske WLTP-forbruksdata
+  step2_feat_battery: Batterikapasitet og rekkevidde
+  step2_feat_community: Gjennomsnittsverdier for lokalsamfunnet
+  step2_feat_compare: Sammenligning mellom faktisk forbruk og WLTP
+  back_btn: ← Tilbake
+  next_btn: Neste →
+  step3_title: Registrer din første lading
+  step3_desc: Velg mellom to enkle metoder – begge tar mindre enn <strong>30 sekunder</strong>!
+  step3_options: Dine valgmuligheter
+  step3_photo_title: Skann bildet
+  step3_photo_desc: 100 % privat – ingen opplasting
+  step3_manual_title: Skriv inn manuelt
+  step3_manual_desc: Raskt og fleksibelt
+  step3_import_hint: "Eller importer eksisterende data fra:"
+  step4_title: Bruk direkte fra telefonen din
+  step4_desc: Legg til EV Monitor på startskjermen – uten å måtte bruke en appbutikk.
+  step4_installed: Allerede installert! Du bruker allerede EV Monitor som app.
+  step4_install_btn: Legg til på startskjermen
+  step4_ios_title: "I Safari:"
+  step4_ios_step1: Trykk på del-knappen
+  step4_ios_step2: Velg «Legg til på startskjermen»
+  step4_ios_step3: Bekreft «Legg til» – ferdig!
+  step4_android_title: "I Chrome:"
+  step4_android_step1: Trykk på menyen (tre prikker)
+  step4_android_step2: «Installer app» eller «Legg til på startskjermen»
+  step4_android_step3: Bekreft – ferdig!
+  step4_generic: "På telefonen: Åpne <strong>ev-monitor.net</strong> i Safari (iOS) eller Chrome (Android), og legg siden til på startskjermen."
+  step4_feedback_title: Din mening teller!
+  step4_feedback_desc: Finn <strong>Tilbakemeldingsknappen</strong> øverst til høyre
+  complete_btn: Kom igjen!
+notfound:
+  subtitle: Siden ser ut til å ha lukket seg av seg selv...
+  path_info: finnes ikke.
+  fun_fact_label: "Morsom fakta:"
+  fun_fact: HTTP 404 er oppkalt etter rom 404 ved CERN, der Tim Berners-Lee oppfant WWW. (Men det er nok bare en myte 🤓)
+  go_back: ← Tilbake
+  go_home: Gå til oversikten
+rankings:
+  breadcrumb_models: Modeller
+  breadcrumb_current: Rangeringer
+  header: EV-rangeringer
+  subtitle: Lokalsamfunnsbaserte kjøretøyrangeringer
+  section_title: De mest effektive modellene (reelle)
+  filter_all: Alle
+  error: Det gikk ikke å laste inn dataene.
+  empty: Det foreligger ikke nok data fra lokalsamfunnet ennå.
+  log_count: "{n} ladeøkter"
+  coming_soon: Flere rangeringer kommer snart
+compare:
+  breadcrumb_models: Modeller
+  breadcrumb_current: Sammenlign
+  error_title: Sammenligning er ikke mulig
+  error_min_models: Velg minst to modeller.
+  error_loading: Det oppstod en feil ved innlasting av modelldata.
+  error_need_two: Velg minst to modeller du vil sammenligne.
+  subtitle: Reelle kjøreforhold i direkte sammenligning – WLTP kontra virkeligheten
+  change_models: Velg mellom ulike modeller
+  badge_community: Samfunnsdata
+  badge_wltp_only: Kun WLTP
+  section_consumption: Forbruk og effektivitet
+  row_real_consumption: Ø Faktisk (kWh/100 km)
+  row_wltp_consumption: WLTP (kWh/100 km)
+  row_wltp_delta: WLTP-avvik
+  section_range: Rekkevidde
+  row_real_range: Reell (90→10 %)
+  row_real_range_sub: ved faktisk forbruk
+  row_wltp_range: WLTP-rekkevidde
+  section_costs: Kostnader
+  row_costs_per_100: Ø Kostnad / 100 km
+  row_costs_per_kwh: Ø Pris per kWh
+  section_seasonal: Sesongbasert
+  row_summer: Sommer (kWh/100 km)
+  row_winter: Vinter (kWh/100 km)
+  section_data: Database for lokalsamfunnet
+  row_log_count: Ladeøkter
+  row_contributors: Medarbeidere
+  legend_best: Best valuta for pengene
+  legend_worst: Dårligst pris/kvalitet
+  legend_no_data: – = ingen data tilgjengelig
+  detail_pages: Detaljsider
+  cta_title: Mangler det data, eller er de ufullstendige?
+  cta_desc: Legg inn dine ladinger – jo flere sjåfører som bidrar, desto mer pålitelig blir sammenligningen.
+  cta_register: Kom i gang gratis
+  cta_login: Logg inn
+  all_models: Alle modeller
+  head_title_fallback: Modell sammenligning | EV Monitor
+  head_desc: "Direkte sammenligning: {names}. Faktisk forbruk, rekkevidde, kostnader og WLTP-avvik basert på reelle data fra brukerne."
+imports:
+  title: Importer ladingsøkter
+  subtitle: Importer tidligere ladinger, eller koble til en hjemmeladestasjon for automatisk import.
+  tab_smartcar: Automatisk synkronisering
+  autosync_teaser_title: Registrer alle ladeøkter automatisk
+  autosync_teaser_desc: Vil du at alle bilens ladinger skal importeres automatisk – uten at du trenger å legge dem inn manuelt? EV Monitor AutoSync gjør det mulig – kompatibelt med 28 bilmerker.
+  autosync_teaser_cta: Aktiver AutoSync
+  autosync_teaser_price: "{priceMonthly} /måned – kan sies opp når som helst"
+  smartcar_upgrade_cta: Lås opp nå – {priceMonthly} /måned
+  smartcar_upgrade_price: Du kan si opp når som helst. Sikker betaling via Stripe.
+  smartcar_teaser_title: Automatiske ladeøkter – alle merker
+  smartcar_coming_soon: Kommer snart
+  smartcar_teaser_desc: Koble til bilen én gang, så registrerer EV-Monitor automatisk hver ladeøkt – uten at du trenger å legge inn opplysninger manuelt.
+  smartcar_feat2: Helt automatisk – ingen app eller OBD-dongle nødvendig
+  smartcar_feat3: Nøyaktig kWh-forbruk direkte fra kjøretøyet
+  smartcar_feat4: Sikker forbindelse direkte med bilprodusenten
+  smartcar_brands_title: Støttede bilmerker
+  smartcar_title: Smartcar-kjøretøytilkobling
+  smartcar_desc: Koble til et kjøretøy via Smartcar for å få fullt automatiske ladeprosesser.
+  smartcar_desc_connected: Kjøretøyet ditt er koblet til via SmartCar og registrerer automatisk ladeøkter.
+  smartcar_waiting_data: Venter på første webhook...
+  smartcar_loading: Laster tilkoblingsstatus...
+  smartcar_not_configured: Smartcar er ennå ikke konfigurert på denne serveren.
+  smartcar_confirm_disconnect: Vil du virkelig koble fra kjøretøyet? Data fra den aktive økten vil gå tapt.
+  smartcar_state_charging: Lading
+  smartcar_state_idle: Ikke tilkoblet
+  smartcar_state_full: Fulladet
+  smartcar_state_unknown: Ukjent
+  smartcar_session_active: Økten er aktiv
+  smartcar_last_update: Siste oppdatering
+  smartcar_energy_added: Oppladet så langt
+  smartcar_session_since: Siden
+  smartcar_disconnecting: Kobler fra...
+  smartcar_disconnect_btn: Koble fra kjøretøyet
+  smartcar_no_cars: Det ble ikke funnet noen biler.
+  smartcar_add_car: Legg til kjøretøy
+  smartcar_select_car: Velg kjøretøy
+  smartcar_connecting: Kobler til...
+  smartcar_connect_btn: Koble til kjøretøy
+  smartcar_support_hint: Har du spørsmål om oppsettet?
+  smartcar_how_title: Hvordan fungerer AutoSync?
+  smartcar_how_q1: Hva er Smartcar?
+  smartcar_how_a1: AutoSync bruker en tjeneste kalt Smartcar i bakgrunnen – et offisielt grensesnitt som bilprodusentene bruker til å gi apper autorisert tilgang til kjøretøydata. Over 30 produsenter har offisielt godkjent Smartcar, blant annet BMW, Volkswagen, Mercedes og Volvo.
+  smartcar_how_q2: Hvorfor gå via en mellommann?
+  smartcar_how_a2: Ingen produsenter gir tredjeparter direkte tilgang til kjøretøydata. Smartcar er den godkjente kanalen – de har offisielle samarbeidsavtaler med produsentene og er autorisert til å hente inn data på vegne av bileieren. EV Monitor har ingen direkte forbindelse til bilen din – alt går via Smartcar.
+  smartcar_how_q3: Hva skjer når man kobler seg til?
+  smartcar_how_a3: "Du blir omdirigert til produsentens påloggingsside – direkte til BMW, Volkswagen, Mercedes osv. Der oppgir du påloggingsopplysningene dine, og det er kun produsenten som ser dem. Verken Smartcar eller EV Monitor får noen gang tilgang til passordet ditt. Produsenten gir deretter Smartcar kun et midlertidig tilgangstoken – det fungerer akkurat som «Logg inn med Google»: du oppgir passordet ditt til Google, ikke til tjenesten som bruker Google. Du kan når som helst trekke tilbake tilgangen direkte hos produsenten eller her."
+  smartcar_how_q4: Hva skjer under lading?
+  smartcar_how_a4: Så snart en ladeøkt starter og avsluttes, sender Smartcar automatisk dataene til EV Monitor. kWh-tallene hentes direkte fra bilen – noe som gir et mer nøyaktig resultat enn noe estimat. Du trenger ikke å gjøre noe.
+  smartcar_how_q5: Må jeg gjøre noe etterpå?
+  smartcar_how_a5: Nei. Når forbindelsen er opprettet, kjører alt helt i bakgrunnen.
+  tab_spritmonitor: Sprit-Monitor
+  tab_goe: go-eCharger
+  tab_wallbox: OCPP-vegglader
+  tab_tesla: Tesla
+  tab_tronity: Tronity
+  tab_manuell: Manuell
+  tab_api: API
+  sprit_title: Sprit-Monitor Import
+  sprit_desc: Importer hele ladingshistorikken din fra Sprit-Monitor – inkludert kostnader og forbruk. API-tokenet ditt slettes umiddelbart etter importen, og ingenting lagres.
+  sprit_feat1: Fullstendig ladingshistorikk fra Sprit-Monitor
+  sprit_feat2: Kostnader, kWh, dato – alt er inkludert
+  sprit_feat3: Valg av kjøretøy
+  sprit_feat4: Engangs-API-token lagres ikke
+  sprit_btn: Start import av Sprit-Monitor
+  goe_title: go-eCharger Cloud
+  goe_desc: Koble til go-eCharger via Cloud API for helautomatisk import. Ladestatusen sjekkes hvert 30. sekund, og fullførte ladesesjoner loggføres automatisk.
+  goe_beta_hint: "Betafunksjon: Denne integrasjonen er i betaversjon og kan fortsatt inneholde feil. Vennligst rapporter eventuelle problemer."
+  goe_parallel_hint: "Merk: Cloud API kan brukes parallelt med alle andre go-e-funksjoner (lading av overskuddsstrøm fra solcelleanlegg, laststyring). Det er ikke nødvendig med OCPP-konfigurasjon."
+  wallbox_title: OCPP-vegglader
+  wallbox_desc: Konfigurer ladestasjonen din ved hjelp av OCPP-protokollen. Ladesesjonene blir da automatisk importert etter hver sesjon.
+  wallbox_beta_hint: "Betafunksjon: Denne integrasjonen er i betaversjon og kan fortsatt inneholde feil. Vennligst rapporter eventuelle problemer."
+  wallbox_ocpp_warning_title: Viktig informasjon før installasjon
+  wallbox_ocpp_warning_desc: Med OCPP blir ladestasjonen din omkonfigurert til å bruke <strong>vår server</strong> som styreenhet. Dette innebærer at produsentspesifikke skyfunksjoner som <strong>lading av overskuddsstrøm fra solcelleanlegg</strong> eller <strong>laststyring</strong> ikke lenger vil fungere.
+  wallbox_ocpp_goe_hint_pre: "Anbefaling for go-eCharger: Bruk"
+  wallbox_ocpp_goe_hint_post: i stedet – parallelt med alle wallbox-funksjonene.
+  wallbox_ocpp_goe_link: Import via sky-API
+  wallbox_btn: Konfigurer OCPP Wallbox
+  tesla_no_car_title: Tesla-integrasjon
+  tesla_no_car_desc: For å kunne bruke Tesla-integrasjonen må du først legge til en Tesla-bil i «{link}».
+  tesla_no_car_link: kjøretøyadministrasjon
+  manuell_title: Manuell import
+  manuell_desc: Importer tidligere ladingsøkter fra hvilken som helst kilde – som CSV- eller JSON-fil. Kompatibelt med TeslaMate, TeslaFi, dine egne eksporter og alle andre formater du kan tilpasse.
+  manuell_feat1: CSV eller JSON – formatet er forhåndsdefinert
+  manuell_feat2: "Obligatoriske felt: dato og kWh – alt annet er valgfritt"
+  manuell_feat3: "Datoformater: ISO 8601, tysk, amerikansk, Unix-tidsstempel"
+  manuell_feat4: "Plassering: Koordinater (breddegrad/lengdegrad) for kartvisning"
+  manuell_feat5: Duplikater oppdages og hoppes over – basert på tidsstempel og kWh
+  manuell_select_car: Velg kjøretøy
+  manuell_btn: Start import
+  manuell_no_car: Det ble ikke funnet noen aktive kjøretøy.
+  manuell_no_car_link: Legg til kjøretøy
+  api_title: REST API-opplasting
+  api_desc: Koble til ladestasjoner, skript eller hjemmeautomatisering direkte til EV Monitor. Sesjonene importeres automatisk så snart verktøyet ditt sender dem.
+  api_required: "Obligatoriske felt:"
+  api_optional: "Valgfritt:"
+  api_dedup: Duplikater oppdages og hoppes over – basert på tidsstempel og kWh.
+  api_docs: Fullstendig API-dokumentasjon →
+  api_new_key_title: Ny API-nøkkel — kun synlig nå!
+  api_save_key_hint: Lagre denne nøkkelen nå – den vises ikke igjen.
+  api_key_placeholder: Nøkkelnavn, f.eks. OpenWB Home
+  api_create_btn: + Opprett nøkkel
+  api_no_keys: Ingen API-nøkler ennå.
+  api_no_name: (uten navn)
+  api_last_used: "Sist brukt:"
+  api_created: "Opprettet:"
+  api_never: Aldri
+  api_revoke_title: Tilbakekall nøkkel
+  api_revoked: API-nøkkelen er tilbakekalt.
+  api_err_create: Det var ikke mulig å opprette API-nøkkelen
+  api_err_delete: Nøkkelen kunne ikke slettes
+  api_confirm_revoke: Vil du virkelig oppheve API-nøkkelen «{name}»? Alle integrasjoner som bruker denne nøkkelen, vil slutte å fungere umiddelbart.
+  api_confirm_name_fallback: uten navn
+  api_copy_title: Kopier
+  api_car_ids_title: Kjøretøy-ID-er
+  api_car_ids_hint: Du må oppgi disse som <code>car_id</code> i API-forespørselen din.
+  api_car_id_copied: Kopiert
+spritmonitor:
+  title: Sprit-Monitor Import
+  step1_intro: Skriv inn <strong>Sprit-Monitor API-tokenet</strong> for å importere ladesesjonene dine. Tokenet slettes umiddelbart etter importen. Det blir <strong>ikke lagret</strong>!
+  token_placeholder: f.eks. abc123xyz...
+  token_hint_pre: Du finner tokenet på Sprit-Monitor under
+  token_hint_link: Min konto → Endre passord
+  load_btn_loading: Laster…
+  load_btn: Last inn kjøretøy
+  danger_title: Slett tidligere importeringer
+  danger_desc: Hvis du vil slette alle tidligere Sprit-Monitor-import, klikk her. <strong>Ladingsøkter som er lagt inn manuelt, blir IKKE slettet.</strong>
+  danger_btn: Slett alle Sprit-Monitor-importene
+  err_token_empty: Vennligst skriv inn Sprit-Monitor API-tokenet ditt!
+  err_no_vehicles: Det ble ikke funnet noen elbiler! Har du noen på Sprit-Monitor?
+  err_token_invalid: Tokenet er ugyldig eller API-et er utilgjengelig. Sjekk tokenet ditt!
+  step2_intro: Vi har funnet <strong>{n} elektriske biler</strong>! Legg dem til i EV Monitor-biler eller opprett nye.
+  mapping_label: "Oppgave:"
+  mapping_placeholder: -- Vennligst velg --
+  mapping_new: ➕ Opprett ny bil
+  new_car_label: "Opprett ny bil:"
+  brand_placeholder: -- Velg merke --
+  model_placeholder_brand_selected: -- Velg modell --
+  model_placeholder_no_brand: Velg merke først
+  year_placeholder: År (f.eks. 2023)
+  skip_hint: Kjøretøy uten tildeling vil bli hoppet over under importen.
+  start_import_btn: Start import
+  err_no_mapping: Vennligst velg minst ett kjøretøy!
+  err_missing_data: Det mangler data for «{vehicle}» (merke/modell/år)!
+  step3_title: Importerer data...
+  step3_progress: Kjøretøy {current} / {total}
+  step4_title: Importen er fullført!
+  step4_imported: "{n} importerte økter"
+  step4_skipped: "{n} finnes allerede, hoppes over"
+  step4_no_location: "{n} Oppføringene har et stedsnavn (f.eks. «SuC Asten»), men ingen GPS-koordinater fra Sprit-Monitor – disse vises ikke på varmekartet."
+  step4_coins: + {n}-watt mottatt!
+  step4_errors_title: "Feil:"
+  done_btn: Ferdig
+  delete_title: Slette alle importerte filer?
+  delete_desc: Du er i ferd med å slette <strong>ALLE tidligere Sprit-Monitor-import</strong>. Denne handlingen <strong>kan ikke angres</strong>.
+  delete_confirm: Jeg er klar over at alle mine tidligere importerte Sprit-Monitor-ladingsøkter vil bli slettet.
+  delete_cancel: Avbryt
+  delete_btn_loading: Sletter…
+  delete_btn: Ja, slett alt
+  err_delete: Slettingen mislyktes. Prøv på nytt.
+manual_import:
+  title: Importer ladingsøkter
+  format_info: Filen må være i samsvar med <strong>EV Monitor-formatet</strong> – ikke en direkte eksport fra andre apper. Kopier først malen nedenfor og fyll den ut med dine data.
+  template_label: Mal (påkrevd format)
+  copy_btn: Kopier
+  copied: Kopiert!
+  required_fields: <strong>Obligatoriske felt:</strong> dato, kWh
+  date_formats: <strong>dato:</strong> ISO 8601, DD.MM.ÅÅÅÅ, MM/DD/ÅÅÅÅ eller Unix-tidsstempel
+  location_hint: <strong>sted:</strong> Breddegrad/Lengdegrad (f.eks. <code>48.2082,16.3738</code>) – stedsnavnet lagres uten kartmarkør
+  cpo_hint: "<strong>cpo_name:</strong> Ladenettverk (f.eks. IONITY, EnBW, Tesla Supercharger) – valgfritt, brukes sammen med <code>is_public_charging: true</code>"
+  upload_label: Last opp fil i EV Monitor-format
+  drop_hint: Slipp filen her eller <span class="text-green-600 font-medium">bla gjennom</span>
+  paste_label: Eller lim inn direkte
+  result_summary: "{imported} importert, {skipped} hoppet over"
+  result_errors: "{errors}-feil"
+  result_warnings: ", {warnings} rader med færre kolonner enn overskriften"
+  hint_column_mismatch: Noen rader har færre verdier enn overskriftskolonnene. Dette kan føre til at feltene tilordnes feil – for eksempel kan «is_public_charging» havne i feil kolonne. Sørg for at hver rad har like mange kommaer som overskriftsraden.
+  hint_all_errors: Kontroller at datoformatet er riktig (f.eks. 2025-08-31 eller 01.11.2023) og at alle rader inneholder en gyldig kWh-verdi.
+  err_import: Importen mislyktes
+  close_btn: Lukk
+  import_btn: Importer
+ocr:
+  title: Skann bildet
+  step1_prompt: Ta et bilde av ladingsskjermen, eller velg et bilde fra galleriet
+  take_photo_btn: Ta et bilde
+  tip: "Tips: Sørg for at du har god belysning og god oversikt over kWh, kostnader og varighet"
+  start_ocr_btn: Start OCR
+  scanning: Skanner...
+  wait_hint: Vennligst vent, dette kan ta noen sekunder...
+  retry_btn: Gjenta
+  confidence_high: "{pct} % av dataene gjenkjent"
+  confidence_medium: "{pct} % av dataene gjenkjent"
+  confidence_low: Bare {pct} % av dataene ble gjenkjent
+  detected_data: "Bekreftede data:"
+  label_kwh: kWh belastet
+  label_cost: Pris (€)
+  label_duration: Varighet (minutter)
+  label_power: Maks. ladeeffekt (kW)
+  apply_btn: Bruk data
+  rescan_btn: Skann på nytt
+  debug_toggle: Vis OCR-råtekst (feilsøking)
+  kwh_placeholder: f.eks. 45,5
+  cost_placeholder: f.eks. 18.20
+  duration_placeholder: f.eks. 135
+  power_placeholder: f.eks. 22
+  err_not_image: Velg et bilde
+  err_ocr_failed: OCR mislyktes. Prøv på nytt, eller skriv inn opplysningene manuelt.
+tesla:
+  setup_title: Konfigurer Tesla Sync
+  setup_subtitle: Via Teslas offisielle Fleet API
+  sync_info_title: "Hva synkroniseres:"
+  sync_item1: Supercharger-økter (én gang tidligere + med jevne mellomrom fremover)
+  sync_item2: Kommende ladesesjoner (med duplikatdeteksjon for å sikre datakvaliteten)
+  sync_item3: Energi i kWh, varighet, sted
+  sync_item4: Kostnader (hvis Supercharger med fakturering)
+  sync_item5: Kjørelengde (fra nå av, for fremtidige økter)
+  sync_note: Tidligere ladesesjoner inkluderer ikke kilometerteller – Tesla-API-et gir kun denne informasjonen for aktive ladesesjoner.
+  connect_desc: Koble til Tesla-kontoen din via den offisielle OAuth2-prosessen. Vi importerer dine tidligere Supercharger-økter og sjekker daglig om det har kommet nye.
+  select_car_label: Hvilken modell er din Tesla?
+  no_car_hint: Legg først til et kjøretøy under «Kjøretøy».
+  connect_btn_loading: Omdirigerer...
+  connect_btn: Koble til Tesla
+  connected_prefix: "Koblet til:"
+  last_sync: "Siste synkronisering:"
+  sync_btn_loading: Importerer...
+  sync_btn: Importer betalingshistorikk nå
+  auto_import_hint: Daglig automatisk import er aktivert
+  geocoding: Leter etter ladestasjoner…
+  skipped: "{n} hoppet over"
+  realtime_title: Sanntidsdeteksjon
+  realtime_desc: Etter en tur sjekker vi i <span class="font-medium">{minutes} minutter</span> om du har koblet til laderen. Deretter setter vi Teslaen i hvilemodus.
+  settings_save: Lagre
+  settings_saved: Lagret
+  sleep_warning: Lengre tidsvinduer registrerer ladesesjoner mer pålitelig, men hindrer også Teslaen i å gå i hvilemodus. Kortere tidsvinduer sparer på batteriet, men kan føre til at sesjoner ikke blir registrert. <span class="font-medium">15 minutter</span> er et godt kompromiss.
+  undo_btn: Angre siste import (sesjoner i {n})
+  delete_all_btn: Slett alle Tesla-importene
+  success_connected: Tesla er koblet til! Du kan nå importere ladingshistorikken din.
+  success_undo: Den siste importen ble angret.
+  success_delete_all: Alle Tesla-importene er slettet.
+  err_no_car: Vennligst velg et kjøretøy først.
+  err_fleet_api: Tesla Fleet API er ikke konfigurert ennå. Ta kontakt med kundestøtte.
+  err_connect: Tilkoblingen mislyktes
+  err_sync: Synkroniseringen mislyktes
+  err_settings: Innstillingene kunne ikke lagres
+  err_disconnect: Koblingen kunne ikke brytes
+  err_undo: Angre mislyktes
+  err_delete_all: Slettingen mislyktes
+  confirm_disconnect: Er du sikker?
+  delete_modal_title: Slette alle Tesla-importene?
+  delete_modal_desc: Du er i ferd med å slette <strong>ALLE ladesesjoner som er importert via Tesla Fleet API</strong>. Logger som er opprettet manuelt, vil bli beholdt. Denne handlingen <strong>kan ikke angres</strong>.
+  delete_modal_cancel: Avbryt
+  delete_modal_btn_loading: Sletter…
+  delete_modal_btn: Ja, slett alt
+wallbox:
+  title: Koble til ladestasjonen
+  subtitle: Koble til hjemmeladestasjonen din via OCPP 1.6. Ladesesjonene importeres automatisk.
+  beta_title: Betafunksjon
+  beta_desc: Wallbox-integrasjonen er i beta-versjon. Den er først og fremst ment for å teste OCPP-grensesnittet med ekte enheter og gjøre det mer stabilt. Det kan forekomme feil og endringer – tilbakemeldinger er velkomne.
+  loading: Laster...
+  connections_title: Tilkoblede ladestasjoner
+  status_active: Aktiv
+  location_label: "Sted:"
+  location_set: Sett ({hash})
+  location_unset: ikke angitt
+  location_edit: Rediger
+  location_placeholder: Søk etter adresse...
+  location_save: Lagre
+  location_cancel: Avbryt
+  tariff_label: "Pris:"
+  tariff_unset: ikke angitt
+  tariff_edit: Rediger
+  tariff_placeholder: f.eks. 29,5
+  ocpp_credentials_title: OCPP-sertifiseringer
+  username_label: Brukernavn
+  password_label: Passord
+  copy_title: Kopier
+  show_hide_title: Vis/skjul
+  remove_title: Fjern tilkoblingen
+  add_btn: Legg til veggmontert ladestasjon
+  new_wallbox_title: Koble til ny ladestasjon
+  chargepointid_label: ChargePoint-ID
+  chargepointid_placeholder: f.eks. ESP32_A1B2C3 eller go-e-serienummer
+  chargepointid_hint: "For go-e: Serienummer fra appen under Innstillinger – Enhetsinformasjon"
+  name_label: Navn (valgfritt)
+  name_placeholder: f.eks. Garasjen hjemme
+  car_label: Kjøretøy (valgfritt)
+  car_none: Ingen bil tildelt
+  ocpp_url_label: "OCPP-URL for Wallbox-appen din:"
+  ocpp_url_goe_hint: "go-e: App – Innstillinger – OCPP – Skriv inn server-URL"
+  save_btn_loading: Lagrer...
+  save_btn: Lagre tilkobling
+  cancel_btn: Avbryt
+  success_registered: Wallbox er registrert! Skriv inn OCPP-URL-en og passordet i Wallbox-appen din – du finner begge deler nedenfor under «påloggingsopplysninger».
+  success_removed: Wallbox-tilkoblingen er fjernet.
+  success_url_copied: URL-adressen er kopiert!
+  err_empty_id: ChargePoint-ID-en må ikke være tom.
+  err_duplicate: Denne ChargePoint-ID-en er allerede registrert.
+  err_save: Det var ikke mulig å lagre tilkoblingen.
+  err_delete: Forbindelsen kunne ikke slettes.
+  err_load: Det oppstod en feil ved lasting av Wallbox-tilkoblinger.
+  err_location: Stedet kunne ikke lagres.
+  err_tariff: Tariffen kunne ikke lagres.
+goe:
+  how_it_works: Hvordan fungerer importen til go-eCharger?
+  info_auto: "Etter en engangsoppsett kjører alt <strong>helt automatisk</strong>: EV Monitor sjekker go-e Cloud med noen minutters mellomrom for å se om det pågår lading."
+  info_session: Så snart du kobler til kabelen, registrerer systemet starttidspunktet og strømforbruket. Når du er ferdig, opprettes det automatisk en <strong>ladingsoppføring</strong> i oversikten din – med dato, kWh og eventuelt kostnader.
+  info_tariff: Du kan legge inn <strong>strømprisen</strong> direkte i wallbox-tilkoblingen – da beregner EV Monitor automatisk kostnadene for hver lading.
+  connected_devices: Tilkoblede enheter
+  form_title: Koble til go-eCharger
+  serial_label: Serienummer
+  serial_placeholder: f.eks. A0123456
+  apikey_label: Sky-API-nøkkel
+  apikey_placeholder: fra go-e-appen
+  car_label: Kjøretøy
+  name_label: Navn (valgfritt)
+  name_placeholder: f.eks. hjemmelader i garasjen
+  location_label: Sted (valgfritt, for varmekart)
+  location_placeholder: Skriv inn adresse eller sted...
+  connect_btn_loading: Kobler til...
+  connect_btn: Koble til
+  cancel_btn: Avbryt
+  add_btn: Legg til go-eCharger
+  err_required: Serienummer, API-nøkkel og kjøretøy er påkrevd.
+  err_connect: Tilkoblingen mislyktes
+  err_disconnect: Koblingen kunne ikke brytes
+  confirm_disconnect: Vil du virkelig koble fra go-eCharger?
+  confirm_disconnect_named: Skal man virkelig koble fra go-eCharger «{name}»?
+  state_key_state_ready: Klar
+  state_key_state_charging: Lading
+  state_key_state_waiting: Venter på bilen
+  state_key_state_done: Ladingen er fullført
+  state_key_state_error: Feil
+  state_unknown: Ukjent
+  default_name: go-E-ladestasjon
+  title_connected: Tilkoblet
+  title_disconnected: Ingen tilkobling
+  title_disconnect: Koble fra
+  cloud_api_error: Cloud API er ikke aktivert. Aktiver det i go-e-appen under <strong>Innstillinger – Internett – Cloud API</strong>.
+  tariff_label: "Pris:"
+  tariff_unset: ikke angitt
+  tariff_edit: Rediger
+  tariff_placeholder: f.eks. 29,5
+  location_status_label: "Sted:"
+  location_status_set: sett
+  location_status_missing: mangler – varmekart inaktiv
+  location_change: Endre
+  location_set_btn: Angi sted
+  location_save_loading: Lagrer...
+  location_save: Lagre
+  location_cancel: Avbryt
+  merge_sessions_title: Slå sammen økter
+  merge_sessions_desc: Grupper sammen små overskuddsøkter fra samme dag
+  updated_every: Oppdateres hvert {n} minutt
+heatmap:
+  loading: Laster kart...
+  no_car_title: Ingen bil valgt
+  no_car_desc: Velg et kjøretøy for å vise ladekartet.
+  no_locations_title: Ingen steder er registrert ennå
+  no_locations_desc: Legg til steder for ladesesjonene dine for å se dem på kartet!
+  privacy_note: Stedsopplysningene lagres anonymisert (GDPR)
+  charges_count: "{n} ladingsøkter"
+  view_label: "Vis:"
+  view_both: Begge
+  legend: "Forklaring:"
+  legend_low: Lavt kWh-forbruk
+  legend_medium: Middels kWh
+  legend_high: Høyt kWh-forbruk
+  click_for_details: · Klikk på markøren for mer informasjon
+support:
+  nav_btn: Støtte
+  footer_btn: Støtt EV Monitor
+footer:
+  privacy: Personvern
+  imprint: Impressum
+  terms: Vilkår
+  github: GitHub
+tronity:
+  title: Tronity Import
+  desc: Importer ladingshistorikken din direkte fra Tronity-eksporten i XLSX-format. I Tronity-appen, under <strong>Turer og lading – Lading – Eksport</strong>, oppretter du en XLSX-fil og laster den opp her.
+  feature_1: SoC før/etter, kostnader, GPS-koordinater, vekselstrøm/likestrøm – alt inkludert
+  feature_2: Duplikater oppdages automatisk og hoppes over
+  feature_3: Formatet gjenkjennes automatisk – ingen manuell tilordning er nødvendig
+  car_label: Kjøretøy
+  no_car: Det ble ikke funnet noen aktive kjøretøy.
+  add_car: Legg til kjøretøy
+  file_label: XLSX-fil
+  file_drop: Dra filen hit eller
+  file_select: velg
+  entries_found: "{n} oppføringer oppdaget"
+  result: "{imported} importert, {skipped} hoppet over"
+  result_errors: "{errors}-feil"
+  import_btn: Importer
+  err_too_large: Filen er for stor (maks. 5 MB)
+  err_format: Det ble ikke funnet noe Tronity-format. Last opp en Tronity XLSX-eksportfil.
+  err_read: Filen kunne ikke leses.
+  err_import: Importen mislyktes
+demo:
+  title: Demokonto
+  read_only: Skrivebeskyttet
+  register_btn: Registrer deg gratis →
+  exit_btn: Avslutt demo
+  welcome_badge: Demomodus
+  welcome_title: Velkommen til EV Monitor!
+  welcome_desc: Du ser på dashbordet til Max – en fiktiv elbilist. Ekte forbruksdata, ekte statistikk – bare ikke dine egne.
+  welcome_feature_1: Ladestatistikk og forbruksdata
+  welcome_feature_2: Faktisk rekkevidde avhenger av batterinivå og årstid
+  welcome_feature_3: Interaktivt ladekart med alle besøkte steder
+  welcome_feature_4: Ladingsøkter kan redigeres når som helst
+  welcome_feature_5: Du finner navigasjonsmenyen øverst til høyre ved å klikke på ikonet med tre linjer
+  welcome_cta: Greit, la meg se på det
+  imports_title: Importer data
+  imports_desc: Her kan du koble EV Monitor til ladekildene dine – konfigurer den én gang, så kjører den automatisk.
+  imports_feature_1: Automatisk synkronisering via Smartcar eller Tesla Fleet API
+  imports_feature_2: Import av CSV/JSON fra SpritMonitor, Tronity eller dine egne eksporter
+  imports_feature_3: Direkte tilkobling til ladestasjonen din (go-e Charger, OCPP)
+  imports_feature_4: REST-API for tilpassede skript og hjemmeautomatisering
+  imports_notice: I demomodus kan du se gjennom alle alternativene, men du kan ikke opprette noen tilkoblinger.
+  imports_cta: Skjønner
+  models_title: Forbruksdata for lokalsamfunnet
+  models_desc: Her ser du reelle forbrukstall fra brukerne – for over 80 elbilmodeller. Ingen markedsføring, bare reelle målinger.
+  models_feature_1: Faktisk strømforbruk i kWh/100 km basert på faktiske ladinger
+  models_feature_2: "WLTP-sammenligning: hvor mye avviker produsentens oppgitte tall fra virkeligheten?"
+  models_feature_3: Klikk på en modell for å se detaljer, sesongfordeling og kostnader for klimaanlegg og strøm
+  models_feature_4: Sammenlign opptil tre modeller samtidig – klikk på pilikonet på et hvilket som helst modellkort
+  models_cta: Skjønner
+  settings_title: Innstillinger
+  settings_desc: Her kan du administrere kontoen din og tilpasse EV Monitor etter dine behov.
+  settings_feature_1: "Angi ladetariffen: Vekselstrøm- og likestrømpriser for automatisk kostnadsberegning"
+  settings_feature_2: "Watt-balanse: Tjen poeng gjennom laderegistreringer og WLTP-bidrag"
+  settings_feature_3: Inviter venner og samle Watt sammen
+  settings_feature_4: "Administrer kontoen din: e-post, passord og personverninnstillinger"
+  settings_notice: I demomodus kan du se gjennom alle innstillingene, men du kan ikke foreta endringer.
+  settings_cta: Skjønner
+announcements:
+  charging_provider_v1_title: "Nytt: Ladeleverandør og offentlige ladestasjoner"
+  charging_provider_v1_body: Du kan nå oppgi om du har ladet ved en offentlig ladestasjon og hvilken nettoperatør (CPO) som står bak den. Legg inn ladetariffen (EMP) under Innstillinger → Ladeleverandør. Skjemaet for loggføring er også forenklet – det er kun kWh og pris som må oppgis.
+  charging_provider_v1_cta: Gå til innstillinger
+  charging_cards_portfolio_v1_title: "Nytt: Administrer flere ladekort"
+  charging_cards_portfolio_v1_body: Du kan nå lagre et ubegrenset antall ladekort og tariffer – EnBW, Maingau, Fastned og flere – samtidig. Når du registrerer en ladesesjon, trykker du for å velge riktig kort, og den siste tariffen som ble brukt på samme sted, foreslås automatisk.
+  charging_cards_portfolio_v1_cta: Administrer ladekort
+  battery_soh_heatpump_v1_title: Overvåk batteriets tilstand og varmepumpen
+  battery_soh_heatpump_v1_body: Du kan nå registrere batteriets helsetilstand (SoH) sammen med en dato. Forbruksberegningene for eldre ladeøkter justeres automatisk – en bil som er fem år gammel hadde større batterikapasitet den gangen. Det finnes også en ny varmepumpeindikator som hjelper til med å kontrollere om vinterforbruksverdiene er realistiske.
+  battery_soh_heatpump_v1_cta: Gå til kjøretøy
+  survey_premium_april_2026_title: Et raskt spørsmål – 60 sekunder
+  survey_premium_april_2026_body: Jeg planlegger en premiumfunksjon for automatisk registrering av kjørelengde. Koble til bilen én gang, så registreres kjøreturene automatisk. Hva synes du?
+  survey_premium_april_2026_cta: Til undersøkelsen
+  price_suggestion_v1_title: Prisforslag ved innlogging
+  price_suggestion_v1_body: "Prisen per kWh fylles nå automatisk inn – basert på den siste ladingen på samme sted. Dette fungerer både hjemme og ved offentlige ladestasjoner. For å gjøre dette mulig er posisjonsnøyaktigheten forbedret: offentlige ladestasjoner lokaliseres med en nøyaktighet på ca. 150 meter, mens private ladinger lokaliseres med en nøyaktighet på ca. 600 meter. Eksakte GPS-koordinater lagres fortsatt ikke."
+  consumption_normalization_v1_title: "Mer nøyaktig forbruk: ladetapene er fjernet"
+  consumption_normalization_v1_body: "Det viste forbruket ditt (kWh/100 km) gjenspeiler nå det faktiske forbruket fra batteriet under kjøring. Målingene fra Wallbox inkluderer tidligere ladetap fra selve ladeprosessen – disse blir nå automatisk trukket fra (vekselstrømslading: 10 %, likestrømshurtiglading: 5 %). Forbruksverdiene dine vil synke noe og er nå lettere å sammenligne med WLTP og andre datakilder. Kostnadsberegningene påvirkes ikke."
+  goe_statistics_fix_v1_title: "go-eCharger: Rettelse av statistikk"
+  goe_statistics_fix_v1_body: Dine go-eCharger-økter blir nå registrert riktig i statistikken – inkludert beregninger av kWh, kostnader og forbruk.
+  car_reassignment_v1_title: Tilordne økter til et annet kjøretøy
+  car_reassignment_v1_body: Har du tilordnet en kjøretur til feil bil? Ikke noe problem – i dashbordet kan du med ett klikk tilordne en hvilken som helst kjøretur (eller en hel gruppe) til et annet kjøretøy.
+  autosync_premium_v1_title: "Nytt: EV Monitor AutoSync"
+  autosync_premium_v1_body: Koble til bilen én gang, så importeres alle ladinger automatisk til EV Monitor – ingen manuell registrering er nødvendig. Nå tilgjengelig som en pro-funksjon. Støtter 28 merker – blant annet BMW, VW, Mercedes, Audi, Tesla, Hyundai, Volvo, Polestar og mange flere.
+  autosync_premium_v1_cta: Les mer
+tax_export:
+  title: Skatterapport for hjemmelading
+  subtitle: Eksporter dine hjemmeladinger som dokumentasjon til regnskapsføreren din (brev fra BMF av 11.11.2025)
+  select_car: Kjøretøy
+  period: Periode
+  quick_current_month: Nåværende måned
+  quick_last_month: I forrige måned
+  quick_current_year: Inntrekkende år
+  from: Fra
+  to: Til
+  billing_model: Faktureringsmodell
+  pauschale_label: "BMF-fastpris 2026: {rate} EUR/kWh (anbefalt)"
+  pauschale_hint: Forenklet beregning i henhold til BMF-brevet – gjelder også for eget forbruk av solenergi
+  custom_tariff_label: Tilpasset strømtariff
+  preview_title: Forhåndsvisning
+  sessions: Ladingsøkter
+  total_cost: Refusjonsbeløp
+  no_sessions: Det ble ikke funnet noen hjemmeladinger for den valgte perioden.
+  download_csv: Last ned CSV
+  download_pdf: Last ned PDF
+  no_business_car_title: Ingen firmabil angitt
+  no_business_car_desc: Merk først kjøretøyet som firmabil i kjøretøyadministrasjonen.
+  go_to_cars: Gå til kjøretøyadministrasjon
+  error_load_cars: Feil ved innlasting av kjøretøy
+  error_download: Feil ved generering av eksport
+  disclaimer: Denne eksporten fungerer som dokumentasjon i henhold til brev fra BMF datert 11.11.2025. Det er brukerens ansvar å sikre at skattereglene overholdes. For å oppfylle lovkravene til måling anbefales det å bruke en MID-sertifisert ladestasjon.
+  german_only_note: Denne funksjonen er kun tilgjengelig for skatteformål i Tyskland. Alle beløp er angitt i euro og basert på BMFs fastsatte sats.
+  tax_export_v1_title: "Nytt: Skatterapport for hjemmelading"
+  tax_export_v1_body: Eksporter dine hjemmeladinger som et BMF-godkjent skattedokument – som CSV- eller PDF-fil til regnskapsføreren din. Du trenger bare å merke bilen som firmabil og generere rapporten under «Skatterapport» i menyen.
+  tax_export_v1_cta: Gå til skatterapporten
+upgrade:
+  loading: Laster...
+  already_pro_title: Du er allerede Pro
+  already_pro_desc: EV Monitor AutoSync er nå tilgjengelig for deg.
+  already_pro_cta: Gå til AutoSync
+  badge: EV MONITOR PRO
+  headline: Du trenger aldri å logge inn manuelt igjen.
+  subtitle: Koble bilen til én gang – alle ladinger vises automatisk i loggboken din.
+  how_title: Slik fungerer AutoSync
+  how_step1_title: Koble til én gang
+  how_step1_desc: Logg inn direkte hos produsenten
+  how_step2_title: Lad bilen din
+  how_step2_desc: Som vanlig
+  how_step3_title: Automatisk i loggen
+  brands_title: Støttede bilmerker
+  plan_monthly: Månedlig
+  plan_yearly: Årlig
+  plan_yearly_badge: 2 måneder gratis
+  plan_after_trial: "Velg abonnement etter prøveperioden:"
+  price_monthly: 3,90 euro
+  price_monthly_unit: /måned
+  price_yearly: 39 euro
+  price_yearly_unit: /år
+  price_yearly_savings: Ca. 3,25 €/måned – 2 måneder gratis
+  trial_days: Prøv gratis i 7 dager
+  trial_hint_monthly: "{priceMonthly}/måned – kan sies opp når som helst"
+  trial_hint_yearly: "{priceYearly}/år – kan sies opp når som helst"
+  cta_loading: Omdirigerer til Stripe...
+  cta_coming_soon: Kommer snart
+  cta: Start gratis prøveperiode
+  error: Det oppstod en feil ved oppstart av kassen. Prøv på nytt.
+  support_hint: Har du spørsmål om abonnementet?
+  trust: Ingen betaling i prøveperioden. Sikker betaling via Stripe.
+  pro_section_title: EV Monitor Pro
+  pro_active: Proaktiv
+  pro_active_until: Nåværende periode slutter {date}
+  pro_manage_btn: Administrer abonnement
+  pro_manage_loading: Laster...
+  pro_upgrade_hint: 7 dager gratis – deretter {priceMonthly}/måned
+  pro_upgrade_btn: Aktiver AutoSync
+  success_title: AutoSync er nå tilgjengelig!
+  success_desc: Velkommen til Pro-abonnementet. Koble til bilen din nå, så registreres alle ladinger automatisk.
+  success_cta: Gå til EV Monitor AutoSync
+  success_activating: Aktiverer abonnement...
+  success_slow: Aktiveringen kan noen ganger ta litt lengre tid. Oppdater siden om et øyeblikk.
+  cancel_title: Ingen problem.
+  cancel_desc: Prosessen ble avbrutt. Du kan når som helst aktivere AutoSync igjen.
+  cancel_cta: Tilbake til AutoSync
+  back_dashboard: Gå til oversikten
+region_chip:
+  wrong: Feil region?
+  title: Velg din region
