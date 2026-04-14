@@ -195,7 +195,7 @@ const handleResend = async () => {
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ t('auth.register.password_hint') }}</p>
           </div>
           <!-- Country picker: only shown when browser language is ambiguous -->
-          <div v-if="showCountryPicker">
+          <div v-if="showCountryPicker" data-testid="country-picker">
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('auth.register.country_label') }}</label>
             <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">{{ t('auth.register.country_hint') }}</p>
             <div class="flex gap-1.5 flex-wrap">
