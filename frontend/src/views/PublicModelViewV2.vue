@@ -81,7 +81,6 @@
             <span class="text-base font-bold text-gray-900 dark:text-gray-100">
               {{ formatCostPerDistance(stats.avgCostPerKwh * displayConsumption) }}
             </span>
-            {{ t('model.avg_cost_suffix') }}
           </div>
 
           <!-- Secondary stats row: 2-col on mobile, 3-col on desktop -->
@@ -196,10 +195,10 @@
               </span>
             </div>
             <div class="flex items-center gap-3">
-              <span class="text-xs text-gray-400 shrink-0">0,10 €</span>
+              <span class="text-xs text-gray-400 shrink-0">{{ formatCostPerKwh(0.10) }}</span>
               <input type="range" min="0.10" max="1.00" step="0.01" v-model.number="pricePerKwh"
                      class="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full appearance-none cursor-pointer accent-yellow-500" />
-              <span class="text-xs text-gray-400 shrink-0">1,00 €</span>
+              <span class="text-xs text-gray-400 shrink-0">{{ formatCostPerKwh(1.00) }}</span>
             </div>
           </div>
         </div><!-- end Hero -->
@@ -501,7 +500,7 @@
           <div class="space-y-4 text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
             <p>
               {{ t('model.seo_intro', { model: stats.modelDisplayName }) }}
-              <template v-if="bestOfficialRange"> {{ t('model.seo_wltp_range', { range: formatDistance(bestOfficialRange) }) }}</template>.
+              <template v-if="bestOfficialRange"> {{ t('model.seo_wltp_range', { range: formatDistance(bestOfficialRange), ratingLabel }) }}</template>.
               <template v-if="stats.avgConsumptionKwhPer100km">
                 <template v-if="consumptionDataQuality === 'good'">
                   {{ t('model.seo_consumption_good', { consumption: formatConsumption(stats.avgConsumptionKwhPer100km), sessions: stats.logCount, count: Math.min(consumptionDataCount, stats.logCount) }) }}
@@ -527,11 +526,11 @@
               </p>
             </div>
             <div v-if="activeVariants.length > 0 && consumptionDataCount >= 25">
-              <h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-1">{{ t('model.seo_wltp_title') }}</h3>
+              <h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-1">{{ t('model.seo_wltp_title', { ratingLabel }) }}</h3>
               <p>
-                {{ t('model.seo_wltp_intro') }}
+                {{ t('model.seo_wltp_intro', { ratingLabel }) }}
                 <template v-if="stats.avgConsumptionKwhPer100km && worstOfficialConsumption">
-                  {{ t('model.seo_wltp_delta', { delta: wltpDeltaPercent }) }}
+                  {{ t('model.seo_wltp_delta', { delta: wltpDeltaPercent, ratingLabel }) }}
                 </template>
               </p>
             </div>
@@ -664,7 +663,7 @@ interface ActiveVariant {
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
-const { formatConsumption, consumptionUnitLabel, formatDistance, formatCurrency, formatCostPerKwh, formatCostPerDistance, consumptionDeltaLabel, consumptionDeltaClass, isEurZone, currency, currencySymbol } = useLocaleFormat()
+const { formatConsumption, consumptionUnitLabel, convertConsumption, formatDistance, formatCurrency, formatCostPerKwh, formatCostPerDistance, consumptionDeltaLabel, consumptionDeltaClass, isEurZone, currency, currencySymbol, unitSystem } = useLocaleFormat()
 const isEn = computed(() => route.path.startsWith('/en/'))
 const modelsBaseUrl = computed(() => isEn.value ? '/en/models' : '/modelle')
 const loginPath = computed(() => isEn.value ? '/en/login' : '/login')
@@ -677,7 +676,7 @@ const apiError = ref(false)
 const showBackPill = ref(false)
 const stats = ref<PublicModelStats | null>(null)
 const selectedVariantIndex = ref(0)
-const pricePerKwh = ref(0.35)
+const pricePerKwh = ref(countryStore.country === 'US' ? 0.13 : 0.35)
 
 const isAuthenticated = computed(() => authStore.isAuthenticated())
 
@@ -737,7 +736,13 @@ const bestOfficialRange = computed(() => {
 
 const wltpDeltaPercent = computed(() => {
   if (!stats.value?.avgConsumptionKwhPer100km || !worstOfficialConsumption.value) return null
-  const pct = ((stats.value.avgConsumptionKwhPer100km - worstOfficialConsumption.value) / worstOfficialConsumption.value) * 100
+  const real = stats.value.avgConsumptionKwhPer100km
+  const official = worstOfficialConsumption.value
+  // For mi/kWh: positive = more efficient (more miles per kWh = better)
+  // For kWh/100km: negative = more efficient (less energy = better)
+  const pct = unitSystem.value.consumptionInverse
+    ? (official - real) / real * 100
+    : (real - official) / official * 100
   const sign = pct > 0 ? '+' : ''
   return `${sign}${pct.toFixed(0)}%`
 })
@@ -785,7 +790,8 @@ const faqItems = computed(() => {
         model: name,
         consumption: formatConsumption(stats.value.avgConsumptionKwhPer100km),
         dataNote,
-        wltp: worstOfficialConsumption.value ? formatConsumption(worstOfficialConsumption.value) : '-'
+        wltp: worstOfficialConsumption.value ? formatConsumption(worstOfficialConsumption.value) : '-',
+        ratingLabel: ratingLabel.value
       })
     })
   }
@@ -800,7 +806,8 @@ const faqItems = computed(() => {
         wltpRange: formatDistance(bestOfficialRange.value),
         battery: largestBattery,
         consumption: formatConsumption(stats.value.avgConsumptionKwhPer100km),
-        realRange: formatDistance(realRange)
+        realRange: formatDistance(realRange),
+        ratingLabel: ratingLabel.value
       })
     })
   }
@@ -817,15 +824,26 @@ const faqItems = computed(() => {
   }
 
   if (worstOfficialConsumption.value && stats.value.avgConsumptionKwhPer100km && consumptionDataCount.value >= 25) {
-    const pct = Math.round((stats.value.avgConsumptionKwhPer100km / worstOfficialConsumption.value - 1) * 100)
+    const real = stats.value.avgConsumptionKwhPer100km
+    const official = worstOfficialConsumption.value
+    // Compute diff and pct in display unit space
+    const realDisplay = convertConsumption(real)
+    const officialDisplay = convertConsumption(official)
+    const diffVal = Math.abs(realDisplay - officialDisplay)
+    const diffFormatted = `${diffVal.toFixed(1)} ${consumptionUnitLabel()}`
+    const displayPct = unitSystem.value.consumptionInverse
+      ? Math.round((official / real - 1) * 100)
+      : Math.round((real / official - 1) * 100)
+    const pctLabel = (displayPct > 0 ? '+' : '') + displayPct + '%'
     items.push({
-      question: t('model.faq_q_wltp_delta', { model: name }),
+      question: t('model.faq_q_wltp_delta', { model: name, ratingLabel: ratingLabel.value }),
       answer: t('model.faq_a_wltp_delta', {
         model: name,
-        wltp: formatConsumption(worstOfficialConsumption.value),
-        real: formatConsumption(stats.value.avgConsumptionKwhPer100km),
-        diff: formatConsumption(Math.abs(stats.value.avgConsumptionKwhPer100km - worstOfficialConsumption.value)),
-        pct
+        wltp: formatConsumption(official),
+        real: formatConsumption(real),
+        diff: diffFormatted,
+        pct: pctLabel,
+        ratingLabel: ratingLabel.value
       })
     })
   }
@@ -863,8 +881,8 @@ useHead(computed(() => {
   const enUrl = `https://ev-monitor.net/en/models/${canonicalBrand.value}/${model}`
 
   const description = consumption && wltp
-    ? t('model.meta_description_with_data', { model: name, consumption: formatConsumption(consumption), wltp: formatConsumption(wltp) })
-    : t('model.meta_description_no_data', { model: name })
+    ? t('model.meta_description_with_data', { model: name, consumption: formatConsumption(consumption), wltp: formatConsumption(wltp), ratingLabel: ratingLabel.value })
+    : t('model.meta_description_no_data', { model: name, ratingLabel: ratingLabel.value })
 
   const title = t('model.meta_title', { model: name, year: currentYear })
 

@@ -182,13 +182,19 @@ export function useLocaleFormat() {
     }
 
     /**
-     * Format the delta label: '+12.3%' or '-5.2%'
-     * Sign convention: positive = worse than WLTP (regardless of unit system)
+     * Format the delta label in display unit space.
+     * kWh/100km: negative = better (less consumption). mi/kWh: positive = better (more range).
      */
     function consumptionDeltaLabel(realKwhPer100km: number, wltpKwhPer100km: number): string {
-        const delta = consumptionDeltaPercent(realKwhPer100km, wltpKwhPer100km)
-        const sign = delta > 0 ? '+' : ''
-        return `${sign}${delta.toFixed(1)}%`
+        let displayDelta: number
+        if (unitSystem.value.consumptionInverse) {
+            // mi/kWh space: (official - real) / real * 100  →  positive = more mi/kWh = better
+            displayDelta = (wltpKwhPer100km - realKwhPer100km) / realKwhPer100km * 100
+        } else {
+            displayDelta = consumptionDeltaPercent(realKwhPer100km, wltpKwhPer100km)
+        }
+        const sign = displayDelta > 0 ? '+' : ''
+        return `${sign}${displayDelta.toFixed(1)}%`
     }
 
     /**

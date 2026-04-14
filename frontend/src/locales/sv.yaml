@@ -303,37 +303,37 @@ model:
   avg_cost_prefix: Användarna betalar i genomsnitt
   avg_cost_suffix: per 100 km
   meta_title: "{model} Förbrukning och räckvidd ({year}) – EV Monitor"
-  meta_description_with_data: "{model}: Genomsnittlig {consumption} kWh/100 km i verklig körning (WLTP: {wltp} kWh/100 km). Förbrukning, räckvidd och laddningskostnader – verkliga kördata på EV Monitor."
-  meta_description_no_data: "{model}: WLTP-förbrukning, räckvidd och användardata på EV Monitor. Var först med att dela dina egna mätningar!"
+  meta_description_with_data: "{model}: Genomsnittlig {consumption} i verklig körning ({ratingLabel}: {wltp}). Förbrukning, räckvidd och laddningskostnader – verkliga kördata på EV Monitor."
+  meta_description_no_data: "{model}: {ratingLabel}-förbrukning, räckvidd och användardata på EV Monitor. Var först med att dela dina egna mätningar!"
   meta_keywords: "{model} förbrukning, {model} räckvidd, {model} kWh/100 km, {model} WLTP-värde (verkligt), {model} laddningskostnad"
   seo_intro: "{model}en är en elbil"
-  seo_wltp_range: med en officiell WLTP-räckvidd på upp till {range} km
-  seo_consumption_good: Enligt verkliga data från EV Monitor-användare ligger den genomsnittliga förbrukningen på {consumption} kWh/100 km – baserat på {sessions} laddningssessioner ({count} med förbrukningsmätning).
-  seo_consumption_low: Enligt användardata uppgår förbrukningen till {consumption} kWh/100 km – baserat på {count} resor där förbrukningen har mätts.
-  seo_consumption_sparse: "De första mätningarna finns nu tillgängliga: {consumption} kWh/100 km från resor på {count} med förbrukningsdata."
+  seo_wltp_range: med en officiell {ratingLabel}-räckvidd på upp till {range}
+  seo_consumption_good: Enligt verkliga data från EV Monitor-användare ligger den genomsnittliga förbrukningen på {consumption} – baserat på {sessions} laddningssessioner ({count} med förbrukningsmätning).
+  seo_consumption_low: Enligt användardata uppgår förbrukningen till {consumption} – baserat på {count} resor där förbrukningen har mätts.
+  seo_consumption_sparse: "De första mätningarna finns nu tillgängliga: {consumption} från resor på {count} med förbrukningsdata."
   seo_no_data_cta: Bli den första att registrera laddningssessioner för denna {model}!
   seo_costs_title: Ladningskostnader vid daglig användning
-  seo_costs_intro: Det genomsnittliga laddningspriset för en {model}, enligt användardata, är {price} cent per kWh.
-  seo_costs_session: En typisk laddning på {kwh} kWh kostar därför cirka {cost} €.
-  seo_wltp_title: WLTP jämfört med faktisk förbrukning
-  seo_wltp_intro: WLTP-cykeln mäts under standardiserade laboratorieförhållanden och skiljer sig ofta från verkliga körförhållanden.
-  seo_wltp_delta: I genomsnitt ligger den faktiska förbrukningen på {delta} jämfört med WLTP-värdet.
+  seo_costs_intro: Det genomsnittliga laddningspriset för en {model}, enligt användardata, är {price}.
+  seo_costs_session: En typisk laddning på {kwh} kWh kostar därför cirka {cost}.
+  seo_wltp_title: "{ratingLabel} jämfört med faktisk förbrukning"
+  seo_wltp_intro: "{ratingLabel}-värdet mäts under standardiserade testförhållanden och skiljer sig ofta från verkliga körförhållanden."
+  seo_wltp_delta: I genomsnitt ligger den faktiska förbrukningen på {delta} jämfört med {ratingLabel}-värdet.
   seo_seasonal_title: Förbrukning per säsong
-  seo_seasonal_data: Enligt uppgifter från användare förbrukar {model} {summer} kWh/100 km under sommaren (maj–augusti) och {winter} kWh/100 km under vintern (november–februari) – {pct} % mer under vintern.
+  seo_seasonal_data: Enligt uppgifter från användare förbrukar {model} {summer} under sommaren (maj–augusti) och {winter} under vintern (november–februari) – {pct} % mer under vintern.
   seo_seasonal_no_data: Det finns ännu inte tillräckligt med säsongsdata för {model}. Generellt ökar elbilarnas förbrukning med 15–30 % under vintern.
   faq_consumption_data_good: baserat på {n} resor med förbrukningsmätning
   faq_consumption_data_low: baserat på {n} resor med mätning av förbrukning – värdet kommer att förbättras med mer data
   faq_consumption_data_sparse: endast {n} resor med förbrukningsdata – ännu inte representativt
   faq_q_consumption: Hur stor är den faktiska förbrukningen för {model}?
-  faq_a_consumption: Enligt användardata från EV Monitor ligger förbrukningen för {model} på {consumption} kWh/100 km ({dataNote}). Det officiella WLTP-värdet är {wltp} kWh/100 km. På vintern kan förbrukningen bli 15–30 % högre på grund av uppvärmning och kallare batterier.
+  faq_a_consumption: Enligt användardata från EV Monitor ligger förbrukningen för {model} på {consumption} ({dataNote}). Det officiella {ratingLabel}-värdet är {wltp}. På vintern kan förbrukningen bli 15–30 % högre på grund av uppvärmning och kallare batterier.
   faq_q_range: Hur långt räcker egentligen {model}?
-  faq_a_range: "{model}:s räckvidd enligt WLTP är upp till {wltpRange} km. I praktiken uppnår förare med ett {battery} kWh-batteri en räckvidd på cirka {realRange} km vid en faktisk förbrukning på {consumption} kWh/100 km. På vintern kan räckvidden minska till 60–70 % av WLTP-värdet."
+  faq_a_range: "{model}:s räckvidd enligt {ratingLabel} är upp till {wltpRange}. I praktiken uppnår förare med ett {battery} kWh-batteri en räckvidd på cirka {realRange} vid en faktisk förbrukning på {consumption}. På vintern kan räckvidden minska till 60–70 % av {ratingLabel}-värdet."
   faq_q_cost: Hur mycket kostar en laddning för en {model}?
-  faq_a_cost: I genomsnitt kostar en laddning {price} cent per kWh. För en typisk laddning på {kwh} kWh blir kostnaden cirka {cost} €.
-  faq_q_wltp_delta: Vad är skillnaden mellan WLTP-värdet och den faktiska förbrukningen för {model}?
-  faq_a_wltp_delta: Den officiella WLTP-förbrukningen för {model} är {wltp} kWh/100 km. Enligt användardata ligger förbrukningen i vardagen på {real} kWh/100 km – det är {diff} kWh mer (+{pct} %).
+  faq_a_cost: I genomsnitt kostar en laddning {price}. För en typisk laddning på {kwh} kWh blir kostnaden cirka {cost}.
+  faq_q_wltp_delta: Vad är skillnaden mellan {ratingLabel}-värdet och den faktiska förbrukningen för {model}?
+  faq_a_wltp_delta: Den officiella {ratingLabel}-förbrukningen för {model} är {wltp}. Enligt användardata uppnår förarna {real} i vardagen – det är {diff} mer ({pct}).
   faq_q_winter: Hur förändras förbrukningen av {model} under vintern?
-  faq_a_winter_data: Enligt uppgifter från användare förbrukar {model} {winter} kWh/100 km under vintern (nov–feb) och {summer} kWh/100 km under sommaren (maj–aug).
+  faq_a_winter_data: Enligt uppgifter från användare förbrukar {model} {winter} under vintern (nov–feb) och {summer} under sommaren (maj–aug).
   faq_a_winter_no_data: Det finns ännu inte tillräckligt med säsongsbaserade mätdata för {model}. Generellt sett ökar elbilarnas energiförbrukning vanligtvis med 15–30 % under vintern.
 auth:
   login:
