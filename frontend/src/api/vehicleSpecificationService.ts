@@ -5,8 +5,8 @@ export interface VehicleSpecification {
     carBrand: string;
     carModel: string;
     batteryCapacityKwh: number;
-    wltpRangeKm: number;
-    wltpConsumptionKwhPer100km: number;
+    officialRangeKm: number;
+    officialConsumptionKwhPer100km: number;
     wltpType: string;
     variantName: string | null;
     createdAt: string;
@@ -17,8 +17,9 @@ export interface VehicleSpecificationRequest {
     carBrand: string;
     carModel: string;
     batteryCapacityKwh: number;
-    wltpRangeKm: number;
-    wltpConsumptionKwhPer100km: number;
+    officialRangeKm: number;
+    officialConsumptionKwhPer100km: number;
+    ratingSource?: 'WLTP' | 'EPA';
 }
 
 export interface VehicleSpecificationCreateResponse {
@@ -31,13 +32,14 @@ export const vehicleSpecificationService = {
      * Lookup WLTP data for a specific vehicle configuration.
      * Returns null if no data exists (404).
      */
-    async lookup(brand: string, model: string, capacityKwh: number): Promise<VehicleSpecification | null> {
+    async lookup(brand: string, model: string, capacityKwh: number, ratingSource: 'WLTP' | 'EPA' = 'WLTP'): Promise<VehicleSpecification | null> {
         try {
             const response = await api.get('/vehicle-specifications/lookup', {
                 params: {
                     brand,
                     model,
-                    capacityKwh
+                    capacityKwh,
+                    ratingSource,
                 }
             });
             return response.data;

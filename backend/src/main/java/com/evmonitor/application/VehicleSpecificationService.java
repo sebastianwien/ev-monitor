@@ -4,6 +4,8 @@ import com.evmonitor.domain.CoinType;
 import com.evmonitor.domain.VehicleSpecification;
 import com.evmonitor.domain.VehicleSpecificationRepository;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,27 +18,45 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class VehicleSpecificationService {
 
-    private static final int WLTP_CONTRIBUTION_COINS = 50;
+    private static final Logger log = LoggerFactory.getLogger(VehicleSpecificationService.class);
+    private static final int CONTRIBUTION_COINS = 50;
 
     private final VehicleSpecificationRepository vehicleSpecificationRepository;
     private final CoinLogService coinLogService;
 
     /**
-     * Lookup WLTP data for a specific car configuration.
+     * Lookup official rating data for a specific car configuration.
+     * ratingSource defaults to WLTP; pass "EPA" for US users.
      * Returns Optional.empty() if no data exists.
      */
-    public Optional<VehicleSpecificationResponse> lookup(String carBrand, String carModel, BigDecimal batteryCapacityKwh) {
-        // Sanitize inputs (trim whitespace, prevent XSS)
+    public Optional<VehicleSpecificationResponse> lookup(String carBrand, String carModel,
+                                                          BigDecimal batteryCapacityKwh, String ratingSource) {
         String sanitizedBrand = sanitizeInput(carBrand);
         String sanitizedModel = sanitizeInput(carModel);
+        VehicleSpecification.RatingSource source;
+        try {
+            source = (ratingSource == null) ? VehicleSpecification.RatingSource.WLTP
+                    : VehicleSpecification.RatingSource.valueOf(ratingSource.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            log.warn("Unknown ratingSource '{}' in lookup — falling back to WLTP", ratingSource);
+            source = VehicleSpecification.RatingSource.WLTP;
+        }
 
-        // Always look for COMBINED first (most common)
+        if (source == VehicleSpecification.RatingSource.EPA) {
+            return vehicleSpecificationRepository.findByCarBrandAndModelAndCapacityAndTypeAndSource(
+                    sanitizedBrand, sanitizedModel, batteryCapacityKwh,
+                    VehicleSpecification.WltpType.COMBINED, VehicleSpecification.RatingSource.EPA
+            ).map(VehicleSpecificationResponse::fromDomain);
+        }
         return vehicleSpecificationRepository.findByCarBrandAndModelAndCapacityAndType(
-                sanitizedBrand,
-                sanitizedModel,
-                batteryCapacityKwh,
+                sanitizedBrand, sanitizedModel, batteryCapacityKwh,
                 VehicleSpecification.WltpType.COMBINED
         ).map(VehicleSpecificationResponse::fromDomain);
+    }
+
+    /** Backward-compat overload - defaults to WLTP. */
+    public Optional<VehicleSpecificationResponse> lookup(String carBrand, String carModel, BigDecimal batteryCapacityKwh) {
+        return lookup(carBrand, carModel, batteryCapacityKwh, "WLTP");
     }
 
     /**
@@ -51,26 +71,37 @@ public class VehicleSpecificationService {
         String sanitizedBrand = sanitizeInput(request.carBrand());
         String sanitizedModel = sanitizeInput(request.carModel());
 
-        // Check if data already exists (always use COMBINED as per requirements)
-        boolean exists = vehicleSpecificationRepository.existsByCarBrandAndModelAndCapacityAndType(
+        // Parse ratingSource — null or missing defaults to WLTP (backward compat)
+        VehicleSpecification.RatingSource ratingSource;
+        try {
+            ratingSource = (request.ratingSource() == null)
+                    ? VehicleSpecification.RatingSource.WLTP
+                    : VehicleSpecification.RatingSource.valueOf(request.ratingSource());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid ratingSource: " + request.ratingSource() + ". Allowed: WLTP, EPA");
+        }
+
+        // Duplicate check is per (brand, model, capacity, type, ratingSource)
+        boolean exists = vehicleSpecificationRepository.existsByCarBrandAndModelAndCapacityAndTypeAndSource(
                 sanitizedBrand,
                 sanitizedModel,
                 request.batteryCapacityKwh(),
-                VehicleSpecification.WltpType.COMBINED
+                VehicleSpecification.WltpType.COMBINED,
+                ratingSource
         );
 
         if (exists) {
-            throw new IllegalArgumentException("WLTP data already exists for this vehicle configuration");
+            throw new IllegalArgumentException(ratingSource.name() + " data already exists for this vehicle configuration");
         }
 
-        // Create new specification (implicitly COMBINED) with sanitized inputs
         VehicleSpecification newSpec = VehicleSpecification.createNew(
                 sanitizedBrand,
                 sanitizedModel,
                 request.batteryCapacityKwh(),
-                request.wltpRangeKm(),
-                request.wltpConsumptionKwhPer100km(),
-                VehicleSpecification.WltpType.COMBINED
+                request.officialRangeKm(),
+                request.officialConsumptionKwhPer100km(),
+                VehicleSpecification.WltpType.COMBINED,
+                ratingSource
         );
 
         VehicleSpecification saved;
@@ -78,7 +109,7 @@ public class VehicleSpecificationService {
             saved = vehicleSpecificationRepository.save(newSpec);
         } catch (DataIntegrityViolationException e) {
             // Race condition: Another request created the same entry between check and save
-            throw new IllegalArgumentException("WLTP data already exists for this vehicle configuration (concurrent insert detected)");
+            throw new IllegalArgumentException(ratingSource.name() + " data already exists for this vehicle configuration (concurrent insert detected)");
         }
 
         // Award coins for community contribution
@@ -86,14 +117,14 @@ public class VehicleSpecificationService {
         coinLogService.awardCoins(
                 userId,
                 CoinType.SOCIAL_COIN,
-                WLTP_CONTRIBUTION_COINS,
-                String.format("WLTP data contribution: %s %s (%.1f kWh)",
-                        sanitizedBrand, sanitizedModel, request.batteryCapacityKwh())
+                CONTRIBUTION_COINS,
+                String.format("%s data contribution: %s %s (%.1f kWh)",
+                        ratingSource.name(), sanitizedBrand, sanitizedModel, request.batteryCapacityKwh())
         );
 
         return new VehicleSpecificationCreateResponse(
                 VehicleSpecificationResponse.fromDomain(saved),
-                WLTP_CONTRIBUTION_COINS
+                CONTRIBUTION_COINS
         );
     }
 

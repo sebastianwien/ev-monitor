@@ -11,19 +11,26 @@ import java.util.UUID;
 @Repository
 public interface JpaVehicleSpecificationRepository extends JpaRepository<VehicleSpecificationEntity, UUID> {
 
-    Optional<VehicleSpecificationEntity> findByCarBrandAndCarModelAndBatteryCapacityKwhAndWltpType(
+    Optional<VehicleSpecificationEntity> findByCarBrandAndCarModelAndBatteryCapacityKwhAndWltpTypeAndRatingSource(
         String carBrand,
         String carModel,
         BigDecimal batteryCapacityKwh,
-        String wltpType
+        String wltpType,
+        String ratingSource
     );
 
-    boolean existsByCarBrandAndCarModelAndBatteryCapacityKwhAndWltpType(
+    boolean existsByCarBrandAndCarModelAndBatteryCapacityKwhAndWltpTypeAndRatingSource(
         String carBrand,
         String carModel,
         BigDecimal batteryCapacityKwh,
-        String wltpType
+        String wltpType,
+        String ratingSource
     );
 
     List<VehicleSpecificationEntity> findByCarModelOrderByBatteryCapacityKwhAsc(String carModel);
+
+    List<VehicleSpecificationEntity> findByCarModelAndRatingSourceOrderByBatteryCapacityKwhAsc(
+        String carModel,
+        String ratingSource
+    );
 }

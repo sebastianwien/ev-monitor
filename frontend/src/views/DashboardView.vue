@@ -642,8 +642,8 @@ onMounted(() => initCars())
               <template v-else>{{ t('dashboard.chart_consumption_vs_wltp') }}</template>
             </h2>
             <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
-              WLTP: <strong>{{ wltp.wltpConsumptionKwhPer100km != null ? formatConsumption(wltp.wltpConsumptionKwhPer100km) : '–' }}</strong>
-              ({{ wltp.wltpRangeKm != null ? formatDistance(wltp.wltpRangeKm) : '–' }}, {{ wltp.wltpType }})
+              WLTP: <strong>{{ wltp.officialConsumptionKwhPer100km != null ? formatConsumption(wltp.officialConsumptionKwhPer100km) : '–' }}</strong>
+              ({{ wltp.officialRangeKm != null ? formatDistance(wltp.officialRangeKm) : '–' }}, {{ wltp.wltpType }})
               <span class="hidden sm:inline">
                 · <span class="text-emerald-600 font-medium">{{ t('dashboard.chart_green_better') }}</span>
                 · <span class="text-red-600 font-medium">{{ t('dashboard.chart_red_worse') }}</span>

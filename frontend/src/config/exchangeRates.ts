@@ -11,6 +11,7 @@ export const EUR_EXCHANGE_RATES: Record<CurrencyCode, number> = {
     NOK: 11.5,
     SEK: 11.2,
     DKK: 7.45,
+    USD: 1.08,
 }
 
 export const RATES_LAST_UPDATED = '2026-04-07'

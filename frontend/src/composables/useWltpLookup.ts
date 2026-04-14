@@ -1,6 +1,7 @@
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { vehicleSpecificationService, type VehicleSpecification } from '../api/vehicleSpecificationService'
+import { useCountryStore } from '../stores/country'
 import type { Ref, ComputedRef } from 'vue'
 
 export function useWltpLookup(
@@ -13,18 +14,24 @@ export function useWltpLookup(
   toastMessage: Ref<string>,
 ) {
   const { t } = useI18n()
+  const countryStore = useCountryStore()
 
   const wltpData = ref<VehicleSpecification | null>(null)
   const showWltpQuestion = ref(false)
   const showWltpForm = ref(false)
-  const wltpRangeKm = ref<number | null>(null)
-  const wltpConsumptionKwhPer100km = ref<number | null>(null)
+  const officialRangeKm = ref<number | null>(null)
+  const officialConsumptionKwhPer100km = ref<number | null>(null)
+
+  /** US users contribute EPA data; everyone else contributes WLTP */
+  const ratingSource = computed<'WLTP' | 'EPA'>(() =>
+    countryStore.country === 'US' ? 'EPA' : 'WLTP'
+  )
 
   const lookupWltpData = async () => {
     if (!selectedBrand.value || !selectedModel.value || !finalCapacity.value) return
     try {
       const data = await vehicleSpecificationService.lookup(
-        selectedBrand.value, selectedModel.value, finalCapacity.value
+        selectedBrand.value, selectedModel.value, finalCapacity.value, ratingSource.value
       )
       if (data) { wltpData.value = data } else { showWltpQuestion.value = true }
     } catch {
@@ -37,18 +44,18 @@ export function useWltpLookup(
   const openWltpForm = () => {
     showWltpQuestion.value = false
     showWltpForm.value = true
-    wltpRangeKm.value = null
-    wltpConsumptionKwhPer100km.value = null
+    officialRangeKm.value = null
+    officialConsumptionKwhPer100km.value = null
   }
 
   const closeWltpForm = () => {
     showWltpForm.value = false
-    wltpRangeKm.value = null
-    wltpConsumptionKwhPer100km.value = null
+    officialRangeKm.value = null
+    officialConsumptionKwhPer100km.value = null
   }
 
   const submitWltpData = async () => {
-    if (!wltpRangeKm.value || !wltpConsumptionKwhPer100km.value) {
+    if (!officialRangeKm.value || !officialConsumptionKwhPer100km.value) {
       error.value = t('cars.error_wltp')
       return
     }
@@ -58,8 +65,9 @@ export function useWltpLookup(
         carBrand: selectedBrand.value,
         carModel: selectedModel.value,
         batteryCapacityKwh: finalCapacity.value!,
-        wltpRangeKm: wltpRangeKm.value,
-        wltpConsumptionKwhPer100km: wltpConsumptionKwhPer100km.value
+        officialRangeKm: officialRangeKm.value,
+        officialConsumptionKwhPer100km: officialConsumptionKwhPer100km.value,
+        ratingSource: ratingSource.value,
       })
       closeWltpForm()
       toastMessage.value = t('cars.toast_wltp', { n: response.coinsAwarded })
@@ -71,7 +79,7 @@ export function useWltpLookup(
     }
   }
 
-  // Reset WLTP data when model changes
+  // Reset when model changes
   watch(selectedModel, () => { wltpData.value = null })
 
   // Lookup on brand/model/capacity change
@@ -84,7 +92,8 @@ export function useWltpLookup(
 
   return {
     wltpData, showWltpQuestion, showWltpForm,
-    wltpRangeKm, wltpConsumptionKwhPer100km,
+    officialRangeKm, officialConsumptionKwhPer100km,
+    ratingSource,
     lookupWltpData, closeWltpQuestion, openWltpForm, closeWltpForm, submitWltpData,
   }
 }

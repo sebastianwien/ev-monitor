@@ -1,8 +1,8 @@
-export type CountryCode = 'DE' | 'AT' | 'CH' | 'GB' | 'NL' | 'BE' | 'DK' | 'NO' | 'SE'
+export type CountryCode = 'DE' | 'AT' | 'CH' | 'GB' | 'NL' | 'BE' | 'DK' | 'NO' | 'SE' | 'US'
 
 export type ConsumptionUnit = 'kWh/100km' | 'mi/kWh' | 'kWh/mil'
 export type DistanceUnit = 'km' | 'miles'
-export type CurrencyCode = 'EUR' | 'GBP' | 'DKK' | 'NOK' | 'SEK'
+export type CurrencyCode = 'EUR' | 'GBP' | 'DKK' | 'NOK' | 'SEK' | 'USD'
 
 export interface UnitSystem {
     consumptionUnit: ConsumptionUnit
@@ -109,9 +109,19 @@ export const UNIT_SYSTEMS: Record<CountryCode, UnitSystem> = {
         numberLocale: 'en-GB',
         consumptionInverse: true,
     },
+    US: {
+        consumptionUnit: 'mi/kWh',
+        distanceUnit: 'miles',
+        currency: 'USD',
+        currencySymbol: '$',
+        currencySubunit: null,   // US-Charger zeigen $/kWh, nicht ¢/kWh
+        currencySubunitDivisor: 1,
+        numberLocale: 'en-US',
+        consumptionInverse: true,
+    },
 }
 
-export const SUPPORTED_COUNTRIES: CountryCode[] = ['DE', 'AT', 'CH', 'GB', 'NL', 'BE', 'DK', 'NO', 'SE']
+export const SUPPORTED_COUNTRIES: CountryCode[] = ['DE', 'AT', 'CH', 'GB', 'NL', 'BE', 'DK', 'NO', 'SE', 'US']
 
 export const EUR_ZONE_COUNTRIES: CountryCode[] = ['DE', 'AT', 'CH', 'NL', 'BE']
 

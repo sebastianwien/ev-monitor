@@ -162,9 +162,10 @@ describe('unit system configuration consistency', () => {
         }
     })
 
-    it('only GB uses miles', () => {
+    it('only GB and US use miles', () => {
+        const milesCountries = new Set(['GB', 'US'])
         for (const [code, sys] of Object.entries(UNIT_SYSTEMS)) {
-            if (code === 'GB') {
+            if (milesCountries.has(code)) {
                 expect(sys.distanceUnit).toBe('miles')
             } else {
                 expect(sys.distanceUnit).toBe('km')
@@ -172,9 +173,10 @@ describe('unit system configuration consistency', () => {
         }
     })
 
-    it('only GB has consumptionInverse = true', () => {
+    it('only GB and US have consumptionInverse = true', () => {
+        const inverseCountries = new Set(['GB', 'US'])
         for (const [code, sys] of Object.entries(UNIT_SYSTEMS)) {
-            if (code === 'GB') {
+            if (inverseCountries.has(code)) {
                 expect(sys.consumptionInverse).toBe(true)
             } else {
                 expect(sys.consumptionInverse).toBe(false)

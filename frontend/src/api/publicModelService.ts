@@ -10,6 +10,16 @@ export interface WltpVariant {
     seasonalDistribution: SeasonalDistribution | null
 }
 
+export interface EpaVariant {
+    batteryCapacityKwh: number
+    variantName: string | null
+    epaRangeKm: number
+    epaConsumptionKwhPer100km: number
+    realConsumptionKwhPer100km: number | null
+    realConsumptionTripCount: number | null
+    seasonalDistribution: SeasonalDistribution | null
+}
+
 export interface SeasonalDistribution {
     summerPercentage: number
     winterPercentage: number
@@ -35,6 +45,7 @@ export interface PublicModelStats {
     estimatedConsumptionCount: number
     avgChargingPowerKw: number | null
     wltpVariants: WltpVariant[]
+    epaVariants: EpaVariant[] | null
     seasonalDistribution: SeasonalDistribution | null
 }
 

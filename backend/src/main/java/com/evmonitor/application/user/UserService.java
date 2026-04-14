@@ -24,7 +24,7 @@ import java.util.UUID;
 public class UserService {
 
     private static final Set<String> VALID_COUNTRIES = Set.of(
-            "DE", "AT", "CH", "GB", "NL", "BE", "DK", "NO", "SE");
+            "DE", "AT", "CH", "GB", "NL", "BE", "DK", "NO", "SE", "US");
 
     private final UserRepository userRepository;
     private final EvLogRepository evLogRepository;

@@ -29,9 +29,22 @@ public record PublicModelStatsResponse(
         // WLTP official data (all known variants for this model)
         List<WltpVariant> wltpVariants,
 
+        // EPA official data (US only — null for models without EPA data)
+        List<EpaVariant> epaVariants,
+
         // Seasonal data distribution (null if no odometer data)
         SeasonalDistribution seasonalDistribution
 ) {
+    public record EpaVariant(
+            BigDecimal batteryCapacityKwh,
+            String variantName,                    // nullable — e.g. "Long Range", "AWD"
+            BigDecimal epaRangeKm,
+            BigDecimal epaConsumptionKwhPer100km,
+            BigDecimal realConsumptionKwhPer100km, // same user log data as WLTP — null if no data
+            Integer realConsumptionTripCount,
+            SeasonalDistribution seasonalDistribution
+    ) {}
+
     public record WltpVariant(
             BigDecimal batteryCapacityKwh,
             String variantName,                    // nullable — e.g. "Long Range", "Performance", "Pro S"

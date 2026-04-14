@@ -58,15 +58,14 @@ class VehicleSpecificationServiceTest {
         BigDecimal capacity = new BigDecimal("75.0");
 
         VehicleSpecificationRequest request = new VehicleSpecificationRequest(
-                brand,
-                model,
-                capacity,
+                brand, model, capacity,
                 new BigDecimal("450.0"),
-                new BigDecimal("16.5")
+                new BigDecimal("16.5"),
+                null  // ratingSource null → defaults to WLTP
         );
 
-        when(vehicleSpecificationRepository.existsByCarBrandAndModelAndCapacityAndType(
-                brand, model, capacity, VehicleSpecification.WltpType.COMBINED
+        when(vehicleSpecificationRepository.existsByCarBrandAndModelAndCapacityAndTypeAndSource(
+                brand, model, capacity, VehicleSpecification.WltpType.COMBINED, VehicleSpecification.RatingSource.WLTP
         )).thenReturn(false);
         when(vehicleSpecificationRepository.save(any(VehicleSpecification.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
@@ -103,15 +102,14 @@ class VehicleSpecificationServiceTest {
         BigDecimal capacity = new BigDecimal("75.0");
 
         VehicleSpecificationRequest request = new VehicleSpecificationRequest(
-                brand,
-                model,
-                capacity,
+                brand, model, capacity,
                 new BigDecimal("450.0"),
-                new BigDecimal("16.5")
+                new BigDecimal("16.5"),
+                null  // defaults to WLTP
         );
 
-        when(vehicleSpecificationRepository.existsByCarBrandAndModelAndCapacityAndType(
-                brand, model, capacity, VehicleSpecification.WltpType.COMBINED
+        when(vehicleSpecificationRepository.existsByCarBrandAndModelAndCapacityAndTypeAndSource(
+                brand, model, capacity, VehicleSpecification.WltpType.COMBINED, VehicleSpecification.RatingSource.WLTP
         )).thenReturn(true); // Already exists!
 
         // When & Then
@@ -131,15 +129,13 @@ class VehicleSpecificationServiceTest {
         // Given: Two concurrent requests try to create same WLTP data
         // First check says "doesn't exist", but save fails due to unique constraint
         VehicleSpecificationRequest request = new VehicleSpecificationRequest(
-                "TESLA",
-                "MODEL_3",
-                new BigDecimal("75.0"),
-                new BigDecimal("450.0"),
-                new BigDecimal("16.5")
+                "TESLA", "MODEL_3", new BigDecimal("75.0"),
+                new BigDecimal("450.0"), new BigDecimal("16.5"),
+                null  // defaults to WLTP
         );
 
-        when(vehicleSpecificationRepository.existsByCarBrandAndModelAndCapacityAndType(
-                any(), any(), any(), any()
+        when(vehicleSpecificationRepository.existsByCarBrandAndModelAndCapacityAndTypeAndSource(
+                any(), any(), any(), any(), any()
         )).thenReturn(false); // Check says "doesn't exist"
 
         when(vehicleSpecificationRepository.save(any(VehicleSpecification.class)))
@@ -164,15 +160,13 @@ class VehicleSpecificationServiceTest {
         BigDecimal capacity = new BigDecimal("75.0");
 
         VehicleSpecificationRequest request = new VehicleSpecificationRequest(
-                maliciousBrand,
-                maliciousModel,
-                capacity,
-                new BigDecimal("450.0"),
-                new BigDecimal("16.5")
+                maliciousBrand, maliciousModel, capacity,
+                new BigDecimal("450.0"), new BigDecimal("16.5"),
+                null
         );
 
-        when(vehicleSpecificationRepository.existsByCarBrandAndModelAndCapacityAndType(
-                any(), any(), any(), any()
+        when(vehicleSpecificationRepository.existsByCarBrandAndModelAndCapacityAndTypeAndSource(
+                any(), any(), any(), any(), any()
         )).thenReturn(false);
         when(vehicleSpecificationRepository.save(any(VehicleSpecification.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
@@ -208,15 +202,13 @@ class VehicleSpecificationServiceTest {
         String model = "  MODEL_3  ";
 
         VehicleSpecificationRequest request = new VehicleSpecificationRequest(
-                brand,
-                model,
-                new BigDecimal("75.0"),
-                new BigDecimal("450.0"),
-                new BigDecimal("16.5")
+                brand, model, new BigDecimal("75.0"),
+                new BigDecimal("450.0"), new BigDecimal("16.5"),
+                null
         );
 
-        when(vehicleSpecificationRepository.existsByCarBrandAndModelAndCapacityAndType(
-                any(), any(), any(), any()
+        when(vehicleSpecificationRepository.existsByCarBrandAndModelAndCapacityAndTypeAndSource(
+                any(), any(), any(), any(), any()
         )).thenReturn(false);
         when(vehicleSpecificationRepository.save(any(VehicleSpecification.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
@@ -271,6 +263,125 @@ class VehicleSpecificationServiceTest {
 
         // Then
         assertFalse(result.isPresent());
+    }
+
+    // --- EPA Rating Source Tests ---
+
+    @Test
+    void shouldCreateEpaData_AndAwardCoins() {
+        // Given: request with ratingSource = EPA
+        String brand = "TESLA";
+        String model = "MODEL_3";
+        BigDecimal capacity = new BigDecimal("75.0");
+
+        VehicleSpecificationRequest request = new VehicleSpecificationRequest(
+                brand, model, capacity,
+                new BigDecimal("531.1"),  // EPA range in km
+                new BigDecimal("15.54"),  // EPA consumption kWh/100km
+                "EPA"
+        );
+
+        when(vehicleSpecificationRepository.existsByCarBrandAndModelAndCapacityAndTypeAndSource(
+                brand, model, capacity, VehicleSpecification.WltpType.COMBINED, VehicleSpecification.RatingSource.EPA
+        )).thenReturn(false);
+        when(vehicleSpecificationRepository.save(any(VehicleSpecification.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        // When
+        VehicleSpecificationCreateResponse response = vehicleSpecificationService.create(userId, request);
+
+        // Then
+        assertNotNull(response);
+        assertEquals(50, response.coinsAwarded());
+
+        ArgumentCaptor<VehicleSpecification> specCaptor = ArgumentCaptor.forClass(VehicleSpecification.class);
+        verify(vehicleSpecificationRepository).save(specCaptor.capture());
+        VehicleSpecification savedSpec = specCaptor.getValue();
+        assertEquals(VehicleSpecification.RatingSource.EPA, savedSpec.getRatingSource());
+    }
+
+    @Test
+    void shouldNotBlockEpaCreation_WhenWltpAlreadyExists() {
+        // Given: WLTP exists, but we're creating EPA
+        String brand = "TESLA";
+        String model = "MODEL_3";
+        BigDecimal capacity = new BigDecimal("75.0");
+
+        VehicleSpecificationRequest request = new VehicleSpecificationRequest(
+                brand, model, capacity,
+                new BigDecimal("531.1"),
+                new BigDecimal("15.54"),
+                "EPA"
+        );
+
+        // EPA does NOT exist (WLTP does, but we don't check for it)
+        when(vehicleSpecificationRepository.existsByCarBrandAndModelAndCapacityAndTypeAndSource(
+                brand, model, capacity, VehicleSpecification.WltpType.COMBINED, VehicleSpecification.RatingSource.EPA
+        )).thenReturn(false);
+        when(vehicleSpecificationRepository.save(any(VehicleSpecification.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        // When - should NOT throw
+        assertDoesNotThrow(() -> vehicleSpecificationService.create(userId, request));
+    }
+
+    @Test
+    void shouldDefaultToWltp_WhenRatingSourceMissing() {
+        // Given: request without ratingSource (backward compat - old frontend)
+        VehicleSpecificationRequest request = new VehicleSpecificationRequest(
+                "TESLA", "MODEL_3", new BigDecimal("75.0"),
+                new BigDecimal("450.0"), new BigDecimal("16.5"),
+                null  // no ratingSource
+        );
+
+        when(vehicleSpecificationRepository.existsByCarBrandAndModelAndCapacityAndTypeAndSource(
+                any(), any(), any(), any(), eq(VehicleSpecification.RatingSource.WLTP)
+        )).thenReturn(false);
+        when(vehicleSpecificationRepository.save(any(VehicleSpecification.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        // When
+        vehicleSpecificationService.create(userId, request);
+
+        // Then: WLTP should be used
+        ArgumentCaptor<VehicleSpecification> specCaptor = ArgumentCaptor.forClass(VehicleSpecification.class);
+        verify(vehicleSpecificationRepository).save(specCaptor.capture());
+        assertEquals(VehicleSpecification.RatingSource.WLTP, specCaptor.getValue().getRatingSource());
+    }
+
+    @Test
+    void shouldRejectDuplicateEpaData() {
+        // Given: EPA entry already exists
+        VehicleSpecificationRequest request = new VehicleSpecificationRequest(
+                "TESLA", "MODEL_3", new BigDecimal("75.0"),
+                new BigDecimal("531.1"), new BigDecimal("15.54"),
+                "EPA"
+        );
+
+        when(vehicleSpecificationRepository.existsByCarBrandAndModelAndCapacityAndTypeAndSource(
+                any(), any(), any(), any(), eq(VehicleSpecification.RatingSource.EPA)
+        )).thenReturn(true);
+
+        // When & Then
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+                vehicleSpecificationService.create(userId, request));
+        assertTrue(exception.getMessage().contains("already exists"));
+        verify(vehicleSpecificationRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldRejectInvalidRatingSource() {
+        // Given: unknown rating source
+        VehicleSpecificationRequest request = new VehicleSpecificationRequest(
+                "TESLA", "MODEL_3", new BigDecimal("75.0"),
+                new BigDecimal("450.0"), new BigDecimal("16.5"),
+                "CLTC"  // not yet supported
+        );
+
+        // When & Then
+        assertThrows(IllegalArgumentException.class, () ->
+                vehicleSpecificationService.create(userId, request));
+        verify(vehicleSpecificationRepository, never()).save(any());
     }
 
     @Test
