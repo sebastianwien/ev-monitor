@@ -1,4 +1,4 @@
-export type CountryCode = 'DE' | 'AT' | 'CH' | 'GB' | 'NL' | 'BE' | 'DK' | 'NO' | 'SE' | 'US'
+export type CountryCode = 'DE' | 'AT' | 'CH' | 'GB' | 'NL' | 'BE' | 'DK' | 'NO' | 'SE' | 'FI' | 'US'
 
 export type ConsumptionUnit = 'kWh/100km' | 'mi/kWh' | 'kWh/mil'
 export type DistanceUnit = 'km' | 'miles'
@@ -99,6 +99,16 @@ export const UNIT_SYSTEMS: Record<CountryCode, UnitSystem> = {
         numberLocale: 'sv-SE',
         consumptionInverse: false,
     },
+    FI: {
+        consumptionUnit: 'kWh/100km',
+        distanceUnit: 'km',
+        currency: 'EUR',
+        currencySymbol: '\u20ac',
+        currencySubunit: 'ct',
+        currencySubunitDivisor: 100,
+        numberLocale: 'fi-FI',
+        consumptionInverse: false,
+    },
     GB: {
         consumptionUnit: 'mi/kWh',
         distanceUnit: 'miles',
@@ -121,9 +131,9 @@ export const UNIT_SYSTEMS: Record<CountryCode, UnitSystem> = {
     },
 }
 
-export const SUPPORTED_COUNTRIES: CountryCode[] = ['DE', 'AT', 'CH', 'GB', 'NL', 'BE', 'DK', 'NO', 'SE', 'US']
+export const SUPPORTED_COUNTRIES: CountryCode[] = ['DE', 'AT', 'CH', 'GB', 'NL', 'BE', 'DK', 'NO', 'SE', 'FI', 'US']
 
-export const EUR_ZONE_COUNTRIES: CountryCode[] = ['DE', 'AT', 'CH', 'NL', 'BE']
+export const EUR_ZONE_COUNTRIES: CountryCode[] = ['DE', 'AT', 'CH', 'NL', 'BE', 'FI']
 
 export function isValidCountryCode(code: string): code is CountryCode {
     return SUPPORTED_COUNTRIES.includes(code as CountryCode)
