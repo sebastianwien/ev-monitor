@@ -201,6 +201,11 @@ models_list:
   compare:
     title: "Vergleich ({current}/{max})"
     button: "Vergleichen"
+  meta_title: "Elektroauto Verbrauch Vergleich – Alle Modelle | EV Monitor"
+  meta_description: "Vergleiche den realen Stromverbrauch aller Elektroautos. Community-Daten vs. WLTP für Tesla, VW ID, Hyundai Ioniq, BMW i4 und mehr - kein Marketing, nur echte Messwerte."
+  meta_keywords: "Elektroauto Verbrauch, EV kWh 100km, WLTP vs Real, Tesla Verbrauch, VW ID.3 Verbrauch, Elektroauto Reichweite, Ladekosten Vergleich"
+  og_title: "Elektroauto Verbrauch Vergleich - Reale Community-Daten"
+  og_description: "Echte Verbrauchsdaten von der Community für alle Elektroautos. WLTP vs. Praxis im direkten Vergleich."
 
 brand:
   not_found_title: "Marke nicht gefunden"
@@ -228,6 +233,10 @@ brand:
   cta_text: "Tracke deine Ladevorgänge, vergleiche deinen realen Verbrauch mit WLTP und hilf der Community mit echten Daten."
   free_start: "Kostenlos starten"
   login: "Anmelden"
+  meta_title: "{brand} Elektroautos – Verbrauch & WLTP ({year}) | EV Monitor"
+  meta_description: "Alle {count} {brand} Elektroautos im Überblick ({year}): WLTP-Reichweite, realer Verbrauch und Community-Daten. Finde heraus wie viel ein {brand} wirklich verbraucht."
+  meta_keywords: "{brand} Elektroauto, {brand} Verbrauch, {brand} WLTP, {brand} Reichweite, {brand} E-Auto, {brand} kWh, {brand} Elektromodelle, Elektroauto Verbrauch, WLTP Unterschied real, Elektroauto Reichweite"
+  og_title: "{brand} Elektroautos – Realer Verbrauch & WLTP {year}"
 
 model:
   breadcrumb_home: "EV Monitor"

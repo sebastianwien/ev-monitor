@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, readonly } from 'vue'
 import { UNIT_SYSTEMS, isValidCountryCode, type CountryCode, type UnitSystem } from '../config/unitSystems'
 import { EUR_ZONE_COUNTRIES } from '../config/unitSystems'
 import api from '../api/axios'
@@ -19,9 +19,14 @@ export const useCountryStore = defineStore('country', () => {
 
     const country = ref<CountryCode>(initialCountry)
 
-    const unitSystem = computed<UnitSystem>(() => UNIT_SYSTEMS[country.value])
+    /** In-memory only - wird vom Router für Market-spezifische URLs gesetzt.
+     *  Überschreibt `country` für UnitSystem-Berechnung, ohne den User-State zu verändern.
+     *  Wird beim Verlassen von Market-Routes vom Router gecleart (null). */
+    const previewCountry = ref<CountryCode | null>(null)
 
-    const isEurZone = computed(() => EUR_ZONE_COUNTRIES.includes(country.value))
+    const unitSystem = computed<UnitSystem>(() => UNIT_SYSTEMS[previewCountry.value ?? country.value])
+
+    const isEurZone = computed(() => EUR_ZONE_COUNTRIES.includes(previewCountry.value ?? country.value))
 
     function setCountry(code: CountryCode) {
         country.value = code
@@ -40,6 +45,12 @@ export const useCountryStore = defineStore('country', () => {
         }
     }
 
+    /** Setzt temporären Country-Override für Market-Routes (kein localStorage, kein API-Call).
+     *  null = Preview deaktivieren, zurück zum gespeicherten Country. */
+    function setPreviewCountry(code: CountryCode | null) {
+        previewCountry.value = code
+    }
+
     /** Initialize from JWT claim if available */
     function initFromJwt() {
         const authStore = useAuthStore()
@@ -54,9 +65,11 @@ export const useCountryStore = defineStore('country', () => {
 
     return {
         country,
+        previewCountry: readonly(previewCountry),
         unitSystem,
         isEurZone,
         setCountry,
+        setPreviewCountry,
         initFromJwt,
     }
 })

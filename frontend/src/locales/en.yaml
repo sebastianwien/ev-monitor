@@ -201,6 +201,11 @@ models_list:
   compare:
     title: "Compare ({current}/{max})"
     button: "Compare"
+  meta_title: "Electric Car Consumption Comparison – All Models | EV Monitor"
+  meta_description: "Compare the real energy consumption of all electric cars. Community data vs. WLTP for Tesla, VW ID, Hyundai Ioniq, BMW i4 and more - no marketing, just real measurements."
+  meta_keywords: "electric car consumption, EV kWh 100km, WLTP vs real, Tesla consumption, electric car range, charging cost comparison"
+  og_title: "Electric Car Consumption Comparison - Real Community Data"
+  og_description: "Real consumption data from the community for all electric cars. WLTP vs. everyday reality in direct comparison."
 
 brand:
   not_found_title: "Brand not found"
@@ -228,6 +233,10 @@ brand:
   cta_text: "Track your charging sessions, compare your real consumption with WLTP and help the community with real data."
   free_start: "Get started for free"
   login: "Sign in"
+  meta_title: "{brand} Electric Cars – Consumption & WLTP ({year}) | EV Monitor"
+  meta_description: "All {count} {brand} electric cars at a glance ({year}): WLTP range, real consumption and community data. Find out how much a {brand} really consumes."
+  meta_keywords: "{brand} electric car, {brand} consumption, {brand} WLTP, {brand} range, {brand} EV, {brand} kWh, electric car consumption, WLTP vs real, EV range"
+  og_title: "{brand} Electric Cars – Real Consumption & WLTP {year}"
 
 model:
   breadcrumb_home: "EV Monitor"

@@ -199,6 +199,11 @@ models_list:
   compare:
     title: Sammenlign ({current} / {max})
     button: Sammenlign
+  meta_title: "Sammenligning av elbilforbruk – Alle modeller | EV Monitor"
+  meta_description: "Sammenlign det reelle strømforbruket til alle elbiler. Fellesskapsdata mot WLTP for Tesla, VW ID, Hyundai Ioniq, BMW i4 og mer – ingen markedsføring, bare ekte målinger."
+  meta_keywords: "elbilforbruk, EV kWh 100km, WLTP mot reelt, Tesla forbruk, elbilrekkevidde, ladekostnadssammenligning"
+  og_title: "Sammenligning av elbilforbruk – Reelle fellesskapsdata"
+  og_description: "Reelle forbruksdata fra fellesskapet for alle elbiler. WLTP mot hverdagsvirkeligheten i direkte sammenligning."
 brand:
   not_found_title: Merke ikke funnet
   not_found_text: Vi kjenner ikke dette merket.
@@ -225,6 +230,10 @@ brand:
   cta_text: Følg med på ladningene dine, sammenlign det faktiske forbruket ditt med WLTP og bidra til fellesskapet med reelle data.
   free_start: Kom i gang gratis
   login: Logg inn
+  meta_title: "{brand} Elbiler – Forbruk & WLTP ({year}) | EV Monitor"
+  meta_description: "Alle {count} {brand} elbiler på ett blikk ({year}): WLTP-rekkevidde, reelt forbruk og fellesskapsdata. Finn ut hvor mye en {brand} virkelig bruker."
+  meta_keywords: "{brand} elbil, {brand} forbruk, {brand} WLTP, {brand} rekkevidde, {brand} EV, {brand} kWh, elbilforbruk, WLTP mot reelt, EV-rekkevidde"
+  og_title: "{brand} Elbiler – Reelt forbruk & WLTP {year}"
 model:
   breadcrumb_home: EV Monitor
   breadcrumb_models: Modeller

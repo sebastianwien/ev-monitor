@@ -647,6 +647,7 @@ import PublicNav from '../components/shared/PublicNav.vue'
 import AffiliateBanner from '../components/shared/AffiliateBanner.vue'
 import RegionChip from '../components/shared/RegionChip.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
+import { useMarketRoute, getMarketBasePath, OG_LOCALE } from '../composables/useMarketRoute'
 import { EUR_EXCHANGE_RATES, RATES_LAST_UPDATED } from '../config/exchangeRates'
 
 /** Normalized variant - same shape regardless of WLTP or EPA source */
@@ -664,10 +665,8 @@ const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
 const { formatConsumption, consumptionUnitLabel, convertConsumption, formatDistance, formatCurrency, formatCostPerKwh, formatCostPerDistance, consumptionDeltaLabel, consumptionDeltaClass, isEurZone, currency, currencySymbol, unitSystem } = useLocaleFormat()
-const isEn = computed(() => route.path.startsWith('/en/'))
-const modelsBaseUrl = computed(() => isEn.value ? '/en/models' : '/modelle')
-const loginPath = computed(() => isEn.value ? '/en/login' : '/login')
-const registerPath = computed(() => isEn.value ? '/en/register' : '/register')
+const { currentMarket, isDE, isEN, isGB, marketUrl, hreflangLinks } = useMarketRoute()
+const modelsBaseUrl = computed(() => getMarketBasePath(currentMarket.value))
 const authStore = useAuthStore()
 const countryStore = useCountryStore()
 const loading = ref(true)
@@ -686,7 +685,10 @@ const model = route.params.model as string
 const canonicalBrand = computed(() => stats.value?.brandDisplayName ?? brand)
 // canonicalModelSlug unused in V2 (no redirect logic)
 
-const isUS = computed(() => countryStore.country === 'US')
+// US wenn: /us/models Route (previewCountry) ODER User hat dauerhaft US gesetzt
+const isUS = computed(() => currentMarket.value === 'us' || (countryStore.previewCountry ?? countryStore.country) === 'US')
+const loginPath = computed(() => (isEN.value || isGB.value || isUS.value) ? '/en/login' : '/login')
+const registerPath = computed(() => (isEN.value || isGB.value || isUS.value) ? '/en/register' : '/register')
 const ratingLabel = computed(() =>
   isUS.value && (stats.value?.epaVariants?.length ?? 0) > 0 ? 'EPA' : 'WLTP'
 )
@@ -874,11 +876,8 @@ useHead(computed(() => {
   const consumption = displayConsumption.value
   const wltp = worstOfficialConsumption.value
 
-  const canonicalUrl = isEn.value
-    ? `https://ev-monitor.net/en/models/${canonicalBrand.value}/${model}`
-    : `https://ev-monitor.net/modelle/${canonicalBrand.value}/${model}`
-  const deUrl = `https://ev-monitor.net/modelle/${canonicalBrand.value}/${model}`
-  const enUrl = `https://ev-monitor.net/en/models/${canonicalBrand.value}/${model}`
+  const suffix = `/${canonicalBrand.value}/${model}`
+  const canonicalUrl = marketUrl(currentMarket.value, suffix)
 
   const description = consumption && wltp
     ? t('model.meta_description_with_data', { model: name, consumption: formatConsumption(consumption), wltp: formatConsumption(wltp), ratingLabel: ratingLabel.value })
@@ -891,8 +890,8 @@ useHead(computed(() => {
     '@type': 'BreadcrumbList',
     itemListElement: [
       { '@type': 'ListItem', position: 1, name: 'EV Monitor', item: 'https://ev-monitor.net' },
-      { '@type': 'ListItem', position: 2, name: isEn.value ? 'Electric Cars' : 'Elektroautos', item: isEn.value ? 'https://ev-monitor.net/en/models' : 'https://ev-monitor.net/modelle' },
-      { '@type': 'ListItem', position: 3, name: stats.value.brandDisplayName, item: isEn.value ? `https://ev-monitor.net/en/models/${canonicalBrand.value}` : `https://ev-monitor.net/modelle/${canonicalBrand.value}` },
+      { '@type': 'ListItem', position: 2, name: isDE.value ? 'Elektroautos' : 'Electric Cars', item: marketUrl(currentMarket.value) },
+      { '@type': 'ListItem', position: 3, name: stats.value.brandDisplayName, item: marketUrl(currentMarket.value, `/${canonicalBrand.value}`) },
       { '@type': 'ListItem', position: 4, name, item: canonicalUrl },
     ]
   }
@@ -907,7 +906,7 @@ useHead(computed(() => {
   }
   if (consumption) {
     webPageJsonLd['about'] = [
-      { '@type': 'PropertyValue', name: isEn.value ? 'Real Consumption' : 'Realverbrauch', value: formatConsumption(consumption) },
+      { '@type': 'PropertyValue', name: isDE.value ? 'Realverbrauch' : 'Real Consumption', value: formatConsumption(consumption) },
       ...(wltp ? [{ '@type': 'PropertyValue', name: ratingLabel.value, value: formatConsumption(wltp) }] : []),
     ]
   }
@@ -933,13 +932,11 @@ useHead(computed(() => {
       { property: 'og:description', content: description },
       { property: 'og:type', content: 'article' },
       { property: 'og:url', content: canonicalUrl },
-      { property: 'og:locale', content: isEn.value ? 'en_GB' : 'de_DE' },
+      { property: 'og:locale', content: OG_LOCALE[currentMarket.value] ?? 'en_GB' },
     ],
     link: [
       { rel: 'canonical', href: canonicalUrl },
-      { rel: 'alternate', hreflang: 'de', href: deUrl },
-      { rel: 'alternate', hreflang: 'en', href: enUrl },
-      { rel: 'alternate', hreflang: 'x-default', href: enUrl },
+      ...hreflangLinks(suffix),
     ],
     script: [
       { type: 'application/ld+json', innerHTML: JSON.stringify(breadcrumbJsonLd) },
