@@ -173,11 +173,15 @@ public class StripeService {
                 log.info("[STRIPE] subscription deleted -> isPremium=false for customer={}", customerId);
             }
             case "invoice.payment_failed" -> {
-                // Do NOT revoke premium immediately — Stripe retries the payment.
-                // Access is revoked naturally when the subscription transitions to
-                // past_due (via customer.subscription.updated) or is deleted.
+                // Revoke premium immediately — Stripe will retry the payment.
+                // If a retry succeeds, subscription.updated -> active restores premium.
+                // Smartcar stays connected so that recovery is seamless (no re-auth needed).
+                // Final cleanup (including Smartcar disconnect) happens on subscription.deleted.
                 String customerId = data.get("customer").getAsString();
-                log.warn("[STRIPE] payment failed for customer={} — Stripe will retry", customerId);
+                findUserByCustomerId(customerId).ifPresent(u -> {
+                    userRepository.setPremium(u.getId(), false);
+                });
+                log.warn("[STRIPE] payment failed for customer={} — premium revoked, Stripe will retry", customerId);
             }
             case "invoice.payment_succeeded" -> {
                 long amountPaid = data.get("amount_paid").getAsLong();

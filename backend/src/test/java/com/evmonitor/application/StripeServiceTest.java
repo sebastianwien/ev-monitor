@@ -308,16 +308,32 @@ class StripeServiceTest {
     class InvoicePaymentFailed {
 
         @Test
-        void onlyLogsWarning_noDbCallsMade() {
+        void setsPremiumFalse_immediately() {
+            User user = buildUser(USER_ID, null);
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));
+
             JsonObject data = JsonParser.parseString("""
                     {"customer": "%s"}
                     """.formatted(CUSTOMER_ID)).getAsJsonObject();
 
             stripeService.dispatch("invoice.payment_failed", data);
 
-            // payment_failed must never touch the DB — Stripe handles retries
+            // Premium is revoked immediately — but Smartcar stays connected for potential recovery.
+            // If Stripe retries and succeeds, subscription.updated -> active restores premium.
+            verify(userRepository).setPremium(USER_ID, false);
+        }
+
+        @Test
+        void unknownCustomerId_noDbCallsMade() {
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.empty());
+
+            JsonObject data = JsonParser.parseString("""
+                    {"customer": "%s"}
+                    """.formatted(CUSTOMER_ID)).getAsJsonObject();
+
+            stripeService.dispatch("invoice.payment_failed", data);
+
             verify(userRepository, never()).setPremium(any(), anyBoolean());
-            verify(userRepository, never()).findByStripeCustomerId(any());
         }
     }
 
