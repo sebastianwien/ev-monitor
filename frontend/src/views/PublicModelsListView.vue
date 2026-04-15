@@ -378,7 +378,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useHead } from '@unhead/vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/auth'
 import { getTopModels, getPlatformStats, getCategories, type TopModelPreview, type PlatformStats, type VehicleCategoryItem } from '../api/publicModelService'
@@ -388,15 +388,15 @@ import AffiliateBanner from '../components/shared/AffiliateBanner.vue'
 import ThgBanner from '../components/shared/ThgBanner.vue'
 import DemoModelsModal from '../components/demo/DemoModelsModal.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
+import { useMarketRoute, getMarketBasePath, OG_LOCALE } from '../composables/useMarketRoute'
 
 const { t } = useI18n()
 const { consumptionUnitLabel, formatCostPerDistance, formatCostPerKwh, formatDecimal, convertConsumption } = useLocaleFormat()
 const router = useRouter()
-const route = useRoute()
-const isEn = computed(() => route.path.startsWith('/en'))
-const modelsBaseUrl = computed(() => isEn.value ? '/en/models' : '/modelle')
-const loginPath = computed(() => isEn.value ? '/en/login' : '/login')
-const registerPath = computed(() => isEn.value ? '/en/register' : '/register')
+const { currentMarket, isDE, isEN, isGB, isUS, marketUrl, hreflangLinks } = useMarketRoute()
+const modelsBaseUrl = computed(() => getMarketBasePath(currentMarket.value))
+const loginPath = computed(() => (isEN.value || isGB.value || isUS.value) ? '/en/login' : '/login')
+const registerPath = computed(() => (isEN.value || isGB.value || isUS.value) ? '/en/register' : '/register')
 
 const isRedditSource = new URLSearchParams(window.location.search).get('utm_source') === 'reddit'
 
@@ -432,7 +432,7 @@ function clearCompare() {
 }
 
 function startCompare() {
-  const comparePath = isEn.value ? '/en/models/compare' : '/modelle/vergleich'
+  const comparePath = isDE.value ? '/modelle/vergleich' : '/en/models/compare'
   router.push(`${comparePath}?models=${selectedForCompare.value.join(',')}`)
 }
 
@@ -574,29 +574,22 @@ const breadcrumbJsonLd = {
 }
 
 useHead(computed(() => {
-  const canonical = isEn.value ? 'https://ev-monitor.net/en/models' : 'https://ev-monitor.net/modelle'
+  const canonical = marketUrl(currentMarket.value)
   return {
-    title: isEn.value ? 'Electric Car Consumption Comparison – All Models | EV Monitor' : 'Elektroauto Verbrauch Vergleich – Alle Modelle | EV Monitor',
+    title: t('models_list.meta_title'),
     meta: [
-      {
-        name: 'description',
-        content: isEn.value
-          ? 'Compare the real energy consumption of all electric cars. Community data vs. WLTP for Tesla, VW ID, Hyundai Ioniq, BMW i4 and more - no marketing, just real measurements.'
-          : 'Vergleiche den realen Stromverbrauch aller Elektroautos. Community-Daten vs. WLTP für Tesla, VW ID, Hyundai Ioniq, BMW i4 und mehr - kein Marketing, nur echte Messwerte.'
-      },
-      { name: 'keywords', content: isEn.value ? 'electric car consumption, EV kWh 100km, WLTP vs real, Tesla consumption, electric car range, charging cost comparison' : 'Elektroauto Verbrauch, EV kWh 100km, WLTP vs Real, Tesla Verbrauch, VW ID.3 Verbrauch, Elektroauto Reichweite, Ladekosten Vergleich' },
+      { name: 'description', content: t('models_list.meta_description') },
+      { name: 'keywords', content: t('models_list.meta_keywords') },
       { name: 'robots', content: 'index, follow' },
-      { property: 'og:title', content: isEn.value ? 'Electric Car Consumption Comparison - Real Community Data' : 'Elektroauto Verbrauch Vergleich - Reale Community-Daten' },
-      { property: 'og:description', content: isEn.value ? 'Real consumption data from the community for all electric cars. WLTP vs. everyday reality in direct comparison.' : 'Echte Verbrauchsdaten von der Community für alle Elektroautos. WLTP vs. Praxis im direkten Vergleich.' },
+      { property: 'og:title', content: t('models_list.og_title') },
+      { property: 'og:description', content: t('models_list.og_description') },
       { property: 'og:type', content: 'website' },
       { property: 'og:url', content: canonical },
-      { property: 'og:locale', content: isEn.value ? 'en_GB' : 'de_DE' },
+      { property: 'og:locale', content: OG_LOCALE[currentMarket.value] ?? 'en_GB' },
     ],
     link: [
       { rel: 'canonical', href: canonical },
-      { rel: 'alternate', hreflang: 'de', href: 'https://ev-monitor.net/modelle' },
-      { rel: 'alternate', hreflang: 'en', href: 'https://ev-monitor.net/en/models' },
-      { rel: 'alternate', hreflang: 'x-default', href: 'https://ev-monitor.net/en/models' },
+      ...hreflangLinks(),
     ],
     script: [
       { type: 'application/ld+json', innerHTML: () => JSON.stringify(itemListJsonLd.value) },

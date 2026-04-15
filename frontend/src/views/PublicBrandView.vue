@@ -172,11 +172,12 @@ import { useI18n } from 'vue-i18n'
 import { getBrandModels, type PublicBrandResponse } from '../api/publicModelService'
 import { ArrowTrendingUpIcon, ChevronRightIcon } from '@heroicons/vue/24/outline'
 import PublicNav from '../components/shared/PublicNav.vue'
-import { useLocaleFormat, useLocaleRoutes } from '../composables/useLocaleFormat'
+import { useLocaleFormat } from '../composables/useLocaleFormat'
+import { useMarketRoute, getMarketBasePath, OG_LOCALE } from '../composables/useMarketRoute'
 
 const { t } = useI18n()
 const { formatNumber } = useLocaleFormat()
-const { getCanonicalBase } = useLocaleRoutes()
+const { currentMarket, isDE, isEN, isGB, isUS, marketUrl, hreflangLinks } = useMarketRoute()
 
 const route = useRoute()
 const router = useRouter()
@@ -185,10 +186,9 @@ const notFound = ref(false)
 const apiError = ref(false)
 const brand = ref<PublicBrandResponse | null>(null)
 
-const isEn = computed(() => route.path.startsWith('/en/'))
-const modelsUrl = computed(() => isEn.value ? '/en/models' : '/modelle')
-const loginPath = computed(() => isEn.value ? '/en/login' : '/login')
-const registerPath = computed(() => isEn.value ? '/en/register' : '/register')
+const modelsUrl = computed(() => getMarketBasePath(currentMarket.value))
+const loginPath = computed(() => (isEN.value || isGB.value || isUS.value) ? '/en/login' : '/login')
+const registerPath = computed(() => (isEN.value || isGB.value || isUS.value) ? '/en/register' : '/register')
 
 const modelsWithData = computed(() => brand.value?.models.filter(m => m.logCount > 0) ?? [])
 const totalLogs = computed(() => brand.value?.models.reduce((sum, m) => sum + m.logCount, 0) ?? 0)
@@ -201,9 +201,7 @@ onMounted(async () => {
       notFound.value = true
     } else {
       brand.value = result
-      const canonicalPath = isEn.value
-        ? `/en/models/${result.brandDisplayName}`
-        : `/modelle/${result.brandDisplayName}`
+      const canonicalPath = `${getMarketBasePath(currentMarket.value)}/${result.brandDisplayName}`
       if (route.path !== canonicalPath) {
         router.replace(canonicalPath)
       }
@@ -224,46 +222,39 @@ useHead(computed(() => {
   }
   if (!brand.value) {
     const brandParam = route.params.brand as string
-    const canonical = isEn.value
-      ? `${getCanonicalBase()}/en/models/${brandParam}`
-      : `${getCanonicalBase()}/modelle/${brandParam}`
     return {
       title: 'EV Monitor',
       meta: [{ name: 'robots', content: 'index, follow' }],
-      link: [{ rel: 'canonical', href: canonical }]
+      link: [{ rel: 'canonical', href: marketUrl(currentMarket.value, `/${brandParam}`) }]
     }
   }
 
   const name = brand.value.brandDisplayName
   const modelCount = brand.value.models.length
-  const base = getCanonicalBase()
-  const canonicalUrl = isEn.value ? `${base}/en/models/${name}` : `${base}/modelle/${name}`
-  const deUrl = `${base}/modelle/${name}`
-  const enUrl = `${base}/en/models/${name}`
+  const suffix = `/${name}`
+  const canonicalUrl = marketUrl(currentMarket.value, suffix)
   const currentYear = new Date().getFullYear()
 
-  const description = isEn.value
-    ? `All ${modelCount} ${name} electric cars at a glance (${currentYear}): WLTP range, real consumption and community data. Find out how much a ${name} really consumes.`
-    : `Alle ${modelCount} ${name} Elektroautos im Überblick (${currentYear}): WLTP-Reichweite, realer Verbrauch und Community-Daten. Finde heraus wie viel ein ${name} wirklich verbraucht.`
+  const description = t('brand.meta_description', { brand: name, count: modelCount, year: currentYear })
+  const keywords = t('brand.meta_keywords', { brand: name })
 
-  const keywords = isEn.value
-    ? [`${name} electric car`, `${name} consumption`, `${name} WLTP`, `${name} range`, `${name} EV`, `${name} kWh`, 'electric car consumption', 'WLTP vs real', 'EV range'].join(', ')
-    : [`${name} Elektroauto`, `${name} Verbrauch`, `${name} WLTP`, `${name} Reichweite`, `${name} E-Auto`, `${name} kWh`, `${name} Elektromodelle`, 'Elektroauto Verbrauch', 'WLTP Unterschied real', 'Elektroauto Reichweite'].join(', ')
+  const evLabel = isDE.value ? 'Elektroautos' : 'Electric Cars'
+  const modelsLabel = t('brand.breadcrumb_models')
 
   const breadcrumbJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'EV Monitor', item: base },
-      { '@type': 'ListItem', position: 2, name: isEn.value ? 'Models' : 'Modelle', item: isEn.value ? `${base}/en/models` : `${base}/modelle` },
-      { '@type': 'ListItem', position: 3, name: `${name} ${isEn.value ? 'Electric Cars' : 'Elektroautos'}`, item: canonicalUrl },
+      { '@type': 'ListItem', position: 1, name: 'EV Monitor', item: 'https://ev-monitor.net' },
+      { '@type': 'ListItem', position: 2, name: modelsLabel, item: marketUrl(currentMarket.value) },
+      { '@type': 'ListItem', position: 3, name: `${name} ${evLabel}`, item: canonicalUrl },
     ]
   }
 
   const itemListJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
-    name: `${name} ${isEn.value ? 'Electric Cars' : 'Elektroautos'} – EV Monitor`,
+    name: `${name} ${evLabel} – EV Monitor`,
     description,
     itemListElement: brand.value.models.map((model, idx) => ({
       '@type': 'ListItem',
@@ -274,24 +265,20 @@ useHead(computed(() => {
   }
 
   return {
-    title: isEn.value
-      ? `${name} Electric Cars – Consumption & WLTP (${currentYear}) | EV Monitor`
-      : `${name} Elektroautos – Verbrauch & WLTP (${currentYear}) | EV Monitor`,
+    title: t('brand.meta_title', { brand: name, year: currentYear }),
     meta: [
       { name: 'description', content: description },
       { name: 'keywords', content: keywords },
       { name: 'robots', content: 'index, follow' },
-      { property: 'og:title', content: isEn.value ? `${name} Electric Cars – Real Consumption & WLTP ${currentYear}` : `${name} Elektroautos – Realer Verbrauch & WLTP ${currentYear}` },
+      { property: 'og:title', content: t('brand.og_title', { brand: name, year: currentYear }) },
       { property: 'og:description', content: description },
       { property: 'og:type', content: 'website' },
       { property: 'og:url', content: canonicalUrl },
-      { property: 'og:locale', content: isEn.value ? 'en_GB' : 'de_DE' },
+      { property: 'og:locale', content: OG_LOCALE[currentMarket.value] ?? 'en_GB' },
     ],
     link: [
       { rel: 'canonical', href: canonicalUrl },
-      { rel: 'alternate', hreflang: 'de', href: deUrl },
-      { rel: 'alternate', hreflang: 'en', href: enUrl },
-      { rel: 'alternate', hreflang: 'x-default', href: enUrl },
+      ...hreflangLinks(suffix),
     ],
     script: [
       { type: 'application/ld+json', innerHTML: JSON.stringify(breadcrumbJsonLd) },

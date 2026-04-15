@@ -48,9 +48,7 @@ const localeOptions = computed(() => {
 })
 
 function getHref(locale: AppLocale): string {
-  if (locale === 'de' || locale === 'en') return getAlternateUrl(locale)
-  // NB/SV have no dedicated URL paths yet - in-place locale switch
-  return '#'
+  return getAlternateUrl(locale)
 }
 
 async function switchLocale(locale: AppLocale) {
@@ -58,7 +56,7 @@ async function switchLocale(locale: AppLocale) {
   isSwitching.value = true
   try {
     await setLocale(locale)
-    if ((locale === 'de' || locale === 'en') && !route.meta.requiresAuth) {
+    if (!route.meta.requiresAuth) {
       location.href = getAlternateUrl(locale)
     }
   } finally {

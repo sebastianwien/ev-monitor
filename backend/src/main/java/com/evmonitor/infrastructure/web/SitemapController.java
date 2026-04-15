@@ -34,14 +34,21 @@ public class SitemapController {
         sb.append("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\"\n");
         sb.append("        xmlns:xhtml=\"http://www.w3.org/1999/xhtml\">\n");
 
-        // Landing page
+        // Landing page (DE + EN only - no market-specific landing pages for GB/US/NO/SE)
         appendBilingualUrl(sb, BASE_URL + "/", BASE_URL + "/en", "1.0", "weekly", today);
 
-        // Models list
-        appendBilingualUrl(sb, BASE_URL + "/modelle", BASE_URL + "/en/models", "0.9", "weekly", today);
+        // Models list - all 6 markets
+        appendAllMarketsUrls(sb,
+                BASE_URL + "/modelle",
+                BASE_URL + "/en/models",
+                BASE_URL + "/gb/models",
+                BASE_URL + "/us/models",
+                BASE_URL + "/no/modeller",
+                BASE_URL + "/se/modeller",
+                "0.9", "weekly", today);
 
-        // Register (DE only - no EN auth pages in Phase 1)
-        appendUrl(sb, BASE_URL + "/register", null, null, "0.8", "monthly", today);
+        // Register (DE only)
+        appendSimpleUrl(sb, BASE_URL + "/register", "0.8", "monthly", today);
 
         for (CarBrand brand : CarBrand.values()) {
             if (brand == CarBrand.SONSTIGE) continue;
@@ -53,15 +60,25 @@ public class SitemapController {
             if (modelsForBrand.isEmpty()) continue;
 
             String brandEncoded = encode(brand.getDisplayString());
-            String deBrandUrl = BASE_URL + "/modelle/" + brandEncoded;
-            String enBrandUrl = BASE_URL + "/en/models/" + brandEncoded;
-            appendBilingualUrl(sb, deBrandUrl, enBrandUrl, "0.8", "weekly", today);
+            appendAllMarketsUrls(sb,
+                    BASE_URL + "/modelle/" + brandEncoded,
+                    BASE_URL + "/en/models/" + brandEncoded,
+                    BASE_URL + "/gb/models/" + brandEncoded,
+                    BASE_URL + "/us/models/" + brandEncoded,
+                    BASE_URL + "/no/modeller/" + brandEncoded,
+                    BASE_URL + "/se/modeller/" + brandEncoded,
+                    "0.8", "weekly", today);
 
             for (CarBrand.CarModel model : modelsForBrand) {
                 String modelSlug = encode(model.getDisplayName().replace(" ", "_"));
-                String deModelUrl = BASE_URL + "/modelle/" + brandEncoded + "/" + modelSlug;
-                String enModelUrl = BASE_URL + "/en/models/" + brandEncoded + "/" + modelSlug;
-                appendBilingualUrl(sb, deModelUrl, enModelUrl, "0.7", "weekly", today);
+                appendAllMarketsUrls(sb,
+                        BASE_URL + "/modelle/" + brandEncoded + "/" + modelSlug,
+                        BASE_URL + "/en/models/" + brandEncoded + "/" + modelSlug,
+                        BASE_URL + "/gb/models/" + brandEncoded + "/" + modelSlug,
+                        BASE_URL + "/us/models/" + brandEncoded + "/" + modelSlug,
+                        BASE_URL + "/no/modeller/" + brandEncoded + "/" + modelSlug,
+                        BASE_URL + "/se/modeller/" + brandEncoded + "/" + modelSlug,
+                        "0.7", "weekly", today);
             }
         }
 
@@ -72,25 +89,46 @@ public class SitemapController {
                 .body(sb.toString());
     }
 
-    private void appendBilingualUrl(StringBuilder sb, String deLoc, String enLoc,
-                                    String priority, String changefreq, String lastmod) {
-        // DE entry
-        appendUrl(sb, deLoc, deLoc, enLoc, priority, changefreq, lastmod);
-        // EN entry
-        appendUrl(sb, enLoc, deLoc, enLoc, priority, changefreq, lastmod);
+    /** Generates 6 <url> entries (one per market), each with full hreflang cross-references. */
+    private void appendAllMarketsUrls(StringBuilder sb,
+                                       String deLoc, String enLoc, String gbLoc,
+                                       String usLoc, String noLoc, String seLoc,
+                                       String priority, String changefreq, String lastmod) {
+        for (String loc : List.of(deLoc, enLoc, gbLoc, usLoc, noLoc, seLoc)) {
+            appendUrl(sb, loc, deLoc, enLoc, gbLoc, usLoc, noLoc, seLoc, priority, changefreq, lastmod);
+        }
     }
 
-    private void appendUrl(StringBuilder sb, String loc, String deHref, String enHref,
+    /** Generates 2 <url> entries (DE + EN) with bilingual hreflang - used for landing page only. */
+    private void appendBilingualUrl(StringBuilder sb, String deLoc, String enLoc,
+                                     String priority, String changefreq, String lastmod) {
+        appendUrl(sb, deLoc, deLoc, enLoc, null, null, null, null, priority, changefreq, lastmod);
+        appendUrl(sb, enLoc, deLoc, enLoc, null, null, null, null, priority, changefreq, lastmod);
+    }
+
+    /** Generates a single <url> entry without hreflang (e.g. /register). */
+    private void appendSimpleUrl(StringBuilder sb, String loc, String priority, String changefreq, String lastmod) {
+        appendUrl(sb, loc, null, null, null, null, null, null, priority, changefreq, lastmod);
+    }
+
+    private void appendUrl(StringBuilder sb, String loc,
+                           String deLoc, String enLoc, String gbLoc, String usLoc, String noLoc, String seLoc,
                            String priority, String changefreq, String lastmod) {
         sb.append("  <url>\n");
         sb.append("    <loc>").append(loc).append("</loc>\n");
         sb.append("    <lastmod>").append(lastmod).append("</lastmod>\n");
         sb.append("    <changefreq>").append(changefreq).append("</changefreq>\n");
         sb.append("    <priority>").append(priority).append("</priority>\n");
-        if (deHref != null && enHref != null) {
-            sb.append("    <xhtml:link rel=\"alternate\" hreflang=\"de\" href=\"").append(deHref).append("\"/>\n");
-            sb.append("    <xhtml:link rel=\"alternate\" hreflang=\"en\" href=\"").append(enHref).append("\"/>\n");
-            sb.append("    <xhtml:link rel=\"alternate\" hreflang=\"x-default\" href=\"").append(enHref).append("\"/>\n");
+        if (deLoc != null) {
+            sb.append("    <xhtml:link rel=\"alternate\" hreflang=\"de\" href=\"").append(deLoc).append("\"/>\n");
+            sb.append("    <xhtml:link rel=\"alternate\" hreflang=\"en\" href=\"").append(enLoc).append("\"/>\n");
+            if (gbLoc != null) {
+                sb.append("    <xhtml:link rel=\"alternate\" hreflang=\"en-GB\" href=\"").append(gbLoc).append("\"/>\n");
+                sb.append("    <xhtml:link rel=\"alternate\" hreflang=\"en-US\" href=\"").append(usLoc).append("\"/>\n");
+                sb.append("    <xhtml:link rel=\"alternate\" hreflang=\"nb\" href=\"").append(noLoc).append("\"/>\n");
+                sb.append("    <xhtml:link rel=\"alternate\" hreflang=\"sv\" href=\"").append(seLoc).append("\"/>\n");
+            }
+            sb.append("    <xhtml:link rel=\"alternate\" hreflang=\"x-default\" href=\"").append(enLoc).append("\"/>\n");
         }
         sb.append("  </url>\n");
     }
