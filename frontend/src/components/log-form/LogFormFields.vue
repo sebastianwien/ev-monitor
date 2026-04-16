@@ -6,6 +6,7 @@ import api from '../../api/axios'
 import { useCountryStore } from '../../stores/country'
 import { EUR_EXCHANGE_RATES } from '../../config/exchangeRates'
 import { EUR_ZONE_COUNTRIES } from '../../config/unitSystems'
+import { odometerKmToLocal, odometerLocalToKm } from '../../utils/unitConversions'
 
 export interface LogFormData {
   kwhCharged: number | null
@@ -54,6 +55,20 @@ const localCurrency = computed(() => countryStore.unitSystem.currency)
 const localSymbol = computed(() => countryStore.unitSystem.currencySymbol)
 const localSubunit = computed(() => countryStore.unitSystem.currencySubunit)
 const exchangeRate = computed(() => EUR_EXCHANGE_RATES[localCurrency.value])
+
+const usesMiles = computed(() => countryStore.unitSystem.distanceUnit === 'miles')
+const distanceUnitLabel = computed(() => t(`logfields.unit_${countryStore.unitSystem.distanceUnit}`))
+
+/** User-facing odometer value in local distance unit (km or miles) */
+const odometerLocal = computed({
+  get(): number | null {
+    if (form.value.odometerKm == null) return null
+    return odometerKmToLocal(form.value.odometerKm, usesMiles.value)
+  },
+  set(val: number | null) {
+    form.value.odometerKm = val == null ? null : odometerLocalToKm(val, usesMiles.value)
+  },
+})
 
 /** Convert local currency amount to EUR */
 const localToEur = (local: number) => local / exchangeRate.value
@@ -326,8 +341,8 @@ defineExpose({ clearLocation, locationEnabled, locationStatus, getCurrentDateTim
   <!-- Row 2: Tachostand + SoC nach -->
   <div class="grid grid-cols-2 gap-3">
     <div>
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('logfields.odometer') }}</label>
-      <input v-model="form.odometerKm" type="number" step="1"
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('logfields.odometer') }} ({{ distanceUnitLabel }})</label>
+      <input v-model="odometerLocal" type="number" step="1" min="0"
         :placeholder="odometerPlaceholder ?? t('logfields.odometer')"
         :class="inputClass('odometer')" />
     </div>

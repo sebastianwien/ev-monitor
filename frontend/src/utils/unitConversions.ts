@@ -1,7 +1,7 @@
 import type { ConsumptionUnit, CurrencyCode, UnitSystem } from '../config/unitSystems'
 import { EUR_EXCHANGE_RATES } from '../config/exchangeRates'
 
-const KM_PER_MILE = 1.60934
+export const KM_PER_MILE = 1.60934
 const MILES_PER_100KM = 100 / KM_PER_MILE // 62.1371
 
 /** Convert kWh/100km to the target consumption unit */
@@ -20,6 +20,16 @@ export function convertConsumption(kwhPer100km: number, unit: ConsumptionUnit): 
 /** Convert km to miles */
 export function convertDistance(km: number, toMiles: boolean): number {
     return toMiles ? km / KM_PER_MILE : km
+}
+
+/** Convert km (backend value) to local display value, rounded to integer */
+export function odometerKmToLocal(km: number, toMiles: boolean): number {
+    return Math.round(convertDistance(km, toMiles))
+}
+
+/** Convert local display value (miles or km) to km for backend storage, rounded to integer */
+export function odometerLocalToKm(local: number, fromMiles: boolean): number {
+    return fromMiles ? Math.round(local * KM_PER_MILE) : local
 }
 
 /** Convert EUR to target currency */

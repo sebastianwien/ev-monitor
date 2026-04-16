@@ -17,7 +17,7 @@ import EditLogModal from '../dashboard/EditLogModal.vue'
 
 const { t } = useI18n()
 const { haptic } = useHaptic()
-const { formatNumber } = useLocaleFormat()
+const { formatDistance } = useLocaleFormat()
 const coinStore = useCoinStore()
 const carStore = useCarStore()
 
@@ -100,7 +100,7 @@ const getLastOdometerPlaceholder = (): string => {
     .filter(l => !refDate || new Date(l.loggedAt).getTime() < new Date(refDate).getTime())
     .sort((a, b) => new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime())
   if (sorted.length === 0) return t('logfields.odometer')
-  return t('logform.odometer_last', { km: formatNumber(sorted[0].odometerKm) })
+  return t('logform.odometer_last', { km: formatDistance(sorted[0].odometerKm) })
 }
 
 const fetchLogs = async () => {
@@ -152,7 +152,7 @@ const submitLog = async () => {
     const last = getLastOdometerReading(f.loggedAt || undefined)
     if (last !== null && f.odometerKm < last) {
       fieldErrors.value.add('odometer')
-      odometerPlaceholderOverride.value = t('logform.odometer_min', { min: formatNumber(last) })
+      odometerPlaceholderOverride.value = t('logform.odometer_min', { min: formatDistance(last) })
       errors.push(t('logform.field_odometer'))
     }
   }
@@ -372,7 +372,7 @@ onMounted(async () => {
                   <ClockIcon class="w-3 h-3" />{{ log.chargeDurationMinutes }}min
                 </span>
                 <span v-if="log.odometerKm" class="hidden min-[475px]:inline-flex items-center gap-1 px-2 py-0.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                  <TruckIcon class="w-3 h-3" />{{ log.odometerKm.toLocaleString() }} km
+                  <TruckIcon class="w-3 h-3" />{{ formatDistance(log.odometerKm) }}
                 </span>
                 <span v-if="log.socAfterChargePercent !== null" class="inline-flex items-center gap-1 px-2 py-0.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">
                   <Battery0Icon class="w-3 h-3" />{{ log.socAfterChargePercent }}%

@@ -596,9 +596,9 @@ logform:
   error_no_car: Vennligst velg et kjøretøy
   error_required: "Fyll ut alle obligatoriske felt riktig: {fields}"
   error_save: Ladingsøkten kunne ikke lagres
-  odometer_last: siste {km} km
+  odometer_last: siste {km}
   odometer_placeholder: Kilometerteller (km)
-  odometer_min: børde være minst {min} km
+  odometer_min: børde være minst {min}
   field_kwh: Energi (kWh)
   field_cost: Pris (€)
   field_odometer: Kilometerteller
@@ -610,7 +610,9 @@ logfields:
   energy: Energi (kWh)
   cost_eur: Kostnad
   cost_per_kwh: Pris (€/kWh)
-  odometer: Kilometerteller (km)
+  odometer: Kilometerteller
+  unit_km: km
+  unit_miles: miles
   soc_after: Batterinivå etter lading (%)
   soc_before: Batterinivå før lading (%)
   charge_type: Ladetype

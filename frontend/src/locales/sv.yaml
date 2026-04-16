@@ -596,9 +596,9 @@ logform:
   error_no_car: Välj ett fordon
   error_required: "Fyll i alla obligatoriska fält korrekt: {fields}"
   error_save: Laddningssessionen kunde inte sparas
-  odometer_last: sista {km} km
-  odometer_placeholder: Mätarställning (km)
-  odometer_min: bör vara minst {min} km
+  odometer_last: sista {km}
+  odometer_placeholder: Mätarställning
+  odometer_min: bör vara minst {min}
   field_kwh: Energi (kWh)
   field_cost: Kostnad (€)
   field_odometer: Mätarställning
@@ -610,7 +610,9 @@ logfields:
   energy: Energi (kWh)
   cost_eur: Kostnad
   cost_per_kwh: Pris (€/kWh)
-  odometer: Mätarställning (km)
+  odometer: Mätarställning
+  unit_km: km
+  unit_miles: miles
   soc_after: Batterinivå efter laddning (%)
   soc_before: Batterinivå före laddning (%)
   charge_type: Laddningstyp
