@@ -388,7 +388,7 @@ import AffiliateBanner from '../components/shared/AffiliateBanner.vue'
 import ThgBanner from '../components/shared/ThgBanner.vue'
 import DemoModelsModal from '../components/demo/DemoModelsModal.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
-import { useMarketRoute, getMarketBasePath, OG_LOCALE } from '../composables/useMarketRoute'
+import { useMarketRoute, getMarketBasePath, OG_LOCALE, MARKET_HTML_LANG } from '../composables/useMarketRoute'
 
 const { t } = useI18n()
 const { consumptionUnitLabel, formatCostPerDistance, formatCostPerKwh, formatDecimal, convertConsumption } = useLocaleFormat()
@@ -575,8 +575,10 @@ const breadcrumbJsonLd = {
 
 useHead(computed(() => {
   const canonical = marketUrl(currentMarket.value)
+  const htmlLang = MARKET_HTML_LANG[currentMarket.value]
   return {
     title: t('models_list.meta_title'),
+    htmlAttrs: { lang: htmlLang },
     meta: [
       { name: 'description', content: t('models_list.meta_description') },
       { name: 'keywords', content: t('models_list.meta_keywords') },

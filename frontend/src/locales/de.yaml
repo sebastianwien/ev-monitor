@@ -316,7 +316,7 @@ model:
   avg_cost_prefix: "Nutzer zahlen im Schnitt"
   avg_cost_suffix: "auf 100km"
   meta_title: "{model} Verbrauch & Reichweite ({year}) - EV Monitor"
-  meta_description_with_data: "{model}: Ø {consumption} real laut Community ({ratingLabel}: {wltp}). Verbrauch, Reichweite und Ladekosten - echte Fahrerdaten auf EV Monitor."
+  meta_description_with_data: "{model}: Ø {consumption} real – basierend auf {logCount} echten Fahrten ({ratingLabel}: {wltp}). Verbrauch, Reichweite und Ladekosten auf EV Monitor."
   meta_description_no_data: "{model}: {ratingLabel}-Verbrauch, Reichweite und Community-Daten auf EV Monitor. Sei der Erste, der echte Messwerte teilt!"
   meta_keywords: "{model} Verbrauch, {model} Reichweite, {model} kWh 100km, {model} WLTP real, {model} Ladekosten"
   seo_intro: "Der {model} ist ein Elektrofahrzeug"

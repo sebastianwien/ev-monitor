@@ -316,7 +316,7 @@ model:
   avg_cost_prefix: "Users pay on average"
   avg_cost_suffix: "per 100km"
   meta_title: "{model} Consumption & Range ({year}) - EV Monitor"
-  meta_description_with_data: "{model}: Avg. {consumption} real-world ({ratingLabel}: {wltp}). Consumption, range and charging costs - real driver data on EV Monitor."
+  meta_description_with_data: "{model}: Avg. {consumption} based on {logCount} real-world drives ({ratingLabel}: {wltp}). Consumption, range and charging costs on EV Monitor."
   meta_description_no_data: "{model}: {ratingLabel} consumption, range and community data on EV Monitor. Be the first to share real measurements!"
   meta_keywords: "{model} consumption, {model} range, {model} kWh 100km, {model} WLTP real, {model} charging cost"
   seo_intro: "The {model} is an electric vehicle"

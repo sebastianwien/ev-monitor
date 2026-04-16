@@ -173,7 +173,7 @@ import { getBrandModels, type PublicBrandResponse } from '../api/publicModelServ
 import { ArrowTrendingUpIcon, ChevronRightIcon } from '@heroicons/vue/24/outline'
 import PublicNav from '../components/shared/PublicNav.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
-import { useMarketRoute, getMarketBasePath, OG_LOCALE } from '../composables/useMarketRoute'
+import { useMarketRoute, getMarketBasePath, OG_LOCALE, MARKET_HTML_LANG } from '../composables/useMarketRoute'
 
 const { t } = useI18n()
 const { formatNumber } = useLocaleFormat()
@@ -264,8 +264,11 @@ useHead(computed(() => {
     }))
   }
 
+  const htmlLang = MARKET_HTML_LANG[currentMarket.value]
+
   return {
     title: t('brand.meta_title', { brand: name, year: currentYear }),
+    htmlAttrs: { lang: htmlLang },
     meta: [
       { name: 'description', content: description },
       { name: 'keywords', content: keywords },

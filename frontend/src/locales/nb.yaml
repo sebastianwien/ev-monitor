@@ -312,7 +312,7 @@ model:
   avg_cost_prefix: Brukerne betaler i gjennomsnitt
   avg_cost_suffix: per 100 km
   meta_title: "{model} Forbruk og rekkevidde ({year}) – EV Monitor"
-  meta_description_with_data: "{model}: Gjennomsnittlig {consumption} i reelle kjøreforhold ({ratingLabel}: {wltp}). Forbruk, rekkevidde og ladekostnader – reelle kjøreopplysninger på EV Monitor."
+  meta_description_with_data: "{model}: Gjennomsnittlig {consumption} basert på {logCount} reelle kjøreturer ({ratingLabel}: {wltp}). Forbruk, rekkevidde og ladekostnader på EV Monitor."
   meta_description_no_data: "{model}: {ratingLabel}-forbruk, rekkevidde og brukerdata på EV Monitor. Vær den første til å dele reelle målinger!"
   meta_keywords: "{model} forbruk, {model} rekkevidde, {model} kWh/100 km, {model} WLTP reell, {model} ladekostnad"
   seo_intro: "{model}en er en elbil"

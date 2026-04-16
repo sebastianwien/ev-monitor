@@ -41,6 +41,15 @@ export function buildMarketUrl(market: Market, suffix = ''): string {
     return `${CANONICAL_BASE}${MARKET_BASE_PATHS[market]}${suffix}`
 }
 
+export const MARKET_HTML_LANG: Record<Market, string> = {
+    de: 'de',
+    en: 'en',
+    gb: 'en',
+    us: 'en',
+    no: 'nb',
+    se: 'sv',
+}
+
 export const OG_LOCALE: Record<Market, string> = {
     de: 'de_DE',
     en: 'en_US',   // generic EN fallback (NL/BE) - en_US is the neutral default

@@ -647,7 +647,7 @@ import PublicNav from '../components/shared/PublicNav.vue'
 import AffiliateBanner from '../components/shared/AffiliateBanner.vue'
 import RegionChip from '../components/shared/RegionChip.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
-import { useMarketRoute, getMarketBasePath, OG_LOCALE } from '../composables/useMarketRoute'
+import { useMarketRoute, getMarketBasePath, OG_LOCALE, MARKET_HTML_LANG } from '../composables/useMarketRoute'
 import { EUR_EXCHANGE_RATES, RATES_LAST_UPDATED } from '../config/exchangeRates'
 
 /** Normalized variant - same shape regardless of WLTP or EPA source */
@@ -664,7 +664,7 @@ interface ActiveVariant {
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
-const { formatConsumption, consumptionUnitLabel, convertConsumption, formatDistance, formatCurrency, formatCostPerKwh, formatCostPerDistance, consumptionDeltaLabel, consumptionDeltaClass, isEurZone, currency, currencySymbol, unitSystem } = useLocaleFormat()
+const { formatConsumption, formatNumber, consumptionUnitLabel, convertConsumption, formatDistance, formatCurrency, formatCostPerKwh, formatCostPerDistance, consumptionDeltaLabel, consumptionDeltaClass, isEurZone, currency, currencySymbol, unitSystem } = useLocaleFormat()
 const { currentMarket, isDE, isEN, isGB, marketUrl, hreflangLinks } = useMarketRoute()
 const modelsBaseUrl = computed(() => getMarketBasePath(currentMarket.value))
 const authStore = useAuthStore()
@@ -880,7 +880,7 @@ useHead(computed(() => {
   const canonicalUrl = marketUrl(currentMarket.value, suffix)
 
   const description = consumption && wltp
-    ? t('model.meta_description_with_data', { model: name, consumption: formatConsumption(consumption), wltp: formatConsumption(wltp), ratingLabel: ratingLabel.value })
+    ? t('model.meta_description_with_data', { model: name, consumption: formatConsumption(consumption), wltp: formatConsumption(wltp), ratingLabel: ratingLabel.value, logCount: formatNumber(stats.value.logCount) })
     : t('model.meta_description_no_data', { model: name, ratingLabel: ratingLabel.value })
 
   const title = t('model.meta_title', { model: name, year: currentYear })
@@ -921,8 +921,11 @@ useHead(computed(() => {
     }))
   }
 
+  const htmlLang = MARKET_HTML_LANG[currentMarket.value]
+
   return {
     title,
+    htmlAttrs: { lang: htmlLang },
     meta: [
       { name: 'description', content: description },
       { name: 'keywords', content: t('model.meta_keywords', { model: name }) },
