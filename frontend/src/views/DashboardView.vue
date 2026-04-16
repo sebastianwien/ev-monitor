@@ -65,10 +65,23 @@ const { formatConsumption, consumptionUnitLabel, formatDistance, distanceUnitLab
 const {
   selectedCarId, stats, carInfo, wltp, loading, chartsReady, isInitialLoad, error,
   cars, carImageUrls, selectedTimeRange, selectedGroupBy, customStartDate, customEndDate,
-  importBannerDismissed, teslaStatus, implausibleCount, hasDistanceData,
+  importBannerDismissed, teslaStatus, smartcarStatus, implausibleCount, hasDistanceData,
   timeRangeOptions, groupByOptions, dismissImportBanner, fetchImplausibleCount,
   fetchCarAndWltp, fetchStatistics, initCars,
 } = useDashboardStats()
+
+const isCarCharging = (car: any): boolean => {
+  const isTeslaCharging =
+    car.brand?.toLowerCase() === 'tesla' &&
+    teslaStatus.value?.connected === true &&
+    (teslaStatus.value.carId === car.id || teslaStatus.value.carId === null) &&
+    teslaStatus.value.vehicleState === 'charging'
+  const isSmartcarCharging =
+    smartcarStatus.value?.connected === true &&
+    smartcarStatus.value.carId === car.id &&
+    smartcarStatus.value.vehicleState === 'CHARGING'
+  return isTeslaCharging || isSmartcarCharging
+}
 
 // -- Charts --
 const {
@@ -224,8 +237,12 @@ onMounted(() => initCars())
                   cars.length === 1
                     ? 'flex items-stretch rounded-xl border-2 text-left transition w-full md:w-auto overflow-hidden'
                     : 'flex items-stretch rounded-xl border-2 text-left transition flex-shrink-0 min-w-[200px] max-w-[280px] lg:flex-shrink lg:min-w-0 lg:max-w-none overflow-hidden',
-                  selectedCarId === car.id
+                  selectedCarId === car.id && isCarCharging(car)
+                    ? 'border-green-400 bg-green-50 dark:bg-green-900/20 shadow-[0_4px_0_0_#16a34a,0_0_20px_8px_rgba(74,222,128,0.35)] translate-y-[2px]'
+                    : selectedCarId === car.id
                     ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 shadow-[0_4px_0_0_#4338ca] translate-y-[2px]'
+                    : isCarCharging(car)
+                    ? 'border-green-400 dark:border-green-500 bg-white dark:bg-gray-700 shadow-[0_4px_0_0_#16a34a,0_0_20px_8px_rgba(74,222,128,0.35)] hover:border-green-300'
                     : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:border-indigo-300 active:shadow-none active:translate-y-1'
                 ]" style="transition: transform 0.075s ease, box-shadow 0.075s ease;">
                 <div class="flex-shrink-0 w-24 self-stretch bg-gray-100 dark:bg-gray-600 flex items-center justify-center overflow-hidden">
@@ -260,6 +277,11 @@ onMounted(() => initCars())
                         <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>{{ t('dashboard.tesla_sleeping') }}
                       </span>
                     </template>
+                    <span
+                      v-if="smartcarStatus?.connected && smartcarStatus.carId === car.id && smartcarStatus.vehicleState === 'CHARGING'"
+                      class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium border border-green-200">
+                      <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>{{ t('dashboard.tesla_charging') }}
+                    </span>
                   </div>
                   <!-- Desktop oder mehrere Autos: zweizeiliges Layout -->
                   <div :class="cars.length === 1 ? 'hidden lg:block' : ''">
@@ -284,6 +306,11 @@ onMounted(() => initCars())
                           <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>{{ t('dashboard.tesla_sleeping') }}
                         </span>
                       </template>
+                      <span
+                        v-if="smartcarStatus?.connected && smartcarStatus.carId === car.id && smartcarStatus.vehicleState === 'CHARGING'"
+                        class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium border border-green-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>{{ t('dashboard.tesla_charging') }}
+                      </span>
                     </div>
                     <div class="mt-1.5 flex justify-center">
                       <LicensePlate v-if="car.licensePlate" :plate="car.licensePlate" />
