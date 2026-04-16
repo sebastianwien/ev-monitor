@@ -140,6 +140,7 @@
                         <span class="text-xs text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-500 rounded px-2 py-0.5">Google Pay</span>
                         <span class="text-xs text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-500 rounded px-2 py-0.5">Amazon Pay</span>
                         <span class="text-xs text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-500 rounded px-2 py-0.5">Klarna</span>
+                        <span class="text-xs text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-500 rounded px-2 py-0.5">PayPal</span>
                     </div>
 
                     <p class="text-sm font-semibold text-gray-600 dark:text-gray-300 text-center mb-3">
