@@ -171,7 +171,7 @@ class AnalyticsService {
 
   // Affiliate Events
   trackAffiliateBannerClicked(banner: 'thg' | 'enbw') {
-    this.track('affiliate_banner_clicked', { banner })
+    this.track(banner === 'enbw' ? 'enbw_banner_clicked' : 'thg_banner_clicked')
   }
 }
 

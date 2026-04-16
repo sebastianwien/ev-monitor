@@ -1,6 +1,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
+import { detectMarket, getMarketBasePath, type Market } from './useMarketRoute'
 import { useCountryStore } from '../stores/country'
 import { EUR_ZONE_COUNTRIES, type UnitSystem } from '../config/unitSystems'
 import { convertFromEur } from '../config/exchangeRates'
@@ -182,13 +183,19 @@ export function useLocaleFormat() {
     }
 
     /**
-     * Format the delta label: '+12.3%' or '-5.2%'
-     * Sign convention: positive = worse than WLTP (regardless of unit system)
+     * Format the delta label in display unit space.
+     * kWh/100km: negative = better (less consumption). mi/kWh: positive = better (more range).
      */
     function consumptionDeltaLabel(realKwhPer100km: number, wltpKwhPer100km: number): string {
-        const delta = consumptionDeltaPercent(realKwhPer100km, wltpKwhPer100km)
-        const sign = delta > 0 ? '+' : ''
-        return `${sign}${delta.toFixed(1)}%`
+        let displayDelta: number
+        if (unitSystem.value.consumptionInverse) {
+            // mi/kWh space: (official - real) / real * 100  →  positive = more mi/kWh = better
+            displayDelta = (wltpKwhPer100km - realKwhPer100km) / realKwhPer100km * 100
+        } else {
+            displayDelta = consumptionDeltaPercent(realKwhPer100km, wltpKwhPer100km)
+        }
+        const sign = displayDelta > 0 ? '+' : ''
+        return `${sign}${displayDelta.toFixed(1)}%`
     }
 
     /**
@@ -240,27 +247,28 @@ export function useLocaleFormat() {
 export function useLocaleRoutes() {
     const route = useRoute()
 
-    function getAlternateUrl(targetLocale: 'de' | 'en'): string {
-        const path = route.path
+    const LOCALE_TO_MARKET: Record<string, Market> = {
+        de: 'de', en: 'en', nb: 'no', sv: 'se',
+    }
 
-        if (targetLocale === 'en') {
-            if (path === '/') return '/en'
-            if (path.startsWith('/modelle/')) {
-                const rest = path.slice('/modelle'.length)
-                return '/en/models' + rest
-            }
-            if (path === '/modelle') return '/en/models'
-        } else {
-            if (path === '/en') return '/'
-            if (path.startsWith('/en/models/')) {
-                const rest = path.slice('/en/models'.length)
-                return '/modelle' + rest
-            }
-            if (path === '/en/models') return '/modelle'
+    const LOCALE_ROOTS: Record<string, string> = {
+        de: '/', en: '/en', nb: '/en', sv: '/en',
+    }
+
+    function getAlternateUrl(targetLocale: string): string {
+        const path = route.path
+        const currentMarket = detectMarket(path)
+        const currentBase = getMarketBasePath(currentMarket)
+
+        // On known market routes: preserve the brand/model suffix
+        if (path.startsWith(currentBase)) {
+            const suffix = path.slice(currentBase.length)
+            const targetMarket = LOCALE_TO_MARKET[targetLocale]
+            if (targetMarket) return getMarketBasePath(targetMarket) + suffix
         }
 
-        // For non-translatable routes, fall back to root
-        return targetLocale === 'en' ? '/en' : '/'
+        // Non-market routes (login, dashboard, ...): fall back to locale root
+        return LOCALE_ROOTS[targetLocale] ?? '/en'
     }
 
     function getCanonicalBase(): string {

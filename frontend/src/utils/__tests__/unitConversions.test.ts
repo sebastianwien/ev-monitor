@@ -5,6 +5,9 @@ import {
     convertCurrency,
     convertCostPerDistance,
     consumptionDeltaPercent,
+    odometerKmToLocal,
+    odometerLocalToKm,
+    KM_PER_MILE,
 } from '../unitConversions'
 import { UNIT_SYSTEMS } from '../../config/unitSystems'
 
@@ -60,6 +63,54 @@ describe('convertDistance', () => {
 
     it('handles zero', () => {
         expect(convertDistance(0, true)).toBe(0)
+    })
+})
+
+describe('odometerKmToLocal', () => {
+    it('passes through when not miles', () => {
+        expect(odometerKmToLocal(12345, false)).toBe(12345)
+    })
+
+    it('converts km to miles and rounds to integer', () => {
+        // 161 km / 1.60934 = 100.04 → rounded to 100
+        expect(odometerKmToLocal(161, true)).toBe(100)
+    })
+
+    it('rounds correctly for non-integer results', () => {
+        // 100 km / 1.60934 = 62.14 → rounded to 62
+        expect(odometerKmToLocal(100, true)).toBe(62)
+    })
+
+    it('handles zero', () => {
+        expect(odometerKmToLocal(0, true)).toBe(0)
+    })
+})
+
+describe('odometerLocalToKm', () => {
+    it('passes through when not miles', () => {
+        expect(odometerLocalToKm(12345, false)).toBe(12345)
+    })
+
+    it('converts miles to km and rounds to integer', () => {
+        // 100 miles * 1.60934 = 160.934 → rounded to 161
+        expect(odometerLocalToKm(100, true)).toBe(161)
+    })
+
+    it('handles zero', () => {
+        expect(odometerLocalToKm(0, true)).toBe(0)
+    })
+
+    it('roundtrip: km → miles → km stays within 1 km', () => {
+        const original = 50000
+        const miles = odometerKmToLocal(original, true)
+        const roundtripped = odometerLocalToKm(miles, true)
+        expect(Math.abs(roundtripped - original)).toBeLessThanOrEqual(1)
+    })
+})
+
+describe('KM_PER_MILE', () => {
+    it('is exported and equals 1.60934', () => {
+        expect(KM_PER_MILE).toBe(1.60934)
     })
 })
 

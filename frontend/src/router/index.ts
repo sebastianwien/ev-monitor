@@ -1,6 +1,19 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
-import { i18n } from '../i18n';
+import { useCountryStore } from '../stores/country';
+import { setLocale, isValidLocale } from '../i18n';
+import type { CountryCode } from '../config/unitSystems';
+import { isValidCountryCode } from '../config/unitSystems';
+
+declare module 'vue-router' {
+    interface RouteMeta {
+        requiresAuth?: boolean
+        requiresAdmin?: boolean
+        guestOnly?: boolean
+        locale?: string
+        country?: CountryCode
+    }
+}
 import LandingPageView from '../views/LandingPageView.vue';
 import LandingPageV2View from '../views/LandingPageV2View.vue';
 import LogFormView from '../views/LogFormView.vue';
@@ -282,6 +295,82 @@ const router = createRouter({
             component: PublicModelView,
             meta: { locale: 'en' }
         },
+        // GB routes (en locale, GB country → miles, GBP)
+        {
+            path: '/gb/models',
+            name: 'public-models-list-gb',
+            component: PublicModelsListView,
+            meta: { locale: 'en', country: 'GB' }
+        },
+        {
+            path: '/gb/models/:brand',
+            name: 'public-brand-gb',
+            component: PublicBrandView,
+            meta: { locale: 'en', country: 'GB' }
+        },
+        {
+            path: '/gb/models/:brand/:model',
+            name: 'public-model-gb',
+            component: PublicModelView,
+            meta: { locale: 'en', country: 'GB' }
+        },
+        // US routes (en locale, US country → EPA ratings, miles, USD)
+        {
+            path: '/us/models',
+            name: 'public-models-list-us',
+            component: PublicModelsListView,
+            meta: { locale: 'en', country: 'US' }
+        },
+        {
+            path: '/us/models/:brand',
+            name: 'public-brand-us',
+            component: PublicBrandView,
+            meta: { locale: 'en', country: 'US' }
+        },
+        {
+            path: '/us/models/:brand/:model',
+            name: 'public-model-us',
+            component: PublicModelView,
+            meta: { locale: 'en', country: 'US' }
+        },
+        // NO routes (nb locale, NO country → kWh/mil, NOK)
+        {
+            path: '/no/modeller',
+            name: 'public-models-list-no',
+            component: PublicModelsListView,
+            meta: { locale: 'nb', country: 'NO' }
+        },
+        {
+            path: '/no/modeller/:brand',
+            name: 'public-brand-no',
+            component: PublicBrandView,
+            meta: { locale: 'nb', country: 'NO' }
+        },
+        {
+            path: '/no/modeller/:brand/:model',
+            name: 'public-model-no',
+            component: PublicModelView,
+            meta: { locale: 'nb', country: 'NO' }
+        },
+        // SE routes (sv locale, SE country → kWh/mil, SEK)
+        {
+            path: '/se/modeller',
+            name: 'public-models-list-se',
+            component: PublicModelsListView,
+            meta: { locale: 'sv', country: 'SE' }
+        },
+        {
+            path: '/se/modeller/:brand',
+            name: 'public-brand-se',
+            component: PublicBrandView,
+            meta: { locale: 'sv', country: 'SE' }
+        },
+        {
+            path: '/se/modeller/:brand/:model',
+            name: 'public-model-se',
+            component: PublicModelView,
+            meta: { locale: 'sv', country: 'SE' }
+        },
         {
             path: '/datenschutz',
             name: 'datenschutz',
@@ -334,17 +423,25 @@ const router = createRouter({
     ]
 });
 
-router.beforeEach((to, _from) => {
+router.beforeEach(async (to, _from) => {
     const authStore = useAuthStore();
+    const countryStore = useCountryStore();
 
-    // Set locale only for routes with explicit locale signal.
+    // Set locale for routes with explicit locale signal (nb/sv need async lazy-loading).
     // Auth-required routes (dashboard, settings, ...) inherit the current locale.
-    const explicitLocale = (to.meta.locale as string | undefined)
-        ?? (to.path.startsWith('/en') ? 'en' : null);
-    if (explicitLocale !== null) {
-        i18n.global.locale.value = explicitLocale as 'de' | 'en';
-        localStorage.setItem('ev-locale', explicitLocale);
+    const explicitLocale = to.meta.locale as string | undefined
+    if (explicitLocale !== undefined && isValidLocale(explicitLocale)) {
+        await setLocale(explicitLocale);
         document.documentElement.lang = explicitLocale;
+    }
+
+    // Set preview country for market-specific public routes (in-memory only, no localStorage/API).
+    // Cleared for all other routes so DE users keep their settings after visiting /us/models.
+    const marketCountry = to.meta.country;
+    if (marketCountry && isValidCountryCode(marketCountry)) {
+        countryStore.setPreviewCountry(marketCountry);
+    } else {
+        countryStore.setPreviewCountry(null);
     }
 
     if (to.meta.requiresAuth) {

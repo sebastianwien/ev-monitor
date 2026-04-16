@@ -178,10 +178,13 @@ public class StripeService {
                 // Smartcar stays connected so that recovery is seamless (no re-auth needed).
                 // Final cleanup (including Smartcar disconnect) happens on subscription.deleted.
                 String customerId = data.get("customer").getAsString();
-                findUserByCustomerId(customerId).ifPresent(u -> {
-                    userRepository.setPremium(u.getId(), false);
-                });
-                log.warn("[STRIPE] payment failed for customer={} — premium revoked, Stripe will retry", customerId);
+                findUserByCustomerId(customerId).ifPresentOrElse(
+                        u -> {
+                            userRepository.setPremium(u.getId(), false);
+                            log.warn("[STRIPE] payment failed for customer={} userId={} — premium revoked, Stripe will retry", customerId, u.getId());
+                        },
+                        () -> log.warn("[STRIPE] payment failed for unknown customer={} — no action taken", customerId)
+                );
             }
             case "invoice.payment_succeeded" -> {
                 long amountPaid = data.get("amount_paid").getAsLong();

@@ -199,6 +199,11 @@ models_list:
   compare:
     title: Sammenlign ({current} / {max})
     button: Sammenlign
+  meta_title: "Sammenligning av elbilforbruk – Alle modeller | EV Monitor"
+  meta_description: "Sammenlign det reelle strømforbruket til alle elbiler. Fellesskapsdata mot WLTP for Tesla, VW ID, Hyundai Ioniq, BMW i4 og mer – ingen markedsføring, bare ekte målinger."
+  meta_keywords: "elbilforbruk, EV kWh 100km, WLTP mot reelt, Tesla forbruk, elbilrekkevidde, ladekostnadssammenligning"
+  og_title: "Sammenligning av elbilforbruk – Reelle fellesskapsdata"
+  og_description: "Reelle forbruksdata fra fellesskapet for alle elbiler. WLTP mot hverdagsvirkeligheten i direkte sammenligning."
 brand:
   not_found_title: Merke ikke funnet
   not_found_text: Vi kjenner ikke dette merket.
@@ -225,6 +230,10 @@ brand:
   cta_text: Følg med på ladningene dine, sammenlign det faktiske forbruket ditt med WLTP og bidra til fellesskapet med reelle data.
   free_start: Kom i gang gratis
   login: Logg inn
+  meta_title: "{brand} Elbiler – Forbruk & WLTP ({year}) | EV Monitor"
+  meta_description: "Alle {count} {brand} elbiler på ett blikk ({year}): WLTP-rekkevidde, reelt forbruk og fellesskapsdata. Finn ut hvor mye en {brand} virkelig bruker."
+  meta_keywords: "{brand} elbil, {brand} forbruk, {brand} WLTP, {brand} rekkevidde, {brand} EV, {brand} kWh, elbilforbruk, WLTP mot reelt, EV-rekkevidde"
+  og_title: "{brand} Elbiler – Reelt forbruk & WLTP {year}"
 model:
   breadcrumb_home: EV Monitor
   breadcrumb_models: Modeller
@@ -303,37 +312,37 @@ model:
   avg_cost_prefix: Brukerne betaler i gjennomsnitt
   avg_cost_suffix: per 100 km
   meta_title: "{model} Forbruk og rekkevidde ({year}) – EV Monitor"
-  meta_description_with_data: "{model}: Gjennomsnittlig {consumption} kWh/100 km i reelle kjøreforhold (WLTP: {wltp} kWh/100 km). Forbruk, rekkevidde og ladekostnader – reelle kjøreopplysninger på EV Monitor."
-  meta_description_no_data: "{model}: WLTP-forbruk, rekkevidde og brukerdata på EV Monitor. Vær den første til å dele reelle målinger!"
+  meta_description_with_data: "{model}: Gjennomsnittlig {consumption} i reelle kjøreforhold ({ratingLabel}: {wltp}). Forbruk, rekkevidde og ladekostnader – reelle kjøreopplysninger på EV Monitor."
+  meta_description_no_data: "{model}: {ratingLabel}-forbruk, rekkevidde og brukerdata på EV Monitor. Vær den første til å dele reelle målinger!"
   meta_keywords: "{model} forbruk, {model} rekkevidde, {model} kWh/100 km, {model} WLTP reell, {model} ladekostnad"
   seo_intro: "{model}en er en elbil"
-  seo_wltp_range: med en offisiell WLTP-rekkevidde på opptil {range} km
-  seo_consumption_good: Ifølge reelle data fra brukere av EV Monitor ligger gjennomsnittsforbruket på {consumption} kWh/100 km – basert på {sessions} ladinger ({count} med forbruksmåling).
-  seo_consumption_low: Basert på brukerdata er forbruket {consumption} kWh/100 km – basert på {count} kjøreturer med forbrukmåling.
-  seo_consumption_sparse: "De første målingene er nå tilgjengelige: {consumption} kWh/100 km fra {count}-turer med forbruksdata."
+  seo_wltp_range: med en offisiell {ratingLabel}-rekkevidde på opptil {range}
+  seo_consumption_good: Ifølge reelle data fra brukere av EV Monitor ligger gjennomsnittsforbruket på {consumption} – basert på {sessions} ladinger ({count} med forbruksmåling).
+  seo_consumption_low: Basert på brukerdata er forbruket {consumption} – basert på {count} kjøreturer med forbrukmåling.
+  seo_consumption_sparse: "De første målingene er nå tilgjengelige: {consumption} fra {count}-turer med forbruksdata."
   seo_no_data_cta: Bli den første til å registrere ladinger for denne {model}!
   seo_costs_title: Ladekostnader ved daglig bruk
-  seo_costs_intro: Den gjennomsnittlige ladekostnaden for {model} er, ifølge brukerdata, {price} cent per kWh.
-  seo_costs_session: En typisk ladeøkt på {kwh} kWh koster derfor rundt {cost} €.
-  seo_wltp_title: WLTP vs. faktisk forbruk
-  seo_wltp_intro: WLTP-syklusen måles under standardiserte laboratorieforhold og avviker ofte fra virkeligheten i daglig bruk.
-  seo_wltp_delta: I gjennomsnitt ligger det faktiske forbruket på {delta} sammenlignet med WLTP-verdien.
+  seo_costs_intro: Den gjennomsnittlige ladekostnaden for {model} er, ifølge brukerdata, {price}.
+  seo_costs_session: En typisk ladeøkt på {kwh} kWh koster derfor rundt {cost}.
+  seo_wltp_title: "{ratingLabel} vs. faktisk forbruk"
+  seo_wltp_intro: "{ratingLabel}-verdien måles under standardiserte testforhold og avviker ofte fra virkeligheten i daglig bruk."
+  seo_wltp_delta: I gjennomsnitt ligger det faktiske forbruket på {delta} sammenlignet med {ratingLabel}-verdien.
   seo_seasonal_title: Forbruk etter årstid
-  seo_seasonal_data: Ifølge data fra brukerne bruker {model} {summer} kWh/100 km om sommeren (mai–august) og {winter} kWh/100 km om vinteren (november–februar) – {pct} % mer om vinteren.
+  seo_seasonal_data: Ifølge data fra brukerne bruker {model} {summer} om sommeren (mai–august) og {winter} om vinteren (november–februar) – {pct} % mer om vinteren.
   seo_seasonal_no_data: Det foreligger ennå ikke nok sesongdata for {model}. Generelt sett øker forbruket av elbiler vanligvis med 15–30 % om vinteren.
   faq_consumption_data_good: basert på {n}-turer med forbruksmåling
   faq_consumption_data_low: basert på {n}-turer med forbruksmåling – verdien vil bli mer nøyaktig etter hvert som det kommer inn mer data
   faq_consumption_data_sparse: kun {n}-turer med forbruksdata – ikke representativt ennå
   faq_q_consumption: Hva er det faktiske forbruket til {model}?
-  faq_a_consumption: Ifølge brukerdata fra EV Monitor har {model} et forbruk på {consumption} kWh/100 km ({dataNote}). Den offisielle WLTP-verdien er {wltp} kWh/100 km. Om vinteren kan forbruket være 15–30 % høyere på grunn av oppvarming og kaldere batterier.
+  faq_a_consumption: Ifølge brukerdata fra EV Monitor har {model} et forbruk på {consumption} ({dataNote}). Den offisielle {ratingLabel}-verdien er {wltp}. Om vinteren kan forbruket være 15–30 % høyere på grunn av oppvarming og kaldere batterier.
   faq_q_range: Hvor langt strekker egentlig {model} seg?
-  faq_a_range: WLTP-rekkevidden til {model} er opptil {wltpRange} km. I praksis oppnår førere med {battery}-kWh-batteriet rundt {realRange} km ved et reelt forbruk på {consumption} kWh/100 km. Om vinteren kan rekkevidden falle til 60–70 % av WLTP-verdien.
+  faq_a_range: "{ratingLabel}-rekkevidden til {model} er opptil {wltpRange}. I praksis oppnår førere med {battery}-kWh-batteriet rundt {realRange} ved et reelt forbruk på {consumption}. Om vinteren kan rekkevidden falle til 60–70 % av {ratingLabel}-verdien."
   faq_q_cost: Hvor mye koster en lading for en {model}?
-  faq_a_cost: I gjennomsnitt koster en lading {price} cent per kWh. For en typisk lading på {kwh} kWh ligger kostnaden på rundt {cost} €.
-  faq_q_wltp_delta: Hva er forskjellen mellom WLTP-verdiene og det faktiske forbruket for {model}?
-  faq_a_wltp_delta: Det offisielle WLTP-forbruket til {model} er {wltp} kWh/100 km. Ifølge brukerdata bruker bilistene {real} kWh/100 km i hverdagen – det vil si {diff} kWh mer (+{pct} %).
+  faq_a_cost: I gjennomsnitt koster en lading {price}. For en typisk lading på {kwh} kWh ligger kostnaden på rundt {cost}.
+  faq_q_wltp_delta: Hva er forskjellen mellom {ratingLabel}-verdiene og det faktiske forbruket for {model}?
+  faq_a_wltp_delta: Det offisielle {ratingLabel}-forbruket til {model} er {wltp}. Ifølge brukerdata oppnår bilistene {real} i hverdagen – det vil si {diff} mer ({pct}).
   faq_q_winter: Hvordan endrer forbruket av {model} seg om vinteren?
-  faq_a_winter_data: Ifølge data fra brukerne bruker {model} {winter} kWh/100 km om vinteren (nov.–feb.) og {summer} kWh/100 km om sommeren (mai–aug.).
+  faq_a_winter_data: Ifølge data fra brukerne bruker {model} {winter} om vinteren (nov.–feb.) og {summer} om sommeren (mai–aug.).
   faq_a_winter_no_data: Det foreligger ennå ikke nok sesongbaserte måledata for {model}. Generelt sett øker forbruket av elektriske biler vanligvis med 15–30 % om vinteren.
 auth:
   login:
@@ -587,9 +596,9 @@ logform:
   error_no_car: Vennligst velg et kjøretøy
   error_required: "Fyll ut alle obligatoriske felt riktig: {fields}"
   error_save: Ladingsøkten kunne ikke lagres
-  odometer_last: siste {km} km
+  odometer_last: siste {km}
   odometer_placeholder: Kilometerteller (km)
-  odometer_min: børde være minst {min} km
+  odometer_min: børde være minst {min}
   field_kwh: Energi (kWh)
   field_cost: Pris (€)
   field_odometer: Kilometerteller
@@ -601,7 +610,9 @@ logfields:
   energy: Energi (kWh)
   cost_eur: Kostnad
   cost_per_kwh: Pris (€/kWh)
-  odometer: Kilometerteller (km)
+  odometer: Kilometerteller
+  unit_km: km
+  unit_miles: miles
   soc_after: Batterinivå etter lading (%)
   soc_before: Batterinivå før lading (%)
   charge_type: Ladetype

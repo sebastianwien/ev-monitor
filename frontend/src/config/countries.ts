@@ -16,5 +16,6 @@ export const COUNTRY_OPTIONS: CountryOption[] = [
   { code: 'DK', flag: '🇩🇰', name: { de: 'Dänemark', en: 'Denmark' } },
   { code: 'NO', flag: '🇳🇴', name: { de: 'Norwegen', en: 'Norway' } },
   { code: 'SE', flag: '🇸🇪', name: { de: 'Schweden', en: 'Sweden' } },
+  { code: 'FI', flag: '🇫🇮', name: { de: 'Finnland', en: 'Finland' } },
   { code: 'US', flag: '🇺🇸', name: { de: 'USA', en: 'United States' } },
 ]
