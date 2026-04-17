@@ -1532,7 +1532,7 @@ announcements:
   goe_statistics_fix_v1_title: "go-eCharger: Statistik-Fix"
   goe_statistics_fix_v1_body: "Deine go-eCharger-Ladevorgänge werden jetzt korrekt in der Statistik gezählt - kWh, Kosten und Verbrauchsberechnung inklusive."
   soh_autodetect_v1_title: "Akku-Gesundheit wird automatisch erkannt"
-  soh_autodetect_v1_body: "Wenn du AutoSync nutzt, erkennt EV Monitor deinen Akkuzustand (SoH) jetzt automatisch aus deinen Ladevorgängen - kein manuelles Eintragen mehr nötig. Für manuelle Ladevorgänge kannst du beim Erfassen 'kWh laut Fahrzeug' eingeben und damit dieselbe Berechnung auslösen."
+  soh_autodetect_v1_body: "Wenn du AutoSync nutzt, erkennt EV Monitor deinen Akkuzustand (SoH) jetzt automatisch aus deinen Ladevorgängen - kein manuelles Eintragen mehr nötig. Für manuelle Ladevorgänge kannst du beim Erfassen 'kWh laut Fahrzeug' eingeben und damit dieselbe Berechnung auslösen. Wie genau das funktioniert, erklärt die Infobox 'Wie wird dein Verbrauch ermittelt?' im Dashboard und in der Fahrzeugverwaltung."
   soh_autodetect_v1_cta: "Zum Fahrzeug"
   car_reassignment_v1_title: "Fahrzeug nachträglich ändern"
   car_reassignment_v1_body: "Ladevorgang dem falschen Auto zugeordnet? Kein Problem - im Dashboard kannst du jeden Ladevorgang (oder eine ganze Ladegruppe) mit einem Klick einem anderen Fahrzeug zuordnen."

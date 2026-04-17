@@ -1498,7 +1498,7 @@ announcements:
   goe_statistics_fix_v1_title: "go-eCharger: Rettelse av statistikk"
   goe_statistics_fix_v1_body: Dine go-eCharger-økter blir nå registrert riktig i statistikken – inkludert beregninger av kWh, kostnader og forbruk.
   soh_autodetect_v1_title: "Batterihelse oppdages nå automatisk"
-  soh_autodetect_v1_body: "Bruker du AutoSync, oppdager EV Monitor nå automatisk batteritilstanden (SoH) fra ladeøktene dine - ingen manuell registrering nødvendig. For manuelle ladeøkter kan du angi 'kWh (kjøretøy)' når du registrerer en lading for å utløse samme beregning."
+  soh_autodetect_v1_body: "Bruker du AutoSync, oppdager EV Monitor nå automatisk batteritilstanden (SoH) fra ladeøktene dine - ingen manuell registrering nødvendig. For manuelle ladeøkter kan du angi 'kWh (kjøretøy)' når du registrerer en lading for å utløse samme beregning. En detaljert forklaring finner du i infoboksen i dashbordet eller kjøretøyadministrasjonen."
   soh_autodetect_v1_cta: "Til kjøretøyet"
   car_reassignment_v1_title: Tilordne økter til et annet kjøretøy
   car_reassignment_v1_body: Har du tilordnet en kjøretur til feil bil? Ikke noe problem – i dashbordet kan du med ett klikk tilordne en hvilken som helst kjøretur (eller en hel gruppe) til et annet kjøretøy.

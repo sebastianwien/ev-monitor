@@ -1498,7 +1498,7 @@ announcements:
   goe_statistics_fix_v1_title: "go-eCharger: Korrigering av statistik"
   goe_statistics_fix_v1_body: Dina go-eCharger-sessioner räknas nu korrekt in i statistiken – inklusive kWh, kostnader och förbrukningsberäkningar.
   soh_autodetect_v1_title: "Batterihälsa upptäcks nu automatiskt"
-  soh_autodetect_v1_body: "Om du använder AutoSync identifierar EV Monitor nu automatiskt ditt batterihälsotillstånd (SoH) från dina laddningssessioner - ingen manuell inmatning behövs. För manuella sessioner kan du ange 'kWh (fordon)' när du loggar en laddning för att utlösa samma beräkning."
+  soh_autodetect_v1_body: "Om du använder AutoSync identifierar EV Monitor nu automatiskt ditt batterihälsotillstånd (SoH) från dina laddningssessioner - ingen manuell inmatning behövs. För manuella sessioner kan du ange 'kWh (fordon)' när du loggar en laddning för att utlösa samma beräkning. En detaljerad förklaring finns i inforutan i instrumentpanelen eller fordonshanteringen."
   soh_autodetect_v1_cta: "Till fordonet"
   car_reassignment_v1_title: Flytta sessioner till ett annat fordon
   car_reassignment_v1_body: Har du tilldelat en session till fel bil? Inga problem – i instrumentpanelen kan du med ett enda klick omfördela vilken session som helst (eller en hel grupp) till ett annat fordon.

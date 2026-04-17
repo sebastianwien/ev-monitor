@@ -1532,7 +1532,7 @@ announcements:
   goe_statistics_fix_v1_title: "go-eCharger: Statistics fix"
   goe_statistics_fix_v1_body: "Your go-eCharger sessions are now correctly counted in statistics - including kWh, costs and consumption calculations."
   soh_autodetect_v1_title: "Battery health is now detected automatically"
-  soh_autodetect_v1_body: "If you use AutoSync, EV Monitor now automatically detects your battery state of health (SoH) from your charging sessions - no manual entry needed. For manual sessions, you can enter 'kWh (vehicle)' when logging a charge to trigger the same calculation."
+  soh_autodetect_v1_body: "If you use AutoSync, EV Monitor now automatically detects your battery state of health (SoH) from your charging sessions - no manual entry needed. For manual sessions, you can enter 'kWh (vehicle)' when logging a charge to trigger the same calculation. For details on how it works, see the 'How is your consumption calculated?' info box in the dashboard or vehicle management."
   soh_autodetect_v1_cta: "View vehicle"
   car_reassignment_v1_title: "Reassign sessions to a different vehicle"
   car_reassignment_v1_body: "Assigned a session to the wrong car? No problem - in the dashboard you can reassign any session (or an entire group) to a different vehicle with one click."
