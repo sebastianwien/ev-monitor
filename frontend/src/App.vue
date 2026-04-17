@@ -9,6 +9,7 @@ import { analytics } from './services/analytics'
 import { useCoinStore } from './stores/coins'
 import { storeToRefs } from 'pinia'
 import { useWallboxStore } from './stores/wallbox'
+import { useCarStore } from './stores/car'
 import SpritMonitorImport from './components/imports/SpritMonitorImport.vue'
 import SupportPopover from './components/settings/SupportPopover.vue'
 import LeaderboardTicker from './components/shared/LeaderboardTicker.vue'
@@ -56,6 +57,9 @@ const authStore = useAuthStore()
 const coinStore = useCoinStore()
 const wallboxStore = useWallboxStore()
 const { activeConnection: wallboxConn, hasConnections: wallboxHasConnections } = storeToRefs(wallboxStore)
+const carStore = useCarStore()
+const { cars: carList } = storeToRefs(carStore)
+const showWallboxChip = computed(() => wallboxHasConnections.value && carList.value.length !== 1)
 const showImportOverlay = ref(false)
 const showLogFormModal = ref(false)
 const mobileMenuOpen = ref(false)
@@ -242,7 +246,7 @@ const closeMobileMenu = () => {
             <ThemeToggle v-if="!authStore.isDemoAccount" class="text-white" />
             <!-- Wallbox dot -->
             <button
-              v-if="wallboxHasConnections"
+              v-if="showWallboxChip"
               @click="goToGoeTab"
               :title="`${wallboxConn?.displayName || 'Wallbox'} · ${wallboxConn?.carStateLabel}`"
               class="p-2 rounded-md hover:bg-indigo-500 transition flex items-center justify-center"
@@ -285,7 +289,7 @@ const closeMobileMenu = () => {
             <ThemeToggle v-if="!authStore.isDemoAccount" class="text-white" />
             <!-- Wallbox chip -->
             <button
-              v-if="wallboxHasConnections"
+              v-if="showWallboxChip"
               @click="goToGoeTab"
               class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition hover:opacity-80"
               :class="wallboxConn?.carState === 2
@@ -348,7 +352,7 @@ const closeMobileMenu = () => {
             <ThemeToggle v-if="!authStore.isDemoAccount" class="text-white" />
             <!-- Wallbox dot -->
             <button
-              v-if="wallboxHasConnections"
+              v-if="showWallboxChip"
               @click="goToGoeTab"
               :title="`${wallboxConn?.displayName || 'Wallbox'} · ${wallboxConn?.carStateLabel}`"
               class="flex items-center justify-center"

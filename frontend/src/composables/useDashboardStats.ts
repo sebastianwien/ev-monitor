@@ -2,9 +2,11 @@ import { ref, watch, computed, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import api from '../api/axios'
 import { useCarStore } from '../stores/car'
+import { useAuthStore } from '../stores/auth'
 import { carService } from '../api/carService'
 import { vehicleSpecificationService, type VehicleSpecification } from '../api/vehicleSpecificationService'
 import { useTeslaStatus } from './useTeslaStatus'
+import { useSmartcarStatus } from './useSmartcarStatus'
 
 export interface ChargeDataPoint {
   timestamp: string
@@ -45,6 +47,7 @@ const LS_CUSTOM_END = 'dashboard_custom_end'
 export function useDashboardStats() {
   const { t } = useI18n()
   const carStore = useCarStore()
+  const authStore = useAuthStore()
 
   const selectedCarId = ref<string | null>(null)
   const stats = ref<StatisticsData | null>(null)
@@ -65,6 +68,7 @@ export function useDashboardStats() {
   const importBannerDismissed = ref(localStorage.getItem('import_banner_dismissed') === 'true')
 
   const { teslaStatus, start: startTeslaPolling } = useTeslaStatus()
+  const { smartcarStatus, start: startSmartcarPolling } = useSmartcarStatus()
 
   // Implausible logs
   const implausibleCount = ref(0)
@@ -188,7 +192,9 @@ export function useDashboardStats() {
           .then(url => { carImageUrls.value = { ...carImageUrls.value, [car.id]: url } })
           .catch(() => {})
       }
-      startTeslaPolling(carList.some((c: any) => c.brand?.toLowerCase() === 'tesla'))
+      const hasTesla = carList.some((c: any) => c.brand?.toLowerCase() === 'tesla')
+      startTeslaPolling(hasTesla)
+      startSmartcarPolling(carList.length > 0 && (authStore.isPremium || hasTesla))
     } catch { /* non-critical */ }
   }
 
@@ -226,6 +232,7 @@ export function useDashboardStats() {
     customEndDate,
     importBannerDismissed,
     teslaStatus,
+    smartcarStatus,
     implausibleCount,
     hasDistanceData,
     timeRangeOptions,
