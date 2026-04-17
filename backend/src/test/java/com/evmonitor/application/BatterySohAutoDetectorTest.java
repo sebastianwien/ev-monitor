@@ -63,7 +63,7 @@ class BatterySohAutoDetectorTest {
 
     @Test
     void ignoresLogsWithSmallSocDelta() {
-        // delta = 5% → below threshold of 20%
+        // delta = 5% → below threshold of 30%
         EvLog log = atVehicleLog(3.06, 91, 96, LocalDateTime.now());
 
         assertTrue(BatterySohAutoDetector.detectSohPercent(List.of(log), BATTERY_75).isEmpty());
@@ -132,6 +132,67 @@ class BatterySohAutoDetectorTest {
 
         assertTrue(soh.isPresent());
         assertEquals(new BigDecimal("92.00"), soh.get());
+    }
+
+    @Test
+    void ignoresLogsExcludedFromStatistics() {
+        EvLog log = EvLog.builder()
+                .id(UUID.randomUUID()).carId(UUID.randomUUID())
+                .kwhCharged(new BigDecimal("44.17"))
+                .socBeforeChargePercent(26).socAfterChargePercent(90)
+                .loggedAt(LocalDateTime.now())
+                .measurementType(EnergyMeasurementType.AT_VEHICLE)
+                .dataSource(DataSource.SMARTCAR_LIVE)
+                .includeInStatistics(false)
+                .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
+                .build();
+
+        assertTrue(BatterySohAutoDetector.detectSohPercent(List.of(log), BATTERY_75).isEmpty());
+    }
+
+    @Test
+    void qualifiesWhenKwhAtVehicleIsSet_regardlessOfMeasurementType() {
+        // AT_CHARGER log (USER_LOGGED) with kwhAtVehicle set → should qualify for SoH detection
+        // 44.17 / 64 * 100 = 69.02 kWh → SoH = 92.02%
+        EvLog log = EvLog.builder()
+                .id(UUID.randomUUID()).carId(UUID.randomUUID())
+                .kwhCharged(new BigDecimal("50.00"))       // charger-side kWh (irrelevant for SoH)
+                .kwhAtVehicle(new BigDecimal("44.17"))     // user entered vehicle-side kWh
+                .socBeforeChargePercent(26).socAfterChargePercent(90)
+                .loggedAt(LocalDateTime.now())
+                .measurementType(EnergyMeasurementType.AT_CHARGER)
+                .dataSource(DataSource.USER_LOGGED)
+                .includeInStatistics(true)
+                .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
+                .build();
+
+        Optional<BigDecimal> soh = BatterySohAutoDetector.detectSohPercent(List.of(log), BATTERY_75);
+
+        assertTrue(soh.isPresent(), "Log with kwhAtVehicle should qualify regardless of measurementType");
+        assertEquals(new BigDecimal("92.02"), soh.get());
+    }
+
+    @Test
+    void usesKwhAtVehicleInsteadOfKwhChargedWhenBothPresent() {
+        // kwhAtVehicle = 44.17 → SoH 92.02%
+        // kwhCharged   = 50.00 → would give SoH 104.17% (capped 100%)
+        // Must use kwhAtVehicle
+        EvLog log = EvLog.builder()
+                .id(UUID.randomUUID()).carId(UUID.randomUUID())
+                .kwhCharged(new BigDecimal("50.00"))
+                .kwhAtVehicle(new BigDecimal("44.17"))
+                .socBeforeChargePercent(26).socAfterChargePercent(90)
+                .loggedAt(LocalDateTime.now())
+                .measurementType(EnergyMeasurementType.AT_CHARGER)
+                .dataSource(DataSource.USER_LOGGED)
+                .includeInStatistics(true)
+                .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
+                .build();
+
+        Optional<BigDecimal> soh = BatterySohAutoDetector.detectSohPercent(List.of(log), BATTERY_75);
+
+        assertTrue(soh.isPresent());
+        assertEquals(new BigDecimal("92.02"), soh.get(), "Must use kwhAtVehicle, not kwhCharged");
     }
 
     @Test

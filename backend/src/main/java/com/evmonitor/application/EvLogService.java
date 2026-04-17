@@ -7,6 +7,7 @@ import com.evmonitor.domain.weather.TemperatureEnricher;
 import com.evmonitor.infrastructure.persistence.JpaUserChargingProviderRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,7 +36,7 @@ public class EvLogService {
     private final PlausibilityProperties plausibility;
     private final ConsumptionCalculationService calculationService;
     private final JpaUserChargingProviderRepository chargingProviderRepository;
-    private final BatterySohService batterySohService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public EvLogCreateResponse logCharging(UUID userId, EvLogRequest request) {
@@ -70,8 +71,10 @@ public class EvLogService {
                 Boolean.TRUE.equals(request.isPublicCharging()),
                 request.cpoName());
 
-        // Attach original currency metadata and charging provider if provided
-        var builder = newLog.toBuilder();
+        // Attach optional fields not in the base createNew signature
+        var builder = newLog.toBuilder()
+                .socBeforeChargePercent(request.socBeforeChargePercent())
+                .kwhAtVehicle(request.kwhAtVehicle());
         if (request.costCurrency() != null && request.costExchangeRate() != null) {
             builder.costExchangeRate(request.costExchangeRate())
                    .costCurrency(request.costCurrency());
@@ -114,6 +117,10 @@ public class EvLogService {
                     : CoinLogService.CoinEvent.MANUAL_LOG_SUBSEQUENT;
         }
         int coinsAwarded = coinLogService.awardCoinsForEvent(userId, coinEvent, savedLog.getId());
+
+        if (savedLog.getKwhAtVehicle() != null) {
+            eventPublisher.publishEvent(new SohAutoDetectEvent(car));
+        }
 
         return new EvLogCreateResponse(EvLogResponse.fromDomain(savedLog), coinsAwarded);
     }
@@ -191,8 +198,8 @@ public class EvLogService {
             coinLogService.awardCoinsForEvent(request.userId(), CoinLogService.CoinEvent.TESLA_DAILY_LOG, savedLog.getId());
         }
 
-        // Auto-detect SoH from AT_VEHICLE logs with full SoC data (Smartcar, Tesla Live).
-        batterySohService.autoDetectAndPersist(car);
+        // Auto-detect SoH after the outer transaction commits so the new log is visible.
+        eventPublisher.publishEvent(new SohAutoDetectEvent(car));
 
         return EvLogResponse.fromDomain(savedLog);
     }
@@ -303,6 +310,7 @@ public class EvLogService {
                 .maxChargingPowerKw(request.maxChargingPowerKw() != null ? request.maxChargingPowerKw() : existing.getMaxChargingPowerKw())
                 .socAfterChargePercent(request.socAfterChargePercent() != null ? request.socAfterChargePercent() : existing.getSocAfterChargePercent())
                 .socBeforeChargePercent(request.socBeforeChargePercent() != null ? request.socBeforeChargePercent() : existing.getSocBeforeChargePercent())
+                .kwhAtVehicle(request.kwhAtVehicle()         != null ? request.kwhAtVehicle()           : existing.getKwhAtVehicle())
                 .loggedAt(request.loggedAt()                 != null ? request.loggedAt()               : existing.getLoggedAt())
                 .chargingType(request.chargingType()         != null ? request.chargingType()            : existing.getChargingType())
                 .routeType(request.routeType()               != null ? request.routeType()               : existing.getRouteType())
@@ -320,6 +328,10 @@ public class EvLogService {
         // Async: re-enrich temperature if location was added/changed
         if (geohashChanged || (savedLog.getGeohash() != null && savedLog.getTemperatureCelsius() == null)) {
             temperatureEnricher.enrichLog(savedLog.getId(), savedLog.getGeohash(), savedLog.getLoggedAt());
+        }
+
+        if (savedLog.getKwhAtVehicle() != null) {
+            eventPublisher.publishEvent(new SohAutoDetectEvent(car));
         }
 
         return EvLogResponse.fromDomain(savedLog);

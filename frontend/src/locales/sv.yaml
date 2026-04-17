@@ -446,6 +446,8 @@ dashboard:
   tesla_charging: Laddning
   tesla_online: Online
   tesla_sleeping: Sömn
+  smartcar_charging: Laddning
+  wallbox_charging: Laddning
   real_range_title: Din verkliga räckvidd
   range_window: Laddningsfönster
   range_summer: Sommar
@@ -615,6 +617,8 @@ logfields:
   unit_miles: miles
   soc_after: Batterinivå efter laddning (%)
   soc_before: Batterinivå före laddning (%)
+  kwh_at_vehicle: "kWh (fordon)"
+  kwh_at_vehicle_hint: "Netto-kWh som batteriet faktiskt tog emot (från fordonets display, inte laddaren)"
   charge_type: Laddningstyp
   location_not_supported: Din webbläsare stöder inte geolokalisering
   location_denied: Åtkomst till platsen nekad. Du kan söka efter en plats manuellt nedan.
@@ -791,6 +795,7 @@ consumption_info:
   p1: Förbrukningen beräknas utifrån <strong>laddade kWh</strong>, <strong>laddningsnivå (SoC)</strong> och <strong>trippmätare</strong> för två på varandra följande laddningssessioner – alla tre värdena måste finnas med i båda uppgifterna. Om ett av värdena saknas kan förbrukningen för nästa uppgift inte beräknas.
   p2_pre: Efter <strong>{minTrips} utvärderbara resor</strong> jämför vi varje värde med ditt personliga genomsnitt. Innan dess används ditt fordons WLTP-referensvärde. Passager med kraftigt avvikande förbrukning är
   p2_post: markerad – oftast ett tecken på att en laddningssession saknas mellan två poster.
+  p4: "<strong>Batterihälsa (SoH):</strong> Detta anger hur mycket ditt batteri har åldrats över åren och därmed förlorat kapacitet. Med AutoSync läser EV Monitor de faktiskt laddade kWh direkt från fordonet och jämför dem med förväntad kapacitet baserat på laddningsnivån (SoC). När 5 utvärderingsbara sessioner med minst 30% delta i laddningssessionen finns tillgängliga beräknas medianen - för att filtrera bort extremvärden. Du kan också själv lägga till nettobeloppet på laddningssessioner via det valfria fältet <strong>\"kWh (fordon)\"</strong> - det utlöser samma beräkning."
   p3: "<strong>Laddningsförluster – beror på sammanhanget:</strong> Väggladdare och laddstationer mäter strömmen vid uttaget – inklusive laddningsförluster (värme som alstras under laddning, ca 5–10 %). För <strong>förbrukning (kWh/100 km)</strong> räknas dessa förluster bort (växelström: 10 %, likström: 5 %) så att värdet återspeglar din faktiska köreffektivitet och är jämförbart med WLTP. För <strong>kostnader (€/kWh)</strong> räknas de med – du har ju trots allt betalat för dem."
 editlog:
   title: Redigera laddningssession
@@ -1492,6 +1497,9 @@ announcements:
   consumption_normalization_v1_body: "Den visade förbrukningen (kWh/100 km) återspeglar nu den faktiska förbrukningen från batteriet under körning. Wallbox-mätningarna inkluderar tidigare laddningsförluster från själva laddningsprocessen – dessa dras nu automatiskt av (växelströmsladdning: 10 %, likströmssnabbladdning: 5 %). Dina förbrukningsvärden kommer att minska något och är nu bättre jämförbara med WLTP och andra datakällor. Kostnadsberäkningarna påverkas inte."
   goe_statistics_fix_v1_title: "go-eCharger: Korrigering av statistik"
   goe_statistics_fix_v1_body: Dina go-eCharger-sessioner räknas nu korrekt in i statistiken – inklusive kWh, kostnader och förbrukningsberäkningar.
+  soh_autodetect_v1_title: "Batterihälsa upptäcks nu automatiskt"
+  soh_autodetect_v1_body: "Om du använder AutoSync identifierar EV Monitor nu automatiskt ditt batterihälsotillstånd (SoH) från dina laddningssessioner - ingen manuell inmatning behövs. För manuella sessioner kan du ange 'kWh (fordon)' när du loggar en laddning för att utlösa samma beräkning."
+  soh_autodetect_v1_cta: "Till fordonet"
   car_reassignment_v1_title: Flytta sessioner till ett annat fordon
   car_reassignment_v1_body: Har du tilldelat en session till fel bil? Inga problem – i instrumentpanelen kan du med ett enda klick omfördela vilken session som helst (eller en hel grupp) till ett annat fordon.
   autosync_premium_v1_title: "Nyhet: EV Monitor AutoSync"

@@ -27,6 +27,9 @@ public class EvLogEntity {
     @Column(name = "kwh_charged", nullable = false, precision = 10, scale = 2)
     private BigDecimal kwhCharged;
 
+    @Column(name = "kwh_at_vehicle", precision = 10, scale = 4)
+    private BigDecimal kwhAtVehicle;
+
     @Column(name = "cost_eur", precision = 10, scale = 2)
     private BigDecimal costEur;
 

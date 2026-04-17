@@ -17,6 +17,8 @@ public interface EvLogRepository {
 
     List<EvLog> findAllByCarId(UUID carId);
 
+    List<EvLog> findRecentAtVehicleLogsWithSoc(UUID carId, int limit);
+
     List<EvLog> findAllByCarIds(List<UUID> carIds);
 
     List<EvLog> findLatestByCarId(UUID carId, int limit, int page);

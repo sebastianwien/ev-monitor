@@ -3,6 +3,7 @@ package com.evmonitor.application;
 import com.evmonitor.domain.ChargingType;
 import com.evmonitor.domain.RouteType;
 import com.evmonitor.domain.TireType;
+import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
@@ -27,6 +28,7 @@ public record EvLogUpdateRequest(
         BigDecimal maxChargingPowerKw,
         @Min(0) @Max(100) Integer socAfterChargePercent,
         @Min(0) @Max(100) Integer socBeforeChargePercent,
+        @Positive @DecimalMax("200.0") BigDecimal kwhAtVehicle,
         LocalDateTime loggedAt,
         ChargingType chargingType,
         RouteType routeType,
@@ -46,6 +48,6 @@ public record EvLogUpdateRequest(
             RouteType routeType, TireType tireType) {
         this(kwhCharged, costEur, chargeDurationMinutes, latitude, longitude,
                 odometerKm, maxChargingPowerKw, socAfterChargePercent, socBeforeChargePercent,
-                loggedAt, chargingType, routeType, tireType, null, null, null, null, null);
+                null, loggedAt, chargingType, routeType, tireType, null, null, null, null, null);
     }
 }

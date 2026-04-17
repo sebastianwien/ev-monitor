@@ -36,48 +36,62 @@ async function pollMailpit(email: string, timeoutMs = 10_000): Promise<string | 
 export default async function globalSetup() {
   const api = await request.newContext({ baseURL: API_URL });
 
-  // Prüfen ob User bereits verifiziert existiert
   const loginCheck = await api.post('/api/auth/login', {
     data: { email: TEST_USER.email, password: TEST_USER.password },
   });
 
-  if (loginCheck.ok()) {
-    console.log('[E2E Setup] Test user already exists and is verified.');
-    return;
-  }
-
-  // Registrieren - 409 = User existiert aber ist evtl. nicht verifiziert, weitermachen
-  const registerResp = await api.post('/api/auth/register', {
-    data: {
-      email: TEST_USER.email,
-      username: TEST_USER.username,
-      password: TEST_USER.password,
-    },
-  });
-
-  const registered = registerResp.ok() || registerResp.status() === 409;
-  if (!registered) {
-    throw new Error(`[E2E Setup] Registration failed: ${registerResp.status()} ${await registerResp.text()}`);
-  }
-
-  // Wenn 409: Resend-Verification triggern damit eine frische Mail kommt
-  if (registerResp.status() === 409) {
-    await api.post('/api/auth/resend-verification', {
-      data: { email: TEST_USER.email },
+  if (!loginCheck.ok()) {
+    // Registrieren - 409 = User existiert aber ist evtl. nicht verifiziert, weitermachen
+    const registerResp = await api.post('/api/auth/register', {
+      data: {
+        email: TEST_USER.email,
+        username: TEST_USER.username,
+        password: TEST_USER.password,
+      },
     });
+
+    const registered = registerResp.ok() || registerResp.status() === 409;
+    if (!registered) {
+      throw new Error(`[E2E Setup] Registration failed: ${registerResp.status()} ${await registerResp.text()}`);
+    }
+
+    if (registerResp.status() === 409) {
+      await api.post('/api/auth/resend-verification', {
+        data: { email: TEST_USER.email },
+      });
+    }
+
+    const token = await pollMailpit(TEST_USER.email);
+    if (!token) {
+      throw new Error('[E2E Setup] No verification email received within 10s. Is Mailpit running?');
+    }
+
+    const verifyResp = await api.get(`/api/auth/verify-email?token=${token}`);
+    if (!verifyResp.ok()) {
+      throw new Error(`[E2E Setup] Email verification failed: ${verifyResp.status()}`);
+    }
+
+    console.log('[E2E Setup] Test user created and verified.');
+  } else {
+    console.log('[E2E Setup] Test user already exists and is verified.');
   }
 
-  // Auf Verification-Mail warten (polling, max 10s)
-  const token = await pollMailpit(TEST_USER.email);
-  if (!token) {
-    throw new Error('[E2E Setup] No verification email received within 10s. Is Mailpit running?');
-  }
+  // Sicherstellen dass ein Testfahrzeug existiert (wird für Log-E2E-Tests benötigt)
+  const authResp = await api.post('/api/auth/login', {
+    data: { email: TEST_USER.email, password: TEST_USER.password },
+  });
+  const { token: jwt } = await authResp.json();
 
-  // Email verifizieren
-  const verifyResp = await api.get(`/api/auth/verify-email?token=${token}`);
-  if (!verifyResp.ok()) {
-    throw new Error(`[E2E Setup] Email verification failed: ${verifyResp.status()}`);
-  }
+  const carsResp = await api.get('/api/cars', {
+    headers: { Authorization: `Bearer ${jwt}` },
+  });
+  const cars = await carsResp.json();
 
-  console.log('[E2E Setup] Test user created and verified.');
+  if (!Array.isArray(cars) || cars.length === 0) {
+    await api.post('/api/cars', {
+      headers: { Authorization: `Bearer ${jwt}` },
+      data: { model: 'MODEL_3', year: 2022, batteryCapacityKwh: 75, hasHeatPump: false },
+    });
+    console.log('[E2E Setup] Test car (Model 3) created.');
+  }
 }

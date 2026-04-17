@@ -25,6 +25,8 @@ public record EvLogRequest(
                 Integer odometerKm, // Optional for imports, required in frontend for manual entry
                 BigDecimal maxChargingPowerKw, // Optional: max charging power in kW
                 @Min(0) @Max(100) Integer socAfterChargePercent, // Optional for imports, required in frontend for manual entry
+                @Min(0) @Max(100) Integer socBeforeChargePercent, // Optional: SoC at session start
+                @Positive @DecimalMax("200.0") BigDecimal kwhAtVehicle, // Optional: net kWh entering the battery (from vehicle display)
                 LocalDateTime loggedAt, // Optional: when the charge happened
                 Boolean ocrUsed,        // Optional: whether OCR was used to fill in data (+2 bonus coins)
                 ChargingType chargingType, // Optional: AC or DC
@@ -43,7 +45,7 @@ public record EvLogRequest(
             LocalDateTime loggedAt, Boolean ocrUsed, ChargingType chargingType,
             RouteType routeType, TireType tireType) {
         this(carId, kwhCharged, costEur, chargeDurationMinutes, latitude, longitude,
-                odometerKm, maxChargingPowerKw, socAfterChargePercent, loggedAt,
+                odometerKm, maxChargingPowerKw, socAfterChargePercent, null, null, loggedAt,
                 ocrUsed, chargingType, routeType, tireType, null, null, null, null, null);
     }
 }

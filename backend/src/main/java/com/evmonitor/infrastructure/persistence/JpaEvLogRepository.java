@@ -19,6 +19,20 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     @Query("SELECT e FROM EvLogEntity e WHERE e.carId = :carId AND e.supersededBy IS NULL")
     List<EvLogEntity> findAllByCarId(@Param("carId") UUID carId);
 
+    @Query("""
+        SELECT e FROM EvLogEntity e
+        WHERE e.carId = :carId
+          AND (e.measurementType = 'AT_VEHICLE' OR e.kwhAtVehicle IS NOT NULL)
+          AND e.socBeforeChargePercent IS NOT NULL
+          AND e.socAfterChargePercent IS NOT NULL
+          AND e.includeInStatistics = true
+          AND e.supersededBy IS NULL
+        ORDER BY e.loggedAt DESC
+        """)
+    List<EvLogEntity> findRecentAtVehicleLogsWithSoc(
+            @Param("carId") UUID carId,
+            org.springframework.data.domain.Pageable pageable);
+
     @Query("SELECT e.geohash, e.kwhCharged FROM EvLogEntity e WHERE e.carId = :carId AND e.geohash IS NOT NULL AND e.supersededBy IS NULL")
     List<Object[]> findGeohashDataByCarId(@Param("carId") UUID carId);
 

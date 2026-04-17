@@ -14,6 +14,7 @@ public class EvLog {
     private final UUID id;
     private final UUID carId;
     private final BigDecimal kwhCharged;
+    private final BigDecimal kwhAtVehicle; // Optional: net kWh entering the battery (user-provided, for SoH detection)
     private final BigDecimal costEur;
     private final Integer chargeDurationMinutes;
     private final String geohash; // 6-char geohash (~600m) for private charging, 7-char (~150m) for public chargers
@@ -45,7 +46,7 @@ public class EvLog {
     // Full constructor - only called by the Lombok-generated builder.
     // Applies normalisation of loggedAt, dataSource defaults, and charging-type inference.
     @Builder(toBuilder = true)
-    private EvLog(UUID id, UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
+    private EvLog(UUID id, UUID carId, BigDecimal kwhCharged, BigDecimal kwhAtVehicle, BigDecimal costEur,
             Integer chargeDurationMinutes, String geohash, Integer odometerKm,
             BigDecimal maxChargingPowerKw, Integer socAfterChargePercent, Integer socBeforeChargePercent,
             LocalDateTime loggedAt, DataSource dataSource,
@@ -58,6 +59,7 @@ public class EvLog {
         this.id = id;
         this.carId = carId;
         this.kwhCharged = kwhCharged;
+        this.kwhAtVehicle = kwhAtVehicle;
         this.costEur = costEur;
         this.chargeDurationMinutes = chargeDurationMinutes;
         this.geohash = geohash;
@@ -218,12 +220,13 @@ public class EvLog {
 
     public EvLog withPatch(BigDecimal kwh, BigDecimal costEur, Integer durationMin,
             String geohash, Integer odometerKm, Integer socBefore, Integer socAfter,
-            BigDecimal maxChargingPowerKw, ChargingType chargingType,
+            BigDecimal kwhAtVehicle, BigDecimal maxChargingPowerKw, ChargingType chargingType,
             RouteType routeType, TireType tireType, Boolean publicCharging, String cpoName,
             EnergyMeasurementType measurementType,
             BigDecimal costExchangeRate, String costCurrency, UUID chargingProviderId) {
         return toBuilder()
                 .kwhCharged(kwh != null ? kwh : this.kwhCharged)
+                .kwhAtVehicle(kwhAtVehicle != null ? kwhAtVehicle : this.kwhAtVehicle)
                 .costEur(costEur != null ? costEur : this.costEur)
                 .costExchangeRate(costExchangeRate != null ? costExchangeRate : this.costExchangeRate)
                 .costCurrency(costCurrency != null ? costCurrency : this.costCurrency)

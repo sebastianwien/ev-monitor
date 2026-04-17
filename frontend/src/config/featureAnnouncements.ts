@@ -15,6 +15,15 @@ export interface FeatureAnnouncement {
 
 export const featureAnnouncements: FeatureAnnouncement[] = [
   {
+    key: 'soh-autodetect-v1',
+    expiresAt: '2026-05-08',
+    releasedAt: '2026-04-17',
+    titleKey: 'announcements.soh_autodetect_v1_title',
+    bodyKey: 'announcements.soh_autodetect_v1_body',
+    ctaLabelKey: 'announcements.soh_autodetect_v1_cta',
+    ctaRoute: '/cars',
+  },
+  {
     key: 'car-reassignment-v1',
     expiresAt: '2026-05-18',
     releasedAt: '2026-04-14',

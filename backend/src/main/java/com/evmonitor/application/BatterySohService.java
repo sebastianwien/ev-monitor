@@ -6,9 +6,11 @@ import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.EvLogRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -115,28 +117,32 @@ public class BatterySohService {
         carRepository.save(updated);
     }
 
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void onSohAutoDetectEvent(SohAutoDetectEvent event) {
+        autoDetectAndPersist(event.car());
+    }
+
     /**
      * Derives SoH from AT_VEHICLE logs via median capacity estimation and persists the result.
-     * Skips if: no qualifying logs, entry already exists for today, or change is ≤ 2% vs. last entry.
-     * Called automatically after each connector log save.
+     * Skips if: no qualifying logs, entry already exists for today, or change is <= 2% vs. last entry.
+     * Called directly in tests; triggered via SohAutoDetectEvent in production.
      */
-    @Async
     @Transactional
     public void autoDetectAndPersist(Car car) {
         if (car.getBatteryCapacityKwh() == null) return;
 
+        List<BatterySohEntry> history = sohRepository.findByCarId(car.getId());
+        LocalDate today = LocalDate.now();
+        if (history.stream().anyMatch(e -> e.getRecordedAt().equals(today))) return;
+
         Optional<BigDecimal> detected = BatterySohAutoDetector.detectSohPercent(
-                evLogRepository.findAllByCarId(car.getId()),
+                evLogRepository.findRecentAtVehicleLogsWithSoc(car.getId(), BatterySohAutoDetector.ROLLING_WINDOW_SIZE * 3),
                 car.getBatteryCapacityKwh());
 
         if (detected.isEmpty()) return;
 
         BigDecimal newSoh = detected.get();
-        List<BatterySohEntry> history = sohRepository.findByCarId(car.getId());
-        LocalDate today = LocalDate.now();
-
-        boolean entryForTodayExists = history.stream().anyMatch(e -> e.getRecordedAt().equals(today));
-        if (entryForTodayExists) return;
 
         if (!history.isEmpty()) {
             BigDecimal lastSoh = history.get(0).getSohPercent();

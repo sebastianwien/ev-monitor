@@ -626,6 +626,8 @@ logfields:
   unit_miles: "miles"
   soc_after: "Battery after charging (%)"
   soc_before: "Battery before charging (%)"
+  kwh_at_vehicle: "kWh (vehicle)"
+  kwh_at_vehicle_hint: "Net kWh your battery actually received (from vehicle display, not charger)"
   charge_type: "Charge type"
   location_not_supported: "Geolocation is not supported by your browser"
   location_denied: "Location access denied. You can search for a location manually below."
@@ -805,6 +807,7 @@ consumption_info:
   p1: "Consumption is calculated from <strong>charged kWh</strong>, <strong>state of charge (SoC)</strong> and <strong>odometer</strong> of two consecutive charging sessions - all three values must be present in both entries. If one is missing, consumption for the next entry cannot be calculated."
   p2_pre: "After <strong>{minTrips} evaluable trips</strong>, we compare each value against your personal average. Before that, your vehicle's WLTP reference value is used. Sessions with strongly deviating consumption are"
   p2_post: "flagged - usually a sign that a charging session is missing between two entries."
+  p4: "<strong>Battery health (SoH):</strong> This indicates how much your battery has aged over the years and consequently lost capacity. With AutoSync, EV Monitor reads the actual charged kWh directly from the vehicle and compares them to the expected capacity based on the state of charge (SoC). Once 5 evaluable sessions with at least 30% delta in the charging session are available, the median is calculated - filtering out outliers. You can also enter the net amount yourself on any charging session using the optional <strong>\"kWh (vehicle)\"</strong> field - this triggers the same calculation."
   p3: "<strong>Charging losses - context-dependent:</strong> Wallboxes and charging stations measure what flows at the socket - including charging losses (heat generated during charging, approx. 5-10%). For <strong>consumption (kWh/100km)</strong>, these losses are removed (AC: 10%, DC: 5%) so the value reflects your actual driving efficiency and is comparable to WLTP. For <strong>costs (€/kWh)</strong>, they stay in - you paid for them after all."
 
 editlog:
@@ -1528,6 +1531,9 @@ announcements:
   consumption_normalization_v1_body: "Your displayed consumption (kWh/100km) now reflects true driving consumption from the battery. Wallbox measurements include charging losses from the charging process itself - these are now automatically removed (AC charging: 10%, DC fast charging: 5%). Your consumption values will decrease slightly and are now better comparable with WLTP and other data sources. Cost calculations are not affected."
   goe_statistics_fix_v1_title: "go-eCharger: Statistics fix"
   goe_statistics_fix_v1_body: "Your go-eCharger sessions are now correctly counted in statistics - including kWh, costs and consumption calculations."
+  soh_autodetect_v1_title: "Battery health is now detected automatically"
+  soh_autodetect_v1_body: "If you use AutoSync, EV Monitor now automatically detects your battery state of health (SoH) from your charging sessions - no manual entry needed. For manual sessions, you can enter 'kWh (vehicle)' when logging a charge to trigger the same calculation."
+  soh_autodetect_v1_cta: "View vehicle"
   car_reassignment_v1_title: "Reassign sessions to a different vehicle"
   car_reassignment_v1_body: "Assigned a session to the wrong car? No problem - in the dashboard you can reassign any session (or an entire group) to a different vehicle with one click."
   autosync_premium_v1_title: "New: EV Monitor AutoSync"

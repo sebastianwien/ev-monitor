@@ -446,6 +446,8 @@ dashboard:
   tesla_charging: Lading
   tesla_online: På nettet
   tesla_sleeping: Søvn
+  smartcar_charging: Lading
+  wallbox_charging: Lading
   real_range_title: Din reelle rekkevidde
   range_window: Ladevindu
   range_summer: Sommer
@@ -615,6 +617,8 @@ logfields:
   unit_miles: miles
   soc_after: Batterinivå etter lading (%)
   soc_before: Batterinivå før lading (%)
+  kwh_at_vehicle: "kWh (kjøretøy)"
+  kwh_at_vehicle_hint: "Netto-kWh batteriet faktisk mottok (fra kjøretøyets display, ikke laderen)"
   charge_type: Ladetype
   location_not_supported: Nettleseren din støtter ikke geolokalisering
   location_denied: Tilgang til stedet nektet. Du kan søke etter et sted manuelt nedenfor.
@@ -791,6 +795,7 @@ consumption_info:
   p1: Forbruket beregnes ut fra <strong>ladet kWh</strong>, <strong>ladetilstand (SoC)</strong> og <strong>kilometerteller</strong> for to påfølgende ladeøkter – alle tre verdiene må være oppgitt i begge oppføringene. Hvis en av dem mangler, kan ikke forbruket for den neste oppføringen beregnes.
   p2_pre: Etter <strong>{minTrips} utregningsbare kjøreturer</strong>, sammenligner vi hver verdi med ditt personlige gjennomsnitt. Før det brukes kjøretøyets WLTP-referanseverdi. Kjøreturer med sterkt avvikende forbruk er
   p2_post: merket – vanligvis et tegn på at det mangler en ladeøkt mellom to oppføringer.
+  p4: "<strong>Batterihelse (SoH):</strong> Dette angir hvor mye batteriet ditt har eldet over tid og dermed tapt kapasitet. Med AutoSync leser EV Monitor de faktisk ladede kWh direkte fra kjøretøyet og sammenligner dem med forventet kapasitet basert på ladetilstanden (SoC). Når 5 utregningsbare økter med minst 30% delta i ladeøkten er tilgjengelige, beregnes medianen - for å filtrere ut uteliggere. Du kan også selv legge til nettobeløpet på ladeøkter via det valgfrie feltet <strong>\"kWh (kjøretøy)\"</strong> - det utløser samme beregning."
   p3: "<strong>Ladetap – avhengig av situasjonen:</strong> Ladebokser og ladestasjoner måler strømforbruket ved stikkontakten – inkludert ladetap (varme som genereres under lading, ca. 5–10 %). For <strong>forbruk (kWh/100 km)</strong> blir disse tapene fjernet (AC: 10 %, DC: 5 %), slik at verdien gjenspeiler din faktiske kjøreffektivitet og er sammenlignbar med WLTP. For <strong>kostnader (€/kWh)</strong> blir de med – du har tross alt betalt for dem."
 editlog:
   title: Rediger ladesesjon
@@ -1492,6 +1497,9 @@ announcements:
   consumption_normalization_v1_body: "Det viste forbruket ditt (kWh/100 km) gjenspeiler nå det faktiske forbruket fra batteriet under kjøring. Målingene fra Wallbox inkluderer tidligere ladetap fra selve ladeprosessen – disse blir nå automatisk trukket fra (vekselstrømslading: 10 %, likestrømshurtiglading: 5 %). Forbruksverdiene dine vil synke noe og er nå lettere å sammenligne med WLTP og andre datakilder. Kostnadsberegningene påvirkes ikke."
   goe_statistics_fix_v1_title: "go-eCharger: Rettelse av statistikk"
   goe_statistics_fix_v1_body: Dine go-eCharger-økter blir nå registrert riktig i statistikken – inkludert beregninger av kWh, kostnader og forbruk.
+  soh_autodetect_v1_title: "Batterihelse oppdages nå automatisk"
+  soh_autodetect_v1_body: "Bruker du AutoSync, oppdager EV Monitor nå automatisk batteritilstanden (SoH) fra ladeøktene dine - ingen manuell registrering nødvendig. For manuelle ladeøkter kan du angi 'kWh (kjøretøy)' når du registrerer en lading for å utløse samme beregning."
+  soh_autodetect_v1_cta: "Til kjøretøyet"
   car_reassignment_v1_title: Tilordne økter til et annet kjøretøy
   car_reassignment_v1_body: Har du tilordnet en kjøretur til feil bil? Ikke noe problem – i dashbordet kan du med ett klikk tilordne en hvilken som helst kjøretur (eller en hel gruppe) til et annet kjøretøy.
   autosync_premium_v1_title: "Nytt: EV Monitor AutoSync"

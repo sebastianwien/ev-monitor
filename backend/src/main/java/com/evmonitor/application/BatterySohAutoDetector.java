@@ -14,14 +14,14 @@ import java.util.Optional;
  *
  * Formula per log: estimatedCapacity = kwhCharged / socDelta * 100
  * Takes the median of the last 5 qualifying logs to suppress integer-quantization
- * noise (SoC stored as whole %, so a 1% rounding error on a 64% delta ≈ 1.5% capacity error).
+ * noise (SoC stored as whole %, so a 1% rounding error on a 64% delta ~= 1.5% capacity error).
  *
- * Qualifying log: AT_VEHICLE + both SoC values present + delta ≥ 20%.
- * Pure static logic — no Spring, no side effects, easily unit-testable.
+ * Qualifying log: AT_VEHICLE + both SoC values present + delta >= 30%.
+ * Pure static logic - no Spring, no side effects, easily unit-testable.
  */
 public class BatterySohAutoDetector {
 
-    static final int MIN_SOC_DELTA_PERCENT = 20;
+    static final int MIN_SOC_DELTA_PERCENT = 30;
     static final int ROLLING_WINDOW_SIZE = 5;
     private static final BigDecimal HUNDRED = new BigDecimal("100");
     private static final BigDecimal MAX_SOH = new BigDecimal("100.00");
@@ -61,16 +61,23 @@ public class BatterySohAutoDetector {
     }
 
     static boolean isQualifying(EvLog log) {
-        if (log.getMeasurementType() != EnergyMeasurementType.AT_VEHICLE) return false;
+        if (!log.isIncludeInStatistics()) return false;
+        boolean hasVehicleKwh = log.getMeasurementType() == EnergyMeasurementType.AT_VEHICLE
+                || log.getKwhAtVehicle() != null;
+        if (!hasVehicleKwh) return false;
         if (log.getSocBeforeChargePercent() == null || log.getSocAfterChargePercent() == null) return false;
-        if (log.getKwhCharged() == null) return false;
+        if (effectiveKwh(log) == null) return false;
         return (log.getSocAfterChargePercent() - log.getSocBeforeChargePercent()) >= MIN_SOC_DELTA_PERCENT;
     }
 
     static BigDecimal estimateCapacity(EvLog log) {
         int delta = log.getSocAfterChargePercent() - log.getSocBeforeChargePercent();
-        return log.getKwhCharged()
+        return effectiveKwh(log)
                 .multiply(HUNDRED)
                 .divide(BigDecimal.valueOf(delta), 4, RoundingMode.HALF_UP);
+    }
+
+    private static BigDecimal effectiveKwh(EvLog log) {
+        return log.getKwhAtVehicle() != null ? log.getKwhAtVehicle() : log.getKwhCharged();
     }
 }

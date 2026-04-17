@@ -16,6 +16,7 @@ export interface LogFormData {
   odometerKm: number | null
   socAfterChargePercent: number | null
   socBeforeChargePercent: number | null
+  kwhAtVehicle: number | null
   chargeDurationMinutes: number | null
   maxChargingPowerKw: number | null
   loggedAt: string | null
@@ -503,6 +504,12 @@ defineExpose({ clearLocation, locationEnabled, locationStatus, getCurrentDateTim
       <label class="block text-sm font-medium text-gray-600 dark:text-gray-400">{{ t('logfields.soc_before') }}</label>
       <input v-model="form.socBeforeChargePercent" type="number" min="0" max="100" :placeholder="t('logfields.optional')"
         class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
+    </div>
+    <div>
+      <label for="kwh-at-vehicle" class="block text-sm font-medium text-gray-600 dark:text-gray-400">{{ t('logfields.kwh_at_vehicle') }}</label>
+      <input id="kwh-at-vehicle" v-model.number="form.kwhAtVehicle" type="number" step="0.1" min="0" max="200" :placeholder="t('logfields.optional')"
+        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
+      <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ t('logfields.kwh_at_vehicle_hint') }}</p>
     </div>
   </div>
 

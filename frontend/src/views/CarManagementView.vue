@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ChartBarIcon, TruckIcon, ArrowDownTrayIcon, ClipboardDocumentIcon, CheckIcon } from '@heroicons/vue/24/outline'
 import LicensePlate from '../components/car/LicensePlate.vue'
+import ConsumptionInfoBox from '../components/dashboard/ConsumptionInfoBox.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useCarForm } from '../composables/useCarForm'
 import { useCarImages } from '../composables/useCarImages'
@@ -455,8 +456,8 @@ const copyCarId = async (id: string) => {
                     {{ getModelLabel(car.model) }}
                     <span v-if="car.trim" class="text-sm font-normal text-indigo-500 dark:text-indigo-400">{{ car.trim }}</span>
                   </h3>
-                  <span v-if="car.isPrimary"
-                    class="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium border border-green-200 shrink-0">
+                  <span v-if="car.isPrimary && cars.length > 1"
+                    class="px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs rounded-full font-medium border border-green-200 dark:border-green-700 shrink-0">
                     {{ t('cars.active') }}
                   </span>
                   <!-- Tesla state badge -->
@@ -863,7 +864,7 @@ const copyCarId = async (id: string) => {
     </div>
 
     <!-- Tesla Fleet Integration (only shown when user has a Tesla) -->
-    <div class="md:max-w-4xl md:mx-auto px-4 md:px-0 pb-4">
+    <div class="md:max-w-4xl md:mx-auto px-4 md:px-0 pt-3 pb-4 space-y-3">
       <!-- Import Hub Hint -->
       <router-link
         to="/imports"
@@ -876,6 +877,7 @@ const copyCarId = async (id: string) => {
         </div>
         <span class="text-gray-400 dark:text-gray-500 ml-auto group-hover:translate-x-0.5 transition-transform">→</span>
       </router-link>
+      <ConsumptionInfoBox :initial-expanded="true" />
     </div>
       </div>
     </Transition>

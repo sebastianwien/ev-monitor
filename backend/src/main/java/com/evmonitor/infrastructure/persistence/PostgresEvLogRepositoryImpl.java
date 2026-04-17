@@ -57,6 +57,13 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
+    public List<EvLog> findRecentAtVehicleLogsWithSoc(UUID carId, int limit) {
+        return jpaRepository.findRecentAtVehicleLogsWithSoc(carId, PageRequest.of(0, limit)).stream()
+                .map(this::toDomain)
+                .toList();
+    }
+
+    @Override
     public List<EvLog> findAllByCarIds(List<UUID> carIds) {
         if (carIds.isEmpty()) return List.of();
         return jpaRepository.findAllByCarIdIn(carIds).stream()
@@ -206,6 +213,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
         entity.setId(domain.getId());
         entity.setCarId(domain.getCarId());
         entity.setKwhCharged(domain.getKwhCharged());
+        entity.setKwhAtVehicle(domain.getKwhAtVehicle());
         entity.setCostEur(domain.getCostEur());
         entity.setChargeDurationMinutes(domain.getChargeDurationMinutes());
         entity.setGeohash(domain.getGeohash());
@@ -241,6 +249,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 .id(entity.getId())
                 .carId(entity.getCarId())
                 .kwhCharged(entity.getKwhCharged())
+                .kwhAtVehicle(entity.getKwhAtVehicle())
                 .costEur(entity.getCostEur())
                 .chargeDurationMinutes(entity.getChargeDurationMinutes())
                 .geohash(entity.getGeohash())

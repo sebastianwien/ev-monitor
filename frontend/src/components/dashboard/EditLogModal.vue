@@ -80,6 +80,7 @@ export interface EvLogResponse {
   maxChargingPowerKw: number | null
   socAfterChargePercent: number | null
   socBeforeChargePercent: number | null
+  kwhAtVehicle: number | null
   loggedAt: string
   routeType: 'CITY' | 'COMBINED' | 'HIGHWAY' | null
   tireType: 'SUMMER' | 'ALL_YEAR' | 'WINTER' | null
@@ -105,6 +106,7 @@ const formData = ref<LogFormData>({
   odometerKm: props.log.odometerKm ?? null,
   socAfterChargePercent: props.log.socAfterChargePercent ?? null,
   socBeforeChargePercent: props.log.socBeforeChargePercent ?? null,
+  kwhAtVehicle: props.log.kwhAtVehicle ?? null,
   chargeDurationMinutes: props.log.chargeDurationMinutes ?? null,
   maxChargingPowerKw: props.log.maxChargingPowerKw ?? null,
   loggedAt: toDatetimeLocal(props.log.loggedAt),
@@ -190,6 +192,7 @@ async function save() {
       maxChargingPowerKw: n(f.maxChargingPowerKw) !== null ? Math.round(n(f.maxChargingPowerKw)! * 100) / 100 : null,
       socAfterChargePercent: soc,
       socBeforeChargePercent: n(f.socBeforeChargePercent),
+      kwhAtVehicle: n(f.kwhAtVehicle) !== null && n(f.kwhAtVehicle)! > 0 ? Math.round(n(f.kwhAtVehicle)! * 100) / 100 : null,
       loggedAt: f.loggedAt + ':00',
       chargingType: f.chargingType,
       routeType: f.routeType,

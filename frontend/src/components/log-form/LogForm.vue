@@ -50,6 +50,7 @@ const formData = ref<LogFormData>({
   odometerKm: null,
   socAfterChargePercent: null,
   socBeforeChargePercent: null,
+  kwhAtVehicle: null,
   chargeDurationMinutes: null,
   maxChargingPowerKw: null,
   loggedAt: null,
@@ -172,6 +173,8 @@ const submitLog = async () => {
       odometerKm: f.odometerKm,
       socAfterChargePercent: f.socAfterChargePercent,
     }
+    if (f.socBeforeChargePercent !== null) payload.socBeforeChargePercent = f.socBeforeChargePercent
+    if (f.kwhAtVehicle !== null && f.kwhAtVehicle > 0) payload.kwhAtVehicle = Math.round(f.kwhAtVehicle * 100) / 100
     if (f.chargeDurationMinutes) payload.chargeDurationMinutes = f.chargeDurationMinutes
     if (f.latitude !== null && f.longitude !== null) {
       payload.latitude = f.latitude
@@ -201,7 +204,7 @@ const submitLog = async () => {
     const savedRouteType = f.routeType
     formData.value = {
       kwhCharged: null, costEur: null, costExchangeRate: null, costCurrency: null, odometerKm: null,
-      socAfterChargePercent: null, socBeforeChargePercent: null,
+      socAfterChargePercent: null, socBeforeChargePercent: null, kwhAtVehicle: null,
       chargeDurationMinutes: null, maxChargingPowerKw: null, loggedAt: null,
       chargingType: 'AC', routeType: savedRouteType,
       tireType: savedTireType,

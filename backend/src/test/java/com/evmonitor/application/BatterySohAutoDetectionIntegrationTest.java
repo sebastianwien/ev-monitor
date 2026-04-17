@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -22,6 +23,9 @@ class BatterySohAutoDetectionIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     private BatterySohService batterySohService;
+
+    @Autowired
+    private EvLogService evLogService;
 
     private EvLog smartcarLog(UUID carId, double kwh, int socBefore, int socAfter, int daysAgo) {
         return EvLog.createFromInternal(
@@ -70,6 +74,97 @@ class BatterySohAutoDetectionIntegrationTest extends AbstractIntegrationTest {
 
         List<BatterySohResponse> history = batterySohService.getHistory(car.getId(), user.getId());
         assertEquals(1, history.size(), "Should not create duplicate entry for same day");
+    }
+
+    // S2a: change ≤ 2% → skip (45.58125 kWh / 65% delta = 70.125 kWh capacity → 93.50% SoH → 1.5% from 92%)
+    @Test
+    void autoDetectAndPersist_skipsWhenChangeIsWithinTwoPercent() {
+        User user = createAndSaveUser("soh-threshold-skip-" + System.currentTimeMillis() + "@test.com");
+        Car car = carRepository.save(Car.createNew(
+                user.getId(), CarBrand.CarModel.MODEL_3, 2019,
+                "TH-SK-001", "LR", new BigDecimal("75.00"), new BigDecimal("280.0"), null));
+
+        batterySohService.addMeasurement(car.getId(), user.getId(),
+                new BatterySohRequest(new BigDecimal("92.00"), LocalDate.now().minusDays(1)));
+
+        evLogRepository.save(smartcarLog(car.getId(), 45.58125, 25, 90, 2));
+
+        batterySohService.autoDetectAndPersist(car);
+
+        assertEquals(1, batterySohService.getHistory(car.getId(), user.getId()).size(),
+                "Change of 1.5% is within 2% threshold - no new entry expected");
+    }
+
+    // S2b: change > 2% → create (46.80 kWh / 65% delta = 72.00 kWh capacity → 96.00% SoH → 4% from 92%)
+    @Test
+    void autoDetectAndPersist_createsEntryWhenChangeExceedsTwoPercent() {
+        User user = createAndSaveUser("soh-threshold-create-" + System.currentTimeMillis() + "@test.com");
+        Car car = carRepository.save(Car.createNew(
+                user.getId(), CarBrand.CarModel.MODEL_3, 2019,
+                "TH-CR-001", "LR", new BigDecimal("75.00"), new BigDecimal("280.0"), null));
+
+        batterySohService.addMeasurement(car.getId(), user.getId(),
+                new BatterySohRequest(new BigDecimal("92.00"), LocalDate.now().minusDays(1)));
+
+        evLogRepository.save(smartcarLog(car.getId(), 46.80, 25, 90, 2));
+
+        batterySohService.autoDetectAndPersist(car);
+
+        assertEquals(2, batterySohService.getHistory(car.getId(), user.getId()).size(),
+                "Change of 4% exceeds 2% threshold — new entry expected");
+    }
+
+    // S3: SoH-Erkennung wird über den realen Trigger-Pfad createWallboxLog ausgelöst
+    @Test
+    void createWallboxLog_triggersAutoDetect_createsSohEntry() {
+        User user = createAndSaveUser("soh-wallbox-" + System.currentTimeMillis() + "@test.com");
+        Car car = carRepository.save(Car.createNew(
+                user.getId(), CarBrand.CarModel.MODEL_3, 2019,
+                "WB-SH-001", "LR", new BigDecimal("75.00"), new BigDecimal("280.0"), null));
+
+        // 44.17 kWh / 64% delta = 69.02 kWh capacity → SoH ≈ 92.02%
+        evLogService.createWallboxLog(new InternalEvLogRequest(
+                car.getId(), user.getId(),
+                new BigDecimal("44.17"), 60,
+                LocalDateTime.now().minusDays(1),
+                null, null, null,
+                "SMARTCAR_LIVE", null, "AC", false,
+                60000, 26, 90, null));
+
+        List<BatterySohResponse> history = batterySohService.getHistory(car.getId(), user.getId());
+        assertEquals(1, history.size(), "createWallboxLog should trigger SoH auto-detection");
+        assertTrue(history.get(0).sohPercent().compareTo(new BigDecimal("90")) > 0,
+                "Detected SoH should be above 90%");
+    }
+
+    // S4: kwhAtVehicle nachträglich via updateLog gesetzt → triggert SoH-Detection
+    @Test
+    void updateLog_triggersAutoDetect_whenKwhAtVehicleIsSet() {
+        User user = createAndSaveUser("soh-update-" + System.currentTimeMillis() + "@test.com");
+        Car car = carRepository.save(Car.createNew(
+                user.getId(), CarBrand.CarModel.MODEL_3, 2019,
+                "UL-SH-001", "LR", new BigDecimal("75.00"), new BigDecimal("280.0"), null));
+
+        // Create a manual log without kwhAtVehicle (AT_CHARGER, no SoH detection yet)
+        EvLog log = evLogRepository.save(EvLog.createNew(
+                car.getId(), new BigDecimal("50.00"), null, 60, null, 61000,
+                null, 90, LocalDateTime.now().minusDays(1),
+                ChargingType.AC, null, null, false, null));
+
+        assertTrue(batterySohService.getHistory(car.getId(), user.getId()).isEmpty(),
+                "No SoH entry before update");
+
+        // Add kwhAtVehicle and socBefore via update → should trigger SoH detection
+        // 44.17 kWh / 64% delta = 69.02 kWh capacity → SoH ≈ 92.02%
+        evLogService.updateLog(log.getId(), user.getId(),
+                new EvLogUpdateRequest(null, null, null, null, null, null, null,
+                        null, 26, new BigDecimal("44.17"),
+                        null, null, null, null, null, null, null, null, null));
+
+        List<BatterySohResponse> history = batterySohService.getHistory(car.getId(), user.getId());
+        assertEquals(1, history.size(), "updateLog with kwhAtVehicle should trigger SoH auto-detection");
+        assertTrue(history.get(0).sohPercent().compareTo(new BigDecimal("90")) > 0,
+                "Detected SoH should be above 90%");
     }
 
     @Test
