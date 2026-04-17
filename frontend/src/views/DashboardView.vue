@@ -65,7 +65,7 @@ const { formatConsumption, consumptionUnitLabel, formatDistance, distanceUnitLab
 const {
   selectedCarId, stats, carInfo, wltp, loading, chartsReady, isInitialLoad, error,
   cars, carImageUrls, selectedTimeRange, selectedGroupBy, customStartDate, customEndDate,
-  importBannerDismissed, teslaStatus, implausibleCount, hasDistanceData,
+  importBannerDismissed, teslaStatus, smartcarStatus, implausibleCount, hasDistanceData,
   timeRangeOptions, groupByOptions, dismissImportBanner, fetchImplausibleCount,
   fetchCarAndWltp, fetchStatistics, initCars,
 } = useDashboardStats()
@@ -120,6 +120,13 @@ const enumToLabel = (value: string | undefined | null): string =>
 const selectedCar = computed(() =>
   cars.value.find(c => c.id === selectedCarId.value) ?? cars.value[0] ?? null
 )
+
+const isSmartcarCharging = (car: any) =>
+  smartcarStatus.value?.connected === true &&
+  smartcarStatus.value?.vehicleState === 'CHARGING' &&
+  (smartcarStatus.value?.carId === car.id || smartcarStatus.value?.carId === null)
+
+const anySmartcarCharging = computed(() => cars.value.some(car => isSmartcarCharging(car)))
 
 // -- Lifecycle --
 watch(selectedCarId, async (newId) => {
@@ -212,7 +219,8 @@ onMounted(() => initCars())
             :class="[
               cars.length > 1
                 ? 'sticky top-16 z-10 bg-white dark:bg-gray-800 -mx-4 px-4 md:-mx-6 md:px-6 py-3 mb-3 border-b border-gray-100 dark:border-gray-700 shadow-sm'
-                : 'mb-6'
+                : 'mb-6 rounded-xl md:w-fit',
+              anySmartcarCharging ? 'smartcar-charging-glow' : ''
             ]"
           >
             <div class="flex gap-3 overflow-x-auto pb-1 lg:flex-wrap lg:overflow-x-visible">
@@ -225,8 +233,12 @@ onMounted(() => initCars())
                     ? 'flex items-stretch rounded-xl border-2 text-left transition w-full md:w-auto overflow-hidden'
                     : 'flex items-stretch rounded-xl border-2 text-left transition flex-shrink-0 min-w-[200px] max-w-[280px] lg:flex-shrink lg:min-w-0 lg:max-w-none overflow-hidden',
                   selectedCarId === car.id
-                    ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 shadow-[0_4px_0_0_#4338ca] translate-y-[2px]'
-                    : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:border-indigo-300 active:shadow-none active:translate-y-1'
+                    ? isSmartcarCharging(car)
+                      ? 'border-transparent bg-green-50 dark:bg-green-900/20 shadow-[0_4px_0_0_#16a34a] dark:shadow-[0_4px_0_0_#14532d] translate-y-[2px]'
+                      : 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 shadow-[0_4px_0_0_#4338ca] translate-y-[2px]'
+                    : isSmartcarCharging(car)
+                      ? 'border-transparent bg-white dark:bg-gray-700 shadow-[0_4px_0_0_#16a34a] dark:shadow-[0_4px_0_0_#14532d] active:shadow-none active:translate-y-1'
+                      : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:border-indigo-300 active:shadow-none active:translate-y-1',
                 ]" style="transition: transform 0.075s ease, box-shadow 0.075s ease;">
                 <div class="flex-shrink-0 w-24 self-stretch bg-gray-100 dark:bg-gray-600 flex items-center justify-center overflow-hidden">
                   <img
@@ -242,8 +254,8 @@ onMounted(() => initCars())
                     <span class="font-semibold text-gray-800 dark:text-gray-200">{{ enumToLabel(car.brand) }} {{ enumToLabel(car.model) }}</span>
                     <span v-if="car.trim" class="text-sm text-gray-500 dark:text-gray-400">{{ car.trim }}</span>
                     <LicensePlate v-if="car.licensePlate" :plate="car.licensePlate" />
-                    <span v-if="car.isPrimary"
-                      class="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded-full border border-green-200 font-medium">
+                    <span v-if="car.isPrimary && cars.length > 1"
+                      class="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs rounded-full border border-green-200 dark:border-green-700 font-medium">
                       {{ t('dashboard.active') }}
                     </span>
                     <template v-if="car.brand?.toLowerCase() === 'tesla' && teslaStatus?.connected && (teslaStatus.carId === car.id || teslaStatus.carId === null)">
@@ -260,30 +272,38 @@ onMounted(() => initCars())
                         <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>{{ t('dashboard.tesla_sleeping') }}
                       </span>
                     </template>
+                    <span v-if="isSmartcarCharging(car)"
+                      class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs rounded-full font-medium border border-green-200 dark:border-green-700">
+                      <span class="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 animate-pulse"></span>{{ t('dashboard.smartcar_charging') }}
+                    </span>
                   </div>
                   <!-- Desktop oder mehrere Autos: zweizeiliges Layout -->
                   <div :class="cars.length === 1 ? 'hidden lg:block' : ''">
                     <div class="flex items-center gap-2 flex-wrap">
                       <span class="font-semibold text-gray-800 dark:text-gray-200">{{ enumToLabel(car.brand) }} {{ enumToLabel(car.model) }}</span>
                       <span v-if="car.trim" class="text-sm text-gray-500 dark:text-gray-400">{{ car.trim }}</span>
-                      <span v-if="car.isPrimary"
-                        class="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded-full border border-green-200 font-medium">
+                      <span v-if="car.isPrimary && cars.length > 1"
+                        class="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs rounded-full border border-green-200 dark:border-green-700 font-medium">
                         {{ t('dashboard.active') }}
                       </span>
                       <template v-if="car.brand?.toLowerCase() === 'tesla' && teslaStatus?.connected && (teslaStatus.carId === car.id || teslaStatus.carId === null)">
                         <span v-if="teslaStatus.vehicleState === 'charging'"
-                          class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium border border-green-200">
-                          <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>{{ t('dashboard.tesla_charging') }}
+                          class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs rounded-full font-medium border border-green-200 dark:border-green-700">
+                          <span class="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 animate-pulse"></span>{{ t('dashboard.tesla_charging') }}
                         </span>
                         <span v-else-if="teslaStatus.vehicleState === 'online'"
                           class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs rounded-full font-medium border border-blue-200 dark:border-blue-700">
                           <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>{{ t('dashboard.tesla_online') }}
                         </span>
                         <span v-else-if="teslaStatus.vehicleState === 'asleep'"
-                          class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 text-gray-500 text-xs rounded-full font-medium border border-gray-200">
-                          <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>{{ t('dashboard.tesla_sleeping') }}
+                          class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-xs rounded-full font-medium border border-gray-200 dark:border-gray-600">
+                          <span class="w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-gray-500"></span>{{ t('dashboard.tesla_sleeping') }}
                         </span>
                       </template>
+                      <span v-if="isSmartcarCharging(car)"
+                        class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs rounded-full font-medium border border-green-200 dark:border-green-700">
+                        <span class="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 animate-pulse"></span>{{ t('dashboard.smartcar_charging') }}
+                      </span>
                     </div>
                     <div class="mt-1.5 flex justify-center">
                       <LicensePlate v-if="car.licensePlate" :plate="car.licensePlate" />
@@ -1086,6 +1106,32 @@ onMounted(() => initCars())
 </template>
 
 <style scoped>
+@keyframes smartcar-glow {
+  0%, 100% {
+    box-shadow: 0 0 14px 4px rgba(74, 222, 128, 0.4), 0 0 32px 10px rgba(74, 222, 128, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 24px 10px rgba(34, 197, 94, 0.6), 0 0 56px 20px rgba(34, 197, 94, 0.25);
+  }
+}
+
+@keyframes smartcar-glow-dark {
+  0%, 100% {
+    box-shadow: 0 0 18px 6px rgba(74, 222, 128, 0.55), 0 0 40px 14px rgba(74, 222, 128, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 32px 14px rgba(134, 239, 172, 0.75), 0 0 64px 24px rgba(74, 222, 128, 0.35);
+  }
+}
+
+.smartcar-charging-glow {
+  animation: smartcar-glow 1.8s ease-in-out infinite;
+}
+
+:global(.dark) .smartcar-charging-glow {
+  animation: smartcar-glow-dark 1.8s ease-in-out infinite;
+}
+
 .fade-enter-active {
   transition: opacity 0.2s ease;
 }

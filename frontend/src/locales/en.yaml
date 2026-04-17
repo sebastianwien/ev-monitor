@@ -443,6 +443,7 @@ dashboard:
   tesla_charging: "Charging"
   tesla_online: "Online"
   tesla_sleeping: "Sleeping"
+  smartcar_charging: "Charging"
   real_range_title: "Your real range"
   range_window: "Charging window"
   range_summer: "Summer"
