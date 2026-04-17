@@ -194,7 +194,7 @@ export function useDashboardStats() {
       }
       const hasTesla = carList.some((c: any) => c.brand?.toLowerCase() === 'tesla')
       startTeslaPolling(hasTesla)
-      startSmartcarPolling(carList.length > 0 && (authStore.isPremium || hasTesla))
+      startSmartcarPolling(carList.length > 0 && authStore.isPremium)
     } catch { /* non-critical */ }
   }
 

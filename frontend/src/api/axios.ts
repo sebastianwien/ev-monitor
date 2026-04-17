@@ -24,7 +24,8 @@ let sessionExpiredRedirectPending = false;
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response?.status === 401 && !sessionExpiredRedirectPending) {
+        const isAuthEndpoint = error.config?.url?.startsWith('/auth/');
+        if (error.response?.status === 401 && !isAuthEndpoint && !sessionExpiredRedirectPending) {
             sessionExpiredRedirectPending = true;
             const authStore = useAuthStore();
             authStore.logout(false);
