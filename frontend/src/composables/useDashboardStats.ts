@@ -192,8 +192,9 @@ export function useDashboardStats() {
           .then(url => { carImageUrls.value = { ...carImageUrls.value, [car.id]: url } })
           .catch(() => {})
       }
-      startTeslaPolling(carList.some((c: any) => c.brand?.toLowerCase() === 'tesla'))
-      startSmartcarPolling(carList.length > 0 && authStore.isPremium)
+      const hasTesla = carList.some((c: any) => c.brand?.toLowerCase() === 'tesla')
+      startTeslaPolling(hasTesla)
+      startSmartcarPolling(carList.length > 0 && (authStore.isPremium || hasTesla))
     } catch { /* non-critical */ }
   }
 
