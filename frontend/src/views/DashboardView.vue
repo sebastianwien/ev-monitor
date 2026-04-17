@@ -54,6 +54,7 @@ import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useDashboardStats } from '../composables/useDashboardStats'
 import { useDashboardCharts } from '../composables/useDashboardCharts'
 import { useLogList } from '../composables/useLogList'
+import { useWallboxStore } from '../stores/wallbox'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend, Filler, ChartDataLabels)
 
@@ -121,13 +122,20 @@ const selectedCar = computed(() =>
   cars.value.find(c => c.id === selectedCarId.value) ?? cars.value[0] ?? null
 )
 
+const wallboxStore = useWallboxStore()
+
 const isSmartcarCharging = (car: any) =>
   smartcarStatus.value?.connected === true &&
   smartcarStatus.value?.vehicleState === 'CHARGING' &&
   (smartcarStatus.value?.carId === car.id ||
     (smartcarStatus.value?.carId === null && cars.value.length === 1))
 
-const anySmartcarCharging = computed(() => cars.value.some(car => isSmartcarCharging(car)))
+const isWallboxCharging = () =>
+  wallboxStore.isCharging && cars.value.length === 1
+
+const isVehicleCharging = (car: any) => isSmartcarCharging(car) || isWallboxCharging()
+
+const anySmartcarCharging = computed(() => cars.value.some(car => isVehicleCharging(car)))
 
 // -- Lifecycle --
 watch(selectedCarId, async (newId) => {
@@ -234,13 +242,13 @@ onMounted(() => initCars())
                     ? 'flex items-stretch rounded-xl border-2 text-left transition w-full md:w-auto overflow-hidden'
                     : 'flex items-stretch rounded-xl border-2 text-left transition flex-shrink-0 min-w-[200px] max-w-[280px] lg:flex-shrink lg:min-w-0 lg:max-w-none overflow-hidden',
                   selectedCarId === car.id
-                    ? isSmartcarCharging(car)
+                    ? isVehicleCharging(car)
                       ? 'border-transparent bg-green-50 dark:bg-green-900/20 shadow-[0_4px_0_0_#16a34a] dark:shadow-[0_4px_0_0_#14532d] translate-y-[2px]'
                       : 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 shadow-[0_4px_0_0_#4338ca] translate-y-[2px]'
-                    : isSmartcarCharging(car)
+                    : isVehicleCharging(car)
                       ? 'border-transparent bg-white dark:bg-gray-700 shadow-[0_4px_0_0_#16a34a] dark:shadow-[0_4px_0_0_#14532d] active:shadow-none active:translate-y-1'
                       : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:border-indigo-300 active:shadow-none active:translate-y-1',
-                  cars.length > 1 && isSmartcarCharging(car) ? 'ring-2 ring-green-400 dark:ring-green-500' : '',
+                  cars.length > 1 && isVehicleCharging(car) ? 'ring-2 ring-green-400 dark:ring-green-500' : '',
                 ]" style="transition: transform 0.075s ease, box-shadow 0.075s ease;">
                 <div class="flex-shrink-0 w-24 self-stretch bg-gray-100 dark:bg-gray-600 flex items-center justify-center overflow-hidden">
                   <img
