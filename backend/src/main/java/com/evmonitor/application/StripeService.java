@@ -44,6 +44,42 @@ public class StripeService {
     @Value("${stripe.price-id-yearly:}")
     private String priceIdYearly;
 
+    @Value("${stripe.price-id-monthly-intl:}")
+    private String priceIdMonthlyIntl;
+
+    @Value("${stripe.price-id-yearly-intl:}")
+    private String priceIdYearlyIntl;
+
+    @Value("${stripe.price-id-monthly-usd:}")
+    private String priceIdMonthlyUsd;
+
+    @Value("${stripe.price-id-yearly-usd:}")
+    private String priceIdYearlyUsd;
+
+    @Value("${stripe.price-id-monthly-gbp:}")
+    private String priceIdMonthlyGbp;
+
+    @Value("${stripe.price-id-yearly-gbp:}")
+    private String priceIdYearlyGbp;
+
+    @Value("${stripe.price-id-monthly-nok:}")
+    private String priceIdMonthlyNok;
+
+    @Value("${stripe.price-id-yearly-nok:}")
+    private String priceIdYearlyNok;
+
+    @Value("${stripe.price-id-monthly-sek:}")
+    private String priceIdMonthlySek;
+
+    @Value("${stripe.price-id-yearly-sek:}")
+    private String priceIdYearlySek;
+
+    @Value("${stripe.price-id-monthly-dkk:}")
+    private String priceIdMonthlyDkk;
+
+    @Value("${stripe.price-id-yearly-dkk:}")
+    private String priceIdYearlyDkk;
+
     @Value("${stripe.referral-coupon-id:}")
     private String referralCouponId;
 
@@ -91,7 +127,7 @@ public class StripeService {
         boolean eligibleForTrial = !user.isTrialUsed();
         String customerId = ensureCustomer(user);
 
-        String priceId = "yearly".equals(plan) ? priceIdYearly : priceIdMonthly;
+        String priceId = resolvePriceId(plan, user.getCountry());
 
         SessionCreateParams.Builder builder = SessionCreateParams.builder()
                 .setMode(SessionCreateParams.Mode.SUBSCRIPTION)
@@ -247,6 +283,20 @@ public class StripeService {
         com.stripe.model.billingportal.Session session =
                 com.stripe.model.billingportal.Session.create(params);
         return session.getUrl();
+    }
+
+    String resolvePriceId(String plan, String country) {
+        boolean yearly = "yearly".equals(plan);
+        if (country == null) country = "DE";
+        return switch (country) {
+            case "DE", "AT", "CH" -> yearly ? priceIdYearly      : priceIdMonthly;
+            case "US"             -> yearly ? priceIdYearlyUsd    : priceIdMonthlyUsd;
+            case "GB"             -> yearly ? priceIdYearlyGbp    : priceIdMonthlyGbp;
+            case "NO"             -> yearly ? priceIdYearlyNok    : priceIdMonthlyNok;
+            case "SE"             -> yearly ? priceIdYearlySek    : priceIdMonthlySek;
+            case "DK"             -> yearly ? priceIdYearlyDkk    : priceIdMonthlyDkk;
+            default               -> yearly ? priceIdYearlyIntl   : priceIdMonthlyIntl;
+        };
     }
 
     private String ensureCustomer(User user) throws StripeException {

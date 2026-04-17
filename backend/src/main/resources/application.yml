@@ -152,6 +152,18 @@ stripe:
   webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
   price-id-monthly: ${STRIPE_PRICE_ID_MONTHLY:}
   price-id-yearly: ${STRIPE_PRICE_ID_YEARLY:}
+  price-id-monthly-intl: ${STRIPE_PRICE_ID_MONTHLY_INTL:}
+  price-id-yearly-intl: ${STRIPE_PRICE_ID_YEARLY_INTL:}
+  price-id-monthly-usd: ${STRIPE_PRICE_ID_MONTHLY_USD:}
+  price-id-yearly-usd: ${STRIPE_PRICE_ID_YEARLY_USD:}
+  price-id-monthly-gbp: ${STRIPE_PRICE_ID_MONTHLY_GBP:}
+  price-id-yearly-gbp: ${STRIPE_PRICE_ID_YEARLY_GBP:}
+  price-id-monthly-nok: ${STRIPE_PRICE_ID_MONTHLY_NOK:}
+  price-id-yearly-nok: ${STRIPE_PRICE_ID_YEARLY_NOK:}
+  price-id-monthly-sek: ${STRIPE_PRICE_ID_MONTHLY_SEK:}
+  price-id-yearly-sek: ${STRIPE_PRICE_ID_YEARLY_SEK:}
+  price-id-monthly-dkk: ${STRIPE_PRICE_ID_MONTHLY_DKK:}
+  price-id-yearly-dkk: ${STRIPE_PRICE_ID_YEARLY_DKK:}
   referral-coupon-id: ${STRIPE_REFERRAL_COUPON_ID:}
   referral-reward-cents: ${STRIPE_REFERRAL_REWARD_CENTS:399}
 

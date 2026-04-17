@@ -107,15 +107,15 @@
                                 class="flex flex-col items-center px-4 py-2 rounded-lg font-medium text-sm transition-colors"
                             >
                                 <span>{{ t('upgrade.plan_monthly') }}</span>
-                                <span>{{ t('upgrade.price_monthly') }}</span>
+                                <span>{{ pricing.monthly }}</span>
                             </button>
                             <button
                                 @click="selectedPlan = 'yearly'"
                                 :class="selectedPlan === 'yearly' ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'"
                                 class="flex flex-col items-center px-4 py-2 rounded-lg font-medium text-sm transition-colors"
                             >
-                                <span>{{ t('upgrade.plan_yearly') }} · {{ t('upgrade.price_yearly') }}</span>
-                                <span :class="selectedPlan === 'yearly' ? 'bg-white/20 text-white' : 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400'" class="text-xs px-1.5 py-0.5 rounded mt-1">{{ t('upgrade.plan_yearly_badge') }}</span>
+                                <span>{{ t('upgrade.plan_yearly') }} · {{ pricing.yearly }}</span>
+                                <span :class="selectedPlan === 'yearly' ? 'bg-white/20 text-white' : 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400'" class="text-xs px-1.5 py-0.5 rounded mt-1">{{ pricing.yearlySavings }}</span>
                             </button>
                         </div>
                     </div>
@@ -144,7 +144,7 @@
                     </div>
 
                     <p class="text-sm font-semibold text-gray-600 dark:text-gray-300 text-center mb-3">
-                        {{ selectedPlan === 'monthly' ? t('upgrade.trial_hint_monthly', { priceMonthly: t('upgrade.price_monthly') }) : t('upgrade.trial_hint_yearly', { priceYearly: t('upgrade.price_yearly') }) }}
+                        {{ selectedPlan === 'monthly' ? t('upgrade.trial_hint_monthly', { priceMonthly: pricing.monthly }) : t('upgrade.trial_hint_yearly', { priceYearly: pricing.yearly }) }}
                     </p>
 
                     <div v-if="checkoutError" class="mb-4 text-center space-y-1">
@@ -173,13 +173,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { subscriptionService } from '../api/subscriptionService';
 import { analytics } from '../services/analytics';
 import { ChevronDownIcon } from '@heroicons/vue/24/outline';
+import { useCountryStore } from '../stores/country';
+import { getPricing } from '../config/pricingConfig';
 
 const { t } = useI18n();
+const countryStore = useCountryStore();
+const pricing = computed(() => getPricing(countryStore.country));
 
 const brands = [
     'BMW', 'MINI', 'VW', 'Mercedes', 'Audi', 'Porsche', 'Skoda', 'SEAT', 'CUPRA', 'Opel',

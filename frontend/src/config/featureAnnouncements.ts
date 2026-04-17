@@ -15,14 +15,6 @@ export interface FeatureAnnouncement {
 
 export const featureAnnouncements: FeatureAnnouncement[] = [
   {
-    key: 'goe-statistics-fix-v1',
-    expiresAt: '2026-04-17',
-    releasedAt: '2026-04-14',
-    titleKey: 'announcements.goe_statistics_fix_v1_title',
-    bodyKey: 'announcements.goe_statistics_fix_v1_body',
-    condition: (ctx) => ctx.hasGoeConnection,
-  },
-  {
     key: 'car-reassignment-v1',
     expiresAt: '2026-05-18',
     releasedAt: '2026-04-14',
