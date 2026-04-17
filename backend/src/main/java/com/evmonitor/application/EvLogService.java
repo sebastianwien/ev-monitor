@@ -35,6 +35,7 @@ public class EvLogService {
     private final PlausibilityProperties plausibility;
     private final ConsumptionCalculationService calculationService;
     private final JpaUserChargingProviderRepository chargingProviderRepository;
+    private final BatterySohService batterySohService;
 
     @Transactional
     public EvLogCreateResponse logCharging(UUID userId, EvLogRequest request) {
@@ -189,6 +190,9 @@ public class EvLogService {
         if (!isSuperseded && (source == DataSource.TESLA_FLEET_IMPORT || source == DataSource.TESLA_LIVE)) {
             coinLogService.awardCoinsForEvent(request.userId(), CoinLogService.CoinEvent.TESLA_DAILY_LOG, savedLog.getId());
         }
+
+        // Auto-detect SoH from AT_VEHICLE logs with full SoC data (Smartcar, Tesla Live).
+        batterySohService.autoDetectAndPersist(car);
 
         return EvLogResponse.fromDomain(savedLog);
     }
