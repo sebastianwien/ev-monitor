@@ -444,6 +444,7 @@ dashboard:
   tesla_online: "Online"
   tesla_sleeping: "Schläft"
   smartcar_charging: "Lädt"
+  wallbox_charging: "Lädt"
   real_range_title: "Deine echte Reichweite"
   range_window: "Ladefenster"
   range_summer: "Sommer"

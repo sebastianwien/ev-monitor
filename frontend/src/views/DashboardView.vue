@@ -130,12 +130,13 @@ const isSmartcarCharging = (car: any) =>
   (smartcarStatus.value?.carId === car.id ||
     (smartcarStatus.value?.carId === null && cars.value.length === 1))
 
+// Wallbox kennt keine carId → Glow nur bei Single-Car sicher zuordenbar
 const isWallboxCharging = () =>
   wallboxStore.isCharging && cars.value.length === 1
 
 const isVehicleCharging = (car: any) => isSmartcarCharging(car) || isWallboxCharging()
 
-const anySmartcarCharging = computed(() => cars.value.some(car => isVehicleCharging(car)))
+const anyVehicleCharging = computed(() => cars.value.some(car => isVehicleCharging(car)))
 
 // -- Lifecycle --
 watch(selectedCarId, async (newId) => {
@@ -229,7 +230,7 @@ onMounted(() => initCars())
               cars.length > 1
                 ? 'sticky top-16 z-10 bg-white dark:bg-gray-800 -mx-4 px-4 md:-mx-6 md:px-6 py-3 mb-3 border-b border-gray-100 dark:border-gray-700 shadow-sm'
                 : 'mb-6 rounded-xl md:w-fit',
-              cars.length === 1 && anySmartcarCharging ? 'smartcar-charging-glow' : ''
+              cars.length === 1 && anyVehicleCharging ? 'vehicle-charging-glow' : ''
             ]"
           >
             <div class="flex gap-3 overflow-x-auto pb-1 lg:flex-wrap lg:overflow-x-visible">
@@ -286,6 +287,10 @@ onMounted(() => initCars())
                       class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs rounded-full font-medium border border-green-200 dark:border-green-700">
                       <span class="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 animate-pulse"></span>{{ t('dashboard.smartcar_charging') }}
                     </span>
+                    <span v-if="isWallboxCharging()"
+                      class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs rounded-full font-medium border border-green-200 dark:border-green-700">
+                      <span class="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 animate-pulse"></span>{{ t('dashboard.wallbox_charging') }}
+                    </span>
                   </div>
                   <!-- Desktop oder mehrere Autos: zweizeiliges Layout -->
                   <div :class="cars.length === 1 ? 'hidden lg:block' : ''">
@@ -313,6 +318,10 @@ onMounted(() => initCars())
                       <span v-if="isSmartcarCharging(car)"
                         class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs rounded-full font-medium border border-green-200 dark:border-green-700">
                         <span class="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 animate-pulse"></span>{{ t('dashboard.smartcar_charging') }}
+                      </span>
+                      <span v-if="isWallboxCharging()"
+                        class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs rounded-full font-medium border border-green-200 dark:border-green-700">
+                        <span class="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 animate-pulse"></span>{{ t('dashboard.wallbox_charging') }}
                       </span>
                     </div>
                     <div class="mt-1.5 flex justify-center">
@@ -1116,7 +1125,7 @@ onMounted(() => initCars())
 </template>
 
 <style scoped>
-@keyframes smartcar-glow {
+@keyframes vehicle-charging-glow {
   0%, 100% {
     box-shadow: 0 0 14px 4px rgba(74, 222, 128, 0.4), 0 0 32px 10px rgba(74, 222, 128, 0.15);
   }
@@ -1125,7 +1134,7 @@ onMounted(() => initCars())
   }
 }
 
-@keyframes smartcar-glow-dark {
+@keyframes vehicle-charging-glow-dark {
   0%, 100% {
     box-shadow: 0 0 18px 6px rgba(74, 222, 128, 0.55), 0 0 40px 14px rgba(74, 222, 128, 0.2);
   }
@@ -1134,12 +1143,12 @@ onMounted(() => initCars())
   }
 }
 
-.smartcar-charging-glow {
-  animation: smartcar-glow 1.8s ease-in-out infinite;
+.vehicle-charging-glow {
+  animation: vehicle-charging-glow 1.8s ease-in-out infinite;
 }
 
-:global(.dark) .smartcar-charging-glow {
-  animation: smartcar-glow-dark 1.8s ease-in-out infinite;
+:global(.dark) .vehicle-charging-glow {
+  animation: vehicle-charging-glow-dark 1.8s ease-in-out infinite;
 }
 
 .fade-enter-active {
