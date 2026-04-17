@@ -124,7 +124,8 @@ const selectedCar = computed(() =>
 const isSmartcarCharging = (car: any) =>
   smartcarStatus.value?.connected === true &&
   smartcarStatus.value?.vehicleState === 'CHARGING' &&
-  (smartcarStatus.value?.carId === car.id || smartcarStatus.value?.carId === null)
+  (smartcarStatus.value?.carId === car.id ||
+    (smartcarStatus.value?.carId === null && cars.value.length === 1))
 
 const anySmartcarCharging = computed(() => cars.value.some(car => isSmartcarCharging(car)))
 
@@ -220,7 +221,7 @@ onMounted(() => initCars())
               cars.length > 1
                 ? 'sticky top-16 z-10 bg-white dark:bg-gray-800 -mx-4 px-4 md:-mx-6 md:px-6 py-3 mb-3 border-b border-gray-100 dark:border-gray-700 shadow-sm'
                 : 'mb-6 rounded-xl md:w-fit',
-              anySmartcarCharging ? 'smartcar-charging-glow' : ''
+              cars.length === 1 && anySmartcarCharging ? 'smartcar-charging-glow' : ''
             ]"
           >
             <div class="flex gap-3 overflow-x-auto pb-1 lg:flex-wrap lg:overflow-x-visible">
@@ -239,6 +240,7 @@ onMounted(() => initCars())
                     : isSmartcarCharging(car)
                       ? 'border-transparent bg-white dark:bg-gray-700 shadow-[0_4px_0_0_#16a34a] dark:shadow-[0_4px_0_0_#14532d] active:shadow-none active:translate-y-1'
                       : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:border-indigo-300 active:shadow-none active:translate-y-1',
+                  cars.length > 1 && isSmartcarCharging(car) ? 'ring-2 ring-green-400 dark:ring-green-500' : '',
                 ]" style="transition: transform 0.075s ease, box-shadow 0.075s ease;">
                 <div class="flex-shrink-0 w-24 self-stretch bg-gray-100 dark:bg-gray-600 flex items-center justify-center overflow-hidden">
                   <img

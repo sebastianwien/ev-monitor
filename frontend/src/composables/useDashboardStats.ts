@@ -2,6 +2,7 @@ import { ref, watch, computed, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import api from '../api/axios'
 import { useCarStore } from '../stores/car'
+import { useAuthStore } from '../stores/auth'
 import { carService } from '../api/carService'
 import { vehicleSpecificationService, type VehicleSpecification } from '../api/vehicleSpecificationService'
 import { useTeslaStatus } from './useTeslaStatus'
@@ -46,6 +47,7 @@ const LS_CUSTOM_END = 'dashboard_custom_end'
 export function useDashboardStats() {
   const { t } = useI18n()
   const carStore = useCarStore()
+  const authStore = useAuthStore()
 
   const selectedCarId = ref<string | null>(null)
   const stats = ref<StatisticsData | null>(null)
@@ -191,7 +193,7 @@ export function useDashboardStats() {
           .catch(() => {})
       }
       startTeslaPolling(carList.some((c: any) => c.brand?.toLowerCase() === 'tesla'))
-      startSmartcarPolling(carList.length > 0)
+      startSmartcarPolling(carList.length > 0 && authStore.isPremium)
     } catch { /* non-critical */ }
   }
 
