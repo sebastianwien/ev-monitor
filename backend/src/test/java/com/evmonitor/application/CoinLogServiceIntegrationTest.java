@@ -2,6 +2,7 @@ package com.evmonitor.application;
 
 import com.evmonitor.application.manualimport.ManualImportService;
 import com.evmonitor.application.spritmonitor.ImportResult;
+import com.evmonitor.application.spritmonitor.RawFueling;
 import com.evmonitor.application.spritmonitor.SpritMonitorFuelingDTO;
 import com.evmonitor.application.spritmonitor.SpritMonitorImportService;
 import com.evmonitor.domain.*;
@@ -90,8 +91,8 @@ class CoinLogServiceIntegrationTest extends AbstractIntegrationTest {
     @Test
     void spritMonitor_doesNotAward50BonusAgain_OnSecondImport() {
         when(spritMonitorClient.getFuelings(eq("token"), eq(123), any()))
-                .thenReturn(List.of(fueling("10.01.2024", "50.0")))
-                .thenReturn(List.of(fueling("11.01.2024", "40.0")));
+                .thenReturn(List.of(new RawFueling(fueling("10.01.2024", "50.0"), "{}")))
+                .thenReturn(List.of(new RawFueling(fueling("11.01.2024", "40.0"), "{}")));
 
         spritMonitorImportService.importFuelings(user.getId(), "token", 123, 1, car.getId());
         spritMonitorImportService.importFuelings(user.getId(), "token", 123, 1, car.getId());
@@ -159,8 +160,10 @@ class CoinLogServiceIntegrationTest extends AbstractIntegrationTest {
     }
 
     private void mockFuelings(SpritMonitorFuelingDTO... fuelings) {
-        when(spritMonitorClient.getFuelings(eq("token"), eq(123), any()))
-                .thenReturn(List.of(fuelings));
+        List<RawFueling> raw = java.util.Arrays.stream(fuelings)
+                .map(dto -> new RawFueling(dto, "{}"))
+                .toList();
+        when(spritMonitorClient.getFuelings(eq("token"), eq(123), any())).thenReturn(raw);
     }
 
     private SpritMonitorFuelingDTO fueling(String date, String kwh) {

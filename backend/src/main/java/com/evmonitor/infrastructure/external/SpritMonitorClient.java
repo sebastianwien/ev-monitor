@@ -1,7 +1,11 @@
 package com.evmonitor.infrastructure.external;
 
+import com.evmonitor.application.spritmonitor.RawFueling;
 import com.evmonitor.application.spritmonitor.SpritMonitorFuelingDTO;
 import com.evmonitor.application.spritmonitor.SpritMonitorVehicleDTO;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
@@ -22,6 +26,12 @@ public class SpritMonitorClient {
     private static final String BASE_URL = "https://api.spritmonitor.de/v1";
     private static final int EV_TANK_TYPE = 5;
 
+    // Same settings as the spritMonitorRestTemplate's ObjectMapper — not a Spring Bean
+    // to avoid displacing Spring Boot's auto-configured primary ObjectMapper.
+    private static final ObjectMapper MAPPER = new ObjectMapper()
+        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+        .configure(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT, true);
+
     private final RestTemplate restTemplate;
     private final String applicationId;
 
@@ -35,29 +45,18 @@ public class SpritMonitorClient {
 
     /**
      * Fetches all vehicles from Sprit-Monitor and filters for electric vehicles (maintanktype=5)
-     *
-     * @param token Bearer token for Sprit-Monitor API
-     * @return List of electric vehicles
-     * @throws RestClientException if API call fails
      */
     public List<SpritMonitorVehicleDTO> getVehicles(String token) {
         String url = BASE_URL + "/vehicles.json";
-        HttpHeaders headers = createHeaders(token);
-        HttpEntity<String> entity = new HttpEntity<>(headers);
+        HttpEntity<String> entity = new HttpEntity<>(createHeaders(token));
 
         ResponseEntity<List<SpritMonitorVehicleDTO>> response = restTemplate.exchange(
-            url,
-            HttpMethod.GET,
-            entity,
-            new ParameterizedTypeReference<>() {}
+            url, HttpMethod.GET, entity, new ParameterizedTypeReference<>() {}
         );
 
         List<SpritMonitorVehicleDTO> vehicles = response.getBody();
-        if (vehicles == null) {
-            return List.of();
-        }
+        if (vehicles == null) return List.of();
 
-        // Filter for electric vehicles only
         return vehicles.stream()
             .filter(v -> v.mainTankType() != null && v.mainTankType() == EV_TANK_TYPE)
             .collect(Collectors.toList());
@@ -65,49 +64,57 @@ public class SpritMonitorClient {
 
     /**
      * Fetches all fuelings for a specific vehicle with pagination.
-     * Uses the vehicle's main electric tank ID (not hardcoded tank 1).
      *
-     * @param token Bearer token for Sprit-Monitor API
-     * @param vehicleId Sprit-Monitor vehicle ID
-     * @param tankId Sprit-Monitor tank ID (the electric main tank)
-     * @return List of all fuelings for this vehicle
-     * @throws RestClientException if API call fails
+     * Each entry is returned as a {@link RawFueling} pairing the verbatim JSON received
+     * from the SpritMonitor API with the parsed DTO. The raw JSON is stored as-is in
+     * ev_log.raw_import_data so that unknown or future SpritMonitor fields are never lost.
      */
-    public List<SpritMonitorFuelingDTO> getFuelings(String token, Integer vehicleId, Integer tankId) {
-        List<SpritMonitorFuelingDTO> allFuelings = new ArrayList<>();
+    public List<RawFueling> getFuelings(String token, Integer vehicleId, Integer tankId) {
+        List<RawFueling> allFuelings = new ArrayList<>();
         int offset = 0;
         int limit = 100;
-        boolean hasMore = true;
 
-        while (hasMore) {
+        while (true) {
             String url = String.format("%s/vehicle/%d/tank/%d/fuelings.json?offset=%d&limit=%d",
                 BASE_URL, vehicleId, tankId, offset, limit);
 
-            HttpHeaders headers = createHeaders(token);
-            HttpEntity<String> entity = new HttpEntity<>(headers);
-
-            ResponseEntity<List<SpritMonitorFuelingDTO>> response = restTemplate.exchange(
-                url,
-                HttpMethod.GET,
-                entity,
-                new ParameterizedTypeReference<>() {}
+            ResponseEntity<String> response = restTemplate.exchange(
+                url, HttpMethod.GET, new HttpEntity<>(createHeaders(token)), String.class
             );
 
-            List<SpritMonitorFuelingDTO> batch = response.getBody();
-            if (batch == null || batch.isEmpty()) {
-                hasMore = false;
-            } else {
-                allFuelings.addAll(batch);
-                offset += limit;
+            String body = response.getBody();
+            if (body == null || body.isBlank()) break;
 
-                // If we got less than limit, we've reached the end
-                if (batch.size() < limit) {
-                    hasMore = false;
-                }
-            }
+            List<RawFueling> batch = parseBatch(body);
+            if (batch.isEmpty()) break;
+
+            allFuelings.addAll(batch);
+            offset += limit;
+
+            if (batch.size() < limit) break;
         }
 
         return allFuelings;
+    }
+
+    /**
+     * Parses a JSON array response into RawFueling pairs.
+     * Each element's verbatim JSON (including unknown fields) is preserved alongside the parsed DTO.
+     */
+    private List<RawFueling> parseBatch(String jsonArray) {
+        try {
+            JsonNode array = MAPPER.readTree(jsonArray);
+            if (!array.isArray()) return List.of();
+
+            List<RawFueling> result = new ArrayList<>(array.size());
+            for (JsonNode node : array) {
+                SpritMonitorFuelingDTO dto = MAPPER.treeToValue(node, SpritMonitorFuelingDTO.class);
+                result.add(new RawFueling(dto, node.toString()));
+            }
+            return result;
+        } catch (Exception e) {
+            throw new RestClientException("Failed to parse SpritMonitor fuelings response: " + e.getMessage(), e);
+        }
     }
 
     private HttpHeaders createHeaders(String token) {
