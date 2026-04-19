@@ -4,6 +4,7 @@ import com.evmonitor.application.ConsumptionResult;
 import com.evmonitor.application.PlausibilityProperties;
 import com.evmonitor.application.consumption.ConsumptionCalculationService;
 import com.evmonitor.domain.*;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -25,6 +26,7 @@ import java.util.stream.Collectors;
  *
  * Ausführen: ./gradlew test --tests "*.ConsumptionFormulaComparisonTest" -Dspring.profiles.active=dev
  */
+@Disabled("Lokales Analyse-Tool - benötigt lokale Postgres dev DB, nicht für CI")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @ActiveProfiles("dev")
 @TestPropertySource(properties = {
