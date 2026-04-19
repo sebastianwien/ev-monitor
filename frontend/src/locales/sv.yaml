@@ -525,6 +525,7 @@ dashboard:
   implausible_entry: post
   implausible_entries: poster
   implausible_check: Läs recensionen nu ->
+  implausible_dismiss: Dölj
   loading: Laddar...
   no_logs_empty: Inga laddningssessioner hittades.
   charge_group: Ladningsgrupp
@@ -946,6 +947,9 @@ settings:
   ok_export: Data har exporterats!
   tutorial_restarting: Startar om handledningen...
   via_provider: via {provider}
+  display_title: Visning
+  implausible_banner_label: Avisering om osannolig förbrukning
+  implausible_banner_hint: Visar en avisering på instrumentpanelen när poster med osannolig förbrukning upptäcks.
   country_title: Land / Region
   country_desc: Bestämmer vilka enheter och vilken valuta som visas.
 onboarding:

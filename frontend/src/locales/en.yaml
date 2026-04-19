@@ -531,6 +531,7 @@ dashboard:
   implausible_entry: "entry"
   implausible_entries: "entries"
   implausible_check: "Review now ->"
+  implausible_dismiss: "Dismiss"
   loading: "Loading..."
   no_logs_empty: "No charging sessions found."
   charge_group: "Charge group"
@@ -962,6 +963,9 @@ settings:
   ok_export: "Data exported successfully!"
   tutorial_restarting: "Restarting tutorial..."
   via_provider: "via {provider}"
+  display_title: "Display"
+  implausible_banner_label: "Notice for unusual consumption"
+  implausible_banner_hint: "Shows a notice on the dashboard when entries with implausible consumption are detected."
   country_title: "Country / Region"
   country_desc: "Determines which units and currency are shown."
 

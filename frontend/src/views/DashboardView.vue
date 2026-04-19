@@ -67,8 +67,8 @@ const { formatConsumption, consumptionUnitLabel, formatDistance, distanceUnitLab
 const {
   selectedCarId, stats, carInfo, wltp, loading, chartsReady, isInitialLoad, error,
   cars, carImageUrls, selectedTimeRange, selectedGroupBy, customStartDate, customEndDate,
-  importBannerDismissed, teslaStatus, smartcarStatus, implausibleCount, hasDistanceData,
-  timeRangeOptions, groupByOptions, dismissImportBanner, fetchImplausibleCount,
+  importBannerDismissed, implausibleBannerDismissed, teslaStatus, smartcarStatus, implausibleCount, hasDistanceData,
+  timeRangeOptions, groupByOptions, dismissImportBanner, dismissImplausibleBanner, fetchImplausibleCount,
   fetchCarAndWltp, fetchStatistics, initCars,
 } = useDashboardStats()
 
@@ -773,17 +773,26 @@ onMounted(() => initCars())
           <ConsumptionInfoBox :min-trips="5" class="mb-4" />
 
           <!-- Implausible logs banner (position 2: under ConsumptionInfoBox) -->
-          <button v-if="implausibleCount > 0"
-            @click="showImplausibleModal = true"
-            class="w-full mb-4 flex items-center justify-between gap-3 px-4 py-3 rounded-lg bg-amber-200 dark:bg-amber-500/20 border border-amber-300 dark:border-amber-600/50 text-left shadow-[0_4px_0_0_#92400e] dark:shadow-[0_4px_0_0_#1c0a00] hover:shadow-[0_2px_0_0_#92400e] dark:hover:shadow-[0_2px_0_0_#1c0a00] hover:translate-y-0.5 active:shadow-none active:translate-y-1 transition-all duration-75">
-            <div class="flex items-center gap-2">
-              <ExclamationTriangleIcon class="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
-              <span class="text-sm font-medium text-amber-800 dark:text-amber-300">
-                {{ t('dashboard.implausible_banner', { n: implausibleCount, noun: implausibleCount === 1 ? t('dashboard.implausible_entry') : t('dashboard.implausible_entries') }) }}
-              </span>
-            </div>
-            <span class="text-xs text-amber-700 dark:text-amber-400 font-medium shrink-0">{{ t('dashboard.implausible_check') }}</span>
-          </button>
+          <div v-if="implausibleCount > 0 && !implausibleBannerDismissed"
+            class="w-full mb-4 flex items-center gap-3 px-4 py-3 rounded-lg bg-amber-200 dark:bg-amber-500/20 border border-amber-300 dark:border-amber-600/50">
+            <button
+              @click="showImplausibleModal = true"
+              class="flex-1 flex items-center justify-between gap-3 text-left">
+              <div class="flex items-center gap-2">
+                <ExclamationTriangleIcon class="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                <span class="text-sm font-medium text-amber-800 dark:text-amber-300">
+                  {{ t('dashboard.implausible_banner', { n: implausibleCount, noun: implausibleCount === 1 ? t('dashboard.implausible_entry') : t('dashboard.implausible_entries') }) }}
+                </span>
+              </div>
+              <span class="text-xs text-amber-700 dark:text-amber-400 font-medium shrink-0">{{ t('dashboard.implausible_check') }}</span>
+            </button>
+            <button
+              @click="dismissImplausibleBanner"
+              class="shrink-0 p-1 rounded hover:bg-amber-300/50 dark:hover:bg-amber-600/30 transition-colors"
+              :title="t('dashboard.implausible_dismiss')">
+              <XMarkIcon class="h-4 w-4 text-amber-700 dark:text-amber-400" />
+            </button>
+          </div>
 
           <div v-if="!logsLoading && logsPage > 0" class="text-sm text-gray-400 mb-2 text-right">{{ t('dashboard.logs_page', { n: logsPage + 1 }) }}</div>
 

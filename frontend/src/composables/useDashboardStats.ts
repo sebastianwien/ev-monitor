@@ -43,6 +43,7 @@ const LS_TIME_RANGE = 'dashboard_time_range'
 const LS_GROUP_BY = 'dashboard_group_by'
 const LS_CUSTOM_START = 'dashboard_custom_start'
 const LS_CUSTOM_END = 'dashboard_custom_end'
+const LS_IMPLAUSIBLE_BANNER_DISMISSED = 'implausible_banner_dismissed'
 
 export function useDashboardStats() {
   const { t } = useI18n()
@@ -66,6 +67,7 @@ export function useDashboardStats() {
   const customEndDate = ref<string>(localStorage.getItem(LS_CUSTOM_END) ?? '')
 
   const importBannerDismissed = ref(localStorage.getItem('import_banner_dismissed') === 'true')
+  const implausibleBannerDismissed = ref(localStorage.getItem(LS_IMPLAUSIBLE_BANNER_DISMISSED) === 'true')
 
   const { teslaStatus, start: startTeslaPolling } = useTeslaStatus()
   const { smartcarStatus, start: startSmartcarPolling } = useSmartcarStatus()
@@ -98,6 +100,11 @@ export function useDashboardStats() {
     e.preventDefault()
     importBannerDismissed.value = true
     localStorage.setItem('import_banner_dismissed', 'true')
+  }
+
+  const dismissImplausibleBanner = () => {
+    implausibleBannerDismissed.value = true
+    localStorage.setItem(LS_IMPLAUSIBLE_BANNER_DISMISSED, 'true')
   }
 
   const fetchImplausibleCount = async () => {
@@ -231,6 +238,7 @@ export function useDashboardStats() {
     customStartDate,
     customEndDate,
     importBannerDismissed,
+    implausibleBannerDismissed,
     teslaStatus,
     smartcarStatus,
     implausibleCount,
@@ -238,6 +246,7 @@ export function useDashboardStats() {
     timeRangeOptions,
     groupByOptions,
     dismissImportBanner,
+    dismissImplausibleBanner,
     fetchImplausibleCount,
     fetchCarAndWltp,
     fetchStatistics,

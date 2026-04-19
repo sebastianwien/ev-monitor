@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useCountryStore } from '../stores/country'
 import { COUNTRY_OPTIONS } from '../config/countries'
-import { UserIcon, KeyIcon, TrashIcon, ArrowDownTrayIcon, AcademicCapIcon, ShareIcon, ClipboardDocumentIcon, CheckIcon, HeartIcon, ArrowRightOnRectangleIcon, BoltIcon, CreditCardIcon, PlusIcon, PencilIcon } from '@heroicons/vue/24/outline'
+import { UserIcon, KeyIcon, TrashIcon, ArrowDownTrayIcon, AcademicCapIcon, ShareIcon, ClipboardDocumentIcon, CheckIcon, HeartIcon, ArrowRightOnRectangleIcon, BoltIcon, CreditCardIcon, PlusIcon, PencilIcon, EyeIcon } from '@heroicons/vue/24/outline'
 import SupportPopover from '../components/settings/SupportPopover.vue'
 import DemoSettingsModal from '../components/demo/DemoSettingsModal.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
@@ -41,6 +41,18 @@ const {
   fetchChargingProviders, saveChargingProvider, deleteChargingProvider,
   formatPrice, formatDate,
 } = useChargingProviders(loading, message)
+
+// -- Display Preferences --
+const LS_IMPLAUSIBLE_BANNER_DISMISSED = 'implausible_banner_dismissed'
+const implausibleBannerEnabled = ref(localStorage.getItem(LS_IMPLAUSIBLE_BANNER_DISMISSED) !== 'true')
+function toggleImplausibleBanner() {
+  implausibleBannerEnabled.value = !implausibleBannerEnabled.value
+  if (implausibleBannerEnabled.value) {
+    localStorage.removeItem(LS_IMPLAUSIBLE_BANNER_DISMISSED)
+  } else {
+    localStorage.setItem(LS_IMPLAUSIBLE_BANNER_DISMISSED, 'true')
+  }
+}
 
 onMounted(() => {
   fetchUserData()
@@ -258,6 +270,34 @@ onMounted(() => {
             <span class="text-2xl">{{ c.flag }}</span>
             <span class="text-xs font-medium" :class="countryStore.country === c.code ? 'text-green-700 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'">{{ c.name[locale] || c.name.en }}</span>
           </button>
+        </div>
+      </div>
+
+      <!-- Anzeige Section -->
+      <div class="mb-8">
+        <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
+          <EyeIcon class="h-6 w-6" />
+          {{ t('settings.display_title') }}
+        </h2>
+        <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+          <div class="flex items-center justify-between gap-4">
+            <div>
+              <p class="font-medium text-gray-800 dark:text-gray-200 text-sm">{{ t('settings.implausible_banner_label') }}</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('settings.implausible_banner_hint') }}</p>
+            </div>
+            <button
+              @click="toggleImplausibleBanner"
+              :class="[
+                'relative flex-shrink-0 w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none',
+                implausibleBannerEnabled ? 'bg-green-500' : 'bg-gray-300'
+              ]">
+              <span
+                :class="[
+                  'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200',
+                  implausibleBannerEnabled ? 'translate-x-5' : 'translate-x-0'
+                ]" />
+            </button>
+          </div>
         </div>
       </div>
 

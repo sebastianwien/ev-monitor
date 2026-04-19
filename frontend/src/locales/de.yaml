@@ -531,6 +531,7 @@ dashboard:
   implausible_entry: "Eintrag"
   implausible_entries: "Einträge"
   implausible_check: "Jetzt prüfen ->"
+  implausible_dismiss: "Ausblenden"
   loading: "Lade..."
   no_logs_empty: "Keine Ladevorgänge vorhanden."
   charge_group: "Ladegruppe"
@@ -962,6 +963,9 @@ settings:
   ok_export: "Daten erfolgreich exportiert!"
   tutorial_restarting: "Tutorial wird neu gestartet..."
   via_provider: "via {provider}"
+  display_title: "Anzeige"
+  implausible_banner_label: "Hinweis bei auffälligen Verbräuchen"
+  implausible_banner_hint: "Zeigt einen Hinweis auf dem Dashboard wenn Einträge mit unplausiblem Verbrauch vorhanden sind."
   country_title: "Land / Region"
   country_desc: "Bestimmt welche Einheiten und Währung angezeigt werden."
 

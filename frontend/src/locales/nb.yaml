@@ -525,6 +525,7 @@ dashboard:
   implausible_entry: oppføring
   implausible_entries: oppføringer
   implausible_check: Les anmeldelsen nå ->
+  implausible_dismiss: Skjul
   loading: Laster...
   no_logs_empty: Det ble ikke funnet noen ladesesjoner.
   charge_group: Ladningsgruppe
@@ -946,6 +947,9 @@ settings:
   ok_export: Dataene er eksportert!
   tutorial_restarting: Veiledningen starter på nytt...
   via_provider: via {provider}
+  display_title: Visning
+  implausible_banner_label: Varsel om usannsynlig forbruk
+  implausible_banner_hint: Viser et varsel på dashbordet når oppføringer med usannsynlig forbruk oppdages.
   country_title: Land / Region
   country_desc: Bestemmer hvilke enheter og hvilken valuta som vises.
 onboarding:
