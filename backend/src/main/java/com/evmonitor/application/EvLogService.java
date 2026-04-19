@@ -173,8 +173,25 @@ public class EvLogService {
 
         if (request.geohash() != null) {
             var builder = newLog.toBuilder();
+            final ChargingType inferredType = newLog.getChargingType();
+            final BigDecimal kwhCharged = newLog.getKwhCharged();
             evLogRepository.findMostRecentChargingProviderAtGeohash(request.userId(), request.geohash())
-                    .ifPresent(builder::chargingProviderId);
+                    .ifPresent(providerId -> {
+                        builder.chargingProviderId(providerId);
+                        if (request.costEur() == null) {
+                            chargingProviderRepository.findById(providerId).ifPresent(provider -> {
+                                BigDecimal price = inferredType == ChargingType.DC
+                                        ? provider.getDcPricePerKwh()
+                                        : provider.getAcPricePerKwh();
+                                if (price != null) {
+                                    BigDecimal sessionFee = provider.getSessionFeeEur() != null
+                                            ? provider.getSessionFeeEur() : BigDecimal.ZERO;
+                                    builder.costEur(kwhCharged.multiply(price)
+                                            .add(sessionFee).setScale(2, RoundingMode.HALF_UP));
+                                }
+                            });
+                        }
+                    });
             newLog = builder.build();
         }
 
