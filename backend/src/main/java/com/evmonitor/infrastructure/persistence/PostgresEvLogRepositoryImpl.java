@@ -208,6 +208,22 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 .toList();
     }
 
+    @Override
+    public List<EvLog> findByCarIdAndDateAndKwhChargedAndDataSource(
+            UUID carId, java.time.LocalDate date, java.math.BigDecimal kwhCharged, DataSource dataSource) {
+        LocalDateTime startOfDay = date.atStartOfDay();
+        LocalDateTime endOfDay = date.plusDays(1).atStartOfDay();
+        return jpaRepository.findByCarIdAndDateRangeAndKwhChargedAndDataSource(
+                        carId, startOfDay, endOfDay, kwhCharged, dataSource.name())
+                .stream().map(this::toDomain).toList();
+    }
+
+    @Override
+    @Transactional
+    public void updateRawImportData(UUID id, String rawJson) {
+        jpaRepository.updateRawImportData(id, rawJson);
+    }
+
     private EvLogEntity toEntity(EvLog domain) {
         EvLogEntity entity = new EvLogEntity();
         entity.setId(domain.getId());

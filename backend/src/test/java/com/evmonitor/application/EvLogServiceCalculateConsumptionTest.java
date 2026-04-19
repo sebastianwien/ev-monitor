@@ -95,23 +95,20 @@ class EvLogServiceCalculateConsumptionTest {
     }
 
     /**
-     * When socBeforeChargePercent is stored on logY, it must be used directly
-     * instead of deriving it from kwhCharged (which includes charging losses).
+     * kWh-primary formula gives the same result as the old socBefore-primary formula
+     * when socBefore is consistent with kwhCharged (no battery degradation).
      *
      *   logX: odometer=10000, socAfter=80%
      *   logY: odometer=10300, kwhCharged=52.5, socAfter=85%, socBefore=15%
      *   battery=75 kWh, distance=300 km
      *
-     *   socBefore(logY) = 15% (stored — used directly, kwhCharged ignored for this step)
-     *   energyConsumed  = (80 - 15) * 75 / 100 = 48.75 kWh
-     *   consumption     = 48.75 * 100 / 300 = 16.25 kWh/100km
+     *   kWh-primary: 52.5 + (80-85)*75/100 = 52.5 - 3.75 = 48.75 kWh → 16.25 kWh/100km
      *
-     * Note: result is identical here because the stored soc_before matches what the formula
-     * would compute — the point is to verify that the stored value takes priority.
-     * A follow-up test verifies divergence when kwhCharged is inflated by losses.
+     * Same result as the old formula because socBefore=15 matches what kWh implies:
+     *   85 - 52.5/75*100 = 15% — no SoH divergence, formulas are algebraically equivalent.
      */
     @Test
-    void storedSocBefore_usedDirectly_notDerivedFromKwh() {
+    void kwhPrimary_consistentSocBefore_sameResultAsOldFormula() {
         EvLog logX = logX(10000, 80);
         EvLog logY = logYWithSocBefore(10300, new BigDecimal("52.5"), 85, 15);
 
@@ -122,29 +119,130 @@ class EvLogServiceCalculateConsumptionTest {
     }
 
     /**
-     * When kwhCharged is inflated (e.g. grid measurement with 10% charging losses),
-     * the derived socBefore would be too low and the consumption too high.
-     * If socBeforeChargePercent is stored, it corrects this.
+     * kWh is the primary signal — stored socBefore is ignored when kwhCharged is present.
+     * Charging loss correction happens via effectiveKwhForConsumption (efficiency factor),
+     * not via the stored socBefore value.
      *
-     *   logX: odometer=10000, socAfter=80%
-     *   logY: odometer=10300, kwhCharged=58.3 (52.5 net + ~11% loss), socAfter=85%, socBefore=15%
-     *   battery=75 kWh, distance=300 km
+     * The result is purely driven by kWh + net SoC-level correction between sessions:
+     *   energyConsumed = effectiveKwh + (socAfter_X - socAfter_Y) * C / 100
+     *                  = 58.3 + (80 - 85) * 75/100 = 58.3 - 3.75 = 54.55 kWh
+     *   consumption    = 54.55 / 300 * 100 = 18.18 kWh/100km
      *
-     *   Without stored socBefore: socBefore = 85 - (58.3/75*100) = 85 - 77.7 = 7.3% → overestimates consumption
-     *   With stored socBefore=15%: energyConsumed = (80-15)*75/100 = 48.75 kWh → 16.25 kWh/100km
+     * Both withStored and withoutStored give the same result — socBefore no longer affects output.
      */
     @Test
-    void storedSocBefore_correctsChargingLossBias() {
+    void kwhPrimary_socBeforeIgnored_resultDrivenByKwhAndSocAfterDelta() {
         EvLog logX = logX(10000, 80);
-        // kwhCharged is inflated by ~11% charging losses
-        EvLog logYWithStoredSoc   = logYWithSocBefore(10300, new BigDecimal("58.3"), 85, 15);
+        EvLog logYWithStoredSoc    = logYWithSocBefore(10300, new BigDecimal("58.3"), 85, 15);
         EvLog logYWithoutStoredSoc = logY(10300, new BigDecimal("58.3"), 85);
 
-        BigDecimal withStored   = service.calculateConsumption(logX, logYWithStoredSoc, BATTERY_75).orElseThrow();
+        BigDecimal withStored    = service.calculateConsumption(logX, logYWithStoredSoc, BATTERY_75).orElseThrow();
         BigDecimal withoutStored = service.calculateConsumption(logX, logYWithoutStoredSoc, BATTERY_75).orElseThrow();
 
-        assertEquals(new BigDecimal("16.25"), withStored);
-        assertTrue(withoutStored.compareTo(withStored) > 0, "Without stored socBefore, consumption is overestimated due to charging losses");
+        assertEquals(new BigDecimal("18.18"), withStored);
+        assertEquals(withStored, withoutStored, "socBefore must not influence result when kwhCharged is present");
+    }
+
+    /**
+     * Battery degradation scenario: BMS reports socBefore=20% (calibrated to degraded real capacity),
+     * but nominal capacity is 75 kWh. Old formula multiplied nominal C by BMS-SOC-delta → overestimated.
+     * kWh-primary uses the actual measured energy instead, eliminating the SoH bias.
+     *
+     *   C_nominal=75 kWh, C_real≈65 kWh (~87% SoH)
+     *   kwhCharged=39.0 = 60% of real 65 kWh (what actually entered the battery)
+     *   socBefore=20%, socAfter=80% (BMS-reported, calibrated to real capacity)
+     *
+     *   Old (socBefore primary): (80-20) * 75/100 = 45.0 kWh → 15.00 kWh/100km  ← inflated by SoH mismatch
+     *   New (kWh primary):       39.0 + (80-80)*75/100 = 39.0 kWh → 13.00 kWh/100km ← reflects actual energy
+     */
+    @Test
+    void kwhPrimary_degradedBattery_notInflatedBySocNominalCapacityMismatch() {
+        EvLog logX = logX(10000, 80);
+        EvLog logY = logYWithSocBefore(10300, new BigDecimal("39.0"), 80, 20);
+
+        Optional<BigDecimal> result = service.calculateConsumption(logX, logY, BATTERY_75);
+
+        assertTrue(result.isPresent());
+        assertEquals(new BigDecimal("13.00"), result.get());
+    }
+
+    /**
+     * Degraded battery with non-zero SoC-delta between sessions.
+     *
+     * This test enforces the caller contract: batteryCapacityKwh MUST be the effective
+     * (SoH-adjusted) capacity, not the nominal spec capacity. The delta-correction term
+     * (socAfter_X - socAfter_Y) * capacity / 100 is capacity-sensitive — passing nominal
+     * inflates the correction by the same ratio as the SoH deficit.
+     *
+     *   C_nominal=75 kWh, C_effective=65 kWh (~87% SoH)
+     *   kwhCharged=50.0, distance=300 km, logX ends at 80%, logY ends at 70%
+     *
+     *   Correct (effective 65 kWh):
+     *     correction     = (80-70) × 65/100 = 6.5 kWh
+     *     energyConsumed = 50.0 + 6.5 = 56.5 kWh → 18.83 kWh/100km
+     *
+     *   Wrong (nominal 75 kWh):
+     *     correction     = (80-70) × 75/100 = 7.5 kWh
+     *     energyConsumed = 50.0 + 7.5 = 57.5 kWh → 19.17 kWh/100km  ← inflated by SoH mismatch
+     *
+     * In production, calculateConsumptionPerLog receives capacity from buildCapacityLookup()
+     * which returns getEffectiveBatteryCapacityKwhAt() — so the production path is correct.
+     * Direct callers of calculateConsumption() must ensure they pass effective capacity.
+     */
+    @Test
+    void kwhPrimary_degradedBattery_deltaTermInflatedWhenNominalCapacityPassedInsteadOfEffective() {
+        BigDecimal nominal   = new BigDecimal("75.0");
+        BigDecimal effective = new BigDecimal("65.0"); // ~87% SoH
+
+        EvLog logX = logX(10000, 80);
+        EvLog logY = logY(10300, new BigDecimal("50.0"), 70); // 10% SoC drop between sessions
+
+        BigDecimal withEffective = service.calculateConsumption(logX, logY, effective).orElseThrow();
+        BigDecimal withNominal   = service.calculateConsumption(logX, logY, nominal).orElseThrow();
+
+        // Correct result: delta-term uses effective 65 kWh
+        assertEquals(new BigDecimal("18.83"), withEffective);
+
+        // Wrong (inflated) result: delta-term uses nominal 75 kWh — documented as regression guard
+        assertEquals(new BigDecimal("19.17"), withNominal);
+
+        assertNotEquals(withEffective, withNominal, "delta term must be sensitive to capacity — always pass effective, not nominal");
+    }
+
+    /**
+     * Positive SoC-delta correction: logX ended at 80%, logY ended at 60%.
+     * Net 20% more battery was used than what kWh directly accounts for.
+     * Correction = (80-60) * 75/100 = 15 kWh added to measured kWh.
+     *
+     *   energyConsumed = 25.0 + 15.0 = 40.0 kWh → 40.0/300*100 = 13.33 kWh/100km
+     */
+    @Test
+    void kwhPrimary_positiveSocDeltaCorrection_whenEndedAtLowerChargeLevel() {
+        EvLog logX = logX(10000, 80);
+        EvLog logY = logY(10300, new BigDecimal("25.0"), 60);
+
+        Optional<BigDecimal> result = service.calculateConsumption(logX, logY, BATTERY_75);
+
+        assertTrue(result.isPresent());
+        assertEquals(new BigDecimal("13.33"), result.get());
+    }
+
+    /**
+     * Negative SoC-delta correction: logX ended at 60%, logY ended at 80%.
+     * Net 20% more was put into battery than what was consumed — the extra kWh is subtracted.
+     * Correction = (60-80) * 75/100 = -15 kWh subtracted from measured kWh.
+     *
+     *   energyConsumed = 30.0 - 15.0 = 15.0 kWh → 15.0/300*100 = 5.00 kWh/100km
+     */
+    @Test
+    void kwhPrimary_negativeSocDeltaCorrection_whenEndedAtHigherChargeLevel() {
+        EvLog logX = logX(10000, 60);
+        EvLog logY = logY(10300, new BigDecimal("30.0"), 80);
+
+        Optional<BigDecimal> result = service.calculateConsumption(logX, logY, BATTERY_75);
+
+        assertTrue(result.isPresent());
+        assertEquals(new BigDecimal("5.00"), result.get());
     }
 
     // -------------------------------------------------------------------------

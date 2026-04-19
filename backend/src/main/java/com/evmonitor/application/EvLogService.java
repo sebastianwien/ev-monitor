@@ -403,7 +403,7 @@ public class EvLogService {
             double c = calculationService.effectiveKwhForConsumption(log).doubleValue() / dist * 100.0;
             boolean plausible = c >= plausibility.getAbsoluteMinKwhPer100km() && c <= plausibility.getAbsoluteMaxKwhPer100km();
             consumptionByLog.put(log.getId(), new ConsumptionResult(
-                    BigDecimal.valueOf(c).setScale(2, RoundingMode.HALF_UP), plausible, dist, true));
+                    BigDecimal.valueOf(c).setScale(2, RoundingMode.HALF_UP), plausible, dist, CalculationQuality.KWH_ESTIMATED));
         }
 
         // Return the requested page, enriched with consumption and distance data.

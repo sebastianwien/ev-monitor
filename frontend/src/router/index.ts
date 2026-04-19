@@ -390,6 +390,11 @@ const router = createRouter({
             // no auth guard - public page for legal info
         },
         {
+            path: '/consumption-methodology',
+            name: 'consumption-methodology',
+            component: () => import('../views/ConsumptionMethodologyView.vue')
+        },
+        {
             path: '/terms',
             name: 'terms',
             component: TermsView

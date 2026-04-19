@@ -10,10 +10,28 @@ export interface FeatureAnnouncement {
   bodyKey: string      // i18n key
   ctaLabelKey?: string // i18n key, optional
   ctaRoute?: string
+  credit?: string      // optional plain text credit, rendered small + italic
   condition?: (ctx: AnnouncementContext) => boolean
 }
 
 export const featureAnnouncements: FeatureAnnouncement[] = [
+  {
+    key: 'kwh-primary-formula-v1',
+    expiresAt: '2026-05-10',
+    releasedAt: '2026-04-19',
+    titleKey: 'announcements.kwh_primary_formula_v1_title',
+    bodyKey: 'announcements.kwh_primary_formula_v1_body',
+    ctaLabelKey: 'announcements.consumption_methodology_v1_cta',
+    ctaRoute: '/consumption-methodology',
+    credit: 'Danke an Mike_L',
+  },
+  {
+    key: 'spritmonitor-raw-refresh-v1',
+    expiresAt: '2026-05-10',
+    releasedAt: '2026-04-19',
+    titleKey: 'announcements.spritmonitor_raw_refresh_v1_title',
+    bodyKey: 'announcements.spritmonitor_raw_refresh_v1_body',
+  },
   {
     key: 'soh-autodetect-v1',
     expiresAt: '2026-05-08',

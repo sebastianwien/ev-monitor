@@ -31,6 +31,7 @@ import {
   ListBulletIcon,
   TrashIcon,
   ExclamationTriangleIcon,
+  InformationCircleIcon,
   CloudIcon,
   XMarkIcon,
   CalendarIcon,
@@ -548,6 +549,10 @@ onMounted(() => initCars())
               <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">{{ t('dashboard.metric_avg_consumption') }}</p>
               <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ formatConsumption(stats.avgConsumptionKwhPer100km, { showUnit: false }) }}</p>
               <p class="text-sm font-medium text-gray-400 dark:text-gray-500 mt-0.5">{{ consumptionUnitLabel() }}</p>
+              <router-link to="/consumption-methodology" class="mt-2 inline-flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400 underline underline-offset-2 hover:text-indigo-800 dark:hover:text-indigo-300 transition-colors">
+                {{ t('dashboard.metric_consumption_methodology_link') }}
+                <ChevronRightIcon class="w-3 h-3 flex-shrink-0" />
+              </router-link>
               <p v-if="stats.estimatedConsumptionCount > 0" class="text-xs text-red-500 mt-2 italic">
                 {{ t('dashboard.metric_estimated', { n: stats.estimatedConsumptionCount }) }}
               </p>
@@ -951,13 +956,20 @@ onMounted(() => initCars())
                                : entry.consumptionIsEstimated
                                  ? 'text-gray-400 dark:text-gray-500'
                                  : consumptionTextClass(entry.consumptionKwhPer100km, stats?.avgConsumptionKwhPer100km ?? null)]"
-                    :title="entry.consumptionIsEstimated ? 'Schätzwert: berechnet aus geladener Energie ÷ Distanz, da kein SoC-Wert vorhanden.' : undefined">
+                    :title="entry.consumptionIsEstimated
+                      ? 'Schätzwert: berechnet aus geladener Energie ÷ Distanz, da kein SoC-Wert vorhanden.'
+                      : entry.consumptionQuality === 'SOC_DELTA'
+                        ? 'Näherungswert: berechnet aus SoC-Differenz ohne direkte kWh-Messung.'
+                        : undefined">
                     <button
                       v-if="entry.consumptionImplausible"
                       class="flex-shrink-0 focus:outline-none"
                       @click.stop="openTooltipLogId = openTooltipLogId === entry.id ? null : entry.id">
                       <ExclamationTriangleIcon class="w-3 h-3" />
                     </button>
+                    <InformationCircleIcon
+                      v-if="entry.consumptionQuality === 'SOC_DELTA'"
+                      class="w-3 h-3 flex-shrink-0 text-gray-400 dark:text-gray-500" />
                     {{ entry.consumptionIsEstimated ? '~' : '' }}{{ formatConsumption(entry.consumptionKwhPer100km) }}
                   </span>
                   <span v-if="entry.costEur != null && !entry.kwhCharged" class="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">

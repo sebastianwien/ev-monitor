@@ -33,8 +33,10 @@ const handleCta = () => {
         <span v-if="total > 1" class="text-xs text-gray-400 dark:text-gray-500 shrink-0">{{ currentNumber }} / {{ total }}</span>
       </div>
 
-      <p class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-5">
-        {{ t(announcement.bodyKey) }}
+      <p class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed" :class="announcement.credit ? 'mb-2' : 'mb-5'"
+         v-html="t(announcement.bodyKey)" />
+      <p v-if="announcement.credit" class="text-xs italic text-gray-400 dark:text-gray-500 mb-5">
+        {{ announcement.credit }}
       </p>
 
       <div class="flex gap-3">

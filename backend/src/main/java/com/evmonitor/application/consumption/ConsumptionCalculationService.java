@@ -81,11 +81,18 @@ public class ConsumptionCalculationService {
      * logY (trip end):   logY.isComplete() must be true
      *                    requires: odometer + kwhCharged + socAfterChargePercent
      *
-     * Formula:
-     *   socBefore(logY)  = socAfter(logY) - kwhCharged(logY) / batteryCapacity * 100
-     *   energyConsumed   = (socAfter(logX) - socBefore(logY)) * batteryCapacity / 100
-     *   consumption      = energyConsumed / distance * 100
+     * Formula (kWh-primary, when kwhCharged is available):
+     *   energyConsumed = effectiveKwh(logY) + (socAfter(logX) - socAfter(logY)) * batteryCapacity / 100
+     *   consumption    = energyConsumed / distance * 100
      *
+     * The SoC-delta term corrects for net battery level differences between sessions.
+     * When both sessions end at the same SoC, it is zero and only kWh drives the result.
+     * Fallback (no kwhCharged): energyConsumed = (socAfter(logX) - socBefore(logY)) * capacity / 100
+     *
+     * @param batteryCapacityKwh MUST be the effective (SoH-adjusted) capacity, not the nominal spec.
+     *                           The SoC-delta correction term is capacity-sensitive: passing nominal
+     *                           inflates the correction proportionally to the SoH deficit.
+     *                           Use buildCapacityLookup() or Car.getEffectiveBatteryCapacityKwhAt().
      * @return consumption in kWh/100km, or empty if data is insufficient or result is invalid
      */
     public Optional<BigDecimal> calculateConsumption(EvLog logX, EvLog logY, BigDecimal batteryCapacityKwh) {
@@ -105,23 +112,30 @@ public class ConsumptionCalculationService {
         int distance = logY.getOdometerKm() - logX.getOdometerKm();
         if (distance <= 0) return Optional.empty();
 
-        // socBefore(logY): use stored value if available (from BMS, exact).
-        // Otherwise derive from kwhCharged, normalized to AT_VEHICLE level — so charging losses
-        // don't inflate the reconstructed SoC delta and falsely raise consumption.
-        BigDecimal socBeforeLogYPercent = logY.getSocBeforeChargePercent() != null
-                ? BigDecimal.valueOf(logY.getSocBeforeChargePercent())
-                : BigDecimal.valueOf(logY.getSocAfterChargePercent())
-                        .subtract(effectiveKwhForConsumption(logY)
-                                .divide(batteryCapacityKwh, 4, RoundingMode.HALF_UP)
-                                .multiply(HUNDRED));
-
-        // energyConsumed = (socAfter(logX) - socBefore(logY)) * battery/100 + intermediateKwh
-        // intermediateKwh covers energy charged by transparent logs (e.g. go-e) between logX and logY.
-        BigDecimal energyConsumedKwh = BigDecimal.valueOf(logX.getSocAfterChargePercent())
-                .subtract(socBeforeLogYPercent)
-                .multiply(batteryCapacityKwh)
-                .divide(HUNDRED, 4, RoundingMode.HALF_UP)
-                .add(intermediateKwh);
+        // kWh-primary: when kwhCharged is available it drives the calculation directly.
+        // The SoC-delta term (socAfter_X - socAfter_Y) corrects for net battery level differences
+        // between sessions — it is zero when both sessions end at the same SoC.
+        // This avoids the SoH bias of the old socBefore-primary approach, where BMS SOC percentages
+        // (calibrated to degraded real capacity) were multiplied by nominal battery capacity.
+        // Fallback to pure SoC-delta only when kwhCharged is absent (theoretical — isComplete()
+        // already requires kwhCharged, so this branch is unreachable via calculateConsumptionPerLog).
+        final BigDecimal energyConsumedKwh;
+        if (logY.hasKwhCharged()) {
+            BigDecimal socDeltaCorrection = BigDecimal.valueOf(logX.getSocAfterChargePercent())
+                    .subtract(BigDecimal.valueOf(logY.getSocAfterChargePercent()))
+                    .multiply(batteryCapacityKwh)
+                    .divide(HUNDRED, 4, RoundingMode.HALF_UP);
+            energyConsumedKwh = effectiveKwhForConsumption(logY)
+                    .add(socDeltaCorrection)
+                    .add(intermediateKwh);
+        } else {
+            if (logY.getSocBeforeChargePercent() == null) return Optional.empty();
+            energyConsumedKwh = BigDecimal.valueOf(logX.getSocAfterChargePercent())
+                    .subtract(BigDecimal.valueOf(logY.getSocBeforeChargePercent()))
+                    .multiply(batteryCapacityKwh)
+                    .divide(HUNDRED, 4, RoundingMode.HALF_UP)
+                    .add(intermediateKwh);
+        }
 
         if (energyConsumedKwh.compareTo(BigDecimal.ZERO) <= 0) return Optional.empty();
 

@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { spritMonitorService, SpritMonitorVehicle, ImportResult } from '../../api/spritMonitorService';
+import { spritMonitorService, SpritMonitorVehicle, ImportResult, RefreshRawResult } from '../../api/spritMonitorService';
 import { carService, Car, BrandInfo, ModelInfo } from '../../api/carService';
 import { useCarStore } from '../../stores/car';
 import { useCoinStore } from '../../stores/coins';
-import { TrashIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline';
+import { TrashIcon, ExclamationTriangleIcon, ArrowPathIcon } from '@heroicons/vue/24/outline';
 
 const { t } = useI18n();
 
@@ -25,7 +25,7 @@ const carLabel = (car: Car) => {
   return car.licensePlate ? `${name} · ${car.licensePlate}` : name
 }
 
-type ImportStep = 'token' | 'mapping' | 'importing' | 'done';
+type ImportStep = 'token' | 'mapping' | 'importing' | 'done' | 'refreshing' | 'refreshDone';
 
 const importStep = ref<ImportStep>('token');
 const token = ref('');
@@ -47,6 +47,11 @@ const loading = ref(false);
 const showDeleteConfirm = ref(false);
 const deleteLoading = ref(false);
 const deleteError = ref('');
+const refreshResult = ref<RefreshRawResult | null>(null);
+
+const hasRefreshableVehicles = computed(() =>
+  spritMonitorVehicles.value.some(v => !!vehicleMapping.value[v.id] && vehicleMapping.value[v.id] !== 'new')
+);
 
 onMounted(async () => {
   try {
@@ -186,6 +191,43 @@ const startImport = async () => {
 
   importStep.value = 'done';
   if (totalCoinsAwarded.value > 0) coinStore.refresh();
+};
+
+const startRefresh = async () => {
+  error.value = '';
+  refreshResult.value = null;
+
+  const vehiclesToRefresh = spritMonitorVehicles.value.filter(v => !!vehicleMapping.value[v.id] && vehicleMapping.value[v.id] !== 'new');
+
+  if (vehiclesToRefresh.length === 0) {
+    error.value = t('spritmonitor.err_no_mapping');
+    return;
+  }
+
+  importStep.value = 'refreshing';
+  totalVehicles.value = vehiclesToRefresh.length;
+
+  let totalRefreshed = 0;
+  let totalSkipped = 0;
+  const allErrors: string[] = [];
+
+  for (let i = 0; i < vehiclesToRefresh.length; i++) {
+    currentVehicle.value = i + 1;
+    const vehicle = vehiclesToRefresh[i];
+    const carId = vehicleMapping.value[vehicle.id];
+
+    try {
+      const result = await spritMonitorService.refreshRawImportData(token.value, vehicle.id, vehicle.mainTank, carId);
+      totalRefreshed += result.refreshed;
+      totalSkipped += result.skipped;
+      allErrors.push(...result.errors);
+    } catch (e: any) {
+      allErrors.push(`${vehicle.make} ${vehicle.model}: ${e.response?.data?.error || e.message}`);
+    }
+  }
+
+  refreshResult.value = { refreshed: totalRefreshed, skipped: totalSkipped, errors: allErrors };
+  importStep.value = 'refreshDone';
 };
 
 const deleteAllImports = async () => {
@@ -334,6 +376,23 @@ const close = () => {
             class="w-full mt-3 px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition">
             {{ t('spritmonitor.start_import_btn') }}
           </button>
+
+          <!-- Refresh Raw Data -->
+          <div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div class="flex items-center gap-2 mb-2">
+              <ArrowPathIcon class="w-5 h-5 text-indigo-500" />
+              <h3 class="text-base font-semibold text-gray-700 dark:text-gray-300">{{ t('spritmonitor.refresh_raw_title') }}</h3>
+            </div>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-3" v-html="t('spritmonitor.refresh_raw_desc')" />
+            <button
+              @click="startRefresh"
+              :disabled="!hasRefreshableVehicles"
+              :title="!hasRefreshableVehicles ? t('spritmonitor.err_no_mapping') : undefined"
+              class="w-full px-5 py-2.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-semibold rounded-lg hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition text-sm disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+              <ArrowPathIcon class="w-4 h-4" />
+              {{ t('spritmonitor.refresh_raw_btn') }}
+            </button>
+          </div>
         </div>
 
         <!-- Step 3: Importing Progress -->
@@ -353,6 +412,56 @@ const close = () => {
               class="bg-indigo-600 h-3 rounded-full transition-all duration-300"
               :style="{ width: `${(currentVehicle / totalVehicles) * 100}%` }">
             </div>
+          </div>
+        </div>
+
+        <!-- Step: Refreshing Progress -->
+        <div v-if="importStep === 'refreshing'" class="text-center">
+          <div class="mb-4">
+            <svg class="animate-spin h-16 w-16 text-indigo-600 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-2">{{ t('spritmonitor.refresh_raw_loading') }}</h3>
+          <p class="text-gray-600 dark:text-gray-400">
+            {{ t('spritmonitor.step3_progress', { current: currentVehicle, total: totalVehicles }) }}
+          </p>
+          <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mt-4">
+            <div
+              class="bg-indigo-600 h-3 rounded-full transition-all duration-300"
+              :style="{ width: `${(currentVehicle / totalVehicles) * 100}%` }">
+            </div>
+          </div>
+        </div>
+
+        <!-- Step: Refresh Done -->
+        <div v-if="importStep === 'refreshDone'" class="text-center">
+          <div class="mb-4">
+            <ArrowPathIcon class="h-16 w-16 text-indigo-500 mx-auto" />
+          </div>
+          <h3 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">{{ t('spritmonitor.refresh_done_title') }}</h3>
+          <div v-if="refreshResult" class="text-left bg-gray-50 dark:bg-gray-900 rounded-lg p-4 mb-4">
+            <p class="text-lg mb-2 text-indigo-600 font-bold">{{ t('spritmonitor.refresh_done_refreshed', { n: refreshResult.refreshed }) }}</p>
+            <p v-if="refreshResult.skipped > 0" class="text-sm mb-2 text-yellow-600">{{ t('spritmonitor.refresh_done_skipped', { n: refreshResult.skipped }) }}</p>
+            <div v-if="refreshResult.errors.length > 0" class="mt-3">
+              <p class="text-red-600 font-semibold mb-2">{{ t('spritmonitor.refresh_done_errors_title') }}</p>
+              <ul class="list-disc list-inside text-sm text-gray-700 dark:text-gray-300">
+                <li v-for="(err, idx) in refreshResult.errors" :key="idx">{{ err }}</li>
+              </ul>
+            </div>
+          </div>
+          <div class="flex gap-3">
+            <button
+              @click="importStep = 'mapping'"
+              class="flex-1 px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-semibold rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition">
+              {{ t('spritmonitor.back_to_mapping') }}
+            </button>
+            <button
+              @click="close"
+              class="flex-1 px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition">
+              {{ t('spritmonitor.refresh_done_btn') }}
+            </button>
           </div>
         </div>
 

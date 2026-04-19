@@ -1,6 +1,7 @@
 package com.evmonitor.domain;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -64,4 +65,8 @@ public interface EvLogRepository {
     Optional<UUID> findMostRecentChargingProviderAtGeohash(UUID userId, String geohash);
 
     void updateCarIdForLog(UUID logId, UUID targetCarId);
+
+    List<EvLog> findByCarIdAndDateAndKwhChargedAndDataSource(UUID carId, LocalDate date, BigDecimal kwhCharged, DataSource dataSource);
+
+    void updateRawImportData(UUID id, String rawJson);
 }
