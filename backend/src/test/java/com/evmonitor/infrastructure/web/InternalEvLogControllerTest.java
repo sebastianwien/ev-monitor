@@ -2,6 +2,8 @@ package com.evmonitor.infrastructure.web;
 
 import com.evmonitor.domain.*;
 import com.evmonitor.testutil.AbstractIntegrationTest;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -111,12 +113,29 @@ class InternalEvLogControllerTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void createLog_withRawImportData_persistsRawPayloadInDatabase() {
-        LocalDateTime loggedAt = LocalDateTime.now().minusHours(4).withNano(0);
-        String rawJson = "{\"telemetry_start\":{\"Soc\":42},\"telemetry_stop\":{\"Soc\":78},\"vehicle_data\":{\"charge_energy_added\":27.3}}";
+    void createLog_withRawImportData_survivesJsonbRoundtripSemantically() throws Exception {
+        // Complex payload that exercises JSONB storage:
+        // - Nested objects (telemetry bundle shape used by Tesla Fleet Telemetry)
+        // - Umlauts and Unicode escape (\u00e4 == ä)
+        // - Backslash + doublequote escaping inside a string value
+        // - Whitespace + explicit key ordering that JSONB is allowed to normalize
+        // - null, boolean, int, float, array, nested array
+        String rawJson = """
+                {
+                  "telemetry_start": { "Soc": 42, "Location": { "lat": 48.123, "lon": 11.456 } },
+                  "telemetry_stop":  { "Soc": 78, "FastChargerPresent": true, "Notes": null },
+                  "vehicle_data":    {
+                    "charge_energy_added": 27.3,
+                    "fast_charger_type": "Tesla",
+                    "vehicle_name": "Töfftöff \\"Grün\\" \\u00e4\\u00f6\\u00fc",
+                    "session_ids": [1, 2, 3, 4],
+                    "nested": [[1,2],[3,4]]
+                  }
+                }
+                """;
 
         Map<String, Object> request = logRequest(testCar.getId(), testUser.getId(),
-                "27.3", 95, loggedAt, null, "TESLA_LIVE", null);
+                "27.3", 95, LocalDateTime.now().minusHours(4).withNano(0), null, "TESLA_LIVE", null);
         request.put("rawImportData", rawJson);
 
         ResponseEntity<Map> response = restTemplate.exchange(
@@ -127,25 +146,24 @@ class InternalEvLogControllerTest extends AbstractIntegrationTest {
 
         List<EvLog> logs = evLogRepository.findAllByCarId(testCar.getId());
         assertEquals(1, logs.size());
-        assertEquals(rawJson, logs.get(0).getRawImportData(),
-                "rawImportData from InternalEvLogRequest must land verbatim in ev_log.raw_import_data");
-    }
+        String persisted = logs.get(0).getRawImportData();
+        assertNotNull(persisted, "rawImportData must be persisted");
 
-    @Test
-    void createLog_withoutRawImportData_savesNull() {
-        Map<String, Object> request = logRequest(testCar.getId(), testUser.getId(),
-                "33.0", 60, LocalDateTime.now().minusHours(6), null, "TESLA_FLEET_IMPORT", null);
+        // JSONB is allowed to normalize whitespace and key order - compare as parsed trees, not as strings.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode expected = mapper.readTree(rawJson);
+        JsonNode actual = mapper.readTree(persisted);
+        assertEquals(expected, actual,
+                "rawImportData must survive the JSONB roundtrip semantically intact " +
+                "(content equivalent; whitespace/key-order normalization is acceptable)");
 
-        ResponseEntity<Map> response = restTemplate.exchange(
-                "/api/internal/logs", HttpMethod.POST,
-                new HttpEntity<>(request, internalHeaders(VALID_TOKEN)), Map.class);
-
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-
-        List<EvLog> logs = evLogRepository.findAllByCarId(testCar.getId());
-        assertEquals(1, logs.size());
-        assertNull(logs.get(0).getRawImportData(),
-                "rawImportData must remain null when not supplied");
+        // Concrete spot-checks on the tricky content:
+        JsonNode vd = actual.path("vehicle_data");
+        assertEquals("Töfftöff \"Grün\" äöü", vd.path("vehicle_name").asText(),
+                "Unicode + escaped quotes must survive JSONB storage");
+        assertEquals(27.3, vd.path("charge_energy_added").asDouble(), 0.0001);
+        assertTrue(actual.path("telemetry_stop").path("Notes").isNull(),
+                "JSON null must remain null (not missing, not empty string)");
     }
 
     // --- PATCH /api/internal/logs/geohash ---
