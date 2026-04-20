@@ -169,7 +169,8 @@ public class EvLogService {
                 request.odometerKm(),
                 request.socBefore(),
                 request.socAfter(),
-                request.temperatureCelsius());
+                request.temperatureCelsius(),
+                request.rawImportData());
 
         if (request.geohash() != null) {
             var builder = newLog.toBuilder();

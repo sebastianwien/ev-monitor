@@ -148,7 +148,8 @@ public class EvLog {
             Integer chargeDurationMinutes, String geohash,
             LocalDateTime loggedAt, Integer odometerSuggestionMinKm, Integer odometerSuggestionMaxKm,
             DataSource dataSource, BigDecimal costEur, ChargingType chargingType,
-            Integer odometerKm, Integer socBefore, Integer socAfter, Double temperatureCelsius) {
+            Integer odometerKm, Integer socBefore, Integer socAfter, Double temperatureCelsius,
+            String rawImportData) {
         LocalDateTime now = LocalDateTime.now();
         return EvLog.builder()
                 .id(UUID.randomUUID())
@@ -167,6 +168,7 @@ public class EvLog {
                 .odometerSuggestionMaxKm(odometerSuggestionMaxKm)
                 .temperatureCelsius(temperatureCelsius)
                 .chargingType(chargingType)
+                .rawImportData(rawImportData)
                 .createdAt(now)
                 .updatedAt(now)
                 .build();

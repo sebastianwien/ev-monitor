@@ -34,7 +34,7 @@ class BatterySohAutoDetectionIntegrationTest extends AbstractIntegrationTest {
                 LocalDateTime.now().minusDays(daysAgo),
                 null, null,
                 DataSource.SMARTCAR_LIVE, null, ChargingType.AC,
-                60000 + daysAgo, socBefore, socAfter, null);
+                60000 + daysAgo, socBefore, socAfter, null, null);
     }
 
     @Test
@@ -129,7 +129,7 @@ class BatterySohAutoDetectionIntegrationTest extends AbstractIntegrationTest {
                 LocalDateTime.now().minusDays(1),
                 null, null, null,
                 "SMARTCAR_LIVE", null, "AC", false,
-                60000, 26, 90, null));
+                60000, 26, 90, null, null));
 
         List<BatterySohResponse> history = batterySohService.getHistory(car.getId(), user.getId());
         assertEquals(1, history.size(), "createWallboxLog should trigger SoH auto-detection");
