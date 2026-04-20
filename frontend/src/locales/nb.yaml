@@ -1313,6 +1313,7 @@ tesla:
   pairing_key_label: Virtuell nøkkel paret
   pairing_key_ok: Ja
   pairing_key_missing: Nei - paring i app kreves
+  pairing_key_unreliable_hint: "Merk: Teslas statusflagg er kjent for å være upålitelig. Du kan likevel aktivere telemetry nedenfor - hvis den virkelig ikke er paret, avviser Tesla forespørselen."
   pairing_config_label: Telemetry-config aktiv
   pairing_config_ok: Ja
   pairing_config_missing: Nei

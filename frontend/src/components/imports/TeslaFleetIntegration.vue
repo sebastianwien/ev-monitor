@@ -363,6 +363,9 @@ function formatDate(d: string) {
               {{ pairingStatus.keyPaired ? t('tesla.pairing_key_ok') : t('tesla.pairing_key_missing') }}
             </span>
           </div>
+          <p v-if="!pairingStatus.keyPaired" class="text-[11px] text-gray-500 dark:text-gray-400 italic pt-1">
+            {{ t('tesla.pairing_key_unreliable_hint') }}
+          </p>
           <div class="flex items-center justify-between">
             <span class="text-gray-600 dark:text-gray-400">{{ t('tesla.pairing_config_label') }}</span>
             <span :class="pairingStatus.telemetryConfigPushed ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-500'" class="font-medium">
@@ -383,7 +386,7 @@ function formatDate(d: string) {
         </a>
 
         <button
-          v-if="pairingStatus?.keyPaired && !pairingStatus.telemetryConfigPushed"
+          v-if="pairingStatus && !pairingStatus.telemetryConfigPushed"
           @click="handleEnableTelemetry"
           :disabled="pairingLoading"
           class="btn-3d w-full flex items-center justify-center gap-2 bg-gray-900 dark:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-500 transition disabled:opacity-50"

@@ -1313,6 +1313,7 @@ tesla:
   pairing_key_label: Virtuell nyckel parad
   pairing_key_ok: Ja
   pairing_key_missing: Nej - parning i appen krävs
+  pairing_key_unreliable_hint: "Obs: Teslas statusflagga är känd för att vara opålitlig. Du kan ändå aktivera telemetry nedan - om den verkligen inte är parad avvisar Tesla begäran."
   pairing_config_label: Telemetry-konfig aktiv
   pairing_config_ok: Ja
   pairing_config_missing: Nej

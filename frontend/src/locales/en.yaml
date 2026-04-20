@@ -1339,6 +1339,7 @@ tesla:
   pairing_key_label: "Virtual key paired"
   pairing_key_ok: "Yes"
   pairing_key_missing: "No - pairing in app required"
+  pairing_key_unreliable_hint: "Note: Tesla's status flag is known to be unreliable. You can still try enabling telemetry below - if it's truly not paired, Tesla will reject the push."
   pairing_config_label: "Telemetry config active"
   pairing_config_ok: "Yes"
   pairing_config_missing: "No"
