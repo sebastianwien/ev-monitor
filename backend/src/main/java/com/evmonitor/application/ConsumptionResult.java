@@ -8,12 +8,17 @@ import java.math.BigDecimal;
  * @param value       consumption in kWh/100km
  * @param plausible   false if the value was flagged as an outlier by the plausibility check
  * @param distanceKm  trip distance in km (logX odometer → logY odometer)
- * @param estimated   true if calculated via kWh_charged/distance fallback (no SoC data available)
+ * @param quality     how the value was calculated — affects display precision in the UI
  */
-public record ConsumptionResult(BigDecimal value, boolean plausible, int distanceKm, boolean estimated) {
+public record ConsumptionResult(BigDecimal value, boolean plausible, int distanceKm, CalculationQuality quality) {
 
-    /** Convenience constructor for SoC-based results (not estimated). */
+    /** Convenience constructor for kWh-primary results (most accurate). */
     public ConsumptionResult(BigDecimal value, boolean plausible, int distanceKm) {
-        this(value, plausible, distanceKm, false);
+        this(value, plausible, distanceKm, CalculationQuality.KWH_PRIMARY);
+    }
+
+    /** Backwards-compat: true when quality is KWH_ESTIMATED (kWh/distance fallback, no SoC). */
+    public boolean estimated() {
+        return quality == CalculationQuality.KWH_ESTIMATED;
     }
 }

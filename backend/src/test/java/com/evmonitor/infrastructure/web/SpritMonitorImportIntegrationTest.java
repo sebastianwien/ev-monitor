@@ -2,10 +2,13 @@ package com.evmonitor.infrastructure.web;
 
 import com.evmonitor.application.spritmonitor.ImportResult;
 import com.evmonitor.application.spritmonitor.RawFueling;
+import com.evmonitor.application.spritmonitor.RefreshRawResult;
 import com.evmonitor.application.spritmonitor.SpritMonitorFuelingDTO;
 import com.evmonitor.application.spritmonitor.SpritMonitorVehicleDTO;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarBrand;
+import com.evmonitor.domain.ChargingType;
+import com.evmonitor.domain.DataSource;
 import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.User;
 import com.evmonitor.infrastructure.external.SpritMonitorClient;
@@ -21,6 +24,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
@@ -445,6 +449,96 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
         assertEquals(2, logs.size());
         assertTrue(logs.stream().allMatch(l -> l.getSessionGroupId() == null));
         assertTrue(logs.stream().allMatch(EvLog::isIncludeInStatistics));
+    }
+
+    // -------------------------------------------------------------------------
+    // Refresh Raw Import Data Tests
+    // -------------------------------------------------------------------------
+
+    @Test
+    void shouldRefreshRawImportData_WhenExactlyOneMatch() {
+        LocalDateTime loggedAt = LocalDateTime.of(2024, 1, 15, 0, 0, 0);
+        EvLog existing = EvLog.createNewWithSource(
+                carId, new BigDecimal("50.0"), BigDecimal.ZERO,
+                0, null, null, null, null, loggedAt,
+                DataSource.SPRITMONITOR_IMPORT, ChargingType.UNKNOWN, "{\"version\":\"stale\"}");
+        evLogRepository.save(existing);
+
+        when(spritMonitorClient.getFuelings(eq(validToken), eq(123), any())).thenReturn(List.of(
+                new RawFueling(
+                        new SpritMonitorFuelingDTO("15.01.2024", new BigDecimal("50.0"), QUANTITY_UNIT_KWH,
+                                null, null, 0, null, null, null, null, "fresh-note", null),
+                        "{\"date\":\"15.01.2024\",\"quantity\":50.0,\"note\":\"fresh-note\"}"
+                )
+        ));
+
+        HttpEntity<Map<String, Object>> requestWithAuth = createAuthRequest(importRequest(123), userId, testUser.getEmail());
+        ResponseEntity<RefreshRawResult> response = restTemplate.exchange(
+                "/api/import/sprit-monitor/refresh-raw", HttpMethod.POST, requestWithAuth, RefreshRawResult.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(1, response.getBody().refreshed());
+        assertEquals(0, response.getBody().skipped());
+
+        List<EvLog> logs = evLogRepository.findAllByCarId(carId);
+        assertEquals(1, logs.size());
+        EvLog updated = logs.get(0);
+        assertTrue(updated.getRawImportData().contains("fresh-note"), "raw_import_data must be updated with fresh content");
+        assertEquals(0, new BigDecimal("50.0").compareTo(updated.getKwhCharged()), "kwhCharged must not change");
+    }
+
+    @Test
+    void shouldSkipRefresh_WhenNoMatchFound() {
+        when(spritMonitorClient.getFuelings(eq(validToken), eq(123), any())).thenReturn(List.of(
+                new RawFueling(
+                        new SpritMonitorFuelingDTO("15.01.2024", new BigDecimal("99.0"), QUANTITY_UNIT_KWH,
+                                null, null, 0, null, null, null, null, null, null),
+                        "{\"date\":\"15.01.2024\",\"quantity\":99.0}"
+                )
+        ));
+
+        HttpEntity<Map<String, Object>> requestWithAuth = createAuthRequest(importRequest(123), userId, testUser.getEmail());
+        ResponseEntity<RefreshRawResult> response = restTemplate.exchange(
+                "/api/import/sprit-monitor/refresh-raw", HttpMethod.POST, requestWithAuth, RefreshRawResult.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(0, response.getBody().refreshed());
+        assertEquals(1, response.getBody().skipped());
+    }
+
+    @Test
+    void shouldSkipRefresh_WhenMultipleMatchesOnSameDate() {
+        BigDecimal kwhCharged = new BigDecimal("50.0");
+        LocalDateTime loggedAt1 = LocalDateTime.of(2024, 1, 15, 0, 0, 0);
+        LocalDateTime loggedAt2 = LocalDateTime.of(2024, 1, 15, 0, 0, 1);
+
+        evLogRepository.save(EvLog.createNewWithSource(
+                carId, kwhCharged, BigDecimal.ZERO, 0, null, null, null, null, loggedAt1,
+                DataSource.SPRITMONITOR_IMPORT, ChargingType.UNKNOWN, "{\"seq\":1}"));
+        evLogRepository.save(EvLog.createNewWithSource(
+                carId, kwhCharged, BigDecimal.ZERO, 0, null, null, null, null, loggedAt2,
+                DataSource.SPRITMONITOR_IMPORT, ChargingType.UNKNOWN, "{\"seq\":2}"));
+
+        when(spritMonitorClient.getFuelings(eq(validToken), eq(123), any())).thenReturn(List.of(
+                new RawFueling(
+                        new SpritMonitorFuelingDTO("15.01.2024", kwhCharged, QUANTITY_UNIT_KWH,
+                                null, null, 0, null, null, null, null, null, null),
+                        "{\"date\":\"15.01.2024\",\"quantity\":50.0}"
+                )
+        ));
+
+        HttpEntity<Map<String, Object>> requestWithAuth = createAuthRequest(importRequest(123), userId, testUser.getEmail());
+        ResponseEntity<RefreshRawResult> response = restTemplate.exchange(
+                "/api/import/sprit-monitor/refresh-raw", HttpMethod.POST, requestWithAuth, RefreshRawResult.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(0, response.getBody().refreshed());
+        assertEquals(1, response.getBody().skipped());
+
+        List<EvLog> logs = evLogRepository.findAllByCarId(carId);
+        assertEquals(2, logs.size());
+        assertTrue(logs.stream().anyMatch(l -> "{\"seq\":1}".equals(l.getRawImportData())), "seq:1 must be unchanged");
+        assertTrue(logs.stream().anyMatch(l -> "{\"seq\":2}".equals(l.getRawImportData())), "seq:2 must be unchanged");
     }
 
     @Test

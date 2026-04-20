@@ -57,4 +57,30 @@ export const spritMonitorService = {
   async deleteAllImports(): Promise<void> {
     await axiosInstance.delete('/import/sprit-monitor/delete-all');
   },
+
+  /**
+   * Re-fetches fuelings from SpritMonitor and updates raw_import_data only.
+   * No ev_log fields (kwhCharged, odometer, etc.) are changed.
+   * Guard: skips entries with no match or more than one match (ambiguous).
+   */
+  async refreshRawImportData(
+    token: string,
+    vehicleId: number,
+    mainTankId: number,
+    carId: string
+  ): Promise<RefreshRawResult> {
+    const response = await axiosInstance.post('/import/sprit-monitor/refresh-raw', {
+      token,
+      vehicleId,
+      mainTankId,
+      carId,
+    });
+    return response.data;
+  },
 };
+
+export interface RefreshRawResult {
+  refreshed: number;
+  skipped: number;
+  errors: string[];
+}

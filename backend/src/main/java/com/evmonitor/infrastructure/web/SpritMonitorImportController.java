@@ -1,6 +1,7 @@
 package com.evmonitor.infrastructure.web;
 
 import com.evmonitor.application.spritmonitor.ImportResult;
+import com.evmonitor.application.spritmonitor.RefreshRawResult;
 import com.evmonitor.application.spritmonitor.SpritMonitorImportService;
 import com.evmonitor.application.spritmonitor.SpritMonitorVehicleDTO;
 import com.evmonitor.infrastructure.security.UserPrincipal;
@@ -114,6 +115,43 @@ public class SpritMonitorImportController {
         } catch (Exception e) {
             log.error("Failed to delete Sprit-Monitor imports for user {}", principal.getUser().getId(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Re-fetches SpritMonitor fuelings and updates raw_import_data only.
+     * No ev_log fields (kwhCharged, odometer, etc.) are changed.
+     * Guard: skips entries with no match or more than one match (ambiguous).
+     *
+     * POST /api/import/sprit-monitor/refresh-raw
+     */
+    @PostMapping("/refresh-raw")
+    public ResponseEntity<?> refreshRawImportData(
+        @AuthenticationPrincipal UserPrincipal principal,
+        @RequestBody ImportRequest request
+    ) {
+        if (request.token == null || request.token.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Token is required"));
+        }
+        if (request.vehicleId == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Vehicle ID is required"));
+        }
+        if (request.carId == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Car ID is required"));
+        }
+
+        try {
+            RefreshRawResult result = importService.refreshRawImportData(
+                principal.getUser().getId(),
+                request.token,
+                request.vehicleId,
+                request.mainTankId,
+                request.carId
+            );
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "Failed to refresh raw data: " + e.getMessage()));
         }
     }
 

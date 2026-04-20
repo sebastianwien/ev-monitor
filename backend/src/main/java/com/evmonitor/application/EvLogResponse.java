@@ -31,6 +31,7 @@ public record EvLogResponse(
         Boolean consumptionImplausible,      // null when consumption not computed, true when flagged
         Integer distanceSinceLastChargeKm,   // null when no previous log with odometer data
         Boolean consumptionIsEstimated,      // true when calculated via kWh/distance fallback (no SoC)
+        String consumptionQuality,           // KWH_PRIMARY, SOC_DELTA, or KWH_ESTIMATED
         ChargingType chargingType,           // AC, DC, or UNKNOWN
         RouteType routeType,                 // Optional: CITY, COMBINED, or HIGHWAY
         TireType tireType,                   // Optional: SUMMER, ALL_YEAR, or WINTER
@@ -73,6 +74,7 @@ public record EvLogResponse(
                 consumption != null ? !consumption.plausible() : null,
                 distanceKm,
                 consumption != null ? consumption.estimated() : null,
+                consumption != null ? consumption.quality().name() : null,
                 evLog.getChargingType(),
                 evLog.getRouteType(),
                 evLog.getTireType(),

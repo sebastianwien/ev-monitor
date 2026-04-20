@@ -39,6 +39,14 @@ const expanded = ref(props.initialExpanded)
       </p>
       <p v-html="t('consumption_info.p3')" class="border-t border-gray-200 dark:border-gray-600 pt-2" />
       <p v-html="t('consumption_info.p4')" class="border-t border-gray-200 dark:border-gray-600 pt-2" />
+      <div class="border-t border-gray-200 dark:border-gray-600 pt-2">
+        <router-link
+          to="/consumption-methodology"
+          class="inline-flex items-center gap-1 text-indigo-500 dark:text-indigo-400 hover:underline font-medium">
+          {{ t('consumption_info.methodology_link') }}
+          <ChevronRightIcon class="w-3.5 h-3.5" />
+        </router-link>
+      </div>
     </div>
   </div>
 </template>

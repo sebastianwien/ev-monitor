@@ -1,6 +1,8 @@
 package com.evmonitor.infrastructure.web;
 
 import com.evmonitor.domain.*;
+import com.evmonitor.infrastructure.persistence.JpaUserChargingProviderRepository;
+import com.evmonitor.infrastructure.persistence.UserChargingProviderEntity;
 import com.evmonitor.testutil.AbstractIntegrationTest;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -10,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +34,9 @@ class InternalEvLogControllerTest extends AbstractIntegrationTest {
 
     @Autowired
     private EvLogRepository evLogRepository;
+
+    @Autowired
+    private JpaUserChargingProviderRepository chargingProviderRepository;
 
     private User testUser;
     private Car testCar;
@@ -222,6 +228,117 @@ class InternalEvLogControllerTest extends AbstractIntegrationTest {
                 new HttpEntity<>(request), String.class);
 
         assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+    }
+
+    // --- Provider cost auto-calculation ---
+
+    @Test
+    void createSmartcarLog_withPreviousProviderAtGeohash_calculatesCostFromTariff() {
+        // Arrange: AC tariff (0.39 €/kWh, no session fee)
+        UserChargingProviderEntity provider = new UserChargingProviderEntity();
+        provider.setUserId(testUser.getId());
+        provider.setProviderName("Heimladung");
+        provider.setAcPricePerKwh(new BigDecimal("0.3900"));
+        provider.setDcPricePerKwh(null);
+        provider.setMonthlyFeeEur(BigDecimal.ZERO);
+        provider.setSessionFeeEur(BigDecimal.ZERO);
+        provider.setActiveFrom(LocalDate.now().minusDays(30));
+        UserChargingProviderEntity savedProvider = chargingProviderRepository.save(provider);
+
+        // Previous log at geohash with provider assigned (simulates a prior manual edit)
+        String geohash = "u2ey3d7";
+        EvLog previousLog = EvLog.createFromInternal(
+                testCar.getId(), new BigDecimal("50.0"), 120, geohash,
+                LocalDateTime.now().minusDays(1), null, null,
+                DataSource.SMARTCAR_LIVE, null, ChargingType.AC,
+                60000, 20, 90, null, null)
+                .toBuilder().chargingProviderId(savedProvider.getId()).build();
+        evLogRepository.save(previousLog);
+
+        // Act: new Smartcar log at same geohash, no costEur
+        // 40 kWh / 2h = 20 kW avg → AC inferred → 40 × 0.39 = 15.60 EUR expected
+        Map<String, Object> request = logRequest(testCar.getId(), testUser.getId(),
+                "40.0", 120, LocalDateTime.now().minusHours(1), geohash, "SMARTCAR_LIVE", null);
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                "/api/internal/logs", HttpMethod.POST,
+                new HttpEntity<>(request, internalHeaders(VALID_TOKEN)), Map.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        Map<?, ?> body = response.getBody();
+        assertNotNull(body);
+        assertNotNull(body.get("costEur"), "costEur should be auto-calculated from tariff");
+        assertEquals(0, new BigDecimal(body.get("costEur").toString()).compareTo(new BigDecimal("15.60")));
+        assertEquals(savedProvider.getId().toString(), body.get("chargingProviderId").toString());
+    }
+
+    @Test
+    void createSmartcarLog_withSessionFeeProvider_includesSessionFeeInCost() {
+        UserChargingProviderEntity provider = new UserChargingProviderEntity();
+        provider.setUserId(testUser.getId());
+        provider.setProviderName("IONITY");
+        provider.setAcPricePerKwh(null);
+        provider.setDcPricePerKwh(new BigDecimal("0.7900"));
+        provider.setMonthlyFeeEur(BigDecimal.ZERO);
+        provider.setSessionFeeEur(new BigDecimal("1.00"));
+        provider.setActiveFrom(LocalDate.now().minusDays(30));
+        UserChargingProviderEntity savedProvider = chargingProviderRepository.save(provider);
+
+        String geohash = "u2ey3d8";
+        // Previous log with DC + provider (100 kWh / 1h = 100 kW → DC)
+        EvLog previousLog = EvLog.createFromInternal(
+                testCar.getId(), new BigDecimal("100.0"), 60, geohash,
+                LocalDateTime.now().minusDays(1), null, null,
+                DataSource.SMARTCAR_LIVE, null, ChargingType.DC,
+                60000, 10, 90, null, null)
+                .toBuilder().chargingProviderId(savedProvider.getId()).build();
+        evLogRepository.save(previousLog);
+
+        // 50 kWh / 1h = 50 kW → DC inferred → 50 × 0.79 + 1.00 = 40.50 EUR
+        Map<String, Object> request = logRequest(testCar.getId(), testUser.getId(),
+                "50.0", 60, LocalDateTime.now().minusHours(1), geohash, "SMARTCAR_LIVE", null);
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                "/api/internal/logs", HttpMethod.POST,
+                new HttpEntity<>(request, internalHeaders(VALID_TOKEN)), Map.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        Map<?, ?> body = response.getBody();
+        assertNotNull(body);
+        assertEquals(0, new BigDecimal(body.get("costEur").toString()).compareTo(new BigDecimal("40.50")));
+    }
+
+    @Test
+    void createLog_withExplicitCostEur_doesNotOverwriteWithProviderTariff() {
+        UserChargingProviderEntity provider = new UserChargingProviderEntity();
+        provider.setUserId(testUser.getId());
+        provider.setProviderName("Heimladung");
+        provider.setAcPricePerKwh(new BigDecimal("0.3900"));
+        provider.setDcPricePerKwh(null);
+        provider.setMonthlyFeeEur(BigDecimal.ZERO);
+        provider.setSessionFeeEur(BigDecimal.ZERO);
+        provider.setActiveFrom(LocalDate.now().minusDays(30));
+        UserChargingProviderEntity savedProvider = chargingProviderRepository.save(provider);
+
+        String geohash = "u2ey3d9";
+        EvLog previousLog = EvLog.createFromInternal(
+                testCar.getId(), new BigDecimal("50.0"), 120, geohash,
+                LocalDateTime.now().minusDays(1), null, null,
+                DataSource.SMARTCAR_LIVE, null, ChargingType.AC,
+                60000, 20, 90, null, null)
+                .toBuilder().chargingProviderId(savedProvider.getId()).build();
+        evLogRepository.save(previousLog);
+
+        // Explicit costEur provided → must NOT be overwritten
+        Map<String, Object> request = logRequest(testCar.getId(), testUser.getId(),
+                "40.0", 120, LocalDateTime.now().minusHours(1), geohash, "SMARTCAR_LIVE", "9.99");
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                "/api/internal/logs", HttpMethod.POST,
+                new HttpEntity<>(request, internalHeaders(VALID_TOKEN)), Map.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(0, new BigDecimal(response.getBody().get("costEur").toString()).compareTo(new BigDecimal("9.99")));
     }
 
     // --- Helpers ---

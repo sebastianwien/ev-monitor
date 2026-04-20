@@ -31,6 +31,7 @@ import {
   ListBulletIcon,
   TrashIcon,
   ExclamationTriangleIcon,
+  InformationCircleIcon,
   CloudIcon,
   XMarkIcon,
   CalendarIcon,
@@ -66,8 +67,8 @@ const { formatConsumption, consumptionUnitLabel, formatDistance, distanceUnitLab
 const {
   selectedCarId, stats, carInfo, wltp, loading, chartsReady, isInitialLoad, error,
   cars, carImageUrls, selectedTimeRange, selectedGroupBy, customStartDate, customEndDate,
-  importBannerDismissed, teslaStatus, smartcarStatus, implausibleCount, hasDistanceData,
-  timeRangeOptions, groupByOptions, dismissImportBanner, fetchImplausibleCount,
+  importBannerDismissed, implausibleBannerDismissed, teslaStatus, smartcarStatus, implausibleCount, hasDistanceData,
+  timeRangeOptions, groupByOptions, dismissImportBanner, dismissImplausibleBanner, fetchImplausibleCount,
   fetchCarAndWltp, fetchStatistics, initCars,
 } = useDashboardStats()
 
@@ -548,6 +549,10 @@ onMounted(() => initCars())
               <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">{{ t('dashboard.metric_avg_consumption') }}</p>
               <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ formatConsumption(stats.avgConsumptionKwhPer100km, { showUnit: false }) }}</p>
               <p class="text-sm font-medium text-gray-400 dark:text-gray-500 mt-0.5">{{ consumptionUnitLabel() }}</p>
+              <router-link to="/consumption-methodology" class="mt-2 inline-flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400 underline underline-offset-2 hover:text-indigo-800 dark:hover:text-indigo-300 transition-colors">
+                {{ t('dashboard.metric_consumption_methodology_link') }}
+                <ChevronRightIcon class="w-3 h-3 flex-shrink-0" />
+              </router-link>
               <p v-if="stats.estimatedConsumptionCount > 0" class="text-xs text-red-500 mt-2 italic">
                 {{ t('dashboard.metric_estimated', { n: stats.estimatedConsumptionCount }) }}
               </p>
@@ -768,17 +773,26 @@ onMounted(() => initCars())
           <ConsumptionInfoBox :min-trips="5" class="mb-4" />
 
           <!-- Implausible logs banner (position 2: under ConsumptionInfoBox) -->
-          <button v-if="implausibleCount > 0"
-            @click="showImplausibleModal = true"
-            class="w-full mb-4 flex items-center justify-between gap-3 px-4 py-3 rounded-lg bg-amber-200 dark:bg-amber-500/20 border border-amber-300 dark:border-amber-600/50 text-left shadow-[0_4px_0_0_#92400e] dark:shadow-[0_4px_0_0_#1c0a00] hover:shadow-[0_2px_0_0_#92400e] dark:hover:shadow-[0_2px_0_0_#1c0a00] hover:translate-y-0.5 active:shadow-none active:translate-y-1 transition-all duration-75">
-            <div class="flex items-center gap-2">
-              <ExclamationTriangleIcon class="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
-              <span class="text-sm font-medium text-amber-800 dark:text-amber-300">
-                {{ t('dashboard.implausible_banner', { n: implausibleCount, noun: implausibleCount === 1 ? t('dashboard.implausible_entry') : t('dashboard.implausible_entries') }) }}
-              </span>
-            </div>
-            <span class="text-xs text-amber-700 dark:text-amber-400 font-medium shrink-0">{{ t('dashboard.implausible_check') }}</span>
-          </button>
+          <div v-if="implausibleCount > 0 && !implausibleBannerDismissed"
+            class="w-full mb-4 flex items-center gap-3 px-4 py-3 rounded-lg bg-amber-200 dark:bg-amber-500/20 border border-amber-300 dark:border-amber-600/50">
+            <button
+              @click="showImplausibleModal = true"
+              class="flex-1 flex items-center justify-between gap-3 text-left">
+              <div class="flex items-center gap-2">
+                <ExclamationTriangleIcon class="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                <span class="text-sm font-medium text-amber-800 dark:text-amber-300">
+                  {{ t('dashboard.implausible_banner', { n: implausibleCount, noun: implausibleCount === 1 ? t('dashboard.implausible_entry') : t('dashboard.implausible_entries') }) }}
+                </span>
+              </div>
+              <span class="text-xs text-amber-700 dark:text-amber-400 font-medium shrink-0">{{ t('dashboard.implausible_check') }}</span>
+            </button>
+            <button
+              @click="dismissImplausibleBanner"
+              class="shrink-0 p-1 rounded hover:bg-amber-300/50 dark:hover:bg-amber-600/30 transition-colors"
+              :title="t('dashboard.implausible_dismiss')">
+              <XMarkIcon class="h-4 w-4 text-amber-700 dark:text-amber-400" />
+            </button>
+          </div>
 
           <div v-if="!logsLoading && logsPage > 0" class="text-sm text-gray-400 mb-2 text-right">{{ t('dashboard.logs_page', { n: logsPage + 1 }) }}</div>
 
@@ -951,13 +965,20 @@ onMounted(() => initCars())
                                : entry.consumptionIsEstimated
                                  ? 'text-gray-400 dark:text-gray-500'
                                  : consumptionTextClass(entry.consumptionKwhPer100km, stats?.avgConsumptionKwhPer100km ?? null)]"
-                    :title="entry.consumptionIsEstimated ? 'Schätzwert: berechnet aus geladener Energie ÷ Distanz, da kein SoC-Wert vorhanden.' : undefined">
+                    :title="entry.consumptionIsEstimated
+                      ? 'Schätzwert: berechnet aus geladener Energie ÷ Distanz, da kein SoC-Wert vorhanden.'
+                      : entry.consumptionQuality === 'SOC_DELTA'
+                        ? 'Näherungswert: berechnet aus SoC-Differenz ohne direkte kWh-Messung.'
+                        : undefined">
                     <button
                       v-if="entry.consumptionImplausible"
                       class="flex-shrink-0 focus:outline-none"
                       @click.stop="openTooltipLogId = openTooltipLogId === entry.id ? null : entry.id">
                       <ExclamationTriangleIcon class="w-3 h-3" />
                     </button>
+                    <InformationCircleIcon
+                      v-if="entry.consumptionQuality === 'SOC_DELTA'"
+                      class="w-3 h-3 flex-shrink-0 text-gray-400 dark:text-gray-500" />
                     {{ entry.consumptionIsEstimated ? '~' : '' }}{{ formatConsumption(entry.consumptionKwhPer100km) }}
                   </span>
                   <span v-if="entry.costEur != null && !entry.kwhCharged" class="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">

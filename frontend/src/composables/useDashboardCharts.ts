@@ -204,7 +204,7 @@ export function useDashboardCharts(
   const wltpChartData = computed(() => {
     if (!stats.value || !wltp.value || !hasDistanceData.value) return null
     const wltpVal = effectiveCompareValue.value
-    const points = stats.value.chargesOverTime.filter(d => d.consumptionKwhPer100km != null)
+    const points = stats.value.chargesOverTime.filter(d => d.consumptionKwhPer100km != null).slice().reverse()
     if (points.length === 0) return null
     const labels = points.map(d => formatLabel(d.timestamp))
     const rawDeltas = points.map(d => d.consumptionKwhPer100km! - wltpVal)

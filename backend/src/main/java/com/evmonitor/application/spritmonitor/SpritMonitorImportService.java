@@ -137,6 +137,63 @@ public class SpritMonitorImportService {
         evLogRepository.deleteAllByUserIdAndDataSource(userId, DATA_SOURCE);
     }
 
+    @Transactional
+    public RefreshRawResult refreshRawImportData(
+            UUID userId,
+            String token,
+            Integer spritMonitorVehicleId,
+            Integer spritMonitorMainTankId,
+            UUID evMonitorCarId
+    ) {
+        Car car = carRepository.findById(evMonitorCarId)
+                .orElseThrow(() -> new IllegalArgumentException("Car not found with ID: " + evMonitorCarId));
+        if (!car.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("User does not own the specified car");
+        }
+
+        RefreshRawResult.Builder result = RefreshRawResult.builder();
+
+        try {
+            int tankId = spritMonitorMainTankId != null ? spritMonitorMainTankId : 1;
+            List<RawFueling> fuelings = client.getFuelings(token, spritMonitorVehicleId, tankId);
+
+            for (RawFueling rawFueling : fuelings) {
+                SpritMonitorFuelingDTO fueling = rawFueling.dto();
+                try {
+                    if (!fueling.isKwh()) {
+                        result.incrementSkipped();
+                        continue;
+                    }
+
+                    LocalDate date = LocalDate.parse(fueling.date(), DD_MM_YYYY);
+                    BigDecimal kwhCharged = fueling.quantity() != null ? fueling.quantity() : BigDecimal.ZERO;
+
+                    List<EvLog> matches = evLogRepository.findByCarIdAndDateAndKwhChargedAndDataSource(
+                            evMonitorCarId, date, kwhCharged, DATA_SOURCE);
+
+                    if (matches.size() != 1) {
+                        log.debug("Skipping raw refresh for {} kWh on {} - {} matches (expected 1)",
+                                kwhCharged, date, matches.size());
+                        result.incrementSkipped();
+                        continue;
+                    }
+
+                    evLogRepository.updateRawImportData(matches.get(0).getId(), rawFueling.rawJson());
+                    result.incrementRefreshed();
+                } catch (Exception e) {
+                    log.error("Failed to refresh raw data for fueling on {}: {}", fueling.date(), e.getMessage(), e);
+                    result.addError("Failed to refresh raw data for " + fueling.date() + ": " + e.getMessage());
+                    result.incrementSkipped();
+                }
+            }
+        } catch (Exception e) {
+            log.error("Failed to fetch fuelings for raw refresh: {}", e.getMessage(), e);
+            result.addError("Failed to fetch fuelings: " + e.getMessage());
+        }
+
+        return result.build();
+    }
+
     private EvLog convertToEvLog(SpritMonitorFuelingDTO fueling, UUID carId, LocalDateTime loggedAt, String rawJson) {
         String geohash = null;
         if (fueling.position() != null && fueling.position().lat() != null && fueling.position().lon() != null) {

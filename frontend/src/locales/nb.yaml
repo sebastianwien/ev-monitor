@@ -498,6 +498,7 @@ dashboard:
   metric_total_distance: Total distanse
   metric_km_driven: kjørte kilometer
   metric_avg_consumption: Gjennomsnittlig forbruk
+  metric_consumption_methodology_link: "Beregningsgrunnlag"
   metric_estimated: "{n} Anslått ladetid (uten SoC)"
   metric_avg_cost: Gjennomsnittlig pris
   metric_per_100km: per 100 km
@@ -524,6 +525,7 @@ dashboard:
   implausible_entry: oppføring
   implausible_entries: oppføringer
   implausible_check: Les anmeldelsen nå ->
+  implausible_dismiss: Skjul
   loading: Laster...
   no_logs_empty: Det ble ikke funnet noen ladesesjoner.
   charge_group: Ladningsgruppe
@@ -796,6 +798,7 @@ consumption_info:
   p2_pre: Etter <strong>{minTrips} utregningsbare kjøreturer</strong>, sammenligner vi hver verdi med ditt personlige gjennomsnitt. Før det brukes kjøretøyets WLTP-referanseverdi. Kjøreturer med sterkt avvikende forbruk er
   p2_post: merket – vanligvis et tegn på at det mangler en ladeøkt mellom to oppføringer.
   p4: "<strong>Batterihelse (SoH):</strong> Dette angir hvor mye batteriet ditt har eldet over tid og dermed tapt kapasitet. Med AutoSync leser EV Monitor de faktisk ladede kWh direkte fra kjøretøyet og sammenligner dem med forventet kapasitet basert på ladetilstanden (SoC). Når 5 utregningsbare økter med minst 30% delta i ladeøkten er tilgjengelige, beregnes medianen - for å filtrere ut uteliggere. Du kan også selv legge til nettobeløpet på ladeøkter via det valgfrie feltet <strong>\"kWh (kjøretøy)\"</strong> - det utløser samme beregning."
+  methodology_link: "Hvorfor er EV Monitor høyere enn tripptelleren min?"
   p3: "<strong>Ladetap – avhengig av situasjonen:</strong> Ladebokser og ladestasjoner måler strømforbruket ved stikkontakten – inkludert ladetap (varme som genereres under lading, ca. 5–10 %). For <strong>forbruk (kWh/100 km)</strong> blir disse tapene fjernet (AC: 10 %, DC: 5 %), slik at verdien gjenspeiler din faktiske kjøreffektivitet og er sammenlignbar med WLTP. For <strong>kostnader (€/kWh)</strong> blir de med – du har tross alt betalt for dem."
 editlog:
   title: Rediger ladesesjon
@@ -944,6 +947,9 @@ settings:
   ok_export: Dataene er eksportert!
   tutorial_restarting: Veiledningen starter på nytt...
   via_provider: via {provider}
+  display_title: Visning
+  implausible_banner_label: Varsel om usannsynlig forbruk
+  implausible_banner_hint: Viser et varsel på dashbordet når oppføringer med usannsynlig forbruk oppdages.
   country_title: Land / Region
   country_desc: Bestemmer hvilke enheter og hvilken valuta som vises.
 onboarding:
@@ -1205,6 +1211,16 @@ spritmonitor:
   delete_btn_loading: Sletter…
   delete_btn: Ja, slett alt
   err_delete: Slettingen mislyktes. Prøv på nytt.
+  refresh_raw_title: Oppdater rådata
+  refresh_raw_desc: Henter den originale JSON-en fra Sprit-Monitor på nytt og oppdaterer de lagrede rådataene - <strong>uten</strong> å overskrive dine manuelt korrigerte verdier (kWh, kilometerstand osv.).
+  refresh_raw_btn: Importer rådata på nytt
+  refresh_raw_loading: Oppdaterer…
+  refresh_done_title: Rådata oppdatert!
+  refresh_done_refreshed: "{n} oppføringer oppdatert"
+  refresh_done_skipped: "{n} hoppet over (ingen entydig treff)"
+  refresh_done_errors_title: "Feil:"
+  refresh_done_btn: Ferdig
+  back_to_mapping: Tilbake til tilordning
 manual_import:
   title: Importer ladingsøkter
   format_info: Filen må være i samsvar med <strong>EV Monitor-formatet</strong> – ikke en direkte eksport fra andre apper. Kopier først malen nedenfor og fyll den ut med dine data.
@@ -1420,6 +1436,7 @@ footer:
   privacy: Personvern
   imprint: Impressum
   terms: Vilkår
+  consumption_methodology: Forbruksberegning
   github: GitHub
 tronity:
   title: Tronity Import
@@ -1479,6 +1496,9 @@ demo:
   settings_notice: I demomodus kan du se gjennom alle innstillingene, men du kan ikke foreta endringer.
   settings_cta: Skjønner
 announcements:
+  consumption_methodology_v1_title: "Hvorfor er forbruket mitt høyere enn tripptelleren?"
+  consumption_methodology_v1_body: "Vi har forklart dette i detalj - med ekte tall og hele energikjeden fra nettet til motoren."
+  consumption_methodology_v1_cta: "Les mer"
   charging_provider_v1_title: "Nytt: Ladeleverandør og offentlige ladestasjoner"
   charging_provider_v1_body: Du kan nå oppgi om du har ladet ved en offentlig ladestasjon og hvilken nettoperatør (CPO) som står bak den. Legg inn ladetariffen (EMP) under Innstillinger → Ladeleverandør. Skjemaet for loggføring er også forenklet – det er kun kWh og pris som må oppgis.
   charging_provider_v1_cta: Gå til innstillinger
@@ -1505,6 +1525,10 @@ announcements:
   autosync_premium_v1_title: "Nytt: EV Monitor AutoSync"
   autosync_premium_v1_body: Koble til bilen én gang, så importeres alle ladinger automatisk til EV Monitor – ingen manuell registrering er nødvendig. Nå tilgjengelig som en pro-funksjon. Støtter 28 merker – blant annet BMW, VW, Mercedes, Audi, Tesla, Hyundai, Volvo, Polestar og mange flere.
   autosync_premium_v1_cta: Les mer
+  kwh_primary_formula_v1_title: Mer presis forbruksberegning
+  kwh_primary_formula_v1_body: Forbruket ble tidligere beregnet fra SoC-prosenter × nominell kapasitet. BMS-en kalibrerer imidlertid prosentvisningen til den faktiske batterikapasiteten - for batterier med degradering avvek dette fra nominell kapasitet og ga litt for høye verdier. Nå brukes målte kilowattimer direkte, pluss en liten SoC-korreksjon mellom øktene. For eldre batterier kan forskjellen være opptil 2 kWh/100km. Alle verdier er automatisk oppdatert. Jeg har også forklart hvorfor EV Monitor ofte viser mer enn tripptelleren din.
+  spritmonitor_raw_refresh_v1_title: "SpritMonitor: Importer rådata på nytt"
+  spritmonitor_raw_refresh_v1_body: SpritMonitor-importen har nå en ny knapp for å importere rådata på nytt. Den henter den originale JSON-en fra Sprit-Monitor igjen og oppdaterer den, uten å overskrive dine manuelt korrigerte verdier (kWh, kilometerstand osv.). Dette gjør det mulig for meg å korrigere og forbedre ladeøkter i etterkant, ettersom SpritMonitor-dataformatet ikke er fullt dokumentert.
 tax_export:
   title: Skatterapport for hjemmelading
   subtitle: Eksporter dine hjemmeladinger som dokumentasjon til regnskapsføreren din (brev fra BMF av 11.11.2025)

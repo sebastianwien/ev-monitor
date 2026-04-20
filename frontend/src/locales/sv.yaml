@@ -498,6 +498,7 @@ dashboard:
   metric_total_distance: Total sträcka
   metric_km_driven: körda kilometer
   metric_avg_consumption: Genomsnittlig förbrukning
+  metric_consumption_methodology_link: "Beräkningsgrundlag"
   metric_estimated: "{n} uppskattad laddning (utan SoC)"
   metric_avg_cost: Genomsnittlig kostnad
   metric_per_100km: per 100 km
@@ -524,6 +525,7 @@ dashboard:
   implausible_entry: post
   implausible_entries: poster
   implausible_check: Läs recensionen nu ->
+  implausible_dismiss: Dölj
   loading: Laddar...
   no_logs_empty: Inga laddningssessioner hittades.
   charge_group: Ladningsgrupp
@@ -796,6 +798,7 @@ consumption_info:
   p2_pre: Efter <strong>{minTrips} utvärderbara resor</strong> jämför vi varje värde med ditt personliga genomsnitt. Innan dess används ditt fordons WLTP-referensvärde. Passager med kraftigt avvikande förbrukning är
   p2_post: markerad – oftast ett tecken på att en laddningssession saknas mellan två poster.
   p4: "<strong>Batterihälsa (SoH):</strong> Detta anger hur mycket ditt batteri har åldrats över åren och därmed förlorat kapacitet. Med AutoSync läser EV Monitor de faktiskt laddade kWh direkt från fordonet och jämför dem med förväntad kapacitet baserat på laddningsnivån (SoC). När 5 utvärderingsbara sessioner med minst 30% delta i laddningssessionen finns tillgängliga beräknas medianen - för att filtrera bort extremvärden. Du kan också själv lägga till nettobeloppet på laddningssessioner via det valfria fältet <strong>\"kWh (fordon)\"</strong> - det utlöser samma beräkning."
+  methodology_link: "Varför är EV Monitor högre än min trippdator?"
   p3: "<strong>Laddningsförluster – beror på sammanhanget:</strong> Väggladdare och laddstationer mäter strömmen vid uttaget – inklusive laddningsförluster (värme som alstras under laddning, ca 5–10 %). För <strong>förbrukning (kWh/100 km)</strong> räknas dessa förluster bort (växelström: 10 %, likström: 5 %) så att värdet återspeglar din faktiska köreffektivitet och är jämförbart med WLTP. För <strong>kostnader (€/kWh)</strong> räknas de med – du har ju trots allt betalat för dem."
 editlog:
   title: Redigera laddningssession
@@ -944,6 +947,9 @@ settings:
   ok_export: Data har exporterats!
   tutorial_restarting: Startar om handledningen...
   via_provider: via {provider}
+  display_title: Visning
+  implausible_banner_label: Avisering om osannolig förbrukning
+  implausible_banner_hint: Visar en avisering på instrumentpanelen när poster med osannolig förbrukning upptäcks.
   country_title: Land / Region
   country_desc: Bestämmer vilka enheter och vilken valuta som visas.
 onboarding:
@@ -1205,6 +1211,16 @@ spritmonitor:
   delete_btn_loading: Tar bort…
   delete_btn: Ja, ta bort allt
   err_delete: Raderingen misslyckades. Försök igen.
+  refresh_raw_title: Uppdatera rådata
+  refresh_raw_desc: Hämtar den ursprungliga JSON-en från Sprit-Monitor igen och uppdaterar den lagrade rådatan - <strong>utan</strong> att skriva över dina manuellt korrigerade värden (kWh, mätarställning osv.).
+  refresh_raw_btn: Importera rådata igen
+  refresh_raw_loading: Uppdaterar…
+  refresh_done_title: Rådata uppdaterad!
+  refresh_done_refreshed: "{n} poster uppdaterade"
+  refresh_done_skipped: "{n} hoppades över (ingen unik träff)"
+  refresh_done_errors_title: "Fel:"
+  refresh_done_btn: Klar
+  back_to_mapping: Tillbaka till mappning
 manual_import:
   title: Importera laddningssessioner
   format_info: Filen måste följa formatet <strong>EV Monitor</strong> – det får inte vara en direkt export från andra appar. Kopiera först mallen nedan och fyll i dina uppgifter.
@@ -1420,6 +1436,7 @@ footer:
   privacy: Sekretess
   imprint: Impressum
   terms: Villkor
+  consumption_methodology: Förbrukningsmetodik
   github: GitHub
 tronity:
   title: Tronity Import
@@ -1479,6 +1496,9 @@ demo:
   settings_notice: I demoläget kan du bläddra igenom alla inställningar, men du kan inte göra några ändringar.
   settings_cta: Okej
 announcements:
+  consumption_methodology_v1_title: "Varför är min förbrukning högre än trippdatorn?"
+  consumption_methodology_v1_body: "Vi har förklarat detta i detalj - med riktiga siffror och hela energikedjan från elnätet till motorn."
+  consumption_methodology_v1_cta: "Läs mer"
   charging_provider_v1_title: "Nytt: Laddningsleverantör och offentliga laddstationer"
   charging_provider_v1_body: Du kan nu ange om du har laddat vid en offentlig laddstation och vilken nätoperatör (CPO) som står bakom den. Ange din laddningstariff (EMP) under Inställningar → Laddningsleverantör. Formuläret för loggposter har också förenklats – endast kWh och pris är obligatoriska uppgifter.
   charging_provider_v1_cta: Gå till inställningar
@@ -1505,6 +1525,10 @@ announcements:
   autosync_premium_v1_title: "Nyhet: EV Monitor AutoSync"
   autosync_premium_v1_body: Anslut din bil en gång så importeras alla laddningar automatiskt till EV Monitor – ingen manuell inmatning behövs. Nu tillgängligt som en pro-funktion. Stöd för 28 märken – däribland BMW, VW, Mercedes, Audi, Tesla, Hyundai, Volvo, Polestar och många fler.
   autosync_premium_v1_cta: Läs mer
+  kwh_primary_formula_v1_title: Mer exakt förbrukningsberäkning
+  kwh_primary_formula_v1_body: Förbrukning beräknades tidigare från SoC-procent × nominell kapacitet. BMS kalibrerar dock sin procentvisning mot den faktiska batterikapaciteten - för batterier med degradering avvek detta från nominell kapacitet och gav något för höga värden. Nu används uppmätta kilowattimmar direkt, plus en liten SoC-korrigering mellan sessionerna. För äldre batterier kan skillnaden vara upp till 2 kWh/100km. Alla värden har uppdaterats automatiskt. Jag har också förklarat varför EV Monitor ofta visar mer än din trippdator.
+  spritmonitor_raw_refresh_v1_title: "SpritMonitor: Importera rådata igen"
+  spritmonitor_raw_refresh_v1_body: SpritMonitor-importen har nu en ny knapp för att importera rådata igen. Den hämtar den ursprungliga JSON-en från Sprit-Monitor igen och uppdaterar den, utan att skriva över dina manuellt korrigerade värden (kWh, mätarställning osv.). Detta gör det möjligt för mig att i efterhand korrigera och förbättra laddningssessioner, eftersom SpritMonitors dataformat inte är fullt dokumenterat.
 tax_export:
   title: Skatteanmälan för laddning hemma
   subtitle: Exportera dina hemladdningar som underlag för din revisor (brev från BMF av den 11 november 2025)

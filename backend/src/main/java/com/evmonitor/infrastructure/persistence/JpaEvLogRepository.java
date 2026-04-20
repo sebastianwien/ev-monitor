@@ -155,6 +155,25 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     @Query("UPDATE EvLogEntity e SET e.carId = :targetCarId WHERE e.id = :logId")
     void updateCarIdForLog(@Param("logId") UUID logId, @Param("targetCarId") UUID targetCarId);
 
+    @Query("""
+            SELECT e FROM EvLogEntity e
+            WHERE e.carId = :carId
+              AND e.loggedAt >= :startOfDay
+              AND e.loggedAt < :endOfDay
+              AND e.kwhCharged = :kwhCharged
+              AND e.dataSource = :dataSource
+            """)
+    List<EvLogEntity> findByCarIdAndDateRangeAndKwhChargedAndDataSource(
+            @Param("carId") UUID carId,
+            @Param("startOfDay") LocalDateTime startOfDay,
+            @Param("endOfDay") LocalDateTime endOfDay,
+            @Param("kwhCharged") BigDecimal kwhCharged,
+            @Param("dataSource") String dataSource);
+
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE EvLogEntity e SET e.rawImportData = :rawJson WHERE e.id = :id")
+    void updateRawImportData(@Param("id") UUID id, @Param("rawJson") String rawJson);
+
     /**
      * Aggregated basic stats for a car model.
      * Returns: [logCount, uniqueContributors, avgCostPerKwh, avgKwhPerSession]
