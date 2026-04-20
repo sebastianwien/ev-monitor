@@ -1308,6 +1308,23 @@ tesla:
   err_disconnect: Avkopplingen misslyckades
   err_undo: Ångra misslyckades
   err_delete_all: Raderingen misslyckades
+  pairing_title: Fleet Telemetry
+  pairing_desc: Realtidstelemetri (växel, SoC, laddningsstatus) i stället för pollad synk. Kräver virtuell nyckel-parning i Tesla-appen.
+  pairing_key_label: Virtuell nyckel parad
+  pairing_key_ok: Ja
+  pairing_key_missing: Nej - parning i appen krävs
+  pairing_config_label: Telemetry-konfig aktiv
+  pairing_config_ok: Ja
+  pairing_config_missing: Nej
+  pairing_open_app_btn: "Tesla-app: lägg till virtuell nyckel"
+  pairing_enable_btn: Aktivera telemetry
+  pairing_enable_btn_loading: Aktiverar ...
+  pairing_disable_btn: Inaktivera telemetry
+  pairing_disable_btn_loading: Inaktiverar ...
+  pairing_refresh: Uppdatera status
+  pairing_err_status: Kunde inte ladda parningsstatus
+  pairing_err_enable: Kunde inte aktivera telemetry
+  pairing_err_disable: Kunde inte inaktivera telemetry
   confirm_disconnect: Är du säker?
   delete_modal_title: Ta bort alla Tesla-importer?
   delete_modal_desc: Du är på väg att radera <strong>ALLA laddningssessioner som importerats via Tesla Fleet API</strong>. Manuellt skapade loggar kommer att finnas kvar. Denna åtgärd <strong>kan inte ångras</strong>.
@@ -1386,6 +1403,7 @@ goe:
   err_required: Serienummer, API-nyckel och fordon är obligatoriska uppgifter.
   err_connect: Anslutningen misslyckades
   err_disconnect: Avkopplingen misslyckades
+  err_save: Sparandet misslyckades. Logga in igen och försök på nytt.
   confirm_disconnect: Vill du verkligen koppla bort go-eCharger?
   confirm_disconnect_named: Ska man verkligen koppla bort go-eCharger från ”{name}”?
   state_key_state_ready: Klar

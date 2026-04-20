@@ -1308,6 +1308,23 @@ tesla:
   err_disconnect: Koblingen kunne ikke brytes
   err_undo: Angre mislyktes
   err_delete_all: Slettingen mislyktes
+  pairing_title: Fleet Telemetry
+  pairing_desc: Sanntidstelemetri (gir, SoC, ladestatus) i stedet for pollet synk. Krever virtuell-nøkkel-paring i Tesla-appen.
+  pairing_key_label: Virtuell nøkkel paret
+  pairing_key_ok: Ja
+  pairing_key_missing: Nei - paring i app kreves
+  pairing_config_label: Telemetry-config aktiv
+  pairing_config_ok: Ja
+  pairing_config_missing: Nei
+  pairing_open_app_btn: "Tesla-app: legg til virtuell nøkkel"
+  pairing_enable_btn: Aktiver telemetry
+  pairing_enable_btn_loading: Aktiverer ...
+  pairing_disable_btn: Deaktiver telemetry
+  pairing_disable_btn_loading: Deaktiverer ...
+  pairing_refresh: Oppdater status
+  pairing_err_status: Kunne ikke laste paringsstatus
+  pairing_err_enable: Kunne ikke aktivere telemetry
+  pairing_err_disable: Kunne ikke deaktivere telemetry
   confirm_disconnect: Er du sikker?
   delete_modal_title: Slette alle Tesla-importene?
   delete_modal_desc: Du er i ferd med å slette <strong>ALLE ladesesjoner som er importert via Tesla Fleet API</strong>. Logger som er opprettet manuelt, vil bli beholdt. Denne handlingen <strong>kan ikke angres</strong>.
@@ -1386,6 +1403,7 @@ goe:
   err_required: Serienummer, API-nøkkel og kjøretøy er påkrevd.
   err_connect: Tilkoblingen mislyktes
   err_disconnect: Koblingen kunne ikke brytes
+  err_save: Lagringen mislyktes. Logg inn på nytt og prøv igjen.
   confirm_disconnect: Vil du virkelig koble fra go-eCharger?
   confirm_disconnect_named: Skal man virkelig koble fra go-eCharger «{name}»?
   state_key_state_ready: Klar

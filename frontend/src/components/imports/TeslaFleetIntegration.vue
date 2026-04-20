@@ -3,9 +3,10 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ArrowTopRightOnSquareIcon, ArrowPathIcon, XMarkIcon, CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
-import teslaFleetService, { type TeslaConnectionStatus, type TeslaFleetSyncResult } from '@/api/teslaFleetService'
+import teslaFleetService, { type TeslaConnectionStatus, type TeslaFleetSyncResult, type TeslaPairingStatus } from '@/api/teslaFleetService'
 import type { Car } from '@/api/carService'
 import { useCarStore } from '@/stores/car'
+import { useAuthStore } from '@/stores/auth'
 import CarSelectDropdown from '../car/CarSelectDropdown.vue'
 
 const route = useRoute()
@@ -24,7 +25,11 @@ const showDeleteAllConfirm = ref(false)
 const deleteAllLoading = ref(false)
 const deleteAllError = ref<string | null>(null)
 const fleetApiConfigured = ref(true)
+const authStore = useAuthStore()
 const carStore = useCarStore()
+const pairingStatus = ref<TeslaPairingStatus | null>(null)
+const pairingLoading = ref(false)
+const pairingError = ref<string | null>(null)
 const cars = ref<Car[]>([])
 const carsLoaded = ref(false)
 const selectedCarId = ref<string>('')
@@ -35,6 +40,7 @@ onMounted(async () => {
   if (status.value.geocodingInProgress) {
     startGeocodingPoll()
   }
+  await loadPairingStatus()
   if (route.query['tesla-connected']) {
     success.value = t('tesla.success_connected')
     await loadStatus()
@@ -69,6 +75,42 @@ function stopGeocodingPoll() {
 }
 
 onUnmounted(() => stopGeocodingPoll())
+
+async function loadPairingStatus() {
+  if (!authStore.isAdmin || !status.value.connected) return
+  pairingError.value = null
+  try {
+    pairingStatus.value = await teslaFleetService.getPairingStatus()
+  } catch (e: any) {
+    pairingError.value = e.response?.data?.message || t('tesla.pairing_err_status')
+  }
+}
+
+async function handleEnableTelemetry() {
+  pairingLoading.value = true
+  pairingError.value = null
+  try {
+    await teslaFleetService.enableTelemetry()
+    await loadPairingStatus()
+  } catch (e: any) {
+    pairingError.value = e.response?.data?.message || t('tesla.pairing_err_enable')
+  } finally {
+    pairingLoading.value = false
+  }
+}
+
+async function handleDisableTelemetry() {
+  pairingLoading.value = true
+  pairingError.value = null
+  try {
+    await teslaFleetService.disableTelemetry()
+    await loadPairingStatus()
+  } catch (e: any) {
+    pairingError.value = e.response?.data?.message || t('tesla.pairing_err_disable')
+  } finally {
+    pairingLoading.value = false
+  }
+}
 
 async function loadCars() {
   try {
@@ -299,6 +341,78 @@ function formatDate(d: string) {
           <ArrowPathIcon class="h-4 w-4" />
           {{ t('tesla.undo_btn', { n: lastImportedIds.length }) }}
         </button>
+      </div>
+
+      <!-- Fleet Telemetry pairing (ADMIN only, Beta) -->
+      <div
+        v-if="authStore.isAdmin"
+        class="border-t border-gray-100 dark:border-gray-700 pt-4 space-y-2"
+      >
+        <div class="flex items-center justify-between">
+          <p class="text-xs font-medium text-gray-600 dark:text-gray-400">
+            {{ t('tesla.pairing_title') }}
+            <span class="ml-1 text-[10px] uppercase bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded">Beta · Admin</span>
+          </p>
+        </div>
+        <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('tesla.pairing_desc') }}</p>
+
+        <div v-if="pairingStatus" class="bg-gray-50 dark:bg-gray-900 rounded-lg p-3 text-xs space-y-1">
+          <div class="flex items-center justify-between">
+            <span class="text-gray-600 dark:text-gray-400">{{ t('tesla.pairing_key_label') }}</span>
+            <span :class="pairingStatus.keyPaired ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'" class="font-medium">
+              {{ pairingStatus.keyPaired ? t('tesla.pairing_key_ok') : t('tesla.pairing_key_missing') }}
+            </span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-gray-600 dark:text-gray-400">{{ t('tesla.pairing_config_label') }}</span>
+            <span :class="pairingStatus.telemetryConfigPushed ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-500'" class="font-medium">
+              {{ pairingStatus.telemetryConfigPushed ? t('tesla.pairing_config_ok') : t('tesla.pairing_config_missing') }}
+            </span>
+          </div>
+        </div>
+
+        <a
+          v-if="!pairingStatus?.keyPaired"
+          href="https://tesla.com/_ak/ev-monitor.net"
+          target="_blank"
+          rel="noopener"
+          class="w-full flex items-center justify-center gap-2 text-sm px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+        >
+          <ArrowTopRightOnSquareIcon class="h-4 w-4" />
+          {{ t('tesla.pairing_open_app_btn') }}
+        </a>
+
+        <button
+          v-if="pairingStatus?.keyPaired && !pairingStatus.telemetryConfigPushed"
+          @click="handleEnableTelemetry"
+          :disabled="pairingLoading"
+          class="btn-3d w-full flex items-center justify-center gap-2 bg-gray-900 dark:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-500 transition disabled:opacity-50"
+        >
+          <ArrowPathIcon class="h-4 w-4" :class="{ 'animate-spin': pairingLoading }" />
+          {{ pairingLoading ? t('tesla.pairing_enable_btn_loading') : t('tesla.pairing_enable_btn') }}
+        </button>
+
+        <button
+          v-if="pairingStatus?.telemetryConfigPushed"
+          @click="handleDisableTelemetry"
+          :disabled="pairingLoading"
+          class="w-full flex items-center justify-center gap-2 text-sm px-4 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition disabled:opacity-50"
+        >
+          {{ pairingLoading ? t('tesla.pairing_disable_btn_loading') : t('tesla.pairing_disable_btn') }}
+        </button>
+
+        <button
+          @click="loadPairingStatus"
+          :disabled="pairingLoading"
+          class="w-full text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition disabled:opacity-50"
+        >
+          {{ t('tesla.pairing_refresh') }}
+        </button>
+
+        <div v-if="pairingError" class="flex items-start gap-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg p-2">
+          <ExclamationTriangleIcon class="h-4 w-4 text-red-500 dark:text-red-400 mt-0.5 shrink-0" />
+          <p class="text-xs text-red-800 dark:text-red-200">{{ pairingError }}</p>
+        </div>
       </div>
 
       <!-- Delete all imports -->

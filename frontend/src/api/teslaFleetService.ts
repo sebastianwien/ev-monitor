@@ -11,6 +11,14 @@ export interface TeslaConnectionStatus {
   suspendAfterIdleMinutes: number
 }
 
+export interface TeslaPairingStatus {
+  vin: string
+  keyPaired: boolean
+  telemetryConfigPushed: boolean
+  dataSource?: string
+  telemetryConfigPushedAt?: string | null
+}
+
 export interface TeslaFleetSyncResult {
   logsImported: number
   logsSkipped: number
@@ -49,5 +57,19 @@ export default {
 
   async deleteAllImports(): Promise<void> {
     await api.delete('/import/tesla/delete-all')
+  },
+
+  async getPairingStatus(): Promise<TeslaPairingStatus> {
+    const resp = await api.get('/tesla/pairing/status')
+    return resp.data
+  },
+
+  async enableTelemetry(): Promise<{ alreadyEnabled: boolean }> {
+    const resp = await api.post('/tesla/pairing/enable-telemetry')
+    return resp.data
+  },
+
+  async disableTelemetry(): Promise<void> {
+    await api.post('/tesla/pairing/disable-telemetry')
   },
 }
