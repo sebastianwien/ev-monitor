@@ -71,7 +71,7 @@ class EvLogDuplicateDetectionIntegrationTest extends AbstractIntegrationTest {
                 DataSource.TESLA_FLEET_IMPORT,
                 null,
                 ChargingType.DC,
-                null, null, null, null));
+                null, null, null, null, null));
 
         assertNull(importLog.getSupersededBy(), "Import should not be suppressed yet");
 
@@ -141,8 +141,7 @@ class EvLogDuplicateDetectionIntegrationTest extends AbstractIntegrationTest {
                 null,
                 ChargingType.DC.name(),
                 false,
-                null, null, null, null
-        );
+                null, null, null, null, null);
 
         HttpHeaders headers = new HttpHeaders();
         headers.set("X-Internal-Token", INTERNAL_TOKEN);
@@ -196,7 +195,7 @@ class EvLogDuplicateDetectionIntegrationTest extends AbstractIntegrationTest {
                 DataSource.TESLA_LIVE,
                 null,
                 ChargingType.AC,
-                null, null, null, null));
+                null, null, null, null, null));
 
         // Create user log via API (this triggers suppressDuplicateImports)
         EvLogRequest request = new EvLogRequest(
@@ -262,8 +261,7 @@ class EvLogDuplicateDetectionIntegrationTest extends AbstractIntegrationTest {
                 null, null, null,
                 DataSource.TESLA_FLEET_IMPORT.name(),
                 null, ChargingType.DC.name(), false,
-                null, null, null, null
-        );
+                null, null, null, null, null);
         HttpHeaders headers = new HttpHeaders();
         headers.set("X-Internal-Token", INTERNAL_TOKEN);
         headers.set("Content-Type", "application/json");
@@ -327,8 +325,7 @@ class EvLogDuplicateDetectionIntegrationTest extends AbstractIntegrationTest {
                 null, null, null,
                 DataSource.TESLA_FLEET_IMPORT.name(),
                 null, ChargingType.DC.name(), false,
-                null, null, null, null
-        );
+                null, null, null, null, null);
         HttpHeaders headers = new HttpHeaders();
         headers.set("X-Internal-Token", INTERNAL_TOKEN);
         headers.set("Content-Type", "application/json");
@@ -363,7 +360,7 @@ class EvLogDuplicateDetectionIntegrationTest extends AbstractIntegrationTest {
                 DataSource.TESLA_FLEET_IMPORT,
                 null,
                 ChargingType.DC,
-                null, null, null, null));
+                null, null, null, null, null));
 
         // When: User logs a very different amount (28 kWh — >15% difference)
         EvLogRequest request = new EvLogRequest(

@@ -80,13 +80,13 @@ class EvLogServiceGoeConsumptionChainTest extends AbstractIntegrationTest {
                 carId, new BigDecimal("8.5"), 90, null,
                 base.plusDays(1).withHour(10),
                 null, null, DataSource.WALLBOX_GOE, new BigDecimal("2.38"), ChargingType.AC,
-                null, null, null, null));
+                null, null, null, null, null));
 
         evLogRepository.save(EvLog.createFromInternal(
                 carId, new BigDecimal("5.2"), 60, null,
                 base.plusDays(1).withHour(10).plusMinutes(45),
                 null, null, DataSource.WALLBOX_GOE, new BigDecimal("1.46"), ChargingType.AC,
-                null, null, null, null));
+                null, null, null, null, null));
 
         evLogRepository.save(EvLog.createNew(carId, LOG_B_KWH, LOG_B_COST,
                 90, null, LOG_B_ODOMETER, null, LOG_B_SOC,
@@ -173,13 +173,13 @@ class EvLogServiceGoeConsumptionChainTest extends AbstractIntegrationTest {
                 carId, new BigDecimal("40.0"), 180, null,
                 base,
                 null, null, DataSource.WALLBOX_GOE, new BigDecimal("11.00"), ChargingType.AC,
-                LOG_A_ODOMETER, null, LOG_A_SOC, null));
+                LOG_A_ODOMETER, null, LOG_A_SOC, null, null));
 
         evLogRepository.save(EvLog.createFromInternal(
                 carId, LOG_B_KWH, 90, null,
                 base.plusDays(2),
                 null, null, DataSource.WALLBOX_GOE, LOG_B_COST, ChargingType.AC,
-                LOG_B_ODOMETER, null, LOG_B_SOC, null));
+                LOG_B_ODOMETER, null, LOG_B_SOC, null, null));
 
         EvLogStatisticsResponse stats = evLogService.getStatistics(carId, userId, null, null, null);
 
@@ -220,7 +220,7 @@ class EvLogServiceGoeConsumptionChainTest extends AbstractIntegrationTest {
                 carId, new BigDecimal("40.0"), 120, null,
                 base,
                 null, null, DataSource.TESLA_FLEET_IMPORT, null, ChargingType.DC,
-                5000, null, 90, null));
+                5000, null, 90, null, null));
 
         // T2 — TESLA_FLEET_IMPORT ohne Odometer (Snapshot-Lookup miss)
         // Bricht die Kette: canBeUsedAsLogX()=false, nicht transparent → Kettenbruch für G1
@@ -228,21 +228,21 @@ class EvLogServiceGoeConsumptionChainTest extends AbstractIntegrationTest {
                 carId, new BigDecimal("20.0"), 45, null,
                 base.plusDays(1),
                 null, null, DataSource.TESLA_FLEET_IMPORT, null, ChargingType.DC,
-                null, null, 75, null));
+                null, null, 75, null, null));
 
         // G1 — GOE mit Odometer+SoC, kein Verbrauch berechenbar (T2 davor bricht die Kette)
         evLogRepository.save(EvLog.createFromInternal(
                 carId, new BigDecimal("30.0"), 90, null,
                 base.plusDays(2),
                 null, null, DataSource.WALLBOX_GOE, new BigDecimal("8.40"), ChargingType.AC,
-                LOG_A_ODOMETER, null, LOG_A_SOC, null));
+                LOG_A_ODOMETER, null, LOG_A_SOC, null, null));
 
         // G2 — logX=G1 → 300 km Trip → 16.25 kWh/100km
         evLogRepository.save(EvLog.createFromInternal(
                 carId, LOG_B_KWH, 90, null,
                 base.plusDays(4),
                 null, null, DataSource.WALLBOX_GOE, LOG_B_COST, ChargingType.AC,
-                LOG_B_ODOMETER, null, LOG_B_SOC, null));
+                LOG_B_ODOMETER, null, LOG_B_SOC, null, null));
 
         EvLogStatisticsResponse stats = evLogService.getStatistics(carId, userId, null, null, null);
 
@@ -277,7 +277,7 @@ class EvLogServiceGoeConsumptionChainTest extends AbstractIntegrationTest {
                 carId, new BigDecimal("8.5"), 90, null,
                 base.plusDays(1).withHour(10),
                 null, null, DataSource.WALLBOX_GOE, new BigDecimal("2.38"), ChargingType.AC,
-                LOG_A_ODOMETER, null, LOG_A_SOC, null)); // odometerKm + socAfter gesetzt
+                LOG_A_ODOMETER, null, LOG_A_SOC, null, null)); // odometerKm + socAfter gesetzt
 
         // Manual Log B — direkter Vorgänger ist jetzt go-e mit SoC → canBeUsedAsLogX()=true
         evLogRepository.save(EvLog.createNew(carId, LOG_B_KWH, LOG_B_COST,

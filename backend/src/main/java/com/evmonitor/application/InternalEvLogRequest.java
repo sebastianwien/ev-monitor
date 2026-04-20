@@ -26,5 +26,6 @@ public record InternalEvLogRequest(
         Integer odometerKm,   // optional: actual odometer reading from vehicle API (Smartcar, Tesla Live)
         Integer socBefore,    // optional: State of Charge at session start (0-100)
         Integer socAfter,     // optional: State of Charge at session end (0-100)
-        Double temperatureCelsius) { // optional: external temperature at charging location
+        Double temperatureCelsius, // optional: external temperature at charging location
+        String rawImportData) {    // optional: raw JSON payload from source (Tesla Telemetry, Smartcar webhook, ...)
 }
