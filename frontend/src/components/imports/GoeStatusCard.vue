@@ -13,6 +13,8 @@ const wallboxStore = useWallboxStore()
 const props = defineProps<{ connectionId: string; mockConnection?: GoeConnection }>()
 const emit = defineEmits<{ disconnect: [id: string] }>()
 
+const actionError = ref<string | null>(null)
+
 const conn = ref<GoeConnection | null>(props.mockConnection ?? null)
 const loading = ref(props.mockConnection == null)
 
@@ -166,10 +168,13 @@ function onLocationQueryChange() {
 async function saveLocation() {
   if (!conn.value) return
   savingLocation.value = true
+  actionError.value = null
   try {
     const updated = await goeService.updateGeohash(conn.value.id, selectedGeohash.value)
     conn.value = { ...conn.value, geohash: updated.geohash }
     editingLocation.value = false
+  } catch {
+    actionError.value = t('goe.err_save')
   } finally {
     savingLocation.value = false
   }
@@ -182,9 +187,12 @@ const savingMergeSessions = ref(false)
 async function toggleMergeSessions() {
   if (!conn.value) return
   savingMergeSessions.value = true
+  actionError.value = null
   try {
     const updated = await goeService.updateMergeSessions(conn.value.id, !conn.value.mergeSessions)
     conn.value = { ...conn.value, mergeSessions: updated.mergeSessions }
+  } catch {
+    actionError.value = t('goe.err_save')
   } finally {
     savingMergeSessions.value = false
   }
@@ -206,10 +214,13 @@ async function saveTariff() {
   const n = tariffInput.value === '' ? 0 : parseFloat(tariffInput.value)
   if (isNaN(n) || n < 0 || n > 9999) return
   savingTariff.value = true
+  actionError.value = null
   try {
     const updated = await goeService.updateTariff(conn.value.id, n)
     conn.value = { ...conn.value, tariffCentsPerKwh: updated.tariffCentsPerKwh }
     editingTariff.value = false
+  } catch {
+    actionError.value = t('goe.err_save')
   } finally {
     savingTariff.value = false
   }
@@ -281,6 +292,13 @@ async function saveTariff() {
         <span v-if="conn.lastPollError.includes('cloud api not enabled')" v-html="t('goe.cloud_api_error')" />
         <span v-else>{{ conn.lastPollError }}</span>
       </p>
+    </div>
+
+    <!-- Action error -->
+    <div v-if="actionError"
+      class="mx-4 mt-3 flex items-start gap-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg px-3 py-2">
+      <ExclamationTriangleIcon class="h-4 w-4 text-red-500 dark:text-red-400 mt-0.5 shrink-0" />
+      <p class="text-xs text-red-700 dark:text-red-300 leading-snug">{{ actionError }}</p>
     </div>
 
     <!-- Tariff -->
