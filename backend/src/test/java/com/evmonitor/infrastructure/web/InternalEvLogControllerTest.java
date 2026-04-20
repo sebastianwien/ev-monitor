@@ -4,10 +4,12 @@ import com.evmonitor.domain.*;
 import com.evmonitor.testutil.AbstractIntegrationTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -24,6 +26,9 @@ import static org.junit.jupiter.api.Assertions.*;
 class InternalEvLogControllerTest extends AbstractIntegrationTest {
 
     private static final String VALID_TOKEN = "test-internal-token";
+
+    @Autowired
+    private EvLogRepository evLogRepository;
 
     private User testUser;
     private Car testCar;
@@ -103,6 +108,44 @@ class InternalEvLogControllerTest extends AbstractIntegrationTest {
                 new HttpEntity<>(request, internalHeaders("wrong-token")), String.class);
 
         assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+    }
+
+    @Test
+    void createLog_withRawImportData_persistsRawPayloadInDatabase() {
+        LocalDateTime loggedAt = LocalDateTime.now().minusHours(4).withNano(0);
+        String rawJson = "{\"telemetry_start\":{\"Soc\":42},\"telemetry_stop\":{\"Soc\":78},\"vehicle_data\":{\"charge_energy_added\":27.3}}";
+
+        Map<String, Object> request = logRequest(testCar.getId(), testUser.getId(),
+                "27.3", 95, loggedAt, null, "TESLA_LIVE", null);
+        request.put("rawImportData", rawJson);
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                "/api/internal/logs", HttpMethod.POST,
+                new HttpEntity<>(request, internalHeaders(VALID_TOKEN)), Map.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+
+        List<EvLog> logs = evLogRepository.findAllByCarId(testCar.getId());
+        assertEquals(1, logs.size());
+        assertEquals(rawJson, logs.get(0).getRawImportData(),
+                "rawImportData from InternalEvLogRequest must land verbatim in ev_log.raw_import_data");
+    }
+
+    @Test
+    void createLog_withoutRawImportData_savesNull() {
+        Map<String, Object> request = logRequest(testCar.getId(), testUser.getId(),
+                "33.0", 60, LocalDateTime.now().minusHours(6), null, "TESLA_FLEET_IMPORT", null);
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                "/api/internal/logs", HttpMethod.POST,
+                new HttpEntity<>(request, internalHeaders(VALID_TOKEN)), Map.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+
+        List<EvLog> logs = evLogRepository.findAllByCarId(testCar.getId());
+        assertEquals(1, logs.size());
+        assertNull(logs.get(0).getRawImportData(),
+                "rawImportData must remain null when not supplied");
     }
 
     // --- PATCH /api/internal/logs/geohash ---
