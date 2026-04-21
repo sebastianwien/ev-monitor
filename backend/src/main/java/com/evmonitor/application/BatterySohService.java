@@ -107,12 +107,10 @@ public class BatterySohService {
         BigDecimal degradation = history.isEmpty() ? null
                 : BigDecimal.valueOf(100).subtract(history.get(0).getSohPercent());
 
-        Car updated = new Car(
-                car.getId(), car.getUserId(), car.getModel(), car.getYear(),
-                car.getLicensePlate(), car.getTrim(), car.getBatteryCapacityKwh(), car.getPowerKw(),
-                car.getRegistrationDate(), car.getDeregistrationDate(), car.getStatus(),
-                car.getCreatedAt(), LocalDateTime.now(), car.getImagePath(), car.isImagePublic(),
-                car.isPrimary(), degradation, car.isBusinessCar(), car.isHeatPump());
+        Car updated = car.toBuilder()
+                .batteryDegradationPercent(degradation)
+                .updatedAt(LocalDateTime.now())
+                .build();
 
         carRepository.save(updated);
     }

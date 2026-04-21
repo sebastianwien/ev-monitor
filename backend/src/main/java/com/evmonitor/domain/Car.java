@@ -24,6 +24,8 @@ public class Car {
     private final String licensePlate;
     private final String trim;
     private final BigDecimal batteryCapacityKwh;
+    private final UUID vehicleSpecificationId;
+    private final BigDecimal specNetBatteryCapacityKwh;
     private final BigDecimal powerKw;
     private final LocalDate registrationDate;
     private final LocalDate deregistrationDate;
@@ -84,22 +86,27 @@ public class Car {
     }
 
     public BigDecimal getEffectiveBatteryCapacityKwh() {
-        if (batteryCapacityKwh == null) return null;
+        BigDecimal base = baseCapacity();
+        if (base == null) return null;
         if (batteryDegradationPercent == null || batteryDegradationPercent.compareTo(BigDecimal.ZERO) == 0) {
-            return batteryCapacityKwh;
+            return base;
         }
         BigDecimal factor = BigDecimal.ONE.subtract(
                 batteryDegradationPercent.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP));
-        return batteryCapacityKwh.multiply(factor).setScale(2, RoundingMode.HALF_UP);
+        return base.multiply(factor).setScale(2, RoundingMode.HALF_UP);
     }
 
     /**
      * Gibt die effektive Batteriekapazität zum angegebenen Datum zurück, basierend auf dem
      * SoH-Verlauf. Logs vor dem ersten SoH-Eintrag werden mit 100% SoH berechnet.
      * Wenn keine History vorhanden: Fallback auf aktuellen batteryDegradationPercent-Wert.
+     *
+     * Basis: specNetBatteryCapacityKwh wenn gesetzt (verifizierter Netto-Wert),
+     * sonst batteryCapacityKwh (User-Eingabe, oft nominal/brutto).
      */
     public BigDecimal getEffectiveBatteryCapacityKwhAt(LocalDate date, List<BatterySohEntry> sohHistory) {
-        if (batteryCapacityKwh == null) return null;
+        BigDecimal base = baseCapacity();
+        if (base == null) return null;
         if (sohHistory == null || sohHistory.isEmpty()) {
             return getEffectiveBatteryCapacityKwh();
         }
@@ -109,12 +116,15 @@ public class Car {
                 .max(Comparator.comparing(BatterySohEntry::getRecordedAt));
 
         if (entry.isEmpty()) {
-            // Vor dem ersten Messpunkt: Batterie war noch unverbraucht
-            return batteryCapacityKwh;
+            return base;
         }
 
-        return batteryCapacityKwh
+        return base
                 .multiply(entry.get().getSohPercent().divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP))
                 .setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal baseCapacity() {
+        return specNetBatteryCapacityKwh != null ? specNetBatteryCapacityKwh : batteryCapacityKwh;
     }
 }

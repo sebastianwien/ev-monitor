@@ -691,6 +691,7 @@ cars:
   label_capacity: Batterikapacitet (kWh) *
   custom_capacity: Ange anpassad kapacitet
   preset_capacity: Välj bland tillgängliga kapaciteter
+  capacity_corrected_hint: "Din inmatning ({old} kWh) har justerats till det verifierade nettovärdet ({new} kWh)."
   wltp_available: WLTP-värden finns tillgängliga
   epa_available: Data från EPA finns tillgängliga
   wltp_range: Räckvidd
@@ -1548,6 +1549,8 @@ announcements:
   kwh_primary_formula_v1_body: Förbrukning beräknades tidigare från SoC-procent × nominell kapacitet. BMS kalibrerar dock sin procentvisning mot den faktiska batterikapaciteten - för batterier med degradering avvek detta från nominell kapacitet och gav något för höga värden. Nu används uppmätta kilowattimmar direkt, plus en liten SoC-korrigering mellan sessionerna. För äldre batterier kan skillnaden vara upp till 2 kWh/100km. Alla värden har uppdaterats automatiskt. Jag har också förklarat varför EV Monitor ofta visar mer än din trippdator.
   spritmonitor_raw_refresh_v1_title: "SpritMonitor: Importera rådata igen"
   spritmonitor_raw_refresh_v1_body: SpritMonitor-importen har nu en ny knapp för att importera rådata igen. Den hämtar den ursprungliga JSON-en från Sprit-Monitor igen och uppdaterar den, utan att skriva över dina manuellt korrigerade värden (kWh, mätarställning osv.). Detta gör det möjligt för mig att i efterhand korrigera och förbättra laddningssessioner, eftersom SpritMonitors dataformat inte är fullt dokumenterat.
+  net_capacity_v1_title: "Fordonsdata har uppdaterats"
+  net_capacity_v1_body: "Fordonsdatabasen har uppdaterats. Nettobatterikapaciteten har korrigerats för vissa varianter. Förbrukningsvärden kan ha ändrats något som ett resultat."
 tax_export:
   title: Skatteanmälan för laddning hemma
   subtitle: Exportera dina hemladdningar som underlag för din revisor (brev från BMF av den 11 november 2025)

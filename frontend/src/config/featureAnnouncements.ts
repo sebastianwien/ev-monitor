@@ -16,6 +16,13 @@ export interface FeatureAnnouncement {
 
 export const featureAnnouncements: FeatureAnnouncement[] = [
   {
+    key: 'net-capacity-v1',
+    expiresAt: '2026-05-12',
+    releasedAt: '2026-04-21',
+    titleKey: 'announcements.net_capacity_v1_title',
+    bodyKey: 'announcements.net_capacity_v1_body',
+  },
+  {
     key: 'kwh-primary-formula-v1',
     expiresAt: '2026-05-10',
     releasedAt: '2026-04-19',

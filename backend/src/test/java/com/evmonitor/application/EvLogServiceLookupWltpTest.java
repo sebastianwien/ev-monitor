@@ -134,8 +134,53 @@ class EvLogServiceLookupWltpTest extends AbstractIntegrationTest {
     }
 
     // -------------------------------------------------------------------------
+    // FK-basierter Lookup (vehicle_specification_id gesetzt)
+    // -------------------------------------------------------------------------
+
+    @Test
+    void shouldFindWltp_viaFkLookup_whenVehicleSpecificationIdIsSet() {
+        BigDecimal specCapacity = uniqueCapacity();
+        VehicleSpecification savedSpec = saveSpecAndReturn("SKODA", "ENYAQ", specCapacity, WLTP_CONSUMPTION);
+
+        // Car hat einen komplett anderen batteryCapacityKwh-Wert der NICHT matched,
+        // aber vehicleSpecificationId zeigt direkt auf die Spec
+        BigDecimal unmatchableCapacity = specCapacity.add(new BigDecimal("999.00"));
+        Car car = carWithCapacityAndSpecId(CarBrand.CarModel.ENYAQ, unmatchableCapacity, savedSpec.getId());
+
+        BigDecimal result = evLogService.lookupWltp(car);
+
+        assertNotNull(result, "FK-Lookup sollte Spec finden auch wenn capacity nicht matcht");
+        assertEquals(WLTP_CONSUMPTION, result);
+    }
+
+    @Test
+    void fkLookup_takesPrecedenceOver_capacityMatch() {
+        BigDecimal specCapacity = uniqueCapacity();
+        VehicleSpecification linkedSpec = saveSpecAndReturn("SKODA", "ENYAQ", specCapacity,
+                new BigDecimal("15.90")); // Netto-Spec Verbrauch
+
+        // Zusätzlich einen anderen Spec-Eintrag mit matching capacity aber anderem Verbrauch
+        BigDecimal userCapacity = uniqueCapacity();
+        saveSpec("SKODA", "ENYAQ", userCapacity, new BigDecimal("16.50")); // alter capacity-match
+
+        // Car hat userCapacity (würde capacity-match auf 16.50 treffen),
+        // aber FK zeigt auf linkedSpec mit 15.90
+        Car car = carWithCapacityAndSpecId(CarBrand.CarModel.ENYAQ, userCapacity, linkedSpec.getId());
+
+        BigDecimal result = evLogService.lookupWltp(car);
+
+        assertEquals(new BigDecimal("15.90"), result, "FK-Lookup soll Vorrang vor capacity-Match haben");
+    }
+
+    // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
+
+    private VehicleSpecification saveSpecAndReturn(String brand, String model, BigDecimal capacity, BigDecimal wltpConsumption) {
+        return vehicleSpecificationRepository.save(VehicleSpecification.createNew(
+                brand, model, capacity, WLTP_RANGE, wltpConsumption,
+                VehicleSpecification.WltpType.COMBINED));
+    }
 
     private void saveSpec(String brand, String model, BigDecimal capacity, BigDecimal wltpConsumption) {
         vehicleSpecificationRepository.save(VehicleSpecification.createNew(
@@ -144,12 +189,17 @@ class EvLogServiceLookupWltpTest extends AbstractIntegrationTest {
     }
 
     private Car carWithCapacity(CarBrand.CarModel model, BigDecimal batteryCapacityKwh) {
+        return carWithCapacityAndSpecId(model, batteryCapacityKwh, null);
+    }
+
+    private Car carWithCapacityAndSpecId(CarBrand.CarModel model, BigDecimal batteryCapacityKwh, UUID vehicleSpecificationId) {
         LocalDateTime now = LocalDateTime.now();
         return Car.builder()
                 .id(UUID.randomUUID()).userId(UUID.randomUUID()).model(model).year(2023)
                 .licensePlate("TEST-1").trim("Long Range")
                 .batteryCapacityKwh(batteryCapacityKwh).powerKw(new BigDecimal("280.0"))
                 .status(CarStatus.ACTIVE).createdAt(now).updatedAt(now)
+                .vehicleSpecificationId(vehicleSpecificationId)
                 .build();
     }
 }

@@ -30,6 +30,7 @@ public class CarService {
                         request.batteryDegradationPercent())
                 .toBuilder()
                 .heatPump(request.hasHeatPump())
+                .vehicleSpecificationId(request.vehicleSpecificationId())
                 .build();
 
         Car savedCar = carRepository.save(newCar);
@@ -69,6 +70,7 @@ public class CarService {
                 .powerKw(request.powerKw())
                 .batteryDegradationPercent(request.batteryDegradationPercent())
                 .heatPump(request.hasHeatPump())
+                .vehicleSpecificationId(request.vehicleSpecificationId())
                 .updatedAt(LocalDateTime.now())
                 .build();
 

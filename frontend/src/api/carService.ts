@@ -22,6 +22,7 @@ export interface Car {
     effectiveBatteryCapacityKwh: number | null;
     isBusinessCar: boolean;
     hasHeatPump: boolean;
+    vehicleSpecificationId: string | null;
 }
 
 export interface CarRequest {
@@ -33,6 +34,7 @@ export interface CarRequest {
     powerKw: number | null; // Power in kW (optional)
     batteryDegradationPercent: number | null;
     hasHeatPump: boolean;
+    vehicleSpecificationId: string | null;
 }
 
 export interface BrandInfo {
@@ -43,6 +45,7 @@ export interface BrandInfo {
 export interface CapacityOption {
     kWh: number;
     variantName: string | null;
+    vehicleSpecificationId: string | null;
 }
 
 export interface ModelInfo {

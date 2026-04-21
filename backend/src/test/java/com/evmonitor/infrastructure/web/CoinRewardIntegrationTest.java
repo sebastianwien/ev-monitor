@@ -493,7 +493,8 @@ class CoinRewardIntegrationTest extends AbstractIntegrationTest {
                 new BigDecimal("75.0"),
                 new BigDecimal("150.0"),
                 null,
-                false
+                false,
+                null
         );
         HttpEntity<CarRequest> entity = createAuthRequest(request, uid, email);
         return restTemplate.exchange("/api/cars", HttpMethod.POST, entity, CarCreateResponse.class);

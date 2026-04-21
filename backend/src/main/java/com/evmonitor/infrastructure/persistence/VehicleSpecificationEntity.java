@@ -50,4 +50,10 @@ public class VehicleSpecificationEntity {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    @Column(name = "variant_name")
+    private String variantName;
+
+    @Column(name = "net_battery_capacity_kwh", precision = 10, scale = 2)
+    private BigDecimal netBatteryCapacityKwh;
 }

@@ -30,7 +30,8 @@ public record CarResponse(
         BigDecimal batteryDegradationPercent,
         BigDecimal effectiveBatteryCapacityKwh,
         boolean isBusinessCar,
-        boolean hasHeatPump) {
+        boolean hasHeatPump,
+        UUID vehicleSpecificationId) {
 
     public static CarResponse fromDomain(Car car) {
         String imageUrl = car.getImagePath() != null ? "/api/cars/" + car.getId() + "/image" : null;
@@ -55,6 +56,7 @@ public record CarResponse(
                 car.getBatteryDegradationPercent(),
                 car.getEffectiveBatteryCapacityKwh(),
                 car.isBusinessCar(),
-                car.isHeatPump());
+                car.isHeatPump(),
+                car.getVehicleSpecificationId());
     }
 }
