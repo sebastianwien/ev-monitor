@@ -1353,6 +1353,8 @@ tesla:
   pairing_err_status: "Pairing-Status konnte nicht geladen werden"
   pairing_err_enable: "Telemetry konnte nicht aktiviert werden"
   pairing_err_disable: "Telemetry konnte nicht deaktiviert werden"
+  telemetry_live_title: "Live-Telemetry aktiv"
+  telemetry_live_desc: "Ladesessions (Heim + Supercharger) und Fahrten werden automatisch erkannt - kein manueller Import nötig."
   confirm_disconnect: "Sicher?"
   delete_modal_title: "Alle Tesla-Importe löschen?"
   delete_modal_desc: "Du bist dabei, <strong>ALLE über Tesla Fleet API importierten Ladevorgänge</strong> zu löschen. Manuell angelegte Logs bleiben erhalten. Dieser Vorgang kann <strong>nicht rückgängig gemacht werden</strong>."

@@ -1327,6 +1327,8 @@ tesla:
   pairing_err_status: Kunne ikke laste paringsstatus
   pairing_err_enable: Kunne ikke aktivere telemetry
   pairing_err_disable: Kunne ikke deaktivere telemetry
+  telemetry_live_title: Live-telemetri aktiv
+  telemetry_live_desc: Ladesesjoner (hjemme + Supercharger) og turer registreres automatisk - ingen manuell import nødvendig.
   confirm_disconnect: Er du sikker?
   delete_modal_title: Slette alle Tesla-importene?
   delete_modal_desc: Du er i ferd med å slette <strong>ALLE ladesesjoner som er importert via Tesla Fleet API</strong>. Logger som er opprettet manuelt, vil bli beholdt. Denne handlingen <strong>kan ikke angres</strong>.

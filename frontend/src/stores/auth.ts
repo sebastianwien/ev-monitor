@@ -112,9 +112,10 @@ export const useAuthStore = defineStore('auth', () => {
 
     const isDemoAccount = computed(() => user.value?.demoAccount === true);
     const isAdmin = computed(() => user.value?.role === 'ADMIN');
+    const isBetaTester = computed(() => user.value?.role === 'BETA_TESTER');
 
     return {
-        token, user, isDemoAccount, isPremium, isAdmin,
+        token, user, isDemoAccount, isPremium, isAdmin, isBetaTester,
         setToken, setPremium, logout, login, register,
         refreshToken, refreshPremiumStatus,
         isAuthenticated: () => !!token.value,
