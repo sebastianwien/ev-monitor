@@ -166,7 +166,7 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
         id: allSubs[0].id,
         _isTopUp: false,
         _isLadegruppe: true,
-        _topUps: allSubs,
+        _topUps: [...allSubs].reverse(),
         _totalKwh: Math.round(totalKwh * 100) / 100,
         _totalCostEur: totalCostEur !== null ? Math.round(totalCostEur * 100) / 100 : null,
         _maxSoc: maxSoc,
@@ -233,8 +233,8 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
 
     // Step 3: Merge and sort
     return [...goeDayGroupEntries, ...odometerGroupEntries].sort((a: any, b: any) => {
-      const dateA = new Date(a._isLadegruppe ? a._topUps[a._topUps.length - 1].loggedAt : a.loggedAt).getTime()
-      const dateB = new Date(b._isLadegruppe ? b._topUps[b._topUps.length - 1].loggedAt : b.loggedAt).getTime()
+      const dateA = new Date(a._isLadegruppe ? a._topUps[0].loggedAt : a.loggedAt).getTime()
+      const dateB = new Date(b._isLadegruppe ? b._topUps[0].loggedAt : b.loggedAt).getTime()
       return dateB - dateA
     })
   })
