@@ -700,6 +700,8 @@ cars:
   hint_trim: "Variante/Ausstattung"
   label_capacity: "Batteriekapazität (kWh) *"
   custom_capacity: "Eigene Kapazität eingeben"
+  variant_filter_placeholder: "Filtern, z.B. AWD, Performance, Highland ..."
+  variant_filter_no_results: "Keine Variante gefunden."
   preset_capacity: "Aus verfügbaren Kapazitäten wählen"
   capacity_corrected_hint: "Deine Eingabe ({old} kWh) wurde auf den verifizierten Netto-Wert ({new} kWh) korrigiert."
   wltp_available: "WLTP-Werte verfügbar"

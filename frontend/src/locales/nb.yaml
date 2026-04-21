@@ -690,6 +690,8 @@ cars:
   hint_trim: Utførelse/utstyrsnivå
   label_capacity: Batterikapasitet (kWh) *
   custom_capacity: Angi egendefinert kapasitet
+  variant_filter_placeholder: "Filtrer, f.eks. AWD, Performance, Highland ..."
+  variant_filter_no_results: Ingen variant funnet.
   preset_capacity: Velg blant tilgjengelige kapasiteter
   capacity_corrected_hint: "Din inntasting ({old} kWh) er justert til den verifiserte nettoverdien ({new} kWh)."
   wltp_available: WLTP-verdier tilgjengelig

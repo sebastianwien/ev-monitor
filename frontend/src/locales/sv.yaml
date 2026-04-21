@@ -690,6 +690,8 @@ cars:
   hint_trim: Variant/utrustningsnivå
   label_capacity: Batterikapacitet (kWh) *
   custom_capacity: Ange anpassad kapacitet
+  variant_filter_placeholder: "Filtrera, t.ex. AWD, Performance, Highland ..."
+  variant_filter_no_results: Ingen variant hittades.
   preset_capacity: Välj bland tillgängliga kapaciteter
   capacity_corrected_hint: "Din inmatning ({old} kWh) har justerats till det verifierade nettovärdet ({new} kWh)."
   wltp_available: WLTP-värden finns tillgängliga

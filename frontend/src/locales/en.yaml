@@ -700,6 +700,8 @@ cars:
   hint_trim: "Variant/trim level"
   label_capacity: "Battery capacity (kWh) *"
   custom_capacity: "Enter custom capacity"
+  variant_filter_placeholder: "Filter, e.g. AWD, Performance, Highland ..."
+  variant_filter_no_results: "No variant found."
   preset_capacity: "Choose from available capacities"
   capacity_corrected_hint: "Your entry ({old} kWh) has been adjusted to the verified net capacity ({new} kWh)."
   wltp_available: "WLTP values available"
