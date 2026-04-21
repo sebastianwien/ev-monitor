@@ -6,8 +6,9 @@ import com.evmonitor.application.CarImageService;
 import com.evmonitor.application.CarRequest;
 import com.evmonitor.application.CarResponse;
 import com.evmonitor.application.CarService;
-import com.evmonitor.domain.CapacityEntry;
 import com.evmonitor.domain.CarBrand;
+import com.evmonitor.infrastructure.persistence.JpaVehicleSpecificationRepository;
+import com.evmonitor.infrastructure.persistence.VehicleSpecificationEntity;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +36,7 @@ public class CarController {
 
     private final CarService carService;
     private final CarImageService carImageService;
+    private final JpaVehicleSpecificationRepository vehicleSpecificationRepository;
 
     @PostMapping
     public ResponseEntity<CarCreateResponse> createCar(@Valid @RequestBody CarRequest request, Authentication authentication) {
@@ -152,16 +154,34 @@ public class CarController {
     public ResponseEntity<List<ModelInfo>> getModelsForBrand(@PathVariable CarBrand brand) {
         List<ModelInfo> models = CarBrand.CarModel.byBrand(brand)
                 .stream()
-                .map(model -> new ModelInfo(
-                        model.name(),
-                        model.getDisplayName(),
-                        model.getCapacityEntries()
-                ))
+                .map(model -> {
+                    List<VehicleSpecificationEntity> specs =
+                            vehicleSpecificationRepository
+                                    .findByCarBrandAndCarModelAndWltpTypeAndRatingSourceOrderByBatteryCapacityKwhAsc(
+                                            brand.name(), model.name(), "COMBINED", "WLTP");
+
+                    List<CapacityOption> capacities;
+                    if (!specs.isEmpty()) {
+                        capacities = specs.stream()
+                                .map(s -> new CapacityOption(
+                                        s.getBatteryCapacityKwh().doubleValue(),
+                                        s.getVariantName(),
+                                        s.getId()))
+                                .collect(Collectors.toList());
+                    } else {
+                        capacities = model.getCapacityEntries().stream()
+                                .map(e -> new CapacityOption(e.kWh(), e.variantName(), null))
+                                .collect(Collectors.toList());
+                    }
+                    return new ModelInfo(model.name(), model.getDisplayName(), capacities);
+                })
                 .collect(Collectors.toList());
         return ResponseEntity.ok(models);
     }
 
     public record BrandInfo(String value, String label) {}
 
-    public record ModelInfo(String value, String label, List<CapacityEntry> capacities) {}
+    public record CapacityOption(double kWh, String variantName, UUID vehicleSpecificationId) {}
+
+    public record ModelInfo(String value, String label, List<CapacityOption> capacities) {}
 }

@@ -1,10 +1,29 @@
 import { ref, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { carService, type Car, type CarRequest, type BrandInfo, type ModelInfo, type CarCreateResponse, type BatterySohEntry } from '../api/carService'
+import { carService, type Car, type CarRequest, type BrandInfo, type ModelInfo, type CarCreateResponse, type BatterySohEntry, type CapacityOption } from '../api/carService'
 import { useCarStore } from '../stores/car'
 import { useCoinStore } from '../stores/coins'
 import { analytics } from '../services/analytics'
 import { useTeslaStatus } from './useTeslaStatus'
+
+export function resolveCapacityForCar(
+  car: Car,
+  capacities: CapacityOption[]
+): { selectedCapacity: number | null; useCustom: boolean; customCapacity: number | null; kwhCorrected: boolean } {
+  if (car.vehicleSpecificationId) {
+    const specMatch = capacities.find(c => c.vehicleSpecificationId === car.vehicleSpecificationId)
+    if (specMatch) return {
+      selectedCapacity: specMatch.kWh,
+      useCustom: false,
+      customCapacity: null,
+      kwhCorrected: specMatch.kWh !== car.batteryCapacityKwh,
+    }
+  }
+  if (capacities.some(c => c.kWh === car.batteryCapacityKwh)) {
+    return { selectedCapacity: car.batteryCapacityKwh, useCustom: false, customCapacity: null, kwhCorrected: false }
+  }
+  return { selectedCapacity: null, useCustom: true, customCapacity: car.batteryCapacityKwh, kwhCorrected: false }
+}
 
 export function useCarForm() {
   const { t } = useI18n()
@@ -35,6 +54,7 @@ export function useCarForm() {
   const batteryDegradationPercent = ref<number | null>(null)
   const hasHeatPump = ref(false)
   const isBusinessCar = ref(false)
+  const capacityWasCorrected = ref(false)
 
   // SoH History (kept here because resetForm touches it)
   const sohHistory = ref<BatterySohEntry[]>([])
@@ -55,6 +75,13 @@ export function useCarForm() {
   const finalCapacity = computed(() => {
     if (useCustomCapacity.value) return customCapacity.value
     return selectedCapacity.value
+  })
+
+  // vehicleSpecificationId der gewählten Kapazität - null bei Custom-Eingabe oder ohne Spec
+  const finalVehicleSpecificationId = computed<string | null>(() => {
+    if (useCustomCapacity.value || !selectedCapacity.value) return null
+    const cap = selectedModelCapacities.value.find(c => c.kWh === selectedCapacity.value)
+    return cap?.vehicleSpecificationId ?? null
   })
 
   const powerPs = computed(() => {
@@ -137,6 +164,7 @@ export function useCarForm() {
     batteryDegradationPercent.value = null
     hasHeatPump.value = false
     isBusinessCar.value = false
+    capacityWasCorrected.value = false
     editingCar.value = null
     showForm.value = false
     availableModels.value = []
@@ -160,13 +188,11 @@ export function useCarForm() {
     selectedModel.value = car.model
 
     const foundModel = availableModels.value.find(m => m.value === car.model)
-    if (foundModel && foundModel.capacities.some(c => c.kWh === car.batteryCapacityKwh)) {
-      selectedCapacity.value = car.batteryCapacityKwh
-      useCustomCapacity.value = false
-    } else {
-      customCapacity.value = car.batteryCapacityKwh
-      useCustomCapacity.value = true
-    }
+    const resolved = resolveCapacityForCar(car, foundModel?.capacities ?? [])
+    selectedCapacity.value = resolved.selectedCapacity
+    useCustomCapacity.value = resolved.useCustom
+    customCapacity.value = resolved.customCapacity
+    capacityWasCorrected.value = resolved.kwhCorrected
 
     year.value = car.year
     licensePlate.value = car.licensePlate
@@ -196,7 +222,8 @@ export function useCarForm() {
         batteryCapacityKwh: finalCapacity.value,
         powerKw: powerKw.value,
         batteryDegradationPercent: batteryDegradationPercent.value,
-        hasHeatPump: hasHeatPump.value
+        hasHeatPump: hasHeatPump.value,
+        vehicleSpecificationId: finalVehicleSpecificationId.value
       }
 
       if (editingCar.value) {
@@ -263,8 +290,9 @@ export function useCarForm() {
     powerKw, batteryDegradationPercent, hasHeatPump, isBusinessCar,
     // SoH (form state only - CRUD in useSohHistory)
     sohHistory, showSohAddForm, sohEditingEntry, sohPercent, sohDate,
-    // Computed
-    sortedBrands, isSonstige, selectedModelCapacities, finalCapacity, powerPs,
+    // Computed / flags
+    sortedBrands, isSonstige, selectedModelCapacities, finalCapacity, finalVehicleSpecificationId, powerPs,
+    capacityWasCorrected,
     // Actions
     fetchCars, fetchBrands, loadModelsForBrand, resetForm,
     openAddForm, openEditForm, submitForm, deleteCar, setActiveCar, getModelLabel,

@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.util.Optional;
+import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -19,6 +20,11 @@ public class PostgresVehicleSpecificationRepositoryImpl implements VehicleSpecif
         VehicleSpecificationEntity entity = toEntity(vehicleSpecification);
         VehicleSpecificationEntity savedEntity = jpaRepository.save(entity);
         return toDomain(savedEntity);
+    }
+
+    @Override
+    public Optional<VehicleSpecification> findById(UUID id) {
+        return jpaRepository.findById(id).map(this::toDomain);
     }
 
     @Override
@@ -81,6 +87,8 @@ public class PostgresVehicleSpecificationRepositoryImpl implements VehicleSpecif
         entity.setRatingSource(domain.getRatingSource().name());
         entity.setCreatedAt(domain.getCreatedAt());
         entity.setUpdatedAt(domain.getUpdatedAt());
+        entity.setVariantName(domain.getVariantName());
+        entity.setNetBatteryCapacityKwh(domain.getNetBatteryCapacityKwh());
         return entity;
     }
 
@@ -98,7 +106,9 @@ public class PostgresVehicleSpecificationRepositoryImpl implements VehicleSpecif
                 VehicleSpecification.WltpType.valueOf(entity.getWltpType()),
                 ratingSource,
                 entity.getCreatedAt(),
-                entity.getUpdatedAt()
+                entity.getUpdatedAt(),
+                entity.getVariantName(),
+                entity.getNetBatteryCapacityKwh()
         );
     }
 }

@@ -77,4 +77,7 @@ public class CarEntity {
 
     @Column(name = "has_heat_pump", nullable = false)
     private boolean heatPump;
+
+    @Column(name = "vehicle_specification_id")
+    private UUID vehicleSpecificationId;
 }

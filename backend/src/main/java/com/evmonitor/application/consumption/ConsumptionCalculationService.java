@@ -286,7 +286,14 @@ public class ConsumptionCalculationService {
      * the actual energy drawn, but the WLTP reference value stays tied to the nominal spec.
      */
     public BigDecimal lookupWltp(Car car) {
-        if (car.getModel() == null || car.getBatteryCapacityKwh() == null) return null;
+        if (car.getModel() == null) return null;
+        if (car.getVehicleSpecificationId() != null) {
+            return vehicleSpecificationRepository
+                    .findById(car.getVehicleSpecificationId())
+                    .map(VehicleSpecification::getOfficialConsumptionKwhPer100km)
+                    .orElse(null);
+        }
+        if (car.getBatteryCapacityKwh() == null) return null;
         return vehicleSpecificationRepository
                 .findByCarBrandAndModelAndCapacityAndType(
                         car.getModel().getBrand().name(),

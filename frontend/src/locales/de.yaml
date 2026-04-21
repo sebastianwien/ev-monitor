@@ -701,6 +701,7 @@ cars:
   label_capacity: "Batteriekapazität (kWh) *"
   custom_capacity: "Eigene Kapazität eingeben"
   preset_capacity: "Aus verfügbaren Kapazitäten wählen"
+  capacity_corrected_hint: "Deine Eingabe ({old} kWh) wurde auf den verifizierten Netto-Wert ({new} kWh) korrigiert."
   wltp_available: "WLTP-Werte verfügbar"
   epa_available: "EPA data available"
   wltp_range: "Reichweite"
@@ -1582,6 +1583,8 @@ announcements:
   kwh_primary_formula_v1_body: "Bisher wurde der Verbrauch über SoC-Prozente × Nennkapazität berechnet. Das BMS kalibriert seine Prozentanzeige aber auf die aktuelle Batteriekapazität - bei Akkus mit Degradation wich das von der Nennkapazität ab und ergab leicht überhöhte Werte. Jetzt wird direkt mit den gemessenen Kilowattstunden gerechnet, ergänzt um eine SoC-Level-Korrektur zwischen den Sessions. Bei älteren Batterien kann der Unterschied bis zu 2 kWh/100km betragen. Alle Werte wurden automatisch aktualisiert.<br><br>Außerdem habe ich jetzt erklärt, warum EV Monitor oft höher liegt als dein Bordcomputer - mit echten Zahlen und der vollständigen Energiekette vom Stromnetz bis zum Motor."
   spritmonitor_raw_refresh_v1_title: "SpritMonitor: Rohdaten nochmals holen"
   spritmonitor_raw_refresh_v1_body: "Beim SpritMonitor-Import gibt es jetzt einen neuen Button 'Rohdaten nochmals importieren'. Er holt das originale JSON erneut von Sprit-Monitor und aktualisiert es, ohne deine manuell korrigierten Werte (kWh, Kilometerstand etc.) zu überschreiben. Das ermöglicht es mir nachträglich Ladungen zu korrigieren und zu verbessern, da das Datenformat von SpritMonitor nicht vollständig dokumentiert ist."
+  net_capacity_v1_title: "Fahrzeugdatenbank aktualisiert"
+  net_capacity_v1_body: "Die Fahrzeugdatenbank wurde aktualisiert. Bei manchen Batterievarianten wurden die Netto-Kapazitätswerte korrigiert. Dadurch können sich Verbräuche minimal geändert haben."
 
 tax_export:
   title: "Steuernachweis Heimladen"

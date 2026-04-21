@@ -33,4 +33,11 @@ public interface JpaVehicleSpecificationRepository extends JpaRepository<Vehicle
         String carModel,
         String ratingSource
     );
+
+    List<VehicleSpecificationEntity> findByCarBrandAndCarModelAndWltpTypeAndRatingSourceOrderByBatteryCapacityKwhAsc(
+        String carBrand,
+        String carModel,
+        String wltpType,
+        String ratingSource
+    );
 }

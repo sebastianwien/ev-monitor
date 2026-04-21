@@ -167,6 +167,7 @@ const startImport = async () => {
           hasHeatPump: false,
           licensePlate: '', // Empty string (user can add later)
           trim: null,
+          vehicleSpecificationId: null,
         });
         carId = created.car.id;
         myCars.value.push(created.car);

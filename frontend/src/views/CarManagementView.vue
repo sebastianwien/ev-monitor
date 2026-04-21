@@ -22,6 +22,7 @@ const {
   powerKw, batteryDegradationPercent, hasHeatPump, isBusinessCar,
   sohHistory, showSohAddForm, sohEditingEntry, sohPercent, sohDate,
   sortedBrands, isSonstige, selectedModelCapacities, finalCapacity, powerPs,
+  capacityWasCorrected,
   fetchCars, fetchBrands, resetForm,
   openAddForm, openEditForm, submitForm, deleteCar, setActiveCar, getModelLabel,
 } = useCarForm()
@@ -184,7 +185,10 @@ const copyCarId = async (id: string) => {
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                   </svg>
                   <div>
-                    <p class="text-sm font-medium text-blue-900 dark:text-blue-300">{{ ratingSource === 'EPA' ? t('cars.epa_available') : t('cars.wltp_available') }}</p>
+                    <p class="text-sm font-medium text-blue-900 dark:text-blue-300">
+                      {{ ratingSource === 'EPA' ? t('cars.epa_available') : t('cars.wltp_available') }}
+                      <span v-if="wltpData.variantName" class="font-normal text-blue-700 dark:text-blue-400"> - {{ wltpData.variantName }}</span>
+                    </p>
                     <p class="text-sm text-blue-700 dark:text-blue-400 mt-1">
                       {{ t('cars.wltp_range') }}: <span class="font-semibold">{{ wltpData.officialRangeKm }} {{ distanceUnitLabel() }}</span>
                       | {{ t('cars.wltp_consumption') }}: <span class="font-semibold">{{ wltpData.officialConsumptionKwhPer100km }} {{ consumptionUnitLabel() }}</span>
@@ -622,6 +626,9 @@ const copyCarId = async (id: string) => {
                   {{ t('cars.preset_capacity') }}
                 </button>
               </div>
+              <p v-if="capacityWasCorrected" class="mt-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded px-3 py-2">
+                {{ t('cars.capacity_corrected_hint', { old: editingCar?.batteryCapacityKwh, new: selectedCapacity }) }}
+              </p>
             </div>
 
             <div>

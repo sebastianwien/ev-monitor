@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 public record CarRequest(
         @NotNull(message = "Model is required")
@@ -31,5 +32,7 @@ public record CarRequest(
         @DecimalMax(value = "50.0", message = "Battery degradation must be <= 50")
         BigDecimal batteryDegradationPercent,
 
-        boolean hasHeatPump) {
+        boolean hasHeatPump,
+
+        UUID vehicleSpecificationId) {
 }

@@ -20,13 +20,15 @@ public class VehicleSpecification {
     private final RatingSource ratingSource;
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
+    private final String variantName;
+    private final BigDecimal netBatteryCapacityKwh;
 
     public static VehicleSpecification createNew(String carBrand, String carModel, BigDecimal batteryCapacityKwh,
                                                   BigDecimal rangeKm, BigDecimal consumptionKwhPer100km,
                                                   WltpType cycleType, RatingSource ratingSource) {
         LocalDateTime now = LocalDateTime.now();
         return new VehicleSpecification(UUID.randomUUID(), carBrand, carModel, batteryCapacityKwh,
-                rangeKm, consumptionKwhPer100km, cycleType, ratingSource, now, now);
+                rangeKm, consumptionKwhPer100km, cycleType, ratingSource, now, now, null, null);
     }
 
     /** Backward-compat factory that defaults to WLTP. */

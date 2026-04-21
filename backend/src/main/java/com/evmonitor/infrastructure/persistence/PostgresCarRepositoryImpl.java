@@ -6,15 +6,16 @@ import com.evmonitor.domain.CarRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.math.BigDecimal;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
 public class PostgresCarRepositoryImpl implements CarRepository {
 
     private final JpaCarRepository jpaCarRepository;
+    private final JpaVehicleSpecificationRepository jpaVehicleSpecificationRepository;
 
     @Override
     public Car save(Car car) {
@@ -30,10 +31,8 @@ public class PostgresCarRepositoryImpl implements CarRepository {
 
     @Override
     public List<Car> findAllByUserId(UUID userId) {
-        return jpaCarRepository.findAllByUserId(userId)
-                .stream()
-                .map(this::toDomain)
-                .toList();
+        List<CarEntity> entities = jpaCarRepository.findAllByUserId(userId);
+        return toDomainList(entities);
     }
 
     @Override
@@ -43,9 +42,7 @@ public class PostgresCarRepositoryImpl implements CarRepository {
 
     @Override
     public List<Car> findAllByModel(CarBrand.CarModel model) {
-        return jpaCarRepository.findAllByModel(model).stream()
-                .map(this::toDomain)
-                .toList();
+        return toDomainList(jpaCarRepository.findAllByModel(model));
     }
 
     @Override
@@ -74,10 +71,42 @@ public class PostgresCarRepositoryImpl implements CarRepository {
         entity.setBatteryDegradationPercent(domain.getBatteryDegradationPercent());
         entity.setBusinessCar(domain.isBusinessCar());
         entity.setHeatPump(domain.isHeatPump());
+        entity.setVehicleSpecificationId(domain.getVehicleSpecificationId());
         return entity;
     }
 
+    /** Single-entity path: one extra query acceptable (used for save/findById). */
     private Car toDomain(CarEntity entity) {
+        BigDecimal specNetKwh = null;
+        if (entity.getVehicleSpecificationId() != null) {
+            specNetKwh = jpaVehicleSpecificationRepository
+                    .findById(entity.getVehicleSpecificationId())
+                    .map(VehicleSpecificationEntity::getNetBatteryCapacityKwh)
+                    .orElse(null);
+        }
+        return toDomain(entity, specNetKwh);
+    }
+
+    /** Batch path: single IN-query for all spec IDs, then map without extra round-trips. */
+    private List<Car> toDomainList(List<CarEntity> entities) {
+        Set<UUID> specIds = entities.stream()
+                .map(CarEntity::getVehicleSpecificationId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<UUID, BigDecimal> netKwhById = specIds.isEmpty() ? Map.of()
+                : jpaVehicleSpecificationRepository.findAllById(specIds).stream()
+                        .filter(s -> s.getNetBatteryCapacityKwh() != null)
+                        .collect(Collectors.toMap(
+                                VehicleSpecificationEntity::getId,
+                                VehicleSpecificationEntity::getNetBatteryCapacityKwh));
+        return entities.stream()
+                .map(e -> toDomain(e, e.getVehicleSpecificationId() != null
+                        ? netKwhById.get(e.getVehicleSpecificationId())
+                        : null))
+                .toList();
+    }
+
+    private Car toDomain(CarEntity entity, BigDecimal specNetKwh) {
         return Car.builder()
                 .id(entity.getId())
                 .userId(entity.getUserId())
@@ -98,6 +127,8 @@ public class PostgresCarRepositoryImpl implements CarRepository {
                 .batteryDegradationPercent(entity.getBatteryDegradationPercent())
                 .businessCar(entity.isBusinessCar())
                 .heatPump(entity.isHeatPump())
+                .vehicleSpecificationId(entity.getVehicleSpecificationId())
+                .specNetBatteryCapacityKwh(specNetKwh)
                 .build();
     }
 }
