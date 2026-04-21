@@ -1327,8 +1327,15 @@ tesla:
   pairing_err_status: Kunde inte ladda parningsstatus
   pairing_err_enable: Kunde inte aktivera telemetry
   pairing_err_disable: Kunde inte inaktivera telemetry
+  pairing_err_not_connected: Inte ansluten till Tesla ännu. Anslut Tesla först via knappen ovan.
   telemetry_live_title: Live-telemetri aktiv
   telemetry_live_desc: Laddningssessioner (hem + Supercharger) och resor registreras automatiskt - ingen manuell import behövs.
+  callback_error_close: Stäng
+  callback_error_retry: Anslut igen
+  callback_error_vin_linked_title: Fordon redan kopplat
+  callback_error_vin_linked_body: Det här fordonet är redan kopplat till ett annat EV Monitor-konto. Om du har flera konton, logga in med rätt konto. Om du inte har ett annat konto, kontakta supporten.
+  callback_error_unknown_title: Anslutning misslyckades
+  callback_error_unknown_body: Ett fel uppstod vid anslutning till Tesla. Försök igen. Om problemet kvarstår, kontakta supporten.
   confirm_disconnect: Är du säker?
   delete_modal_title: Ta bort alla Tesla-importer?
   delete_modal_desc: Du är på väg att radera <strong>ALLA laddningssessioner som importerats via Tesla Fleet API</strong>. Manuellt skapade loggar kommer att finnas kvar. Denna åtgärd <strong>kan inte ångras</strong>.

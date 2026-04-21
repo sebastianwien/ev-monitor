@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ArrowTopRightOnSquareIcon, ArrowPathIcon, XMarkIcon, CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 import teslaFleetService, { type TeslaConnectionStatus, type TeslaFleetSyncResult, type TeslaPairingStatus } from '@/api/teslaFleetService'
@@ -10,7 +10,9 @@ import { useAuthStore } from '@/stores/auth'
 import CarSelectDropdown from '../car/CarSelectDropdown.vue'
 
 const route = useRoute()
+const router = useRouter()
 const { t } = useI18n()
+const callbackErrorCode = ref<string | null>(null)
 
 const status = ref<TeslaConnectionStatus>({ connected: false, vehicleName: null, carId: null, lastSyncAt: null, autoImportEnabled: false, geocodingInProgress: false, vehicleState: null, suspendAfterIdleMinutes: 15 })
 const suspendMinutesInput = ref(15)
@@ -47,7 +49,8 @@ onMounted(async () => {
     await loadStatus()
   }
   if (route.query['tesla-error']) {
-    error.value = String(route.query['tesla-error'])
+    callbackErrorCode.value = String(route.query['tesla-error'])
+    router.replace({ query: { ...route.query, 'tesla-error': undefined } })
   }
 })
 
@@ -83,7 +86,11 @@ async function loadPairingStatus() {
   try {
     pairingStatus.value = await teslaFleetService.getPairingStatus()
   } catch (e: any) {
-    pairingError.value = e.response?.data?.message || t('tesla.pairing_err_status')
+    if (e.response?.status === 404) {
+      pairingError.value = t('tesla.pairing_err_not_connected')
+    } else {
+      pairingError.value = e.response?.data?.message || t('tesla.pairing_err_status')
+    }
   }
 }
 
@@ -214,6 +221,15 @@ async function handleDeleteAllImports() {
 function formatDate(d: string) {
   return new Date(d).toLocaleString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
+
+function closeCallbackError() {
+  callbackErrorCode.value = null
+}
+
+async function retryConnect() {
+  closeCallbackError()
+  await handleConnect()
+}
 </script>
 
 <template>
@@ -303,12 +319,6 @@ function formatDate(d: string) {
         <!-- Telemetry management (disable) -->
         <div class="space-y-2">
           <div v-if="pairingStatus" class="bg-gray-50 dark:bg-gray-900 rounded-lg p-3 text-xs space-y-1">
-            <div class="flex items-center justify-between">
-              <span class="text-gray-600 dark:text-gray-400">{{ t('tesla.pairing_key_label') }}</span>
-              <span :class="pairingStatus.keyPaired ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'" class="font-medium">
-                {{ pairingStatus.keyPaired ? t('tesla.pairing_key_ok') : t('tesla.pairing_key_missing') }}
-              </span>
-            </div>
             <div class="flex items-center justify-between">
               <span class="text-gray-600 dark:text-gray-400">{{ t('tesla.pairing_config_label') }}</span>
               <span class="text-green-600 dark:text-green-400 font-medium">{{ t('tesla.pairing_config_ok') }}</span>
@@ -487,9 +497,50 @@ function formatDate(d: string) {
     </template>
   </div>
 
+  <!-- Tesla callback error modal -->
+  <div
+    v-if="callbackErrorCode"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="callback-error-title"
+    class="fixed inset-0 flex items-center justify-center z-50 p-4"
+    style="backdrop-filter: blur(8px); background-color: rgba(0, 0, 0, 0.3);"
+    @click.self="closeCallbackError"
+  >
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4" @click.stop>
+      <div class="flex flex-col items-center gap-2 text-center">
+        <ExclamationTriangleIcon class="w-8 h-8 text-amber-500" />
+        <h3 id="callback-error-title" class="text-xl font-bold text-gray-900 dark:text-white">
+          {{ callbackErrorCode === 'VIN_ALREADY_LINKED' ? t('tesla.callback_error_vin_linked_title') : t('tesla.callback_error_unknown_title') }}
+        </h3>
+      </div>
+      <p class="text-gray-700 dark:text-gray-300 text-sm text-center">
+        {{ callbackErrorCode === 'VIN_ALREADY_LINKED' ? t('tesla.callback_error_vin_linked_body') : t('tesla.callback_error_unknown_body') }}
+      </p>
+      <div class="flex gap-3">
+        <button
+          @click="closeCallbackError"
+          class="flex-1 px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-semibold rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+        >
+          {{ t('tesla.callback_error_close') }}
+        </button>
+        <button
+          v-if="callbackErrorCode !== 'VIN_ALREADY_LINKED'"
+          @click="retryConnect"
+          class="flex-1 px-4 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-semibold rounded-lg hover:opacity-90 transition"
+        >
+          {{ t('tesla.callback_error_retry') }}
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Delete all confirmation modal -->
   <div
     v-if="showDeleteAllConfirm"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="delete-all-title"
     class="fixed inset-0 flex items-center justify-center z-50 p-4"
     style="backdrop-filter: blur(8px); background-color: rgba(0, 0, 0, 0.3);"
     @click.self="showDeleteAllConfirm = false"
@@ -497,7 +548,7 @@ function formatDate(d: string) {
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4" @click.stop>
       <div class="flex flex-col items-center gap-2 text-center">
         <ExclamationTriangleIcon class="w-8 h-8 text-red-600" />
-        <h3 class="text-xl font-bold text-red-600">{{ t('tesla.delete_modal_title') }}</h3>
+        <h3 id="delete-all-title" class="text-xl font-bold text-red-600">{{ t('tesla.delete_modal_title') }}</h3>
       </div>
       <p class="text-gray-700 dark:text-gray-300 text-sm" v-html="t('tesla.delete_modal_desc')" />
       <div v-if="deleteAllError" class="p-3 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 rounded-lg border border-red-300 dark:border-red-700 text-sm">
