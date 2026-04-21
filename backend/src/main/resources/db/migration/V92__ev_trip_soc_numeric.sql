@@ -1,0 +1,3 @@
+ALTER TABLE ev_trip
+    ALTER COLUMN soc_start TYPE NUMERIC(5,2) USING soc_start::NUMERIC(5,2),
+    ALTER COLUMN soc_end   TYPE NUMERIC(5,2) USING soc_end::NUMERIC(5,2);

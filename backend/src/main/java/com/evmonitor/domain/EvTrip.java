@@ -40,11 +40,11 @@ public class EvTrip {
     @Column(name = "trip_ended_at")
     private OffsetDateTime tripEndedAt;
 
-    @Column(name = "soc_start")
-    private Integer socStart;
+    @Column(name = "soc_start", precision = 5, scale = 2)
+    private BigDecimal socStart;
 
-    @Column(name = "soc_end")
-    private Integer socEnd;
+    @Column(name = "soc_end", precision = 5, scale = 2)
+    private BigDecimal socEnd;
 
     @Column(name = "odometer_start_km", precision = 10, scale = 1)
     private BigDecimal odometerStartKm;

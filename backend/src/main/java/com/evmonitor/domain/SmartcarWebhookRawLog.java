@@ -48,8 +48,8 @@ public class SmartcarWebhookRawLog {
     @Column(name = "signals", nullable = false)
     private String signals;
 
-    @Column(name = "soc_percent")
-    private Integer socPercent;
+    @Column(name = "soc_percent", precision = 5, scale = 2)
+    private BigDecimal socPercent;
 
     @Column(name = "odometer_km", precision = 10, scale = 1)
     private BigDecimal odometerKm;

@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -47,8 +48,8 @@ class InternalTripControllerTest extends AbstractIntegrationTest {
         assertTrue(saved.isPresent());
         assertEquals("TESLA_LIVE", saved.get().getDataSource());
         assertEquals(carId, saved.get().getCarId());
-        assertEquals(82, saved.get().getSocStart());
-        assertEquals(71, saved.get().getSocEnd());
+        assertEquals(0, new BigDecimal("82").compareTo(saved.get().getSocStart()));
+        assertEquals(0, new BigDecimal("71").compareTo(saved.get().getSocEnd()));
         assertEquals("COMPLETED", saved.get().getStatus());
     }
 

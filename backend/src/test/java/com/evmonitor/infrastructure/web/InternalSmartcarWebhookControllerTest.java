@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -89,7 +90,7 @@ class InternalSmartcarWebhookControllerTest extends AbstractIntegrationTest {
         var saved = repo.findByEventId("event-abc-fields");
         assertTrue(saved.isPresent());
         assertEquals("vehicle-sig", saved.get().getSmartcarVehicleId());
-        assertEquals(78, saved.get().getSocPercent());
+        assertEquals(0, new BigDecimal("78").compareTo(saved.get().getSocPercent()));
         assertEquals("u2ey3d7q", saved.get().getLocationGeohash());
         assertEquals("LIVE", saved.get().getMode());
     }

@@ -10,7 +10,7 @@ public record InternalSmartcarWebhookLogRequest(
         Integer year,
         String triggersJson,
         String signalsJson,
-        Integer socPercent,
+        BigDecimal socPercent,
         BigDecimal odometerKm,
         String locationGeohash,
         BigDecimal outsideTempCelsius,

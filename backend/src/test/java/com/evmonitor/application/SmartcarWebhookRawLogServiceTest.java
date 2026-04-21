@@ -30,7 +30,7 @@ class SmartcarWebhookRawLogServiceTest {
         InternalSmartcarWebhookLogRequest request = new InternalSmartcarWebhookLogRequest(
                 "event-123", "vehicle-456", "Tesla", "Model 3", 2020,
                 "[{\"type\":\"SIGNAL_UPDATED\"}]", "[{\"code\":\"odometer-traveleddistance\"}]",
-                78, new BigDecimal("78432.0"), "u2ey3d7q", new BigDecimal("14.5"), "LIVE"
+                new BigDecimal("55.83"), new BigDecimal("78432.0"), "u2ey3d7q", new BigDecimal("14.5"), "LIVE"
         );
 
         service.log(request);
@@ -43,7 +43,7 @@ class SmartcarWebhookRawLogServiceTest {
         assertEquals("Tesla", saved.getMake());
         assertEquals("Model 3", saved.getModel());
         assertEquals(2020, saved.getYear());
-        assertEquals(78, saved.getSocPercent());
+        assertEquals(new BigDecimal("55.83"), saved.getSocPercent());
         assertEquals(new BigDecimal("78432.0"), saved.getOdometerKm());
         assertEquals("u2ey3d7q", saved.getLocationGeohash());
         assertEquals(new BigDecimal("14.5"), saved.getOutsideTempCelsius());
