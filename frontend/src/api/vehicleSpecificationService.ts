@@ -5,10 +5,14 @@ export interface VehicleSpecification {
     carBrand: string;
     carModel: string;
     batteryCapacityKwh: number;
+    netBatteryCapacityKwh: number | null;
     officialRangeKm: number;
     officialConsumptionKwhPer100km: number;
     wltpType: string;
+    ratingSource: string;
     variantName: string | null;
+    availableFrom: string | null;
+    availableTo: string | null;
     createdAt: string;
     updatedAt: string;
 }
@@ -47,6 +51,16 @@ export const vehicleSpecificationService = {
             if (error.response?.status === 404) {
                 return null;
             }
+            throw error;
+        }
+    },
+
+    async lookupById(id: string): Promise<VehicleSpecification | null> {
+        try {
+            const response = await api.get(`/vehicle-specifications/${id}`);
+            return response.data;
+        } catch (error: any) {
+            if (error.response?.status === 404) return null;
             throw error;
         }
     },

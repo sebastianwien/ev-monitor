@@ -11,7 +11,7 @@ import java.util.UUID;
 @Repository
 public interface JpaVehicleSpecificationRepository extends JpaRepository<VehicleSpecificationEntity, UUID> {
 
-    Optional<VehicleSpecificationEntity> findByCarBrandAndCarModelAndBatteryCapacityKwhAndWltpTypeAndRatingSource(
+    List<VehicleSpecificationEntity> findByCarBrandAndCarModelAndBatteryCapacityKwhAndWltpTypeAndRatingSource(
         String carBrand,
         String carModel,
         BigDecimal batteryCapacityKwh,

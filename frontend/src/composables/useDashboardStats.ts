@@ -127,7 +127,9 @@ export function useDashboardStats() {
         model: car.model,
         batteryCapacityKwh: car.batteryCapacityKwh
       }
-      wltp.value = await vehicleSpecificationService.lookup(car.brand, car.model, car.batteryCapacityKwh)
+      wltp.value = car.vehicleSpecificationId
+        ? await vehicleSpecificationService.lookupById(car.vehicleSpecificationId)
+        : await vehicleSpecificationService.lookup(car.brand, car.model, car.batteryCapacityKwh)
     } catch {
       wltp.value = null
     }

@@ -59,6 +59,10 @@ public class VehicleSpecificationService {
         return lookup(carBrand, carModel, batteryCapacityKwh, "WLTP");
     }
 
+    public Optional<VehicleSpecificationResponse> lookupById(UUID id) {
+        return vehicleSpecificationRepository.findById(id).map(VehicleSpecificationResponse::fromDomain);
+    }
+
     /**
      * Create new WLTP data entry and award coins to the user.
      * Returns the created specification and the number of coins awarded.

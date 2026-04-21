@@ -153,7 +153,7 @@ const copyCarId = async (id: string) => {
                 <button
                   type="button"
                   @click="useCustomCapacity = true; selectedCapacity = null"
-                  class="text-sm text-indigo-600 hover:text-indigo-700 underline">
+                  class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 underline">
                   {{ t('cars.custom_capacity') }}
                 </button>
               </div>
@@ -613,7 +613,7 @@ const copyCarId = async (id: string) => {
                   </button>
                 </div>
                 <button type="button" @click="useCustomCapacity = true; selectedCapacity = null"
-                  class="text-sm text-indigo-600 hover:text-indigo-700 underline">
+                  class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 underline">
                   {{ t('cars.custom_capacity') }}
                 </button>
               </div>

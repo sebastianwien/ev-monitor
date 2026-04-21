@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -13,7 +14,7 @@ import java.util.UUID;
 @Table(
     name = "vehicle_specification",
     uniqueConstraints = @UniqueConstraint(
-        columnNames = {"car_brand", "car_model", "battery_capacity_kwh", "wltp_type", "rating_source"}
+        columnNames = {"car_brand", "car_model", "battery_capacity_kwh", "variant_name", "wltp_type", "rating_source"}
     )
 )
 @Getter
@@ -51,9 +52,15 @@ public class VehicleSpecificationEntity {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    @Column(name = "variant_name")
-    private String variantName;
+    @Column(name = "variant_name", nullable = false)
+    private String variantName = "";
 
     @Column(name = "net_battery_capacity_kwh", precision = 10, scale = 2)
     private BigDecimal netBatteryCapacityKwh;
+
+    @Column(name = "available_from")
+    private LocalDate availableFrom;
+
+    @Column(name = "available_to")
+    private LocalDate availableTo;
 }

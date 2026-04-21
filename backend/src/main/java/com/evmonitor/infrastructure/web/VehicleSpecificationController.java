@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.Optional;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/vehicle-specifications")
@@ -24,6 +25,13 @@ import java.util.Optional;
 public class VehicleSpecificationController {
 
     private final VehicleSpecificationService vehicleSpecificationService;
+
+    @GetMapping("/{id}")
+    public ResponseEntity<VehicleSpecificationResponse> getById(@PathVariable UUID id) {
+        return vehicleSpecificationService.lookupById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
 
     /**
      * Lookup official rating data for a specific vehicle configuration.
