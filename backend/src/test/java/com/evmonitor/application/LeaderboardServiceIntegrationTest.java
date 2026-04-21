@@ -1,5 +1,7 @@
 package com.evmonitor.application;
 
+import com.evmonitor.application.ChargeCountStats;
+import com.evmonitor.application.TopCpoResult;
 import com.evmonitor.domain.LeaderboardCategory;
 import com.evmonitor.infrastructure.external.ExternalJokeService;
 import com.evmonitor.infrastructure.external.FuelPriceService;
@@ -63,7 +65,7 @@ class LeaderboardServiceIntegrationTest {
         );
         when(queryRepository.getKwhRanking(any(), any())).thenReturn(rows);
         when(queryRepository.getTotalKwhThisMonth(any(), any())).thenReturn(BigDecimal.ZERO);
-        when(queryRepository.getTotalChargesThisMonth(any(), any())).thenReturn(0L);
+        when(queryRepository.getChargeCountStats(any(), any())).thenReturn(new ChargeCountStats(0, 0));
 
         var result = leaderboardService.getLeaderboard(LeaderboardCategory.MONTHLY_KWH, null);
 
@@ -188,7 +190,7 @@ class LeaderboardServiceIntegrationTest {
         when(queryRepository.getIceChargerRanking(any(), any())).thenReturn(List.of());
         when(queryRepository.getPowerChargerRanking(any(), any())).thenReturn(List.of());
         when(queryRepository.getTotalKwhThisMonth(any(), any())).thenReturn(new BigDecimal("1234.5"));
-        when(queryRepository.getTotalChargesThisMonth(any(), any())).thenReturn(42L);
+        when(queryRepository.getChargeCountStats(any(), any())).thenReturn(new ChargeCountStats(42, 30));
         when(queryRepository.getTotalChargeDurationMinutes(any(), any())).thenReturn(1200L);
         when(queryRepository.getTotalCostEur(any(), any())).thenReturn(new BigDecimal("150.00"));
         when(fuelPriceService.getAvgFuelPrice()).thenReturn(1.80);
@@ -210,7 +212,7 @@ class LeaderboardServiceIntegrationTest {
         when(queryRepository.getIceChargerRanking(any(), any())).thenReturn(List.of());
         when(queryRepository.getPowerChargerRanking(any(), any())).thenReturn(List.of());
         when(queryRepository.getTotalKwhThisMonth(any(), any())).thenReturn(BigDecimal.ZERO);
-        when(queryRepository.getTotalChargesThisMonth(any(), any())).thenReturn(0L);
+        when(queryRepository.getChargeCountStats(any(), any())).thenReturn(new ChargeCountStats(0, 0));
 
         var items = leaderboardService.getTicker();
 
@@ -274,6 +276,75 @@ class LeaderboardServiceIntegrationTest {
         verify(coinLogService, never()).awardCoins(any(), any(), anyInt(), any());
     }
 
+    // ---- Ticker: Heimladen-Quote ----
+
+    @Test
+    void getTicker_includesHomeChargingRatioStat_whenTotalChargesPresent() {
+        stubAllRankingsEmpty();
+        when(queryRepository.getTotalKwhThisMonth(any(), any())).thenReturn(BigDecimal.ZERO);
+        when(queryRepository.getChargeCountStats(any(), any())).thenReturn(new ChargeCountStats(100, 75));
+        when(queryRepository.getTotalChargeDurationMinutes(any(), any())).thenReturn(0L);
+        when(queryRepository.getTotalCostEur(any(), any())).thenReturn(BigDecimal.ZERO);
+
+        var items = leaderboardService.getTicker();
+
+        assertThat(items).anyMatch(i -> "STAT".equals(i.type()) && i.text().contains("75%") && i.text().contains("Zuhause"));
+    }
+
+    @Test
+    void getTicker_omitsHomeChargingRatioStat_whenNoCharges() {
+        stubAllRankingsEmpty();
+        when(queryRepository.getTotalKwhThisMonth(any(), any())).thenReturn(BigDecimal.ZERO);
+        when(queryRepository.getChargeCountStats(any(), any())).thenReturn(new ChargeCountStats(0, 0));
+        when(queryRepository.getTotalChargeDurationMinutes(any(), any())).thenReturn(0L);
+        when(queryRepository.getTotalCostEur(any(), any())).thenReturn(BigDecimal.ZERO);
+
+        var items = leaderboardService.getTicker();
+
+        assertThat(items).noneMatch(i -> i.text().contains("Zuhause"));
+    }
+
+    // ---- Ticker: Top CPO ----
+
+    @Test
+    void getTicker_includesTopPublicCpoStat_whenAboveThreshold() {
+        stubAllRankingsEmpty();
+        when(queryRepository.getTotalKwhThisMonth(any(), any())).thenReturn(BigDecimal.ZERO);
+        when(queryRepository.getChargeCountStats(any(), any())).thenReturn(new ChargeCountStats(0, 0));
+        when(queryRepository.getTotalChargeDurationMinutes(any(), any())).thenReturn(0L);
+        when(queryRepository.getTotalCostEur(any(), any())).thenReturn(BigDecimal.ZERO);
+        when(queryRepository.getTopPublicCpo(any(), any())).thenReturn(new TopCpoResult("EnBW", 15L));
+
+        var items = leaderboardService.getTicker();
+
+        assertThat(items).anyMatch(i -> "STAT".equals(i.type()) && i.text().contains("EnBW") && i.text().contains("15"));
+    }
+
+    @Test
+    void getTicker_omitsTopPublicCpoStat_whenNull() {
+        stubAllRankingsEmpty();
+        when(queryRepository.getTotalKwhThisMonth(any(), any())).thenReturn(BigDecimal.ZERO);
+        when(queryRepository.getChargeCountStats(any(), any())).thenReturn(new ChargeCountStats(0, 0));
+        when(queryRepository.getTotalChargeDurationMinutes(any(), any())).thenReturn(0L);
+        when(queryRepository.getTotalCostEur(any(), any())).thenReturn(BigDecimal.ZERO);
+        when(queryRepository.getTopPublicCpo(any(), any())).thenReturn(null);
+
+        var items = leaderboardService.getTicker();
+
+        assertThat(items).noneMatch(i -> i.text().contains("beliebteste") || i.text().contains("Ladeanbieter"));
+    }
+
+    private void stubAllRankingsEmpty() {
+        when(queryRepository.getKwhRanking(any(), any())).thenReturn(List.of());
+        when(queryRepository.getChargesRanking(any(), any())).thenReturn(List.of());
+        when(queryRepository.getDistanceRanking(any(), any())).thenReturn(List.of());
+        when(queryRepository.getCoinsRanking(any(), any())).thenReturn(List.of());
+        when(queryRepository.getCheapestRanking(any(), any())).thenReturn(List.of());
+        when(queryRepository.getNightOwlRanking(any(), any())).thenReturn(List.of());
+        when(queryRepository.getIceChargerRanking(any(), any())).thenReturn(List.of());
+        when(queryRepository.getPowerChargerRanking(any(), any())).thenReturn(List.of());
+    }
+
     // ---- MONTHLY_CHEAPEST: kwhTotal + sessionCount in DTO ----
 
     @Test
@@ -292,7 +363,7 @@ class LeaderboardServiceIntegrationTest {
     void getLeaderboard_nonCheapestEntry_hasNullKwhTotalAndSessionCount() {
         when(queryRepository.getKwhRanking(any(), any())).thenReturn(List.of(row(userA, "anna", "80.0")));
         when(queryRepository.getTotalKwhThisMonth(any(), any())).thenReturn(BigDecimal.ZERO);
-        when(queryRepository.getTotalChargesThisMonth(any(), any())).thenReturn(0L);
+        when(queryRepository.getChargeCountStats(any(), any())).thenReturn(new ChargeCountStats(0, 0));
 
         var result = leaderboardService.getLeaderboard(LeaderboardCategory.MONTHLY_KWH, null);
 

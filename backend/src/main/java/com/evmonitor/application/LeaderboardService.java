@@ -162,9 +162,12 @@ public class LeaderboardService {
 
         // Community stats
         BigDecimal totalKwh = queryRepository.getTotalKwhThisMonth(startOfMonth, endOfToday);
-        long totalCharges = queryRepository.getTotalChargesThisMonth(startOfMonth, endOfToday);
+        ChargeCountStats chargeCounts = queryRepository.getChargeCountStats(startOfMonth, endOfToday);
+        long totalCharges = chargeCounts.total();
+        long homeCharges = chargeCounts.home();
         long totalMinutes = queryRepository.getTotalChargeDurationMinutes(startOfMonth, endOfToday);
         BigDecimal totalCostEur = queryRepository.getTotalCostEur(startOfMonth, endOfToday);
+        TopCpoResult topCpo = queryRepository.getTopPublicCpo(startOfMonth, endOfToday);
         double kwhDouble = totalKwh.doubleValue();
 
         // Basis-Stat
@@ -241,6 +244,22 @@ public class LeaderboardService {
                     : String.format("%.0f Stunden", totalMinutes / 60.0);
             items.add(new TickerItemDTO("STAT",
                     "Unsere Community hat im " + month + " insgesamt " + ladeText + " am Stueck geladen",
+                    "bolt"));
+        }
+
+        // Heimladen-Quote
+        if (totalCharges > 0) {
+            long homePercent = Math.round(homeCharges * 100.0 / totalCharges);
+            items.add(new TickerItemDTO("STAT",
+                    homePercent + "% aller Ladevorgänge im " + month + " fanden Zuhause statt",
+                    "bolt"));
+        }
+
+        // Beliebtester öffentlicher Ladeanbieter
+        if (topCpo != null) {
+            items.add(new TickerItemDTO("STAT",
+                    "Beliebtester öffentlicher Ladeanbieter im " + month + ": " + topCpo.cpoName()
+                            + " mit " + topCpo.count() + " Ladevorgängen",
                     "bolt"));
         }
 

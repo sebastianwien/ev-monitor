@@ -1,6 +1,8 @@
 package com.evmonitor.infrastructure.persistence;
 
+import com.evmonitor.application.ChargeCountStats;
 import com.evmonitor.application.LeaderboardRankRow;
+import com.evmonitor.application.TopCpoResult;
 import com.evmonitor.domain.CarBrand;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -245,9 +247,10 @@ public class LeaderboardQueryRepository {
         return result instanceof BigDecimal bd ? bd : new BigDecimal(result.toString());
     }
 
-    public long getTotalChargesThisMonth(LocalDateTime start, LocalDateTime endExclusive) {
-        Object result = em.createNativeQuery("""
-                SELECT COUNT(e.id)
+    public ChargeCountStats getChargeCountStats(LocalDateTime start, LocalDateTime endExclusive) {
+        Object[] row = (Object[]) em.createNativeQuery("""
+                SELECT COUNT(e.id),
+                       COUNT(e.id) FILTER (WHERE e.is_public_charging = false)
                 FROM ev_log e
                 WHERE e.include_in_statistics = true
                   AND e.logged_at >= :start
@@ -256,7 +259,7 @@ public class LeaderboardQueryRepository {
                 .setParameter("start", start)
                 .setParameter("end", endExclusive)
                 .getSingleResult();
-        return ((Number) result).longValue();
+        return new ChargeCountStats(((Number) row[0]).longValue(), ((Number) row[1]).longValue());
     }
 
     public long getTotalChargeDurationMinutes(LocalDateTime start, LocalDateTime endExclusive) {
@@ -286,6 +289,29 @@ public class LeaderboardQueryRepository {
                 .setParameter("end", endExclusive)
                 .getSingleResult();
         return result instanceof BigDecimal bd ? bd : new BigDecimal(result.toString());
+    }
+
+    public TopCpoResult getTopPublicCpo(LocalDateTime start, LocalDateTime endExclusive) {
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = em.createNativeQuery("""
+                SELECT e.cpo_name, COUNT(e.id) AS cnt
+                FROM ev_log e
+                WHERE e.include_in_statistics = true
+                  AND e.is_public_charging = true
+                  AND e.cpo_name IS NOT NULL
+                  AND e.logged_at >= :start
+                  AND e.logged_at < :end
+                GROUP BY e.cpo_name
+                HAVING COUNT(e.id) >= 3
+                ORDER BY cnt DESC
+                LIMIT 1
+                """)
+                .setParameter("start", start)
+                .setParameter("end", endExclusive)
+                .getResultList();
+        if (rows.isEmpty()) return null;
+        Object[] row = rows.get(0);
+        return new TopCpoResult((String) row[0], ((Number) row[1]).longValue());
     }
 
     // ---- Helpers ----
