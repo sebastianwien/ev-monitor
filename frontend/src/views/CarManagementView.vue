@@ -18,10 +18,12 @@ const {
   cars, availableModels, loading, error, showForm, editingCar,
   showToast, toastMessage, teslaStatus,
   selectedBrand, selectedModel, year, licensePlate, trim,
-  selectedCapacity, customCapacity, useCustomCapacity,
+  selectedCapacity, selectedSpecId, selectedTrimLevel, customCapacity, useCustomCapacity,
   powerKw, batteryDegradationPercent, hasHeatPump, isBusinessCar,
   sohHistory, showSohAddForm, sohEditingEntry, sohPercent, sohDate,
   sortedBrands, isSonstige, selectedModelCapacities, finalCapacity, powerPs,
+  isGroupedByTrim, trimGroups, visibleOptionsForTrim, formatPeriod,
+  selectTrimGroup,
   capacityWasCorrected,
   fetchCars, fetchBrands, resetForm,
   openAddForm, openEditForm, submitForm, deleteCar, setActiveCar, getModelLabel,
@@ -149,33 +151,48 @@ const filteredCapacities = computed(() => {
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ t('cars.label_capacity') }}</label>
 
               <div v-if="!useCustomCapacity" class="space-y-2">
-                <input
-                  v-if="selectedModelCapacities.length > VARIANT_FILTER_THRESHOLD"
-                  v-model="variantFilter"
-                  type="text"
-                  :placeholder="t('cars.variant_filter_placeholder')"
-                  class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100 text-sm" />
-                <div class="flex gap-2 flex-wrap">
-                  <button
-                    v-for="capacity in filteredCapacities"
-                    :key="capacity.vehicleSpecificationId ?? capacity.kWh"
-                    type="button"
-                    @click="selectedCapacity = capacity.kWh"
-                    :class="[
-                      'px-4 py-2 rounded-md text-sm font-medium transition',
-                      selectedCapacity === capacity.kWh
-                        ? 'bg-indigo-600 text-white shadow-md'
-                        : 'bg-indigo-100 dark:bg-gray-600 text-indigo-700 dark:text-white hover:bg-indigo-200 dark:hover:bg-gray-500'
-                    ]">
-                    {{ capacity.variantName ? `${capacity.variantName} · ${capacity.kWh} kWh` : `${capacity.kWh} kWh` }}
-                  </button>
-                  <p v-if="filteredCapacities.length === 0" class="text-sm text-gray-500 dark:text-gray-400">
-                    {{ t('cars.variant_filter_no_results') }}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  @click="useCustomCapacity = true; selectedCapacity = null"
+                <template v-if="isGroupedByTrim">
+                  <div class="flex gap-2 flex-wrap">
+                    <button v-for="group in trimGroups" :key="group.trimLevel" type="button"
+                      @click="selectTrimGroup(group.trimLevel)"
+                      :class="['px-4 py-2 rounded-md text-sm font-medium transition',
+                        selectedTrimLevel === group.trimLevel
+                          ? 'bg-indigo-600 text-white shadow-md'
+                          : 'bg-indigo-100 dark:bg-gray-600 text-indigo-700 dark:text-white hover:bg-indigo-200 dark:hover:bg-gray-500']">
+                      {{ group.trimLevel }}
+                    </button>
+                  </div>
+                  <div v-if="visibleOptionsForTrim.length > 1" class="flex gap-2 flex-wrap pl-3 border-l-2 border-indigo-200 dark:border-indigo-700">
+                    <button v-for="option in visibleOptionsForTrim" :key="option.vehicleSpecificationId ?? option.kWh" type="button"
+                      @click="selectedCapacity = option.kWh; selectedSpecId = option.vehicleSpecificationId"
+                      :class="['px-3 py-1.5 rounded-md text-sm font-medium transition',
+                        selectedSpecId === option.vehicleSpecificationId
+                          ? 'bg-indigo-600 text-white shadow-md'
+                          : 'bg-indigo-50 dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-gray-600']">
+                      {{ formatPeriod(option.availableFrom, option.availableTo, t('cars.since')) }}
+                    </button>
+                  </div>
+                </template>
+                <template v-else>
+                  <input v-if="selectedModelCapacities.length > VARIANT_FILTER_THRESHOLD" v-model="variantFilter" type="text"
+                    :placeholder="t('cars.variant_filter_placeholder')"
+                    class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100 text-sm" />
+                  <div class="flex gap-2 flex-wrap">
+                    <button v-for="capacity in filteredCapacities" :key="capacity.vehicleSpecificationId ?? capacity.kWh" type="button"
+                      @click="selectedCapacity = capacity.kWh; selectedSpecId = capacity.vehicleSpecificationId"
+                      :class="['px-4 py-2 rounded-md text-sm font-medium transition',
+                        (capacity.vehicleSpecificationId ? selectedSpecId === capacity.vehicleSpecificationId : selectedCapacity === capacity.kWh)
+                          ? 'bg-indigo-600 text-white shadow-md'
+                          : 'bg-indigo-100 dark:bg-gray-600 text-indigo-700 dark:text-white hover:bg-indigo-200 dark:hover:bg-gray-500']">
+                      {{ capacity.variantName ? `${capacity.variantName} · ${capacity.kWh} kWh` : `${capacity.kWh} kWh` }}
+                    </button>
+                    <p v-if="filteredCapacities.length === 0" class="text-sm text-gray-500 dark:text-gray-400">
+                      {{ t('cars.variant_filter_no_results') }}
+                    </p>
+                  </div>
+                </template>
+                <button type="button"
+                  @click="useCustomCapacity = true; selectedCapacity = null; selectedSpecId = null; selectedTrimLevel = null"
                   class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 underline">
                   {{ t('cars.custom_capacity') }}
                 </button>
@@ -627,24 +644,48 @@ const filteredCapacities = computed(() => {
             <div v-if="selectedModel" class="md:col-span-2">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ t('cars.label_capacity') }}</label>
               <div v-if="!useCustomCapacity" class="space-y-2">
-                <input
-                  v-if="selectedModelCapacities.length > VARIANT_FILTER_THRESHOLD"
-                  v-model="variantFilter"
-                  type="text"
-                  :placeholder="t('cars.variant_filter_placeholder')"
-                  class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100 text-sm" />
-                <div class="flex gap-2 flex-wrap">
-                  <button v-for="capacity in filteredCapacities" :key="capacity.vehicleSpecificationId ?? capacity.kWh" type="button"
-                    @click="selectedCapacity = capacity.kWh"
-                    :class="['px-4 py-2 rounded-md text-sm font-medium transition',
-                      selectedCapacity === capacity.kWh ? 'bg-indigo-600 text-white shadow-md' : 'bg-indigo-100 dark:bg-gray-600 text-indigo-700 dark:text-white hover:bg-indigo-200 dark:hover:bg-gray-500']">
-                    {{ capacity.variantName ? `${capacity.variantName} · ${capacity.kWh} kWh` : `${capacity.kWh} kWh` }}
-                  </button>
-                  <p v-if="filteredCapacities.length === 0" class="text-sm text-gray-500 dark:text-gray-400">
-                    {{ t('cars.variant_filter_no_results') }}
-                  </p>
-                </div>
-                <button type="button" @click="useCustomCapacity = true; selectedCapacity = null"
+                <template v-if="isGroupedByTrim">
+                  <div class="flex gap-2 flex-wrap">
+                    <button v-for="group in trimGroups" :key="group.trimLevel" type="button"
+                      @click="selectTrimGroup(group.trimLevel)"
+                      :class="['px-4 py-2 rounded-md text-sm font-medium transition',
+                        selectedTrimLevel === group.trimLevel
+                          ? 'bg-indigo-600 text-white shadow-md'
+                          : 'bg-indigo-100 dark:bg-gray-600 text-indigo-700 dark:text-white hover:bg-indigo-200 dark:hover:bg-gray-500']">
+                      {{ group.trimLevel }}
+                    </button>
+                  </div>
+                  <div v-if="visibleOptionsForTrim.length > 1" class="flex gap-2 flex-wrap pl-3 border-l-2 border-indigo-200 dark:border-indigo-700">
+                    <button v-for="option in visibleOptionsForTrim" :key="option.vehicleSpecificationId ?? option.kWh" type="button"
+                      @click="selectedCapacity = option.kWh; selectedSpecId = option.vehicleSpecificationId"
+                      :class="['px-3 py-1.5 rounded-md text-sm font-medium transition',
+                        selectedSpecId === option.vehicleSpecificationId
+                          ? 'bg-indigo-600 text-white shadow-md'
+                          : 'bg-indigo-50 dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-gray-600']">
+                      {{ formatPeriod(option.availableFrom, option.availableTo, t('cars.since')) }}
+                    </button>
+                  </div>
+                </template>
+                <template v-else>
+                  <input v-if="selectedModelCapacities.length > VARIANT_FILTER_THRESHOLD" v-model="variantFilter" type="text"
+                    :placeholder="t('cars.variant_filter_placeholder')"
+                    class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100 text-sm" />
+                  <div class="flex gap-2 flex-wrap">
+                    <button v-for="capacity in filteredCapacities" :key="capacity.vehicleSpecificationId ?? capacity.kWh" type="button"
+                      @click="selectedCapacity = capacity.kWh; selectedSpecId = capacity.vehicleSpecificationId"
+                      :class="['px-4 py-2 rounded-md text-sm font-medium transition',
+                        (capacity.vehicleSpecificationId ? selectedSpecId === capacity.vehicleSpecificationId : selectedCapacity === capacity.kWh)
+                          ? 'bg-indigo-600 text-white shadow-md'
+                          : 'bg-indigo-100 dark:bg-gray-600 text-indigo-700 dark:text-white hover:bg-indigo-200 dark:hover:bg-gray-500']">
+                      {{ capacity.variantName ? `${capacity.variantName} · ${capacity.kWh} kWh` : `${capacity.kWh} kWh` }}
+                    </button>
+                    <p v-if="filteredCapacities.length === 0" class="text-sm text-gray-500 dark:text-gray-400">
+                      {{ t('cars.variant_filter_no_results') }}
+                    </p>
+                  </div>
+                </template>
+                <button type="button"
+                  @click="useCustomCapacity = true; selectedCapacity = null; selectedSpecId = null; selectedTrimLevel = null"
                   class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 underline">
                   {{ t('cars.custom_capacity') }}
                 </button>

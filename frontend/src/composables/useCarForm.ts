@@ -1,4 +1,5 @@
 import { ref, watch, computed } from 'vue'
+import { formatPeriod } from '../utils/formatPeriod'
 import { useI18n } from 'vue-i18n'
 import { carService, type Car, type CarRequest, type BrandInfo, type ModelInfo, type CarCreateResponse, type BatterySohEntry, type CapacityOption } from '../api/carService'
 import { useCarStore } from '../stores/car'
@@ -9,20 +10,42 @@ import { useTeslaStatus } from './useTeslaStatus'
 export function resolveCapacityForCar(
   car: Car,
   capacities: CapacityOption[]
-): { selectedCapacity: number | null; useCustom: boolean; customCapacity: number | null; kwhCorrected: boolean } {
+): { selectedCapacity: number | null; selectedSpecId: string | null; selectedTrimLevel: string | null; useCustom: boolean; customCapacity: number | null; kwhCorrected: boolean } {
   if (car.vehicleSpecificationId) {
     const specMatch = capacities.find(c => c.vehicleSpecificationId === car.vehicleSpecificationId)
     if (specMatch) return {
       selectedCapacity: specMatch.kWh,
+      selectedSpecId: specMatch.vehicleSpecificationId,
+      selectedTrimLevel: specMatch.trimLevel ?? null,
       useCustom: false,
       customCapacity: null,
       kwhCorrected: specMatch.kWh !== car.batteryCapacityKwh,
     }
   }
   if (capacities.some(c => c.kWh === car.batteryCapacityKwh)) {
-    return { selectedCapacity: car.batteryCapacityKwh, useCustom: false, customCapacity: null, kwhCorrected: false }
+    return { selectedCapacity: car.batteryCapacityKwh, selectedSpecId: null, selectedTrimLevel: null, useCustom: false, customCapacity: null, kwhCorrected: false }
   }
-  return { selectedCapacity: null, useCustom: true, customCapacity: car.batteryCapacityKwh, kwhCorrected: false }
+  return { selectedCapacity: null, selectedSpecId: null, selectedTrimLevel: null, useCustom: true, customCapacity: car.batteryCapacityKwh, kwhCorrected: false }
+}
+
+export interface TrimGroup { trimLevel: string; options: CapacityOption[] }
+
+export function groupCapacitiesByTrim(capacities: CapacityOption[]): TrimGroup[] {
+  const map = new Map<string, CapacityOption[]>()
+  for (const cap of capacities) {
+    if (!cap.trimLevel) continue
+    if (!map.has(cap.trimLevel)) map.set(cap.trimLevel, [])
+    map.get(cap.trimLevel)!.push(cap)
+  }
+  return Array.from(map.entries()).map(([trimLevel, options]) => ({
+    trimLevel,
+    options: [...options].sort((a, b) => {
+      if (!a.availableFrom && !b.availableFrom) return 0
+      if (!a.availableFrom) return 1
+      if (!b.availableFrom) return -1
+      return a.availableFrom.localeCompare(b.availableFrom)
+    }),
+  }))
 }
 
 export function useCarForm() {
@@ -48,6 +71,8 @@ export function useCarForm() {
   const licensePlate = ref('')
   const trim = ref('')
   const selectedCapacity = ref<number | null>(null)
+  const selectedSpecId = ref<string | null>(null)
+  const selectedTrimLevel = ref<string | null>(null)
   const customCapacity = ref<number | null>(null)
   const useCustomCapacity = ref(false)
   const powerKw = ref<number | null>(null)
@@ -72,6 +97,32 @@ export function useCarForm() {
     return model?.capacities || []
   })
 
+  const isGroupedByTrim = computed(() => selectedModelCapacities.value.some(c => c.trimLevel))
+  const trimGroups = computed(() => groupCapacitiesByTrim(selectedModelCapacities.value))
+  const activeGroup = computed(() =>
+    selectedTrimLevel.value ? trimGroups.value.find(g => g.trimLevel === selectedTrimLevel.value) ?? null : null
+  )
+  const visibleOptionsForTrim = computed(() => {
+    if (!activeGroup.value) return []
+    const dated = activeGroup.value.options.filter(o => o.availableFrom)
+    return dated.length > 0 ? dated : activeGroup.value.options
+  })
+
+  const selectTrimGroup = (trimLevel: string) => {
+    selectedTrimLevel.value = trimLevel
+    const group = trimGroups.value.find(g => g.trimLevel === trimLevel)
+    if (!group) return
+    const dated = group.options.filter(o => o.availableFrom)
+    const opts = dated.length > 0 ? dated : group.options
+    if (opts.length === 1) {
+      selectedCapacity.value = opts[0].kWh
+      selectedSpecId.value = opts[0].vehicleSpecificationId
+    } else {
+      selectedCapacity.value = null
+      selectedSpecId.value = null
+    }
+  }
+
   const finalCapacity = computed(() => {
     if (useCustomCapacity.value) return customCapacity.value
     return selectedCapacity.value
@@ -79,9 +130,8 @@ export function useCarForm() {
 
   // vehicleSpecificationId der gewählten Kapazität - null bei Custom-Eingabe oder ohne Spec
   const finalVehicleSpecificationId = computed<string | null>(() => {
-    if (useCustomCapacity.value || !selectedCapacity.value) return null
-    const cap = selectedModelCapacities.value.find(c => c.kWh === selectedCapacity.value)
-    return cap?.vehicleSpecificationId ?? null
+    if (useCustomCapacity.value) return null
+    return selectedSpecId.value
   })
 
   const powerPs = computed(() => {
@@ -129,6 +179,8 @@ export function useCarForm() {
     if (newBrand) { loadModelsForBrand(newBrand) } else { availableModels.value = [] }
     if (!editingCar.value) {
       selectedCapacity.value = null
+      selectedSpecId.value = null
+      selectedTrimLevel.value = null
       if (newBrand === 'SONSTIGE') {
         selectedModel.value = 'SONSTIGE_CUSTOM'
         useCustomCapacity.value = true
@@ -142,6 +194,8 @@ export function useCarForm() {
   watch(selectedModel, (newModel) => {
     if (!editingCar.value) {
       selectedCapacity.value = null
+      selectedSpecId.value = null
+      selectedTrimLevel.value = null
       if (newModel === 'SONSTIGE_CUSTOM') {
         useCustomCapacity.value = true
       } else {
@@ -158,6 +212,8 @@ export function useCarForm() {
     licensePlate.value = ''
     trim.value = ''
     selectedCapacity.value = null
+    selectedSpecId.value = null
+    selectedTrimLevel.value = null
     customCapacity.value = null
     useCustomCapacity.value = false
     powerKw.value = null
@@ -190,6 +246,8 @@ export function useCarForm() {
     const foundModel = availableModels.value.find(m => m.value === car.model)
     const resolved = resolveCapacityForCar(car, foundModel?.capacities ?? [])
     selectedCapacity.value = resolved.selectedCapacity
+    selectedSpecId.value = resolved.selectedSpecId
+    selectedTrimLevel.value = resolved.selectedTrimLevel
     useCustomCapacity.value = resolved.useCustom
     customCapacity.value = resolved.customCapacity
     capacityWasCorrected.value = resolved.kwhCorrected
@@ -286,12 +344,14 @@ export function useCarForm() {
     showToast, toastMessage, teslaStatus,
     // Form fields
     selectedBrand, selectedModel, year, licensePlate, trim,
-    selectedCapacity, customCapacity, useCustomCapacity,
+    selectedCapacity, selectedSpecId, selectedTrimLevel, customCapacity, useCustomCapacity,
     powerKw, batteryDegradationPercent, hasHeatPump, isBusinessCar,
     // SoH (form state only - CRUD in useSohHistory)
     sohHistory, showSohAddForm, sohEditingEntry, sohPercent, sohDate,
     // Computed / flags
     sortedBrands, isSonstige, selectedModelCapacities, finalCapacity, finalVehicleSpecificationId, powerPs,
+    isGroupedByTrim, trimGroups, visibleOptionsForTrim, formatPeriod,
+    selectTrimGroup,
     capacityWasCorrected,
     // Actions
     fetchCars, fetchBrands, loadModelsForBrand, resetForm,

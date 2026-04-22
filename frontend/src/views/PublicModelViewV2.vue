@@ -225,14 +225,14 @@
           <div v-if="activeVariants.length > 1" class="px-6 py-4 border-b border-gray-100 dark:border-gray-700">
             <div class="flex items-center gap-3 flex-wrap">
               <span class="text-sm font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ t('model.variant_title') }}</span>
-              <div class="relative flex bg-gray-100 dark:bg-gray-700 rounded-full p-1 w-fit">
-                <div class="absolute top-1 bottom-1 left-1 rounded-full bg-blue-600 shadow-sm transition-transform duration-300 ease-in-out"
-                     :style="{ width: `calc((100% - 8px) / ${activeVariants.length})`, transform: `translateX(calc(${selectedVariantIndex * 100}%))` }" />
-                <button v-for="(v, i) in activeVariants" :key="v.batteryCapacityKwh"
+              <div class="flex gap-2 flex-wrap">
+                <button v-for="(v, i) in activeVariants" :key="v.displayLabel ?? v.batteryCapacityKwh"
                         @click="selectedVariantIndex = i"
-                        class="relative flex-1 text-center px-4 text-sm font-medium py-1.5 rounded-full transition-colors duration-300 z-10 whitespace-nowrap"
-                        :class="i === selectedVariantIndex ? 'text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'">
-                  {{ v.batteryCapacityKwh }} kWh
+                        class="btn-3d px-4 py-2 rounded-md text-sm font-medium transition whitespace-nowrap"
+                        :class="i === selectedVariantIndex
+                          ? 'bg-blue-600 text-white active'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'">
+                  {{ v.displayLabel || v.variantName || (v.batteryCapacityKwh + ' kWh') }}
                 </button>
               </div>
               <span v-if="selectedVariant?.seasonalDistribution && (selectedVariant.seasonalDistribution.summerLogCount < 30 || selectedVariant.seasonalDistribution.winterLogCount < 30)"
@@ -345,7 +345,9 @@
             <div class="md:hidden">
               <div v-if="selectedVariant" class="px-6 pb-4">
                 <div class="relative flex items-center justify-center mb-3">
-                  <div class="font-semibold text-gray-900 dark:text-gray-100">{{ selectedVariant.batteryCapacityKwh }} kWh</div>
+                  <div class="font-semibold text-gray-900 dark:text-gray-100">
+                    {{ selectedVariant.displayLabel || selectedVariant.variantName || (selectedVariant.batteryCapacityKwh + ' kWh') }}
+                  </div>
                   <span v-if="!selectedVariant.realConsumptionKwhPer100km"
                         class="absolute right-0 text-xs px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-500">
                     {{ t('model.wltp_no_trips') }}
@@ -366,11 +368,21 @@
                 <div class="grid grid-cols-2 gap-2 text-sm">
                   <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
                     <div class="text-xs text-gray-500 mb-0.5">{{ ratingLabel === 'EPA' ? t('model.epa_range_label') : t('model.wltp_wltp_range') }}</div>
-                    <div class="font-medium text-gray-800 dark:text-gray-200">{{ formatDistance(selectedVariant.officialRangeKm) }}</div>
+                    <div class="font-medium text-gray-800 dark:text-gray-200">
+                      <template v-if="selectedVariant.officialRangeMinKm">
+                        {{ formatDistance(selectedVariant.officialRangeMinKm, { showUnit: false }) }}&thinsp;-&thinsp;{{ formatDistance(selectedVariant.officialRangeKm) }}
+                      </template>
+                      <template v-else>{{ formatDistance(selectedVariant.officialRangeKm) }}</template>
+                    </div>
                   </div>
                   <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
                     <div class="text-xs text-gray-500 mb-0.5">{{ ratingLabel === 'EPA' ? t('model.epa_consumption_label') : t('model.wltp_wltp_consumption') }}</div>
-                    <div class="font-medium text-gray-800 dark:text-gray-200">{{ formatConsumption(selectedVariant.officialConsumptionKwhPer100km) }}</div>
+                    <div class="font-medium text-gray-800 dark:text-gray-200">
+                      <template v-if="selectedVariant.officialConsumptionMinKwhPer100km && selectedVariant.officialConsumptionMaxKwhPer100km">
+                        {{ formatConsumption(selectedVariant.officialConsumptionMinKwhPer100km, { showUnit: false }) }}&thinsp;-&thinsp;{{ formatConsumption(selectedVariant.officialConsumptionMaxKwhPer100km) }}
+                      </template>
+                      <template v-else>{{ formatConsumption(selectedVariant.officialConsumptionKwhPer100km) }}</template>
+                    </div>
                   </div>
                   <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
                     <div class="text-xs text-gray-500 mb-0.5">{{ t('model.wltp_real_range') }}</div>
@@ -414,8 +426,15 @@
                 </thead>
                 <tbody>
                   <tr v-if="selectedVariant" class="border-b border-gray-50 dark:border-gray-700">
-                    <td class="py-3 pr-4 font-medium text-gray-900 dark:text-gray-100">{{ selectedVariant.batteryCapacityKwh }} kWh</td>
-                    <td class="py-3 pr-4 text-gray-700 dark:text-gray-300">{{ formatDistance(selectedVariant.officialRangeKm) }}</td>
+                    <td class="py-3 pr-4 font-medium text-gray-900 dark:text-gray-100">
+                      {{ selectedVariant.displayLabel || selectedVariant.variantName || (selectedVariant.batteryCapacityKwh + ' kWh') }}
+                    </td>
+                    <td class="py-3 pr-4 text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                      <template v-if="selectedVariant.officialRangeMinKm">
+                        {{ formatDistance(selectedVariant.officialRangeMinKm, { showUnit: false }) }}&thinsp;-&thinsp;{{ formatDistance(selectedVariant.officialRangeKm) }}
+                      </template>
+                      <template v-else>{{ formatDistance(selectedVariant.officialRangeKm) }}</template>
+                    </td>
                     <td class="py-3 pr-4 whitespace-nowrap">
                       <div v-if="selectedVariant?.seasonalDistribution?.summerConsumptionKwhPer100km || selectedVariant?.seasonalDistribution?.winterConsumptionKwhPer100km"
                            class="flex items-center gap-1.5">
@@ -435,7 +454,13 @@
                       </div>
                       <span v-else class="text-gray-400">-</span>
                     </td>
-                    <td class="py-3 pr-4 text-gray-700 dark:text-gray-300">{{ formatConsumption(selectedVariant.officialConsumptionKwhPer100km) }}</td>
+                    <td class="py-3 pr-4 text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                      <template v-if="selectedVariant.officialConsumptionMinKwhPer100km && selectedVariant.officialConsumptionMaxKwhPer100km">
+                        {{ formatConsumption(selectedVariant.officialConsumptionMinKwhPer100km, { showUnit: false }) }}&thinsp;-&thinsp;{{ formatConsumption(selectedVariant.officialConsumptionMaxKwhPer100km) }}
+                        <span class="block text-xs text-gray-400">{{ t('model.wltp_varies_by_year') }}</span>
+                      </template>
+                      <template v-else>{{ formatConsumption(selectedVariant.officialConsumptionKwhPer100km) }}</template>
+                    </td>
                     <td class="py-3 align-top">
                       <div v-if="selectedVariant.realConsumptionKwhPer100km" class="flex flex-col items-start gap-1">
                         <span :class="consumptionDeltaClass(selectedVariant.realConsumptionKwhPer100km, selectedVariant.officialConsumptionKwhPer100km)"
@@ -654,8 +679,12 @@ import { EUR_EXCHANGE_RATES, RATES_LAST_UPDATED } from '../config/exchangeRates'
 interface ActiveVariant {
   batteryCapacityKwh: number
   variantName: string | null
+  displayLabel: string | null
   officialRangeKm: number
+  officialRangeMinKm: number | null
   officialConsumptionKwhPer100km: number
+  officialConsumptionMinKwhPer100km: number | null
+  officialConsumptionMaxKwhPer100km: number | null
   realConsumptionKwhPer100km: number | null
   realConsumptionTripCount: number | null
   seasonalDistribution: SeasonalDistribution | null
@@ -702,8 +731,12 @@ const activeVariants = computed<ActiveVariant[]>(() => {
     return stats.value.epaVariants.map(v => ({
       batteryCapacityKwh: v.batteryCapacityKwh,
       variantName: v.variantName,
+      displayLabel: v.displayLabel,
       officialRangeKm: v.epaRangeKm,
+      officialRangeMinKm: null,
       officialConsumptionKwhPer100km: v.epaConsumptionKwhPer100km,
+      officialConsumptionMinKwhPer100km: v.epaConsumptionMinKwhPer100km,
+      officialConsumptionMaxKwhPer100km: v.epaConsumptionMaxKwhPer100km,
       realConsumptionKwhPer100km: v.realConsumptionKwhPer100km,
       realConsumptionTripCount: v.realConsumptionTripCount,
       seasonalDistribution: v.seasonalDistribution,
@@ -712,8 +745,12 @@ const activeVariants = computed<ActiveVariant[]>(() => {
   return stats.value.wltpVariants.map(v => ({
     batteryCapacityKwh: v.batteryCapacityKwh,
     variantName: v.variantName,
+    displayLabel: v.displayLabel,
     officialRangeKm: v.wltpRangeKm,
+    officialRangeMinKm: v.wltpRangeMinKm,
     officialConsumptionKwhPer100km: v.wltpConsumptionKwhPer100km,
+    officialConsumptionMinKwhPer100km: v.wltpConsumptionMinKwhPer100km,
+    officialConsumptionMaxKwhPer100km: v.wltpConsumptionMaxKwhPer100km,
     realConsumptionKwhPer100km: v.realConsumptionKwhPer100km,
     realConsumptionTripCount: v.realConsumptionTripCount,
     seasonalDistribution: v.seasonalDistribution,

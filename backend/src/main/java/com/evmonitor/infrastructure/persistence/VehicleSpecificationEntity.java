@@ -63,4 +63,7 @@ public class VehicleSpecificationEntity {
 
     @Column(name = "available_to")
     private LocalDate availableTo;
+
+    @Column(name = "trim_level")
+    private String trimLevel;
 }

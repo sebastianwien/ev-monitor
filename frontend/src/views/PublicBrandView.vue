@@ -85,24 +85,32 @@
             <!-- Variant table: one row per battery size -->
             <div v-if="model.wltpVariants.length > 0">
               <!-- Header -->
-              <div class="grid grid-cols-3 text-xs text-gray-400 dark:text-gray-500 px-1 pb-1">
+              <div class="grid grid-cols-[2fr_1.4fr_1.2fr] gap-x-1 text-xs text-gray-400 dark:text-gray-500 px-1 pb-1">
                 <span>{{ t('brand.table_battery') }}</span>
-                <span class="text-center">{{ t('brand.table_wltp') }}</span>
+                <span class="text-center">{{ t('brand.table_consumption') }}</span>
                 <span class="text-center">{{ t('brand.table_real') }}</span>
               </div>
               <!-- Rows -->
               <div class="space-y-1">
                 <div
                   v-for="v in model.wltpVariants"
-                  :key="v.batteryCapacityKwh"
-                  class="grid grid-cols-3 text-sm bg-gray-50 dark:bg-gray-700 rounded-lg px-2 py-1.5 items-center"
+                  :key="v.displayLabel ?? String(v.batteryCapacityKwh)"
+                  class="grid grid-cols-[2fr_1.4fr_1.2fr] gap-x-1 text-sm bg-gray-50 dark:bg-gray-700 rounded-lg px-2 py-1.5 items-center"
                 >
-                  <span class="text-gray-600 dark:text-gray-400 font-medium">{{ v.batteryCapacityKwh }} kWh</span>
-                  <span class="text-center text-gray-700 dark:text-gray-300">
-                    {{ v.wltpRangeKm ? v.wltpRangeKm + ' km' : '–' }}
+                  <span class="text-gray-600 dark:text-gray-400 font-medium leading-tight">
+                    {{ v.displayLabel ?? v.variantName ?? v.batteryCapacityKwh + ' kWh' }}
+                  </span>
+                  <span class="text-center text-gray-700 dark:text-gray-300 text-xs whitespace-nowrap">
+                    <template v-if="v.realConsumptionMinKwhPer100km && v.realConsumptionMaxKwhPer100km">
+                      {{ v.realConsumptionMinKwhPer100km }}&thinsp;-&thinsp;{{ v.realConsumptionMaxKwhPer100km }} kWh/100km
+                    </template>
+                    <template v-else-if="v.realConsumptionKwhPer100km">
+                      {{ v.realConsumptionKwhPer100km }} kWh/100km
+                    </template>
+                    <template v-else>–</template>
                   </span>
                   <span
-                    :class="v.realConsumptionKwhPer100km ? 'text-purple-700 font-semibold' : 'text-gray-400'"
+                    :class="v.realConsumptionKwhPer100km ? 'text-purple-700 dark:text-blue-400 font-semibold' : 'text-gray-400'"
                     class="text-center"
                   >
                     {{ v.realConsumptionKwhPer100km

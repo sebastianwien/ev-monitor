@@ -24,6 +24,7 @@ spring:
       - topModels
       - efficientModels
       - leaderboard
+      - brandModels
 
   flyway:
     enabled: true

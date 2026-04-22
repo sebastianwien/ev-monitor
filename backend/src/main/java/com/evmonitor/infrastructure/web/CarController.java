@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -166,11 +167,14 @@ public class CarController {
                                 .map(s -> new CapacityOption(
                                         s.getBatteryCapacityKwh().doubleValue(),
                                         s.getVariantName(),
-                                        s.getId()))
+                                        s.getId(),
+                                        s.getTrimLevel(),
+                                        s.getAvailableFrom(),
+                                        s.getAvailableTo()))
                                 .collect(Collectors.toList());
                     } else {
                         capacities = model.getCapacityEntries().stream()
-                                .map(e -> new CapacityOption(e.kWh(), e.variantName(), null))
+                                .map(e -> new CapacityOption(e.kWh(), e.variantName(), null, null, null, null))
                                 .collect(Collectors.toList());
                     }
                     return new ModelInfo(model.name(), model.getDisplayName(), capacities);
@@ -181,7 +185,7 @@ public class CarController {
 
     public record BrandInfo(String value, String label) {}
 
-    public record CapacityOption(double kWh, String variantName, UUID vehicleSpecificationId) {}
+    public record CapacityOption(double kWh, String variantName, UUID vehicleSpecificationId, String trimLevel, LocalDate availableFrom, LocalDate availableTo) {}
 
     public record ModelInfo(String value, String label, List<CapacityOption> capacities) {}
 }

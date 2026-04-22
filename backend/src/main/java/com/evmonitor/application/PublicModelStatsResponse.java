@@ -19,53 +19,51 @@ public record PublicModelStatsResponse(
         int logCount,
         int uniqueContributors,
         BigDecimal avgCostPerKwh,
-        BigDecimal acAvgCostPerKwh,   // AC-only (Heimladen/Wallbox), null if <5 sessions
-        BigDecimal dcAvgCostPerKwh,   // DC-only (Schnellladen), null if <5 sessions
+        BigDecimal acAvgCostPerKwh,
+        BigDecimal dcAvgCostPerKwh,
         BigDecimal avgKwhPerSession,
-        BigDecimal avgConsumptionKwhPer100km, // null if no odometer data
-        int estimatedConsumptionCount,         // count of trips where consumption is estimated (kWh/distance fallback)
-        BigDecimal avgChargingPowerKw,         // null if no sessions with duration data
+        BigDecimal avgConsumptionKwhPer100km,
+        int estimatedConsumptionCount,
+        BigDecimal avgChargingPowerKw,
 
-        // WLTP official data (all known variants for this model)
         List<WltpVariant> wltpVariants,
-
-        // EPA official data (US only — null for models without EPA data)
         List<EpaVariant> epaVariants,
-
-        // Seasonal data distribution (null if no odometer data)
         SeasonalDistribution seasonalDistribution
 ) {
-    public record EpaVariant(
+    public record WltpVariant(
             BigDecimal batteryCapacityKwh,
-            String variantName,                    // nullable — e.g. "Long Range", "AWD"
-            BigDecimal epaRangeKm,
-            BigDecimal epaConsumptionKwhPer100km,
-            BigDecimal realConsumptionKwhPer100km, // same user log data as WLTP — null if no data
+            String variantName,
+            String displayLabel,
+            BigDecimal wltpRangeKm,             // best (max) range across group
+            BigDecimal wltpRangeMinKm,           // null if single-spec or all same
+            BigDecimal wltpConsumptionKwhPer100km,    // average across group (fair delta baseline)
+            BigDecimal wltpConsumptionMinKwhPer100km, // null if single-spec
+            BigDecimal wltpConsumptionMaxKwhPer100km,
+            BigDecimal realConsumptionKwhPer100km,
             Integer realConsumptionTripCount,
             SeasonalDistribution seasonalDistribution
     ) {}
 
-    public record WltpVariant(
+    public record EpaVariant(
             BigDecimal batteryCapacityKwh,
-            String variantName,                    // nullable — e.g. "Long Range", "Performance", "Pro S"
-            BigDecimal wltpRangeKm,
-            BigDecimal wltpConsumptionKwhPer100km,
-            BigDecimal realConsumptionKwhPer100km, // null if no user data for this battery size
-            Integer realConsumptionTripCount,      // number of trips used for realConsumptionKwhPer100km
-            SeasonalDistribution seasonalDistribution // null if no seasonal data for this variant
+            String variantName,
+            String displayLabel,
+            BigDecimal epaRangeKm,
+            BigDecimal epaConsumptionKwhPer100km,
+            BigDecimal epaConsumptionMinKwhPer100km,
+            BigDecimal epaConsumptionMaxKwhPer100km,
+            BigDecimal realConsumptionKwhPer100km,
+            Integer realConsumptionTripCount,
+            SeasonalDistribution seasonalDistribution
     ) {}
 
-    /**
-     * Seasonal breakdown: consumption and distance per season.
-     * Summer: Apr-Sep, Winter: Oct-Mar
-     */
     public record SeasonalDistribution(
-            int summerPercentage,      // % of driven km in summer (0-100)
-            int winterPercentage,      // % of driven km in winter (0-100)
-            BigDecimal summerConsumptionKwhPer100km,  // avg consumption in summer (nullable)
-            BigDecimal winterConsumptionKwhPer100km,  // avg consumption in winter (nullable)
-            BigDecimal totalConsumptionKwhPer100km,   // distance-weighted total across both seasons (nullable)
-            int summerLogCount,        // number of logs in summer
-            int winterLogCount         // number of logs in winter
+            int summerPercentage,
+            int winterPercentage,
+            BigDecimal summerConsumptionKwhPer100km,
+            BigDecimal winterConsumptionKwhPer100km,
+            BigDecimal totalConsumptionKwhPer100km,
+            int summerLogCount,
+            int winterLogCount
     ) {}
 }

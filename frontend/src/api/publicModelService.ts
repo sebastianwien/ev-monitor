@@ -3,8 +3,12 @@ import apiClient from './axios'
 export interface WltpVariant {
     batteryCapacityKwh: number
     variantName: string | null
+    displayLabel: string | null
     wltpRangeKm: number
+    wltpRangeMinKm: number | null
     wltpConsumptionKwhPer100km: number
+    wltpConsumptionMinKwhPer100km: number | null
+    wltpConsumptionMaxKwhPer100km: number | null
     realConsumptionKwhPer100km: number | null
     realConsumptionTripCount: number | null
     seasonalDistribution: SeasonalDistribution | null
@@ -13,8 +17,11 @@ export interface WltpVariant {
 export interface EpaVariant {
     batteryCapacityKwh: number
     variantName: string | null
+    displayLabel: string | null
     epaRangeKm: number
     epaConsumptionKwhPer100km: number
+    epaConsumptionMinKwhPer100km: number | null
+    epaConsumptionMaxKwhPer100km: number | null
     realConsumptionKwhPer100km: number | null
     realConsumptionTripCount: number | null
     seasonalDistribution: SeasonalDistribution | null
@@ -119,11 +126,12 @@ export interface PlatformStats {
 }
 
 export interface BrandWltpVariant {
-    batteryCapacityKwh: number
+    batteryCapacityKwh: number           // representative net capacity for range calculation
     variantName: string | null
-    wltpRangeKm: number | null
-    wltpConsumptionKwhPer100km: number | null
+    displayLabel: string | null
     realConsumptionKwhPer100km: number | null
+    realConsumptionMinKwhPer100km: number | null
+    realConsumptionMaxKwhPer100km: number | null
 }
 
 export interface BrandModelSummary {

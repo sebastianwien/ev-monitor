@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { resolveCapacityForCar } from '../useCarForm'
 import type { Car, CapacityOption } from '../../api/carService'
 
-const cap = (kWh: number, specId: string | null = null): CapacityOption => ({
-  kWh, variantName: null, vehicleSpecificationId: specId
+const cap = (kWh: number, specId: string | null = null, trimLevel: string | null = null): CapacityOption => ({
+  kWh, variantName: null, vehicleSpecificationId: specId, trimLevel, availableFrom: null, availableTo: null,
 })
 
 const car = (batteryKwh: number, specId: string | null = null): Car => ({
@@ -67,5 +67,66 @@ describe('resolveCapacityForCar', () => {
     const result = resolveCapacityForCar(car(62, 'spec-77'), capacities)
     expect(result.selectedCapacity).toBe(77)
     expect(result.kwhCorrected).toBe(true)
+  })
+})
+
+describe('resolveCapacityForCar - selectedSpecId', () => {
+  const capacities = [
+    cap(62, 'spec-62'),
+    cap(77, 'spec-77'),
+    cap(85, null),
+  ]
+
+  it('gibt specId zurück wenn specId-Match gefunden', () => {
+    const result = resolveCapacityForCar(car(77, 'spec-77'), capacities)
+    expect(result.selectedSpecId).toBe('spec-77')
+  })
+
+  it('gibt specId zurück auch wenn kWh abweicht (Brutto-Eingabe)', () => {
+    const result = resolveCapacityForCar(car(82, 'spec-77'), capacities)
+    expect(result.selectedSpecId).toBe('spec-77')
+  })
+
+  it('gibt null zurück wenn specId nicht in Capacities gefunden (kWh-Fallback)', () => {
+    const result = resolveCapacityForCar(car(85, 'spec-unknown'), capacities)
+    expect(result.selectedSpecId).toBeNull()
+  })
+
+  it('gibt null zurück wenn Car keine specId hat (nur kWh-Match)', () => {
+    const result = resolveCapacityForCar(car(62, null), capacities)
+    expect(result.selectedSpecId).toBeNull()
+  })
+
+  it('gibt null zurück bei Custom-Fallback', () => {
+    const result = resolveCapacityForCar(car(100, null), capacities)
+    expect(result.selectedSpecId).toBeNull()
+  })
+})
+
+describe('resolveCapacityForCar - selectedTrimLevel', () => {
+  const capacities = [
+    cap(75, 'spec-lr', 'Long Range AWD'),
+    cap(79, 'spec-perf', 'Performance'),
+    cap(57, 'spec-std', null),
+  ]
+
+  it('gibt trimLevel der gematchten Spec zurück', () => {
+    const result = resolveCapacityForCar(car(75, 'spec-lr'), capacities)
+    expect(result.selectedTrimLevel).toBe('Long Range AWD')
+  })
+
+  it('gibt null zurück wenn Spec kein trimLevel hat', () => {
+    const result = resolveCapacityForCar(car(57, 'spec-std'), capacities)
+    expect(result.selectedTrimLevel).toBeNull()
+  })
+
+  it('gibt null zurück bei kWh-Fallback ohne specId', () => {
+    const result = resolveCapacityForCar(car(75, null), capacities)
+    expect(result.selectedTrimLevel).toBeNull()
+  })
+
+  it('gibt null zurück bei Custom-Fallback', () => {
+    const result = resolveCapacityForCar(car(100, null), capacities)
+    expect(result.selectedTrimLevel).toBeNull()
   })
 })

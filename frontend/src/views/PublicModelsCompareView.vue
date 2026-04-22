@@ -56,7 +56,7 @@
                   :value="selectedVariantIdx[mi]"
                   @change="selectedVariantIdx[mi] = +($event.target as HTMLSelectElement).value"
                   class="mt-1 w-full text-[11px] rounded border px-1 py-0.5 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 focus:outline-none focus:border-green-500">
-                  <option v-for="(v, vi) in m.wltpVariants" :key="vi" :value="vi">{{ v.variantName ? `${v.variantName} (${v.batteryCapacityKwh} kWh)` : `${v.batteryCapacityKwh} kWh` }}{{ v.realConsumptionTripCount ? ` · ${v.realConsumptionTripCount} Fahrten` : '' }}</option>
+                  <option v-for="(v, vi) in m.wltpVariants" :key="vi" :value="vi">{{ v.displayLabel ?? (v.variantName ? `${v.variantName} (${v.batteryCapacityKwh} kWh)` : `${v.batteryCapacityKwh} kWh`) }}{{ v.realConsumptionTripCount ? ` · ${v.realConsumptionTripCount} Fahrten` : '' }}</option>
                 </select>
               </div>
             </div>
@@ -83,7 +83,7 @@
                     :value="selectedVariantIdx[mi]"
                     @change="selectedVariantIdx[mi] = +($event.target as HTMLSelectElement).value"
                     class="w-full text-[11px] rounded border px-1.5 py-0.5 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 focus:outline-none focus:border-green-500">
-                    <option v-for="(v, vi) in m.wltpVariants" :key="vi" :value="vi">{{ v.variantName ? `${v.variantName} (${v.batteryCapacityKwh} kWh)` : `${v.batteryCapacityKwh} kWh` }}{{ v.realConsumptionTripCount ? ` · ${v.realConsumptionTripCount} Fahrten` : '' }}</option>
+                    <option v-for="(v, vi) in m.wltpVariants" :key="vi" :value="vi">{{ v.displayLabel ?? (v.variantName ? `${v.variantName} (${v.batteryCapacityKwh} kWh)` : `${v.batteryCapacityKwh} kWh`) }}{{ v.realConsumptionTripCount ? ` · ${v.realConsumptionTripCount} Fahrten` : '' }}</option>
                   </select>
                 </div>
               </div>
@@ -162,7 +162,7 @@
                         @change="selectedVariantIdx[mi] = +($event.target as HTMLSelectElement).value"
                         class="text-xs rounded border px-2 py-0.5 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 focus:outline-none focus:border-green-500">
                         <option v-for="(v, vi) in m.wltpVariants" :key="vi" :value="vi">
-                          {{ v.variantName ? `${v.variantName} (${v.batteryCapacityKwh} kWh)` : `${v.batteryCapacityKwh} kWh` }}{{ v.realConsumptionTripCount ? ` · ${v.realConsumptionTripCount} Fahrten` : '' }}
+                          {{ v.displayLabel ?? (v.variantName ? `${v.variantName} (${v.batteryCapacityKwh} kWh)` : `${v.batteryCapacityKwh} kWh`) }}{{ v.realConsumptionTripCount ? ` · ${v.realConsumptionTripCount} Fahrten` : '' }}
                         </option>
                       </select>
                     </div>

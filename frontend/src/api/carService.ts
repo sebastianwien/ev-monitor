@@ -46,6 +46,9 @@ export interface CapacityOption {
     kWh: number;
     variantName: string | null;
     vehicleSpecificationId: string | null;
+    trimLevel: string | null;
+    availableFrom: string | null;
+    availableTo: string | null;
 }
 
 export interface ModelInfo {
