@@ -691,8 +691,8 @@ cars:
   select_brand_first: Välj först ett varumärke...
   label_trim: Trim (valfritt)
   hint_trim: Variant/utrustningsnivå
-  label_capacity: Batterikapacitet (kWh) *
-  custom_capacity: Ange anpassad kapacitet
+  label_capacity: "Utförande *"
+  custom_capacity: "Utförande saknas? Ange din batterikapacitet här"
   since: "sedan"
   variant_filter_placeholder: "Filtrera, t.ex. AWD, Performance, Highland ..."
   variant_filter_no_results: Ingen variant hittades.

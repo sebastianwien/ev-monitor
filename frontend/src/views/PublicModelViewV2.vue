@@ -55,13 +55,13 @@
               </span>
               <span class="text-xl text-gray-400 dark:text-gray-500">{{ consumptionUnitLabel() }}</span>
             </div>
-            <div v-if="worstOfficialConsumption" class="mt-3 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+            <div v-if="heroOfficialConsumption" class="mt-3 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
               <span>{{ ratingLabel === 'EPA'
-                ? t('model.epa_badge', { consumption: formatConsumption(worstOfficialConsumption, { showUnit: false }) })
-                : t('model.wltp_badge', { consumption: formatConsumption(worstOfficialConsumption, { showUnit: false }) }) }}</span>
-              <span :class="deltaLabelClass(displayConsumption, worstOfficialConsumption)"
+                ? t('model.epa_badge', { consumption: formatConsumption(heroOfficialConsumption, { showUnit: false }) })
+                : t('model.wltp_badge', { consumption: formatConsumption(heroOfficialConsumption, { showUnit: false }) }) }}</span>
+              <span :class="deltaLabelClass(displayConsumption, heroOfficialConsumption)"
                     class="px-2 py-0.5 rounded-full text-xs font-semibold">
-                {{ consumptionDeltaLabel(displayConsumption, worstOfficialConsumption) }}
+                {{ consumptionDeltaLabel(displayConsumption, heroOfficialConsumption) }}
               </span>
             </div>
           </div>
@@ -790,6 +790,11 @@ const worstOfficialConsumption = computed(() => {
   if (!activeVariants.value.length) return null
   return Math.max(...activeVariants.value.map(v => v.officialConsumptionKwhPer100km))
 })
+
+// Use selected variant's WLTP for the hero badge - falls back to worst-across-all when no variant selected
+const heroOfficialConsumption = computed(() =>
+  selectedVariant.value?.officialConsumptionKwhPer100km ?? worstOfficialConsumption.value
+)
 
 const consumptionDataCount = computed(() => {
   if (!stats.value) return 0

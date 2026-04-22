@@ -691,8 +691,8 @@ cars:
   select_brand_first: Velg merke først...
   label_trim: Trim (valgfritt)
   hint_trim: Utførelse/utstyrsnivå
-  label_capacity: Batterikapasitet (kWh) *
-  custom_capacity: Angi egendefinert kapasitet
+  label_capacity: "Utførelse *"
+  custom_capacity: "Utførelse ikke tilgjengelig? Angi din batterikapasitet her"
   since: "siden"
   variant_filter_placeholder: "Filtrer, f.eks. AWD, Performance, Highland ..."
   variant_filter_no_results: Ingen variant funnet.

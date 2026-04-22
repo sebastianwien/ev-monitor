@@ -55,28 +55,28 @@
         </div>
 
         <!-- Model Grid -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-0 sm:gap-4 px-0 sm:px-0">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-0 sm:gap-4 px-0 sm:px-0">
           <a
             v-for="model in brand.models"
             :key="model.modelEnum"
             :href="`${modelsUrl}/${brand.brandDisplayName}/${model.modelUrlSlug}`"
-            class="bg-white dark:bg-gray-800 sm:rounded-2xl border-t sm:border border-l-4 border-r-4 border-l-green-500 border-r-green-500 border-gray-200 dark:border-gray-700 p-5 hover:border-green-400 hover:shadow-md transition-all group"
+            class="bg-white dark:bg-gray-800 sm:rounded-2xl border-t sm:border border-l-4 border-r-4 border-l-green-500 border-r-green-500 border-gray-200 dark:border-gray-700 p-6 hover:border-green-400 hover:shadow-md transition-all group"
           >
             <!-- Model name & log badge -->
-            <div class="flex items-center justify-between mb-3">
-              <h2 class="text-lg font-bold text-gray-900 dark:text-gray-100 group-hover:text-green-700 transition-colors flex items-center gap-1">
+            <div class="flex items-start justify-between mb-4 gap-2">
+              <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 group-hover:text-green-700 transition-colors flex items-center gap-1">
                 {{ model.modelDisplayName }}
-                <ChevronRightIcon class="h-4 w-4 text-gray-400 group-hover:text-green-600 transition-colors" />
+                <ChevronRightIcon class="h-5 w-5 text-gray-400 group-hover:text-green-600 transition-colors flex-shrink-0" />
               </h2>
               <span
                 v-if="model.logCount > 0"
-                class="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200 dark:bg-green-900/40 dark:text-green-400 dark:border-green-700 whitespace-nowrap ml-2"
+                class="text-xs px-2 py-1 rounded-full bg-green-50 text-green-700 border border-green-200 dark:bg-green-900/40 dark:text-green-400 dark:border-green-700 whitespace-nowrap flex-shrink-0"
               >
                 {{ formatNumber(model.logCount) }} Logs
               </span>
               <span
                 v-else
-                class="text-xs px-2 py-0.5 rounded-full bg-gray-50 dark:bg-gray-700 text-gray-400 border border-gray-200 dark:border-gray-600 whitespace-nowrap ml-2"
+                class="text-xs px-2 py-1 rounded-full bg-gray-50 dark:bg-gray-700 text-gray-400 border border-gray-200 dark:border-gray-600 whitespace-nowrap flex-shrink-0"
               >
                 {{ t('brand.be_first') }}
               </span>
@@ -85,22 +85,22 @@
             <!-- Variant table: one row per battery size -->
             <div v-if="model.wltpVariants.length > 0">
               <!-- Header -->
-              <div class="grid grid-cols-[2fr_1.4fr_1.2fr] gap-x-1 text-xs text-gray-400 dark:text-gray-500 px-1 pb-1">
+              <div class="grid grid-cols-[2fr_1.5fr_1.2fr] gap-x-2 text-xs text-gray-400 dark:text-gray-500 px-2 pb-1.5">
                 <span>{{ t('brand.table_battery') }}</span>
                 <span class="text-center">{{ t('brand.table_consumption') }}</span>
                 <span class="text-center">{{ t('brand.table_real') }}</span>
               </div>
               <!-- Rows -->
-              <div class="space-y-1">
+              <div class="space-y-1.5">
                 <div
                   v-for="v in model.wltpVariants"
                   :key="v.displayLabel ?? String(v.batteryCapacityKwh)"
-                  class="grid grid-cols-[2fr_1.4fr_1.2fr] gap-x-1 text-sm bg-gray-50 dark:bg-gray-700 rounded-lg px-2 py-1.5 items-center"
+                  class="grid grid-cols-[2fr_1.5fr_1.2fr] gap-x-2 bg-gray-50 dark:bg-gray-700 rounded-xl px-3 py-2.5 items-center"
                 >
-                  <span class="text-gray-600 dark:text-gray-400 font-medium leading-tight">
+                  <span class="text-sm text-gray-700 dark:text-gray-300 font-medium leading-tight">
                     {{ v.displayLabel ?? v.variantName ?? v.batteryCapacityKwh + ' kWh' }}
                   </span>
-                  <span class="text-center text-gray-700 dark:text-gray-300 text-xs whitespace-nowrap">
+                  <span class="text-center text-gray-600 dark:text-gray-400 text-xs whitespace-nowrap">
                     <template v-if="v.realConsumptionMinKwhPer100km && v.realConsumptionMaxKwhPer100km">
                       {{ v.realConsumptionMinKwhPer100km }}&thinsp;-&thinsp;{{ v.realConsumptionMaxKwhPer100km }} kWh/100km
                     </template>
@@ -111,7 +111,7 @@
                   </span>
                   <span
                     :class="v.realConsumptionKwhPer100km ? 'text-purple-700 dark:text-blue-400 font-semibold' : 'text-gray-400'"
-                    class="text-center"
+                    class="text-center text-sm"
                   >
                     {{ v.realConsumptionKwhPer100km
                       ? '~ ' + Math.round(v.batteryCapacityKwh / v.realConsumptionKwhPer100km * 10) * 10 + ' km'
@@ -122,12 +122,12 @@
             </div>
 
             <!-- No WLTP data at all -->
-            <div v-else class="text-xs text-gray-400 dark:text-gray-500 text-center py-3">
+            <div v-else class="text-sm text-gray-400 dark:text-gray-500 text-center py-4">
               {{ t('brand.no_specs') }}
             </div>
 
-            <div class="flex justify-end mt-3">
-              <span class="text-xs text-green-600 font-medium group-hover:underline">{{ t('common.details') }}</span>
+            <div class="flex justify-end mt-4">
+              <span class="text-sm text-green-600 font-medium group-hover:underline">{{ t('common.details') }}</span>
             </div>
           </a>
         </div>
