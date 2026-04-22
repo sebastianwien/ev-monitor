@@ -24,7 +24,7 @@ public class EvLogEntity {
     @Column(name = "car_id", nullable = false)
     private UUID carId;
 
-    @Column(name = "kwh_charged", nullable = false, precision = 10, scale = 2)
+    @Column(name = "kwh_charged", nullable = true, precision = 10, scale = 2)
     private BigDecimal kwhCharged;
 
     @Column(name = "kwh_at_vehicle", precision = 10, scale = 4)

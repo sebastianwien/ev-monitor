@@ -69,16 +69,19 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
     expect(errors).toEqual([]);
   });
 
-  test('Ladevorgang mit "kWh laut Fahrzeug" erfassen', async ({ page }) => {
+  test('Ladevorgang mit "kWh laut Fahrzeug" (Auto-Modus) erfassen', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', err => errors.push(err.message));
 
     await page.goto('/erfassen');
     await page.waitForLoadState('networkidle');
 
-    await page.locator('input[placeholder="z.B. 42.5"]').fill('40.0');
+    // Auf "Auto"-Modus (kwhAtVehicle) umschalten
+    await page.locator('[data-testid="kwh-mode-vehicle"]').click();
+
+    // kWh im Auto-Modus eintragen (schreibt in kwhAtVehicle)
+    await page.locator('input[placeholder="z.B. 42.5"]').fill('37.5');
     await page.locator('input[placeholder="z.B. 12.50"]').fill('10.00');
-    await page.locator('#kwh-at-vehicle').fill('37.5');
 
     // Eindeutiger Zeitstempel um Duplikat-Kollision mit Test 1 zu vermeiden
     const yesterday = new Date();
@@ -91,7 +94,7 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
     expect(errors).toEqual([]);
   });
 
-  test('Ladevorgang bearbeiten - kWh laut Fahrzeug nachtragen', async ({ page }) => {
+  test('Ladevorgang bearbeiten - auf kWh laut Fahrzeug umstellen', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', err => errors.push(err.message));
 
@@ -101,11 +104,75 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
     await expect(editButton).toBeVisible({ timeout: 10_000 });
     await editButton.click();
 
-    await expect(page.locator('label:has-text("kWh laut Fahrzeug")')).toBeVisible({ timeout: 5_000 });
-    await page.locator('#kwh-at-vehicle').fill('36.0');
+    // Modal offen warten
+    await expect(page.locator('h2:has-text("Ladevorgang bearbeiten")')).toBeVisible({ timeout: 5_000 });
+
+    // Auf "Auto"-Modus umschalten und Wert eintragen
+    await page.locator('[data-testid="kwh-mode-vehicle"]').click();
+    await page.locator('input[placeholder="z.B. 42.5"]').fill('36.0');
     await page.locator('button:has-text("Speichern")').click();
 
-    await expect(page.locator('label:has-text("kWh laut Fahrzeug")')).not.toBeVisible({ timeout: 5_000 });
+    // Modal muss schliessen
+    await expect(page.locator('h2:has-text("Ladevorgang bearbeiten")')).not.toBeVisible({ timeout: 5_000 });
+    expect(errors).toEqual([]);
+  });
+
+  test('Ladevorgang bearbeiten - Toggle springt automatisch auf "Auto" wenn kwhAtVehicle gesetzt', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', err => errors.push(err.message));
+
+    await page.waitForLoadState('networkidle');
+
+    // Test 3 hat den ersten Log auf kwhAtVehicle=36 umgestellt - der steht noch an erster Stelle
+    const editButton = page.locator('[title="Ladevorgang bearbeiten"]').first();
+    await expect(editButton).toBeVisible({ timeout: 10_000 });
+    await editButton.click();
+
+    await expect(page.locator('h2:has-text("Ladevorgang bearbeiten")')).toBeVisible({ timeout: 5_000 });
+
+    // onMounted muss automatisch auf "Auto" umschalten - Indikator: Vehicle-Hint ist sichtbar
+    await expect(page.locator('text=Netto-kWh die dein Akku aufgenommen hat')).toBeVisible({ timeout: 3_000 });
+
+    // Wert muss vorausgefüllt sein
+    await expect(page.locator('input[placeholder="z.B. 42.5"]')).toHaveValue('36');
+
+    await page.locator('button:has-text("Abbrechen")').click();
+    await expect(page.locator('h2:has-text("Ladevorgang bearbeiten")')).not.toBeVisible({ timeout: 3_000 });
+    expect(errors).toEqual([]);
+  });
+
+  test('Ladevorgang bearbeiten - von Auto-Modus zurück auf Netz wechseln', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', err => errors.push(err.message));
+
+    await page.waitForLoadState('networkidle');
+
+    // Test 4 hat den Log mit kwhAtVehicle=36 unveraendert gelassen - jetzt auf Netz umstellen
+    const editButton = page.locator('[title="Ladevorgang bearbeiten"]').first();
+    await expect(editButton).toBeVisible({ timeout: 10_000 });
+    await editButton.click();
+
+    await expect(page.locator('h2:has-text("Ladevorgang bearbeiten")')).toBeVisible({ timeout: 5_000 });
+
+    // Muss im Auto-Modus starten (kwhAtVehicle ist gesetzt)
+    await expect(page.locator('text=Netto-kWh die dein Akku aufgenommen hat')).toBeVisible({ timeout: 3_000 });
+
+    // Auf Netz-Modus wechseln und neuen Wert eingeben
+    await page.locator('[data-testid="kwh-mode-charger"]').click();
+    await page.locator('input[placeholder="z.B. 42.5"]').fill('38.0');
+    await page.locator('button:has-text("Speichern")').click();
+
+    await expect(page.locator('h2:has-text("Ladevorgang bearbeiten")')).not.toBeVisible({ timeout: 5_000 });
+
+    // Nochmal oeffnen: Toggle muss jetzt auf Netz stehen (kwhCharged gesetzt, kwhAtVehicle null)
+    await editButton.click();
+    await expect(page.locator('h2:has-text("Ladevorgang bearbeiten")')).toBeVisible({ timeout: 5_000 });
+
+    // Vehicle-Hint weg = wir sind im Netz-Modus; Wert muss kwhCharged=38 sein
+    await expect(page.locator('text=Netto-kWh die dein Akku aufgenommen hat')).not.toBeVisible();
+    await expect(page.locator('input[placeholder="z.B. 42.5"]')).toHaveValue('38');
+
+    await page.locator('button:has-text("Abbrechen")').click();
     expect(errors).toEqual([]);
   });
 });

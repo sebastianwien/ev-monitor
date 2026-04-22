@@ -215,8 +215,8 @@ brand:
   models_count: "{count} modeller"
   with_data: "{count} med data fra lokalsamfunnet"
   total_logs: "{count} ladingsøkter"
-  table_battery: Batteri
-  table_wltp: WLTP
+  table_battery: Variant
+  table_consumption: Ø forbruk
   table_real: gj.snitt. Reelt
   be_first: Vær den første
   no_specs: Det foreligger ingen spesifikasjonsdata
@@ -287,6 +287,7 @@ model:
   wltp_table_real_consumption: Faktisk forbruk
   wltp_no_data: ingen data ennå
   wltp_note: WLTP = produsentens offisielle tall (KOMBINERT). Det faktiske forbruket er basert på brukerdata fra EV Monitor.
+  wltp_varies_by_year: varierer etter årsmodell
   wltp_measurement_note: "Forbruksverdiene fra brukerfellesskapet viser normalisert kjøreforbruk – ladetap er trukket fra (vekselstrøm: 10 %, likestrøm: 5 %). WLTP måler kun kjøreforbruk uten standby og forhåndskondisjonering – en avvik på 5–15 % er derfor normalt."
   epa_section_title: Data fra EPA og faktisk forbruk
   epa_range_label: EPA-rekkevidde
@@ -620,7 +621,9 @@ logfields:
   soc_after: Batterinivå etter lading (%)
   soc_before: Batterinivå før lading (%)
   kwh_at_vehicle: "kWh (kjøretøy)"
-  kwh_at_vehicle_hint: "Netto-kWh batteriet faktisk mottok (fra kjøretøyets display, ikke laderen)"
+  kwh_at_vehicle_hint: "Netto-kWh batteriet faktisk mottok (fra kjøretøyets display, ikke laderen). Ladetap beregnes automatisk."
+  kwh_mode_charger: "Nett"
+  kwh_mode_vehicle: "Bil"
   charge_type: Ladetype
   location_not_supported: Nettleseren din støtter ikke geolokalisering
   location_denied: Tilgang til stedet nektet. Du kan søke etter et sted manuelt nedenfor.
@@ -690,6 +693,7 @@ cars:
   hint_trim: Utførelse/utstyrsnivå
   label_capacity: Batterikapasitet (kWh) *
   custom_capacity: Angi egendefinert kapasitet
+  since: "siden"
   variant_filter_placeholder: "Filtrer, f.eks. AWD, Performance, Highland ..."
   variant_filter_no_results: Ingen variant funnet.
   preset_capacity: Velg blant tilgjengelige kapasiteter

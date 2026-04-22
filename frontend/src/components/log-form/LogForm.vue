@@ -67,11 +67,9 @@ const formData = ref<LogFormData>({
 const isFormValid = computed(() => {
   const f = formData.value
   const hasValue = (v: any) => v !== null && v !== undefined && v !== ''
-  return (
-    !!selectedCarId.value &&
-    hasValue(f.kwhCharged) && Number(f.kwhCharged) > 0 &&
-    hasValue(f.costEur)
-  )
+  const hasEnergy = (hasValue(f.kwhCharged) && Number(f.kwhCharged) > 0)
+                 || (hasValue(f.kwhAtVehicle) && Number(f.kwhAtVehicle) > 0)
+  return !!selectedCarId.value && hasEnergy && hasValue(f.costEur)
 })
 
 const error = ref<string | null>(null)
@@ -147,7 +145,9 @@ const submitLog = async () => {
   const errors: string[] = []
   const f = formData.value
 
-  if (!f.kwhCharged || f.kwhCharged <= 0) { fieldErrors.value.add('kwh'); errors.push(t('logform.field_kwh')) }
+  if ((!f.kwhCharged || f.kwhCharged <= 0) && (!f.kwhAtVehicle || f.kwhAtVehicle <= 0)) {
+    fieldErrors.value.add('kwh'); errors.push(t('logform.field_kwh'))
+  }
   if (f.costEur === null || f.costEur === undefined) { fieldErrors.value.add('cost'); errors.push(t('logform.field_cost')) }
   if (f.odometerKm && f.odometerKm > 0) {
     const last = getLastOdometerReading(f.loggedAt || undefined)
@@ -168,13 +168,13 @@ const submitLog = async () => {
     fieldErrors.value = new Set()
     const payload: any = {
       carId: selectedCarId.value,
-      kwhCharged: Math.round((f.kwhCharged ?? 0) * 100) / 100,
       costEur: Math.round((f.costEur ?? 0) * 100) / 100,
       odometerKm: f.odometerKm,
       socAfterChargePercent: f.socAfterChargePercent,
     }
-    if (f.socBeforeChargePercent !== null) payload.socBeforeChargePercent = f.socBeforeChargePercent
+    if (f.kwhCharged != null && f.kwhCharged > 0) payload.kwhCharged = Math.round(f.kwhCharged * 100) / 100
     if (f.kwhAtVehicle !== null && f.kwhAtVehicle > 0) payload.kwhAtVehicle = Math.round(f.kwhAtVehicle * 100) / 100
+    if (f.socBeforeChargePercent !== null) payload.socBeforeChargePercent = f.socBeforeChargePercent
     if (f.chargeDurationMinutes) payload.chargeDurationMinutes = f.chargeDurationMinutes
     if (f.latitude !== null && f.longitude !== null) {
       payload.latitude = f.latitude
@@ -223,7 +223,10 @@ const submitLog = async () => {
 }
 
 const handleOcrData = (ocrResult: any) => {
-  if (ocrResult.kwh !== null) formData.value.kwhCharged = ocrResult.kwh
+  if (ocrResult.kwh !== null) {
+    formData.value.kwhCharged = ocrResult.kwh
+    formData.value.kwhAtVehicle = null  // OCR scannt Ladesäulenbon - immer Netz-Seite
+  }
   if (ocrResult.cost !== null) formData.value.costEur = ocrResult.cost
   if (ocrResult.durationMinutes !== null) formData.value.chargeDurationMinutes = ocrResult.durationMinutes
   if (ocrResult.maxChargingPowerKw !== null) formData.value.maxChargingPowerKw = ocrResult.maxChargingPowerKw
@@ -343,7 +346,7 @@ onMounted(async () => {
               <div class="flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2 min-w-0">
                   <BoltIcon class="w-4 h-4 text-indigo-600 flex-shrink-0" />
-                  <span class="font-semibold text-indigo-700 whitespace-nowrap">{{ log.kwhCharged }} kWh</span>
+                  <span class="font-semibold text-indigo-700 whitespace-nowrap">{{ log.kwhAtVehicle ?? log.kwhCharged }} kWh</span>
                   <span class="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{{ new Date(log.loggedAt).toLocaleDateString() }}</span>
                 </div>
                 <div class="flex items-center gap-1.5 flex-shrink-0">
@@ -352,7 +355,7 @@ onMounted(async () => {
                     <SunIcon class="w-3 h-3" />{{ log.temperatureCelsius.toFixed(1) }}°C
                   </span>
                   <span class="hidden min-[475px]:inline-block px-2 py-0.5 bg-indigo-50 border border-indigo-200 text-xs rounded-full text-indigo-700 font-medium whitespace-nowrap">
-                    €{{ (log.costEur / log.kwhCharged).toFixed(2) }}/kWh
+                    €{{ (log.costEur / (log.kwhCharged ?? log.kwhAtVehicle)).toFixed(2) }}/kWh
                   </span>
                   <button type="button" @click="editingLog = log"
                     class="p-1 text-gray-400 dark:text-gray-500 hover:text-blue-500 hover:bg-blue-50 rounded transition" :title="t('logform.edit_title')">
@@ -369,7 +372,7 @@ onMounted(async () => {
               <div class="flex flex-wrap gap-1.5">
                 <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">€{{ log.costEur }}</span>
                 <span class="inline-flex min-[475px]:hidden items-center gap-1 px-2 py-0.5 bg-indigo-50 border border-indigo-200 rounded-full text-xs text-indigo-700 font-medium whitespace-nowrap">
-                  €{{ (log.costEur / log.kwhCharged).toFixed(2) }}/kWh
+                  €{{ (log.costEur / (log.kwhCharged ?? log.kwhAtVehicle)).toFixed(2) }}/kWh
                 </span>
                 <span v-if="log.chargeDurationMinutes" class="hidden min-[475px]:inline-flex items-center gap-1 px-2 py-0.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">
                   <ClockIcon class="w-3 h-3" />{{ log.chargeDurationMinutes }}min

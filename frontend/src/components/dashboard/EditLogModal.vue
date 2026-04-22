@@ -70,7 +70,7 @@ import { useI18n } from 'vue-i18n'
 export interface EvLogResponse {
   id: string
   carId: string
-  kwhCharged: number
+  kwhCharged: number | null
   costEur: number | null
   costExchangeRate: number | null
   costCurrency: string | null
@@ -127,10 +127,9 @@ const fieldErrors = ref<Set<string>>(new Set())
 const isFormValid = computed(() => {
   const f = formData.value
   const hasValue = (v: any) => v !== null && v !== undefined && v !== ''
-  return (
-    hasValue(f.kwhCharged) && Number(f.kwhCharged) > 0 &&
-    hasValue(f.costEur)
-  )
+  const hasEnergy = (hasValue(f.kwhCharged) && Number(f.kwhCharged) > 0)
+                 || (hasValue(f.kwhAtVehicle) && Number(f.kwhAtVehicle) > 0)
+  return hasEnergy && hasValue(f.costEur)
 })
 
 // Location search
@@ -168,6 +167,7 @@ async function save() {
   const n = (v: any): number | null => (v === '' || v === null || v === undefined) ? null : Number(v)
 
   const kwh = n(f.kwhCharged)
+  const kwhV = n(f.kwhAtVehicle)
   const cost = n(f.costEur)
   const odometer = n(f.odometerKm)
   const soc = n(f.socAfterChargePercent)
@@ -175,7 +175,7 @@ async function save() {
   // Frontend validation (same rules as LogForm)
   fieldErrors.value = new Set()
   const errors: string[] = []
-  if (!kwh || kwh <= 0) { fieldErrors.value.add('kwh'); errors.push(t('logform.field_kwh')) }
+  if ((!kwh || kwh <= 0) && (!kwhV || kwhV <= 0)) { fieldErrors.value.add('kwh'); errors.push(t('logform.field_kwh')) }
   if (cost === null) { fieldErrors.value.add('cost'); errors.push(t('logform.field_cost')) }
   if (errors.length > 0) {
     errorMsg.value = t('logform.error_required', { fields: errors.join(', ') })
@@ -185,14 +185,14 @@ async function save() {
   loading.value = true
   try {
     const payload: Record<string, any> = {
-      kwhCharged: Math.round((kwh ?? 0) * 100) / 100,
       costEur: Math.round((cost ?? 0) * 100) / 100,
+      kwhCharged: kwh != null && kwh > 0 ? Math.round(kwh * 100) / 100 : null,
+      kwhAtVehicle: kwhV != null && kwhV > 0 ? Math.round(kwhV * 100) / 100 : null,
       chargeDurationMinutes: n(f.chargeDurationMinutes),
       odometerKm: odometer,
       maxChargingPowerKw: n(f.maxChargingPowerKw) !== null ? Math.round(n(f.maxChargingPowerKw)! * 100) / 100 : null,
       socAfterChargePercent: soc,
       socBeforeChargePercent: n(f.socBeforeChargePercent),
-      kwhAtVehicle: n(f.kwhAtVehicle) !== null && n(f.kwhAtVehicle)! > 0 ? Math.round(n(f.kwhAtVehicle)! * 100) / 100 : null,
       loggedAt: f.loggedAt + ':00',
       chargingType: f.chargingType,
       routeType: f.routeType,
@@ -206,7 +206,7 @@ async function save() {
       payload.longitude = f.longitude
     }
 
-    const res = await api.put(`/logs/${props.log.id}`, payload)
+    const res = await api.patch(`/logs/${props.log.id}`, payload)
     emit('saved', res.data)
     emit('close')
   } catch (e: any) {

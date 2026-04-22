@@ -215,8 +215,8 @@ brand:
   models_count: "{count} modeller"
   with_data: "{count} med gemenskapsdata"
   total_logs: "{count} laddningssessioner"
-  table_battery: Batteri
-  table_wltp: WLTP
+  table_battery: Variant
+  table_consumption: Ø förbrukn.
   table_real: genomsnittlig real
   be_first: Var först
   no_specs: Inga specifikationsuppgifter finns tillgängliga
@@ -287,6 +287,7 @@ model:
   wltp_table_real_consumption: Faktisk förbrukning
   wltp_no_data: inga uppgifter ännu
   wltp_note: WLTP = tillverkarens officiella värde (KOMBINERAD). Den faktiska förbrukningen baseras på användardata från EV Monitor.
+  wltp_varies_by_year: varierar beroende på årsmodell
   wltp_measurement_note: "Värdena för förbrukning i trafik visar normaliserad körförbrukning – laddningsförluster har räknats bort (växelström: 10 %, likström: 5 %). WLTP mäter endast körförbrukningen utan standby och förkonditionering – en skillnad på 5–15 % är därför normal."
   epa_section_title: EPA-data och faktisk förbrukning
   epa_range_label: EPA-intervall
@@ -620,7 +621,9 @@ logfields:
   soc_after: Batterinivå efter laddning (%)
   soc_before: Batterinivå före laddning (%)
   kwh_at_vehicle: "kWh (fordon)"
-  kwh_at_vehicle_hint: "Netto-kWh som batteriet faktiskt tog emot (från fordonets display, inte laddaren)"
+  kwh_at_vehicle_hint: "Netto-kWh som batteriet faktiskt tog emot (från fordonets display, inte laddaren). Laddningsförlust beräknas automatiskt."
+  kwh_mode_charger: "Nät"
+  kwh_mode_vehicle: "Bil"
   charge_type: Laddningstyp
   location_not_supported: Din webbläsare stöder inte geolokalisering
   location_denied: Åtkomst till platsen nekad. Du kan söka efter en plats manuellt nedan.
@@ -690,6 +693,7 @@ cars:
   hint_trim: Variant/utrustningsnivå
   label_capacity: Batterikapacitet (kWh) *
   custom_capacity: Ange anpassad kapacitet
+  since: "sedan"
   variant_filter_placeholder: "Filtrera, t.ex. AWD, Performance, Highland ..."
   variant_filter_no_results: Ingen variant hittades.
   preset_capacity: Välj bland tillgängliga kapaciteter

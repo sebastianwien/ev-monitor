@@ -71,10 +71,12 @@ public class EvLogService {
                 Boolean.TRUE.equals(request.isPublicCharging()),
                 request.cpoName());
 
-        // Attach optional fields not in the base createNew signature
         var builder = newLog.toBuilder()
                 .socBeforeChargePercent(request.socBeforeChargePercent())
                 .kwhAtVehicle(request.kwhAtVehicle());
+        if (request.kwhAtVehicle() != null && request.kwhCharged() == null) {
+            builder.measurementType(EnergyMeasurementType.AT_VEHICLE);
+        }
         if (request.costCurrency() != null && request.costExchangeRate() != null) {
             builder.costExchangeRate(request.costExchangeRate())
                    .costCurrency(request.costCurrency());
@@ -319,8 +321,20 @@ public class EvLogService {
             updatedChargingProviderId = request.chargingProviderId();
         }
 
+        // Mode-switch semantics: providing one energy field and omitting the other clears the other.
+        BigDecimal updatedKwhCharged = request.kwhCharged() != null ? request.kwhCharged() : existing.getKwhCharged();
+        BigDecimal updatedKwhAtVehicle = request.kwhAtVehicle() != null ? request.kwhAtVehicle() : existing.getKwhAtVehicle();
+        if (request.kwhAtVehicle() != null && request.kwhCharged() == null) updatedKwhCharged = null;
+        if (request.kwhCharged() != null && request.kwhAtVehicle() == null) updatedKwhAtVehicle = null;
+
+        EnergyMeasurementType updatedMeasurementType = (updatedKwhAtVehicle != null && updatedKwhCharged == null)
+                ? EnergyMeasurementType.AT_VEHICLE
+                : EnergyMeasurementType.AT_CHARGER;
+
         EvLog updated = existing.toBuilder()
-                .kwhCharged(request.kwhCharged()             != null ? request.kwhCharged()             : existing.getKwhCharged())
+                .kwhCharged(updatedKwhCharged)
+                .kwhAtVehicle(updatedKwhAtVehicle)
+                .measurementType(updatedMeasurementType)
                 .costEur(request.costEur()                   != null ? request.costEur()                : existing.getCostEur())
                 .chargeDurationMinutes(request.chargeDurationMinutes() != null ? request.chargeDurationMinutes() : existing.getChargeDurationMinutes())
                 .geohash(geohash)
@@ -328,7 +342,6 @@ public class EvLogService {
                 .maxChargingPowerKw(request.maxChargingPowerKw() != null ? request.maxChargingPowerKw() : existing.getMaxChargingPowerKw())
                 .socAfterChargePercent(request.socAfterChargePercent() != null ? request.socAfterChargePercent() : existing.getSocAfterChargePercent())
                 .socBeforeChargePercent(request.socBeforeChargePercent() != null ? request.socBeforeChargePercent() : existing.getSocBeforeChargePercent())
-                .kwhAtVehicle(request.kwhAtVehicle()         != null ? request.kwhAtVehicle()           : existing.getKwhAtVehicle())
                 .loggedAt(request.loggedAt()                 != null ? request.loggedAt()               : existing.getLoggedAt())
                 .chargingType(request.chargingType()         != null ? request.chargingType()            : existing.getChargingType())
                 .routeType(request.routeType()               != null ? request.routeType()               : existing.getRouteType())

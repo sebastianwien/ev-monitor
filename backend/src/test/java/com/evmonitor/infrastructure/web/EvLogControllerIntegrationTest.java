@@ -369,7 +369,7 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
         assertEquals(BigDecimal.ZERO, response.getBody().totalKwhCharged());
     }
 
-    // ── PUT /api/logs/{id} — updateLog ─────────────────────────────────────────
+    // ── PATCH /api/logs/{id} — updateLog ───────────────────────────────────────
 
     @Test
     void updateLog_updatesEditableFields() {
@@ -394,7 +394,7 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
 
         ResponseEntity<EvLogResponse> response = restTemplate.exchange(
                 "/api/logs/" + existing.getId(),
-                HttpMethod.PUT,
+                HttpMethod.PATCH,
                 createAuthRequest(update, userId, testUser.getEmail()),
                 EvLogResponse.class
         );
@@ -425,7 +425,7 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
 
         ResponseEntity<EvLogResponse> response = restTemplate.exchange(
                 "/api/logs/" + existing.getId(),
-                HttpMethod.PUT,
+                HttpMethod.PATCH,
                 createAuthRequest(update, userId, testUser.getEmail()),
                 EvLogResponse.class
         );
@@ -454,7 +454,7 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
 
         ResponseEntity<EvLogResponse> response = restTemplate.exchange(
                 "/api/logs/" + existing.getId(),
-                HttpMethod.PUT,
+                HttpMethod.PATCH,
                 createAuthRequest(update, userId, testUser.getEmail()),
                 EvLogResponse.class
         );
@@ -482,7 +482,7 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
 
         ResponseEntity<EvLogResponse> response = restTemplate.exchange(
                 "/api/logs/" + otherLog.getId(),
-                HttpMethod.PUT,
+                HttpMethod.PATCH,
                 createAuthRequest(update, userId, testUser.getEmail()),
                 EvLogResponse.class
         );
@@ -503,7 +503,7 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
 
         ResponseEntity<String> response = restTemplate.exchange(
                 "/api/logs/" + existing.getId(),
-                HttpMethod.PUT,
+                HttpMethod.PATCH,
                 new HttpEntity<>(update),
                 String.class
         );
@@ -614,7 +614,7 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
 
         ResponseEntity<EvLogResponse> response = restTemplate.exchange(
                 "/api/logs/" + existing.getId(),
-                HttpMethod.PUT,
+                HttpMethod.PATCH,
                 createAuthRequest(update, userId, testUser.getEmail()),
                 EvLogResponse.class
         );

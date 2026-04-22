@@ -37,23 +37,34 @@ public class ConsumptionCalculationService {
     // -------------------------------------------------------------------------
 
     /**
-     * Normalizes kwhCharged to AT_VEHICLE level for consumption calculations.
-     * AT_CHARGER data is multiplied by the charging efficiency factor (AC: 0.90, DC: 0.95)
-     * to remove charging losses from the consumption metric — matching the SoC-delta perspective.
-     * AT_VEHICLE data (Smartcar, Tesla Live) is already at battery level and returned as-is.
+     * Returns the vehicle-side kWh for consumption calculations.
+     *
+     * Priority:
+     *   1. kwhAtVehicle when present — exact battery measurement, no correction needed.
+     *   2. kwhCharged with measurementType=AT_VEHICLE — legacy path for old Smartcar/Telemetry logs
+     *      that stored the vehicle-side value in kwhCharged before kwhAtVehicle existed.
+     *   3. kwhCharged × efficiency — AT_CHARGER measurement, losses are removed here.
      */
     public BigDecimal effectiveKwhForConsumption(EvLog log) {
+        if (log.getKwhAtVehicle() != null && log.getKwhAtVehicle().compareTo(BigDecimal.ZERO) > 0) {
+            return log.getKwhAtVehicle();
+        }
         if (log.getMeasurementType() == EnergyMeasurementType.AT_VEHICLE) return log.getKwhCharged();
         return log.getKwhCharged().multiply(BigDecimal.valueOf(chargingEfficiency(log)));
     }
 
     /**
-     * Normalizes kwhCharged to AT_CHARGER level for cost calculations.
-     * AT_VEHICLE data is divided by the efficiency factor to get the grid-side equivalent —
-     * because cost_eur reflects what was billed at the charger, not what entered the battery.
-     * AT_CHARGER data is returned as-is.
+     * Returns the grid-side kWh for cost calculations (what was billed at the charger).
+     *
+     * Priority:
+     *   1. kwhAtVehicle when present — divide by efficiency to get AT_CHARGER equivalent.
+     *   2. kwhCharged with measurementType=AT_CHARGER — already grid-side, returned as-is.
+     *   3. kwhCharged with measurementType=AT_VEHICLE — legacy path, divide by efficiency.
      */
     public BigDecimal effectiveKwhForCost(EvLog log) {
+        if (log.getKwhAtVehicle() != null && log.getKwhAtVehicle().compareTo(BigDecimal.ZERO) > 0) {
+            return log.getKwhAtVehicle().divide(BigDecimal.valueOf(chargingEfficiency(log)), 4, RoundingMode.HALF_UP);
+        }
         if (log.getMeasurementType() == EnergyMeasurementType.AT_CHARGER) return log.getKwhCharged();
         return log.getKwhCharged().divide(BigDecimal.valueOf(chargingEfficiency(log)), 4, RoundingMode.HALF_UP);
     }
@@ -79,15 +90,15 @@ public class ConsumptionCalculationService {
      * logX (trip start): logX.canBeUsedAsLogX() must be true
      *                    requires: odometer + socAfterChargePercent
      * logY (trip end):   logY.isComplete() must be true
-     *                    requires: odometer + kwhCharged + socAfterChargePercent
+     *                    requires: odometer + energy data (kwhAtVehicle or kwhCharged) + socAfterChargePercent
      *
-     * Formula (kWh-primary, when kwhCharged is available):
+     * Formula (kWh-primary, when energy data is available):
      *   energyConsumed = effectiveKwh(logY) + (socAfter(logX) - socAfter(logY)) * batteryCapacity / 100
      *   consumption    = energyConsumed / distance * 100
      *
      * The SoC-delta term corrects for net battery level differences between sessions.
      * When both sessions end at the same SoC, it is zero and only kWh drives the result.
-     * Fallback (no kwhCharged): energyConsumed = (socAfter(logX) - socBefore(logY)) * capacity / 100
+     * Fallback (no energy data): energyConsumed = (socAfter(logX) - socBefore(logY)) * capacity / 100
      *
      * @param batteryCapacityKwh MUST be the effective (SoH-adjusted) capacity, not the nominal spec.
      *                           The SoC-delta correction term is capacity-sensitive: passing nominal
@@ -112,15 +123,14 @@ public class ConsumptionCalculationService {
         int distance = logY.getOdometerKm() - logX.getOdometerKm();
         if (distance <= 0) return Optional.empty();
 
-        // kWh-primary: when kwhCharged is available it drives the calculation directly.
+        // kWh-primary: when energy data is available (kwhAtVehicle or kwhCharged) it drives the
+        // calculation directly via effectiveKwhForConsumption().
         // The SoC-delta term (socAfter_X - socAfter_Y) corrects for net battery level differences
         // between sessions — it is zero when both sessions end at the same SoC.
-        // This avoids the SoH bias of the old socBefore-primary approach, where BMS SOC percentages
-        // (calibrated to degraded real capacity) were multiplied by nominal battery capacity.
-        // Fallback to pure SoC-delta only when kwhCharged is absent (theoretical — isComplete()
-        // already requires kwhCharged, so this branch is unreachable via calculateConsumptionPerLog).
+        // Fallback to pure SoC-delta only when no energy data is present (theoretical — isComplete()
+        // requires hasEnergyData(), so this branch is unreachable via calculateConsumptionPerLog).
         final BigDecimal energyConsumedKwh;
-        if (logY.hasKwhCharged()) {
+        if (logY.hasEnergyData()) {
             BigDecimal socDeltaCorrection = BigDecimal.valueOf(logX.getSocAfterChargePercent())
                     .subtract(BigDecimal.valueOf(logY.getSocAfterChargePercent()))
                     .multiply(batteryCapacityKwh)

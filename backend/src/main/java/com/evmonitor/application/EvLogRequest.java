@@ -7,6 +7,7 @@ import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
@@ -17,7 +18,7 @@ import java.util.UUID;
 
 public record EvLogRequest(
                 @NotNull UUID carId,
-                @NotNull @Positive BigDecimal kwhCharged,
+                @Positive BigDecimal kwhCharged, // nullable when kwhAtVehicle is provided
                 @NotNull @PositiveOrZero BigDecimal costEur,
                 @Positive Integer chargeDurationMinutes, // Optional: charging duration in minutes
                 @DecimalMin("-90.0") @DecimalMax("90.0") Double latitude,
@@ -37,6 +38,12 @@ public record EvLogRequest(
                 BigDecimal costExchangeRate, // Optional: EUR→local rate used at entry time
                 @Size(max = 3) String costCurrency, // Optional: ISO 4217 currency code
                 UUID chargingProviderId) { // Optional: which saved tariff was used
+
+    @AssertTrue(message = "Either kwhCharged or kwhAtVehicle must be provided")
+    public boolean isEnergyDataPresent() {
+        return (kwhCharged != null && kwhCharged.compareTo(BigDecimal.ZERO) > 0)
+            || (kwhAtVehicle != null && kwhAtVehicle.compareTo(BigDecimal.ZERO) > 0);
+    }
 
     // Backward-compatible constructor for existing callers (tests)
     public EvLogRequest(UUID carId, BigDecimal kwhCharged, BigDecimal costEur,

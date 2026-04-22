@@ -16,17 +16,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 
-/**
- * Tests for charging efficiency normalization in EvLogService.
- *
- * AT_CHARGER data (wallbox) is normalized to AT_VEHICLE equivalent before consumption calculations:
- *   effectiveKwh = kwhCharged * efficiency   (AC: 0.90, DC: 0.95)
- *
- * AT_VEHICLE data (Smartcar, Tesla Live) is used as-is.
- *
- * For avgCostPerKwh the inverse correction is applied:
- *   effectiveKwhForCost = kwhCharged / efficiency   (AT_VEHICLE only)
- */
+/** Tests for effectiveKwhForConsumption/Cost: kwhAtVehicle priority > AT_VEHICLE legacy > AT_CHARGER*efficiency. */
 @ExtendWith(MockitoExtension.class)
 class EvLogServiceChargingEfficiencyTest {
 
@@ -267,5 +257,127 @@ class EvLogServiceChargingEfficiencyTest {
                 .createdAt(loggedAt)
                 .updatedAt(loggedAt)
                 .build();
+    }
+
+    private EvLog logWithKwhAtVehicle(Integer odometerKm, BigDecimal kwhCharged, BigDecimal kwhAtVehicle,
+                                       Integer socAfter, ChargingType chargingType, LocalDateTime loggedAt) {
+        return EvLog.builder()
+                .id(UUID.randomUUID())
+                .carId(UUID.randomUUID())
+                .kwhCharged(kwhCharged)
+                .kwhAtVehicle(kwhAtVehicle)
+                .costEur(new BigDecimal("10.00"))
+                .chargeDurationMinutes(60)
+                .geohash("u33d1")
+                .odometerKm(odometerKm)
+                .maxChargingPowerKw(new BigDecimal("11.0"))
+                .socAfterChargePercent(socAfter)
+                .loggedAt(loggedAt)
+                .dataSource(DataSource.USER_LOGGED)
+                .includeInStatistics(true)
+                .chargingType(chargingType)
+                .publicCharging(false)
+                .createdAt(loggedAt)
+                .updatedAt(loggedAt)
+                .build();
+    }
+
+    /**
+     * AT_VEHICLE log at public DC charger: kwhAtVehicle divided by DC efficiency (0.95).
+     * kwhAtVehicle=36.0 / 0.95 = 37.8947
+     * Distinct from the AC test (36/0.90=40.0000) and from the legacy kwhCharged-based DC test.
+     */
+    @Test
+    void effectiveKwhForCost_kwhAtVehicle_dc_dividedByDcEfficiency() {
+        EvLog log = logWithKwhAtVehicle(null, null, new BigDecimal("36.0"), null, ChargingType.DC, T1);
+
+        BigDecimal result = service.effectiveKwhForCost(log);
+
+        assertEquals(0, new BigDecimal("37.8947").compareTo(result),
+                "AT_VEHICLE at DC charger should use DC efficiency: 36.0 / 0.95 = 37.8947");
+    }
+
+    // ── kwhAtVehicle-primary Tests ────────────────────────────────────────────
+
+    /**
+     * kwhAtVehicle set → used directly for consumption, ignores kwhCharged and efficiency.
+     * kwhCharged=50.0 DC would normally give 50*0.95=47.5, but kwhAtVehicle=44.0 wins.
+     */
+    @Test
+    void effectiveKwhForConsumption_kwhAtVehicleSet_usedDirectly() {
+        EvLog log = logWithKwhAtVehicle(null, new BigDecimal("50.0"), new BigDecimal("44.0"), null, ChargingType.DC, T1);
+
+        BigDecimal result = service.effectiveKwhForConsumption(log);
+
+        assertEquals(new BigDecimal("44.0"), result);
+    }
+
+    /**
+     * kwhAtVehicle set, kwhCharged null → still returns kwhAtVehicle.
+     */
+    @Test
+    void effectiveKwhForConsumption_kwhAtVehicleOnly_noChargerKwh() {
+        EvLog log = logWithKwhAtVehicle(null, null, new BigDecimal("45.0"), null, ChargingType.AC, T1);
+
+        BigDecimal result = service.effectiveKwhForConsumption(log);
+
+        assertEquals(new BigDecimal("45.0"), result);
+    }
+
+    /**
+     * kwhAtVehicle set → upscaled by efficiency for cost (grid-side equivalent).
+     * kwhAtVehicle=36.0, AC efficiency=0.90 → 36.0/0.90 = 40.0000
+     * kwhCharged=50.0 on the same log must NOT be used.
+     */
+    @Test
+    void effectiveKwhForCost_kwhAtVehicleSet_upscaledToChargerSide() {
+        EvLog log = logWithKwhAtVehicle(null, new BigDecimal("50.0"), new BigDecimal("36.0"), null, ChargingType.AC, T1);
+
+        BigDecimal result = service.effectiveKwhForCost(log);
+
+        assertEquals(0, new BigDecimal("40.0000").compareTo(result));
+    }
+
+    /**
+     * isComplete() returns true when kwhAtVehicle is set but kwhCharged is null.
+     */
+    @Test
+    void isComplete_kwhAtVehicleOnly_returnsTrue() {
+        EvLog log = logWithKwhAtVehicle(10000, null, new BigDecimal("45.0"), 85, ChargingType.AC, T1);
+
+        assertTrue(log.isComplete());
+    }
+
+    /**
+     * Full consumption calculation path with kwhAtVehicle only (no kwhCharged).
+     * logY: kwhAtVehicle=50.0, kwhCharged=null, soc=85, odometer=10300
+     * effectiveKwh=50.0, socDelta=(80-85)*75/100=-3.75, energy=46.25, consumption=15.42
+     */
+    @Test
+    void calculateConsumption_kwhAtVehicleOnly_correctResult() {
+        EvLog logX = atChargerLog(10000, null, 80, ChargingType.UNKNOWN, false, T1);
+        EvLog logY = logWithKwhAtVehicle(10300, null, new BigDecimal("50.0"), 85, ChargingType.AC, T2);
+
+        var result = service.calculateConsumption(logX, logY, BATTERY_75);
+
+        assertTrue(result.isPresent());
+        assertEquals(new BigDecimal("15.42"), result.get());
+    }
+
+    /**
+     * Both kwhAtVehicle and kwhCharged set: kwhAtVehicle wins.
+     * logY: kwhAtVehicle=50.0 (wins), kwhCharged=60.0 AC would give 60*0.90=54.0 (ignored)
+     * Result must equal calculateConsumption_kwhAtVehicleOnly_correctResult = 15.42.
+     */
+    @Test
+    void calculateConsumption_bothFieldsSet_kwhAtVehicleWins() {
+        EvLog logX = atChargerLog(10000, null, 80, ChargingType.UNKNOWN, false, T1);
+        EvLog logY = logWithKwhAtVehicle(10300, new BigDecimal("60.0"), new BigDecimal("50.0"), 85, ChargingType.AC, T2);
+
+        var result = service.calculateConsumption(logX, logY, BATTERY_75);
+
+        assertTrue(result.isPresent());
+        assertEquals(new BigDecimal("15.42"), result.get(),
+                "kwhAtVehicle=50.0 must win over kwhCharged=60.0 (AC would give 54.0 effective)");
     }
 }

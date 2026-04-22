@@ -89,7 +89,7 @@ public class EvLogController {
         return ResponseEntity.ok(log);
     }
 
-    @PutMapping("/{id}")
+    @PatchMapping("/{id}")
     public ResponseEntity<?> updateLog(
             @PathVariable UUID id,
             @Valid @RequestBody EvLogUpdateRequest request,

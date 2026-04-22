@@ -116,6 +116,43 @@ class EvLogTest {
         assertNotNull(evLog.getUpdatedAt());
     }
 
+    // ── hasEnergyData ─────────────────────────────────────────────────────────
+
+    @Test
+    void hasEnergyData_kwhAtVehicleOnly_returnsTrue() {
+        EvLog log = EvLog.builder()
+                .id(UUID.randomUUID()).carId(UUID.randomUUID())
+                .kwhAtVehicle(new BigDecimal("45.0"))
+                .dataSource(DataSource.USER_LOGGED).includeInStatistics(true)
+                .chargingType(ChargingType.UNKNOWN).createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
+                .build();
+
+        assertTrue(log.hasEnergyData());
+    }
+
+    @Test
+    void hasEnergyData_kwhChargedOnly_returnsTrue() {
+        EvLog log = EvLog.builder()
+                .id(UUID.randomUUID()).carId(UUID.randomUUID())
+                .kwhCharged(new BigDecimal("45.0"))
+                .dataSource(DataSource.USER_LOGGED).includeInStatistics(true)
+                .chargingType(ChargingType.UNKNOWN).createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
+                .build();
+
+        assertTrue(log.hasEnergyData());
+    }
+
+    @Test
+    void hasEnergyData_bothNull_returnsFalse() {
+        EvLog log = EvLog.builder()
+                .id(UUID.randomUUID()).carId(UUID.randomUUID())
+                .dataSource(DataSource.USER_LOGGED).includeInStatistics(true)
+                .chargingType(ChargingType.UNKNOWN).createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
+                .build();
+
+        assertFalse(log.hasEnergyData());
+    }
+
     @Test
     void getters_shouldReturnCorrectValues() {
         // Given

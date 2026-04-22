@@ -14,7 +14,7 @@ public class EvLog {
     private final UUID id;
     private final UUID carId;
     private final BigDecimal kwhCharged;
-    private final BigDecimal kwhAtVehicle; // Optional: net kWh entering the battery (user-provided, for SoH detection)
+    private final BigDecimal kwhAtVehicle; // Optional: net kWh entering the battery (vehicle-side measurement)
     private final BigDecimal costEur;
     private final Integer chargeDurationMinutes;
     private final String geohash; // 6-char geohash (~600m) for private charging, 7-char (~150m) for public chargers
@@ -257,23 +257,34 @@ public class EvLog {
     }
 
     /**
+     * True if any energy measurement is present: kwhAtVehicle (preferred) or kwhCharged.
+     * Use this to guard formula calls instead of checking individual fields.
+     */
+    public boolean hasEnergyData() {
+        return (kwhAtVehicle != null && kwhAtVehicle.compareTo(BigDecimal.ZERO) > 0)
+            || (kwhCharged != null && kwhCharged.compareTo(BigDecimal.ZERO) > 0);
+    }
+
+    /**
      * A log is complete when all fields required to act as logY in a consumption
-     * calculation are present: odometer, kwhCharged, and socAfterChargePercent.
+     * calculation are present: odometer, energy data (kwhAtVehicle or kwhCharged),
+     * and socAfterChargePercent.
      */
     public boolean isComplete() {
-        return odometerKm != null && kwhCharged != null && socAfterChargePercent != null;
+        return odometerKm != null && hasEnergyData() && socAfterChargePercent != null;
     }
 
     /**
      * A log can act as logX (the trip starting point) when odometer and
-     * socAfterChargePercent are present. kwhCharged is not required for this role.
+     * socAfterChargePercent are present. Energy data is not required for this role.
      */
     public boolean canBeUsedAsLogX() {
         return odometerKm != null && socAfterChargePercent != null;
     }
 
     /**
-     * True if kwhCharged is present and positive - the minimum required for any energy accounting.
+     * True if kwhCharged is present and positive.
+     * Used for transparent intermediate logs (e.g. go-e sub-sessions) which always have kwhCharged.
      */
     public boolean hasKwhCharged() {
         return kwhCharged != null && kwhCharged.compareTo(BigDecimal.ZERO) > 0;

@@ -161,6 +161,36 @@ const inputClass = (field: string) =>
       : 'border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-indigo-500',
   ].join(' ')
 
+// ── kWh Mode ──────────────────────────────────────────────────────────────────
+const kwhMode = ref<'charger' | 'vehicle'>('charger')
+
+const kwhInputValue = computed({
+  get(): number | null {
+    return kwhMode.value === 'charger' ? form.value.kwhCharged : form.value.kwhAtVehicle
+  },
+  set(val: number | null) {
+    if (kwhMode.value === 'charger') {
+      form.value.kwhCharged = val
+      form.value.kwhAtVehicle = null
+    } else {
+      form.value.kwhAtVehicle = val
+      form.value.kwhCharged = null
+    }
+  },
+})
+
+const toggleKwhMode = (mode: 'charger' | 'vehicle') => {
+  if (kwhMode.value === mode) return
+  const current = kwhInputValue.value
+  kwhMode.value = mode
+  if (current != null) kwhInputValue.value = current
+}
+
+// Reset mode when form is cleared
+watch([() => form.value.kwhCharged, () => form.value.kwhAtVehicle], ([kwh, kwhV]) => {
+  if (kwh === null && kwhV === null) kwhMode.value = 'charger'
+})
+
 // ── Cost Mode ─────────────────────────────────────────────────────────────────
 const costMode = ref<'total' | 'per_kwh'>('total')
 
@@ -168,13 +198,18 @@ const costMode = ref<'total' | 'per_kwh'>('total')
 const costLocalTotal = ref<number | null>(null)
 const costLocalPerKwh = ref<number | null>(null)
 
+// Effective kWh for cost display: prefer kwhCharged (grid-side billing), fall back to kwhAtVehicle
+const effectiveKwhForDisplay = computed<number | null>(() =>
+  form.value.kwhCharged ?? form.value.kwhAtVehicle
+)
+
 // Sync local → EUR whenever local values change
 const syncCostToEur = () => {
   let eurValue: number | null = null
   if (costMode.value === 'total' && costLocalTotal.value != null) {
     eurValue = isEurCountry.value ? costLocalTotal.value : localToEur(costLocalTotal.value)
-  } else if (costMode.value === 'per_kwh' && costLocalPerKwh.value != null && form.value.kwhCharged) {
-    const localTotal = costLocalPerKwh.value * form.value.kwhCharged
+  } else if (costMode.value === 'per_kwh' && costLocalPerKwh.value != null && effectiveKwhForDisplay.value) {
+    const localTotal = costLocalPerKwh.value * effectiveKwhForDisplay.value
     eurValue = isEurCountry.value ? localTotal : localToEur(localTotal)
   }
   form.value.costEur = eurValue != null ? Math.round(eurValue * 100) / 100 : null
@@ -190,25 +225,25 @@ const syncCostToEur = () => {
 }
 
 const calculatedLocalTotal = computed(() => {
-  const kwh = form.value.kwhCharged
+  const kwh = effectiveKwhForDisplay.value
   const price = costLocalPerKwh.value
   if (kwh != null && price != null) return Math.round(kwh * price * 100) / 100
   return null
 })
 
 const calculatedLocalPerKwh = computed(() => {
-  const kwh = form.value.kwhCharged
+  const kwh = effectiveKwhForDisplay.value
   const total = costLocalTotal.value
   if (kwh != null && kwh > 0 && total != null) return Math.round(total / kwh * 100) / 100
   return null
 })
 
-watch([costLocalTotal, costLocalPerKwh, () => form.value.kwhCharged], syncCostToEur)
+watch([costLocalTotal, costLocalPerKwh, effectiveKwhForDisplay], syncCostToEur)
 
 const toggleCostMode = (mode: 'total' | 'per_kwh') => {
   if (costMode.value === mode) return
   if (mode === 'per_kwh') {
-    const kwh = form.value.kwhCharged
+    const kwh = effectiveKwhForDisplay.value
     const total = costLocalTotal.value
     if (kwh && total) {
       costLocalPerKwh.value = Math.round((total / kwh) * 100) / 100
@@ -233,7 +268,7 @@ const initLocalCostFromEur = () => {
   if (costMode.value === 'total') {
     costLocalTotal.value = Math.round(localAmount * 100) / 100
   } else {
-    const kwh = form.value.kwhCharged
+    const kwh = effectiveKwhForDisplay.value
     costLocalPerKwh.value = kwh ? Math.round((localAmount / kwh) * 100) / 100 : null
   }
 }
@@ -252,6 +287,10 @@ watch(() => form.value.costEur, (newVal) => {
 const userProviders = ref<UserProvider[]>([])
 
 onMounted(async () => {
+  if (form.value.kwhAtVehicle != null && form.value.kwhAtVehicle > 0) {
+    kwhMode.value = 'vehicle'
+  }
+
   try {
     const res = await api.get<UserProvider[]>('/users/me/charging-providers')
     userProviders.value = res.data
@@ -304,8 +343,20 @@ defineExpose({ clearLocation, locationEnabled, locationStatus, getCurrentDateTim
   <div class="grid grid-cols-2 gap-3 items-end">
     <div>
       <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('logfields.energy') }}</label>
-      <input v-model="form.kwhCharged" type="number" step="0.1" :placeholder="t('logfields.kwh_placeholder')"
-        :class="inputClass('kwh')" />
+      <div class="relative">
+        <input v-model="kwhInputValue" type="number" step="0.1" :placeholder="t('logfields.kwh_placeholder')"
+          :class="[inputClass('kwh'), 'pr-24']" />
+        <div class="absolute right-1.5 top-1/2 -translate-y-1/2 flex rounded-full border border-gray-300 dark:border-gray-500 bg-gray-200 dark:bg-gray-600 p-0.5 text-xs">
+          <button type="button" data-testid="kwh-mode-charger" @click="toggleKwhMode('charger')"
+            :class="['px-1.5 py-0.5 rounded-full font-medium transition-all duration-200', kwhMode === 'charger' ? 'bg-white dark:bg-gray-500 text-indigo-700 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400']">
+            {{ t('logfields.kwh_mode_charger') }}
+          </button>
+          <button type="button" data-testid="kwh-mode-vehicle" @click="toggleKwhMode('vehicle')"
+            :class="['px-1.5 py-0.5 rounded-full font-medium transition-all duration-200', kwhMode === 'vehicle' ? 'bg-white dark:bg-gray-500 text-indigo-700 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400']">
+            {{ t('logfields.kwh_mode_vehicle') }}
+          </button>
+        </div>
+      </div>
     </div>
     <div>
       <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('logfields.cost_eur') }}</label>
@@ -336,8 +387,9 @@ defineExpose({ clearLocation, locationEnabled, locationStatus, getCurrentDateTim
       </div>
     </div>
   </div>
-  <p class="sm:hidden text-xs text-gray-400 dark:text-gray-500 -mt-1">{{ t('logfields.kwh_hint_mobile') }}</p>
-  <p class="hidden sm:block text-xs text-gray-400 dark:text-gray-500 -mt-1">{{ t('logfields.kwh_hint') }}</p>
+  <p v-if="kwhMode === 'charger'" class="sm:hidden text-xs text-gray-400 dark:text-gray-500 -mt-1">{{ t('logfields.kwh_hint_mobile') }}</p>
+  <p v-if="kwhMode === 'charger'" class="hidden sm:block text-xs text-gray-400 dark:text-gray-500 -mt-1">{{ t('logfields.kwh_hint') }}</p>
+  <p v-if="kwhMode === 'vehicle'" class="text-xs text-gray-400 dark:text-gray-500 -mt-1">{{ t('logfields.kwh_at_vehicle_hint') }}</p>
 
   <!-- Row 2: Tachostand + SoC nach -->
   <div class="grid grid-cols-2 gap-3">
@@ -504,12 +556,6 @@ defineExpose({ clearLocation, locationEnabled, locationStatus, getCurrentDateTim
       <label class="block text-sm font-medium text-gray-600 dark:text-gray-400">{{ t('logfields.soc_before') }}</label>
       <input v-model="form.socBeforeChargePercent" type="number" min="0" max="100" :placeholder="t('logfields.optional')"
         class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
-    </div>
-    <div>
-      <label for="kwh-at-vehicle" class="block text-sm font-medium text-gray-600 dark:text-gray-400">{{ t('logfields.kwh_at_vehicle') }}</label>
-      <input id="kwh-at-vehicle" v-model.number="form.kwhAtVehicle" type="number" step="0.1" min="0" max="200" :placeholder="t('logfields.optional')"
-        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
-      <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ t('logfields.kwh_at_vehicle_hint') }}</p>
     </div>
   </div>
 
