@@ -74,14 +74,44 @@
       <!-- Filters + Popular Models -->
       <div v-if="!loading && modelsWithData.length > 0" class="mb-6">
         <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 text-center">{{ t('models_list.filters.popular') }}</h2>
-        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-          <div class="flex flex-wrap items-center gap-3">
-            <!-- Marken-Filter -->
-            <div class="relative">
-              <button
-                @click="dropdownOpen = !dropdownOpen; categoryDropdownOpen = false"
-                class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
-              >
+
+        <!-- Search + Filter Zeile -->
+        <div class="flex flex-wrap gap-2 items-center">
+
+          <!-- Suchfeld -->
+          <div class="relative w-full sm:flex-1">
+            <MagnifyingGlassIcon class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+            <input
+              ref="searchInputRef"
+              v-model="searchQuery"
+              type="text"
+              placeholder=""
+              class="w-full pl-9 pr-8 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent shadow-sm"
+              :style="!searchQuery ? 'caret-color: transparent' : ''"
+              @click.stop
+            />
+            <div
+              v-if="!searchQuery"
+              class="absolute left-9 top-1/2 -translate-y-1/2 flex items-center pointer-events-none select-none"
+            >
+              <span class="text-gray-400 text-sm">{{ animatedPlaceholder }}</span>
+              <span class="typewriter-cursor inline-block w-px h-4 bg-gray-400 ml-px"></span>
+            </div>
+            <button
+              v-if="searchQuery"
+              @click.stop="searchQuery = ''"
+              class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full transition-colors"
+            >
+              <XMarkIcon class="h-3.5 w-3.5" />
+            </button>
+          </div>
+
+          <!-- Marken-Filter -->
+          <div class="relative flex-shrink-0">
+            <button
+              @click="dropdownOpen = !dropdownOpen; categoryDropdownOpen = false"
+              class="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+            >
                 <span class="text-sm">
                   {{ selectedBrands.length === 0 ? t('models_list.filters.all_brands') : t('models_list.filters.brand_count', { count: selectedBrands.length }) }}
                 </span>
@@ -125,10 +155,10 @@
             </div>
 
             <!-- Kategorie-Filter -->
-            <div class="relative">
+            <div class="relative flex-shrink-0">
               <button
                 @click="categoryDropdownOpen = !categoryDropdownOpen; dropdownOpen = false"
-                class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-700 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                class="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-700 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
                 :class="selectedCategory !== null
                   ? 'border-green-500 text-green-700 dark:text-green-400'
                   : 'border-gray-300 dark:border-gray-600'"
@@ -164,12 +194,11 @@
               </div>
             </div>
 
-            <!-- Active Filter Count -->
-            <span v-if="selectedBrands.length > 0 || selectedCategory !== null" class="text-sm text-gray-500 dark:text-gray-400">
-              {{ t('models_list.filters.results', { filtered: filteredModels.length, total: modelsWithData.length }) }}
-            </span>
-          </div>
         </div>
+        <!-- Active Filter Count -->
+        <p v-if="selectedBrands.length > 0 || selectedCategory !== null || searchQuery.trim()" class="mt-1.5 text-xs text-gray-500 dark:text-gray-400 px-1">
+          {{ t('models_list.filters.results', { filtered: filteredModels.length, total: modelsWithData.length }) }}
+        </p>
       </div>
 
       <!-- THG Banner -->
@@ -192,7 +221,7 @@
         >
           <a :href="`${modelsBaseUrl}/${model.brandDisplayName}/${model.modelUrlSlug}`" class="block flex-1">
             <div class="mb-3 text-center">
-              <h3 class="font-bold text-gray-900 dark:text-gray-100 text-base leading-tight">{{ model.modelDisplayName }}</h3>
+              <h3 class="font-bold text-gray-900 dark:text-gray-100 text-base leading-tight" v-html="highlightMatch(model.modelDisplayName, searchQuery)"></h3>
               <span class="text-xs text-gray-400">{{ model.logCount }} {{ t('models_list.card.charging_sessions') }}</span>
             </div>
             <div class="grid grid-cols-[auto_1fr] items-baseline gap-x-3 gap-y-0.5 mb-3 text-sm">
@@ -273,7 +302,7 @@
       </div>
 
       <!-- Empty state: Filtered but no results -->
-      <div v-else-if="!loading && (selectedBrands.length > 0 || selectedCategory !== null) && filteredModels.length === 0" class="text-center py-20">
+      <div v-else-if="!loading && (selectedBrands.length > 0 || selectedCategory !== null || searchQuery.trim()) && filteredModels.length === 0" class="text-center py-20">
         <div class="text-5xl mb-4">🔍</div>
         <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-2">{{ t('models_list.empty.no_results_title') }}</h2>
         <p class="text-gray-500 dark:text-gray-400 mb-6">
@@ -376,13 +405,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import { useHead } from '@unhead/vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/auth'
 import { getTopModels, getPlatformStats, getCategories, type TopModelPreview, type PlatformStats, type VehicleCategoryItem } from '../api/publicModelService'
-import { TruckIcon, ChartBarIcon, ArrowTrendingUpIcon, ArrowsRightLeftIcon, XMarkIcon, CheckIcon, ArrowRightIcon, InformationCircleIcon } from '@heroicons/vue/24/outline'
+import { TruckIcon, ChartBarIcon, ArrowTrendingUpIcon, ArrowsRightLeftIcon, XMarkIcon, CheckIcon, ArrowRightIcon, InformationCircleIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/outline'
 import PublicNav from '../components/shared/PublicNav.vue'
 import AffiliateBanner from '../components/shared/AffiliateBanner.vue'
 import ThgBanner from '../components/shared/ThgBanner.vue'
@@ -409,6 +438,47 @@ const dropdownOpen = ref(false)
 const categoryDropdownOpen = ref(false)
 const selectedCategory = ref<string | null>(null)
 const categories = ref<VehicleCategoryItem[]>([])
+const searchQuery = ref('')
+const searchInputRef = ref<HTMLInputElement | null>(null)
+const animatedPlaceholder = ref('')
+let typewriterTimer: ReturnType<typeof setTimeout> | null = null
+
+function startTypewriter() {
+  const examples = ['Tesla Model 3', 'VW ID.3', 'Ioniq 5', 'BMW i4', 'Model Y', 'Mercedes EQA']
+  let exampleIdx = 0
+  let charIdx = 0
+  let deleting = false
+
+  function tick() {
+    if (searchQuery.value) {
+      typewriterTimer = setTimeout(tick, 500)
+      return
+    }
+    const word = examples[exampleIdx]
+    if (!deleting) {
+      charIdx++
+      animatedPlaceholder.value = word.slice(0, charIdx)
+      if (charIdx === word.length) {
+        deleting = true
+        typewriterTimer = setTimeout(tick, 1500)
+      } else {
+        typewriterTimer = setTimeout(tick, 80)
+      }
+    } else {
+      charIdx--
+      animatedPlaceholder.value = word.slice(0, charIdx)
+      if (charIdx === 0) {
+        deleting = false
+        exampleIdx = (exampleIdx + 1) % examples.length
+        typewriterTimer = setTimeout(tick, 400)
+      } else {
+        typewriterTimer = setTimeout(tick, 40)
+      }
+    }
+  }
+
+  typewriterTimer = setTimeout(tick, 600)
+}
 
 // ── Comparison selection ───────────────────────────────────────────────────
 const MAX_COMPARE = 3
@@ -501,6 +571,21 @@ const availableBrands = computed(() => {
   return Array.from(brands).sort()
 })
 
+function highlightMatch(text: string, query: string): string {
+  const q = query.trim()
+  if (!q) return text
+  const terms = q.split(/\s+/).filter(Boolean).map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+  const pattern = new RegExp(`(${terms.join('|')})`, 'gi')
+  return text.replace(pattern, '<mark class="bg-green-200 dark:bg-green-800 text-green-900 dark:text-green-100 rounded-sm not-italic">$1</mark>')
+}
+
+function matchesSearch(model: ModelInfo): boolean {
+  const q = searchQuery.value.trim()
+  if (!q) return true
+  const haystack = `${model.brandDisplayName} ${model.modelDisplayName}`.toLowerCase().replace(/_/g, ' ')
+  return q.toLowerCase().trim().split(/\s+/).every(term => haystack.includes(term))
+}
+
 const filteredModels = computed(() => {
   let models = modelsWithData.value
   if (selectedBrands.value.length > 0) {
@@ -509,12 +594,15 @@ const filteredModels = computed(() => {
   if (selectedCategory.value !== null) {
     models = models.filter(m => m.category === selectedCategory.value)
   }
+  if (searchQuery.value.trim()) {
+    models = models.filter(matchesSearch)
+  }
   return models
 })
 
 // Fill up to 12 models on mobile with popular fallbacks (only when no filters active)
 const mobileFillModels = computed((): FallbackModel[] => {
-  if (selectedBrands.value.length > 0 || selectedCategory.value !== null) return []
+  if (selectedBrands.value.length > 0 || selectedCategory.value !== null || searchQuery.value.trim()) return []
   const needed = 12 - filteredModels.value.length
   if (needed <= 0) return []
   const normalize = (s: string) => s.replace(/ /g, '_').toLowerCase()
@@ -612,12 +700,19 @@ onMounted(async () => {
     loading.value = false
   }
 
+  await nextTick()
+  startTypewriter()
+  if (window.innerWidth >= 768) {
+    searchInputRef.value?.focus()
+  }
+
   // Close dropdown on click outside
   document.addEventListener('click', handleClickOutside)
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
+  if (typewriterTimer !== null) clearTimeout(typewriterTimer)
 })
 
 function handleClickOutside(event: MouseEvent) {
@@ -649,6 +744,7 @@ function clearAllBrands() {
 function clearAllFilters() {
   selectedBrands.value = []
   selectedCategory.value = null
+  searchQuery.value = ''
   dropdownOpen.value = false
   categoryDropdownOpen.value = false
 }
@@ -682,6 +778,14 @@ function selectCategory(key: string | null) {
   box-shadow: 0 1px 0 0 rgba(0,0,0,0.10);
   transform: translateY(3px);
   transition: transform 0.05s ease, box-shadow 0.05s ease;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.typewriter-cursor {
+  animation: blink 1s step-end infinite;
 }
 
 .compare-bar-enter-active,
