@@ -44,18 +44,18 @@ class UserChargingProviderControllerIntegrationTest extends AbstractIntegrationT
     // ── Auth ─────────────────────────────────────────────────────────────────
 
     @Test
-    void shouldReturn403_WhenUnauthenticated() {
+    void shouldReturn401_WhenUnauthenticated() {
         ResponseEntity<String> response = restTemplate.getForEntity(
                 "/api/users/me/charging-providers", String.class);
-        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
 
     @Test
-    void shouldReturn403_WhenUnauthenticated_OnPost() {
+    void shouldReturn401_WhenUnauthenticated_OnPost() {
         UserChargingProviderRequest request = buildRequest("IONITY", LocalDate.now());
         ResponseEntity<String> response = restTemplate.postForEntity(
                 "/api/users/me/charging-providers", request, String.class);
-        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
 
     // ── POST ─────────────────────────────────────────────────────────────────

@@ -86,7 +86,6 @@ class UserControllerTest extends AbstractIntegrationTest {
                 Void.class
         );
 
-        // Spring Security returns 403 for unauthenticated requests (no custom AuthenticationEntryPoint configured)
-        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
 }
