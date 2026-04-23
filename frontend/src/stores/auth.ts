@@ -110,6 +110,18 @@ export const useAuthStore = defineStore('auth', () => {
         }
     };
 
+    // True when token is still valid but expires within 3 days — triggers silent background refresh
+    const needsRefresh = (): boolean => {
+        if (!token.value || isExpired()) return false;
+        try {
+            const decoded = jwtDecode<JwtPayload>(token.value);
+            const expiresInMs = (decoded.exp ?? 0) * 1000 - Date.now();
+            return expiresInMs < 3 * 24 * 60 * 60 * 1000;
+        } catch {
+            return false;
+        }
+    };
+
     const isDemoAccount = computed(() => user.value?.demoAccount === true);
     const isAdmin = computed(() => user.value?.role === 'ADMIN');
     const isBetaTester = computed(() => user.value?.role === 'BETA_TESTER');
@@ -120,5 +132,6 @@ export const useAuthStore = defineStore('auth', () => {
         refreshToken, refreshPremiumStatus,
         isAuthenticated: () => !!token.value,
         isExpired,
+        needsRefresh,
     };
 });

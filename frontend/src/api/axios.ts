@@ -8,9 +8,19 @@ const api = axios.create({
     }
 });
 
+let sessionExpiredRedirectPending = false;
+let refreshPromise: Promise<void> | null = null;
+
 api.interceptors.request.use(
     (config) => {
         const authStore = useAuthStore();
+
+        // Silent background refresh when token expires within 3 days but is still valid.
+        // Fire-and-forget: current request proceeds with the still-valid token; next request uses the new one.
+        if (!config.url?.startsWith('/auth/') && authStore.needsRefresh() && !refreshPromise) {
+            refreshPromise = authStore.refreshToken().finally(() => { refreshPromise = null; });
+        }
+
         if (authStore.token) {
             config.headers.Authorization = `Bearer ${authStore.token}`;
         }
@@ -19,19 +29,15 @@ api.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
-let sessionExpiredRedirectPending = false;
-
 api.interceptors.response.use(
     (response) => response,
     (error) => {
         const isAuthEndpoint = error.config?.url?.startsWith('/auth/');
         if (error.response?.status === 401 && !isAuthEndpoint && !sessionExpiredRedirectPending) {
+            sessionExpiredRedirectPending = true;
             const authStore = useAuthStore();
-            if (authStore.isExpired()) {
-                sessionExpiredRedirectPending = true;
-                authStore.logout(false);
-                window.location.href = '/login?reason=session-expired';
-            }
+            authStore.logout(false);
+            window.location.href = '/login?reason=session-expired';
         }
         if (error.response?.status === 403 && error.response?.data?.error === 'DEMO_ACCOUNT_READONLY') {
             window.dispatchEvent(new CustomEvent('demo-account-blocked'));
