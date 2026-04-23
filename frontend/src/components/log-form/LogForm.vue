@@ -6,7 +6,7 @@ import api from '../../api/axios'
 import CarSelector from '../car/CarSelector.vue'
 import OcrPhotoCapture from './OcrPhotoCapture.vue'
 import LogFormFields, { type LogFormData } from './LogFormFields.vue'
-import { CameraIcon, PencilSquareIcon, TrashIcon, BoltIcon, TruckIcon, ClockIcon, Battery0Icon, SunIcon } from '@heroicons/vue/24/outline'
+import { CameraIcon, PencilSquareIcon, TrashIcon, BoltIcon, TruckIcon, ClockIcon, Battery0Icon, SunIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import { useCoinStore } from '../../stores/coins'
 import { useHaptic } from '../../composables/useHaptic'
 import { analytics } from '../../services/analytics'
@@ -21,7 +21,7 @@ const { formatDistance } = useLocaleFormat()
 const coinStore = useCoinStore()
 const carStore = useCarStore()
 
-const emit = defineEmits<{ success: [] }>()
+const emit = defineEmits<{ success: []; cancel: [] }>()
 
 // ── OCR ───────────────────────────────────────────────────────────────────────
 const showOcrCapture = ref(window.innerWidth < 768)
@@ -249,7 +249,14 @@ onMounted(async () => {
 
 <template>
   <div class="md:max-w-2xl md:mx-auto p-4 md:p-6 bg-white dark:bg-gray-800 md:rounded-xl md:shadow-lg md:mt-8">
-    <h1 class="text-xl md:text-3xl font-bold text-gray-800 dark:text-gray-200 mb-4 md:mb-6 text-center">{{ t('logform.title') }}</h1>
+    <div class="flex items-center justify-between mb-4 md:mb-6">
+      <div class="w-8" />
+      <h1 class="text-xl md:text-3xl font-bold text-gray-800 dark:text-gray-200 text-center">{{ t('logform.title') }}</h1>
+      <button type="button" @click="emit('cancel')"
+        class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-200 dark:hover:bg-gray-700 transition-colors">
+        <XMarkIcon class="h-5 w-5" />
+      </button>
+    </div>
 
     <!-- No cars yet -->
     <div v-if="hasCars === false" class="text-center py-10 space-y-4">

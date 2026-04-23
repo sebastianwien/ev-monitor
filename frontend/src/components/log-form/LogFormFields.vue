@@ -333,6 +333,62 @@ watch(() => form.value.isPublicCharging, (isPublic) => {
 })
 
 defineExpose({ clearLocation, locationEnabled, locationStatus, getCurrentDateTimeLocal })
+
+type CardDesign = 'stripe' | 'circles' | 'solid' | 'pastel'
+const CARD_DESIGNS: CardDesign[] = ['stripe', 'circles', 'solid', 'pastel']
+
+function hashId(id: string): number {
+  let h = 0
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0
+  return h
+}
+
+function cardDesign(id: string): CardDesign {
+  return CARD_DESIGNS[hashId(id) % CARD_DESIGNS.length]
+}
+
+// Rich solid colors with a subtle top-shine gradient
+const SOLID_COLORS = [
+  { bg: 'linear-gradient(180deg, #4f46e5 0%, #3730a3 100%)', shadow: '#312e81' }, // indigo
+  { bg: 'linear-gradient(180deg, #0f766e 0%, #0d5e57 100%)', shadow: '#134e4a' }, // teal
+  { bg: 'linear-gradient(180deg, #be123c 0%, #9f1239 100%)', shadow: '#881337' }, // rose
+  { bg: 'linear-gradient(180deg, #b45309 0%, #92400e 100%)', shadow: '#78350f' }, // amber
+  { bg: 'linear-gradient(180deg, #1d4ed8 0%, #1e40af 100%)', shadow: '#1e3a8a' }, // blue
+  { bg: 'linear-gradient(180deg, #7e22ce 0%, #6b21a8 100%)', shadow: '#581c87' }, // purple
+]
+
+function solidColor(id: string) {
+  return SOLID_COLORS[(hashId(id) >>> 3) % SOLID_COLORS.length]
+}
+
+function cardContainerStyle(id: string): Record<string, string> {
+  const d = cardDesign(id)
+  if (d === 'stripe')  return { background: '#f1f5f9', '--btn-shadow-color': '#94a3b8' }
+  if (d === 'circles') return { background: '#1e1b4b', '--btn-shadow-color': '#0c0a2e' }
+  if (d === 'solid')   return { background: solidColor(id).bg, '--btn-shadow-color': solidColor(id).shadow }
+  /* pastel */         return { background: 'linear-gradient(135deg, #fde68a 0%, #fbcfe8 100%)', '--btn-shadow-color': '#d97706' }
+}
+
+function cardChipStyle(id: string): Record<string, string> {
+  const d = cardDesign(id)
+  if (d === 'stripe')  return { background: 'rgba(251,191,36,0.9)', border: '1px solid rgba(180,83,9,0.3)' }
+  if (d === 'solid' || d === 'circles') return { background: 'rgba(253,224,71,0.75)', border: '1px solid rgba(253,224,71,0.4)' }
+  /* pastel */         return { background: 'rgba(180,83,9,0.35)', border: '1px solid rgba(180,83,9,0.2)' }
+}
+
+function cardTextColor(id: string): string {
+  const d = cardDesign(id)
+  if (d === 'stripe')  return '#1f2937'
+  if (d === 'solid' || d === 'circles') return 'rgba(255,255,255,0.95)'
+  /* pastel */         return '#78350f'
+}
+
+function cardSubTextColor(id: string): string {
+  const d = cardDesign(id)
+  if (d === 'stripe')  return '#6b7280'
+  if (d === 'solid' || d === 'circles') return 'rgba(255,255,255,0.55)'
+  /* pastel */         return 'rgba(120,53,15,0.6)'
+}
 </script>
 
 <template>
@@ -359,24 +415,26 @@ defineExpose({ clearLocation, locationEnabled, locationStatus, getCurrentDateTim
       </div>
     </div>
     <div>
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('logfields.cost_eur') }}</label>
+      <label class="flex items-baseline gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        {{ t('logfields.cost_eur') }}
+        <span v-if="costMode === 'total' && calculatedLocalPerKwh !== null"
+          class="text-xs text-gray-400 dark:text-gray-500 font-normal whitespace-nowrap">
+          = {{ calculatedLocalPerKwh.toFixed(2) }} {{ (localSubunit || localSymbol) + '/kWh' }}
+        </span>
+        <span v-if="costMode === 'per_kwh' && calculatedLocalTotal !== null"
+          class="text-xs text-gray-400 dark:text-gray-500 font-normal whitespace-nowrap">
+          = {{ calculatedLocalTotal.toFixed(2) }} {{ localSymbol }}
+        </span>
+      </label>
       <div class="relative">
         <input v-if="costMode === 'total'" v-model="costLocalTotal" type="number" step="0.01" :placeholder="t('logfields.cost_eur_placeholder')"
           :class="[inputClass('cost'), 'pr-24']" />
         <input v-else v-model="costLocalPerKwh" type="number" step="0.01"
           :placeholder="t('logfields.cost_per_kwh_placeholder')"
           :class="[inputClass('cost'), 'pr-24']" />
-        <span v-if="costMode === 'total' && calculatedLocalPerKwh !== null"
-          class="hidden sm:block absolute right-24 top-1/2 -translate-y-1/2 text-xs text-gray-400 dark:text-gray-500 pointer-events-none select-none whitespace-nowrap">
-          = {{ calculatedLocalPerKwh.toFixed(2) }} {{ (localSubunit || localSymbol) + '/kWh' }}
-        </span>
-        <span v-if="costMode === 'per_kwh' && calculatedLocalTotal !== null"
-          class="hidden sm:block absolute right-24 top-1/2 -translate-y-1/2 text-xs text-gray-400 dark:text-gray-500 pointer-events-none select-none whitespace-nowrap">
-          = {{ calculatedLocalTotal.toFixed(2) }} {{ localSymbol }}
-        </span>
         <div class="absolute right-1.5 top-1/2 -translate-y-1/2 flex rounded-full border border-gray-300 dark:border-gray-500 bg-gray-200 dark:bg-gray-600 p-0.5 text-xs">
           <button type="button" @click="toggleCostMode('total')"
-            :class="['px-1.5 py-0.5 rounded-full font-medium transition-all duration-200', costMode === 'total' ? 'bg-white dark:bg-gray-500 text-indigo-700 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400']">
+            :class="['px-2.5 py-0.5 rounded-full font-medium transition-all duration-200 min-w-[2rem] text-center', costMode === 'total' ? 'bg-white dark:bg-gray-500 text-indigo-700 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400']">
             {{ localSymbol }}
           </button>
           <button type="button" @click="toggleCostMode('per_kwh')"
@@ -468,23 +526,47 @@ defineExpose({ clearLocation, locationEnabled, locationStatus, getCurrentDateTim
   <p v-if="locationErrorMessage" class="text-xs text-red-500">{{ locationErrorMessage }}</p>
 
   <!-- Tarif-Chips (wenn User Tarife hinterlegt hat) -->
-  <div v-if="userProviders.length > 0" class="space-y-1">
-    <p class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('logfields.tariff_chip_label') }}</p>
-    <div class="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
+  <div v-if="userProviders.length > 0">
+    <div class="flex gap-2.5 overflow-x-auto pb-2 -mx-1 px-1 justify-center">
       <button
         v-for="p in userProviders"
         :key="p.id"
         type="button"
         @click="form.chargingProviderId = form.chargingProviderId === p.id ? null : p.id"
         :class="[
-          'chip-3d flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium border select-none',
-          form.chargingProviderId === p.id
-            ? 'chip-selected bg-indigo-600 text-white border-indigo-700'
-            : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600'
-        ]">
-        {{ p.label || p.providerName }}
+          'btn-3d flex-shrink-0 w-28 h-[4.5rem] rounded-xl overflow-hidden relative select-none',
+          form.chargingProviderId === p.id ? 'active opacity-100' : 'opacity-65 hover:opacity-85'
+        ]"
+        :style="cardContainerStyle(p.id)">
+
+        <!-- Stripe: diagonaler Farbkeil rechts -->
+        <div v-if="cardDesign(p.id) === 'stripe'"
+          class="absolute inset-y-0 right-0 w-14 skew-x-[-8deg] translate-x-4 pointer-events-none"
+          style="background: linear-gradient(160deg, #059669 0%, #0891b2 100%);" />
+
+        <!-- Circles: überlappende Halbkreise unten rechts -->
+        <template v-else-if="cardDesign(p.id) === 'circles'">
+          <div class="absolute -bottom-4 right-3 w-14 h-14 rounded-full opacity-60 pointer-events-none" style="background: #dc2626;" />
+          <div class="absolute -bottom-4 right-8 w-14 h-14 rounded-full opacity-60 pointer-events-none" style="background: #ea580c;" />
+        </template>
+
+        <!-- Content (above decorations) -->
+        <div class="relative z-10 h-full p-2.5 flex flex-col justify-between">
+          <div class="w-5 h-3.5 rounded-[3px]" :style="cardChipStyle(p.id)" />
+          <div>
+            <div class="text-[11px] font-bold leading-tight truncate"
+              :style="{ color: cardTextColor(p.id) }">
+              {{ p.label || p.providerName }}
+            </div>
+            <div v-if="p.acPricePerKwh != null" class="text-[10px] leading-tight mt-0.5"
+              :style="{ color: cardSubTextColor(p.id) }">
+              {{ (isEurCountry ? p.acPricePerKwh * 100 : p.acPricePerKwh).toFixed(1) }} {{ (localSubunit || localSymbol) }}/kWh
+            </div>
+          </div>
+        </div>
       </button>
     </div>
+
   </div>
 
   </div><!-- end Pflichtfelder-Gruppe -->
