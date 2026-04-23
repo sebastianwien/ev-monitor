@@ -18,7 +18,7 @@ echo -e "${GREEN}Starting EV Monitor Development Environment...${NC}"
 echo ""
 
 if ! docker info > /dev/null 2>&1; then
-    echo -e "${RED}Docker is not running. Please start Docker Desktop.${NC}"
+    echo -e "${RED}Docker is not running. Start Docker Desktop or Colima (colima start).${NC}"
     exit 1
 fi
 

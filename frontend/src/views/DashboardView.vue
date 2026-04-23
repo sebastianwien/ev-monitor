@@ -593,176 +593,6 @@ onMounted(() => initCars())
           </div>
         </div>
 
-        <!-- Chart 1: Charging & Costs -->
-        <div class="border-t border-gray-100 dark:border-gray-700 pt-6">
-          <div class="md:bg-gray-50 md:dark:bg-gray-700 py-4 md:p-6 -mx-4 md:mx-0 md:rounded-lg md:border md:border-gray-200 md:dark:border-gray-600">
-            <div v-if="!chartsReady && isInitialLoad" class="h-64 sm:h-72 bg-gray-100 dark:bg-gray-700 animate-pulse rounded mx-4 md:mx-0"></div>
-            <template v-else>
-              <div class="flex flex-col sm:flex-row sm:items-center justify-center gap-4 sm:gap-6 mb-4 px-4 md:px-0">
-                <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200 text-center">{{ t('dashboard.chart_charging_costs') }}</h2>
-                <div class="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm justify-center">
-                  <label class="flex items-center gap-1 sm:gap-2 cursor-pointer">
-                    <input type="checkbox" v-model="showCostPerKwh"
-                      class="w-3 h-3 sm:w-4 sm:h-4 rounded accent-indigo-600 cursor-pointer" />
-                    <span class="font-medium text-gray-700 dark:text-gray-300">
-                      <span class="inline-block w-2 sm:w-3 h-0.5 bg-indigo-600 mr-1 align-middle"></span>
-                      {{ currencySymbol }}/kWh
-                    </span>
-                  </label>
-                  <label class="flex items-center gap-1 sm:gap-2 cursor-pointer">
-                    <input type="checkbox" v-model="showKwh"
-                      class="w-3 h-3 sm:w-4 sm:h-4 rounded accent-amber-500 cursor-pointer" />
-                    <span class="font-medium text-gray-700 dark:text-gray-300">
-                      <span class="inline-block w-2 sm:w-3 h-0.5 bg-amber-500 mr-1 align-middle"></span>
-                      kWh
-                    </span>
-                  </label>
-                </div>
-              </div>
-              <div v-if="chargingChartData && chargingChartData.datasets.length > 0" class="h-64 sm:h-72">
-                <Line :data="chargingChartData" :options="chargingChartOptions" />
-              </div>
-              <div v-else class="text-center py-10 text-gray-400 text-sm px-4 md:px-0">
-                {{ t('dashboard.chart_no_data') }}
-              </div>
-              <div class="flex flex-wrap gap-x-6 gap-y-1 mt-3 text-xs text-gray-400 px-4 md:px-0">
-                <span>{{ t('dashboard.chart_left_axis') }}: {{ currencySymbol }}/kWh</span>
-                <span>{{ t('dashboard.chart_right_axis') }}: kWh</span>
-              </div>
-            </template>
-          </div>
-        </div>
-
-        <!-- Chart 2: Range & Efficiency (only if distance data exists) -->
-        <div v-if="hasDistanceData" class="border-t border-gray-100 dark:border-gray-700 pt-6">
-          <div class="md:bg-gray-50 md:dark:bg-gray-700 py-4 md:p-6 -mx-4 md:mx-0 md:rounded-lg md:border md:border-gray-200 md:dark:border-gray-600">
-            <div v-if="!chartsReady && isInitialLoad" class="h-64 sm:h-72 bg-gray-100 dark:bg-gray-700 animate-pulse rounded mx-4 md:mx-0"></div>
-            <template v-else>
-              <div class="flex flex-col sm:flex-row sm:items-center justify-center gap-4 sm:gap-6 mb-4 px-4 md:px-0">
-                <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200 text-center">{{ t('dashboard.chart_range_efficiency') }}</h2>
-                <div class="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm justify-center">
-                  <label class="flex items-center gap-1 sm:gap-2 cursor-pointer">
-                    <input type="checkbox" v-model="showConsumption"
-                      class="w-3 h-3 sm:w-4 sm:h-4 rounded accent-red-500 cursor-pointer" />
-                    <span class="font-medium text-gray-700 dark:text-gray-300">
-                      <span class="inline-block w-2 sm:w-3 h-0.5 bg-red-500 mr-1 align-middle"></span>
-                      {{ consumptionUnitLabel() }}
-                    </span>
-                  </label>
-                  <label class="flex items-center gap-1 sm:gap-2 cursor-pointer">
-                    <input type="checkbox" v-model="showDistance"
-                      class="w-3 h-3 sm:w-4 sm:h-4 rounded accent-emerald-500 cursor-pointer" />
-                    <span class="font-medium text-gray-700 dark:text-gray-300">
-                      <span class="inline-block w-2 sm:w-3 h-0.5 bg-emerald-500 mr-1 align-middle"></span>
-                      {{ distanceUnitLabel() }}
-                    </span>
-                  </label>
-                </div>
-              </div>
-              <div v-if="efficiencyChartData && efficiencyChartData.datasets.length > 0" class="h-64 sm:h-72">
-                <Line :data="efficiencyChartData" :options="efficiencyChartOptions" />
-              </div>
-              <div v-else class="text-center py-10 text-gray-400 text-sm px-4 md:px-0">
-                {{ t('dashboard.chart_no_data') }}
-              </div>
-              <div class="flex flex-wrap gap-x-6 gap-y-1 mt-3 text-xs text-gray-400 px-4 md:px-0">
-                <span>{{ t('dashboard.chart_left_axis') }}: {{ consumptionUnitLabel() }}</span>
-                <span>{{ t('dashboard.chart_right_axis') }}: {{ distanceUnitLabel() }}</span>
-              </div>
-            </template>
-          </div>
-        </div>
-
-        <!-- WLTP Delta Bar Chart -->
-        <div v-if="wltp && hasDistanceData && wltpChartData" class="border-t border-gray-100 dark:border-gray-700 pt-6">
-          <div class="md:bg-gray-50 md:dark:bg-gray-700 py-4 md:p-6 -mx-4 md:mx-0 md:rounded-lg md:border md:border-gray-200 md:dark:border-gray-600">
-          <div v-if="!chartsReady && isInitialLoad" :style="{ height: wltpChartHeight }" class="bg-gray-100 dark:bg-gray-700 animate-pulse rounded mx-4 md:mx-0"></div>
-          <template v-else>
-          <div class="mb-4 text-center px-4 md:px-0">
-            <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">
-              <template v-if="isCustomCompare">
-                {{ t('dashboard.chart_consumption_vs_custom_prefix') }} <strong>{{ customCompareValue != null ? formatConsumption(customCompareValue) : '–' }}</strong>
-              </template>
-              <template v-else>{{ t('dashboard.chart_consumption_vs_wltp') }}</template>
-            </h2>
-            <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
-              WLTP: <strong>{{ wltp.officialConsumptionKwhPer100km != null ? formatConsumption(wltp.officialConsumptionKwhPer100km) : '–' }}</strong>
-              ({{ wltp.officialRangeKm != null ? formatDistance(wltp.officialRangeKm) : '–' }}, {{ wltp.wltpType }})
-              <span class="hidden sm:inline">
-                · <span class="text-emerald-600 font-medium">{{ t('dashboard.chart_green_better') }}</span>
-                · <span class="text-red-600 font-medium">{{ t('dashboard.chart_red_worse') }}</span>
-              </span>
-            </p>
-            <!-- Custom compare controls -->
-            <div class="mt-2 flex items-center justify-center gap-3 flex-wrap">
-              <button
-                @click="showCompareInput = !showCompareInput"
-                class="text-xs text-blue-600 dark:text-blue-400 underline underline-offset-2 hover:text-blue-700 dark:hover:text-blue-300"
-              >
-                {{ isCustomCompare ? t('dashboard.chart_compare_edit') : t('dashboard.chart_compare_customize') }}
-              </button>
-              <button
-                v-if="isCustomCompare"
-                @click="resetToWltp"
-                class="text-xs text-gray-400 dark:text-gray-500 underline underline-offset-2 hover:text-gray-600 dark:hover:text-gray-300"
-              >
-                {{ t('dashboard.chart_compare_reset') }}
-              </button>
-            </div>
-            <!-- Inline input form -->
-            <div v-if="showCompareInput" class="mt-2 flex items-center justify-center gap-2 flex-wrap">
-              <input
-                v-model="customCompareInput"
-                type="number"
-                step="0.1"
-                min="5"
-                max="99"
-                @keyup.enter="saveCustomCompare"
-                :placeholder="t('dashboard.chart_compare_placeholder')"
-                class="w-24 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-              <span class="text-sm text-gray-500 dark:text-gray-400">{{ consumptionUnitLabel() }}</span>
-              <button
-                @click="saveCustomCompare"
-                class="px-3 py-1 text-xs font-medium bg-emerald-600 text-white rounded hover:bg-emerald-700 active:bg-emerald-800"
-              >
-                {{ t('dashboard.chart_compare_save') }}
-              </button>
-            </div>
-            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ t('model.wltp_measurement_note') }}</p>
-          </div>
-            <div :class="wltpChartScrollable ? 'overflow-y-auto' : ''" :style="{ height: wltpChartHeight }">
-              <Bar :data="wltpChartData" :options="wltpChartOptions" />
-            </div>
-          </template>
-          </div>
-        </div>
-
-        <!-- WLTP missing hint -->
-        <div v-else-if="!wltp && hasDistanceData" class="border-t border-gray-100 pt-6">
-          <div class="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 md:rounded-lg p-3 md:p-4 text-sm text-amber-700 dark:text-amber-300">
-            {{ t('dashboard.wltp_missing') }}
-            <router-link to="/cars" class="font-semibold underline">{{ t('dashboard.wltp_missing_link') }}</router-link>
-            {{ t('dashboard.wltp_missing_suffix') }}
-          </div>
-        </div>
-
-        <!-- Charging Heat Map -->
-        <div class="border-t border-gray-100 dark:border-gray-700 pt-6">
-          <div class="md:bg-gray-50 md:dark:bg-gray-700 py-4 md:p-6 -mx-4 md:mx-0 md:rounded-lg md:border md:border-gray-200 md:dark:border-gray-600 mb-4 md:mb-0">
-            <div v-if="!chartsReady && isInitialLoad" class="h-96 bg-gray-100 dark:bg-gray-700 animate-pulse rounded mx-4 md:mx-0"></div>
-            <template v-else>
-              <div class="mb-4 px-4 md:px-0">
-                <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">{{ t('dashboard.map_title') }}</h2>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  {{ t('dashboard.map_subtitle') }}
-                </p>
-              </div>
-              <ChargingHeatMap :car-id="selectedCarId" :time-range="selectedTimeRange" />
-            </template>
-          </div>
-        </div>
-
         <!-- Log List -->
         <div ref="logsSection" class="border-t border-gray-100 dark:border-gray-700 pt-3 scroll-mt-4 pb-6">
           <div class="flex items-center justify-between mb-3">
@@ -1068,6 +898,176 @@ onMounted(() => initCars())
               class="flex items-center gap-1 px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-600 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition">
               {{ t('dashboard.next') }}<ChevronRightIcon class="w-4 h-4" />
             </button>
+          </div>
+        </div>
+
+        <!-- Chart 1: Charging & Costs -->
+        <div class="border-t border-gray-100 dark:border-gray-700 pt-6">
+          <div class="md:bg-gray-50 md:dark:bg-gray-700 py-4 md:p-6 -mx-4 md:mx-0 md:rounded-lg md:border md:border-gray-200 md:dark:border-gray-600">
+            <div v-if="!chartsReady && isInitialLoad" class="h-64 sm:h-72 bg-gray-100 dark:bg-gray-700 animate-pulse rounded mx-4 md:mx-0"></div>
+            <template v-else>
+              <div class="flex flex-col sm:flex-row sm:items-center justify-center gap-4 sm:gap-6 mb-4 px-4 md:px-0">
+                <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200 text-center">{{ t('dashboard.chart_charging_costs') }}</h2>
+                <div class="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm justify-center">
+                  <label class="flex items-center gap-1 sm:gap-2 cursor-pointer">
+                    <input type="checkbox" v-model="showCostPerKwh"
+                      class="w-3 h-3 sm:w-4 sm:h-4 rounded accent-indigo-600 cursor-pointer" />
+                    <span class="font-medium text-gray-700 dark:text-gray-300">
+                      <span class="inline-block w-2 sm:w-3 h-0.5 bg-indigo-600 mr-1 align-middle"></span>
+                      {{ currencySymbol }}/kWh
+                    </span>
+                  </label>
+                  <label class="flex items-center gap-1 sm:gap-2 cursor-pointer">
+                    <input type="checkbox" v-model="showKwh"
+                      class="w-3 h-3 sm:w-4 sm:h-4 rounded accent-amber-500 cursor-pointer" />
+                    <span class="font-medium text-gray-700 dark:text-gray-300">
+                      <span class="inline-block w-2 sm:w-3 h-0.5 bg-amber-500 mr-1 align-middle"></span>
+                      kWh
+                    </span>
+                  </label>
+                </div>
+              </div>
+              <div v-if="chargingChartData && chargingChartData.datasets.length > 0" class="h-64 sm:h-72">
+                <Line :data="chargingChartData" :options="chargingChartOptions" />
+              </div>
+              <div v-else class="text-center py-10 text-gray-400 text-sm px-4 md:px-0">
+                {{ t('dashboard.chart_no_data') }}
+              </div>
+              <div class="flex flex-wrap gap-x-6 gap-y-1 mt-3 text-xs text-gray-400 px-4 md:px-0">
+                <span>{{ t('dashboard.chart_left_axis') }}: {{ currencySymbol }}/kWh</span>
+                <span>{{ t('dashboard.chart_right_axis') }}: kWh</span>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- Chart 2: Range & Efficiency (only if distance data exists) -->
+        <div v-if="hasDistanceData" class="border-t border-gray-100 dark:border-gray-700 pt-6">
+          <div class="md:bg-gray-50 md:dark:bg-gray-700 py-4 md:p-6 -mx-4 md:mx-0 md:rounded-lg md:border md:border-gray-200 md:dark:border-gray-600">
+            <div v-if="!chartsReady && isInitialLoad" class="h-64 sm:h-72 bg-gray-100 dark:bg-gray-700 animate-pulse rounded mx-4 md:mx-0"></div>
+            <template v-else>
+              <div class="flex flex-col sm:flex-row sm:items-center justify-center gap-4 sm:gap-6 mb-4 px-4 md:px-0">
+                <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200 text-center">{{ t('dashboard.chart_range_efficiency') }}</h2>
+                <div class="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm justify-center">
+                  <label class="flex items-center gap-1 sm:gap-2 cursor-pointer">
+                    <input type="checkbox" v-model="showConsumption"
+                      class="w-3 h-3 sm:w-4 sm:h-4 rounded accent-red-500 cursor-pointer" />
+                    <span class="font-medium text-gray-700 dark:text-gray-300">
+                      <span class="inline-block w-2 sm:w-3 h-0.5 bg-red-500 mr-1 align-middle"></span>
+                      {{ consumptionUnitLabel() }}
+                    </span>
+                  </label>
+                  <label class="flex items-center gap-1 sm:gap-2 cursor-pointer">
+                    <input type="checkbox" v-model="showDistance"
+                      class="w-3 h-3 sm:w-4 sm:h-4 rounded accent-emerald-500 cursor-pointer" />
+                    <span class="font-medium text-gray-700 dark:text-gray-300">
+                      <span class="inline-block w-2 sm:w-3 h-0.5 bg-emerald-500 mr-1 align-middle"></span>
+                      {{ distanceUnitLabel() }}
+                    </span>
+                  </label>
+                </div>
+              </div>
+              <div v-if="efficiencyChartData && efficiencyChartData.datasets.length > 0" class="h-64 sm:h-72">
+                <Line :data="efficiencyChartData" :options="efficiencyChartOptions" />
+              </div>
+              <div v-else class="text-center py-10 text-gray-400 text-sm px-4 md:px-0">
+                {{ t('dashboard.chart_no_data') }}
+              </div>
+              <div class="flex flex-wrap gap-x-6 gap-y-1 mt-3 text-xs text-gray-400 px-4 md:px-0">
+                <span>{{ t('dashboard.chart_left_axis') }}: {{ consumptionUnitLabel() }}</span>
+                <span>{{ t('dashboard.chart_right_axis') }}: {{ distanceUnitLabel() }}</span>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- WLTP Delta Bar Chart -->
+        <div v-if="wltp && hasDistanceData && wltpChartData" class="border-t border-gray-100 dark:border-gray-700 pt-6">
+          <div class="md:bg-gray-50 md:dark:bg-gray-700 py-4 md:p-6 -mx-4 md:mx-0 md:rounded-lg md:border md:border-gray-200 md:dark:border-gray-600">
+          <div v-if="!chartsReady && isInitialLoad" :style="{ height: wltpChartHeight }" class="bg-gray-100 dark:bg-gray-700 animate-pulse rounded mx-4 md:mx-0"></div>
+          <template v-else>
+          <div class="mb-4 text-center px-4 md:px-0">
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">
+              <template v-if="isCustomCompare">
+                {{ t('dashboard.chart_consumption_vs_custom_prefix') }} <strong>{{ customCompareValue != null ? formatConsumption(customCompareValue) : '–' }}</strong>
+              </template>
+              <template v-else>{{ t('dashboard.chart_consumption_vs_wltp') }}</template>
+            </h2>
+            <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
+              WLTP: <strong>{{ wltp.officialConsumptionKwhPer100km != null ? formatConsumption(wltp.officialConsumptionKwhPer100km) : '–' }}</strong>
+              ({{ wltp.officialRangeKm != null ? formatDistance(wltp.officialRangeKm) : '–' }}, {{ wltp.wltpType }})
+              <span class="hidden sm:inline">
+                · <span class="text-emerald-600 font-medium">{{ t('dashboard.chart_green_better') }}</span>
+                · <span class="text-red-600 font-medium">{{ t('dashboard.chart_red_worse') }}</span>
+              </span>
+            </p>
+            <!-- Custom compare controls -->
+            <div class="mt-2 flex items-center justify-center gap-3 flex-wrap">
+              <button
+                @click="showCompareInput = !showCompareInput"
+                class="text-xs text-blue-600 dark:text-blue-400 underline underline-offset-2 hover:text-blue-700 dark:hover:text-blue-300"
+              >
+                {{ isCustomCompare ? t('dashboard.chart_compare_edit') : t('dashboard.chart_compare_customize') }}
+              </button>
+              <button
+                v-if="isCustomCompare"
+                @click="resetToWltp"
+                class="text-xs text-gray-400 dark:text-gray-500 underline underline-offset-2 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                {{ t('dashboard.chart_compare_reset') }}
+              </button>
+            </div>
+            <!-- Inline input form -->
+            <div v-if="showCompareInput" class="mt-2 flex items-center justify-center gap-2 flex-wrap">
+              <input
+                v-model="customCompareInput"
+                type="number"
+                step="0.1"
+                min="5"
+                max="99"
+                @keyup.enter="saveCustomCompare"
+                :placeholder="t('dashboard.chart_compare_placeholder')"
+                class="w-24 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+              <span class="text-sm text-gray-500 dark:text-gray-400">{{ consumptionUnitLabel() }}</span>
+              <button
+                @click="saveCustomCompare"
+                class="px-3 py-1 text-xs font-medium bg-emerald-600 text-white rounded hover:bg-emerald-700 active:bg-emerald-800"
+              >
+                {{ t('dashboard.chart_compare_save') }}
+              </button>
+            </div>
+            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ t('model.wltp_measurement_note') }}</p>
+          </div>
+            <div :class="wltpChartScrollable ? 'overflow-y-auto' : ''" :style="{ height: wltpChartHeight }">
+              <Bar :data="wltpChartData" :options="wltpChartOptions" />
+            </div>
+          </template>
+          </div>
+        </div>
+
+        <!-- WLTP missing hint -->
+        <div v-else-if="!wltp && hasDistanceData" class="border-t border-gray-100 pt-6">
+          <div class="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 md:rounded-lg p-3 md:p-4 text-sm text-amber-700 dark:text-amber-300">
+            {{ t('dashboard.wltp_missing') }}
+            <router-link to="/cars" class="font-semibold underline">{{ t('dashboard.wltp_missing_link') }}</router-link>
+            {{ t('dashboard.wltp_missing_suffix') }}
+          </div>
+        </div>
+
+        <!-- Charging Heat Map -->
+        <div class="border-t border-gray-100 dark:border-gray-700 pt-6">
+          <div class="md:bg-gray-50 md:dark:bg-gray-700 py-4 md:p-6 -mx-4 md:mx-0 md:rounded-lg md:border md:border-gray-200 md:dark:border-gray-600 mb-4 md:mb-0">
+            <div v-if="!chartsReady && isInitialLoad" class="h-96 bg-gray-100 dark:bg-gray-700 animate-pulse rounded mx-4 md:mx-0"></div>
+            <template v-else>
+              <div class="mb-4 px-4 md:px-0">
+                <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">{{ t('dashboard.map_title') }}</h2>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  {{ t('dashboard.map_subtitle') }}
+                </p>
+              </div>
+              <ChargingHeatMap :car-id="selectedCarId" :time-range="selectedTimeRange" />
+            </template>
           </div>
         </div>
 
