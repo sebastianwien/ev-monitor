@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 
-type Tab = 'smartcar' | 'spritmonitor' | 'goe' | 'wallbox' | 'tesla' | 'tronity' | 'manuell' | 'api'
+type Tab = 'smartcar' | 'spritmonitor' | 'goe' | 'wallbox' | 'tesla' | 'tronity' | 'tessie' | 'manuell' | 'api'
 
 // Module-level singleton — shared across all component instances
 const activeTab = ref<Tab | null>(null)

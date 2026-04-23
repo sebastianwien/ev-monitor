@@ -171,6 +171,7 @@ models_list:
     select_all: Markera alla
     deselect_all: Avmarkera alla
     results: "{filtered} av {total} modeller"
+    search_placeholder: "Tesla, VW ID, Ioniq..."
   card:
     charging_sessions: Laddningssessioner
     wltp_label: WLTP
@@ -1114,6 +1115,7 @@ imports:
   tab_wallbox: OCPP-laddbox
   tab_tesla: Tesla
   tab_tronity: Tronity
+  tab_tessie: Tessie
   tab_manuell: Manuell
   tab_api: API
   sprit_title: Sprit-Monitor Import
@@ -1123,6 +1125,11 @@ imports:
   sprit_feat3: Val av fordon
   sprit_feat4: Engångstoken för API sparas inte
   sprit_btn: Starta importen av Sprit-Monitor
+  tessie_desc: Importera körningar och laddningssessioner från Tessie. Din API-token sparas inte.
+  tessie_feat1: Körningar och laddningar sedan 2019
+  tessie_feat2: Alla Tesla-modeller (utom Roadster)
+  tessie_feat3: Token raderas omedelbart efter importen
+  tessie_btn: Starta Tessie-import
   goe_title: go-eCharger Cloud
   goe_desc: Anslut din go-eCharger via moln-API:et för helt automatisk import. Laddningsstatusen kontrolleras var 30:e sekund och avslutade laddningssessioner loggas automatiskt.
   goe_beta_hint: "Betafunktion: Denna integration är i betafasen och kan fortfarande innehålla buggar. Vänligen rapportera eventuella problem."
@@ -1493,6 +1500,38 @@ tronity:
   err_format: Inget Tronity-format har upptäckts. Ladda upp en Tronity-export i XLSX-format.
   err_read: Filen kunde inte läsas.
   err_import: Importen misslyckades
+
+tessie:
+  title: Tessie-import
+  step1_intro: Ange din Tessie API-token. Den <strong>sparas inte</strong> och används bara för den här importen.
+  token_label: Tessie API-token
+  token_placeholder: din-tessie-token
+  token_hint_pre: Generera token på
+  token_hint_post: (Utvecklarinställningar)
+  load_btn: Ladda fordon
+  load_btn_loading: Laddar...
+  err_token_empty: Ange din Tessie API-token.
+  err_token_invalid: Ogiltig token. Kontrollera din Tessie API-token.
+  err_no_vehicles: Inga fordon hittades i ditt Tessie-konto.
+  err_none_selected: Välj minst ett fordon.
+  err_import_failed: Importen misslyckades
+  step2_found: "Fordon hittade: {n}"
+  select_all: Välj alla
+  deselect_all: Avmarkera alla
+  inactive: Inaktiv
+  back_btn: Tillbaka
+  import_btn: "Importera ({n})"
+  importing_title: Importerar...
+  importing_progress: "{current} av {total}"
+  done_title: Import klar
+  done_drives: "{n} körningar importerade"
+  done_charges: "{n} laddningssessioner importerade"
+  done_skipped: "{n} redan lagrade (hoppades över)"
+  done_per_vehicle: Per fordon
+  done_hint: Rådata sparad - koppling till laddningssessioner sker i nästa steg.
+  done_partial_error: Ett eller flera fordon misslyckades med importen. Kontrollera detaljerna ovan.
+  done_btn: Klar
+
 demo:
   title: Demokonto
   read_only: Skrivskyddad

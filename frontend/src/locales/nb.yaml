@@ -171,6 +171,7 @@ models_list:
     select_all: Velg alt
     deselect_all: Fjern merket for alle
     results: "{filtered} av {total}-modellene"
+    search_placeholder: "Tesla, VW ID, Ioniq..."
   card:
     charging_sessions: Ladingsøkter
     wltp_label: WLTP
@@ -1114,6 +1115,7 @@ imports:
   tab_wallbox: OCPP-vegglader
   tab_tesla: Tesla
   tab_tronity: Tronity
+  tab_tessie: Tessie
   tab_manuell: Manuell
   tab_api: API
   sprit_title: Sprit-Monitor Import
@@ -1123,6 +1125,11 @@ imports:
   sprit_feat3: Valg av kjøretøy
   sprit_feat4: Engangs-API-token lagres ikke
   sprit_btn: Start import av Sprit-Monitor
+  tessie_desc: Importer kjøretøydata og ladesøkter fra Tessie. API-tokenet lagres ikke.
+  tessie_feat1: Turer og ladesøkter siden 2019
+  tessie_feat2: Alle Tesla-modeller (bortsett fra Roadster)
+  tessie_feat3: Tokenet slettes umiddelbart etter importen
+  tessie_btn: Start Tessie-import
   goe_title: go-eCharger Cloud
   goe_desc: Koble til go-eCharger via Cloud API for helautomatisk import. Ladestatusen sjekkes hvert 30. sekund, og fullførte ladesesjoner loggføres automatisk.
   goe_beta_hint: "Betafunksjon: Denne integrasjonen er i betaversjon og kan fortsatt inneholde feil. Vennligst rapporter eventuelle problemer."
@@ -1493,6 +1500,38 @@ tronity:
   err_format: Det ble ikke funnet noe Tronity-format. Last opp en Tronity XLSX-eksportfil.
   err_read: Filen kunne ikke leses.
   err_import: Importen mislyktes
+
+tessie:
+  title: Tessie-import
+  step1_intro: Skriv inn Tessie API-tokenet ditt. Det <strong>lagres ikke</strong> og brukes kun til denne importen.
+  token_label: Tessie API-token
+  token_placeholder: ditt-tessie-token
+  token_hint_pre: Generer token på
+  token_hint_post: (Utviklerinnstillinger)
+  load_btn: Last inn kjøretøy
+  load_btn_loading: Laster...
+  err_token_empty: Vennligst skriv inn Tessie API-tokenet ditt.
+  err_token_invalid: Ugyldig token. Vennligst sjekk Tessie API-tokenet ditt.
+  err_no_vehicles: Ingen kjøretøy funnet i Tessie-kontoen din.
+  err_none_selected: Velg minst ett kjøretøy.
+  err_import_failed: Import mislyktes
+  step2_found: "Kjøretøy funnet: {n}"
+  select_all: Velg alle
+  deselect_all: Fjern alle valg
+  inactive: Inaktiv
+  back_btn: Tilbake
+  import_btn: "Importer ({n})"
+  importing_title: Importerer...
+  importing_progress: "{current} av {total}"
+  done_title: Import fullført
+  done_drives: "{n} turer importert"
+  done_charges: "{n} ladesøkter importert"
+  done_skipped: "{n} allerede lagret (hoppet over)"
+  done_per_vehicle: Per kjøretøy
+  done_hint: Rådata er lagret - tilknytning til ladesøkter kommer i neste trinn.
+  done_partial_error: Ett eller flere kjøretøy mislyktes under import. Sjekk detaljene ovenfor.
+  done_btn: Ferdig
+
 demo:
   title: Demokonto
   read_only: Skrivebeskyttet

@@ -9,6 +9,7 @@ import TeslaFleetIntegration from '../components/imports/TeslaFleetIntegration.v
 import SmartcarIntegration from '../components/imports/SmartcarIntegration.vue'
 import ManualImportModal from '../components/imports/ManualImportModal.vue'
 import TronityImport from '../components/imports/TronityImport.vue'
+import TessieImport from '../components/imports/TessieImport.vue'
 import CarSelectDropdown from '../components/car/CarSelectDropdown.vue'
 import type { Car } from '../api/carService'
 import { useCarStore } from '../stores/car'
@@ -23,6 +24,7 @@ const { activeTab, toggle } = useImportsTab()
 const authStore = useAuthStore()
 const carStore = useCarStore()
 const showSpritMonitorModal = ref(false)
+const showTessieModal = ref(false)
 const manualImportCarId = ref<string | null>(null)
 const showManualImportModal = ref(false)
 const cars = ref<Car[]>([])
@@ -327,7 +329,37 @@ const activeCars = computed(() =>
           </Transition>
         </div>
 
-        <!-- 5. MANUELL -->
+        <!-- 5. TESSIE -->
+        <div>
+          <button
+            @click="toggle('tessie'); analytics.trackImportTabClicked('tessie')"
+            class="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+          >
+            <div class="shrink-0 bg-gray-900 dark:bg-gray-700 rounded-lg p-2 w-10 h-10 flex items-center justify-center">
+              <span class="text-white font-bold text-xs leading-none">T</span>
+            </div>
+            <div class="flex-1 min-w-0">
+              <span class="font-medium text-gray-900 dark:text-gray-100 text-sm">{{ t('imports.tab_tessie') }}</span>
+            </div>
+            <ChevronDownIcon :class="['h-5 w-5 text-gray-400 shrink-0 transition-transform duration-200', activeTab === 'tessie' ? 'rotate-180' : '']" />
+          </button>
+          <Transition name="accordion">
+            <div v-if="activeTab === 'tessie'" class="border-t border-gray-100 dark:border-gray-700 p-4 space-y-4">
+              <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('imports.tessie_desc') }}</p>
+              <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-1 list-disc list-inside">
+                <li>{{ t('imports.tessie_feat1') }}</li>
+                <li>{{ t('imports.tessie_feat2') }}</li>
+                <li>{{ t('imports.tessie_feat3') }}</li>
+              </ul>
+              <button @click="showTessieModal = true" class="btn-3d flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 rounded-lg font-medium text-sm hover:bg-gray-800 transition">
+                <ArrowDownTrayIcon class="h-4 w-4" />
+                {{ t('imports.tessie_btn') }}
+              </button>
+            </div>
+          </Transition>
+        </div>
+
+        <!-- 6. MANUELL (war 5) -->
         <div>
           <button
             @click="toggle('manuell'); analytics.trackImportTabClicked('manuell')"
@@ -478,6 +510,9 @@ const activeCars = computed(() =>
 
   <!-- Sprit-Monitor Import Modal -->
   <SpritMonitorImport v-if="showSpritMonitorModal" @close="showSpritMonitorModal = false" />
+
+  <!-- Tessie Import Modal -->
+  <TessieImport v-if="showTessieModal" @close="showTessieModal = false" />
 
   <!-- Manual Import Modal -->
   <ManualImportModal
