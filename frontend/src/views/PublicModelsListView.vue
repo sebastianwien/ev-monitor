@@ -118,7 +118,7 @@
                       @change="toggleBrand(brand)"
                       class="w-4 h-4 text-green-600 border-gray-300 dark:border-gray-600 rounded focus:ring-green-500"
                     />
-                    <a :href="`/modelle/${brand}`" class="text-sm text-gray-700 dark:text-gray-300 hover:text-green-600" @click.stop>{{ brand }}</a>
+                    <span class="text-sm text-gray-700 dark:text-gray-300">{{ brand }}</span>
                   </label>
                 </div>
               </div>
