@@ -2,7 +2,6 @@
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { BoltIcon, CheckCircleIcon, XCircleIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
-import { useAuthStore } from '../../stores/auth'
 import { useCarStore } from '../../stores/car'
 import CarSelectDropdown from '../car/CarSelectDropdown.vue'
 import smartcarService, { type SmartcarConnectionStatus } from '../../api/smartcarService'
@@ -10,7 +9,7 @@ import type { Car } from '../../api/carService'
 
 const { t } = useI18n()
 
-const props = defineProps<{ premiumEnabled?: boolean }>()
+const props = defineProps<{ premiumEnabled?: boolean; isPremium?: boolean }>()
 
 const brands = [
     'BMW', 'MINI', 'VW', 'Mercedes', 'Audi', 'Porsche', 'Skoda', 'SEAT', 'CUPRA', 'Opel',
@@ -18,7 +17,6 @@ const brands = [
     'Fiat', 'Alfa Romeo', 'Peugeot', 'Citroën', 'Mazda', 'MG', 'BYD',
     'Jaguar', 'Land Rover', 'Tesla',
 ]
-const authStore = useAuthStore()
 const carStore = useCarStore()
 
 const status = ref<SmartcarConnectionStatus | null>(null)
@@ -30,7 +28,7 @@ const cars = ref<Car[]>([])
 const selectedCarId = ref<string | null>(null)
 
 onMounted(async () => {
-  if (!props.premiumEnabled && !authStore.isPremium) return
+  if (!props.premiumEnabled && !props.isPremium) return
   try {
     const [s, c] = await Promise.all([
       smartcarService.getStatus(),
@@ -103,7 +101,7 @@ const stateColor = (state: string | null) => {
 
 <template>
   <!-- TEASER: Premium-Kauf möglich, aber User noch kein Abonnent -->
-  <div v-if="props.premiumEnabled && !authStore.isPremium" class="p-6 space-y-5">
+  <div v-if="props.premiumEnabled && !props.isPremium" class="p-6 space-y-5">
     <div>
       <h2 class="font-semibold text-gray-900 dark:text-gray-100 flex flex-wrap items-center gap-2">
         {{ t('imports.smartcar_teaser_title') }}

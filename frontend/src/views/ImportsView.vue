@@ -28,6 +28,7 @@ const showManualImportModal = ref(false)
 const cars = ref<Car[]>([])
 const loading = ref(true)
 const premiumEnabled = ref(false)
+const subscriptionIsPremium = ref(authStore.isPremium)
 
 onMounted(async () => {
   const params = new URLSearchParams(window.location.search)
@@ -42,7 +43,10 @@ onMounted(async () => {
     loading.value = false
   }
   fetchApiKeys()
-  subscriptionService.getStatus().then(s => { premiumEnabled.value = s.premiumEnabled }).catch(() => {})
+  subscriptionService.getStatus().then(s => {
+    premiumEnabled.value = s.premiumEnabled
+    subscriptionIsPremium.value = s.isPremium
+  }).catch(() => {})
 })
 
 // ── API Keys ──────────────────────────────────────────────────────────────────
@@ -185,7 +189,7 @@ const activeCars = computed(() =>
           </button>
           <Transition name="accordion">
             <div v-if="activeTab === 'smartcar'" class="border-t border-gray-100 dark:border-gray-700">
-              <SmartcarIntegration :premium-enabled="premiumEnabled" />
+              <SmartcarIntegration :premium-enabled="premiumEnabled" :is-premium="subscriptionIsPremium" />
             </div>
           </Transition>
         </div>

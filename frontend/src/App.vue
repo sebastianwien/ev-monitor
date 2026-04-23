@@ -31,6 +31,7 @@ import ThemeToggle from './components/shared/ThemeToggle.vue'
 import LocaleSwitcher from './components/shared/LocaleSwitcher.vue'
 import { useTickerState } from './composables/useTickerState'
 import { useCountryStore } from './stores/country'
+import { subscriptionService } from './api/subscriptionService'
 
 const { haptic } = useHaptic()
 const { t } = useI18n()
@@ -99,6 +100,10 @@ onMounted(() => {
   captureUtmParams()
   captureReferrer()
   detectCountry()
+
+  if (authStore.isAuthenticated() && !authStore.isDemoAccount) {
+    subscriptionService.getStatus().then(s => authStore.setPremium(s.isPremium)).catch(() => {})
+  }
 
   // Auto-haptic for all btn-3d elements
   const { haptic: triggerHaptic } = useHaptic()
