@@ -78,12 +78,12 @@ public class SpritMonitorClient {
             String url = String.format("%s/vehicle/%d/tank/%d/fuelings.json?offset=%d&limit=%d",
                 BASE_URL, vehicleId, tankId, offset, limit);
 
-            ResponseEntity<String> response = restTemplate.exchange(
-                url, HttpMethod.GET, new HttpEntity<>(createHeaders(token)), String.class
+            ResponseEntity<JsonNode> response = restTemplate.exchange(
+                url, HttpMethod.GET, new HttpEntity<>(createHeaders(token)), JsonNode.class
             );
 
-            String body = response.getBody();
-            if (body == null || body.isBlank()) break;
+            JsonNode body = response.getBody();
+            if (body == null || body.isEmpty()) break;
 
             List<RawFueling> batch = parseBatch(body);
             if (batch.isEmpty()) break;
@@ -101,9 +101,8 @@ public class SpritMonitorClient {
      * Parses a JSON array response into RawFueling pairs.
      * Each element's verbatim JSON (including unknown fields) is preserved alongside the parsed DTO.
      */
-    private List<RawFueling> parseBatch(String jsonArray) {
+    private List<RawFueling> parseBatch(JsonNode array) {
         try {
-            JsonNode array = MAPPER.readTree(jsonArray);
             if (!array.isArray()) return List.of();
 
             List<RawFueling> result = new ArrayList<>(array.size());
