@@ -600,6 +600,25 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void statistics_withNullKwhChargedLog_returns200WithZeroTotal() {
+        EvLog logWithNullKwh = EvLog.createNew(
+                carId, null, null, null, null, null, null, null, LocalDateTime.now(),
+                null, null, null, false, null);
+        evLogRepository.save(logWithNullKwh);
+
+        ResponseEntity<EvLogStatisticsResponse> response = restTemplate.exchange(
+                "/api/logs/statistics?carId=" + carId,
+                HttpMethod.GET,
+                createAuthRequest(userId, testUser.getEmail()),
+                EvLogStatisticsResponse.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(1, response.getBody().totalCharges());
+        assertEquals(BigDecimal.ZERO, response.getBody().totalKwhCharged());
+    }
+
+    @Test
     void updateLog_withTireType_updatesValue() {
         EvLog existing = evLogRepository.save(EvLog.createNew(
                 carId, new BigDecimal("25.0"), new BigDecimal("7.00"),

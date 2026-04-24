@@ -19,6 +19,7 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -387,6 +388,22 @@ class CarImageControllerIntegrationTest extends AbstractIntegrationTest {
         body.add("file", new HttpEntity<>(fileResource, partHeaders));
 
         return new HttpEntity<>(body, headers);
+    }
+
+    @Test
+    void uploadUnreadableJpeg_returns400() throws IOException {
+        // Truncated JPEG: valid SOI marker but no actual image data — triggers IIOException
+        byte[] brokenJpeg = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF};
+        HttpEntity<MultiValueMap<String, Object>> request = buildUploadRequest(
+                owner, brokenJpeg, "image/jpeg", false);
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                "/api/cars/" + ownerCar.getId() + "/image?isPublic=false",
+                HttpMethod.POST,
+                request,
+                Map.class);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     }
 
     /**

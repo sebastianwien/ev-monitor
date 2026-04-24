@@ -138,6 +138,7 @@ public class EvLogStatisticsService {
         // Calculate key metrics
         BigDecimal totalKwhCharged = logs.stream()
                 .map(EvLog::getKwhCharged)
+                .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal totalCostEur = logs.stream()
@@ -147,8 +148,11 @@ public class EvLogStatisticsService {
 
         // For avgCostPerKwh: normalize AT_VEHICLE logs to AT_CHARGER equivalent — because cost_eur
         // reflects what was billed at the charger, not what entered the battery.
+        // Skip logs without any energy data to avoid NPE in effectiveKwhForCost.
         BigDecimal totalKwhForCost = logs.stream()
+                .filter(l -> l.getKwhCharged() != null || l.getKwhAtVehicle() != null)
                 .map(calculationService::effectiveKwhForCost)
+                .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal avgCostPerKwh = totalKwhForCost.compareTo(BigDecimal.ZERO) > 0
                 ? totalCostEur.divide(totalKwhForCost, 2, RoundingMode.HALF_UP)
@@ -398,6 +402,7 @@ public class EvLogStatisticsService {
 
                     BigDecimal totalKwh = periodLogs.stream()
                             .map(EvLog::getKwhCharged)
+                            .filter(Objects::nonNull)
                             .reduce(BigDecimal.ZERO, BigDecimal::add);
 
                     BigDecimal totalCost = periodLogs.stream()

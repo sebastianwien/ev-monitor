@@ -90,6 +90,19 @@ class InternalTripControllerTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void submitTrip_withoutUserId_returns400() {
+        Map<String, Object> request = tripRequest(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID());
+        request.remove("userId");
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                "/api/internal/trips", HttpMethod.POST,
+                new HttpEntity<>(request, internalHeaders(VALID_TOKEN)),
+                Map.class);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+    }
+
+    @Test
     void submitTrip_withoutExternalId_persistsWithNullExternalId() {
         Map<String, Object> request = tripRequest(null, UUID.randomUUID(), UUID.randomUUID());
 

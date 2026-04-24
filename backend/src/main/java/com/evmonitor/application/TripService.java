@@ -2,6 +2,7 @@ package com.evmonitor.application;
 
 import com.evmonitor.domain.EvTrip;
 import com.evmonitor.domain.EvTripRepository;
+import com.evmonitor.domain.exception.ValidationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,9 @@ public class TripService {
 
     @Transactional
     public UUID saveTrip(InternalTripRequest req) {
+        if (req.userId() == null) {
+            throw new ValidationException("userId is required");
+        }
         if (req.externalId() != null) {
             var existing = tripRepository.findByExternalId(req.externalId());
             if (existing.isPresent()) {

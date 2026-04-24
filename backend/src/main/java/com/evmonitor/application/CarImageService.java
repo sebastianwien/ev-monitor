@@ -37,7 +37,12 @@ public class CarImageService {
             dir.mkdirs();
         }
 
-        BufferedImage original = ImageIO.read(file.getInputStream());
+        BufferedImage original;
+        try {
+            original = ImageIO.read(file.getInputStream());
+        } catch (javax.imageio.IIOException e) {
+            throw new IllegalArgumentException("Ungültiges Bildformat. Bitte JPEG oder PNG hochladen.");
+        }
         if (original == null) {
             throw new IllegalArgumentException("Ungültiges Bildformat. Bitte JPEG oder PNG hochladen.");
         }
