@@ -330,7 +330,7 @@ const activeCars = computed(() =>
         </div>
 
         <!-- 5. TESSIE -->
-        <div>
+        <div v-if="false">
           <button
             @click="toggle('tessie'); analytics.trackImportTabClicked('tessie')"
             class="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
