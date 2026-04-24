@@ -3,6 +3,7 @@ package com.evmonitor.infrastructure.web;
 import com.evmonitor.application.AdminChargingActivityRow;
 import com.evmonitor.application.AdminUserGrowthRow;
 import com.evmonitor.application.AdminUserRow;
+import com.evmonitor.application.BatterySohService;
 import com.evmonitor.application.PlausibleTrafficRow;
 import com.evmonitor.infrastructure.external.PlausibleService;
 import com.evmonitor.infrastructure.persistence.AdminQueryRepository;
@@ -26,11 +27,23 @@ public class AdminController {
     private final TemperatureBackfillJob temperatureBackfillJob;
     private final AdminQueryRepository adminQueryRepository;
     private final PlausibleService plausibleService;
+    private final BatterySohService batterySohService;
 
     /**
      * Triggers one-time temperature backfill for all logs with geohash but no temperature.
      * Runs synchronously and returns a summary when done.
      */
+    /**
+     * Triggers SoH auto-detection for all cars with AT_VEHICLE logs but no SoH entry this year.
+     * Safe to call multiple times - already-detected cars are skipped.
+     */
+    @PostMapping("/soh/redetect")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<String> redetectSoh() {
+        int count = batterySohService.redetectForCarsWithoutSohThisYear();
+        return ResponseEntity.ok("SoH detected for " + count + " cars");
+    }
+
     @PostMapping("/backfill-temperature")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> backfillTemperature() {

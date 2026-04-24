@@ -18,4 +18,7 @@ public interface CarRepository {
     long countByUserId(UUID userId);
 
     void deleteById(UUID id);
+
+    /** Cars that have AT_VEHICLE ev_log entries but no SoH entry in the current calendar year. */
+    List<Car> findCarsNeedingSohDetection();
 }

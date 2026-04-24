@@ -50,6 +50,11 @@ public class PostgresCarRepositoryImpl implements CarRepository {
         jpaCarRepository.deleteById(id);
     }
 
+    @Override
+    public List<Car> findCarsNeedingSohDetection() {
+        return toDomainList(jpaCarRepository.findCarsNeedingSohDetection());
+    }
+
     private CarEntity toEntity(Car domain) {
         CarEntity entity = new CarEntity();
         entity.setId(domain.getId());

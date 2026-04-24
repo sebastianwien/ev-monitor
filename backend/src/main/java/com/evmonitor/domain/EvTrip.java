@@ -73,6 +73,9 @@ public class EvTrip {
     @Column(name = "status", nullable = false, length = 20)
     private String status;
 
+    @Column(name = "route_type", length = 20)
+    private String routeType;
+
     @Column(name = "external_id")
     private UUID externalId;
 

@@ -151,6 +151,25 @@ public class BatterySohService {
         syncDegradationToCarField(car.getId());
     }
 
+    /**
+     * Runs SoH auto-detection for all cars that have AT_VEHICLE logs but no SoH entry
+     * in the current calendar year. Skips cars where detection yields no result.
+     *
+     * @return number of cars for which a new SoH entry was persisted
+     */
+    @Transactional
+    public int redetectForCarsWithoutSohThisYear() {
+        List<Car> cars = carRepository.findCarsNeedingSohDetection();
+        int detected = 0;
+        for (Car car : cars) {
+            long before = sohRepository.findByCarId(car.getId()).size();
+            autoDetectAndPersist(car);
+            long after = sohRepository.findByCarId(car.getId()).size();
+            if (after > before) detected++;
+        }
+        return detected;
+    }
+
     private void verifyOwnership(UUID carId, UUID userId) {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new IllegalArgumentException("Car not found"));
