@@ -104,7 +104,7 @@ class CoinLogServiceIntegrationTest extends AbstractIntegrationTest {
     void spritMonitor_doesNotAwardCoins_ForSkippedFuelings() {
         // One liter fueling (skipped) + one kWh fueling (imported)
         mockFuelings(
-                new SpritMonitorFuelingDTO("10.01.2024", new BigDecimal("50.0"), 1 /* Liter */, null, new BigDecimal("12.50"), 60, null, null, null, null, null, null),
+                new SpritMonitorFuelingDTO("10.01.2024", new BigDecimal("50.0"), 1 /* Liter */, null, new BigDecimal("12.50"), 60, null, null, null, null, null, null, null),
                 fueling("15.01.2024", "40.0")
         );
 
@@ -168,6 +168,6 @@ class CoinLogServiceIntegrationTest extends AbstractIntegrationTest {
 
     private SpritMonitorFuelingDTO fueling(String date, String kwh) {
         return new SpritMonitorFuelingDTO(date, new BigDecimal(kwh), KWH_UNIT,
-                null, new BigDecimal("10.00"), 45, null, null, null, null, null, null);
+                null, new BigDecimal("10.00"), 45, null, null, null, null, null, null, null);
     }
 }

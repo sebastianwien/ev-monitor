@@ -4,7 +4,12 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import com.evmonitor.domain.RouteType;
+
 import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record SpritMonitorFuelingDTO(
@@ -23,7 +28,8 @@ public record SpritMonitorFuelingDTO(
     String stationname,
     String note,
     @JsonProperty("charge_info")
-    String chargeInfo    // Free-text field that may contain "AC", "DC", connector types, etc.
+    String chargeInfo,   // Free-text field that may contain "AC", "DC", connector types, etc.
+    String streets       // Comma-separated road types: "autobahn", "city", "land" (or combinations)
 ) {
     private static final int UNIT_KWH = 5;
 
@@ -61,6 +67,29 @@ public record SpritMonitorFuelingDTO(
         }
 
         return com.evmonitor.domain.ChargingType.UNKNOWN;
+    }
+
+    /**
+     * Maps SpritMonitor's "streets" field to RouteType.
+     * Valid tokens: "autobahn", "city", "land". Unknown tokens are ignored.
+     * - Only "autobahn" → HIGHWAY
+     * - Only "city"     → CITY
+     * - Any mix, or "land" alone, or unknown-only → COMBINED
+     * - Null/blank/no valid tokens → null (unknown)
+     */
+    public RouteType parseRouteType() {
+        if (streets == null || streets.isBlank()) return null;
+
+        Set<String> tokens = Arrays.stream(streets.split(","))
+            .map(String::trim)
+            .map(String::toLowerCase)
+            .filter(t -> t.equals("autobahn") || t.equals("city") || t.equals("land"))
+            .collect(Collectors.toSet());
+
+        if (tokens.isEmpty()) return null;
+        if (tokens.size() == 1 && tokens.contains("autobahn")) return RouteType.HIGHWAY;
+        if (tokens.size() == 1 && tokens.contains("city"))     return RouteType.CITY;
+        return RouteType.COMBINED;
     }
 
     public record Position(

@@ -6,6 +6,7 @@ import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.ChargingType;
 import com.evmonitor.domain.DataSource;
+import com.evmonitor.domain.RouteType;
 import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.EvLogRepository;
 import com.evmonitor.infrastructure.external.SpritMonitorClient;
@@ -178,7 +179,12 @@ public class SpritMonitorImportService {
                         continue;
                     }
 
-                    evLogRepository.updateRawImportData(matches.get(0).getId(), rawFueling.rawJson());
+                    EvLog existing = matches.get(0);
+                    evLogRepository.updateRawImportData(existing.getId(), rawFueling.rawJson());
+                    RouteType routeType = fueling.parseRouteType();
+                    if (routeType != null && existing.getRouteType() == null) {
+                        evLogRepository.updateRouteType(existing.getId(), routeType);
+                    }
                     result.incrementRefreshed();
                 } catch (Exception e) {
                     log.error("Failed to refresh raw data for fueling on {}: {}", fueling.date(), e.getMessage(), e);
@@ -211,8 +217,9 @@ public class SpritMonitorImportService {
         Integer socAfterChargePercent = fueling.percent() != null ? fueling.percent().intValue() : null;
 
         ChargingType chargingType = fueling.parseChargingType();
+        RouteType routeType = fueling.parseRouteType();
 
-        return EvLog.createNewWithSource(
+        EvLog base = EvLog.createNewWithSource(
             carId,
             kwhCharged,
             costEur,
@@ -226,5 +233,6 @@ public class SpritMonitorImportService {
             chargingType,
             rawJson
         );
+        return routeType != null ? base.toBuilder().routeType(routeType).build() : base;
     }
 }

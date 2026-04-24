@@ -137,7 +137,7 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
 
         when(spritMonitorClient.getFuelings(eq(validToken), eq(123), any())).thenReturn(raw(
                 new SpritMonitorFuelingDTO("15.01.2024", new BigDecimal("50.0"), QUANTITY_UNIT_KWH,
-                        null, new BigDecimal("12.50"), 60, null, null, position, null, null, null)
+                        null, new BigDecimal("12.50"), 60, null, null, position, null, null, null, null)
         ));
 
         HttpEntity<Map<String, Object>> requestWithAuth = createAuthRequest(importRequest(123), userId, testUser.getEmail());
@@ -160,7 +160,7 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
     void shouldHandleImportWithoutGPSCoordinates() {
         when(spritMonitorClient.getFuelings(eq(validToken), eq(123), any())).thenReturn(raw(
                 new SpritMonitorFuelingDTO("15.01.2024", new BigDecimal("50.0"), QUANTITY_UNIT_KWH,
-                        null, new BigDecimal("12.50"), 60, null, null, null, null, null, null)
+                        null, new BigDecimal("12.50"), 60, null, null, null, null, null, null, null)
         ));
 
         HttpEntity<Map<String, Object>> requestWithAuth = createAuthRequest(importRequest(123), userId, testUser.getEmail());
@@ -179,9 +179,9 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
     void shouldSkipFuelings_WithNonKwhUnit() {
         when(spritMonitorClient.getFuelings(eq(validToken), eq(123), any())).thenReturn(raw(
                 new SpritMonitorFuelingDTO("15.01.2024", new BigDecimal("50.0"), 1,
-                        null, new BigDecimal("12.50"), 60, null, null, null, null, null, null),
+                        null, new BigDecimal("12.50"), 60, null, null, null, null, null, null, null),
                 new SpritMonitorFuelingDTO("20.01.2024", new BigDecimal("30.0"), QUANTITY_UNIT_KWH,
-                        null, new BigDecimal("9.00"), 45, null, null, null, null, null, null)
+                        null, new BigDecimal("9.00"), 45, null, null, null, null, null, null, null)
         ));
 
         HttpEntity<Map<String, Object>> requestWithAuth = createAuthRequest(importRequest(123), userId, testUser.getEmail());
@@ -200,9 +200,9 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
 
         when(spritMonitorClient.getFuelings(eq(validToken), eq(123), any())).thenReturn(raw(
                 new SpritMonitorFuelingDTO("15.01.2024", new BigDecimal("50.0"), QUANTITY_UNIT_KWH,
-                        null, new BigDecimal("12.50"), 60, null, null, position, null, null, null),
+                        null, new BigDecimal("12.50"), 60, null, null, position, null, null, null, null),
                 new SpritMonitorFuelingDTO("invalid-date-format", new BigDecimal("30.0"), QUANTITY_UNIT_KWH,
-                        null, new BigDecimal("9.00"), 45, null, null, position, null, null, null)
+                        null, new BigDecimal("9.00"), 45, null, null, position, null, null, null, null)
         ));
 
         HttpEntity<Map<String, Object>> requestWithAuth = createAuthRequest(importRequest(123), userId, testUser.getEmail());
@@ -248,7 +248,7 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
         when(spritMonitorClient.getFuelings(eq(validToken), eq(123), any())).thenReturn(raw(
                 new SpritMonitorFuelingDTO("15.01.2024", new BigDecimal("55.0"), QUANTITY_UNIT_KWH,
                         new BigDecimal("42350.7"), new BigDecimal("14.00"), 75,
-                        null, null, null, null, null, null)
+                        null, null, null, null, null, null, null)
         ));
 
         HttpEntity<Map<String, Object>> requestWithAuth = createAuthRequest(importRequest(123), userId, testUser.getEmail());
@@ -267,7 +267,7 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
         int electricTankId = 3;
         when(spritMonitorClient.getFuelings(eq(validToken), eq(123), eq(electricTankId))).thenReturn(raw(
                 new SpritMonitorFuelingDTO("15.01.2024", new BigDecimal("50.0"), QUANTITY_UNIT_KWH,
-                        null, new BigDecimal("12.50"), 60, null, null, null, null, null, null)
+                        null, new BigDecimal("12.50"), 60, null, null, null, null, null, null, null)
         ));
 
         Map<String, Object> request = Map.of("token", validToken, "vehicleId", 123,
@@ -286,7 +286,7 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
     void shouldSkipDuplicateFuelings_OnReimport() {
         when(spritMonitorClient.getFuelings(eq(validToken), eq(123), any())).thenReturn(raw(
                 new SpritMonitorFuelingDTO("15.01.2024", new BigDecimal("50.0"), QUANTITY_UNIT_KWH,
-                        null, new BigDecimal("12.50"), 60, null, null, null, null, null, null)
+                        null, new BigDecimal("12.50"), 60, null, null, null, null, null, null, null)
         ));
 
         HttpEntity<Map<String, Object>> requestWithAuth = createAuthRequest(importRequest(123), userId, testUser.getEmail());
@@ -305,7 +305,7 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
         when(spritMonitorClient.getFuelings(eq(validToken), eq(123), any())).thenReturn(raw(
                 new SpritMonitorFuelingDTO("15.01.2024", new BigDecimal("40.0"), QUANTITY_UNIT_KWH,
                         new BigDecimal("25000"), new BigDecimal("10.00"), 60,
-                        new BigDecimal("80.5"), new BigDecimal("11.0"), null, null, null, null)
+                        new BigDecimal("80.5"), new BigDecimal("11.0"), null, null, null, null, null)
         ));
 
         HttpEntity<Map<String, Object>> requestWithAuth = createAuthRequest(importRequest(123), userId, testUser.getEmail());
@@ -324,9 +324,9 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
     void shouldImportMultipleChargings_OnSameDay_InOdometerAscOrder() {
         when(spritMonitorClient.getFuelings(eq(validToken), eq(123), any())).thenReturn(raw(
                 new SpritMonitorFuelingDTO("15.11.2025", new BigDecimal("27.0"), QUANTITY_UNIT_KWH,
-                        new BigDecimal("13978"), new BigDecimal("10.50"), 30, null, null, null, null, null, null),
+                        new BigDecimal("13978"), new BigDecimal("10.50"), 30, null, null, null, null, null, null, null),
                 new SpritMonitorFuelingDTO("15.11.2025", new BigDecimal("79.0"), QUANTITY_UNIT_KWH,
-                        new BigDecimal("13703"), new BigDecimal("30.71"), 60, null, null, null, null, null, null)
+                        new BigDecimal("13703"), new BigDecimal("30.71"), 60, null, null, null, null, null, null, null)
         ));
 
         HttpEntity<Map<String, Object>> requestWithAuth = createAuthRequest(importRequest(123), userId, testUser.getEmail());
@@ -346,9 +346,9 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
     void shouldSkipSameDayDuplicates_OnReimport() {
         when(spritMonitorClient.getFuelings(eq(validToken), eq(123), any())).thenReturn(raw(
                 new SpritMonitorFuelingDTO("15.11.2025", new BigDecimal("27.0"), QUANTITY_UNIT_KWH,
-                        null, new BigDecimal("8.00"), 30, null, null, null, null, null, null),
+                        null, new BigDecimal("8.00"), 30, null, null, null, null, null, null, null),
                 new SpritMonitorFuelingDTO("15.11.2025", new BigDecimal("45.0"), QUANTITY_UNIT_KWH,
-                        null, new BigDecimal("13.00"), 60, null, null, null, null, null, null)
+                        null, new BigDecimal("13.00"), 60, null, null, null, null, null, null, null)
         ));
 
         HttpEntity<Map<String, Object>> requestWithAuth = createAuthRequest(importRequest(123), userId, testUser.getEmail());
@@ -369,11 +369,11 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
 
         when(spritMonitorClient.getFuelings(eq(validToken), eq(123), any())).thenReturn(raw(
                 new SpritMonitorFuelingDTO("15.01.2024", new BigDecimal("50.0"), QUANTITY_UNIT_KWH,
-                        null, new BigDecimal("12.50"), 60, null, null, position, null, null, null),
+                        null, new BigDecimal("12.50"), 60, null, null, position, null, null, null, null),
                 new SpritMonitorFuelingDTO("20.01.2024", new BigDecimal("30.0"), QUANTITY_UNIT_KWH,
-                        null, new BigDecimal("9.00"), 45, null, null, position, null, null, null),
+                        null, new BigDecimal("9.00"), 45, null, null, position, null, null, null, null),
                 new SpritMonitorFuelingDTO("25.01.2024", new BigDecimal("40.0"), QUANTITY_UNIT_KWH,
-                        null, new BigDecimal("10.00"), 50, null, null, position, null, null, null)
+                        null, new BigDecimal("10.00"), 50, null, null, position, null, null, null, null)
         ));
 
         HttpEntity<Map<String, Object>> requestWithAuth = createAuthRequest(importRequest(123), userId, testUser.getEmail());
@@ -411,9 +411,9 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
     void shouldImportFuelings_WithSameOdometer_AsStandaloneLogsWithoutGrouping() {
         when(spritMonitorClient.getFuelings(eq(validToken), eq(123), any())).thenReturn(raw(
                 new SpritMonitorFuelingDTO("28.10.2025", new BigDecimal("11.02"), QUANTITY_UNIT_KWH,
-                        new BigDecimal("113487"), new BigDecimal("4.00"), 20, null, null, null, null, null, null),
+                        new BigDecimal("113487"), new BigDecimal("4.00"), 20, null, null, null, null, null, null, null),
                 new SpritMonitorFuelingDTO("28.10.2025", new BigDecimal("40.00"), QUANTITY_UNIT_KWH,
-                        new BigDecimal("113487"), new BigDecimal("15.00"), 60, null, null, null, null, null, null)
+                        new BigDecimal("113487"), new BigDecimal("15.00"), 60, null, null, null, null, null, null, null)
         ));
 
         HttpEntity<Map<String, Object>> requestWithAuth = createAuthRequest(importRequest(123), userId, testUser.getEmail());
@@ -433,9 +433,9 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
     void shouldNotGroup_FuelingsWithDifferentOdometers() {
         when(spritMonitorClient.getFuelings(eq(validToken), eq(123), any())).thenReturn(raw(
                 new SpritMonitorFuelingDTO("15.11.2025", new BigDecimal("79.0"), QUANTITY_UNIT_KWH,
-                        new BigDecimal("13703"), new BigDecimal("30.71"), 60, null, null, null, null, null, null),
+                        new BigDecimal("13703"), new BigDecimal("30.71"), 60, null, null, null, null, null, null, null),
                 new SpritMonitorFuelingDTO("15.11.2025", new BigDecimal("27.0"), QUANTITY_UNIT_KWH,
-                        new BigDecimal("13978"), new BigDecimal("10.50"), 30, null, null, null, null, null, null)
+                        new BigDecimal("13978"), new BigDecimal("10.50"), 30, null, null, null, null, null, null, null)
         ));
 
         HttpEntity<Map<String, Object>> requestWithAuth = createAuthRequest(importRequest(123), userId, testUser.getEmail());
@@ -467,7 +467,7 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
         when(spritMonitorClient.getFuelings(eq(validToken), eq(123), any())).thenReturn(List.of(
                 new RawFueling(
                         new SpritMonitorFuelingDTO("15.01.2024", new BigDecimal("50.0"), QUANTITY_UNIT_KWH,
-                                null, null, 0, null, null, null, null, "fresh-note", null),
+                                null, null, 0, null, null, null, null, "fresh-note", null, null),
                         "{\"date\":\"15.01.2024\",\"quantity\":50.0,\"note\":\"fresh-note\"}"
                 )
         ));
@@ -492,7 +492,7 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
         when(spritMonitorClient.getFuelings(eq(validToken), eq(123), any())).thenReturn(List.of(
                 new RawFueling(
                         new SpritMonitorFuelingDTO("15.01.2024", new BigDecimal("99.0"), QUANTITY_UNIT_KWH,
-                                null, null, 0, null, null, null, null, null, null),
+                                null, null, 0, null, null, null, null, null, null, null),
                         "{\"date\":\"15.01.2024\",\"quantity\":99.0}"
                 )
         ));
@@ -522,7 +522,7 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
         when(spritMonitorClient.getFuelings(eq(validToken), eq(123), any())).thenReturn(List.of(
                 new RawFueling(
                         new SpritMonitorFuelingDTO("15.01.2024", kwhCharged, QUANTITY_UNIT_KWH,
-                                null, null, 0, null, null, null, null, null, null),
+                                null, null, 0, null, null, null, null, null, null, null),
                         "{\"date\":\"15.01.2024\",\"quantity\":50.0}"
                 )
         ));
@@ -572,7 +572,7 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
                 "15.01.2024", new BigDecimal("55.5"), QUANTITY_UNIT_KWH, new BigDecimal("42350.7"),
                 new BigDecimal("14.50"), 75, new BigDecimal("85.0"), new BigDecimal("11.0"),
                 new SpritMonitorFuelingDTO.Position(new BigDecimal("52.5200"), new BigDecimal("13.4050")),
-                "Supercharger Berlin", "Test note from SpritMonitor", "AC, Type 2, 11 kW");
+                "Supercharger Berlin", "Test note from SpritMonitor", "AC, Type 2, 11 kW", null);
 
         when(spritMonitorClient.getFuelings(eq(validToken), eq(123), any()))
                 .thenReturn(List.of(new RawFueling(dto, rawJson)));
@@ -603,7 +603,7 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
 
         SpritMonitorFuelingDTO dto = new SpritMonitorFuelingDTO(
                 "15.01.2024", new BigDecimal("50.0"), QUANTITY_UNIT_KWH,
-                null, new BigDecimal("12.50"), null, null, null, null, null, null, null);
+                null, new BigDecimal("12.50"), null, null, null, null, null, null, null, null);
 
         when(spritMonitorClient.getFuelings(eq(validToken), eq(123), any()))
                 .thenReturn(List.of(new RawFueling(dto, rawJson)));
