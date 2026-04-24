@@ -253,7 +253,7 @@ model:
   metrics_sessions: Laddningssessioner
   metrics_estimated: uppskattat (utan SoC)
   metrics_based_on_cars: "från {count} fordon"
-  year_distribution_title: Fordon efter modellår
+  year_distribution_title: "Fordon efter modellår - {count} från gemenskapen"
   year_chart_car_singular: fordon
   year_chart_car_plural: fordon
   route_type_title: Körtyper
@@ -318,7 +318,7 @@ model:
   hero_consumption_label: Genomsnittlig faktisk förbrukning
   unit_kwh_per_100km: kWh/100 km
   unit_ct_per_kwh: Genomsnittlig ct/kWh
-  ac_footnote: "* Genomsnittliga värden från EV Monitor-användare. AC-laddning omfattar hemladdning och solenergi – kan vara betydligt billigare än offentlig laddning."
+  ac_footnote: "* Genomsnittliga värden från EV Monitor-användare."
   wltp_badge: WLTP {consumption} kWh
   avg_cost_prefix: Användarna betalar i genomsnitt
   avg_cost_suffix: per 100 km

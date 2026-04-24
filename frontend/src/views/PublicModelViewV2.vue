@@ -136,9 +136,6 @@
                   {{ stats.logCount > 0 ? stats.logCount.toLocaleString() : '-' }}
                 </div>
                 <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('model.metrics_sessions') }}</div>
-                <div v-if="stats.uniqueCars > 0" class="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                  {{ t('model.metrics_based_on_cars', { count: stats.uniqueCars }) }}
-                </div>
                 <div v-if="stats.estimatedConsumptionCount > 0" class="text-xs text-gray-400 dark:text-gray-500 mt-1 italic">
                   {{ stats.estimatedConsumptionCount }} {{ t('model.metrics_estimated') }}
                 </div>
@@ -199,9 +196,6 @@
                 {{ stats.logCount > 0 ? stats.logCount.toLocaleString() : '-' }}
               </div>
               <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('model.metrics_sessions') }}</div>
-              <div v-if="stats.uniqueCars > 0" class="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                {{ t('model.metrics_based_on_cars', { count: stats.uniqueCars }) }}
-              </div>
               <div v-if="stats.estimatedConsumptionCount > 0" class="text-xs text-gray-400 dark:text-gray-500 mt-1 italic">
                 {{ stats.estimatedConsumptionCount }} {{ t('model.metrics_estimated') }}
               </div>
@@ -230,7 +224,7 @@
         </div><!-- end Hero -->
 
         <!-- Community methodology note -->
-        <div class="px-4 md:px-0 pt-4 pb-2 border-t border-gray-100 dark:border-gray-700">
+        <div class="px-4 md:px-0 py-3 border-t border-gray-100 dark:border-gray-700 md:border-0 text-center">
           <p class="text-sm text-gray-400 dark:text-gray-400">{{ t('model.community_methodology_note') }}</p>
         </div>
         <!-- Cost disclaimer for non-EUR countries -->
@@ -248,7 +242,7 @@
              class="bg-white dark:bg-gray-800 md:rounded-2xl md:border-x border-t md:border-b border-gray-200 dark:border-gray-700 md:shadow-sm px-6 py-5 md:mb-6">
           <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-1.5">
             <ChartBarIcon class="h-4 w-4 text-gray-400" />
-            {{ t('model.year_distribution_title') }}
+            {{ t('model.year_distribution_title', { count: stats.uniqueCars }) }}
           </p>
           <div class="flex flex-col gap-2.5">
             <div class="flex h-4 rounded-full overflow-hidden">
@@ -556,10 +550,8 @@
             </div>
 
             <!-- Rating Notes -->
-            <div class="px-6 py-4 space-y-2">
-              <span class="inline-block text-sm bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-3 py-1.5 rounded-full">
-                {{ ratingLabel === 'EPA' ? t('model.epa_note') : t('model.wltp_note') }}
-              </span>
+            <div class="px-6 py-4 space-y-2 text-center">
+              <p class="text-sm text-gray-400 dark:text-gray-400">{{ ratingLabel === 'EPA' ? t('model.epa_note') : t('model.wltp_note') }}</p>
               <p class="text-sm text-gray-400 dark:text-gray-400">{{ ratingLabel === 'EPA' ? t('model.epa_measurement_note') : t('model.wltp_measurement_note') }}</p>
             </div>
           </div><!-- end wltp -->

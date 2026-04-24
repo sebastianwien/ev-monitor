@@ -253,7 +253,7 @@ model:
   metrics_sessions: Ladingsøkter
   metrics_estimated: anslått (uten SoC)
   metrics_based_on_cars: "fra {count} kjøretøy"
-  year_distribution_title: Kjøretøy etter årsmodell
+  year_distribution_title: "Kjøretøy etter årsmodell - {count} fra fellesskapet"
   year_chart_car_singular: kjøretøy
   year_chart_car_plural: kjøretøy
   route_type_title: Kjøretyper
@@ -318,7 +318,7 @@ model:
   hero_consumption_label: Gjennomsnittlig faktisk forbruk
   unit_kwh_per_100km: kWh/100 km
   unit_ct_per_kwh: Gj.snitt. ct/kWh
-  ac_footnote: "* Gjennomsnittstall fra EV Monitor-brukere. AC-lading inkluderer hjemmelading og solenergi – kan være betydelig billigere enn offentlig lading."
+  ac_footnote: "* Gjennomsnittstall fra EV Monitor-brukere."
   wltp_badge: WLTP {consumption} kWh
   avg_cost_prefix: Brukerne betaler i gjennomsnitt
   avg_cost_suffix: per 100 km
