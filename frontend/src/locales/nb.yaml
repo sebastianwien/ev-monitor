@@ -252,6 +252,14 @@ model:
   metrics_costs: Gjennomsnittlig kostnad per 100 km
   metrics_sessions: Ladingsøkter
   metrics_estimated: anslått (uten SoC)
+  metrics_based_on_cars: "fra {count} kjøretøy"
+  year_distribution_title: Kjøretøy etter årsmodell
+  year_chart_car_singular: kjøretøy
+  year_chart_car_plural: kjøretøy
+  route_type_title: Kjøretyper
+  route_type_highway: Motorvei
+  route_type_combined: Blandet
+  route_type_city: By
   metrics_range: Rekkevidde
   metrics_range_label: Intervall 90 %→10 %
   calculator_label: "Din strømpris: på"
@@ -263,7 +271,7 @@ model:
   charging_20min_power: Ladehastighet i kW
   variant_title: Batterivariant
   variant_low_trips: Få turer
-  seasonal_title: Forbruk etter årstid
+  seasonal_title: "Forbruk etter årstid (90%→10%)"
   seasonal_summer: Sommer
   seasonal_summer_months: (mai–august)
   seasonal_winter: Vinter

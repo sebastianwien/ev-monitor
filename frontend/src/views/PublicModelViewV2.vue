@@ -38,11 +38,31 @@
           <a :href="`${modelsBaseUrl}/${canonicalBrand}`" class="inline-flex items-center gap-1 text-sm text-green-600 hover:underline mb-2">
             {{ t('model.back_link', { brand: stats.brandDisplayName }) }}
           </a>
-          <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-3 text-center md:text-left">
+          <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-3 text-center">
             <span class="md:hidden">{{ stats.modelDisplayName }}</span>
             <span class="hidden md:inline">{{ t('model.hero_title_v2', { model: stats.modelDisplayName }) }}</span>
           </h1>
-          <div class="h-1 w-16 bg-green-500 rounded-full mb-5 mx-auto md:mx-0"></div>
+          <div class="h-1 w-16 bg-green-500 rounded-full mb-4 mx-auto"></div>
+
+          <!-- Variant Switcher -->
+          <div v-if="activeVariants.length > 1" class="flex flex-col items-center gap-2 mb-5">
+            <span class="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">{{ t('model.variant_title') }}</span>
+            <div class="flex gap-2 flex-wrap justify-center">
+              <button v-for="(v, i) in activeVariants" :key="v.displayLabel ?? v.batteryCapacityKwh"
+                      @click="selectedVariantIndex = i"
+                      class="btn-3d px-3 py-1.5 rounded-md text-sm font-medium transition whitespace-nowrap"
+                      :class="i === selectedVariantIndex
+                        ? 'bg-blue-600 text-white active'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'">
+                {{ v.displayLabel || v.variantName || (v.batteryCapacityKwh + ' kWh') }}
+              </button>
+            </div>
+            <span v-if="selectedVariant?.seasonalDistribution && (selectedVariant.seasonalDistribution.summerLogCount < 30 || selectedVariant.seasonalDistribution.winterLogCount < 30)"
+                  class="flex items-center gap-1 text-xs text-yellow-600 font-medium">
+              <ExclamationTriangleIcon class="h-3.5 w-3.5" />
+              {{ t('model.variant_low_trips') }}
+            </span>
+          </div>
 
           <!-- Primary metric: Realer Verbrauch -->
           <div v-if="displayConsumption" class="flex flex-col items-center py-6 rounded-xl bg-gradient-to-b from-green-50 to-white dark:from-green-900/20 dark:to-gray-800/0 border border-green-100 dark:border-green-900/30 mb-3">
@@ -116,6 +136,9 @@
                   {{ stats.logCount > 0 ? stats.logCount.toLocaleString() : '-' }}
                 </div>
                 <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('model.metrics_sessions') }}</div>
+                <div v-if="stats.uniqueCars > 0" class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                  {{ t('model.metrics_based_on_cars', { count: stats.uniqueCars }) }}
+                </div>
                 <div v-if="stats.estimatedConsumptionCount > 0" class="text-xs text-gray-400 dark:text-gray-500 mt-1 italic">
                   {{ stats.estimatedConsumptionCount }} {{ t('model.metrics_estimated') }}
                 </div>
@@ -176,6 +199,9 @@
                 {{ stats.logCount > 0 ? stats.logCount.toLocaleString() : '-' }}
               </div>
               <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('model.metrics_sessions') }}</div>
+              <div v-if="stats.uniqueCars > 0" class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                {{ t('model.metrics_based_on_cars', { count: stats.uniqueCars }) }}
+              </div>
               <div v-if="stats.estimatedConsumptionCount > 0" class="text-xs text-gray-400 dark:text-gray-500 mt-1 italic">
                 {{ stats.estimatedConsumptionCount }} {{ t('model.metrics_estimated') }}
               </div>
@@ -217,31 +243,71 @@
         <!-- Affiliate Banner -->
         <AffiliateBanner v-if="!authStore.isAuthenticated()" />
 
+        <!-- Baujahr-Verteilung -->
+        <div v-if="stats.yearDistribution && stats.yearDistribution.length > 0"
+             class="bg-white dark:bg-gray-800 md:rounded-2xl md:border-x border-t md:border-b border-gray-200 dark:border-gray-700 md:shadow-sm px-6 py-5 md:mb-6">
+          <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-1.5">
+            <ChartBarIcon class="h-4 w-4 text-gray-400" />
+            {{ t('model.year_distribution_title') }}
+          </p>
+          <div class="flex flex-col gap-2.5">
+            <div class="flex h-4 rounded-full overflow-hidden">
+              <div
+                v-for="(entry, i) in stats.yearDistribution"
+                :key="entry.year"
+                :style="{
+                  width: (entry.carCount / yearTotal * 100) + '%',
+                  backgroundColor: YEAR_CHART_COLORS[i % YEAR_CHART_COLORS.length],
+                }"
+              />
+            </div>
+            <div class="flex flex-wrap gap-x-4 gap-y-1.5">
+              <div v-for="(entry, i) in stats.yearDistribution" :key="entry.year"
+                   class="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300">
+                <span class="inline-block w-2.5 h-2.5 rounded-full shrink-0"
+                      :style="{ backgroundColor: YEAR_CHART_COLORS[i % YEAR_CHART_COLORS.length] }"></span>
+                <span class="font-medium">{{ entry.year }}</span>
+                <span class="text-gray-400 dark:text-gray-500">{{ entry.carCount }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Streckentyp-Verteilung -->
+        <div v-if="showRouteTypeBar"
+             class="bg-white dark:bg-gray-800 md:rounded-2xl md:border-x border-t md:border-b border-gray-200 dark:border-gray-700 md:shadow-sm px-6 py-5 md:mb-6">
+          <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-1.5">
+            <ChartBarIcon class="h-4 w-4 text-gray-400" />
+            {{ t('model.route_type_title') }}
+          </p>
+          <div class="flex flex-col gap-2.5">
+            <div class="flex h-4 rounded-full overflow-hidden">
+              <div
+                v-for="entry in routeTypeClassified"
+                :key="entry.routeType"
+                :style="{
+                  width: (entry.count / routeTypeClassifiedTotal * 100) + '%',
+                  backgroundColor: ROUTE_TYPE_META[entry.routeType]?.color,
+                }"
+              />
+            </div>
+            <div class="flex flex-wrap gap-x-4 gap-y-1.5">
+              <div v-for="entry in routeTypeClassified" :key="entry.routeType"
+                   class="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300">
+                <span class="inline-block w-2.5 h-2.5 rounded-full shrink-0"
+                      :style="{ backgroundColor: ROUTE_TYPE_META[entry.routeType]?.color }"></span>
+                <span class="font-medium">{{ t(ROUTE_TYPE_META[entry.routeType]?.labelKey) }}</span>
+                <span class="text-gray-400 dark:text-gray-500">
+                  {{ Math.round(entry.count / routeTypeClassifiedTotal * 100) }}%
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Variant Switcher + Seasonal + WLTP -->
         <div v-if="activeVariants.length > 0 || showSeasonalBreakdown"
              class="bg-white dark:bg-gray-800 md:rounded-2xl md:border-x border-t md:border-b border-gray-200 dark:border-gray-700 md:shadow-sm md:mb-6 overflow-hidden">
-
-          <!-- Variant Switcher -->
-          <div v-if="activeVariants.length > 1" class="px-6 py-4 border-b border-gray-100 dark:border-gray-700">
-            <div class="flex items-center gap-3 flex-wrap">
-              <span class="text-sm font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ t('model.variant_title') }}</span>
-              <div class="flex gap-2 flex-wrap">
-                <button v-for="(v, i) in activeVariants" :key="v.displayLabel ?? v.batteryCapacityKwh"
-                        @click="selectedVariantIndex = i"
-                        class="btn-3d px-4 py-2 rounded-md text-sm font-medium transition whitespace-nowrap"
-                        :class="i === selectedVariantIndex
-                          ? 'bg-blue-600 text-white active'
-                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'">
-                  {{ v.displayLabel || v.variantName || (v.batteryCapacityKwh + ' kWh') }}
-                </button>
-              </div>
-              <span v-if="selectedVariant?.seasonalDistribution && (selectedVariant.seasonalDistribution.summerLogCount < 30 || selectedVariant.seasonalDistribution.winterLogCount < 30)"
-                    class="flex items-center gap-1 text-xs text-yellow-600 font-medium whitespace-nowrap">
-                <ExclamationTriangleIcon class="h-3.5 w-3.5" />
-                {{ t('model.variant_low_trips') }}
-              </span>
-            </div>
-          </div>
 
           <!-- Seasonal Breakdown -->
           <div v-if="showSeasonalBreakdown" class="px-6 py-5 border-b border-gray-100 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-700/20">
@@ -264,7 +330,7 @@
                   </span>
                   <span v-if="selectedVariant && selectedVariant!.seasonalDistribution!.summerConsumptionKwhPer100km"
                         class="text-sm font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                    ~ {{ formatDistance(Math.round(selectedVariant.batteryCapacityKwh * 0.8 / selectedVariant!.seasonalDistribution!.summerConsumptionKwhPer100km * 10) * 10) }}
+                    ~ {{ formatDistance(Math.round(selectedVariant.batteryCapacityKwh * 0.9 / selectedVariant!.seasonalDistribution!.summerConsumptionKwhPer100km * 10) * 10) }}
                   </span>
                   <span class="hidden md:inline text-xs"
                         :class="selectedVariant!.seasonalDistribution!.summerLogCount < 30 ? 'text-yellow-600 font-medium' : 'text-gray-400'">
@@ -299,7 +365,7 @@
                   </span>
                   <span v-if="selectedVariant && selectedVariant!.seasonalDistribution!.winterConsumptionKwhPer100km"
                         class="text-sm font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                    ~ {{ formatDistance(Math.round(selectedVariant.batteryCapacityKwh * 0.8 / selectedVariant!.seasonalDistribution!.winterConsumptionKwhPer100km * 10) * 10) }}
+                    ~ {{ formatDistance(Math.round(selectedVariant.batteryCapacityKwh * 0.9 / selectedVariant!.seasonalDistribution!.winterConsumptionKwhPer100km * 10) * 10) }}
                   </span>
                   <span class="hidden md:inline text-xs"
                         :class="selectedVariant!.seasonalDistribution!.winterLogCount < 30 ? 'text-yellow-600 font-medium' : 'text-gray-400'">
@@ -708,6 +774,40 @@ const pricePerKwh = ref(countryStore.country === 'US' ? 0.13 : 0.35)
 
 const isAuthenticated = computed(() => authStore.isAuthenticated())
 
+const YEAR_CHART_COLORS = [
+  '#22c55e', '#16a34a', '#15803d', '#166534',
+  '#3b82f6', '#2563eb', '#1d4ed8', '#1e40af',
+  '#f59e0b', '#d97706', '#b45309',
+]
+
+const yearTotal = computed(() =>
+  (stats.value?.yearDistribution ?? []).reduce((s, e) => s + e.carCount, 0)
+)
+
+const ROUTE_TYPE_META: Record<string, { color: string; labelKey: string }> = {
+  HIGHWAY:  { color: '#3b82f6', labelKey: 'model.route_type_highway' },
+  COMBINED: { color: '#22c55e', labelKey: 'model.route_type_combined' },
+  CITY:     { color: '#f59e0b', labelKey: 'model.route_type_city' },
+}
+
+const routeTypeClassified = computed(() =>
+  ['HIGHWAY', 'COMBINED', 'CITY'].flatMap(type => {
+    const entry = (stats.value?.routeTypeDistribution ?? []).find(e => e.routeType === type)
+    return entry ? [entry] : []
+  })
+)
+
+const showRouteTypeBar = computed(() => {
+  const dist = stats.value?.routeTypeDistribution ?? []
+  const total = dist.reduce((s, e) => s + e.count, 0)
+  const classified = dist.filter(e => e.routeType !== 'UNKNOWN').reduce((s, e) => s + e.count, 0)
+  return total > 0 && classified / total >= 0.5
+})
+
+const routeTypeClassifiedTotal = computed(() =>
+  routeTypeClassified.value.reduce((s, e) => s + e.count, 0)
+)
+
 const brand = route.params.brand as string
 const model = route.params.model as string
 
@@ -765,7 +865,7 @@ const displayConsumption = computed(() =>
 
 const displayRange = computed(() => {
   if (!selectedVariant.value || !displayConsumption.value) return null
-  return Math.round(selectedVariant.value.batteryCapacityKwh * 0.8 / displayConsumption.value * 10) * 10
+  return Math.round(selectedVariant.value.batteryCapacityKwh * 0.9 / displayConsumption.value * 10) * 10
 })
 
 const bestOfficialRange = computed(() => {

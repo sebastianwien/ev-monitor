@@ -252,6 +252,14 @@ model:
   metrics_costs: Genomsnittlig kostnad per 100 km
   metrics_sessions: Laddningssessioner
   metrics_estimated: uppskattat (utan SoC)
+  metrics_based_on_cars: "från {count} fordon"
+  year_distribution_title: Fordon efter modellår
+  year_chart_car_singular: fordon
+  year_chart_car_plural: fordon
+  route_type_title: Körtyper
+  route_type_highway: Motorväg
+  route_type_combined: Blandat
+  route_type_city: Stad
   metrics_range: Räckvidd
   metrics_range_label: Intervall 90 %–10 %
   calculator_label: "Din elavgift: på"
@@ -263,7 +271,7 @@ model:
   charging_20min_power: laddningshastighet i kW
   variant_title: Batterivariant
   variant_low_trips: Få resor
-  seasonal_title: Förbrukning per säsong
+  seasonal_title: "Förbrukning per säsong (90%→10%)"
   seasonal_summer: Sommar
   seasonal_summer_months: (maj–augusti)
   seasonal_winter: Vinter
