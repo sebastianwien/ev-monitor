@@ -302,6 +302,7 @@ model:
   wltp_note: "WLTP = official manufacturer value (COMBINED). Real consumption is based on user data from EV Monitor."
   wltp_varies_by_year: "varies by model year"
   wltp_measurement_note: "Community consumption values show normalised driving consumption - charging losses have been removed (AC: 10%, DC: 5%). WLTP only measures driving consumption without standby and preconditioning - a difference of 5-15% is therefore normal."
+  community_methodology_note: "Consumption is influenced by many factors: speed, outside temperature, heating, air conditioning, seat heating and battery conditioning. Since statistics are weighted by kilometres driven, a single 200 km motorway trip in summer at 100 km/h has more influence on the average than ten short city trips."
   epa_section_title: "EPA Data & Real Consumption"
   epa_range_label: "EPA Range"
   epa_consumption_label: "EPA Consumption"

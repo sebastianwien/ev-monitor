@@ -224,6 +224,11 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
         jpaRepository.updateRawImportData(id, rawJson);
     }
 
+    @Transactional
+    public void updateRouteType(UUID id, RouteType routeType) {
+        jpaRepository.updateRouteType(id, routeType.name());
+    }
+
     private EvLogEntity toEntity(EvLog domain) {
         EvLogEntity entity = new EvLogEntity();
         entity.setId(domain.getId());

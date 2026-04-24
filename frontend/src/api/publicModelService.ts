@@ -37,6 +37,16 @@ export interface SeasonalDistribution {
     winterLogCount: number
 }
 
+export interface YearEntry {
+    year: number
+    carCount: number
+}
+
+export interface RouteTypeEntry {
+    routeType: string
+    count: number
+}
+
 export interface PublicModelStats {
     brand: string
     model: string
@@ -44,6 +54,7 @@ export interface PublicModelStats {
     modelDisplayName: string
     logCount: number
     uniqueContributors: number
+    uniqueCars: number
     avgCostPerKwh: number | null
     acAvgCostPerKwh: number | null
     dcAvgCostPerKwh: number | null
@@ -54,6 +65,8 @@ export interface PublicModelStats {
     wltpVariants: WltpVariant[]
     epaVariants: EpaVariant[] | null
     seasonalDistribution: SeasonalDistribution | null
+    yearDistribution: YearEntry[]
+    routeTypeDistribution: RouteTypeEntry[]
 }
 
 export async function getModelStats(brand: string, model: string): Promise<PublicModelStats | null> {

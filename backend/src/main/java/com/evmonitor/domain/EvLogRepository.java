@@ -69,4 +69,6 @@ public interface EvLogRepository {
     List<EvLog> findByCarIdAndDateAndKwhChargedAndDataSource(UUID carId, LocalDate date, BigDecimal kwhCharged, DataSource dataSource);
 
     void updateRawImportData(UUID id, String rawJson);
+
+    void updateRouteType(UUID id, RouteType routeType);
 }

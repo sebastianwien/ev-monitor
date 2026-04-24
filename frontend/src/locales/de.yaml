@@ -302,6 +302,7 @@ model:
   wltp_note: "WLTP = offizieller Herstellerwert (COMBINED). Realer Verbrauch basiert auf Nutzerdaten von EV Monitor."
   wltp_varies_by_year: "variiert je nach Baujahr"
   wltp_measurement_note: "Die Community-Verbräuche zeigen den normierten Fahrverbrauch - Ladeverluste sind herausgerechnet (AC: 10%, DC: 5%). Der WLTP-Wert misst nur den Fahrverbrauch ohne Standby und Vorkonditionierung - eine Differenz von 5-15% ist deshalb normal."
+  community_methodology_note: "Der Verbrauch wird von vielen Faktoren beeinflusst: Tempo, Aussentemperatur, Heizung, Klimaanlage, Sitzheizung und Batteriekonditionierung. Da die Statistik nach gefahrenen Kilometern gewichtet wird, hat eine einzelne 200-km-Autobahnfahrt im Sommer bei 100 km/h mehr Einfluss auf den Durchschnitt als zehn kurze Stadtfahrten."
   epa_section_title: "EPA-Daten & Realer Verbrauch"
   epa_range_label: "EPA Reichweite"
   epa_consumption_label: "EPA Verbrauch"

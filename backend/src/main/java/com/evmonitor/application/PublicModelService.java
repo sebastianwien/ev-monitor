@@ -97,6 +97,7 @@ public class PublicModelService {
 
         long logCount = 0;
         int uniqueContributors = 0;
+        int uniqueCars = 0;
         BigDecimal avgCostPerKwh = null;
         BigDecimal avgKwhPerSession = null;
 
@@ -121,6 +122,9 @@ public class PublicModelService {
                 }
                 if (basicStats.length > 3 && basicStats[3] != null) {
                     avgKwhPerSession = toBigDecimal(basicStats[3]).setScale(2, RoundingMode.HALF_UP);
+                }
+                if (basicStats.length > 4 && basicStats[4] != null) {
+                    uniqueCars = ((Number) basicStats[4]).intValue();
                 }
             } catch (Exception e) {
                 log.error("Failed to parse basic stats for model {}: {}", modelEnumName, e.getMessage());
@@ -200,6 +204,24 @@ public class PublicModelService {
                                 s.realConsumptionKwhPer100km(), s.realConsumptionTripCount(), s.seasonalDistribution()))
                         .toList();
 
+        List<PublicModelStatsResponse.YearEntry> yearDistribution =
+                evLogRepository.findYearDistributionByModel(modelEnumName, isSeedUser)
+                        .stream()
+                        .filter(row -> row[0] != null && row[1] != null)
+                        .map(row -> new PublicModelStatsResponse.YearEntry(
+                                ((Number) row[0]).intValue(),
+                                ((Number) row[1]).intValue()))
+                        .toList();
+
+        List<PublicModelStatsResponse.RouteTypeEntry> routeTypeDistribution =
+                evLogRepository.findRouteTypeDistributionByModel(modelEnumName, isSeedUser)
+                        .stream()
+                        .filter(row -> row[1] != null)
+                        .map(row -> new PublicModelStatsResponse.RouteTypeEntry(
+                                (String) row[0],
+                                ((Number) row[1]).intValue()))
+                        .toList();
+
         String displayName = brandDisplay + " " + modelDisplay;
 
         return Optional.of(new PublicModelStatsResponse(
@@ -211,6 +233,7 @@ public class PublicModelService {
                 carModel.getCategory().getDisplayName(),
                 (int) logCount,
                 uniqueContributors,
+                uniqueCars,
                 avgCostPerKwh,
                 acAvgCostPerKwh,
                 dcAvgCostPerKwh,
@@ -220,7 +243,9 @@ public class PublicModelService {
                 avgChargingPowerKw,
                 wltpVariants,
                 epaVariants,
-                seasonalDistribution
+                seasonalDistribution,
+                yearDistribution,
+                routeTypeDistribution
         ));
     }
 

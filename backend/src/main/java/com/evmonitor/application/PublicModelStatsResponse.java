@@ -18,6 +18,7 @@ public record PublicModelStatsResponse(
         // Community data
         int logCount,
         int uniqueContributors,
+        int uniqueCars,
         BigDecimal avgCostPerKwh,
         BigDecimal acAvgCostPerKwh,
         BigDecimal dcAvgCostPerKwh,
@@ -28,7 +29,9 @@ public record PublicModelStatsResponse(
 
         List<WltpVariant> wltpVariants,
         List<EpaVariant> epaVariants,
-        SeasonalDistribution seasonalDistribution
+        SeasonalDistribution seasonalDistribution,
+        List<YearEntry> yearDistribution,
+        List<RouteTypeEntry> routeTypeDistribution
 ) {
     public record WltpVariant(
             BigDecimal batteryCapacityKwh,
@@ -56,6 +59,10 @@ public record PublicModelStatsResponse(
             Integer realConsumptionTripCount,
             SeasonalDistribution seasonalDistribution
     ) {}
+
+    public record YearEntry(int year, int carCount) {}
+
+    public record RouteTypeEntry(String routeType, int count) {}
 
     public record SeasonalDistribution(
             int summerPercentage,

@@ -298,6 +298,7 @@ model:
   wltp_note: WLTP = produsentens offisielle tall (KOMBINERT). Det faktiske forbruket er basert på brukerdata fra EV Monitor.
   wltp_varies_by_year: varierer etter årsmodell
   wltp_measurement_note: "Forbruksverdiene fra brukerfellesskapet viser normalisert kjøreforbruk – ladetap er trukket fra (vekselstrøm: 10 %, likestrøm: 5 %). WLTP måler kun kjøreforbruk uten standby og forhåndskondisjonering – en avvik på 5–15 % er derfor normalt."
+  community_methodology_note: "Forbruket påvirkes av mange faktorer: hastighet, utetemperatur, oppvarming, klimaanlegg, setevarme og batterikonditionering. Siden statistikken er vektet etter kjørte kilometer, har en enkelt 200 km lang motorveitur om sommeren ved 100 km/h mer innflytelse på gjennomsnittet enn ti korte byturer."
   epa_section_title: Data fra EPA og faktisk forbruk
   epa_range_label: EPA-rekkevidde
   epa_consumption_label: EPA-forbruk

@@ -229,9 +229,9 @@
           </div>
         </div><!-- end Hero -->
 
-        <!-- AC Fußnote -->
-        <div v-if="stats.acAvgCostPerKwh" class="px-4 md:px-0 mt-1 mb-3 text-center">
-          <p class="text-xs text-gray-400 dark:text-gray-500">{{ t('model.ac_footnote') }}</p>
+        <!-- Community methodology note -->
+        <div class="px-4 md:px-0 pt-4 pb-2 border-t border-gray-100 dark:border-gray-700">
+          <p class="text-sm text-gray-400 dark:text-gray-400">{{ t('model.community_methodology_note') }}</p>
         </div>
         <!-- Cost disclaimer for non-EUR countries -->
         <div v-if="!isEurZone && (stats.avgCostPerKwh || stats.acAvgCostPerKwh)" class="px-4 md:px-0 mt-1 mb-3 text-center">
@@ -557,14 +557,19 @@
 
             <!-- Rating Notes -->
             <div class="px-6 py-4 space-y-2">
-              <span class="inline-block text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-2.5 py-1 rounded-full">
+              <span class="inline-block text-sm bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-3 py-1.5 rounded-full">
                 {{ ratingLabel === 'EPA' ? t('model.epa_note') : t('model.wltp_note') }}
               </span>
-              <p class="text-xs text-gray-400 dark:text-gray-500">{{ ratingLabel === 'EPA' ? t('model.epa_measurement_note') : t('model.wltp_measurement_note') }}</p>
+              <p class="text-sm text-gray-400 dark:text-gray-400">{{ ratingLabel === 'EPA' ? t('model.epa_measurement_note') : t('model.wltp_measurement_note') }}</p>
             </div>
           </div><!-- end wltp -->
 
         </div><!-- end combined card -->
+
+        <!-- AC Fußnote -->
+        <div v-if="stats.acAvgCostPerKwh" class="px-4 md:px-0 mt-2 mb-3 text-center">
+          <p class="text-sm text-gray-400 dark:text-gray-400">{{ t('model.ac_footnote') }}</p>
+        </div>
 
         <!-- CTA -->
         <div class="bg-gradient-to-br from-green-600 to-green-700 md:rounded-2xl p-6 text-white">

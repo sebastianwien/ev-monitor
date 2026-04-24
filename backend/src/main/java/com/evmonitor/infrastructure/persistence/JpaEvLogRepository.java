@@ -174,6 +174,10 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     @Query("UPDATE EvLogEntity e SET e.rawImportData = :rawJson WHERE e.id = :id")
     void updateRawImportData(@Param("id") UUID id, @Param("rawJson") String rawJson);
 
+    @Modifying(clearAutomatically = true)
+    @Query(value = "UPDATE ev_log SET route_type = :routeType WHERE id = :id", nativeQuery = true)
+    void updateRouteType(@Param("id") UUID id, @Param("routeType") String routeType);
+
     /**
      * Aggregated basic stats for a car model.
      * Returns: [logCount, uniqueContributors, avgCostPerKwh, avgKwhPerSession]
@@ -207,6 +211,7 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
                        l.kwh_charged,
                        l.cost_eur,
                        c.user_id,
+                       l.car_id,
                        l.odometer_km,
                        LAG(l.odometer_km) OVER (PARTITION BY l.car_id ORDER BY l.logged_at) AS prev_odometer
                 FROM ev_log l
@@ -220,10 +225,40 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
                 COUNT(id) FILTER (WHERE prev_odometer IS NULL OR odometer_km IS NULL OR odometer_km != prev_odometer) AS log_count,
                 COUNT(DISTINCT user_id)                                                                                AS unique_contributors,
                 AVG(CASE WHEN cost_eur > 0 THEN cost_eur / NULLIF(kwh_charged, 0) END)                               AS avg_cost_per_kwh,
-                AVG(kwh_charged) FILTER (WHERE prev_odometer IS NULL OR odometer_km IS NULL OR odometer_km != prev_odometer) AS avg_kwh_per_session
+                AVG(kwh_charged) FILTER (WHERE prev_odometer IS NULL OR odometer_km IS NULL OR odometer_km != prev_odometer) AS avg_kwh_per_session,
+                COUNT(DISTINCT car_id)                                                                                 AS unique_cars
             FROM filtered
             """, nativeQuery = true)
     Object[] findPublicBasicStatsByModel(
+            @Param("model") String model,
+            @Param("isSeedUser") boolean isSeedUser);
+
+    @Query(value = """
+            SELECT c.manufacture_year, COUNT(DISTINCT l.car_id) AS car_count
+            FROM ev_log l
+            JOIN car c ON c.id = l.car_id
+            WHERE c.model = :model
+              AND c.manufacture_year IS NOT NULL
+              AND (l.include_in_statistics = true
+                   OR (:isSeedUser = true
+                       AND c.user_id IN (SELECT id FROM app_user WHERE is_seed_data = true)))
+            GROUP BY c.manufacture_year
+            ORDER BY c.manufacture_year
+            """, nativeQuery = true)
+    List<Object[]> findYearDistributionByModel(
+            @Param("model") String model,
+            @Param("isSeedUser") boolean isSeedUser);
+
+    @Query(value = """
+            SELECT COALESCE(l.route_type, 'UNKNOWN') AS route_type, COUNT(*) AS cnt
+            FROM ev_log l JOIN car c ON c.id = l.car_id
+            WHERE c.model = :model
+              AND (l.include_in_statistics = true OR (:isSeedUser = true
+                   AND c.user_id IN (SELECT id FROM app_user WHERE is_seed_data = true)))
+            GROUP BY l.route_type
+            ORDER BY cnt DESC
+            """, nativeQuery = true)
+    List<Object[]> findRouteTypeDistributionByModel(
             @Param("model") String model,
             @Param("isSeedUser") boolean isSeedUser);
 
