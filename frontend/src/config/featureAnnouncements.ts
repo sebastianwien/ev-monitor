@@ -1,5 +1,6 @@
 export interface AnnouncementContext {
   hasGoeConnection: boolean
+  isPremium: boolean
 }
 
 export interface FeatureAnnouncement {
@@ -15,6 +16,15 @@ export interface FeatureAnnouncement {
 }
 
 export const featureAnnouncements: FeatureAnnouncement[] = [
+  {
+    key: 'trip-detection-beta-v1',
+    expiresAt: '2026-05-16',
+    titleKey: 'announcements.trip_detection_beta_v1_title',
+    bodyKey: 'announcements.trip_detection_beta_v1_body',
+    ctaLabelKey: 'announcements.trip_detection_beta_v1_cta',
+    ctaRoute: '/',
+    condition: ctx => ctx.isPremium,
+  },
   {
     key: 'net-capacity-v1',
     expiresAt: '2026-05-12',

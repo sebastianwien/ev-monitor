@@ -44,7 +44,7 @@ class InternalTripControllerTest extends AbstractIntegrationTest {
         assertNotNull(response.getBody());
         assertNotNull(response.getBody().get("id"));
 
-        var saved = tripRepository.findByExternalId(externalId);
+        var saved = tripRepository.findByExternalIdAndDeletedAtIsNull(externalId);
         assertTrue(saved.isPresent());
         assertEquals("TESLA_LIVE", saved.get().getDataSource());
         assertEquals(carId, saved.get().getCarId());

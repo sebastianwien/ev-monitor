@@ -31,7 +31,7 @@ export const useFeatureAnnouncements = () => {
   const authStore = useAuthStore()
 
   const pending = computed<FeatureAnnouncement[]>(() => {
-    const ctx = { hasGoeConnection: wallboxStore.hasConnections }
+    const ctx = { hasGoeConnection: wallboxStore.hasConnections, isPremium: authStore.isPremium }
     const registeredAt = authStore.user?.registeredAt
     return featureAnnouncements.filter(a =>
       a.expiresAt >= today &&

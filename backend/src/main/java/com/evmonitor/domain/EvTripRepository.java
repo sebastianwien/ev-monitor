@@ -1,6 +1,9 @@
 package com.evmonitor.domain;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -9,8 +12,15 @@ import java.util.UUID;
 
 public interface EvTripRepository extends JpaRepository<EvTrip, UUID> {
 
-    Optional<EvTrip> findByExternalId(UUID externalId);
+    Optional<EvTrip> findByExternalIdAndDeletedAtIsNull(UUID externalId);
 
+    @Query("SELECT t FROM EvTrip t WHERE t.carId = :carId AND t.tripStartedAt BETWEEN :from AND :to AND t.deletedAt IS NULL ORDER BY t.tripStartedAt ASC")
     List<EvTrip> findByCarIdAndTripStartedAtBetweenOrderByTripStartedAtAsc(
-            UUID carId, OffsetDateTime from, OffsetDateTime to);
+            @Param("carId") UUID carId,
+            @Param("from") OffsetDateTime from,
+            @Param("to") OffsetDateTime to);
+
+    List<EvTrip> findByUserIdAndCarIdAndDeletedAtIsNullOrderByTripEndedAtDesc(UUID userId, UUID carId, Pageable pageable);
+
+
 }

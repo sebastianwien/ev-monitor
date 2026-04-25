@@ -86,6 +86,18 @@ public class EvTrip {
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 
+    @Column(name = "user_edited_at")
+    private OffsetDateTime userEditedAt;
+
+    @Column(name = "user_created", nullable = false)
+    private boolean userCreated;
+
+    @Column(name = "feedback", columnDefinition = "TEXT")
+    private String feedback;
+
+    @Column(name = "deleted_at")
+    private OffsetDateTime deletedAt;
+
     @PrePersist
     void prePersist() {
         if (createdAt == null) createdAt = OffsetDateTime.now();

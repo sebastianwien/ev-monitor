@@ -570,6 +570,39 @@ dashboard:
   chart_more_than: mer enn
   metric_driven: drevet
   err_load: Feil ved innlasting av statistikk
+  trip_add: Tur
+  trip_edit: Rediger tur
+  trip_save: Lagre
+  trip_cancel: Avbryt
+  trip_delete_confirm: Vil du virkelig slette denne turen?
+  trip_feedback_positive: Turen var korrekt
+  trip_feedback_negative: Rapporter et problem
+  trip_feedback_tag_distance_wrong: Feil avstand
+  trip_feedback_tag_time_wrong: Feil tidsrom
+  trip_feedback_tag_duplicate: Dobbel tur
+  trip_feedback_tag_other: Annet
+  trip_feedback_comment: Flere detaljer (valgfritt)
+  trip_feedback_send: Send tilbakemelding
+  trip_feedback_label: Korrekt gjenkjent?
+  trip_feedback_given: Tilbakemelding gitt
+  trip_distance: Avstand (km)
+  trip_route_type: Ruteype
+  trip_soc_start: "SoC start (%)"
+  trip_soc_end: "SoC slutt (%)"
+  trip_started_at: Startet
+  trip_ended_at: Avsluttet
+  trip_route_city: By
+  trip_route_highway: Motorvei
+  trip_route_combined: Blandet
+  trip_manual: manuell
+  trip_err_times_required: "Start- og sluttid er obligatoriske"
+  trip_err_end_before_start: "Sluttid må være etter starttid"
+  trip_merge_button: "Slå sammen med forrige tur"
+  trip_merge_title: "Slå sammen?"
+  trip_merge_previous: "Forrige:"
+  trip_merge_this: "Denne:"
+  trip_merge_result: "Resultat:"
+  trip_merge_confirm: "Slå sammen"
 leaderboard:
   title: Poengliste
   subtitle: Månedlig rangering av det mest aktive EV Monitor-fellesskapet
@@ -1614,6 +1647,9 @@ announcements:
   spritmonitor_raw_refresh_v1_body: SpritMonitor-importen har nå en ny knapp for å importere rådata på nytt. Den henter den originale JSON-en fra Sprit-Monitor igjen og oppdaterer den, uten å overskrive dine manuelt korrigerte verdier (kWh, kilometerstand osv.). Dette gjør det mulig for meg å korrigere og forbedre ladeøkter i etterkant, ettersom SpritMonitor-dataformatet ikke er fullt dokumentert.
   net_capacity_v1_title: "Kjøretøydatabasen er oppdatert"
   net_capacity_v1_body: "Kjøretøydatabasen er oppdatert. Netto batterikapasitet er korrigert for noen varianter. Forbruksverdier kan ha endret seg litt som følge av dette."
+  trip_detection_beta_v1_title: "Automatisk turgjenkjenning (Beta)"
+  trip_detection_beta_v1_body: "EV Monitor gjenkjenner nå automatisk turer fra AutoSync-dataene dine og viser dem ved siden av ladeøktene dine i dashbordet. Dette er en beta-funksjon - feil kan forekomme. Manuelle korreksjoner er tilgjengelig direkte i dashbordet."
+  trip_detection_beta_v1_cta: "Til dashbordet"
 tax_export:
   title: Skatterapport for hjemmelading
   subtitle: Eksporter dine hjemmeladinger som dokumentasjon til regnskapsføreren din (brev fra BMF av 11.11.2025)

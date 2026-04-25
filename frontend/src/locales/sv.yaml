@@ -570,6 +570,39 @@ dashboard:
   chart_more_than: mer än
   metric_driven: driven
   err_load: Det gick inte att hämta statistiken
+  trip_add: Resa
+  trip_edit: Redigera resa
+  trip_save: Spara
+  trip_cancel: Avbryt
+  trip_delete_confirm: Vill du verkligen ta bort denna resa?
+  trip_feedback_positive: Resan var korrekt
+  trip_feedback_negative: Rapportera ett problem
+  trip_feedback_tag_distance_wrong: Fel avstånd
+  trip_feedback_tag_time_wrong: Fel tidsperiod
+  trip_feedback_tag_duplicate: Dubblettresa
+  trip_feedback_tag_other: Annat
+  trip_feedback_comment: Ytterligare detaljer (valfritt)
+  trip_feedback_send: Skicka feedback
+  trip_feedback_label: Korrekt igenkänd?
+  trip_feedback_given: Feedback lämnat
+  trip_distance: Avstand (km)
+  trip_route_type: Vägtyp
+  trip_soc_start: "SoC start (%)"
+  trip_soc_end: "SoC slut (%)"
+  trip_started_at: Startade
+  trip_ended_at: Avslutade
+  trip_route_city: Stad
+  trip_route_highway: Motorväg
+  trip_route_combined: Blandat
+  trip_manual: manuell
+  trip_err_times_required: "Start- och sluttid är obligatoriska"
+  trip_err_end_before_start: "Sluttid måste vara efter starttid"
+  trip_merge_button: "Slå ihop med föregående resa"
+  trip_merge_title: "Slå ihop?"
+  trip_merge_previous: "Föregående:"
+  trip_merge_this: "Denna:"
+  trip_merge_result: "Resultat:"
+  trip_merge_confirm: "Slå ihop"
 leaderboard:
   title: Resultatlista
   subtitle: Månadsrankning av de mest aktiva medlemmarna i EV Monitor-communityn
@@ -1614,6 +1647,9 @@ announcements:
   spritmonitor_raw_refresh_v1_body: SpritMonitor-importen har nu en ny knapp för att importera rådata igen. Den hämtar den ursprungliga JSON-en från Sprit-Monitor igen och uppdaterar den, utan att skriva över dina manuellt korrigerade värden (kWh, mätarställning osv.). Detta gör det möjligt för mig att i efterhand korrigera och förbättra laddningssessioner, eftersom SpritMonitors dataformat inte är fullt dokumenterat.
   net_capacity_v1_title: "Fordonsdata har uppdaterats"
   net_capacity_v1_body: "Fordonsdatabasen har uppdaterats. Nettobatterikapaciteten har korrigerats för vissa varianter. Förbrukningsvärden kan ha ändrats något som ett resultat."
+  trip_detection_beta_v1_title: "Automatisk reseigenkänning (Beta)"
+  trip_detection_beta_v1_body: "EV Monitor känner nu automatiskt igen resor från dina AutoSync-data och visar dem bredvid dina laddningar i dashbordet. Det här är en betafunktion - fel kan förekomma. Manuella korrigeringar är möjliga direkt i dashbordet."
+  trip_detection_beta_v1_cta: "Till dashbordet"
 tax_export:
   title: Skatteanmälan för laddning hemma
   subtitle: Exportera dina hemladdningar som underlag för din revisor (brev från BMF av den 11 november 2025)
