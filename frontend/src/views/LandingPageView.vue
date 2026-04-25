@@ -248,7 +248,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
             </a>
           </div>
           <!-- Desktop: 3 Modelle nebeneinander -->
-          <div class="hidden lg:grid grid-cols-3 gap-4 max-w-4xl mx-auto">
+          <div class="hidden lg:grid grid-cols-3 gap-4 max-w-5xl mx-auto">
             <a
               v-for="preview in topModels.slice(0, 3)"
               :key="`hero-${preview.brand}-${preview.model}`"
