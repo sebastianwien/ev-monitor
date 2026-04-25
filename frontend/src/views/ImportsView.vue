@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, defineAsyncComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/auth'
 import { ArrowDownTrayIcon, ArrowPathIcon, BoltIcon, ExclamationTriangleIcon, CodeBracketIcon, TrashIcon, ClipboardDocumentIcon, CheckIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
@@ -8,7 +8,7 @@ import GoeIntegration from '../components/imports/GoeIntegration.vue'
 import TeslaFleetIntegration from '../components/imports/TeslaFleetIntegration.vue'
 import SmartcarIntegration from '../components/imports/SmartcarIntegration.vue'
 import ManualImportModal from '../components/imports/ManualImportModal.vue'
-import TronityImport from '../components/imports/TronityImport.vue'
+const TronityImport = defineAsyncComponent(() => import('../components/imports/TronityImport.vue'))
 import TessieImport from '../components/imports/TessieImport.vue'
 import CarSelectDropdown from '../components/car/CarSelectDropdown.vue'
 import type { Car } from '../api/carService'

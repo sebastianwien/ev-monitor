@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, reactive, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, reactive, onMounted, onUnmounted, watch, defineAsyncComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Line, Bar } from 'vue-chartjs'
 import {
@@ -47,7 +47,7 @@ import ConsumptionInfoBox from '../components/dashboard/ConsumptionInfoBox.vue'
 import EditLogModal from '../components/dashboard/EditLogModal.vue'
 import { costBadgeClass } from '../utils/costColor'
 import LicensePlate from '../components/car/LicensePlate.vue'
-import ChargingHeatMap from '../components/dashboard/ChargingHeatMap.vue'
+const ChargingHeatMap = defineAsyncComponent(() => import('../components/dashboard/ChargingHeatMap.vue'))
 import RewardSystemUpdateBanner from '../components/shared/RewardSystemUpdateBanner.vue'
 import { useCountryStore } from '../stores/country'
 import { useAuthStore } from '../stores/auth'

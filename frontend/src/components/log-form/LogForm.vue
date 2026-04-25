@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, computed } from 'vue'
+import { ref, onMounted, watch, computed, defineAsyncComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import api from '../../api/axios'
 import CarSelector from '../car/CarSelector.vue'
-import OcrPhotoCapture from './OcrPhotoCapture.vue'
+const OcrPhotoCapture = defineAsyncComponent(() => import('./OcrPhotoCapture.vue'))
 import LogFormFields, { type LogFormData } from './LogFormFields.vue'
 import { CameraIcon, PencilSquareIcon, TrashIcon, BoltIcon, TruckIcon, ClockIcon, Battery0Icon, SunIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import { useCoinStore } from '../../stores/coins'
