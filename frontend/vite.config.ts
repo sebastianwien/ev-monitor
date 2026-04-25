@@ -70,6 +70,7 @@ export default defineConfig({
             includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
             workbox: {
                 navigateFallbackDenylist: [/^\/sitemap\.xml$/, /^\/robots\.txt$/, /^\/api\//, /^\/oauth2\//, /^\/login\/oauth2\//, /^\/swagger-ui/, /^\/v3\/api-docs/],
+                maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
             },
             manifest: {
                 name: 'EV Monitor',
