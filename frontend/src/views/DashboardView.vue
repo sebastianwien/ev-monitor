@@ -834,7 +834,7 @@ function onTripFormLeave(el: Element, done: () => void) {
 
               <!-- Phantom drain indicator: energy lost while parked before this entry -->
               <div v-if="entry._phantomDrain && isAdmin"
-                class="mx-2 my-0.5 flex items-center gap-1.5 px-3 py-1 rounded text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20">
+                class="mx-[10%] my-0.5 flex items-center gap-1.5 px-3 py-1 rounded text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20">
                 <BoltIcon class="w-3.5 h-3.5 flex-shrink-0" />
                 <span>{{ t('dashboard.phantom_drain_label', { kwh: entry._phantomDrain.kwh.toFixed(2) }) }}</span>
                 <span v-if="!entry._phantomDrain.highConfidence" class="text-amber-500 dark:text-amber-500 opacity-70">({{ t('dashboard.phantom_drain_estimated') }})</span>
@@ -898,6 +898,7 @@ function onTripFormLeave(el: Element, done: () => void) {
                 <!-- Trip display mode -->
                 <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
                   <div v-if="editingTripId !== entry.id && deletingTripId !== entry.id" class="ml-2 mr-2 p-3 rounded-lg shadow-sm ring-1 ring-black/5 dark:ring-white/10 border-l-4 border-l-emerald-400 dark:border-l-emerald-500 border-r-4 border-r-emerald-400 dark:border-r-emerald-500 bg-white dark:bg-gray-700 space-y-2">
+                    <!-- Zeile 1: Distanz, Verbrauch, Temperatur (rechts), Aktionen -->
                     <div class="flex items-center justify-between gap-2">
                       <div class="flex items-center gap-2 min-w-0 overflow-hidden">
                         <TruckIcon :class="['w-4 h-4 flex-shrink-0',
@@ -909,19 +910,13 @@ function onTripFormLeave(el: Element, done: () => void) {
                           class="inline-flex items-center text-[13px] text-gray-500 dark:text-gray-300 whitespace-nowrap flex-shrink-0">
                           {{ tripConsumption(entry)!.estimated ? '~' : '' }}{{ formatConsumption(tripConsumption(entry)!.kwhPer100km) }}
                         </span>
-                        <span class="hidden sm:inline-flex items-center gap-1 text-[13px] text-gray-500 dark:text-gray-300 whitespace-nowrap">
-                          <ClockIcon class="w-3 h-3" />{{ formatTripTimeRange(entry.tripStartedAt, entry.tripEndedAt) }}
-                        </span>
-                        <span v-if="entry.socStart != null && entry.socEnd != null"
-                          class="hidden sm:inline-flex items-center gap-1 text-[13px] text-gray-500 dark:text-gray-300 whitespace-nowrap">
-                          <Battery0Icon class="w-3 h-3" />{{ entry.socStart }}% → {{ entry.socEnd }}%
-                        </span>
                       </div>
-                      <span v-if="entry.outsideTempCelsius != null"
-                        :class="['hidden sm:inline-flex items-center gap-0.5 px-2 py-0.5 border rounded-full text-xs whitespace-nowrap ml-auto mr-1',
-                                 tempBadgeClass(entry.outsideTempCelsius)]">
-                        <SunIcon class="w-3 h-3" />{{ entry.outsideTempCelsius }}°C
-                      </span>
+                      <div class="flex items-center gap-1.5 flex-shrink-0">
+                        <span v-if="entry.outsideTempCelsius != null"
+                          :class="['inline-flex items-center gap-0.5 px-2 py-0.5 border rounded-full text-xs whitespace-nowrap',
+                                   tempBadgeClass(entry.outsideTempCelsius)]">
+                          <SunIcon class="w-3 h-3" />{{ entry.outsideTempCelsius }}°C
+                        </span>
                       <div class="flex items-center gap-1 flex-shrink-0">
                         <template v-if="entry.dataSource !== 'USER_CREATED'">
                           <button @click="toggleRating(entry.id, 'positive', entry.feedback)"
@@ -952,20 +947,19 @@ function onTripFormLeave(el: Element, done: () => void) {
                           <TrashIcon class="w-3.5 h-3.5" />
                         </button>
                       </div>
+                      </div><!-- end right: temp + buttons -->
                     </div>
-                    <div class="flex flex-wrap gap-1.5">
-                      <span class="sm:hidden inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
+                    <!-- Zeile 2: Zeitraum + SoC-Änderung -->
+                    <div class="flex items-center gap-2 text-[13px] text-gray-400 dark:text-gray-500">
+                      <span class="inline-flex items-center gap-1 whitespace-nowrap">
                         <ClockIcon class="w-3 h-3" />{{ formatTripTimeRange(entry.tripStartedAt, entry.tripEndedAt) }}
                       </span>
                       <span v-if="entry.socStart != null && entry.socEnd != null"
-                        class="sm:hidden inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                        class="inline-flex items-center gap-1 whitespace-nowrap">
                         <Battery0Icon class="w-3 h-3" />{{ entry.socStart }}% → {{ entry.socEnd }}%
                       </span>
-                      <span v-if="entry.outsideTempCelsius != null"
-                        :class="['sm:hidden inline-flex items-center gap-0.5 px-2 py-0.5 border rounded-full text-xs whitespace-nowrap ml-auto',
-                                 tempBadgeClass(entry.outsideTempCelsius)]">
-                        <SunIcon class="w-3 h-3" />{{ entry.outsideTempCelsius }}°C
-                      </span>
+                    </div>
+                    <div class="flex flex-wrap gap-1.5">
                       <span v-if="entry.routeType"
                         class="inline-flex items-center px-2 py-0.5 bg-gray-50 dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded-full text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
                         {{ t('dashboard.trip_route_' + entry.routeType.toLowerCase()) }}
