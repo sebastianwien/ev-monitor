@@ -80,6 +80,19 @@ public class EmailService {
         sendHtmlEmail(toEmail, subject, html);
     }
 
+    public void sendAutoSyncAnnouncementEmail(String toEmail, String locale) {
+        String lang = resolveLocale(locale);
+        String html = loadTemplate("autosync-announcement.html", lang, Map.of(
+                "upgradeUrl", baseUrl + "/upgrade",
+                "consumptionMethodologyUrl", baseUrl + "/consumption-methodology",
+                "unsubscribeUrl", buildUnsubscribeUrl(toEmail)
+        ));
+        String subject = "en".equals(lang)
+                ? "Hey, there's something cool and new!"
+                : "Hey, es gibt was cooles Neues!";
+        sendHtmlEmail(toEmail, subject, html);
+    }
+
     public void sendOnboardingReminderEmail(String toEmail, String username, String locale) {
         String lang = resolveLocale(locale);
         String html = loadTemplate("onboarding-reminder.html", lang, Map.of(
