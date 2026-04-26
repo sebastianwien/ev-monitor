@@ -610,7 +610,6 @@ dashboard:
   trip_merge_result: "Ergebnis:"
   trip_merge_confirm: "Zusammenführen"
   phantom_drain_label: "-{kwh} kWh Standverlust"
-  phantom_drain_estimated: "ca."
 
 leaderboard:
   title: "Bestenliste"

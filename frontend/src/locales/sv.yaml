@@ -604,7 +604,6 @@ dashboard:
   trip_merge_result: "Resultat:"
   trip_merge_confirm: "Slå ihop"
   phantom_drain_label: "-{kwh} kWh självurladdning"
-  phantom_drain_estimated: "ca."
 leaderboard:
   title: Resultatlista
   subtitle: Månadsrankning av de mest aktiva medlemmarna i EV Monitor-communityn

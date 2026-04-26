@@ -518,10 +518,9 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
         }
       }
 
-      if (drainKwh != null && drainKwh > 0.05) {
+      if (drainKwh != null && drainKwh > 0.05 && highConfidence) {
         newer._phantomDrain = {
           kwh: Math.round(drainKwh * 100) / 100,
-          highConfidence,
           durationMs: entryTs(newer) - entryTs(older),
         }
       }

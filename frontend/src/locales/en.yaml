@@ -610,7 +610,6 @@ dashboard:
   trip_merge_result: "Result:"
   trip_merge_confirm: "Merge"
   phantom_drain_label: "-{kwh} kWh idle drain"
-  phantom_drain_estimated: "est."
 
 leaderboard:
   title: "Leaderboard"

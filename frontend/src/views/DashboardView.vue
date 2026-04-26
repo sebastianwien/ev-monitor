@@ -841,7 +841,7 @@ function onTripFormLeave(el: Element, done: () => void) {
                   <template v-if="selectedCar?.effectiveBatteryCapacityKwh">
                     ({{ (entry._phantomDrain.kwh / selectedCar.effectiveBatteryCapacityKwh * 100).toFixed(1) }}%)
                   </template>
-                  Standverlust{{ !entry._phantomDrain.highConfidence ? ' ~' : '' }}
+                  Standverlust
                 </span>
                 <div class="flex-1 h-px bg-gray-200 dark:bg-gray-600" />
               </div>
