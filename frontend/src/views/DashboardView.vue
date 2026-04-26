@@ -293,6 +293,19 @@ const showThgBanner = computed(() => {
   if (!thgDismissedAt.value) return true
   return (Date.now() - thgDismissedAt.value) / 86_400_000 >= 90
 })
+function tripConsumption(entry: any): { kwhPer100km: number; estimated: boolean } | null {
+  if (!entry.distanceKm || entry.distanceKm <= 0) return null
+  if (entry.estimatedConsumedKwh != null) {
+    return { kwhPer100km: entry.estimatedConsumedKwh / entry.distanceKm * 100, estimated: false }
+  }
+  const cap = selectedCar.value?.effectiveBatteryCapacityKwh
+  if (entry.socStart != null && entry.socEnd != null && entry.socStart > entry.socEnd && cap) {
+    const isDecimalSoc = entry.socStart % 1 !== 0 || entry.socEnd % 1 !== 0
+    return { kwhPer100km: (entry.socStart - entry.socEnd) * cap / entry.distanceKm, estimated: !isDecimalSoc }
+  }
+  return null
+}
+
 function dismissThgBanner() {
   const now = Date.now()
   thgDismissedAt.value = now
@@ -819,6 +832,14 @@ function onTripFormLeave(el: Element, done: () => void) {
             <template v-else>
               <template v-for="entry in mergedLogFeed" :key="entry.id">
 
+              <!-- Phantom drain indicator: energy lost while parked before this entry -->
+              <div v-if="entry._phantomDrain && isAdmin"
+                class="mx-2 my-0.5 flex items-center gap-1.5 px-3 py-1 rounded text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20">
+                <BoltIcon class="w-3.5 h-3.5 flex-shrink-0" />
+                <span>{{ t('dashboard.phantom_drain_label', { kwh: entry._phantomDrain.kwh.toFixed(2) }) }}</span>
+                <span v-if="!entry._phantomDrain.highConfidence" class="text-amber-500 dark:text-amber-500 opacity-70">({{ t('dashboard.phantom_drain_estimated') }})</span>
+              </div>
+
               <!-- Inline add-trip form - appears above the triggering entry -->
               <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
               <div v-if="canAccessTrips && addingTripAfterId === entry.id" class="ml-2 mr-2 mt-1 p-3 rounded-lg shadow-sm ring-1 ring-black/5 dark:ring-white/10 border-l-4 border-l-emerald-400 dark:border-l-emerald-500 border-r-4 border-r-emerald-400 dark:border-r-emerald-500 bg-white dark:bg-gray-700 space-y-3">
@@ -852,7 +873,7 @@ function onTripFormLeave(el: Element, done: () => void) {
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <div>
-                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('dashboard.trip_distance') }}</label>
+                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('dashboard.trip_distance', { unit: distanceUnitLabel() }) }}</label>
                     <input v-model="tripForm.distanceKm" type="number" min="0" max="9999" step="0.1"
                       class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
                   </div>
@@ -883,7 +904,11 @@ function onTripFormLeave(el: Element, done: () => void) {
                           isAdmin && entry.dataSource === 'TESLA_LIVE'     ? 'text-red-500 dark:text-red-400' :
                           isAdmin && entry.dataSource === 'SMARTCAR_LIVE'  ? 'text-blue-500 dark:text-blue-400' :
                           'text-emerald-600 dark:text-emerald-400']" />
-                        <span v-if="entry.distanceKm != null" class="font-semibold text-emerald-700 dark:text-emerald-400 whitespace-nowrap flex-shrink-0">{{ entry.distanceKm }} km</span>
+                        <span v-if="entry.distanceKm != null" class="font-semibold text-emerald-700 dark:text-emerald-400 whitespace-nowrap flex-shrink-0">{{ formatDistance(entry.distanceKm) }}</span>
+                        <span v-if="tripConsumption(entry)"
+                          class="inline-flex items-center text-[13px] text-gray-500 dark:text-gray-300 whitespace-nowrap flex-shrink-0">
+                          {{ tripConsumption(entry)!.estimated ? '~' : '' }}{{ formatConsumption(tripConsumption(entry)!.kwhPer100km) }}
+                        </span>
                         <span class="hidden sm:inline-flex items-center gap-1 text-[13px] text-gray-500 dark:text-gray-300 whitespace-nowrap">
                           <ClockIcon class="w-3 h-3" />{{ formatTripTimeRange(entry.tripStartedAt, entry.tripEndedAt) }}
                         </span>
@@ -891,12 +916,12 @@ function onTripFormLeave(el: Element, done: () => void) {
                           class="hidden sm:inline-flex items-center gap-1 text-[13px] text-gray-500 dark:text-gray-300 whitespace-nowrap">
                           <Battery0Icon class="w-3 h-3" />{{ entry.socStart }}% → {{ entry.socEnd }}%
                         </span>
-                        <span v-if="entry.outsideTempCelsius != null"
-                          :class="['hidden sm:inline-flex items-center gap-0.5 px-2 py-0.5 border rounded-full text-xs whitespace-nowrap',
-                                   tempBadgeClass(entry.outsideTempCelsius)]">
-                          <SunIcon class="w-3 h-3" />{{ entry.outsideTempCelsius }}°C
-                        </span>
                       </div>
+                      <span v-if="entry.outsideTempCelsius != null"
+                        :class="['hidden sm:inline-flex items-center gap-0.5 px-2 py-0.5 border rounded-full text-xs whitespace-nowrap ml-auto mr-1',
+                                 tempBadgeClass(entry.outsideTempCelsius)]">
+                        <SunIcon class="w-3 h-3" />{{ entry.outsideTempCelsius }}°C
+                      </span>
                       <div class="flex items-center gap-1 flex-shrink-0">
                         <template v-if="entry.dataSource !== 'USER_CREATED'">
                           <button @click="toggleRating(entry.id, 'positive', entry.feedback)"
@@ -1005,7 +1030,7 @@ function onTripFormLeave(el: Element, done: () => void) {
                   </div>
                   <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div>
-                      <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('dashboard.trip_distance') }}</label>
+                      <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('dashboard.trip_distance', { unit: distanceUnitLabel() }) }}</label>
                       <input v-model="tripForm.distanceKm" type="number" min="0" max="9999" step="0.1"
                         class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
                     </div>

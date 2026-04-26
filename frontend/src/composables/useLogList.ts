@@ -464,6 +464,69 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
       all[i]._gapToNextMs = i < all.length - 1 ? entryTs(all[i]) - entryTs(all[i + 1]) : null
     }
 
+    // Annotate each entry with phantom drain for the parked gap BEFORE it.
+    // all is sorted descending: all[i] = newer entry, all[i+1] = older entry.
+    // Drain = energy lost while parked between end of all[i+1] and start of all[i].
+    const selectedCar = cars.value.find((c: any) => c.id === selectedCarId.value)
+    const capacityKwh: number | null = selectedCar?.effectiveBatteryCapacityKwh ?? null
+
+    const exitSoc = (e: any): number | null => {
+      if (e._isTrip) return e.socEnd != null ? Number(e.socEnd) : null
+      const soc = e._isLadegruppe ? e._maxSoc : e.socAfterChargePercent
+      return soc != null ? Number(soc) : null
+    }
+    const entrySoc = (e: any): number | null => {
+      if (e._isTrip) return e.socStart != null ? Number(e.socStart) : null
+      return e.socBeforeChargePercent != null ? Number(e.socBeforeChargePercent) : null
+    }
+    const exitOdometer = (e: any): number | null => {
+      if (e._isTrip) return e.odometerEndKm != null ? Number(e.odometerEndKm) : null
+      return e.odometerKm != null ? Number(e.odometerKm) : null
+    }
+    const entryOdometer = (e: any): number | null => {
+      if (e._isTrip) return e.odometerStartKm != null ? Number(e.odometerStartKm) : null
+      return e.odometerKm != null ? Number(e.odometerKm) : null
+    }
+
+    for (let i = 0; i < all.length; i++) {
+      all[i]._phantomDrain = null
+      if (i >= all.length - 1) continue
+
+      const newer = all[i]
+      const older = all[i + 1]
+
+      // Tesla: direct kWh delta via EnergyRemaining (most precise)
+      const olderEnergyEnd = older._isTrip && older.energyRemainingEndKwh != null
+        ? Number(older.energyRemainingEndKwh) : null
+      const newerEnergyStart = newer._isTrip && newer.energyRemainingStartKwh != null
+        ? Number(newer.energyRemainingStartKwh) : null
+
+      // Odometer confidence: car didn't move during the gap
+      const odomOlder = exitOdometer(older)
+      const odomNewer = entryOdometer(newer)
+      const highConfidence = odomOlder != null && odomNewer != null && Math.abs(odomOlder - odomNewer) < 0.5
+
+      let drainKwh: number | null = null
+
+      if (olderEnergyEnd != null && newerEnergyStart != null) {
+        drainKwh = olderEnergyEnd - newerEnergyStart
+      } else {
+        const socOlder = exitSoc(older)
+        const socNewer = entrySoc(newer)
+        if (socOlder != null && socNewer != null && capacityKwh != null) {
+          drainKwh = (socOlder - socNewer) / 100 * capacityKwh
+        }
+      }
+
+      if (drainKwh != null && drainKwh > 0.05) {
+        newer._phantomDrain = {
+          kwh: Math.round(drainKwh * 100) / 100,
+          highConfidence,
+          durationMs: entryTs(newer) - entryTs(older),
+        }
+      }
+    }
+
     return all
   })
 

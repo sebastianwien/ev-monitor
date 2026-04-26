@@ -459,7 +459,7 @@ function cardSubTextColor(id: string): string {
     </div>
     <div>
       <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('logfields.soc_after') }}</label>
-      <input v-model="form.socAfterChargePercent" type="number" min="0" max="100" step="1"
+      <input v-model="form.socAfterChargePercent" type="number" min="0" max="100" step="0.1"
         :class="inputClass('soc')" />
     </div>
   </div>
@@ -636,7 +636,7 @@ function cardSubTextColor(id: string): string {
     </div>
     <div>
       <label class="block text-sm font-medium text-gray-600 dark:text-gray-400">{{ t('logfields.soc_before') }}</label>
-      <input v-model="form.socBeforeChargePercent" type="number" min="0" max="100" :placeholder="t('logfields.optional')"
+      <input v-model="form.socBeforeChargePercent" type="number" min="0" max="100" step="0.1" :placeholder="t('logfields.optional')"
         class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
     </div>
   </div>

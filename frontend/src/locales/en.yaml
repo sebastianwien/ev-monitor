@@ -591,7 +591,7 @@ dashboard:
   trip_feedback_send: "Send feedback"
   trip_feedback_label: "Correctly detected?"
   trip_feedback_given: "Feedback given"
-  trip_distance: "Distance (km)"
+  trip_distance: "Distance ({unit})"
   trip_route_type: "Route type"
   trip_soc_start: "SoC start (%)"
   trip_soc_end: "SoC end (%)"
@@ -609,6 +609,8 @@ dashboard:
   trip_merge_this: "This trip:"
   trip_merge_result: "Result:"
   trip_merge_confirm: "Merge"
+  phantom_drain_label: "-{kwh} kWh idle drain"
+  phantom_drain_estimated: "est."
 
 leaderboard:
   title: "Leaderboard"

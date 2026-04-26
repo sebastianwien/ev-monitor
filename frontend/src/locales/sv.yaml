@@ -585,7 +585,7 @@ dashboard:
   trip_feedback_send: Skicka feedback
   trip_feedback_label: Korrekt igenkänd?
   trip_feedback_given: Feedback lämnat
-  trip_distance: Avstand (km)
+  trip_distance: "Avstand ({unit})"
   trip_route_type: Vägtyp
   trip_soc_start: "SoC start (%)"
   trip_soc_end: "SoC slut (%)"
@@ -603,6 +603,8 @@ dashboard:
   trip_merge_this: "Denna:"
   trip_merge_result: "Resultat:"
   trip_merge_confirm: "Slå ihop"
+  phantom_drain_label: "-{kwh} kWh självurladdning"
+  phantom_drain_estimated: "ca."
 leaderboard:
   title: Resultatlista
   subtitle: Månadsrankning av de mest aktiva medlemmarna i EV Monitor-communityn
