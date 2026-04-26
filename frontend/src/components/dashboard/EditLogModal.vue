@@ -200,6 +200,8 @@ async function save() {
       costExchangeRate: f.costExchangeRate,
       costCurrency: f.costCurrency,
       chargingProviderId: f.chargingProviderId ?? null,
+      isPublicCharging: f.isPublicCharging,
+      cpoName: f.isPublicCharging && f.cpoName ? f.cpoName : null,
     }
     if (f.latitude !== null && f.longitude !== null) {
       payload.latitude = f.latitude

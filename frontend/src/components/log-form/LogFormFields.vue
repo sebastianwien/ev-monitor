@@ -164,6 +164,23 @@ const inputClass = (field: string) =>
 // ── kWh Mode ──────────────────────────────────────────────────────────────────
 const kwhMode = ref<'charger' | 'vehicle'>('charger')
 
+// ── SoC Mode ──────────────────────────────────────────────────────────────────
+const socMode = ref<'after' | 'before'>('after')
+
+const socInputValue = computed({
+  get(): number | null {
+    return socMode.value === 'after' ? form.value.socAfterChargePercent : form.value.socBeforeChargePercent
+  },
+  set(val: number | null) {
+    if (socMode.value === 'after') form.value.socAfterChargePercent = val
+    else form.value.socBeforeChargePercent = val
+  },
+})
+
+watch([() => form.value.socAfterChargePercent, () => form.value.socBeforeChargePercent], ([after, before]) => {
+  if (after === null && before === null) socMode.value = 'after'
+})
+
 const kwhInputValue = computed({
   get(): number | null {
     return kwhMode.value === 'charger' ? form.value.kwhCharged : form.value.kwhAtVehicle
@@ -458,9 +475,23 @@ function cardSubTextColor(id: string): string {
         :class="inputClass('odometer')" />
     </div>
     <div>
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('logfields.soc_after') }}</label>
-      <input v-model="form.socAfterChargePercent" type="number" min="0" max="100" step="0.1"
-        :class="inputClass('soc')" />
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+        {{ socMode === 'after' ? t('logfields.soc_after') : t('logfields.soc_before') }}
+      </label>
+      <div class="relative">
+        <input v-model="socInputValue" type="number" min="0" max="100" step="0.1"
+          :class="[inputClass('soc'), 'pr-20']" />
+        <div class="absolute right-1.5 top-1/2 -translate-y-1/2 flex rounded-full border border-gray-300 dark:border-gray-500 bg-gray-200 dark:bg-gray-600 p-0.5 text-xs">
+          <button type="button" @click="socMode = 'after'"
+            :class="['px-1.5 py-0.5 rounded-full font-medium transition-all duration-200', socMode === 'after' ? 'bg-white dark:bg-gray-500 text-indigo-700 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400']">
+            {{ t('logfields.soc_mode_after') }}
+          </button>
+          <button type="button" @click="socMode = 'before'"
+            :class="['px-1.5 py-0.5 rounded-full font-medium transition-all duration-200', socMode === 'before' ? 'bg-white dark:bg-gray-500 text-indigo-700 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400']">
+            {{ t('logfields.soc_mode_before') }}
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -622,7 +653,7 @@ function cardSubTextColor(id: string): string {
     </div>
   </div>
 
-  <!-- Dauer + Ladeleistung + Akku vor Laden -->
+  <!-- Dauer + Ladeleistung -->
   <div class="grid grid-cols-2 gap-3">
     <div>
       <label class="block text-sm font-medium text-gray-600 dark:text-gray-400">{{ t('logfields.duration') }}</label>
@@ -632,11 +663,6 @@ function cardSubTextColor(id: string): string {
     <div>
       <label class="block text-sm font-medium text-gray-600 dark:text-gray-400"><span class="sm:hidden">{{ t('logfields.max_power') }}</span><span class="hidden sm:inline">{{ t('logfields.max_power_full') }}</span></label>
       <input v-model="form.maxChargingPowerKw" type="number" step="0.1"
-        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
-    </div>
-    <div>
-      <label class="block text-sm font-medium text-gray-600 dark:text-gray-400">{{ t('logfields.soc_before') }}</label>
-      <input v-model="form.socBeforeChargePercent" type="number" min="0" max="100" step="0.1" :placeholder="t('logfields.optional')"
         class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
     </div>
   </div>
