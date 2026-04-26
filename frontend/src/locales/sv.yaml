@@ -460,6 +460,27 @@ dashboard:
   smartcar_charging: Laddning
   wallbox_charging: Laddning
   real_range_title: Din verkliga räckvidd
+  peer_benchmark_title: i jämförelse
+  peer_you: "Du"
+  peer_community: "Community snitt"
+  peer_trips: resor
+  peer_drivers: förare
+  peer_consumption: Förbrukning
+  peer_range: Räckvidd (90→10%)
+  peer_cost: Kostnad
+  peer_cost_label: Energikostnad
+  peer_cost_per_distance: Körkostnad
+  peer_delta_equal: Lika
+  peer_delta_better: mer effektiv
+  peer_delta_worse: mer
+  peer_delta_cheaper: billigare
+  peer_delta_pricier: dyrare
+  peer_delta_more: mer räckvidd
+  peer_delta_less: mindre
+  peer_insufficient_data: Bara {n} förare med samma spec - trend synlig, ännu inte statistiskt robust
+  peer_footer: "{trips} resor analyserade"
+  peer_range_window: 90→10% laddningsfönster
+  peer_cost_country_note: "kostnad endast {country}"
   range_window: Laddningsfönster
   range_summer: Sommar
   range_winter: Vinter
@@ -570,6 +591,7 @@ dashboard:
   chart_more_than: mer än
   metric_driven: driven
   err_load: Det gick inte att hämta statistiken
+  trip_group_count: "{count} resor"
   trip_add: Resa
   trip_edit: Redigera resa
   trip_save: Spara
@@ -662,6 +684,9 @@ logfields:
   odometer: Mätarställning
   unit_km: km
   unit_miles: miles
+  soc: "SoC (%)"
+  soc_mode_after: "efter"
+  soc_mode_before: "före"
   soc_after: Batterinivå efter laddning (%)
   soc_before: Batterinivå före laddning (%)
   kwh_at_vehicle: "kWh (fordon)"

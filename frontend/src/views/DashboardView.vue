@@ -32,7 +32,6 @@ import {
   TrashIcon,
   ExclamationTriangleIcon,
   InformationCircleIcon,
-  CloudIcon,
   XMarkIcon,
   CalendarIcon,
   ArrowsRightLeftIcon,
@@ -54,6 +53,8 @@ import { useAuthStore } from '../stores/auth'
 import { analytics } from '../services/analytics'
 import SupportPopover from '../components/settings/SupportPopover.vue'
 import ImplausibleLogsModal from '../components/dashboard/ImplausibleLogsModal.vue'
+import PeerBenchmarkCard from '../components/dashboard/PeerBenchmarkCard.vue'
+import RangeCard from '../components/dashboard/RangeCard.vue'
 import DashboardEmptyState from '../components/dashboard/DashboardEmptyState.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useDashboardStats } from '../composables/useDashboardStats'
@@ -66,7 +67,7 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineEleme
 
 const { t } = useI18n()
 const router = useRouter()
-const { formatConsumption, consumptionUnitLabel, formatDistance, distanceUnitLabel, formatCurrency, formatCostPerKwh, formatCostPerDistance, currencySymbol, convertDistance } = useLocaleFormat()
+const { formatConsumption, consumptionUnitLabel, formatDistance, distanceUnitLabel, formatCurrency, formatCostPerKwh, formatCostPerDistance, currencySymbol } = useLocaleFormat()
 
 // -- Dashboard Stats --
 const {
@@ -119,6 +120,15 @@ async function handleDeleteTrip(id: string) {
     }
     deletingTripId.value = null
   }, 300)
+}
+
+// -- Trip group collapse --
+const collapsedTripGroups = ref<Set<string>>(new Set())
+function toggleTripGroup(groupId: string) {
+  const next = new Set(collapsedTripGroups.value)
+  if (next.has(groupId)) next.delete(groupId)
+  else next.add(groupId)
+  collapsedTripGroups.value = next
 }
 
 // -- Trip merge --
@@ -232,18 +242,6 @@ const showImplausibleModal = ref(false)
 const implausibleModalDirty = ref(false)
 
 // -- Range calculator --
-const rangeWindows = [
-  { label: '100 → 0 %', socMax: 100, socMin: 0,  recommended: false },
-  { label: '90 → 10 %',  socMax: 90,  socMin: 10, recommended: true  },
-  { label: '80 → 20 %',  socMax: 80,  socMin: 20, recommended: false },
-]
-
-const calcRange = (batteryKwh: number, socMax: number, socMin: number, consumptionKwhPer100km: number): string => {
-  const usableKwh = batteryKwh * (socMax - socMin) / 100
-  const km = Math.floor(usableKwh / consumptionKwhPer100km * 100 / 10) * 10
-  const converted = Math.round(convertDistance(km))
-  return `~${converted}`
-}
 
 const selectedCar = computed(() =>
   cars.value.find(c => c.id === selectedCarId.value) ?? cars.value[0] ?? null
@@ -371,7 +369,7 @@ function onTripFormLeave(el: Element, done: () => void) {
     <RewardSystemUpdateBanner class="mb-4" />
     <Transition name="fade" mode="out-in">
       <div v-if="!loading || !isInitialLoad">
-        <div class="bg-gray-50 dark:bg-gray-800 md:rounded-xl md:shadow-lg p-4 md:p-6">
+        <div class="bg-gray-100 dark:bg-gray-800 md:rounded-xl md:shadow-lg p-4 md:p-6">
           <div class="flex flex-wrap items-center gap-3 mb-6">
             <ChartBarIcon class="h-8 w-8 text-gray-700 dark:text-gray-300" />
             <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-200">Dashboard</h1>
@@ -525,55 +523,33 @@ function onTripFormLeave(el: Element, done: () => void) {
             </div>
           </div>
 
-          <!-- Echte Reichweite -->
-          <div v-if="carInfo?.batteryCapacityKwh && stats?.avgConsumptionKwhPer100km"
-            class="mb-6 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 p-4">
-            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">{{ t('dashboard.real_range_title') }}</h3>
-            <div class="overflow-x-auto -mx-4 px-4">
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="text-xs text-gray-500 dark:text-gray-400">
-                  <th class="text-left pb-2 font-medium">{{ t('dashboard.range_window') }}</th>
-                  <th v-if="stats?.summerConsumptionKwhPer100km" class="text-right pb-2 font-medium text-amber-600 whitespace-nowrap pl-4">
-                    <span class="inline-flex items-center justify-end gap-1">
-                      <SunIcon class="w-4 h-4" />
-                      <span class="hidden sm:inline">{{ t('dashboard.range_summer') }}</span>
-                      <span class="font-normal">({{ formatConsumption(stats.summerConsumptionKwhPer100km, { showUnit: false }) }}<span class="hidden sm:inline"> {{ consumptionUnitLabel() }}</span>)</span>
-                    </span>
-                  </th>
-                  <th v-if="stats?.winterConsumptionKwhPer100km" class="text-right pb-2 font-medium text-blue-600 dark:text-blue-300 whitespace-nowrap pl-4">
-                    <span class="inline-flex items-center justify-end gap-1">
-                      <CloudIcon class="w-4 h-4" />
-                      <span class="hidden sm:inline">{{ t('dashboard.range_winter') }}</span>
-                      <span class="font-normal">({{ formatConsumption(stats.winterConsumptionKwhPer100km, { showUnit: false }) }}<span class="hidden sm:inline"> {{ consumptionUnitLabel() }}</span>)</span>
-                    </span>
-                  </th>
-                  <th v-if="!stats?.summerConsumptionKwhPer100km && !stats?.winterConsumptionKwhPer100km && stats?.avgConsumptionKwhPer100km != null" class="text-right pb-2 font-medium text-gray-600 dark:text-gray-300 whitespace-nowrap pl-4">
-                    <span class="font-normal">Ø ({{ formatConsumption(stats.avgConsumptionKwhPer100km, { showUnit: false }) }}<span class="hidden sm:inline"> {{ consumptionUnitLabel() }}</span>)</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-gray-100 dark:divide-gray-600">
-                <tr v-for="window in rangeWindows" :key="window.label">
-                  <td class="py-2 pr-4 whitespace-nowrap font-medium text-gray-800 dark:text-gray-200">{{ window.label }}</td>
-                  <td v-if="stats?.summerConsumptionKwhPer100km" class="py-2 text-right font-bold text-amber-700">
-                    {{ calcRange(carInfo.batteryCapacityKwh, window.socMax, window.socMin, stats.summerConsumptionKwhPer100km) }} {{ distanceUnitLabel() }}
-                  </td>
-                  <td v-if="stats?.winterConsumptionKwhPer100km" class="py-2 text-right font-bold text-blue-700 dark:text-blue-300">
-                    {{ calcRange(carInfo.batteryCapacityKwh, window.socMax, window.socMin, stats.winterConsumptionKwhPer100km) }} {{ distanceUnitLabel() }}
-                  </td>
-                  <td v-if="!stats?.summerConsumptionKwhPer100km && !stats?.winterConsumptionKwhPer100km" class="py-2 text-right font-bold text-gray-700 dark:text-gray-200">
-                    {{ calcRange(carInfo.batteryCapacityKwh, window.socMax, window.socMin, stats.avgConsumptionKwhPer100km!) }} {{ distanceUnitLabel() }}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-            </div>
-          </div>
+          <!-- Echte Reichweite + Peer Benchmark: mobile gestackt, desktop nebeneinander -->
+          <div class="mb-6 flex flex-col md:flex-row md:items-stretch gap-4">
 
+          <!-- Echte Reichweite -->
+          <RangeCard
+            v-if="carInfo?.batteryCapacityKwh && stats?.avgConsumptionKwhPer100km"
+            class="md:w-80 shrink-0"
+            :battery-capacity-kwh="carInfo.batteryCapacityKwh"
+            :summer-consumption="stats.summerConsumptionKwhPer100km ?? null"
+            :winter-consumption="stats.winterConsumptionKwhPer100km ?? null"
+            :avg-consumption="stats.avgConsumptionKwhPer100km"
+          />
+
+
+          <!-- Peer Benchmark -->
+          <PeerBenchmarkCard
+            v-if="stats?.peerBenchmark && stats.peerBenchmark.peerAvgConsumptionKwhPer100km !== null"
+            class="flex-1 min-w-0"
+            :benchmark="stats.peerBenchmark"
+            :effective-battery-kwh="selectedCar?.effectiveBatteryCapacityKwh ?? null"
+            :car-display-name="selectedCar ? [enumToLabel(selectedCar.brand), enumToLabel(selectedCar.model), selectedCar.trim].filter(Boolean).join(' ') : ''"
+          />
+
+          </div><!-- Ende Reichweite + Peer Wrapper -->
 
           <!-- Filters (show if there are logs in any time range) -->
-          <div v-if="selectedCarId && hasAnyLogs" class="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+          <div v-if="selectedCarId && hasAnyLogs" class="mb-6 p-4 bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 shadow-sm">
             <!-- Mobile: two selects side by side -->
             <div class="md:hidden">
               <div class="flex gap-3">
@@ -709,7 +685,7 @@ function onTripFormLeave(el: Element, done: () => void) {
 
         <!-- Key Metrics -->
         <div :class="['grid grid-cols-2 md:grid-cols-3 gap-4 pb-6 mb-0', showThgBanner && isGerman ? 'lg:grid-cols-6' : 'lg:grid-cols-5']">
-          <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
             <div class="h-1 bg-amber-500"></div>
             <div class="p-4">
               <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">{{ t('dashboard.metric_total_energy') }}</p>
@@ -717,7 +693,7 @@ function onTripFormLeave(el: Element, done: () => void) {
               <p class="text-sm font-medium text-gray-400 dark:text-gray-500 mt-0.5">{{ stats.totalCharges }} {{ t('dashboard.metric_charges') }}</p>
             </div>
           </div>
-          <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
             <div class="h-1 bg-indigo-500"></div>
             <div class="p-4">
               <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">{{ t('dashboard.metric_total_cost') }}</p>
@@ -726,7 +702,7 @@ function onTripFormLeave(el: Element, done: () => void) {
             </div>
           </div>
           <div v-if="stats.totalDistanceKm != null"
-            class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
             <div class="h-1 bg-green-500"></div>
             <div class="p-4">
               <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">{{ t('dashboard.metric_total_distance') }}</p>
@@ -734,7 +710,7 @@ function onTripFormLeave(el: Element, done: () => void) {
             </div>
           </div>
           <div v-if="stats.avgConsumptionKwhPer100km != null"
-            class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
             <div class="h-1 bg-red-500"></div>
             <div class="p-4">
               <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">{{ t('dashboard.metric_avg_consumption') }}</p>
@@ -750,7 +726,7 @@ function onTripFormLeave(el: Element, done: () => void) {
             </div>
           </div>
           <div v-if="stats.totalDistanceKm != null && stats.totalCostEur != null && stats.totalDistanceKm > 0"
-            class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
             <div class="h-1 bg-pink-500"></div>
             <div class="p-4">
               <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">{{ t('dashboard.metric_avg_cost') }}</p>
@@ -833,7 +809,7 @@ function onTripFormLeave(el: Element, done: () => void) {
               <template v-for="entry in mergedLogFeed" :key="entry.id">
 
               <!-- Phantom drain indicator: energy lost while parked before this entry -->
-              <div v-if="entry._phantomDrain && isAdmin" class="flex items-center gap-2 px-4 mt-0.5 mb-2">
+              <div v-if="entry._phantomDrain && isAdmin && !(entry._isTrip && collapsedTripGroups.has(entry._tripGroupId ?? ''))" class="flex items-center gap-2 px-4 mt-0.5 mb-2">
                 <div class="flex-1 h-px bg-gray-200 dark:bg-gray-600" />
                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-amber-300 dark:border-amber-600 bg-amber-50 dark:bg-amber-900/20 text-xs text-amber-600 dark:text-amber-400 whitespace-nowrap">
                   <BoltIcon class="w-3 h-3" />
@@ -901,9 +877,23 @@ function onTripFormLeave(el: Element, done: () => void) {
               </Transition>
 
               <template v-if="entry._isTrip && canAccessTrips">
+                <!-- Trip group collapse header -->
+                <div v-if="entry._tripGroupSize > 1 && entry._tripGroupIndex === 0"
+                     @click="toggleTripGroup(entry._tripGroupId)"
+                     class="mx-2 mb-1 flex items-center justify-between px-3 py-1.5 rounded-md bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 cursor-pointer select-none hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors">
+                  <div class="w-4 shrink-0"></div>
+                  <span class="flex-1 text-xs font-medium text-emerald-700 dark:text-emerald-400 flex items-center justify-center gap-1.5">
+                    <TruckIcon class="w-3.5 h-3.5" />
+                    {{ t('dashboard.trip_group_count', { count: entry._tripGroupSize }) }}
+                    <span v-if="entry._tripGroupTotalKm" class="font-normal text-emerald-600 dark:text-emerald-500">&middot; {{ formatDistance(entry._tripGroupTotalKm) }}</span>
+                    <span v-if="entry._tripGroupDateRange" class="font-normal text-emerald-600 dark:text-emerald-500">&middot; {{ entry._tripGroupDateRange }}</span>
+                  </span>
+                  <ChevronUpIcon v-if="!collapsedTripGroups.has(entry._tripGroupId)" class="w-4 h-4 text-emerald-500 shrink-0" />
+                  <ChevronDownIcon v-else class="w-4 h-4 text-emerald-500 shrink-0" />
+                </div>
                 <!-- Trip display mode -->
                 <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
-                  <div v-if="editingTripId !== entry.id && deletingTripId !== entry.id" class="ml-2 mr-2 p-3 rounded-lg shadow-sm ring-1 ring-black/5 dark:ring-white/10 border-l-4 border-l-emerald-400 dark:border-l-emerald-500 border-r-4 border-r-emerald-400 dark:border-r-emerald-500 bg-white dark:bg-gray-700 space-y-2">
+                  <div v-if="editingTripId !== entry.id && deletingTripId !== entry.id && !collapsedTripGroups.has(entry._tripGroupId ?? '')" class="ml-2 mr-2 p-3 rounded-lg shadow-sm ring-1 ring-black/5 dark:ring-white/10 border-l-4 border-l-emerald-400 dark:border-l-emerald-500 border-r-4 border-r-emerald-400 dark:border-r-emerald-500 bg-white dark:bg-gray-700 space-y-2">
                     <!-- Zeile 1: Distanz, Verbrauch, Temperatur (rechts), Aktionen -->
                     <div class="flex items-center justify-between gap-2">
                       <div class="flex items-center gap-2 min-w-0 overflow-hidden">
@@ -1001,7 +991,7 @@ function onTripFormLeave(el: Element, done: () => void) {
                 </Transition>
                 <!-- Trip inline edit mode -->
                 <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
-                <div v-if="editingTripId === entry.id" class="ml-2 mr-2 p-3 rounded-lg shadow-sm ring-1 ring-black/5 dark:ring-white/10 border-l-4 border-l-emerald-500 dark:border-l-emerald-400 bg-white dark:bg-gray-700 space-y-3">
+                <div v-if="editingTripId === entry.id && !collapsedTripGroups.has(entry._tripGroupId ?? '')" class="ml-2 mr-2 p-3 rounded-lg shadow-sm ring-1 ring-black/5 dark:ring-white/10 border-l-4 border-l-emerald-500 dark:border-l-emerald-400 bg-white dark:bg-gray-700 space-y-3">
                   <div class="flex items-center justify-between gap-2">
                     <span class="text-sm font-medium text-emerald-800 dark:text-emerald-300">{{ t('dashboard.trip_edit') }}</span>
                     <div class="flex gap-1">

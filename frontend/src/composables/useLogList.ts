@@ -526,6 +526,53 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
       }
     }
 
+    // Annotate consecutive trip groups between charge entries
+    let currentGroupAnchorId = 'tg_top'
+    for (let i = 0; i < all.length; i++) {
+      if (!all[i]._isTrip) {
+        currentGroupAnchorId = `tg_${all[i].id}`
+      } else {
+        all[i]._tripGroupId = currentGroupAnchorId
+      }
+    }
+    const groupCounts: Record<string, number> = {}
+    for (const e of all) {
+      if (e._isTrip) groupCounts[e._tripGroupId] = (groupCounts[e._tripGroupId] ?? 0) + 1
+    }
+    const groupIndexCounters: Record<string, number> = {}
+    for (const e of all) {
+      if (e._isTrip) {
+        e._tripGroupIndex = groupIndexCounters[e._tripGroupId] ?? 0
+        e._tripGroupSize = groupCounts[e._tripGroupId]
+        groupIndexCounters[e._tripGroupId] = e._tripGroupIndex + 1
+      }
+    }
+
+    // Compute per-group summary (total km + date range) for groups of 2+ trips
+    const groupTripEntries: Record<string, any[]> = {}
+    for (const e of all) {
+      if (e._isTrip && e._tripGroupSize > 1) {
+        if (!groupTripEntries[e._tripGroupId]) groupTripEntries[e._tripGroupId] = []
+        groupTripEntries[e._tripGroupId].push(e)
+      }
+    }
+    for (const entries of Object.values(groupTripEntries)) {
+      const totalKm = entries.reduce((s: number, e: any) => s + (e.distanceKm ?? 0), 0)
+      // entries sorted descending: first = newest, last = oldest
+      const newestTs = entries[0].tripEndedAt ?? entries[0].tripStartedAt
+      const oldestTs = entries[entries.length - 1].tripStartedAt ?? entries[entries.length - 1].tripEndedAt
+      const dNewest = newestTs ? new Date(newestTs) : null
+      const dOldest = oldestTs ? new Date(oldestTs) : null
+      const sameDay = dNewest && dOldest && dNewest.toDateString() === dOldest.toDateString()
+      const dateRange = dOldest && dNewest
+        ? sameDay ? fmtDate(dOldest) : `${fmtDate(dOldest)} - ${fmtDate(dNewest)}`
+        : null
+      for (const e of entries) {
+        e._tripGroupTotalKm = totalKm > 0 ? Math.round(totalKm * 10) / 10 : null
+        e._tripGroupDateRange = dateRange
+      }
+    }
+
     return all
   })
 

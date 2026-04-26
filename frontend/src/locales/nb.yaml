@@ -460,6 +460,27 @@ dashboard:
   smartcar_charging: Lading
   wallbox_charging: Lading
   real_range_title: Din reelle rekkevidde
+  peer_benchmark_title: i sammenligning
+  peer_you: "Du"
+  peer_community: "Community snitt"
+  peer_trips: turer
+  peer_drivers: sjåfører
+  peer_consumption: Forbruk
+  peer_range: Rekkevidde (90→10%)
+  peer_cost: Kostnad
+  peer_cost_label: Strømkostnad
+  peer_cost_per_distance: Kjørekostnad
+  peer_delta_equal: Likt
+  peer_delta_better: mer effektiv
+  peer_delta_worse: mer
+  peer_delta_cheaper: billigere
+  peer_delta_pricier: dyrere
+  peer_delta_more: mer rekkevidde
+  peer_delta_less: mindre
+  peer_insufficient_data: Kun {n} sjåfører med samme spec - tendens synlig, ikke statistisk robust ennå
+  peer_footer: "{trips} turer analysert"
+  peer_range_window: 90→10% ladevindu
+  peer_cost_country_note: "kun kostnad {country}"
   range_window: Ladevindu
   range_summer: Sommer
   range_winter: Vinter
@@ -570,6 +591,7 @@ dashboard:
   chart_more_than: mer enn
   metric_driven: drevet
   err_load: Feil ved innlasting av statistikk
+  trip_group_count: "{count} turer"
   trip_add: Tur
   trip_edit: Rediger tur
   trip_save: Lagre
@@ -662,6 +684,9 @@ logfields:
   odometer: Kilometerteller
   unit_km: km
   unit_miles: miles
+  soc: "SoC (%)"
+  soc_mode_after: "etter"
+  soc_mode_before: "før"
   soc_after: Batterinivå etter lading (%)
   soc_before: Batterinivå før lading (%)
   kwh_at_vehicle: "kWh (kjøretøy)"
