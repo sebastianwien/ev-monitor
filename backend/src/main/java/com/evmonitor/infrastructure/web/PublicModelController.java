@@ -16,7 +16,6 @@ import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
 
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -75,18 +74,10 @@ public class PublicModelController {
             @PathVariable String model,
             @AuthenticationPrincipal UserPrincipal principal) {
 
-        UUID currentUserId = null;
-        boolean isSeedUser = false;
-
-        // Optional JWT: If authenticated, include seed data for seed users
-        if (principal != null) {
-            currentUserId = principal.getUser().getId();
-            isSeedUser = principal.getUser().isSeedData();
-        }
-
+        boolean isSeedUser = principal != null && principal.getUser().isSeedData();
         CacheControl cc = isSeedUser ? NO_STORE : PUBLIC_1H;
 
-        return publicModelService.getModelStats(brand, model, currentUserId, isSeedUser)
+        return publicModelService.getModelStats(brand, model, isSeedUser)
                 .map(body -> ResponseEntity.ok().cacheControl(cc).<PublicModelStatsResponse>body(body))
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -114,18 +105,12 @@ public class PublicModelController {
             return ResponseEntity.notFound().build();
         }
 
-        UUID currentUserId = null;
-        boolean isSeedUser = false;
-        if (principal != null) {
-            currentUserId = principal.getUser().getId();
-            isSeedUser = principal.getUser().isSeedData();
-        }
-
+        boolean isSeedUser = principal != null && principal.getUser().isSeedData();
         CacheControl cc = isSeedUser ? NO_STORE : PUBLIC_1H;
         String brandName = model.getBrand().getDisplayString();
         String modelName = model.getDisplayName().replace(" ", "_");
 
-        return publicModelService.getModelStats(brandName, modelName, currentUserId, isSeedUser)
+        return publicModelService.getModelStats(brandName, modelName, isSeedUser)
                 .map(body -> ResponseEntity.ok().cacheControl(cc).<PublicModelStatsResponse>body(body))
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -154,16 +139,8 @@ public class PublicModelController {
     public ResponseEntity<List<String>> getAllModelsWithWltpData(
             @AuthenticationPrincipal UserPrincipal principal) {
 
-        UUID currentUserId = null;
-        boolean isSeedUser = false;
-
-        // Optional JWT: If authenticated, include seed data for seed users
-        if (principal != null) {
-            currentUserId = principal.getUser().getId();
-            isSeedUser = principal.getUser().isSeedData();
-        }
-
+        boolean isSeedUser = principal != null && principal.getUser().isSeedData();
         CacheControl cc = isSeedUser ? NO_STORE : PUBLIC_1H;
-        return ResponseEntity.ok().cacheControl(cc).body(publicModelService.getModelsWithWltpData(currentUserId, isSeedUser));
+        return ResponseEntity.ok().cacheControl(cc).body(publicModelService.getModelsWithWltpData(isSeedUser));
     }
 }

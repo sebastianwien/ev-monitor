@@ -65,9 +65,9 @@ public class PublicModelService {
      * Excludes all data from seed/test users.
      * Returns Optional.empty() if the model enum doesn't exist.
      */
-    @Cacheable("modelStats")
+    @Cacheable(value = "modelStats", key = "#brandName + '-' + #modelName + '-' + #isSeedUser")
     public Optional<PublicModelStatsResponse> getModelStats(String brandName, String modelName,
-                                                             UUID currentUserId, boolean isSeedUser) {
+                                                             boolean isSeedUser) {
         // Validate that the model actually exists in our enum
         // Match by brand displayString + model displayName (case-insensitive)
         CarBrand.CarModel carModel = null;
@@ -187,7 +187,7 @@ public class PublicModelService {
                         s.officialConsumptionKwhPer100km(),
                         s.officialConsumptionMinKwhPer100km(), s.officialConsumptionMaxKwhPer100km(),
                         s.realConsumptionKwhPer100km(),
-                        s.realConsumptionTripCount(), s.seasonalDistribution()))
+                        s.realConsumptionTripCount(), s.estimatedConsumptionCount(), s.seasonalDistribution()))
                 .toList();
 
         List<VehicleSpecificationEntity> epaEntities =
@@ -201,7 +201,7 @@ public class PublicModelService {
                                 s.officialRangeKm(),
                                 s.officialConsumptionKwhPer100km(),
                                 s.officialConsumptionMinKwhPer100km(), s.officialConsumptionMaxKwhPer100km(),
-                                s.realConsumptionKwhPer100km(), s.realConsumptionTripCount(), s.seasonalDistribution()))
+                                s.realConsumptionKwhPer100km(), s.realConsumptionTripCount(), s.estimatedConsumptionCount(), s.seasonalDistribution()))
                         .toList();
 
         List<PublicModelStatsResponse.YearEntry> yearDistribution =
@@ -255,8 +255,8 @@ public class PublicModelService {
      * If authenticated as seed user, includes models with their own seed data.
      * Returns format: "BRAND/MODEL" (e.g., "TESLA/MODEL_3")
      */
-    @Cacheable("modelsWithData")
-    public List<String> getModelsWithWltpData(UUID currentUserId, boolean isSeedUser) {
+    @Cacheable(value = "modelsWithData", key = "#isSeedUser")
+    public List<String> getModelsWithWltpData(boolean isSeedUser) {
         // Get all models with WLTP data.
         // Filter out rows whose car_model is not a valid CarBrand.CarModel enum name —
         // defensive guard against accidentally persisted display names like "Model 3"
@@ -497,6 +497,8 @@ public class PublicModelService {
     @Cacheable("efficientModels")
     public List<TopModelResponse> getMostEfficientModels(int limit, boolean isSeedUser) {
         int MIN_LOG_COUNT = 10;
+        // Self-call: bypasses Spring AOP, so topModels cache is not hit here.
+        // CacheWarmupService pre-warms topModels separately to compensate.
         return getTopModels(50, isSeedUser).stream()
                 .filter(m -> m.avgConsumptionKwhPer100km() != null)
                 .filter(m -> m.logCount() >= MIN_LOG_COUNT)
@@ -532,6 +534,7 @@ public class PublicModelService {
             BigDecimal realConsumptionMinKwhPer100km,     // null if no per-spec range
             BigDecimal realConsumptionMaxKwhPer100km,
             Integer realConsumptionTripCount,
+            Integer estimatedConsumptionCount,
             PublicModelStatsResponse.SeasonalDistribution seasonalDistribution
     ) {}
 
@@ -661,6 +664,7 @@ public class PublicModelService {
                     variantConsumption,
                     hasRealRange ? realConsMin : null, hasRealRange ? realConsMax : null,
                     variantResult.tripCount() > 0 ? variantResult.tripCount() : null,
+                    variantResult.estimatedTripCount() > 0 ? variantResult.estimatedTripCount() : null,
                     variantSeasonal);
         }).toList();
     }

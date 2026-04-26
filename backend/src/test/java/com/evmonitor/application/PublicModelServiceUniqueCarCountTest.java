@@ -50,7 +50,7 @@ class PublicModelServiceUniqueCarCountTest extends AbstractIntegrationTest {
         saveLog(car2.getId());
 
         Optional<PublicModelStatsResponse> result = publicModelService.getModelStats(
-                MODEL.getBrand().getDisplayString(), MODEL.getDisplayName(), null, false);
+                MODEL.getBrand().getDisplayString(), MODEL.getDisplayName(), false);
 
         assertTrue(result.isPresent());
         assertEquals(2, result.get().uniqueCars(),
@@ -67,7 +67,7 @@ class PublicModelServiceUniqueCarCountTest extends AbstractIntegrationTest {
         saveLog(car.getId());
 
         Optional<PublicModelStatsResponse> result = publicModelService.getModelStats(
-                MODEL.getBrand().getDisplayString(), MODEL.getDisplayName(), null, false);
+                MODEL.getBrand().getDisplayString(), MODEL.getDisplayName(), false);
 
         assertTrue(result.isPresent());
         assertEquals(1, result.get().uniqueCars(),
@@ -96,7 +96,7 @@ class PublicModelServiceUniqueCarCountTest extends AbstractIntegrationTest {
         saveLog(car2023b.getId());
 
         Optional<PublicModelStatsResponse> result = publicModelService.getModelStats(
-                MODEL.getBrand().getDisplayString(), MODEL.getDisplayName(), null, false);
+                MODEL.getBrand().getDisplayString(), MODEL.getDisplayName(), false);
 
         assertTrue(result.isPresent());
         List<PublicModelStatsResponse.YearEntry> dist = result.get().yearDistribution();

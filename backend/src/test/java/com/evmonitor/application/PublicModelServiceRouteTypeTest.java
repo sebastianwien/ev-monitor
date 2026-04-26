@@ -43,7 +43,7 @@ class PublicModelServiceRouteTypeTest extends AbstractIntegrationTest {
         saveLogWithRouteType(car.getId(), null);
 
         Optional<PublicModelStatsResponse> result = publicModelService.getModelStats(
-                MODEL.getBrand().getDisplayString(), MODEL.getDisplayName(), null, false);
+                MODEL.getBrand().getDisplayString(), MODEL.getDisplayName(), false);
 
         assertTrue(result.isPresent());
         var dist = result.get().routeTypeDistribution();
@@ -67,7 +67,7 @@ class PublicModelServiceRouteTypeTest extends AbstractIntegrationTest {
         saveLogWithRouteType(car.getId(), null);
 
         Optional<PublicModelStatsResponse> result = publicModelService.getModelStats(
-                MODEL.getBrand().getDisplayString(), MODEL.getDisplayName(), null, false);
+                MODEL.getBrand().getDisplayString(), MODEL.getDisplayName(), false);
 
         assertTrue(result.isPresent());
         var dist = result.get().routeTypeDistribution();
