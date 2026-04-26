@@ -75,6 +75,23 @@ class UserServiceTest {
     }
 
     @Test
+    void getUserStats_shouldNotThrowWhenKwhChargedIsNull() {
+        var logWithNullKwh = EvLog.builder()
+                .id(UUID.randomUUID())
+                .carId(UUID.randomUUID())
+                .kwhCharged(null)
+                .build();
+        when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
+        when(evLogRepository.findAllByUserId(userId)).thenReturn(List.of(logWithNullKwh));
+        when(userRepository.isLeaderboardVisible(userId)).thenReturn(false);
+
+        UserStatsResponse stats = userService.getUserStats(userId);
+
+        assertEquals(1, stats.totalLogs());
+        assertEquals(0.0, stats.totalKwh());
+    }
+
+    @Test
     void getUserStats_shouldThrowExceptionWhenUserNotFound() {
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
