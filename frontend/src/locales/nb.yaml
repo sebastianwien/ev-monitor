@@ -1007,43 +1007,68 @@ onboarding:
   skip_title: Hopp over
   badge: Innledning
   step1_title: Velkommen til EV Monitor!
-  step1_desc: Følg med på ladningene dine, sammenlign forbruket ditt med <strong>WLTP</strong>, og del erfaringene dine med fellesskapet.
+  step1_desc: 'Følg med på ladningene dine og ha alltid oversikt over forbruk, kostnader og din <strong>virkelige</strong> rekkevidde. Sammenlign deg og bilen din med fellesskapet.'
   feat_logs: Ladingslogger
   feat_stats: Statistikk
   feat_community: Fellesskap
   start_btn: Kom igjen! →
-  skip_hint: Du kan hoppe over veiledningen når som helst
   step2_title: Legg til din elbil
-  step2_desc: Velg din bil blant over <strong>100 modeller</strong>.
-  step2_feat_wltp: Automatiske WLTP-forbruksdata
-  step2_feat_battery: Batterikapasitet og rekkevidde
-  step2_feat_community: Gjennomsnittsverdier for lokalsamfunnet
-  step2_feat_compare: Sammenligning mellom faktisk forbruk og WLTP
+  step2_desc: Over <strong>100 modeller</strong> – fra Tesla til Renault.
+  step2_search_placeholder: Søk etter merke...
+  step2_which_model: Hvilken modell?
+  step2_which_trim: Hvilken variant?
+  step2_which_year: Årsmodell
+  step2_create_btn: Legg til bil
+  step2_create_error: Feil ved opprettelse – prøv igjen senere.
+  step2_success: er klar!
+  step2_success_hint: Du kan justere alle detaljer i innstillingene når som helst.
+  step2_skip: Hopp over →
   back_btn: ← Tilbake
   next_btn: Neste →
   step3_title: Registrer din første lading
-  step3_desc: Velg mellom to enkle metoder – begge tar mindre enn <strong>30 sekunder</strong>!
-  step3_options: Dine valgmuligheter
-  step3_photo_title: Skann bildet
-  step3_photo_desc: 100 % privat – ingen opplasting
-  step3_manual_title: Skriv inn manuelt
-  step3_manual_desc: Raskt og fleksibelt
-  step3_import_hint: "Eller importer eksisterende data fra:"
-  step4_title: Bruk direkte fra telefonen din
-  step4_desc: Legg til EV Monitor på startskjermen – uten å måtte bruke en appbutikk.
-  step4_installed: Allerede installert! Du bruker allerede EV Monitor som app.
-  step4_install_btn: Legg til på startskjermen
-  step4_ios_title: "I Safari:"
-  step4_ios_step1: Trykk på del-knappen
-  step4_ios_step2: Velg «Legg til på startskjermen»
-  step4_ios_step3: Bekreft «Legg til» – ferdig!
-  step4_android_title: "I Chrome:"
-  step4_android_step1: Trykk på menyen (tre prikker)
-  step4_android_step2: «Installer app» eller «Legg til på startskjermen»
-  step4_android_step3: Bekreft – ferdig!
-  step4_generic: "På telefonen: Åpne <strong>ev-monitor.net</strong> i Safari (iOS) eller Chrome (Android), og legg siden til på startskjermen."
-  step4_feedback_title: Din mening teller!
-  step4_feedback_desc: Finn <strong>Tilbakemeldingsknappen</strong> øverst til høyre
+  step3_desc: Hver lading gir deg innsikt i ditt faktiske forbruk og kostnader.
+  step3_photo_title: Med bilde
+  step3_photo_desc: Fotografer displayet, feltene fylles ut automatisk
+  step3_manual_title: Manuelt
+  step3_manual_desc: Fyll inn feltene selv
+  step4_section_wallbox: Wallbox-integrasjon
+  step4_title: Importer eksisterende data
+  step4_desc: Har du allerede data fra en annen tjeneste? Importer dem med noen få klikk.
+  step4_spritmonitor: Sprit-Monitor
+  step4_spritmonitor_desc: Importer tidligere ladinger
+  step4_goe: go-eCharger
+  step4_goe_desc: Direkte fra din wallbox
+  step4_tesla: Tesla / TeslaLogger
+  step4_tesla_desc: Ladehistorikk fra Tesla-appen
+  step4_ocpp: OCPP Wallbox
+  step4_ocpp_desc: Kompatibel med mange wallbox-modeller
+  step4_tronity: Tronity
+  step4_tronity_desc: Kjøretøydata og ladehistorikk
+  step4_csv: CSV / JSON
+  step4_csv_desc: Egne data fra andre apper
+  step4_api: Offentlig API
+  step4_api_desc: For utviklere og automatisering
+  step5_title: "... eller fange alt automatisk?"
+  step5_desc: "Med <strong>AutoSync</strong> registrerer du alle fremtidige ladinger fullautomatisk."
+  step5_brands: Over 40 støttede produsenter – inkludert Tesla, VW, Skoda, Audi, BMW, Hyundai, BYD, MG og mange flere.
+  step5_trial: "7 dager gratis – deretter {priceMonthly}/mnd"
+  step5_cta: Prøv AutoSync →
+  step5_skip: Hopp over
+  step6_title: Bruk direkte fra telefonen din
+  step6_desc: Legg til EV Monitor på startskjermen – uten å måtte bruke en appbutikk.
+  step6_installed: Allerede installert! Du bruker allerede EV Monitor som app.
+  step6_install_btn: Legg til på startskjermen
+  step6_ios_title: "I Safari:"
+  step6_ios_step1: Trykk på del-knappen
+  step6_ios_step2: Velg «Legg til på startskjermen»
+  step6_ios_step3: Bekreft «Legg til» – ferdig!
+  step6_android_title: "I Chrome:"
+  step6_android_step1: Trykk på menyen (tre prikker)
+  step6_android_step2: «Installer app» eller «Legg til på startskjermen»
+  step6_android_step3: Bekreft – ferdig!
+  step6_generic: "På telefonen: Åpne <strong>ev-monitor.net</strong> i Safari (iOS) eller Chrome (Android), og legg siden til på startskjermen."
+  step6_feedback_title: Din mening teller!
+  step6_feedback_desc: Finn <strong>Tilbakemeldingsknappen</strong> øverst til høyre
   complete_btn: Kom igjen!
 notfound:
   subtitle: Siden ser ut til å ha lukket seg av seg selv...
