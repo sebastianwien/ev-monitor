@@ -212,6 +212,51 @@ class EvLogServiceCommunityConsumptionTest extends AbstractIntegrationTest {
         assertEquals(0, result.winterKm());
     }
 
+    @Test
+    void communityAvg_threeCarsUnderThreshold_minMaxNull() {
+        // Each car has only 1 trip (< MIN_TRIPS_FOR_CAR_RANGE=5) — min/max must be null
+        Car carA = carWithBattery(new BigDecimal("75.0"));
+        saveLog(carA.getId(), 10000, new BigDecimal("45.0"), 80, LocalDateTime.now().minusDays(2));
+        saveLog(carA.getId(), 10300, new BigDecimal("52.5"), 85, LocalDateTime.now().minusDays(1));
+
+        Car carB = carWithBattery(new BigDecimal("75.0"));
+        saveLog(carB.getId(), 15000, new BigDecimal("45.0"), 80, LocalDateTime.now().minusDays(2));
+        saveLog(carB.getId(), 15150, new BigDecimal("30.0"), 90, LocalDateTime.now().minusDays(1));
+
+        Car carC = carWithBattery(new BigDecimal("75.0"));
+        saveLog(carC.getId(), 30000, new BigDecimal("45.0"), 70, LocalDateTime.now().minusDays(2));
+        saveLog(carC.getId(), 30300, new BigDecimal("45.0"), 80, LocalDateTime.now().minusDays(1));
+
+        CommunityConsumptionResult result = evLogService.calculateCommunityAvgConsumption(List.of(carA, carB, carC), false);
+
+        assertNull(result.minValue());
+        assertNull(result.maxValue());
+    }
+
+    @Test
+    void communityAvg_threeCarsWithSufficientTrips_returnsPerCarMinMax() {
+        // Each car has 5 trips (kWh-fallback path for simplicity):
+        // Car A: 5 × 100km, 18 kWh → 18.0 kWh/100km
+        // Car B: 5 × 100km, 15 kWh → 15.0 kWh/100km
+        // Car C: 5 × 100km, 22 kWh → 22.0 kWh/100km
+        Car carA = carWithBattery(new BigDecimal("75.0"));
+        for (int i = 0; i < 6; i++)
+            saveLogNoSoc(carA.getId(), i * 100, new BigDecimal("18.0"), LocalDateTime.now().minusDays(6 - i));
+
+        Car carB = carWithBattery(new BigDecimal("75.0"));
+        for (int i = 0; i < 6; i++)
+            saveLogNoSoc(carB.getId(), i * 100, new BigDecimal("15.0"), LocalDateTime.now().minusDays(6 - i));
+
+        Car carC = carWithBattery(new BigDecimal("75.0"));
+        for (int i = 0; i < 6; i++)
+            saveLogNoSoc(carC.getId(), i * 100, new BigDecimal("22.0"), LocalDateTime.now().minusDays(6 - i));
+
+        CommunityConsumptionResult result = evLogService.calculateCommunityAvgConsumption(List.of(carA, carB, carC), false);
+
+        assertEquals(new BigDecimal("15.00"), result.minValue());
+        assertEquals(new BigDecimal("22.00"), result.maxValue());
+    }
+
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------

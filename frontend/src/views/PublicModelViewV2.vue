@@ -45,7 +45,7 @@
           <div class="h-1 w-16 bg-green-500 rounded-full mb-4 mx-auto"></div>
 
           <!-- Variant Switcher -->
-          <div v-if="activeVariants.length > 1" class="flex flex-col items-center gap-2 mb-5">
+          <div v-if="activeVariants.length > 1" :style="{ top: stickyTop }" class="sticky z-20 flex flex-col items-center gap-2 mb-5 py-3 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm border-b border-gray-200/80 dark:border-gray-700/80">
             <span class="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">{{ t('model.variant_title') }}</span>
             <div class="flex gap-2 flex-wrap justify-center">
               <button v-for="(v, i) in activeVariants" :key="v.displayLabel ?? v.batteryCapacityKwh"
@@ -69,21 +69,47 @@
             <div class="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-2">
               {{ t('model.hero_consumption_label') }}
             </div>
-            <div class="flex items-baseline gap-2">
-              <span class="text-5xl font-bold tabular-nums text-gray-900 dark:text-gray-100">
-                {{ formatConsumption(displayConsumption, { showUnit: false }) }}
-              </span>
-              <span class="text-xl text-gray-400 dark:text-gray-500">{{ consumptionUnitLabel() }}</span>
-            </div>
-            <div v-if="heroOfficialConsumption" class="mt-3 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-              <span>{{ ratingLabel === 'EPA'
-                ? t('model.epa_badge', { consumption: formatConsumption(heroOfficialConsumption, { showUnit: false }) })
-                : t('model.wltp_badge', { consumption: formatConsumption(heroOfficialConsumption, { showUnit: false }) }) }}</span>
-              <span :class="deltaLabelClass(displayConsumption, heroOfficialConsumption)"
-                    class="px-2 py-0.5 rounded-full text-xs font-semibold">
-                {{ consumptionDeltaLabel(displayConsumption, heroOfficialConsumption) }}
-              </span>
-            </div>
+            <!-- Range: min – max -->
+            <template v-if="communityConsumptionRange">
+              <div class="flex items-baseline gap-1.5">
+                <span class="text-4xl font-bold tabular-nums text-gray-900 dark:text-gray-100">
+                  {{ formatConsumption(communityConsumptionRange.min, { showUnit: false }) }}
+                </span>
+                <span class="text-2xl text-gray-400 dark:text-gray-500">–</span>
+                <span class="text-4xl font-bold tabular-nums text-gray-900 dark:text-gray-100">
+                  {{ formatConsumption(communityConsumptionRange.max, { showUnit: false }) }}
+                </span>
+                <span class="text-xl text-gray-400 dark:text-gray-500">{{ consumptionUnitLabel() }}</span>
+              </div>
+              <div v-if="heroOfficialConsumption" class="mt-3 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                <span>{{ ratingLabel === 'EPA'
+                  ? t('model.epa_badge', { consumption: formatConsumption(heroOfficialConsumption, { showUnit: false }) })
+                  : t('model.wltp_badge', { consumption: formatConsumption(heroOfficialConsumption, { showUnit: false }) }) }}</span>
+                <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 dark:bg-gray-700">
+                  <span :class="simpleDeltaClass(communityConsumptionRange.min, heroOfficialConsumption)">{{ consumptionDeltaLabel(communityConsumptionRange.min, heroOfficialConsumption) }}</span>
+                  <span class="text-gray-400 dark:text-gray-500"> – </span>
+                  <span :class="simpleDeltaClass(communityConsumptionRange.max, heroOfficialConsumption)">{{ consumptionDeltaLabel(communityConsumptionRange.max, heroOfficialConsumption) }}</span>
+                </span>
+              </div>
+            </template>
+            <!-- Fallback: single average -->
+            <template v-else>
+              <div class="flex items-baseline gap-2">
+                <span class="text-5xl font-bold tabular-nums text-gray-900 dark:text-gray-100">
+                  {{ formatConsumption(displayConsumption, { showUnit: false }) }}
+                </span>
+                <span class="text-xl text-gray-400 dark:text-gray-500">{{ consumptionUnitLabel() }}</span>
+              </div>
+              <div v-if="heroOfficialConsumption" class="mt-3 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                <span>{{ ratingLabel === 'EPA'
+                  ? t('model.epa_badge', { consumption: formatConsumption(heroOfficialConsumption, { showUnit: false }) })
+                  : t('model.wltp_badge', { consumption: formatConsumption(heroOfficialConsumption, { showUnit: false }) }) }}</span>
+                <span :class="deltaLabelClass(displayConsumption, heroOfficialConsumption)"
+                      class="px-2 py-0.5 rounded-full text-xs font-semibold">
+                  {{ consumptionDeltaLabel(displayConsumption, heroOfficialConsumption) }}
+                </span>
+              </div>
+            </template>
           </div>
 
           <!-- No data notice -->
@@ -133,11 +159,11 @@
               <!-- Desktop: Ladevorgänge -->
               <div class="hidden md:block">
                 <div class="text-xl font-bold text-gray-900 dark:text-gray-100">
-                  {{ stats.logCount > 0 ? stats.logCount.toLocaleString() : '-' }}
+                  {{ (selectedVariant?.realConsumptionTripCount ?? stats.logCount) > 0 ? (selectedVariant?.realConsumptionTripCount ?? stats.logCount).toLocaleString() : '-' }}
                 </div>
                 <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('model.metrics_sessions') }}</div>
-                <div v-if="stats.estimatedConsumptionCount > 0" class="text-xs text-gray-400 dark:text-gray-500 mt-1 italic">
-                  {{ stats.estimatedConsumptionCount }} {{ t('model.metrics_estimated') }}
+                <div v-if="(selectedVariant?.estimatedConsumptionCount ?? stats.estimatedConsumptionCount) > 0" class="text-xs text-gray-400 dark:text-gray-500 mt-1 italic">
+                  {{ selectedVariant?.estimatedConsumptionCount ?? stats.estimatedConsumptionCount }} {{ t('model.metrics_estimated') }}
                 </div>
               </div>
             </div>
@@ -193,11 +219,11 @@
             <!-- Ladevorgänge: Mobile als eigene Zeile -->
             <div class="md:hidden mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-center">
               <div class="text-xl font-bold text-gray-900 dark:text-gray-100">
-                {{ stats.logCount > 0 ? stats.logCount.toLocaleString() : '-' }}
+                {{ (selectedVariant?.realConsumptionTripCount ?? stats.logCount) > 0 ? (selectedVariant?.realConsumptionTripCount ?? stats.logCount).toLocaleString() : '-' }}
               </div>
               <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('model.metrics_sessions') }}</div>
-              <div v-if="stats.estimatedConsumptionCount > 0" class="text-xs text-gray-400 dark:text-gray-500 mt-1 italic">
-                {{ stats.estimatedConsumptionCount }} {{ t('model.metrics_estimated') }}
+              <div v-if="(selectedVariant?.estimatedConsumptionCount ?? stats.estimatedConsumptionCount) > 0" class="text-xs text-gray-400 dark:text-gray-500 mt-1 italic">
+                {{ selectedVariant?.estimatedConsumptionCount ?? stats.estimatedConsumptionCount }} {{ t('model.metrics_estimated') }}
               </div>
             </div>
           </div><!-- end stats wrapper -->
@@ -725,6 +751,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useHead } from '@unhead/vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/auth'
+import { useTickerState } from '../composables/useTickerState'
 import { useCountryStore } from '../stores/country'
 import { getModelStats, type PublicModelStats, type SeasonalDistribution } from '../api/publicModelService'
 import {
@@ -749,7 +776,10 @@ interface ActiveVariant {
   officialConsumptionMinKwhPer100km: number | null
   officialConsumptionMaxKwhPer100km: number | null
   realConsumptionKwhPer100km: number | null
+  realConsumptionMinKwhPer100km: number | null
+  realConsumptionMaxKwhPer100km: number | null
   realConsumptionTripCount: number | null
+  estimatedConsumptionCount: number | null
   seasonalDistribution: SeasonalDistribution | null
 }
 
@@ -770,6 +800,12 @@ const selectedVariantIndex = ref(0)
 const pricePerKwh = ref(countryStore.country === 'US' ? 0.13 : 0.35)
 
 const isAuthenticated = computed(() => authStore.isAuthenticated())
+const { tickerHasItems, tickerCollapsed } = useTickerState()
+const stickyTop = computed(() => {
+  if (!authStore.isAuthenticated()) return '0px'
+  if (tickerHasItems.value && !tickerCollapsed.value) return '90px'
+  return '64px'
+})
 
 const YEAR_CHART_COLORS = [
   '#22c55e', '#16a34a', '#15803d', '#166534',
@@ -835,7 +871,10 @@ const activeVariants = computed<ActiveVariant[]>(() => {
       officialConsumptionMinKwhPer100km: v.epaConsumptionMinKwhPer100km,
       officialConsumptionMaxKwhPer100km: v.epaConsumptionMaxKwhPer100km,
       realConsumptionKwhPer100km: v.realConsumptionKwhPer100km,
+      realConsumptionMinKwhPer100km: v.realConsumptionMinKwhPer100km,
+      realConsumptionMaxKwhPer100km: v.realConsumptionMaxKwhPer100km,
       realConsumptionTripCount: v.realConsumptionTripCount,
+      estimatedConsumptionCount: v.estimatedConsumptionCount,
       seasonalDistribution: v.seasonalDistribution,
     }))
   }
@@ -849,7 +888,10 @@ const activeVariants = computed<ActiveVariant[]>(() => {
     officialConsumptionMinKwhPer100km: v.wltpConsumptionMinKwhPer100km,
     officialConsumptionMaxKwhPer100km: v.wltpConsumptionMaxKwhPer100km,
     realConsumptionKwhPer100km: v.realConsumptionKwhPer100km,
+    realConsumptionMinKwhPer100km: v.realConsumptionMinKwhPer100km,
+    realConsumptionMaxKwhPer100km: v.realConsumptionMaxKwhPer100km,
     realConsumptionTripCount: v.realConsumptionTripCount,
+    estimatedConsumptionCount: v.estimatedConsumptionCount,
     seasonalDistribution: v.seasonalDistribution,
   }))
 })
@@ -1120,12 +1162,27 @@ onMounted(async () => {
   }
 })
 
+function simpleDeltaClass(real: number, wltp: number): string {
+  const pct = (real - wltp) / wltp * 100
+  return pct <= 0
+    ? 'text-green-600 dark:text-green-400'
+    : 'text-red-600 dark:text-red-400'
+}
+
 function deltaLabelClass(real: number, wltp: number): string {
   const pct = ((real - wltp) / wltp) * 100
   if (pct <= 0) return 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
   if (pct <= 15) return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400'
   return 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'
 }
+
+const communityConsumptionRange = computed(() => {
+  const min = selectedVariant.value?.realConsumptionMinKwhPer100km
+  const max = selectedVariant.value?.realConsumptionMaxKwhPer100km
+  if (!min || !max) return null
+  return { min, max }
+})
+
 
 function reload() { window.location.reload() }
 

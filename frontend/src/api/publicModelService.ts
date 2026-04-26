@@ -10,7 +10,10 @@ export interface WltpVariant {
     wltpConsumptionMinKwhPer100km: number | null
     wltpConsumptionMaxKwhPer100km: number | null
     realConsumptionKwhPer100km: number | null
+    realConsumptionMinKwhPer100km: number | null
+    realConsumptionMaxKwhPer100km: number | null
     realConsumptionTripCount: number | null
+    estimatedConsumptionCount: number | null
     seasonalDistribution: SeasonalDistribution | null
 }
 
@@ -23,7 +26,10 @@ export interface EpaVariant {
     epaConsumptionMinKwhPer100km: number | null
     epaConsumptionMaxKwhPer100km: number | null
     realConsumptionKwhPer100km: number | null
+    realConsumptionMinKwhPer100km: number | null
+    realConsumptionMaxKwhPer100km: number | null
     realConsumptionTripCount: number | null
+    estimatedConsumptionCount: number | null
     seasonalDistribution: SeasonalDistribution | null
 }
 

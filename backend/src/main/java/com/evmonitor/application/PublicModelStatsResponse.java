@@ -43,7 +43,10 @@ public record PublicModelStatsResponse(
             BigDecimal wltpConsumptionMinKwhPer100km, // null if single-spec
             BigDecimal wltpConsumptionMaxKwhPer100km,
             BigDecimal realConsumptionKwhPer100km,
+            BigDecimal realConsumptionMinKwhPer100km,
+            BigDecimal realConsumptionMaxKwhPer100km,
             Integer realConsumptionTripCount,
+            Integer estimatedConsumptionCount,
             SeasonalDistribution seasonalDistribution
     ) {}
 
@@ -56,7 +59,10 @@ public record PublicModelStatsResponse(
             BigDecimal epaConsumptionMinKwhPer100km,
             BigDecimal epaConsumptionMaxKwhPer100km,
             BigDecimal realConsumptionKwhPer100km,
+            BigDecimal realConsumptionMinKwhPer100km,
+            BigDecimal realConsumptionMaxKwhPer100km,
             Integer realConsumptionTripCount,
+            Integer estimatedConsumptionCount,
             SeasonalDistribution seasonalDistribution
     ) {}
 

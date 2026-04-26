@@ -28,6 +28,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class EvLogStatisticsService {
 
+    private static final int MIN_TRIPS_FOR_CAR_RANGE = 5;
+
     private final EvLogRepository evLogRepository;
     private final CarRepository carRepository;
     private final UserRepository userRepository;
@@ -308,6 +310,7 @@ public class EvLogStatisticsService {
         int totalDistance = 0;
         int tripCount = 0;
         int estimatedTripCount = 0;
+        List<BigDecimal> perCarAverages = new ArrayList<>();
 
         for (Car car : cars) {
             List<EvLog> allLogs = logsByCarId.getOrDefault(car.getId(), List.of());
@@ -317,15 +320,25 @@ public class EvLogStatisticsService {
             if (statsLogs.isEmpty()) continue;
 
             List<PlausibleEntry> entries = getPlausibleEntriesForCar(car, allLogs, statsLogs);
+            BigDecimal carWeighted = BigDecimal.ZERO;
+            int carDistance = 0;
             for (PlausibleEntry e : entries) {
-                totalWeighted = totalWeighted.add(e.consumptionKwhPer100km().multiply(BigDecimal.valueOf(e.distanceKm())));
-                totalDistance += e.distanceKm();
+                BigDecimal weighted = e.consumptionKwhPer100km().multiply(BigDecimal.valueOf(e.distanceKm()));
+                carWeighted = carWeighted.add(weighted);
+                carDistance += e.distanceKm();
                 if (e.estimated()) estimatedTripCount++;
             }
             tripCount += entries.size();
+            totalWeighted = totalWeighted.add(carWeighted);
+            totalDistance += carDistance;
+            BigDecimal carAvg = ConsumptionMath.weightedAverage(carWeighted, carDistance);
+            if (carAvg != null && entries.size() >= MIN_TRIPS_FOR_CAR_RANGE) perCarAverages.add(carAvg);
         }
 
-        return new CommunityConsumptionResult(ConsumptionMath.weightedAverage(totalWeighted, totalDistance), tripCount, estimatedTripCount);
+        BigDecimal minValue = perCarAverages.size() >= 2 ? perCarAverages.stream().min(BigDecimal::compareTo).orElse(null) : null;
+        BigDecimal maxValue = perCarAverages.size() >= 2 ? perCarAverages.stream().max(BigDecimal::compareTo).orElse(null) : null;
+
+        return new CommunityConsumptionResult(ConsumptionMath.weightedAverage(totalWeighted, totalDistance), minValue, maxValue, tripCount, estimatedTripCount);
     }
 
     /**

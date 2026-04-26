@@ -187,6 +187,7 @@ public class PublicModelService {
                         s.officialConsumptionKwhPer100km(),
                         s.officialConsumptionMinKwhPer100km(), s.officialConsumptionMaxKwhPer100km(),
                         s.realConsumptionKwhPer100km(),
+                        s.realConsumptionMinKwhPer100km(), s.realConsumptionMaxKwhPer100km(),
                         s.realConsumptionTripCount(), s.estimatedConsumptionCount(), s.seasonalDistribution()))
                 .toList();
 
@@ -201,7 +202,9 @@ public class PublicModelService {
                                 s.officialRangeKm(),
                                 s.officialConsumptionKwhPer100km(),
                                 s.officialConsumptionMinKwhPer100km(), s.officialConsumptionMaxKwhPer100km(),
-                                s.realConsumptionKwhPer100km(), s.realConsumptionTripCount(), s.estimatedConsumptionCount(), s.seasonalDistribution()))
+                                s.realConsumptionKwhPer100km(),
+                                s.realConsumptionMinKwhPer100km(), s.realConsumptionMaxKwhPer100km(),
+                                s.realConsumptionTripCount(), s.estimatedConsumptionCount(), s.seasonalDistribution()))
                         .toList();
 
         List<PublicModelStatsResponse.YearEntry> yearDistribution =
@@ -620,24 +623,9 @@ public class PublicModelService {
             BigDecimal variantConsumption = variantResult.value() != null
                     ? variantResult.value().setScale(1, RoundingMode.HALF_UP) : null;
 
-            // Per-spec real consumption for range display
-            List<BigDecimal> perSpecConsumptions = group.specs().stream()
-                    .map(spec -> {
-                        List<Car> carsForSpec = carsForVariant.stream()
-                                .filter(c -> c.getVehicleSpecificationId() != null
-                                        ? spec.getId().equals(c.getVehicleSpecificationId())
-                                        : c.getBatteryCapacityKwh() != null && c.getBatteryCapacityKwh().compareTo(spec.getBatteryCapacityKwh()) == 0)
-                                .toList();
-                        if (carsForSpec.isEmpty()) return null;
-                        CommunityConsumptionResult r = evLogStatisticsService.calculateCommunityAvgConsumption(carsForSpec, isSeedUser);
-                        return (r.tripCount() >= MIN_TRIPS_FOR_REAL_RANGE && r.value() != null)
-                                ? r.value().setScale(1, RoundingMode.HALF_UP) : null;
-                    })
-                    .filter(Objects::nonNull).distinct().toList();
-            BigDecimal realConsMin = perSpecConsumptions.size() >= 2
-                    ? perSpecConsumptions.stream().min(BigDecimal::compareTo).orElse(null) : null;
-            BigDecimal realConsMax = perSpecConsumptions.size() >= 2
-                    ? perSpecConsumptions.stream().max(BigDecimal::compareTo).orElse(null) : null;
+            // Per-car community min/max: distance-weighted avg per car, then min/max across all variant cars
+            BigDecimal realConsMin = variantResult.minValue() != null ? variantResult.minValue().setScale(1, RoundingMode.HALF_UP) : null;
+            BigDecimal realConsMax = variantResult.maxValue() != null ? variantResult.maxValue().setScale(1, RoundingMode.HALF_UP) : null;
             boolean hasRealRange = realConsMin != null && realConsMax != null && realConsMin.compareTo(realConsMax) != 0;
 
             PublicModelStatsResponse.SeasonalDistribution variantSeasonal = null;
