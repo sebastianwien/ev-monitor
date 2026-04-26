@@ -27,12 +27,12 @@ html, body {
 }
 
 .cost-badge-gold {
-  background: linear-gradient(90deg, #78350f, #b45309, #92400e, #b45309, #78350f);
+  background: linear-gradient(90deg, #fcd34d, #fde68a, #fbbf24, #fde68a, #fcd34d);
   background-size: 200% auto;
   animation: gold-shimmer 8s linear infinite;
-  border-color: #92400e;
-  color: #fef3c7;
-  box-shadow: 0 4px 0 0 #92400e;
+  border-color: #f59e0b;
+  color: #78350f;
+  box-shadow: 0 4px 0 0 #d97706;
 }
 
 .dark .cost-badge-gold {

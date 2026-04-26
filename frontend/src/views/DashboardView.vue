@@ -371,7 +371,7 @@ function onTripFormLeave(el: Element, done: () => void) {
     <RewardSystemUpdateBanner class="mb-4" />
     <Transition name="fade" mode="out-in">
       <div v-if="!loading || !isInitialLoad">
-        <div class="bg-white dark:bg-gray-800 md:rounded-xl md:shadow-lg p-4 md:p-6">
+        <div class="bg-gray-50 dark:bg-gray-800 md:rounded-xl md:shadow-lg p-4 md:p-6">
           <div class="flex flex-wrap items-center gap-3 mb-6">
             <ChartBarIcon class="h-8 w-8 text-gray-700 dark:text-gray-300" />
             <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-200">Dashboard</h1>
@@ -833,11 +833,17 @@ function onTripFormLeave(el: Element, done: () => void) {
               <template v-for="entry in mergedLogFeed" :key="entry.id">
 
               <!-- Phantom drain indicator: energy lost while parked before this entry -->
-              <div v-if="entry._phantomDrain && isAdmin"
-                class="mx-[10%] my-0.5 flex items-center gap-1.5 px-3 py-1 rounded text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20">
-                <BoltIcon class="w-3.5 h-3.5 flex-shrink-0" />
-                <span>{{ t('dashboard.phantom_drain_label', { kwh: entry._phantomDrain.kwh.toFixed(2) }) }}</span>
-                <span v-if="!entry._phantomDrain.highConfidence" class="text-amber-500 dark:text-amber-500 opacity-70">({{ t('dashboard.phantom_drain_estimated') }})</span>
+              <div v-if="entry._phantomDrain && isAdmin" class="flex items-center gap-2 px-4 mt-0.5 mb-2">
+                <div class="flex-1 h-px bg-gray-200 dark:bg-gray-600" />
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-amber-300 dark:border-amber-600 bg-amber-50 dark:bg-amber-900/20 text-xs text-amber-600 dark:text-amber-400 whitespace-nowrap">
+                  <BoltIcon class="w-3 h-3" />
+                  {{ entry._phantomDrain.kwh.toFixed(2) }} kWh
+                  <template v-if="selectedCar?.effectiveBatteryCapacityKwh">
+                    ({{ (entry._phantomDrain.kwh / selectedCar.effectiveBatteryCapacityKwh * 100).toFixed(1) }}%)
+                  </template>
+                  Standverlust{{ !entry._phantomDrain.highConfidence ? ' ~' : '' }}
+                </span>
+                <div class="flex-1 h-px bg-gray-200 dark:bg-gray-600" />
               </div>
 
               <!-- Inline add-trip form - appears above the triggering entry -->
@@ -907,7 +913,7 @@ function onTripFormLeave(el: Element, done: () => void) {
                           'text-emerald-600 dark:text-emerald-400']" />
                         <span v-if="entry.distanceKm != null" class="font-semibold text-emerald-700 dark:text-emerald-400 whitespace-nowrap flex-shrink-0">{{ formatDistance(entry.distanceKm) }}</span>
                         <span v-if="tripConsumption(entry)"
-                          class="inline-flex items-center text-[13px] text-gray-500 dark:text-gray-300 whitespace-nowrap flex-shrink-0">
+                          class="inline-flex items-center text-[13px] text-gray-600 dark:text-gray-300 whitespace-nowrap flex-shrink-0">
                           {{ tripConsumption(entry)!.estimated ? '~' : '' }}{{ formatConsumption(tripConsumption(entry)!.kwhPer100km) }}
                         </span>
                       </div>
@@ -921,36 +927,36 @@ function onTripFormLeave(el: Element, done: () => void) {
                         <template v-if="entry.dataSource !== 'USER_CREATED'">
                           <button @click="toggleRating(entry.id, 'positive', entry.feedback)"
                             class="p-2 md:p-1 rounded transition"
-                            :class="effectiveRating(entry.id, entry.feedback) === 'positive' ? 'text-emerald-500' : 'text-gray-300 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30'"
+                            :class="effectiveRating(entry.id, entry.feedback) === 'positive' ? 'text-emerald-500' : 'text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30'"
                             :title="t('dashboard.trip_feedback_positive')">
                             <HandThumbUpIcon class="w-3.5 h-3.5" />
                           </button>
                           <button @click="toggleRating(entry.id, 'negative', entry.feedback)"
                             class="p-2 md:p-1 rounded transition"
-                            :class="effectiveRating(entry.id, entry.feedback) === 'negative' ? 'text-red-500' : 'text-gray-300 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'"
+                            :class="effectiveRating(entry.id, entry.feedback) === 'negative' ? 'text-red-500' : 'text-gray-400 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'"
                             :title="t('dashboard.trip_feedback_negative')">
                             <HandThumbDownIcon class="w-3.5 h-3.5" />
                           </button>
                         </template>
                         <button @click="startAddTrip(entry.id, entry.tripStartedAt)"
-                          class="p-2 md:p-1 rounded text-gray-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition"
+                          class="p-2 md:p-1 rounded text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition"
                           :title="t('dashboard.trip_add')">
                           <PlusIcon class="w-3.5 h-3.5" />
                         </button>
                         <button @click="startEditTrip(entry)"
-                          class="p-2 md:p-1 rounded text-gray-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition"
+                          class="p-2 md:p-1 rounded text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition"
                           :title="t('dashboard.trip_edit')">
                           <PencilSquareIcon class="w-3.5 h-3.5" />
                         </button>
                         <button @click="handleDeleteTrip(entry.id)"
-                          class="p-2 md:p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition">
+                          class="p-2 md:p-1 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition">
                           <TrashIcon class="w-3.5 h-3.5" />
                         </button>
                       </div>
                       </div><!-- end right: temp + buttons -->
                     </div>
                     <!-- Zeile 2: Zeitraum + SoC-Änderung -->
-                    <div class="flex items-center gap-2 text-[13px] text-gray-400 dark:text-gray-500">
+                    <div class="flex items-center gap-2 text-[13px] text-gray-500 dark:text-gray-400">
                       <span class="inline-flex items-center gap-1 whitespace-nowrap">
                         <ClockIcon class="w-3 h-3" />{{ formatTripTimeRange(entry.tripStartedAt, entry.tripEndedAt) }}
                       </span>
@@ -1062,13 +1068,13 @@ function onTripFormLeave(el: Element, done: () => void) {
                       <button @click="tripForm.feedback = 'positive'"
                         :class="['p-1 rounded transition', tripForm.feedback?.startsWith('positive')
                           ? 'text-emerald-500 bg-emerald-50 dark:bg-emerald-900/30'
-                          : 'text-gray-300 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30']">
+                          : 'text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30']">
                         <HandThumbUpIcon class="w-4 h-4" />
                       </button>
                       <button @click="tripForm.feedback = 'negative'"
                         :class="['p-1 rounded transition', tripForm.feedback?.startsWith('negative')
                           ? 'text-red-500 bg-red-50 dark:bg-red-900/20'
-                          : 'text-gray-300 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20']">
+                          : 'text-gray-400 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20']">
                         <HandThumbDownIcon class="w-4 h-4" />
                       </button>
                       <input v-if="tripForm.feedback?.startsWith('negative')"
@@ -1127,7 +1133,7 @@ function onTripFormLeave(el: Element, done: () => void) {
                 :class="['p-3 border rounded-lg space-y-2',
                          entry._isLadegruppe
                            ? 'bg-white dark:bg-gray-700 border-blue-200 dark:border-blue-800 cursor-pointer shadow-[0_5px_0_0_#bfdbfe] dark:shadow-[0_5px_0_0_#1e3a5f] hover:shadow-[0_2px_0_0_#bfdbfe] dark:hover:shadow-[0_2px_0_0_#1e3a5f] hover:translate-y-[3px] active:shadow-none active:translate-y-[5px] transition-all duration-75'
-                           : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600']"
+                           : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 shadow-sm']"
                 @click="entry._isLadegruppe ? toggleLadegruppe(entry.id) : null">
 
                 <!-- LADEGRUPPE HEADER -->
@@ -1221,12 +1227,12 @@ function onTripFormLeave(el: Element, done: () => void) {
                       <PencilSquareIcon class="w-3.5 h-3.5" />
                     </button>
                     <button @click="deleteLog(entry.id)"
-                      :class="['p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition',
+                      :class="['p-1 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition',
                                entry.temperatureCelsius != null ? 'hidden md:block' : '']">
                       <TrashIcon class="w-3.5 h-3.5" />
                     </button>
                     <button v-if="canAccessTrips" @click.stop="startAddTrip(entry.id)"
-                      class="p-1 rounded text-gray-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition"
+                      class="p-1 rounded text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition"
                       :title="t('dashboard.trip_add')">
                       <TruckIcon class="w-3.5 h-3.5" />
                     </button>
@@ -1248,7 +1254,7 @@ function onTripFormLeave(el: Element, done: () => void) {
                       <PencilSquareIcon class="w-3.5 h-3.5" />
                     </button>
                     <button @click="deleteLog(entry.id)"
-                      class="p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition">
+                      class="p-1 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition">
                       <TrashIcon class="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -1329,8 +1335,7 @@ function onTripFormLeave(el: Element, done: () => void) {
                 <Transition name="slide-down">
                   <div v-if="expandedGroups.has(entry.id)" class="mt-1 -space-y-px">
                     <div v-for="(topUp, idx) in entry._topUps" :key="topUp.id"
-                      :class="['ml-4 flex flex-col gap-1.5 px-2.5 py-1.5 bg-gray-50 dark:bg-gray-700 border border-blue-200 dark:border-[#1e3a5f]',
-                               idx === 0 ? 'rounded-t-lg' : '',
+                      :class="['ml-4 mr-4 flex flex-col gap-1.5 px-2.5 py-1.5 bg-gray-50 dark:bg-gray-700 border border-blue-200 dark:border-[#1e3a5f]',
                                idx === entry._topUps.length - 1 ? 'rounded-b-lg' : '']">
                       <!-- Einzeiler: alles in einer Zeile, bricht auf Mobile sauber um -->
                       <div class="flex items-center gap-x-2">
@@ -1352,7 +1357,7 @@ function onTripFormLeave(el: Element, done: () => void) {
                           <button @click="editingLog = topUp" class="p-1 rounded text-gray-300 hover:text-blue-500 hover:bg-blue-50 transition" :title="t('dashboard.edit_title')">
                             <PencilSquareIcon class="w-3.5 h-3.5" />
                           </button>
-                          <button @click="deleteLog(topUp.id)" class="p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition">
+                          <button @click="deleteLog(topUp.id)" class="p-1 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition">
                             <TrashIcon class="w-3.5 h-3.5" />
                           </button>
                         </div>
