@@ -37,6 +37,21 @@ test.describe('Auth Flow', () => {
     await expect(page).toHaveURL(/\/login/);
   });
 
+  test('Unauthentifizierter Zugriff auf /upgrade → Redirect zu /login mit redirect-Parameter', async ({ page }) => {
+    await page.goto('/upgrade');
+    await expect(page).toHaveURL(/\/login\?redirect=(%2F|\/)?upgrade/);
+  });
+
+  test('Login mit redirect-Parameter → Redirect zu Zielseite statt /dashboard', async ({ page }) => {
+    await page.goto('/login?redirect=/upgrade');
+
+    await page.locator('input[type="text"]').fill(TEST_USER.email);
+    await page.locator('input[type="password"]').fill(TEST_USER.password);
+    await page.locator('button[type="submit"]').click();
+
+    await expect(page).toHaveURL(/\/upgrade/, { timeout: 10_000 });
+  });
+
   test('Register-Link auf Login-Seite funktioniert', async ({ page }) => {
     await page.goto('/login');
     await page.locator('a[href*="/registrieren"], a[href*="/register"]').first().click();

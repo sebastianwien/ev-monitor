@@ -451,7 +451,7 @@ router.beforeEach(async (to, _from) => {
 
     if (to.meta.requiresAuth) {
         if (!authStore.isAuthenticated()) {
-            return '/login';
+            return `/login?redirect=${encodeURIComponent(to.fullPath)}`;
         }
         if (authStore.isExpired()) {
             authStore.logout(false);

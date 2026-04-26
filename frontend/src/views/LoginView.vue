@@ -29,7 +29,8 @@ const handleLogin = async () => {
     errorCode.value = '';
     await authStore.login({ email: email.value, password: password.value });
     analytics.trackLogin();
-    router.push('/dashboard');
+    const redirect = route.query.redirect as string | undefined;
+    router.push(redirect?.startsWith('/') ? redirect : '/dashboard');
   } catch (err: any) {
     const code = err.response?.data?.code;
     errorCode.value = code || '';
