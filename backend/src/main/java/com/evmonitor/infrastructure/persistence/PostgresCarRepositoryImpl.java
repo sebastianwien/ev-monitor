@@ -55,6 +55,11 @@ public class PostgresCarRepositoryImpl implements CarRepository {
         return toDomainList(jpaCarRepository.findCarsNeedingSohDetection());
     }
 
+    @Override
+    public List<Car> findAllByVehicleSpecificationId(UUID vehicleSpecificationId) {
+        return toDomainList(jpaCarRepository.findAllByVehicleSpecificationId(vehicleSpecificationId));
+    }
+
     private CarEntity toEntity(Car domain) {
         CarEntity entity = new CarEntity();
         entity.setId(domain.getId());

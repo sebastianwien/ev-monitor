@@ -221,6 +221,12 @@ public class EvLogStatisticsService {
         // Seasonal consumption — uses ALL logs (not time-filtered) for best signal
         SeasonalConsumptionResult seasonal = calculateSeasonalConsumption(List.of(car), isSeedUser);
 
+        // Peer benchmark — only when car has a vehicle spec linked
+        EvLogStatisticsResponse.PeerBenchmark peerBenchmark = null;
+        if (car.getVehicleSpecificationId() != null) {
+            peerBenchmark = buildPeerBenchmark(car, user, allLogsForCar, isSeedUser);
+        }
+
         return new EvLogStatisticsResponse(
                 totalKwhCharged,
                 totalCostEur,
@@ -234,7 +240,8 @@ public class EvLogStatisticsService {
                 estimatedCount,
                 seasonal.summerConsumptionKwhPer100km(),
                 seasonal.winterConsumptionKwhPer100km(),
-                chargesOverTime
+                chargesOverTime,
+                peerBenchmark
         );
     }
 
@@ -242,7 +249,111 @@ public class EvLogStatisticsService {
         return new EvLogStatisticsResponse(
                 BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
                 BigDecimal.ZERO, BigDecimal.ZERO, 0, 0,
-                null, null, 0, null, null, List.of()
+                null, null, 0, null, null, List.of(), null
+        );
+    }
+
+    private EvLogStatisticsResponse.PeerBenchmark buildPeerBenchmark(
+            Car currentCar, User currentUser, List<EvLog> allLogsForCurrentCar, boolean isSeedUser) {
+
+        List<Car> allCarsWithSpec = carRepository.findAllByVehicleSpecificationId(currentCar.getVehicleSpecificationId());
+        List<Car> peerCars = allCarsWithSpec.stream()
+                .filter(c -> !c.getUserId().equals(currentCar.getUserId()))
+                .toList();
+
+        if (peerCars.isEmpty()) return null;
+
+        List<UUID> peerUserIds = peerCars.stream().map(Car::getUserId).distinct().toList();
+        List<User> peerUsers = userRepository.findAllByIds(peerUserIds);
+        Map<UUID, User> peerUserById = peerUsers.stream().collect(Collectors.toMap(User::getId, u -> u));
+
+        List<Car> nonSeedPeerCars = peerCars.stream()
+                .filter(c -> {
+                    User u = peerUserById.get(c.getUserId());
+                    return u != null && !u.isSeedData();
+                })
+                .toList();
+
+        if (nonSeedPeerCars.isEmpty()) return null;
+
+        // Peer consumption
+        CommunityConsumptionResult peerConsumption = calculateCommunityAvgConsumption(nonSeedPeerCars, false);
+
+        // User lifetime consumption (all logs, no time filter)
+        List<EvLog> userStatsLogs = allLogsForCurrentCar.stream()
+                .filter(l -> isSeedUser || l.isIncludeInStatistics())
+                .toList();
+        BigDecimal userLifetimeConsumption = null;
+        List<PlausibleEntry> userEntries = getPlausibleEntriesForCar(currentCar, allLogsForCurrentCar, userStatsLogs);
+        if (!userEntries.isEmpty()) {
+            BigDecimal weighted = BigDecimal.ZERO;
+            int dist = 0;
+            for (PlausibleEntry e : userEntries) {
+                weighted = weighted.add(e.consumptionKwhPer100km().multiply(BigDecimal.valueOf(e.distanceKm())));
+                dist += e.distanceKm();
+            }
+            userLifetimeConsumption = ConsumptionMath.weightedAverage(weighted, dist);
+        }
+
+        // User lifetime cost/kWh
+        BigDecimal userLifetimeCostPerKwh = null;
+        BigDecimal totalUserCost = BigDecimal.ZERO;
+        BigDecimal totalUserKwh = BigDecimal.ZERO;
+        for (EvLog log : userStatsLogs) {
+            if (log.getCostEur() == null || log.getKwhCharged() == null) continue;
+            if (log.getKwhCharged().compareTo(BigDecimal.ZERO) <= 0) continue;
+            totalUserCost = totalUserCost.add(log.getCostEur());
+            totalUserKwh = totalUserKwh.add(log.getKwhCharged());
+        }
+        if (totalUserKwh.compareTo(BigDecimal.ZERO) > 0) {
+            userLifetimeCostPerKwh = totalUserCost.divide(totalUserKwh, 4, RoundingMode.HALF_UP);
+        }
+
+        // Peer cost — same-country peers only (min 3 unique users)
+        String currentUserCountry = currentUser.getCountry();
+        Set<UUID> sameCountryUserIds = peerUsers.stream()
+                .filter(u -> currentUserCountry != null && currentUserCountry.equals(u.getCountry()) && !u.isSeedData())
+                .map(User::getId)
+                .collect(Collectors.toSet());
+        int sameCountryPeerUsers = (int) nonSeedPeerCars.stream()
+                .filter(c -> sameCountryUserIds.contains(c.getUserId()))
+                .map(Car::getUserId).distinct().count();
+
+        BigDecimal peerAvgCostPerKwh = null;
+        if (sameCountryPeerUsers >= 3) {
+            Set<UUID> sameCountryCarIds = nonSeedPeerCars.stream()
+                    .filter(c -> sameCountryUserIds.contains(c.getUserId()))
+                    .map(Car::getId)
+                    .collect(Collectors.toSet());
+            List<UUID> peerCarIds = nonSeedPeerCars.stream().map(Car::getId).toList();
+            BigDecimal totalPeerCost = BigDecimal.ZERO;
+            BigDecimal totalPeerKwh = BigDecimal.ZERO;
+            for (EvLog log : evLogRepository.findAllByCarIds(peerCarIds)) {
+                if (!sameCountryCarIds.contains(log.getCarId())) continue;
+                if (!log.isIncludeInStatistics()) continue;
+                if (log.getCostEur() == null || log.getKwhCharged() == null) continue;
+                if (log.getKwhCharged().compareTo(BigDecimal.ZERO) <= 0) continue;
+                totalPeerCost = totalPeerCost.add(log.getCostEur());
+                totalPeerKwh = totalPeerKwh.add(log.getKwhCharged());
+            }
+            if (totalPeerKwh.compareTo(BigDecimal.ZERO) > 0) {
+                peerAvgCostPerKwh = totalPeerCost.divide(totalPeerKwh, 4, RoundingMode.HALF_UP);
+            }
+        }
+
+        long uniquePeerUsers = nonSeedPeerCars.stream().map(Car::getUserId).distinct().count();
+        boolean sufficientData = uniquePeerUsers >= 3 && peerConsumption.tripCount() >= 10;
+
+        return new EvLogStatisticsResponse.PeerBenchmark(
+                userLifetimeConsumption,
+                peerConsumption.value(),
+                userLifetimeCostPerKwh,
+                peerAvgCostPerKwh,
+                (int) uniquePeerUsers,
+                peerConsumption.tripCount(),
+                sameCountryPeerUsers,
+                currentUserCountry,
+                sufficientData
         );
     }
 
@@ -335,8 +446,9 @@ public class EvLogStatisticsService {
             if (carAvg != null && entries.size() >= MIN_TRIPS_FOR_CAR_RANGE) perCarAverages.add(carAvg);
         }
 
-        BigDecimal minValue = perCarAverages.size() >= 2 ? perCarAverages.stream().min(BigDecimal::compareTo).orElse(null) : null;
-        BigDecimal maxValue = perCarAverages.size() >= 2 ? perCarAverages.stream().max(BigDecimal::compareTo).orElse(null) : null;
+        Collections.sort(perCarAverages);
+        BigDecimal minValue = perCarAverages.size() >= 2 ? interpolatedPercentile(perCarAverages, 0.10) : null;
+        BigDecimal maxValue = perCarAverages.size() >= 2 ? interpolatedPercentile(perCarAverages, 0.90) : null;
 
         return new CommunityConsumptionResult(ConsumptionMath.weightedAverage(totalWeighted, totalDistance), minValue, maxValue, tripCount, estimatedTripCount);
     }
@@ -467,6 +579,21 @@ public class EvLogStatisticsService {
      * Returns a price suggestion for the log form based on the most recent log at the same geohash.
      * Includes the cost per kWh and the charging provider (tariff) that was used there.
      */
+    // Linear interpolation: avoids single outliers dominating the displayed consumption range
+    private static BigDecimal interpolatedPercentile(List<BigDecimal> sorted, double p) {
+        int n = sorted.size();
+        if (n == 1) return sorted.get(0).setScale(2, RoundingMode.HALF_UP);
+        double pos = p * (n - 1);
+        int lower = (int) Math.floor(pos);
+        int upper = (int) Math.ceil(pos);
+        if (lower == upper) return sorted.get(lower).setScale(2, RoundingMode.HALF_UP);
+        double fraction = pos - lower;
+        BigDecimal lv = sorted.get(lower);
+        BigDecimal uv = sorted.get(upper);
+        return lv.add(uv.subtract(lv).multiply(BigDecimal.valueOf(fraction)))
+                 .setScale(2, RoundingMode.HALF_UP);
+    }
+
     public Optional<PriceSuggestion> getPriceSuggestion(UUID userId, double latitude, double longitude, boolean isPublicCharging) {
         int precision = isPublicCharging ? 7 : 6;
         String geohash = GeoHash.withCharacterPrecision(latitude, longitude, precision).toBase32();

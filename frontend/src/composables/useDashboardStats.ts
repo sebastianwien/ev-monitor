@@ -16,6 +16,18 @@ export interface ChargeDataPoint {
   consumptionKwhPer100km: number | null
 }
 
+export interface PeerBenchmark {
+  userLifetimeConsumptionKwhPer100km: number | null
+  peerAvgConsumptionKwhPer100km: number | null
+  userLifetimeCostPerKwh: number | null
+  peerAvgCostPerKwh: number | null
+  uniquePeerUsers: number
+  peerTripCount: number
+  sameCountryPeerUsers: number
+  userCountry: string | null
+  sufficientData: boolean
+}
+
 export interface StatisticsData {
   totalKwhCharged: number
   totalCostEur: number
@@ -30,6 +42,7 @@ export interface StatisticsData {
   summerConsumptionKwhPer100km: number | null
   winterConsumptionKwhPer100km: number | null
   chargesOverTime: ChargeDataPoint[]
+  peerBenchmark: PeerBenchmark | null
 }
 
 export interface CarInfo {

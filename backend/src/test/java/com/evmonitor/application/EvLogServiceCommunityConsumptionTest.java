@@ -234,11 +234,10 @@ class EvLogServiceCommunityConsumptionTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void communityAvg_threeCarsWithSufficientTrips_returnsPerCarMinMax() {
-        // Each car has 5 trips (kWh-fallback path for simplicity):
-        // Car A: 5 × 100km, 18 kWh → 18.0 kWh/100km
-        // Car B: 5 × 100km, 15 kWh → 15.0 kWh/100km
-        // Car C: 5 × 100km, 22 kWh → 22.0 kWh/100km
+    void communityAvg_threeCarsWithSufficientTrips_returnsInterpolatedP10P90() {
+        // Per-car averages: 15, 18, 22 kWh/100km (6 logs each = 5 trips)
+        // P10: 0.1*(3-1)=0.2 → 15 + 0.2*(18-15) = 15.60
+        // P90: 0.9*(3-1)=1.8 → 18 + 0.8*(22-18) = 21.20
         Car carA = carWithBattery(new BigDecimal("75.0"));
         for (int i = 0; i < 6; i++)
             saveLogNoSoc(carA.getId(), i * 100, new BigDecimal("18.0"), LocalDateTime.now().minusDays(6 - i));
@@ -253,8 +252,31 @@ class EvLogServiceCommunityConsumptionTest extends AbstractIntegrationTest {
 
         CommunityConsumptionResult result = evLogService.calculateCommunityAvgConsumption(List.of(carA, carB, carC), false);
 
-        assertEquals(new BigDecimal("15.00"), result.minValue());
-        assertEquals(new BigDecimal("22.00"), result.maxValue());
+        assertEquals(new BigDecimal("15.60"), result.minValue(), "P10 should be interpolated, not absolute min");
+        assertEquals(new BigDecimal("21.20"), result.maxValue(), "P90 should be interpolated, not absolute max");
+    }
+
+    @Test
+    void communityAvg_withOutlierCars_percentileExcludesExtremes() {
+        // 10 cars: one low outlier (14), eight moderate (15-19), one high outlier (25)
+        // min/max would return 14/25 — P10/P90 should return 14.90/19.60
+        // P10: 0.1*9=0.9 → 14 + 0.9*(15-14) = 14.90
+        // P90: 0.9*9=8.1 → 19 + 0.1*(25-19) = 19.60
+        int[] consumptions = {14, 15, 16, 16, 17, 17, 18, 18, 19, 25};
+        List<Car> cars = new java.util.ArrayList<>();
+        for (int c : consumptions) {
+            Car car = carWithBattery(new BigDecimal("75.0"));
+            for (int i = 0; i < 6; i++)
+                saveLogNoSoc(car.getId(), i * 100, new BigDecimal(c), LocalDateTime.now().minusDays(6 - i));
+            cars.add(car);
+        }
+
+        CommunityConsumptionResult result = evLogService.calculateCommunityAvgConsumption(cars, false);
+
+        assertEquals(new BigDecimal("14.90"), result.minValue(), "P10 should not be the absolute outlier minimum");
+        assertEquals(new BigDecimal("19.60"), result.maxValue(), "P90 should not be the absolute outlier maximum");
+        assertNotEquals(new BigDecimal("14.00"), result.minValue());
+        assertNotEquals(new BigDecimal("25.00"), result.maxValue());
     }
 
     // -------------------------------------------------------------------------

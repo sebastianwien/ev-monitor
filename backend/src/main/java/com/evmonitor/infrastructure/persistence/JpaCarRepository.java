@@ -16,6 +16,8 @@ public interface JpaCarRepository extends JpaRepository<CarEntity, UUID> {
 
     long countByUserId(UUID userId);
 
+    List<CarEntity> findAllByVehicleSpecificationId(UUID vehicleSpecificationId);
+
     @Query(value = """
             SELECT c.* FROM car c
             WHERE EXISTS (

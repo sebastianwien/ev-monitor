@@ -157,6 +157,11 @@ public class PostgresUserRepositoryImpl implements UserRepository {
         jpaUserRepository.markTrialUsed(userId);
     }
 
+    @Override
+    public List<User> findAllByIds(List<UUID> ids) {
+        return jpaUserRepository.findAllById(ids).stream().map(this::toDomain).toList();
+    }
+
     private UserEntity toEntity(User domain) {
         UserEntity entity = new UserEntity();
         entity.setId(domain.getId());
