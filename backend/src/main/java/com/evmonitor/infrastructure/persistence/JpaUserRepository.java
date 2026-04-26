@@ -31,23 +31,6 @@ public interface JpaUserRepository extends JpaRepository<UserEntity, UUID> {
     @Query("UPDATE UserEntity u SET u.emailNotificationsEnabled = false WHERE u.id = :userId")
     void disableEmailNotifications(@Param("userId") UUID userId);
 
-    @Query(value = """
-            SELECT DISTINCT u.* FROM app_user u
-            WHERE u.is_seed_data = false
-              AND u.email_notifications_enabled = true
-              AND u.email_verified = true
-              AND u.is_premium = false
-              AND (
-                (u.last_seen IS NULL AND u.created_at < NOW() - INTERVAL '21 days')
-                OR (u.last_seen < NOW() - INTERVAL '21 days')
-              )
-              AND u.id NOT IN (
-                SELECT DISTINCT c.user_id FROM car c
-                WHERE c.model IN ('XPENG_G6', 'XPENG_P7', 'XPENG_P7_PLUS', 'XPENG_G9')
-              )
-            """, nativeQuery = true)
-    List<UserEntity> findUsersForAutoSyncAnnouncement();
-
     @Query("SELECT u FROM UserEntity u WHERE u.emailVerified = true AND u.emailNotificationsEnabled = true AND u.seedData = false AND cast(u.createdAt as LocalDate) = :day")
     List<UserEntity> findRegisteredOnDay(@Param("day") LocalDate day);
 

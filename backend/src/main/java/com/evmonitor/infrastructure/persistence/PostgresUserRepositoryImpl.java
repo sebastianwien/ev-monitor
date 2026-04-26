@@ -77,12 +77,6 @@ public class PostgresUserRepositoryImpl implements UserRepository {
     }
 
     @Override
-    public List<User> findUsersForAutoSyncAnnouncement() {
-        return jpaUserRepository.findUsersForAutoSyncAnnouncement()
-                .stream().map(this::toDomain).toList();
-    }
-
-    @Override
     @Transactional
     public void delete(User user) {
         jpaUserRepository.deleteById(user.getId());

@@ -27,8 +27,6 @@ public interface UserRepository {
 
     List<User> findUsersWithLastLogOnDay(LocalDate day);
 
-    List<User> findUsersForAutoSyncAnnouncement();
-
     void delete(User user);
 
     Optional<User> findByReferralCode(String referralCode);
