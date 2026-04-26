@@ -53,12 +53,18 @@ public class TripService {
                 .locationStartGeohash(req.locationStartGeohash())
                 .locationEndGeohash(req.locationEndGeohash())
                 .outsideTempCelsius(req.outsideTempCelsius())
-                .nominalFullPackKwh(req.nominalFullPackKwh())
+                .energyRemainingStartKwh(req.energyRemainingStartKwh())
+                .energyRemainingEndKwh(req.energyRemainingEndKwh())
                 .estimatedConsumedKwh(req.estimatedConsumedKwh())
                 .status(req.status() != null ? req.status() : "COMPLETED")
                 .rawPayload(req.rawPayload())
                 .userCreated(false)
                 .build();
+
+        if (trip.getEstimatedConsumedKwh() == null) {
+            trip.setEstimatedConsumedKwh(
+                    calculateEstimatedConsumedKwh(req.socStart(), req.socEnd(), req.carId()));
+        }
 
         EvTrip saved = tripRepository.save(trip);
         log.info("Trip saved: id={} externalId={} car={} distance={} km",
@@ -163,9 +169,6 @@ public class TripService {
             estimatedConsumedKwh = sumNullable(
                     earlier.getEstimatedConsumedKwh(), later.getEstimatedConsumedKwh(), 2);
         }
-        BigDecimal nominalFullPackKwh = surviving.getNominalFullPackKwh() != null
-                ? surviving.getNominalFullPackKwh() : other.getNominalFullPackKwh();
-
         surviving.setTripStartedAt(earlier.getTripStartedAt());
         surviving.setTripEndedAt(later.getTripEndedAt());
         surviving.setSocStart(mergedSocStart);
@@ -178,7 +181,6 @@ public class TripService {
         surviving.setOutsideTempCelsius(averageNullable(earlier.getOutsideTempCelsius(), later.getOutsideTempCelsius()));
         surviving.setEstimatedConsumedKwh(estimatedConsumedKwh);
         surviving.setRouteType(mergeRouteType(earlier.getRouteType(), later.getRouteType()));
-        surviving.setNominalFullPackKwh(nominalFullPackKwh);
         surviving.setFeedback(null);
         surviving.setRawPayload(buildMergedPayload(other.getId(), survivingTripId,
                 earlier.getRawPayload(), later.getRawPayload()));
@@ -191,12 +193,10 @@ public class TripService {
         return EvTripResponse.fromDomain(tripRepository.save(surviving));
     }
 
-    private static final BigDecimal MIN_SOC_DELTA_PERCENT = new BigDecimal("2.0");
-
     private BigDecimal calculateEstimatedConsumedKwh(BigDecimal socStart, BigDecimal socEnd, UUID carId) {
         if (socStart == null || socEnd == null) return null;
         BigDecimal delta = socStart.subtract(socEnd);
-        if (delta.compareTo(MIN_SOC_DELTA_PERCENT) < 0) return null;
+        if (delta.compareTo(BigDecimal.ZERO) <= 0) return null;
         Car car = carRepository.findById(carId).orElse(null);
         if (car == null) return null;
         BigDecimal capacity = car.getEffectiveBatteryCapacityKwh();

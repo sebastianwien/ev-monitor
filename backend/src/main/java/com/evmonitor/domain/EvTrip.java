@@ -64,8 +64,11 @@ public class EvTrip {
     @Column(name = "outside_temp_celsius", precision = 4, scale = 1)
     private BigDecimal outsideTempCelsius;
 
-    @Column(name = "nominal_full_pack_kwh", precision = 6, scale = 2)
-    private BigDecimal nominalFullPackKwh;
+    @Column(name = "energy_remaining_start_kwh", precision = 7, scale = 3)
+    private BigDecimal energyRemainingStartKwh;
+
+    @Column(name = "energy_remaining_end_kwh", precision = 7, scale = 3)
+    private BigDecimal energyRemainingEndKwh;
 
     @Column(name = "estimated_consumed_kwh", precision = 6, scale = 2)
     private BigDecimal estimatedConsumedKwh;

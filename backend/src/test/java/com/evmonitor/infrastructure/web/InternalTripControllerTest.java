@@ -141,7 +141,6 @@ class InternalTripControllerTest extends AbstractIntegrationTest {
         map.put("locationStartGeohash", "u2ewmk");
         map.put("locationEndGeohash", "u2ewpz");
         map.put("outsideTempCelsius", "14.5");
-        map.put("nominalFullPackKwh", "82.0");
         map.put("estimatedConsumedKwh", "9.02");
         map.put("status", "COMPLETED");
         return map;

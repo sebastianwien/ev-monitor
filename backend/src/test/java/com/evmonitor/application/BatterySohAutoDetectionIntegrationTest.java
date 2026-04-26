@@ -185,4 +185,76 @@ class BatterySohAutoDetectionIntegrationTest extends AbstractIntegrationTest {
         List<BatterySohResponse> history = batterySohService.getHistory(car.getId(), user.getId());
         assertTrue(history.isEmpty(), "No SoH entry should be created from AT_CHARGER logs");
     }
+
+    // --- BMS-derived SoH ---
+
+    @Test
+    void persistBmsDerived_savesSohEntry_whenPlausible() {
+        User user = createAndSaveUser("soh-bms-ok-" + System.currentTimeMillis() + "@test.com");
+        Car car = carRepository.save(Car.createNew(
+                user.getId(), CarBrand.CarModel.MODEL_3, 2019,
+                "BM-SO-K01", "LR", new BigDecimal("75.00"), new BigDecimal("280.0"), null));
+
+        // 69.375 / 75.0 * 100 = 92.50% SoH
+        batterySohService.persistBmsDerived(car.getId(), new BigDecimal("69.375"));
+
+        List<BatterySohResponse> history = batterySohService.getHistory(car.getId(), user.getId());
+        assertEquals(1, history.size());
+        assertEquals(0, new BigDecimal("92.50").compareTo(history.get(0).sohPercent()));
+    }
+
+    @Test
+    void persistBmsDerived_rejects_whenOutOfRange() {
+        User user = createAndSaveUser("soh-bms-oor-" + System.currentTimeMillis() + "@test.com");
+        Car car = carRepository.save(Car.createNew(
+                user.getId(), CarBrand.CarModel.MODEL_3, 2019,
+                "BM-OO-R01", "LR", new BigDecimal("75.00"), new BigDecimal("280.0"), null));
+
+        batterySohService.persistBmsDerived(car.getId(), new BigDecimal("40.00")); // 53.3% → below 60%
+
+        assertTrue(batterySohService.getHistory(car.getId(), user.getId()).isEmpty());
+    }
+
+    @Test
+    void persistBmsDerived_rejects_whenDeviatesMoreThan5PercentFromLastSoh() {
+        User user = createAndSaveUser("soh-bms-dev-" + System.currentTimeMillis() + "@test.com");
+        Car car = carRepository.save(Car.createNew(
+                user.getId(), CarBrand.CarModel.MODEL_3, 2019,
+                "BM-DE-V01", "LR", new BigDecimal("75.00"), new BigDecimal("280.0"), null));
+
+        batterySohService.addMeasurement(car.getId(), user.getId(),
+                new BatterySohRequest(new BigDecimal("92.00"), LocalDate.now().minusDays(1)));
+
+        // 98.5% SoH → 6.5% deviation from 92% → rejected
+        batterySohService.persistBmsDerived(car.getId(), new BigDecimal("73.875"));
+
+        assertEquals(1, batterySohService.getHistory(car.getId(), user.getId()).size(),
+                "No new entry - deviation too large");
+    }
+
+    @Test
+    void persistBmsDerived_skips_whenAlreadyStoredThisMonth() {
+        User user = createAndSaveUser("soh-bms-mth-" + System.currentTimeMillis() + "@test.com");
+        Car car = carRepository.save(Car.createNew(
+                user.getId(), CarBrand.CarModel.MODEL_3, 2019,
+                "BM-MT-H01", "LR", new BigDecimal("75.00"), new BigDecimal("280.0"), null));
+
+        batterySohService.persistBmsDerived(car.getId(), new BigDecimal("69.375")); // first - saved
+        batterySohService.persistBmsDerived(car.getId(), new BigDecimal("69.000")); // same month - skipped
+
+        assertEquals(1, batterySohService.getHistory(car.getId(), user.getId()).size());
+    }
+
+    @Test
+    void persistBmsDerived_accepts_whenNoExistingSoh() {
+        User user = createAndSaveUser("soh-bms-new-" + System.currentTimeMillis() + "@test.com");
+        Car car = carRepository.save(Car.createNew(
+                user.getId(), CarBrand.CarModel.MODEL_3, 2019,
+                "BM-NE-W01", "LR", new BigDecimal("75.00"), new BigDecimal("280.0"), null));
+
+        // No existing SoH - no deviation check, accept directly
+        batterySohService.persistBmsDerived(car.getId(), new BigDecimal("69.375")); // 92.5%
+
+        assertEquals(1, batterySohService.getHistory(car.getId(), user.getId()).size());
+    }
 }

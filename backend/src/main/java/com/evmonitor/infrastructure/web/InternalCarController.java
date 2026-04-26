@@ -1,5 +1,6 @@
 package com.evmonitor.infrastructure.web;
 
+import com.evmonitor.application.BatterySohService;
 import com.evmonitor.domain.BatterySohRepository;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarRepository;
@@ -23,6 +24,7 @@ public class InternalCarController {
 
     private final CarRepository carRepository;
     private final BatterySohRepository sohRepository;
+    private final BatterySohService batterySohService;
 
     /**
      * Returns the SoH-adjusted effective battery capacity.
@@ -37,5 +39,15 @@ public class InternalCarController {
         BigDecimal effective = car.getEffectiveBatteryCapacityKwhAt(
                 LocalDate.now(), sohRepository.findByCarId(carId));
         return ResponseEntity.ok(Map.of("batteryCapacityKwh", effective));
+    }
+
+    @PostMapping("/{carId}/soh/bms-derived")
+    public ResponseEntity<Void> persistBmsDerivedSoh(
+            @PathVariable UUID carId,
+            @RequestBody Map<String, BigDecimal> body) {
+        BigDecimal derivedCapacityKwh = body.get("derivedCapacityKwh");
+        if (derivedCapacityKwh == null) return ResponseEntity.badRequest().build();
+        batterySohService.persistBmsDerived(carId, derivedCapacityKwh);
+        return ResponseEntity.ok().build();
     }
 }

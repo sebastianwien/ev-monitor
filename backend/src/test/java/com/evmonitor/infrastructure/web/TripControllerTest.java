@@ -371,7 +371,7 @@ class TripControllerTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void mergeTrip_socDeltaTooSmall_estimatedConsumedKwhIsNull() {
+    void mergeTrip_smallSocDelta_estimatedConsumedKwhCalculatedFromSpec() {
         // Simulate Tesla (66.94%) + Smartcar (66%) SoC source noise - delta < 2%
         EvTrip previous = saveTripFull(user1.getId(), car1.getId(),
                 OffsetDateTime.now().minusHours(3), OffsetDateTime.now().minusHours(2),
@@ -406,8 +406,8 @@ class TripControllerTest extends AbstractIntegrationTest {
                 new ParameterizedTypeReference<>() {});
 
         assertEquals(HttpStatus.OK, res2.getStatusCode());
-        // merged soc_start=66.94, soc_end=66.0 → delta=0.94 < 2.0 → falls back to null (no individual kWh to sum)
-        assertNull(res2.getBody().get("estimatedConsumedKwh"));
+        // merged soc_start=66.94, soc_end=66.0 → delta=0.94 > 0 → spec-based calculation runs (no 2% guard)
+        assertNotNull(res2.getBody().get("estimatedConsumedKwh"));
     }
 
     @Test

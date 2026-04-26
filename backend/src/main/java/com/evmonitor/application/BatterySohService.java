@@ -121,12 +121,62 @@ public class BatterySohService {
         autoDetectAndPersist(event.car());
     }
 
+    private static final BigDecimal BMS_SOH_MIN        = new BigDecimal("60.0");
+    private static final BigDecimal BMS_SOH_MAX        = new BigDecimal("105.0");
+    private static final BigDecimal BMS_MAX_DEVIATION  = new BigDecimal("5.0");
+
+    /**
+     * Persists a SoH entry derived from Tesla's BMS-reported {@code EnergyRemaining} field.
+     *
+     * <p>Formula: {@code sohPercent = derivedCapacityKwh / nominalCapacityKwh * 100}
+     *
+     * <p>Guards (silent no-op if violated):
+     * <ul>
+     *   <li>Car must have a nominal spec capacity configured.</li>
+     *   <li>Derived SoH must be in [60%, 105%] - catches implausible BMS readings.</li>
+     *   <li>At most one entry per calendar month - SoH degrades ~2-3%/year, more frequent
+     *       readings add noise without useful information.</li>
+     *   <li>Must not deviate more than 5% from the last known SoH entry - prevents single
+     *       outlier measurements (e.g. interrupted charge, uncalibrated BMS) from corrupting
+     *       the history.</li>
+     * </ul>
+     *
+     * <p>Called via {@code POST /api/internal/cars/{carId}/soh/bms-derived} from the
+     * connectors service after a Tesla charging session completes with SoC ≥ 70%.
+     */
+    @Transactional
+    public void persistBmsDerived(UUID carId, BigDecimal derivedCapacityKwh) {
+        Car car = carRepository.findById(carId).orElse(null);
+        if (car == null || car.getBatteryCapacityKwh() == null) return;
+
+        BigDecimal sohPercent = derivedCapacityKwh
+                .multiply(new BigDecimal("100"))
+                .divide(car.getBatteryCapacityKwh(), 2, java.math.RoundingMode.HALF_UP);
+
+        if (sohPercent.compareTo(BMS_SOH_MIN) < 0 || sohPercent.compareTo(BMS_SOH_MAX) > 0) return;
+
+        List<BatterySohEntry> history = sohRepository.findByCarId(carId);
+        LocalDate today = LocalDate.now();
+        boolean alreadyThisMonth = history.stream().anyMatch(e ->
+                e.getRecordedAt().getYear() == today.getYear()
+                && e.getRecordedAt().getMonthValue() == today.getMonthValue());
+        if (alreadyThisMonth) return;
+
+        if (!history.isEmpty()) {
+            BigDecimal lastSoh = history.get(0).getSohPercent();
+            if (sohPercent.subtract(lastSoh).abs().compareTo(BMS_MAX_DEVIATION) > 0) return;
+        }
+
+        sohRepository.save(new BatterySohEntry(UUID.randomUUID(), carId, sohPercent,
+                LocalDate.now(), LocalDateTime.now()));
+        syncDegradationToCarField(carId);
+    }
+
     /**
      * Derives SoH from AT_VEHICLE logs via median capacity estimation and persists the result.
      * Skips if: no qualifying logs, entry already exists for today, or change is <= 2% vs. last entry.
-     * Called directly in tests; triggered via SohAutoDetectEvent in production.
+     * Triggered via SohAutoDetectEvent after each EV log save.
      */
-    @Transactional
     public void autoDetectAndPersist(Car car) {
         if (car.getBatteryCapacityKwh() == null) return;
 

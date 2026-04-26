@@ -19,7 +19,8 @@ public record InternalTripRequest(
         String locationStartGeohash,
         String locationEndGeohash,
         BigDecimal outsideTempCelsius,
-        BigDecimal nominalFullPackKwh,
+        BigDecimal energyRemainingStartKwh,
+        BigDecimal energyRemainingEndKwh,
         BigDecimal estimatedConsumedKwh,
         String status,
         String rawPayload
