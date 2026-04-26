@@ -21,8 +21,9 @@ public class CacheWarmupService {
         warm();
     }
 
-    // Re-warm slightly before the 4h Caffeine TTL so the cache never goes cold
-    @Scheduled(fixedDelay = 3 * 60 * 60 * 1000 + 30 * 60 * 1000) // 3.5h
+    // Re-warm slightly before the 4h Caffeine TTL so the cache never goes cold.
+    // initialDelay = 3.5h so it doesn't double-fire with the startup warmup.
+    @Scheduled(initialDelay = 3 * 60 * 60 * 1000 + 30 * 60 * 1000, fixedDelay = 3 * 60 * 60 * 1000 + 30 * 60 * 1000) // 3.5h
     public void warmOnSchedule() {
         warm();
     }
