@@ -1,6 +1,7 @@
 import { ref, computed, nextTick, watch, type Component, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import api from '../api/axios'
+import { useAuthStore } from '../stores/auth'
 import {
   BoltIcon,
   ArrowDownTrayIcon,
@@ -35,6 +36,7 @@ function toOffsetDateTime(localDt: string): string {
 
 export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, logsSection: Ref<HTMLElement | null>) {
   const { t, locale } = useI18n()
+  const authStore = useAuthStore()
 
   const logs = ref<any[]>([])
   const trips = ref<any[]>([])
@@ -225,6 +227,7 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
 
   const fetchTrips = async () => {
     if (!selectedCarId.value) return
+    if (!authStore.isPremium && !authStore.isBetaTester) return
     try {
       const res = await api.get(`/trips?carId=${selectedCarId.value}`)
       trips.value = res.data
@@ -237,14 +240,18 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
     if (!selectedCarId.value) return
     logsLoading.value = true
     try {
-      const [logsRes, tripsRes] = await Promise.all([
+      const canAccessTrips = authStore.isPremium || authStore.isBetaTester
+      const requests: Promise<any>[] = [
         api.get(`/logs?carId=${selectedCarId.value}&limit=${PAGE_SIZE}&page=${page}`),
-        api.get(`/trips?carId=${selectedCarId.value}`),
-      ])
+        ...(canAccessTrips ? [api.get(`/trips?carId=${selectedCarId.value}`)] : []),
+      ]
+      const [logsRes, tripsRes] = await Promise.all(requests)
       logs.value = logsRes.data
-      trips.value = tripsRes.data
       logsPage.value = page
       hasMoreLogs.value = logsRes.data.length === PAGE_SIZE
+      if (canAccessTrips && tripsRes) {
+        trips.value = tripsRes.data
+      }
     } catch {
       // Network error - keep existing state
     } finally {
