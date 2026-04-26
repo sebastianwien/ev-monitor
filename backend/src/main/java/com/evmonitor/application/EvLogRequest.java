@@ -3,11 +3,9 @@ package com.evmonitor.application;
 import com.evmonitor.domain.ChargingType;
 import com.evmonitor.domain.RouteType;
 import com.evmonitor.domain.TireType;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
@@ -25,8 +23,8 @@ public record EvLogRequest(
                 @DecimalMin("-180.0") @DecimalMax("180.0") Double longitude,
                 Integer odometerKm, // Optional for imports, required in frontend for manual entry
                 BigDecimal maxChargingPowerKw, // Optional: max charging power in kW
-                @Min(0) @Max(100) Integer socAfterChargePercent, // Optional for imports, required in frontend for manual entry
-                @Min(0) @Max(100) Integer socBeforeChargePercent, // Optional: SoC at session start
+                @DecimalMin("0.0") @DecimalMax("100.0") BigDecimal socAfterChargePercent, // Optional for imports, required in frontend for manual entry
+                @DecimalMin("0.0") @DecimalMax("100.0") BigDecimal socBeforeChargePercent, // Optional: SoC at session start
                 @Positive @DecimalMax("200.0") BigDecimal kwhAtVehicle, // Optional: net kWh entering the battery (from vehicle display)
                 LocalDateTime loggedAt, // Optional: when the charge happened
                 Boolean ocrUsed,        // Optional: whether OCR was used to fill in data (+2 bonus coins)
@@ -48,7 +46,7 @@ public record EvLogRequest(
     // Backward-compatible constructor for existing callers (tests)
     public EvLogRequest(UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
             Integer chargeDurationMinutes, Double latitude, Double longitude,
-            Integer odometerKm, BigDecimal maxChargingPowerKw, Integer socAfterChargePercent,
+            Integer odometerKm, BigDecimal maxChargingPowerKw, BigDecimal socAfterChargePercent,
             LocalDateTime loggedAt, Boolean ocrUsed, ChargingType chargingType,
             RouteType routeType, TireType tireType) {
         this(carId, kwhCharged, costEur, chargeDurationMinutes, latitude, longitude,

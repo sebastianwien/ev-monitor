@@ -68,7 +68,7 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
                 longitude,
                 50000, // odometerKm (required)
                 null, // maxChargingPowerKw
-                80, // socAfterChargePercent (required)
+                new java.math.BigDecimal("80"), // socAfterChargePercent (required)
                 LocalDateTime.now(),
                 null,  // ocrUsed
                 null,  // chargingType
@@ -109,7 +109,7 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
                 60,
                 null, null, // No GPS
                 50000, null, // odometerKm (required), no max power
-                80, // socAfterChargePercent (required)
+                new java.math.BigDecimal("80"), // socAfterChargePercent (required)
                 LocalDateTime.now(),
                 null,  // ocrUsed
                 null,  // chargingType
@@ -145,7 +145,7 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
                 60,
                 null, null, // No GPS
                 50000, null, // odometerKm (required), no max power
-                80, // socAfterChargePercent (required)
+                new java.math.BigDecimal("80"), // socAfterChargePercent (required)
                 LocalDateTime.now(),
                 null,  // ocrUsed
                 null,  // chargingType
@@ -375,7 +375,7 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
     void updateLog_updatesEditableFields() {
         EvLog existing = evLogRepository.save(EvLog.createNew(
                 carId, new BigDecimal("30.0"), new BigDecimal("9.00"),
-                60, null, 12000, null, 75, LocalDateTime.parse("2025-08-20T10:00:00"), ChargingType.UNKNOWN,
+                60, null, 12000, null, new BigDecimal("75"), LocalDateTime.parse("2025-08-20T10:00:00"), ChargingType.UNKNOWN,
                 null, null,
                 false, null));
 
@@ -386,8 +386,8 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
                 null, null,               // no new location
                 13000,                    // odometerKm
                 null,                     // maxChargingPowerKw
-                80,                       // socAfterChargePercent
-                20,                       // socBeforeChargePercent
+                new BigDecimal("80"),     // socAfterChargePercent
+                new BigDecimal("20"),     // socBeforeChargePercent
                 LocalDateTime.parse("2025-08-20T11:00:00"),
                 null, null, null  // chargingType, routeType, tireType
         );
@@ -406,8 +406,8 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
         assertEquals(0, new BigDecimal("11.00").compareTo(body.costEur()));
         assertEquals(90, body.chargeDurationMinutes());
         assertEquals(13000, body.odometerKm());
-        assertEquals(80, body.socAfterChargePercent());
-        assertEquals(20, body.socBeforeChargePercent());
+        assertEquals(0, new BigDecimal("80").compareTo(body.socAfterChargePercent()));
+        assertEquals(0, new BigDecimal("20").compareTo(body.socBeforeChargePercent()));
         assertEquals(LocalDateTime.parse("2025-08-20T11:00:00"), body.loggedAt());
     }
 
@@ -415,7 +415,7 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
     void updateLog_nullFields_keepExistingValues() {
         EvLog existing = evLogRepository.save(EvLog.createNew(
                 carId, new BigDecimal("30.0"), new BigDecimal("9.00"),
-                60, "u33d1", 12000, null, 75, LocalDateTime.parse("2025-08-20T10:00:00"), ChargingType.UNKNOWN,
+                60, "u33d1", 12000, null, new BigDecimal("75"), LocalDateTime.parse("2025-08-20T10:00:00"), ChargingType.UNKNOWN,
                 null, null,
                 false, null));
 
@@ -435,7 +435,7 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
         assertEquals(0, new BigDecimal("40.0").compareTo(body.kwhCharged()));
         assertEquals(0, new BigDecimal("9.00").compareTo(body.costEur()));   // unchanged
         assertEquals(12000, body.odometerKm());                              // unchanged
-        assertEquals(75, body.socAfterChargePercent());                      // unchanged
+        assertEquals(0, new BigDecimal("75").compareTo(body.socAfterChargePercent()));  // unchanged
         assertEquals("u33d1", body.geohash());                               // unchanged
     }
 
@@ -443,7 +443,7 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
     void updateLog_withLatLon_updatesGeohash() {
         EvLog existing = evLogRepository.save(EvLog.createNew(
                 carId, new BigDecimal("20.0"), new BigDecimal("6.00"),
-                45, null, 10000, null, 60, LocalDateTime.parse("2025-07-15T09:00:00"), ChargingType.UNKNOWN,
+                45, null, 10000, null, new BigDecimal("60"), LocalDateTime.parse("2025-07-15T09:00:00"), ChargingType.UNKNOWN,
                 null, null,
                 false, null));
 
@@ -473,7 +473,7 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
         Car otherCar = createAndSaveCar(other.getId(), CarBrand.CarModel.MODEL_3);
         EvLog otherLog = evLogRepository.save(EvLog.createNew(
                 otherCar.getId(), new BigDecimal("20.0"), new BigDecimal("5.00"),
-                30, null, 5000, null, 50, LocalDateTime.now(), ChargingType.UNKNOWN,
+                30, null, 5000, null, new BigDecimal("50"), LocalDateTime.now(), ChargingType.UNKNOWN,
                 null, null,
                 false, null));
 
@@ -494,7 +494,7 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
     void updateLog_unauthenticated_returns401() {
         EvLog existing = evLogRepository.save(EvLog.createNew(
                 carId, new BigDecimal("20.0"), new BigDecimal("5.00"),
-                30, null, 5000, null, 50, LocalDateTime.now(), ChargingType.UNKNOWN,
+                30, null, 5000, null, new BigDecimal("50"), LocalDateTime.now(), ChargingType.UNKNOWN,
                 null, null,
                 false, null));
 
@@ -522,7 +522,7 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
                 new BigDecimal("40.0"),
                 new BigDecimal("10.00"),
                 60, null, null,
-                50000, null, 80,
+                50000, null, new BigDecimal("80"),
                 LocalDateTime.now(),
                 null,
                 null,
@@ -550,7 +550,7 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
                 new BigDecimal("30.0"),
                 new BigDecimal("9.00"),
                 45, null, null,
-                51000, null, 75,
+                51000, null, new BigDecimal("75"),
                 LocalDateTime.now(),
                 null, null, null, null
         );
@@ -574,11 +574,11 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
     void getLogs_responseContainsDataSource() {
         EvLog userLog = evLogRepository.save(EvLog.createNewWithSource(
                 carId, new BigDecimal("30.0"), new BigDecimal("9.00"),
-                60, null, 12000, null, 75, LocalDateTime.now(),
+                60, null, 12000, null, new BigDecimal("75"), LocalDateTime.now(),
                 DataSource.USER_LOGGED, ChargingType.UNKNOWN, null));
         EvLog fleetLog = evLogRepository.save(EvLog.createNewWithSource(
                 carId, new BigDecimal("44.0"), new BigDecimal("18.00"),
-                55, null, null, null, 95, LocalDateTime.now().minusDays(1),
+                55, null, null, null, new BigDecimal("95"), LocalDateTime.now().minusDays(1),
                 DataSource.TESLA_FLEET_IMPORT, ChargingType.DC, null));
 
         HttpEntity<Void> requestWithAuth = createAuthRequest(userId, testUser.getEmail());
@@ -622,7 +622,7 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
     void updateLog_withTireType_updatesValue() {
         EvLog existing = evLogRepository.save(EvLog.createNew(
                 carId, new BigDecimal("25.0"), new BigDecimal("7.00"),
-                40, null, 9000, null, 70, LocalDateTime.now(), ChargingType.UNKNOWN,
+                40, null, 9000, null, new BigDecimal("70"), LocalDateTime.now(), ChargingType.UNKNOWN,
                 RouteType.CITY, TireType.SUMMER,
                 false, null));
 

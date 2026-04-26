@@ -70,7 +70,7 @@ class PublicApiGetSessionsIntegrationTest extends AbstractIntegrationTest {
     @Test
     void getSession_nonApiUploadLog_returns400() {
         EvLog userLog = EvLog.createNew(car.getId(), BigDecimal.valueOf(20.0), null,
-                30, null, null, null, 80, LocalDateTime.now(),
+                30, null, null, null, new java.math.BigDecimal("80"), LocalDateTime.now(),
                 ChargingType.AC, null, null,
                 false, null);
         EvLog saved = evLogRepository.save(userLog);
@@ -99,7 +99,7 @@ class PublicApiGetSessionsIntegrationTest extends AbstractIntegrationTest {
                 carId,
                 BigDecimal.valueOf(25.0), BigDecimal.valueOf(7.50),
                 35, null, 45000,
-                BigDecimal.valueOf(11.0), 80, 15,
+                BigDecimal.valueOf(11.0), new java.math.BigDecimal("80"), new java.math.BigDecimal("15"),
                 LocalDateTime.now().minusHours(1),
                 ChargingType.AC, null, null,
                 DataSource.API_UPLOAD, null,

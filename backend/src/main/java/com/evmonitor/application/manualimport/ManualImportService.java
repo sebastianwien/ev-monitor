@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.*;
 
 @Service
@@ -88,8 +89,8 @@ public class ManualImportService {
         }
 
         Integer odometerKm = parseInteger(get(row, "odometer_km"));
-        Integer socBefore = parseInteger(get(row, "soc_before"));
-        Integer socAfter = parseInteger(get(row, "soc_after"));
+        BigDecimal socBefore = parseBigDecimal(get(row, "soc_before"));
+        BigDecimal socAfter = parseBigDecimal(get(row, "soc_after"));
         Double costEur = parseDouble(get(row, "cost_eur"));
         Integer durationMin = parseInteger(get(row, "duration_min"));
         String location = get(row, "location");
@@ -187,6 +188,12 @@ public class ManualImportService {
     private Double parseDouble(String raw) {
         if (raw == null) return null;
         try { return Double.parseDouble(raw.replace(",", ".").trim()); }
+        catch (NumberFormatException e) { return null; }
+    }
+
+    private BigDecimal parseBigDecimal(String raw) {
+        if (raw == null) return null;
+        try { return new BigDecimal(raw.replace(",", ".").trim()); }
         catch (NumberFormatException e) { return null; }
     }
 

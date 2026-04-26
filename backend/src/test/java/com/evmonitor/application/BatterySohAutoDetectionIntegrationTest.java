@@ -34,7 +34,7 @@ class BatterySohAutoDetectionIntegrationTest extends AbstractIntegrationTest {
                 LocalDateTime.now().minusDays(daysAgo),
                 null, null,
                 DataSource.SMARTCAR_LIVE, null, ChargingType.AC,
-                60000 + daysAgo, socBefore, socAfter, null, null);
+                60000 + daysAgo, new BigDecimal(socBefore), new BigDecimal(socAfter), null, null);
     }
 
     @Test
@@ -129,7 +129,7 @@ class BatterySohAutoDetectionIntegrationTest extends AbstractIntegrationTest {
                 LocalDateTime.now().minusDays(1),
                 null, null, null,
                 "SMARTCAR_LIVE", null, "AC", false,
-                60000, 26, 90, null, null));
+                60000, new BigDecimal("26"), new BigDecimal("90"), null, null));
 
         List<BatterySohResponse> history = batterySohService.getHistory(car.getId(), user.getId());
         assertEquals(1, history.size(), "createWallboxLog should trigger SoH auto-detection");
@@ -148,7 +148,7 @@ class BatterySohAutoDetectionIntegrationTest extends AbstractIntegrationTest {
         // Create a manual log without kwhAtVehicle (AT_CHARGER, no SoH detection yet)
         EvLog log = evLogRepository.save(EvLog.createNew(
                 car.getId(), new BigDecimal("50.00"), null, 60, null, 61000,
-                null, 90, LocalDateTime.now().minusDays(1),
+                null, new BigDecimal("90"), LocalDateTime.now().minusDays(1),
                 ChargingType.AC, null, null, false, null));
 
         assertTrue(batterySohService.getHistory(car.getId(), user.getId()).isEmpty(),
@@ -158,7 +158,7 @@ class BatterySohAutoDetectionIntegrationTest extends AbstractIntegrationTest {
         // 44.17 kWh / 64% delta = 69.02 kWh capacity → SoH ≈ 92.02%
         evLogService.updateLog(log.getId(), user.getId(),
                 new EvLogUpdateRequest(null, null, null, null, null, null, null,
-                        null, 26, new BigDecimal("44.17"),
+                        null, new BigDecimal("26"), new BigDecimal("44.17"),
                         null, null, null, null, null, null, null, null, null));
 
         List<BatterySohResponse> history = batterySohService.getHistory(car.getId(), user.getId());
@@ -177,7 +177,7 @@ class BatterySohAutoDetectionIntegrationTest extends AbstractIntegrationTest {
         // AT_CHARGER log (USER_LOGGED) → not qualifying
         evLogRepository.save(EvLog.createNew(
                 car.getId(), new BigDecimal("44.0"), null, 60, null, 61000,
-                null, 90, LocalDateTime.now().minusDays(1),
+                null, new BigDecimal("90"), LocalDateTime.now().minusDays(1),
                 ChargingType.AC, null, null, false, null));
 
         batterySohService.autoDetectAndPersist(car);

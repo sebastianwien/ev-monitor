@@ -175,13 +175,13 @@ class ConsumptionFormulaComparisonTest {
         if (distance <= 0) return Optional.empty();
 
         BigDecimal socBeforeLogYPercent = logY.getSocBeforeChargePercent() != null
-                ? BigDecimal.valueOf(logY.getSocBeforeChargePercent())
-                : BigDecimal.valueOf(logY.getSocAfterChargePercent())
+                ? logY.getSocBeforeChargePercent()
+                : logY.getSocAfterChargePercent()
                         .subtract(calc.effectiveKwhForConsumption(logY)
                                 .divide(batteryCapacityKwh, 4, RoundingMode.HALF_UP)
                                 .multiply(HUNDRED));
 
-        BigDecimal energyConsumedKwh = BigDecimal.valueOf(logX.getSocAfterChargePercent())
+        BigDecimal energyConsumedKwh = logX.getSocAfterChargePercent()
                 .subtract(socBeforeLogYPercent)
                 .multiply(batteryCapacityKwh)
                 .divide(HUNDRED, 4, RoundingMode.HALF_UP)

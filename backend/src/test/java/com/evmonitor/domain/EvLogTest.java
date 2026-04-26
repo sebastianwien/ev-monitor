@@ -20,7 +20,7 @@ class EvLogTest {
         String geohash = "u33d1";
         Integer odometerKm = 50000;
         BigDecimal maxChargingPowerKw = BigDecimal.valueOf(150.0);
-        Integer socAfterChargePercent = 80;
+        BigDecimal socAfterChargePercent = new BigDecimal("80");
         LocalDateTime loggedAt = LocalDateTime.of(2026, 2, 25, 14, 30);
 
         // When
@@ -54,7 +54,7 @@ class EvLogTest {
         String geohash = "u33d2";
         Integer odometerKm = null; // Optional
         BigDecimal maxChargingPowerKw = null; // Optional
-        Integer socAfterChargePercent = null; // Optional
+        BigDecimal socAfterChargePercent = null; // Optional
         LocalDateTime loggedAt = null; // Should default to now
 
         // When
@@ -96,7 +96,7 @@ class EvLogTest {
         String geohash = "u33d1";
         Integer odometerKm = null;
         BigDecimal maxChargingPowerKw = BigDecimal.valueOf(11.0);
-        Integer socAfterChargePercent = null;
+        BigDecimal socAfterChargePercent = null;
         LocalDateTime loggedAt = LocalDateTime.now();
         DataSource dataSource = DataSource.TESLA_IMPORT;
 
@@ -164,7 +164,7 @@ class EvLogTest {
         String geohash = "u33d3";
         Integer odometerKm = 75000;
         BigDecimal maxChargingPowerKw = BigDecimal.valueOf(175.5);
-        Integer socAfterChargePercent = 95;
+        BigDecimal socAfterChargePercent = new BigDecimal("95");
         LocalDateTime loggedAt = LocalDateTime.now().withSecond(0).withNano(0);
         DataSource dataSource = DataSource.USER_LOGGED;
         LocalDateTime createdAt = LocalDateTime.now();

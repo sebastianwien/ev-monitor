@@ -121,8 +121,8 @@ class PublicApiImportIntegrationTest extends AbstractIntegrationTest {
 
         EvLog log = evLogRepository.findAllByCarId(car.getId()).getFirst();
         assertEquals(45230, log.getOdometerKm());
-        assertEquals(85, log.getSocAfterChargePercent());
-        assertEquals(12, log.getSocBeforeChargePercent());
+        assertEquals(0, new java.math.BigDecimal("85").compareTo(log.getSocAfterChargePercent()));
+        assertEquals(0, new java.math.BigDecimal("12").compareTo(log.getSocBeforeChargePercent()));
         assertEquals(ChargingType.AC, log.getChargingType());
         assertEquals(RouteType.COMBINED, log.getRouteType());
         assertEquals(TireType.SUMMER, log.getTireType());

@@ -70,7 +70,7 @@ class EvLogDuplicateSuppressionIntegrationTest extends AbstractIntegrationTest {
         // When: User manually logs the same session (within 15 min window, same kWh)
         EvLogRequest request = new EvLogRequest(
                 carId, kwh, new BigDecimal("12.00"), 60,
-                null, null, 50000, null, 80,
+                null, null, 50000, null, new BigDecimal("80"),
                 sessionTime.plusMinutes(3),
                 null, null, null, null);
 
@@ -114,7 +114,7 @@ class EvLogDuplicateSuppressionIntegrationTest extends AbstractIntegrationTest {
         // Given: User log already exists
         EvLogRequest userRequest = new EvLogRequest(
                 carId, kwh, new BigDecimal("10.00"), 55,
-                null, null, 48000, null, 75,
+                null, null, 48000, null, new BigDecimal("75"),
                 sessionTime,
                 null, null, null, null);
 
@@ -181,7 +181,7 @@ class EvLogDuplicateSuppressionIntegrationTest extends AbstractIntegrationTest {
         // And: user log suppresses it
         EvLogRequest request = new EvLogRequest(
                 carId, kwh, new BigDecimal("15.00"), 70,
-                null, null, 55000, null, 85,
+                null, null, 55000, null, new BigDecimal("85"),
                 sessionTime.plusMinutes(2),
                 null, null, null, null);
 

@@ -116,7 +116,7 @@ class EvLogChargingTypeInferenceTest {
                 .geohash("u33d1")
                 .odometerKm(10000)
                 .maxChargingPowerKw(maxPowerKw)
-                .socAfterChargePercent(80)
+                .socAfterChargePercent(new BigDecimal("80"))
                 .loggedAt(now)
                 .dataSource(DataSource.USER_LOGGED)
                 .includeInStatistics(true)

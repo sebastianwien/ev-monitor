@@ -51,7 +51,7 @@ class PublicModelByEnumControllerTest extends AbstractIntegrationTest {
 
         for (int i = 0; i < 5; i++) {
             evLogRepository.save(EvLog.createNew(car.getId(), new BigDecimal("18.0"), null,
-                    45, "u33db", 40000 + (i * 200), null, 80,
+                    45, "u33db", 40000 + (i * 200), null, new java.math.BigDecimal("80"),
                     LocalDateTime.now().minusDays(5 - i), ChargingType.UNKNOWN, null, null, false, null));
         }
 

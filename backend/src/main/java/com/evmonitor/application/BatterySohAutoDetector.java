@@ -67,14 +67,15 @@ public class BatterySohAutoDetector {
         if (!hasVehicleKwh) return false;
         if (log.getSocBeforeChargePercent() == null || log.getSocAfterChargePercent() == null) return false;
         if (effectiveKwh(log) == null) return false;
-        return (log.getSocAfterChargePercent() - log.getSocBeforeChargePercent()) >= MIN_SOC_DELTA_PERCENT;
+        return log.getSocAfterChargePercent().subtract(log.getSocBeforeChargePercent())
+                .compareTo(BigDecimal.valueOf(MIN_SOC_DELTA_PERCENT)) >= 0;
     }
 
     static BigDecimal estimateCapacity(EvLog log) {
-        int delta = log.getSocAfterChargePercent() - log.getSocBeforeChargePercent();
+        BigDecimal delta = log.getSocAfterChargePercent().subtract(log.getSocBeforeChargePercent());
         return effectiveKwh(log)
                 .multiply(HUNDRED)
-                .divide(BigDecimal.valueOf(delta), 4, RoundingMode.HALF_UP);
+                .divide(delta, 4, RoundingMode.HALF_UP);
     }
 
     private static BigDecimal effectiveKwh(EvLog log) {

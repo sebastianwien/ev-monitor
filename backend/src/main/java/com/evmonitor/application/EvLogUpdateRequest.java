@@ -4,8 +4,7 @@ import com.evmonitor.domain.ChargingType;
 import com.evmonitor.domain.RouteType;
 import com.evmonitor.domain.TireType;
 import jakarta.validation.constraints.DecimalMax;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
@@ -26,8 +25,8 @@ public record EvLogUpdateRequest(
         Double longitude,
         Integer odometerKm,
         BigDecimal maxChargingPowerKw,
-        @Min(0) @Max(100) Integer socAfterChargePercent,
-        @Min(0) @Max(100) Integer socBeforeChargePercent,
+        @DecimalMin("0.0") @DecimalMax("100.0") BigDecimal socAfterChargePercent,
+        @DecimalMin("0.0") @DecimalMax("100.0") BigDecimal socBeforeChargePercent,
         @Positive @DecimalMax("200.0") BigDecimal kwhAtVehicle,
         LocalDateTime loggedAt,
         ChargingType chargingType,
@@ -43,7 +42,7 @@ public record EvLogUpdateRequest(
     public EvLogUpdateRequest(BigDecimal kwhCharged, BigDecimal costEur,
             Integer chargeDurationMinutes, Double latitude, Double longitude,
             Integer odometerKm, BigDecimal maxChargingPowerKw,
-            Integer socAfterChargePercent, Integer socBeforeChargePercent,
+            BigDecimal socAfterChargePercent, BigDecimal socBeforeChargePercent,
             LocalDateTime loggedAt, ChargingType chargingType,
             RouteType routeType, TireType tireType) {
         this(kwhCharged, costEur, chargeDurationMinutes, latitude, longitude,

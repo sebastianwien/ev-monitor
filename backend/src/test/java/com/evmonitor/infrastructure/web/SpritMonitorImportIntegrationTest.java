@@ -316,7 +316,7 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
         assertEquals(1, response.getBody().getImported());
 
         EvLog log = evLogRepository.findAllByCarId(carId).get(0);
-        assertEquals(80, log.getSocAfterChargePercent());
+        assertEquals(0, new BigDecimal("80.5").compareTo(log.getSocAfterChargePercent()));
         assertEquals(0, new BigDecimal("11.0").compareTo(log.getMaxChargingPowerKw()));
     }
 

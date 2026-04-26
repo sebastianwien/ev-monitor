@@ -37,8 +37,8 @@ class EvLogServiceGoeConsumptionChainTest extends AbstractIntegrationTest {
     private static final BigDecimal LOG_B_COST    = new BigDecimal("15.00");
     private static final int        LOG_A_ODOMETER = 10000;
     private static final int        LOG_B_ODOMETER = 10300;
-    private static final int        LOG_A_SOC      = 80;
-    private static final int        LOG_B_SOC      = 85;
+    private static final BigDecimal LOG_A_SOC      = new BigDecimal("80");
+    private static final BigDecimal LOG_B_SOC      = new BigDecimal("85");
 
     @BeforeEach
     void setUp() {
@@ -220,7 +220,7 @@ class EvLogServiceGoeConsumptionChainTest extends AbstractIntegrationTest {
                 carId, new BigDecimal("40.0"), 120, null,
                 base,
                 null, null, DataSource.TESLA_FLEET_IMPORT, null, ChargingType.DC,
-                5000, null, 90, null, null));
+                5000, null, new BigDecimal("90"), null, null));
 
         // T2 — TESLA_FLEET_IMPORT ohne Odometer (Snapshot-Lookup miss)
         // Bricht die Kette: canBeUsedAsLogX()=false, nicht transparent → Kettenbruch für G1
@@ -228,7 +228,7 @@ class EvLogServiceGoeConsumptionChainTest extends AbstractIntegrationTest {
                 carId, new BigDecimal("20.0"), 45, null,
                 base.plusDays(1),
                 null, null, DataSource.TESLA_FLEET_IMPORT, null, ChargingType.DC,
-                null, null, 75, null, null));
+                null, null, new BigDecimal("75"), null, null));
 
         // G1 — GOE mit Odometer+SoC, kein Verbrauch berechenbar (T2 davor bricht die Kette)
         evLogRepository.save(EvLog.createFromInternal(

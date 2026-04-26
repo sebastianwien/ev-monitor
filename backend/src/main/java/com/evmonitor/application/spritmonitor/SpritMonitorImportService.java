@@ -214,7 +214,7 @@ public class SpritMonitorImportService {
         BigDecimal costEur = fueling.cost() != null ? fueling.cost() : BigDecimal.ZERO;
         Integer durationMinutes = fueling.chargingDuration() != null ? fueling.chargingDuration() : 0;
         Integer odometerKm = fueling.odometer() != null ? fueling.odometer().intValue() : null;
-        Integer socAfterChargePercent = fueling.percent() != null ? fueling.percent().intValue() : null;
+        BigDecimal socAfterChargePercent = fueling.percent();
 
         ChargingType chargingType = fueling.parseChargingType();
         RouteType routeType = fueling.parseRouteType();

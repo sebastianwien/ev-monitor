@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -23,10 +24,10 @@ public record PublicApiSessionRequest(
             @Min(0) @Max(2_000_000) @JsonProperty("odometer_km") Integer odometerKm,
 
             @Schema(description = "State of Charge before charging in percent (0-100).")
-            @Min(0) @Max(100) @JsonProperty("soc_before") Integer socBefore,
+            @DecimalMin("0.0") @DecimalMax("100.0") @JsonProperty("soc_before") BigDecimal socBefore,
 
             @Schema(description = "State of Charge after charging in percent (0-100).")
-            @Min(0) @Max(100) @JsonProperty("soc_after") Integer socAfter,
+            @DecimalMin("0.0") @DecimalMax("100.0") @JsonProperty("soc_after") BigDecimal socAfter,
 
             @Schema(description = "Total cost of the charging session in EUR.")
             @DecimalMin("0.0") @DecimalMax("10000.0") @JsonProperty("cost_eur") Double costEur,

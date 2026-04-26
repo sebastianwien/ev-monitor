@@ -82,7 +82,7 @@ public class TestDataBuilder {
                 "u33db", // Berlin Mitte geohash (5-char)
                 50000, // odometerKm (required for tests)
                 null, // maxChargingPowerKw (optional)
-                80, // socAfterChargePercent (required for tests)
+                new java.math.BigDecimal("80"), // socAfterChargePercent (required for tests)
                 LocalDateTime.now(),
                 ChargingType.UNKNOWN,
                 null, null,
@@ -103,7 +103,7 @@ public class TestDataBuilder {
                 "u33dc",
                 50000, // odometerKm (required for tests)
                 null, // maxChargingPowerKw (optional)
-                80, // socAfterChargePercent (required for tests)
+                new java.math.BigDecimal("80"), // socAfterChargePercent (required for tests)
                 timestamp,
                 ChargingType.UNKNOWN,
                 null, null,

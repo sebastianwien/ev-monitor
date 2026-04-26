@@ -26,7 +26,7 @@ class SitemapControllerTest extends AbstractIntegrationTest {
         // Incrementing odometer so each log counts as a distinct trip in the query
         for (int i = 0; i < 25; i++) {
             evLogRepository.save(EvLog.createNew(car.getId(), new BigDecimal("20.0"), null,
-                    45, "u33db", 50000 + (i * 200), null, 80,
+                    45, "u33db", 50000 + (i * 200), null, new java.math.BigDecimal("80"),
                     LocalDateTime.now().minusDays(25 - i), ChargingType.UNKNOWN, null, null, false, null));
         }
 
@@ -45,7 +45,7 @@ class SitemapControllerTest extends AbstractIntegrationTest {
 
         for (int i = 0; i < 24; i++) {
             evLogRepository.save(EvLog.createNew(car.getId(), new BigDecimal("15.0"), null,
-                    45, "u33db", 30000 + (i * 200), null, 80,
+                    45, "u33db", 30000 + (i * 200), null, new java.math.BigDecimal("80"),
                     LocalDateTime.now().minusDays(24 - i), ChargingType.UNKNOWN, null, null, false, null));
         }
 
@@ -65,7 +65,7 @@ class SitemapControllerTest extends AbstractIntegrationTest {
 
         for (int i = 0; i < 5; i++) {
             evLogRepository.save(EvLog.createNew(car.getId(), new BigDecimal("18.0"), null,
-                    45, "u33db", 40000 + (i * 200), null, 80,
+                    45, "u33db", 40000 + (i * 200), null, new java.math.BigDecimal("80"),
                     LocalDateTime.now().minusDays(5 - i), ChargingType.UNKNOWN, null, null, false, null));
         }
 

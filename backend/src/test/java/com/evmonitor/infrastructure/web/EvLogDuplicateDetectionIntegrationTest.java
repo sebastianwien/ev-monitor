@@ -82,7 +82,7 @@ class EvLogDuplicateDetectionIntegrationTest extends AbstractIntegrationTest {
                 new BigDecimal("12.00"),
                 65,
                 null, null,
-                50000, null, 85,
+                50000, null, new BigDecimal("85"),
                 sessionTime.plusMinutes(3),
                 null, null, null, null
         );
@@ -123,7 +123,7 @@ class EvLogDuplicateDetectionIntegrationTest extends AbstractIntegrationTest {
         // Given: User has already manually logged this session
         EvLog userLog = evLogRepository.save(EvLog.createNew(
                 carId, kwh, new BigDecimal("11.00"),
-                55, null, 51000, null, 82,
+                55, null, 51000, null, new BigDecimal("82"),
                 sessionTime,
                 ChargingType.AC, null, null,
                 false, null));
@@ -204,7 +204,7 @@ class EvLogDuplicateDetectionIntegrationTest extends AbstractIntegrationTest {
                 new BigDecimal("14.50"),
                 72,
                 null, null,
-                52000, null, 88,
+                52000, null, new BigDecimal("88"),
                 sessionTime.minusMinutes(2),
                 null, null, null, null
         );
@@ -278,7 +278,7 @@ class EvLogDuplicateDetectionIntegrationTest extends AbstractIntegrationTest {
         // When: User manually logs the same session
         EvLogRequest userRequest = new EvLogRequest(
                 carId, kwh, new BigDecimal("11.00"), 62,
-                null, null, 51000, null, 83,
+                null, null, 51000, null, new BigDecimal("83"),
                 sessionTime.plusMinutes(4),
                 null, null, null, null
         );
@@ -315,7 +315,7 @@ class EvLogDuplicateDetectionIntegrationTest extends AbstractIntegrationTest {
         // Given: User has already manually logged this session
         evLogRepository.save(EvLog.createNew(
                 carId, kwh, new BigDecimal("9.00"),
-                50, null, 52000, null, 78,
+                50, null, 52000, null, new BigDecimal("78"),
                 sessionTime, ChargingType.AC, null, null,
                 false, null));
 
@@ -369,7 +369,7 @@ class EvLogDuplicateDetectionIntegrationTest extends AbstractIntegrationTest {
                 new BigDecimal("7.00"),
                 40,
                 null, null,
-                50000, null, 60,
+                50000, null, new BigDecimal("60"),
                 sessionTime.plusMinutes(5),
                 null, null, null, null
         );

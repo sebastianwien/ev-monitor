@@ -131,8 +131,8 @@ public class ConsumptionCalculationService {
         // requires hasEnergyData(), so this branch is unreachable via calculateConsumptionPerLog).
         final BigDecimal energyConsumedKwh;
         if (logY.hasEnergyData()) {
-            BigDecimal socDeltaCorrection = BigDecimal.valueOf(logX.getSocAfterChargePercent())
-                    .subtract(BigDecimal.valueOf(logY.getSocAfterChargePercent()))
+            BigDecimal socDeltaCorrection = logX.getSocAfterChargePercent()
+                    .subtract(logY.getSocAfterChargePercent())
                     .multiply(batteryCapacityKwh)
                     .divide(HUNDRED, 4, RoundingMode.HALF_UP);
             energyConsumedKwh = effectiveKwhForConsumption(logY)
@@ -140,8 +140,8 @@ public class ConsumptionCalculationService {
                     .add(intermediateKwh);
         } else {
             if (logY.getSocBeforeChargePercent() == null) return Optional.empty();
-            energyConsumedKwh = BigDecimal.valueOf(logX.getSocAfterChargePercent())
-                    .subtract(BigDecimal.valueOf(logY.getSocBeforeChargePercent()))
+            energyConsumedKwh = logX.getSocAfterChargePercent()
+                    .subtract(logY.getSocBeforeChargePercent())
                     .multiply(batteryCapacityKwh)
                     .divide(HUNDRED, 4, RoundingMode.HALF_UP)
                     .add(intermediateKwh);

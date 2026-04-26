@@ -64,7 +64,7 @@ class TaxExportControllerTest extends AbstractIntegrationTest {
         // Public session - create via EvLog.createNew with isPublicCharging=true
         EvLog publicSession = EvLog.createNew(
                 businessCar.getId(), new BigDecimal("25.0"), null,
-                30, "u33db", 50000, null, 80,
+                30, "u33db", 50000, null, new java.math.BigDecimal("80"),
                 LocalDateTime.of(2026, 2, 12, 14, 0),
                 ChargingType.DC, null, null, true, "EnBW");
         evLogRepository.save(publicSession);

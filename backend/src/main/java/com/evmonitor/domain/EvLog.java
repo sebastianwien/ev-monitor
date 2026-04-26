@@ -20,8 +20,8 @@ public class EvLog {
     private final String geohash; // 6-char geohash (~600m) for private charging, 7-char (~150m) for public chargers
     private final Integer odometerKm; // Optional: odometer reading in km
     private final BigDecimal maxChargingPowerKw; // Optional: max charging power in kW
-    private final Integer socAfterChargePercent; // Optional: State of Charge after charging (0-100%)
-    private final Integer socBeforeChargePercent; // Optional: State of Charge before charging (0-100%)
+    private final BigDecimal socAfterChargePercent; // Optional: State of Charge after charging (0-100)
+    private final BigDecimal socBeforeChargePercent; // Optional: State of Charge before charging (0-100)
     private final LocalDateTime loggedAt; // When the charge happened (user-provided or now)
     private final DataSource dataSource;
     private final boolean includeInStatistics; // Whether to include in public stats/aggregations
@@ -48,7 +48,7 @@ public class EvLog {
     @Builder(toBuilder = true)
     private EvLog(UUID id, UUID carId, BigDecimal kwhCharged, BigDecimal kwhAtVehicle, BigDecimal costEur,
             Integer chargeDurationMinutes, String geohash, Integer odometerKm,
-            BigDecimal maxChargingPowerKw, Integer socAfterChargePercent, Integer socBeforeChargePercent,
+            BigDecimal maxChargingPowerKw, BigDecimal socAfterChargePercent, BigDecimal socBeforeChargePercent,
             LocalDateTime loggedAt, DataSource dataSource,
             boolean includeInStatistics, Integer odometerSuggestionMinKm, Integer odometerSuggestionMaxKm,
             Double temperatureCelsius, ChargingType chargingType, String rawImportData,
@@ -92,7 +92,7 @@ public class EvLog {
 
     public static EvLog createNew(UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
             Integer chargeDurationMinutes, String geohash, Integer odometerKm,
-            BigDecimal maxChargingPowerKw, Integer socAfterChargePercent, LocalDateTime loggedAt,
+            BigDecimal maxChargingPowerKw, BigDecimal socAfterChargePercent, LocalDateTime loggedAt,
             ChargingType chargingType, RouteType routeType, TireType tireType,
             boolean publicCharging, String cpoName) {
         LocalDateTime now = LocalDateTime.now();
@@ -121,7 +121,7 @@ public class EvLog {
 
     public static EvLog createNewWithSource(UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
             Integer chargeDurationMinutes, String geohash, Integer odometerKm,
-            BigDecimal maxChargingPowerKw, Integer socAfterChargePercent, LocalDateTime loggedAt,
+            BigDecimal maxChargingPowerKw, BigDecimal socAfterChargePercent, LocalDateTime loggedAt,
             DataSource dataSource, ChargingType chargingType, String rawImportData) {
         LocalDateTime now = LocalDateTime.now();
         return EvLog.builder()
@@ -148,7 +148,7 @@ public class EvLog {
             Integer chargeDurationMinutes, String geohash,
             LocalDateTime loggedAt, Integer odometerSuggestionMinKm, Integer odometerSuggestionMaxKm,
             DataSource dataSource, BigDecimal costEur, ChargingType chargingType,
-            Integer odometerKm, Integer socBefore, Integer socAfter, Double temperatureCelsius,
+            Integer odometerKm, BigDecimal socBefore, BigDecimal socAfter, Double temperatureCelsius,
             String rawImportData) {
         LocalDateTime now = LocalDateTime.now();
         return EvLog.builder()
@@ -176,7 +176,7 @@ public class EvLog {
 
     public static EvLog createFromPublicApi(UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
             Integer chargeDurationMinutes, String geohash, Integer odometerKm,
-            BigDecimal maxChargingPowerKw, Integer socAfterChargePercent, Integer socBeforeChargePercent,
+            BigDecimal maxChargingPowerKw, BigDecimal socAfterChargePercent, BigDecimal socBeforeChargePercent,
             LocalDateTime loggedAt, ChargingType chargingType, RouteType routeType, TireType tireType,
             DataSource dataSource, String rawImportData, boolean publicCharging, String cpoName,
             EnergyMeasurementType measurementType) {
@@ -221,7 +221,7 @@ public class EvLog {
     }
 
     public EvLog withPatch(BigDecimal kwh, BigDecimal costEur, Integer durationMin,
-            String geohash, Integer odometerKm, Integer socBefore, Integer socAfter,
+            String geohash, Integer odometerKm, BigDecimal socBefore, BigDecimal socAfter,
             BigDecimal kwhAtVehicle, BigDecimal maxChargingPowerKw, ChargingType chargingType,
             RouteType routeType, TireType tireType, Boolean publicCharging, String cpoName,
             EnergyMeasurementType measurementType,

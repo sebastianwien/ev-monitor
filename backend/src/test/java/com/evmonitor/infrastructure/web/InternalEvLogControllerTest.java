@@ -251,7 +251,7 @@ class InternalEvLogControllerTest extends AbstractIntegrationTest {
                 testCar.getId(), new BigDecimal("50.0"), 120, geohash,
                 LocalDateTime.now().minusDays(1), null, null,
                 DataSource.SMARTCAR_LIVE, null, ChargingType.AC,
-                60000, 20, 90, null, null)
+                60000, new java.math.BigDecimal("20"), new java.math.BigDecimal("90"), null, null)
                 .toBuilder().chargingProviderId(savedProvider.getId()).build();
         evLogRepository.save(previousLog);
 
@@ -290,7 +290,7 @@ class InternalEvLogControllerTest extends AbstractIntegrationTest {
                 testCar.getId(), new BigDecimal("100.0"), 60, geohash,
                 LocalDateTime.now().minusDays(1), null, null,
                 DataSource.SMARTCAR_LIVE, null, ChargingType.DC,
-                60000, 10, 90, null, null)
+                60000, new java.math.BigDecimal("10"), new java.math.BigDecimal("90"), null, null)
                 .toBuilder().chargingProviderId(savedProvider.getId()).build();
         evLogRepository.save(previousLog);
 
@@ -325,7 +325,7 @@ class InternalEvLogControllerTest extends AbstractIntegrationTest {
                 testCar.getId(), new BigDecimal("50.0"), 120, geohash,
                 LocalDateTime.now().minusDays(1), null, null,
                 DataSource.SMARTCAR_LIVE, null, ChargingType.AC,
-                60000, 20, 90, null, null)
+                60000, new java.math.BigDecimal("20"), new java.math.BigDecimal("90"), null, null)
                 .toBuilder().chargingProviderId(savedProvider.getId()).build();
         evLogRepository.save(previousLog);
 

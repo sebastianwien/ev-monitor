@@ -18,8 +18,8 @@ public class EvLogPatch {
     private final Integer durationMin;
     private final String geohash;
     private final Integer odometerKm;
-    private final Integer socBefore;
-    private final Integer socAfter;
+    private final BigDecimal socBefore;
+    private final BigDecimal socAfter;
     private final BigDecimal maxChargingPowerKw;
     private final ChargingType chargingType;
     private final RouteType routeType;

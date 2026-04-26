@@ -118,7 +118,7 @@ class EvLogValidationTest {
                 .geohash("u33d1")
                 .odometerKm(odometerKm)
                 .maxChargingPowerKw(new BigDecimal("11.0"))
-                .socAfterChargePercent(socAfterChargePercent)
+                .socAfterChargePercent(socAfterChargePercent != null ? new BigDecimal(socAfterChargePercent) : null)
                 .loggedAt(NOW)
                 .dataSource(DataSource.USER_LOGGED)
                 .includeInStatistics(true)

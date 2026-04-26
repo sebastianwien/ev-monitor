@@ -64,7 +64,7 @@ class EvLogServiceSocVerificationTest extends AbstractIntegrationTest {
             "u33d1",                        // geohash
             10000,                          // odometer
             new BigDecimal("11.0"),         // max power
-            80,                             // SoC AFTER charge
+            new BigDecimal("80"),                             // SoC AFTER charge
             LocalDateTime.now().minusDays(2),
             ChargingType.UNKNOWN,
             null, null,
@@ -88,7 +88,7 @@ class EvLogServiceSocVerificationTest extends AbstractIntegrationTest {
             "u45d2",                        // geohash
             10300,                          // odometer (300km driven!)
             new BigDecimal("150.0"),        // max power
-            85,                             // SoC AFTER charge
+            new BigDecimal("85"),                             // SoC AFTER charge
             LocalDateTime.now().minusDays(1),
             ChargingType.UNKNOWN,
             null, null,
@@ -147,7 +147,7 @@ class EvLogServiceSocVerificationTest extends AbstractIntegrationTest {
             "u33d3",
             15000,
             new BigDecimal("11.0"),
-            80,
+            new BigDecimal("80"),
             LocalDateTime.now().minusDays(2),
             ChargingType.UNKNOWN,
             null, null,
@@ -169,7 +169,7 @@ class EvLogServiceSocVerificationTest extends AbstractIntegrationTest {
             "u45d4",
             15150,
             new BigDecimal("150.0"),
-            90,
+            new BigDecimal("90"),
             LocalDateTime.now().minusDays(1),
             ChargingType.UNKNOWN,
             null, null,
@@ -220,7 +220,7 @@ class EvLogServiceSocVerificationTest extends AbstractIntegrationTest {
             "u33d5",
             20000,
             new BigDecimal("11.0"),
-            80,
+            new BigDecimal("80"),
             LocalDateTime.now().minusDays(2),
             ChargingType.UNKNOWN,
             null, null,
@@ -236,7 +236,7 @@ class EvLogServiceSocVerificationTest extends AbstractIntegrationTest {
             "u45d6",
             20200,
             new BigDecimal("11.0"),
-            85,
+            new BigDecimal("85"),
             LocalDateTime.now().minusDays(1),
             ChargingType.UNKNOWN,
             null, null,

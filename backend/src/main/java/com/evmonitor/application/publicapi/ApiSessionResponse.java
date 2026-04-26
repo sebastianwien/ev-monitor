@@ -4,6 +4,7 @@ import com.evmonitor.domain.EvLog;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import java.math.BigDecimal;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
@@ -15,8 +16,8 @@ public record ApiSessionResponse(
         @JsonProperty("cost_eur") Double costEur,
         @JsonProperty("duration_min") Integer durationMin,
         @JsonProperty("odometer_km") Integer odometerKm,
-        @JsonProperty("soc_before") Integer socBefore,
-        @JsonProperty("soc_after") Integer socAfter,
+        @JsonProperty("soc_before") BigDecimal socBefore,
+        @JsonProperty("soc_after") BigDecimal socAfter,
         @JsonProperty("max_charging_power_kw") Double maxChargingPowerKw,
         @JsonProperty("charging_type") String chargingType,
         @JsonProperty("route_type") String routeType,

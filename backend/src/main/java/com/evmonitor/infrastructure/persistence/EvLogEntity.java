@@ -45,11 +45,11 @@ public class EvLogEntity {
     @Column(name = "max_charging_power_kw", precision = 10, scale = 2)
     private BigDecimal maxChargingPowerKw;
 
-    @Column(name = "soc_after_charge_percent")
-    private Integer socAfterChargePercent;
+    @Column(name = "soc_after_charge_percent", precision = 5, scale = 2)
+    private BigDecimal socAfterChargePercent;
 
-    @Column(name = "soc_start_percent")
-    private Integer socBeforeChargePercent;
+    @Column(name = "soc_start_percent", precision = 5, scale = 2)
+    private BigDecimal socBeforeChargePercent;
 
     @Column(name = "logged_at")
     private LocalDateTime loggedAt;

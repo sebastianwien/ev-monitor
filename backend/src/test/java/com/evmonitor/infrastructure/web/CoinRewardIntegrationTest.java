@@ -360,7 +360,7 @@ class CoinRewardIntegrationTest extends AbstractIntegrationTest {
         // Save log directly without going through the API (= no coins awarded = no sourceEntityId)
         EvLog rawLog = EvLog.createNew(
                 car.getId(), new BigDecimal("30"), new BigDecimal("7.50"),
-                45, null, 10000, null, 80, LocalDateTime.now().minusDays(1),
+                45, null, 10000, null, new BigDecimal("80"), LocalDateTime.now().minusDays(1),
                 ChargingType.AC, null, null,
                 false, null);
         EvLog saved = evLogRepository.save(rawLog);
@@ -513,7 +513,7 @@ class CoinRewardIntegrationTest extends AbstractIntegrationTest {
                 60,
                 null, null,   // no GPS
                 50000, null,   // odometerKm (required), no max power
-                80, // socAfterChargePercent (required)
+                new BigDecimal("80"), // socAfterChargePercent (required)
                 LocalDateTime.now(),
                 ocrUsed,      // OCR flag
                 null,         // chargingType

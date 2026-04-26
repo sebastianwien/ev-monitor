@@ -24,8 +24,8 @@ public record InternalEvLogRequest(
         String chargingType,  // optional: AC | DC (defaults to UNKNOWN)
         boolean mergeSessions, // deprecated: session grouping removed (kept for backward compat with wallbox service)
         Integer odometerKm,   // optional: actual odometer reading from vehicle API (Smartcar, Tesla Live)
-        Integer socBefore,    // optional: State of Charge at session start (0-100)
-        Integer socAfter,     // optional: State of Charge at session end (0-100)
+        BigDecimal socBefore, // optional: State of Charge at session start (0-100)
+        BigDecimal socAfter,  // optional: State of Charge at session end (0-100)
         Double temperatureCelsius, // optional: external temperature at charging location
         String rawImportData) {    // optional: raw JSON payload from source (Tesla Telemetry, Smartcar webhook, ...)
 }

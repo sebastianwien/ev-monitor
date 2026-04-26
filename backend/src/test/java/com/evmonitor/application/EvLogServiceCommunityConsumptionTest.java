@@ -228,7 +228,7 @@ class EvLogServiceCommunityConsumptionTest extends AbstractIntegrationTest {
                          int socAfter, LocalDateTime loggedAt) {
         evLogRepository.save(EvLog.createNew(
                 carId, kwhCharged, new BigDecimal("10.00"), 60,
-                "u33d1", odometerKm, new BigDecimal("11.0"), socAfter, loggedAt, ChargingType.UNKNOWN, null, null,
+                "u33d1", odometerKm, new BigDecimal("11.0"), new BigDecimal(socAfter), loggedAt, ChargingType.UNKNOWN, null, null,
                 false, null));
     }
 
