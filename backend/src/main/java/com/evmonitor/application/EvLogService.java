@@ -322,7 +322,7 @@ public class EvLogService {
             updatedChargingProviderId = request.chargingProviderId();
         }
 
-        // Mode-switch semantics: providing one energy field and omitting the other clears the other.
+        // Both fields are independent: sending both keeps both, sending one with the other null clears the other.
         BigDecimal updatedKwhCharged = request.kwhCharged() != null ? request.kwhCharged() : existing.getKwhCharged();
         BigDecimal updatedKwhAtVehicle = request.kwhAtVehicle() != null ? request.kwhAtVehicle() : existing.getKwhAtVehicle();
         if (request.kwhAtVehicle() != null && request.kwhCharged() == null) updatedKwhCharged = null;

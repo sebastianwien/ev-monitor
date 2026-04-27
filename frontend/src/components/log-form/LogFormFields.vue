@@ -188,19 +188,14 @@ const kwhInputValue = computed({
   set(val: number | null) {
     if (kwhMode.value === 'charger') {
       form.value.kwhCharged = val
-      form.value.kwhAtVehicle = null
     } else {
       form.value.kwhAtVehicle = val
-      form.value.kwhCharged = null
     }
   },
 })
 
 const toggleKwhMode = (mode: 'charger' | 'vehicle') => {
-  if (kwhMode.value === mode) return
-  const current = kwhInputValue.value
   kwhMode.value = mode
-  if (current != null) kwhInputValue.value = current
 }
 
 // Reset mode when form is cleared
@@ -304,7 +299,10 @@ watch(() => form.value.costEur, (newVal) => {
 const userProviders = ref<UserProvider[]>([])
 
 onMounted(async () => {
-  if (form.value.kwhAtVehicle != null && form.value.kwhAtVehicle > 0) {
+  // Nur auf 'vehicle' wechseln wenn kwhAtVehicle gesetzt ist aber kwhCharged nicht
+  // Sind beide gesetzt, hat kwhCharged Prio (charger ist der Default)
+  if (form.value.kwhAtVehicle != null && form.value.kwhAtVehicle > 0
+      && (form.value.kwhCharged == null || form.value.kwhCharged <= 0)) {
     kwhMode.value = 'vehicle'
   }
 
