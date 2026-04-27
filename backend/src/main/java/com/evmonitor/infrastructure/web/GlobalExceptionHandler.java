@@ -166,7 +166,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleConstraintViolation(ConstraintViolationException ex) {
         String message = ex.getConstraintViolations().stream()
                 .findFirst()
-                .map(v -> v.getMessage())
+                .map(v -> {
+                    String path = v.getPropertyPath().toString();
+                    // Strip method-name prefix: "lookup.capacityKwh" → "capacityKwh"
+                    int dot = path.lastIndexOf('.');
+                    return (dot >= 0 ? path.substring(dot + 1) : path) + ": Ungültiger Wert.";
+                })
                 .orElse("Ungültige Eingabe.");
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("code", "VALIDATION_ERROR", "message", message));
     }

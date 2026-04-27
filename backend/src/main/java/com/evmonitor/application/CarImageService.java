@@ -1,5 +1,6 @@
 package com.evmonitor.application;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
@@ -20,6 +21,7 @@ import java.util.Set;
 import java.util.UUID;
 
 @Service
+@Slf4j
 public class CarImageService {
 
     private static final int MAX_DIMENSION = 500;
@@ -47,17 +49,12 @@ public class CarImageService {
             throw new IllegalArgumentException("Ungültiges Bildformat. Bitte JPEG oder PNG hochladen.");
         }
 
-        BufferedImage resized;
-        try {
-            resized = resize(original);
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Bildformat nicht unterstützt. Bitte ein Standard-RGB-JPEG oder PNG hochladen.");
-        }
-
         File targetFile = new File(dir, carId + ".jpg");
         try {
+            BufferedImage resized = resize(original);
             writeJpeg(resized, targetFile);
-        } catch (IOException e) {
+        } catch (Exception e) {
+            log.warn("Image processing failed for car {}: {}", carId, e.getMessage());
             throw new IllegalArgumentException("Bildformat nicht unterstützt. Bitte ein Standard-RGB-JPEG oder PNG hochladen.");
         }
 

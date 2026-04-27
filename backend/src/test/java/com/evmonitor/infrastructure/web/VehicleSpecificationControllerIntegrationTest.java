@@ -392,5 +392,10 @@ class VehicleSpecificationControllerIntegrationTest extends AbstractIntegrationT
         );
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode(),
                 "capacityKwh > 500 must return 400, not 500");
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().contains("VALIDATION_ERROR"),
+                "Response body must contain VALIDATION_ERROR code");
+        assertTrue(response.getBody().contains("capacityKwh"),
+                "Response body must name the offending parameter");
     }
 }
