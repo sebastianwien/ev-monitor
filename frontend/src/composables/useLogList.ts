@@ -12,7 +12,8 @@ import { enumToLabel } from '../utils/enumLabel'
 const PAGE_SIZE = 20
 
 // Backend stores LocalDateTime without timezone - treat as UTC for consistent comparison
-function toEpochMs(isoString: string): number {
+function toEpochMs(isoString: string | null | undefined): number {
+  if (!isoString) return 0
   const s = isoString.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(isoString) ? isoString : isoString + 'Z'
   return new Date(s).getTime()
 }
@@ -227,7 +228,7 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
 
   const fetchTrips = async () => {
     if (!selectedCarId.value) return
-    if (!authStore.isPremium && !authStore.isBetaTester) return
+    if (!authStore.isPremium && !authStore.isBetaTester && !authStore.isAdmin) return
     try {
       const res = await api.get(`/trips?carId=${selectedCarId.value}`)
       trips.value = res.data
@@ -240,7 +241,7 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
     if (!selectedCarId.value) return
     logsLoading.value = true
     try {
-      const canAccessTrips = authStore.isPremium || authStore.isBetaTester
+      const canAccessTrips = authStore.isPremium || authStore.isBetaTester || authStore.isAdmin
       const requests: Promise<any>[] = [
         api.get(`/logs?carId=${selectedCarId.value}&limit=${PAGE_SIZE}&page=${page}`),
         ...(canAccessTrips ? [api.get(`/trips?carId=${selectedCarId.value}`)] : []),
@@ -551,7 +552,7 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
     // Compute per-group summary (total km + date range) for groups of 2+ trips
     const groupTripEntries: Record<string, any[]> = {}
     for (const e of all) {
-      if (e._isTrip && e._tripGroupSize > 1) {
+      if (e._isTrip && e._tripGroupSize >= 1) {
         if (!groupTripEntries[e._tripGroupId]) groupTripEntries[e._tripGroupId] = []
         groupTripEntries[e._tripGroupId].push(e)
       }

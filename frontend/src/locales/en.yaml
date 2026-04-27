@@ -602,7 +602,7 @@ dashboard:
   chart_more_than: "more than"
   metric_driven: "driven"
   err_load: "Error loading statistics"
-  trip_group_count: "{count} trips"
+  trip_group_count: "1 trip | {count} trips"
   trip_add: "Trip"
   trip_edit: "Edit trip"
   trip_save: "Save"

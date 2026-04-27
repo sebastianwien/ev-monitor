@@ -26,9 +26,6 @@ import java.util.*;
 @Slf4j
 public class EvLogService {
 
-    private static final int SUPERSEDE_WINDOW_MINUTES = 15;
-    private static final BigDecimal SUPERSEDE_KWH_TOLERANCE = new BigDecimal("0.15");
-
     private final EvLogRepository evLogRepository;
     private final CarRepository carRepository;
     private final CoinLogService coinLogService;
@@ -93,9 +90,6 @@ public class EvLogService {
         newLog = builder.build();
 
         EvLog savedLog = evLogRepository.save(newLog);
-
-        // Suppress any matching import logs (e.g. Tesla auto-import of the same session)
-        suppressDuplicateImports(savedLog, userId);
 
         // Async: enrich with temperature from Open-Meteo (fire-and-forget, nullable result)
         temperatureEnricher.enrichLog(savedLog.getId(), savedLog.getGeohash(), savedLog.getLoggedAt());
@@ -200,25 +194,9 @@ public class EvLogService {
 
         EvLog savedLog = evLogRepository.save(newLog);
 
-        // If a USER_LOGGED entry already covers this session, mark this import as superseded immediately.
-        // Use effective energy (kwhAtVehicle after normalization, or kwhCharged for AT_CHARGER sources).
-        BigDecimal savedKwh = savedLog.getKwhCharged() != null ? savedLog.getKwhCharged() : savedLog.getKwhAtVehicle();
-        boolean isSuperseded = false;
-        if (savedKwh != null) {
-            LocalDateTime from = savedLog.getLoggedAt().minusMinutes(SUPERSEDE_WINDOW_MINUTES);
-            LocalDateTime to   = savedLog.getLoggedAt().plusMinutes(SUPERSEDE_WINDOW_MINUTES);
-            BigDecimal kwhMin  = savedKwh.multiply(BigDecimal.ONE.subtract(SUPERSEDE_KWH_TOLERANCE));
-            BigDecimal kwhMax  = savedKwh.multiply(BigDecimal.ONE.add(SUPERSEDE_KWH_TOLERANCE));
-            isSuperseded = evLogRepository.findUserLoggedInTimeWindow(savedLog.getCarId(), from, to, kwhMin, kwhMax)
-                    .stream()
-                    .min(Comparator.comparing(userLog -> savedKwh.subtract(userLog.getKwhCharged()).abs()))
-                    .map(userLog -> { evLogRepository.markAsSuperseded(savedLog.getId(), userLog.getId()); return true; })
-                    .orElse(false);
-        }
-
-        // Award per-log coins — only if this import was NOT immediately superseded by a manual entry.
+        // Award per-log coins for Tesla imports.
         // go-eCharger and plain OCPP wallbox coins are TBD and intentionally not awarded here yet.
-        if (!isSuperseded && (source == DataSource.TESLA_FLEET_IMPORT || source == DataSource.TESLA_LIVE)) {
+        if (source == DataSource.TESLA_FLEET_IMPORT || source == DataSource.TESLA_LIVE) {
             coinLogService.awardCoinsForEvent(request.userId(), CoinLogService.CoinEvent.TESLA_DAILY_LOG, savedLog.getId());
         }
 
@@ -226,25 +204,6 @@ public class EvLogService {
         eventPublisher.publishEvent(new SohAutoDetectEvent(car));
 
         return EvLogResponse.fromDomain(savedLog);
-    }
-
-    private void suppressDuplicateImports(EvLog userLog, UUID userId) {
-        if (userLog.getKwhCharged() == null) return;
-        LocalDateTime from = userLog.getLoggedAt().minusMinutes(SUPERSEDE_WINDOW_MINUTES);
-        LocalDateTime to   = userLog.getLoggedAt().plusMinutes(SUPERSEDE_WINDOW_MINUTES);
-        BigDecimal kwhMin  = userLog.getKwhCharged().multiply(BigDecimal.ONE.subtract(SUPERSEDE_KWH_TOLERANCE));
-        BigDecimal kwhMax  = userLog.getKwhCharged().multiply(BigDecimal.ONE.add(SUPERSEDE_KWH_TOLERANCE));
-        evLogRepository.findImportLogsInTimeWindow(userLog.getCarId(), from, to, kwhMin, kwhMax)
-                .forEach(imp -> {
-                    evLogRepository.markAsSuperseded(imp.getId(), userLog.getId());
-                    // Revert any coins awarded for this import so the user doesn't double-dip
-                    int coinSum = coinLogService.sumCoinsForSourceEntity(imp.getId());
-                    if (coinSum > 0) {
-                        coinLogService.awardCoins(userId, CoinType.ACHIEVEMENT_COIN, -coinSum,
-                                CoinLogService.CoinEvent.IMPORT_SUPERSEDED_DEDUCTION.getDescription(),
-                                imp.getId());
-                    }
-                });
     }
 
     /**
@@ -393,9 +352,6 @@ public class EvLogService {
                     CoinLogService.CoinEvent.LOG_DELETED_DEDUCTION.getDescription(), id);
         }
 
-        // Before deleting, clear any superseded_by references so suppressed imports resurface.
-        // The DB FK uses ON DELETE SET NULL in production, but this ensures it also works in tests (H2).
-        evLogRepository.clearSupersededByReferences(id);
         evLogRepository.deleteById(id);
     }
 

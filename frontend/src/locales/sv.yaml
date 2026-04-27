@@ -596,7 +596,7 @@ dashboard:
   chart_more_than: mer än
   metric_driven: driven
   err_load: Det gick inte att hämta statistiken
-  trip_group_count: "{count} resor"
+  trip_group_count: "1 resa | {count} resor"
   trip_add: Resa
   trip_edit: Redigera resa
   trip_save: Spara

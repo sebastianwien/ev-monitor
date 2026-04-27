@@ -152,34 +152,6 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
-    public List<EvLog> findImportLogsInTimeWindow(UUID carId, LocalDateTime from, LocalDateTime to,
-                                                   BigDecimal kwhMin, BigDecimal kwhMax) {
-        return jpaRepository.findImportLogsInTimeWindow(carId, from, to, kwhMin, kwhMax).stream()
-                .map(this::toDomain)
-                .toList();
-    }
-
-    @Override
-    public List<EvLog> findUserLoggedInTimeWindow(UUID carId, LocalDateTime from, LocalDateTime to,
-                                                  BigDecimal kwhMin, BigDecimal kwhMax) {
-        return jpaRepository.findUserLoggedInTimeWindow(carId, from, to, kwhMin, kwhMax).stream()
-                .map(this::toDomain)
-                .toList();
-    }
-
-    @Override
-    @Transactional
-    public void markAsSuperseded(UUID id, UUID supersededById) {
-        jpaRepository.markAsSuperseded(id, supersededById);
-    }
-
-    @Override
-    @Transactional
-    public void clearSupersededByReferences(UUID supersededById) {
-        jpaRepository.clearSupersededByReferences(supersededById);
-    }
-
-    @Override
     @Transactional
     public void updateCarIdForLog(UUID logId, UUID targetCarId) {
         jpaRepository.updateCarIdForLog(logId, targetCarId);
@@ -252,7 +224,6 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
         entity.setRawImportData(domain.getRawImportData());
         entity.setRouteType(domain.getRouteType() != null ? domain.getRouteType().name() : null);
         entity.setTireType(domain.getTireType() != null ? domain.getTireType().name() : null);
-        entity.setSupersededBy(domain.getSupersededBy());
         entity.setSessionGroupId(domain.getSessionGroupId());
         entity.setPublicCharging(domain.isPublicCharging());
         entity.setCpoName(domain.getCpoName());
@@ -288,7 +259,6 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 .rawImportData(entity.getRawImportData())
                 .routeType(entity.getRouteType() != null ? RouteType.valueOf(entity.getRouteType()) : null)
                 .tireType(entity.getTireType() != null ? TireType.valueOf(entity.getTireType()) : null)
-                .supersededBy(entity.getSupersededBy())
                 .sessionGroupId(entity.getSessionGroupId())
                 .publicCharging(entity.isPublicCharging())
                 .cpoName(entity.getCpoName())

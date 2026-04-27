@@ -32,7 +32,6 @@ public class EvLog {
     private final String rawImportData;      // Optional: raw JSON data from import source (e.g. SpritMonitor fueling)
     private final RouteType routeType;       // Optional: CITY, COMBINED, or HIGHWAY
     private final TireType tireType;         // Optional: SUMMER, ALL_YEAR, or WINTER
-    private final UUID supersededBy;         // Optional: ID of the USER_LOGGED log that supersedes this import
     private final UUID sessionGroupId;       // Optional: ID of the charging_session_group (sub-sessions only)
     private final boolean publicCharging;    // Whether this was at a public charger (CPO)
     private final String cpoName;            // Optional: CPO name (e.g. IONITY, EnBW) - only when isPublicCharging
@@ -53,7 +52,7 @@ public class EvLog {
             boolean includeInStatistics, Integer odometerSuggestionMinKm, Integer odometerSuggestionMaxKm,
             Double temperatureCelsius, ChargingType chargingType, String rawImportData,
             LocalDateTime createdAt, LocalDateTime updatedAt,
-            RouteType routeType, TireType tireType, UUID supersededBy, UUID sessionGroupId,
+            RouteType routeType, TireType tireType, UUID sessionGroupId,
             boolean publicCharging, String cpoName, EnergyMeasurementType measurementType,
             BigDecimal costExchangeRate, String costCurrency, UUID chargingProviderId) {
         this.id = id;
@@ -89,7 +88,6 @@ public class EvLog {
         this.rawImportData = rawImportData;
         this.routeType = routeType;
         this.tireType = tireType;
-        this.supersededBy = supersededBy;
         this.sessionGroupId = sessionGroupId;
         this.publicCharging = publicCharging;
         this.cpoName = cpoName;

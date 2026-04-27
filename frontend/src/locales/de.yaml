@@ -602,7 +602,7 @@ dashboard:
   chart_more_than: "mehr als"
   metric_driven: "gefahren"
   err_load: "Fehler beim Laden der Statistiken"
-  trip_group_count: "{count} Fahrten"
+  trip_group_count: "1 Fahrt | {count} Fahrten"
   trip_add: "Fahrt"
   trip_edit: "Fahrt bearbeiten"
   trip_save: "Speichern"

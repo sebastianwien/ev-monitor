@@ -897,18 +897,17 @@ function onTripFormLeave(el: Element, done: () => void) {
 
               <template v-if="entry._isTrip && canAccessTrips">
                 <!-- Trip group collapse header -->
-                <div v-if="entry._tripGroupSize > 1 && entry._tripGroupIndex === 0"
+                <div v-if="entry._tripGroupSize >= 1 && entry._tripGroupIndex === 0"
                      @click="toggleTripGroup(entry._tripGroupId)"
-                     class="mx-2 mb-1 flex items-center justify-between px-3 py-1.5 rounded-md bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 cursor-pointer select-none hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors">
-                  <div class="w-4 shrink-0"></div>
-                  <span class="flex-1 text-xs font-medium text-emerald-700 dark:text-emerald-400 flex items-center justify-center gap-1.5">
-                    <TruckIcon class="w-3.5 h-3.5" />
-                    {{ t('dashboard.trip_group_count', { count: entry._tripGroupSize }) }}
+                     class="ml-2 mr-2 mb-1 relative flex items-center px-3 py-1.5 rounded-lg border-l-4 border-l-emerald-400 dark:border-l-emerald-500 border-r-4 border-r-emerald-400 dark:border-r-emerald-500 bg-white dark:bg-gray-700 cursor-pointer select-none hover:bg-emerald-50 dark:hover:bg-gray-600 transition-colors">
+                  <div class="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                    <TruckIcon class="w-3.5 h-3.5 shrink-0" />
+                    {{ t('dashboard.trip_group_count', { count: entry._tripGroupSize }, entry._tripGroupSize) }}
                     <span v-if="entry._tripGroupTotalKm" class="font-normal text-emerald-600 dark:text-emerald-500">&middot; {{ formatDistance(entry._tripGroupTotalKm) }}</span>
                     <span v-if="entry._tripGroupDateRange" class="font-normal text-emerald-600 dark:text-emerald-500">&middot; {{ entry._tripGroupDateRange }}</span>
-                  </span>
-                  <ChevronUpIcon v-if="!collapsedTripGroups.has(entry._tripGroupId)" class="w-4 h-4 text-emerald-500 shrink-0" />
-                  <ChevronDownIcon v-else class="w-4 h-4 text-emerald-500 shrink-0" />
+                  </div>
+                  <ChevronUpIcon v-if="!collapsedTripGroups.has(entry._tripGroupId)" class="w-4 h-4 text-emerald-500 shrink-0 absolute right-3" />
+                  <ChevronDownIcon v-else class="w-4 h-4 text-emerald-500 shrink-0 absolute right-3" />
                 </div>
                 <!-- Trip display mode -->
                 <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">

@@ -596,7 +596,7 @@ dashboard:
   chart_more_than: mer enn
   metric_driven: drevet
   err_load: Feil ved innlasting av statistikk
-  trip_group_count: "{count} turer"
+  trip_group_count: "1 tur | {count} turer"
   trip_add: Tur
   trip_edit: Rediger tur
   trip_save: Lagre
