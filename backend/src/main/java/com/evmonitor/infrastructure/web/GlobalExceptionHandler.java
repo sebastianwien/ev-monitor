@@ -7,6 +7,7 @@ import com.evmonitor.domain.exception.ForbiddenException;
 import com.evmonitor.domain.exception.NotFoundException;
 import com.evmonitor.domain.exception.ValidationException;
 import com.evmonitor.infrastructure.github.GitHubIssueService;
+import jakarta.validation.ConstraintViolationException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -159,6 +160,15 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleMissingParam(MissingServletRequestParameterException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("code", "MISSING_PARAMETER",
                 "message", "Pflichtparameter fehlt: " + ex.getParameterName()));
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<Map<String, String>> handleConstraintViolation(ConstraintViolationException ex) {
+        String message = ex.getConstraintViolations().stream()
+                .findFirst()
+                .map(v -> v.getMessage())
+                .orElse("Ungültige Eingabe.");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("code", "VALIDATION_ERROR", "message", message));
     }
 
     @ExceptionHandler(AsyncRequestNotUsableException.class)

@@ -381,4 +381,16 @@ class VehicleSpecificationControllerIntegrationTest extends AbstractIntegrationT
         assertEquals("R2", response.getBody().specification().carModel());
         assertTrue(response.getBody().coinsAwarded() > 0);
     }
+
+    @Test
+    void lookup_capacityKwhAbove500_returns400NotServerError() {
+        ResponseEntity<String> response = restTemplate.exchange(
+                "/api/vehicle-specifications/lookup?brand=TESLA&model=MODEL_3&capacityKwh=999",
+                HttpMethod.GET,
+                createAuthRequest(userId, testUser.getEmail()),
+                String.class
+        );
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode(),
+                "capacityKwh > 500 must return 400, not 500");
+    }
 }

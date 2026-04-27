@@ -47,10 +47,19 @@ public class CarImageService {
             throw new IllegalArgumentException("Ungültiges Bildformat. Bitte JPEG oder PNG hochladen.");
         }
 
-        BufferedImage resized = resize(original);
+        BufferedImage resized;
+        try {
+            resized = resize(original);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Bildformat nicht unterstützt. Bitte ein Standard-RGB-JPEG oder PNG hochladen.");
+        }
 
         File targetFile = new File(dir, carId + ".jpg");
-        writeJpeg(resized, targetFile);
+        try {
+            writeJpeg(resized, targetFile);
+        } catch (IOException e) {
+            throw new IllegalArgumentException("Bildformat nicht unterstützt. Bitte ein Standard-RGB-JPEG oder PNG hochladen.");
+        }
 
         return targetFile.getAbsolutePath();
     }
