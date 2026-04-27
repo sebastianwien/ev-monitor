@@ -41,15 +41,12 @@ public class ConsumptionCalculationService {
      *
      * Priority:
      *   1. kwhAtVehicle when present — exact battery measurement, no correction needed.
-     *   2. kwhCharged with measurementType=AT_VEHICLE — legacy path for old Smartcar/Telemetry logs
-     *      that stored the vehicle-side value in kwhCharged before kwhAtVehicle existed.
-     *   3. kwhCharged × efficiency — AT_CHARGER measurement, losses are removed here.
+     *   2. kwhCharged — AT_CHARGER measurement, losses are removed here.
      */
     public BigDecimal effectiveKwhForConsumption(EvLog log) {
         if (log.getKwhAtVehicle() != null && log.getKwhAtVehicle().compareTo(BigDecimal.ZERO) > 0) {
             return log.getKwhAtVehicle();
         }
-        if (log.getMeasurementType() == EnergyMeasurementType.AT_VEHICLE) return log.getKwhCharged();
         return log.getKwhCharged().multiply(BigDecimal.valueOf(chargingEfficiency(log)));
     }
 
@@ -58,15 +55,14 @@ public class ConsumptionCalculationService {
      *
      * Priority:
      *   1. kwhAtVehicle when present — divide by efficiency to get AT_CHARGER equivalent.
-     *   2. kwhCharged with measurementType=AT_CHARGER — already grid-side, returned as-is.
-     *   3. kwhCharged with measurementType=AT_VEHICLE — legacy path, divide by efficiency.
+     *   2. kwhCharged — already grid-side, returned as-is.
      */
     public BigDecimal effectiveKwhForCost(EvLog log) {
         if (log.getKwhAtVehicle() != null && log.getKwhAtVehicle().compareTo(BigDecimal.ZERO) > 0) {
             return log.getKwhAtVehicle().divide(BigDecimal.valueOf(chargingEfficiency(log)), 4, RoundingMode.HALF_UP);
         }
-        if (log.getMeasurementType() == EnergyMeasurementType.AT_CHARGER) return log.getKwhCharged();
-        return log.getKwhCharged().divide(BigDecimal.valueOf(chargingEfficiency(log)), 4, RoundingMode.HALF_UP);
+        if (log.getKwhCharged() == null) return null;
+        return log.getKwhCharged();
     }
 
     /**

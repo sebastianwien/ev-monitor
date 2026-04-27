@@ -341,6 +341,22 @@ class InternalEvLogControllerTest extends AbstractIntegrationTest {
         assertEquals(0, new BigDecimal(response.getBody().get("costEur").toString()).compareTo(new BigDecimal("9.99")));
     }
 
+    @Test
+    void createLog_withSmartcarLiveSource_normalizesKwhChargedToKwhAtVehicle() {
+        Map<String, Object> request = logRequest(testCar.getId(), testUser.getId(),
+                "45.0", 60, LocalDateTime.now().minusHours(5), null, "SMARTCAR_LIVE", null);
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                "/api/internal/logs", HttpMethod.POST,
+                new HttpEntity<>(request, internalHeaders(VALID_TOKEN)), Map.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        Map<?, ?> body = response.getBody();
+        assertNotNull(body);
+        assertNull(body.get("kwhCharged"), "kwhCharged must be null after AT_VEHICLE normalization");
+        assertEquals(0, new BigDecimal(body.get("kwhAtVehicle").toString()).compareTo(new BigDecimal("45.0")));
+    }
+
     // --- Helpers ---
 
     private HttpHeaders internalHeaders(String token) {

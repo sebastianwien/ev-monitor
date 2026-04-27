@@ -60,7 +60,7 @@ public class TaxExportService {
 
         BigDecimal tariff = usePauschale ? BMF_PAUSCHALE_2026 : customTariff;
         BigDecimal totalKwh = sessions.stream()
-                .map(EvLogEntity::getKwhCharged)
+                .map(this::effectiveKwh)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal totalCost = totalKwh.multiply(tariff).setScale(2, RoundingMode.HALF_UP);
 
@@ -72,10 +72,11 @@ public class TaxExportService {
         sb.append("Datum;Uhrzeit;kWh;Kosten (EUR);Kennzeichen;Datenquelle;Messtyp\n");
 
         for (EvLogEntity s : data.sessions()) {
-            BigDecimal cost = s.getKwhCharged().multiply(data.tariffPerKwh()).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal kwh = effectiveKwh(s);
+            BigDecimal cost = kwh.multiply(data.tariffPerKwh()).setScale(2, RoundingMode.HALF_UP);
             sb.append(s.getLoggedAt().format(DATE_FMT)).append(";");
             sb.append(s.getLoggedAt().format(TIME_FMT)).append(";");
-            sb.append(s.getKwhCharged().setScale(3, RoundingMode.HALF_UP)).append(";");
+            sb.append(kwh.setScale(3, RoundingMode.HALF_UP)).append(";");
             sb.append(cost).append(";");
             sb.append(sanitizeCsvCell(nullSafe(data.car().getLicensePlate()))).append(";");
             sb.append(sanitizeCsvCell(s.getDataSource())).append(";");
@@ -143,10 +144,11 @@ public class TaxExportService {
             }
 
             for (EvLogEntity s : data.sessions()) {
-                BigDecimal cost = s.getKwhCharged().multiply(data.tariffPerKwh()).setScale(2, RoundingMode.HALF_UP);
+                BigDecimal kwh = effectiveKwh(s);
+                BigDecimal cost = kwh.multiply(data.tariffPerKwh()).setScale(2, RoundingMode.HALF_UP);
                 addTableCell(table, s.getLoggedAt().format(DATE_FMT), bodyFont);
                 addTableCell(table, s.getLoggedAt().format(TIME_FMT), bodyFont);
-                addTableCell(table, s.getKwhCharged().setScale(3, RoundingMode.HALF_UP).toPlainString(), bodyFont);
+                addTableCell(table, kwh.setScale(3, RoundingMode.HALF_UP).toPlainString(), bodyFont);
                 addTableCell(table, cost.toPlainString(), bodyFont);
                 addTableCell(table, nullSafe(data.car().getLicensePlate()), bodyFont);
                 addTableCell(table, formatSource(s.getDataSource()), bodyFont);
@@ -195,6 +197,12 @@ public class TaxExportService {
         PdfPCell cell = new PdfPCell(new Phrase(text, font));
         cell.setPadding(4);
         table.addCell(cell);
+    }
+
+    private BigDecimal effectiveKwh(EvLogEntity s) {
+        if (s.getKwhCharged() != null) return s.getKwhCharged();
+        if (s.getKwhAtVehicle() != null) return s.getKwhAtVehicle();
+        return BigDecimal.ZERO;
     }
 
     private String nullSafe(String value) {

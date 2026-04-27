@@ -112,7 +112,7 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
               AND e.dataSource != 'USER_LOGGED'
               AND e.supersededBy IS NULL
               AND e.loggedAt BETWEEN :from AND :to
-              AND e.kwhCharged BETWEEN :kwhMin AND :kwhMax
+              AND COALESCE(e.kwhCharged, e.kwhAtVehicle) BETWEEN :kwhMin AND :kwhMax
             """)
     List<EvLogEntity> findImportLogsInTimeWindow(
             @Param("carId") UUID carId,

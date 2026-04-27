@@ -177,11 +177,11 @@ public class EvLogService {
         if (request.geohash() != null) {
             var builder = newLog.toBuilder();
             final ChargingType inferredType = newLog.getChargingType();
-            final BigDecimal kwhCharged = newLog.getKwhCharged();
+            final BigDecimal effectiveEnergy = calculationService.effectiveKwhForCost(newLog);
             evLogRepository.findMostRecentChargingProviderAtGeohash(request.userId(), request.geohash())
                     .ifPresent(providerId -> {
                         builder.chargingProviderId(providerId);
-                        if (request.costEur() == null) {
+                        if (request.costEur() == null && effectiveEnergy != null) {
                             chargingProviderRepository.findById(providerId).ifPresent(provider -> {
                                 BigDecimal price = inferredType == ChargingType.DC
                                         ? provider.getDcPricePerKwh()
@@ -189,7 +189,7 @@ public class EvLogService {
                                 if (price != null) {
                                     BigDecimal sessionFee = provider.getSessionFeeEur() != null
                                             ? provider.getSessionFeeEur() : BigDecimal.ZERO;
-                                    builder.costEur(kwhCharged.multiply(price)
+                                    builder.costEur(effectiveEnergy.multiply(price)
                                             .add(sessionFee).setScale(2, RoundingMode.HALF_UP));
                                 }
                             });
@@ -200,17 +200,21 @@ public class EvLogService {
 
         EvLog savedLog = evLogRepository.save(newLog);
 
-        // If a USER_LOGGED entry already covers this session, mark this import as superseded immediately
-        LocalDateTime from = savedLog.getLoggedAt().minusMinutes(SUPERSEDE_WINDOW_MINUTES);
-        LocalDateTime to   = savedLog.getLoggedAt().plusMinutes(SUPERSEDE_WINDOW_MINUTES);
-        BigDecimal kwhMin  = savedLog.getKwhCharged().multiply(BigDecimal.ONE.subtract(SUPERSEDE_KWH_TOLERANCE));
-        BigDecimal kwhMax  = savedLog.getKwhCharged().multiply(BigDecimal.ONE.add(SUPERSEDE_KWH_TOLERANCE));
-        boolean isSuperseded = evLogRepository.findUserLoggedInTimeWindow(savedLog.getCarId(), from, to, kwhMin, kwhMax)
-                .stream()
-                .min(Comparator.comparing(userLog ->
-                        savedLog.getKwhCharged().subtract(userLog.getKwhCharged()).abs()))
-                .map(userLog -> { evLogRepository.markAsSuperseded(savedLog.getId(), userLog.getId()); return true; })
-                .orElse(false);
+        // If a USER_LOGGED entry already covers this session, mark this import as superseded immediately.
+        // Use effective energy (kwhAtVehicle after normalization, or kwhCharged for AT_CHARGER sources).
+        BigDecimal savedKwh = savedLog.getKwhCharged() != null ? savedLog.getKwhCharged() : savedLog.getKwhAtVehicle();
+        boolean isSuperseded = false;
+        if (savedKwh != null) {
+            LocalDateTime from = savedLog.getLoggedAt().minusMinutes(SUPERSEDE_WINDOW_MINUTES);
+            LocalDateTime to   = savedLog.getLoggedAt().plusMinutes(SUPERSEDE_WINDOW_MINUTES);
+            BigDecimal kwhMin  = savedKwh.multiply(BigDecimal.ONE.subtract(SUPERSEDE_KWH_TOLERANCE));
+            BigDecimal kwhMax  = savedKwh.multiply(BigDecimal.ONE.add(SUPERSEDE_KWH_TOLERANCE));
+            isSuperseded = evLogRepository.findUserLoggedInTimeWindow(savedLog.getCarId(), from, to, kwhMin, kwhMax)
+                    .stream()
+                    .min(Comparator.comparing(userLog -> savedKwh.subtract(userLog.getKwhCharged()).abs()))
+                    .map(userLog -> { evLogRepository.markAsSuperseded(savedLog.getId(), userLog.getId()); return true; })
+                    .orElse(false);
+        }
 
         // Award per-log coins — only if this import was NOT immediately superseded by a manual entry.
         // go-eCharger and plain OCPP wallbox coins are TBD and intentionally not awarded here yet.

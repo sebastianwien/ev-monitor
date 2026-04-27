@@ -39,8 +39,11 @@ public class UserService {
         var logs = evLogRepository.findAllByUserId(userId);
         int totalLogs = logs.size();
         double totalKwh = logs.stream()
-                .filter(log -> log.getKwhCharged() != null)
-                .mapToDouble(log -> log.getKwhCharged().doubleValue())
+                .mapToDouble(log -> {
+                    if (log.getKwhCharged() != null) return log.getKwhCharged().doubleValue();
+                    if (log.getKwhAtVehicle() != null) return log.getKwhAtVehicle().doubleValue();
+                    return 0.0;
+                })
                 .sum();
         double totalCostEur = logs.stream()
                 .filter(log -> log.getCostEur() != null)

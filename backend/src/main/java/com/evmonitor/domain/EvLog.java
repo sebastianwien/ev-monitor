@@ -58,8 +58,21 @@ public class EvLog {
             BigDecimal costExchangeRate, String costCurrency, UUID chargingProviderId) {
         this.id = id;
         this.carId = carId;
-        this.kwhCharged = kwhCharged;
-        this.kwhAtVehicle = kwhAtVehicle;
+        LocalDateTime base = loggedAt != null ? loggedAt : LocalDateTime.now();
+        this.loggedAt = base.withSecond(0).withNano(0);
+        this.dataSource = dataSource != null ? dataSource : DataSource.USER_LOGGED;
+        this.measurementType = measurementType != null ? measurementType : this.dataSource.measurementType();
+
+        // Normalize: AT_VEHICLE + kwhCharged set + kwhAtVehicle not set → move to kwhAtVehicle.
+        // Ensures vehicle-side energy always lives in kwhAtVehicle regardless of source.
+        if (this.measurementType == EnergyMeasurementType.AT_VEHICLE && kwhCharged != null && kwhAtVehicle == null) {
+            this.kwhAtVehicle = kwhCharged;
+            this.kwhCharged = null;
+        } else {
+            this.kwhCharged = kwhCharged;
+            this.kwhAtVehicle = kwhAtVehicle;
+        }
+
         this.costEur = costEur;
         this.chargeDurationMinutes = chargeDurationMinutes;
         this.geohash = geohash;
@@ -67,15 +80,12 @@ public class EvLog {
         this.maxChargingPowerKw = maxChargingPowerKw;
         this.socAfterChargePercent = socAfterChargePercent;
         this.socBeforeChargePercent = socBeforeChargePercent;
-        LocalDateTime base = loggedAt != null ? loggedAt : LocalDateTime.now();
-        this.loggedAt = base.withSecond(0).withNano(0);
-        this.dataSource = dataSource != null ? dataSource : DataSource.USER_LOGGED;
-        this.measurementType = measurementType != null ? measurementType : this.dataSource.measurementType();
         this.includeInStatistics = includeInStatistics;
         this.odometerSuggestionMinKm = odometerSuggestionMinKm;
         this.odometerSuggestionMaxKm = odometerSuggestionMaxKm;
         this.temperatureCelsius = temperatureCelsius;
-        this.chargingType = inferChargingType(chargingType, maxChargingPowerKw, kwhCharged, chargeDurationMinutes);
+        BigDecimal energyForInference = this.kwhCharged != null ? this.kwhCharged : this.kwhAtVehicle;
+        this.chargingType = inferChargingType(chargingType, maxChargingPowerKw, energyForInference, chargeDurationMinutes);
         this.rawImportData = rawImportData;
         this.routeType = routeType;
         this.tireType = tireType;

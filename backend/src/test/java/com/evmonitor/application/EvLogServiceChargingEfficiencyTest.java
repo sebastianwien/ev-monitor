@@ -16,7 +16,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 
-/** Tests for effectiveKwhForConsumption/Cost: kwhAtVehicle priority > AT_VEHICLE legacy > AT_CHARGER*efficiency. */
+/** Tests for effectiveKwhForConsumption/Cost: kwhAtVehicle (direct) > kwhCharged*efficiency (AT_CHARGER). */
 @ExtendWith(MockitoExtension.class)
 class EvLogServiceChargingEfficiencyTest {
 
@@ -73,7 +73,8 @@ class EvLogServiceChargingEfficiencyTest {
     }
 
     /**
-     * AT_VEHICLE log (Smartcar/Tesla): no efficiency correction — kwhCharged used as-is.
+     * SMARTCAR_LIVE log: constructor normalizes kwhCharged → kwhAtVehicle.
+     * effectiveKwhForConsumption uses kwhAtVehicle directly, no efficiency correction.
      *
      * socBefore(logY) = 85 - (50/75*100) = 85 - 66.67 = 18.33%
      * energyConsumed  = (80 - 18.33) * 75/100 = 61.67 * 0.75 = 46.25 kWh
@@ -122,7 +123,7 @@ class EvLogServiceChargingEfficiencyTest {
     }
 
     /**
-     * Fallback calculation does NOT apply correction for AT_VEHICLE logs:
+     * SMARTCAR_LIVE log: kwhCharged normalized to kwhAtVehicle — no efficiency correction in fallback.
      * consumption = 20 * 100 / 100 = 20.00 kWh/100km
      */
     @Test
@@ -150,13 +151,13 @@ class EvLogServiceChargingEfficiencyTest {
     }
 
     /**
-     * AT_VEHICLE log (Smartcar/Tesla): kwhCharged is divided by AC efficiency (0.90)
-     * to get AT_CHARGER equivalent — because cost_eur was billed on grid energy, not battery energy.
+     * SMARTCAR_LIVE log: kwhCharged=30 normalized to kwhAtVehicle=30.
+     * effectiveKwhForCost divides kwhAtVehicle by AC efficiency to get AT_CHARGER equivalent.
      *
      *   effectiveKwhForCost = 30 / 0.90 = 33.3333 kWh
      *
-     * Without this correction: avgCostPerKwh = cost / 30 kWh → appears 11% too expensive.
-     * With correction:         avgCostPerKwh = cost / 33.33 kWh → reflects true grid price.
+     * Without this: avgCostPerKwh = cost / 30 kWh → appears 11% too expensive.
+     * With this:    avgCostPerKwh = cost / 33.33 kWh → reflects true grid price.
      */
     @Test
     void effectiveKwhForCost_atVehicle_dividedByAcEfficiency() {
@@ -166,18 +167,17 @@ class EvLogServiceChargingEfficiencyTest {
 
         // 30 / 0.90 = 33.3333...
         assertEquals(0, new BigDecimal("33.3333").compareTo(result),
-                "AT_VEHICLE kWh should be upscaled to AT_CHARGER equivalent: 30 / 0.90 = 33.3333");
+                "kwhAtVehicle should be upscaled to AT_CHARGER equivalent: 30 / 0.90 = 33.3333");
     }
 
     /**
-     * AT_VEHICLE log at DC public charger: divided by DC efficiency (0.95).
+     * SMARTCAR_LIVE at public DC charger: kwhAtVehicle divided by DC efficiency (0.95).
      *
      *   effectiveKwhForCost = 30 / 0.95 = 31.5789 kWh
      */
     @Test
     void effectiveKwhForCost_atVehicleDcPublic_dividedByDcEfficiency() {
-        // Smartcar at public DC charger — but SMARTCAR_LIVE doesn't expose charging type,
-        // so we use AT_VEHICLE with UNKNOWN type + publicCharging=true to trigger DC proxy
+        // Smartcar at public DC charger — maxChargingPowerKw=50 triggers DC inference
         EvLog log = EvLog.builder()
                 .id(UUID.randomUUID())
                 .carId(UUID.randomUUID())
@@ -199,7 +199,7 @@ class EvLogServiceChargingEfficiencyTest {
 
         // 30 / 0.95 = 31.5789...
         assertEquals(0, new BigDecimal("31.5789").compareTo(result),
-                "AT_VEHICLE at public charger should use DC efficiency: 30 / 0.95 = 31.5789");
+                "kwhAtVehicle at public DC charger should use DC efficiency: 30 / 0.95 = 31.5789");
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
@@ -285,7 +285,7 @@ class EvLogServiceChargingEfficiencyTest {
     /**
      * AT_VEHICLE log at public DC charger: kwhAtVehicle divided by DC efficiency (0.95).
      * kwhAtVehicle=36.0 / 0.95 = 37.8947
-     * Distinct from the AC test (36/0.90=40.0000) and from the legacy kwhCharged-based DC test.
+     * Distinct from the AC test (36/0.90=40.0000) and from the SMARTCAR_LIVE DC test above.
      */
     @Test
     void effectiveKwhForCost_kwhAtVehicle_dc_dividedByDcEfficiency() {
