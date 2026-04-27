@@ -292,6 +292,11 @@ const showThgBanner = computed(() => {
   if (!thgDismissedAt.value) return true
   return (Date.now() - thgDismissedAt.value) / 86_400_000 >= 90
 })
+function displayKwh(kwhCharged: number | null, kwhAtVehicle: number | null): string {
+  if (kwhCharged != null && kwhAtVehicle != null) return `${kwhCharged}/${kwhAtVehicle}`
+  return String(kwhCharged ?? kwhAtVehicle ?? '')
+}
+
 function tripConsumption(entry: any): { kwhPer100km: number; estimated: boolean } | null {
   if (!entry.distanceKm || entry.distanceKm <= 0) return null
   if (entry.estimatedConsumedKwh != null) {
@@ -1204,7 +1209,7 @@ function onTripFormLeave(el: Element, done: () => void) {
                 <div class="flex items-center justify-between gap-2">
                   <div class="flex items-center gap-2 min-w-0">
                     <BoltIcon class="w-4 h-4 text-indigo-600 flex-shrink-0" />
-                    <span class="font-semibold text-indigo-700 dark:text-indigo-300 whitespace-nowrap">{{ entry.kwhCharged }} kWh</span>
+                    <span class="font-semibold text-indigo-700 dark:text-indigo-300 whitespace-nowrap">{{ displayKwh(entry.kwhCharged, entry.kwhAtVehicle) }} kWh</span>
                     <span class="text-xs text-gray-400 whitespace-nowrap">{{ formatLogDate(entry.loggedAt) }}</span>
                     <span v-if="sourceInfo(entry.dataSource)"
                       :class="['hidden md:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium whitespace-nowrap',
@@ -1265,14 +1270,14 @@ function onTripFormLeave(el: Element, done: () => void) {
                 </template>
                 <!-- Badges (normal log only) -->
                 <div v-if="!entry._isLadegruppe" class="flex flex-wrap gap-1.5">
-                  <span v-if="entry.costEur != null && entry.kwhCharged"
+                  <span v-if="entry.costEur != null && (entry.kwhCharged ?? entry.kwhAtVehicle)"
                     :class="['inline-flex items-center px-2 py-0.5 border text-xs rounded-full font-medium whitespace-nowrap cursor-pointer transition-all duration-75',
                              showCostAbsolute
                                ? 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'
-                               : [(costBadgeClass(entry.costEur, entry.kwhCharged) ?? 'bg-green-50 border-green-200 text-green-700'), 'shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'].join(' ')]"
+                               : [(costBadgeClass(entry.costEur, entry.kwhCharged ?? entry.kwhAtVehicle) ?? 'bg-green-50 border-green-200 text-green-700'), 'shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'].join(' ')]"
                     @click="showCostAbsolute = !showCostAbsolute">
                     <template v-if="showCostAbsolute">{{ formatCurrency(entry.costEur) }}</template>
-                    <template v-else>{{ formatCostPerKwh(entry.costEur / entry.kwhCharged) }}</template>
+                    <template v-else>{{ formatCostPerKwh(entry.costEur / (entry.kwhCharged ?? entry.kwhAtVehicle)) }}</template>
                   </span>
                   <span
                     v-if="entry.distanceSinceLastChargeKm != null || entry.odometerKm"

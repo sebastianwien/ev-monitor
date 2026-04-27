@@ -47,6 +47,7 @@ public class ConsumptionCalculationService {
         if (log.getKwhAtVehicle() != null && log.getKwhAtVehicle().compareTo(BigDecimal.ZERO) > 0) {
             return log.getKwhAtVehicle();
         }
+        if (log.getKwhCharged() == null) return null;
         return log.getKwhCharged().multiply(BigDecimal.valueOf(chargingEfficiency(log)));
     }
 
@@ -273,6 +274,7 @@ public class ConsumptionCalculationService {
         }
         BigDecimal totalKwh = logs.stream()
                 .map(this::effectiveKwhForConsumption)
+                .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         return totalKwh
                 .multiply(HUNDRED)

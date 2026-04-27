@@ -128,7 +128,7 @@ public class EvLogStatisticsService {
         Map<UUID, Integer> distanceByLogId = calculationService.computeDistanceByLogId(allLogsForCar);
         for (EvLog log : allLogsForCar) {
             if (consumptionByLog.containsKey(log.getId())) continue;
-            if (log.getKwhCharged() == null) continue;
+            if (!log.hasEnergyData()) continue;
             Integer dist = distanceByLogId.get(log.getId());
             if (dist == null || dist < plausibility.getMinTripDistanceKm()) continue;
             double c = calculationService.effectiveKwhForConsumption(log).doubleValue() / dist * 100.0;
@@ -139,7 +139,7 @@ public class EvLogStatisticsService {
 
         // Calculate key metrics
         BigDecimal totalKwhCharged = logs.stream()
-                .map(EvLog::getKwhCharged)
+                .map(l -> l.getKwhCharged() != null ? l.getKwhCharged() : l.getKwhAtVehicle())
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
@@ -300,10 +300,11 @@ public class EvLogStatisticsService {
         BigDecimal totalUserCost = BigDecimal.ZERO;
         BigDecimal totalUserKwh = BigDecimal.ZERO;
         for (EvLog log : userStatsLogs) {
-            if (log.getCostEur() == null || log.getKwhCharged() == null) continue;
-            if (log.getKwhCharged().compareTo(BigDecimal.ZERO) <= 0) continue;
+            if (log.getCostEur() == null) continue;
+            BigDecimal kwh = calculationService.effectiveKwhForCost(log);
+            if (kwh == null || kwh.compareTo(BigDecimal.ZERO) <= 0) continue;
             totalUserCost = totalUserCost.add(log.getCostEur());
-            totalUserKwh = totalUserKwh.add(log.getKwhCharged());
+            totalUserKwh = totalUserKwh.add(kwh);
         }
         if (totalUserKwh.compareTo(BigDecimal.ZERO) > 0) {
             userLifetimeCostPerKwh = totalUserCost.divide(totalUserKwh, 4, RoundingMode.HALF_UP);
@@ -331,10 +332,11 @@ public class EvLogStatisticsService {
             for (EvLog log : evLogRepository.findAllByCarIds(peerCarIds)) {
                 if (!sameCountryCarIds.contains(log.getCarId())) continue;
                 if (!log.isIncludeInStatistics()) continue;
-                if (log.getCostEur() == null || log.getKwhCharged() == null) continue;
-                if (log.getKwhCharged().compareTo(BigDecimal.ZERO) <= 0) continue;
+                if (log.getCostEur() == null) continue;
+                BigDecimal kwh = calculationService.effectiveKwhForCost(log);
+                if (kwh == null || kwh.compareTo(BigDecimal.ZERO) <= 0) continue;
                 totalPeerCost = totalPeerCost.add(log.getCostEur());
-                totalPeerKwh = totalPeerKwh.add(log.getKwhCharged());
+                totalPeerKwh = totalPeerKwh.add(kwh);
             }
             if (totalPeerKwh.compareTo(BigDecimal.ZERO) > 0) {
                 peerAvgCostPerKwh = totalPeerCost.divide(totalPeerKwh, 4, RoundingMode.HALF_UP);
@@ -386,6 +388,7 @@ public class EvLogStatisticsService {
 
             Integer dist = distanceByLogId.get(log.getId());
             if (dist == null || dist < plausibility.getMinTripDistanceKm()) continue;
+            if (!log.hasEnergyData()) continue;
 
             double c = calculationService.effectiveKwhForConsumption(log).doubleValue() / dist * 100;
             if (c < plausibility.getAbsoluteMinKwhPer100km() || c > plausibility.getAbsoluteMaxKwhPer100km()) continue;
@@ -621,12 +624,13 @@ public class EvLogStatisticsService {
         int precision = isPublicCharging ? 7 : 6;
         String geohash = GeoHash.withCharacterPrecision(latitude, longitude, precision).toBase32();
         return evLogRepository.findMostRecentLogAtGeohash(userId, geohash)
-                .filter(log -> log.getCostEur() != null && log.getKwhCharged() != null
-                        && log.getCostEur().compareTo(BigDecimal.ZERO) > 0
-                        && log.getKwhCharged().compareTo(BigDecimal.ZERO) > 0)
-                .map(log -> {
-                    BigDecimal costPerKwh = log.getCostEur().divide(log.getKwhCharged(), 4, RoundingMode.HALF_UP);
-                    return new PriceSuggestion(costPerKwh, log.getChargingProviderId());
+                .filter(log -> log.getCostEur() != null && log.getCostEur().compareTo(BigDecimal.ZERO) > 0)
+                .flatMap(log -> {
+                    BigDecimal kwh = calculationService.effectiveKwhForCost(log);
+                    if (kwh == null || kwh.compareTo(BigDecimal.ZERO) <= 0) return Optional.empty();
+                    return Optional.of(new PriceSuggestion(
+                            log.getCostEur().divide(kwh, 4, RoundingMode.HALF_UP),
+                            log.getChargingProviderId()));
                 });
     }
 }

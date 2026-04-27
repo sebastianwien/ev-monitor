@@ -436,6 +436,7 @@ public class EvLogService {
             if (consumptionByLog.containsKey(log.getId())) continue;
             Integer dist = distanceByLogId.get(log.getId());
             if (dist == null || dist < plausibility.getMinTripDistanceKm()) continue;
+            if (!log.hasEnergyData()) continue;
             double c = calculationService.effectiveKwhForConsumption(log).doubleValue() / dist * 100.0;
             boolean plausible = c >= plausibility.getAbsoluteMinKwhPer100km() && c <= plausibility.getAbsoluteMaxKwhPer100km();
             consumptionByLog.put(log.getId(), new ConsumptionResult(
