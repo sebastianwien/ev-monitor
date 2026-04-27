@@ -629,7 +629,11 @@ public class PublicModelService {
             BigDecimal realConsMin = variantResult.minValue() != null ? variantResult.minValue().setScale(1, RoundingMode.HALF_UP) : null;
             BigDecimal realConsMax = variantResult.maxValue() != null ? variantResult.maxValue().setScale(1, RoundingMode.HALF_UP) : null;
             boolean hasRealRange = realConsMin != null && realConsMax != null && realConsMin.compareTo(realConsMax) != 0;
-            String rangeSource = variantResult.rangeSource() != null ? variantResult.rangeSource().name() : null;
+            String rangeSource = switch (variantResult.rangeSource()) {
+                case null -> null;
+                case PER_DRIVER -> "PER_DRIVER";
+                case PER_TRIP -> "PER_TRIP";
+            };
 
             PublicModelStatsResponse.SeasonalDistribution variantSeasonal = null;
             if (!carsForVariant.isEmpty()) {

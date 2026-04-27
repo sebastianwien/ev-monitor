@@ -225,6 +225,7 @@ public class EvLogService {
     }
 
     private void suppressDuplicateImports(EvLog userLog, UUID userId) {
+        if (userLog.getKwhCharged() == null) return;
         LocalDateTime from = userLog.getLoggedAt().minusMinutes(SUPERSEDE_WINDOW_MINUTES);
         LocalDateTime to   = userLog.getLoggedAt().plusMinutes(SUPERSEDE_WINDOW_MINUTES);
         BigDecimal kwhMin  = userLog.getKwhCharged().multiply(BigDecimal.ONE.subtract(SUPERSEDE_KWH_TOLERANCE));

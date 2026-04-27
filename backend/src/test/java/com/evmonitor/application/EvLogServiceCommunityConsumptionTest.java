@@ -234,10 +234,10 @@ class EvLogServiceCommunityConsumptionTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void communityAvg_threeCarsWithSufficientTrips_returnsInterpolatedP10P90() {
+    void communityAvg_threeCarsWithSufficientTrips_returnsInterpolatedP25P75() {
         // Per-car averages: 15, 18, 22 kWh/100km (6 logs each = 5 trips)
-        // P10: 0.1*(3-1)=0.2 → 15 + 0.2*(18-15) = 15.60
-        // P90: 0.9*(3-1)=1.8 → 18 + 0.8*(22-18) = 21.20
+        // P25: 0.25*(3-1)=0.5 → 15 + 0.5*(18-15) = 16.50
+        // P75: 0.75*(3-1)=1.5 → 18 + 0.5*(22-18) = 20.00
         Car carA = carWithBattery(new BigDecimal("75.0"));
         for (int i = 0; i < 6; i++)
             saveLogNoSoc(carA.getId(), i * 100, new BigDecimal("18.0"), LocalDateTime.now().minusDays(6 - i));
@@ -252,16 +252,16 @@ class EvLogServiceCommunityConsumptionTest extends AbstractIntegrationTest {
 
         CommunityConsumptionResult result = evLogService.calculateCommunityAvgConsumption(List.of(carA, carB, carC), false);
 
-        assertEquals(new BigDecimal("15.60"), result.minValue(), "P10 should be interpolated, not absolute min");
-        assertEquals(new BigDecimal("21.20"), result.maxValue(), "P90 should be interpolated, not absolute max");
+        assertEquals(new BigDecimal("16.50"), result.minValue(), "P25 should be interpolated");
+        assertEquals(new BigDecimal("20.00"), result.maxValue(), "P75 should be interpolated");
     }
 
     @Test
     void communityAvg_singleCarWithManyTrips_usesPerTripPercentileRange() {
         // 1 car only → no per-driver range possible
         // Trips (via kWh-fallback): 14,15,16,16,17,17,18,18,19,25 kWh/100km
-        // P10: 0.1*9=0.9 → 14+0.9*(15-14)=14.90
-        // P90: 0.9*9=8.1 → 19+0.1*(25-19)=19.60
+        // P25: 0.25*9=2.25 → 16+0.25*(16-16)=16.00
+        // P75: 0.75*9=6.75 → 18+0.75*(18-18)=18.00
         // rangeSource must be PER_TRIP
         int[] consumptions = {14, 15, 16, 16, 17, 17, 18, 18, 19, 25};
         Car car = carWithBattery(new BigDecimal("75.0"));
@@ -273,8 +273,8 @@ class EvLogServiceCommunityConsumptionTest extends AbstractIntegrationTest {
 
         CommunityConsumptionResult result = evLogService.calculateCommunityAvgConsumption(List.of(car), false);
 
-        assertEquals(new BigDecimal("14.90"), result.minValue(), "P10 of per-trip consumptions");
-        assertEquals(new BigDecimal("19.60"), result.maxValue(), "P90 of per-trip consumptions");
+        assertEquals(new BigDecimal("16.00"), result.minValue(), "P25 of per-trip consumptions");
+        assertEquals(new BigDecimal("18.00"), result.maxValue(), "P75 of per-trip consumptions");
         assertEquals(CommunityConsumptionResult.RangeSource.PER_TRIP, result.rangeSource());
     }
 
@@ -295,9 +295,9 @@ class EvLogServiceCommunityConsumptionTest extends AbstractIntegrationTest {
     @Test
     void communityAvg_withOutlierCars_percentileExcludesExtremes() {
         // 10 cars: one low outlier (14), eight moderate (15-19), one high outlier (25)
-        // min/max would return 14/25 — P10/P90 should return 14.90/19.60
-        // P10: 0.1*9=0.9 → 14 + 0.9*(15-14) = 14.90
-        // P90: 0.9*9=8.1 → 19 + 0.1*(25-19) = 19.60
+        // min/max would return 14/25 — P25/P75 should return 16.00/18.00
+        // P25: 0.25*9=2.25 → 16+0.25*(16-16)=16.00
+        // P75: 0.75*9=6.75 → 18+0.75*(18-18)=18.00
         int[] consumptions = {14, 15, 16, 16, 17, 17, 18, 18, 19, 25};
         List<Car> cars = new java.util.ArrayList<>();
         for (int c : consumptions) {
@@ -309,8 +309,8 @@ class EvLogServiceCommunityConsumptionTest extends AbstractIntegrationTest {
 
         CommunityConsumptionResult result = evLogService.calculateCommunityAvgConsumption(cars, false);
 
-        assertEquals(new BigDecimal("14.90"), result.minValue(), "P10 should not be the absolute outlier minimum");
-        assertEquals(new BigDecimal("19.60"), result.maxValue(), "P90 should not be the absolute outlier maximum");
+        assertEquals(new BigDecimal("16.00"), result.minValue(), "P25 should not be the absolute outlier minimum");
+        assertEquals(new BigDecimal("18.00"), result.maxValue(), "P75 should not be the absolute outlier maximum");
         assertNotEquals(new BigDecimal("14.00"), result.minValue());
         assertNotEquals(new BigDecimal("25.00"), result.maxValue());
     }

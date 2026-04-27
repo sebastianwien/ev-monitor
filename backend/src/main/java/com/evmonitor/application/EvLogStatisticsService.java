@@ -453,13 +453,13 @@ public class EvLogStatisticsService {
         BigDecimal maxValue;
         CommunityConsumptionResult.RangeSource rangeSource;
         if (perCarAverages.size() >= 2) {
-            minValue = interpolatedPercentile(perCarAverages, 0.10);
-            maxValue = interpolatedPercentile(perCarAverages, 0.90);
+            minValue = interpolatedPercentile(perCarAverages, 0.25);
+            maxValue = interpolatedPercentile(perCarAverages, 0.75);
             rangeSource = CommunityConsumptionResult.RangeSource.PER_DRIVER;
         } else if (allTripConsumptions.size() >= MIN_TRIPS_FOR_CAR_RANGE) {
             Collections.sort(allTripConsumptions);
-            minValue = interpolatedPercentile(allTripConsumptions, 0.10);
-            maxValue = interpolatedPercentile(allTripConsumptions, 0.90);
+            minValue = interpolatedPercentile(allTripConsumptions, 0.25);
+            maxValue = interpolatedPercentile(allTripConsumptions, 0.75);
             rangeSource = CommunityConsumptionResult.RangeSource.PER_TRIP;
         } else {
             minValue = null;

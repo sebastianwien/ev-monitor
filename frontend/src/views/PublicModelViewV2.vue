@@ -91,9 +91,7 @@
                   <span :class="simpleDeltaClass(communityConsumptionRange.max, heroOfficialConsumption)">{{ consumptionDeltaLabel(communityConsumptionRange.max, heroOfficialConsumption) }}</span>
                 </span>
               </div>
-              <div class="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                {{ communityConsumptionRange.rangeSource === 'PER_DRIVER' ? t('model.range_source_per_driver') : t('model.range_source_per_trip') }}
-              </div>
+              <div class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ rangeSourceLabel }}</div>
             </template>
             <!-- Fallback: single average -->
             <template v-else>
@@ -113,6 +111,11 @@
                 </span>
               </div>
             </template>
+          </div>
+
+          <!-- No data for selected variant -->
+          <div v-if="variantHasNoData" class="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 text-center">
+            <p class="text-gray-500 dark:text-gray-400 text-sm">{{ t('model.variant_no_data') }}</p>
           </div>
 
           <!-- No data notice -->
@@ -162,7 +165,7 @@
               <!-- Desktop: Ladevorgänge -->
               <div class="hidden md:block">
                 <div class="text-xl font-bold text-gray-900 dark:text-gray-100">
-                  {{ (selectedVariant?.realConsumptionTripCount ?? stats.logCount) > 0 ? (selectedVariant?.realConsumptionTripCount ?? stats.logCount).toLocaleString() : '-' }}
+                  {{ variantHasNoData ? '-' : ((selectedVariant?.realConsumptionTripCount ?? stats.logCount) > 0 ? (selectedVariant?.realConsumptionTripCount ?? stats.logCount).toLocaleString() : '-') }}
                 </div>
                 <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('model.metrics_sessions') }}</div>
                 <div v-if="(selectedVariant?.estimatedConsumptionCount ?? stats.estimatedConsumptionCount) > 0" class="text-xs text-gray-400 dark:text-gray-500 mt-1 italic">
@@ -222,7 +225,7 @@
             <!-- Ladevorgänge: Mobile als eigene Zeile -->
             <div class="md:hidden mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-center">
               <div class="text-xl font-bold text-gray-900 dark:text-gray-100">
-                {{ (selectedVariant?.realConsumptionTripCount ?? stats.logCount) > 0 ? (selectedVariant?.realConsumptionTripCount ?? stats.logCount).toLocaleString() : '-' }}
+                {{ variantHasNoData ? '-' : ((selectedVariant?.realConsumptionTripCount ?? stats.logCount) > 0 ? (selectedVariant?.realConsumptionTripCount ?? stats.logCount).toLocaleString() : '-') }}
               </div>
               <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('model.metrics_sessions') }}</div>
               <div v-if="(selectedVariant?.estimatedConsumptionCount ?? stats.estimatedConsumptionCount) > 0" class="text-xs text-gray-400 dark:text-gray-500 mt-1 italic">
@@ -775,7 +778,7 @@ interface ActiveVariant {
   displayLabel: string | null
   officialRangeKm: number
   officialRangeMinKm: number | null
-  officialConsumptionKwhPer100km: number
+  officialConsumptionKwhPer100km: number | null
   officialConsumptionMinKwhPer100km: number | null
   officialConsumptionMaxKwhPer100km: number | null
   realConsumptionKwhPer100km: number | null
@@ -904,9 +907,17 @@ const activeVariants = computed<ActiveVariant[]>(() => {
 
 const selectedVariant = computed(() => activeVariants.value[selectedVariantIndex.value] ?? null)
 
-const displayConsumption = computed(() =>
-  selectedVariant.value?.realConsumptionKwhPer100km ?? stats.value?.avgConsumptionKwhPer100km ?? null
+const variantHasNoData = computed(() =>
+  activeVariants.value.length > 1 && !selectedVariant.value?.realConsumptionKwhPer100km
 )
+
+const displayConsumption = computed(() => {
+  const variantConsumption = selectedVariant.value?.realConsumptionKwhPer100km
+  if (variantConsumption != null) return variantConsumption
+  // Only fall back to model average when no variant switcher is shown (single variant)
+  if (activeVariants.value.length > 1) return null
+  return stats.value?.avgConsumptionKwhPer100km ?? null
+})
 
 const displayRange = computed(() => {
   if (!selectedVariant.value || !displayConsumption.value) return null
@@ -933,7 +944,8 @@ const wltpDeltaPercent = computed(() => {
 
 const worstOfficialConsumption = computed(() => {
   if (!activeVariants.value.length) return null
-  return Math.max(...activeVariants.value.map(v => v.officialConsumptionKwhPer100km))
+  const values = activeVariants.value.map(v => v.officialConsumptionKwhPer100km).filter((v): v is number => v !== null)
+  return values.length ? Math.max(...values) : null
 })
 
 // Use selected variant's WLTP for the hero badge - falls back to worst-across-all when no variant selected
@@ -1175,7 +1187,8 @@ function simpleDeltaClass(real: number, wltp: number): string {
     : 'text-red-600 dark:text-red-400'
 }
 
-function deltaLabelClass(real: number, wltp: number): string {
+function deltaLabelClass(real: number | null, wltp: number | null): string {
+  if (!real || !wltp) return ''
   const pct = ((real - wltp) / wltp) * 100
   if (pct <= 0) return 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
   if (pct <= 15) return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400'
@@ -1187,6 +1200,12 @@ const communityConsumptionRange = computed(() => {
   const max = selectedVariant.value?.realConsumptionMaxKwhPer100km
   if (!min || !max) return null
   return { min, max, rangeSource: selectedVariant.value?.realConsumptionRangeSource ?? null }
+})
+
+const rangeSourceLabel = computed(() => {
+  const src = communityConsumptionRange.value?.rangeSource
+  if (!src) return ''
+  return src === 'PER_DRIVER' ? t('model.range_source_per_driver') : t('model.range_source_per_trip')
 })
 
 

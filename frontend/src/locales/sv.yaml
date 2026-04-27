@@ -297,6 +297,7 @@ model:
   wltp_table_consumption: Förbrukning
   wltp_table_real_consumption: Faktisk förbrukning
   wltp_no_data: inga uppgifter ännu
+  variant_no_data: Inga data för denna variant ännu
   wltp_note: WLTP = tillverkarens officiella värde (KOMBINERAD). Den faktiska förbrukningen baseras på användardata från EV Monitor.
   wltp_varies_by_year: varierar beroende på årsmodell
   wltp_measurement_note: "Värdena för förbrukning i trafik visar normaliserad körförbrukning – laddningsförluster har räknats bort (växelström: 10 %, likström: 5 %). WLTP mäter endast körförbrukningen utan standby och förkonditionering – en skillnad på 5–15 % är därför normal."

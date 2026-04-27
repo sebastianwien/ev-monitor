@@ -301,6 +301,7 @@ model:
   wltp_table_consumption: "Verbrauch"
   wltp_table_real_consumption: "Realer Verbrauch"
   wltp_no_data: "noch keine Daten"
+  variant_no_data: "Noch keine Daten für diese Variante"
   wltp_note: "WLTP = offizieller Herstellerwert (COMBINED). Realer Verbrauch basiert auf Nutzerdaten von EV Monitor."
   wltp_varies_by_year: "variiert je nach Baujahr"
   wltp_measurement_note: "Die Community-Verbräuche zeigen den normierten Fahrverbrauch - Ladeverluste sind herausgerechnet (AC: 10%, DC: 5%). Der WLTP-Wert misst nur den Fahrverbrauch ohne Standby und Vorkonditionierung - eine Differenz von 5-15% ist deshalb normal."

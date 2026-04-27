@@ -56,7 +56,8 @@ export function useLocaleFormat() {
      * @param opts.decimals Decimal places (default 1)
      * @param opts.showUnit Append unit label (default true)
      */
-    function formatConsumption(kwhPer100km: number, opts?: { decimals?: number, showUnit?: boolean }): string {
+    function formatConsumption(kwhPer100km: number | null, opts?: { decimals?: number, showUnit?: boolean }): string {
+        if (kwhPer100km === null || kwhPer100km === undefined) return '–'
         const decimals = opts?.decimals ?? 1
         const showUnit = opts?.showUnit ?? true
         const converted = convertConsumption(kwhPer100km)
@@ -186,7 +187,8 @@ export function useLocaleFormat() {
      * Format the delta label in display unit space.
      * kWh/100km: negative = better (less consumption). mi/kWh: positive = better (more range).
      */
-    function consumptionDeltaLabel(realKwhPer100km: number, wltpKwhPer100km: number): string {
+    function consumptionDeltaLabel(realKwhPer100km: number | null, wltpKwhPer100km: number | null): string {
+        if (!realKwhPer100km || !wltpKwhPer100km) return ''
         let displayDelta: number
         if (unitSystem.value.consumptionInverse) {
             // mi/kWh space: (official - real) / real * 100  →  positive = more mi/kWh = better
@@ -202,7 +204,8 @@ export function useLocaleFormat() {
      * CSS class for delta display (green = better, red = worse).
      * Always computed in kWh/100km space so the semantics are consistent.
      */
-    function consumptionDeltaClass(realKwhPer100km: number, wltpKwhPer100km: number): string {
+    function consumptionDeltaClass(realKwhPer100km: number | null, wltpKwhPer100km: number | null): string {
+        if (!realKwhPer100km || !wltpKwhPer100km) return ''
         const delta = consumptionDeltaPercent(realKwhPer100km, wltpKwhPer100km)
         if (delta > 5) return 'text-red-600 dark:text-red-400'
         if (delta < -5) return 'text-green-600 dark:text-green-400'

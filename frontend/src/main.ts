@@ -47,6 +47,23 @@ if (initialLocale === 'nb' || initialLocale === 'sv') {
     await loadLocaleMessages(initialLocale)
 }
 
+// After a deployment, browser caches may reference JS/CSS chunks that no longer exist.
+// Reload the page once to pick up fresh assets instead of leaving users stuck on a broken screen.
+function isChunkLoadError(msg: string): boolean {
+    return msg.includes('Failed to fetch dynamically imported module')
+        || msg.includes('Unable to preload CSS')
+}
+
+router.onError((error) => {
+    if (!(error instanceof Error)) return
+    if (!isChunkLoadError(error.message)) return
+    const reloaded = sessionStorage.getItem('chunk-reload')
+    if (!reloaded) {
+        sessionStorage.setItem('chunk-reload', '1')
+        window.location.reload()
+    }
+})
+
 // Global error reporting (production only)
 if (import.meta.env.PROD) {
     const reportError = (err: unknown, info: string) => {
@@ -61,6 +78,7 @@ if (import.meta.env.PROD) {
 
     app.config.errorHandler = (err, _instance, info) => {
         console.error('Vue Error:', err)
+        if (err instanceof Error && isChunkLoadError(err.message)) return
         reportError(err, info)
     }
 
@@ -75,6 +93,8 @@ if (import.meta.env.PROD) {
         if (message.includes('autofillFieldData')) return
         // Ignore known browser extension errors (Zotero, etc.)
         if (message.includes('Zotero') || message.includes('Failed to send message')) return
+        // Ignore stale-cache chunk load errors — handled by router.onError
+        if (isChunkLoadError(message)) return
         reportError(event.reason, 'unhandledrejection')
     })
 }

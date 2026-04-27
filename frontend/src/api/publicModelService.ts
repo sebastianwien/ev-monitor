@@ -6,7 +6,7 @@ export interface WltpVariant {
     displayLabel: string | null
     wltpRangeKm: number
     wltpRangeMinKm: number | null
-    wltpConsumptionKwhPer100km: number
+    wltpConsumptionKwhPer100km: number | null
     wltpConsumptionMinKwhPer100km: number | null
     wltpConsumptionMaxKwhPer100km: number | null
     realConsumptionKwhPer100km: number | null
@@ -23,7 +23,7 @@ export interface EpaVariant {
     variantName: string | null
     displayLabel: string | null
     epaRangeKm: number
-    epaConsumptionKwhPer100km: number
+    epaConsumptionKwhPer100km: number | null
     epaConsumptionMinKwhPer100km: number | null
     epaConsumptionMaxKwhPer100km: number | null
     realConsumptionKwhPer100km: number | null

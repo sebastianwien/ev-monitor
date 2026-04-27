@@ -4,5 +4,6 @@ public enum AuthProvider {
     LOCAL,
     GOOGLE,
     APPLE,
-    FACEBOOK
+    FACEBOOK,
+    SYSTEM
 }

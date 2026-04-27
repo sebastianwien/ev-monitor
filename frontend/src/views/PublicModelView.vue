@@ -279,7 +279,7 @@
                 </div>
                 <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
                   <div class="text-xs text-gray-500 dark:text-gray-400 mb-0.5">{{ t('model.wltp_wltp_consumption') }}</div>
-                  <div class="font-medium text-gray-800 dark:text-gray-200">{{ selectedVariant.wltpConsumptionKwhPer100km }} kWh/100km</div>
+                  <div class="font-medium text-gray-800 dark:text-gray-200">{{ selectedVariant.wltpConsumptionKwhPer100km != null ? selectedVariant.wltpConsumptionKwhPer100km.toFixed(1) + ' kWh/100km' : '–' }}</div>
                 </div>
                 <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
                   <div class="text-xs text-gray-500 dark:text-gray-400 mb-0.5">{{ t('model.wltp_real_range') }}</div>
@@ -338,7 +338,7 @@
                     </div>
                     <span v-else class="text-gray-400">–</span>
                   </td>
-                  <td class="py-3 pr-4 text-gray-700 dark:text-gray-300 whitespace-nowrap">{{ selectedVariant.wltpConsumptionKwhPer100km }} kWh/100km</td>
+                  <td class="py-3 pr-4 text-gray-700 dark:text-gray-300 whitespace-nowrap">{{ selectedVariant.wltpConsumptionKwhPer100km != null ? selectedVariant.wltpConsumptionKwhPer100km.toFixed(1) + ' kWh/100km' : '–' }}</td>
                   <td class="py-3 align-top">
                     <div v-if="selectedVariant.realConsumptionKwhPer100km" class="flex flex-col items-start gap-1">
                       <span :class="consumptionDeltaClass(selectedVariant.realConsumptionKwhPer100km, selectedVariant.wltpConsumptionKwhPer100km)"
@@ -622,7 +622,8 @@ const wltpDeltaPercent = computed(() => {
 
 const worstWltpConsumption = computed(() => {
   if (!stats.value?.wltpVariants.length) return null
-  return Math.max(...stats.value.wltpVariants.map(v => v.wltpConsumptionKwhPer100km))
+  const values = stats.value.wltpVariants.map(v => v.wltpConsumptionKwhPer100km).filter((v): v is number => v !== null)
+  return values.length ? Math.max(...values) : null
 })
 
 // Number of logs that actually contributed to consumption calculation
@@ -906,21 +907,24 @@ onMounted(async () => {
 
 })
 
-function consumptionDeltaClass(real: number, wltp: number): string {
+function consumptionDeltaClass(real: number | null, wltp: number | null): string {
+  if (!real || !wltp) return ''
   const percentDelta = ((real - wltp) / wltp) * 100
   if (percentDelta <= 0) return 'text-green-600'
   if (percentDelta <= 15) return 'text-yellow-600'
   return 'text-red-600'
 }
 
-function deltaLabelClass(real: number, wltp: number): string {
+function deltaLabelClass(real: number | null, wltp: number | null): string {
+  if (!real || !wltp) return ''
   const percentDelta = ((real - wltp) / wltp) * 100
   if (percentDelta <= 0) return 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
   if (percentDelta <= 15) return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400'
   return 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'
 }
 
-function deltaLabel(real: number, wltp: number): string {
+function deltaLabel(real: number | null, wltp: number | null): string {
+  if (!real || !wltp) return ''
   const percentDelta = ((real - wltp) / wltp) * 100
   const sign = percentDelta > 0 ? '+' : ''
   return `${sign}${percentDelta.toFixed(1)}%`

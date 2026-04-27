@@ -386,4 +386,36 @@ class EvLogDuplicateDetectionIntegrationTest extends AbstractIntegrationTest {
         assertNull(importAfter.getSupersededBy(),
                 "Import should NOT be suppressed when kWh difference exceeds 15%");
     }
+
+    /**
+     * Test 5: User logs with kwhAtVehicle only (kwhCharged = null).
+     * suppressDuplicateImports must not throw NPE when kwhCharged is absent.
+     */
+    @Test
+    void logWithNullKwhCharged_doesNotThrowNpe() {
+        LocalDateTime sessionTime = LocalDateTime.now().minusHours(1);
+
+        EvLogRequest request = new EvLogRequest(
+                carId,
+                null,
+                new BigDecimal("8.00"),
+                45,
+                null, null,
+                52000, null, new BigDecimal("80"),
+                null,
+                new BigDecimal("30.00"),
+                sessionTime,
+                null, null, null, null, null, null, null, null, null
+        );
+
+        ResponseEntity<EvLogCreateResponse> response = restTemplate.exchange(
+                "/api/logs",
+                HttpMethod.POST,
+                createAuthRequest(request, userId, testUser.getEmail()),
+                EvLogCreateResponse.class
+        );
+
+        assertEquals(HttpStatus.CREATED, response.getStatusCode(),
+                "Log with kwhAtVehicle only must succeed without NPE");
+    }
 }
