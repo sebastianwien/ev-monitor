@@ -325,17 +325,18 @@ class EvLogServiceChargingEfficiencyTest {
     }
 
     /**
-     * kwhAtVehicle set → upscaled by efficiency for cost (grid-side equivalent).
-     * kwhAtVehicle=36.0, AC efficiency=0.90 → 36.0/0.90 = 40.0000
-     * kwhCharged=50.0 on the same log must NOT be used.
+     * Both fields set: kwhCharged takes priority for cost (it IS the precise AT_CHARGER value).
+     * kwhCharged=50.0 → returned as-is (no efficiency conversion needed).
+     * kwhAtVehicle=36.0 is ignored for cost — using 36/0.90=40 would be an approximation of
+     * a value we already have precisely.
      */
     @Test
-    void effectiveKwhForCost_kwhAtVehicleSet_upscaledToChargerSide() {
+    void effectiveKwhForCost_bothFieldsSet_kwhChargedTakesPriority() {
         EvLog log = logWithKwhAtVehicle(null, new BigDecimal("50.0"), new BigDecimal("36.0"), null, ChargingType.AC, T1);
 
         BigDecimal result = service.effectiveKwhForCost(log);
 
-        assertEquals(0, new BigDecimal("40.0000").compareTo(result));
+        assertEquals(0, new BigDecimal("50.0").compareTo(result));
     }
 
     /**

@@ -293,8 +293,9 @@ const showThgBanner = computed(() => {
   return (Date.now() - thgDismissedAt.value) / 86_400_000 >= 90
 })
 function displayKwh(kwhCharged: number | null, kwhAtVehicle: number | null): string {
-  if (kwhCharged != null && kwhAtVehicle != null) return `${kwhCharged}/${kwhAtVehicle}`
-  return String(kwhCharged ?? kwhAtVehicle ?? '')
+  const b = kwhCharged != null ? String(kwhCharged) : '-'
+  const n = kwhAtVehicle != null ? String(kwhAtVehicle) : '-'
+  return `${b}/${n}`
 }
 
 function tripConsumption(entry: any): { kwhPer100km: number; estimated: boolean } | null {

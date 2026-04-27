@@ -353,7 +353,7 @@ onMounted(async () => {
               <div class="flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2 min-w-0">
                   <BoltIcon class="w-4 h-4 text-indigo-600 flex-shrink-0" />
-                  <span class="font-semibold text-indigo-700 whitespace-nowrap">{{ log.kwhCharged != null && log.kwhAtVehicle != null ? `${log.kwhCharged}/${log.kwhAtVehicle}` : (log.kwhAtVehicle ?? log.kwhCharged) }} kWh</span>
+                  <span class="font-semibold text-indigo-700 whitespace-nowrap">{{ (log.kwhCharged ?? '-') + '/' + (log.kwhAtVehicle ?? '-') }} kWh</span>
                   <span class="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{{ new Date(log.loggedAt).toLocaleDateString() }}</span>
                 </div>
                 <div class="flex items-center gap-1.5 flex-shrink-0">

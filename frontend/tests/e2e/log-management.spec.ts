@@ -204,7 +204,12 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
     await page.route('**/api/logs', async route => {
       if (route.request().method() === 'POST') {
         capturedPayload = route.request().postDataJSON() as Record<string, unknown>;
-        await route.abort(); // Log nicht wirklich anlegen - kein Einfluss auf spätere Edit-Tests
+        // Erfolgreiche Antwort simulieren ohne Log in DB anzulegen - spätere Edit-Tests bleiben unberührt
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ id: '00000000-0000-0000-0000-000000000000' }),
+        });
       } else {
         await route.continue();
       }
@@ -222,6 +227,9 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
 
     await page.locator('input[placeholder="z.B. 12.50"]').fill('12.00');
     await page.locator('button[type="submit"]').click();
+
+    // Erfolgreiche Navigation zum Dashboard
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 10_000 });
 
     // Payload muss beide Felder enthalten
     expect(capturedPayload).not.toBeNull();

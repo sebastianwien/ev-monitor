@@ -198,10 +198,6 @@ const toggleKwhMode = (mode: 'charger' | 'vehicle') => {
   kwhMode.value = mode
 }
 
-// Reset mode when form is cleared
-watch([() => form.value.kwhCharged, () => form.value.kwhAtVehicle], ([kwh, kwhV]) => {
-  if (kwh === null && kwhV === null) kwhMode.value = 'charger'
-})
 
 // ── Cost Mode ─────────────────────────────────────────────────────────────────
 const costMode = ref<'total' | 'per_kwh'>('total')

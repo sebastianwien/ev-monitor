@@ -55,15 +55,21 @@ public class ConsumptionCalculationService {
      * Returns the grid-side kWh for cost calculations (what was billed at the charger).
      *
      * Priority:
-     *   1. kwhAtVehicle when present — divide by efficiency to get AT_CHARGER equivalent.
-     *   2. kwhCharged — already grid-side, returned as-is.
+     *   1. kwhCharged when present — precise grid-side measurement, used as-is.
+     *   2. kwhAtVehicle — netto measurement, divided by efficiency to estimate grid equivalent.
+     *
+     * kwhCharged takes priority: when both fields are set (user entered brutto + netto),
+     * kwhCharged is the exact billing basis — deriving it from kwhAtVehicle/efficiency
+     * would introduce unnecessary approximation error.
      */
     public BigDecimal effectiveKwhForCost(EvLog log) {
+        if (log.getKwhCharged() != null && log.getKwhCharged().compareTo(BigDecimal.ZERO) > 0) {
+            return log.getKwhCharged();
+        }
         if (log.getKwhAtVehicle() != null && log.getKwhAtVehicle().compareTo(BigDecimal.ZERO) > 0) {
             return log.getKwhAtVehicle().divide(BigDecimal.valueOf(chargingEfficiency(log)), 4, RoundingMode.HALF_UP);
         }
-        if (log.getKwhCharged() == null) return null;
-        return log.getKwhCharged();
+        return null;
     }
 
     /**
