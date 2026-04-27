@@ -288,8 +288,8 @@ model:
   wltp_real_range: Verklig räckvidd
   wltp_real_consumption: Faktisk förbrukning
   wltp_full_range: 100 % → 0 %
-  range_source_per_driver: Spann över flera förare
-  range_source_per_trip: Spann över resor
+  range_source_per_driver: Baserat på flera förare
+  range_source_per_trip: Baserat på en användares resor
   wltp_table_battery: Batteri
   wltp_table_range: Räckvidd
   wltp_table_real_range: Verklig räckvidd

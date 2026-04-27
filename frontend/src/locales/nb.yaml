@@ -288,8 +288,8 @@ model:
   wltp_real_range: Reell rekkevidde
   wltp_real_consumption: Faktisk forbruk
   wltp_full_range: 100 % → 0 %
-  range_source_per_driver: Spenn over flere sjåfører
-  range_source_per_trip: Spenn over turer
+  range_source_per_driver: Basert på flere sjåfører
+  range_source_per_trip: Basert på én brukers turer
   wltp_table_battery: Batteri
   wltp_table_range: Rekkevidde
   wltp_table_real_range: Reell rekkevidde

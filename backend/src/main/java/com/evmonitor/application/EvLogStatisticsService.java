@@ -422,7 +422,7 @@ public class EvLogStatisticsService {
         int tripCount = 0;
         int estimatedTripCount = 0;
         List<BigDecimal> perCarAverages = new ArrayList<>();
-        List<BigDecimal> allTripConsumptions = new ArrayList<>();
+        List<List<PlausibleEntry>> allCarEntries = new ArrayList<>();
 
         for (Car car : cars) {
             List<EvLog> allLogs = logsByCarId.getOrDefault(car.getId(), List.of());
@@ -439,13 +439,13 @@ public class EvLogStatisticsService {
                 carWeighted = carWeighted.add(weighted);
                 carDistance += e.distanceKm();
                 if (e.estimated()) estimatedTripCount++;
-                allTripConsumptions.add(e.consumptionKwhPer100km());
             }
             tripCount += entries.size();
             totalWeighted = totalWeighted.add(carWeighted);
             totalDistance += carDistance;
             BigDecimal carAvg = ConsumptionMath.weightedAverage(carWeighted, carDistance);
             if (carAvg != null && entries.size() >= MIN_TRIPS_FOR_CAR_RANGE) perCarAverages.add(carAvg);
+            allCarEntries.add(entries);
         }
 
         Collections.sort(perCarAverages);
@@ -456,15 +456,21 @@ public class EvLogStatisticsService {
             minValue = interpolatedPercentile(perCarAverages, 0.25);
             maxValue = interpolatedPercentile(perCarAverages, 0.75);
             rangeSource = CommunityConsumptionResult.RangeSource.PER_DRIVER;
-        } else if (allTripConsumptions.size() >= MIN_TRIPS_FOR_CAR_RANGE) {
-            Collections.sort(allTripConsumptions);
-            minValue = interpolatedPercentile(allTripConsumptions, 0.25);
-            maxValue = interpolatedPercentile(allTripConsumptions, 0.75);
-            rangeSource = CommunityConsumptionResult.RangeSource.PER_TRIP;
         } else {
-            minValue = null;
-            maxValue = null;
-            rangeSource = null;
+            List<BigDecimal> allTripConsumptions = allCarEntries.stream()
+                    .flatMap(Collection::stream)
+                    .map(PlausibleEntry::consumptionKwhPer100km)
+                    .sorted()
+                    .collect(Collectors.toCollection(ArrayList::new));
+            if (allTripConsumptions.size() >= MIN_TRIPS_FOR_CAR_RANGE) {
+                minValue = interpolatedPercentile(allTripConsumptions, 0.25);
+                maxValue = interpolatedPercentile(allTripConsumptions, 0.75);
+                rangeSource = CommunityConsumptionResult.RangeSource.PER_TRIP;
+            } else {
+                minValue = null;
+                maxValue = null;
+                rangeSource = null;
+            }
         }
 
         return new CommunityConsumptionResult(ConsumptionMath.weightedAverage(totalWeighted, totalDistance), minValue, maxValue, rangeSource, tripCount, estimatedTripCount);
