@@ -288,6 +288,8 @@ model:
   wltp_real_range: Reell rekkevidde
   wltp_real_consumption: Faktisk forbruk
   wltp_full_range: 100 % → 0 %
+  range_source_per_driver: Spenn over flere sjåfører
+  range_source_per_trip: Spenn over turer
   wltp_table_battery: Batteri
   wltp_table_range: Rekkevidde
   wltp_table_real_range: Reell rekkevidde
@@ -478,6 +480,8 @@ dashboard:
   peer_delta_more: mer rekkevidde
   peer_delta_less: mindre
   peer_insufficient_data: Kun {n} sjåfører med samme spec - tendens synlig, ikke statistisk robust ennå
+  peer_no_data_title: Ingen sammenligning tilgjengelig
+  peer_no_data_body: Når flere sjåfører med samme modell registrerer data, vil sammenligningen din vises her.
   peer_footer: "{trips} turer analysert"
   peer_range_window: 90→10% ladevindu
   peer_cost_country_note: "kun kostnad {country}"

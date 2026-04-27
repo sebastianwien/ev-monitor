@@ -38,6 +38,7 @@ import {
   PlusIcon,
   HandThumbUpIcon,
   HandThumbDownIcon,
+  UsersIcon,
 } from '@heroicons/vue/24/outline'
 import { useRouter } from 'vue-router'
 import { tempBadgeClass } from '../utils/temperatureColor'
@@ -545,6 +546,18 @@ function onTripFormLeave(el: Element, done: () => void) {
             :effective-battery-kwh="selectedCar?.effectiveBatteryCapacityKwh ?? null"
             :car-display-name="selectedCar ? [enumToLabel(selectedCar.brand), enumToLabel(selectedCar.model), selectedCar.trim].filter(Boolean).join(' ') : ''"
           />
+
+          <!-- Peer Benchmark Placeholder -->
+          <div
+            v-else-if="stats && carInfo?.batteryCapacityKwh && stats?.avgConsumptionKwhPer100km"
+            class="flex-1 min-w-0 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col items-center justify-center gap-3 px-6 py-8 text-center"
+          >
+            <UsersIcon class="w-8 h-8 text-gray-300 dark:text-gray-600" />
+            <div>
+              <p class="text-sm font-semibold text-gray-400 dark:text-gray-500">{{ t('dashboard.peer_no_data_title') }}</p>
+              <p class="text-xs text-gray-400 dark:text-gray-500 mt-1 max-w-xs">{{ t('dashboard.peer_no_data_body') }}</p>
+            </div>
+          </div>
 
           </div><!-- Ende Reichweite + Peer Wrapper -->
 
