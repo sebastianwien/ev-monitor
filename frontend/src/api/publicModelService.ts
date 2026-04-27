@@ -14,6 +14,7 @@ export interface WltpVariant {
     realConsumptionMaxKwhPer100km: number | null
     realConsumptionTripCount: number | null
     estimatedConsumptionCount: number | null
+    realConsumptionRangeSource: 'PER_DRIVER' | 'PER_TRIP' | null
     seasonalDistribution: SeasonalDistribution | null
 }
 
@@ -30,6 +31,7 @@ export interface EpaVariant {
     realConsumptionMaxKwhPer100km: number | null
     realConsumptionTripCount: number | null
     estimatedConsumptionCount: number | null
+    realConsumptionRangeSource: 'PER_DRIVER' | 'PER_TRIP' | null
     seasonalDistribution: SeasonalDistribution | null
 }
 

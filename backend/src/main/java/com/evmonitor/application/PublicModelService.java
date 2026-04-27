@@ -188,7 +188,8 @@ public class PublicModelService {
                         s.officialConsumptionMinKwhPer100km(), s.officialConsumptionMaxKwhPer100km(),
                         s.realConsumptionKwhPer100km(),
                         s.realConsumptionMinKwhPer100km(), s.realConsumptionMaxKwhPer100km(),
-                        s.realConsumptionTripCount(), s.estimatedConsumptionCount(), s.seasonalDistribution()))
+                        s.realConsumptionTripCount(), s.estimatedConsumptionCount(),
+                        s.realConsumptionRangeSource(), s.seasonalDistribution()))
                 .toList();
 
         List<VehicleSpecificationEntity> epaEntities =
@@ -204,7 +205,8 @@ public class PublicModelService {
                                 s.officialConsumptionMinKwhPer100km(), s.officialConsumptionMaxKwhPer100km(),
                                 s.realConsumptionKwhPer100km(),
                                 s.realConsumptionMinKwhPer100km(), s.realConsumptionMaxKwhPer100km(),
-                                s.realConsumptionTripCount(), s.estimatedConsumptionCount(), s.seasonalDistribution()))
+                                s.realConsumptionTripCount(), s.estimatedConsumptionCount(),
+                                s.realConsumptionRangeSource(), s.seasonalDistribution()))
                         .toList();
 
         List<PublicModelStatsResponse.YearEntry> yearDistribution =
@@ -534,10 +536,11 @@ public class PublicModelService {
             BigDecimal officialConsumptionMinKwhPer100km, // null if single-spec
             BigDecimal officialConsumptionMaxKwhPer100km,
             BigDecimal realConsumptionKwhPer100km,
-            BigDecimal realConsumptionMinKwhPer100km,     // null if no per-spec range
+            BigDecimal realConsumptionMinKwhPer100km,     // null if no range available
             BigDecimal realConsumptionMaxKwhPer100km,
             Integer realConsumptionTripCount,
             Integer estimatedConsumptionCount,
+            String realConsumptionRangeSource,
             PublicModelStatsResponse.SeasonalDistribution seasonalDistribution
     ) {}
 
@@ -623,10 +626,10 @@ public class PublicModelService {
             BigDecimal variantConsumption = variantResult.value() != null
                     ? variantResult.value().setScale(1, RoundingMode.HALF_UP) : null;
 
-            // Per-car community min/max: distance-weighted avg per car, then min/max across all variant cars
             BigDecimal realConsMin = variantResult.minValue() != null ? variantResult.minValue().setScale(1, RoundingMode.HALF_UP) : null;
             BigDecimal realConsMax = variantResult.maxValue() != null ? variantResult.maxValue().setScale(1, RoundingMode.HALF_UP) : null;
             boolean hasRealRange = realConsMin != null && realConsMax != null && realConsMin.compareTo(realConsMax) != 0;
+            String rangeSource = variantResult.rangeSource() != null ? variantResult.rangeSource().name() : null;
 
             PublicModelStatsResponse.SeasonalDistribution variantSeasonal = null;
             if (!carsForVariant.isEmpty()) {
@@ -653,6 +656,7 @@ public class PublicModelService {
                     hasRealRange ? realConsMin : null, hasRealRange ? realConsMax : null,
                     variantResult.tripCount() > 0 ? variantResult.tripCount() : null,
                     variantResult.estimatedTripCount() > 0 ? variantResult.estimatedTripCount() : null,
+                    hasRealRange ? rangeSource : null,
                     variantSeasonal);
         }).toList();
     }

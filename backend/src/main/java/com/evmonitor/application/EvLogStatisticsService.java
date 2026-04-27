@@ -422,6 +422,7 @@ public class EvLogStatisticsService {
         int tripCount = 0;
         int estimatedTripCount = 0;
         List<BigDecimal> perCarAverages = new ArrayList<>();
+        List<BigDecimal> allTripConsumptions = new ArrayList<>();
 
         for (Car car : cars) {
             List<EvLog> allLogs = logsByCarId.getOrDefault(car.getId(), List.of());
@@ -438,6 +439,7 @@ public class EvLogStatisticsService {
                 carWeighted = carWeighted.add(weighted);
                 carDistance += e.distanceKm();
                 if (e.estimated()) estimatedTripCount++;
+                allTripConsumptions.add(e.consumptionKwhPer100km());
             }
             tripCount += entries.size();
             totalWeighted = totalWeighted.add(carWeighted);
@@ -447,10 +449,25 @@ public class EvLogStatisticsService {
         }
 
         Collections.sort(perCarAverages);
-        BigDecimal minValue = perCarAverages.size() >= 2 ? interpolatedPercentile(perCarAverages, 0.10) : null;
-        BigDecimal maxValue = perCarAverages.size() >= 2 ? interpolatedPercentile(perCarAverages, 0.90) : null;
+        BigDecimal minValue;
+        BigDecimal maxValue;
+        CommunityConsumptionResult.RangeSource rangeSource;
+        if (perCarAverages.size() >= 2) {
+            minValue = interpolatedPercentile(perCarAverages, 0.10);
+            maxValue = interpolatedPercentile(perCarAverages, 0.90);
+            rangeSource = CommunityConsumptionResult.RangeSource.PER_DRIVER;
+        } else if (allTripConsumptions.size() >= MIN_TRIPS_FOR_CAR_RANGE) {
+            Collections.sort(allTripConsumptions);
+            minValue = interpolatedPercentile(allTripConsumptions, 0.10);
+            maxValue = interpolatedPercentile(allTripConsumptions, 0.90);
+            rangeSource = CommunityConsumptionResult.RangeSource.PER_TRIP;
+        } else {
+            minValue = null;
+            maxValue = null;
+            rangeSource = null;
+        }
 
-        return new CommunityConsumptionResult(ConsumptionMath.weightedAverage(totalWeighted, totalDistance), minValue, maxValue, tripCount, estimatedTripCount);
+        return new CommunityConsumptionResult(ConsumptionMath.weightedAverage(totalWeighted, totalDistance), minValue, maxValue, rangeSource, tripCount, estimatedTripCount);
     }
 
     /**

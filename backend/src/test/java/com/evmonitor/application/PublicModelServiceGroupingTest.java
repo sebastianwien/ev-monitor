@@ -111,7 +111,7 @@ class PublicModelServiceGroupingTest {
                 BigDecimal.valueOf(75), "variant", "Long Range AWD",
                 BigDecimal.valueOf(602), BigDecimal.valueOf(530),
                 BigDecimal.valueOf(15.5), BigDecimal.valueOf(14.0), BigDecimal.valueOf(17.0),
-                BigDecimal.valueOf(18.0), null, null, 100, null, null
+                BigDecimal.valueOf(18.0), null, null, 100, null, null, null
         );
         assertEquals(BigDecimal.valueOf(530), variant.wltpRangeMinKm());
         assertEquals(BigDecimal.valueOf(602), variant.wltpRangeKm());
@@ -123,7 +123,7 @@ class PublicModelServiceGroupingTest {
                 BigDecimal.valueOf(75), "variant", "Standard Range",
                 BigDecimal.valueOf(491), null,
                 BigDecimal.valueOf(15.1), null, null,
-                null, null, null, 0, null, null
+                null, null, null, 0, null, null, null
         );
         assertNull(variant.wltpRangeMinKm());
     }

@@ -47,6 +47,7 @@ public record PublicModelStatsResponse(
             BigDecimal realConsumptionMaxKwhPer100km,
             Integer realConsumptionTripCount,
             Integer estimatedConsumptionCount,
+            String realConsumptionRangeSource,
             SeasonalDistribution seasonalDistribution
     ) {}
 
@@ -63,6 +64,7 @@ public record PublicModelStatsResponse(
             BigDecimal realConsumptionMaxKwhPer100km,
             Integer realConsumptionTripCount,
             Integer estimatedConsumptionCount,
+            String realConsumptionRangeSource,
             SeasonalDistribution seasonalDistribution
     ) {}
 

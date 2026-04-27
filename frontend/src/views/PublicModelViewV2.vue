@@ -91,6 +91,9 @@
                   <span :class="simpleDeltaClass(communityConsumptionRange.max, heroOfficialConsumption)">{{ consumptionDeltaLabel(communityConsumptionRange.max, heroOfficialConsumption) }}</span>
                 </span>
               </div>
+              <div class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                {{ communityConsumptionRange.rangeSource === 'PER_DRIVER' ? t('model.range_source_per_driver') : t('model.range_source_per_trip') }}
+              </div>
             </template>
             <!-- Fallback: single average -->
             <template v-else>
@@ -780,6 +783,7 @@ interface ActiveVariant {
   realConsumptionMaxKwhPer100km: number | null
   realConsumptionTripCount: number | null
   estimatedConsumptionCount: number | null
+  realConsumptionRangeSource: 'PER_DRIVER' | 'PER_TRIP' | null
   seasonalDistribution: SeasonalDistribution | null
 }
 
@@ -875,6 +879,7 @@ const activeVariants = computed<ActiveVariant[]>(() => {
       realConsumptionMaxKwhPer100km: v.realConsumptionMaxKwhPer100km,
       realConsumptionTripCount: v.realConsumptionTripCount,
       estimatedConsumptionCount: v.estimatedConsumptionCount,
+      realConsumptionRangeSource: v.realConsumptionRangeSource,
       seasonalDistribution: v.seasonalDistribution,
     }))
   }
@@ -892,6 +897,7 @@ const activeVariants = computed<ActiveVariant[]>(() => {
     realConsumptionMaxKwhPer100km: v.realConsumptionMaxKwhPer100km,
     realConsumptionTripCount: v.realConsumptionTripCount,
     estimatedConsumptionCount: v.estimatedConsumptionCount,
+    realConsumptionRangeSource: v.realConsumptionRangeSource,
     seasonalDistribution: v.seasonalDistribution,
   }))
 })
@@ -1180,7 +1186,7 @@ const communityConsumptionRange = computed(() => {
   const min = selectedVariant.value?.realConsumptionMinKwhPer100km
   const max = selectedVariant.value?.realConsumptionMaxKwhPer100km
   if (!min || !max) return null
-  return { min, max }
+  return { min, max, rangeSource: selectedVariant.value?.realConsumptionRangeSource ?? null }
 })
 
 

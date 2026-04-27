@@ -257,6 +257,42 @@ class EvLogServiceCommunityConsumptionTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void communityAvg_singleCarWithManyTrips_usesPerTripPercentileRange() {
+        // 1 car only → no per-driver range possible
+        // Trips (via kWh-fallback): 14,15,16,16,17,17,18,18,19,25 kWh/100km
+        // P10: 0.1*9=0.9 → 14+0.9*(15-14)=14.90
+        // P90: 0.9*9=8.1 → 19+0.1*(25-19)=19.60
+        // rangeSource must be PER_TRIP
+        int[] consumptions = {14, 15, 16, 16, 17, 17, 18, 18, 19, 25};
+        Car car = carWithBattery(new BigDecimal("75.0"));
+        // Base log at odometer 0 — sets start point, not counted as a trip itself
+        saveLogNoSoc(car.getId(), 0, BigDecimal.ONE, LocalDateTime.now().minusDays(consumptions.length + 1));
+        for (int i = 0; i < consumptions.length; i++)
+            saveLogNoSoc(car.getId(), (i + 1) * 100, new BigDecimal(consumptions[i]),
+                    LocalDateTime.now().minusDays(consumptions.length - i));
+
+        CommunityConsumptionResult result = evLogService.calculateCommunityAvgConsumption(List.of(car), false);
+
+        assertEquals(new BigDecimal("14.90"), result.minValue(), "P10 of per-trip consumptions");
+        assertEquals(new BigDecimal("19.60"), result.maxValue(), "P90 of per-trip consumptions");
+        assertEquals(CommunityConsumptionResult.RangeSource.PER_TRIP, result.rangeSource());
+    }
+
+    @Test
+    void communityAvg_twoCarsWithSufficientTrips_rangeSourceIsPerDriver() {
+        Car carA = carWithBattery(new BigDecimal("75.0"));
+        for (int i = 0; i < 6; i++)
+            saveLogNoSoc(carA.getId(), i * 100, new BigDecimal("15.0"), LocalDateTime.now().minusDays(6 - i));
+        Car carB = carWithBattery(new BigDecimal("75.0"));
+        for (int i = 0; i < 6; i++)
+            saveLogNoSoc(carB.getId(), i * 100, new BigDecimal("20.0"), LocalDateTime.now().minusDays(6 - i));
+
+        CommunityConsumptionResult result = evLogService.calculateCommunityAvgConsumption(List.of(carA, carB), false);
+
+        assertEquals(CommunityConsumptionResult.RangeSource.PER_DRIVER, result.rangeSource());
+    }
+
+    @Test
     void communityAvg_withOutlierCars_percentileExcludesExtremes() {
         // 10 cars: one low outlier (14), eight moderate (15-19), one high outlier (25)
         // min/max would return 14/25 — P10/P90 should return 14.90/19.60
