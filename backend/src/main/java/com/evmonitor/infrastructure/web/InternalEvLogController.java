@@ -5,6 +5,7 @@ import com.evmonitor.application.EvLogService;
 import com.evmonitor.application.InternalEvLogRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,11 +25,17 @@ public class InternalEvLogController {
 
     @PostMapping("/logs")
     public ResponseEntity<EvLogResponse> createWallboxLog(@RequestBody InternalEvLogRequest request) {
-        EvLogResponse response = evLogService.createWallboxLog(request);
-        if (response == null) {
-            return ResponseEntity.ok().build(); // already imported — idempotent
+        try {
+            EvLogResponse response = evLogService.createWallboxLog(request);
+            if (response == null) {
+                return ResponseEntity.ok().build(); // already imported — idempotent
+            }
+            return ResponseEntity.ok(response);
+        } catch (DataIntegrityViolationException e) {
+            // Race condition: two webhooks with identical timestamp both passed the duplicate
+            // check simultaneously — treat as idempotent success instead of 500.
+            return ResponseEntity.ok().build();
         }
-        return ResponseEntity.ok(response);
     }
 
     public record GeohashUpdateRequest(UUID carId, UUID userId, LocalDateTime loggedAt, String geohash) {}

@@ -357,6 +357,24 @@ class InternalEvLogControllerTest extends AbstractIntegrationTest {
         assertEquals(0, new BigDecimal(body.get("kwhAtVehicle").toString()).compareTo(new BigDecimal("45.0")));
     }
 
+    @Test
+    void createLog_withSameTimestampTwice_returnsOkBothTimes() {
+        // Idempotency: same car + timestamp + data source must not produce a 500
+        LocalDateTime loggedAt = LocalDateTime.now().minusHours(2);
+        Map<String, Object> request = logRequest(testCar.getId(), testUser.getId(),
+                "30.0", 60, loggedAt, null, "SMARTCAR_LIVE", null);
+
+        ResponseEntity<Map> first = restTemplate.exchange(
+                "/api/internal/logs", HttpMethod.POST,
+                new HttpEntity<>(request, internalHeaders(VALID_TOKEN)), Map.class);
+        assertEquals(HttpStatus.OK, first.getStatusCode());
+
+        ResponseEntity<Map> second = restTemplate.exchange(
+                "/api/internal/logs", HttpMethod.POST,
+                new HttpEntity<>(request, internalHeaders(VALID_TOKEN)), Map.class);
+        assertEquals(HttpStatus.OK, second.getStatusCode());
+    }
+
     // --- Helpers ---
 
     private HttpHeaders internalHeaders(String token) {

@@ -105,18 +105,18 @@ const costPer100kmDelta = computed<DeltaBadge | null>(() => {
   return { label: `↑ ${rounded}%`, isGood: false }
 })
 
-function formatConsumption(val: number | null): string {
-  if (val === null) return '–'
+function formatConsumption(val: number | null | undefined): string {
+  if (val == null) return '–'
   return val.toFixed(1)
 }
 
-function formatCost(val: number | null): string {
-  if (val === null) return '–'
+function formatCost(val: number | null | undefined): string {
+  if (val == null) return '–'
   return val.toFixed(2).replace('.', ',') + ' €'
 }
 
-function formatCostPer100km(val: number | null): string {
-  if (val === null) return '–'
+function formatCostPer100km(val: number | null | undefined): string {
+  if (val == null) return '–'
   return val.toFixed(2).replace('.', ',') + ' €'
 }
 </script>

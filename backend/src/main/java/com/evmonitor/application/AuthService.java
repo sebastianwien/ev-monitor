@@ -13,6 +13,7 @@ import com.evmonitor.infrastructure.email.EmailService;
 import com.evmonitor.infrastructure.security.JwtService;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -70,10 +71,17 @@ public class AuthService {
                 request.registrationLocale(),
                 request.country());
 
-        User savedUser = userRepository.save(user);
-
-        EmailVerificationToken verificationToken = EmailVerificationToken.createFor(savedUser.getId());
-        tokenRepository.save(verificationToken);
+        // Race condition safety: two concurrent requests can both pass existsByEmail but one
+        // loses the unique constraint INSERT → catch and surface as 409 instead of 500.
+        User savedUser;
+        EmailVerificationToken verificationToken;
+        try {
+            savedUser = userRepository.save(user);
+            verificationToken = EmailVerificationToken.createFor(savedUser.getId());
+            tokenRepository.save(verificationToken);
+        } catch (DataIntegrityViolationException e) {
+            throw ConflictException.emailTaken();
+        }
 
         emailService.sendVerificationEmail(savedUser.getEmail(), verificationToken.getToken(), savedUser.getRegistrationLocale());
 

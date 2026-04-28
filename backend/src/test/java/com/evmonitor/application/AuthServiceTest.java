@@ -17,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -105,6 +106,25 @@ class AuthServiceTest {
         assertEquals("Email is already in use.", ex.getMessage());
 
         verify(userRepository, never()).save(any());
+        verify(emailService, never()).sendVerificationEmail(any(), any(), any());
+    }
+
+    @Test
+    void shouldThrowEmailTaken_whenRaceConditionCausesUniqueConstraintViolation() {
+        // Race condition: existsByEmail returns false (check passed), but another request
+        // wins the INSERT between the check and the save → DataIntegrityViolationException
+        String email = "race@example.com";
+        RegisterRequest request = new RegisterRequest(email, "raceuser", "Password123!", null, null, null, null, null, null, null);
+
+        when(userRepository.existsByEmail(email)).thenReturn(false);
+        when(userRepository.existsByUsername(any())).thenReturn(false);
+        when(passwordEncoder.encode(any())).thenReturn("$2a$10$hash");
+        when(userRepository.save(any(User.class)))
+                .thenThrow(new DataIntegrityViolationException("duplicate key value violates unique constraint \"app_user_email_key\""));
+
+        ConflictException ex = assertThrows(ConflictException.class,
+                () -> authService.register(request));
+        assertEquals("EMAIL_TAKEN", ex.getCode());
         verify(emailService, never()).sendVerificationEmail(any(), any(), any());
     }
 
