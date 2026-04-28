@@ -98,21 +98,20 @@ fi
 # Deploy
 # Note: only build and recreate services owned by this repo.
 # connectors-service and wallbox-service have their own deploy pipelines.
-# fcm-bridge is owned by this repo and is a dependency of connectors-service.
-echo "🐳 Building backend + nginx + fcm-bridge..."
-docker compose $COMPOSE_FILE build backend nginx fcm-bridge
+echo "🐳 Building backend + nginx..."
+docker compose $COMPOSE_FILE build backend nginx
 
 echo ""
 echo "🔄 Ensuring db + certbot are running..."
 docker compose $COMPOSE_FILE up -d db certbot
 
 echo ""
-echo "🔄 Starting fcm-bridge..."
-docker compose $COMPOSE_FILE up -d fcm-bridge
-
-echo ""
 echo "🔄 Switching to new backend + nginx containers..."
 docker compose $COMPOSE_FILE up -d --force-recreate backend nginx
+
+echo ""
+echo "🔄 Building + starting fcm-bridge (non-blocking)..."
+docker compose $COMPOSE_FILE build fcm-bridge && docker compose $COMPOSE_FILE up -d fcm-bridge || echo "⚠️  fcm-bridge build failed - connectors-service bleibt unberührt"
 
 echo ""
 echo "⏳ Waiting for services to start..."
