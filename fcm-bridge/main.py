@@ -26,10 +26,10 @@ app = FastAPI()
 # Credentials aus myskoda Open-Source-Projekt (nicht geheim - im App-Binary eingebettet).
 BRAND_CONFIGS = {
     "skoda": FcmRegisterConfig(
-        api_key="AIzaSyBlJdDfVR6ltRhKpA87F3SmCe2hHqhyEd8",
         project_id="678067506455",
         app_id="1:678067506455:android:4afca86c91d6d4c235bb52",
-        sender_id="678067506455",
+        api_key="AIzaSyBlJdDfVR6ltRhKpA87F3SmCe2hHqhyEd8",
+        messaging_sender_id="678067506455",
     ),
 }
 
