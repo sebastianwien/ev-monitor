@@ -600,6 +600,10 @@ dashboard:
   err_load: Det gick inte att hämta statistiken
   trip_group_count: "1 resa | {count} resor"
   trip_add: Resa
+  action_edit: Redigera
+  action_delete: Ta bort
+  action_add_trip: Lägg till resa
+  action_reassign: Flytta
   trip_edit: Redigera resa
   trip_save: Spara
   trip_cancel: Avbryt

@@ -600,6 +600,10 @@ dashboard:
   err_load: Feil ved innlasting av statistikk
   trip_group_count: "1 tur | {count} turer"
   trip_add: Tur
+  action_edit: Rediger
+  action_delete: Slett
+  action_add_trip: Legg til tur
+  action_reassign: Flytt
   trip_edit: Rediger tur
   trip_save: Lagre
   trip_cancel: Avbryt

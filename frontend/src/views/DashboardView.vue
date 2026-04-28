@@ -18,6 +18,7 @@ import ChartDataLabels from 'chartjs-plugin-datalabels'
 import {
   ChartBarIcon,
   TruckIcon,
+  MapIcon,
   BoltIcon,
   PencilSquareIcon,
   ArrowDownTrayIcon,
@@ -39,6 +40,7 @@ import {
   HandThumbUpIcon,
   HandThumbDownIcon,
   UsersIcon,
+  EllipsisVerticalIcon,
 } from '@heroicons/vue/24/outline'
 import { useRouter } from 'vue-router'
 import { tempBadgeClass } from '../utils/temperatureColor'
@@ -172,6 +174,13 @@ const groupedFeed = computed<any[]>(() => {
         group.trips.push(feed[i])
         i++
       }
+      // Drain between last trip and subsequent charge entry
+      const nextEntry = i < feed.length ? feed[i] : null
+      const drainAfterGroup = (nextEntry && !nextEntry._isTrip) ? nextEntry._phantomDrain : null
+      const totalPhantomKwh =
+        group.trips.reduce((s: number, t: any) => s + (t._phantomDrain?.kwh ?? 0), 0)
+        + (drainAfterGroup?.kwh ?? 0)
+      group.totalPhantomKwh = totalPhantomKwh > 0.05 ? Math.round(totalPhantomKwh * 100) / 100 : null
       result.push(group)
     } else {
       result.push({ kind: 'entry', id: entry.id, entry })
@@ -204,6 +213,7 @@ const doSaveReassign = () => saveReassign(fetchStatistics)
 
 // -- Trip feedback --
 const FEEDBACK_TAGS = ['distance_wrong', 'time_wrong', 'duplicate', 'other'] as const
+const openMenuLogId     = ref<string | null>(null)
 const feedbackOpenId    = ref<string | null>(null)
 const feedbackTags      = ref<string[]>([])
 const feedbackComment   = ref('')
@@ -888,193 +898,178 @@ function onTripFormLeave(el: Element, done: () => void) {
               <p class="py-8 text-center text-gray-400 text-sm">{{ t('dashboard.no_logs_empty') }}</p>
             </template>
             <template v-else>
-              <template v-for="entry in mergedLogFeed" :key="entry.id">
+              <div v-if="openMenuLogId" class="fixed inset-0 z-40" @click="openMenuLogId = null" />
+              <template v-for="item in groupedFeed" :key="item.id">
 
-              <!-- Phantom drain indicator: energy lost while parked before this entry -->
-              <!-- First-trip phantom drain is shown inside the group header instead -->
-              <div v-if="entry._phantomDrain && isAdmin && !(entry._isTrip && collapsedTripGroups.has(entry._tripGroupId ?? '')) && !(entry._isTrip && entry._tripGroupIndex === 0)"
-                   :class="['flex items-center gap-2',
-                            entry._isTrip && entry._tripGroupIndex > 0
-                              ? 'mx-2 px-3 py-1.5 border-l-4 border-l-emerald-400 dark:border-l-emerald-500 border-r-4 border-r-emerald-400 dark:border-r-emerald-500 bg-white dark:bg-gray-700 ![margin-block-start:0]'
-                              : 'px-4 mt-0.5 mb-2']">
-                <div class="flex-1 h-px bg-gray-200 dark:bg-gray-600" />
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-amber-300 dark:border-amber-600 bg-amber-50 dark:bg-amber-900/20 text-xs text-amber-600 dark:text-amber-400 whitespace-nowrap">
-                  <BoltIcon class="w-3 h-3" />
-                  {{ entry._phantomDrain.kwh.toFixed(2) }} kWh
-                  <template v-if="selectedCar?.effectiveBatteryCapacityKwh">
-                    ({{ (entry._phantomDrain.kwh / selectedCar.effectiveBatteryCapacityKwh * 100).toFixed(1) }}%)
-                  </template>
-                  Standverlust
-                </span>
-                <div class="flex-1 h-px bg-gray-200 dark:bg-gray-600" />
-              </div>
+              <!-- ===== TRIP GROUP CONTAINER ===== -->
+              <template v-if="item.kind === 'tripGroup'">
+                <div class="rounded-xl overflow-hidden border-l-4 border-r-4 border-l-emerald-400 dark:border-l-emerald-500 border-r-emerald-400 dark:border-r-emerald-500">
 
-              <!-- Inline add-trip form - appears above the triggering entry -->
-              <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
-              <div v-if="canAccessTrips && addingTripAfterId === entry.id" class="ml-2 mr-2 mt-1 p-3 rounded-lg shadow-sm ring-1 ring-black/5 dark:ring-white/10 border-l-4 border-l-emerald-400 dark:border-l-emerald-500 border-r-4 border-r-emerald-400 dark:border-r-emerald-500 bg-white dark:bg-gray-700 space-y-3">
-                <div class="flex items-center justify-between gap-2">
-                  <span class="text-sm font-medium text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
-                    <PlusIcon class="w-4 h-4" />{{ t('dashboard.trip_add') }}
-                  </span>
-                  <div class="flex gap-1">
-                    <button @click="saveNewTrip()" :disabled="tripSaving"
-                      class="px-3 py-1 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-md disabled:opacity-50 transition">
-                      {{ t('dashboard.trip_save') }}
-                    </button>
-                    <button @click="cancelTripEdit()"
-                      class="px-3 py-1 text-xs font-medium bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition">
-                      {{ t('dashboard.trip_cancel') }}
-                    </button>
-                  </div>
-                </div>
-                <p v-if="tripError" class="text-xs text-red-500 -mb-1">{{ tripError }}</p>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div>
-                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('dashboard.trip_started_at') }}</label>
-                    <input v-model="tripForm.tripStartedAt" type="datetime-local"
-                      class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
-                  </div>
-                  <div>
-                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('dashboard.trip_ended_at') }}</label>
-                    <input v-model="tripForm.tripEndedAt" type="datetime-local"
-                      class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
-                  </div>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div>
-                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('dashboard.trip_distance', { unit: distanceUnitLabel() }) }}</label>
-                    <input v-model="tripForm.distanceKm" type="number" min="0" max="9999" step="0.1"
-                      class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
-                  </div>
-                  <div>
-                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('dashboard.trip_route_type') }}</label>
-                    <div class="flex gap-1">
-                      <button v-for="rt in ['CITY','COMBINED','HIGHWAY']" :key="rt"
-                        @click="tripForm.routeType = rt"
-                        :class="['flex-1 px-1 py-1.5 text-xs rounded-md border transition',
-                                 tripForm.routeType === rt
-                                   ? 'bg-emerald-600 border-emerald-600 text-white'
-                                   : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-emerald-400']">
-                        {{ t('dashboard.trip_route_' + rt.toLowerCase()) }}
-                      </button>
+                  <!-- Group header -->
+                  <div @click="toggleTripGroup(item.groupId)"
+                       class="flex flex-col px-3 py-2.5 bg-emerald-950/50 dark:bg-emerald-950 cursor-pointer select-none hover:bg-emerald-950/70 dark:hover:bg-emerald-900 transition-colors">
+                    <!-- Header row -->
+                    <div class="flex items-center gap-2">
+                      <div class="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-emerald-400">
+                        <MapIcon class="w-3.5 h-3.5 shrink-0" />
+                        {{ t('dashboard.trip_group_count', { count: item.groupSize }, item.groupSize) }}
+                        <span v-if="item.totalKm" class="font-normal text-emerald-500 whitespace-nowrap">&middot; {{ formatDistance(item.totalKm) }}</span>
+                        <span v-if="item.dateRange" class="font-normal text-emerald-500 whitespace-nowrap">&middot; {{ item.dateRange }}</span>
+                        <span v-if="item.totalPhantomKwh && isAdmin" class="font-normal text-amber-600/60 inline-flex items-center gap-0.5 whitespace-nowrap shrink-0">&middot; <BoltIcon class="w-2.5 h-2.5" />{{ item.totalPhantomKwh.toFixed(1) }} kWh<span class="hidden sm:inline">&nbsp;Standverlust</span></span>
+                      </div>
+                      <ChevronUpIcon v-if="!collapsedTripGroups.has(item.groupId)" class="w-4 h-4 text-emerald-500 shrink-0" />
+                      <ChevronDownIcon v-else class="w-4 h-4 text-emerald-500 shrink-0" />
                     </div>
                   </div>
-                </div>
-              </div>
-              </Transition>
 
-              <template v-if="entry._isTrip && canAccessTrips">
-                <!-- Trip group collapse header -->
-                <div v-if="entry._tripGroupSize >= 1 && entry._tripGroupIndex === 0"
-                     @click="toggleTripGroup(entry._tripGroupId)"
-                     :class="['ml-2 mr-2 flex flex-col px-3 py-2.5 border-l-4 border-l-emerald-400 dark:border-l-emerald-500 border-r-4 border-r-emerald-400 dark:border-r-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 cursor-pointer select-none hover:bg-emerald-100 dark:hover:bg-emerald-950/60 transition-colors',
-                              collapsedTripGroups.has(entry._tripGroupId) ? 'rounded-xl mb-1' : 'rounded-t-xl']">
-                  <!-- Phantom drain of first trip shown here -->
-                  <div v-if="entry._phantomDrain && isAdmin" class="flex items-center gap-2 mb-2 pb-2 border-b border-emerald-200 dark:border-emerald-800/60">
-                    <div class="flex-1 h-px bg-emerald-200 dark:bg-emerald-800" />
-                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-amber-300 dark:border-amber-600 bg-amber-50 dark:bg-amber-900/20 text-xs text-amber-600 dark:text-amber-400 whitespace-nowrap">
-                      <BoltIcon class="w-3 h-3" />
-                      {{ entry._phantomDrain.kwh.toFixed(2) }} kWh
-                      <template v-if="selectedCar?.effectiveBatteryCapacityKwh">
-                        ({{ (entry._phantomDrain.kwh / selectedCar.effectiveBatteryCapacityKwh * 100).toFixed(1) }}%)
-                      </template>
-                      Standverlust
-                    </span>
-                    <div class="flex-1 h-px bg-emerald-200 dark:bg-emerald-800" />
-                  </div>
-                  <!-- Main header row -->
-                  <div class="flex items-center gap-2">
-                    <div class="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
-                      <TruckIcon class="w-3.5 h-3.5 shrink-0" />
-                      {{ t('dashboard.trip_group_count', { count: entry._tripGroupSize }, entry._tripGroupSize) }}
-                      <span v-if="entry._tripGroupTotalKm" class="font-normal text-emerald-600 dark:text-emerald-500">&middot; {{ formatDistance(entry._tripGroupTotalKm) }}</span>
-                      <span v-if="entry._tripGroupDateRange" class="font-normal text-emerald-600 dark:text-emerald-500">&middot; {{ entry._tripGroupDateRange }}</span>
-                    </div>
-                    <ChevronUpIcon v-if="!collapsedTripGroups.has(entry._tripGroupId)" class="w-4 h-4 text-emerald-500 shrink-0" />
-                    <ChevronDownIcon v-else class="w-4 h-4 text-emerald-500 shrink-0" />
-                  </div>
-                </div>
-                <!-- Trip display mode -->
-                <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
-                  <div v-if="editingTripId !== entry.id && deletingTripId !== entry.id && !collapsedTripGroups.has(entry._tripGroupId ?? '')"
-                       :class="['ml-2 mr-2 p-3 shadow-sm ring-1 ring-black/5 dark:ring-white/10 border-l-4 border-l-emerald-400 dark:border-l-emerald-500 border-r-4 border-r-emerald-400 dark:border-r-emerald-500 bg-white dark:bg-gray-700 space-y-2 ![margin-block-start:0]',
-                                entry._tripGroupIndex === entry._tripGroupSize - 1 ? 'rounded-b-xl' : 'rounded-none']">
+                  <!-- Trips (expanded, animated) -->
+                  <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
+                  <div v-if="!collapsedTripGroups.has(item.groupId)">
+                    <template v-for="(trip, tripIdx) in item.trips" :key="trip.id">
+
+                      <!-- Phantom drain separator between trips -->
+                      <div v-if="trip._phantomDrain && isAdmin && tripIdx !== 0"
+                           class="flex items-center justify-center gap-1 py-1 border-t border-gray-600/50">
+                        <BoltIcon class="w-2.5 h-2.5 text-amber-600 dark:text-amber-700" />
+                        <span class="text-[11px] text-amber-600 dark:text-amber-700">
+                          {{ trip._phantomDrain.kwh.toFixed(2) }} kWh
+                          <template v-if="selectedCar?.effectiveBatteryCapacityKwh">({{ (trip._phantomDrain.kwh / selectedCar.effectiveBatteryCapacityKwh * 100).toFixed(1) }}%)</template>
+                          Standverlust
+                        </span>
+                      </div>
+
+                      <!-- Add-trip form triggered from this trip -->
+                      <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
+                      <div v-if="canAccessTrips && addingTripAfterId === trip.id"
+                           class="px-3 py-3 bg-white dark:bg-gray-700 border-t border-gray-100 dark:border-gray-600 space-y-3">
+                        <div class="flex items-center justify-between gap-2">
+                          <span class="text-sm font-medium text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                            <PlusIcon class="w-4 h-4" />{{ t('dashboard.trip_add') }}
+                          </span>
+                          <div class="flex gap-1">
+                            <button @click="saveNewTrip()" :disabled="tripSaving"
+                              class="px-3 py-1 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-md disabled:opacity-50 transition">
+                              {{ t('dashboard.trip_save') }}
+                            </button>
+                            <button @click="cancelTripEdit()"
+                              class="px-3 py-1 text-xs font-medium bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition">
+                              {{ t('dashboard.trip_cancel') }}
+                            </button>
+                          </div>
+                        </div>
+                        <p v-if="tripError" class="text-xs text-red-500 -mb-1">{{ tripError }}</p>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <div>
+                            <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('dashboard.trip_started_at') }}</label>
+                            <input v-model="tripForm.tripStartedAt" type="datetime-local"
+                              class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+                          </div>
+                          <div>
+                            <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('dashboard.trip_ended_at') }}</label>
+                            <input v-model="tripForm.tripEndedAt" type="datetime-local"
+                              class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+                          </div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <div>
+                            <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('dashboard.trip_distance', { unit: distanceUnitLabel() }) }}</label>
+                            <input v-model="tripForm.distanceKm" type="number" min="0" max="9999" step="0.1"
+                              class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+                          </div>
+                          <div>
+                            <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('dashboard.trip_route_type') }}</label>
+                            <div class="flex gap-1">
+                              <button v-for="rt in ['CITY','COMBINED','HIGHWAY']" :key="rt"
+                                @click="tripForm.routeType = rt"
+                                :class="['flex-1 px-1 py-1.5 text-xs rounded-md border transition',
+                                         tripForm.routeType === rt
+                                           ? 'bg-emerald-600 border-emerald-600 text-white'
+                                           : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-emerald-400']">
+                                {{ t('dashboard.trip_route_' + rt.toLowerCase()) }}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      </Transition>
+
+                      <!-- Trip display mode -->
+                      <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
+                      <div v-if="editingTripId !== trip.id && deletingTripId !== trip.id"
+                           class="px-3 py-3 bg-white dark:bg-gray-700 border-t border-gray-100 dark:border-gray-600 space-y-2">
                     <!-- Zeile 1: Distanz, Verbrauch, Temperatur (rechts), Aktionen -->
+                    <!-- Row 1: distance, consumption, temp, actions -->
                     <div class="flex items-center justify-between gap-2">
                       <div class="flex items-center gap-2 min-w-0 overflow-hidden">
-                        <TruckIcon :class="['w-4 h-4 flex-shrink-0',
-                          isAdmin && entry.dataSource === 'TESLA_LIVE'     ? 'text-red-500 dark:text-red-400' :
-                          isAdmin && entry.dataSource === 'SMARTCAR_LIVE'  ? 'text-blue-500 dark:text-blue-400' :
+                        <MapIcon :class="['w-4 h-4 flex-shrink-0',
+                          isAdmin && trip.dataSource === 'TESLA_LIVE'    ? 'text-red-500 dark:text-red-400' :
+                          isAdmin && trip.dataSource === 'SMARTCAR_LIVE' ? 'text-blue-500 dark:text-blue-400' :
                           'text-emerald-600 dark:text-emerald-400']" />
-                        <span v-if="entry.distanceKm != null" class="font-semibold text-emerald-700 dark:text-emerald-400 whitespace-nowrap flex-shrink-0">{{ formatDistance(entry.distanceKm) }}</span>
-                        <span v-if="tripConsumption(entry)"
-                          class="inline-flex items-center text-[13px] text-gray-600 dark:text-gray-300 whitespace-nowrap flex-shrink-0">
-                          {{ tripConsumption(entry)!.estimated ? '~' : '' }}{{ formatConsumption(tripConsumption(entry)!.kwhPer100km) }}
+                        <span v-if="trip.distanceKm != null" class="font-semibold text-emerald-700 dark:text-emerald-400 whitespace-nowrap flex-shrink-0">{{ formatDistance(trip.distanceKm) }}</span>
+                        <span v-if="tripConsumption(trip)" class="inline-flex items-center text-[13px] text-gray-600 dark:text-gray-300 whitespace-nowrap flex-shrink-0">
+                          {{ tripConsumption(trip)!.estimated ? '~' : '' }}{{ formatConsumption(tripConsumption(trip)!.kwhPer100km) }}
                         </span>
                       </div>
                       <div class="flex items-center gap-1.5 flex-shrink-0">
-                        <span v-if="entry.outsideTempCelsius != null"
-                          :class="['inline-flex items-center gap-0.5 px-2 py-0.5 border rounded-full text-xs whitespace-nowrap',
-                                   tempBadgeClass(entry.outsideTempCelsius)]">
-                          <SunIcon class="w-3 h-3" />{{ entry.outsideTempCelsius }}°C
+                        <span v-if="trip.outsideTempCelsius != null"
+                          :class="['inline-flex items-center gap-0.5 px-2 py-0.5 border rounded-full text-xs whitespace-nowrap', tempBadgeClass(trip.outsideTempCelsius)]">
+                          <SunIcon class="w-3 h-3" />{{ trip.outsideTempCelsius }}°C
                         </span>
-                      <div class="flex items-center gap-1 flex-shrink-0">
-                        <template v-if="entry.dataSource !== 'USER_CREATED'">
-                          <button @click="toggleRating(entry.id, 'positive', entry.feedback)"
-                            class="p-2 md:p-1 rounded transition"
-                            :class="effectiveRating(entry.id, entry.feedback) === 'positive' ? 'text-emerald-500' : 'text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30'"
-                            :title="t('dashboard.trip_feedback_positive')">
-                            <HandThumbUpIcon class="w-3.5 h-3.5" />
+                        <div class="flex items-center gap-1 flex-shrink-0">
+                          <template v-if="trip.dataSource !== 'USER_CREATED'">
+                            <button @click="toggleRating(trip.id, 'positive', trip.feedback)"
+                              class="p-2 md:p-1 rounded transition"
+                              :class="effectiveRating(trip.id, trip.feedback) === 'positive' ? 'text-emerald-500' : 'text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30'"
+                              :title="t('dashboard.trip_feedback_positive')">
+                              <HandThumbUpIcon class="w-3.5 h-3.5" />
+                            </button>
+                            <button @click="toggleRating(trip.id, 'negative', trip.feedback)"
+                              class="p-2 md:p-1 rounded transition"
+                              :class="effectiveRating(trip.id, trip.feedback) === 'negative' ? 'text-red-500' : 'text-gray-400 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'"
+                              :title="t('dashboard.trip_feedback_negative')">
+                              <HandThumbDownIcon class="w-3.5 h-3.5" />
+                            </button>
+                          </template>
+                          <button @click="startAddTrip(trip.id, trip.tripStartedAt)"
+                            class="p-2 md:p-1 rounded text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition"
+                            :title="t('dashboard.trip_add')">
+                            <PlusIcon class="w-3.5 h-3.5" />
                           </button>
-                          <button @click="toggleRating(entry.id, 'negative', entry.feedback)"
-                            class="p-2 md:p-1 rounded transition"
-                            :class="effectiveRating(entry.id, entry.feedback) === 'negative' ? 'text-red-500' : 'text-gray-400 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'"
-                            :title="t('dashboard.trip_feedback_negative')">
-                            <HandThumbDownIcon class="w-3.5 h-3.5" />
+                          <button @click="startEditTrip(trip)"
+                            class="p-2 md:p-1 rounded text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition"
+                            :title="t('dashboard.trip_edit')">
+                            <PencilSquareIcon class="w-3.5 h-3.5" />
                           </button>
-                        </template>
-                        <button @click="startAddTrip(entry.id, entry.tripStartedAt)"
-                          class="p-2 md:p-1 rounded text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition"
-                          :title="t('dashboard.trip_add')">
-                          <PlusIcon class="w-3.5 h-3.5" />
-                        </button>
-                        <button @click="startEditTrip(entry)"
-                          class="p-2 md:p-1 rounded text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition"
-                          :title="t('dashboard.trip_edit')">
-                          <PencilSquareIcon class="w-3.5 h-3.5" />
-                        </button>
-                        <button @click="handleDeleteTrip(entry.id)"
-                          class="p-2 md:p-1 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition">
-                          <TrashIcon class="w-3.5 h-3.5" />
-                        </button>
+                          <button @click="handleDeleteTrip(trip.id)"
+                            class="p-2 md:p-1 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition">
+                            <TrashIcon class="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
-                      </div><!-- end right: temp + buttons -->
                     </div>
-                    <!-- Zeile 2: Zeitraum + SoC-Änderung -->
+                    <!-- Row 2: time range + SoC -->
                     <div class="flex items-center gap-2 text-[13px] text-gray-500 dark:text-gray-400">
                       <span class="inline-flex items-center gap-1 whitespace-nowrap">
-                        <ClockIcon class="w-3 h-3" />{{ formatTripTimeRange(entry.tripStartedAt, entry.tripEndedAt) }}
+                        <ClockIcon class="w-3 h-3" />{{ formatTripTimeRange(trip.tripStartedAt, trip.tripEndedAt) }}
                       </span>
-                      <span v-if="entry.socStart != null && entry.socEnd != null"
-                        class="inline-flex items-center gap-1 whitespace-nowrap">
-                        <Battery0Icon class="w-3 h-3" />{{ entry.socStart }}% → {{ entry.socEnd }}%
+                      <span v-if="trip.socStart != null && trip.socEnd != null" class="inline-flex items-center gap-1 whitespace-nowrap">
+                        <Battery0Icon class="w-3 h-3" />{{ trip.socStart }}% → {{ trip.socEnd }}%
                       </span>
                     </div>
                     <div class="flex flex-wrap gap-1.5">
-                      <span v-if="entry.routeType"
+                      <span v-if="trip.routeType"
                         class="inline-flex items-center px-2 py-0.5 bg-gray-50 dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded-full text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                        {{ t('dashboard.trip_route_' + entry.routeType.toLowerCase()) }}
+                        {{ t('dashboard.trip_route_' + trip.routeType.toLowerCase()) }}
                       </span>
-                      <span v-if="entry.dataSource === 'USER_CREATED'"
+                      <span v-if="trip.dataSource === 'USER_CREATED'"
                         class="inline-flex items-center px-2 py-0.5 bg-gray-50 dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded-full text-xs text-gray-400 whitespace-nowrap">
                         {{ t('dashboard.trip_manual') }}
                       </span>
                     </div>
-                    <!-- Inline feedback panel -->
-                    <div v-if="feedbackOpenId === entry.id" class="pt-1 space-y-2 border-t border-gray-100 dark:border-gray-600">
+                    <!-- Feedback panel -->
+                    <div v-if="feedbackOpenId === trip.id" class="pt-1 space-y-2 border-t border-gray-100 dark:border-gray-600">
                       <div class="flex flex-wrap gap-1">
-                        <button v-for="tag in FEEDBACK_TAGS" :key="tag"
-                          @click="toggleFeedbackTag(tag)"
+                        <button v-for="tag in FEEDBACK_TAGS" :key="tag" @click="toggleFeedbackTag(tag)"
                           :class="['px-2 py-0.5 text-xs rounded-full border transition',
                             feedbackTags.includes(tag)
                               ? 'bg-red-100 border-red-300 text-red-700 dark:bg-red-900/30 dark:border-red-700 dark:text-red-400'
@@ -1082,27 +1077,26 @@ function onTripFormLeave(el: Element, done: () => void) {
                           {{ t('dashboard.trip_feedback_tag_' + tag) }}
                         </button>
                       </div>
-                      <textarea v-model="feedbackComment" rows="2"
-                        :placeholder="t('dashboard.trip_feedback_comment')"
+                      <textarea v-model="feedbackComment" rows="2" :placeholder="t('dashboard.trip_feedback_comment')"
                         class="w-full px-2 py-1.5 text-xs border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-red-400 resize-none" />
                       <div class="flex justify-end">
-                        <button @click="sendNegativeFeedback(entry.id)"
+                        <button @click="sendNegativeFeedback(trip.id)"
                           class="px-3 py-1 text-xs font-medium bg-red-500 hover:bg-red-600 text-white rounded-md transition">
                           {{ t('dashboard.trip_feedback_send') }}
                         </button>
                       </div>
                     </div>
                   </div>
-                </Transition>
-                <!-- Trip inline edit mode -->
-                <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
-                <div v-if="editingTripId === entry.id && !collapsedTripGroups.has(entry._tripGroupId ?? '')"
-                     :class="['ml-2 mr-2 p-3 shadow-sm ring-1 ring-black/5 dark:ring-white/10 border-l-4 border-l-emerald-500 dark:border-l-emerald-400 bg-white dark:bg-gray-700 space-y-3 ![margin-block-start:0]',
-                              entry._tripGroupIndex === entry._tripGroupSize - 1 ? 'rounded-b-xl' : 'rounded-none']">
+                  </Transition>
+
+                  <!-- Trip inline edit mode -->
+                  <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
+                  <div v-if="editingTripId === trip.id"
+                       class="px-3 py-3 bg-white dark:bg-gray-700 border-t border-gray-100 dark:border-gray-600 space-y-3">
                   <div class="flex items-center justify-between gap-2">
                     <span class="text-sm font-medium text-emerald-800 dark:text-emerald-300">{{ t('dashboard.trip_edit') }}</span>
                     <div class="flex gap-1">
-                      <button @click="saveTripEdit(entry.id)" :disabled="tripSaving"
+                      <button @click="saveTripEdit(trip.id)" :disabled="tripSaving"
                         class="px-3 py-1 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-md disabled:opacity-50 transition">
                         {{ t('dashboard.trip_save') }}
                       </button>
@@ -1157,59 +1151,51 @@ function onTripFormLeave(el: Element, done: () => void) {
                         class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
                     </div>
                   </div>
-                  <!-- Feedback + merge trigger: same row on sm+ -->
-                  <div v-if="entry.dataSource !== 'USER_CREATED' || (previousTripMap[entry.id] && mergePreviewForTripId !== entry.id)"
+                  <!-- Feedback + merge trigger -->
+                  <div v-if="trip.dataSource !== 'USER_CREATED' || (previousTripMap[trip.id] && mergePreviewForTripId !== trip.id)"
                        class="flex flex-col sm:flex-row items-center sm:justify-between gap-1 pt-1 border-t border-emerald-100 dark:border-emerald-800">
-                    <div v-if="entry.dataSource !== 'USER_CREATED'" class="flex items-center gap-2">
+                    <div v-if="trip.dataSource !== 'USER_CREATED'" class="flex items-center gap-2">
                       <span class="text-xs text-gray-400 dark:text-gray-500">{{ t('dashboard.trip_feedback_label') }}</span>
                       <button @click="tripForm.feedback = 'positive'"
-                        :class="['p-1 rounded transition', tripForm.feedback?.startsWith('positive')
-                          ? 'text-emerald-500 bg-emerald-50 dark:bg-emerald-900/30'
-                          : 'text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30']">
+                        :class="['p-1 rounded transition', tripForm.feedback?.startsWith('positive') ? 'text-emerald-500 bg-emerald-50 dark:bg-emerald-900/30' : 'text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30']">
                         <HandThumbUpIcon class="w-4 h-4" />
                       </button>
                       <button @click="tripForm.feedback = 'negative'"
-                        :class="['p-1 rounded transition', tripForm.feedback?.startsWith('negative')
-                          ? 'text-red-500 bg-red-50 dark:bg-red-900/20'
-                          : 'text-gray-400 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20']">
+                        :class="['p-1 rounded transition', tripForm.feedback?.startsWith('negative') ? 'text-red-500 bg-red-50 dark:bg-red-900/20' : 'text-gray-400 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20']">
                         <HandThumbDownIcon class="w-4 h-4" />
                       </button>
-                      <input v-if="tripForm.feedback?.startsWith('negative')"
-                        v-model="tripForm.feedback"
-                        type="text" maxlength="200"
-                        :placeholder="t('dashboard.trip_feedback_comment')"
+                      <input v-if="tripForm.feedback?.startsWith('negative')" v-model="tripForm.feedback"
+                        type="text" maxlength="200" :placeholder="t('dashboard.trip_feedback_comment')"
                         class="flex-1 px-2 py-1 text-xs border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-red-400" />
                     </div>
-                    <button v-if="previousTripMap[entry.id] && mergePreviewForTripId !== entry.id"
-                      @click="mergePreviewForTripId = entry.id"
+                    <button v-if="previousTripMap[trip.id] && mergePreviewForTripId !== trip.id"
+                      @click="mergePreviewForTripId = trip.id"
                       class="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 hover:text-orange-500 dark:hover:text-orange-400 transition sm:ml-auto">
                       <ArrowsRightLeftIcon class="w-3.5 h-3.5" />
                       {{ t('dashboard.trip_merge_button') }}
                     </button>
                   </div>
-                  <!-- Merge with previous trip - preview -->
-                  <template v-if="previousTripMap[entry.id]">
-                    <div v-if="mergePreviewForTripId === entry.id"
-                         class="pt-2 border-t border-orange-200 dark:border-orange-800 space-y-2">
+                  <!-- Merge preview -->
+                  <template v-if="previousTripMap[trip.id]">
+                    <div v-if="mergePreviewForTripId === trip.id" class="pt-2 border-t border-orange-200 dark:border-orange-800 space-y-2">
                       <p class="text-xs font-medium text-orange-700 dark:text-orange-400">{{ t('dashboard.trip_merge_title') }}</p>
                       <div class="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded px-2 py-1.5 space-y-0.5">
                         <div class="flex justify-between gap-2">
                           <span class="shrink-0">{{ t('dashboard.trip_merge_previous') }}</span>
-                          <span class="text-right">{{ formatTripTimeRange(previousTripMap[entry.id].tripStartedAt, previousTripMap[entry.id].tripEndedAt) }}, {{ previousTripMap[entry.id].distanceKm ? formatDistance(previousTripMap[entry.id].distanceKm) : '?' }}</span>
+                          <span class="text-right">{{ formatTripTimeRange(previousTripMap[trip.id].tripStartedAt, previousTripMap[trip.id].tripEndedAt) }}, {{ previousTripMap[trip.id].distanceKm ? formatDistance(previousTripMap[trip.id].distanceKm) : '?' }}</span>
                         </div>
                         <div class="flex justify-between gap-2">
                           <span class="shrink-0">{{ t('dashboard.trip_merge_this') }}</span>
-                          <span class="text-right">{{ formatTripTimeRange(entry.tripStartedAt, entry.tripEndedAt) }}, {{ entry.distanceKm ? formatDistance(entry.distanceKm) : '?' }}</span>
+                          <span class="text-right">{{ formatTripTimeRange(trip.tripStartedAt, trip.tripEndedAt) }}, {{ trip.distanceKm ? formatDistance(trip.distanceKm) : '?' }}</span>
                         </div>
                         <div class="flex justify-between gap-2 font-medium text-orange-700 dark:text-orange-400 pt-0.5 border-t border-gray-200 dark:border-gray-700">
                           <span class="shrink-0">{{ t('dashboard.trip_merge_result') }}</span>
-                          <span class="text-right">{{ formatTripTimeRange(previousTripMap[entry.id].tripStartedAt, entry.tripEndedAt) }}, ~{{ formatDistance((previousTripMap[entry.id].distanceKm || 0) + (entry.distanceKm || 0)) }}</span>
+                          <span class="text-right">{{ formatTripTimeRange(previousTripMap[trip.id].tripStartedAt, trip.tripEndedAt) }}, ~{{ formatDistance((previousTripMap[trip.id].distanceKm || 0) + (trip.distanceKm || 0)) }}</span>
                         </div>
                       </div>
                       <p v-if="tripMergeError" class="text-xs text-red-500">{{ tripMergeError }}</p>
                       <div class="flex gap-2">
-                        <button @click="doMergeTrip(entry.id, previousTripMap[entry.id].id)"
-                          :disabled="tripMerging"
+                        <button @click="doMergeTrip(trip.id, previousTripMap[trip.id].id)" :disabled="tripMerging"
                           class="px-3 py-1 text-xs font-medium bg-orange-500 hover:bg-orange-600 text-white rounded-md disabled:opacity-50 transition">
                           {{ t('dashboard.trip_merge_confirm') }}
                         </button>
@@ -1220,75 +1206,150 @@ function onTripFormLeave(el: Element, done: () => void) {
                       </div>
                     </div>
                   </template>
+                  </div>
+                  </Transition>
+
+                    </template><!-- end v-for trips -->
+                  </div><!-- end expanded trips -->
+                  </Transition>
+                </div><!-- end trip group container -->
+              </template><!-- end tripGroup -->
+
+              <!-- ===== REGULAR ENTRY (charge log / inaccessible trip) ===== -->
+              <template v-else>
+              <!-- Phantom drain -->
+              <div v-if="item.entry._phantomDrain && isAdmin" class="flex items-center gap-2 px-4 mt-0.5 mb-2">
+                <div class="flex-1 h-px bg-gray-200 dark:bg-gray-600" />
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-amber-300 dark:border-amber-600 bg-amber-50 dark:bg-amber-900/20 text-xs text-amber-600 dark:text-amber-400 whitespace-nowrap">
+                  <BoltIcon class="w-3 h-3" />
+                  {{ item.entry._phantomDrain.kwh.toFixed(2) }} kWh
+                  <template v-if="selectedCar?.effectiveBatteryCapacityKwh">
+                    ({{ (item.entry._phantomDrain.kwh / selectedCar.effectiveBatteryCapacityKwh * 100).toFixed(1) }}%)
+                  </template>
+                  Standverlust
+                </span>
+                <div class="flex-1 h-px bg-gray-200 dark:bg-gray-600" />
+              </div>
+              <!-- Add-trip form triggered from a charge entry -->
+              <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
+              <div v-if="canAccessTrips && addingTripAfterId === item.entry.id" class="ml-2 mr-2 mt-1 p-3 rounded-lg shadow-sm ring-1 ring-black/5 dark:ring-white/10 border-l-4 border-l-emerald-400 dark:border-l-emerald-500 border-r-4 border-r-emerald-400 dark:border-r-emerald-500 bg-white dark:bg-gray-700 space-y-3">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="text-sm font-medium text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                    <PlusIcon class="w-4 h-4" />{{ t('dashboard.trip_add') }}
+                  </span>
+                  <div class="flex gap-1">
+                    <button @click="saveNewTrip()" :disabled="tripSaving"
+                      class="px-3 py-1 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-md disabled:opacity-50 transition">
+                      {{ t('dashboard.trip_save') }}
+                    </button>
+                    <button @click="cancelTripEdit()"
+                      class="px-3 py-1 text-xs font-medium bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition">
+                      {{ t('dashboard.trip_cancel') }}
+                    </button>
+                  </div>
                 </div>
-                </Transition>
-              </template>
+                <p v-if="tripError" class="text-xs text-red-500 -mb-1">{{ tripError }}</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('dashboard.trip_started_at') }}</label>
+                    <input v-model="tripForm.tripStartedAt" type="datetime-local"
+                      class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+                  </div>
+                  <div>
+                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('dashboard.trip_ended_at') }}</label>
+                    <input v-model="tripForm.tripEndedAt" type="datetime-local"
+                      class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+                  </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('dashboard.trip_distance', { unit: distanceUnitLabel() }) }}</label>
+                    <input v-model="tripForm.distanceKm" type="number" min="0" max="9999" step="0.1"
+                      class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+                  </div>
+                  <div>
+                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('dashboard.trip_route_type') }}</label>
+                    <div class="flex gap-1">
+                      <button v-for="rt in ['CITY','COMBINED','HIGHWAY']" :key="rt"
+                        @click="tripForm.routeType = rt"
+                        :class="['flex-1 px-1 py-1.5 text-xs rounded-md border transition',
+                                 tripForm.routeType === rt
+                                   ? 'bg-emerald-600 border-emerald-600 text-white'
+                                   : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-emerald-400']">
+                        {{ t('dashboard.trip_route_' + rt.toLowerCase()) }}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              </Transition>
 
               <!-- CHARGE ENTRY -->
-              <div v-else :class="entry._isLadegruppe ? 'pb-[5px]' : ''">
+              <div :class="item.entry._isLadegruppe ? 'pb-[5px]' : ''">
               <div
-                :class="['p-3 border rounded-lg space-y-2',
-                         entry._isLadegruppe
+                :class="['relative p-3 border rounded-lg space-y-2',
+                         item.entry._isLadegruppe
                            ? 'bg-white dark:bg-gray-700 border-blue-200 dark:border-blue-800 cursor-pointer shadow-[0_5px_0_0_#bfdbfe] dark:shadow-[0_5px_0_0_#1e3a5f] hover:shadow-[0_2px_0_0_#bfdbfe] dark:hover:shadow-[0_2px_0_0_#1e3a5f] hover:translate-y-[3px] active:shadow-none active:translate-y-[5px] transition-all duration-75'
                            : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 shadow-sm']"
-                @click="entry._isLadegruppe ? toggleLadegruppe(entry.id) : null">
+                @click="item.entry._isLadegruppe ? toggleLadegruppe(item.entry.id) : null">
 
                 <!-- LADEGRUPPE HEADER -->
-                <template v-if="entry._isLadegruppe">
+                <template v-if="item.entry._isLadegruppe">
                   <div class="flex items-center justify-between gap-2">
                     <div class="flex items-center gap-2 min-w-0">
-                      <BoltIcon class="w-4 h-4 text-indigo-600 dark:text-indigo-300 flex-shrink-0" />
-                      <span class="font-semibold text-indigo-700 dark:text-indigo-300 whitespace-nowrap">{{ entry._totalKwh }} kWh</span>
-                      <span class="text-xs text-gray-400 whitespace-nowrap">{{ entry._dateRangeLabel }}</span>
-                      <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-700">
-                        {{ t('dashboard.charge_group') }}
-                      </span>
-<span v-if="sourceInfo(entry._commonDataSource)"
-                        :class="['inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium whitespace-nowrap',
-                                 sourceInfo(entry._commonDataSource)!.classes]">
-                        <component :is="sourceInfo(entry._commonDataSource)!.icon" class="w-3 h-3" />
-                        {{ sourceInfo(entry._commonDataSource)!.label }}
-                      </span>
+                      <BoltIcon class="w-4 h-4 text-green-500 dark:text-green-400 flex-shrink-0" />
+                      <span class="font-semibold text-indigo-700 dark:text-indigo-300 whitespace-nowrap">{{ item.entry._totalKwh }} kWh</span>
+                      <span class="text-xs text-gray-400 whitespace-nowrap">{{ item.entry._dateRangeLabel }}</span>
                     </div>
                     <div class="flex items-center gap-1.5 flex-shrink-0">
                       <button class="p-1 rounded text-blue-400 dark:text-blue-500">
-                        <ChevronDownIcon v-if="!expandedGroups.has(entry.id)" class="w-4 h-4" />
+                        <ChevronDownIcon v-if="!expandedGroups.has(item.entry.id)" class="w-4 h-4" />
                         <ChevronUpIcon v-else class="w-4 h-4" />
                       </button>
                     </div>
                   </div>
-                  <!-- Ladegruppe badges -->
+                  <!-- Plain text stats - Zeile 2 -->
+                  <div v-if="item.entry._totalConsumption != null || item.entry._maxSoc != null || item.entry._maxPower"
+                    class="flex flex-wrap gap-x-3 gap-y-0.5 items-center">
+                    <span v-if="item.entry._totalConsumption != null"
+                      :class="['inline-flex items-center gap-1 text-xs font-medium whitespace-nowrap',
+                               consumptionTextClass(item.entry._totalConsumption, stats?.avgConsumptionKwhPer100km ?? null)]">
+                      {{ formatConsumption(item.entry._totalConsumption) }}
+                    </span>
+                    <span v-if="item.entry._maxSoc != null" class="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
+                      <Battery0Icon class="w-3 h-3" />{{ item.entry._maxSoc }}%
+                    </span>
+                    <span v-if="item.entry._maxPower" class="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
+                      <BoltIcon class="w-3 h-3" />{{ item.entry._maxPower }} kW
+                    </span>
+                  </div>
+                  <!-- Chips - Zeile 3 -->
                   <div class="flex flex-wrap gap-1.5">
-                    <span v-if="entry._totalCostEur != null && entry._totalKwh"
+                    <span v-if="sourceInfo(item.entry._commonDataSource)"
+                      :class="['inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium whitespace-nowrap',
+                               sourceInfo(item.entry._commonDataSource)!.classes]">
+                      <component :is="sourceInfo(item.entry._commonDataSource)!.icon" class="w-3 h-3" />
+                      {{ sourceInfo(item.entry._commonDataSource)!.label }}
+                    </span>
+                    <span v-if="item.entry._totalCostEur != null && item.entry._totalKwh"
                       :class="['inline-flex items-center px-2 py-0.5 border text-xs rounded-full font-medium whitespace-nowrap cursor-pointer transition-all duration-75',
                                showCostAbsolute
                                  ? 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'
-                                 : [(costBadgeClass(entry._totalCostEur, entry._totalKwh) ?? 'bg-green-50 border-green-200 text-green-700'), 'shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'].join(' ')]"
+                                 : [(costBadgeClass(item.entry._totalCostEur, item.entry._totalKwh) ?? 'bg-green-50 border-green-200 text-green-700'), 'shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'].join(' ')]"
                       @click.stop="showCostAbsolute = !showCostAbsolute"
                       @mousedown.stop>
-                      <template v-if="showCostAbsolute">{{ formatCurrency(entry._totalCostEur) }}</template>
-                      <template v-else>{{ formatCostPerKwh(entry._totalCostEur / entry._costKwh) }}</template>
+                      <template v-if="showCostAbsolute">{{ formatCurrency(item.entry._totalCostEur) }}</template>
+                      <template v-else>{{ formatCostPerKwh(item.entry._totalCostEur / item.entry._costKwh) }}</template>
                     </span>
                     <span
-                      v-if="entry.distanceSinceLastChargeKm != null || entry.odometerKm"
+                      v-if="item.entry.distanceSinceLastChargeKm != null || item.entry.odometerKm"
                       class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap"
-                      :class="entry.distanceSinceLastChargeKm != null && entry.odometerKm ? 'cursor-pointer shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] active:shadow-none active:translate-y-1 transition-all duration-75 cursor-pointer' : ''"
-                      @click.stop="toggleOdometerDisplay(entry.distanceSinceLastChargeKm, entry.odometerKm)"
+                      :class="item.entry.distanceSinceLastChargeKm != null && item.entry.odometerKm ? 'cursor-pointer shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] active:shadow-none active:translate-y-1 transition-all duration-75' : ''"
+                      @click.stop="toggleOdometerDisplay(item.entry.distanceSinceLastChargeKm, item.entry.odometerKm)"
                       @mousedown.stop
                     >
-                      <template v-if="entry.distanceSinceLastChargeKm != null && !showOdometer">+{{ formatDistance(entry.distanceSinceLastChargeKm) }}</template>
-                      <template v-else>{{ entry.odometerKm != null ? formatDistance(entry.odometerKm) : '' }}</template>
-                    </span>
-                    <span v-if="entry._totalConsumption != null"
-                      :class="['inline-flex items-center gap-1 text-xs font-medium whitespace-nowrap',
-                               consumptionTextClass(entry._totalConsumption, stats?.avgConsumptionKwhPer100km ?? null)]">
-                      {{ formatConsumption(entry._totalConsumption) }}
-                    </span>
-                    <span v-if="entry._maxSoc != null" class="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
-                      <Battery0Icon class="w-3 h-3" />{{ entry._maxSoc }}%
-                    </span>
-                    <span v-if="entry._maxPower" class="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
-                      <BoltIcon class="w-3 h-3" />{{ entry._maxPower }} kW
+                      <template v-if="item.entry.distanceSinceLastChargeKm != null && !showOdometer">+{{ formatDistance(item.entry.distanceSinceLastChargeKm) }}</template>
+                      <template v-else>{{ item.entry.odometerKm != null ? formatDistance(item.entry.odometerKm) : '' }}</template>
                     </span>
                   </div>
                 </template>
@@ -1297,130 +1358,143 @@ function onTripFormLeave(el: Element, done: () => void) {
                 <template v-else>
                 <div class="flex items-center justify-between gap-2">
                   <div class="flex items-center gap-2 min-w-0">
-                    <BoltIcon class="w-4 h-4 text-indigo-600 flex-shrink-0" />
-                    <span class="font-semibold text-indigo-700 dark:text-indigo-300 whitespace-nowrap">{{ displayKwh(entry.kwhCharged, entry.kwhAtVehicle) }} kWh</span>
-                    <span class="text-xs text-gray-400 whitespace-nowrap">{{ formatLogDate(entry.loggedAt) }}</span>
-                    <span v-if="sourceInfo(entry.dataSource)"
+                    <BoltIcon class="w-4 h-4 text-green-500 dark:text-green-400 flex-shrink-0" />
+                    <span class="font-semibold text-indigo-700 dark:text-indigo-300 whitespace-nowrap">{{ displayKwh(item.entry.kwhCharged, item.entry.kwhAtVehicle) }} kWh</span>
+                    <span v-if="item.entry.maxChargingPowerKw" class="text-xs text-gray-400 whitespace-nowrap">· {{ item.entry.maxChargingPowerKw }} kW</span>
+                    <span class="text-xs text-gray-400 whitespace-nowrap">{{ formatLogDate(item.entry.loggedAt) }}</span>
+                    <span v-if="sourceInfo(item.entry.dataSource)"
                       :class="['hidden md:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium whitespace-nowrap',
-                               sourceInfo(entry.dataSource)!.classes]">
-                      <component :is="sourceInfo(entry.dataSource)!.icon" class="w-3 h-3" />
-                      {{ sourceInfo(entry.dataSource)!.label }}
+                               sourceInfo(item.entry.dataSource)!.classes]">
+                      <component :is="sourceInfo(item.entry.dataSource)!.icon" class="w-3 h-3" />
+                      {{ sourceInfo(item.entry.dataSource)!.label }}
                     </span>
                   </div>
-                  <div class="flex items-center gap-1.5 flex-shrink-0">
-                    <span v-if="entry.temperatureCelsius != null"
-                      :class="['inline-flex items-center gap-0.5 px-2 py-0.5 border rounded-full text-xs whitespace-nowrap', tempBadgeClass(entry.temperatureCelsius)]">
-                      <SunIcon class="w-3 h-3" />{{ entry.temperatureCelsius.toFixed(1) }}°C
+                  <div class="flex items-center gap-1 flex-shrink-0">
+                    <span v-if="item.entry.temperatureCelsius != null"
+                      :class="['inline-flex items-center gap-0.5 px-2 py-0.5 border rounded-full text-xs whitespace-nowrap', tempBadgeClass(item.entry.temperatureCelsius)]">
+                      <SunIcon class="w-3 h-3" />{{ item.entry.temperatureCelsius.toFixed(1) }}°C
                     </span>
-                    <button v-if="otherCars.length > 0" @click.stop="openReassignModal(entry)"
-                      class="p-1 rounded text-gray-300 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition"
+                    <button v-if="otherCars.length > 0" @click.stop="openReassignModal(item.entry)"
+                      class="hidden md:block p-1 rounded text-gray-300 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition"
                       :title="t('dashboard.reassign_car')">
                       <ArrowsRightLeftIcon class="w-3.5 h-3.5" />
                     </button>
-                    <button @click="editingLog = entry"
-                      :class="['p-1 rounded text-gray-300 hover:text-blue-500 hover:bg-blue-50 transition',
-                               entry.temperatureCelsius != null ? 'hidden md:block' : '']"
+                    <button @click="editingLog = item.entry"
+                      class="hidden md:block p-1 rounded text-gray-300 hover:text-blue-500 hover:bg-blue-50 transition"
                       :title="t('dashboard.edit_title')">
                       <PencilSquareIcon class="w-3.5 h-3.5" />
                     </button>
-                    <button @click="deleteLog(entry.id)"
-                      :class="['p-1 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition',
-                               entry.temperatureCelsius != null ? 'hidden md:block' : '']">
+                    <button @click="deleteLog(item.entry.id)"
+                      class="hidden md:block p-1 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition">
                       <TrashIcon class="w-3.5 h-3.5" />
                     </button>
-                    <button v-if="canAccessTrips" @click.stop="startAddTrip(entry.id)"
-                      class="p-1 rounded text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition"
+                    <button v-if="canAccessTrips" @click.stop="startAddTrip(item.entry.id)"
+                      class="hidden md:block p-1 rounded text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition"
                       :title="t('dashboard.trip_add')">
-                      <TruckIcon class="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-                <!-- Source Badge + Edit/Delete (mobile only) -->
-                <div v-if="sourceInfo(entry.dataSource) || entry.temperatureCelsius != null"
-                  class="md:hidden flex items-center gap-2">
-                  <span v-if="sourceInfo(entry.dataSource)"
-                    :class="['inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium',
-                             sourceInfo(entry.dataSource)!.classes]">
-                    <component :is="sourceInfo(entry.dataSource)!.icon" class="w-3 h-3" />
-                    {{ sourceInfo(entry.dataSource)!.label }}
-                  </span>
-                  <div v-if="entry.temperatureCelsius != null" class="flex items-center gap-1 ml-auto">
-                    <button @click="editingLog = entry"
-                      class="p-1 rounded text-gray-300 hover:text-blue-500 hover:bg-blue-50 transition"
-                      :title="t('dashboard.edit_title')">
-                      <PencilSquareIcon class="w-3.5 h-3.5" />
-                    </button>
-                    <button @click="deleteLog(entry.id)"
-                      class="p-1 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition">
-                      <TrashIcon class="w-3.5 h-3.5" />
+                      <MapIcon class="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
                 </template>
-                <!-- Badges (normal log only) -->
-                <div v-if="!entry._isLadegruppe" class="flex flex-wrap gap-1.5">
-                  <span v-if="entry.costEur != null && (entry.kwhCharged ?? entry.kwhAtVehicle)"
-                    :class="['inline-flex items-center px-2 py-0.5 border text-xs rounded-full font-medium whitespace-nowrap cursor-pointer transition-all duration-75',
-                             showCostAbsolute
-                               ? 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'
-                               : [(costBadgeClass(entry.costEur, entry.kwhCharged ?? entry.kwhAtVehicle) ?? 'bg-green-50 border-green-200 text-green-700'), 'shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'].join(' ')]"
-                    @click="showCostAbsolute = !showCostAbsolute">
-                    <template v-if="showCostAbsolute">{{ formatCurrency(entry.costEur) }}</template>
-                    <template v-else>{{ formatCostPerKwh(entry.costEur / (entry.kwhCharged ?? entry.kwhAtVehicle)) }}</template>
-                  </span>
-                  <span
-                    v-if="entry.distanceSinceLastChargeKm != null || entry.odometerKm"
-                    class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap"
-                    :class="entry.distanceSinceLastChargeKm != null && entry.odometerKm
-                      ? 'cursor-pointer shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] active:shadow-none active:translate-y-1 transition-all duration-75 cursor-pointer'
-                      : ''"
-                    @click="toggleOdometerDisplay(entry.distanceSinceLastChargeKm, entry.odometerKm)"
-                  >
-                    <template v-if="entry.distanceSinceLastChargeKm != null && !showOdometer">+{{ formatDistance(entry.distanceSinceLastChargeKm) }}</template>
-                    <template v-else>{{ entry.odometerKm != null ? formatDistance(entry.odometerKm) : '' }}</template>
-                  </span>
-                  <span v-if="entry.consumptionKwhPer100km != null"
+                <!-- Plain text stats (normal log only) - Zeile 2 -->
+                <div v-if="!item.entry._isLadegruppe && (item.entry.consumptionKwhPer100km != null || item.entry.chargeDurationMinutes || item.entry.socAfterChargePercent != null || (item.entry.costEur != null && !item.entry.kwhCharged && !item.entry.kwhAtVehicle))"
+                  class="flex flex-wrap gap-x-3 gap-y-0.5 items-center">
+                  <span v-if="item.entry.consumptionKwhPer100km != null"
                     :class="['inline-flex items-center gap-1 text-xs font-medium whitespace-nowrap',
-                             entry.consumptionImplausible
+                             item.entry.consumptionImplausible
                                ? 'text-red-600 dark:text-red-400'
-                               : entry.consumptionIsEstimated
+                               : item.entry.consumptionIsEstimated
                                  ? 'text-gray-400 dark:text-gray-500'
-                                 : consumptionTextClass(entry.consumptionKwhPer100km, stats?.avgConsumptionKwhPer100km ?? null)]"
-                    :title="entry.consumptionIsEstimated
+                                 : consumptionTextClass(item.entry.consumptionKwhPer100km, stats?.avgConsumptionKwhPer100km ?? null)]"
+                    :title="item.entry.consumptionIsEstimated
                       ? 'Schätzwert: berechnet aus geladener Energie ÷ Distanz, da kein SoC-Wert vorhanden.'
-                      : entry.consumptionQuality === 'SOC_DELTA'
+                      : item.entry.consumptionQuality === 'SOC_DELTA'
                         ? 'Näherungswert: berechnet aus SoC-Differenz ohne direkte kWh-Messung.'
                         : undefined">
                     <button
-                      v-if="entry.consumptionImplausible"
+                      v-if="item.entry.consumptionImplausible"
                       class="flex-shrink-0 focus:outline-none"
-                      @click.stop="openTooltipLogId = openTooltipLogId === entry.id ? null : entry.id">
+                      @click.stop="openTooltipLogId = openTooltipLogId === item.entry.id ? null : item.entry.id">
                       <ExclamationTriangleIcon class="w-3 h-3" />
                     </button>
                     <InformationCircleIcon
-                      v-if="entry.consumptionQuality === 'SOC_DELTA'"
+                      v-if="item.entry.consumptionQuality === 'SOC_DELTA'"
                       class="w-3 h-3 flex-shrink-0 text-gray-400 dark:text-gray-500" />
-                    {{ entry.consumptionIsEstimated ? '~' : '' }}{{ formatConsumption(entry.consumptionKwhPer100km) }}
+                    {{ item.entry.consumptionIsEstimated ? '~' : '' }}{{ formatConsumption(item.entry.consumptionKwhPer100km) }}
                   </span>
-                  <span v-if="entry.costEur != null && !entry.kwhCharged" class="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                    {{ formatCurrency(entry.costEur) }}
+                  <span v-if="item.entry.costEur != null && !item.entry.kwhCharged && !item.entry.kwhAtVehicle" class="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                    {{ formatCurrency(item.entry.costEur) }}
                   </span>
-                  <span v-if="entry.chargeDurationMinutes" class="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
-                    <ClockIcon class="w-3 h-3" />{{ entry.chargeDurationMinutes }}min
+                  <span v-if="item.entry.chargeDurationMinutes" class="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
+                    <ClockIcon class="w-3 h-3" />{{ item.entry.chargeDurationMinutes }}min
                   </span>
-                  <span v-if="entry.socAfterChargePercent != null" class="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
-                    <Battery0Icon class="w-3 h-3" />{{ entry.socAfterChargePercent }}%
+                  <span v-if="item.entry.socAfterChargePercent != null" class="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
+                    <Battery0Icon class="w-3 h-3" />{{ item.entry.socAfterChargePercent }}%
                   </span>
-                  <span v-if="entry.maxChargingPowerKw" class="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
-                    <BoltIcon class="w-3 h-3" />{{ entry.maxChargingPowerKw }} kW
+                </div>
+                <!-- Chips - Zeile 3 -->
+                <div v-if="!item.entry._isLadegruppe" class="flex flex-wrap gap-1.5 items-center">
+                  <span v-if="sourceInfo(item.entry.dataSource)"
+                    :class="['md:hidden inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium whitespace-nowrap',
+                             sourceInfo(item.entry.dataSource)!.classes]">
+                    <component :is="sourceInfo(item.entry.dataSource)!.icon" class="w-3 h-3" />
+                    {{ sourceInfo(item.entry.dataSource)!.label }}
                   </span>
+                  <span v-if="item.entry.costEur != null && (item.entry.kwhCharged ?? item.entry.kwhAtVehicle)"
+                    :class="['inline-flex items-center px-2 py-0.5 border text-xs rounded-full font-medium whitespace-nowrap cursor-pointer transition-all duration-75',
+                             showCostAbsolute
+                               ? 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'
+                               : [(costBadgeClass(item.entry.costEur, item.entry.kwhCharged ?? item.entry.kwhAtVehicle) ?? 'bg-green-50 border-green-200 text-green-700'), 'shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'].join(' ')]"
+                    @click="showCostAbsolute = !showCostAbsolute">
+                    <template v-if="showCostAbsolute">{{ formatCurrency(item.entry.costEur) }}</template>
+                    <template v-else>{{ formatCostPerKwh(item.entry.costEur / (item.entry.kwhCharged ?? item.entry.kwhAtVehicle)) }}</template>
+                  </span>
+                  <span
+                    v-if="item.entry.distanceSinceLastChargeKm != null || item.entry.odometerKm"
+                    class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap"
+                    :class="item.entry.distanceSinceLastChargeKm != null && item.entry.odometerKm
+                      ? 'cursor-pointer shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] active:shadow-none active:translate-y-1 transition-all duration-75'
+                      : ''"
+                    @click="toggleOdometerDisplay(item.entry.distanceSinceLastChargeKm, item.entry.odometerKm)"
+                  >
+                    <template v-if="item.entry.distanceSinceLastChargeKm != null && !showOdometer">+{{ formatDistance(item.entry.distanceSinceLastChargeKm) }}</template>
+                    <template v-else>{{ item.entry.odometerKm != null ? formatDistance(item.entry.odometerKm) : '' }}</template>
+                  </span>
+                  <!-- Mobile action menu -->
+                  <div class="relative ml-auto md:hidden">
+                    <button @click.stop="openMenuLogId = openMenuLogId === item.entry.id ? null : item.entry.id"
+                      class="p-1 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition">
+                      <EllipsisVerticalIcon class="w-5 h-5" />
+                    </button>
+                    <div v-if="openMenuLogId === item.entry.id"
+                      class="absolute right-0 bottom-full mb-1 w-44 bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 z-50 py-1 overflow-hidden">
+                      <button @click.stop="editingLog = item.entry; openMenuLogId = null"
+                        class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
+                        <PencilSquareIcon class="w-4 h-4 flex-shrink-0" />{{ t('dashboard.action_edit') }}
+                      </button>
+                      <button v-if="canAccessTrips" @click.stop="startAddTrip(item.entry.id); openMenuLogId = null"
+                        class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
+                        <MapIcon class="w-4 h-4 flex-shrink-0" />{{ t('dashboard.action_add_trip') }}
+                      </button>
+                      <button v-if="otherCars.length > 0" @click.stop="openReassignModal(item.entry); openMenuLogId = null"
+                        class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
+                        <ArrowsRightLeftIcon class="w-4 h-4 flex-shrink-0" />{{ t('dashboard.action_reassign') }}
+                      </button>
+                      <div class="border-t border-gray-100 dark:border-gray-600 mt-1 pt-1">
+                        <button @click.stop="deleteLog(item.entry.id); openMenuLogId = null"
+                          class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition">
+                          <TrashIcon class="w-4 h-4 flex-shrink-0" />{{ t('dashboard.action_delete') }}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 <!-- Implausibility tooltip panel (normal log only) -->
                 <div
-                  v-if="!entry._isLadegruppe && entry.consumptionImplausible && openTooltipLogId === entry.id"
+                  v-if="!item.entry._isLadegruppe && item.entry.consumptionImplausible && openTooltipLogId === item.entry.id"
                   class="mt-1 p-2.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-xs text-amber-800 dark:text-amber-300 space-y-1">
                   <p class="font-medium">{{ t('dashboard.implausible_tooltip_title') }}</p>
-                  <p>{{ t('dashboard.implausible_tooltip_desc', { value: formatConsumption(entry.consumptionKwhPer100km) }) }}</p>
+                  <p>{{ t('dashboard.implausible_tooltip_desc', { value: formatConsumption(item.entry.consumptionKwhPer100km) }) }}</p>
                   <ul class="list-disc list-inside space-y-0.5 mt-1">
                     <li>{{ t('dashboard.implausible_tooltip_cause1') }}</li>
                     <li>{{ t('dashboard.implausible_tooltip_cause2') }}</li>
@@ -1428,12 +1502,12 @@ function onTripFormLeave(el: Element, done: () => void) {
                 </div>
               </div>
               <!-- Ladegruppe Sub-Eintraege (collapsible) -->
-              <template v-if="entry._isLadegruppe">
+              <template v-if="item.entry._isLadegruppe">
                 <Transition name="slide-down">
-                  <div v-if="expandedGroups.has(entry.id)" class="mt-1 -space-y-px">
-                    <div v-for="(topUp, idx) in entry._topUps" :key="topUp.id"
+                  <div v-if="expandedGroups.has(item.entry.id)" class="mt-1 -space-y-px">
+                    <div v-for="(topUp, idx) in item.entry._topUps" :key="topUp.id"
                       :class="['ml-4 mr-4 flex flex-col gap-1.5 px-2.5 py-1.5 bg-gray-50 dark:bg-gray-700 border border-blue-200 dark:border-[#1e3a5f]',
-                               idx === entry._topUps.length - 1 ? 'rounded-b-lg' : '']">
+                               idx === item.entry._topUps.length - 1 ? 'rounded-b-lg' : '']">
                       <!-- Einzeiler: alles in einer Zeile, bricht auf Mobile sauber um -->
                       <div class="flex items-center gap-x-2">
                         <span class="text-gray-300 text-xs leading-none flex-shrink-0">└</span>
@@ -1441,7 +1515,7 @@ function onTripFormLeave(el: Element, done: () => void) {
                         <BoltIcon class="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
                         <span class="text-xs font-semibold text-gray-600 dark:text-gray-300 whitespace-nowrap">{{ topUp.kwhCharged }} kWh</span>
                         <span class="text-xs text-gray-400 whitespace-nowrap">
-                          <template v-if="entry._spansMultipleDays">{{ formatLogDate(topUp.loggedAt) }}</template>
+                          <template v-if="item.entry._spansMultipleDays">{{ formatLogDate(topUp.loggedAt) }}</template>
                           <template v-else>{{ new Date(topUp.loggedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}</template>
                         </span>
                         <span v-if="topUp.chargeDurationMinutes" class="min-[436px]:inline-flex hidden items-center gap-1 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
@@ -1471,9 +1545,10 @@ function onTripFormLeave(el: Element, done: () => void) {
                   </div>
                 </Transition>
               </template>
-              </div><!-- end charge v-else -->
+              </div><!-- end charge -->
+              </template><!-- end v-else regular entry -->
 
-              </template><!-- end v-for mergedLogFeed -->
+              </template><!-- end v-for groupedFeed -->
             </template>
           </div>
           <!-- Pagination -->
