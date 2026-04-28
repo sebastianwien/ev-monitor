@@ -25,6 +25,8 @@ import org.springframework.http.ResponseEntity;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 
@@ -408,7 +410,7 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
         assertEquals(13000, body.odometerKm());
         assertEquals(0, new BigDecimal("80").compareTo(body.socAfterChargePercent()));
         assertEquals(0, new BigDecimal("20").compareTo(body.socBeforeChargePercent()));
-        assertEquals(LocalDateTime.parse("2025-08-20T11:00:00"), body.loggedAt());
+        assertEquals(OffsetDateTime.parse("2025-08-20T11:00:00+00:00"), body.loggedAt());
     }
 
     @Test
@@ -642,5 +644,26 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
         assertNotNull(response.getBody());
         assertEquals(RouteType.HIGHWAY, response.getBody().routeType());
         assertEquals(TireType.WINTER, response.getBody().tireType());
+    }
+
+    @Test
+    void shouldReturnLoggedAtWithUtcOffset() {
+        // Timezone-Bug: LocalDateTime wurde ohne Offset serialisiert ("2026-04-28T12:00:00"),
+        // JavaScript interpretiert das als lokale Zeit statt UTC -> falsche Anzeige im Frontend.
+        EvLog log = TestDataBuilder.createTestEvLog(carId, new BigDecimal("50.0"), new BigDecimal("12.50"));
+        evLogRepository.save(log);
+
+        HttpEntity<Void> requestWithAuth = createAuthRequest(userId, testUser.getEmail());
+
+        ResponseEntity<List<EvLogResponse>> response = restTemplate.exchange(
+                "/api/logs?carId=" + carId,
+                HttpMethod.GET,
+                requestWithAuth,
+                new ParameterizedTypeReference<List<EvLogResponse>>() {}
+        );
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(ZoneOffset.UTC, response.getBody().get(0).loggedAt().getOffset());
     }
 }

@@ -388,7 +388,8 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
     )
     const goeByDay = new Map<string, any[]>()
     for (const log of goeLogs) {
-      const day = (log.loggedAt as string).substring(0, 10)
+      const d = new Date(log.loggedAt as string)
+      const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
       if (!goeByDay.has(day)) goeByDay.set(day, [])
       goeByDay.get(day)!.push(log)
     }

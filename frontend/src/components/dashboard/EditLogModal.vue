@@ -94,9 +94,11 @@ const props = defineProps<{ log: EvLogResponse }>()
 const emit = defineEmits<{ close: []; saved: [log: EvLogResponse] }>()
 const { t } = useI18n()
 
-// Backend returns LocalDateTime without timezone (e.g. "2026-03-15T14:30:00")
-// Slice directly to avoid timezone conversion via new Date()
-const toDatetimeLocal = (iso: string) => iso.slice(0, 16)
+const toDatetimeLocal = (iso: string): string => {
+  const d = new Date(iso)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
 
 const formData = ref<LogFormData>({
   kwhCharged: props.log.kwhCharged,

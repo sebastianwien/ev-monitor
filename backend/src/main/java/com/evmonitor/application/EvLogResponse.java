@@ -6,7 +6,8 @@ import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.RouteType;
 import com.evmonitor.domain.TireType;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.UUID;
 
 public record EvLogResponse(
@@ -21,9 +22,9 @@ public record EvLogResponse(
         BigDecimal maxChargingPowerKw,
         BigDecimal socAfterChargePercent,
         BigDecimal socBeforeChargePercent,
-        LocalDateTime loggedAt,
-        LocalDateTime createdAt,
-        LocalDateTime updatedAt,
+        OffsetDateTime loggedAt,
+        OffsetDateTime createdAt,
+        OffsetDateTime updatedAt,
         Integer odometerSuggestionMinKm,
         Integer odometerSuggestionMaxKm,
         Double temperatureCelsius,
@@ -64,9 +65,10 @@ public record EvLogResponse(
                 evLog.getMaxChargingPowerKw(),
                 evLog.getSocAfterChargePercent(),
                 evLog.getSocBeforeChargePercent(),
-                evLog.getLoggedAt(),
-                evLog.getCreatedAt(),
-                evLog.getUpdatedAt(),
+                // EvLog stores LocalDateTime; backend runs in UTC (Docker default) so the offset is always +00:00
+                evLog.getLoggedAt().atOffset(ZoneOffset.UTC),
+                evLog.getCreatedAt().atOffset(ZoneOffset.UTC),
+                evLog.getUpdatedAt().atOffset(ZoneOffset.UTC),
                 evLog.getOdometerSuggestionMinKm(),
                 evLog.getOdometerSuggestionMaxKm(),
                 evLog.getTemperatureCelsius(),
