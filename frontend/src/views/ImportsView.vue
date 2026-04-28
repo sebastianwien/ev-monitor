@@ -7,6 +7,8 @@ import SpritMonitorImport from '../components/imports/SpritMonitorImport.vue'
 import GoeIntegration from '../components/imports/GoeIntegration.vue'
 import TeslaFleetIntegration from '../components/imports/TeslaFleetIntegration.vue'
 import SmartcarIntegration from '../components/imports/SmartcarIntegration.vue'
+import VwGroupIntegration from '../components/imports/VwGroupIntegration.vue'
+import { isVwGroupBrand } from '../api/vwGroupService'
 import ManualImportModal from '../components/imports/ManualImportModal.vue'
 const TronityImport = defineAsyncComponent(() => import('../components/imports/TronityImport.vue'))
 import TessieImport from '../components/imports/TessieImport.vue'
@@ -124,7 +126,12 @@ const formatDate = (dateStr: string | null) => {
 }
 
 const hasActiveTesla = computed(() =>
-  Array.isArray(cars.value) && cars.value.some(c => c.brand?.toLowerCase() === 'tesla' && c.status === 'ACTIVE')
+  Array.isArray(cars.value) && cars.value.some(c => c.brand?.toLowerCase() === 'tesla' && (c as any).status === 'ACTIVE')
+)
+
+const hasActiveVwGroupCar = computed(() =>
+  authStore.isBetaTester &&
+  Array.isArray(cars.value) && cars.value.some(c => isVwGroupBrand(c.brand) && (c as any).status === 'ACTIVE')
 )
 
 const activeCars = computed(() =>
@@ -191,7 +198,8 @@ const activeCars = computed(() =>
           </button>
           <Transition name="accordion">
             <div v-if="activeTab === 'smartcar'" class="border-t border-gray-100 dark:border-gray-700">
-              <SmartcarIntegration :premium-enabled="premiumEnabled" :is-premium="subscriptionIsPremium" />
+              <VwGroupIntegration v-if="hasActiveVwGroupCar" :premium-enabled="premiumEnabled" :is-premium="subscriptionIsPremium" />
+              <SmartcarIntegration v-else :premium-enabled="premiumEnabled" :is-premium="subscriptionIsPremium" />
             </div>
           </Transition>
         </div>

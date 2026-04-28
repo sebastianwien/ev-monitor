@@ -462,6 +462,8 @@ dashboard:
   tesla_sleeping: Søvn
   smartcar_charging: Lading
   wallbox_charging: Lading
+  vwgroup_charging: Lading
+  vwgroup_connected: Tilkoblet
   real_range_title: Din reelle rekkevidde
   peer_benchmark_title: i sammenligning
   peer_you: "Du"
@@ -1197,6 +1199,24 @@ imports:
   smartcar_connecting: Kobler til...
   smartcar_connect_btn: Koble til kjøretøy
   smartcar_support_hint: Har du spørsmål om oppsettet?
+  vwgroup_teaser_title: AutoSync for VW Group-kjøretøy
+  vwgroup_teaser_desc: Koble til din Škoda, VW, Audi, SEAT eller CUPRA - automatisk import av alle ladeøkter og turer.
+  vwgroup_connect_desc: Koble til din {brand}-konto for automatisk import av ladeøkter og turer.
+  vwgroup_connect_btn: Koble til {brand}
+  vwgroup_connecting: Starter...
+  vwgroup_auth_step1: Åpne denne lenken i nettleseren din
+  vwgroup_auth_step2: Og skriv inn denne koden
+  vwgroup_expires_in: Utløper om {s}s
+  vwgroup_waiting: Venter på autorisasjon...
+  vwgroup_cancel: Avbryt
+  vwgroup_code_expired: Koden er utløpt - prøv å koble til igjen.
+  vwgroup_confirm_disconnect: Vil du virkelig koble fra kjøretøyet?
+  vwgroup_disconnect_btn: Koble fra kjøretøy
+  vwgroup_state_charging: Lader
+  vwgroup_state_idle: Parkert
+  vwgroup_state_unknown: Ukjent
+  vwgroup_session_active: Lading pågår
+  vwgroup_range: Rekkevidde
   smartcar_how_title: Hvordan fungerer AutoSync?
   smartcar_how_q1: Hva er Smartcar?
   smartcar_how_a1: AutoSync bruker en tjeneste kalt Smartcar i bakgrunnen – et offisielt grensesnitt som bilprodusentene bruker til å gi apper autorisert tilgang til kjøretøydata. Over 30 produsenter har offisielt godkjent Smartcar, blant annet BMW, Volkswagen, Mercedes og Volvo.

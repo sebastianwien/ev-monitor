@@ -63,6 +63,7 @@ import { useDashboardCharts } from '../composables/useDashboardCharts'
 import { useLogList } from '../composables/useLogList'
 import { useWallboxStore } from '../stores/wallbox'
 import { enumToLabel } from '../utils/enumLabel'
+import { isVwGroupBrand } from '../api/vwGroupService'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend, Filler, ChartDataLabels)
 
@@ -74,7 +75,7 @@ const { formatConsumption, consumptionUnitLabel, formatDistance, distanceUnitLab
 const {
   selectedCarId, stats, carInfo, wltp, loading, chartsReady, isInitialLoad, error,
   cars, carImageUrls, selectedTimeRange, selectedGroupBy, customStartDate, customEndDate,
-  importBannerDismissed, implausibleBannerDismissed, teslaStatus, smartcarStatus, implausibleCount, hasDistanceData,
+  importBannerDismissed, implausibleBannerDismissed, teslaStatus, smartcarStatus, vwGroupStatus, implausibleCount, hasDistanceData,
   timeRangeOptions, groupByOptions, dismissImportBanner, dismissImplausibleBanner, fetchImplausibleCount,
   fetchCarAndWltp, fetchStatistics, initCars,
 } = useDashboardStats()
@@ -144,6 +145,37 @@ const previousTripMap = computed<Record<string, any>>(() => {
     if (!feed[i]._isTrip) continue
     for (let j = i + 1; j < feed.length; j++) {
       if (feed[j]._isTrip) { result[feed[i].id] = feed[j]; break }
+    }
+  }
+  return result
+})
+
+const groupedFeed = computed<any[]>(() => {
+  const feed = mergedLogFeed.value
+  const result: any[] = []
+  let i = 0
+  while (i < feed.length) {
+    const entry = feed[i]
+    if (entry._isTrip && canAccessTrips.value && entry._tripGroupIndex === 0) {
+      const groupId = entry._tripGroupId
+      const group: any = {
+        kind: 'tripGroup',
+        id: groupId,
+        groupId,
+        phantomDrain: entry._phantomDrain,
+        totalKm: entry._tripGroupTotalKm,
+        dateRange: entry._tripGroupDateRange,
+        groupSize: entry._tripGroupSize,
+        trips: [] as any[],
+      }
+      while (i < feed.length && feed[i]._isTrip && feed[i]._tripGroupId === groupId) {
+        group.trips.push(feed[i])
+        i++
+      }
+      result.push(group)
+    } else {
+      result.push({ kind: 'entry', id: entry.id, entry })
+      i++
     }
   }
   return result
@@ -260,7 +292,12 @@ const isSmartcarCharging = (car: any) =>
 const isWallboxCharging = () =>
   wallboxStore.isCharging && cars.value.length === 1
 
-const isVehicleCharging = (car: any) => isSmartcarCharging(car) || isWallboxCharging()
+const isVwGroupCharging = (car: any) =>
+  isVwGroupBrand(car.brand) &&
+  vwGroupStatus.value?.connected === true &&
+  vwGroupStatus.value?.vehicleState === 'charging'
+
+const isVehicleCharging = (car: any) => isSmartcarCharging(car) || isVwGroupCharging(car) || isWallboxCharging()
 
 const anyVehicleCharging = computed(() => cars.value.some(car => isVehicleCharging(car)))
 
@@ -484,6 +521,19 @@ function onTripFormLeave(el: Element, done: () => void) {
                       class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs rounded-full font-medium border border-green-200 dark:border-green-700">
                       <span class="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 animate-pulse"></span>{{ t('dashboard.smartcar_charging') }}
                     </span>
+                    <template v-if="isVwGroupBrand(car.brand) && vwGroupStatus?.connected">
+                      <span v-if="vwGroupStatus.vehicleState === 'charging'"
+                        class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs rounded-full font-medium border border-green-200 dark:border-green-700">
+                        <span class="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 animate-pulse"></span>
+                        {{ t('dashboard.vwgroup_charging') }}
+                        <span v-if="vwGroupStatus.lastSoc != null" class="opacity-75">· {{ vwGroupStatus.lastSoc }}%</span>
+                      </span>
+                      <span v-else
+                        class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs rounded-full font-medium border border-blue-200 dark:border-blue-700">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                        {{ vwGroupStatus.lastSoc != null ? vwGroupStatus.lastSoc + '%' : t('dashboard.vwgroup_connected') }}
+                      </span>
+                    </template>
                     <span v-if="isWallboxCharging()"
                       class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs rounded-full font-medium border border-green-200 dark:border-green-700">
                       <span class="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 animate-pulse"></span>{{ t('dashboard.wallbox_charging') }}
@@ -516,6 +566,19 @@ function onTripFormLeave(el: Element, done: () => void) {
                         class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs rounded-full font-medium border border-green-200 dark:border-green-700">
                         <span class="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 animate-pulse"></span>{{ t('dashboard.smartcar_charging') }}
                       </span>
+                      <template v-if="isVwGroupBrand(car.brand) && vwGroupStatus?.connected">
+                        <span v-if="vwGroupStatus.vehicleState === 'charging'"
+                          class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs rounded-full font-medium border border-green-200 dark:border-green-700">
+                          <span class="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 animate-pulse"></span>
+                          {{ t('dashboard.vwgroup_charging') }}
+                          <span v-if="vwGroupStatus.lastSoc != null" class="opacity-75">· {{ vwGroupStatus.lastSoc }}%</span>
+                        </span>
+                        <span v-else
+                          class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs rounded-full font-medium border border-blue-200 dark:border-blue-700">
+                          <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                          {{ vwGroupStatus.lastSoc != null ? vwGroupStatus.lastSoc + '%' : t('dashboard.vwgroup_connected') }}
+                        </span>
+                      </template>
                       <span v-if="isWallboxCharging()"
                         class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs rounded-full font-medium border border-green-200 dark:border-green-700">
                         <span class="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 animate-pulse"></span>{{ t('dashboard.wallbox_charging') }}
@@ -546,7 +609,7 @@ function onTripFormLeave(el: Element, done: () => void) {
 
           <!-- Peer Benchmark -->
           <PeerBenchmarkCard
-            v-if="stats?.peerBenchmark && stats.peerBenchmark.peerAvgConsumptionKwhPer100km !== null"
+            v-if="stats?.peerBenchmark && stats.peerBenchmark.peerAvgConsumptionKwhPer100km != null"
             class="flex-1 min-w-0"
             :benchmark="stats.peerBenchmark"
             :effective-battery-kwh="selectedCar?.effectiveBatteryCapacityKwh ?? null"
@@ -828,7 +891,12 @@ function onTripFormLeave(el: Element, done: () => void) {
               <template v-for="entry in mergedLogFeed" :key="entry.id">
 
               <!-- Phantom drain indicator: energy lost while parked before this entry -->
-              <div v-if="entry._phantomDrain && isAdmin && !(entry._isTrip && collapsedTripGroups.has(entry._tripGroupId ?? ''))" class="flex items-center gap-2 px-4 mt-0.5 mb-2">
+              <!-- First-trip phantom drain is shown inside the group header instead -->
+              <div v-if="entry._phantomDrain && isAdmin && !(entry._isTrip && collapsedTripGroups.has(entry._tripGroupId ?? '')) && !(entry._isTrip && entry._tripGroupIndex === 0)"
+                   :class="['flex items-center gap-2',
+                            entry._isTrip && entry._tripGroupIndex > 0
+                              ? 'mx-2 px-3 py-1.5 border-l-4 border-l-emerald-400 dark:border-l-emerald-500 border-r-4 border-r-emerald-400 dark:border-r-emerald-500 bg-white dark:bg-gray-700 ![margin-block-start:0]'
+                              : 'px-4 mt-0.5 mb-2']">
                 <div class="flex-1 h-px bg-gray-200 dark:bg-gray-600" />
                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-amber-300 dark:border-amber-600 bg-amber-50 dark:bg-amber-900/20 text-xs text-amber-600 dark:text-amber-400 whitespace-nowrap">
                   <BoltIcon class="w-3 h-3" />
@@ -899,19 +967,38 @@ function onTripFormLeave(el: Element, done: () => void) {
                 <!-- Trip group collapse header -->
                 <div v-if="entry._tripGroupSize >= 1 && entry._tripGroupIndex === 0"
                      @click="toggleTripGroup(entry._tripGroupId)"
-                     class="ml-2 mr-2 mb-1 relative flex items-center px-3 py-1.5 rounded-lg border-l-4 border-l-emerald-400 dark:border-l-emerald-500 border-r-4 border-r-emerald-400 dark:border-r-emerald-500 bg-white dark:bg-gray-700 cursor-pointer select-none hover:bg-emerald-50 dark:hover:bg-gray-600 transition-colors">
-                  <div class="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
-                    <TruckIcon class="w-3.5 h-3.5 shrink-0" />
-                    {{ t('dashboard.trip_group_count', { count: entry._tripGroupSize }, entry._tripGroupSize) }}
-                    <span v-if="entry._tripGroupTotalKm" class="font-normal text-emerald-600 dark:text-emerald-500">&middot; {{ formatDistance(entry._tripGroupTotalKm) }}</span>
-                    <span v-if="entry._tripGroupDateRange" class="font-normal text-emerald-600 dark:text-emerald-500">&middot; {{ entry._tripGroupDateRange }}</span>
+                     :class="['ml-2 mr-2 flex flex-col px-3 py-2.5 border-l-4 border-l-emerald-400 dark:border-l-emerald-500 border-r-4 border-r-emerald-400 dark:border-r-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 cursor-pointer select-none hover:bg-emerald-100 dark:hover:bg-emerald-950/60 transition-colors',
+                              collapsedTripGroups.has(entry._tripGroupId) ? 'rounded-xl mb-1' : 'rounded-t-xl']">
+                  <!-- Phantom drain of first trip shown here -->
+                  <div v-if="entry._phantomDrain && isAdmin" class="flex items-center gap-2 mb-2 pb-2 border-b border-emerald-200 dark:border-emerald-800/60">
+                    <div class="flex-1 h-px bg-emerald-200 dark:bg-emerald-800" />
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-amber-300 dark:border-amber-600 bg-amber-50 dark:bg-amber-900/20 text-xs text-amber-600 dark:text-amber-400 whitespace-nowrap">
+                      <BoltIcon class="w-3 h-3" />
+                      {{ entry._phantomDrain.kwh.toFixed(2) }} kWh
+                      <template v-if="selectedCar?.effectiveBatteryCapacityKwh">
+                        ({{ (entry._phantomDrain.kwh / selectedCar.effectiveBatteryCapacityKwh * 100).toFixed(1) }}%)
+                      </template>
+                      Standverlust
+                    </span>
+                    <div class="flex-1 h-px bg-emerald-200 dark:bg-emerald-800" />
                   </div>
-                  <ChevronUpIcon v-if="!collapsedTripGroups.has(entry._tripGroupId)" class="w-4 h-4 text-emerald-500 shrink-0 absolute right-3" />
-                  <ChevronDownIcon v-else class="w-4 h-4 text-emerald-500 shrink-0 absolute right-3" />
+                  <!-- Main header row -->
+                  <div class="flex items-center gap-2">
+                    <div class="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                      <TruckIcon class="w-3.5 h-3.5 shrink-0" />
+                      {{ t('dashboard.trip_group_count', { count: entry._tripGroupSize }, entry._tripGroupSize) }}
+                      <span v-if="entry._tripGroupTotalKm" class="font-normal text-emerald-600 dark:text-emerald-500">&middot; {{ formatDistance(entry._tripGroupTotalKm) }}</span>
+                      <span v-if="entry._tripGroupDateRange" class="font-normal text-emerald-600 dark:text-emerald-500">&middot; {{ entry._tripGroupDateRange }}</span>
+                    </div>
+                    <ChevronUpIcon v-if="!collapsedTripGroups.has(entry._tripGroupId)" class="w-4 h-4 text-emerald-500 shrink-0" />
+                    <ChevronDownIcon v-else class="w-4 h-4 text-emerald-500 shrink-0" />
+                  </div>
                 </div>
                 <!-- Trip display mode -->
                 <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
-                  <div v-if="editingTripId !== entry.id && deletingTripId !== entry.id && !collapsedTripGroups.has(entry._tripGroupId ?? '')" class="ml-2 mr-2 p-3 rounded-lg shadow-sm ring-1 ring-black/5 dark:ring-white/10 border-l-4 border-l-emerald-400 dark:border-l-emerald-500 border-r-4 border-r-emerald-400 dark:border-r-emerald-500 bg-white dark:bg-gray-700 space-y-2">
+                  <div v-if="editingTripId !== entry.id && deletingTripId !== entry.id && !collapsedTripGroups.has(entry._tripGroupId ?? '')"
+                       :class="['ml-2 mr-2 p-3 shadow-sm ring-1 ring-black/5 dark:ring-white/10 border-l-4 border-l-emerald-400 dark:border-l-emerald-500 border-r-4 border-r-emerald-400 dark:border-r-emerald-500 bg-white dark:bg-gray-700 space-y-2 ![margin-block-start:0]',
+                                entry._tripGroupIndex === entry._tripGroupSize - 1 ? 'rounded-b-xl' : 'rounded-none']">
                     <!-- Zeile 1: Distanz, Verbrauch, Temperatur (rechts), Aktionen -->
                     <div class="flex items-center justify-between gap-2">
                       <div class="flex items-center gap-2 min-w-0 overflow-hidden">
@@ -1009,7 +1096,9 @@ function onTripFormLeave(el: Element, done: () => void) {
                 </Transition>
                 <!-- Trip inline edit mode -->
                 <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
-                <div v-if="editingTripId === entry.id && !collapsedTripGroups.has(entry._tripGroupId ?? '')" class="ml-2 mr-2 p-3 rounded-lg shadow-sm ring-1 ring-black/5 dark:ring-white/10 border-l-4 border-l-emerald-500 dark:border-l-emerald-400 bg-white dark:bg-gray-700 space-y-3">
+                <div v-if="editingTripId === entry.id && !collapsedTripGroups.has(entry._tripGroupId ?? '')"
+                     :class="['ml-2 mr-2 p-3 shadow-sm ring-1 ring-black/5 dark:ring-white/10 border-l-4 border-l-emerald-500 dark:border-l-emerald-400 bg-white dark:bg-gray-700 space-y-3 ![margin-block-start:0]',
+                              entry._tripGroupIndex === entry._tripGroupSize - 1 ? 'rounded-b-xl' : 'rounded-none']">
                   <div class="flex items-center justify-between gap-2">
                     <span class="text-sm font-medium text-emerald-800 dark:text-emerald-300">{{ t('dashboard.trip_edit') }}</span>
                     <div class="flex gap-1">

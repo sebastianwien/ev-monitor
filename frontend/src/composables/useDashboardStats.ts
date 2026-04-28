@@ -7,6 +7,8 @@ import { carService } from '../api/carService'
 import { vehicleSpecificationService, type VehicleSpecification } from '../api/vehicleSpecificationService'
 import { useTeslaStatus } from './useTeslaStatus'
 import { useSmartcarStatus } from './useSmartcarStatus'
+import { useVwGroupStatus } from './useVwGroupStatus'
+import { isVwGroupBrand } from '../api/vwGroupService'
 
 export interface ChargeDataPoint {
   timestamp: string
@@ -84,6 +86,7 @@ export function useDashboardStats() {
 
   const { teslaStatus, start: startTeslaPolling } = useTeslaStatus()
   const { smartcarStatus, start: startSmartcarPolling } = useSmartcarStatus()
+  const { vwGroupStatus, start: startVwGroupPolling } = useVwGroupStatus()
 
   // Implausible logs
   const implausibleCount = ref(0)
@@ -217,6 +220,10 @@ export function useDashboardStats() {
       const hasTesla = carList.some((c: any) => c.brand?.toLowerCase() === 'tesla')
       startTeslaPolling(hasTesla)
       startSmartcarPolling(carList.length > 0 && authStore.isPremium)
+      const activeCar = carList.find((c: any) => c.active) ?? carList[0]
+      const vwBrand = activeCar && isVwGroupBrand(activeCar.brand)
+        ? activeCar.brand?.toLowerCase() ?? null : null
+      if (authStore.isPremium && authStore.isBetaTester) startVwGroupPolling(vwBrand)
     } catch { /* non-critical */ }
   }
 
@@ -256,6 +263,7 @@ export function useDashboardStats() {
     implausibleBannerDismissed,
     teslaStatus,
     smartcarStatus,
+    vwGroupStatus,
     implausibleCount,
     hasDistanceData,
     timeRangeOptions,
