@@ -1759,6 +1759,8 @@ announcements:
   trip_detection_beta_v1_title: "Automatische Fahrterkennung (Beta)"
   trip_detection_beta_v1_body: "EV Monitor erkennt jetzt automatisch Fahrten aus deinen AutoSync-Daten und zeigt sie neben deinen Ladevorgängen im Dashboard. Die Beta kann noch Fehler enthalten - manuelle Korrekturen sind direkt im Dashboard möglich."
   trip_detection_beta_v1_cta: "Zum Dashboard"
+  brutto_netto_v1_title: "Verbesserte Verbrauchs- und Kostenberechnung"
+  brutto_netto_v1_body: "EV Monitor bezieht Netto- und Bruttowerte von gemeldeten Ladevorgängen konsequenter in alle Berechnungen mit ein. Dies kann dazu führen, dass sich Verbrauchs-, Kosten- und Reichweitenangaben leicht angepasst haben. Sie bilden die Realität nun noch besser ab!"
 
 tax_export:
   title: "Steuernachweis Heimladen"

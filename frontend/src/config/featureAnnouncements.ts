@@ -17,6 +17,13 @@ export interface FeatureAnnouncement {
 
 export const featureAnnouncements: FeatureAnnouncement[] = [
   {
+    key: 'brutto-netto-v1',
+    expiresAt: '2026-05-19',
+    releasedAt: '2026-04-28',
+    titleKey: 'announcements.brutto_netto_v1_title',
+    bodyKey: 'announcements.brutto_netto_v1_body',
+  },
+  {
     key: 'trip-detection-beta-v1',
     expiresAt: '2026-05-16',
     titleKey: 'announcements.trip_detection_beta_v1_title',

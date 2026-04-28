@@ -1726,6 +1726,8 @@ announcements:
   trip_detection_beta_v1_title: "Automatisk turgjenkjenning (Beta)"
   trip_detection_beta_v1_body: "EV Monitor gjenkjenner nå automatisk turer fra AutoSync-dataene dine og viser dem ved siden av ladeøktene dine i dashbordet. Dette er en beta-funksjon - feil kan forekomme. Manuelle korreksjoner er tilgjengelig direkte i dashbordet."
   trip_detection_beta_v1_cta: "Til dashbordet"
+  brutto_netto_v1_title: "Forbedret forbruks- og kostnadsberegning"
+  brutto_netto_v1_body: "EV Monitor bruker nå netto- og bruttoverdier fra innmeldte ladesøkter mer konsekvent i alle beregninger. Dette kan føre til at forbruks-, kostnads- og rekkeviddeangivelser er blitt litt justert. De gjenspeiler nå virkeligheten enda bedre!"
 tax_export:
   title: Skatterapport for hjemmelading
   subtitle: Eksporter dine hjemmeladinger som dokumentasjon til regnskapsføreren din (brev fra BMF av 11.11.2025)

@@ -1726,6 +1726,8 @@ announcements:
   trip_detection_beta_v1_title: "Automatisk reseigenkänning (Beta)"
   trip_detection_beta_v1_body: "EV Monitor känner nu automatiskt igen resor från dina AutoSync-data och visar dem bredvid dina laddningar i dashbordet. Det här är en betafunktion - fel kan förekomma. Manuella korrigeringar är möjliga direkt i dashbordet."
   trip_detection_beta_v1_cta: "Till dashbordet"
+  brutto_netto_v1_title: "Förbättrad förbruknings- och kostnadsberäkning"
+  brutto_netto_v1_body: "EV Monitor använder nu netto- och bruttovärden från rapporterade laddningar mer konsekvent i alla beräkningar. Detta kan leda till att förbruknings-, kostnads- och räckviddsvärden har justerats något. De återspeglar nu verkligheten ännu bättre!"
 tax_export:
   title: Skatteanmälan för laddning hemma
   subtitle: Exportera dina hemladdningar som underlag för din revisor (brev från BMF av den 11 november 2025)

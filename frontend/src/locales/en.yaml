@@ -1759,6 +1759,8 @@ announcements:
   trip_detection_beta_v1_title: "Automatic trip detection (Beta)"
   trip_detection_beta_v1_body: "EV Monitor now automatically detects trips from your AutoSync data and shows them alongside your charging sessions in the dashboard. This is a beta feature - errors may occur. Manual corrections are available directly in the dashboard."
   trip_detection_beta_v1_cta: "Go to dashboard"
+  brutto_netto_v1_title: "Improved consumption and cost calculation"
+  brutto_netto_v1_body: "EV Monitor now more consistently uses both net and gross energy values from logged charging sessions in all calculations. This may cause slight adjustments to consumption, cost, and range figures - they now reflect reality even more accurately!"
 
 tax_export:
   title: "Tax report home charging"
