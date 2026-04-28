@@ -51,6 +51,7 @@ public class ConsumptionCalculationService {
         return log.getKwhCharged().multiply(BigDecimal.valueOf(chargingEfficiency(log)));
     }
 
+
     /**
      * Returns the grid-side kWh for cost calculations (what was billed at the charger).
      *

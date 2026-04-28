@@ -48,16 +48,6 @@ public interface EvLogRepository {
 
     void updateTemperature(UUID id, Double temperatureCelsius);
 
-    List<EvLog> findImportLogsInTimeWindow(UUID carId, LocalDateTime from, LocalDateTime to,
-                                            BigDecimal kwhMin, BigDecimal kwhMax);
-
-    List<EvLog> findUserLoggedInTimeWindow(UUID carId, LocalDateTime from, LocalDateTime to,
-                                           BigDecimal kwhMin, BigDecimal kwhMax);
-
-    void markAsSuperseded(UUID id, UUID supersededById);
-
-    void clearSupersededByReferences(UUID supersededById);
-
     List<GeohashPoint> findGeohashDataByCarId(UUID carId);
 
     Optional<EvLog> findMostRecentLogAtGeohash(UUID userId, String geohash);

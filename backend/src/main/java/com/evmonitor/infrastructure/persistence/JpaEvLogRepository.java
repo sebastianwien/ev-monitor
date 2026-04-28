@@ -16,7 +16,7 @@ import java.util.UUID;
 public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     Optional<EvLogEntity> findByIdAndCarId(UUID id, UUID carId);
 
-    @Query("SELECT e FROM EvLogEntity e WHERE e.carId = :carId AND e.supersededBy IS NULL")
+    @Query("SELECT e FROM EvLogEntity e WHERE e.carId = :carId")
     List<EvLogEntity> findAllByCarId(@Param("carId") UUID carId);
 
     @Query("""
@@ -26,23 +26,22 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
           AND e.socBeforeChargePercent IS NOT NULL
           AND e.socAfterChargePercent IS NOT NULL
           AND e.includeInStatistics = true
-          AND e.supersededBy IS NULL
         ORDER BY e.loggedAt DESC
         """)
     List<EvLogEntity> findRecentAtVehicleLogsWithSoc(
             @Param("carId") UUID carId,
             org.springframework.data.domain.Pageable pageable);
 
-    @Query("SELECT e.geohash, e.kwhCharged FROM EvLogEntity e WHERE e.carId = :carId AND e.geohash IS NOT NULL AND e.supersededBy IS NULL")
+    @Query("SELECT e.geohash, COALESCE(e.kwhAtVehicle, e.kwhCharged) FROM EvLogEntity e WHERE e.carId = :carId AND e.geohash IS NOT NULL")
     List<Object[]> findGeohashDataByCarId(@Param("carId") UUID carId);
 
-    @Query("SELECT e FROM EvLogEntity e WHERE e.carId IN :carIds AND e.supersededBy IS NULL")
+    @Query("SELECT e FROM EvLogEntity e WHERE e.carId IN :carIds")
     List<EvLogEntity> findAllByCarIdIn(@Param("carIds") List<UUID> carIds);
 
-    @Query("SELECT e FROM EvLogEntity e WHERE e.carId = :carId AND e.supersededBy IS NULL ORDER BY e.loggedAt DESC")
+    @Query("SELECT e FROM EvLogEntity e WHERE e.carId = :carId ORDER BY e.loggedAt DESC")
     List<EvLogEntity> findAllByCarIdOrderByLoggedAtDesc(@Param("carId") UUID carId, org.springframework.data.domain.Pageable pageable);
 
-    @Query("SELECT e FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id WHERE c.userId = :userId AND e.supersededBy IS NULL")
+    @Query("SELECT e FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id WHERE c.userId = :userId")
     List<EvLogEntity> findAllByUserId(@Param("userId") UUID userId);
 
     @Query("SELECT COUNT(e) FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id WHERE c.userId = :userId")
@@ -66,8 +65,7 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
         WHERE c.userId = :userId
           AND e.geohash = :geohash
           AND e.costEur IS NOT NULL AND e.costEur > 0
-          AND e.kwhCharged IS NOT NULL AND e.kwhCharged > 0
-          AND e.supersededBy IS NULL
+          AND (e.kwhCharged > 0 OR e.kwhAtVehicle > 0)
         ORDER BY e.loggedAt DESC
         """)
     List<EvLogEntity> findRecentByUserIdAndGeohash(@Param("userId") UUID userId, @Param("geohash") String geohash,
@@ -78,7 +76,6 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
         WHERE c.userId = :userId
           AND e.geohash = :geohash
           AND e.chargingProviderId IS NOT NULL
-          AND e.supersededBy IS NULL
         ORDER BY e.loggedAt DESC
         """)
     List<EvLogEntity> findRecentWithProviderByUserIdAndGeohash(@Param("userId") UUID userId, @Param("geohash") String geohash,
@@ -88,7 +85,6 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
             SELECT e FROM EvLogEntity e
             WHERE e.carId = :carId
               AND e.publicCharging = false
-              AND e.supersededBy IS NULL
               AND e.loggedAt >= :from
               AND e.loggedAt < :to
             ORDER BY e.loggedAt ASC
@@ -105,47 +101,6 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     @Modifying
     @Query("DELETE FROM EvLogEntity e WHERE e.carId IN (SELECT c.id FROM CarEntity c WHERE c.userId = :userId) AND e.dataSource IN :dataSources")
     void deleteAllByUserIdAndDataSourceIn(@Param("userId") UUID userId, @Param("dataSources") List<String> dataSources);
-
-    @Query("""
-            SELECT e FROM EvLogEntity e
-            WHERE e.carId = :carId
-              AND e.dataSource != 'USER_LOGGED'
-              AND e.supersededBy IS NULL
-              AND e.loggedAt BETWEEN :from AND :to
-              AND COALESCE(e.kwhCharged, e.kwhAtVehicle) BETWEEN :kwhMin AND :kwhMax
-            """)
-    List<EvLogEntity> findImportLogsInTimeWindow(
-            @Param("carId") UUID carId,
-            @Param("from") LocalDateTime from,
-            @Param("to") LocalDateTime to,
-            @Param("kwhMin") BigDecimal kwhMin,
-            @Param("kwhMax") BigDecimal kwhMax);
-
-    // Returns a List (not Optional) to avoid NonUniqueResultException if the user has
-    // multiple USER_LOGGED entries in the time window (e.g. corrected a previous entry).
-    // Callers take the first match.
-    @Query("""
-            SELECT e FROM EvLogEntity e
-            WHERE e.carId = :carId
-              AND e.dataSource = 'USER_LOGGED'
-              AND e.loggedAt BETWEEN :from AND :to
-              AND e.kwhCharged BETWEEN :kwhMin AND :kwhMax
-            ORDER BY e.loggedAt DESC
-            """)
-    List<EvLogEntity> findUserLoggedInTimeWindow(
-            @Param("carId") UUID carId,
-            @Param("from") LocalDateTime from,
-            @Param("to") LocalDateTime to,
-            @Param("kwhMin") BigDecimal kwhMin,
-            @Param("kwhMax") BigDecimal kwhMax);
-
-    @Modifying
-    @Query("UPDATE EvLogEntity e SET e.supersededBy = :supersededById WHERE e.id = :id")
-    void markAsSuperseded(@Param("id") UUID id, @Param("supersededById") UUID supersededById);
-
-    @Modifying
-    @Query("UPDATE EvLogEntity e SET e.supersededBy = NULL WHERE e.supersededBy = :supersededById")
-    void clearSupersededByReferences(@Param("supersededById") UUID supersededById);
 
     @Modifying
     @Query("UPDATE EvLogEntity e SET e.includeInStatistics = :includeInStatistics, e.updatedAt = CURRENT_TIMESTAMP WHERE e.id = :id")
@@ -188,7 +143,7 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
             WITH ranked AS (
                 SELECT
                     odometer_km,
-                    kwh_charged,
+                    COALESCE(kwh_at_vehicle, kwh_charged) AS kwh,
                     soc_after_charge_percent,
                     LAG(odometer_km)              OVER (PARTITION BY car_id ORDER BY logged_at) AS prev_odometer,
                     LAG(soc_after_charge_percent) OVER (PARTITION BY car_id ORDER BY logged_at) AS prev_soc
@@ -197,7 +152,7 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
             )
             SELECT COUNT(*) FROM ranked
             WHERE odometer_km IS NOT NULL
-              AND kwh_charged IS NOT NULL
+              AND kwh IS NOT NULL
               AND soc_after_charge_percent IS NOT NULL
               AND prev_odometer IS NOT NULL
               AND prev_soc IS NOT NULL
@@ -208,7 +163,19 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     @Query(value = """
             WITH filtered AS (
                 SELECT l.id,
-                       l.kwh_charged,
+                       COALESCE(l.kwh_charged,
+                           l.kwh_at_vehicle / CASE
+                               WHEN l.charging_type = 'DC'  THEN 0.95
+                               WHEN l.charging_type = 'AC'  THEN 0.90
+                               WHEN l.max_charging_power_kw > 22 THEN 0.95
+                               WHEN l.max_charging_power_kw IS NOT NULL THEN 0.90
+                               WHEN l.charge_duration_minutes > 0
+                                    AND l.kwh_at_vehicle / (l.charge_duration_minutes / 60.0) > 22 THEN 0.95
+                               WHEN l.charge_duration_minutes > 0 THEN 0.90
+                               WHEN l.is_public_charging = true THEN 0.95
+                               ELSE 0.90
+                           END
+                       ) AS kwh_for_cost,
                        l.cost_eur,
                        c.user_id,
                        l.car_id,
@@ -224,8 +191,8 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
             SELECT
                 COUNT(id) FILTER (WHERE prev_odometer IS NULL OR odometer_km IS NULL OR odometer_km != prev_odometer) AS log_count,
                 COUNT(DISTINCT user_id)                                                                                AS unique_contributors,
-                AVG(CASE WHEN cost_eur > 0 THEN cost_eur / NULLIF(kwh_charged, 0) END)                               AS avg_cost_per_kwh,
-                AVG(kwh_charged) FILTER (WHERE prev_odometer IS NULL OR odometer_km IS NULL OR odometer_km != prev_odometer) AS avg_kwh_per_session,
+                AVG(CASE WHEN cost_eur > 0 THEN cost_eur / NULLIF(kwh_for_cost, 0) END)                              AS avg_cost_per_kwh,
+                AVG(kwh_for_cost) FILTER (WHERE prev_odometer IS NULL OR odometer_km IS NULL OR odometer_km != prev_odometer) AS avg_kwh_per_session,
                 COUNT(DISTINCT car_id)                                                                                 AS unique_cars
             FROM filtered
             """, nativeQuery = true)
@@ -271,14 +238,14 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     @Query(value = """
             SELECT
                 CASE WHEN COUNT(*) >= 5
-                     THEN SUM(kwh_charged) / NULLIF(SUM(charge_duration_minutes) / 60.0, 0)
+                     THEN SUM(COALESCE(kwh_at_vehicle, kwh_charged)) / NULLIF(SUM(charge_duration_minutes) / 60.0, 0)
                      ELSE NULL
                 END
             FROM ev_log l
             JOIN car c ON c.id = l.car_id
             WHERE c.model = :model
               AND l.charge_duration_minutes > 0
-              AND l.kwh_charged > 0
+              AND COALESCE(l.kwh_at_vehicle, l.kwh_charged) > 0
               AND l.charging_type = 'DC'
               AND (l.include_in_statistics = true
                    OR (:isSeedUser = true
@@ -295,14 +262,14 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
      */
     @Query(value = """
             SELECT
-                CASE WHEN COUNT(*) FILTER (WHERE l.charging_type = 'AC' AND l.cost_eur > 0 AND l.kwh_charged > 0) >= 5
-                     THEN AVG(l.cost_eur / l.kwh_charged) FILTER (WHERE l.charging_type = 'AC' AND l.cost_eur > 0 AND l.kwh_charged > 0)
+                CASE WHEN COUNT(*) FILTER (WHERE l.charging_type = 'AC' AND l.cost_eur > 0 AND COALESCE(l.kwh_charged, l.kwh_at_vehicle / 0.90) > 0) >= 5
+                     THEN AVG(l.cost_eur / COALESCE(l.kwh_charged, l.kwh_at_vehicle / 0.90)) FILTER (WHERE l.charging_type = 'AC' AND l.cost_eur > 0 AND COALESCE(l.kwh_charged, l.kwh_at_vehicle / 0.90) > 0)
                      ELSE NULL END AS ac_avg_cost,
-                COUNT(*) FILTER (WHERE l.charging_type = 'AC' AND l.cost_eur > 0 AND l.kwh_charged > 0) AS ac_count,
-                CASE WHEN COUNT(*) FILTER (WHERE l.charging_type = 'DC' AND l.cost_eur > 0 AND l.kwh_charged > 0) >= 5
-                     THEN AVG(l.cost_eur / l.kwh_charged) FILTER (WHERE l.charging_type = 'DC' AND l.cost_eur > 0 AND l.kwh_charged > 0)
+                COUNT(*) FILTER (WHERE l.charging_type = 'AC' AND l.cost_eur > 0 AND COALESCE(l.kwh_charged, l.kwh_at_vehicle / 0.90) > 0) AS ac_count,
+                CASE WHEN COUNT(*) FILTER (WHERE l.charging_type = 'DC' AND l.cost_eur > 0 AND COALESCE(l.kwh_charged, l.kwh_at_vehicle / 0.95) > 0) >= 5
+                     THEN AVG(l.cost_eur / COALESCE(l.kwh_charged, l.kwh_at_vehicle / 0.95)) FILTER (WHERE l.charging_type = 'DC' AND l.cost_eur > 0 AND COALESCE(l.kwh_charged, l.kwh_at_vehicle / 0.95) > 0)
                      ELSE NULL END AS dc_avg_cost,
-                COUNT(*) FILTER (WHERE l.charging_type = 'DC' AND l.cost_eur > 0 AND l.kwh_charged > 0) AS dc_count
+                COUNT(*) FILTER (WHERE l.charging_type = 'DC' AND l.cost_eur > 0 AND COALESCE(l.kwh_charged, l.kwh_at_vehicle / 0.95) > 0) AS dc_count
             FROM ev_log l
             JOIN car c ON c.id = l.car_id
             WHERE c.model = :model

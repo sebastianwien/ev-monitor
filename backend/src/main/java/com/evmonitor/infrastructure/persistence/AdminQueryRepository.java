@@ -75,11 +75,11 @@ public class AdminQueryRepository {
         List<Object[]> rows = em.createNativeQuery("""
                 SELECT DATE(logged_at)::text                      AS tag,
                        COUNT(*)                                   AS anzahl_ladevorgaenge,
-                       COALESCE(SUM(kwh_charged), 0)              AS kwh_gesamt,
+                       COALESCE(SUM(COALESCE(kwh_at_vehicle, kwh_charged)), 0) AS kwh_gesamt,
                        COALESCE(SUM(cost_eur), 0)                 AS kosten_eur_gesamt,
                        STRING_AGG(DISTINCT data_source, ', ')     AS data_sources,
                        COALESCE(SUM(charge_duration_minutes), 0)  AS dauer_minuten_gesamt,
-                       COALESCE(ROUND(AVG(kwh_charged), 2), 0)    AS kwh_durchschnitt,
+                       COALESCE(ROUND(AVG(COALESCE(kwh_at_vehicle, kwh_charged)), 2), 0) AS kwh_durchschnitt,
                        COALESCE(ROUND(AVG(cost_eur), 2), 0)       AS kosten_eur_durchschnitt,
                        COALESCE(ROUND(AVG(charge_duration_minutes), 0), 0) AS dauer_minuten_durchschnitt
                 FROM ev_log

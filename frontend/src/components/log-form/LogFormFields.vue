@@ -198,6 +198,14 @@ const toggleKwhMode = (mode: 'charger' | 'vehicle') => {
   kwhMode.value = mode
 }
 
+// Formular-Reset erkennen: erst wenn kWh UND Kosten gleichzeitig null werden (programmatischer Reset,
+// nicht einfaches Löschen eines einzelnen Feldes durch den User).
+watch(
+  [() => form.value.kwhCharged, () => form.value.kwhAtVehicle, () => form.value.costEur],
+  ([kwh, kwhV, cost]) => {
+    if (kwh === null && kwhV === null && cost === null) kwhMode.value = 'charger'
+  }
+)
 
 // ── Cost Mode ─────────────────────────────────────────────────────────────────
 const costMode = ref<'total' | 'per_kwh'>('total')

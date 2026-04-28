@@ -82,9 +82,6 @@ public class EvLogEntity {
     @Column(name = "tire_type", length = 20)
     private String tireType;
 
-    @Column(name = "superseded_by")
-    private UUID supersededBy;
-
     @Column(name = "session_group_id")
     private UUID sessionGroupId;
 

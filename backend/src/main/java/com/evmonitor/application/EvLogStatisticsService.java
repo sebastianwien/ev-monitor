@@ -72,7 +72,7 @@ public class EvLogStatisticsService {
             throw new IllegalArgumentException("User does not own the specified car");
         }
         return evLogRepository.findGeohashDataByCarId(carId).stream()
-                .map(p -> new GeohashResponse(p.geohash(), p.kwhCharged()))
+                .map(p -> new GeohashResponse(p.geohash(), p.kwh()))
                 .toList();
     }
 

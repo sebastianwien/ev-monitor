@@ -54,8 +54,7 @@ public class CoinLogService {
         // Public API Upload — per-log reward
         API_UPLOAD_LOG              ("Ladevorgang importiert (API)",                    2, false),
         // Deductions
-        LOG_DELETED_DEDUCTION       ("Ladevorgang gelöscht",                           0, false), // defaultAmount unused — caller passes dynamic negative amount
-        IMPORT_SUPERSEDED_DEDUCTION ("Import als Duplikat erkannt",                    0, false); // defaultAmount unused — caller passes dynamic negative amount
+        LOG_DELETED_DEDUCTION       ("Ladevorgang gelöscht",                           0, false); // defaultAmount unused — caller passes dynamic negative amount
 
         private final String description;
         private final int defaultAmount;

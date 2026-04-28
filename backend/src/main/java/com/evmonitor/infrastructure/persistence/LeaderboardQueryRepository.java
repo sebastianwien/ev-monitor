@@ -31,7 +31,7 @@ public class LeaderboardQueryRepository {
     public List<LeaderboardRankRow> getKwhRanking(LocalDateTime start, LocalDateTime endExclusive) {
         List<Object[]> rows = em.createNativeQuery("""
                 SELECT CAST(c.id AS TEXT), CAST(u.id AS TEXT), u.username, c.model,
-                       SUM(e.kwh_charged) AS value
+                       SUM(COALESCE(e.kwh_at_vehicle, e.kwh_charged)) AS value
                 FROM ev_log e
                 JOIN car c ON e.car_id = c.id
                 JOIN app_user u ON c.user_id = u.id
@@ -133,8 +133,20 @@ public class LeaderboardQueryRepository {
     public List<LeaderboardRankRow> getCheapestRanking(LocalDateTime start, LocalDateTime endExclusive) {
         List<Object[]> rows = em.createNativeQuery("""
                 SELECT CAST(c.id AS TEXT), CAST(u.id AS TEXT), u.username, c.model,
-                       ROUND(SUM(e.cost_eur) / NULLIF(SUM(e.kwh_charged), 0) * 100, 2) AS value,
-                       SUM(e.kwh_charged) AS kwh_total,
+                       ROUND(SUM(e.cost_eur) / NULLIF(SUM(COALESCE(e.kwh_charged,
+                           e.kwh_at_vehicle / CASE
+                               WHEN e.charging_type = 'DC'  THEN 0.95
+                               WHEN e.charging_type = 'AC'  THEN 0.90
+                               WHEN e.max_charging_power_kw > 22 THEN 0.95
+                               WHEN e.max_charging_power_kw IS NOT NULL THEN 0.90
+                               WHEN e.charge_duration_minutes > 0
+                                    AND e.kwh_at_vehicle / (e.charge_duration_minutes / 60.0) > 22 THEN 0.95
+                               WHEN e.charge_duration_minutes > 0 THEN 0.90
+                               WHEN e.is_public_charging = true THEN 0.95
+                               ELSE 0.90
+                           END
+                       )), 0) * 100, 2) AS value,
+                       SUM(COALESCE(e.kwh_at_vehicle, e.kwh_charged)) AS kwh_total,
                        COUNT(e.id) AS session_count
                 FROM ev_log e
                 JOIN car c ON e.car_id = c.id
@@ -143,12 +155,12 @@ public class LeaderboardQueryRepository {
                   AND u.is_seed_data = false
                   AND u.leaderboard_visible = true
                   AND e.cost_eur IS NOT NULL
-                  AND e.kwh_charged > 0
+                  AND COALESCE(e.kwh_charged, e.kwh_at_vehicle) > 0
                   AND e.logged_at >= :start
                   AND e.logged_at < :end
                 GROUP BY c.id, c.model, u.id, u.username
                 HAVING COUNT(e.id) >= 3
-                ORDER BY value ASC, SUM(e.kwh_charged) DESC
+                ORDER BY value ASC, SUM(COALESCE(e.kwh_at_vehicle, e.kwh_charged)) DESC
                 """)
                 .setParameter("start", start)
                 .setParameter("end", endExclusive)
@@ -235,7 +247,7 @@ public class LeaderboardQueryRepository {
 
     public BigDecimal getTotalKwhThisMonth(LocalDateTime start, LocalDateTime endExclusive) {
         Object result = em.createNativeQuery("""
-                SELECT COALESCE(SUM(e.kwh_charged), 0)
+                SELECT COALESCE(SUM(COALESCE(e.kwh_at_vehicle, e.kwh_charged)), 0)
                 FROM ev_log e
                 WHERE e.include_in_statistics = true
                   AND e.logged_at >= :start
