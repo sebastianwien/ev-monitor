@@ -214,6 +214,7 @@ const doSaveReassign = () => saveReassign(fetchStatistics)
 // -- Trip feedback --
 const FEEDBACK_TAGS = ['distance_wrong', 'time_wrong', 'duplicate', 'other'] as const
 const openMenuLogId     = ref<string | null>(null)
+const openMenuTripId    = ref<string | null>(null)
 const feedbackOpenId    = ref<string | null>(null)
 const feedbackTags      = ref<string[]>([])
 const feedbackComment   = ref('')
@@ -899,6 +900,7 @@ function onTripFormLeave(el: Element, done: () => void) {
             </template>
             <template v-else>
               <div v-if="openMenuLogId" class="fixed inset-0 z-40" @click="openMenuLogId = null" />
+              <div v-if="openMenuTripId" class="fixed inset-0 z-40" @click="openMenuTripId = null" />
               <template v-for="item in groupedFeed" :key="item.id">
 
               <!-- ===== TRIP GROUP CONTAINER ===== -->
@@ -926,6 +928,10 @@ function onTripFormLeave(el: Element, done: () => void) {
                   <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
                   <div v-if="!collapsedTripGroups.has(item.groupId)">
                     <template v-for="(trip, tripIdx) in item.trips" :key="trip.id">
+
+                      <!-- Day-boundary separator between trips -->
+                      <div v-if="tripIdx !== 0 && new Date(item.trips[(tripIdx as number) - 1].tripEndedAt).toDateString() !== new Date(trip.tripStartedAt).toDateString()"
+                           class="border-t-2 border-gray-200 dark:border-gray-500" />
 
                       <!-- Phantom drain separator between trips -->
                       <div v-if="trip._phantomDrain && isAdmin && tripIdx !== 0"
@@ -1030,33 +1036,44 @@ function onTripFormLeave(el: Element, done: () => void) {
                               <HandThumbDownIcon class="w-3.5 h-3.5" />
                             </button>
                           </template>
-                          <button @click="startAddTrip(trip.id, trip.tripStartedAt)"
-                            class="p-2 md:p-1 rounded text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition"
-                            :title="t('dashboard.trip_add')">
-                            <PlusIcon class="w-3.5 h-3.5" />
-                          </button>
-                          <button @click="startEditTrip(trip)"
-                            class="p-2 md:p-1 rounded text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition"
-                            :title="t('dashboard.trip_edit')">
-                            <PencilSquareIcon class="w-3.5 h-3.5" />
-                          </button>
-                          <button @click="handleDeleteTrip(trip.id)"
-                            class="p-2 md:p-1 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition">
-                            <TrashIcon class="w-3.5 h-3.5" />
-                          </button>
                         </div>
                       </div>
                     </div>
-                    <!-- Row 2: time range + SoC -->
-                    <div class="flex items-center gap-2 text-[13px] text-gray-500 dark:text-gray-400">
-                      <span class="inline-flex items-center gap-1 whitespace-nowrap">
-                        <ClockIcon class="w-3 h-3" />{{ formatTripTimeRange(trip.tripStartedAt, trip.tripEndedAt) }}
-                      </span>
-                      <span v-if="trip.socStart != null && trip.socEnd != null" class="inline-flex items-center gap-1 whitespace-nowrap">
-                        <Battery0Icon class="w-3 h-3" />{{ trip.socStart }}% → {{ trip.socEnd }}%
-                      </span>
+                    <!-- Row 2: time range + SoC + action menu -->
+                    <div class="flex items-center justify-between gap-2 text-[13px] text-gray-500 dark:text-gray-400">
+                      <div class="flex items-center gap-2 min-w-0">
+                        <span class="inline-flex items-center gap-1 whitespace-nowrap">
+                          <ClockIcon class="w-3 h-3" />{{ formatTripTimeRange(trip.tripStartedAt, trip.tripEndedAt) }}
+                        </span>
+                        <span v-if="trip.socStart != null && trip.socEnd != null" class="inline-flex items-center gap-1 whitespace-nowrap">
+                          <Battery0Icon class="w-3 h-3" />{{ trip.socStart }}% → {{ trip.socEnd }}%
+                        </span>
+                      </div>
+                      <div class="relative flex-shrink-0">
+                        <button @click.stop="openMenuTripId = openMenuTripId === trip.id ? null : trip.id"
+                          class="p-1 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition">
+                          <EllipsisVerticalIcon class="w-5 h-5" />
+                        </button>
+                        <div v-if="openMenuTripId === trip.id"
+                          class="absolute right-0 bottom-full mb-1 w-44 bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 z-50 py-1 overflow-hidden">
+                          <button @click.stop="startAddTrip(trip.id, trip.tripStartedAt); openMenuTripId = null"
+                            class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
+                            <PlusIcon class="w-4 h-4 flex-shrink-0" />{{ t('dashboard.action_add_trip') }}
+                          </button>
+                          <button @click.stop="startEditTrip(trip); openMenuTripId = null"
+                            class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
+                            <PencilSquareIcon class="w-4 h-4 flex-shrink-0" />{{ t('dashboard.trip_edit') }}
+                          </button>
+                          <div class="border-t border-gray-100 dark:border-gray-600 mt-1 pt-1">
+                            <button @click.stop="handleDeleteTrip(trip.id); openMenuTripId = null"
+                              class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition">
+                              <TrashIcon class="w-4 h-4 flex-shrink-0" />{{ t('dashboard.action_delete') }}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <div class="flex flex-wrap gap-1.5">
+                    <div v-if="trip.routeType || trip.dataSource === 'USER_CREATED'" class="flex flex-wrap gap-1.5">
                       <span v-if="trip.routeType"
                         class="inline-flex items-center px-2 py-0.5 bg-gray-50 dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded-full text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
                         {{ t('dashboard.trip_route_' + trip.routeType.toLowerCase()) }}
@@ -1326,9 +1343,8 @@ function onTripFormLeave(el: Element, done: () => void) {
                   <!-- Chips - Zeile 3 -->
                   <div class="flex flex-wrap gap-1.5">
                     <span v-if="sourceInfo(item.entry._commonDataSource)"
-                      :class="['inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium whitespace-nowrap',
+                      :class="['inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium whitespace-nowrap',
                                sourceInfo(item.entry._commonDataSource)!.classes]">
-                      <component :is="sourceInfo(item.entry._commonDataSource)!.icon" class="w-3 h-3" />
                       {{ sourceInfo(item.entry._commonDataSource)!.label }}
                     </span>
                     <span v-if="item.entry._totalCostEur != null && item.entry._totalKwh"
@@ -1363,9 +1379,8 @@ function onTripFormLeave(el: Element, done: () => void) {
                     <span v-if="item.entry.maxChargingPowerKw" class="text-xs text-gray-400 whitespace-nowrap">· {{ item.entry.maxChargingPowerKw }} kW</span>
                     <span class="text-xs text-gray-400 whitespace-nowrap">{{ formatLogDate(item.entry.loggedAt) }}</span>
                     <span v-if="sourceInfo(item.entry.dataSource)"
-                      :class="['hidden md:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium whitespace-nowrap',
+                      :class="['hidden md:inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium whitespace-nowrap',
                                sourceInfo(item.entry.dataSource)!.classes]">
-                      <component :is="sourceInfo(item.entry.dataSource)!.icon" class="w-3 h-3" />
                       {{ sourceInfo(item.entry.dataSource)!.label }}
                     </span>
                   </div>
@@ -1435,9 +1450,8 @@ function onTripFormLeave(el: Element, done: () => void) {
                 <!-- Chips - Zeile 3 -->
                 <div v-if="!item.entry._isLadegruppe" class="flex flex-wrap gap-1.5 items-center">
                   <span v-if="sourceInfo(item.entry.dataSource)"
-                    :class="['md:hidden inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium whitespace-nowrap',
+                    :class="['md:hidden inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium whitespace-nowrap',
                              sourceInfo(item.entry.dataSource)!.classes]">
-                    <component :is="sourceInfo(item.entry.dataSource)!.icon" class="w-3 h-3" />
                     {{ sourceInfo(item.entry.dataSource)!.label }}
                   </span>
                   <span v-if="item.entry.costEur != null && (item.entry.kwhCharged ?? item.entry.kwhAtVehicle)"
