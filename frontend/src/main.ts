@@ -49,19 +49,32 @@ if (initialLocale === 'nb' || initialLocale === 'sv') {
 
 // After a deployment, browser caches may reference JS/CSS chunks that no longer exist.
 // Reload the page once to pick up fresh assets instead of leaving users stuck on a broken screen.
+// Different browsers report the same underlying error with different messages:
+// - Chrome: "Failed to fetch dynamically imported module"
+// - Firefox: "'text/html' is not a valid JavaScript MIME type"
+// - Safari: "error loading dynamically imported module"
 function isChunkLoadError(msg: string): boolean {
     return msg.includes('Failed to fetch dynamically imported module')
         || msg.includes('Unable to preload CSS')
+        || msg.includes('error loading dynamically imported module')
+        || msg.includes('is not a valid JavaScript MIME type')
 }
 
-router.onError((error) => {
-    if (!(error instanceof Error)) return
-    if (!isChunkLoadError(error.message)) return
+function reloadOnceAfterDeploy() {
     const reloaded = sessionStorage.getItem('chunk-reload')
     if (!reloaded) {
         sessionStorage.setItem('chunk-reload', '1')
         window.location.reload()
     }
+}
+
+// Vite 4.4+ native event for preload failures (most reliable catch)
+window.addEventListener('vite:preloadError', reloadOnceAfterDeploy)
+
+router.onError((error) => {
+    if (!(error instanceof Error)) return
+    if (!isChunkLoadError(error.message)) return
+    reloadOnceAfterDeploy()
 })
 
 // Global error reporting (production only)
@@ -78,7 +91,10 @@ if (import.meta.env.PROD) {
 
     app.config.errorHandler = (err, _instance, info) => {
         console.error('Vue Error:', err)
-        if (err instanceof Error && isChunkLoadError(err.message)) return
+        if (err instanceof Error && isChunkLoadError(err.message)) {
+            reloadOnceAfterDeploy()
+            return
+        }
         reportError(err, info)
     }
 
@@ -93,8 +109,12 @@ if (import.meta.env.PROD) {
         if (message.includes('autofillFieldData')) return
         // Ignore known browser extension errors (Zotero, etc.)
         if (message.includes('Zotero') || message.includes('Failed to send message')) return
-        // Ignore stale-cache chunk load errors — handled by router.onError
-        if (isChunkLoadError(message)) return
+        // Stale-cache chunk errors: trigger reload (handled by router.onError for navigation, but
+        // unhandled rejections can occur for lazy components loaded outside router context)
+        if (isChunkLoadError(message)) {
+            reloadOnceAfterDeploy()
+            return
+        }
         reportError(event.reason, 'unhandledrejection')
     })
 }
