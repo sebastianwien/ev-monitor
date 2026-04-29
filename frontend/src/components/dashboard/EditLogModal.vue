@@ -66,6 +66,7 @@ import { XMarkIcon } from '@heroicons/vue/24/outline'
 import api from '../../api/axios'
 import LogFormFields, { type LogFormData } from '../log-form/LogFormFields.vue'
 import { useI18n } from 'vue-i18n'
+import { datetimeLocalToUtcIso } from '../../utils/datetime'
 
 export interface EvLogResponse {
   id: string
@@ -195,7 +196,7 @@ async function save() {
       maxChargingPowerKw: n(f.maxChargingPowerKw) !== null ? Math.round(n(f.maxChargingPowerKw)! * 100) / 100 : null,
       socAfterChargePercent: soc,
       socBeforeChargePercent: n(f.socBeforeChargePercent),
-      loggedAt: f.loggedAt + ':00',
+      loggedAt: f.loggedAt ? datetimeLocalToUtcIso(f.loggedAt) : null,
       chargingType: f.chargingType,
       routeType: f.routeType,
       tireType: f.tireType,

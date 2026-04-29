@@ -12,6 +12,7 @@ import { useHaptic } from '../../composables/useHaptic'
 import { analytics } from '../../services/analytics'
 import { useCarStore } from '../../stores/car'
 import { tempBadgeClass } from '../../utils/temperatureColor'
+import { datetimeLocalToUtcIso } from '../../utils/datetime'
 import ConsumptionInfoBox from '../dashboard/ConsumptionInfoBox.vue'
 import EditLogModal from '../dashboard/EditLogModal.vue'
 
@@ -181,7 +182,7 @@ const submitLog = async () => {
       payload.longitude = f.longitude
     }
     if (f.maxChargingPowerKw !== null) payload.maxChargingPowerKw = Math.round(f.maxChargingPowerKw * 100) / 100
-    if (f.loggedAt) payload.loggedAt = f.loggedAt + ':00'
+    if (f.loggedAt) payload.loggedAt = datetimeLocalToUtcIso(f.loggedAt)
     if (ocrUsed.value) payload.ocrUsed = true
     payload.chargingType = f.chargingType
     payload.routeType = f.routeType
