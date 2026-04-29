@@ -114,16 +114,16 @@ class BatterySohAutoDetectionIntegrationTest extends AbstractIntegrationTest {
                 "Change of 4% exceeds 2% threshold — new entry expected");
     }
 
-    // S3: SoH-Erkennung wird über den realen Trigger-Pfad createWallboxLog ausgelöst
+    // S3: SoH-Erkennung wird über den realen Trigger-Pfad createInternalLog ausgelöst
     @Test
-    void createWallboxLog_triggersAutoDetect_createsSohEntry() {
+    void createInternalLog_triggersAutoDetect_createsSohEntry() {
         User user = createAndSaveUser("soh-wallbox-" + System.currentTimeMillis() + "@test.com");
         Car car = carRepository.save(Car.createNew(
                 user.getId(), CarBrand.CarModel.MODEL_3, 2019,
                 "WB-SH-001", "LR", new BigDecimal("75.00"), new BigDecimal("280.0"), null));
 
         // 44.17 kWh / 64% delta = 69.02 kWh capacity → SoH ≈ 92.02%
-        evLogService.createWallboxLog(new InternalEvLogRequest(
+        evLogService.createInternalLog(new InternalEvLogRequest(
                 car.getId(), user.getId(),
                 new BigDecimal("44.17"), 60,
                 LocalDateTime.now().minusDays(1),
@@ -132,7 +132,7 @@ class BatterySohAutoDetectionIntegrationTest extends AbstractIntegrationTest {
                 60000, new BigDecimal("26"), new BigDecimal("90"), null, null));
 
         List<BatterySohResponse> history = batterySohService.getHistory(car.getId(), user.getId());
-        assertEquals(1, history.size(), "createWallboxLog should trigger SoH auto-detection");
+        assertEquals(1, history.size(), "createInternalLog should trigger SoH auto-detection");
         assertTrue(history.get(0).sohPercent().compareTo(new BigDecimal("90")) > 0,
                 "Detected SoH should be above 90%");
     }

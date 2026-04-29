@@ -1,6 +1,7 @@
 package com.evmonitor.infrastructure.web;
 
 import com.evmonitor.domain.*;
+import com.evmonitor.domain.weather.TemperatureEnricher;
 import com.evmonitor.infrastructure.persistence.JpaUserChargingProviderRepository;
 import com.evmonitor.infrastructure.persistence.UserChargingProviderEntity;
 import com.evmonitor.testutil.AbstractIntegrationTest;
@@ -9,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.http.*;
 
 import java.math.BigDecimal;
@@ -19,6 +21,8 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 /**
  * Integration tests for InternalEvLogController.
@@ -37,6 +41,9 @@ class InternalEvLogControllerTest extends AbstractIntegrationTest {
 
     @Autowired
     private JpaUserChargingProviderRepository chargingProviderRepository;
+
+    @SpyBean
+    private TemperatureEnricher temperatureEnricher;
 
     private User testUser;
     private Car testCar;
@@ -373,6 +380,31 @@ class InternalEvLogControllerTest extends AbstractIntegrationTest {
                 "/api/internal/logs", HttpMethod.POST,
                 new HttpEntity<>(request, internalHeaders(VALID_TOKEN)), Map.class);
         assertEquals(HttpStatus.OK, second.getStatusCode());
+    }
+
+    // --- temperature enrichment ---
+
+    @Test
+    void createInternalLog_withoutTemperature_callsEnricher() {
+        Map<String, Object> request = logRequest(testCar.getId(), testUser.getId(),
+                "20.0", 60, LocalDateTime.now().minusHours(2), "u4pruyd", "SMARTCAR_LIVE", null);
+
+        restTemplate.exchange("/api/internal/logs", HttpMethod.POST,
+                new HttpEntity<>(request, internalHeaders(VALID_TOKEN)), Map.class);
+
+        verify(temperatureEnricher, times(1)).enrichLog(any(), any(), any());
+    }
+
+    @Test
+    void createInternalLog_withTemperature_doesNotCallEnricher() {
+        Map<String, Object> request = logRequest(testCar.getId(), testUser.getId(),
+                "20.0", 60, LocalDateTime.now().minusHours(2), "u4pruyd", "SMARTCAR_LIVE", null);
+        request.put("temperatureCelsius", 14.5);
+
+        restTemplate.exchange("/api/internal/logs", HttpMethod.POST,
+                new HttpEntity<>(request, internalHeaders(VALID_TOKEN)), Map.class);
+
+        verify(temperatureEnricher, never()).enrichLog(any(), any(), any());
     }
 
     // --- Helpers ---

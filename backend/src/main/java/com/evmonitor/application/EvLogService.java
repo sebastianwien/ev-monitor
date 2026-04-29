@@ -126,7 +126,7 @@ public class EvLogService {
      * Called by the internal Wallbox Service — not user-facing.
      */
     @Transactional
-    public EvLogResponse createWallboxLog(InternalEvLogRequest request) {
+    public EvLogResponse createInternalLog(InternalEvLogRequest request) {
         Car car = carRepository.findById(request.carId())
                 .orElseThrow(() -> new IllegalArgumentException("Car not found"));
 
@@ -193,6 +193,10 @@ public class EvLogService {
         }
 
         EvLog savedLog = evLogRepository.save(newLog);
+
+        if (savedLog.getTemperatureCelsius() == null) {
+            temperatureEnricher.enrichLog(savedLog.getId(), savedLog.getGeohash(), savedLog.getLoggedAt());
+        }
 
         // Award per-log coins for Tesla imports.
         // go-eCharger and plain OCPP wallbox coins are TBD and intentionally not awarded here yet.
