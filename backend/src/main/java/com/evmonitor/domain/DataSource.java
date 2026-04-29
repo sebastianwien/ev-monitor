@@ -12,6 +12,7 @@ public enum DataSource {
     API_UPLOAD,          // Public Upload API (Wallboxen, Skripte, Home-Automation)
     TRONITY_IMPORT,      // Tronity XLSX export import
     SMARTCAR_LIVE,       // Smartcar webhook-based live session tracking
+    VWGROUP_LIVE,        // VW Group (Skoda/VW/Audi/SEAT/CUPRA) MQTT-based live session tracking
     TESSIE;              // Tessie fleet import
 
     public boolean includeInStatistics() {
@@ -20,7 +21,7 @@ public enum DataSource {
                 || this == TESLA_FLEET_IMPORT || this == TESLA_LIVE
                 || this == TESLA_MANUAL_IMPORT || this == API_UPLOAD
                 || this == TRONITY_IMPORT || this == SMARTCAR_LIVE
-                || this == TESSIE;
+                || this == VWGROUP_LIVE || this == TESSIE;
     }
 
     /**
@@ -38,7 +39,7 @@ public enum DataSource {
     /** Returns the measurement point for energy reported by this data source. */
     public EnergyMeasurementType measurementType() {
         return switch (this) {
-            case TESLA_LIVE, SMARTCAR_LIVE, TESSIE -> EnergyMeasurementType.AT_VEHICLE;
+            case TESLA_LIVE, SMARTCAR_LIVE, VWGROUP_LIVE, TESSIE -> EnergyMeasurementType.AT_VEHICLE;
             default -> EnergyMeasurementType.AT_CHARGER;
         };
     }
