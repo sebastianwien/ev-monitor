@@ -22,4 +22,10 @@ public interface TemperatureEnricher {
      * Fehler werden geloggt, aber nicht propagiert — die Anreicherung ist best-effort.
      */
     void enrichLog(UUID logId, String geohash, LocalDateTime loggedAt);
+
+    /**
+     * Reichert den angegebenen Trip asynchron mit Temperaturdaten an.
+     * Wird aufgerufen wenn der Trip ohne Temperatur gespeichert wurde (z.B. SmartCar-Trips).
+     */
+    default void enrichTrip(UUID tripId, String geohash, LocalDateTime startedAt) {}
 }

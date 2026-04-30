@@ -8,6 +8,7 @@ import com.evmonitor.application.PlausibleTrafficRow;
 import com.evmonitor.infrastructure.external.PlausibleService;
 import com.evmonitor.infrastructure.persistence.AdminQueryRepository;
 import com.evmonitor.infrastructure.weather.TemperatureBackfillJob;
+import com.evmonitor.infrastructure.weather.TripTemperatureBackfillJob;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -25,6 +26,7 @@ import java.util.List;
 public class AdminController {
 
     private final TemperatureBackfillJob temperatureBackfillJob;
+    private final TripTemperatureBackfillJob tripTemperatureBackfillJob;
     private final AdminQueryRepository adminQueryRepository;
     private final PlausibleService plausibleService;
     private final BatterySohService batterySohService;
@@ -48,6 +50,13 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> backfillTemperature() {
         String summary = temperatureBackfillJob.run();
+        return ResponseEntity.ok(summary);
+    }
+
+    @PostMapping("/backfill-trip-temperature")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<String> backfillTripTemperature() {
+        String summary = tripTemperatureBackfillJob.run();
         return ResponseEntity.ok(summary);
     }
 

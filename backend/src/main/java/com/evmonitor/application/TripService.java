@@ -2,6 +2,7 @@ package com.evmonitor.application;
 
 import com.evmonitor.domain.*;
 import com.evmonitor.domain.exception.ValidationException;
+import com.evmonitor.domain.weather.TemperatureEnricher;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.RequiredArgsConstructor;
@@ -9,9 +10,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -24,6 +28,7 @@ public class TripService {
     private final EvTripRepository tripRepository;
     private final CarRepository carRepository;
     private final ObjectMapper objectMapper;
+    private final TemperatureEnricher temperatureEnricher;
 
     @Transactional
     public UUID saveTrip(InternalTripRequest req) {
@@ -69,6 +74,19 @@ public class TripService {
         EvTrip saved = tripRepository.save(trip);
         log.info("Trip saved: id={} externalId={} car={} distance={} km",
                 saved.getId(), req.externalId(), req.carId(), req.distanceKm());
+
+        if (req.outsideTempCelsius() == null && req.locationStartGeohash() != null && req.tripStartedAt() != null) {
+            final UUID tripId = saved.getId();
+            final String geohash = req.locationStartGeohash();
+            final LocalDateTime startedAt = req.tripStartedAt().toLocalDateTime();
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    temperatureEnricher.enrichTrip(tripId, geohash, startedAt);
+                }
+            });
+        }
+
         return saved.getId();
     }
 
