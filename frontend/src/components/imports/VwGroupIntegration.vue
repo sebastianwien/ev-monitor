@@ -8,7 +8,7 @@ import type { Car } from '../../api/carService'
 
 const { t } = useI18n()
 
-const props = defineProps<{ premiumEnabled?: boolean; isPremium?: boolean }>()
+const props = defineProps<{ premiumEnabled?: boolean; isPremium?: boolean; isBetaTester?: boolean }>()
 
 const carStore = useCarStore()
 const cars = ref<Car[]>([])
@@ -46,7 +46,7 @@ const displayBrand = computed(() => {
 })
 
 onMounted(async () => {
-  if (!props.premiumEnabled && !props.isPremium) return
+  if (!props.premiumEnabled && !props.isPremium && !props.isBetaTester) return
   try {
     const [c] = await Promise.all([carStore.getCars()])
     cars.value = ((c ?? []) as Car[]).filter((car: Car) => (car as any).status === 'ACTIVE')
@@ -161,7 +161,7 @@ const stateColor = (state: string | null) => {
 
 <template>
   <!-- TEASER -->
-  <div v-if="props.premiumEnabled && !props.isPremium" class="p-6 space-y-5">
+  <div v-if="props.premiumEnabled && !props.isPremium && !props.isBetaTester" class="p-6 space-y-5">
     <div>
       <h2 class="font-semibold text-gray-900 dark:text-gray-100 flex flex-wrap items-center gap-2">
         {{ t('imports.vwgroup_teaser_title') }}

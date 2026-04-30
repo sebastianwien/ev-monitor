@@ -199,7 +199,7 @@ const activeCars = computed(() =>
           <Transition name="accordion">
             <div v-if="activeTab === 'smartcar'" class="border-t border-gray-100 dark:border-gray-700">
               <template v-if="hasActiveVwGroupCar">
-                <VwGroupIntegration :premium-enabled="premiumEnabled" :is-premium="subscriptionIsPremium" />
+                <VwGroupIntegration :premium-enabled="premiumEnabled" :is-premium="subscriptionIsPremium" :is-beta-tester="authStore.isBetaTester" />
                 <div class="border-t border-dashed border-gray-200 dark:border-gray-700 mx-4 mt-0 pb-0" />
                 <div class="px-6 pt-4 pb-0">
                   <p class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">AutoSync (Smartcar)</p>
