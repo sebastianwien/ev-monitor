@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { BoltIcon, CheckCircleIcon, XCircleIcon, ArrowTopRightOnSquareIcon } from '@heroicons/vue/24/outline'
+import { BoltIcon, CheckCircleIcon, XCircleIcon, ArrowTopRightOnSquareIcon, ArrowPathIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 import { useCarStore } from '../../stores/car'
-import vwGroupService, { type VwGroupConnectionStatus } from '../../api/vwGroupService'
+import vwGroupService, { type VwGroupConnectionStatus, isCredentialBrand } from '../../api/vwGroupService'
 import type { Car } from '../../api/carService'
 
 const { t } = useI18n()
@@ -15,8 +15,11 @@ const cars = ref<Car[]>([])
 const status = ref<VwGroupConnectionStatus | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
+// Distinguishes auth errors (wrong credentials, 2FA) from technical errors (network,
+// upstream) so the user knows whether to retry or check their credentials.
+const errorKind = ref<'auth' | 'technical' | null>(null)
 
-// Device Code auth state
+// Device Code auth state (Skoda only)
 const activeBrand = ref<string | null>(null)
 const userCode = ref<string | null>(null)
 const verificationUri = ref<string | null>(null)
@@ -24,6 +27,11 @@ const authExpiresAt = ref<number | null>(null)
 const authPending = ref(false)
 const connecting = ref(false)
 const disconnecting = ref(false)
+
+// Credential auth state (VW, SEAT, CUPRA)
+const credEmail = ref('')
+const credPassword = ref('')
+const credSubmitting = ref(false)
 
 let pollTimer: ReturnType<typeof setTimeout> | null = null
 let countdownTimer: ReturnType<typeof setInterval> | null = null
@@ -140,6 +148,34 @@ const disconnect = async () => {
   }
 }
 
+const connectWithCredentials = async () => {
+  if (!brandKey.value || !activeCar.value) return
+  credSubmitting.value = true
+  error.value = null
+  errorKind.value = null
+  try {
+    await vwGroupService.startCredentialAuth(brandKey.value, activeCar.value.id, credEmail.value, credPassword.value)
+    status.value = await vwGroupService.getStatus(brandKey.value)
+    credPassword.value = ''
+  } catch (e: any) {
+    const reason = e.response?.data?.reason as string | undefined
+    const serverMsg = e.response?.data?.error as string | undefined
+    if (!e.response) {
+      // No response = network / CORS / timeout
+      errorKind.value = 'technical'
+      error.value = t('imports.vwgroup_cred_error_network')
+    } else if (reason === 'AUTH_FAILED' || reason === 'TWO_FACTOR_REQUIRED') {
+      errorKind.value = 'auth'
+      error.value = serverMsg || t('imports.vwgroup_cred_error_generic')
+    } else {
+      errorKind.value = 'technical'
+      error.value = serverMsg || t('imports.vwgroup_cred_error_generic')
+    }
+  } finally {
+    credSubmitting.value = false
+  }
+}
+
 const cancelAuth = () => {
   authPending.value = false
   userCode.value = null
@@ -182,8 +218,23 @@ const stateColor = (state: string | null) => {
     <div v-if="loading" class="text-sm text-gray-500 dark:text-gray-400">{{ t('imports.smartcar_loading') }}</div>
 
     <template v-else>
-      <div v-if="error" class="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg text-sm text-red-700 dark:text-red-300">
-        {{ error }}
+      <div
+        v-if="error"
+        :class="[
+          'p-3 border rounded-lg text-sm flex items-start gap-2',
+          errorKind === 'technical'
+            ? 'bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-700 text-amber-800 dark:text-amber-200'
+            : 'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-700 text-red-700 dark:text-red-300'
+        ]"
+        role="alert"
+      >
+        <ExclamationTriangleIcon class="h-5 w-5 shrink-0 mt-0.5" />
+        <div class="flex-1 min-w-0">
+          <p v-if="errorKind" class="font-medium">
+            {{ errorKind === 'auth' ? t('imports.vwgroup_cred_error_title_auth') : t('imports.vwgroup_cred_error_title_technical') }}
+          </p>
+          <p>{{ error }}</p>
+        </div>
       </div>
 
       <!-- VERBUNDEN -->
@@ -264,6 +315,56 @@ const stateColor = (state: string | null) => {
           {{ t('imports.smartcar_no_cars') }}
           <router-link to="/cars" class="text-indigo-600 hover:underline font-medium ml-1">{{ t('imports.smartcar_add_car') }}</router-link>
         </div>
+
+        <!-- Credential flow: VW, SEAT, CUPRA -->
+        <template v-else-if="isCredentialBrand(brandKey)">
+          <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('imports.vwgroup_cred_desc', { brand: displayBrand }) }}</p>
+          <form @submit.prevent="connectWithCredentials" class="space-y-3">
+            <div>
+              <label for="vwgroup-cred-email" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                {{ t('imports.vwgroup_cred_email') }}
+              </label>
+              <input
+                id="vwgroup-cred-email"
+                v-model="credEmail"
+                type="email"
+                autocomplete="email"
+                required
+                :disabled="credSubmitting"
+                class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+              />
+            </div>
+            <div>
+              <label for="vwgroup-cred-password" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                {{ t('imports.vwgroup_cred_password') }}
+              </label>
+              <input
+                id="vwgroup-cred-password"
+                v-model="credPassword"
+                type="password"
+                autocomplete="current-password"
+                required
+                :disabled="credSubmitting"
+                class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+              />
+            </div>
+            <button
+              type="submit"
+              :disabled="credSubmitting || !credEmail || !credPassword"
+              class="btn-3d w-full flex items-center justify-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-lg font-medium text-sm hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            >
+              <ArrowPathIcon v-if="credSubmitting" class="h-4 w-4 animate-spin" />
+              <BoltIcon v-else class="h-4 w-4" />
+              {{ credSubmitting ? t('imports.vwgroup_cred_signing_in') : t('imports.vwgroup_cred_submit', { brand: displayBrand }) }}
+            </button>
+            <p v-if="credSubmitting" class="text-xs text-indigo-600 dark:text-indigo-400 text-center" role="status" aria-live="polite">
+              {{ t('imports.vwgroup_cred_wait_hint') }}
+            </p>
+          </form>
+          <p class="text-xs text-gray-400 dark:text-gray-500">{{ t('imports.vwgroup_cred_security_note') }}</p>
+        </template>
+
+        <!-- Device Code flow: Skoda -->
         <template v-else>
           <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('imports.vwgroup_connect_desc', { brand: displayBrand }) }}</p>
           <button

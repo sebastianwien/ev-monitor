@@ -1221,6 +1221,17 @@ imports:
   vwgroup_state_unknown: Okänd
   vwgroup_session_active: Laddning pågår
   vwgroup_range: Räckvidd
+  vwgroup_cred_desc: Ange dina {brand}-inloggningsuppgifter. Anslutningen underhålls automatiskt - du behöver inte logga in igen.
+  vwgroup_cred_email: E-postadress
+  vwgroup_cred_password: Lösenord
+  vwgroup_cred_submit: Anslut {brand}
+  vwgroup_cred_signing_in: Loggar in...
+  vwgroup_cred_security_note: Dina inloggningsuppgifter lagras inte. De används en gång för att skapa en långlivad åtkomsttoken.
+  vwgroup_cred_wait_hint: Inloggningen kan ta upp till 30 sekunder - vänligen avbryt inte.
+  vwgroup_cred_error_network: Servern kan inte nås. Kontrollera internetanslutningen och försök igen.
+  vwgroup_cred_error_generic: Inloggning misslyckades. Försök igen senare.
+  vwgroup_cred_error_title_auth: Fel inloggningsuppgifter
+  vwgroup_cred_error_title_technical: Tekniskt fel
   smartcar_how_title: Hur fungerar AutoSync?
   smartcar_how_q1: Vad är Smartcar?
   smartcar_how_a1: AutoSync använder en tjänst som heter Smartcar i bakgrunden – ett officiellt gränssnitt genom vilket biltillverkare ger appar behörig åtkomst till fordonsdata. Över 30 tillverkare har officiellt godkänt Smartcar, däribland BMW, Volkswagen, Mercedes och Volvo.
