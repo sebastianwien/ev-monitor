@@ -1373,11 +1373,11 @@ function onTripFormLeave(el: Element, done: () => void) {
                 <!-- NORMAL LOG HEADER -->
                 <template v-else>
                 <div class="flex items-center justify-between gap-2">
-                  <div class="flex items-center gap-2 min-w-0">
+                  <div class="flex flex-wrap items-center gap-2 min-w-0">
                     <BoltIcon class="w-4 h-4 text-green-500 dark:text-green-400 flex-shrink-0" />
                     <span class="font-semibold text-indigo-700 dark:text-indigo-300 whitespace-nowrap">{{ displayKwh(item.entry.kwhCharged, item.entry.kwhAtVehicle) }} kWh</span>
                     <span v-if="item.entry.maxChargingPowerKw" class="text-xs text-gray-400 whitespace-nowrap">· {{ item.entry.maxChargingPowerKw }} kW</span>
-                    <span class="text-xs text-gray-400 whitespace-nowrap">{{ formatLogDate(item.entry.loggedAt) }}</span>
+                    <span class="text-xs text-gray-400 whitespace-nowrap max-[380px]:w-full">{{ formatLogDate(item.entry.loggedAt) }}</span>
                     <span v-if="sourceInfo(item.entry.dataSource)"
                       :class="['hidden md:inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium whitespace-nowrap',
                                sourceInfo(item.entry.dataSource)!.classes]">
