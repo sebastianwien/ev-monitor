@@ -236,6 +236,7 @@ const activeCars = computed(() =>
                 <p class="text-xs mb-1">{{ t('imports.api_required') }} <code class="bg-white dark:bg-gray-700 px-1 rounded">date</code>, <code class="bg-white dark:bg-gray-700 px-1 rounded">kwh</code></p>
                 <p class="text-xs">{{ t('imports.api_optional') }} <code class="bg-white dark:bg-gray-700 px-1 rounded">odometer_km</code>, <code class="bg-white dark:bg-gray-700 px-1 rounded">soc_after</code>, <code class="bg-white dark:bg-gray-700 px-1 rounded">cost_eur</code>, <code class="bg-white dark:bg-gray-700 px-1 rounded">duration_min</code>, <code class="bg-white dark:bg-gray-700 px-1 rounded">location</code>, <code class="bg-white dark:bg-gray-700 px-1 rounded">charging_type</code> (AC/DC)</p>
                 <p class="text-xs mt-1">{{ t('imports.api_dedup') }}</p>
+                <p class="text-xs mt-1" v-html="t('imports.api_date_hint')" />
                 <a href="/swagger-ui/index.html" target="_blank" class="inline-block mt-2 text-indigo-700 hover:underline font-medium text-xs">{{ t('imports.api_docs') }}</a>
               </div>
               <!-- Fahrzeug-IDs -->

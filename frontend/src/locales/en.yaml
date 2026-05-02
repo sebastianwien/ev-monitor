@@ -1317,6 +1317,7 @@ imports:
   api_required: "Required fields:"
   api_optional: "Optional:"
   api_dedup: "Duplicates are detected and skipped - based on timestamp and kWh."
+  api_date_hint: "Always include a timezone offset in <code>date</code> (e.g. <code>2025-08-31T15:07:14+02:00</code> or <code>...Z</code> for UTC) - without an offset, UTC is assumed."
   api_docs: "Full API documentation →"
   api_new_key_title: "New API Key — visible now only!"
   api_save_key_hint: "Save this key now — it won't be shown again."

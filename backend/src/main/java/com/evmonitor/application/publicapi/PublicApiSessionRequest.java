@@ -14,7 +14,7 @@ public record PublicApiSessionRequest(
         @NotNull @NotEmpty @Size(max = 100) @Valid List<SessionEntry> sessions
 ) {
     public record SessionEntry(
-            @Schema(description = "Timestamp of the charging session. ISO 8601 with or without offset, e.g. `2025-08-31T15:07:14+02:00` or `2025-08-31 15:07:14`.")
+            @Schema(description = "Timestamp of the charging session. ISO 8601 format. Include a timezone offset to avoid ambiguity, e.g. `2025-08-31T15:07:14+02:00` or `2025-08-31T13:07:14Z`. Without an offset, UTC is assumed — local time without offset will be stored incorrectly.")
             @NotNull @JsonProperty("date") String date,
 
             @Schema(description = "Energy charged in kWh.")

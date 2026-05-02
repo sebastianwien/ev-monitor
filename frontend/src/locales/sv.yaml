@@ -1295,6 +1295,7 @@ imports:
   api_required: "Obligatoriska fält:"
   api_optional: "Valfritt:"
   api_dedup: Dubbletter upptäcks och hoppas över – baserat på tidsstämpel och kWh.
+  api_date_hint: Skicka alltid <code>date</code> med tidszonoffset (t.ex. <code>2025-08-31T15:07:14+02:00</code> eller <code>...Z</code> för UTC) - utan offset antas UTC.
   api_docs: Fullständig API-dokumentation →
   api_new_key_title: Ny API-nyckel – synlig endast just nu!
   api_save_key_hint: Spara den här nyckeln nu – den visas inte igen.

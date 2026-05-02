@@ -1295,6 +1295,7 @@ imports:
   api_required: "Obligatoriske felt:"
   api_optional: "Valgfritt:"
   api_dedup: Duplikater oppdages og hoppes over – basert på tidsstempel og kWh.
+  api_date_hint: Send alltid <code>date</code> med tidssone-offset (f.eks. <code>2025-08-31T15:07:14+02:00</code> eller <code>...Z</code> for UTC) - uten offset antas UTC.
   api_docs: Fullstendig API-dokumentasjon →
   api_new_key_title: Ny API-nøkkel — kun synlig nå!
   api_save_key_hint: Lagre denne nøkkelen nå – den vises ikke igjen.

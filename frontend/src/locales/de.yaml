@@ -1317,6 +1317,7 @@ imports:
   api_required: "Pflichtfelder:"
   api_optional: "Optional:"
   api_dedup: "Duplikate werden erkannt und übersprungen - anhand Zeitpunkt und kWh."
+  api_date_hint: "<code>date</code> immer mit Timezone-Offset senden (z.B. <code>2025-08-31T15:07:14+02:00</code> oder <code>...Z</code> für UTC) - ohne Offset wird UTC angenommen."
   api_docs: "Vollständige API Dokumentation →"
   api_new_key_title: "Neuer API Key — nur jetzt sichtbar!"
   api_save_key_hint: "Speicher diesen Key jetzt — er wird nicht noch einmal angezeigt."
