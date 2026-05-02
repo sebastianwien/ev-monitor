@@ -29,8 +29,8 @@ public record PublicApiSessionRequest(
             @Schema(description = "State of Charge after charging in percent (0-100).")
             @DecimalMin("0.0") @DecimalMax("100.0") @JsonProperty("soc_after") BigDecimal socAfter,
 
-            @Schema(description = "Total cost of the charging session in EUR.")
-            @DecimalMin("0.0") @DecimalMax("10000.0") @JsonProperty("cost_eur") Double costEur,
+            @Schema(description = "Total cost of the charging session in EUR. Negative values are valid for dynamic tariffs with negative electricity prices.")
+            @DecimalMin("-10000.0") @DecimalMax("10000.0") @JsonProperty("cost_eur") Double costEur,
 
             @Schema(description = "Duration of the charging session in minutes.")
             @Min(0) @Max(100_000) @JsonProperty("duration_min") Integer durationMin,

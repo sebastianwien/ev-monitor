@@ -145,7 +145,7 @@ public class EvLogStatisticsService {
 
         BigDecimal totalCostEur = logs.stream()
                 .map(EvLog::getCostEur)
-                .filter(c -> c != null && c.compareTo(BigDecimal.ZERO) > 0)
+                .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         // For avgCostPerKwh: normalize AT_VEHICLE logs to AT_CHARGER equivalent — because cost_eur

@@ -377,6 +377,36 @@ class PublicApiImportIntegrationTest extends AbstractIntegrationTest {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
+    @Test
+    void negativeCostEur_isAccepted() {
+        String body = """
+                {
+                  "car_id": "%s",
+                  "sessions": [
+                    {
+                      "date": "2026-04-25T15:18:54",
+                      "kwh": 32.23,
+                      "odometer_km": 13012,
+                      "soc_before": 24.0,
+                      "soc_after": 62.0,
+                      "cost_eur": -1.382,
+                      "duration_min": 183,
+                      "charging_type": "AC",
+                      "max_charging_power_kw": 11
+                    }
+                  ]
+                }
+                """.formatted(car.getId());
+
+        ResponseEntity<Map> response = post(body, plaintextKey);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(1, response.getBody().get("imported"));
+
+        EvLog log = evLogRepository.findAllByCarId(car.getId()).getFirst();
+        assertEquals(0, new java.math.BigDecimal("-1.38").compareTo(log.getCostEur()));
+    }
+
     private ResponseEntity<Map> post(String jsonBody, String apiKey) {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", "Bearer " + apiKey);

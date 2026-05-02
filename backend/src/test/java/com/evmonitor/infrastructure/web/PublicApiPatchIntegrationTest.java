@@ -177,6 +177,22 @@ class PublicApiPatchIntegrationTest extends AbstractIntegrationTest {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
+    @Test
+    void negativeCostEur_patch_isAccepted() {
+        EvLog log = createApiUploadLog(car.getId());
+
+        String body = """
+                { "cost_eur": -2.00 }
+                """;
+
+        ResponseEntity<Void> response = patch(log.getId(), body, plaintextKey);
+
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+
+        EvLog updated = evLogRepository.findById(log.getId()).orElseThrow();
+        assertEquals(0, BigDecimal.valueOf(-2.00).compareTo(updated.getCostEur()));
+    }
+
     private EvLog createApiUploadLog(UUID carId) {
         EvLog log = EvLog.createFromPublicApi(
                 carId,

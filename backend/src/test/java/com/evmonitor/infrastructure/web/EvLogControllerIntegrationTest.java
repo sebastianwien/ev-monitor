@@ -666,4 +666,27 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
         assertNotNull(response.getBody());
         assertEquals(ZoneOffset.UTC, response.getBody().get(0).loggedAt().getOffset());
     }
+
+    @Test
+    void negativeCostEur_isAccepted() {
+        EvLogRequest request = new EvLogRequest(
+                carId,
+                new BigDecimal("32.23"),
+                new BigDecimal("-1.38"),
+                60,
+                null, null,
+                13012, null,
+                new BigDecimal("62"),
+                LocalDateTime.now(),
+                null, null, null, null
+        );
+
+        HttpEntity<EvLogRequest> requestWithAuth = createAuthRequest(request, userId, testUser.getEmail());
+
+        ResponseEntity<EvLogCreateResponse> response = restTemplate.exchange(
+                "/api/logs", HttpMethod.POST, requestWithAuth, EvLogCreateResponse.class);
+
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertEquals(new BigDecimal("-1.38"), response.getBody().log().costEur());
+    }
 }
