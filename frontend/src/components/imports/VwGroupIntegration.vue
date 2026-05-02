@@ -33,6 +33,14 @@ const credEmail = ref('')
 const credPassword = ref('')
 const credSubmitting = ref(false)
 
+// MFA continuation state - email-code challenge after credentials submit
+const mfaPendingAuthId = ref<string | null>(null)
+const mfaCode = ref('')
+const mfaSubmitting = ref(false)
+const mfaCountdownSeconds = ref(0)
+const MFA_TTL_SECONDS = 10 * 60
+let mfaCountdownTimer: ReturnType<typeof setInterval> | null = null
+
 let pollTimer: ReturnType<typeof setTimeout> | null = null
 let countdownTimer: ReturnType<typeof setInterval> | null = null
 const secondsLeft = ref(0)
@@ -68,7 +76,10 @@ onMounted(async () => {
   }
 })
 
-onUnmounted(stopPolling)
+onUnmounted(() => {
+  stopPolling()
+  if (mfaCountdownTimer) clearInterval(mfaCountdownTimer)
+})
 
 const connect = async () => {
   if (!brandKey.value || !activeCar.value) return
@@ -154,27 +165,107 @@ const connectWithCredentials = async () => {
   error.value = null
   errorKind.value = null
   try {
-    await vwGroupService.startCredentialAuth(brandKey.value, activeCar.value.id, credEmail.value, credPassword.value)
-    status.value = await vwGroupService.getStatus(brandKey.value)
-    credPassword.value = ''
-  } catch (e: any) {
-    const reason = e.response?.data?.reason as string | undefined
-    const serverMsg = e.response?.data?.error as string | undefined
-    if (!e.response) {
-      // No response = network / CORS / timeout
-      errorKind.value = 'technical'
-      error.value = t('imports.vwgroup_cred_error_network')
-    } else if (reason === 'AUTH_FAILED' || reason === 'TWO_FACTOR_REQUIRED') {
-      errorKind.value = 'auth'
-      error.value = serverMsg || t('imports.vwgroup_cred_error_generic')
+    const resp = await vwGroupService.startCredentialAuth(
+      brandKey.value, activeCar.value.id, credEmail.value, credPassword.value
+    )
+    if (resp.status === 'mfa_required' && resp.pendingAuthId) {
+      enterMfaState(resp.pendingAuthId)
+      credPassword.value = ''
     } else {
-      errorKind.value = 'technical'
-      error.value = serverMsg || t('imports.vwgroup_cred_error_generic')
+      status.value = await vwGroupService.getStatus(brandKey.value)
+      credPassword.value = ''
     }
+  } catch (e: any) {
+    handleAuthError(e)
   } finally {
     credSubmitting.value = false
   }
 }
+
+const submitMfaCode = async () => {
+  if (!mfaPendingAuthId.value || !brandKey.value) return
+  mfaSubmitting.value = true
+  error.value = null
+  errorKind.value = null
+  try {
+    await vwGroupService.submitMfaCode(mfaPendingAuthId.value, mfaCode.value.trim())
+    status.value = await vwGroupService.getStatus(brandKey.value)
+    exitMfaState()
+  } catch (e: any) {
+    const reason = e.response?.data?.reason as string | undefined
+    const serverMsg = e.response?.data?.error as string | undefined
+    if (reason === 'MFA_PENDING_EXPIRED') {
+      exitMfaState()
+      errorKind.value = 'auth'
+      error.value = t('imports.vwgroup_mfa_expired')
+    } else if (reason === 'MFA_TOO_MANY_CODE_ATTEMPTS') {
+      exitMfaState()
+      errorKind.value = 'auth'
+      error.value = t('imports.vwgroup_mfa_too_many')
+    } else if (reason === 'AUTH_FAILED') {
+      // wrong code, keep MFA UI alive so user can retry
+      errorKind.value = 'auth'
+      error.value = serverMsg || t('imports.vwgroup_mfa_wrong_code')
+      mfaCode.value = ''
+    } else {
+      handleAuthError(e)
+    }
+  } finally {
+    mfaSubmitting.value = false
+  }
+}
+
+const cancelMfa = () => {
+  exitMfaState()
+  error.value = null
+  errorKind.value = null
+}
+
+const enterMfaState = (pendingAuthId: string) => {
+  mfaPendingAuthId.value = pendingAuthId
+  mfaCode.value = ''
+  mfaCountdownSeconds.value = MFA_TTL_SECONDS
+  if (mfaCountdownTimer) clearInterval(mfaCountdownTimer)
+  mfaCountdownTimer = setInterval(() => {
+    mfaCountdownSeconds.value = Math.max(0, mfaCountdownSeconds.value - 1)
+    if (mfaCountdownSeconds.value === 0) {
+      exitMfaState()
+      errorKind.value = 'auth'
+      error.value = t('imports.vwgroup_mfa_expired')
+    }
+  }, 1000)
+}
+
+const exitMfaState = () => {
+  mfaPendingAuthId.value = null
+  mfaCode.value = ''
+  mfaCountdownSeconds.value = 0
+  if (mfaCountdownTimer) {
+    clearInterval(mfaCountdownTimer)
+    mfaCountdownTimer = null
+  }
+}
+
+const handleAuthError = (e: any) => {
+  const reason = e.response?.data?.reason as string | undefined
+  const serverMsg = e.response?.data?.error as string | undefined
+  if (!e.response) {
+    errorKind.value = 'technical'
+    error.value = t('imports.vwgroup_cred_error_network')
+  } else if (reason === 'AUTH_FAILED' || reason === 'TWO_FACTOR_REQUIRED') {
+    errorKind.value = 'auth'
+    error.value = serverMsg || t('imports.vwgroup_cred_error_generic')
+  } else {
+    errorKind.value = 'technical'
+    error.value = serverMsg || t('imports.vwgroup_cred_error_generic')
+  }
+}
+
+const mfaCountdownDisplay = computed(() => {
+  const m = Math.floor(mfaCountdownSeconds.value / 60)
+  const s = mfaCountdownSeconds.value % 60
+  return { m: String(m), s: String(s).padStart(2, '0') }
+})
 
 const cancelAuth = () => {
   authPending.value = false
@@ -276,6 +367,50 @@ const stateColor = (state: string | null) => {
           <XCircleIcon class="h-4 w-4" />
           {{ disconnecting ? t('imports.smartcar_disconnecting') : t('imports.vwgroup_disconnect_btn') }}
         </button>
+      </div>
+
+      <!-- MFA-CODE AUSSTEHEND (VW E-Mail-Code) -->
+      <div v-else-if="mfaPendingAuthId" class="space-y-4">
+        <div class="p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700 rounded-xl space-y-3">
+          <p class="text-sm font-semibold text-indigo-900 dark:text-indigo-100">{{ t('imports.vwgroup_mfa_title') }}</p>
+          <p class="text-sm text-indigo-800 dark:text-indigo-200">{{ t('imports.vwgroup_mfa_desc') }}</p>
+          <form @submit.prevent="submitMfaCode" class="space-y-3">
+            <div>
+              <label for="vwgroup-mfa-code" class="block text-xs font-medium text-indigo-900 dark:text-indigo-200 mb-1">
+                {{ t('imports.vwgroup_mfa_label') }}
+              </label>
+              <input
+                id="vwgroup-mfa-code"
+                v-model="mfaCode"
+                type="text"
+                inputmode="numeric"
+                autocomplete="one-time-code"
+                pattern="[0-9]*"
+                required
+                :disabled="mfaSubmitting"
+                class="w-full px-3 py-2 text-lg font-mono tracking-widest text-center border border-indigo-300 dark:border-indigo-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+              />
+            </div>
+            <button
+              type="submit"
+              :disabled="mfaSubmitting || !mfaCode"
+              class="btn-3d w-full flex items-center justify-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-lg font-medium text-sm hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            >
+              <ArrowPathIcon v-if="mfaSubmitting" class="h-4 w-4 animate-spin" />
+              <CheckCircleIcon v-else class="h-4 w-4" />
+              {{ mfaSubmitting ? t('imports.vwgroup_mfa_submitting') : t('imports.vwgroup_mfa_submit') }}
+            </button>
+          </form>
+          <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+            <span class="text-indigo-600 dark:text-indigo-400">
+              {{ t('imports.vwgroup_mfa_expires_in', mfaCountdownDisplay) }}
+            </span>
+            <button @click="cancelMfa" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 underline">
+              {{ t('imports.vwgroup_mfa_cancel') }}
+            </button>
+          </div>
+        </div>
+        <p class="text-xs text-gray-400 dark:text-gray-500">{{ t('imports.vwgroup_mfa_email_hint') }}</p>
       </div>
 
       <!-- DEVICE CODE AUSSTEHEND -->

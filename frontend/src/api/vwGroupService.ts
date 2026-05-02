@@ -20,6 +20,12 @@ export interface VwGroupAuthStart {
   expiresIn: number
 }
 
+export interface CredentialAuthResponse {
+  status: 'connected' | 'mfa_required'
+  pendingAuthId?: string
+  challengeType?: string
+}
+
 const VW_GROUP_BRANDS = ['skoda', 'vw', 'audi', 'seat', 'cupra']
 
 // Brands that use credential (email+password) flow instead of Device Code Flow
@@ -44,8 +50,14 @@ export default {
     return resp.data
   },
 
-  async startCredentialAuth(brand: string, carId: string | undefined, email: string, password: string): Promise<void> {
-    await api.post('/vwgroup/auth/credentials', { email, password }, { params: { brand, carId } })
+  async startCredentialAuth(brand: string, carId: string | undefined, email: string, password: string): Promise<CredentialAuthResponse> {
+    const resp = await api.post('/vwgroup/auth/credentials', { email, password }, { params: { brand, carId } })
+    return resp.data
+  },
+
+  async submitMfaCode(pendingAuthId: string, code: string): Promise<{ status: string }> {
+    const resp = await api.post('/vwgroup/auth/mfa-code', { pendingAuthId, code })
+    return resp.data
   },
 
   async pollAuthStatus(brand: string): Promise<{ status: string }> {

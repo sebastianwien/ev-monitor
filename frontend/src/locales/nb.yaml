@@ -1232,6 +1232,17 @@ imports:
   vwgroup_cred_error_generic: Innlogging mislyktes. Vennligst prøv igjen senere.
   vwgroup_cred_error_title_auth: Feil legitimasjon
   vwgroup_cred_error_title_technical: Teknisk feil
+  vwgroup_mfa_title: Bekreftelseskode fra e-post
+  vwgroup_mfa_desc: "Volkswagen har akkurat sendt deg en kode på e-post (avsender vanligvis noreply{'@'}vw.com). Skriv den inn her for å fullføre innloggingen."
+  vwgroup_mfa_label: Kode
+  vwgroup_mfa_submit: Bekreft kode
+  vwgroup_mfa_submitting: Sjekker...
+  vwgroup_mfa_cancel: Avbryt og start på nytt
+  vwgroup_mfa_expires_in: Gyldig i {m}:{s}
+  vwgroup_mfa_expired: Bekreftelseskoden har utløpt. Vennligst start på nytt med e-post og passord.
+  vwgroup_mfa_too_many: For mange feil koder. Vennligst start på nytt med e-post og passord.
+  vwgroup_mfa_wrong_code: Feil kode. Sjekk e-posten og prøv igjen.
+  vwgroup_mfa_email_hint: Sjekk også spam-mappen. E-posten kan ta opptil 2 minutter.
   smartcar_how_title: Hvordan fungerer AutoSync?
   smartcar_how_q1: Hva er Smartcar?
   smartcar_how_a1: AutoSync bruker en tjeneste kalt Smartcar i bakgrunnen – et offisielt grensesnitt som bilprodusentene bruker til å gi apper autorisert tilgang til kjøretøydata. Over 30 produsenter har offisielt godkjent Smartcar, blant annet BMW, Volkswagen, Mercedes og Volvo.
