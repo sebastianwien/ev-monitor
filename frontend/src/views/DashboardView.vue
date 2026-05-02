@@ -94,7 +94,7 @@ const {
 // -- Log List --
 const logsSection = ref<HTMLElement | null>(null)
 const {
-  logsPage, logsLoading, hasMoreLogs, editingLog,
+  logs, logsPage, logsLoading, hasMoreLogs, editingLog,
   expandedGroups, toggleLadegruppe, hasAnyLogs, showOdometer, showCostAbsolute,
   openTooltipLogId, reassignModalEntry, reassignSelectedCarId, reassignSaving,
   reassignError, reassignSuccessMessage, otherCars, openReassignModal, saveReassign,
@@ -127,12 +127,43 @@ async function handleDeleteTrip(id: string) {
 }
 
 // -- Trip group collapse --
-const collapsedTripGroups = ref<Set<string>>(new Set())
+const tripCollapseKey = (carId: string | number | null) => `logfeed_collapsed_groups_${carId}`
+
+function loadCollapsedGroups(carId: string | number | null): Set<string> {
+  if (!carId) return new Set<string>()
+  try {
+    const saved = localStorage.getItem(tripCollapseKey(carId))
+    if (!saved) return new Set<string>()
+    const parsed = JSON.parse(saved)
+    if (!Array.isArray(parsed)) return new Set<string>()
+    return new Set<string>(parsed.filter((x: unknown) => typeof x === 'string'))
+  } catch {
+    return new Set<string>()
+  }
+}
+
+const collapsedTripGroups = ref<Set<string>>(loadCollapsedGroups(selectedCarId.value))
+
+watch(selectedCarId, (newId) => {
+  collapsedTripGroups.value = loadCollapsedGroups(newId)
+})
+
+const page1GroupIds = computed<Set<string>>(() => {
+  if (logsPage.value !== 0) return new Set<string>()
+  return new Set(['tg_top', ...logs.value.map((l: any) => `tg_${l.id}`)])
+})
+
 function toggleTripGroup(groupId: string) {
   const next = new Set(collapsedTripGroups.value)
   if (next.has(groupId)) next.delete(groupId)
   else next.add(groupId)
   collapsedTripGroups.value = next
+  if (page1GroupIds.value.has(groupId)) {
+    try {
+      const toSave = [...next].filter(id => page1GroupIds.value.has(id))
+      localStorage.setItem(tripCollapseKey(selectedCarId.value), JSON.stringify(toSave))
+    } catch {}
+  }
 }
 
 // -- Trip merge --
