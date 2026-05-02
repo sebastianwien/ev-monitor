@@ -63,22 +63,22 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     @Query("""
         SELECT e FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id
         WHERE c.userId = :userId
-          AND e.geohash = :geohash
+          AND e.geohash LIKE :geohashPrefix
           AND e.costEur IS NOT NULL AND e.costEur > 0
           AND (e.kwhCharged > 0 OR e.kwhAtVehicle > 0)
         ORDER BY e.loggedAt DESC
         """)
-    List<EvLogEntity> findRecentByUserIdAndGeohash(@Param("userId") UUID userId, @Param("geohash") String geohash,
+    List<EvLogEntity> findRecentByUserIdAndGeohash(@Param("userId") UUID userId, @Param("geohashPrefix") String geohashPrefix,
             org.springframework.data.domain.Pageable pageable);
 
     @Query("""
         SELECT e FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id
         WHERE c.userId = :userId
-          AND e.geohash = :geohash
+          AND e.geohash LIKE :geohashPrefix
           AND e.chargingProviderId IS NOT NULL
         ORDER BY e.loggedAt DESC
         """)
-    List<EvLogEntity> findRecentWithProviderByUserIdAndGeohash(@Param("userId") UUID userId, @Param("geohash") String geohash,
+    List<EvLogEntity> findRecentWithProviderByUserIdAndGeohash(@Param("userId") UUID userId, @Param("geohashPrefix") String geohashPrefix,
             org.springframework.data.domain.Pageable pageable);
 
     @Query("""

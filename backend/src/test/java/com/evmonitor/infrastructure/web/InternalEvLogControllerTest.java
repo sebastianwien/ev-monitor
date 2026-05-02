@@ -382,6 +382,100 @@ class InternalEvLogControllerTest extends AbstractIntegrationTest {
         assertEquals(HttpStatus.OK, second.getStatusCode());
     }
 
+    @Test
+    void createSmartcarLog_withProviderAtAdjacentGeohashCell_calculatesCostFromTariff() {
+        // GPS drift can put the same physical location in a neighbouring 7-char cell.
+        // Provider was stored at "u2ey3d7"; new session lands at "u2ey3da" (same 6-char prefix).
+        UserChargingProviderEntity provider = new UserChargingProviderEntity();
+        provider.setUserId(testUser.getId());
+        provider.setProviderName("Kaufland");
+        provider.setAcPricePerKwh(new BigDecimal("0.2900"));
+        provider.setDcPricePerKwh(new BigDecimal("0.4400"));
+        provider.setMonthlyFeeEur(BigDecimal.ZERO);
+        provider.setSessionFeeEur(BigDecimal.ZERO);
+        provider.setActiveFrom(LocalDate.now().minusDays(30));
+        UserChargingProviderEntity savedProvider = chargingProviderRepository.save(provider);
+
+        EvLog previousLog = EvLog.createFromInternal(
+                testCar.getId(), new BigDecimal("50.0"), 120, "u2ey3d7",
+                LocalDateTime.now().minusDays(1), null, null,
+                DataSource.SMARTCAR_LIVE, null, ChargingType.AC,
+                60000, new BigDecimal("20"), new BigDecimal("90"), null, null)
+                .toBuilder().chargingProviderId(savedProvider.getId()).build();
+        evLogRepository.save(previousLog);
+
+        // New session at "u2ey3da" — different last char, same prefix "u2ey3d"
+        // 40 kWh / 2h = 20 kW avg → AC → 40 × 0.29 = 11.60 EUR
+        Map<String, Object> request = logRequest(testCar.getId(), testUser.getId(),
+                "40.0", 120, LocalDateTime.now().minusHours(1), "u2ey3da", "SMARTCAR_LIVE", null);
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                "/api/internal/logs", HttpMethod.POST,
+                new HttpEntity<>(request, internalHeaders(VALID_TOKEN)), Map.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody().get("costEur"), "GPS-drift must not break the provider lookup");
+        assertEquals(0, new BigDecimal(response.getBody().get("costEur").toString()).compareTo(new BigDecimal("11.60")));
+    }
+
+    @Test
+    void updateGeohash_whenLogHasNoCostAndProviderExistsAtGeohash_setsCostFromTariff() {
+        // Tesla sessions arrive without geohash; geocoding sets it asynchronously.
+        // Price suggestion must fire after the geohash patch, not just at creation.
+        UserChargingProviderEntity provider = new UserChargingProviderEntity();
+        provider.setUserId(testUser.getId());
+        provider.setProviderName("Heimladung");
+        provider.setAcPricePerKwh(new BigDecimal("0.3200"));
+        provider.setDcPricePerKwh(null);
+        provider.setMonthlyFeeEur(BigDecimal.ZERO);
+        provider.setSessionFeeEur(BigDecimal.ZERO);
+        provider.setActiveFrom(LocalDate.now().minusDays(30));
+        UserChargingProviderEntity savedProvider = chargingProviderRepository.save(provider);
+
+        String geohash = "u2ey4f3";
+        EvLog previousLog = EvLog.createFromInternal(
+                testCar.getId(), new BigDecimal("30.0"), 90, geohash,
+                LocalDateTime.now().minusDays(1), null, null,
+                DataSource.SMARTCAR_LIVE, null, ChargingType.AC,
+                60000, new BigDecimal("10"), new BigDecimal("80"), null, null)
+                .toBuilder().chargingProviderId(savedProvider.getId()).build();
+        evLogRepository.save(previousLog);
+
+        // Tesla log: no geohash, no cost.
+        // TESLA_LIVE is AT_VEHICLE → kwhCharged moves to kwhAtVehicle.
+        // 27 kWh / 90 min = 18 kW avg → AC inferred (threshold > 22 kW).
+        // Test env has ac-charging-efficiency=1.0 → effectiveKwhForCost = 27 / 1.0 = 27 → 27 × 0.32 = 8.64 EUR
+        LocalDateTime loggedAt = LocalDateTime.now().minusHours(2).withSecond(0).withNano(0);
+        Map<String, Object> createRequest = logRequest(testCar.getId(), testUser.getId(),
+                "27.0", 90, loggedAt, null, "TESLA_LIVE", null);
+        restTemplate.exchange("/api/internal/logs", HttpMethod.POST,
+                new HttpEntity<>(createRequest, internalHeaders(VALID_TOKEN)), Map.class);
+
+        // Geocoding task patches the geohash
+        Map<String, Object> patchRequest = Map.of(
+                "carId", testCar.getId().toString(),
+                "userId", testUser.getId().toString(),
+                "loggedAt", loggedAt.toString(),
+                "geohash", geohash
+        );
+        restTemplate.exchange("/api/internal/logs/geohash", HttpMethod.PATCH,
+                new HttpEntity<>(patchRequest, internalHeaders(VALID_TOKEN)), Void.class);
+
+        // Verify cost was applied retroactively
+        HttpHeaders userHeaders = createAuthHeaders(testUser.getId(), testUser.getEmail());
+        ResponseEntity<Map[]> logsResponse = restTemplate.exchange(
+                "/api/logs", HttpMethod.GET, new HttpEntity<>(userHeaders), Map[].class);
+
+        // Tesla log has kwhAtVehicle≈27; previousLog has kwhAtVehicle≈30 (SMARTCAR → AT_VEHICLE normalization)
+        Map<?, ?> teslaLog = java.util.Arrays.stream(logsResponse.getBody())
+                .filter(l -> l.get("kwhAtVehicle") != null
+                        && new BigDecimal(l.get("kwhAtVehicle").toString()).compareTo(new BigDecimal("27")) == 0)
+                .findFirst().orElseThrow(() -> new AssertionError("Tesla log (kwhAtVehicle=27) not found. Response: "
+                        + java.util.Arrays.toString(logsResponse.getBody())));
+        assertNotNull(teslaLog.get("costEur"), "Price must be applied after updateGeohash");
+        assertEquals(0, new BigDecimal(teslaLog.get("costEur").toString()).compareTo(new BigDecimal("8.64")));
+    }
+
     // --- temperature enrichment ---
 
     @Test

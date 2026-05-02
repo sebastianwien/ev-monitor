@@ -169,27 +169,7 @@ public class EvLogService {
                 request.rawImportData());
 
         if (request.geohash() != null) {
-            var builder = newLog.toBuilder();
-            final ChargingType inferredType = newLog.getChargingType();
-            final BigDecimal effectiveEnergy = calculationService.effectiveKwhForCost(newLog);
-            evLogRepository.findMostRecentChargingProviderAtGeohash(request.userId(), request.geohash())
-                    .ifPresent(providerId -> {
-                        builder.chargingProviderId(providerId);
-                        if (request.costEur() == null && effectiveEnergy != null) {
-                            chargingProviderRepository.findById(providerId).ifPresent(provider -> {
-                                BigDecimal price = inferredType == ChargingType.DC
-                                        ? provider.getDcPricePerKwh()
-                                        : provider.getAcPricePerKwh();
-                                if (price != null) {
-                                    BigDecimal sessionFee = provider.getSessionFeeEur() != null
-                                            ? provider.getSessionFeeEur() : BigDecimal.ZERO;
-                                    builder.costEur(effectiveEnergy.multiply(price)
-                                            .add(sessionFee).setScale(2, RoundingMode.HALF_UP));
-                                }
-                            });
-                        }
-                    });
-            newLog = builder.build();
+            newLog = applyPriceSuggestion(newLog, request.userId(), request.costEur() != null);
         }
 
         EvLog savedLog = evLogRepository.save(newLog);
@@ -229,7 +209,33 @@ public class EvLogService {
         if (!car.getUserId().equals(userId)) {
             throw new IllegalArgumentException("Car does not belong to user");
         }
-        evLogRepository.updateGeohash(carId, loggedAt, geohash);
+        evLogRepository.updateGeohash(carId, loggedAt, geohash).ifPresent(evLog -> {
+            if (evLog.getCostEur() == null) {
+                EvLog enriched = applyPriceSuggestion(evLog, userId, false);
+                if (enriched.getCostEur() != null) evLogRepository.save(enriched);
+            }
+        });
+    }
+
+    private EvLog applyPriceSuggestion(EvLog log, UUID userId, boolean hasCostAlready) {
+        if (log.getGeohash() == null || hasCostAlready) return log;
+        BigDecimal effectiveEnergy = calculationService.effectiveKwhForCost(log);
+        if (effectiveEnergy == null || effectiveEnergy.compareTo(BigDecimal.ZERO) <= 0) return log;
+
+        Optional<UUID> providerIdOpt = evLogRepository.findMostRecentChargingProviderAtGeohash(userId, log.getGeohash());
+        if (providerIdOpt.isEmpty()) return log;
+        UUID providerId = providerIdOpt.get();
+
+        return chargingProviderRepository.findById(providerId).map(provider -> {
+            BigDecimal price = log.getChargingType() == ChargingType.DC
+                    ? provider.getDcPricePerKwh()
+                    : provider.getAcPricePerKwh();
+            if (price == null) return log;
+            BigDecimal sessionFee = provider.getSessionFeeEur() != null
+                    ? provider.getSessionFeeEur() : BigDecimal.ZERO;
+            BigDecimal cost = effectiveEnergy.multiply(price).add(sessionFee).setScale(2, RoundingMode.HALF_UP);
+            return log.toBuilder().chargingProviderId(providerId).costEur(cost).build();
+        }).orElse(log);
     }
 
     public List<EvLogResponse> getStandaloneLogsForUser(UUID userId) {

@@ -42,7 +42,7 @@ public interface EvLogRepository {
 
     void deleteAllByUserIdAndDataSourceIn(UUID userId, List<DataSource> dataSources);
 
-    boolean updateGeohash(UUID carId, LocalDateTime loggedAt, String geohash);
+    Optional<EvLog> updateGeohash(UUID carId, LocalDateTime loggedAt, String geohash);
 
     List<EvLog> findAllWithGeohashAndNoTemperature();
 

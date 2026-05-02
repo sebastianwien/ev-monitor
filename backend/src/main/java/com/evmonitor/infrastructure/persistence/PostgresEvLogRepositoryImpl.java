@@ -120,12 +120,11 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
-    public boolean updateGeohash(UUID carId, LocalDateTime loggedAt, String geohash) {
+    public Optional<EvLog> updateGeohash(UUID carId, LocalDateTime loggedAt, String geohash) {
         return jpaRepository.findByCarIdAndLoggedAt(carId, loggedAt).map(entity -> {
             entity.setGeohash(geohash);
-            jpaRepository.save(entity);
-            return true;
-        }).orElse(false);
+            return toDomain(jpaRepository.save(entity));
+        });
     }
 
     @Override
@@ -159,7 +158,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
 
     @Override
     public Optional<EvLog> findMostRecentLogAtGeohash(UUID userId, String geohash) {
-        var results = jpaRepository.findRecentByUserIdAndGeohash(userId, geohash,
+        var results = jpaRepository.findRecentByUserIdAndGeohash(userId, geohashPrefix(geohash),
                 org.springframework.data.domain.PageRequest.of(0, 1));
         if (results.isEmpty()) return Optional.empty();
         return Optional.of(toDomain(results.get(0)));
@@ -167,10 +166,15 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
 
     @Override
     public Optional<UUID> findMostRecentChargingProviderAtGeohash(UUID userId, String geohash) {
-        var results = jpaRepository.findRecentWithProviderByUserIdAndGeohash(userId, geohash,
+        var results = jpaRepository.findRecentWithProviderByUserIdAndGeohash(userId, geohashPrefix(geohash),
                 org.springframework.data.domain.PageRequest.of(0, 1));
         if (results.isEmpty()) return Optional.empty();
         return Optional.ofNullable(results.get(0).getChargingProviderId());
+    }
+
+    private static String geohashPrefix(String geohash) {
+        assert geohash.length() >= 6 : "geohash must be at least 6 chars for meaningful prefix lookup";
+        return geohash.substring(0, Math.min(6, geohash.length())) + "%";
     }
 
     @Override
