@@ -304,12 +304,12 @@ async function retryConnect() {
     </template>
 
     <template v-else>
-      <!-- Connected banner (always) -->
-      <div class="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg p-3">
+      <!-- Connected banner: nur im POLLING-Mode (TELEMETRY hat den Status in der konsolidierten Card) -->
+      <div v-if="!isTelemetryActive" class="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg p-3">
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm font-semibold text-green-800 dark:text-green-200">{{ t('tesla.connected_prefix') }} {{ status.vehicleName || 'Tesla' }}</p>
-            <p v-if="status.lastSyncAt && !isTelemetryActive" class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('tesla.last_sync') }} {{ formatDate(status.lastSyncAt) }}</p>
+            <p v-if="status.lastSyncAt" class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('tesla.last_sync') }} {{ formatDate(status.lastSyncAt) }}</p>
           </div>
           <button
             @click="handleDisconnect"
@@ -321,54 +321,77 @@ async function retryConnect() {
         </div>
       </div>
 
-      <!-- ── TELEMETRY ACTIVE MODE ────────────────────────────────────────── -->
+      <!-- ── TELEMETRY ACTIVE MODE: Status-Card mit linker Akzent-Leiste ─── -->
       <template v-if="isTelemetryActive">
-        <div class="flex items-start gap-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg p-3">
-          <CheckCircleIcon class="h-5 w-5 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
-          <div>
-            <p class="text-sm font-semibold text-green-800 dark:text-green-200">{{ t('tesla.telemetry_live_title') }}</p>
-            <p class="text-xs text-green-700 dark:text-green-300 mt-0.5">
-              {{ isFullProfile ? t('tesla.telemetry_live_desc_full') : t('tesla.telemetry_live_desc_charging_only') }}
-            </p>
-          </div>
-        </div>
-
-        <!-- Telemetry management (disable) -->
-        <div class="space-y-2">
-          <div v-if="pairingStatus" class="bg-gray-50 dark:bg-gray-900 rounded-lg p-3 text-xs space-y-1">
-            <div class="flex items-center justify-between">
-              <span class="text-gray-600 dark:text-gray-400">{{ t('tesla.pairing_config_label') }}</span>
-              <span class="text-green-600 dark:text-green-400 font-medium">{{ t('tesla.pairing_config_ok') }}</span>
+        <div class="relative bg-gray-50 dark:bg-slate-900/80 border border-gray-200 dark:border-slate-800 rounded-xl p-4 pl-5 overflow-hidden">
+          <span class="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500"></span>
+          <div class="flex items-start gap-3">
+            <CheckCircleIcon class="h-5 w-5 text-emerald-500 dark:text-emerald-400 shrink-0 mt-0.5" />
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-gray-900 dark:text-white">
+                {{ t('tesla.telemetry_live_title') }} · {{ status.vehicleName || 'Tesla' }}
+              </p>
+              <p v-if="pairingStatus?.vin" class="text-[11px] text-gray-500 dark:text-slate-500 mt-0.5 font-mono truncate">{{ pairingStatus.vin }}</p>
+              <p class="text-xs text-gray-700 dark:text-slate-300 mt-2">
+                {{ isFullProfile ? t('tesla.telemetry_live_desc_full') : t('tesla.telemetry_live_desc_charging_only') }}
+              </p>
+            </div>
+            <div class="flex items-center gap-1 shrink-0">
+              <button
+                @click="loadPairingStatus"
+                :disabled="pairingLoading"
+                :title="t('tesla.pairing_refresh')"
+                :aria-label="t('tesla.pairing_refresh')"
+                class="p-1.5 rounded-md text-gray-500 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-800 transition disabled:opacity-50"
+              >
+                <ArrowPathIcon class="h-4 w-4" :class="{ 'animate-spin': pairingLoading }" />
+              </button>
+              <button
+                @click="handleDisconnect"
+                :title="confirmDisconnect ? t('tesla.confirm_disconnect') : t('tesla.disconnect_btn')"
+                :aria-label="t('tesla.disconnect_btn')"
+                class="p-1.5 rounded-md transition"
+                :class="confirmDisconnect ? 'text-red-700 bg-red-100 dark:bg-red-900/40' : 'text-gray-500 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-800'"
+              >
+                <XMarkIcon class="h-4 w-4" />
+              </button>
             </div>
           </div>
 
-          <button
-            @click="handleDisableTelemetry"
-            :disabled="pairingLoading"
-            class="w-full flex items-center justify-center gap-2 text-sm px-4 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition disabled:opacity-50"
-          >
-            {{ pairingLoading ? t('tesla.pairing_disable_btn_loading') : t('tesla.pairing_disable_btn') }}
-          </button>
+          <div class="mt-3 pt-3 border-t border-gray-200 dark:border-slate-800 flex justify-end">
+            <button
+              @click="handleDisableTelemetry"
+              :disabled="pairingLoading"
+              class="text-xs text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200 underline-offset-2 hover:underline transition disabled:opacity-50"
+            >
+              {{ pairingLoading ? t('tesla.pairing_disable_btn_loading') : t('tesla.pairing_disable_btn') }}
+            </button>
+          </div>
 
-          <button
-            @click="loadPairingStatus"
-            :disabled="pairingLoading"
-            class="w-full text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition disabled:opacity-50"
-          >
-            {{ t('tesla.pairing_refresh') }}
-          </button>
-
-          <div v-if="pairingError" class="flex items-start gap-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg p-2">
+          <div v-if="pairingError" class="mt-3 flex items-start gap-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg p-2">
             <ExclamationTriangleIcon class="h-4 w-4 text-red-500 dark:text-red-400 mt-0.5 shrink-0" />
             <p class="text-xs text-red-800 dark:text-red-200">{{ pairingError }}</p>
           </div>
         </div>
 
-        <!-- Delete all -->
-        <div class="border-t border-gray-100 dark:border-gray-700 pt-4">
-          <button @click="showDeleteAllConfirm = true" class="w-full text-sm px-4 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition">
-            {{ t('tesla.delete_all_btn') }}
-          </button>
+        <!-- ── DANGER ZONE: gleiche Card mit roter Akzent-Leiste ────────── -->
+        <div class="relative bg-gray-50 dark:bg-slate-900/80 border border-gray-200 dark:border-slate-800 rounded-xl p-4 pl-5 mt-4 overflow-hidden">
+          <span class="absolute left-0 top-0 bottom-0 w-1 bg-red-500"></span>
+          <div class="flex items-start gap-3">
+            <ExclamationTriangleIcon class="h-5 w-5 text-red-500 dark:text-red-400 shrink-0 mt-0.5" />
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ t('tesla.danger_zone_title') }}</p>
+              <p class="text-xs text-gray-600 dark:text-slate-400 mt-1">{{ t('tesla.danger_zone_desc') }}</p>
+            </div>
+          </div>
+          <div class="mt-3 flex justify-end">
+            <button
+              @click="showDeleteAllConfirm = true"
+              class="bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition"
+            >
+              {{ t('tesla.delete_all_btn') }}
+            </button>
+          </div>
         </div>
       </template>
 

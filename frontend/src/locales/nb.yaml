@@ -1504,6 +1504,9 @@ tesla:
   callback_error_unknown_title: Tilkobling mislyktes
   callback_error_unknown_body: Det oppsto en feil ved tilkobling til Tesla. Prøv igjen. Hvis problemet vedvarer, kontakt support.
   confirm_disconnect: Er du sikker?
+  disconnect_btn: Koble fra
+  danger_zone_title: Slett data
+  danger_zone_desc: Fjerner alle importerte Tesla-logger fra statistikken din. Dette kan ikke angres.
   delete_modal_title: Slette alle Tesla-importene?
   delete_modal_desc: Du er i ferd med å slette <strong>ALLE ladesesjoner som er importert via Tesla Fleet API</strong>. Logger som er opprettet manuelt, vil bli beholdt. Denne handlingen <strong>kan ikke angres</strong>.
   delete_modal_cancel: Avbryt
