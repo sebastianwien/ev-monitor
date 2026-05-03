@@ -30,6 +30,7 @@ const fleetApiConfigured = ref(true)
 const authStore = useAuthStore()
 const carStore = useCarStore()
 const pairingStatus = ref<TeslaPairingStatus | null>(null)
+const pairingStatusLoaded = ref(false)
 const isTelemetryActive = computed(() => pairingStatus.value?.dataSource === 'TELEMETRY')
 const isFullProfile = computed(() => pairingStatus.value?.telemetryProfile === 'FULL')
 
@@ -96,7 +97,12 @@ function stopGeocodingPoll() {
 onUnmounted(() => stopGeocodingPoll())
 
 async function loadPairingStatus() {
-  if ((!authStore.isAdmin && !authStore.isBetaTester) || !status.value.connected) return
+  // Gate auf canActivateTelemetry statt nur Admin/Beta - sonst würden TESLA_FOUNDER
+  // und Premium-USER ihren Telemetry-Status nie sehen.
+  if (!authStore.canActivateTelemetry || !status.value.connected) {
+    pairingStatusLoaded.value = true
+    return
+  }
   pairingError.value = null
   try {
     pairingStatus.value = await teslaFleetService.getPairingStatus()
@@ -106,6 +112,8 @@ async function loadPairingStatus() {
     } else {
       pairingError.value = e.response?.data?.message || t('tesla.pairing_err_status')
     }
+  } finally {
+    pairingStatusLoaded.value = true
   }
 }
 
@@ -304,8 +312,16 @@ async function retryConnect() {
     </template>
 
     <template v-else>
+      <!-- Loading-Skeleton solange pairingStatus noch nicht da ist - verhindert Flicker zwischen
+           Polling-Banner und Telemetry-Card auf langsamen Verbindungen. -->
+      <div v-if="!pairingStatusLoaded" class="bg-gray-50 dark:bg-slate-900/80 border border-gray-200 dark:border-slate-800 rounded-xl p-4 pl-5 animate-pulse">
+        <div class="h-4 bg-gray-200 dark:bg-slate-800 rounded w-2/3"></div>
+        <div class="h-3 bg-gray-200 dark:bg-slate-800 rounded w-1/3 mt-2"></div>
+        <div class="h-3 bg-gray-200 dark:bg-slate-800 rounded w-full mt-3"></div>
+      </div>
+
       <!-- Connected banner: nur im POLLING-Mode (TELEMETRY hat den Status in der konsolidierten Card) -->
-      <div v-if="!isTelemetryActive" class="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg p-3">
+      <div v-if="pairingStatusLoaded && !isTelemetryActive" class="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg p-3">
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm font-semibold text-green-800 dark:text-green-200">{{ t('tesla.connected_prefix') }} {{ status.vehicleName || 'Tesla' }}</p>
@@ -322,7 +338,7 @@ async function retryConnect() {
       </div>
 
       <!-- ── TELEMETRY ACTIVE MODE: Status-Card mit linker Akzent-Leiste ─── -->
-      <template v-if="isTelemetryActive">
+      <template v-if="pairingStatusLoaded && isTelemetryActive">
         <div class="relative bg-gray-50 dark:bg-slate-900/80 border border-gray-200 dark:border-slate-800 rounded-xl p-4 pl-5 overflow-hidden">
           <span class="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500"></span>
           <div class="flex items-start gap-3">
@@ -396,7 +412,7 @@ async function retryConnect() {
       </template>
 
       <!-- ── POLLING MODE ────────────────────────────────────────────────── -->
-      <template v-else>
+      <template v-else-if="pairingStatusLoaded">
         <!-- Fleet Telemetry setup - primary CTA, shown at top for any eligible user -->
         <div
           v-if="authStore.canActivateTelemetry"
