@@ -17,6 +17,13 @@ export interface FeatureAnnouncement {
 
 export const featureAnnouncements: FeatureAnnouncement[] = [
   {
+    key: 'negative-prices-v1',
+    expiresAt: '2026-05-24',
+    releasedAt: '2026-05-02',
+    titleKey: 'announcements.negative_prices_v1_title',
+    bodyKey: 'announcements.negative_prices_v1_body',
+  },
+  {
     key: 'brutto-netto-v1',
     expiresAt: '2026-05-19',
     releasedAt: '2026-04-28',

@@ -1788,6 +1788,8 @@ announcements:
   trip_detection_beta_v1_cta: "Go to dashboard"
   brutto_netto_v1_title: "Improved consumption and cost calculation"
   brutto_netto_v1_body: "EV Monitor now more consistently uses both net and gross energy values from logged charging sessions in all calculations. This may cause slight adjustments to consumption, cost, and range figures - they now reflect reality even more accurately!"
+  negative_prices_v1_title: "Negative electricity prices now supported"
+  negative_prices_v1_body: "With dynamic electricity tariffs, the price per kWh can drop below zero. You can now enter negative prices when logging a charging session - both in the app and via API."
 
 tax_export:
   title: "Tax report home charging"

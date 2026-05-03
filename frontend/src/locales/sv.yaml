@@ -1755,6 +1755,8 @@ announcements:
   trip_detection_beta_v1_cta: "Till dashbordet"
   brutto_netto_v1_title: "Förbättrad förbruknings- och kostnadsberäkning"
   brutto_netto_v1_body: "EV Monitor använder nu netto- och bruttovärden från rapporterade laddningar mer konsekvent i alla beräkningar. Detta kan leda till att förbruknings-, kostnads- och räckviddsvärden har justerats något. De återspeglar nu verkligheten ännu bättre!"
+  negative_prices_v1_title: "Negativa elpriser stöds nu"
+  negative_prices_v1_body: "Med dynamiska eltariffer kan priset per kWh sjunka under noll. Du kan nu ange negativa priser vid registrering av en laddning - både i appen och via API."
 tax_export:
   title: Skatteanmälan för laddning hemma
   subtitle: Exportera dina hemladdningar som underlag för din revisor (brev från BMF av den 11 november 2025)
