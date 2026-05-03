@@ -3,6 +3,7 @@ package com.evmonitor.application;
 import com.evmonitor.domain.CoinType;
 import com.evmonitor.domain.LeaderboardCategory;
 import com.evmonitor.infrastructure.external.ExternalJokeService;
+import com.evmonitor.infrastructure.external.ExternalNewsService;
 import com.evmonitor.infrastructure.external.FuelPriceService;
 import com.evmonitor.infrastructure.persistence.LeaderboardQueryRepository;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ public class LeaderboardService {
     private final LeaderboardQueryRepository queryRepository;
     private final CoinLogService coinLogService;
     private final ExternalJokeService externalJokeService;
+    private final ExternalNewsService externalNewsService;
     private final FuelPriceService fuelPriceService;
 
     @Cacheable(value = "leaderboard", key = "'board:' + #category.name() + ':' + #requestingUserId")
@@ -261,6 +263,17 @@ public class LeaderboardService {
                     "Beliebtester öffentlicher Ladeanbieter im " + month + ": " + topCpo.cpoName()
                             + " mit " + topCpo.count() + " Ladevorgängen",
                     "bolt"));
+        }
+
+        // Good news from external RSS feeds
+        List<ExternalNewsService.NewsItem> newsItems = externalNewsService.getNewsItems();
+        if (!newsItems.isEmpty()) {
+            // Pick up to 2 news items per ticker refresh (rotate by day-of-year)
+            int offset = LocalDate.now().getDayOfYear() % newsItems.size();
+            for (int i = 0; i < Math.min(2, newsItems.size()); i++) {
+                ExternalNewsService.NewsItem news = newsItems.get((offset + i) % newsItems.size());
+                items.add(new TickerItemDTO("NEWS", news.title(), "newspaper", news.url()));
+            }
         }
 
         Collections.shuffle(items, new Random());

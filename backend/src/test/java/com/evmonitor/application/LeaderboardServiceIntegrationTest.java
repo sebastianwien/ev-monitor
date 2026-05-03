@@ -4,6 +4,7 @@ import com.evmonitor.application.ChargeCountStats;
 import com.evmonitor.application.TopCpoResult;
 import com.evmonitor.domain.LeaderboardCategory;
 import com.evmonitor.infrastructure.external.ExternalJokeService;
+import com.evmonitor.infrastructure.external.ExternalNewsService;
 import com.evmonitor.infrastructure.external.FuelPriceService;
 import com.evmonitor.infrastructure.persistence.LeaderboardQueryRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,6 +43,9 @@ class LeaderboardServiceIntegrationTest {
     private ExternalJokeService externalJokeService;
 
     @Mock
+    private ExternalNewsService externalNewsService;
+
+    @Mock
     private FuelPriceService fuelPriceService;
 
     @InjectMocks
@@ -53,6 +57,7 @@ class LeaderboardServiceIntegrationTest {
     @BeforeEach
     void setUp() {
         when(externalJokeService.getJokes()).thenReturn(List.of());
+        when(externalNewsService.getNewsItems()).thenReturn(List.of());
     }
 
     // ---- Ranking and delta ----

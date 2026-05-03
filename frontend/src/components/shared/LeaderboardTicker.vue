@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import apiClient from '../../api/axios'
-import { TrophyIcon, BoltIcon, LightBulbIcon, FaceSmileIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/vue/24/outline'
+import { TrophyIcon, BoltIcon, LightBulbIcon, FaceSmileIcon, NewspaperIcon, ArrowTopRightOnSquareIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/vue/24/outline'
 import { useTickerState } from '../../composables/useTickerState'
 
 interface TickerItem {
-  type: 'LEADER' | 'STAT' | 'FACT' | 'JOKE'
+  type: 'LEADER' | 'STAT' | 'FACT' | 'JOKE' | 'NEWS'
   text: string
   icon: string
+  url?: string
 }
 
 const { tickerHasItems, tickerCollapsed: collapsed, toggle } = useTickerState()
@@ -37,6 +38,7 @@ function iconComponent(icon: string) {
   if (icon === 'trophy') return TrophyIcon
   if (icon === 'bolt') return BoltIcon
   if (icon === 'face-smile') return FaceSmileIcon
+  if (icon === 'newspaper') return NewspaperIcon
   return LightBulbIcon
 }
 
@@ -44,6 +46,7 @@ function itemIconColor(type: string): string {
   if (type === 'LEADER') return 'text-yellow-300'
   if (type === 'STAT') return 'text-emerald-300'
   if (type === 'JOKE') return 'text-pink-300'
+  if (type === 'NEWS') return 'text-lime-300'
   return 'text-sky-300'
 }
 
@@ -51,6 +54,7 @@ function itemTextColor(type: string): string {
   if (type === 'LEADER') return 'text-yellow-200'
   if (type === 'STAT') return 'text-emerald-200'
   if (type === 'JOKE') return 'text-pink-200'
+  if (type === 'NEWS') return 'text-lime-200'
   return 'text-sky-200'
 }
 
@@ -75,15 +79,28 @@ onUnmounted(() => {
       <div class="ticker-track-wrapper flex items-center h-full">
         <div class="ticker-track flex items-center" :class="{ 'animation-paused': !animationActive }" :style="{ animationDuration: animDuration }">
           <template v-for="pass in [0, 1]" :key="pass">
-            <span
-              v-for="(item, i) in items"
-              :key="`${pass}-${i}`"
-              :class="['flex items-center gap-1.5 text-xs whitespace-nowrap px-5', itemTextColor(item.type)]">
-              <component
-                :is="iconComponent(item.icon)"
-                :class="['h-3.5 w-3.5 flex-shrink-0', itemIconColor(item.type)]" />
-              {{ item.text }}
-            </span>
+            <template v-for="(item, i) in items" :key="`${pass}-${i}`">
+              <a
+                v-if="item.type === 'NEWS' && item.url"
+                :href="item.url"
+                target="_blank"
+                rel="noopener noreferrer"
+                :class="['flex items-center gap-1.5 text-xs whitespace-nowrap px-5 underline decoration-lime-400/40 hover:decoration-lime-300', itemTextColor(item.type)]">
+                <component
+                  :is="iconComponent(item.icon)"
+                  :class="['h-3.5 w-3.5 flex-shrink-0', itemIconColor(item.type)]" />
+                {{ item.text }}
+                <ArrowTopRightOnSquareIcon class="h-3 w-3 flex-shrink-0 opacity-60" />
+              </a>
+              <span
+                v-else
+                :class="['flex items-center gap-1.5 text-xs whitespace-nowrap px-5', itemTextColor(item.type)]">
+                <component
+                  :is="iconComponent(item.icon)"
+                  :class="['h-3.5 w-3.5 flex-shrink-0', itemIconColor(item.type)]" />
+                {{ item.text }}
+              </span>
+            </template>
             <span class="text-indigo-400 px-2 flex-shrink-0 font-bold tracking-widest">+++</span>
           </template>
         </div>
