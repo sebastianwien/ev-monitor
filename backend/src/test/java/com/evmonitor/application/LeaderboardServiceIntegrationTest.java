@@ -179,7 +179,21 @@ class LeaderboardServiceIntegrationTest {
 
         assertThat(result.unit()).isEqualTo("ct/kWh");
         assertThat(result.lowerIsBetter()).isTrue();
+        assertThat(result.hasMonthEndReward()).isTrue();
         assertThat(result.period()).matches("\\d{4}-\\d{2}");
+    }
+
+    @Test
+    void getLeaderboard_hasMonthEndReward_falseForFunCategories() {
+        when(queryRepository.getIceChargerRanking(any(), any())).thenReturn(List.of());
+        when(queryRepository.getHeatChargerRanking(any(), any())).thenReturn(List.of());
+        when(queryRepository.getNightOwlRanking(any(), any())).thenReturn(List.of());
+        when(queryRepository.getPowerChargerRanking(any(), any())).thenReturn(List.of());
+
+        assertThat(leaderboardService.getLeaderboard(LeaderboardCategory.MONTHLY_ICE_CHARGER, null).hasMonthEndReward()).isFalse();
+        assertThat(leaderboardService.getLeaderboard(LeaderboardCategory.MONTHLY_HEAT_CHARGER, null).hasMonthEndReward()).isFalse();
+        assertThat(leaderboardService.getLeaderboard(LeaderboardCategory.MONTHLY_NIGHT_OWL, null).hasMonthEndReward()).isFalse();
+        assertThat(leaderboardService.getLeaderboard(LeaderboardCategory.MONTHLY_POWER_CHARGER, null).hasMonthEndReward()).isFalse();
     }
 
     // ---- Ticker ----
@@ -193,6 +207,7 @@ class LeaderboardServiceIntegrationTest {
         when(queryRepository.getCheapestRanking(any(), any())).thenReturn(List.of());
         when(queryRepository.getNightOwlRanking(any(), any())).thenReturn(List.of());
         when(queryRepository.getIceChargerRanking(any(), any())).thenReturn(List.of());
+        when(queryRepository.getHeatChargerRanking(any(), any())).thenReturn(List.of());
         when(queryRepository.getPowerChargerRanking(any(), any())).thenReturn(List.of());
         when(queryRepository.getTotalKwhThisMonth(any(), any())).thenReturn(new BigDecimal("1234.5"));
         when(queryRepository.getChargeCountStats(any(), any())).thenReturn(new ChargeCountStats(42, 30));
@@ -215,6 +230,7 @@ class LeaderboardServiceIntegrationTest {
         when(queryRepository.getCheapestRanking(any(), any())).thenReturn(List.of());
         when(queryRepository.getNightOwlRanking(any(), any())).thenReturn(List.of());
         when(queryRepository.getIceChargerRanking(any(), any())).thenReturn(List.of());
+        when(queryRepository.getHeatChargerRanking(any(), any())).thenReturn(List.of());
         when(queryRepository.getPowerChargerRanking(any(), any())).thenReturn(List.of());
         when(queryRepository.getTotalKwhThisMonth(any(), any())).thenReturn(BigDecimal.ZERO);
         when(queryRepository.getChargeCountStats(any(), any())).thenReturn(new ChargeCountStats(0, 0));
@@ -267,6 +283,7 @@ class LeaderboardServiceIntegrationTest {
         var ranking = List.of(row(userA, "anna", "5.0"));
         when(queryRepository.getNightOwlRanking(any(), any())).thenReturn(ranking);
         when(queryRepository.getIceChargerRanking(any(), any())).thenReturn(ranking);
+        when(queryRepository.getHeatChargerRanking(any(), any())).thenReturn(ranking);
         when(queryRepository.getPowerChargerRanking(any(), any())).thenReturn(ranking);
         // Main categories return empty
         when(queryRepository.getKwhRanking(any(), any())).thenReturn(List.of());
@@ -277,8 +294,25 @@ class LeaderboardServiceIntegrationTest {
 
         leaderboardService.awardMonthEndRewards(LocalDate.of(2025, 10, 1));
 
-        // Night owl, ice charger, power charger have hasMonthEndReward=false -> no awards
+        // Night owl, ice charger, heat charger, power charger have hasMonthEndReward=false -> no awards
         verify(coinLogService, never()).awardCoins(any(), any(), anyInt(), any());
+    }
+
+    // ---- MONTHLY_HEAT_CHARGER ----
+
+    @Test
+    void getLeaderboard_heatCharger_returnsHighestTemperatureFirst() {
+        var rowHot = row(userA, "anna", "42.0");
+        var rowCold = row(userB, "max", "28.0");
+        when(queryRepository.getHeatChargerRanking(any(), any())).thenReturn(List.of(rowHot, rowCold));
+
+        var result = leaderboardService.getLeaderboard(LeaderboardCategory.MONTHLY_HEAT_CHARGER, null);
+
+        assertThat(result.entries()).hasSize(2);
+        assertThat(result.entries().get(0).username()).isEqualTo("anna");
+        assertThat(result.entries().get(0).value()).isEqualByComparingTo(new BigDecimal("42.0"));
+        assertThat(result.unit()).isEqualTo("°C");
+        assertThat(result.lowerIsBetter()).isFalse();
     }
 
     // ---- Ticker: Heimladen-Quote ----
@@ -347,6 +381,7 @@ class LeaderboardServiceIntegrationTest {
         when(queryRepository.getCheapestRanking(any(), any())).thenReturn(List.of());
         when(queryRepository.getNightOwlRanking(any(), any())).thenReturn(List.of());
         when(queryRepository.getIceChargerRanking(any(), any())).thenReturn(List.of());
+        when(queryRepository.getHeatChargerRanking(any(), any())).thenReturn(List.of());
         when(queryRepository.getPowerChargerRanking(any(), any())).thenReturn(List.of());
     }
 

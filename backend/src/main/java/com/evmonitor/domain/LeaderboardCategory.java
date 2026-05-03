@@ -8,6 +8,7 @@ public enum LeaderboardCategory {
     MONTHLY_CHEAPEST("Günstigster Lader", "ct/kWh", true, true),
     MONTHLY_NIGHT_OWL("Nacht-Eule", "Nacht-Ladungen", false, false),
     MONTHLY_ICE_CHARGER("Eisbär des Monats", "°C", true, false),
+    MONTHLY_HEAT_CHARGER("Sahara Session des Monats", "°C", false, false),
     MONTHLY_POWER_CHARGER("Schnellster Lader", "kW", false, false);
 
     private final String displayName;

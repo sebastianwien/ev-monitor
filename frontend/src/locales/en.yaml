@@ -666,6 +666,7 @@ leaderboard:
   cheapest_subtitle: "for {kwh} kWh over {sessions} charges"
   cat_night_owl: "Night Owl"
   cat_ice_charger: "Ice Charger"
+  cat_heat_charger: "Sahara Session"
   cat_power_charger: "Fastest Charger"
 
 logform:

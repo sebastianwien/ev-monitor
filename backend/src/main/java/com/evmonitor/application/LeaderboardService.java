@@ -81,6 +81,7 @@ public class LeaderboardService {
                 category.getDisplayName(),
                 category.getUnit(),
                 category.isLowerIsBetter(),
+                category.isHasMonthEndReward(),
                 period,
                 top10,
                 ownEntry
@@ -315,6 +316,7 @@ public class LeaderboardService {
             case MONTHLY_CHEAPEST -> queryRepository.getCheapestRanking(start, end);
             case MONTHLY_NIGHT_OWL -> queryRepository.getNightOwlRanking(start, end);
             case MONTHLY_ICE_CHARGER -> queryRepository.getIceChargerRanking(start, end);
+            case MONTHLY_HEAT_CHARGER -> queryRepository.getHeatChargerRanking(start, end);
             case MONTHLY_POWER_CHARGER -> queryRepository.getPowerChargerRanking(start, end);
         };
     }
@@ -350,6 +352,7 @@ public class LeaderboardService {
             case MONTHLY_CHEAPEST -> raw.setScale(2, RoundingMode.HALF_UP);
             case MONTHLY_POWER_CHARGER -> raw.setScale(1, RoundingMode.HALF_UP);
             case MONTHLY_ICE_CHARGER -> raw.setScale(1, RoundingMode.HALF_UP);
+            case MONTHLY_HEAT_CHARGER -> raw.setScale(1, RoundingMode.HALF_UP);
             default -> raw.setScale(0, RoundingMode.HALF_UP);
         };
     }

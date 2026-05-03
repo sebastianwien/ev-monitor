@@ -666,6 +666,7 @@ leaderboard:
   cheapest_subtitle: "für {kwh} kWh über {sessions} Ladevorgänge"
   cat_night_owl: "Nacht-Eule"
   cat_ice_charger: "Eisbär"
+  cat_heat_charger: "Sahara Session"
   cat_power_charger: "Schnellster Lader"
 
 logform:

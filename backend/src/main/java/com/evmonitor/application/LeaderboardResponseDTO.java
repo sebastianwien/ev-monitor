@@ -9,6 +9,7 @@ public record LeaderboardResponseDTO(
         String displayName,
         String unit,
         boolean lowerIsBetter,
+        boolean hasMonthEndReward,
         String period,
         List<LeaderboardEntryDTO> entries,
         LeaderboardEntryDTO ownEntry  // null if user is in top 10, not logged in, or has no data

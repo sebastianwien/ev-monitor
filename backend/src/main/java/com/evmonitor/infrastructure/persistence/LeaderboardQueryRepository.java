@@ -218,6 +218,31 @@ public class LeaderboardQueryRepository {
         return mapCarRows(rows);
     }
 
+    // ---- MONTHLY_HEAT_CHARGER (highest temperature, higher = better) ----
+
+    @SuppressWarnings("unchecked")
+    public List<LeaderboardRankRow> getHeatChargerRanking(LocalDateTime start, LocalDateTime endExclusive) {
+        List<Object[]> rows = em.createNativeQuery("""
+                SELECT CAST(c.id AS TEXT), CAST(u.id AS TEXT), u.username, c.model,
+                       CAST(MAX(e.temperature_celsius) AS NUMERIC) AS value
+                FROM ev_log e
+                JOIN car c ON e.car_id = c.id
+                JOIN app_user u ON c.user_id = u.id
+                WHERE e.include_in_statistics = true
+                  AND u.is_seed_data = false
+                  AND u.leaderboard_visible = true
+                  AND e.temperature_celsius IS NOT NULL
+                  AND e.logged_at >= :start
+                  AND e.logged_at < :end
+                GROUP BY c.id, c.model, u.id, u.username
+                ORDER BY value DESC
+                """)
+                .setParameter("start", start)
+                .setParameter("end", endExclusive)
+                .getResultList();
+        return mapCarRows(rows);
+    }
+
     // ---- MONTHLY_POWER_CHARGER (highest max_charging_power_kw) ----
 
     @SuppressWarnings("unchecked")

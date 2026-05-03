@@ -659,6 +659,7 @@ leaderboard:
   cheapest_subtitle: "{kwh} kWh på {sessions} laddningar"
   cat_night_owl: Nattuggla
   cat_ice_charger: Isladdare
+  cat_heat_charger: Sahara Session
   cat_power_charger: Den snabbaste laddaren
 logform:
   title: Registrera laddningssession

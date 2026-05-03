@@ -14,7 +14,8 @@ import {
   MoonIcon,
   FireIcon,
   ArrowPathIcon,
-  ClockIcon
+  ClockIcon,
+  SunIcon
 } from '@heroicons/vue/24/outline'
 
 interface LeaderboardEntry {
@@ -35,6 +36,7 @@ interface LeaderboardResponse {
   displayName: string
   unit: string
   lowerIsBetter: boolean
+  hasMonthEndReward: boolean
   period: string
   entries: LeaderboardEntry[]
   ownEntry: LeaderboardEntry | null
@@ -49,6 +51,7 @@ const CATEGORIES = computed(() => [
   { key: 'MONTHLY_CHEAPEST', label: t('leaderboard.cat_cheapest'), icon: StarIcon, color: 'text-green-500' },
   { key: 'MONTHLY_NIGHT_OWL', label: t('leaderboard.cat_night_owl'), icon: MoonIcon, color: 'text-indigo-400' },
   { key: 'MONTHLY_ICE_CHARGER', label: t('leaderboard.cat_ice_charger'), icon: ArrowDownIcon, color: 'text-cyan-400' },
+  { key: 'MONTHLY_HEAT_CHARGER', label: t('leaderboard.cat_heat_charger'), icon: SunIcon, color: 'text-orange-400' },
   { key: 'MONTHLY_POWER_CHARGER', label: t('leaderboard.cat_power_charger'), icon: BoltIcon, color: 'text-red-500' },
 ])
 
@@ -262,7 +265,7 @@ const periodLabel = computed(() => {
           </router-link>
 
           <!-- Month-end reward hint -->
-          <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-xl p-3 text-xs text-yellow-800 dark:text-yellow-300 flex gap-2 mt-4">
+          <div v-if="data.hasMonthEndReward" class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-xl p-3 text-xs text-yellow-800 dark:text-yellow-300 flex gap-2 mt-4">
             <TrophyIcon class="h-4 w-4 flex-shrink-0 text-yellow-500 mt-0.5" />
             <span>
               {{ t('leaderboard.top3_reward') }}
