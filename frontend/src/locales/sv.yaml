@@ -1469,6 +1469,13 @@ tesla:
   err_delete_all: Raderingen misslyckades
   pairing_title: Fleet Telemetry
   pairing_desc: Realtidstelemetri (växel, SoC, laddningsstatus) i stället för pollad synk. Kräver virtuell nyckel-parning i Tesla-appen.
+  pairing_desc_beta: Du hjälper aktivt till att träna Trip-Detection. Full telemetri inklusive Gear-händelser. Kräver virtuell nyckel-parning i Tesla-appen.
+  pairing_desc_founder: Du är bland de första Tesla-användarna - din Live-synk förblir gratis för alltid. Telemetri istället för polling är snällare mot bilen och billigare i drift.
+  pairing_desc_premium: Realtidstelemetri istället för polling - inga fler bilväckningar, snabbare uppdateringar, lägre belastning på Teslas API. Kräver virtuell nyckel-parning i Tesla-appen.
+  pairing_founder_badge: Founder
+  upsell_title: Tesla Live-synk med AutoSync
+  upsell_desc: Realtidsdetektion av dina laddningar ingår i AutoSync (€3,90/månad eller €39/år, 7 dagars provperiod). Inga bilväckningar, ingen manuell import.
+  upsell_cta: Se AutoSync
   pairing_key_label: Virtuell nyckel parad
   pairing_key_ok: Ja
   pairing_key_missing: Nej - parning i appen krävs

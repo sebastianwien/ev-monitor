@@ -113,7 +113,7 @@ public class AuthService {
         }
 
         String jwtToken = jwtService.generateToken(UserPrincipal.create(user));
-        return new AuthResponse(jwtToken, user.getId(), user.getEmail(), user.getRole(), user.isSeedData(), user.isPremium());
+        return toAuthResponse(jwtToken, user, user.isSeedData());
     }
 
     @Transactional
@@ -170,7 +170,7 @@ public class AuthService {
                 .filter(User::isSeedData)
                 .orElseThrow(() -> new IllegalStateException("Demo account not available"));
         String jwtToken = jwtService.generateDemoToken(UserPrincipal.create(user));
-        return new AuthResponse(jwtToken, user.getId(), user.getEmail(), user.getRole(), true, false);
+        return toAuthResponse(jwtToken, user, true);
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -186,7 +186,7 @@ public class AuthService {
         }
 
         String jwtToken = jwtService.generateToken(UserPrincipal.create(user));
-        return new AuthResponse(jwtToken, user.getId(), user.getEmail(), user.getRole(), user.isSeedData(), user.isPremium());
+        return toAuthResponse(jwtToken, user, user.isSeedData());
     }
 
     private String resolveUsername(String requested, String email) {
@@ -218,7 +218,11 @@ public class AuthService {
         User freshUser = userRepository.findById(principal.getUser().getId())
                 .orElseThrow(() -> new IllegalStateException("User not found"));
         String jwtToken = jwtService.generateToken(UserPrincipal.create(freshUser));
-        return new AuthResponse(jwtToken, freshUser.getId(), freshUser.getEmail(),
-                freshUser.getRole(), freshUser.isSeedData(), freshUser.isPremium());
+        return toAuthResponse(jwtToken, freshUser, freshUser.isSeedData());
+    }
+
+    private AuthResponse toAuthResponse(String jwtToken, User user, boolean isDemoAccount) {
+        return new AuthResponse(jwtToken, user.getId(), user.getEmail(), user.getRole(),
+                isDemoAccount, user.isPremium(), user.canActivateTelemetry());
     }
 }

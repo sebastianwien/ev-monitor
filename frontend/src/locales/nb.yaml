@@ -1469,6 +1469,13 @@ tesla:
   err_delete_all: Slettingen mislyktes
   pairing_title: Fleet Telemetry
   pairing_desc: Sanntidstelemetri (gir, SoC, ladestatus) i stedet for pollet synk. Krever virtuell-nøkkel-paring i Tesla-appen.
+  pairing_desc_beta: Du hjelper aktivt med å trene opp Trip-Detection. Full telemetri inkludert Gear-hendelser. Krever virtuell-nøkkel-paring i Tesla-appen.
+  pairing_desc_founder: Du er blant de første Tesla-brukerne - Live-synkroniseringen din forblir gratis for alltid. Telemetri i stedet for polling er skånsommere mot bilen og billigere i drift.
+  pairing_desc_premium: Sanntidstelemetri i stedet for polling - ingen flere oppvåkninger, raskere oppdateringer, lavere belastning på Teslas API. Krever virtuell-nøkkel-paring i Tesla-appen.
+  pairing_founder_badge: Founder
+  upsell_title: Tesla Live-synk med AutoSync
+  upsell_desc: Sanntidsdeteksjon av ladingen din er en del av AutoSync (€3,90/måned eller €39/år, 7 dagers prøveperiode). Ingen bil-oppvåkninger, ingen manuell import.
+  upsell_cta: Se AutoSync
   pairing_key_label: Virtuell nøkkel paret
   pairing_key_ok: Ja
   pairing_key_missing: Nei - paring i app kreves

@@ -125,9 +125,17 @@ export const useAuthStore = defineStore('auth', () => {
     const isDemoAccount = computed(() => user.value?.demoAccount === true);
     const isAdmin = computed(() => user.value?.role === 'ADMIN');
     const isBetaTester = computed(() => user.value?.role === 'BETA_TESTER');
+    const isTeslaFounder = computed(() => user.value?.role === 'TESLA_FOUNDER');
+
+    // Mirrors backend User.canActivateTelemetry(): premium OR ADMIN/BETA_TESTER/TESLA_FOUNDER.
+    // Used to decide whether the Tesla-Pairing UI is shown. Server-side gate in
+    // TeslaPairingService is the security boundary - this computed is purely UX.
+    const canActivateTelemetry = computed(() =>
+        isPremium.value || isAdmin.value || isBetaTester.value || isTeslaFounder.value);
 
     return {
-        token, user, isDemoAccount, isPremium, isAdmin, isBetaTester,
+        token, user, isDemoAccount, isPremium, isAdmin, isBetaTester, isTeslaFounder,
+        canActivateTelemetry,
         setToken, setPremium, logout, login, register,
         refreshToken, refreshPremiumStatus,
         isAuthenticated: () => !!token.value,

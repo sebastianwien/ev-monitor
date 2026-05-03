@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ArrowTopRightOnSquareIcon, ArrowPathIcon, XMarkIcon, CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 import teslaFleetService, { type TeslaConnectionStatus, type TeslaFleetSyncResult, type TeslaPairingStatus } from '@/api/teslaFleetService'
@@ -31,6 +31,20 @@ const authStore = useAuthStore()
 const carStore = useCarStore()
 const pairingStatus = ref<TeslaPairingStatus | null>(null)
 const isTelemetryActive = computed(() => pairingStatus.value?.dataSource === 'TELEMETRY')
+
+// Role-aware copy for the pairing block: Beta-Tester help with Trip-Detection,
+// Founders are grandfathered, Premium users pay via AutoSync.
+const pairingRoleBadge = computed(() => {
+  if (authStore.isAdmin) return 'Beta · Admin'
+  if (authStore.isBetaTester) return 'Beta'
+  if (authStore.isTeslaFounder) return t('tesla.pairing_founder_badge')
+  return ''
+})
+const pairingDescription = computed(() => {
+  if (authStore.isAdmin || authStore.isBetaTester) return t('tesla.pairing_desc_beta')
+  if (authStore.isTeslaFounder) return t('tesla.pairing_desc_founder')
+  return t('tesla.pairing_desc_premium')
+})
 const pairingLoading = ref(false)
 const pairingError = ref<string | null>(null)
 const cars = ref<Car[]>([])
@@ -357,16 +371,16 @@ async function retryConnect() {
 
       <!-- ── POLLING MODE ────────────────────────────────────────────────── -->
       <template v-else>
-        <!-- Fleet Telemetry setup (admin/beta) — primary CTA, shown at top -->
+        <!-- Fleet Telemetry setup - primary CTA, shown at top for any eligible user -->
         <div
-          v-if="authStore.isAdmin || authStore.isBetaTester"
+          v-if="authStore.canActivateTelemetry"
           class="border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3 space-y-2"
         >
           <p class="text-xs font-semibold text-amber-800 dark:text-amber-200">
             {{ t('tesla.pairing_title') }}
-            <span class="ml-1 text-[10px] uppercase bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded">{{ authStore.isAdmin ? 'Beta · Admin' : 'Beta' }}</span>
+            <span v-if="pairingRoleBadge" class="ml-1 text-[10px] uppercase bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded">{{ pairingRoleBadge }}</span>
           </p>
-          <p class="text-xs text-amber-700 dark:text-amber-300">{{ t('tesla.pairing_desc') }}</p>
+          <p class="text-xs text-amber-700 dark:text-amber-300">{{ pairingDescription }}</p>
 
           <div v-if="pairingStatus" class="bg-white/60 dark:bg-gray-900/60 rounded-lg p-2 text-xs space-y-1">
             <div class="flex items-center justify-between">
@@ -425,8 +439,17 @@ async function retryConnect() {
           </div>
         </div>
 
-        <!-- Info box — nicht für Admin/Beta (die sehen das Telemetry-Setup oben) -->
-        <div v-if="!authStore.isAdmin && !authStore.isBetaTester" class="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-3 text-sm text-blue-800 dark:text-blue-200 space-y-1">
+        <!-- AutoSync upsell - for plain users without premium / privileged role -->
+        <div v-if="!authStore.canActivateTelemetry" class="border border-purple-200 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3 space-y-2">
+          <p class="text-xs font-semibold text-purple-800 dark:text-purple-200">{{ t('tesla.upsell_title') }}</p>
+          <p class="text-xs text-purple-700 dark:text-purple-300">{{ t('tesla.upsell_desc') }}</p>
+          <RouterLink to="/premium" class="btn-3d w-full flex items-center justify-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 transition">
+            {{ t('tesla.upsell_cta') }}
+          </RouterLink>
+        </div>
+
+        <!-- Info box - shown to anyone who hasn't enabled telemetry yet (still relevant: history sync) -->
+        <div class="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-3 text-sm text-blue-800 dark:text-blue-200 space-y-1">
           <p class="font-medium">{{ t('tesla.sync_info_title') }}</p>
           <ul class="list-disc list-inside space-y-0.5 text-blue-700 dark:text-blue-300">
             <li>{{ t('tesla.sync_item1') }}</li>

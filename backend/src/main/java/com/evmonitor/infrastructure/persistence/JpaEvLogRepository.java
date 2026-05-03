@@ -134,6 +134,43 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     void updateRouteType(@Param("id") UUID id, @Param("routeType") String routeType);
 
     /**
+     * Finds Tesla-Supercharger sessions submitted via Telemetry that still lack a Tesla-billed cost.
+     * Filters by user (via car ownership), cpoName=Tesla Supercharger marker (set by the
+     * telemetry service when FastChargerType=Supercharger), null costEur, and a recency cutoff.
+     */
+    @Query("""
+            SELECT e FROM EvLogEntity e, CarEntity c
+            WHERE e.carId = c.id
+              AND c.userId = :userId
+              AND e.cpoName = 'Tesla Supercharger'
+              AND e.costEur IS NULL
+              AND e.loggedAt >= :cutoff
+            ORDER BY e.loggedAt DESC
+            """)
+    List<EvLogEntity> findPendingTeslaSuperchargerEnrichment(
+            @Param("userId") UUID userId,
+            @Param("cutoff") LocalDateTime cutoff);
+
+    /**
+     * Defense-in-Depth: only updates ev_log rows that are still in pending-enrichment-state
+     * (cpoName='Tesla Supercharger' AND costEur IS NULL). A buggy connectors-service or a
+     * compromised X-Internal-Token cannot overwrite arbitrary logs through this path.
+     * Returns 0 affected rows for already-enriched / non-Tesla-SuC logs - silent no-op,
+     * which is the desired idempotency.
+     */
+    @Modifying(clearAutomatically = true)
+    @Query("""
+            UPDATE EvLogEntity e
+               SET e.costEur = :costEur,
+                   e.cpoName = COALESCE(:cpoName, e.cpoName),
+                   e.updatedAt = CURRENT_TIMESTAMP
+             WHERE e.id = :id
+               AND e.cpoName = 'Tesla Supercharger'
+               AND e.costEur IS NULL
+            """)
+    int enrichWithTeslaPricing(@Param("id") UUID id, @Param("costEur") BigDecimal costEur, @Param("cpoName") String cpoName);
+
+    /**
      * Aggregated basic stats for a car model.
      * Returns: [logCount, uniqueContributors, avgCostPerKwh, avgKwhPerSession]
      * Demo Mode: If isSeedUser=true, includes ALL seed data (from all seed users), not just current user.

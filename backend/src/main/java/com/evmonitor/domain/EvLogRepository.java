@@ -61,4 +61,18 @@ public interface EvLogRepository {
     void updateRawImportData(UUID id, String rawJson);
 
     void updateRouteType(UUID id, RouteType routeType);
+
+    /**
+     * Tesla Supercharger sessions submitted via Telemetry that still lack {@code cost_eur}
+     * (Tesla billing data hasn't been merged yet) and are within the enrichment cutoff.
+     * Used by the daily enrichment job in connectors-service.
+     */
+    List<EvLog> findPendingTeslaSuperchargerEnrichment(UUID userId, LocalDateTime cutoff);
+
+    /**
+     * Enriches a pending Tesla-SuC log with billing data. Returns the number of affected rows
+     * (0 = already enriched or wrong id - idempotent). Implementation must filter by
+     * cpoName='Tesla Supercharger' AND costEur IS NULL to prevent collateral updates.
+     */
+    int enrichWithTeslaPricing(UUID id, BigDecimal costEur, String cpoName);
 }

@@ -27,5 +27,7 @@ public record InternalEvLogRequest(
         BigDecimal socBefore, // optional: State of Charge at session start (0-100)
         BigDecimal socAfter,  // optional: State of Charge at session end (0-100)
         Double temperatureCelsius, // optional: external temperature at charging location
-        String rawImportData) {    // optional: raw JSON payload from source (Tesla Telemetry, Smartcar webhook, ...)
+        String rawImportData,      // optional: raw JSON payload from source (Tesla Telemetry, Smartcar webhook, ...)
+        Boolean isPublicCharging,  // optional: true for public DC sessions (Supercharger, IONITY, etc.) - drives geohash precision
+        String cpoName) {          // optional: charging-point-operator name, e.g. "Tesla Supercharger" - eligible for billing-API enrichment
 }

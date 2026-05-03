@@ -55,4 +55,21 @@ public class InternalUserController {
                 .map(user -> ResponseEntity.ok(Map.of("premium", user.isPremium())))
                 .orElse(ResponseEntity.notFound().build());
     }
+
+    public record TelemetryAccessResponse(boolean canActivate, String role, boolean premium) {}
+
+    /**
+     * Single source of truth for "may this user activate Live-Sync (Tesla Telemetry / Smartcar Webhook)?".
+     * Used by the connectors-service before pushing telemetry config and by the reconciliation job
+     * that detects role drift (e.g. BETA_TESTER demoted to USER → downgrade to CHARGING_ONLY profile).
+     */
+    @GetMapping("/users/{userId}/telemetry-access")
+    public ResponseEntity<TelemetryAccessResponse> telemetryAccess(@PathVariable UUID userId) {
+        return userRepository.findById(userId)
+                .map(user -> ResponseEntity.ok(new TelemetryAccessResponse(
+                        user.canActivateTelemetry(),
+                        user.getRole(),
+                        user.isPremium())))
+                .orElse(ResponseEntity.notFound().build());
+    }
 }

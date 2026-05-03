@@ -205,6 +205,18 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
         jpaRepository.updateRouteType(id, routeType.name());
     }
 
+    @Override
+    public List<EvLog> findPendingTeslaSuperchargerEnrichment(UUID userId, LocalDateTime cutoff) {
+        return jpaRepository.findPendingTeslaSuperchargerEnrichment(userId, cutoff)
+                .stream().map(this::toDomain).toList();
+    }
+
+    @Override
+    @Transactional
+    public int enrichWithTeslaPricing(UUID id, BigDecimal costEur, String cpoName) {
+        return jpaRepository.enrichWithTeslaPricing(id, costEur, cpoName);
+    }
+
     private EvLogEntity toEntity(EvLog domain) {
         EvLogEntity entity = new EvLogEntity();
         entity.setId(domain.getId());

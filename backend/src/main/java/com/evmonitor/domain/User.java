@@ -76,6 +76,20 @@ public class User {
         this.updatedAt = updatedAt;
     }
 
+    /** Roles allowed to activate Live-Sync (Tesla Telemetry, Smartcar Webhooks) without an AutoSync subscription. */
+    private static final java.util.Set<String> TELEMETRY_PRIVILEGED_ROLES =
+            java.util.Set.of("ADMIN", "BETA_TESTER", "TESLA_FOUNDER");
+
+    /**
+     * Centralised gate for Live-Sync activation. Returns true if the user is allowed to
+     * push a Telemetry config to their vehicle - either via a privileged role
+     * (TESLA_FOUNDER grandfathering, BETA_TESTER, ADMIN) or via an active AutoSync
+     * subscription.
+     */
+    public boolean canActivateTelemetry() {
+        return premium || TELEMETRY_PRIVILEGED_ROLES.contains(role);
+    }
+
     private static String generateReferralCode() {
         return UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase();
     }

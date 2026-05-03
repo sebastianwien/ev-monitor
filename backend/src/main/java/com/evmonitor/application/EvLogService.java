@@ -166,7 +166,9 @@ public class EvLogService {
                 request.socBefore(),
                 request.socAfter(),
                 request.temperatureCelsius(),
-                request.rawImportData());
+                request.rawImportData(),
+                request.isPublicCharging(),
+                request.cpoName());
 
         if (request.geohash() != null) {
             newLog = applyPriceSuggestion(newLog, request.userId(), request.costEur() != null);
@@ -200,6 +202,41 @@ public class EvLogService {
         if (!car.getUserId().equals(userId)) {
             throw new IllegalArgumentException("User does not own the specified car");
         }
+    }
+
+    /** Minimal projection of an ev_log that still needs Tesla-billing-API enrichment. */
+    public record PendingSuperchargerEnrichment(UUID id, LocalDateTime loggedAt) {}
+
+    /**
+     * Lists Tesla-Supercharger ev_logs for the given user that still need a Tesla-billed
+     * cost backfilled. Used by the daily {@code TeslaSuperchargerEnrichmentJob}.
+     * Returns a minimal projection - the connectors-service only needs id + timestamp
+     * to match against {@code /dx/charging/history} sessions.
+     */
+    public List<PendingSuperchargerEnrichment> findPendingSuperchargerEnrichment(UUID userId, int days) {
+        int safeDays = Math.max(1, days);
+        LocalDateTime cutoff = LocalDateTime.now().minusDays(safeDays);
+        return evLogRepository.findPendingTeslaSuperchargerEnrichment(userId, cutoff)
+                .stream()
+                .map(e -> new PendingSuperchargerEnrichment(e.getId(), e.getLoggedAt()))
+                .toList();
+    }
+
+    /**
+     * Backfills a Tesla-Supercharger log with Tesla billing data. The repository enforces
+     * cpoName='Tesla Supercharger' AND costEur IS NULL as defense-in-depth, so this is
+     * idempotent and safe against bug-induced wrong ids.
+     * @return true if the row was actually updated, false if it had already been enriched
+     *         or the id did not match a pending Tesla-SuC log.
+     */
+    @Transactional
+    public boolean enrichWithTeslaPricing(UUID logId, BigDecimal costEur, String cpoName) {
+        BigDecimal cost = costEur != null ? costEur : BigDecimal.ZERO;
+        int affected = evLogRepository.enrichWithTeslaPricing(logId, cost, cpoName);
+        if (affected == 0) {
+            log.debug("Tesla SuC enrichment skipped for log {} (already enriched or non-pending)", logId);
+        }
+        return affected > 0;
     }
 
     @Transactional

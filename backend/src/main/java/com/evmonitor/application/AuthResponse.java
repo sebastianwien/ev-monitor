@@ -8,5 +8,6 @@ public record AuthResponse(
         String email,
         String role,
         boolean isDemoAccount,
-        boolean isPremium) {
+        boolean isPremium,
+        boolean canActivateTelemetry) {
 }
