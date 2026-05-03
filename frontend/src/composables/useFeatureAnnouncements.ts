@@ -2,10 +2,13 @@ import { ref, computed } from 'vue'
 import { featureAnnouncements, type FeatureAnnouncement } from '../config/featureAnnouncements'
 import { useWallboxStore } from '../stores/wallbox'
 import { useAuthStore } from '../stores/auth'
+import teslaFleetService from '../api/teslaFleetService'
 
 const STORAGE_KEY = 'seen-announcements'
 
 const seenKeys = ref<string[]>(getSeenKeys())
+const hasTeslaConnection = ref<boolean>(false)
+let teslaStatusLoaded = false
 
 function getSeenKeys(): string[] {
   try {
@@ -22,6 +25,17 @@ const markSeen = (key: string) => {
   }
 }
 
+async function loadTeslaConnectionStatus() {
+  if (teslaStatusLoaded) return
+  teslaStatusLoaded = true
+  try {
+    const status = await teslaFleetService.getStatus()
+    hasTeslaConnection.value = status.connected === true
+  } catch {
+    hasTeslaConnection.value = false
+  }
+}
+
 const today = new Date().toISOString().split('T')[0]
 
 const currentIndex = ref(0)
@@ -30,8 +44,18 @@ export const useFeatureAnnouncements = () => {
   const wallboxStore = useWallboxStore()
   const authStore = useAuthStore()
 
+  // Lazy-load once on first composable use - ensures Tesla-only announcements
+  // are gated by an actual connection rather than shown to every user.
+  if (authStore.isAuthenticated()) {
+    void loadTeslaConnectionStatus()
+  }
+
   const pending = computed<FeatureAnnouncement[]>(() => {
-    const ctx = { hasGoeConnection: wallboxStore.hasConnections, isPremium: authStore.isPremium }
+    const ctx = {
+      hasGoeConnection: wallboxStore.hasConnections,
+      isPremium: authStore.isPremium,
+      hasTeslaConnection: hasTeslaConnection.value,
+    }
     const registeredAt = authStore.user?.registeredAt
     return featureAnnouncements.filter(a =>
       a.expiresAt >= today &&

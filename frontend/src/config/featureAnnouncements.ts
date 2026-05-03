@@ -1,6 +1,7 @@
 export interface AnnouncementContext {
   hasGoeConnection: boolean
   isPremium: boolean
+  hasTeslaConnection: boolean
 }
 
 export interface FeatureAnnouncement {
@@ -16,6 +17,16 @@ export interface FeatureAnnouncement {
 }
 
 export const featureAnnouncements: FeatureAnnouncement[] = [
+  {
+    key: 'tesla-telemetry-rollout-v1',
+    expiresAt: '2026-05-24',
+    releasedAt: '2026-05-03',
+    titleKey: 'announcements.tesla_telemetry_rollout_v1_title',
+    bodyKey: 'announcements.tesla_telemetry_rollout_v1_body',
+    ctaLabelKey: 'announcements.tesla_telemetry_rollout_v1_cta',
+    ctaRoute: '/imports',
+    condition: ctx => ctx.hasTeslaConnection,
+  },
   {
     key: 'negative-prices-v1',
     expiresAt: '2026-05-24',

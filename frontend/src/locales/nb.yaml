@@ -1762,6 +1762,9 @@ announcements:
   trip_detection_beta_v1_cta: "Til dashbordet"
   brutto_netto_v1_title: "Forbedret forbruks- og kostnadsberegning"
   brutto_netto_v1_body: "EV Monitor bruker nå netto- og bruttoverdier fra innmeldte ladesøkter mer konsekvent i alle beregninger. Dette kan føre til at forbruks-, kostnads- og rekkeviddeangivelser er blitt litt justert. De gjenspeiler nå virkeligheten enda bedre!"
+  tesla_telemetry_rollout_v1_title: "Tesla Live-synk kjører nå over Telemetri"
+  tesla_telemetry_rollout_v1_body: "Tesla-eiere, oppmerksomhet: Jeg har byttet Live-synk fra polling til push-basert telemetri. Bilen din trenger ikke våkne for hver sjekk lenger, ladeøkter kommer inn i sanntid. For at det skal fortsette å fungere må du kople til på nytt én gang - tar under 2 minutter og bruker Virtual Key i Tesla-appen."
+  tesla_telemetry_rollout_v1_cta: "Sett opp tilkobling"
   negative_prices_v1_title: "Negative strømpriser støttes nå"
   negative_prices_v1_body: "Med dynamiske strømtariffer kan kWh-prisen falle under null. Du kan nå angi negative priser ved logging av en ladeøkt - både i appen og via API."
 tax_export:
