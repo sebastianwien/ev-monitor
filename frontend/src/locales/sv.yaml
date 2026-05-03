@@ -1494,7 +1494,9 @@ tesla:
   pairing_err_disable: Kunde inte inaktivera telemetry
   pairing_err_not_connected: Inte ansluten till Tesla ännu. Anslut Tesla först via knappen ovan.
   telemetry_live_title: Live-telemetri aktiv
-  telemetry_live_desc: Laddningssessioner (hem + Supercharger) och resor registreras automatiskt - ingen manuell import behövs.
+  telemetry_live_desc: Laddningssessioner och resor registreras automatiskt - ingen manuell import behövs.
+  telemetry_live_desc_full: Laddningssessioner och resor registreras automatiskt - ingen manuell import behövs.
+  telemetry_live_desc_charging_only: Laddningssessioner registreras automatiskt - ingen manuell import behövs.
   callback_error_close: Stäng
   callback_error_retry: Anslut igen
   callback_error_vin_linked_title: Fordon redan kopplat

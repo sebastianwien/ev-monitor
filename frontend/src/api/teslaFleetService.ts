@@ -16,6 +16,7 @@ export interface TeslaPairingStatus {
   keyPaired: boolean
   telemetryConfigPushed: boolean
   dataSource?: string
+  telemetryProfile?: 'CHARGING_ONLY' | 'FULL'
   telemetryConfigPushedAt?: string | null
 }
 

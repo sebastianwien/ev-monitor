@@ -31,6 +31,7 @@ const authStore = useAuthStore()
 const carStore = useCarStore()
 const pairingStatus = ref<TeslaPairingStatus | null>(null)
 const isTelemetryActive = computed(() => pairingStatus.value?.dataSource === 'TELEMETRY')
+const isFullProfile = computed(() => pairingStatus.value?.telemetryProfile === 'FULL')
 
 // Role-aware copy for the pairing block: Beta-Tester help with Trip-Detection,
 // Founders are grandfathered, Premium users pay via AutoSync.
@@ -326,7 +327,9 @@ async function retryConnect() {
           <CheckCircleIcon class="h-5 w-5 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
           <div>
             <p class="text-sm font-semibold text-green-800 dark:text-green-200">{{ t('tesla.telemetry_live_title') }}</p>
-            <p class="text-xs text-green-700 dark:text-green-300 mt-0.5">{{ t('tesla.telemetry_live_desc') }}</p>
+            <p class="text-xs text-green-700 dark:text-green-300 mt-0.5">
+              {{ isFullProfile ? t('tesla.telemetry_live_desc_full') : t('tesla.telemetry_live_desc_charging_only') }}
+            </p>
           </div>
         </div>
 
