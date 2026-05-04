@@ -8,6 +8,12 @@
 # Claude personal preferences (public project settings stay tracked)
 .claude/preferences.md
 
+# Graphify knowledge graph (generated, not tracked)
+graphify-out/
+
+# GSD planning artifacts (generated, not tracked)
+.planning/
+
 # IDE
 .idea/
 .vscode/
