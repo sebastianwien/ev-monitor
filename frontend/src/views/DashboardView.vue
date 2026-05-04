@@ -77,7 +77,7 @@ const { formatConsumption, consumptionUnitLabel, formatDistance, distanceUnitLab
 const {
   selectedCarId, stats, carInfo, wltp, loading, chartsReady, isInitialLoad, error,
   cars, carImageUrls, selectedTimeRange, selectedGroupBy, customStartDate, customEndDate,
-  importBannerDismissed, implausibleBannerDismissed, teslaStatus, smartcarStatus, vwGroupStatus, implausibleCount, hasDistanceData,
+  importBannerDismissed, implausibleBannerDismissed, teslaStatus, smartcarStatus, vwGroupStatus, implausibleCount, hasDistanceData, avgCostPer100km,
   timeRangeOptions, groupByOptions, dismissImportBanner, dismissImplausibleBanner, fetchImplausibleCount,
   fetchCarAndWltp, fetchStatistics, initCars,
 } = useDashboardStats()
@@ -849,12 +849,12 @@ function onTripFormLeave(el: Element, done: () => void) {
               </p>
             </div>
           </div>
-          <div v-if="stats.totalDistanceKm != null && stats.totalCostEur != null && stats.totalDistanceKm > 0"
+          <div v-if="avgCostPer100km != null"
             class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
             <div class="h-1 bg-pink-500"></div>
             <div class="p-4">
               <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">{{ t('dashboard.metric_avg_cost') }}</p>
-              <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ formatCostPerDistance(stats.totalCostEur / stats.totalDistanceKm * 100) }}</p>
+              <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ formatCostPerDistance(avgCostPer100km) }}</p>
             </div>
           </div>
 

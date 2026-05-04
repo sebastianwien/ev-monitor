@@ -54,6 +54,14 @@ export interface CarInfo {
   batteryCapacityKwh: number
 }
 
+export function calcCostPer100km(
+  avgCostPerKwh: number | null,
+  avgConsumptionKwhPer100km: number | null,
+): number | null {
+  if (avgCostPerKwh == null || avgConsumptionKwhPer100km == null) return null
+  return avgCostPerKwh * avgConsumptionKwhPer100km
+}
+
 const LS_TIME_RANGE = 'dashboard_time_range'
 const LS_GROUP_BY = 'dashboard_group_by'
 const LS_CUSTOM_START = 'dashboard_custom_start'
@@ -93,6 +101,13 @@ export function useDashboardStats() {
 
   const hasDistanceData = computed(() =>
     stats.value?.chargesOverTime?.some(d => d.distanceKm != null) ?? false
+  )
+
+  const avgCostPer100km = computed(() =>
+    calcCostPer100km(
+      stats.value?.avgCostPerKwh ?? null,
+      stats.value?.avgConsumptionKwhPer100km ?? null,
+    )
   )
 
   const timeRangeOptions = computed(() => [
@@ -266,6 +281,7 @@ export function useDashboardStats() {
     vwGroupStatus,
     implausibleCount,
     hasDistanceData,
+    avgCostPer100km,
     timeRangeOptions,
     groupByOptions,
     dismissImportBanner,
