@@ -90,6 +90,21 @@ public class User {
         return premium || TELEMETRY_PRIVILEGED_ROLES.contains(role);
     }
 
+    /** Roles allowed to create trips manually without an AutoSync Live subscription. */
+    private static final java.util.Set<String> MANUAL_TRIP_PRIVILEGED_ROLES =
+            java.util.Set.of("ADMIN", "BETA_TESTER");
+
+    /**
+     * Centralised gate for manual trip creation (POST /api/trips). Returns true if the
+     * user is allowed to log a trip by hand. Manual creation is part of AutoSync Live
+     * (the trip-detection product) - non-subscribers can still read, edit, merge and
+     * delete imported trips, only creation is gated. TESLA_FOUNDER is intentionally
+     * NOT included: their grandfathering covers Live-Sync only, not manual trip CRUD.
+     */
+    public boolean canCreateTripsManually() {
+        return premium || MANUAL_TRIP_PRIVILEGED_ROLES.contains(role);
+    }
+
     private static String generateReferralCode() {
         return UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase();
     }

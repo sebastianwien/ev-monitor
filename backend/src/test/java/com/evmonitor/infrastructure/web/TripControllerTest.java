@@ -425,8 +425,13 @@ class TripControllerTest extends AbstractIntegrationTest {
         assertEquals(HttpStatus.BAD_REQUEST, res.getStatusCode());
     }
 
+    // --- CRUD-without-C policy: Non-premium users own + edit + merge + delete imported trips ---
+    // Background: Tessie import lets free users bring their own trip data into ev-monitor.
+    // Manual creation (POST) stays premium-only (AutoSync Live Pro feature), but read /
+    // patch / merge / delete must be open so users can correct their own historical data.
+
     @Test
-    void mergeTrip_nonPremiumUser_returns403() {
+    void mergeTrip_nonPremiumUser_returns200() {
         User freeUser = createAndSaveUser("merge-free-" + System.nanoTime() + "@example.com");
         Car freeCar = createAndSaveCar(freeUser.getId(), CarBrand.CarModel.MODEL_3);
         EvTrip t1 = saveTripFull(freeUser.getId(), freeCar.getId(),
@@ -436,13 +441,94 @@ class TripControllerTest extends AbstractIntegrationTest {
                 OffsetDateTime.now().minusHours(3), OffsetDateTime.now().minusHours(2),
                 null, null, new BigDecimal("10.0"), null);
 
-        ResponseEntity<String> res = restTemplate.exchange(
+        ResponseEntity<Map<String, Object>> res = restTemplate.exchange(
                 "/api/trips/" + t2.getId() + "/merge", HttpMethod.POST,
                 new HttpEntity<>(Map.of("mergeWithTripId", t1.getId().toString()),
                         createAuthHeaders(freeUser.getId(), freeUser.getEmail())),
+                new ParameterizedTypeReference<>() {});
+
+        assertEquals(HttpStatus.OK, res.getStatusCode());
+        assertNotNull(res.getBody());
+        assertEquals(20.0, ((Number) res.getBody().get("distanceKm")).doubleValue(), 0.01);
+    }
+
+    @Test
+    void getTrips_nonPremiumUser_returnsOwnTrips() {
+        User freeUser = createAndSaveUser("get-free-" + System.nanoTime() + "@example.com");
+        Car freeCar = createAndSaveCar(freeUser.getId(), CarBrand.CarModel.MODEL_3);
+        saveTrip(freeUser.getId(), freeCar.getId(), false);
+
+        ResponseEntity<Object[]> res = restTemplate.exchange(
+                "/api/trips?carId=" + freeCar.getId(), HttpMethod.GET,
+                new HttpEntity<>(createAuthHeaders(freeUser.getId(), freeUser.getEmail())),
+                Object[].class);
+
+        assertEquals(HttpStatus.OK, res.getStatusCode());
+        assertNotNull(res.getBody());
+        assertEquals(1, res.getBody().length);
+    }
+
+    @Test
+    void updateTrip_nonPremiumUser_returns200() {
+        User freeUser = createAndSaveUser("patch-free-" + System.nanoTime() + "@example.com");
+        Car freeCar = createAndSaveCar(freeUser.getId(), CarBrand.CarModel.MODEL_3);
+        EvTrip trip = saveTrip(freeUser.getId(), freeCar.getId(), false);
+
+        Map<String, Object> patch = Map.of("distanceKm", 99.0);
+
+        ResponseEntity<Map<String, Object>> res = restTemplate.exchange(
+                "/api/trips/" + trip.getId(), HttpMethod.PATCH,
+                new HttpEntity<>(patch, createAuthHeaders(freeUser.getId(), freeUser.getEmail())),
+                new ParameterizedTypeReference<>() {});
+
+        assertEquals(HttpStatus.OK, res.getStatusCode());
+        assertNotNull(res.getBody());
+        assertEquals(99.0, ((Number) res.getBody().get("distanceKm")).doubleValue(), 0.01);
+    }
+
+    @Test
+    void deleteTrip_nonPremiumUser_returns204() {
+        User freeUser = createAndSaveUser("delete-free-" + System.nanoTime() + "@example.com");
+        Car freeCar = createAndSaveCar(freeUser.getId(), CarBrand.CarModel.MODEL_3);
+        EvTrip trip = saveTrip(freeUser.getId(), freeCar.getId(), false);
+
+        ResponseEntity<Void> res = restTemplate.exchange(
+                "/api/trips/" + trip.getId(), HttpMethod.DELETE,
+                new HttpEntity<>(createAuthHeaders(freeUser.getId(), freeUser.getEmail())),
+                Void.class);
+
+        assertEquals(HttpStatus.NO_CONTENT, res.getStatusCode());
+        assertNotNull(tripRepository.findById(trip.getId()).orElseThrow().getDeletedAt());
+    }
+
+    @Test
+    void updateTrip_nonPremiumUser_otherUsersTrip_returns404() {
+        User freeUser = createAndSaveUser("patch-cross-free-" + System.nanoTime() + "@example.com");
+        EvTrip foreignTrip = saveTrip(user2.getId(), car2.getId(), false);
+
+        Map<String, Object> patch = Map.of("distanceKm", 99.0);
+
+        ResponseEntity<String> res = restTemplate.exchange(
+                "/api/trips/" + foreignTrip.getId(), HttpMethod.PATCH,
+                new HttpEntity<>(patch, createAuthHeaders(freeUser.getId(), freeUser.getEmail())),
                 String.class);
 
-        assertEquals(HttpStatus.FORBIDDEN, res.getStatusCode());
+        assertEquals(HttpStatus.NOT_FOUND, res.getStatusCode());
+        assertNull(tripRepository.findById(foreignTrip.getId()).orElseThrow().getUserEditedAt());
+    }
+
+    @Test
+    void deleteTrip_nonPremiumUser_otherUsersTrip_returns404() {
+        User freeUser = createAndSaveUser("delete-cross-free-" + System.nanoTime() + "@example.com");
+        EvTrip foreignTrip = saveTrip(user2.getId(), car2.getId(), false);
+
+        ResponseEntity<String> res = restTemplate.exchange(
+                "/api/trips/" + foreignTrip.getId(), HttpMethod.DELETE,
+                new HttpEntity<>(createAuthHeaders(freeUser.getId(), freeUser.getEmail())),
+                String.class);
+
+        assertEquals(HttpStatus.NOT_FOUND, res.getStatusCode());
+        assertNull(tripRepository.findById(foreignTrip.getId()).orElseThrow().getDeletedAt());
     }
 
     // --- helpers ---

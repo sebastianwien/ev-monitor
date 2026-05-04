@@ -1,6 +1,7 @@
 package com.evmonitor.application;
 
 import com.evmonitor.domain.*;
+import com.evmonitor.domain.exception.ForbiddenException;
 import com.evmonitor.domain.exception.ValidationException;
 import com.evmonitor.domain.weather.TemperatureEnricher;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -90,20 +91,28 @@ public class TripService {
         return saved.getId();
     }
 
+    /**
+     * Creates a manual trip for the given user. Defense-in-depth: re-checks the
+     * AutoSync-Live entitlement via {@link User#canCreateTripsManually()} so that
+     * future internal callers cannot bypass the controller-level gate.
+     */
     @Transactional
-    public EvTripResponse createUserTrip(UUID userId, CreateTripRequest req) {
+    public EvTripResponse createUserTrip(User user, CreateTripRequest req) {
+        if (!user.canCreateTripsManually()) {
+            throw new ForbiddenException("Manuelles Anlegen von Fahrten ist Teil von AutoSync Live.");
+        }
         if (!req.tripStartedAt().isBefore(req.tripEndedAt())) {
             throw new IllegalArgumentException("tripStartedAt must be before tripEndedAt");
         }
         Car car = carRepository.findById(req.carId())
                 .orElseThrow(() -> new IllegalArgumentException("Car not found"));
-        if (!car.getUserId().equals(userId)) {
+        if (!car.getUserId().equals(user.getId())) {
             throw new IllegalArgumentException("Car not owned by user");
         }
 
         EvTrip trip = EvTrip.builder()
                 .carId(req.carId())
-                .userId(userId)
+                .userId(user.getId())
                 .dataSource("USER_CREATED")
                 .tripStartedAt(req.tripStartedAt())
                 .tripEndedAt(req.tripEndedAt())
