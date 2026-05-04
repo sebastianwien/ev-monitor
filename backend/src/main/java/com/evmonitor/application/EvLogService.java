@@ -170,6 +170,11 @@ public class EvLogService {
                 request.isPublicCharging(),
                 request.cpoName());
 
+        // Inherit tireType/routeType from the most recent prior log so auto-created logs
+        // (Tesla/Wallbox/SmartCar) don't reset the user's last known setting to NULL/SUMMER.
+        // Uses "before this log's timestamp" so late-arriving logs pick the contemporaneous value.
+        newLog = inheritTireAndRouteType(newLog);
+
         if (request.geohash() != null) {
             newLog = applyPriceSuggestion(newLog, request.userId(), request.costEur() != null);
         }
@@ -252,6 +257,36 @@ public class EvLogService {
                 if (enriched.getCostEur() != null) evLogRepository.save(enriched);
             }
         });
+    }
+
+    /**
+     * Fills in tireType/routeType from the most recent prior log (per car, by loggedAt) when
+     * the incoming log left them null. Auto-creation paths (Tesla telemetry, OCPP wallbox,
+     * SmartCar) don't carry this metadata, so without inheritance every auto-log writes NULL
+     * and the frontend's "carry over last value" UX silently drifts to SUMMER/COMBINED.
+     * Uses "before loggedAt" so late-arriving telemetry inherits the value that was current
+     * at the time of the charge, not whatever happens to be the latest in DB.
+     */
+    private EvLog inheritTireAndRouteType(EvLog log) {
+        if (log.getTireType() != null && log.getRouteType() != null) return log;
+        LocalDateTime before = log.getLoggedAt() != null ? log.getLoggedAt() : LocalDateTime.now();
+        EvLog.EvLogBuilder builder = log.toBuilder();
+        boolean changed = false;
+        if (log.getTireType() == null) {
+            Optional<TireType> inherited = evLogRepository.findMostRecentTireTypeBefore(log.getCarId(), before);
+            if (inherited.isPresent()) {
+                builder.tireType(inherited.get());
+                changed = true;
+            }
+        }
+        if (log.getRouteType() == null) {
+            Optional<RouteType> inherited = evLogRepository.findMostRecentRouteTypeBefore(log.getCarId(), before);
+            if (inherited.isPresent()) {
+                builder.routeType(inherited.get());
+                changed = true;
+            }
+        }
+        return changed ? builder.build() : log;
     }
 
     private EvLog applyPriceSuggestion(EvLog log, UUID userId, boolean hasCostAlready) {

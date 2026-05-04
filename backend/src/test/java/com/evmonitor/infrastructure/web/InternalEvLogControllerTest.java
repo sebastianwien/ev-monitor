@@ -501,6 +501,77 @@ class InternalEvLogControllerTest extends AbstractIntegrationTest {
         verify(temperatureEnricher, never()).enrichLog(any(), any(), any());
     }
 
+    // --- tireType / routeType inheritance ---
+
+    @Test
+    void createInternalLog_withoutTireType_inheritsFromMostRecentPriorLog() {
+        // Seed: prior log with WINTER tires + HIGHWAY route
+        LocalDateTime priorLoggedAt = LocalDateTime.now().minusDays(2);
+        EvLog priorLog = EvLog.createNew(
+                testCar.getId(), new BigDecimal("40.0"), new BigDecimal("12.50"),
+                30, "u33db", 50000, null, new BigDecimal("80"), priorLoggedAt,
+                ChargingType.AC, RouteType.HIGHWAY, TireType.WINTER, false, null);
+        evLogRepository.save(priorLog);
+
+        // New auto-created log without tire/route info
+        Map<String, Object> request = logRequest(testCar.getId(), testUser.getId(),
+                "30.0", 45, LocalDateTime.now().minusHours(1), null, "TESLA_LIVE", "10.00");
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                "/api/internal/logs", HttpMethod.POST,
+                new HttpEntity<>(request, internalHeaders(VALID_TOKEN)), Map.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("WINTER", response.getBody().get("tireType"));
+        assertEquals("HIGHWAY", response.getBody().get("routeType"));
+    }
+
+    @Test
+    void createInternalLog_withoutPriorLog_keepsTireAndRouteTypeNull() {
+        // No prior logs in DB
+        Map<String, Object> request = logRequest(testCar.getId(), testUser.getId(),
+                "30.0", 45, LocalDateTime.now().minusHours(1), null, "TESLA_LIVE", "10.00");
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                "/api/internal/logs", HttpMethod.POST,
+                new HttpEntity<>(request, internalHeaders(VALID_TOKEN)), Map.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNull(response.getBody().get("tireType"));
+        assertNull(response.getBody().get("routeType"));
+    }
+
+    @Test
+    void createInternalLog_onlyConsidersLogsBeforeTimestamp() {
+        // FUTURE log with SUMMER tires (e.g. user changed to summer tires last week)
+        LocalDateTime futureLoggedAt = LocalDateTime.now().minusDays(1);
+        EvLog futureLog = EvLog.createNew(
+                testCar.getId(), new BigDecimal("40.0"), new BigDecimal("12.50"),
+                30, "u33db", 50000, null, new BigDecimal("80"), futureLoggedAt,
+                ChargingType.AC, RouteType.CITY, TireType.SUMMER, false, null);
+        evLogRepository.save(futureLog);
+
+        // Older log with WINTER tires (still in winter when this charge happened)
+        LocalDateTime olderLoggedAt = LocalDateTime.now().minusDays(60);
+        EvLog olderLog = EvLog.createNew(
+                testCar.getId(), new BigDecimal("40.0"), new BigDecimal("12.50"),
+                30, "u33db", 49000, null, new BigDecimal("80"), olderLoggedAt,
+                ChargingType.AC, RouteType.HIGHWAY, TireType.WINTER, false, null);
+        evLogRepository.save(olderLog);
+
+        // Late-arriving auto log timestamped between the two — must inherit WINTER, not SUMMER
+        Map<String, Object> request = logRequest(testCar.getId(), testUser.getId(),
+                "30.0", 45, LocalDateTime.now().minusDays(30), null, "TESLA_LIVE", "10.00");
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                "/api/internal/logs", HttpMethod.POST,
+                new HttpEntity<>(request, internalHeaders(VALID_TOKEN)), Map.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("WINTER", response.getBody().get("tireType"));
+        assertEquals("HIGHWAY", response.getBody().get("routeType"));
+    }
+
     // --- Helpers ---
 
     private HttpHeaders internalHeaders(String token) {

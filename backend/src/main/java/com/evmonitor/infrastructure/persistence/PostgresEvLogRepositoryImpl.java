@@ -172,6 +172,28 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
         return Optional.ofNullable(results.get(0).getChargingProviderId());
     }
 
+    @Override
+    public Optional<TireType> findMostRecentTireTypeBefore(UUID carId, LocalDateTime before) {
+        var results = jpaRepository.findMostRecentTireTypeBefore(carId, before, PageRequest.of(0, 1));
+        if (results.isEmpty()) return Optional.empty();
+        try {
+            return Optional.of(TireType.valueOf(results.get(0)));
+        } catch (IllegalArgumentException e) {
+            return Optional.empty();
+        }
+    }
+
+    @Override
+    public Optional<RouteType> findMostRecentRouteTypeBefore(UUID carId, LocalDateTime before) {
+        var results = jpaRepository.findMostRecentRouteTypeBefore(carId, before, PageRequest.of(0, 1));
+        if (results.isEmpty()) return Optional.empty();
+        try {
+            return Optional.of(RouteType.valueOf(results.get(0)));
+        } catch (IllegalArgumentException e) {
+            return Optional.empty();
+        }
+    }
+
     private static String geohashPrefix(String geohash) {
         assert geohash.length() >= 6 : "geohash must be at least 6 chars for meaningful prefix lookup";
         return geohash.substring(0, Math.min(6, geohash.length())) + "%";

@@ -54,6 +54,19 @@ public interface EvLogRepository {
 
     Optional<UUID> findMostRecentChargingProviderAtGeohash(UUID userId, String geohash);
 
+    /**
+     * Most recent {@link TireType} set on any log of this car with {@code logged_at < before}.
+     * Used by auto-log paths (Tesla/Wallbox/SmartCar) to inherit the user's last known tire setting
+     * instead of writing {@code NULL} into every auto-created log.
+     */
+    Optional<TireType> findMostRecentTireTypeBefore(UUID carId, LocalDateTime before);
+
+    /**
+     * Most recent {@link RouteType} set on any log of this car with {@code logged_at < before}.
+     * Same rationale as {@link #findMostRecentTireTypeBefore}.
+     */
+    Optional<RouteType> findMostRecentRouteTypeBefore(UUID carId, LocalDateTime before);
+
     void updateCarIdForLog(UUID logId, UUID targetCarId);
 
     List<EvLog> findByCarIdAndDateAndKwhChargedAndDataSource(UUID carId, LocalDate date, BigDecimal kwhCharged, DataSource dataSource);

@@ -111,6 +111,11 @@ public class PublicApiImportService {
                 String cpoName = cpoNameNormalizer.normalize(entry.cpoName());
                 String geohash = parseGeohash(entry.location(), isPublic ? 7 : 6);
                 ChargingType chargingType = parseEnum(ChargingType.class, entry.chargingType(), ChargingType.UNKNOWN);
+                // Anders als EvLogService.createInternalLog gibt es hier KEINE Inheritance von
+                // tireType/routeType aus dem letzten Log. Bulk-Imports (Tronity etc.) kommen
+                // historisch und u.U. nicht in chronologischer Reihenfolge - "letzter Wert in DB"
+                // wäre dann der zukünftige Wert relativ zum importierten Log und würde stille
+                // Datenkorruption über die gesamte Historik propagieren.
                 RouteType routeType = parseEnum(RouteType.class, entry.routeType(), null);
                 TireType tireType = parseEnum(TireType.class, entry.tireType(), null);
                 EnergyMeasurementType measurementType = parseEnum(EnergyMeasurementType.class, entry.measurementType(), null);
