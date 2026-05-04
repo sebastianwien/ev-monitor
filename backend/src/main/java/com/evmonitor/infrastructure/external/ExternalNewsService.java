@@ -50,6 +50,7 @@ public class ExternalNewsService {
     public void refreshNews() {
         HttpClient client = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(5))
+                .followRedirects(HttpClient.Redirect.NORMAL)
                 .build();
 
         List<NewsItem> allItems = new ArrayList<>();
