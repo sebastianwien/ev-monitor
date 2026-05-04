@@ -571,7 +571,10 @@ public class EvLogStatisticsService {
                         periodDist += cr.distanceKm();
                     }
 
-                    BigDecimal periodDistance = periodDist > 0 ? BigDecimal.valueOf(periodDist) : null;
+                    // periodDist=0 = Periode hatte zwar Logs, aber keine plausible Strecke
+                    // (z.B. nur Heim-Wallbox ohne Odometer-Bewegung). 0 statt null heisst:
+                    // Chart zeichnet einen "0 km gefahren"-Punkt statt einer Luecke.
+                    BigDecimal periodDistance = BigDecimal.valueOf(periodDist);
                     BigDecimal periodConsumption = ConsumptionMath.weightedAverage(periodWeighted, periodDist);
 
                     LocalDateTime periodTimestamp = periodLogs.get(0).getLoggedAt();

@@ -281,6 +281,44 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void shouldReportZeroDistance_ForPeriodWithOnlyHomeChargesAndNoOdometerChange() {
+        // Setup: zwei Heim-Wallbox-Logs am gleichen Odometer-Stand (kein Fahren dazwischen).
+        // Beide liegen am selben Tag, getrennt von einem dritten Log mit Bewegung an einem anderen Tag.
+        LocalDateTime day1 = LocalDateTime.of(2026, 4, 8, 10, 0);
+        LocalDateTime day1b = LocalDateTime.of(2026, 4, 8, 20, 0);
+        LocalDateTime day2 = LocalDateTime.of(2026, 4, 9, 12, 0);
+
+        evLogRepository.save(TestDataBuilder.createTestEvLogWithTimestampAndOdometer(
+                carId, new BigDecimal("20.0"), new BigDecimal("8.00"), day1, 50000));
+        evLogRepository.save(TestDataBuilder.createTestEvLogWithTimestampAndOdometer(
+                carId, new BigDecimal("18.0"), new BigDecimal("7.20"), day1b, 50000));
+        evLogRepository.save(TestDataBuilder.createTestEvLogWithTimestampAndOdometer(
+                carId, new BigDecimal("15.0"), new BigDecimal("6.00"), day2, 50100));
+
+        HttpEntity<Void> requestWithAuth = createAuthRequest(userId, testUser.getEmail());
+        ResponseEntity<EvLogStatisticsResponse> response = restTemplate.exchange(
+                "/api/logs/statistics?carId=" + carId + "&groupBy=DAY",
+                HttpMethod.GET, requestWithAuth, EvLogStatisticsResponse.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        EvLogStatisticsResponse body = response.getBody();
+        assertNotNull(body);
+
+        // Die Periode mit nur Heim-Logs (day1) muss distanceKm=0 liefern, nicht null,
+        // damit der Frontend-Chart einen "0 km gefahren"-Punkt zeichnen kann statt einer Lücke.
+        var day1Period = body.chargesOverTime().stream()
+                .filter(p -> p.timestamp().toLocalDate().equals(day1.toLocalDate()))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("day1 period missing"));
+        assertNotNull(day1Period.distanceKm(),
+                "Heim-Lade-Periode soll distanceKm=0 zurueckgeben, nicht null");
+        assertEquals(0, day1Period.distanceKm().intValue(),
+                "Periode mit identischem Odometer-Stand muss 0 km zeigen");
+        assertNull(day1Period.consumptionKwhPer100km(),
+                "Ohne gefahrene Strecke ist kein Verbrauch berechenbar");
+    }
+
+    @Test
     void shouldRejectStatistics_ForCarNotOwnedByUser() {
         // Given: Another user's car
         User otherUser = createAndSaveUser("other-stats-" + System.nanoTime() + "@example.com");

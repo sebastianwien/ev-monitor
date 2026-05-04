@@ -100,7 +100,7 @@ export function useDashboardStats() {
   const implausibleCount = ref(0)
 
   const hasDistanceData = computed(() =>
-    stats.value?.chargesOverTime?.some(d => d.distanceKm != null) ?? false
+    stats.value?.chargesOverTime?.some(d => d.distanceKm != null && d.distanceKm > 0) ?? false
   )
 
   const avgCostPer100km = computed(() =>

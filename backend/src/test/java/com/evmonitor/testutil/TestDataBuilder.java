@@ -95,13 +95,19 @@ public class TestDataBuilder {
      */
     public static EvLog createTestEvLogWithTimestamp(UUID carId, BigDecimal kwhCharged,
                                                       BigDecimal costEur, LocalDateTime timestamp) {
+        return createTestEvLogWithTimestampAndOdometer(carId, kwhCharged, costEur, timestamp, 50000);
+    }
+
+    public static EvLog createTestEvLogWithTimestampAndOdometer(UUID carId, BigDecimal kwhCharged,
+                                                                 BigDecimal costEur, LocalDateTime timestamp,
+                                                                 Integer odometerKm) {
         return EvLog.createNew(
                 carId,
                 kwhCharged,
                 costEur,
                 60,
                 "u33dc",
-                50000, // odometerKm (required for tests)
+                odometerKm,
                 null, // maxChargingPowerKw (optional)
                 new java.math.BigDecimal("80"), // socAfterChargePercent (required for tests)
                 timestamp,

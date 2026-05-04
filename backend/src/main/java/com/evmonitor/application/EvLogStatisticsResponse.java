@@ -31,8 +31,8 @@ public record EvLogStatisticsResponse(
             LocalDateTime timestamp,
             BigDecimal costEur,
             BigDecimal kwhCharged,
-            BigDecimal distanceKm,             // null if no odometer data
-            BigDecimal consumptionKwhPer100km  // null if no odometer data
+            BigDecimal distanceKm,             // 0 if logs exist but no plausible distance (e.g. home-only charging)
+            BigDecimal consumptionKwhPer100km  // null if distance is 0 or no odometer data
     ) {}
 
     /**
