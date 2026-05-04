@@ -197,6 +197,11 @@ public class StripeService {
                     if (isTrialing) {
                         userRepository.markTrialUsed(u.getId());
                     }
+                    // Status transitioned away from active/trialing (e.g. canceled, past_due,
+                    // incomplete_expired, unpaid) → Smartcar billing must stop now.
+                    if (!isActive) {
+                        disconnectSmartcar(u.getId());
+                    }
                 });
                 log.info("[STRIPE] subscription {} -> isPremium={} for customer={}", status, isActive, customerId);
             }
@@ -209,15 +214,17 @@ public class StripeService {
                 log.info("[STRIPE] subscription deleted -> isPremium=false for customer={}", customerId);
             }
             case "invoice.payment_failed" -> {
-                // Revoke premium immediately — Stripe will retry the payment.
-                // If a retry succeeds, subscription.updated -> active restores premium.
-                // Smartcar stays connected so that recovery is seamless (no re-auth needed).
-                // Final cleanup (including Smartcar disconnect) happens on subscription.deleted.
+                // Revoke premium AND disconnect Smartcar immediately. We previously kept Smartcar
+                // connected during Stripe's dunning window for "seamless recovery", but Stripe
+                // retries up to 21 days — that's $1.66 of Smartcar billing per failed payment we
+                // don't want to eat. If the user recovers later, they re-OAuth with one click.
+                // The 6h reconciler is the backstop in case this fast-path itself fails.
                 String customerId = data.get("customer").getAsString();
                 findUserByCustomerId(customerId).ifPresentOrElse(
                         u -> {
                             userRepository.setPremium(u.getId(), false);
-                            log.warn("[STRIPE] payment failed for customer={} userId={} — premium revoked, Stripe will retry", customerId, u.getId());
+                            disconnectSmartcar(u.getId());
+                            log.warn("[STRIPE] payment failed for customer={} userId={} — premium revoked, Smartcar disconnected", customerId, u.getId());
                         },
                         () -> log.warn("[STRIPE] payment failed for unknown customer={} — no action taken", customerId)
                 );
@@ -320,6 +327,22 @@ public class StripeService {
     }
 
     private void disconnectSmartcar(UUID userId) {
+        // Re-read entitlement before firing the HTTP call. Two reasons:
+        //   1) Privileged roles (ADMIN, BETA_TESTER) keep Smartcar even after Stripe failure.
+        //   2) Race: a fresh subscription.created from a new subscription may have already
+        //      restored is_premium=true between our setPremium(false) and now. If so, skip.
+        Optional<User> userOpt = userRepository.findById(userId);
+        if (userOpt.isEmpty()) {
+            log.warn("[STRIPE] Smartcar disconnect skipped: user {} not found", userId);
+            return;
+        }
+        User user = userOpt.get();
+        boolean privilegedRole = "ADMIN".equals(user.getRole()) || "BETA_TESTER".equals(user.getRole());
+        if (user.isPremium() || privilegedRole) {
+            log.info("[STRIPE] Smartcar disconnect skipped for userId={} - still entitled (premium={}, role={})",
+                    userId, user.isPremium(), user.getRole());
+            return;
+        }
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.set("X-Internal-Token", internalToken);

@@ -12,6 +12,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -20,6 +24,8 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -106,6 +112,23 @@ class StripeServiceTest {
                 """.formatted(customerId, amountPaid)).getAsJsonObject();
     }
 
+    /** Installs a mock RestTemplate so disconnectSmartcar() HTTP calls can be observed. */
+    private RestTemplate installMockRestTemplate() {
+        RestTemplate mockRest = mock(RestTemplate.class);
+        lenient().when(mockRest.exchange(anyString(), any(HttpMethod.class), any(), eq(Void.class)))
+                .thenReturn(ResponseEntity.noContent().build());
+        ReflectionTestUtils.setField(stripeService, "restTemplate", mockRest);
+        ReflectionTestUtils.setField(stripeService, "connectorsBaseUrl", "http://test-connectors:8081");
+        ReflectionTestUtils.setField(stripeService, "internalToken", "test-internal-token");
+        return mockRest;
+    }
+
+    private void verifyDisconnectCalledFor(RestTemplate mockRest, UUID userId) {
+        verify(mockRest).exchange(
+                contains("/api/internal/smartcar/disconnect/" + userId),
+                eq(HttpMethod.DELETE), any(), eq(Void.class));
+    }
+
     // =========================================================================
     // customer.subscription.created / customer.subscription.updated
     // =========================================================================
@@ -182,6 +205,107 @@ class StripeServiceTest {
 
             verify(userRepository, never()).setPremium(any(), anyBoolean());
             verify(userRepository, never()).setSubscriptionPeriodEnd(any(), any());
+        }
+
+        @Test
+        void statusCanceled_triggersSmartcarDisconnect() {
+            RestTemplate mockRest = installMockRestTemplate();
+            User user = buildUser(USER_ID, null);
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user)); // role=USER, premium=false
+
+            stripeService.dispatch("customer.subscription.updated",
+                    subscriptionPayload(CUSTOMER_ID, "canceled", 1_800_000_000L));
+
+            verifyDisconnectCalledFor(mockRest, USER_ID);
+        }
+
+        @Test
+        void statusActive_doesNotTriggerSmartcarDisconnect() {
+            RestTemplate mockRest = installMockRestTemplate();
+            User user = buildUser(USER_ID, null);
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));
+
+            stripeService.dispatch("customer.subscription.updated",
+                    subscriptionPayload(CUSTOMER_ID, "active", 1_800_000_000L));
+
+            verify(mockRest, never()).exchange(anyString(), any(HttpMethod.class), any(), eq(Void.class));
+        }
+
+        @Test
+        void statusPastDue_triggersSmartcarDisconnect() {
+            RestTemplate mockRest = installMockRestTemplate();
+            User user = buildUser(USER_ID, null);
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
+
+            stripeService.dispatch("customer.subscription.updated",
+                    subscriptionPayload(CUSTOMER_ID, "past_due", 1_800_000_000L));
+
+            verifyDisconnectCalledFor(mockRest, USER_ID);
+        }
+
+        @Test
+        void adminUser_canceled_skipsSmartcarDisconnect() {
+            RestTemplate mockRest = installMockRestTemplate();
+            User user = buildUser(USER_ID, null);
+            User admin = User.builder()
+                    .id(USER_ID).email("admin@example.com").username("admin").passwordHash("hash")
+                    .authProvider(AuthProvider.LOCAL).role("ADMIN")
+                    .emailVerified(true).emailNotificationsEnabled(true)
+                    .referralCode("REFERRALCODE1").stripeCustomerId(CUSTOMER_ID)
+                    .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
+                    .build();
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(admin));
+
+            stripeService.dispatch("customer.subscription.updated",
+                    subscriptionPayload(CUSTOMER_ID, "canceled", 1_800_000_000L));
+
+            verify(mockRest, never()).exchange(anyString(), any(HttpMethod.class), any(), eq(Void.class));
+        }
+
+        @Test
+        void betaTesterUser_canceled_skipsSmartcarDisconnect() {
+            RestTemplate mockRest = installMockRestTemplate();
+            User user = buildUser(USER_ID, null);
+            User beta = User.builder()
+                    .id(USER_ID).email("beta@example.com").username("beta").passwordHash("hash")
+                    .authProvider(AuthProvider.LOCAL).role("BETA_TESTER")
+                    .emailVerified(true).emailNotificationsEnabled(true)
+                    .referralCode("REFERRALCODE1").stripeCustomerId(CUSTOMER_ID)
+                    .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
+                    .build();
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(beta));
+
+            stripeService.dispatch("customer.subscription.updated",
+                    subscriptionPayload(CUSTOMER_ID, "canceled", 1_800_000_000L));
+
+            verify(mockRest, never()).exchange(anyString(), any(HttpMethod.class), any(), eq(Void.class));
+        }
+
+        @Test
+        void raceCondition_userPremiumByConcurrentSub_skipsSmartcarDisconnect() {
+            // Stale subscription.deleted webhook arrives after the user has already started a
+            // fresh subscription that flipped is_premium back to true. Re-read catches this.
+            RestTemplate mockRest = installMockRestTemplate();
+            User user = buildUser(USER_ID, null);
+            User refreshed = User.builder()
+                    .id(USER_ID).email("test@example.com").username("testuser").passwordHash("hash")
+                    .authProvider(AuthProvider.LOCAL).role("USER")
+                    .emailVerified(true).emailNotificationsEnabled(true)
+                    .referralCode("REFERRALCODE1").stripeCustomerId(CUSTOMER_ID)
+                    .premium(true)  // ← race: a parallel subscription.created made user premium again
+                    .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
+                    .build();
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(refreshed));
+
+            stripeService.dispatch("customer.subscription.updated",
+                    subscriptionPayload(CUSTOMER_ID, "canceled", 1_800_000_000L));
+
+            verify(mockRest, never()).exchange(anyString(), any(HttpMethod.class), any(), eq(Void.class));
         }
     }
 
@@ -318,9 +442,23 @@ class StripeServiceTest {
 
             stripeService.dispatch("invoice.payment_failed", data);
 
-            // Premium is revoked immediately — but Smartcar stays connected for potential recovery.
-            // If Stripe retries and succeeds, subscription.updated -> active restores premium.
             verify(userRepository).setPremium(USER_ID, false);
+        }
+
+        @Test
+        void triggersSmartcarDisconnect_immediately() {
+            RestTemplate mockRest = installMockRestTemplate();
+            User user = buildUser(USER_ID, null);
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
+
+            JsonObject data = JsonParser.parseString("""
+                    {"customer": "%s"}
+                    """.formatted(CUSTOMER_ID)).getAsJsonObject();
+
+            stripeService.dispatch("invoice.payment_failed", data);
+
+            verifyDisconnectCalledFor(mockRest, USER_ID);
         }
 
         @Test

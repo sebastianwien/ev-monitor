@@ -99,4 +99,86 @@ class InternalUserControllerTest extends AbstractIntegrationTest {
 
         assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
     }
+
+    @Test
+    void entitlementsBatch_returnsEntitlementForEachKnownUser() {
+        User second = createAndSaveUser("internal-test-2-" + System.nanoTime() + "@example.com");
+        HttpHeaders headers = internalAuthHeaders(VALID_INTERNAL_TOKEN);
+        Map<String, Object> body = Map.of("userIds", java.util.List.of(
+                testUser.getId().toString(), second.getId().toString()));
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+
+        ResponseEntity<Map<String, Map<String, Object>>> response = restTemplate.exchange(
+                "/api/internal/users/entitlements",
+                HttpMethod.POST,
+                request,
+                new ParameterizedTypeReference<>() {}
+        );
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        Map<String, Map<String, Object>> result = response.getBody();
+        assertNotNull(result);
+        assertTrue(result.containsKey(testUser.getId().toString()));
+        assertTrue(result.containsKey(second.getId().toString()));
+        Map<String, Object> first = result.get(testUser.getId().toString());
+        assertNotNull(first.get("canActivate"));
+        assertNotNull(first.get("role"));
+        assertNotNull(first.get("premium"));
+    }
+
+    @Test
+    void entitlementsBatch_unknownUserId_omittedFromResponse() {
+        UUID unknown = UUID.randomUUID();
+        HttpHeaders headers = internalAuthHeaders(VALID_INTERNAL_TOKEN);
+        Map<String, Object> body = Map.of("userIds", java.util.List.of(
+                testUser.getId().toString(), unknown.toString()));
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+
+        ResponseEntity<Map<String, Map<String, Object>>> response = restTemplate.exchange(
+                "/api/internal/users/entitlements",
+                HttpMethod.POST,
+                request,
+                new ParameterizedTypeReference<>() {}
+        );
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        Map<String, Map<String, Object>> result = response.getBody();
+        assertNotNull(result);
+        assertTrue(result.containsKey(testUser.getId().toString()));
+        assertFalse(result.containsKey(unknown.toString()),
+                "Unknown user ids should be omitted, not returned with null values");
+    }
+
+    @Test
+    void entitlementsBatch_withoutInternalToken_returns403() {
+        Map<String, Object> body = Map.of("userIds", java.util.List.of(testUser.getId().toString()));
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body);
+
+        ResponseEntity<String> response = restTemplate.exchange(
+                "/api/internal/users/entitlements",
+                HttpMethod.POST,
+                request,
+                String.class
+        );
+
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+    }
+
+    @Test
+    void entitlementsBatch_emptyList_returnsEmptyMap() {
+        HttpHeaders headers = internalAuthHeaders(VALID_INTERNAL_TOKEN);
+        Map<String, Object> body = Map.of("userIds", java.util.List.of());
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+
+        ResponseEntity<Map<String, Map<String, Object>>> response = restTemplate.exchange(
+                "/api/internal/users/entitlements",
+                HttpMethod.POST,
+                request,
+                new ParameterizedTypeReference<>() {}
+        );
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().isEmpty());
+    }
 }

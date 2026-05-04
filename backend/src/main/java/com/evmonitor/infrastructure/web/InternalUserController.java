@@ -72,4 +72,27 @@ public class InternalUserController {
                         user.isPremium())))
                 .orElse(ResponseEntity.notFound().build());
     }
+
+    public record EntitlementBatchRequest(java.util.List<UUID> userIds) {}
+
+    /**
+     * Bulk variant of {@code /telemetry-access}: takes a list of userIds and returns a
+     * {userId → entitlement} map. Designed for periodic reconciliation jobs that would
+     * otherwise fan out to one HTTP call per user. Unknown ids are omitted from the response.
+     */
+    @PostMapping("/users/entitlements")
+    public ResponseEntity<Map<UUID, TelemetryAccessResponse>> entitlementsBatch(
+            @RequestBody EntitlementBatchRequest request) {
+        if (request == null || request.userIds() == null || request.userIds().isEmpty()) {
+            return ResponseEntity.ok(Map.of());
+        }
+        Map<UUID, TelemetryAccessResponse> result = new java.util.HashMap<>();
+        for (com.evmonitor.domain.User user : userRepository.findAllByIds(request.userIds())) {
+            result.put(user.getId(), new TelemetryAccessResponse(
+                    user.canActivateTelemetry(),
+                    user.getRole(),
+                    user.isPremium()));
+        }
+        return ResponseEntity.ok(result);
+    }
 }
