@@ -246,6 +246,19 @@ const doSaveReassign = () => saveReassign(fetchStatistics)
 const FEEDBACK_TAGS = ['distance_wrong', 'time_wrong', 'duplicate', 'other'] as const
 const openMenuLogId     = ref<string | null>(null)
 const openMenuTripId    = ref<string | null>(null)
+const openMenuTopUpId   = ref<string | null>(null)
+const expandedLogs      = ref(new Set<string>())
+
+function toggleLogExpanded(id: string) {
+  if (expandedLogs.value.has(id)) expandedLogs.value.delete(id)
+  else expandedLogs.value.add(id)
+}
+
+function chargingEfficiency(kwhCharged: number | null, kwhAtVehicle: number | null): number | null {
+  if (!kwhCharged || !kwhAtVehicle || kwhCharged <= 0) return null
+  return Math.round((kwhAtVehicle / kwhCharged) * 1000) / 10
+}
+
 const feedbackOpenId    = ref<string | null>(null)
 const feedbackTags      = ref<string[]>([])
 const feedbackComment   = ref('')
@@ -371,11 +384,6 @@ const showThgBanner = computed(() => {
   if (!thgDismissedAt.value) return true
   return (Date.now() - thgDismissedAt.value) / 86_400_000 >= 90
 })
-function displayKwh(kwhCharged: number | null, kwhAtVehicle: number | null): string {
-  const b = kwhCharged != null ? String(kwhCharged) : '-'
-  const n = kwhAtVehicle != null ? String(kwhAtVehicle) : '-'
-  return `${b}/${n}`
-}
 
 function tripConsumption(entry: any): { kwhPer100km: number; estimated: boolean } | null {
   if (!entry.distanceKm || entry.distanceKm <= 0) return null
@@ -932,6 +940,7 @@ function onTripFormLeave(el: Element, done: () => void) {
             <template v-else>
               <div v-if="openMenuLogId" class="fixed inset-0 z-40" @click="openMenuLogId = null" />
               <div v-if="openMenuTripId" class="fixed inset-0 z-40" @click="openMenuTripId = null" />
+              <div v-if="openMenuTopUpId" class="fixed inset-0 z-40" @click="openMenuTopUpId = null" />
               <template v-for="item in groupedFeed" :key="item.id">
 
               <!-- ===== TRIP GROUP CONTAINER ===== -->
@@ -1042,7 +1051,7 @@ function onTripFormLeave(el: Element, done: () => void) {
                           isAdmin && trip.dataSource === 'TESLA_LIVE'    ? 'text-red-500 dark:text-red-400' :
                           isAdmin && trip.dataSource === 'SMARTCAR_LIVE' ? 'text-blue-500 dark:text-blue-400' :
                           'text-emerald-600 dark:text-emerald-400']" />
-                        <span v-if="trip.distanceKm != null" class="font-semibold text-emerald-700 dark:text-emerald-400 whitespace-nowrap flex-shrink-0">{{ formatDistance(trip.distanceKm) }}</span>
+                        <span v-if="trip.distanceKm != null" class="font-semibold text-emerald-700 dark:text-emerald-400 whitespace-nowrap flex-shrink-0">{{ formatDistance(trip.distanceKm, { round: false }) }}</span>
                         <span v-if="tripConsumption(trip)" class="inline-flex items-center text-[13px] text-gray-600 dark:text-gray-300 whitespace-nowrap flex-shrink-0">
                           {{ tripConsumption(trip)!.estimated ? '~' : '' }}{{ formatConsumption(tripConsumption(trip)!.kwhPer100km) }}
                         </span>
@@ -1230,15 +1239,15 @@ function onTripFormLeave(el: Element, done: () => void) {
                       <div class="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded px-2 py-1.5 space-y-0.5">
                         <div class="flex justify-between gap-2">
                           <span class="shrink-0">{{ t('dashboard.trip_merge_previous') }}</span>
-                          <span class="text-right">{{ formatTripTimeRange(previousTripMap[trip.id].tripStartedAt, previousTripMap[trip.id].tripEndedAt) }}, {{ previousTripMap[trip.id].distanceKm ? formatDistance(previousTripMap[trip.id].distanceKm) : '?' }}</span>
+                          <span class="text-right">{{ formatTripTimeRange(previousTripMap[trip.id].tripStartedAt, previousTripMap[trip.id].tripEndedAt) }}, {{ previousTripMap[trip.id].distanceKm ? formatDistance(previousTripMap[trip.id].distanceKm, { round: false }) : '?' }}</span>
                         </div>
                         <div class="flex justify-between gap-2">
                           <span class="shrink-0">{{ t('dashboard.trip_merge_this') }}</span>
-                          <span class="text-right">{{ formatTripTimeRange(trip.tripStartedAt, trip.tripEndedAt) }}, {{ trip.distanceKm ? formatDistance(trip.distanceKm) : '?' }}</span>
+                          <span class="text-right">{{ formatTripTimeRange(trip.tripStartedAt, trip.tripEndedAt) }}, {{ trip.distanceKm ? formatDistance(trip.distanceKm, { round: false }) : '?' }}</span>
                         </div>
                         <div class="flex justify-between gap-2 font-medium text-orange-700 dark:text-orange-400 pt-0.5 border-t border-gray-200 dark:border-gray-700">
                           <span class="shrink-0">{{ t('dashboard.trip_merge_result') }}</span>
-                          <span class="text-right">{{ formatTripTimeRange(previousTripMap[trip.id].tripStartedAt, trip.tripEndedAt) }}, ~{{ formatDistance((previousTripMap[trip.id].distanceKm || 0) + (trip.distanceKm || 0)) }}</span>
+                          <span class="text-right">{{ formatTripTimeRange(previousTripMap[trip.id].tripStartedAt, trip.tripEndedAt) }}, ~{{ formatDistance((previousTripMap[trip.id].distanceKm || 0) + (trip.distanceKm || 0), { round: false }) }}</span>
                         </div>
                       </div>
                       <p v-if="tripMergeError" class="text-xs text-red-500">{{ tripMergeError }}</p>
@@ -1333,207 +1342,208 @@ function onTripFormLeave(el: Element, done: () => void) {
               </Transition>
 
               <!-- CHARGE ENTRY -->
-              <div :class="item.entry._isLadegruppe ? 'pb-[5px]' : ''">
+              <div>
               <div
                 :class="['relative p-3 border rounded-lg space-y-2',
                          item.entry._isLadegruppe
-                           ? 'bg-white dark:bg-gray-700 border-blue-200 dark:border-blue-800 cursor-pointer shadow-[0_5px_0_0_#bfdbfe] dark:shadow-[0_5px_0_0_#1e3a5f] hover:shadow-[0_2px_0_0_#bfdbfe] dark:hover:shadow-[0_2px_0_0_#1e3a5f] hover:translate-y-[3px] active:shadow-none active:translate-y-[5px] transition-all duration-75'
+                           ? 'bg-white dark:bg-gray-700 border-blue-200 dark:border-blue-800 cursor-pointer'
                            : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 shadow-sm']"
-                @click="item.entry._isLadegruppe ? toggleLadegruppe(item.entry.id) : null">
+                v-bind="item.entry._isLadegruppe ? { role: 'button', tabindex: '0', 'aria-expanded': expandedGroups.has(item.entry.id) } : {}"
+                @click="item.entry._isLadegruppe ? toggleLadegruppe(item.entry.id) : null"
+                @keydown.enter.space.prevent="item.entry._isLadegruppe ? toggleLadegruppe(item.entry.id) : null">
 
                 <!-- LADEGRUPPE HEADER -->
                 <template v-if="item.entry._isLadegruppe">
                   <div class="flex items-center justify-between gap-2">
-                    <div class="flex items-center gap-2 min-w-0">
+                    <div class="flex items-center gap-2 min-w-0 overflow-hidden">
                       <BoltIcon class="w-4 h-4 text-green-500 dark:text-green-400 flex-shrink-0" />
                       <span class="font-semibold text-indigo-700 dark:text-indigo-300 whitespace-nowrap">{{ item.entry._totalKwh }} kWh</span>
-                      <span class="text-xs text-gray-500 whitespace-nowrap">{{ item.entry._dateRangeLabel }}</span>
+                      <span class="text-xs text-gray-500 whitespace-nowrap truncate">{{ item.entry._dateRangeLabel }}</span>
                     </div>
                     <div class="flex items-center gap-1.5 flex-shrink-0">
-                      <button class="p-1 rounded text-blue-400 dark:text-blue-500">
-                        <ChevronDownIcon v-if="!expandedGroups.has(item.entry.id)" class="w-4 h-4" />
-                        <ChevronUpIcon v-else class="w-4 h-4" />
-                      </button>
+                      <span v-if="item.entry._totalCostEur != null && item.entry._totalKwh"
+                        :class="['inline-flex items-center px-2 py-0.5 border text-xs rounded-full font-medium whitespace-nowrap cursor-pointer transition-all duration-75',
+                                 showCostAbsolute
+                                   ? 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'
+                                   : [(costBadgeClass(item.entry._totalCostEur, item.entry._totalKwh) ?? 'bg-green-50 border-green-200 text-green-700'), 'shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'].join(' ')]"
+                        @click.stop="showCostAbsolute = !showCostAbsolute"
+                        @mousedown.stop>
+                        <template v-if="showCostAbsolute">{{ formatCurrency(item.entry._totalCostEur) }}</template>
+                        <template v-else>{{ formatCostPerKwh(item.entry._totalCostEur / item.entry._costKwh) }}</template>
+                      </span>
+                      <ChevronDownIcon v-if="!expandedGroups.has(item.entry.id)" class="w-4 h-4 text-blue-400 dark:text-blue-500 flex-shrink-0" />
+                      <ChevronUpIcon v-else class="w-4 h-4 text-blue-400 dark:text-blue-500 flex-shrink-0" />
                     </div>
                   </div>
-                  <!-- Plain text stats - Zeile 2 -->
-                  <div v-if="item.entry._totalConsumption != null || item.entry._maxSoc != null || item.entry._maxPower"
-                    class="flex flex-wrap gap-x-3 gap-y-0.5 items-center">
-                    <span v-if="item.entry._totalConsumption != null"
-                      :class="['inline-flex items-center gap-1 text-xs font-medium whitespace-nowrap',
-                               consumptionTextClass(item.entry._totalConsumption, stats?.avgConsumptionKwhPer100km ?? null)]">
-                      {{ formatConsumption(item.entry._totalConsumption) }}
-                    </span>
-                    <span v-if="item.entry._maxSoc != null" class="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
-                      <Battery0Icon class="w-3 h-3" />{{ item.entry._maxSoc }}%
-                    </span>
-                    <span v-if="item.entry._maxPower" class="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
-                      <BoltIcon class="w-3 h-3" />{{ item.entry._maxPower }} kW
-                    </span>
+                  <!-- Expanded: stats + chips -->
+                  <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
+                  <div v-if="expandedGroups.has(item.entry.id)" class="space-y-2">
+                    <!-- Zeile 2: consumption, maxSoc, maxPower -->
+                    <div v-if="item.entry._totalConsumption != null || item.entry._maxSoc != null || item.entry._maxPower"
+                      class="flex flex-wrap gap-x-3 gap-y-0.5 items-center">
+                      <span v-if="item.entry._totalConsumption != null"
+                        :class="['inline-flex items-center gap-1 text-xs font-medium whitespace-nowrap',
+                                 consumptionTextClass(item.entry._totalConsumption, stats?.avgConsumptionKwhPer100km ?? null)]">
+                        {{ formatConsumption(item.entry._totalConsumption) }}
+                      </span>
+                      <span v-if="item.entry._maxSoc != null" class="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
+                        <Battery0Icon class="w-3 h-3" />{{ item.entry._maxSoc }}%
+                      </span>
+                      <span v-if="item.entry._maxPower" class="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
+                        <BoltIcon class="w-3 h-3" />{{ item.entry._maxPower }} kW
+                      </span>
+                    </div>
+                    <!-- Zeile 3: source + distance -->
+                    <div class="flex flex-wrap gap-1.5">
+                      <span v-if="sourceInfo(item.entry._commonDataSource)"
+                        :class="['inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium whitespace-nowrap',
+                                 sourceInfo(item.entry._commonDataSource)!.classes]">
+                        {{ sourceInfo(item.entry._commonDataSource)!.label }}
+                      </span>
+                      <span
+                        v-if="item.entry.distanceSinceLastChargeKm != null || item.entry.odometerKm"
+                        class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap"
+                        :class="item.entry.distanceSinceLastChargeKm != null && item.entry.odometerKm ? 'cursor-pointer shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] active:shadow-none active:translate-y-1 transition-all duration-75' : ''"
+                        @click.stop="toggleOdometerDisplay(item.entry.distanceSinceLastChargeKm, item.entry.odometerKm)"
+                        @mousedown.stop
+                      >
+                        <template v-if="item.entry.distanceSinceLastChargeKm != null && !showOdometer">+{{ formatDistance(item.entry.distanceSinceLastChargeKm) }}</template>
+                        <template v-else>{{ item.entry.odometerKm != null ? formatDistance(item.entry.odometerKm) : '' }}</template>
+                      </span>
+                    </div>
                   </div>
-                  <!-- Chips - Zeile 3 -->
-                  <div class="flex flex-wrap gap-1.5">
-                    <span v-if="sourceInfo(item.entry._commonDataSource)"
-                      :class="['inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium whitespace-nowrap',
-                               sourceInfo(item.entry._commonDataSource)!.classes]">
-                      {{ sourceInfo(item.entry._commonDataSource)!.label }}
-                    </span>
-                    <span v-if="item.entry._totalCostEur != null && item.entry._totalKwh"
-                      :class="['inline-flex items-center px-2 py-0.5 border text-xs rounded-full font-medium whitespace-nowrap cursor-pointer transition-all duration-75',
-                               showCostAbsolute
-                                 ? 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'
-                                 : [(costBadgeClass(item.entry._totalCostEur, item.entry._totalKwh) ?? 'bg-green-50 border-green-200 text-green-700'), 'shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'].join(' ')]"
-                      @click.stop="showCostAbsolute = !showCostAbsolute"
-                      @mousedown.stop>
-                      <template v-if="showCostAbsolute">{{ formatCurrency(item.entry._totalCostEur) }}</template>
-                      <template v-else>{{ formatCostPerKwh(item.entry._totalCostEur / item.entry._costKwh) }}</template>
-                    </span>
-                    <span
-                      v-if="item.entry.distanceSinceLastChargeKm != null || item.entry.odometerKm"
-                      class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap"
-                      :class="item.entry.distanceSinceLastChargeKm != null && item.entry.odometerKm ? 'cursor-pointer shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] active:shadow-none active:translate-y-1 transition-all duration-75' : ''"
-                      @click.stop="toggleOdometerDisplay(item.entry.distanceSinceLastChargeKm, item.entry.odometerKm)"
-                      @mousedown.stop
-                    >
-                      <template v-if="item.entry.distanceSinceLastChargeKm != null && !showOdometer">+{{ formatDistance(item.entry.distanceSinceLastChargeKm) }}</template>
-                      <template v-else>{{ item.entry.odometerKm != null ? formatDistance(item.entry.odometerKm) : '' }}</template>
-                    </span>
-                  </div>
+                  </Transition>
                 </template>
 
                 <!-- NORMAL LOG HEADER -->
                 <template v-else>
-                <div class="flex items-center justify-between gap-2">
-                  <div class="flex flex-wrap items-center gap-2 min-w-0">
+                <button type="button" class="w-full flex items-center justify-between gap-2 text-left select-none"
+                  :aria-expanded="expandedLogs.has(item.entry.id)"
+                  @click="toggleLogExpanded(item.entry.id)">
+                  <div class="flex items-center gap-2 min-w-0 overflow-hidden">
                     <BoltIcon class="w-4 h-4 text-green-500 dark:text-green-400 flex-shrink-0" />
-                    <span class="font-semibold text-indigo-700 dark:text-indigo-300 whitespace-nowrap">{{ displayKwh(item.entry.kwhCharged, item.entry.kwhAtVehicle) }} kWh</span>
-                    <span v-if="item.entry.maxChargingPowerKw" class="text-xs text-gray-500 whitespace-nowrap">· {{ item.entry.maxChargingPowerKw }} kW</span>
-                    <span class="text-xs text-gray-500 whitespace-nowrap max-[380px]:w-full">{{ formatLogDate(item.entry.loggedAt) }}</span>
+                    <span class="font-semibold text-indigo-700 dark:text-indigo-300 whitespace-nowrap">{{ item.entry.kwhAtVehicle ?? item.entry.kwhCharged ?? '-' }} kWh</span>
+                    <span class="text-xs text-gray-500 whitespace-nowrap truncate">{{ formatLogDate(item.entry.loggedAt) }}</span>
+                  </div>
+                  <div class="flex items-center gap-1.5 flex-shrink-0">
+                    <span v-if="item.entry.costEur != null && (item.entry.kwhCharged ?? item.entry.kwhAtVehicle)"
+                      :class="['inline-flex items-center px-2 py-0.5 border text-xs rounded-full font-medium whitespace-nowrap cursor-pointer transition-all duration-75',
+                               showCostAbsolute
+                                 ? 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'
+                                 : [(costBadgeClass(item.entry.costEur, item.entry.kwhCharged ?? item.entry.kwhAtVehicle) ?? 'bg-green-50 border-green-200 text-green-700'), 'shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'].join(' ')]"
+                      @click.stop="showCostAbsolute = !showCostAbsolute">
+                      <template v-if="showCostAbsolute">{{ formatCurrency(item.entry.costEur) }}</template>
+                      <template v-else>{{ formatCostPerKwh(item.entry.costEur / (item.entry.kwhCharged ?? item.entry.kwhAtVehicle)) }}</template>
+                    </span>
+                    <ChevronDownIcon v-if="!expandedLogs.has(item.entry.id)" class="w-4 h-4 text-gray-400 flex-shrink-0" />
+                    <ChevronUpIcon v-else class="w-4 h-4 text-gray-400 flex-shrink-0" />
+                  </div>
+                </button>
+                </template>
+                <!-- Expanded content (normal log only) -->
+                <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
+                <div v-if="!item.entry._isLadegruppe && expandedLogs.has(item.entry.id)" class="space-y-2">
+                  <!-- Brutto + Ladeeffizienz -->
+                  <div v-if="item.entry.kwhCharged != null && item.entry.kwhAtVehicle != null"
+                    class="flex flex-wrap gap-x-4 gap-y-0.5 items-center text-xs text-gray-500 dark:text-gray-400">
+                    <span class="whitespace-nowrap">{{ item.entry.kwhCharged }} kWh brutto</span>
+                    <span
+                      :class="['font-medium whitespace-nowrap', chargingEfficiency(item.entry.kwhCharged, item.entry.kwhAtVehicle)! >= 90 ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400']">
+                      {{ chargingEfficiency(item.entry.kwhCharged, item.entry.kwhAtVehicle) }}% Effizienz
+                    </span>
+                  </div>
+                  <!-- Plain text stats - Zeile 2 -->
+                  <div v-if="item.entry.consumptionKwhPer100km != null || item.entry.chargeDurationMinutes || item.entry.socAfterChargePercent != null || (item.entry.costEur != null && !item.entry.kwhCharged && !item.entry.kwhAtVehicle)"
+                    class="flex flex-wrap gap-x-3 gap-y-0.5 items-center">
+                    <span v-if="item.entry.consumptionKwhPer100km != null"
+                      :class="['inline-flex items-center gap-1 text-xs font-medium whitespace-nowrap',
+                               item.entry.consumptionImplausible
+                                 ? 'text-red-600 dark:text-red-400'
+                                 : item.entry.consumptionIsEstimated
+                                   ? 'text-gray-500 dark:text-gray-400'
+                                   : consumptionTextClass(item.entry.consumptionKwhPer100km, stats?.avgConsumptionKwhPer100km ?? null)]"
+                      :title="item.entry.consumptionIsEstimated
+                        ? 'Schätzwert: berechnet aus geladener Energie ÷ Distanz, da kein SoC-Wert vorhanden.'
+                        : item.entry.consumptionQuality === 'SOC_DELTA'
+                          ? 'Näherungswert: berechnet aus SoC-Differenz ohne direkte kWh-Messung.'
+                          : undefined">
+                      <button
+                        v-if="item.entry.consumptionImplausible"
+                        class="flex-shrink-0 focus:outline-none"
+                        @click.stop="openTooltipLogId = openTooltipLogId === item.entry.id ? null : item.entry.id">
+                        <ExclamationTriangleIcon class="w-3 h-3" />
+                      </button>
+                      <InformationCircleIcon
+                        v-if="item.entry.consumptionQuality === 'SOC_DELTA'"
+                        class="w-3 h-3 flex-shrink-0 text-gray-400 dark:text-gray-500" />
+                      {{ item.entry.consumptionIsEstimated ? '~' : '' }}{{ formatConsumption(item.entry.consumptionKwhPer100km) }}
+                    </span>
+                    <span v-if="item.entry.costEur != null && !item.entry.kwhCharged && !item.entry.kwhAtVehicle" class="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                      {{ formatCurrency(item.entry.costEur) }}
+                    </span>
+                    <span v-if="item.entry.chargeDurationMinutes" class="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                      <ClockIcon class="w-3 h-3" />{{ item.entry.chargeDurationMinutes }}min
+                    </span>
+                    <span v-if="item.entry.socAfterChargePercent != null" class="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                      <Battery0Icon class="w-3 h-3" />{{ item.entry.socAfterChargePercent }}%
+                    </span>
+                    <span v-if="item.entry.maxChargingPowerKw" class="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                      <BoltIcon class="w-3 h-3" />{{ item.entry.maxChargingPowerKw }} kW
+                    </span>
+                  </div>
+                  <!-- Chips + Aktions-Menü - Zeile 3 -->
+                  <div class="flex flex-wrap gap-1.5 items-center">
                     <span v-if="sourceInfo(item.entry.dataSource)"
-                      :class="['hidden md:inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium whitespace-nowrap',
+                      :class="['inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium whitespace-nowrap',
                                sourceInfo(item.entry.dataSource)!.classes]">
                       {{ sourceInfo(item.entry.dataSource)!.label }}
                     </span>
-                  </div>
-                  <div class="flex items-center gap-1 flex-shrink-0">
                     <span v-if="item.entry.temperatureCelsius != null"
                       :class="['inline-flex items-center gap-0.5 px-2 py-0.5 border rounded-full text-xs whitespace-nowrap', tempBadgeClass(item.entry.temperatureCelsius)]">
                       <SunIcon class="w-3 h-3" />{{ item.entry.temperatureCelsius.toFixed(1) }}°C
                     </span>
-                    <button v-if="otherCars.length > 0" @click.stop="openReassignModal(item.entry)"
-                      class="hidden md:block p-1 rounded text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition"
-                      :title="t('dashboard.reassign_car')">
-                      <ArrowsRightLeftIcon class="w-3.5 h-3.5" />
-                    </button>
-                    <button @click="editingLog = item.entry"
-                      class="hidden md:block p-1 rounded text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition"
-                      :title="t('dashboard.edit_title')">
-                      <PencilSquareIcon class="w-3.5 h-3.5" />
-                    </button>
-                    <button @click="deleteLog(item.entry.id)"
-                      class="hidden md:block p-1 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition">
-                      <TrashIcon class="w-3.5 h-3.5" />
-                    </button>
-                    <button v-if="canAccessTrips" @click.stop="startAddTrip(item.entry.id)"
-                      class="hidden md:block p-1 rounded text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition"
-                      :title="t('dashboard.trip_add')">
-                      <MapIcon class="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-                </template>
-                <!-- Plain text stats (normal log only) - Zeile 2 -->
-                <div v-if="!item.entry._isLadegruppe && (item.entry.consumptionKwhPer100km != null || item.entry.chargeDurationMinutes || item.entry.socAfterChargePercent != null || (item.entry.costEur != null && !item.entry.kwhCharged && !item.entry.kwhAtVehicle))"
-                  class="flex flex-wrap gap-x-3 gap-y-0.5 items-center">
-                  <span v-if="item.entry.consumptionKwhPer100km != null"
-                    :class="['inline-flex items-center gap-1 text-xs font-medium whitespace-nowrap',
-                             item.entry.consumptionImplausible
-                               ? 'text-red-600 dark:text-red-400'
-                               : item.entry.consumptionIsEstimated
-                                 ? 'text-gray-500 dark:text-gray-400'
-                                 : consumptionTextClass(item.entry.consumptionKwhPer100km, stats?.avgConsumptionKwhPer100km ?? null)]"
-                    :title="item.entry.consumptionIsEstimated
-                      ? 'Schätzwert: berechnet aus geladener Energie ÷ Distanz, da kein SoC-Wert vorhanden.'
-                      : item.entry.consumptionQuality === 'SOC_DELTA'
-                        ? 'Näherungswert: berechnet aus SoC-Differenz ohne direkte kWh-Messung.'
-                        : undefined">
-                    <button
-                      v-if="item.entry.consumptionImplausible"
-                      class="flex-shrink-0 focus:outline-none"
-                      @click.stop="openTooltipLogId = openTooltipLogId === item.entry.id ? null : item.entry.id">
-                      <ExclamationTriangleIcon class="w-3 h-3" />
-                    </button>
-                    <InformationCircleIcon
-                      v-if="item.entry.consumptionQuality === 'SOC_DELTA'"
-                      class="w-3 h-3 flex-shrink-0 text-gray-400 dark:text-gray-500" />
-                    {{ item.entry.consumptionIsEstimated ? '~' : '' }}{{ formatConsumption(item.entry.consumptionKwhPer100km) }}
-                  </span>
-                  <span v-if="item.entry.costEur != null && !item.entry.kwhCharged && !item.entry.kwhAtVehicle" class="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                    {{ formatCurrency(item.entry.costEur) }}
-                  </span>
-                  <span v-if="item.entry.chargeDurationMinutes" class="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                    <ClockIcon class="w-3 h-3" />{{ item.entry.chargeDurationMinutes }}min
-                  </span>
-                  <span v-if="item.entry.socAfterChargePercent != null" class="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                    <Battery0Icon class="w-3 h-3" />{{ item.entry.socAfterChargePercent }}%
-                  </span>
-                </div>
-                <!-- Chips - Zeile 3 -->
-                <div v-if="!item.entry._isLadegruppe" class="flex flex-wrap gap-1.5 items-center">
-                  <span v-if="sourceInfo(item.entry.dataSource)"
-                    :class="['md:hidden inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium whitespace-nowrap',
-                             sourceInfo(item.entry.dataSource)!.classes]">
-                    {{ sourceInfo(item.entry.dataSource)!.label }}
-                  </span>
-                  <span v-if="item.entry.costEur != null && (item.entry.kwhCharged ?? item.entry.kwhAtVehicle)"
-                    :class="['inline-flex items-center px-2 py-0.5 border text-xs rounded-full font-medium whitespace-nowrap cursor-pointer transition-all duration-75',
-                             showCostAbsolute
-                               ? 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'
-                               : [(costBadgeClass(item.entry.costEur, item.entry.kwhCharged ?? item.entry.kwhAtVehicle) ?? 'bg-green-50 border-green-200 text-green-700'), 'shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'].join(' ')]"
-                    @click="showCostAbsolute = !showCostAbsolute">
-                    <template v-if="showCostAbsolute">{{ formatCurrency(item.entry.costEur) }}</template>
-                    <template v-else>{{ formatCostPerKwh(item.entry.costEur / (item.entry.kwhCharged ?? item.entry.kwhAtVehicle)) }}</template>
-                  </span>
-                  <span
-                    v-if="item.entry.distanceSinceLastChargeKm != null || item.entry.odometerKm"
-                    class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap"
-                    :class="item.entry.distanceSinceLastChargeKm != null && item.entry.odometerKm
-                      ? 'cursor-pointer shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] active:shadow-none active:translate-y-1 transition-all duration-75'
-                      : ''"
-                    @click="toggleOdometerDisplay(item.entry.distanceSinceLastChargeKm, item.entry.odometerKm)"
-                  >
-                    <template v-if="item.entry.distanceSinceLastChargeKm != null && !showOdometer">+{{ formatDistance(item.entry.distanceSinceLastChargeKm) }}</template>
-                    <template v-else>{{ item.entry.odometerKm != null ? formatDistance(item.entry.odometerKm) : '' }}</template>
-                  </span>
-                  <!-- Mobile action menu -->
-                  <div class="relative ml-auto md:hidden">
-                    <button @click.stop="openMenuLogId = openMenuLogId === item.entry.id ? null : item.entry.id"
-                      class="p-1 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition">
-                      <EllipsisVerticalIcon class="w-5 h-5" />
-                    </button>
-                    <div v-if="openMenuLogId === item.entry.id"
-                      class="absolute right-0 bottom-full mb-1 w-44 bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 z-50 py-1 overflow-hidden">
-                      <button @click.stop="editingLog = item.entry; openMenuLogId = null"
-                        class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
-                        <PencilSquareIcon class="w-4 h-4 flex-shrink-0" />{{ t('dashboard.action_edit') }}
+                    <span
+                      v-if="item.entry.distanceSinceLastChargeKm != null || item.entry.odometerKm"
+                      class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap"
+                      :class="item.entry.distanceSinceLastChargeKm != null && item.entry.odometerKm
+                        ? 'cursor-pointer shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] active:shadow-none active:translate-y-1 transition-all duration-75'
+                        : ''"
+                      @click.stop="toggleOdometerDisplay(item.entry.distanceSinceLastChargeKm, item.entry.odometerKm)"
+                    >
+                      <template v-if="item.entry.distanceSinceLastChargeKm != null && !showOdometer">+{{ formatDistance(item.entry.distanceSinceLastChargeKm) }}</template>
+                      <template v-else>{{ item.entry.odometerKm != null ? formatDistance(item.entry.odometerKm) : '' }}</template>
+                    </span>
+                    <!-- Aktions-Menü -->
+                    <div class="relative ml-auto">
+                      <button @click.stop="openMenuLogId = openMenuLogId === item.entry.id ? null : item.entry.id"
+                        class="p-1 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition">
+                        <EllipsisVerticalIcon class="w-5 h-5" />
                       </button>
-                      <button v-if="canAccessTrips" @click.stop="startAddTrip(item.entry.id); openMenuLogId = null"
-                        class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
-                        <MapIcon class="w-4 h-4 flex-shrink-0" />{{ t('dashboard.action_add_trip') }}
-                      </button>
-                      <button v-if="otherCars.length > 0" @click.stop="openReassignModal(item.entry); openMenuLogId = null"
-                        class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
-                        <ArrowsRightLeftIcon class="w-4 h-4 flex-shrink-0" />{{ t('dashboard.action_reassign') }}
-                      </button>
-                      <div class="border-t border-gray-100 dark:border-gray-600 mt-1 pt-1">
-                        <button @click.stop="deleteLog(item.entry.id); openMenuLogId = null"
-                          class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition">
-                          <TrashIcon class="w-4 h-4 flex-shrink-0" />{{ t('dashboard.action_delete') }}
+                      <div v-if="openMenuLogId === item.entry.id"
+                        class="absolute right-0 bottom-full mb-1 w-44 bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 z-50 py-1 overflow-hidden">
+                        <button @click.stop="editingLog = item.entry; openMenuLogId = null"
+                          class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
+                          <PencilSquareIcon class="w-4 h-4 flex-shrink-0" />{{ t('dashboard.action_edit') }}
                         </button>
+                        <button v-if="canAccessTrips" @click.stop="startAddTrip(item.entry.id); openMenuLogId = null"
+                          class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
+                          <MapIcon class="w-4 h-4 flex-shrink-0" />{{ t('dashboard.action_add_trip') }}
+                        </button>
+                        <button v-if="otherCars.length > 0" @click.stop="openReassignModal(item.entry); openMenuLogId = null"
+                          class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
+                          <ArrowsRightLeftIcon class="w-4 h-4 flex-shrink-0" />{{ t('dashboard.action_reassign') }}
+                        </button>
+                        <div class="border-t border-gray-100 dark:border-gray-600 mt-1 pt-1">
+                          <button @click.stop="deleteLog(item.entry.id); openMenuLogId = null"
+                            class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition">
+                            <TrashIcon class="w-4 h-4 flex-shrink-0" />{{ t('dashboard.action_delete') }}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
+                </Transition>
                 <!-- Implausibility tooltip panel (normal log only) -->
                 <div
                   v-if="!item.entry._isLadegruppe && item.entry.consumptionImplausible && openTooltipLogId === item.entry.id"
@@ -1569,13 +1579,24 @@ function onTripFormLeave(el: Element, done: () => void) {
                         <span v-if="topUp.socAfterChargePercent != null" class="min-[436px]:inline-flex hidden items-center gap-1 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
                           <Battery0Icon class="w-3 h-3" />{{ topUp.socAfterChargePercent }}%
                         </span>
-                        <div class="ml-auto flex items-center gap-1 flex-shrink-0">
-                          <button @click="editingLog = topUp" class="p-1 rounded text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition" :title="t('dashboard.edit_title')">
-                            <PencilSquareIcon class="w-3.5 h-3.5" />
+                        <div class="relative ml-auto flex-shrink-0">
+                          <button @click.stop="openMenuTopUpId = openMenuTopUpId === topUp.id ? null : topUp.id"
+                            class="p-1 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition">
+                            <EllipsisVerticalIcon class="w-4 h-4" />
                           </button>
-                          <button @click="deleteLog(topUp.id)" class="p-1 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition">
-                            <TrashIcon class="w-3.5 h-3.5" />
-                          </button>
+                          <div v-if="openMenuTopUpId === topUp.id"
+                            class="absolute right-0 bottom-full mb-1 w-40 bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 z-50 py-1 overflow-hidden">
+                            <button @click.stop="editingLog = topUp; openMenuTopUpId = null"
+                              class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
+                              <PencilSquareIcon class="w-4 h-4 flex-shrink-0" />{{ t('dashboard.action_edit') }}
+                            </button>
+                            <div class="border-t border-gray-100 dark:border-gray-600 mt-1 pt-1">
+                              <button @click.stop="deleteLog(topUp.id); openMenuTopUpId = null"
+                                class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition">
+                                <TrashIcon class="w-4 h-4 flex-shrink-0" />{{ t('dashboard.action_delete') }}
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       </div>
                       <div class="max-[436px]:flex min-[436px]:hidden items-center gap-2">
