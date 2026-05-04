@@ -1288,9 +1288,6 @@ imports:
   wallbox_ocpp_goe_hint_post: i stedet – parallelt med alle wallbox-funksjonene.
   wallbox_ocpp_goe_link: Import via sky-API
   wallbox_btn: Konfigurer OCPP Wallbox
-  tesla_no_car_title: Tesla-integrasjon
-  tesla_no_car_desc: For å kunne bruke Tesla-integrasjonen må du først legge til en Tesla-bil i «{link}».
-  tesla_no_car_link: kjøretøyadministrasjon
   manuell_title: Manuell import
   manuell_desc: Importer tidligere ladingsøkter fra hvilken som helst kilde – som CSV- eller JSON-fil. Kompatibelt med TeslaMate, TeslaFi, dine egne eksporter og alle andre formater du kan tilpasse.
   manuell_feat1: CSV eller JSON – formatet er forhåndsdefinert

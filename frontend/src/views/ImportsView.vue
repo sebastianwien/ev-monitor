@@ -129,6 +129,8 @@ const hasActiveTesla = computed(() =>
   Array.isArray(cars.value) && cars.value.some(c => c.brand?.toLowerCase() === 'tesla' && (c as any).status === 'ACTIVE')
 )
 
+const showTeslaTab = computed(() => hasActiveTesla.value && authStore.canActivateTelemetry)
+
 const hasActiveVwGroupCar = computed(() =>
   authStore.isBetaTester &&
   Array.isArray(cars.value) && cars.value.some(c => isVwGroupBrand(c.brand) && (c as any).status === 'ACTIVE')
@@ -493,7 +495,7 @@ const activeCars = computed(() =>
         </div>
 
         <!-- 8. TESLA -->
-        <div>
+        <div v-if="showTeslaTab">
           <button
             @click="toggle('tesla'); analytics.trackImportTabClicked('tesla')"
             class="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
@@ -508,13 +510,7 @@ const activeCars = computed(() =>
           </button>
           <Transition name="accordion">
             <div v-if="activeTab === 'tesla'" class="border-t border-gray-100 dark:border-gray-700">
-              <div v-if="!hasActiveTesla" class="p-4">
-                <p class="text-sm text-gray-600 dark:text-gray-400">
-                  {{ t('imports.tesla_no_car_desc', { link: '' }) }}
-                  <router-link to="/cars" class="text-indigo-600 hover:underline font-medium">{{ t('imports.tesla_no_car_link') }}</router-link>
-                </p>
-              </div>
-              <div v-else class="p-4"><TeslaFleetIntegration /></div>
+              <div class="p-4"><TeslaFleetIntegration /></div>
             </div>
           </Transition>
         </div>
