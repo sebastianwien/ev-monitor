@@ -551,15 +551,25 @@ public class EvLogStatisticsService {
                 .map(entry -> {
                     List<EvLog> periodLogs = entry.getValue();
 
+                    // totalKwh ueber effectiveKwhForCost: faellt auf kwh_at_vehicle/efficiency
+                    // zurueck, wenn kwh_charged fehlt (typisch Smartcar/Tesla-Telemetry-Logs).
                     BigDecimal totalKwh = periodLogs.stream()
-                            .map(EvLog::getKwhCharged)
+                            .map(calculationService::effectiveKwhForCost)
                             .filter(Objects::nonNull)
                             .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-                    BigDecimal totalCost = periodLogs.stream()
+                    // totalCost: NULL wenn alle Logs cost_eur=NULL haben (kein Preis erfasst).
+                    // 0 bleibt eine echte Aussage (Solar/Eigenstrom).
+                    long nonNullCostCount = periodLogs.stream()
                             .map(EvLog::getCostEur)
                             .filter(Objects::nonNull)
-                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+                            .count();
+                    BigDecimal totalCost = nonNullCostCount > 0
+                            ? periodLogs.stream()
+                                    .map(EvLog::getCostEur)
+                                    .filter(Objects::nonNull)
+                                    .reduce(BigDecimal.ZERO, BigDecimal::add)
+                            : null;
 
                     // Distance and consumption: SoC-based, plausible logs only
                     BigDecimal periodWeighted = BigDecimal.ZERO;

@@ -79,7 +79,7 @@ export function useDashboardCharts(
       datasets.push({
         label: `${t('dashboard.chart_cost_per_kwh_label')} (${currencySymbol.value}/kWh)`,
         data: stats.value.chargesOverTime.map(d =>
-          d.kwhCharged > 0 ? +(convertFromEur(d.costEur / d.kwhCharged, currency.value)).toFixed(3) : null
+          d.kwhCharged > 0 && d.costEur != null ? +(convertFromEur(d.costEur / d.kwhCharged, currency.value)).toFixed(3) : null
         ),
         borderColor: isDark.value ? '#818cf8' : '#4f46e5',
         backgroundColor: isDark.value ? 'rgba(129,140,248,0.13)' : 'rgba(79,70,229,0.1)',

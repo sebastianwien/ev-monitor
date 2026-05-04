@@ -319,6 +319,73 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void shouldComputeCostPerKwh_FromSmartcarLogs_AndDropPeriodWithAllNullCosts() {
+        // Smartcar/Tesla-Telemetry schreibt nur kwh_at_vehicle, kwh_charged bleibt NULL.
+        // Vorher: Period-Aggregation summierte nur kwh_charged → totalKwh=0 → Frontend Luecke.
+        // Jetzt: Period-Aggregation nutzt effectiveKwhForCost (faellt auf kwh_at_vehicle/efficiency zurueck).
+        LocalDateTime day1 = LocalDateTime.of(2026, 4, 8, 10, 0);
+        LocalDateTime day2 = LocalDateTime.of(2026, 4, 9, 10, 0);
+        LocalDateTime day3 = LocalDateTime.of(2026, 4, 10, 10, 0);
+
+        // Day 1: Smartcar AC mit Preis - kwh_at_vehicle=18, cost=4€
+        // -> effectiveKwhForCost = 18/0.90 = 20 -> 4/20 = 0.20 €/kWh
+        evLogRepository.save(TestDataBuilder.createSmartcarStyleLog(
+                carId, day1, new BigDecimal("18.0"), new BigDecimal("4.00"),
+                com.evmonitor.domain.ChargingType.AC, 50000));
+
+        // Day 2: Smartcar AC ohne Preis (cost_eur=NULL)
+        // -> totalCost soll NULL sein, nicht 0
+        evLogRepository.save(TestDataBuilder.createSmartcarStyleLog(
+                carId, day2, new BigDecimal("3.0"), null,
+                com.evmonitor.domain.ChargingType.AC, 50000));
+
+        // Day 3: Smartcar AC mit Solarstrom (cost_eur=0)
+        // -> totalCost soll 0 sein (echte Kosten), kein NULL
+        evLogRepository.save(TestDataBuilder.createSmartcarStyleLog(
+                carId, day3, new BigDecimal("10.0"), BigDecimal.ZERO,
+                com.evmonitor.domain.ChargingType.AC, 50000));
+
+        HttpEntity<Void> requestWithAuth = createAuthRequest(userId, testUser.getEmail());
+        ResponseEntity<EvLogStatisticsResponse> response = restTemplate.exchange(
+                "/api/logs/statistics?carId=" + carId + "&groupBy=DAY",
+                HttpMethod.GET, requestWithAuth, EvLogStatisticsResponse.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        EvLogStatisticsResponse body = response.getBody();
+        assertNotNull(body);
+
+        var d1 = body.chargesOverTime().stream()
+                .filter(p -> p.timestamp().toLocalDate().equals(day1.toLocalDate()))
+                .findFirst().orElseThrow(() -> new AssertionError("day1 period missing"));
+        var d2 = body.chargesOverTime().stream()
+                .filter(p -> p.timestamp().toLocalDate().equals(day2.toLocalDate()))
+                .findFirst().orElseThrow(() -> new AssertionError("day2 period missing"));
+        var d3 = body.chargesOverTime().stream()
+                .filter(p -> p.timestamp().toLocalDate().equals(day3.toLocalDate()))
+                .findFirst().orElseThrow(() -> new AssertionError("day3 period missing"));
+
+        // Day 1: kwh_at_vehicle wird ueber effectiveKwhForCost gezaehlt → kWh > 0
+        assertNotNull(d1.kwhCharged());
+        assertTrue(d1.kwhCharged().compareTo(BigDecimal.ZERO) > 0,
+                "Smartcar-Log mit kwh_at_vehicle muss in totalKwh zaehlen");
+        assertNotNull(d1.costEur());
+        assertEquals(0, new BigDecimal("4.00").compareTo(d1.costEur()));
+
+        // Day 2: kWh > 0, aber alle Logs cost_eur=NULL → totalCost soll NULL sein
+        assertTrue(d2.kwhCharged().compareTo(BigDecimal.ZERO) > 0,
+                "Smartcar-kWh wird gezaehlt");
+        assertNull(d2.costEur(),
+                "Periode mit ausschliesslich NULL-Kosten soll totalCost=null liefern, " +
+                "damit Frontend eine Luecke statt 0€ zeichnet");
+
+        // Day 3: cost_eur=0 ist eine echte Aussage (Solar/Eigenstrom) → 0, nicht NULL
+        assertNotNull(d3.costEur(),
+                "cost_eur=0 ist echte Kosten, totalCost darf nicht NULL sein");
+        assertEquals(0, BigDecimal.ZERO.compareTo(d3.costEur()),
+                "Periode mit nur cost_eur=0 soll totalCost=0 liefern");
+    }
+
+    @Test
     void shouldRejectStatistics_ForCarNotOwnedByUser() {
         // Given: Another user's car
         User otherUser = createAndSaveUser("other-stats-" + System.nanoTime() + "@example.com");

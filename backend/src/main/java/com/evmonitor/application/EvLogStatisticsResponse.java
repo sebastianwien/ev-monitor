@@ -29,8 +29,8 @@ public record EvLogStatisticsResponse(
 ) {
     public record ChargeDataPoint(
             LocalDateTime timestamp,
-            BigDecimal costEur,
-            BigDecimal kwhCharged,
+            BigDecimal costEur,                // null if no log in this period had cost_eur set; 0 means "really 0 €" (e.g. solar)
+            BigDecimal kwhCharged,             // grid-side kWh; falls back to kwh_at_vehicle/efficiency for telemetry-only logs
             BigDecimal distanceKm,             // 0 if logs exist but no plausible distance (e.g. home-only charging)
             BigDecimal consumptionKwhPer100km  // null if distance is 0 or no odometer data
     ) {}

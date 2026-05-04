@@ -118,6 +118,32 @@ public class TestDataBuilder {
     }
 
     /**
+     * Smartcar-Stil-Log: kWh nur am Fahrzeug gemessen (kwh_at_vehicle gefuellt,
+     * kwh_charged bleibt NULL durch die Builder-Normalisierung bei AT_VEHICLE).
+     */
+    public static EvLog createSmartcarStyleLog(UUID carId, LocalDateTime timestamp,
+                                                BigDecimal kwhAtVehicle, BigDecimal costEur,
+                                                ChargingType chargingType, Integer odometerKm) {
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        return com.evmonitor.domain.EvLog.builder()
+                .id(java.util.UUID.randomUUID())
+                .carId(carId)
+                .kwhCharged(kwhAtVehicle)
+                .costEur(costEur)
+                .chargeDurationMinutes(60)
+                .geohash("u33dc")
+                .odometerKm(odometerKm)
+                .socAfterChargePercent(new BigDecimal("80"))
+                .loggedAt(timestamp)
+                .dataSource(com.evmonitor.domain.DataSource.SMARTCAR_LIVE)
+                .includeInStatistics(true)
+                .chargingType(chargingType)
+                .createdAt(now)
+                .updatedAt(now)
+                .build();
+    }
+
+    /**
      * Create a test WLTP vehicle specification.
      */
     public static VehicleSpecification createTestVehicleSpecification(
