@@ -189,7 +189,7 @@ const groupedFeed = computed<any[]>(() => {
   let i = 0
   while (i < feed.length) {
     const entry = feed[i]
-    if (entry._isTrip && canAccessTrips.value && entry._tripGroupIndex === 0) {
+    if (entry._isTrip && entry._tripGroupIndex === 0) {
       const groupId = entry._tripGroupId
       const group: any = {
         kind: 'tripGroup',
@@ -1087,7 +1087,7 @@ function onTripFormLeave(el: Element, done: () => void) {
                         </button>
                         <div v-if="openMenuTripId === trip.id"
                           class="absolute right-0 bottom-full mb-1 w-44 bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 z-50 py-1 overflow-hidden">
-                          <button @click.stop="startAddTrip(trip.id, trip.tripStartedAt); openMenuTripId = null"
+                          <button v-if="canAccessTrips" @click.stop="startAddTrip(trip.id, trip.tripStartedAt); openMenuTripId = null"
                             class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
                             <PlusIcon class="w-4 h-4 flex-shrink-0" />{{ t('dashboard.action_add_trip') }}
                           </button>
