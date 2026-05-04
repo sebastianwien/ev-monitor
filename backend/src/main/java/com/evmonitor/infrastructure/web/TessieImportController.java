@@ -3,6 +3,8 @@ package com.evmonitor.infrastructure.web;
 import com.evmonitor.application.tessie.TessieImportResult;
 import com.evmonitor.application.tessie.TessieImportService;
 import com.evmonitor.application.tessie.TessieVehicleDTO;
+import com.evmonitor.domain.Car;
+import com.evmonitor.domain.CarRepository;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +17,7 @@ import org.springframework.web.client.ResourceAccessException;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -27,6 +30,7 @@ public class TessieImportController {
     private static final Pattern VIN_PATTERN = Pattern.compile("[A-HJ-NPR-Z0-9]{17}");
 
     private final TessieImportService importService;
+    private final CarRepository carRepository;
 
     /**
      * POST /api/import/tessie/vehicles
@@ -66,8 +70,11 @@ public class TessieImportController {
 
     /**
      * POST /api/import/tessie/import
-     * Body: { "token": "...", "vin": "5YJ..." }
-     * Response: { "drivesImported": 120, "chargesImported": 45, "skipped": 3 }
+     * Body: { "token": "...", "vin": "5YJ...", "carId": "uuid" }
+     * Response: TessieImportResult (drives/charges imported + ev_logs/ev_trips created).
+     *
+     * Security: validates the supplied {@code carId} belongs to the authenticated user
+     * before any Tessie call is issued.
      */
     @PostMapping("/import")
     public ResponseEntity<?> importVin(
@@ -80,10 +87,20 @@ public class TessieImportController {
         if (request.vin() == null || !VIN_PATTERN.matcher(request.vin()).matches()) {
             return ResponseEntity.badRequest().body(Map.of("error", "VIN ungültig (17 Zeichen, A-Z0-9 ohne I/O/Q)"));
         }
+        if (request.carId() == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "carId ist erforderlich"));
+        }
+
+        UUID userId = principal.getUser().getId();
+        Optional<Car> carOpt = carRepository.findById(request.carId());
+        if (carOpt.isEmpty() || !carOpt.get().getUserId().equals(userId)) {
+            // 404 for both "not found" and "foreign car" so we don't leak IDs that exist on other users.
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "Auto nicht gefunden"));
+        }
 
         try {
-            UUID userId = principal.getUser().getId();
-            TessieImportResult result = importService.importForVin(userId, request.token(), request.vin());
+            TessieImportResult result = importService.importForVin(userId, request.token(), request.vin(), request.carId());
             return ResponseEntity.ok(result);
         } catch (HttpClientErrorException.Unauthorized e) {
             return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
@@ -103,5 +120,5 @@ public class TessieImportController {
         }
     }
 
-    private record ImportRequest(String token, String vin) {}
+    private record ImportRequest(String token, String vin, UUID carId) {}
 }

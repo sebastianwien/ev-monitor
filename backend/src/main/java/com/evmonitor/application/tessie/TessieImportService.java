@@ -21,12 +21,22 @@ public class TessieImportService {
 
     private final TessieClient client;
     private final TessieRawImportJdbcWriter writer;
+    private final TessieProcessorService processor;
 
     public List<TessieVehicleDTO> fetchVehicles(String token) {
         return client.getVehicles(token);
     }
 
-    public TessieImportResult importForVin(UUID userId, String token, String vin) {
+    /**
+     * Fetches one VIN's drives and charges from Tessie, persists the raw payloads
+     * (deduplicated via tessie_raw_imports unique key), and immediately processes
+     * the unprocessed rows into ev_log + ev_trip for the supplied {@code carId}.
+     *
+     * The Tessie HTTP fetch runs OUTSIDE any database transaction so the connection
+     * pool stays free during the (possibly slow) external call. The raw write and
+     * the processor each manage their own transactions internally.
+     */
+    public TessieImportResult importForVin(UUID userId, String token, String vin, UUID carId) {
         List<JsonNode> driveNodes = client.getDrives(token, vin);
         List<JsonNode> chargeNodes = client.getCharges(token, vin);
 
@@ -37,9 +47,14 @@ public class TessieImportService {
         int chargesImported = sum(writer.batchInsertIfNew(charges));
         int skipped = (drives.size() + charges.size()) - drivesImported - chargesImported;
 
-        log.info("Tessie import user={} vin={}: drives={} charges={} skipped={}",
-                userId, vin, drivesImported, chargesImported, skipped);
-        return new TessieImportResult(drivesImported, chargesImported, skipped);
+        TessieProcessorService.TessieProcessorResult procResult = processor.processForCar(userId, vin, carId);
+
+        log.info("Tessie import user={} vin={} car={}: drives={} charges={} skipped={} ev_logs={} ev_trips={}",
+                userId, vin, carId, drivesImported, chargesImported, skipped,
+                procResult.evLogsCreated(), procResult.evTripsCreated());
+        return new TessieImportResult(
+                drivesImported, chargesImported, skipped,
+                procResult.evLogsCreated(), procResult.evTripsCreated());
     }
 
     private List<TessieRawImport> toEntities(UUID userId, String vin, String type, List<JsonNode> nodes) {

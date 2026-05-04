@@ -23,32 +23,39 @@ class TessieImportServiceTest {
 
     @Mock private TessieClient client;
     @Mock private TessieRawImportJdbcWriter writer;
+    @Mock private TessieProcessorService processor;
 
     private TessieImportService service;
     private final ObjectMapper mapper = new ObjectMapper();
     private final UUID userId = UUID.randomUUID();
+    private final UUID carId = UUID.randomUUID();
     private final String token = "test-token";
     private final String vin = "5YJ3E7EAXKF000001";
 
     @BeforeEach
     void setUp() {
-        service = new TessieImportService(client, writer);
+        service = new TessieImportService(client, writer, processor);
     }
 
     @Test
-    void importForVin_countsImportedDrivesAndCharges() throws Exception {
+    void importForVin_countsImportedAndProcessed() throws Exception {
         JsonNode drive = mapper.readTree("{\"id\":1,\"started_at\":1628960959,\"energy_used\":30.5}");
         JsonNode charge = mapper.readTree("{\"id\":2,\"started_at\":1628906796,\"energy_added\":20.0}");
 
         when(client.getDrives(token, vin)).thenReturn(List.of(drive));
         when(client.getCharges(token, vin)).thenReturn(List.of(charge));
         when(writer.batchInsertIfNew(anyList())).thenReturn(new int[]{1});
+        when(processor.processForCar(userId, vin, carId))
+                .thenReturn(new TessieProcessorService.TessieProcessorResult(2, 5));
 
-        TessieImportResult result = service.importForVin(userId, token, vin);
+        TessieImportResult result = service.importForVin(userId, token, vin, carId);
 
         assertEquals(1, result.drivesImported());
         assertEquals(1, result.chargesImported());
         assertEquals(0, result.skipped());
+        assertEquals(2, result.evLogsCreated());
+        assertEquals(5, result.evTripsCreated());
+        verify(processor).processForCar(userId, vin, carId);
     }
 
     @Test
@@ -58,8 +65,10 @@ class TessieImportServiceTest {
         when(client.getDrives(token, vin)).thenReturn(List.of(drive));
         when(client.getCharges(token, vin)).thenReturn(List.of());
         when(writer.batchInsertIfNew(anyList())).thenReturn(new int[]{0});
+        when(processor.processForCar(any(), any(), any()))
+                .thenReturn(new TessieProcessorService.TessieProcessorResult(0, 0));
 
-        TessieImportResult result = service.importForVin(userId, token, vin);
+        TessieImportResult result = service.importForVin(userId, token, vin, carId);
 
         assertEquals(0, result.drivesImported());
         assertEquals(0, result.chargesImported());
@@ -73,8 +82,10 @@ class TessieImportServiceTest {
         when(client.getDrives(token, vin)).thenReturn(List.of(driveNoId));
         when(client.getCharges(token, vin)).thenReturn(List.of());
         when(writer.batchInsertIfNew(anyList())).thenReturn(new int[]{});
+        when(processor.processForCar(any(), any(), any()))
+                .thenReturn(new TessieProcessorService.TessieProcessorResult(0, 0));
 
-        TessieImportResult result = service.importForVin(userId, token, vin);
+        TessieImportResult result = service.importForVin(userId, token, vin, carId);
 
         assertEquals(0, result.drivesImported());
         assertEquals(0, result.skipped());
@@ -88,8 +99,10 @@ class TessieImportServiceTest {
         when(client.getDrives(token, vin)).thenReturn(List.of(drive));
         when(client.getCharges(token, vin)).thenReturn(List.of());
         when(writer.batchInsertIfNew(anyList())).thenReturn(new int[]{1});
+        when(processor.processForCar(any(), any(), any()))
+                .thenReturn(new TessieProcessorService.TessieProcessorResult(0, 0));
 
-        service.importForVin(userId, token, vin);
+        service.importForVin(userId, token, vin, carId);
 
         ArgumentCaptor<List> captor = ArgumentCaptor.forClass(List.class);
         verify(writer, times(2)).batchInsertIfNew(captor.capture());
