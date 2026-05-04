@@ -346,7 +346,7 @@ const activeCars = computed(() =>
         </div>
 
         <!-- 5. TESSIE -->
-        <div v-if="false">
+        <div>
           <button
             @click="toggle('tessie'); analytics.trackImportTabClicked('tessie')"
             class="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
@@ -528,7 +528,7 @@ const activeCars = computed(() =>
   <SpritMonitorImport v-if="showSpritMonitorModal" @close="showSpritMonitorModal = false" />
 
   <!-- Tessie Import Modal -->
-  <TessieImport v-if="showTessieModal" @close="showTessieModal = false" />
+  <TessieImport v-if="showTessieModal" :cars="activeCars" @close="showTessieModal = false" />
 
   <!-- Manual Import Modal -->
   <ManualImportModal

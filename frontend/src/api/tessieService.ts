@@ -10,6 +10,8 @@ export interface TessieImportResult {
   drivesImported: number;
   chargesImported: number;
   skipped: number;
+  evLogsCreated: number;
+  evTripsCreated: number;
 }
 
 export const tessieService = {
@@ -18,8 +20,8 @@ export const tessieService = {
     return response.data;
   },
 
-  async importVin(token: string, vin: string): Promise<TessieImportResult> {
-    const response = await axiosInstance.post('/import/tessie/import', { token, vin });
+  async importVin(token: string, vin: string, carId: string): Promise<TessieImportResult> {
+    const response = await axiosInstance.post('/import/tessie/import', { token, vin, carId });
     return response.data;
   },
 };

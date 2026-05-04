@@ -1270,10 +1270,10 @@ imports:
   sprit_feat3: Val av fordon
   sprit_feat4: Engångstoken för API sparas inte
   sprit_btn: Starta importen av Sprit-Monitor
-  tessie_desc: Importera körningar och laddningssessioner från Tessie. Din API-token sparas inte.
-  tessie_feat1: Körningar och laddningar sedan 2019
-  tessie_feat2: Alla Tesla-modeller (utom Roadster)
-  tessie_feat3: Token raderas omedelbart efter importen
+  tessie_desc: Importera din kompletta laddnings- och körhistorik från Tessie. Din API-token kastas omedelbart efter importen, inget sparas.
+  tessie_feat1: Laddningssessioner med kWh, SoC och plats
+  tessie_feat2: Körningar med distans, förbrukning och utetemperatur
+  tessie_feat3: Fordonstilldelning valbar
   tessie_btn: Starta Tessie-import
   goe_title: go-eCharger Cloud
   goe_desc: Anslut din go-eCharger via moln-API:et för helt automatisk import. Laddningsstatusen kontrolleras var 30:e sekund och avslutade laddningssessioner loggas automatiskt.
@@ -1678,17 +1678,25 @@ tessie:
   deselect_all: Avmarkera alla
   inactive: Inaktiv
   back_btn: Tillbaka
+  continue_btn: "Fortsätt ({n})"
   import_btn: "Importera ({n})"
+  step3_title: Koppla till dina bilar
+  step3_intro: Välj rätt bil per VIN från ditt garage. Först därefter importeras laddnings- och kördata.
+  mapping_no_cars: Du har ingen aktiv bil än.
+  mapping_no_cars_link: Till garaget
+  mapping_select_aria: Välj bil för VIN {vin}
+  ac_hint: AC-laddning under 11 kW importeras som privat (hemladdning). Du kan korrigera detta per post senare.
   importing_title: Importerar...
   importing_progress: "{current} av {total}"
   done_title: Import klar
-  done_drives: "{n} körningar importerade"
-  done_charges: "{n} laddningssessioner importerade"
+  done_drives: "{n} nya körningar i din statistik"
+  done_charges: "{n} nya laddningssessioner i din statistik"
   done_skipped: "{n} redan lagrade (hoppades över)"
   done_per_vehicle: Per fordon
-  done_hint: Rådata sparad - koppling till laddningssessioner sker i nästa steg.
+  done_hint: Den importerade datan finns nu i din statistik.
   done_partial_error: Ett eller flera fordon misslyckades med importen. Kontrollera detaljerna ovan.
   done_btn: Klar
+  done_to_dashboard: Till statistiken
 
 demo:
   title: Demokonto

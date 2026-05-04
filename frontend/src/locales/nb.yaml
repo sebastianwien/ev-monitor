@@ -1270,10 +1270,10 @@ imports:
   sprit_feat3: Valg av kjøretøy
   sprit_feat4: Engangs-API-token lagres ikke
   sprit_btn: Start import av Sprit-Monitor
-  tessie_desc: Importer kjøretøydata og ladesøkter fra Tessie. API-tokenet lagres ikke.
-  tessie_feat1: Turer og ladesøkter siden 2019
-  tessie_feat2: Alle Tesla-modeller (bortsett fra Roadster)
-  tessie_feat3: Tokenet slettes umiddelbart etter importen
+  tessie_desc: Importer hele lade- og kjørehistorikken din fra Tessie. API-tokenet ditt forkastes umiddelbart etter importen, ingenting lagres.
+  tessie_feat1: Ladesøkter med kWh, SoC og posisjon
+  tessie_feat2: Turer med distanse, forbruk og utetemperatur
+  tessie_feat3: Kjøretøytilknytning valgbar
   tessie_btn: Start Tessie-import
   goe_title: go-eCharger Cloud
   goe_desc: Koble til go-eCharger via Cloud API for helautomatisk import. Ladestatusen sjekkes hvert 30. sekund, og fullførte ladesesjoner loggføres automatisk.
@@ -1678,17 +1678,25 @@ tessie:
   deselect_all: Fjern alle valg
   inactive: Inaktiv
   back_btn: Tilbake
+  continue_btn: "Fortsett ({n})"
   import_btn: "Importer ({n})"
+  step3_title: Tilknytt til bilene dine
+  step3_intro: Velg riktig bil per VIN fra garasjen din. Først da importeres lade- og turdata.
+  mapping_no_cars: Du har ingen aktiv bil ennå.
+  mapping_no_cars_link: Til garasjen
+  mapping_select_aria: Velg bil for VIN {vin}
+  ac_hint: AC-lading under 11 kW importeres som privat (hjemmelading). Du kan korrigere dette per oppføring senere.
   importing_title: Importerer...
   importing_progress: "{current} av {total}"
   done_title: Import fullført
-  done_drives: "{n} turer importert"
-  done_charges: "{n} ladesøkter importert"
+  done_drives: "{n} nye turer i statistikken din"
+  done_charges: "{n} nye ladesøkter i statistikken din"
   done_skipped: "{n} allerede lagret (hoppet over)"
   done_per_vehicle: Per kjøretøy
-  done_hint: Rådata er lagret - tilknytning til ladesøkter kommer i neste trinn.
+  done_hint: De importerte dataene er nå tilgjengelige i statistikken din.
   done_partial_error: Ett eller flere kjøretøy mislyktes under import. Sjekk detaljene ovenfor.
   done_btn: Ferdig
+  done_to_dashboard: Til statistikken
 
 demo:
   title: Demokonto
