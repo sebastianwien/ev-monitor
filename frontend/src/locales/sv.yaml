@@ -535,8 +535,13 @@ dashboard:
   metric_charges: laddningar
   metric_total_cost: Total kostnad
   metric_total_distance: Total sträcka
+  metric_total_distance_tooltip: "Endast sträckor mellan fullständigt registrerade laddningar räknas."
   metric_km_driven: körda kilometer
   metric_avg_consumption: Genomsnittlig förbrukning
+  metric_avg_consumption_tooltip: "Ofullständiga laddningar ingår inte i förbrukningsberäkningen."
+  metric_avg_cost_tooltip: "Ofullständiga laddningar ingår inte i kostnadsberäkningen."
+  metric_complete_definition: "Fullständig: med vägmätarställning, laddade kWh och laddningsnivå efter laddning."
+  metric_info_aria: "Visa beräkningsanmärkning"
   metric_consumption_methodology_link: "Beräkningsgrundlag"
   metric_estimated: "{n} uppskattad laddning (utan SoC)"
   metric_avg_cost: Genomsnittlig kostnad

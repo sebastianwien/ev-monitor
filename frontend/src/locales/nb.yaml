@@ -535,8 +535,13 @@ dashboard:
   metric_charges: ladinger
   metric_total_cost: Totalkostnad
   metric_total_distance: Total distanse
+  metric_total_distance_tooltip: "Bare strekninger mellom fullstendig registrerte ladinger telles."
   metric_km_driven: kjørte kilometer
   metric_avg_consumption: Gjennomsnittlig forbruk
+  metric_avg_consumption_tooltip: "Ufullstendige ladinger inngår ikke i forbruksberegningen."
+  metric_avg_cost_tooltip: "Ufullstendige ladinger inngår ikke i kostnadsberegningen."
+  metric_complete_definition: "Fullstendig: med kilometerstand, ladet kWh og ladenivå etter lading."
+  metric_info_aria: "Vis beregningsmerknad"
   metric_consumption_methodology_link: "Beregningsgrunnlag"
   metric_estimated: "{n} Anslått ladetid (uten SoC)"
   metric_avg_cost: Gjennomsnittlig pris
