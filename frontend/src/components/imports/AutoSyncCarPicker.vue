@@ -236,8 +236,7 @@ function toggleExpand(carId: string) {
                         <div v-if="expandedCarId === car.id" class="border-t border-slate-100 dark:border-slate-700/40">
                             <!-- Locked: another car holds the connection -->
                             <div v-if="tileStateFor(car) === 'locked' && activeCar" class="p-4 md:p-5">
-                                <div class="relative bg-gray-50 dark:bg-slate-900/80 rounded-xl p-4 pl-5 overflow-hidden flex items-start gap-3">
-                                    <span class="absolute left-0 top-0 bottom-0 w-1 bg-amber-500"></span>
+                                <div class="flex items-start gap-3">
                                     <LockClosedIcon class="h-5 w-5 text-amber-500 dark:text-amber-400 mt-0.5 shrink-0" />
                                     <div class="text-sm space-y-1">
                                         <p class="font-medium text-gray-900 dark:text-white">

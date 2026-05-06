@@ -1195,7 +1195,7 @@ imports:
   subtitle: "Import your past charging sessions or connect a home wallbox for automatic import."
   tab_smartcar: "AutoSync"
   autosync_teaser_title: "Record all charging sessions automatically"
-  autosync_teaser_desc: "Want all your car's charging sessions imported automatically - no manual entry needed? EV Monitor AutoSync makes it possible - compatible with 28 car brands."
+  autosync_teaser_desc: "Want all your car's charging sessions imported automatically - no manual entry needed? With AutoSync, this is now possible for over 28 brands!"
   autosync_teaser_cta: "Unlock AutoSync"
   autosync_teaser_price: "{priceMonthly}/month - cancel anytime"
   smartcar_upgrade_cta: "Unlock now - {priceMonthly}/month"

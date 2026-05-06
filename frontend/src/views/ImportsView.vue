@@ -34,10 +34,12 @@ const premiumEnabled = ref(false)
 const subscriptionIsPremium = ref(authStore.isPremium)
 
 onMounted(async () => {
+  if (!authStore.isPremium) {
+    activeTab.value = null
+  }
   const params = new URLSearchParams(window.location.search)
   if (params.get('smartcar-connected') || params.get('smartcar-error')) {
     activeTab.value = 'smartcar'
-    // URL-Bereinigung überlässt SmartcarIntegration.vue (liest den Param selbst aus)
   }
   try {
     cars.value = await carStore.getCars() ?? []
@@ -157,15 +159,15 @@ const teslaConnectedLabel = ref<string | null>(null)
         </div>
 
         <!-- AutoSync Pro Teaser — nur wenn Premium-Kauf möglich und User noch kein Abonnent -->
-        <div v-if="premiumEnabled && !authStore.isPremium" class="mb-4 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-4">
-          <div class="flex items-start gap-3">
-            <div class="shrink-0 bg-green-600 rounded-lg p-2 mt-0.5">
+        <div v-if="premiumEnabled && !authStore.isPremium" class="mb-4 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-4 text-center md:text-left">
+          <div class="flex flex-col items-center md:flex-row md:items-start gap-3">
+            <div class="shrink-0 bg-green-600 rounded-lg p-2">
               <BoltIcon class="h-5 w-5 text-white" />
             </div>
             <div class="flex-1 min-w-0">
               <p class="font-semibold text-gray-900 dark:text-gray-100 text-sm mb-1">{{ t('imports.autosync_teaser_title') }}</p>
               <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">{{ t('imports.autosync_teaser_desc') }}</p>
-              <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+              <div class="flex flex-col items-center sm:flex-row sm:items-center gap-2">
                 <router-link
                   to="/upgrade"
                   class="inline-flex items-center justify-center gap-1.5 bg-green-600 hover:bg-green-500 active:translate-y-1 active:shadow-none text-white text-sm font-semibold px-4 py-2 rounded-lg transition-all shadow-[0_4px_0_0_#166534]"

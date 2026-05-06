@@ -434,12 +434,8 @@ async function retryConnect() {
 
       <!-- ── POLLING MODE ────────────────────────────────────────────────── -->
       <template v-else-if="pairingStatusLoaded">
-        <!-- Fleet Telemetry setup - primary CTA. Solid slate card with amber accent -->
-        <div
-          v-if="authStore.canActivateTelemetry"
-          class="relative bg-gray-50 dark:bg-slate-900/80 border border-gray-200 dark:border-slate-800 rounded-xl p-4 pl-5 overflow-hidden space-y-2"
-        >
-          <span class="absolute left-0 top-0 bottom-0 w-1 bg-amber-500"></span>
+        <!-- Fleet Telemetry setup - primary CTA -->
+        <div v-if="authStore.canActivateTelemetry" class="space-y-2 text-center">
           <p class="text-xs font-semibold text-gray-900 dark:text-white">
             {{ t('tesla.pairing_title') }}
             <span v-if="pairingRoleBadge" class="ml-1 text-[10px] uppercase bg-amber-500/15 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded">{{ pairingRoleBadge }}</span>
@@ -495,10 +491,9 @@ async function retryConnect() {
             {{ t('tesla.pairing_refresh') }}
           </button>
 
-          <div v-if="pairingError" class="relative bg-gray-50 dark:bg-slate-900/80 border border-gray-200 dark:border-slate-800 rounded-lg p-2 pl-4 overflow-hidden flex items-start gap-2">
-            <span class="absolute left-0 top-0 bottom-0 w-1 bg-red-500"></span>
-            <ExclamationTriangleIcon class="h-4 w-4 text-red-500 dark:text-red-400 mt-0.5 shrink-0" />
-            <p class="text-xs text-gray-700 dark:text-slate-300">{{ pairingError }}</p>
+          <div v-if="pairingError" class="flex items-center justify-center gap-2">
+            <ExclamationTriangleIcon class="h-4 w-4 text-red-500 dark:text-red-400 shrink-0" />
+            <p class="text-xs text-red-700 dark:text-red-300">{{ pairingError }}</p>
           </div>
         </div>
 

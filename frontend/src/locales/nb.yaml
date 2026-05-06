@@ -1174,7 +1174,7 @@ imports:
   subtitle: Importer tidligere ladinger, eller koble til en hjemmeladestasjon for automatisk import.
   tab_smartcar: Automatisk synkronisering
   autosync_teaser_title: Registrer alle ladeøkter automatisk
-  autosync_teaser_desc: Vil du at alle bilens ladinger skal importeres automatisk – uten at du trenger å legge dem inn manuelt? EV Monitor AutoSync gjør det mulig – kompatibelt med 28 bilmerker.
+  autosync_teaser_desc: Vil du at alle bilens ladinger skal importeres automatisk - uten at du trenger å legge dem inn manuelt? Med AutoSync er dette nå mulig for over 28 merker!
   autosync_teaser_cta: Aktiver AutoSync
   autosync_teaser_price: "{priceMonthly} /måned – kan sies opp når som helst"
   smartcar_upgrade_cta: Lås opp nå – {priceMonthly} /måned

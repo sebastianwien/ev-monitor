@@ -1195,7 +1195,7 @@ imports:
   subtitle: "Importiere deine bisherigen Ladevorgänge oder verbinde eine Heimwallbox für automatischen Import."
   tab_smartcar: "AutoSync"
   autosync_teaser_title: "Ladevorgänge vollautomatisch aufzeichnen"
-  autosync_teaser_desc: "Möchtest du, dass alle Ladevorgänge deines Autos künftig vollautomatisch importiert werden - ohne manuelle Eingabe? EV Monitor AutoSync macht das möglich - kompatibel mit 28 Fahrzeugherstellern."
+  autosync_teaser_desc: "Möchtest du, dass alle Ladevorgänge deines Autos künftig vollautomatisch importiert werden - ohne manuelle Eingabe? Mit AutoSync ist das nun für über 28 Hersteller möglich!"
   autosync_teaser_cta: "AutoSync freischalten"
   autosync_teaser_price: "{priceMonthly}/Monat - jederzeit kündbar"
   smartcar_upgrade_cta: "Jetzt freischalten - {priceMonthly}/Monat"
