@@ -10,8 +10,16 @@ export default defineConfig({
     },
     server: {
         proxy: {
-            // Connectors service — must come before /api to take precedence
+            // Connectors service - must come before /api to take precedence
             '/api/tesla': {
+                target: 'http://localhost:8081',
+                changeOrigin: true
+            },
+            '/api/smartcar': {
+                target: 'http://localhost:8081',
+                changeOrigin: true
+            },
+            '/api/vwgroup': {
                 target: 'http://localhost:8081',
                 changeOrigin: true
             },
