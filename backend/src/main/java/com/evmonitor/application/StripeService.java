@@ -190,6 +190,7 @@ public class StripeService {
                         ? Instant.ofEpochSecond(data.get("current_period_end").getAsLong())
                         : null;
                 findUserByCustomerId(customerId).ifPresent(u -> {
+                    boolean wasPremium = u.isPremium();
                     userRepository.setPremium(u.getId(), isActive);
                     if (periodEnd != null) {
                         userRepository.setSubscriptionPeriodEnd(u.getId(), periodEnd);
@@ -198,9 +199,15 @@ public class StripeService {
                         userRepository.markTrialUsed(u.getId());
                     }
                     // Status transitioned away from active/trialing (e.g. canceled, past_due,
-                    // incomplete_expired, unpaid) → Smartcar billing must stop now.
+                    // incomplete_expired, unpaid) → Smartcar billing must stop, Tesla telemetry off.
                     if (!isActive) {
                         disconnectSmartcar(u.getId());
+                        disableTeslaTelemetry(u.getId());
+                    } else if (!wasPremium) {
+                        // Transition inactive→active: AutoSync purchase. Kick off Tesla telemetry
+                        // auto-enable for users with a paired Tesla. No-op for non-Tesla users
+                        // (connectors-service returns 404, treated as benign).
+                        enableTeslaTelemetry(u.getId());
                     }
                 });
                 log.info("[STRIPE] subscription {} -> isPremium={} for customer={}", status, isActive, customerId);
@@ -210,6 +217,7 @@ public class StripeService {
                 findUserByCustomerId(customerId).ifPresent(u -> {
                     userRepository.setPremium(u.getId(), false);
                     disconnectSmartcar(u.getId());
+                    disableTeslaTelemetry(u.getId());
                 });
                 log.info("[STRIPE] subscription deleted -> isPremium=false for customer={}", customerId);
             }
@@ -224,7 +232,8 @@ public class StripeService {
                         u -> {
                             userRepository.setPremium(u.getId(), false);
                             disconnectSmartcar(u.getId());
-                            log.warn("[STRIPE] payment failed for customer={} userId={} — premium revoked, Smartcar disconnected", customerId, u.getId());
+                            disableTeslaTelemetry(u.getId());
+                            log.warn("[STRIPE] payment failed for customer={} userId={} - premium revoked, Smartcar disconnected, Tesla telemetry stopped", customerId, u.getId());
                         },
                         () -> log.warn("[STRIPE] payment failed for unknown customer={} — no action taken", customerId)
                 );
@@ -324,6 +333,65 @@ public class StripeService {
 
     private Optional<User> findUserByCustomerId(String customerId) {
         return userRepository.findByStripeCustomerId(customerId);
+    }
+
+    /**
+     * Auto-activate Tesla fleet telemetry on AutoSync purchase. Fires only on
+     * inactive→active transitions; idempotent so duplicate webhooks are safe.
+     * 404 from connectors-service means the user has no Tesla connection -
+     * common for non-Tesla Premium users, treated as benign.
+     */
+    private void enableTeslaTelemetry(UUID userId) {
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("X-Internal-Token", internalToken);
+            restTemplate.exchange(
+                    connectorsBaseUrl + "/api/internal/tesla/" + userId + "/enable-telemetry",
+                    HttpMethod.POST,
+                    new HttpEntity<>(headers),
+                    Void.class);
+            log.info("[STRIPE] Tesla telemetry enable triggered for userId={}", userId);
+        } catch (org.springframework.web.client.HttpClientErrorException.NotFound e) {
+            log.debug("[STRIPE] Tesla telemetry enable skipped for userId={} - no Tesla connection", userId);
+        } catch (Exception e) {
+            log.warn("[STRIPE] Tesla telemetry enable failed for userId={}: {}", userId, e.getMessage());
+        }
+    }
+
+    /**
+     * Auto-deactivate Tesla fleet telemetry when entitlement is lost.
+     * Re-reads entitlement before the call so privileged roles (ADMIN, BETA_TESTER,
+     * TESLA_FOUNDER) keep telemetry running, and a parallel re-subscription that
+     * flipped is_premium=true wins the race.
+     */
+    private void disableTeslaTelemetry(UUID userId) {
+        Optional<User> userOpt = userRepository.findById(userId);
+        if (userOpt.isEmpty()) {
+            log.warn("[STRIPE] Tesla telemetry disable skipped: user {} not found", userId);
+            return;
+        }
+        User user = userOpt.get();
+        String role = user.getRole();
+        boolean privilegedRole = "ADMIN".equals(role) || "BETA_TESTER".equals(role) || "TESLA_FOUNDER".equals(role);
+        if (user.isPremium() || privilegedRole) {
+            log.info("[STRIPE] Tesla telemetry disable skipped for userId={} - still entitled (premium={}, role={})",
+                    userId, user.isPremium(), role);
+            return;
+        }
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("X-Internal-Token", internalToken);
+            restTemplate.exchange(
+                    connectorsBaseUrl + "/api/internal/tesla/" + userId + "/disable-telemetry",
+                    HttpMethod.POST,
+                    new HttpEntity<>(headers),
+                    Void.class);
+            log.info("[STRIPE] Tesla telemetry disabled for userId={}", userId);
+        } catch (org.springframework.web.client.HttpClientErrorException.NotFound e) {
+            log.debug("[STRIPE] Tesla telemetry disable skipped for userId={} - no Tesla connection", userId);
+        } catch (Exception e) {
+            log.warn("[STRIPE] Tesla telemetry disable failed for userId={}: {}", userId, e.getMessage());
+        }
     }
 
     private void disconnectSmartcar(UUID userId) {

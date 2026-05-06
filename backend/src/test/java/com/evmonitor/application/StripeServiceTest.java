@@ -129,6 +129,30 @@ class StripeServiceTest {
                 eq(HttpMethod.DELETE), any(), eq(Void.class));
     }
 
+    private void verifyTeslaEnableCalledFor(RestTemplate mockRest, UUID userId) {
+        verify(mockRest).exchange(
+                contains("/api/internal/tesla/" + userId + "/enable-telemetry"),
+                eq(HttpMethod.POST), any(), eq(Void.class));
+    }
+
+    private void verifyTeslaDisableCalledFor(RestTemplate mockRest, UUID userId) {
+        verify(mockRest).exchange(
+                contains("/api/internal/tesla/" + userId + "/disable-telemetry"),
+                eq(HttpMethod.POST), any(), eq(Void.class));
+    }
+
+    private User userWithRole(UUID id, String role, boolean premium) {
+        LocalDateTime now = LocalDateTime.now();
+        return User.builder()
+                .id(id).email(role.toLowerCase() + "@example.com").username(role.toLowerCase()).passwordHash("hash")
+                .authProvider(AuthProvider.LOCAL).role(role)
+                .emailVerified(true).emailNotificationsEnabled(true)
+                .referralCode("REFERRALCODE1").stripeCustomerId(CUSTOMER_ID)
+                .premium(premium)
+                .createdAt(now).updatedAt(now)
+                .build();
+    }
+
     // =========================================================================
     // customer.subscription.created / customer.subscription.updated
     // =========================================================================
@@ -229,7 +253,11 @@ class StripeServiceTest {
             stripeService.dispatch("customer.subscription.updated",
                     subscriptionPayload(CUSTOMER_ID, "active", 1_800_000_000L));
 
-            verify(mockRest, never()).exchange(anyString(), any(HttpMethod.class), any(), eq(Void.class));
+            // Active status must not disconnect Smartcar. (It DOES trigger Tesla
+            // telemetry enable for inactive→active transition - covered separately.)
+            verify(mockRest, never()).exchange(
+                    contains("/api/internal/smartcar/disconnect/"),
+                    any(HttpMethod.class), any(), eq(Void.class));
         }
 
         @Test
@@ -472,6 +500,187 @@ class StripeServiceTest {
             stripeService.dispatch("invoice.payment_failed", data);
 
             verify(userRepository, never()).setPremium(any(), anyBoolean());
+        }
+    }
+
+    // =========================================================================
+    // Tesla telemetry auto-activation / deactivation
+    // =========================================================================
+
+    @Nested
+    class TeslaTelemetryAutoActivation {
+
+        // ── enable on inactive→active transition ────────────────────────────
+
+        @Test
+        void subscriptionCreated_active_userPreviouslyNotPremium_triggersTeslaEnable() {
+            RestTemplate mockRest = installMockRestTemplate();
+            User user = buildUser(USER_ID, null); // premium=false default
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));
+
+            stripeService.dispatch("customer.subscription.created",
+                    subscriptionPayload(CUSTOMER_ID, "active", 1_800_000_000L));
+
+            verifyTeslaEnableCalledFor(mockRest, USER_ID);
+        }
+
+        @Test
+        void subscriptionCreated_trialing_userPreviouslyNotPremium_triggersTeslaEnable() {
+            RestTemplate mockRest = installMockRestTemplate();
+            User user = buildUser(USER_ID, null);
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));
+
+            stripeService.dispatch("customer.subscription.created",
+                    subscriptionPayload(CUSTOMER_ID, "trialing", 1_800_000_000L));
+
+            verifyTeslaEnableCalledFor(mockRest, USER_ID);
+        }
+
+        @Test
+        void subscriptionUpdated_active_userAlreadyPremium_skipsTeslaEnable() {
+            // No transition → no auto-enable. Idempotent against repeated webhook delivery
+            // and against subscription.updated events that don't change status.
+            RestTemplate mockRest = installMockRestTemplate();
+            User user = userWithRole(USER_ID, "USER", true); // premium=true already
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));
+
+            stripeService.dispatch("customer.subscription.updated",
+                    subscriptionPayload(CUSTOMER_ID, "active", 1_800_000_000L));
+
+            verify(mockRest, never()).exchange(
+                    contains("/api/internal/tesla/" + USER_ID + "/enable-telemetry"),
+                    any(HttpMethod.class), any(), eq(Void.class));
+        }
+
+        @Test
+        void subscriptionUpdated_inactive_doesNotTriggerEnable() {
+            RestTemplate mockRest = installMockRestTemplate();
+            User user = buildUser(USER_ID, null);
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
+
+            stripeService.dispatch("customer.subscription.updated",
+                    subscriptionPayload(CUSTOMER_ID, "canceled", 1_800_000_000L));
+
+            verify(mockRest, never()).exchange(
+                    contains("/api/internal/tesla/" + USER_ID + "/enable-telemetry"),
+                    any(HttpMethod.class), any(), eq(Void.class));
+        }
+
+        // ── disable on cancel / payment_failed / subscription.deleted ────────
+
+        @Test
+        void subscriptionCanceled_triggersTeslaDisable() {
+            RestTemplate mockRest = installMockRestTemplate();
+            User user = buildUser(USER_ID, null);
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user)); // role=USER, premium=false
+
+            stripeService.dispatch("customer.subscription.updated",
+                    subscriptionPayload(CUSTOMER_ID, "canceled", 1_800_000_000L));
+
+            verifyTeslaDisableCalledFor(mockRest, USER_ID);
+        }
+
+        @Test
+        void subscriptionDeleted_triggersTeslaDisable() {
+            RestTemplate mockRest = installMockRestTemplate();
+            User user = buildUser(USER_ID, null);
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
+
+            JsonObject data = JsonParser.parseString("""
+                    {"customer": "%s"}
+                    """.formatted(CUSTOMER_ID)).getAsJsonObject();
+
+            stripeService.dispatch("customer.subscription.deleted", data);
+
+            verifyTeslaDisableCalledFor(mockRest, USER_ID);
+        }
+
+        @Test
+        void paymentFailed_triggersTeslaDisable() {
+            RestTemplate mockRest = installMockRestTemplate();
+            User user = buildUser(USER_ID, null);
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
+
+            JsonObject data = JsonParser.parseString("""
+                    {"customer": "%s"}
+                    """.formatted(CUSTOMER_ID)).getAsJsonObject();
+
+            stripeService.dispatch("invoice.payment_failed", data);
+
+            verifyTeslaDisableCalledFor(mockRest, USER_ID);
+        }
+
+        // ── role-based skip on disable ──────────────────────────────────────
+
+        @Test
+        void canceled_adminUser_skipsTeslaDisable() {
+            RestTemplate mockRest = installMockRestTemplate();
+            User user = buildUser(USER_ID, null);
+            User admin = userWithRole(USER_ID, "ADMIN", false);
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(admin));
+
+            stripeService.dispatch("customer.subscription.updated",
+                    subscriptionPayload(CUSTOMER_ID, "canceled", 1_800_000_000L));
+
+            verify(mockRest, never()).exchange(
+                    contains("/api/internal/tesla/" + USER_ID + "/disable-telemetry"),
+                    any(HttpMethod.class), any(), eq(Void.class));
+        }
+
+        @Test
+        void canceled_betaTester_skipsTeslaDisable() {
+            RestTemplate mockRest = installMockRestTemplate();
+            User user = buildUser(USER_ID, null);
+            User beta = userWithRole(USER_ID, "BETA_TESTER", false);
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(beta));
+
+            stripeService.dispatch("customer.subscription.updated",
+                    subscriptionPayload(CUSTOMER_ID, "canceled", 1_800_000_000L));
+
+            verify(mockRest, never()).exchange(
+                    contains("/api/internal/tesla/" + USER_ID + "/disable-telemetry"),
+                    any(HttpMethod.class), any(), eq(Void.class));
+        }
+
+        @Test
+        void canceled_teslaFounder_skipsTeslaDisable() {
+            // FOUNDER keeps telemetry via role even after Premium ends.
+            RestTemplate mockRest = installMockRestTemplate();
+            User user = buildUser(USER_ID, null);
+            User founder = userWithRole(USER_ID, "TESLA_FOUNDER", false);
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(founder));
+
+            stripeService.dispatch("customer.subscription.updated",
+                    subscriptionPayload(CUSTOMER_ID, "canceled", 1_800_000_000L));
+
+            verify(mockRest, never()).exchange(
+                    contains("/api/internal/tesla/" + USER_ID + "/disable-telemetry"),
+                    any(HttpMethod.class), any(), eq(Void.class));
+        }
+
+        @Test
+        void canceled_userStillPremiumByRace_skipsTeslaDisable() {
+            // Stale subscription.deleted webhook arrives after a fresh subscription
+            // restored is_premium=true. Re-read catches this.
+            RestTemplate mockRest = installMockRestTemplate();
+            User user = buildUser(USER_ID, null);
+            User refreshed = userWithRole(USER_ID, "USER", true); // premium=true now
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(refreshed));
+
+            stripeService.dispatch("customer.subscription.updated",
+                    subscriptionPayload(CUSTOMER_ID, "canceled", 1_800_000_000L));
+
+            verify(mockRest, never()).exchange(
+                    contains("/api/internal/tesla/" + USER_ID + "/disable-telemetry"),
+                    any(HttpMethod.class), any(), eq(Void.class));
         }
     }
 
