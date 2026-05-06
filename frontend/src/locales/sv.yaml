@@ -1260,10 +1260,32 @@ imports:
   smartcar_how_a4: Så snart en laddningssession påbörjas och avslutas skickar Smartcar automatiskt uppgifterna till EV Monitor. kWh-värdet hämtas direkt från fordonet – vilket är mer exakt än någon uppskattning. Du behöver inte göra någonting.
   smartcar_how_q5: Behöver jag göra något efteråt?
   smartcar_how_a5: Nej. När anslutningen är upprättad sker allt helt i bakgrunden.
+  autosync_tesla_section_title: AutoSync för Tesla
+  autosync_tesla_section_desc: Direkt anslutning mellan din Tesla och EV Monitor.
+  autosync_tesla_feat1: Laddningssessioner registreras automatiskt när de avslutas
+  autosync_tesla_feat2: Exakta kWh-värden direkt från bilen
+  autosync_tesla_feat3: AC/DC och Supercharger känns igen automatiskt
+  autosync_active_title: AutoSync är aktiv för {car}
+  autosync_header_active: Aktiv för {car}
+  autosync_active_provider: Anslutningen går via {provider}
+  autosync_no_cars_hint: Du har inte lagt till något fordon ännu.
+  autosync_no_cars_cta: Lägg till fordon
+  autosync_state_active: Aktiv
+  autosync_state_locked: Låst
+  autosync_state_unavailable: Inte tillgänglig
+  autosync_disconnect: Koppla från
+  autosync_confirm_disconnect: Säker?
+  autosync_locked_title: AutoSync körs redan för ett annat fordon
+  autosync_locked_desc: Koppla från <strong>{activeCar}</strong> först, så kan du sätta upp AutoSync för det här fordonet.
+  autosync_unavailable_desc: Det finns ingen automatisk integration för {brand} ännu.
+  autosync_unavailable_alternatives: Du kan importera laddningssessioner manuellt eller via Public API.
+  autosync_tesla_teaser_title: Registrera din Teslas laddningar automatiskt
+  autosync_tesla_teaser_desc: Anslut din Tesla till EV Monitor via Fleet Telemetry. Varje session registreras automatiskt - exakta kWh direkt från bilen, ingen manuell inmatning.
   tab_spritmonitor: Sprit-Monitor
   tab_goe: go-eCharger
   tab_wallbox: OCPP-laddbox
   tab_tesla: Tesla
+  tab_tesla_legacy: "Tesla Legacy Synkronisering"
   tab_tronity: Tronity
   tab_tessie: Tessie
   tab_manuell: Manuell

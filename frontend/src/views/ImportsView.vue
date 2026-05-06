@@ -6,9 +6,7 @@ import { ArrowDownTrayIcon, ArrowPathIcon, BoltIcon, ExclamationTriangleIcon, Co
 import SpritMonitorImport from '../components/imports/SpritMonitorImport.vue'
 import GoeIntegration from '../components/imports/GoeIntegration.vue'
 import TeslaFleetIntegration from '../components/imports/TeslaFleetIntegration.vue'
-import SmartcarIntegration from '../components/imports/SmartcarIntegration.vue'
-import VwGroupIntegration from '../components/imports/VwGroupIntegration.vue'
-import { isVwGroupBrand } from '../api/vwGroupService'
+import AutoSyncCarPicker from '../components/imports/AutoSyncCarPicker.vue'
 import ManualImportModal from '../components/imports/ManualImportModal.vue'
 const TronityImport = defineAsyncComponent(() => import('../components/imports/TronityImport.vue'))
 import TessieImport from '../components/imports/TessieImport.vue'
@@ -16,6 +14,7 @@ import CarSelectDropdown from '../components/car/CarSelectDropdown.vue'
 import type { Car } from '../api/carService'
 import { useCarStore } from '../stores/car'
 import { useImportsTab } from '../composables/useImportsTab'
+import { useTeslaImportGating } from '../composables/useTeslaImportGating'
 import { apiKeyService, type ApiKeyResponse, type ApiKeyCreatedResponse } from '../api/apiKeyService'
 import { analytics } from '../services/analytics'
 import DemoImportsModal from '../components/demo/DemoImportsModal.vue'
@@ -125,20 +124,21 @@ const formatDate = (dateStr: string | null) => {
   return new Date(dateStr).toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
-const hasActiveTesla = computed(() =>
-  Array.isArray(cars.value) && cars.value.some(c => c.brand?.toLowerCase() === 'tesla' && (c as any).status === 'ACTIVE')
-)
-
-const showTeslaTab = computed(() => hasActiveTesla.value && authStore.canActivateTelemetry)
-
-const hasActiveVwGroupCar = computed(() =>
-  authStore.isBetaTester &&
-  Array.isArray(cars.value) && cars.value.some(c => isVwGroupBrand(c.brand) && (c as any).status === 'ACTIVE')
+const { showLegacyTeslaTab } = useTeslaImportGating(
+  cars,
+  computed(() => ({
+    isAdmin: authStore.isAdmin,
+    isBetaTester: authStore.isBetaTester,
+    isTeslaFounder: authStore.isTeslaFounder,
+  })),
 )
 
 const activeCars = computed(() =>
   Array.isArray(cars.value) ? cars.value.filter(c => c.status === 'ACTIVE') : []
 )
+
+const autoSyncActiveCarLabel = ref<string | null>(null)
+const teslaConnectedLabel = ref<string | null>(null)
 </script>
 
 <template>
@@ -195,20 +195,25 @@ const activeCars = computed(() =>
                 <span class="font-medium text-gray-900 dark:text-gray-100 text-sm">{{ t('imports.tab_smartcar') }}</span>
                 <span v-if="premiumEnabled && !authStore.isPremium" class="text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 font-semibold px-1.5 py-0.5 rounded-full leading-none">Premium</span>
               </div>
+              <p v-if="autoSyncActiveCarLabel" class="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">
+                {{ t('imports.autosync_header_active', { car: autoSyncActiveCarLabel }) }}
+              </p>
             </div>
             <ChevronDownIcon :class="['h-5 w-5 text-gray-400 shrink-0 transition-transform duration-200', activeTab === 'smartcar' ? 'rotate-180' : '']" />
           </button>
           <Transition name="accordion">
-            <div v-if="activeTab === 'smartcar'" class="border-t border-gray-100 dark:border-gray-700">
-              <template v-if="hasActiveVwGroupCar">
-                <VwGroupIntegration :premium-enabled="premiumEnabled" :is-premium="subscriptionIsPremium" :is-beta-tester="authStore.isBetaTester" />
-                <div class="border-t border-dashed border-gray-200 dark:border-gray-700 mx-4 mt-0 pb-0" />
-                <div class="px-6 pt-4 pb-0">
-                  <p class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">AutoSync (Smartcar)</p>
-                </div>
-                <SmartcarIntegration :premium-enabled="premiumEnabled" :is-premium="subscriptionIsPremium" />
-              </template>
-              <SmartcarIntegration v-else :premium-enabled="premiumEnabled" :is-premium="subscriptionIsPremium" />
+            <div v-if="activeTab === 'smartcar'" class="px-1 py-3 md:p-6">
+              <!-- Tile-based picker per car. Tesla cars route to Tesla Fleet
+                   Telemetry, all other supported brands route to Smartcar.
+                   Premium=1-active-connection limit is surfaced in tile-locking.
+                   Non-premium users see the Smartcar upgrade pitch inside the picker. -->
+              <AutoSyncCarPicker
+                :cars="activeCars"
+                :premium-enabled="premiumEnabled"
+                :is-premium="subscriptionIsPremium"
+                :has-auto-sync-access="authStore.isPremium && !showLegacyTeslaTab"
+                @active-car-label="autoSyncActiveCarLabel = $event"
+              />
             </div>
           </Transition>
         </div>
@@ -494,8 +499,9 @@ const activeCars = computed(() =>
           </Transition>
         </div>
 
-        <!-- 8. TESLA -->
-        <div v-if="showTeslaTab">
+        <!-- 8. TESLA - legacy tab for ADMIN/BETA_TESTER/TESLA_FOUNDER only.
+             Premium-only Tesla owners now see the AutoSync sub-section above instead. -->
+        <div v-if="showLegacyTeslaTab">
           <button
             @click="toggle('tesla'); analytics.trackImportTabClicked('tesla')"
             class="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
@@ -504,13 +510,15 @@ const activeCars = computed(() =>
               <BoltIcon class="h-5 w-5 text-white" />
             </div>
             <div class="flex-1 min-w-0">
-              <span class="font-medium text-gray-900 dark:text-gray-100 text-sm">{{ t('imports.tab_tesla') }}</span>
+              <span class="font-medium text-gray-900 dark:text-gray-100 text-sm">
+                {{ activeTab === 'tesla' && teslaConnectedLabel ? t('tesla.connected_prefix') + ' ' + teslaConnectedLabel : t('imports.tab_tesla_legacy') }}
+              </span>
             </div>
             <ChevronDownIcon :class="['h-5 w-5 text-gray-400 shrink-0 transition-transform duration-200', activeTab === 'tesla' ? 'rotate-180' : '']" />
           </button>
           <Transition name="accordion">
-            <div v-if="activeTab === 'tesla'" class="border-t border-gray-100 dark:border-gray-700">
-              <div class="p-4"><TeslaFleetIntegration /></div>
+            <div v-if="activeTab === 'tesla'" class="px-1 py-3 md:p-4">
+              <TeslaFleetIntegration @connected-label="teslaConnectedLabel = $event" />
             </div>
           </Transition>
         </div>

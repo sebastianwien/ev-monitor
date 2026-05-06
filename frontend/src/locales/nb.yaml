@@ -1260,10 +1260,32 @@ imports:
   smartcar_how_a4: Så snart en ladeøkt starter og avsluttes, sender Smartcar automatisk dataene til EV Monitor. kWh-tallene hentes direkte fra bilen – noe som gir et mer nøyaktig resultat enn noe estimat. Du trenger ikke å gjøre noe.
   smartcar_how_q5: Må jeg gjøre noe etterpå?
   smartcar_how_a5: Nei. Når forbindelsen er opprettet, kjører alt helt i bakgrunnen.
+  autosync_tesla_section_title: AutoSync for Tesla
+  autosync_tesla_section_desc: Direkte forbindelse mellom Teslaen din og EV Monitor.
+  autosync_tesla_feat1: Ladeøkter registreres automatisk når de avsluttes
+  autosync_tesla_feat2: Presise kWh-verdier direkte fra bilen
+  autosync_tesla_feat3: AC/DC og Supercharger gjenkjennes automatisk
+  autosync_active_title: AutoSync er aktiv for {car}
+  autosync_header_active: Aktiv for {car}
+  autosync_active_provider: Tilkoblingen går via {provider}
+  autosync_no_cars_hint: Du har ikke lagt til et kjøretøy ennå.
+  autosync_no_cars_cta: Legg til kjøretøy
+  autosync_state_active: Aktiv
+  autosync_state_locked: Låst
+  autosync_state_unavailable: Ikke tilgjengelig
+  autosync_disconnect: Koble fra
+  autosync_confirm_disconnect: Sikker?
+  autosync_locked_title: AutoSync kjører allerede for et annet kjøretøy
+  autosync_locked_desc: Koble fra <strong>{activeCar}</strong> først, så kan du sette opp AutoSync for dette kjøretøyet.
+  autosync_unavailable_desc: Det finnes ingen automatisk integrasjon for {brand} ennå.
+  autosync_unavailable_alternatives: Du kan importere ladeøkter manuelt eller via Public API.
+  autosync_tesla_teaser_title: Registrer Teslaens ladeøkter automatisk
+  autosync_tesla_teaser_desc: Koble Teslaen din til EV Monitor via Fleet Telemetry. Hver økt registreres automatisk - presise kWh-tall direkte fra bilen, ingen manuell registrering.
   tab_spritmonitor: Sprit-Monitor
   tab_goe: go-eCharger
   tab_wallbox: OCPP-vegglader
   tab_tesla: Tesla
+  tab_tesla_legacy: "Tesla Legacy Synkronisering"
   tab_tronity: Tronity
   tab_tessie: Tessie
   tab_manuell: Manuell

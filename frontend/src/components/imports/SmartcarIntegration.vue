@@ -9,7 +9,16 @@ import type { Car } from '../../api/carService'
 
 const { t } = useI18n()
 
-const props = defineProps<{ premiumEnabled?: boolean; isPremium?: boolean }>()
+// embedded = rendered inside the AutoSync car-tile picker. Suppresses the
+// premium teaser (parent picker handles it), the brand-list and "How it works" FAQ
+// (also at picker level), keeping the tile focused on this car's connect/status.
+// forcedCarId locks the connect to the tile's car (skips the internal dropdown).
+const props = defineProps<{
+    premiumEnabled?: boolean
+    isPremium?: boolean
+    embedded?: boolean
+    forcedCarId?: string
+}>()
 
 const brands = [
     'BMW', 'MINI', 'VW', 'Mercedes', 'Audi', 'Porsche', 'Skoda', 'SEAT', 'CUPRA', 'Opel',
@@ -36,7 +45,12 @@ onMounted(async () => {
     ])
     status.value = s
     cars.value = (c ?? []).filter((car: Car) => car.status === 'ACTIVE')
-    if (cars.value.length === 1) selectedCarId.value = cars.value[0].id
+    if (props.forcedCarId) {
+      // Tile-context: car is fixed by the surrounding picker.
+      selectedCarId.value = props.forcedCarId
+    } else if (cars.value.length === 1) {
+      selectedCarId.value = cars.value[0].id
+    }
     // Handle redirect params after OAuth callback
     const params = new URLSearchParams(window.location.search)
     if (params.get('smartcar-connected')) {
@@ -100,8 +114,9 @@ const stateColor = (state: string | null) => {
 </script>
 
 <template>
-  <!-- TEASER: Premium-Kauf möglich, aber User noch kein Abonnent -->
-  <div v-if="props.premiumEnabled && !props.isPremium" class="p-6 space-y-5">
+  <!-- TEASER: Premium-Kauf möglich, aber User noch kein Abonnent.
+       In embedded (tile) mode the picker handles the teaser at parent level. -->
+  <div v-if="props.premiumEnabled && !props.isPremium && !props.embedded" class="p-4 md:p-6 space-y-5">
     <div>
       <h2 class="font-semibold text-gray-900 dark:text-gray-100 flex flex-wrap items-center gap-2">
         {{ t('imports.smartcar_teaser_title') }}
@@ -152,13 +167,14 @@ const stateColor = (state: string | null) => {
   </div>
 
   <!-- ADMIN: full setup UI -->
-  <div v-else class="p-6 space-y-5">
+  <div v-else :class="props.embedded ? 'space-y-4' : 'p-6 space-y-5'">
 
     <div v-if="loading" class="text-sm text-gray-500 dark:text-gray-400">{{ t('imports.smartcar_loading') }}</div>
 
     <template v-else>
-      <!-- How it works FAQ -->
-      <details class="group border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden bg-white dark:bg-gray-700/50 shadow-md dark:shadow-[0_4px_16px_rgba(0,0,0,0.5)]">
+      <!-- How it works FAQ. Hidden in embedded (tile) mode - picker shows it at
+           the parent level so each tile stays focused on the per-car action. -->
+      <details v-if="!props.embedded" class="group border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden bg-white dark:bg-gray-700/50 shadow-md dark:shadow-[0_4px_16px_rgba(0,0,0,0.5)]">
         <summary class="flex items-center justify-between px-4 py-3 cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 list-none select-none">
           {{ t('imports.smartcar_how_title') }}
           <ChevronDownIcon class="h-4 w-4 text-gray-400 transition-transform group-open:rotate-180 shrink-0" />
@@ -171,10 +187,11 @@ const stateColor = (state: string | null) => {
         </div>
       </details>
 
-      <!-- Error -->
-      <div v-if="error" class="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg text-sm text-red-700 dark:text-red-300 space-y-1">
-        <p>{{ error }}</p>
-        <p class="text-xs text-red-500 dark:text-red-400">
+      <!-- Error - solid slate card with red accent -->
+      <div v-if="error" class="relative bg-gray-50 dark:bg-slate-900/80 border border-gray-200 dark:border-slate-800 rounded-xl p-4 pl-5 overflow-hidden space-y-1">
+        <span class="absolute left-0 top-0 bottom-0 w-1 bg-red-500"></span>
+        <p class="text-sm text-gray-700 dark:text-slate-300">{{ error }}</p>
+        <p class="text-xs text-slate-500 dark:text-slate-400">
           {{ t('imports.smartcar_support_hint') }}
           <a href="mailto:support@ev-monitor.net" class="font-medium underline hover:no-underline">support@ev-monitor.net</a>
         </p>
@@ -182,42 +199,72 @@ const stateColor = (state: string | null) => {
 
       <!-- Connected -->
       <div v-if="status?.connected" class="space-y-4">
-        <div class="p-4 bg-gray-100 dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600 rounded-lg flex items-start gap-3">
-          <CheckCircleIcon class="h-5 w-5 text-green-500 dark:text-green-400 shrink-0 mt-0.5" />
-          <div class="flex-1 min-w-0">
-            <p class="font-medium text-gray-900 dark:text-gray-100 text-sm">{{ status.vehicleName }}</p>
-            <p v-if="status.vin" class="text-xs text-gray-500 dark:text-gray-400 font-mono mt-0.5">{{ status.vin }}</p>
-            <div class="flex items-center gap-3 mt-1.5">
-              <span v-if="status.vehicleState" :class="['text-xs font-medium', stateColor(status.vehicleState)]">
+        <!-- Embedded (tile) mode: compact display -->
+        <template v-if="props.embedded">
+          <div class="space-y-2">
+            <div class="flex items-center gap-2">
+              <span v-if="status.vehicleState" :class="['text-sm font-medium', stateColor(status.vehicleState)]">
                 {{ stateLabel(status.vehicleState) }}
               </span>
-              <span v-else class="text-xs text-gray-400 dark:text-gray-500">{{ t('imports.smartcar_waiting_data') }}</span>
-              <span v-if="status.sessionActive" class="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
-                <span class="inline-block w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+              <span v-if="status.sessionActive" class="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+                <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 {{ t('imports.smartcar_session_active') }}
               </span>
             </div>
-            <div v-if="status.lastCheckedAt" class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600 flex flex-wrap gap-x-4 gap-y-1">
-              <span class="text-xs text-gray-500 dark:text-gray-400">
+            <p v-if="status.vin" class="text-xs text-slate-500 dark:text-slate-400 font-mono">{{ status.vin }}</p>
+            <div v-if="status.lastCheckedAt || status.lastSoc != null" class="flex flex-wrap gap-x-4 gap-y-1">
+              <span v-if="status.lastSoc != null" class="text-xs text-slate-500 dark:text-slate-400">
+                SoC: <span class="font-medium text-gray-700 dark:text-slate-200">{{ status.lastSoc }}%</span>
+              </span>
+              <span v-if="status.lastCheckedAt" class="text-xs text-slate-500 dark:text-slate-400">
                 {{ t('imports.smartcar_last_update') }}: {{ new Date(status.lastCheckedAt).toLocaleString() }}
-              </span>
-              <span v-if="status.lastSoc != null" class="text-xs text-gray-500 dark:text-gray-400">
-                SoC: <span class="font-medium text-gray-700 dark:text-gray-200">{{ status.lastSoc }}%</span>
-              </span>
-              <span v-if="status.sessionActive && status.sessionEnergyAdded != null" class="text-xs text-gray-500 dark:text-gray-400">
-                {{ t('imports.smartcar_energy_added') }}: <span class="font-medium text-gray-700 dark:text-gray-200">{{ status.sessionEnergyAdded }} kWh</span>
-              </span>
-              <span v-if="status.sessionActive && status.sessionStartedAt" class="text-xs text-gray-500 dark:text-gray-400">
-                {{ t('imports.smartcar_session_since') }}: <span class="font-medium text-gray-700 dark:text-gray-200">{{ new Date(status.sessionStartedAt).toLocaleTimeString() }}</span>
               </span>
             </div>
           </div>
-        </div>
+        </template>
+
+        <!-- Standalone mode: full card -->
+        <template v-else>
+          <div class="relative bg-gray-50 dark:bg-slate-900/80 border border-gray-200 dark:border-slate-800 rounded-xl p-4 pl-5 overflow-hidden">
+            <span class="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500"></span>
+            <div class="flex items-start gap-3">
+              <CheckCircleIcon class="h-5 w-5 text-emerald-500 dark:text-emerald-400 shrink-0 mt-0.5" />
+              <div class="flex-1 min-w-0">
+                <p class="font-medium text-gray-900 dark:text-white text-sm">{{ status.vehicleName }}</p>
+                <p v-if="status.vin" class="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">{{ status.vin }}</p>
+                <div class="flex items-center gap-3 mt-1.5">
+                  <span v-if="status.vehicleState" :class="['text-xs font-medium', stateColor(status.vehicleState)]">
+                    {{ stateLabel(status.vehicleState) }}
+                  </span>
+                  <span v-else class="text-xs text-slate-400 dark:text-slate-500">{{ t('imports.smartcar_waiting_data') }}</span>
+                  <span v-if="status.sessionActive" class="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    {{ t('imports.smartcar_session_active') }}
+                  </span>
+                </div>
+                <div v-if="status.lastCheckedAt" class="mt-2 pt-2 border-t border-gray-200 dark:border-slate-700 flex flex-wrap gap-x-4 gap-y-1">
+                  <span class="text-xs text-slate-500 dark:text-slate-400">
+                    {{ t('imports.smartcar_last_update') }}: {{ new Date(status.lastCheckedAt).toLocaleString() }}
+                  </span>
+                  <span v-if="status.lastSoc != null" class="text-xs text-slate-500 dark:text-slate-400">
+                    SoC: <span class="font-medium text-gray-700 dark:text-slate-200">{{ status.lastSoc }}%</span>
+                  </span>
+                  <span v-if="status.sessionActive && status.sessionEnergyAdded != null" class="text-xs text-slate-500 dark:text-slate-400">
+                    {{ t('imports.smartcar_energy_added') }}: <span class="font-medium text-gray-700 dark:text-slate-200">{{ status.sessionEnergyAdded }} kWh</span>
+                  </span>
+                  <span v-if="status.sessionActive && status.sessionStartedAt" class="text-xs text-slate-500 dark:text-slate-400">
+                    {{ t('imports.smartcar_session_since') }}: <span class="font-medium text-gray-700 dark:text-slate-200">{{ new Date(status.sessionStartedAt).toLocaleTimeString() }}</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
 
         <button
           @click="disconnect"
           :disabled="disconnecting"
-          class="btn-3d flex items-center gap-2 px-4 py-2 text-sm font-medium bg-red-100 dark:bg-red-700 text-red-800 dark:text-white rounded-lg hover:bg-red-200 dark:hover:bg-red-600 disabled:opacity-50 transition shadow-[0_4px_0_0_#fca5a5] dark:shadow-[0_4px_0_0_#b91c1c] active:shadow-none active:translate-y-1" style="transition: transform 0.075s ease, box-shadow 0.075s ease;"
+          class="btn-3d flex items-center gap-2 px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-500 text-white rounded-lg disabled:opacity-50 transition shadow-[0_4px_0_0_#991b1b] active:shadow-none active:translate-y-1"
         >
           <XCircleIcon class="h-4 w-4" />
           {{ disconnecting ? t('imports.smartcar_disconnecting') : t('imports.smartcar_disconnect_btn') }}
@@ -231,19 +278,19 @@ const stateColor = (state: string | null) => {
           <router-link to="/cars" class="text-indigo-600 hover:underline font-medium ml-1">{{ t('imports.smartcar_add_car') }}</router-link>
         </div>
         <template v-else>
-          <div v-if="cars.length > 1" class="space-y-1.5">
+          <div v-if="cars.length > 1 && !props.forcedCarId" class="space-y-1.5">
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('imports.smartcar_select_car') }}</label>
             <CarSelectDropdown :cars="cars" v-model="selectedCarId" />
           </div>
           <button
             @click="connect"
             :disabled="connecting || !selectedCarId"
-            class="btn-3d flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-lg font-medium text-sm hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            class="btn-3d w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-lg font-medium text-sm disabled:opacity-40 disabled:cursor-not-allowed transition shadow-[0_4px_0_0_#3730a3] active:shadow-none active:translate-y-1"
           >
             <BoltIcon class="h-4 w-4" />
             {{ connecting ? t('imports.smartcar_connecting') : t('imports.smartcar_connect_btn') }}
           </button>
-          <p class="text-xs text-gray-400 dark:text-gray-500">
+          <p class="text-xs text-slate-400 dark:text-slate-500">
             {{ t('imports.smartcar_support_hint') }}
             <a href="mailto:support@ev-monitor.net" class="underline hover:no-underline">support@ev-monitor.net</a>
           </p>
