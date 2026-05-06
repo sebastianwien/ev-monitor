@@ -34,8 +34,8 @@ const premiumEnabled = ref(false)
 const subscriptionIsPremium = ref(authStore.isPremium)
 
 onMounted(async () => {
-  if (!authStore.isPremium) {
-    activeTab.value = null
+  if (authStore.isPremium) {
+    activeTab.value = 'smartcar'
   }
   const params = new URLSearchParams(window.location.search)
   if (params.get('smartcar-connected') || params.get('smartcar-error')) {
@@ -213,7 +213,7 @@ const teslaConnectedLabel = ref<string | null>(null)
                 :cars="activeCars"
                 :premium-enabled="premiumEnabled"
                 :is-premium="subscriptionIsPremium"
-                :has-auto-sync-access="authStore.isPremium && !showLegacyTeslaTab"
+                :has-auto-sync-access="authStore.isPremium"
                 @active-car-label="autoSyncActiveCarLabel = $event"
               />
             </div>

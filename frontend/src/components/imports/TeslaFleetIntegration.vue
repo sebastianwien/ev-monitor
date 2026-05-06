@@ -435,8 +435,8 @@ async function retryConnect() {
       <!-- ── POLLING MODE ────────────────────────────────────────────────── -->
       <template v-else-if="pairingStatusLoaded">
         <!-- Fleet Telemetry setup - primary CTA -->
-        <div v-if="authStore.canActivateTelemetry" class="space-y-2 text-center">
-          <p class="text-xs font-semibold text-gray-900 dark:text-white">
+        <div v-if="authStore.canActivateTelemetry" class="space-y-2">
+          <p class="text-xs font-semibold text-gray-900 dark:text-white text-center">
             {{ t('tesla.pairing_title') }}
             <span v-if="pairingRoleBadge" class="ml-1 text-[10px] uppercase bg-amber-500/15 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded">{{ pairingRoleBadge }}</span>
           </p>
@@ -486,7 +486,7 @@ async function retryConnect() {
           <button
             @click="loadPairingStatus"
             :disabled="pairingLoading"
-            class="w-full text-xs text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 transition disabled:opacity-50"
+            class="w-full text-xs text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 text-center transition disabled:opacity-50"
           >
             {{ t('tesla.pairing_refresh') }}
           </button>
