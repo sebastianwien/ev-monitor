@@ -44,6 +44,12 @@ public class StripeService {
     @Value("${stripe.price-id-yearly:}")
     private String priceIdYearly;
 
+    @Value("${stripe.price-id-live-monthly:}")
+    private String priceIdLiveMonthly;
+
+    @Value("${stripe.price-id-live-yearly:}")
+    private String priceIdLiveYearly;
+
     @Value("${stripe.price-id-monthly-intl:}")
     private String priceIdMonthlyIntl;
 

@@ -153,6 +153,8 @@ stripe:
   webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
   price-id-monthly: ${STRIPE_PRICE_ID_MONTHLY:}
   price-id-yearly: ${STRIPE_PRICE_ID_YEARLY:}
+  price-id-live-monthly: ${STRIPE_PRICE_ID_LIVE_MONTHLY:}
+  price-id-live-yearly: ${STRIPE_PRICE_ID_LIVE_YEARLY:}
   price-id-monthly-intl: ${STRIPE_PRICE_ID_MONTHLY_INTL:}
   price-id-yearly-intl: ${STRIPE_PRICE_ID_YEARLY_INTL:}
   price-id-monthly-usd: ${STRIPE_PRICE_ID_MONTHLY_USD:}
