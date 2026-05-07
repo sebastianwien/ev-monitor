@@ -195,7 +195,6 @@ const teslaConnectedLabel = ref<string | null>(null)
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 flex-wrap">
                 <span class="font-medium text-gray-900 dark:text-gray-100 text-sm">{{ t('imports.tab_smartcar') }}</span>
-                <span v-if="premiumEnabled && !authStore.isPremium" class="text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 font-semibold px-1.5 py-0.5 rounded-full leading-none">Premium</span>
               </div>
               <p v-if="autoSyncActiveCarLabel" class="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">
                 {{ t('imports.autosync_header_active', { car: autoSyncActiveCarLabel }) }}

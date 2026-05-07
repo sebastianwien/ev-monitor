@@ -116,11 +116,10 @@ const stateColor = (state: string | null) => {
 <template>
   <!-- TEASER: Premium-Kauf möglich, aber User noch kein Abonnent.
        In embedded (tile) mode the picker handles the teaser at parent level. -->
-  <div v-if="props.premiumEnabled && !props.isPremium && !props.embedded" class="p-4 md:p-6 space-y-5">
+  <div v-if="props.premiumEnabled && !props.isPremium && !props.embedded" class="space-y-4">
     <div>
-      <h2 class="font-semibold text-gray-900 dark:text-gray-100 flex flex-wrap items-center gap-2">
+      <h2 class="font-semibold text-gray-900 dark:text-gray-100">
         {{ t('imports.smartcar_teaser_title') }}
-        <span class="text-xs bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 px-2 py-0.5 rounded-full font-medium">Premium</span>
       </h2>
       <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ t('imports.smartcar_teaser_desc') }}</p>
     </div>
