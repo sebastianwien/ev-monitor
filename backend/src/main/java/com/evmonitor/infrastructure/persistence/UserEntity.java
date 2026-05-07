@@ -48,6 +48,9 @@ public class UserEntity {
     @Column(name = "is_premium", nullable = false)
     private boolean premium;
 
+    @Column(name = "subscription_tier", nullable = false, length = 32)
+    private String subscriptionTier = "NONE";
+
     @Column(name = "referral_reward_given", nullable = false)
     private boolean referralRewardGiven;
 

@@ -19,6 +19,7 @@ public class User {
     private final boolean seedData;
     private final boolean emailNotificationsEnabled;
     private final boolean premium;
+    private final SubscriptionTier subscriptionTier;
     private final boolean referralRewardGiven;
     private final String referralCode;
     private final UUID referredByUserId;
@@ -37,6 +38,7 @@ public class User {
     @Builder(toBuilder = true)
     private User(UUID id, String email, String username, String passwordHash, AuthProvider authProvider, String role,
             boolean emailVerified, boolean seedData, boolean emailNotificationsEnabled, boolean premium,
+            SubscriptionTier subscriptionTier,
             boolean referralRewardGiven, String referralCode, UUID referredByUserId, String stripeCustomerId,
             String utmSource, String utmMedium, String utmCampaign, String referrerSource,
             String registrationLocale, String country, Instant subscriptionPeriodEnd, boolean trialUsed,
@@ -50,6 +52,18 @@ public class User {
         if (authProvider == null)
             throw new IllegalArgumentException("Auth Provider cannot be null");
 
+        // Reconcile legacy `premium` flag with new `subscriptionTier`. Tier is the
+        // source of truth going forward; if only `premium` was set (older callers,
+        // existing rows pre-V112), assume AUTOSYNC. If neither is set, default NONE.
+        // toBuilder() copies tier=NONE from a freshly-built user, so a follow-up
+        // .premium(true) would otherwise stay tier=NONE - upgrade it here too.
+        if (subscriptionTier == null) {
+            subscriptionTier = SubscriptionTier.NONE;
+        }
+        if (premium && subscriptionTier == SubscriptionTier.NONE) {
+            subscriptionTier = SubscriptionTier.AUTOSYNC;
+        }
+
         this.id = id;
         this.email = email;
         this.username = username;
@@ -59,7 +73,8 @@ public class User {
         this.emailVerified = emailVerified;
         this.seedData = seedData;
         this.emailNotificationsEnabled = emailNotificationsEnabled;
-        this.premium = premium;
+        this.subscriptionTier = subscriptionTier;
+        this.premium = subscriptionTier.isPaid();
         this.referralRewardGiven = referralRewardGiven;
         this.referralCode = referralCode;
         this.referredByUserId = referredByUserId;
@@ -103,6 +118,44 @@ public class User {
      */
     public boolean canCreateTripsManually() {
         return premium || MANUAL_TRIP_PRIVILEGED_ROLES.contains(role);
+    }
+
+    /** Roles that always stream the FULL profile regardless of subscription tier. */
+    private static final java.util.Set<String> FULL_PROFILE_PRIVILEGED_ROLES =
+            java.util.Set.of("ADMIN", "BETA_TESTER");
+
+    /** Roles that may push trips/phantom-drain regardless of subscription tier. */
+    private static final java.util.Set<String> TRIP_PUSH_PRIVILEGED_ROLES =
+            java.util.Set.of("ADMIN", "BETA_TESTER");
+
+    /**
+     * Telemetry profile this user is entitled to. Drives the connectors-service
+     * profile push. Caller MUST have already verified {@link #canActivateTelemetry()}.
+     *
+     * <ul>
+     *   <li>Live-tier subscribers (AUTOSYNC_LIVE) → FULL</li>
+     *   <li>BETA_TESTER, ADMIN → FULL (privileged roles always get trip-streaming)</li>
+     *   <li>everyone else (AUTOSYNC, TESLA_FOUNDER, etc.) → CHARGING_ONLY</li>
+     * </ul>
+     */
+    public TelemetryProfile preferredTelemetryProfile() {
+        if (subscriptionTier == SubscriptionTier.AUTOSYNC_LIVE) {
+            return TelemetryProfile.FULL;
+        }
+        if (FULL_PROFILE_PRIVILEGED_ROLES.contains(role)) {
+            return TelemetryProfile.FULL;
+        }
+        return TelemetryProfile.CHARGING_ONLY;
+    }
+
+    /**
+     * True if the user may push live trips and phantom-drain reports. Distinct
+     * from {@link #canActivateTelemetry()} which only gates "may stream charging
+     * data at all". TESLA_FOUNDER grandfathering does NOT cover trip-push.
+     */
+    public boolean canUseTripPush() {
+        return subscriptionTier == SubscriptionTier.AUTOSYNC_LIVE
+                || TRIP_PUSH_PRIVILEGED_ROLES.contains(role);
     }
 
     private static String generateReferralCode() {

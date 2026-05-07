@@ -174,6 +174,7 @@ public class PostgresUserRepositoryImpl implements UserRepository {
         entity.setSeedData(domain.isSeedData());
         entity.setEmailNotificationsEnabled(domain.isEmailNotificationsEnabled());
         entity.setPremium(domain.isPremium());
+        entity.setSubscriptionTier(domain.getSubscriptionTier().name());
         entity.setTrialUsed(domain.isTrialUsed());
         entity.setReferralCode(domain.getReferralCode());
         entity.setReferredByUserId(domain.getReferredByUserId());
@@ -208,6 +209,7 @@ public class PostgresUserRepositoryImpl implements UserRepository {
                 .seedData(entity.isSeedData())
                 .emailNotificationsEnabled(entity.isEmailNotificationsEnabled())
                 .premium(entity.isPremium())
+                .subscriptionTier(parseTier(entity.getSubscriptionTier()))
                 .referralRewardGiven(entity.isReferralRewardGiven())
                 .referralCode(entity.getReferralCode())
                 .referredByUserId(entity.getReferredByUserId())
@@ -223,5 +225,16 @@ public class PostgresUserRepositoryImpl implements UserRepository {
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .build();
+    }
+
+    private static com.evmonitor.domain.SubscriptionTier parseTier(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null; // User-Builder defaults to NONE / derives from premium
+        }
+        try {
+            return com.evmonitor.domain.SubscriptionTier.valueOf(raw);
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
     }
 }
