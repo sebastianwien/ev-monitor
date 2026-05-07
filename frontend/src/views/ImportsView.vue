@@ -32,6 +32,34 @@ const cars = ref<Car[]>([])
 const loading = ref(true)
 const premiumEnabled = ref(false)
 const subscriptionIsPremium = ref(authStore.isPremium)
+const subscriptionTier = ref<'NONE' | 'AUTOSYNC' | 'AUTOSYNC_LIVE'>('NONE')
+const liveUpgradeLoading = ref(false)
+const liveUpgradeError = ref('')
+
+// Live-Promo: shown only when the user is on the AutoSync tier AND has at
+// least one Tesla in their garage. Once on Live, no further upsell needed.
+const hasTesla = computed(() => cars.value.some(c => c.brand === 'TESLA'))
+const showLivePromo = computed(() => subscriptionTier.value === 'AUTOSYNC' && hasTesla.value)
+
+async function handleLiveUpgrade() {
+  liveUpgradeLoading.value = true
+  liveUpgradeError.value = ''
+  try {
+    await subscriptionService.upgradeToLive()
+    const status = await subscriptionService.getStatus()
+    subscriptionTier.value = status.tier ?? 'NONE'
+    subscriptionIsPremium.value = status.isPremium
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { errorCode?: string } } }
+    if (err.response?.data?.errorCode === 'tesla_required') {
+      liveUpgradeError.value = t('upgrade.live_tesla_required_error')
+    } else {
+      liveUpgradeError.value = t('upgrade.error')
+    }
+  } finally {
+    liveUpgradeLoading.value = false
+  }
+}
 
 onMounted(async () => {
   if (authStore.isPremium) {
@@ -51,6 +79,7 @@ onMounted(async () => {
   subscriptionService.getStatus().then(s => {
     premiumEnabled.value = s.premiumEnabled
     subscriptionIsPremium.value = s.isPremium
+    subscriptionTier.value = s.tier ?? 'NONE'
   }).catch(() => {})
 })
 
@@ -203,7 +232,34 @@ const teslaConnectedLabel = ref<string | null>(null)
             <ChevronDownIcon :class="['h-5 w-5 text-gray-400 shrink-0 transition-transform duration-200', activeTab === 'smartcar' ? 'rotate-180' : '']" />
           </button>
           <Transition name="accordion">
-            <div v-if="activeTab === 'smartcar'" class="px-1 py-3 md:p-6">
+            <div v-if="activeTab === 'smartcar'" class="px-1 py-3 md:p-6 space-y-3">
+              <!-- Live-Promo: AutoSync subscriber with at least one Tesla in garage -->
+              <div v-if="showLivePromo" class="mx-3 rounded-xl bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-700 p-4 shadow-lg">
+                <div class="flex items-start gap-3 mb-3">
+                  <div class="shrink-0 w-9 h-9 rounded-lg bg-white/15 flex items-center justify-center">
+                    <BoltIcon class="h-5 w-5 text-white" />
+                  </div>
+                  <div class="flex-1">
+                    <p class="text-sm font-bold text-white">{{ t('imports.live_promo_title') }}</p>
+                    <p class="text-xs text-indigo-100 mt-0.5">{{ t('imports.live_promo_subtitle') }}</p>
+                  </div>
+                </div>
+                <ul class="text-xs text-indigo-100 space-y-1.5 mb-3 ml-1">
+                  <li class="flex items-start gap-2"><span class="text-white">→</span><span v-html="t('imports.live_promo_feature_trip')"></span></li>
+                  <li class="flex items-start gap-2"><span class="text-white">→</span><span v-html="t('imports.live_promo_feature_drain')"></span></li>
+                </ul>
+                <button
+                  @click="handleLiveUpgrade"
+                  :disabled="liveUpgradeLoading"
+                  class="w-full bg-white text-indigo-700 font-semibold text-sm py-2.5 rounded-lg hover:bg-indigo-50 transition-colors disabled:opacity-60"
+                >
+                  <span v-if="liveUpgradeLoading">…</span>
+                  <span v-else>{{ t('imports.live_promo_cta') }}</span>
+                </button>
+                <p class="text-[10px] text-indigo-200 text-center mt-2">{{ t('imports.live_promo_proration_hint') }}</p>
+                <p v-if="liveUpgradeError" class="text-xs text-amber-200 text-center mt-2">{{ liveUpgradeError }}</p>
+              </div>
+
               <!-- Tile-based picker per car. Tesla cars route to Tesla Fleet
                    Telemetry, all other supported brands route to Smartcar.
                    Premium=1-active-connection limit is surfaced in tile-locking.

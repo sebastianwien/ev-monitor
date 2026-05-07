@@ -963,6 +963,25 @@ coins:
 settings:
   title: Innstillinger
   logout: Logg ut
+  tier_autosync: AutoSync
+  tier_live: AutoSync Live
+  tier_founder: Tesla Founder
+  tier_beta: Beta-tester
+  tier_none: Ingen aktivt abonnement
+  tier_period_end: "Fornyes {date}"
+  tier_live_disconnected_warning: "Live aktiv, men Tesla ikke tilkoblet"
+  tier_live_repair_cta: "Koble til Tesla på nytt"
+  upgrade_to_live_cta: "Oppgrader til AutoSync Live"
+  downgrade_to_autosync_cta: "Nedgrader til AutoSync"
+  downgrade_confirm_title: "Nedgradere til AutoSync?"
+  downgrade_confirm_body: "Du beholder alle Live-funksjoner til {date}. Etter det fortsetter abonnementet som AutoSync (Trip-Tracking og Phantom-Drain bortfaller)."
+  cancel_live_cta: "Si opp Live helt"
+  cancel_subscription_cta: "Si opp abonnement"
+  cancel_confirm_title: "Si opp abonnement?"
+  cancel_confirm_body: "Du beholder alle funksjoner til {date}. Etter det blir ladeøkter ikke lenger registrert automatisk."
+  cancel_confirm_keep: "Behold likevel"
+  cancel_confirm_proceed: "Ja, si opp"
+  manage_via_portal_cta: "Administrer via Stripe"
   watt_account: Watt-konto
   watt_history: Vis Watt-historikk →
   referral_title: Inviter venner
@@ -1179,6 +1198,14 @@ imports:
   autosync_teaser_price: "{priceMonthly} /måned – kan sies opp når som helst"
   smartcar_upgrade_cta: Lås opp nå – {priceMonthly} /måned
   smartcar_upgrade_price: Du kan si opp når som helst. Sikker betaling via Stripe.
+  live_promo_title: "Få mer ut av Teslaen din"
+  live_promo_subtitle: "AutoSync Live for kun 1 € mer i måneden"
+  live_promo_feature_trip: "<strong>Trip-Tracking:</strong> turer logges automatisk"
+  live_promo_feature_drain: "<strong>Phantom-Drain:</strong> oppdage skjult SoC-tap"
+  live_promo_cta: "Oppgrader til Live - 4,90 €/måned"
+  live_promo_proration_hint: "Forholdsmessig fakturering, ingen ny prøveperiode"
+  tile_live_upsell: "+ Lås opp Trip-Tracking og Phantom-Drain"
+  tile_live_upsell_price: "1 €/mnd ekstra"
   smartcar_teaser_title: Automatiske ladeøkter – alle merker
   smartcar_coming_soon: Kommer snart
   smartcar_teaser_desc: Koble til bilen én gang, så registrerer EV-Monitor automatisk hver ladeøkt – uten at du trenger å legge inn opplysninger manuelt.
@@ -1894,6 +1921,20 @@ upgrade:
   cancel_desc: Prosessen ble avbrutt. Du kan når som helst aktivere AutoSync igjen.
   cancel_cta: Tilbake til AutoSync
   back_dashboard: Gå til oversikten
+  live_title: AutoSync Live
+  live_subtitle: "Få mer ut av Teslaen din"
+  live_for_tesla_badge: "For Tesla"
+  live_price_monthly: "4,90 €"
+  live_price_yearly: "49 €"
+  live_price_yearly_savings: "≈ 4,08 €/måned - 2 måneder gratis"
+  live_features_intro: "Alt fra AutoSync, pluss:"
+  live_feature_trip: "Trip-Tracking via Tesla Live-Stream"
+  live_feature_drain: "Phantom-Drain-deteksjon"
+  live_buy_cta: "Aktiver AutoSync Live"
+  live_upgrade_cta: "Oppgrader til AutoSync Live"
+  live_tesla_required: "Tesla må være tilkoblet og paret"
+  live_tesla_required_error: "Vennligst koble til Teslaen din først."
+  live_tesla_hint_for_non_tesla: "Kjører du Tesla? Når du har koblet den til, låser vi opp AutoSync Live for deg (Trip-Tracking + Phantom-Drain)."
 region_chip:
   wrong: Feil region?
   title: Velg din region

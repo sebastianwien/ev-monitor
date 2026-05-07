@@ -181,6 +181,42 @@
                         <a href="mailto:support@ev-monitor.net" class="underline hover:no-underline">support@ev-monitor.net</a>
                     </p>
                 </div>
+
+                <!-- Live-Card: only for users with at least one Tesla and not yet on Live tier -->
+                <div v-if="showLiveBlock"
+                     class="mt-4 rounded-2xl p-5 shadow-lg border border-indigo-500/40 relative bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800">
+                    <span class="absolute -top-2 right-4 text-[10px] font-bold bg-amber-400 text-amber-950 px-2 py-0.5 rounded-full">{{ t('upgrade.live_for_tesla_badge') }}</span>
+                    <div class="flex items-baseline justify-between mb-1">
+                        <h3 class="text-base font-bold text-white">{{ t('upgrade.live_title') }}</h3>
+                        <p class="text-sm text-indigo-200">
+                            <span class="text-white font-semibold">{{ t('upgrade.live_price_monthly') }}</span>
+                            <span> / </span>
+                            <span class="text-white font-semibold">{{ t('upgrade.live_price_yearly') }}</span>
+                        </p>
+                    </div>
+                    <p class="text-xs text-indigo-200 mb-3">{{ t('upgrade.live_subtitle') }}</p>
+                    <ul class="text-xs text-indigo-100 space-y-1 mb-4">
+                        <li class="flex items-start gap-1.5"><span class="text-white">✓</span><span>{{ t('upgrade.live_features_intro') }}</span></li>
+                        <li class="flex items-start gap-1.5"><span class="text-white">✓</span><strong>{{ t('upgrade.live_feature_trip') }}</strong></li>
+                        <li class="flex items-start gap-1.5"><span class="text-white">✓</span><strong>{{ t('upgrade.live_feature_drain') }}</strong></li>
+                    </ul>
+                    <button
+                        @click="handleLiveAction"
+                        :disabled="liveLoading"
+                        class="w-full bg-white text-indigo-700 font-semibold text-sm py-2.5 rounded-lg hover:bg-indigo-50 transition-colors disabled:opacity-60"
+                    >
+                        <span v-if="liveLoading">…</span>
+                        <span v-else-if="isLiveUpgrade">{{ t('upgrade.live_upgrade_cta') }}</span>
+                        <span v-else>{{ t('upgrade.live_buy_cta') }}</span>
+                    </button>
+                    <p class="text-[10px] text-indigo-200 text-center mt-2">{{ t('upgrade.live_tesla_required') }}</p>
+                    <p v-if="liveError" class="text-xs text-amber-200 text-center mt-2">{{ liveError }}</p>
+                </div>
+
+                <!-- Hint for non-Tesla users so they know Live exists -->
+                <p v-if="!hasTesla && tier === 'NONE'" class="text-[11px] text-gray-500 dark:text-gray-400 text-center mt-3">
+                    {{ t('upgrade.live_tesla_hint_for_non_tesla') }}
+                </p>
             </div>
         </div>
     </div>
@@ -202,10 +238,14 @@ const carStore = useCarStore();
 const pricing = computed(() => getPricing(countryStore.country));
 
 const userCarBrands = ref<string[]>([]);
+const hasTesla = computed(() => userCarBrands.value.some(b => b === 'TESLA'));
 const hasOnlyTesla = computed(() => userCarBrands.value.length > 0 && userCarBrands.value.every(b => b === 'TESLA'));
 const hasNonTesla = computed(() => userCarBrands.value.some(b => b !== 'TESLA'));
 const showTeslaFaq = computed(() => hasOnlyTesla.value || userCarBrands.value.length === 0);
 const showSmartcarFaq = computed(() => hasNonTesla.value || userCarBrands.value.length === 0);
+const tier = ref<'NONE' | 'AUTOSYNC' | 'AUTOSYNC_LIVE'>('NONE');
+const showLiveBlock = computed(() => hasTesla.value && tier.value !== 'AUTOSYNC_LIVE');
+const isLiveUpgrade = computed(() => tier.value === 'AUTOSYNC');
 
 const brands = [
     'BMW', 'MINI', 'VW', 'Mercedes', 'Audi', 'Porsche', 'Skoda', 'SEAT', 'CUPRA', 'Opel',
@@ -229,6 +269,7 @@ onMounted(async () => {
         ]);
         premiumEnabled.value = status.premiumEnabled;
         isPremium.value = status.isPremium;
+        tier.value = status.tier ?? 'NONE';
         userCarBrands.value = cars.map(c => c.brand);
         analytics.trackUpgradePageViewed();
     } finally {
@@ -246,6 +287,37 @@ async function handleCheckout() {
     } catch {
         checkoutError.value = t('upgrade.error');
         checkoutLoading.value = false;
+    }
+}
+
+const liveLoading = ref(false);
+const liveError = ref('');
+
+async function handleLiveAction() {
+    liveLoading.value = true;
+    liveError.value = '';
+    try {
+        if (isLiveUpgrade.value) {
+            // Existing AutoSync subscriber → in-place upgrade via Stripe API.
+            await subscriptionService.upgradeToLive();
+            // Status will flip via webhook; reload status so the UI reflects it.
+            const status = await subscriptionService.getStatus();
+            tier.value = status.tier ?? 'NONE';
+        } else {
+            // No subscription yet → take user through Stripe Checkout for Live.
+            const result = await subscriptionService.createCheckoutSession(selectedPlan.value, 'autosync_live');
+            window.location.href = result.checkoutUrl;
+            return; // navigation will tear down the page
+        }
+    } catch (e: unknown) {
+        const err = e as { response?: { data?: { errorCode?: string } } };
+        if (err.response?.data?.errorCode === 'tesla_required') {
+            liveError.value = t('upgrade.live_tesla_required_error');
+        } else {
+            liveError.value = t('upgrade.error');
+        }
+    } finally {
+        liveLoading.value = false;
     }
 }
 </script>

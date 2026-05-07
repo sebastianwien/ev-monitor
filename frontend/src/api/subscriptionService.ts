@@ -1,7 +1,10 @@
 import api from './axios';
 
+export type SubscriptionTier = 'NONE' | 'AUTOSYNC' | 'AUTOSYNC_LIVE';
+
 export interface SubscriptionStatus {
     isPremium: boolean;
+    tier: SubscriptionTier;
     premiumEnabled: boolean;
     subscriptionPeriodEnd: string | null;
 }
@@ -16,8 +19,26 @@ export const subscriptionService = {
         return response.data;
     },
 
-    async createCheckoutSession(plan: 'monthly' | 'yearly'): Promise<CheckoutResponse> {
-        const response = await api.post('/subscription/checkout', { plan });
+    async createCheckoutSession(
+        plan: 'monthly' | 'yearly',
+        tier: 'autosync' | 'autosync_live' = 'autosync',
+    ): Promise<CheckoutResponse> {
+        const response = await api.post('/subscription/checkout', { plan, tier });
+        return response.data;
+    },
+
+    async upgradeToLive(): Promise<{ status: string }> {
+        const response = await api.post('/subscription/upgrade');
+        return response.data;
+    },
+
+    async downgradeToAutoSync(): Promise<{ status: string }> {
+        const response = await api.post('/subscription/downgrade');
+        return response.data;
+    },
+
+    async cancelSubscription(): Promise<{ status: string }> {
+        const response = await api.post('/subscription/cancel');
         return response.data;
     },
 

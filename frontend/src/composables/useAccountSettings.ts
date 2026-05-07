@@ -31,7 +31,10 @@ export function useAccountSettings(
 
   // Subscription
   const subscriptionPeriodEnd = ref<string | null>(null)
+  const subscriptionTier = ref<'NONE' | 'AUTOSYNC' | 'AUTOSYNC_LIVE'>('NONE')
   const portalLoading = ref(false)
+  const tierActionLoading = ref(false)
+  const tierActionError = ref('')
 
   // Forms
   const showEmailForm = ref(false)
@@ -204,13 +207,51 @@ export function useAccountSettings(
     try {
       const status = await subscriptionService.getStatus()
       subscriptionPeriodEnd.value = status.subscriptionPeriodEnd
+      subscriptionTier.value = status.tier ?? 'NONE'
     } catch { /* non-critical */ }
+  }
+
+  const reloadSubscriptionStatus = async () => {
+    try {
+      const status = await subscriptionService.getStatus()
+      subscriptionPeriodEnd.value = status.subscriptionPeriodEnd
+      subscriptionTier.value = status.tier ?? 'NONE'
+    } catch { /* non-critical */ }
+  }
+
+  const downgradeToAutoSync = async () => {
+    tierActionLoading.value = true
+    tierActionError.value = ''
+    try {
+      await subscriptionService.downgradeToAutoSync()
+      // Webhook flips tier asynchronously at period-end; UI refreshes
+      // optimistically so the user sees the action took effect.
+      message.value = { type: 'success', text: t('settings.downgrade_to_autosync_cta') }
+    } catch {
+      tierActionError.value = t('upgrade.error')
+    } finally {
+      tierActionLoading.value = false
+    }
+  }
+
+  const cancelSubscription = async () => {
+    tierActionLoading.value = true
+    tierActionError.value = ''
+    try {
+      await subscriptionService.cancelSubscription()
+      message.value = { type: 'success', text: t('settings.cancel_subscription_cta') }
+    } catch {
+      tierActionError.value = t('upgrade.error')
+    } finally {
+      tierActionLoading.value = false
+    }
   }
 
   return {
     email, username, registeredSince, totalLogs, totalKwh, totalCostEur,
     coinBalance, referralCode, referralCopied, leaderboardVisible,
-    subscriptionPeriodEnd, portalLoading,
+    subscriptionPeriodEnd, subscriptionTier, portalLoading,
+    tierActionLoading, tierActionError,
     showEmailForm, showUsernameForm, showPasswordForm,
     newEmail, emailCurrentPassword, newUsername,
     currentPassword, newPassword, confirmPassword,
@@ -218,7 +259,8 @@ export function useAccountSettings(
     referralLink, copyReferralLink, openPortal,
     fetchUserData, changeEmail, changeUsername, changePassword,
     exportData, deleteAccount, toggleLeaderboardVisible, restartOnboarding,
-    initSubscription,
+    initSubscription, reloadSubscriptionStatus,
+    downgradeToAutoSync, cancelSubscription,
     authStore,
   }
 }

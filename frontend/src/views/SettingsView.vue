@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useCountryStore } from '../stores/country'
+import { useCarStore } from '../stores/car'
 import { COUNTRY_OPTIONS } from '../config/countries'
 import { UserIcon, KeyIcon, TrashIcon, ArrowDownTrayIcon, AcademicCapIcon, ShareIcon, ClipboardDocumentIcon, CheckIcon, HeartIcon, ArrowRightOnRectangleIcon, BoltIcon, CreditCardIcon, PlusIcon, PencilIcon, EyeIcon } from '@heroicons/vue/24/outline'
 import SupportPopover from '../components/settings/SupportPopover.vue'
@@ -22,7 +23,8 @@ const message = ref<{ type: 'success' | 'error', text: string } | null>(null)
 const {
   email, username, registeredSince, totalLogs, totalKwh, totalCostEur,
   coinBalance, referralCode, referralCopied, leaderboardVisible,
-  subscriptionPeriodEnd, portalLoading,
+  subscriptionPeriodEnd, subscriptionTier, portalLoading,
+  tierActionLoading, tierActionError,
   showEmailForm, showUsernameForm, showPasswordForm,
   newEmail, emailCurrentPassword, newUsername,
   currentPassword, newPassword, confirmPassword,
@@ -30,7 +32,8 @@ const {
   referralLink, copyReferralLink, openPortal,
   fetchUserData, changeEmail, changeUsername, changePassword,
   exportData, deleteAccount, toggleLeaderboardVisible, restartOnboarding,
-  initSubscription, authStore,
+  initSubscription, downgradeToAutoSync, cancelSubscription,
+  authStore,
 } = useAccountSettings(loading, message)
 
 // -- Charging Providers --
@@ -54,10 +57,35 @@ function toggleImplausibleBanner() {
   }
 }
 
-onMounted(() => {
+// Tesla-Garage detection - controls visibility of the Live upgrade CTA.
+const carStore = useCarStore()
+const userCarBrands = ref<string[]>([])
+const hasTesla = computed(() => userCarBrands.value.some(b => b === 'TESLA'))
+
+const formattedPeriodEnd = computed(() => subscriptionPeriodEnd.value
+  ? new Date(subscriptionPeriodEnd.value).toLocaleDateString(locale.value, { day: '2-digit', month: '2-digit', year: 'numeric' })
+  : '—')
+
+function confirmDowngrade() {
+  if (window.confirm(t('settings.downgrade_confirm_body', { date: formattedPeriodEnd.value }))) {
+    downgradeToAutoSync()
+  }
+}
+
+function confirmCancel() {
+  if (window.confirm(t('settings.cancel_confirm_body', { date: formattedPeriodEnd.value }))) {
+    cancelSubscription()
+  }
+}
+
+onMounted(async () => {
   fetchUserData()
   fetchChargingProviders()
   initSubscription()
+  try {
+    const cars = await carStore.getCars()
+    userCarBrands.value = cars.map(c => c.brand)
+  } catch { /* non-critical */ }
 })
 </script>
 
@@ -224,27 +252,59 @@ onMounted(() => {
           {{ t('upgrade.pro_section_title') }}
           <span class="text-xs font-bold bg-indigo-600 text-white px-2 py-0.5 rounded-full">PRO</span>
         </h2>
-        <div v-if="authStore.isPremium" class="flex items-center justify-between p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl">
-          <div class="flex items-center gap-3">
-            <div class="w-8 h-8 bg-indigo-100 dark:bg-indigo-900/40 rounded-full flex items-center justify-center shrink-0">
-              <svg class="w-4 h-4 text-indigo-600 dark:text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-              </svg>
+        <div v-if="authStore.isPremium" class="space-y-3">
+          <div class="flex items-center justify-between p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 bg-indigo-100 dark:bg-indigo-900/40 rounded-full flex items-center justify-center shrink-0">
+                <svg class="w-4 h-4 text-indigo-600 dark:text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                </svg>
+              </div>
+              <div>
+                <span class="text-sm font-medium text-indigo-800 dark:text-indigo-200">
+                  {{ subscriptionTier === 'AUTOSYNC_LIVE' ? t('settings.tier_live') : t('settings.tier_autosync') }}
+                </span>
+                <p v-if="subscriptionPeriodEnd" class="text-xs text-indigo-600/70 dark:text-indigo-400/70 mt-0.5">
+                  {{ t('settings.tier_period_end', { date: formattedPeriodEnd }) }}
+                </p>
+              </div>
             </div>
-            <div>
-              <span class="text-sm font-medium text-indigo-800 dark:text-indigo-200">{{ t('upgrade.pro_active') }}</span>
-              <p v-if="subscriptionPeriodEnd" class="text-xs text-indigo-600/70 dark:text-indigo-400/70 mt-0.5">
-                {{ t('upgrade.pro_active_until', { date: new Date(subscriptionPeriodEnd).toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' }) }) }}
-              </p>
-            </div>
+            <button
+              @click="openPortal"
+              :disabled="portalLoading"
+              class="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-200 disabled:opacity-50 transition-colors"
+            >
+              {{ portalLoading ? t('upgrade.pro_manage_loading') : t('upgrade.pro_manage_btn') }}
+            </button>
           </div>
-          <button
-            @click="openPortal"
-            :disabled="portalLoading"
-            class="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-200 disabled:opacity-50 transition-colors"
+
+          <!-- AUTOSYNC tier with Tesla in garage -> upgrade CTA -->
+          <router-link
+            v-if="subscriptionTier === 'AUTOSYNC' && hasTesla"
+            to="/upgrade"
+            class="block text-center bg-gradient-to-br from-indigo-600 to-purple-700 text-white text-sm font-semibold py-3 rounded-lg shadow-md hover:opacity-90 transition-opacity"
           >
-            {{ portalLoading ? t('upgrade.pro_manage_loading') : t('upgrade.pro_manage_btn') }}
-          </button>
+            {{ t('settings.upgrade_to_live_cta') }}
+          </router-link>
+
+          <!-- AUTOSYNC_LIVE tier -> downgrade + cancel actions -->
+          <div v-if="subscriptionTier === 'AUTOSYNC_LIVE'" class="flex flex-col gap-2 pt-1">
+            <button
+              @click="confirmDowngrade"
+              :disabled="tierActionLoading"
+              class="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg py-2 disabled:opacity-50"
+            >
+              {{ t('settings.downgrade_to_autosync_cta') }}
+            </button>
+            <button
+              @click="confirmCancel"
+              :disabled="tierActionLoading"
+              class="text-xs text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 underline disabled:opacity-50"
+            >
+              {{ t('settings.cancel_live_cta') }}
+            </button>
+          </div>
+          <p v-if="tierActionError" class="text-xs text-red-600 dark:text-red-400 text-center">{{ tierActionError }}</p>
         </div>
         <div v-else class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl">
           <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('upgrade.pro_upgrade_hint', { priceMonthly: t('upgrade.price_monthly') }) }}</p>
