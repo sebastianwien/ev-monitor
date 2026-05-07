@@ -106,6 +106,12 @@ public class PostgresUserRepositoryImpl implements UserRepository {
 
     @Override
     @Transactional
+    public void setSubscriptionTier(UUID userId, com.evmonitor.domain.SubscriptionTier tier) {
+        jpaUserRepository.setSubscriptionTier(userId, tier.name(), tier.isPaid());
+    }
+
+    @Override
+    @Transactional
     public void setStripeCustomerId(UUID userId, String stripeCustomerId) {
         jpaUserRepository.setStripeCustomerId(userId, stripeCustomerId);
     }

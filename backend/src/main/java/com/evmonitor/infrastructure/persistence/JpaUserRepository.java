@@ -60,6 +60,17 @@ public interface JpaUserRepository extends JpaRepository<UserEntity, UUID> {
     @Query("UPDATE UserEntity u SET u.premium = :premium WHERE u.id = :userId")
     void setPremium(@Param("userId") UUID userId, @Param("premium") boolean premium);
 
+    /**
+     * Atomic tier-flip that also keeps the legacy is_premium flag in sync. New
+     * code (Stripe webhook, upgrade/downgrade endpoints) should call this; the
+     * standalone setPremium remains for transitional callers but is deprecated.
+     */
+    @Modifying
+    @Query("UPDATE UserEntity u SET u.subscriptionTier = :tier, u.premium = :paid WHERE u.id = :userId")
+    void setSubscriptionTier(@Param("userId") UUID userId,
+                             @Param("tier") String tier,
+                             @Param("paid") boolean paid);
+
     @Modifying
     @Query("UPDATE UserEntity u SET u.stripeCustomerId = :customerId WHERE u.id = :userId")
     void setStripeCustomerId(@Param("userId") UUID userId, @Param("customerId") String customerId);

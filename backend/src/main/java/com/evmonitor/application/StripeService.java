@@ -1,7 +1,9 @@
 package com.evmonitor.application;
 
+import com.evmonitor.domain.SubscriptionTier;
 import com.evmonitor.domain.User;
 import com.evmonitor.domain.UserRepository;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.stripe.Stripe;
@@ -195,9 +197,12 @@ public class StripeService {
                 Instant periodEnd = data.has("current_period_end") && !data.get("current_period_end").isJsonNull()
                         ? Instant.ofEpochSecond(data.get("current_period_end").getAsLong())
                         : null;
+                // Tier comes from the subscription items, not the event diff. Reading
+                // the current item state is idempotent on out-of-order webhooks.
+                SubscriptionTier newTier = isActive ? tierFromSubscriptionItems(data) : SubscriptionTier.NONE;
                 findUserByCustomerId(customerId).ifPresent(u -> {
-                    boolean wasPremium = u.isPremium();
-                    userRepository.setPremium(u.getId(), isActive);
+                    SubscriptionTier oldTier = u.getSubscriptionTier();
+                    userRepository.setSubscriptionTier(u.getId(), newTier);
                     if (periodEnd != null) {
                         userRepository.setSubscriptionPeriodEnd(u.getId(), periodEnd);
                     }
@@ -206,26 +211,33 @@ public class StripeService {
                     }
                     // Status transitioned away from active/trialing (e.g. canceled, past_due,
                     // incomplete_expired, unpaid) → Smartcar billing must stop, Tesla telemetry off.
-                    if (!isActive) {
+                    if (newTier == SubscriptionTier.NONE) {
                         disconnectSmartcar(u.getId());
                         disableTeslaTelemetry(u.getId());
-                    } else if (!wasPremium) {
+                    } else if (oldTier == SubscriptionTier.NONE) {
                         // Transition inactive→active: AutoSync purchase. Kick off Tesla telemetry
                         // auto-enable for users with a paired Tesla. No-op for non-Tesla users
-                        // (connectors-service returns 404, treated as benign).
+                        // (connectors-service returns 404, treated as benign). Profile is
+                        // determined connectors-side from /telemetry-access (returns Live → FULL).
+                        enableTeslaTelemetry(u.getId());
+                    } else if (oldTier != newTier) {
+                        // Same active state, tier flipped (Upgrade or Downgrade between
+                        // AutoSync ↔ Live). Connectors-service must rotate the telemetry
+                        // profile (CHARGING_ONLY ↔ FULL). enableTeslaTelemetry is idempotent
+                        // and re-pushes the now-current profile from /telemetry-access.
                         enableTeslaTelemetry(u.getId());
                     }
                 });
-                log.info("[STRIPE] subscription {} -> isPremium={} for customer={}", status, isActive, customerId);
+                log.info("[STRIPE] subscription {} -> tier={} for customer={}", status, newTier, customerId);
             }
             case "customer.subscription.deleted" -> {
                 String customerId = data.get("customer").getAsString();
                 findUserByCustomerId(customerId).ifPresent(u -> {
-                    userRepository.setPremium(u.getId(), false);
+                    userRepository.setSubscriptionTier(u.getId(), SubscriptionTier.NONE);
                     disconnectSmartcar(u.getId());
                     disableTeslaTelemetry(u.getId());
                 });
-                log.info("[STRIPE] subscription deleted -> isPremium=false for customer={}", customerId);
+                log.info("[STRIPE] subscription deleted -> tier=NONE for customer={}", customerId);
             }
             case "invoice.payment_failed" -> {
                 // Revoke premium AND disconnect Smartcar immediately. We previously kept Smartcar
@@ -236,10 +248,10 @@ public class StripeService {
                 String customerId = data.get("customer").getAsString();
                 findUserByCustomerId(customerId).ifPresentOrElse(
                         u -> {
-                            userRepository.setPremium(u.getId(), false);
+                            userRepository.setSubscriptionTier(u.getId(), SubscriptionTier.NONE);
                             disconnectSmartcar(u.getId());
                             disableTeslaTelemetry(u.getId());
-                            log.warn("[STRIPE] payment failed for customer={} userId={} - premium revoked, Smartcar disconnected, Tesla telemetry stopped", customerId, u.getId());
+                            log.warn("[STRIPE] payment failed for customer={} userId={} - tier=NONE, Smartcar disconnected, Tesla telemetry stopped", customerId, u.getId());
                         },
                         () -> log.warn("[STRIPE] payment failed for unknown customer={} — no action taken", customerId)
                 );
@@ -308,8 +320,21 @@ public class StripeService {
     }
 
     String resolvePriceId(String plan, String country) {
+        return resolvePriceId(plan, country, SubscriptionTier.AUTOSYNC);
+    }
+
+    /**
+     * Tier-aware price-id resolution. Live-tier products are EUR-only at launch
+     * (Tesla-only feature, fewer markets to negotiate). Non-EUR Live falls back
+     * to the Live monthly/yearly EUR id - acceptable because the eligibility
+     * check (in SubscriptionController) already requires a Tesla connection.
+     */
+    String resolvePriceId(String plan, String country, SubscriptionTier tier) {
         boolean yearly = "yearly".equals(plan);
         if (country == null) country = "DE";
+        if (tier == SubscriptionTier.AUTOSYNC_LIVE) {
+            return yearly ? priceIdLiveYearly : priceIdLiveMonthly;
+        }
         return switch (country) {
             case "DE", "AT", "CH" -> yearly ? priceIdYearly      : priceIdMonthly;
             case "US"             -> yearly ? priceIdYearlyUsd    : priceIdMonthlyUsd;
@@ -319,6 +344,43 @@ public class StripeService {
             case "DK"             -> yearly ? priceIdYearlyDkk    : priceIdMonthlyDkk;
             default               -> yearly ? priceIdYearlyIntl   : priceIdMonthlyIntl;
         };
+    }
+
+    /**
+     * Maps a Stripe price-id back to the tier it represents. Live ids → AUTOSYNC_LIVE,
+     * everything else → AUTOSYNC (defensive default - an unknown id from a legacy
+     * product still grants AutoSync rather than silently downgrading the user to NONE).
+     */
+    SubscriptionTier tierFromPriceId(String priceId) {
+        if (priceId == null) return SubscriptionTier.AUTOSYNC;
+        if (priceId.equals(priceIdLiveMonthly) || priceId.equals(priceIdLiveYearly)) {
+            return SubscriptionTier.AUTOSYNC_LIVE;
+        }
+        return SubscriptionTier.AUTOSYNC;
+    }
+
+    /**
+     * Reads the tier off a Stripe subscription event payload. Stripe always sends
+     * the full current item set on subscription.created/updated; we pick the highest
+     * tier across items (in practice there is only one item, but be defensive).
+     */
+    private SubscriptionTier tierFromSubscriptionItems(JsonObject subscriptionData) {
+        if (!subscriptionData.has("items")) return SubscriptionTier.AUTOSYNC;
+        JsonObject items = subscriptionData.getAsJsonObject("items");
+        if (!items.has("data")) return SubscriptionTier.AUTOSYNC;
+        JsonArray data = items.getAsJsonArray("data");
+        SubscriptionTier highest = SubscriptionTier.AUTOSYNC;
+        for (int i = 0; i < data.size(); i++) {
+            JsonObject item = data.get(i).getAsJsonObject();
+            if (!item.has("price")) continue;
+            JsonObject price = item.getAsJsonObject("price");
+            if (!price.has("id")) continue;
+            SubscriptionTier itemTier = tierFromPriceId(price.get("id").getAsString());
+            if (itemTier == SubscriptionTier.AUTOSYNC_LIVE) {
+                highest = SubscriptionTier.AUTOSYNC_LIVE;
+            }
+        }
+        return highest;
     }
 
     private String ensureCustomer(User user) throws StripeException {

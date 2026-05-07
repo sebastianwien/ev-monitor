@@ -37,6 +37,13 @@ public interface UserRepository {
 
     void setPremium(UUID userId, boolean premium);
 
+    /**
+     * Atomically updates {@code subscription_tier} and keeps the legacy
+     * {@code is_premium} flag in sync (premium = tier != NONE). Preferred
+     * over {@link #setPremium} for new code.
+     */
+    void setSubscriptionTier(UUID userId, SubscriptionTier tier);
+
     void setStripeCustomerId(UUID userId, String stripeCustomerId);
 
     void setSubscriptionPeriodEnd(UUID userId, Instant periodEnd);

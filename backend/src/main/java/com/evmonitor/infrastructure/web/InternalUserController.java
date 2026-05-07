@@ -56,20 +56,33 @@ public class InternalUserController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    public record TelemetryAccessResponse(boolean canActivate, String role, boolean premium) {}
+    public record TelemetryAccessResponse(
+            boolean canActivate,
+            String role,
+            boolean premium,
+            String tier,
+            String preferredProfile) {}
+
+    private TelemetryAccessResponse toResponse(com.evmonitor.domain.User user) {
+        return new TelemetryAccessResponse(
+                user.canActivateTelemetry(),
+                user.getRole(),
+                user.isPremium(),
+                user.getSubscriptionTier().name(),
+                user.preferredTelemetryProfile().name());
+    }
 
     /**
      * Single source of truth for "may this user activate Live-Sync (Tesla Telemetry / Smartcar Webhook)?".
      * Used by the connectors-service before pushing telemetry config and by the reconciliation job
-     * that detects role drift (e.g. BETA_TESTER demoted to USER → downgrade to CHARGING_ONLY profile).
+     * that detects role/tier drift. Response now carries tier + preferredProfile so the
+     * connectors-service can pick the correct Tesla telemetry profile (CHARGING_ONLY vs FULL)
+     * without a second round-trip.
      */
     @GetMapping("/users/{userId}/telemetry-access")
     public ResponseEntity<TelemetryAccessResponse> telemetryAccess(@PathVariable UUID userId) {
         return userRepository.findById(userId)
-                .map(user -> ResponseEntity.ok(new TelemetryAccessResponse(
-                        user.canActivateTelemetry(),
-                        user.getRole(),
-                        user.isPremium())))
+                .map(user -> ResponseEntity.ok(toResponse(user)))
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -88,10 +101,7 @@ public class InternalUserController {
         }
         Map<UUID, TelemetryAccessResponse> result = new java.util.HashMap<>();
         for (com.evmonitor.domain.User user : userRepository.findAllByIds(request.userIds())) {
-            result.put(user.getId(), new TelemetryAccessResponse(
-                    user.canActivateTelemetry(),
-                    user.getRole(),
-                    user.isPremium()));
+            result.put(user.getId(), toResponse(user));
         }
         return ResponseEntity.ok(result);
     }

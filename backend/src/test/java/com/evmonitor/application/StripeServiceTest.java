@@ -1,6 +1,7 @@
 package com.evmonitor.application;
 
 import com.evmonitor.domain.AuthProvider;
+import com.evmonitor.domain.SubscriptionTier;
 import com.evmonitor.domain.User;
 import com.evmonitor.domain.UserRepository;
 import com.google.gson.JsonObject;
@@ -91,16 +92,22 @@ class StripeServiceTest {
     }
 
     private JsonObject subscriptionPayload(String customerId, String status, Long periodEndEpoch) {
+        return subscriptionPayload(customerId, status, periodEndEpoch, null);
+    }
+
+    private JsonObject subscriptionPayload(String customerId, String status, Long periodEndEpoch, String priceId) {
         String periodEndJson = periodEndEpoch != null
                 ? String.valueOf(periodEndEpoch)
                 : "null";
-        return JsonParser.parseString("""
-                {
-                  "customer": "%s",
-                  "status": "%s",
-                  "current_period_end": %s
-                }
-                """.formatted(customerId, status, periodEndJson)).getAsJsonObject();
+        String itemsJson = priceId != null
+                ? ",\"items\":{\"data\":[{\"price\":{\"id\":\"" + priceId + "\"}}]}"
+                : "";
+        String json = "{\"customer\":\"" + customerId + "\","
+                + "\"status\":\"" + status + "\","
+                + "\"current_period_end\":" + periodEndJson
+                + itemsJson
+                + "}";
+        return JsonParser.parseString(json).getAsJsonObject();
     }
 
     private JsonObject invoicePayload(String customerId, long amountPaid) {
@@ -169,7 +176,7 @@ class StripeServiceTest {
             stripeService.dispatch("customer.subscription.created",
                     subscriptionPayload(CUSTOMER_ID, "active", periodEndEpoch));
 
-            verify(userRepository).setPremium(USER_ID, true);
+            verify(userRepository).setSubscriptionTier(USER_ID, SubscriptionTier.AUTOSYNC);
             ArgumentCaptor<Instant> captor = ArgumentCaptor.forClass(Instant.class);
             verify(userRepository).setSubscriptionPeriodEnd(eq(USER_ID), captor.capture());
             assertThat(captor.getValue()).isEqualTo(Instant.ofEpochSecond(periodEndEpoch));
@@ -183,7 +190,7 @@ class StripeServiceTest {
             stripeService.dispatch("customer.subscription.updated",
                     subscriptionPayload(CUSTOMER_ID, "trialing", 1_800_000_000L));
 
-            verify(userRepository).setPremium(USER_ID, true);
+            verify(userRepository).setSubscriptionTier(USER_ID, SubscriptionTier.AUTOSYNC);
         }
 
         @Test
@@ -194,7 +201,7 @@ class StripeServiceTest {
             stripeService.dispatch("customer.subscription.updated",
                     subscriptionPayload(CUSTOMER_ID, "past_due", 1_800_000_000L));
 
-            verify(userRepository).setPremium(USER_ID, false);
+            verify(userRepository).setSubscriptionTier(USER_ID, SubscriptionTier.NONE);
         }
 
         @Test
@@ -205,7 +212,7 @@ class StripeServiceTest {
             stripeService.dispatch("customer.subscription.updated",
                     subscriptionPayload(CUSTOMER_ID, "canceled", 1_800_000_000L));
 
-            verify(userRepository).setPremium(USER_ID, false);
+            verify(userRepository).setSubscriptionTier(USER_ID, SubscriptionTier.NONE);
         }
 
         @Test
@@ -216,7 +223,7 @@ class StripeServiceTest {
             stripeService.dispatch("customer.subscription.created",
                     subscriptionPayload(CUSTOMER_ID, "active", null));
 
-            verify(userRepository).setPremium(USER_ID, true);
+            verify(userRepository).setSubscriptionTier(USER_ID, SubscriptionTier.AUTOSYNC);
             verify(userRepository, never()).setSubscriptionPeriodEnd(any(), any());
         }
 
@@ -227,7 +234,7 @@ class StripeServiceTest {
             stripeService.dispatch("customer.subscription.created",
                     subscriptionPayload(CUSTOMER_ID, "active", 1_800_000_000L));
 
-            verify(userRepository, never()).setPremium(any(), anyBoolean());
+            verify(userRepository, never()).setSubscriptionTier(any(), any());
             verify(userRepository, never()).setSubscriptionPeriodEnd(any(), any());
         }
 
@@ -314,6 +321,55 @@ class StripeServiceTest {
         }
 
         @Test
+        void liveTierPriceId_setsTierToAutosyncLive() {
+            // Mockito hoistery: configure the field before dispatch sees it.
+            ReflectionTestUtils.setField(stripeService, "priceIdLiveMonthly", "price_LIVE_M");
+            ReflectionTestUtils.setField(stripeService, "priceIdLiveYearly", "price_LIVE_Y");
+            User user = buildUser(USER_ID, null);
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));
+
+            stripeService.dispatch("customer.subscription.created",
+                    subscriptionPayload(CUSTOMER_ID, "active", 1_800_000_000L, "price_LIVE_M"));
+
+            verify(userRepository).setSubscriptionTier(USER_ID, SubscriptionTier.AUTOSYNC_LIVE);
+        }
+
+        @Test
+        void unknownPriceId_defaultsToAutosync() {
+            ReflectionTestUtils.setField(stripeService, "priceIdLiveMonthly", "price_LIVE_M");
+            User user = buildUser(USER_ID, null);
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));
+
+            stripeService.dispatch("customer.subscription.created",
+                    subscriptionPayload(CUSTOMER_ID, "active", 1_800_000_000L, "price_LEGACY_UNKNOWN"));
+
+            verify(userRepository).setSubscriptionTier(USER_ID, SubscriptionTier.AUTOSYNC);
+        }
+
+        @Test
+        void tierDowngrade_liveToAutosync_rePushesProfile() {
+            // Existing Live-tier user, webhook arrives with AutoSync-tier price-id (downgrade
+            // took effect at period end). Telemetry must be re-pushed to flip FULL → CHARGING_ONLY.
+            RestTemplate mockRest = installMockRestTemplate();
+            ReflectionTestUtils.setField(stripeService, "priceIdLiveMonthly", "price_LIVE_M");
+            User liveUser = User.builder()
+                    .id(USER_ID).email("u@example.com").username("u").passwordHash("hash")
+                    .authProvider(AuthProvider.LOCAL).role("USER")
+                    .emailVerified(true).emailNotificationsEnabled(true)
+                    .referralCode("REFERRALCODE1").stripeCustomerId(CUSTOMER_ID)
+                    .subscriptionTier(SubscriptionTier.AUTOSYNC_LIVE)
+                    .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
+                    .build();
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(liveUser));
+
+            stripeService.dispatch("customer.subscription.updated",
+                    subscriptionPayload(CUSTOMER_ID, "active", 1_800_000_000L, "price_AUTOSYNC_M"));
+
+            verify(userRepository).setSubscriptionTier(USER_ID, SubscriptionTier.AUTOSYNC);
+            verifyTeslaEnableCalledFor(mockRest, USER_ID);
+        }
+
+        @Test
         void raceCondition_userPremiumByConcurrentSub_skipsSmartcarDisconnect() {
             // Stale subscription.deleted webhook arrives after the user has already started a
             // fresh subscription that flipped is_premium back to true. Re-read catches this.
@@ -355,7 +411,7 @@ class StripeServiceTest {
 
             stripeService.dispatch("customer.subscription.deleted", data);
 
-            verify(userRepository).setPremium(USER_ID, false);
+            verify(userRepository).setSubscriptionTier(USER_ID, SubscriptionTier.NONE);
         }
 
         @Test
@@ -368,7 +424,7 @@ class StripeServiceTest {
 
             stripeService.dispatch("customer.subscription.deleted", data);
 
-            verify(userRepository, never()).setPremium(any(), anyBoolean());
+            verify(userRepository, never()).setSubscriptionTier(any(), any());
         }
     }
 
@@ -470,7 +526,7 @@ class StripeServiceTest {
 
             stripeService.dispatch("invoice.payment_failed", data);
 
-            verify(userRepository).setPremium(USER_ID, false);
+            verify(userRepository).setSubscriptionTier(USER_ID, SubscriptionTier.NONE);
         }
 
         @Test
@@ -499,7 +555,7 @@ class StripeServiceTest {
 
             stripeService.dispatch("invoice.payment_failed", data);
 
-            verify(userRepository, never()).setPremium(any(), anyBoolean());
+            verify(userRepository, never()).setSubscriptionTier(any(), any());
         }
     }
 
