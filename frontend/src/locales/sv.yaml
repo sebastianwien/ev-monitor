@@ -1935,6 +1935,8 @@ upgrade:
   live_tesla_required: "Tesla måste vara ansluten och parad"
   live_tesla_required_error: "Anslut din Tesla först."
   live_tesla_hint_for_non_tesla: "Kör du Tesla? När du anslutit den låser vi upp AutoSync Live för dig (Trip-Tracking + Phantom-Drain)."
+  live_success_title: "AutoSync Live aktiverad!"
+  live_success_desc: "Din Tesla-telemetri uppgraderas till den utökade profilen. Så snart din Tesla är online igen kommer körningar och Phantom-Drain-rapporter in automatiskt."
 region_chip:
   wrong: Fel region?
   title: Välj din region

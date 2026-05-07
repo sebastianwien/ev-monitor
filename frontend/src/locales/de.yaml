@@ -1970,6 +1970,8 @@ upgrade:
   live_tesla_required: "Tesla muss verbunden und gepairt sein"
   live_tesla_required_error: "Bitte verbinde zuerst deinen Tesla."
   live_tesla_hint_for_non_tesla: "Du fährst Tesla? Nach dem Verbinden schalten wir AutoSync Live für dich frei (Trip-Tracking + Phantom-Drain)."
+  live_success_title: "AutoSync Live freigeschaltet!"
+  live_success_desc: "Deine Tesla-Telemetry wird auf das erweiterte Profil umgestellt. Sobald dein Tesla wieder online ist, kommen Fahrten und Phantom-Drain-Berichte automatisch."
 
 region_chip:
   wrong: "Falsche Region?"

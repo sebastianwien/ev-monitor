@@ -1970,6 +1970,8 @@ upgrade:
   live_tesla_required: "Tesla must be connected and paired"
   live_tesla_required_error: "Please connect your Tesla first."
   live_tesla_hint_for_non_tesla: "Drive a Tesla? Once you connect it we'll unlock AutoSync Live for you (Trip tracking + Phantom drain)."
+  live_success_title: "AutoSync Live unlocked!"
+  live_success_desc: "Your Tesla telemetry is being upgraded to the extended profile. As soon as your Tesla is online again, trips and phantom-drain reports will flow in automatically."
 
 region_chip:
   wrong: "Wrong region?"

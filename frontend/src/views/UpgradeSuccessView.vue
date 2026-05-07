@@ -42,8 +42,8 @@
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                     </svg>
                 </div>
-                <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">{{ t('upgrade.success_title') }}</h1>
-                <p class="text-gray-600 dark:text-gray-400 mb-8">{{ t('upgrade.success_desc') }}</p>
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">{{ successTitle }}</h1>
+                <p class="text-gray-600 dark:text-gray-400 mb-8">{{ successDesc }}</p>
                 <router-link
                     to="/imports"
                     class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-3 rounded-xl transition-colors"
@@ -62,16 +62,25 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '../stores/auth';
 import { analytics } from '../services/analytics';
+import { subscriptionService } from '../api/subscriptionService';
 
 const { t } = useI18n();
 const authStore = useAuthStore();
 
 const isPolling = ref(true);
 const pollTimedOut = ref(false);
+const tier = ref<'NONE' | 'AUTOSYNC' | 'AUTOSYNC_LIVE'>('NONE');
+
+// Live-tier success messages differ from AutoSync ("pair your Tesla" instead
+// of generic "connect your car"). Falls back to AutoSync wording while polling.
+const successTitle = computed(() =>
+    tier.value === 'AUTOSYNC_LIVE' ? t('upgrade.live_success_title') : t('upgrade.success_title'));
+const successDesc = computed(() =>
+    tier.value === 'AUTOSYNC_LIVE' ? t('upgrade.live_success_desc') : t('upgrade.success_desc'));
 
 const POLL_ATTEMPTS = 15;
 const POLL_DELAY_MS = 2000;
@@ -80,6 +89,10 @@ onMounted(async () => {
     for (let i = 0; i < POLL_ATTEMPTS; i++) {
         await authStore.refreshToken();
         if (authStore.isPremium) {
+            try {
+                const status = await subscriptionService.getStatus();
+                tier.value = status.tier ?? 'NONE';
+            } catch { /* keep AUTOSYNC fallback */ }
             isPolling.value = false;
             analytics.trackCheckoutCompleted();
             return;
@@ -92,7 +105,6 @@ onMounted(async () => {
     // All attempts exhausted - webhook likely delayed
     isPolling.value = false;
     pollTimedOut.value = true;
-    // Still fire the analytics event - payment went through on Stripe's side
     analytics.trackCheckoutCompleted();
 });
 </script>

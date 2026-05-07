@@ -32,10 +32,14 @@ const props = defineProps<{
     /** Premium OR privileged role (ADMIN/BETA_TESTER/TESLA_FOUNDER). Tiles render
      *  for anyone with access; pure-Premium pitch only for users without it. */
     hasAutoSyncAccess: boolean
+    /** Subscription tier - drives the Live-upgrade tile-banner under the Tesla tile.
+     *  Banner shows only when tier === 'AUTOSYNC' (i.e. paying user not yet on Live). */
+    tier?: 'NONE' | 'AUTOSYNC' | 'AUTOSYNC_LIVE'
 }>()
 
 const emit = defineEmits<{
     (e: 'active-car-label', label: string | null): void
+    (e: 'live-upgrade-requested'): void
 }>()
 
 const teslaStatus = ref<TeslaConnectionStatus | null>(null)
@@ -275,6 +279,20 @@ function toggleExpand(carId: string) {
                                     :forced-car-id="car.id"
                                 />
                             </div>
+
+                            <!-- Inline Live upsell on the active Tesla tile only.
+                                 Hidden once user is on Live or not paying yet. -->
+                            <a
+                                v-if="autoSyncProviderFor(car) === 'TESLA'
+                                      && tileStateFor(car) === 'active'
+                                      && props.tier === 'AUTOSYNC'"
+                                href="#"
+                                @click.prevent="emit('live-upgrade-requested')"
+                                class="block px-4 py-2.5 bg-indigo-900/30 border-t border-indigo-700/40 text-xs text-indigo-700 dark:text-indigo-300 hover:bg-indigo-900/50 transition-colors"
+                            >
+                                <span class="font-medium">{{ t('imports.tile_live_upsell') }}</span>
+                                <span class="text-indigo-500 dark:text-indigo-400 float-right">{{ t('imports.tile_live_upsell_price') }} →</span>
+                            </a>
                         </div>
                     </Transition>
                 </div>

@@ -57,24 +57,38 @@ function toggleImplausibleBanner() {
   }
 }
 
-// Tesla-Garage detection - controls visibility of the Live upgrade CTA.
+// Tesla-Garage detection - controls visibility of the Live upgrade CTA
+// AND the Live-tier disconnected warning.
 const carStore = useCarStore()
 const userCarBrands = ref<string[]>([])
 const hasTesla = computed(() => userCarBrands.value.some(b => b === 'TESLA'))
+// Live tier without a Tesla in the garage = stuck state. User pays for a
+// feature with nothing to stream from. Surface a repair-CTA toward /imports.
+const liveButNoTesla = computed(() => subscriptionTier.value === 'AUTOSYNC_LIVE' && !hasTesla.value)
 
 const formattedPeriodEnd = computed(() => subscriptionPeriodEnd.value
   ? new Date(subscriptionPeriodEnd.value).toLocaleDateString(locale.value, { day: '2-digit', month: '2-digit', year: 'numeric' })
-  : '—')
+  : '-')
 
-function confirmDowngrade() {
-  if (window.confirm(t('settings.downgrade_confirm_body', { date: formattedPeriodEnd.value }))) {
-    downgradeToAutoSync()
-  }
-}
+const tierConfirmAction = ref<'downgrade' | 'cancel' | null>(null)
+const tierConfirmTitle = computed(() => tierConfirmAction.value === 'downgrade'
+  ? t('settings.downgrade_confirm_title')
+  : t('settings.cancel_confirm_title'))
+const tierConfirmBody = computed(() => tierConfirmAction.value === 'downgrade'
+  ? t('settings.downgrade_confirm_body', { date: formattedPeriodEnd.value })
+  : t('settings.cancel_confirm_body', { date: formattedPeriodEnd.value }))
 
-function confirmCancel() {
-  if (window.confirm(t('settings.cancel_confirm_body', { date: formattedPeriodEnd.value }))) {
-    cancelSubscription()
+function openDowngradeConfirm() { tierConfirmAction.value = 'downgrade' }
+function openCancelConfirm() { tierConfirmAction.value = 'cancel' }
+function closeTierConfirm() { tierConfirmAction.value = null }
+
+async function confirmTierAction() {
+  const action = tierConfirmAction.value
+  closeTierConfirm()
+  if (action === 'downgrade') {
+    await downgradeToAutoSync()
+  } else if (action === 'cancel') {
+    await cancelSubscription()
   }
 }
 
@@ -278,6 +292,23 @@ onMounted(async () => {
             </button>
           </div>
 
+          <!-- Live tier but no Tesla in garage -> repair-CTA -->
+          <router-link
+            v-if="liveButNoTesla"
+            to="/imports"
+            class="block bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-800 rounded-xl p-3 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
+          >
+            <div class="flex items-center gap-2">
+              <svg class="w-5 h-5 shrink-0 text-amber-600 dark:text-amber-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+              </svg>
+              <div class="flex-1">
+                <p class="text-sm font-medium text-amber-800 dark:text-amber-200">{{ t('settings.tier_live_disconnected_warning') }}</p>
+                <p class="text-xs text-amber-700 dark:text-amber-300">{{ t('settings.tier_live_repair_cta') }} →</p>
+              </div>
+            </div>
+          </router-link>
+
           <!-- AUTOSYNC tier with Tesla in garage -> upgrade CTA -->
           <router-link
             v-if="subscriptionTier === 'AUTOSYNC' && hasTesla"
@@ -290,14 +321,14 @@ onMounted(async () => {
           <!-- AUTOSYNC_LIVE tier -> downgrade + cancel actions -->
           <div v-if="subscriptionTier === 'AUTOSYNC_LIVE'" class="flex flex-col gap-2 pt-1">
             <button
-              @click="confirmDowngrade"
+              @click="openDowngradeConfirm"
               :disabled="tierActionLoading"
               class="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg py-2 disabled:opacity-50"
             >
               {{ t('settings.downgrade_to_autosync_cta') }}
             </button>
             <button
-              @click="confirmCancel"
+              @click="openCancelConfirm"
               :disabled="tierActionLoading"
               class="text-xs text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 underline disabled:opacity-50"
             >
@@ -711,4 +742,33 @@ onMounted(async () => {
     </div>
   </div>
   <DemoSettingsModal />
+
+  <!-- Tier-action confirmation dialog (downgrade or cancel) -->
+  <Teleport to="body">
+    <div
+      v-if="tierConfirmAction"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      @click.self="closeTierConfirm"
+    >
+      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-sm w-full p-6 border border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">{{ tierConfirmTitle }}</h3>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">{{ tierConfirmBody }}</p>
+        <div class="flex gap-2 justify-end">
+          <button
+            @click="closeTierConfirm"
+            class="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 px-4 py-2"
+          >
+            {{ t('settings.cancel_confirm_keep') }}
+          </button>
+          <button
+            @click="confirmTierAction"
+            :disabled="tierActionLoading"
+            class="text-sm font-medium bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg disabled:opacity-50"
+          >
+            {{ t('settings.cancel_confirm_proceed') }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </Teleport>
 </template>

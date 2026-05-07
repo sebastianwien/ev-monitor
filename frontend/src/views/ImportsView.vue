@@ -269,7 +269,9 @@ const teslaConnectedLabel = ref<string | null>(null)
                 :premium-enabled="premiumEnabled"
                 :is-premium="subscriptionIsPremium"
                 :has-auto-sync-access="authStore.isPremium"
+                :tier="subscriptionTier"
                 @active-car-label="autoSyncActiveCarLabel = $event"
+                @live-upgrade-requested="handleLiveUpgrade"
               />
             </div>
           </Transition>
