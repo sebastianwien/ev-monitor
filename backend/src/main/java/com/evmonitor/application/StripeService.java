@@ -132,10 +132,15 @@ public class StripeService {
      * @return the Stripe Checkout URL
      */
     public String createCheckoutSession(User user, String plan, String successUrl, String cancelUrl) throws StripeException {
+        return createCheckoutSession(user, plan, SubscriptionTier.AUTOSYNC, successUrl, cancelUrl);
+    }
+
+    public String createCheckoutSession(User user, String plan, SubscriptionTier tier,
+                                        String successUrl, String cancelUrl) throws StripeException {
         boolean eligibleForTrial = !user.isTrialUsed();
         String customerId = ensureCustomer(user);
 
-        String priceId = resolvePriceId(plan, user.getCountry());
+        String priceId = resolvePriceId(plan, user.getCountry(), tier);
 
         SessionCreateParams.Builder builder = SessionCreateParams.builder()
                 .setMode(SessionCreateParams.Mode.SUBSCRIPTION)
@@ -302,6 +307,100 @@ public class StripeService {
                 // Unhandled event type — ignore silently
             }
         }
+    }
+
+    /**
+     * Upgrades the user's existing subscription from AutoSync to AutoSync Live.
+     * Same plan period (M->M, Y->Y) - cross-period requires UI plan-toggle in
+     * a follow-up phase. Stripe charges proration immediately for the price
+     * difference. Webhook subsequently flips the tier in our DB.
+     *
+     * @return true if Stripe accepted the change. The tier flip happens
+     *         asynchronously via webhook.
+     */
+    public boolean upgradeToLive(User user) throws StripeException {
+        com.stripe.model.Subscription sub = activeSubscriptionFor(user);
+        if (sub == null) return false;
+        com.stripe.model.SubscriptionItem currentItem = sub.getItems().getData().get(0);
+        boolean yearly = currentItem.getPrice().getRecurring() != null
+                && "year".equals(currentItem.getPrice().getRecurring().getInterval());
+        String targetPriceId = yearly ? priceIdLiveYearly : priceIdLiveMonthly;
+
+        com.stripe.param.SubscriptionUpdateParams params = com.stripe.param.SubscriptionUpdateParams.builder()
+                .addItem(com.stripe.param.SubscriptionUpdateParams.Item.builder()
+                        .setId(currentItem.getId())
+                        .setPrice(targetPriceId)
+                        .build())
+                .setProrationBehavior(com.stripe.param.SubscriptionUpdateParams.ProrationBehavior.CREATE_PRORATIONS)
+                .setPaymentBehavior(com.stripe.param.SubscriptionUpdateParams.PaymentBehavior.PENDING_IF_INCOMPLETE)
+                .build();
+        sub.update(params);
+        log.info("[STRIPE] upgrade requested for userId={} -> {}", user.getId(), targetPriceId);
+        return true;
+    }
+
+    /**
+     * Downgrades from AutoSync Live to AutoSync at the period boundary. No refund.
+     * User keeps Live features until current_period_end, then the webhook flips
+     * tier to AUTOSYNC and re-pushes the CHARGING_ONLY profile.
+     */
+    public boolean downgradeToAutoSync(User user) throws StripeException {
+        com.stripe.model.Subscription sub = activeSubscriptionFor(user);
+        if (sub == null) return false;
+        com.stripe.model.SubscriptionItem currentItem = sub.getItems().getData().get(0);
+        boolean yearly = currentItem.getPrice().getRecurring() != null
+                && "year".equals(currentItem.getPrice().getRecurring().getInterval());
+        String country = user.getCountry();
+        String targetPriceId = resolvePriceId(yearly ? "yearly" : "monthly", country, SubscriptionTier.AUTOSYNC);
+
+        com.stripe.param.SubscriptionUpdateParams params = com.stripe.param.SubscriptionUpdateParams.builder()
+                .addItem(com.stripe.param.SubscriptionUpdateParams.Item.builder()
+                        .setId(currentItem.getId())
+                        .setPrice(targetPriceId)
+                        .build())
+                // No proration on downgrade: user has already paid for the current period at the
+                // higher Live rate, switch takes effect at the next renewal.
+                .setProrationBehavior(com.stripe.param.SubscriptionUpdateParams.ProrationBehavior.NONE)
+                .build();
+        sub.update(params);
+        log.info("[STRIPE] downgrade requested for userId={} -> {} (effective at period end)", user.getId(), targetPriceId);
+        return true;
+    }
+
+    /**
+     * Schedules the user's subscription to cancel at period end. User retains
+     * all features until then. Stripe sends subscription.deleted at the
+     * boundary; our existing handler flips tier to NONE and tears down telemetry.
+     */
+    public boolean cancelAtPeriodEnd(User user) throws StripeException {
+        com.stripe.model.Subscription sub = activeSubscriptionFor(user);
+        if (sub == null) return false;
+        com.stripe.param.SubscriptionUpdateParams params = com.stripe.param.SubscriptionUpdateParams.builder()
+                .setCancelAtPeriodEnd(true)
+                .build();
+        sub.update(params);
+        log.info("[STRIPE] cancel-at-period-end requested for userId={}", user.getId());
+        return true;
+    }
+
+    /**
+     * Looks up the user's currently active (or trialing) Stripe subscription.
+     * Returns null if the user has no Stripe customer or no eligible sub.
+     */
+    private com.stripe.model.Subscription activeSubscriptionFor(User user) throws StripeException {
+        if (user.getStripeCustomerId() == null || user.getStripeCustomerId().isBlank()) return null;
+        com.stripe.param.SubscriptionListParams params = com.stripe.param.SubscriptionListParams.builder()
+                .setCustomer(user.getStripeCustomerId())
+                .setLimit(10L)
+                .build();
+        com.stripe.model.SubscriptionCollection list = com.stripe.model.Subscription.list(params);
+        for (com.stripe.model.Subscription s : list.getData()) {
+            String status = s.getStatus();
+            if ("active".equals(status) || "trialing".equals(status) || "past_due".equals(status)) {
+                return s;
+            }
+        }
+        return null;
     }
 
     /**
