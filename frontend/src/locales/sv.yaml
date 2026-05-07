@@ -1260,6 +1260,16 @@ imports:
   smartcar_how_a4: Så snart en laddningssession påbörjas och avslutas skickar Smartcar automatiskt uppgifterna till EV Monitor. kWh-värdet hämtas direkt från fordonet – vilket är mer exakt än någon uppskattning. Du behöver inte göra någonting.
   smartcar_how_q5: Behöver jag göra något efteråt?
   smartcar_how_a5: Nej. När anslutningen är upprättad sker allt helt i bakgrunden.
+  tesla_how_title: Hur fungerar AutoSync för Tesla?
+  tesla_how_a1: "För Tesla använder AutoSync den officiella <strong>Tesla Fleet Telemetry</strong> - Teslas eget gränssnitt som låter fordonet strömma laddnings- och statusdata direkt till auktoriserade appar. Ingen mellanhand, ingen polling - data kommer in var några sekunder direkt från bilen."
+  tesla_how_q2: "Varför är Tesla annorlunda än andra märken?"
+  tesla_how_a2: "Tesla är den enda tillverkaren som erbjuder en officiell push-ström - fordonet skickar aktivt data så snart något ändras. Andra märken tillåter bara periodiska förfrågningar via tredjeparter som Smartcar. För dig innebär det snabbare detektering av laddningens start och slut, och inga API-gränser."
+  tesla_how_q3: "Vad händer när jag ansluter?"
+  tesla_how_a3: "Du omdirigeras till Teslas inloggningssida och loggar in med ditt Tesla-konto. Tesla visar dig exakt vilka data EV Monitor får, och du auktoriserar åtkomsten. Sedan parar du EV Monitor en gång i Tesla-appen som en virtuell nyckel. Tesla ser ditt lösenord, EV Monitor ser det aldrig. Du kan när som helst återkalla åtkomsten i Tesla-appen eller här."
+  tesla_how_q4: "Vad händer under laddningen?"
+  tesla_how_a4: "Så snart din Tesla är inkopplad och laddningen börjar strömmar fordonet telemetri direkt till EV Monitor. Vi registrerar start, slut och exakta kWh - oavsett om det är vid en Supercharger, din hemladdare eller en offentlig station. Laddningssessionen dyker upp automatiskt i loggen."
+  tesla_how_q5: "Behöver jag göra något mer efter det?"
+  tesla_how_a5: "Nej. När parningen är gjord körs allt helt i bakgrunden - även över fordonets programvaruuppdateringar."
   autosync_tesla_section_title: AutoSync för Tesla
   autosync_tesla_section_desc: Direkt anslutning mellan din Tesla och EV Monitor.
   autosync_tesla_feat1: Laddningssessioner registreras automatiskt när de avslutas

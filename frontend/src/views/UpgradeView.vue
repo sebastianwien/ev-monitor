@@ -1,6 +1,6 @@
 <template>
     <div class="py-6 md:py-10 px-4">
-        <div class="max-w-lg md:max-w-xl mx-auto bg-gray-50/80 dark:bg-gray-900/80 rounded-3xl p-3">
+        <div class="max-w-lg md:max-w-2xl mx-auto bg-gray-50 dark:bg-gray-900 rounded-3xl p-3">
             <div v-if="loading" class="text-center py-16 text-gray-500 dark:text-gray-400">{{ t('upgrade.loading') }}</div>
 
             <!-- Bereits Pro -->
@@ -76,8 +76,8 @@
                     </div>
                 </div>
 
-                <!-- FAQ: Wie funktioniert AutoSync? -->
-                <details class="group bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-4">
+                <!-- FAQ: Wie funktioniert AutoSync (Smartcar)? -->
+                <details v-if="showSmartcarFaq" class="group bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-4">
                     <summary class="flex items-center justify-center gap-2 px-5 py-4 cursor-pointer list-none select-none hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                         <p class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">{{ t('imports.smartcar_how_title') }}</p>
                         <ChevronDownIcon class="h-4 w-4 text-gray-400 shrink-0 transition-transform group-open:rotate-180" />
@@ -86,6 +86,20 @@
                         <div v-for="i in 5" :key="i" class="pt-4">
                             <p v-if="i > 1" class="text-sm font-semibold text-gray-800 dark:text-gray-200">{{ t(`imports.smartcar_how_q${i}`) }}</p>
                             <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ t(`imports.smartcar_how_a${i}`) }}</p>
+                        </div>
+                    </div>
+                </details>
+
+                <!-- FAQ: Wie funktioniert AutoSync für Tesla? -->
+                <details v-if="showTeslaFaq" class="group bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-4">
+                    <summary class="flex items-center justify-center gap-2 px-5 py-4 cursor-pointer list-none select-none hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                        <p class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">{{ t('imports.tesla_how_title') }}</p>
+                        <ChevronDownIcon class="h-4 w-4 text-gray-400 shrink-0 transition-transform group-open:rotate-180" />
+                    </summary>
+                    <div class="border-t border-gray-100 dark:border-gray-700 px-5 pb-5 space-y-4">
+                        <div v-for="i in 5" :key="i" class="pt-4">
+                            <p v-if="i > 1" class="text-sm font-semibold text-gray-800 dark:text-gray-200">{{ t(`imports.tesla_how_q${i}`) }}</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1" v-html="t(`imports.tesla_how_a${i}`)"></p>
                         </div>
                     </div>
                 </details>
@@ -179,11 +193,19 @@ import { subscriptionService } from '../api/subscriptionService';
 import { analytics } from '../services/analytics';
 import { ChevronDownIcon } from '@heroicons/vue/24/outline';
 import { useCountryStore } from '../stores/country';
+import { useCarStore } from '../stores/car';
 import { getPricing } from '../config/pricingConfig';
 
 const { t } = useI18n();
 const countryStore = useCountryStore();
+const carStore = useCarStore();
 const pricing = computed(() => getPricing(countryStore.country));
+
+const userCarBrands = ref<string[]>([]);
+const hasOnlyTesla = computed(() => userCarBrands.value.length > 0 && userCarBrands.value.every(b => b === 'TESLA'));
+const hasNonTesla = computed(() => userCarBrands.value.some(b => b !== 'TESLA'));
+const showTeslaFaq = computed(() => hasOnlyTesla.value || userCarBrands.value.length === 0);
+const showSmartcarFaq = computed(() => hasNonTesla.value || userCarBrands.value.length === 0);
 
 const brands = [
     'BMW', 'MINI', 'VW', 'Mercedes', 'Audi', 'Porsche', 'Skoda', 'SEAT', 'CUPRA', 'Opel',
@@ -201,9 +223,13 @@ const checkoutError = ref('');
 
 onMounted(async () => {
     try {
-        const status = await subscriptionService.getStatus();
+        const [status, cars] = await Promise.all([
+            subscriptionService.getStatus(),
+            carStore.getCars().catch(() => []),
+        ]);
         premiumEnabled.value = status.premiumEnabled;
         isPremium.value = status.isPremium;
+        userCarBrands.value = cars.map(c => c.brand);
         analytics.trackUpgradePageViewed();
     } finally {
         loading.value = false;
