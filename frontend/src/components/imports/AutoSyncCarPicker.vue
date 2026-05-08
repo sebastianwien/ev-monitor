@@ -46,6 +46,13 @@ const teslaStatus = ref<TeslaConnectionStatus | null>(null)
 const smartcarStatus = ref<SmartcarConnectionStatus | null>(null)
 const statusesLoaded = ref(false)
 const expandedCarId = ref<string | null>(null)
+const failedImageIds = ref<Set<string>>(new Set())
+
+function onImageError(carId: string) {
+    const next = new Set(failedImageIds.value)
+    next.add(carId)
+    failedImageIds.value = next
+}
 
 onMounted(async () => {
     if (!props.hasAutoSyncAccess) {
@@ -183,7 +190,13 @@ function toggleExpand(carId: string) {
                     >
                         <!-- Car image / car-icon fallback -->
                         <div class="shrink-0 w-16 md:w-20 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-slate-700 dark:to-slate-800 flex items-center justify-center overflow-hidden">
-                            <img v-if="car.imageUrl" :src="car.imageUrl" alt="" class="w-full h-full object-cover" />
+                            <img
+                                v-if="car.imageUrl && !failedImageIds.has(car.id)"
+                                :src="car.imageUrl"
+                                alt=""
+                                class="w-full h-full object-cover"
+                                @error="onImageError(car.id)"
+                            />
                             <TruckIcon v-else class="h-7 w-7 text-gray-400 dark:text-slate-500" />
                         </div>
 
