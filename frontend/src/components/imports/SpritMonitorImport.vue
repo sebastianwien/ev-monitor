@@ -20,8 +20,12 @@ const enumToLabel = (v: string | null | undefined): string => {
   if (!v) return ''
   return v.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
 }
+const carDisplayName = (brand: string | null | undefined, model: string | null | undefined): string => {
+  const b = enumToLabel(brand); const m = enumToLabel(model)
+  return m.toLowerCase().startsWith(b.toLowerCase()) ? m : `${b} ${m}`.trim()
+}
 const carLabel = (car: Car) => {
-  const name = `${enumToLabel(car.brand)} ${enumToLabel(car.model)}`
+  const name = carDisplayName(car.brand, car.model)
   return car.licensePlate ? `${name} · ${car.licensePlate}` : name
 }
 

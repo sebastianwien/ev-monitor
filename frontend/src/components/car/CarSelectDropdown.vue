@@ -32,8 +32,13 @@ function enumToLabel(value: string | null | undefined): string {
     .split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
 }
 
+function carDisplayName(brand: string | null | undefined, model: string | null | undefined): string {
+  const b = enumToLabel(brand); const m = enumToLabel(model)
+  return m.toLowerCase().startsWith(b.toLowerCase()) ? m : `${b} ${m}`.trim()
+}
+
 function carLabel(car: Car): string {
-  const name = `${enumToLabel(car.brand)} ${enumToLabel(car.model)}`
+  const name = carDisplayName(car.brand, car.model)
   return car.licensePlate ? `${name} · ${car.licensePlate}` : name
 }
 </script>

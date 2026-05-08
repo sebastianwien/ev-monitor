@@ -64,7 +64,7 @@ import { useDashboardStats } from '../composables/useDashboardStats'
 import { useDashboardCharts } from '../composables/useDashboardCharts'
 import { useLogList } from '../composables/useLogList'
 import { useWallboxStore } from '../stores/wallbox'
-import { enumToLabel } from '../utils/enumLabel'
+import { carDisplayName } from '../utils/enumLabel'
 import { isVwGroupBrand } from '../api/vwGroupService'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend, Filler, ChartDataLabels)
@@ -547,7 +547,7 @@ function onTripFormLeave(el: Element, done: () => void) {
                 <div class="min-w-0 flex-1 px-4 py-3">
                   <!-- Mobile single-car: alles in einer Zeile -->
                   <div v-if="cars.length === 1" class="flex items-center gap-2 flex-wrap lg:hidden">
-                    <span class="font-semibold text-gray-800 dark:text-gray-200">{{ enumToLabel(car.brand) }} {{ enumToLabel(car.model) }}</span>
+                    <span class="font-semibold text-gray-800 dark:text-gray-200">{{ carDisplayName(car.brand, car.model) }}</span>
                     <span v-if="car.trim" class="text-sm text-gray-500 dark:text-gray-400">{{ car.trim }}</span>
                     <LicensePlate v-if="car.licensePlate" :plate="car.licensePlate" />
                     <span v-if="car.isPrimary && cars.length > 1"
@@ -593,7 +593,7 @@ function onTripFormLeave(el: Element, done: () => void) {
                   <!-- Desktop oder mehrere Autos: zweizeiliges Layout -->
                   <div :class="cars.length === 1 ? 'hidden lg:block' : ''">
                     <div class="flex items-center gap-2 flex-wrap">
-                      <span class="font-semibold text-gray-800 dark:text-gray-200">{{ enumToLabel(car.brand) }} {{ enumToLabel(car.model) }}</span>
+                      <span class="font-semibold text-gray-800 dark:text-gray-200">{{ carDisplayName(car.brand, car.model) }}</span>
                       <span v-if="car.trim" class="text-sm text-gray-500 dark:text-gray-400">{{ car.trim }}</span>
                       <span v-if="car.isPrimary && cars.length > 1"
                         class="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs rounded-full border border-green-200 dark:border-green-700 font-medium">
@@ -664,7 +664,7 @@ function onTripFormLeave(el: Element, done: () => void) {
             class="flex-1 min-w-0"
             :benchmark="stats.peerBenchmark"
             :effective-battery-kwh="selectedCar?.effectiveBatteryCapacityKwh ?? null"
-            :car-display-name="selectedCar ? [enumToLabel(selectedCar.brand), enumToLabel(selectedCar.model), selectedCar.trim].filter(Boolean).join(' ') : ''"
+            :car-display-name="selectedCar ? [carDisplayName(selectedCar.brand, selectedCar.model), selectedCar.trim].filter(Boolean).join(' ') : ''"
           />
 
           <!-- Peer Benchmark Placeholder -->
@@ -1897,7 +1897,7 @@ function onTripFormLeave(el: Element, done: () => void) {
                          ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30'
                          : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500']">
               <TruckIcon class="w-5 h-5 flex-shrink-0" :class="reassignSelectedCarId === car.id ? 'text-indigo-600' : 'text-gray-400'" />
-              <span class="font-medium text-gray-800 dark:text-gray-200">{{ enumToLabel(car.brand) }} {{ enumToLabel(car.model) }}</span>
+              <span class="font-medium text-gray-800 dark:text-gray-200">{{ carDisplayName(car.brand, car.model) }}</span>
               <div v-if="reassignSelectedCarId === car.id" class="ml-auto w-4 h-4 rounded-full bg-indigo-500 flex-shrink-0" />
             </button>
           </div>

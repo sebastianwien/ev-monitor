@@ -124,8 +124,13 @@ function enumToLabel(value: string | null | undefined): string {
     .join(' ')
 }
 
+function carDisplayName(brand: string | null | undefined, model: string | null | undefined): string {
+  const b = enumToLabel(brand); const m = enumToLabel(model)
+  return m.toLowerCase().startsWith(b.toLowerCase()) ? m : `${b} ${m}`.trim()
+}
+
 function carLabel(car: Car): string {
-  const name = `${enumToLabel(car.brand)} ${enumToLabel(car.model)}`
+  const name = carDisplayName(car.brand, car.model)
   return car.licensePlate ? `${name} · ${car.licensePlate}` : name
 }
 </script>

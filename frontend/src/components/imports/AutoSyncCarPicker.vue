@@ -17,7 +17,7 @@ import type { Car } from '../../api/carService'
 import smartcarService, { type SmartcarConnectionStatus } from '../../api/smartcarService'
 import teslaFleetService, { type TeslaConnectionStatus } from '../../api/teslaFleetService'
 import { autoSyncProviderFor, type AutoSyncProvider } from '../../composables/useCarAutoSyncProvider'
-import { enumToLabel } from '../../utils/enumLabel'
+import { enumToLabel, carDisplayName } from '../../utils/enumLabel'
 import LicensePlate from '../car/LicensePlate.vue'
 
 const TeslaFleetIntegration = defineAsyncComponent(() => import('./TeslaFleetIntegration.vue'))
@@ -117,7 +117,7 @@ function tileStateFor(car: Car): TileState {
 }
 
 function carLabel(car: Car): string {
-    return `${enumToLabel(car.brand)} ${enumToLabel(car.model)}`.trim()
+    return carDisplayName(car.brand, car.model)
 }
 
 function carDetails(car: Car): string {

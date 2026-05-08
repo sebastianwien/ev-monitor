@@ -257,11 +257,16 @@ const enumToLabel = (value: string | null | undefined): string => {
     .join(' ')
 }
 
+const carDisplayName = (brand: string | null | undefined, model: string | null | undefined): string => {
+  const b = enumToLabel(brand); const m = enumToLabel(model)
+  return m.toLowerCase().startsWith(b.toLowerCase()) ? m : `${b} ${m}`.trim()
+}
+
 const carLabel = (carId: string | null) => {
   if (!carId) return null
   const car = cars.value.find(c => c.id === carId)
   if (!car) return carId
-  const name = `${enumToLabel(car.brand)} ${enumToLabel(car.model)}`
+  const name = carDisplayName(car.brand, car.model)
   return car.licensePlate ? `${name} · ${car.licensePlate}` : name
 }
 

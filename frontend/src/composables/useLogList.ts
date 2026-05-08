@@ -6,7 +6,7 @@ import {
   ArrowDownTrayIcon,
   HomeIcon,
 } from '@heroicons/vue/24/outline'
-import { enumToLabel } from '../utils/enumLabel'
+import { carDisplayName } from '../utils/enumLabel'
 
 const PAGE_SIZE = 20
 
@@ -84,7 +84,7 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
     try {
       await api.patch(`/logs/${entry.id}/car`, { targetCarId: reassignSelectedCarId.value })
       logs.value = logs.value.filter((l: any) => l.id !== entry.id)
-      const carLabel = targetCar ? `${enumToLabel(targetCar.brand)} ${enumToLabel(targetCar.model)}`.trim() : ''
+      const carLabel = targetCar ? carDisplayName(targetCar.brand, targetCar.model) : ''
       reassignSuccessMessage.value = t('dashboard.reassign_success', { car: carLabel })
       setTimeout(() => { reassignSuccessMessage.value = null }, 3000)
       reassignModalEntry.value = null
