@@ -124,6 +124,7 @@ public class BatterySohService {
     private static final BigDecimal BMS_SOH_MIN        = new BigDecimal("60.0");
     private static final BigDecimal BMS_SOH_MAX        = new BigDecimal("105.0");
     private static final BigDecimal BMS_MAX_DEVIATION  = new BigDecimal("5.0");
+    private static final BigDecimal BMS_SOH_CAP        = new BigDecimal("100.00");
 
     /**
      * Persists a SoH entry derived from Tesla's BMS-reported {@code EnergyRemaining} field.
@@ -154,6 +155,9 @@ public class BatterySohService {
                 .divide(car.getBatteryCapacityKwh(), 2, java.math.RoundingMode.HALF_UP);
 
         if (sohPercent.compareTo(BMS_SOH_MIN) < 0 || sohPercent.compareTo(BMS_SOH_MAX) > 0) return;
+
+        // BMS can report slightly >100% due to calibration; cap before DB constraint check
+        if (sohPercent.compareTo(BMS_SOH_CAP) > 0) sohPercent = BMS_SOH_CAP;
 
         List<BatterySohEntry> history = sohRepository.findByCarId(carId);
         LocalDate today = LocalDate.now();

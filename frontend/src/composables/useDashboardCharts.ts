@@ -261,6 +261,7 @@ export function useDashboardCharts(
           callbacks: {
             label: (ctx: any) => {
               const v = ctx.parsed.x
+              if (v == null) return ''
               const sign = v > 0 ? '+' : ''
               const convertedCompare = convertConsumption(effectiveCompareValue.value || 0)
               const compareLabel = isCustomCompare.value ? formatConsumption(effectiveCompareValue.value) : 'WLTP'

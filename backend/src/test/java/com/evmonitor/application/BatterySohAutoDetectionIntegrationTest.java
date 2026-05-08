@@ -257,4 +257,20 @@ class BatterySohAutoDetectionIntegrationTest extends AbstractIntegrationTest {
 
         assertEquals(1, batterySohService.getHistory(car.getId(), user.getId()).size());
     }
+
+    @Test
+    void persistBmsDerived_clampsSohTo100_whenBmsReportsSlightlyAbove() {
+        User user = createAndSaveUser("soh-bms-clamp-" + System.currentTimeMillis() + "@test.com");
+        Car car = carRepository.save(Car.createNew(
+                user.getId(), CarBrand.CarModel.MODEL_3, 2019,
+                "BM-CL-P01", "LR", new BigDecimal("75.00"), new BigDecimal("280.0"), null));
+
+        // 75.01 / 75.00 * 100 = 100.01% - passes plausibility guard (<= 105%) but violates DB constraint (<= 100%)
+        batterySohService.persistBmsDerived(car.getId(), new BigDecimal("75.01"));
+
+        List<BatterySohResponse> history = batterySohService.getHistory(car.getId(), user.getId());
+        assertEquals(1, history.size(), "Entry should be saved despite BMS reporting slightly above 100%");
+        assertEquals(0, new BigDecimal("100.00").compareTo(history.get(0).sohPercent()),
+                "SoH must be clamped to 100.00");
+    }
 }
