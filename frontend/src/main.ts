@@ -66,6 +66,7 @@ function isNetworkNoise(msg: string): boolean {
         || msg === 'Load failed'
         || msg.includes('contentScriptData')
         || msg.includes('Failed to fetch')
+        || msg.includes('ServiceWorker')
 }
 
 function reloadOnceAfterDeploy() {

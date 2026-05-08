@@ -34,7 +34,8 @@ public class FrontendErrorController {
             || message.contains("contentScriptData")
             || message.contains("Failed to fetch")
             || message.contains("dynamically imported module")
-            || message.contains("is not a valid JavaScript MIME type");
+            || message.contains("is not a valid JavaScript MIME type")
+            || message.contains("ServiceWorker");
     }
 
     private String buildGitHubIssueBody(FrontendErrorRequest request) {
