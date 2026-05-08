@@ -60,6 +60,14 @@ function isChunkLoadError(msg: string): boolean {
         || msg.includes('is not a valid JavaScript MIME type')
 }
 
+function isNetworkNoise(msg: string): boolean {
+    return msg === 'Network Error'
+        || msg === 'Request aborted'
+        || msg === 'Load failed'
+        || msg.includes('contentScriptData')
+        || msg.includes('Failed to fetch')
+}
+
 function reloadOnceAfterDeploy() {
     const reloaded = sessionStorage.getItem('chunk-reload')
     if (!reloaded) {
@@ -95,6 +103,7 @@ if (import.meta.env.PROD) {
             reloadOnceAfterDeploy()
             return
         }
+        if (err instanceof Error && isNetworkNoise(err.message)) return
         reportError(err, info)
     }
 
@@ -115,6 +124,8 @@ if (import.meta.env.PROD) {
             reloadOnceAfterDeploy()
             return
         }
+        // Network noise: user connectivity issues, browser extension content scripts — not actionable
+        if (isNetworkNoise(message)) return
         reportError(event.reason, 'unhandledrejection')
     })
 }

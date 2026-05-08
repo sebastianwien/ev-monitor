@@ -19,11 +19,22 @@ public class FrontendErrorController {
 
     @PostMapping("/frontend")
     public ResponseEntity<Void> reportError(@RequestBody @Valid FrontendErrorRequest request) {
+        if (isKnownNoise(request.message())) return ResponseEntity.ok().build();
         // Rate-limit key: first 80 chars of the error message
         String errorKey = "fe_" + request.message().substring(0, Math.min(80, request.message().length()));
         String subject = "🌐 [EV Monitor FE] " + request.message().substring(0, Math.min(100, request.message().length()));
         gitHubIssueService.createIssue(errorKey, subject, buildGitHubIssueBody(request));
         return ResponseEntity.ok().build();
+    }
+
+    private boolean isKnownNoise(String message) {
+        return message.equals("Network Error")
+            || message.equals("Request aborted")
+            || message.equals("Load failed")
+            || message.contains("contentScriptData")
+            || message.contains("Failed to fetch")
+            || message.contains("dynamically imported module")
+            || message.contains("is not a valid JavaScript MIME type");
     }
 
     private String buildGitHubIssueBody(FrontendErrorRequest request) {
