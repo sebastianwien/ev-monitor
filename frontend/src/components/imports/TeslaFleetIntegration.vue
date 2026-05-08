@@ -7,11 +7,12 @@ import teslaFleetService, { type TeslaConnectionStatus, type TeslaFleetSyncResul
 import type { Car } from '@/api/carService'
 import { useCarStore } from '@/stores/car'
 import { useAuthStore } from '@/stores/auth'
+import { shouldAutoEnableTelemetry } from '@/utils/teslaTelemetryAutoEnable'
 import CarSelectDropdown from '../car/CarSelectDropdown.vue'
 
 // Embedded mode = rendered inside the AutoSync car-tile picker. Suppresses the
-// standalone-tab header, OAuth-flavoured "Was synchronisiert wird" box, the
-// Kaffee disclaimer; renders a leaner Tesla-AutoSync hero instead.
+// standalone-tab header and the "Was Live-Telemetry liefert" intro box; renders
+// a leaner Tesla-AutoSync hero instead.
 // forcedCarId locks the connect-flow to one specific car (the tile's car) so the
 // internal dropdown is bypassed - in tile-context the car is already chosen.
 const props = defineProps<{ embedded?: boolean; forcedCarId?: string }>()
@@ -123,6 +124,12 @@ async function loadPairingStatus() {
     }
   } finally {
     pairingStatusLoaded.value = true
+  }
+  // Auto-trigger telemetry activation once the virtual key is paired so users don't
+  // have to find and click the "Live-Sync aktivieren" button after pairing in the
+  // Tesla app. Idempotent: skipped if config already pushed or telemetry active.
+  if (shouldAutoEnableTelemetry(pairingStatus.value, pairingError.value)) {
+    await handleEnableTelemetry()
   }
 }
 
@@ -343,9 +350,6 @@ async function retryConnect() {
         <ArrowTopRightOnSquareIcon class="h-4 w-4" />
         {{ isLoading ? t('tesla.connect_btn_loading') : t('tesla.connect_btn') }}
       </button>
-      <p v-if="!props.embedded" class="text-xs text-gray-500 dark:text-gray-400 text-center">
-        Die Tesla Fleet API ist gebührenpflichtig - über einen Kaffee würde ich mich freuen ☕
-      </p>
     </template>
 
     <template v-else>

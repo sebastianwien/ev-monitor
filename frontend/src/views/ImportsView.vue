@@ -570,7 +570,7 @@ const teslaConnectedLabel = ref<string | null>(null)
             </div>
             <div class="flex-1 min-w-0">
               <span class="font-medium text-gray-900 dark:text-gray-100 text-sm">
-                {{ activeTab === 'tesla' && teslaConnectedLabel ? t('tesla.connected_prefix') + ' ' + teslaConnectedLabel : t('imports.tab_tesla_legacy') }}
+                {{ activeTab === 'tesla' && teslaConnectedLabel ? t('tesla.connected_prefix') + ' ' + teslaConnectedLabel : t('imports.tab_tesla_telemetry') }}
               </span>
             </div>
             <ChevronDownIcon :class="['h-5 w-5 text-gray-400 shrink-0 transition-transform duration-200', activeTab === 'tesla' ? 'rotate-180' : '']" />

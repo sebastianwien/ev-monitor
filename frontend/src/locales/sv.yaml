@@ -1322,7 +1322,7 @@ imports:
   tab_goe: go-eCharger
   tab_wallbox: OCPP-laddbox
   tab_tesla: Tesla
-  tab_tesla_legacy: "Tesla Legacy Synkronisering"
+  tab_tesla_telemetry: "Tesla Telemetri"
   tab_tronity: Tronity
   tab_tessie: Tessie
   tab_manuell: Manuell
@@ -1492,14 +1492,14 @@ ocr:
 tesla:
   setup_title: Konfigurera Tesla Sync
   setup_subtitle: Via Teslas officiella Fleet API
-  sync_info_title: "Vad som synkroniseras:"
-  sync_item1: Supercharger-sessioner (en gång tidigare + regelbundet framöver)
-  sync_item2: Kommande laddningssessioner (med dubblettkontroll för att säkerställa datakvaliteten)
-  sync_item3: Energi i kWh, varaktighet, plats
-  sync_item4: Kostnader (vid användning av Supercharger med fakturering)
-  sync_item5: Vägmätarställning (från och med nu, för kommande sessioner)
-  sync_note: Tidigare laddningssessioner innehåller inte körsträcka – Teslas API tillhandahåller endast denna information för pågående laddningssessioner.
-  connect_desc: Anslut ditt Tesla-konto via den officiella OAuth2-processen. Vi importerar dina tidigare Supercharger-sessioner och kontrollerar dagligen om det finns nya.
+  sync_info_title: "Vad realtidstelemetri levererar:"
+  sync_item1: Laddningssessioner i realtid så snart bilen ansluts
+  sync_item2: kWh, SoC och plats direkt från bilen, utan API-polling
+  sync_item3: Supercharger-kostnader fylls i automatiskt via daglig avstämning
+  sync_item4: Inga uppvakningar, skonsamt för batteri och Teslas moln
+  sync_item5: Vägmätarställning för varje session, rena data för framtida statistik
+  sync_note: Förutsättning - parkoppla den virtuella nyckeln i Tesla-appen, sedan körs allt automatiskt.
+  connect_desc: Anslut ditt Tesla-konto via den officiella OAuth2-processen. I nästa steg parkopplar du den virtuella nyckeln i Tesla-appen, sedan startar realtidstelemetri automatiskt.
   select_car_label: Vilken modell är din Tesla?
   no_car_hint: Lägg först till ett fordon under ”Fordon”.
   connect_btn_loading: Omdirigerar...
