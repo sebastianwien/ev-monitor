@@ -58,7 +58,10 @@ onMounted(async () => {
       window.history.replaceState({}, '', window.location.pathname)
     }
     if (params.get('smartcar-error')) {
-      error.value = decodeURIComponent(params.get('smartcar-error')!)
+      const code = params.get('smartcar-error')!
+      error.value = code === 'VIN_ALREADY_LINKED'
+        ? t('imports.smartcar_error_vin_linked_title') + ' - ' + t('imports.smartcar_error_vin_linked_body')
+        : t('imports.smartcar_error_unknown_body')
       window.history.replaceState({}, '', window.location.pathname)
     }
   } catch (e: any) {

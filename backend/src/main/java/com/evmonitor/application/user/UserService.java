@@ -10,9 +10,16 @@ import com.evmonitor.domain.exception.NotFoundException;
 import com.evmonitor.domain.exception.ValidationException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -20,8 +27,24 @@ import java.util.Set;
 import java.util.UUID;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class UserService {
+
+    @Value("${connectors.base-url:http://connectors-service:8081}")
+    private String connectorsBaseUrl;
+
+    @Value("${internal.token:}")
+    private String internalToken;
+
+    private final RestTemplate restTemplate = buildRestTemplate();
+
+    private static RestTemplate buildRestTemplate() {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(3_000);
+        factory.setReadTimeout(10_000);
+        return new RestTemplate(factory);
+    }
 
     private static final Set<String> VALID_COUNTRIES = Set.of(
             "DE", "AT", "CH", "GB", "NL", "BE", "DK", "NO", "SE", "FI", "US");
@@ -143,6 +166,22 @@ public class UserService {
 
         // Delete user (CASCADE will delete all related data: Cars, EvLogs, CoinLogs, Tokens)
         userRepository.delete(user);
+        disconnectConnectors(userId);
+    }
+
+    private void disconnectConnectors(UUID userId) {
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("X-Internal-Token", internalToken);
+            restTemplate.exchange(
+                    connectorsBaseUrl + "/api/internal/smartcar/disconnect/" + userId,
+                    HttpMethod.DELETE,
+                    new HttpEntity<>(headers),
+                    Void.class);
+            log.info("[USER] Smartcar disconnected for deleted userId={}", userId);
+        } catch (Exception e) {
+            log.warn("[USER] Smartcar disconnect failed for deleted userId={}: {}", userId, e.getMessage());
+        }
     }
 
     @Transactional

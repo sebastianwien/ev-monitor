@@ -1220,6 +1220,10 @@ imports:
   smartcar_loading: Laster tilkoblingsstatus...
   smartcar_not_configured: Smartcar er ennå ikke konfigurert på denne serveren.
   smartcar_confirm_disconnect: Vil du virkelig koble fra kjøretøyet? Data fra den aktive økten vil gå tapt.
+  smartcar_error_vin_linked_title: Kjoretoy allerede koblet til
+  smartcar_error_vin_linked_body: Dette kjoretøyet er allerede koblet til en annen EV Monitor-konto. Hvis du har flere kontoer, logg inn med den riktige. Hvis du ikke har en annen konto, vennligst kontakt support.
+  smartcar_error_unknown_title: Tilkobling mislyktes
+  smartcar_error_unknown_body: Kunne ikke koble til kjoretøyet ditt. Prøv igjen eller kontakt support.
   smartcar_state_charging: Lading
   smartcar_state_idle: Ikke tilkoblet
   smartcar_state_full: Fulladet
@@ -1555,10 +1559,8 @@ tesla:
   pairing_err_enable: Kunne ikke aktivere telemetry
   pairing_err_disable: Kunne ikke deaktivere telemetry
   pairing_err_not_connected: Ikke koblet til Tesla ennå. Koble til Tesla først via knappen ovenfor.
-  telemetry_live_title: Live-telemetri aktiv
-  telemetry_live_desc: Ladesesjoner og turer registreres automatisk - ingen manuell import nødvendig.
-  telemetry_live_desc_full: Ladesesjoner og turer registreres automatisk - ingen manuell import nødvendig.
-  telemetry_live_desc_charging_only: Ladesesjoner registreres automatisk - ingen manuell import nødvendig.
+  telemetry_live_desc_full: Ladesesjoner og turer registreres automatisk.
+  telemetry_live_desc_charging_only: Ladesesjoner registreres automatisk.
   callback_error_close: Lukk
   callback_error_retry: Koble til igjen
   callback_error_vin_linked_title: Kjøretøy allerede tilkoblet
@@ -1567,8 +1569,7 @@ tesla:
   callback_error_unknown_body: Det oppsto en feil ved tilkobling til Tesla. Prøv igjen. Hvis problemet vedvarer, kontakt support.
   confirm_disconnect: Er du sikker?
   disconnect_btn: Koble fra
-  danger_zone_title: Slett data
-  danger_zone_desc: Fjerner alle importerte Tesla-logger fra statistikken din. Dette kan ikke angres.
+  delete_all_link: Slett Tesla-importene…
   delete_modal_title: Slette alle Tesla-importene?
   delete_modal_desc: Du er i ferd med å slette <strong>ALLE ladesesjoner som er importert via Tesla Fleet API</strong>. Logger som er opprettet manuelt, vil bli beholdt. Denne handlingen <strong>kan ikke angres</strong>.
   delete_modal_cancel: Avbryt

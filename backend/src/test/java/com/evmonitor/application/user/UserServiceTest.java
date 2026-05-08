@@ -8,7 +8,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -16,7 +20,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -227,5 +231,42 @@ class UserServiceTest {
         );
         assertEquals("WRONG_PASSWORD", exception.getCode());
         verify(userRepository, never()).delete(any());
+    }
+
+    @Test
+    void deleteAccount_shouldCallSmartcarDisconnectInConnectors() {
+        RestTemplate mockRest = installMockRestTemplate();
+        when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
+        when(passwordEncoder.matches("correctPassword", "hashedPassword")).thenReturn(true);
+
+        userService.deleteAccount(userId, new DeleteAccountRequest("correctPassword"));
+
+        verify(userRepository).delete(testUser);
+        verify(mockRest).exchange(
+                contains("/api/internal/smartcar/disconnect/" + userId),
+                eq(HttpMethod.DELETE), any(), eq(Void.class));
+    }
+
+    @Test
+    void deleteAccount_shouldSucceedEvenIfConnectorsCallFails() {
+        RestTemplate mockRest = installMockRestTemplate();
+        when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
+        when(passwordEncoder.matches("correctPassword", "hashedPassword")).thenReturn(true);
+        when(mockRest.exchange(anyString(), any(HttpMethod.class), any(), eq(Void.class)))
+                .thenThrow(new RuntimeException("connectors unreachable"));
+
+        userService.deleteAccount(userId, new DeleteAccountRequest("correctPassword"));
+
+        verify(userRepository).delete(testUser);
+    }
+
+    private RestTemplate installMockRestTemplate() {
+        RestTemplate mockRest = mock(RestTemplate.class);
+        lenient().when(mockRest.exchange(anyString(), any(HttpMethod.class), any(), eq(Void.class)))
+                .thenReturn(ResponseEntity.noContent().build());
+        ReflectionTestUtils.setField(userService, "restTemplate", mockRest);
+        ReflectionTestUtils.setField(userService, "connectorsBaseUrl", "http://test-connectors:8081");
+        ReflectionTestUtils.setField(userService, "internalToken", "test-token");
+        return mockRest;
     }
 }
