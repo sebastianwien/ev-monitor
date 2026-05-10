@@ -59,6 +59,7 @@ public class SubscriptionController {
     @PostMapping("/checkout")
     public ResponseEntity<Map<String, Object>> createCheckout(
             @AuthenticationPrincipal UserPrincipal principal,
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
             @RequestBody CheckoutRequest request) {
 
         boolean isAdmin = ROLE_ADMIN.equals(principal.getUser().getRole());
@@ -73,7 +74,7 @@ public class SubscriptionController {
         // the Live block for non-Tesla users, but a direct API call would otherwise sail
         // through Stripe and we'd take money for a feature the user cannot consume.
         if (tier == SubscriptionTier.AUTOSYNC_LIVE
-                && !liveEligibilityService.isEligibleForLive(principal.getUser().getId())) {
+                && !liveEligibilityService.isEligibleForLive(authHeader)) {
             return ResponseEntity.badRequest()
                     .body(Map.of("message", "Tesla connection required for AutoSync Live",
                             "errorCode", "tesla_required"));
@@ -103,9 +104,10 @@ public class SubscriptionController {
 
     @PostMapping("/upgrade")
     public ResponseEntity<Map<String, Object>> upgradeToLive(
-            @AuthenticationPrincipal UserPrincipal principal) {
+            @AuthenticationPrincipal UserPrincipal principal,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
 
-        if (!liveEligibilityService.isEligibleForLive(principal.getUser().getId())) {
+        if (!liveEligibilityService.isEligibleForLive(authHeader)) {
             return ResponseEntity.badRequest()
                     .body(Map.of("message", "Tesla connection required for AutoSync Live",
                             "errorCode", "tesla_required"));

@@ -1,0 +1,14 @@
+-- Drop the legacy ev_monitor.tesla_connections table.
+--
+-- This table mirrored the connectors-service's ev_connectors.tesla_connections
+-- and was the original truth source for "does this user have a Tesla?"-style
+-- checks (LiveEligibilityService). It has not been written to since the
+-- connectors-service took over Tesla connection ownership, so on Prod it sits
+-- empty and was actively misleading - the eligibility check failed for users
+-- whose Tesla connection lives only in ev_connectors.
+--
+-- LiveEligibilityService now calls the connectors-service's
+-- /api/tesla/fleet/status endpoint via JWT-forward, sharing the same data
+-- source as the frontend Telemetry-Card. The Java entity TeslaConnection and
+-- repository TeslaConnectionRepository are removed in the same change set.
+DROP TABLE IF EXISTS tesla_connections;
