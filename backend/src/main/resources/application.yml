@@ -96,7 +96,7 @@ evmonitor:
       wltp-upper-factor: 2.2
       sigma-multiplier: 2.5
       min-trips-for-statistical: 5
-      min-trip-distance-km: 1
+      min-trip-distance-km: 10
       ac-charging-efficiency: 0.90
       dc-charging-efficiency: 0.95
 

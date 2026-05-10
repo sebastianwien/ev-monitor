@@ -581,6 +581,9 @@ dashboard:
   implausible_tooltip_desc: "Det beregnede forbruket på {value} virker urealistisk. Mulige årsaker:"
   implausible_tooltip_cause1: Sluttverdien for SoC (ladningsnivå i %) for forrige oppføring mangler
   implausible_tooltip_cause2: Det mangler en ladeøkt mellom denne og forrige oppføring
+  short_trip_hint: Avstanden er for kort
+  short_trip_tooltip_title: Forbruket kan ikke beregnes
+  short_trip_tooltip_desc: "På turer under 10 km forvrenger små måleunøyaktigheter det beregnede forbruket kraftig. Allerede et hopp på 1 % i det viste batterinivået tilsvarer omtrent 0,7 kWh - over 1 km gir det raskt urealistiske verdier på 70 kWh/100km eller mer. I stedet for å vise en fantomverdi lar jeg den være."
   estimated_tooltip: "Anslått verdi: beregnet ut fra ladet energi ÷ avstand; ingen SoC-verdi tilgjengelig."
   week_abbr: W
   top_up: Påfyll
@@ -609,6 +612,8 @@ dashboard:
   action_delete: Slett
   action_add_trip: Legg til tur
   action_reassign: Flytt
+  action_menu_label: Handlinger
+  phantom_drain_word: Standtap
   trip_edit: Rediger tur
   trip_save: Lagre
   trip_cancel: Avbryt

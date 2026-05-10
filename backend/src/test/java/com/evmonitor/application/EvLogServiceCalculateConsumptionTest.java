@@ -381,50 +381,73 @@ class EvLogServiceCalculateConsumptionTest {
     // -------------------------------------------------------------------------
 
     /**
-     * Trips shorter than minTripDistanceKm (default 20km) must be silently excluded.
-     * They produce unreliable odometer deltas and would skew the consumption distribution.
+     * Trips shorter than minTripDistanceKm (default 10km) must be silently excluded.
+     * Below this distance, SoC granularity (±1%) and capacity assumptions distort
+     * the result far beyond useful precision.
+     *
+     * Test data is constructed to produce positive consumption energy, so any
+     * exclusion can only come from the distance threshold itself (not the
+     * energy ≤ 0 short-circuit in calculateConsumption).
      */
     @Test
     void perLog_tripBelowMinDistance_isExcluded() {
-        // 15km trip — below the 20km minimum
+        // 5km trip with 10% SoC drop and 12 kWh charged — energy = 12 + 7.5 = 19.5 (positive)
         EvLog logX = logX(10000, 80);
-        EvLog logY = logY(10015, new BigDecimal("3.0"), 85); // 15km
+        EvLog logY = logY(10005, new BigDecimal("12.0"), 70);
 
         Map<UUID, ConsumptionResult> result =
                 service.calculateConsumptionPerLog(List.of(logX, logY), BATTERY_75, null);
 
-        assertTrue(result.isEmpty(), "Trip < minTripDistanceKm should be excluded");
+        assertTrue(result.isEmpty(), "5km trip below 10km threshold should be excluded");
     }
 
     @Test
     void perLog_tripAtExactMinDistance_isIncluded() {
-        // 20km trip — exactly at the minimum (boundary: included)
+        // 10km trip — exactly at the minimum (boundary: included)
         EvLog logX = logX(10000, 80);
-        EvLog logY = logY(10020, new BigDecimal("4.0"), 85); // 20km
+        EvLog logY = logY(10010, new BigDecimal("12.0"), 70);
 
         Map<UUID, ConsumptionResult> result =
                 service.calculateConsumptionPerLog(List.of(logX, logY), BATTERY_75, null);
 
-        assertFalse(result.isEmpty(), "Trip == minTripDistanceKm should be included");
+        assertFalse(result.isEmpty(), "10km trip at threshold should be included");
+    }
+
+    /**
+     * Regression for Zomtecos pattern (Cupra Tavascan, May 2026): a 1 km AC charge
+     * cycle (plug-cycle artifact, not a real drive) used to surface as
+     * "132.2 kWh/100km" with an implausibility flag. With minTripDistanceKm=10 the
+     * log is filtered out of the per-log result entirely, which means downstream
+     * consumers (like getImplausibleLogs) cannot mark it implausible.
+     */
+    @Test
+    void perLog_zomtecosOneKmPattern_notReturnedAtAll_soCannotBeFlaggedImplausible() {
+        EvLog logX = logX(13944, 59);                                      // odo 13944, socAfter 59%
+        EvLog logY = logY(13945, new BigDecimal("18.58"), 79);             // 1 km later, 18.58 kWh, socAfter 79%
+
+        Map<UUID, ConsumptionResult> result =
+                service.calculateConsumptionPerLog(List.of(logX, logY), new BigDecimal("77.0"), null);
+
+        assertFalse(result.containsKey(logY.getId()),
+                "1km plug-cycle log must not surface as a (potentially implausible) consumption result");
     }
 
     @Test
     void perLog_shortTripExcluded_longTripIncluded() {
-        // Three logs: logX → logY1 (10km, too short) → logY2 (300km, ok)
-        // logY1's direct predecessor is logX → short trip, excluded
-        // logY2's direct predecessor is logY1 → canBeUsedAsLogX? yes (has odometer + soc) → trip ok
+        // Three logs: logX → logY1 (5km, too short) → logY2 (300km, ok)
+        // Both logY1 and logY2 produce positive consumption energy on their own.
         LocalDateTime t1 = LocalDateTime.of(2026, 1, 1, 10, 0);
         LocalDateTime t2 = LocalDateTime.of(2026, 1, 2, 10, 0);
         LocalDateTime t3 = LocalDateTime.of(2026, 1, 3, 10, 0);
 
         EvLog logX  = evLog(UUID.randomUUID(), 10000, null,                   80, null, t1);
-        EvLog logY1 = evLog(UUID.randomUUID(), 10010, new BigDecimal("2.0"),  85, null, t2); // 10km
-        EvLog logY2 = evLog(UUID.randomUUID(), 10310, new BigDecimal("50.0"), 90, null, t3); // 300km from logY1
+        EvLog logY1 = evLog(UUID.randomUUID(), 10005, new BigDecimal("12.0"), 70, null, t2); // 5km
+        EvLog logY2 = evLog(UUID.randomUUID(), 10305, new BigDecimal("50.0"), 75, null, t3); // 300km from logY1
 
         Map<UUID, ConsumptionResult> result =
                 service.calculateConsumptionPerLog(List.of(logX, logY1, logY2), BATTERY_75, null);
 
-        assertFalse(result.containsKey(logY1.getId()), "10km trip should be excluded");
+        assertFalse(result.containsKey(logY1.getId()), "5km trip should be excluded by threshold");
         assertTrue(result.containsKey(logY2.getId()),  "300km trip should be included");
     }
 

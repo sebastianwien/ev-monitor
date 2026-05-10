@@ -5,6 +5,8 @@ export default {
         "./index.html",
         "./src/**/*.{vue,js,ts,jsx,tsx}",
     ],
+    // Tailwind v4 reads theme tokens (incl. breakpoints) from CSS @theme blocks.
+    // The custom `gridfeed` breakpoint (920px) lives in src/index.css.
     theme: {
         extend: {},
     },

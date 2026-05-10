@@ -1,6 +1,13 @@
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Custom breakpoint between md (768px) and lg (1024px). The LogFeed table
+ * layout switches on at 920px so iPad-Landscape and small notebooks already
+ * get the dense grid view instead of the mobile card layout. */
+@theme {
+  --breakpoint-gridfeed: 920px;
+}
+
 html, body {
   overflow-x: clip;
 }

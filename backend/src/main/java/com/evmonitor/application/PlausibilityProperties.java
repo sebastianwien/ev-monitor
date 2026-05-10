@@ -25,8 +25,13 @@ public class PlausibilityProperties {
     /** Minimum number of valid trips required to use the statistical check (Layer 2a). */
     private int minTripsForStatistical = 5;
 
-    /** Trips shorter than this distance (km) are excluded from plausibility context. */
-    private int minTripDistanceKm = 1;
+    /**
+     * Trips shorter than this distance (km) are excluded from per-log consumption calculation
+     * and plausibility context. Below ~10km, SoC granularity (±1% on integer-percent telemetry
+     * = ±0.7-0.8 kWh) and capacity assumptions distort the kWh/100km result far beyond
+     * useful precision — any value displayed would be misleading rather than informative.
+     */
+    private int minTripDistanceKm = 10;
 
     /**
      * Charging efficiency for AC (Level 2 Wallbox): ratio of energy entering battery vs. drawn from grid.
