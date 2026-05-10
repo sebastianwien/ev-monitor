@@ -343,12 +343,15 @@ watch(() => form.value.chargingProviderId, (providerId) => {
 })
 
 watch(() => form.value.isPublicCharging, (isPublic) => {
-  if (form.value.latitude != null && form.value.longitude != null) {
-    costLocalPerKwh.value = null
-    costLocalTotal.value = null
-    costMode.value = 'total'
-    fetchPriceSuggestion(form.value.latitude, form.value.longitude, isPublic)
-  }
+  if (form.value.latitude == null || form.value.longitude == null) return
+  // In edit mode, never silently overwrite a saved price.
+  // Without this guard the toggle would reset costLocal* to null, defeat the
+  // fetchPriceSuggestion early-return, and replace the user's value.
+  if (props.locationMode === 'edit' && form.value.costEur != null) return
+  costLocalPerKwh.value = null
+  costLocalTotal.value = null
+  costMode.value = 'total'
+  fetchPriceSuggestion(form.value.latitude, form.value.longitude, isPublic)
 })
 
 defineExpose({ clearLocation, locationEnabled, locationStatus, getCurrentDateTimeLocal })
