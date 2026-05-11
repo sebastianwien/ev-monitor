@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ArrowUpTrayIcon } from '@heroicons/vue/24/outline'
+import { ArrowUpTrayIcon, ExclamationCircleIcon } from '@heroicons/vue/24/outline'
 import CarSelectDropdown from '../car/CarSelectDropdown.vue'
 import xpengService, { type XpengJobDto } from '../../api/xpengService'
 import type { Car } from '../../api/carService'
@@ -10,6 +10,8 @@ const { t } = useI18n()
 
 const props = defineProps<{
   carsReadyForUpload: Car[]
+  jobRunning?: boolean
+  errorMessage?: string
 }>()
 
 const emit = defineEmits<{
@@ -26,7 +28,8 @@ watch(() => props.carsReadyForUpload, (cars) => {
   if (cars.length === 1 && !carId.value) carId.value = cars[0].id
 }, { immediate: true })
 
-const canSubmit = computed(() => !!carId.value && !!file.value && !uploading.value)
+const busy = computed(() => uploading.value || !!props.jobRunning)
+const canSubmit = computed(() => !!carId.value && !!file.value && !busy.value)
 
 function onFileChange(ev: Event) {
   const target = ev.target as HTMLInputElement
@@ -80,10 +83,17 @@ async function submit() {
              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 dark:text-white text-sm" />
     </div>
 
+    <div v-if="errorMessage"
+         class="rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3 text-sm text-red-800 dark:text-red-200 flex gap-2">
+      <ExclamationCircleIcon class="w-5 h-5 flex-shrink-0" />
+      <span>{{ errorMessage }}</span>
+    </div>
+
     <button @click="submit" :disabled="!canSubmit"
             class="btn-3d w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-lg font-medium text-sm transition-colors">
-      <ArrowUpTrayIcon class="w-4 h-4" />
-      {{ uploading ? t('xpeng.uploading') : t('xpeng.btn_upload') }}
+      <span v-if="busy" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+      <ArrowUpTrayIcon v-else class="w-4 h-4" />
+      <span>{{ busy ? t('xpeng.uploading') : t('xpeng.btn_upload') }}</span>
     </button>
   </section>
 </template>

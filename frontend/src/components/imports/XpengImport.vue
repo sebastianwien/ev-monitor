@@ -36,7 +36,12 @@ const selectedConnection = computed(() =>
 )
 const selectedVin = computed(() => selectedConnection.value?.vin ?? '')
 
-const displayedError = computed(() => localError.value || error.value)
+// Top banner only for composable errors (connections/jobs fetch). Upload-specific errors are
+// shown inline in XpengUploadStep so they stay visible next to the action.
+const topError = computed(() => error.value)
+const jobRunning = computed(() =>
+  activeJob.value?.status === 'QUEUED' || activeJob.value?.status === 'PROCESSING',
+)
 
 onMounted(async () => {
   await refresh()
@@ -79,10 +84,10 @@ function onUploaded(job: XpengJobDto) {
       </div>
     </div>
 
-    <div v-if="displayedError"
+    <div v-if="topError"
          class="rounded-lg bg-red-50 dark:bg-red-900/20 p-3 text-sm text-red-800 dark:text-red-200 flex gap-2">
       <ExclamationCircleIcon class="w-5 h-5 flex-shrink-0" />
-      <span>{{ displayedError }}</span>
+      <span>{{ topError }}</span>
     </div>
 
     <div v-if="loading" class="text-center text-gray-500 dark:text-gray-400 py-8">{{ t('common.loading') }}</div>
@@ -104,6 +109,8 @@ function onUploaded(job: XpengJobDto) {
         <XpengUploadStep
           v-model:car-id="uploadCarId"
           :cars-ready-for-upload="carsReadyForUpload"
+          :job-running="jobRunning"
+          :error-message="localError"
           @uploaded="onUploaded"
           @error="onError"
         />

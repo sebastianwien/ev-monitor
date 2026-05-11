@@ -53,14 +53,10 @@ function formatRange(start: string | null, end: string | null): string {
             </ul>
           </div>
         </div>
-        <div class="flex flex-col sm:flex-row gap-2 pt-1">
-          <RouterLink v-if="job.importedTrips > 0" to="/trips"
+        <div v-if="job.importedTrips > 0 || job.importedSessions > 0" class="pt-1">
+          <RouterLink to="/"
                       class="text-sm text-blue-600 dark:text-blue-400 hover:underline">
-            {{ t('xpeng.view_imported_trips') }} →
-          </RouterLink>
-          <RouterLink v-if="job.importedSessions > 0" to="/"
-                      class="text-sm text-blue-600 dark:text-blue-400 hover:underline">
-            {{ t('xpeng.view_imported_sessions') }} →
+            {{ t('xpeng.view_dashboard') }} →
           </RouterLink>
         </div>
       </div>
