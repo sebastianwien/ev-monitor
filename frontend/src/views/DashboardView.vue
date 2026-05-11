@@ -75,6 +75,7 @@ import { useLogList } from '../composables/useLogList'
 import { useWallboxStore } from '../stores/wallbox'
 import { carDisplayName } from '../utils/enumLabel'
 import { isVwGroupBrand } from '../api/vwGroupService'
+import { subscriptionService, type SubscriptionTier } from '../api/subscriptionService'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend, Filler, ChartDataLabels)
 
@@ -465,6 +466,30 @@ function handleThgCardClick() {
 }
 
 onMounted(() => initCars())
+
+// AutoSync Live discoverability banner: shown to Tesla-users that don't have
+// Live yet, and haven't dismissed the hint. Position: below ConsumptionInfoBox.
+const LS_LIVE_BANNER_DISMISSED = 'autosync_live_banner_dismissed'
+const subscriptionTier = ref<SubscriptionTier | null>(null)
+const liveBannerDismissed = ref(localStorage.getItem(LS_LIVE_BANNER_DISMISSED) === 'true')
+const showLiveBanner = computed(() =>
+  subscriptionTier.value != null
+  && subscriptionTier.value !== 'AUTOSYNC_LIVE'
+  && selectedCar.value?.brand === 'TESLA'
+  && !liveBannerDismissed.value
+)
+function dismissLiveBanner() {
+  liveBannerDismissed.value = true
+  localStorage.setItem(LS_LIVE_BANNER_DISMISSED, 'true')
+}
+onMounted(async () => {
+  try {
+    const status = await subscriptionService.getStatus()
+    subscriptionTier.value = status.tier ?? 'NONE'
+  } catch {
+    subscriptionTier.value = null
+  }
+})
 
 function onTripFormEnter(el: Element, done: () => void) {
   const h = el as HTMLElement
@@ -1006,6 +1031,28 @@ function onTripFormLeave(el: Element, done: () => void) {
 
           <!-- Consumption info accordion -->
           <ConsumptionInfoBox :min-trips="5" class="mb-4" />
+
+          <!-- AutoSync Live discoverability hint (Tesla-users without Live, dismissible) -->
+          <div v-if="showLiveBanner"
+            class="w-full flex items-center justify-between gap-2 px-3 py-2 mb-4 rounded-md border-l-2 border-indigo-400 bg-indigo-500/5">
+            <div class="flex items-center gap-2 min-w-0">
+              <BoltIcon class="w-3.5 h-3.5 text-indigo-400 dark:text-indigo-300 flex-shrink-0" aria-hidden="true" />
+              <p class="text-xs text-gray-600 dark:text-gray-300 leading-snug">
+                {{ t('dashboard.live_banner_text_prefix') }}
+                <span class="font-medium text-indigo-600 dark:text-indigo-300">AutoSync Live</span>
+                {{ t('dashboard.live_banner_text_suffix') }}
+                <span class="text-gray-500 dark:text-gray-500">{{ t('dashboard.live_banner_price') }}</span>
+                <router-link to="/upgrade" class="ml-1 underline text-indigo-600 dark:text-indigo-300 hover:text-indigo-500">
+                  {{ t('dashboard.live_banner_cta') }}
+                </router-link>
+              </p>
+            </div>
+            <button type="button" @click="dismissLiveBanner"
+              class="flex-shrink-0 p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+              :aria-label="t('dashboard.live_banner_dismiss')">
+              <XMarkIcon class="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" aria-hidden="true" />
+            </button>
+          </div>
 
           <!-- Implausible logs banner (position 2: under ConsumptionInfoBox) -->
           <div v-if="implausibleCount > 0 && !implausibleBannerDismissed"
