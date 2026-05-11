@@ -99,19 +99,6 @@ class UserSubscriptionTierTest {
     }
 
     @Test
-    void canCreateTripsManually_onlyForLiveTierOrBetaOrAdmin() {
-        // Manual trip creation is part of AutoSync Live. Previously this was gated on
-        // any premium tier (AUTOSYNC or AUTOSYNC_LIVE), which leaked the feature to
-        // Tier-1 subscribers. Now Tier-2 only.
-        assertTrue(buildUser("USER", SubscriptionTier.AUTOSYNC_LIVE).canCreateTripsManually());
-        assertTrue(buildUser("BETA_TESTER", SubscriptionTier.NONE).canCreateTripsManually());
-        assertTrue(buildUser("ADMIN", SubscriptionTier.NONE).canCreateTripsManually());
-        assertFalse(buildUser("USER", SubscriptionTier.AUTOSYNC).canCreateTripsManually());
-        assertFalse(buildUser("USER", SubscriptionTier.NONE).canCreateTripsManually());
-        assertFalse(buildUser("TESLA_FOUNDER", SubscriptionTier.AUTOSYNC).canCreateTripsManually());
-    }
-
-    @Test
     void canBypassEligibilityGate_onlyForAdminOrBetaTester() {
         // Audit privilege: ADMIN and BETA_TESTER see live trips even from car models
         // that are not on the eligibility whitelist (Polestar 3 etc.), so the data

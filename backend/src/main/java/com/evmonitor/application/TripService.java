@@ -1,7 +1,6 @@
 package com.evmonitor.application;
 
 import com.evmonitor.domain.*;
-import com.evmonitor.domain.exception.ForbiddenException;
 import com.evmonitor.domain.exception.ValidationException;
 import com.evmonitor.domain.weather.TemperatureEnricher;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -92,15 +91,11 @@ public class TripService {
     }
 
     /**
-     * Creates a manual trip for the given user. Defense-in-depth: re-checks the
-     * AutoSync-Live entitlement via {@link User#canCreateTripsManually()} so that
-     * future internal callers cannot bypass the controller-level gate.
+     * Creates a manual trip for the given user. Seit Mai 2026 ohne Subscription-Gate -
+     * manuelles Trip-Anlegen ist fuer alle authentifizierten User frei.
      */
     @Transactional
     public EvTripResponse createUserTrip(User user, CreateTripRequest req) {
-        if (!user.canCreateTripsManually()) {
-            throw new ForbiddenException("Manuelles Anlegen von Fahrten ist Teil von AutoSync Live.");
-        }
         if (!req.tripStartedAt().isBefore(req.tripEndedAt())) {
             throw new IllegalArgumentException("tripStartedAt must be before tripEndedAt");
         }

@@ -136,18 +136,15 @@ export const useAuthStore = defineStore('auth', () => {
         isPremium.value || isAdmin.value || isBetaTester.value || isTeslaFounder.value);
 
     // Mirrors backend User.canViewLiveTrips(): AUTOSYNC_LIVE tier OR ADMIN/BETA_TESTER.
-    // Drives the LogFeed trip rendering and the "+ Add Trip" button visibility.
+    // Drives the LogFeed trip rendering for live-detected trips and Phantom Drain display.
     // Server-side gate in TripService is the security boundary - this is UX only.
     const canViewLiveTrips = computed(() =>
         isAutoSyncLive.value || isAdmin.value || isBetaTester.value);
 
-    // Mirrors backend User.canCreateTripsManually(): same gate as canViewLiveTrips.
-    const canCreateTrips = computed(() => canViewLiveTrips.value);
-
     return {
         token, user, isDemoAccount, isPremium, isAdmin, isBetaTester, isTeslaFounder,
         isAutoSyncLive,
-        canActivateTelemetry, canViewLiveTrips, canCreateTrips,
+        canActivateTelemetry, canViewLiveTrips,
         setToken, setPremium, logout, login, register,
         refreshToken, refreshPremiumStatus,
         isAuthenticated: () => !!token.value,

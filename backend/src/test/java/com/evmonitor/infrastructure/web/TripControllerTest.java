@@ -83,30 +83,36 @@ class TripControllerTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void createTrip_nonPremiumUser_returns403() {
+    void createTrip_freeUser_returns201() {
+        // Manuelles Trip-Anlegen ist seit Mai 2026 fuer ALLE User frei.
+        // AutoSync Live differenziert sich ueber Automatik/Echtzeit, nicht Feature-Lockout.
         User freeUser = createAndSaveUser("trip-ctrl-free-" + System.nanoTime() + "@example.com");
-        Map<String, Object> req = createTripRequest(car1.getId(), OffsetDateTime.now().minusHours(2), OffsetDateTime.now());
+        Car freeCar = createAndSaveCar(freeUser.getId(), CarBrand.CarModel.MODEL_3);
+        Map<String, Object> req = createTripRequest(freeCar.getId(),
+                OffsetDateTime.now().minusHours(2), OffsetDateTime.now());
 
         ResponseEntity<String> res = restTemplate.exchange(
                 "/api/trips", HttpMethod.POST,
                 new HttpEntity<>(req, createAuthHeaders(freeUser.getId(), freeUser.getEmail())),
                 String.class);
 
-        assertEquals(HttpStatus.FORBIDDEN, res.getStatusCode());
+        assertEquals(HttpStatus.CREATED, res.getStatusCode());
     }
 
     @Test
-    void createTrip_tier1AutoSyncUser_returns403() {
-        // AUTOSYNC (Tier 1) does NOT unlock manual trip creation - that is a Tier-2 feature.
+    void createTrip_tier1AutoSyncUser_returns201() {
+        // AUTOSYNC (Tier 1) durfte vorher nicht manuell anlegen - jetzt ja, gleiches Recht fuer alle.
         User tier1 = createAndSavePremiumUser("trip-ctrl-tier1-" + System.nanoTime() + "@example.com");
-        Map<String, Object> req = createTripRequest(car1.getId(), OffsetDateTime.now().minusHours(2), OffsetDateTime.now());
+        Car tier1Car = createAndSaveCar(tier1.getId(), CarBrand.CarModel.MODEL_3);
+        Map<String, Object> req = createTripRequest(tier1Car.getId(),
+                OffsetDateTime.now().minusHours(2), OffsetDateTime.now());
 
         ResponseEntity<String> res = restTemplate.exchange(
                 "/api/trips", HttpMethod.POST,
                 new HttpEntity<>(req, createAuthHeaders(tier1.getId(), tier1.getEmail())),
                 String.class);
 
-        assertEquals(HttpStatus.FORBIDDEN, res.getStatusCode());
+        assertEquals(HttpStatus.CREATED, res.getStatusCode());
     }
 
     // --- PATCH /api/trips/{id} ---

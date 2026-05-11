@@ -5,7 +5,6 @@ import com.evmonitor.application.EvTripResponse;
 import com.evmonitor.application.MergeTripRequest;
 import com.evmonitor.application.TripService;
 import com.evmonitor.application.UpdateTripRequest;
-import com.evmonitor.domain.exception.ForbiddenException;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,15 +25,14 @@ public class TripController {
 
     /**
      * Trip CRUD policy:
-     *  - C (POST createTrip): only users for whom {@link com.evmonitor.domain.User#canCreateTripsManually()}
-     *    is true (AUTOSYNC_LIVE tier or ADMIN/BETA_TESTER). Manuelles Anlegen ist Teil von
-     *    AutoSync Live. The TripService re-checks the same gate as defense-in-depth.
+     *  - C (POST createTrip): jeder authentifizierte User darf manuelle Trips anlegen
+     *    (Mai 2026: Lockout entfernt - AutoSync Live differenziert sich ueber Automatik
+     *    und Echtzeit, nicht ueber Feature-Lockout).
      *  - R/U/M/D (GET/PATCH/POST-merge/DELETE): owner-only, plus data-source gate:
      *      * Live-detected trips (TESLA_LIVE, SMARTCAR_LIVE, TESLA_INFERRED) require
-     *        {@link com.evmonitor.domain.User#canViewLiveTrips()} - same Tier-2/privileged gate.
-     *      * Imported/manual trips (TESSIE, USER_CREATED, etc.) stay accessible to any
-     *        owner regardless of subscription, because they're the user's own historical
-     *        data. Tessie-import users without premium need this to manage their data.
+     *        {@link com.evmonitor.domain.User#canViewLiveTrips()} - Tier-2/privileged gate.
+     *      * Imported/manual trips (TESSIE, USER_CREATED, etc.) sind fuer den Owner immer
+     *        zugaenglich, unabhaengig von Subscription - sind ja seine eigenen Daten.
      *    Trips that the user cannot see return 404 (not 403) to avoid leaking trip
      *    existence to non-entitled users.
      */
@@ -43,16 +41,9 @@ public class TripController {
             @Valid @RequestBody CreateTripRequest request,
             Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        if (!principal.getUser().canCreateTripsManually()) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
         try {
             EvTripResponse response = tripService.createUserTrip(principal.getUser(), request);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (ForbiddenException e) {
-            // Service-level gate fires when the controller pre-check is somehow bypassed.
-            // Defense in depth: surface as 403 (not 500) so the FE sees a consistent error code.
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         }
