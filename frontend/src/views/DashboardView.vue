@@ -1034,21 +1034,24 @@ function onTripFormLeave(el: Element, done: () => void) {
 
           <!-- AutoSync Live discoverability hint (Tesla-users without Live, dismissible) -->
           <div v-if="showLiveBanner"
-            class="w-full flex items-center justify-between gap-2 px-3 py-2 mb-4 rounded-md border-l-2 border-indigo-400 bg-indigo-500/5">
+            class="w-full flex items-center justify-between gap-2 px-3 py-2 mb-4 rounded-md border-l-2 border-indigo-400 bg-indigo-500/15">
             <div class="flex items-center gap-2 min-w-0">
-              <BoltIcon class="w-3.5 h-3.5 text-indigo-400 dark:text-indigo-300 flex-shrink-0" aria-hidden="true" />
-              <p class="text-xs text-gray-600 dark:text-gray-300 leading-snug">
+              <span class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500 text-white font-semibold tracking-wide uppercase flex-shrink-0">{{ t('dashboard.live_banner_new_chip') }}</span>
+              <svg class="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-300 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
+              </svg>
+              <p class="text-xs text-gray-700 dark:text-gray-200 leading-snug">
                 {{ t('dashboard.live_banner_text_prefix') }}
-                <span class="font-medium text-indigo-600 dark:text-indigo-300">AutoSync Live</span>
+                <span class="font-medium text-indigo-700 dark:text-indigo-300">AutoSync Live</span>
                 {{ t('dashboard.live_banner_text_suffix') }}
-                <span class="text-gray-500 dark:text-gray-500">{{ t('dashboard.live_banner_price') }}</span>
-                <router-link to="/upgrade" class="ml-1 underline text-indigo-600 dark:text-indigo-300 hover:text-indigo-500">
+                <span class="text-gray-500 dark:text-gray-400">{{ t('dashboard.live_banner_price') }}</span>
+                <router-link to="/upgrade" class="ml-1 underline text-indigo-700 dark:text-indigo-300 hover:text-indigo-500">
                   {{ t('dashboard.live_banner_cta') }}
                 </router-link>
               </p>
             </div>
             <button type="button" @click="dismissLiveBanner"
-              class="flex-shrink-0 p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+              class="flex-shrink-0 p-0.5 rounded hover:bg-indigo-500/20 dark:hover:bg-indigo-500/30 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
               :aria-label="t('dashboard.live_banner_dismiss')">
               <XMarkIcon class="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" aria-hidden="true" />
             </button>

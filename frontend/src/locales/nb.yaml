@@ -584,6 +584,7 @@ dashboard:
   short_trip_hint: Avstanden er for kort
   short_trip_tooltip_title: Forbruket kan ikke beregnes
   short_trip_tooltip_desc: "På turer under 10 km forvrenger små måleunøyaktigheter det beregnede forbruket kraftig. Allerede et hopp på 1 % i det viste batterinivået tilsvarer omtrent 0,7 kWh - over 1 km gir det raskt urealistiske verdier på 70 kWh/100km eller mer. I stedet for å vise en fantomverdi lar jeg den være."
+  live_banner_new_chip: Nytt
   live_banner_text_prefix: "Importer turene automatisk og oppdag standtap med"
   live_banner_text_suffix: ""
   live_banner_price: "- 49 kr/måned"
