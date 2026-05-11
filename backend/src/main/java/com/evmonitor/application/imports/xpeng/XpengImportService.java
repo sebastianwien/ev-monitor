@@ -22,6 +22,7 @@ import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationContext;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -71,16 +72,28 @@ import java.util.UUID;
 public class XpengImportService {
 
     private static final long MAX_UPLOAD_BYTES = 100L * 1024 * 1024;
+    // Plain xlsx (ZIP container) starts with "PK\x03\x04".
     private static final byte[] ZIP_MAGIC = {0x50, 0x4B, 0x03, 0x04};
+    // Password-protected xlsx uses OLE Compound File Format - POIFSFileSystem decrypts these.
+    private static final byte[] OLE_CFB_MAGIC = {
+            (byte) 0xD0, (byte) 0xCF, 0x11, (byte) 0xE0,
+            (byte) 0xA1, (byte) 0xB1, 0x1A, (byte) 0xE1
+    };
 
     private final XpengConnectionRepository connectionRepo;
     private final XpengImportJobRepository jobRepo;
     private final CarRepository carRepository;
     private final TripService tripService;
     private final PublicApiImportService publicApiImportService;
+    private final ApplicationContext applicationContext;
 
     @Value("${xpeng.import.tempdir}")
     private String tempDir;
+
+    /** Self-injection of the Spring proxy so @Async/@Transactional kick in on internal calls. */
+    private XpengImportService self() {
+        return applicationContext.getBean(XpengImportService.class);
+    }
 
     @PostConstruct
     void initOnStartup() {
@@ -88,7 +101,7 @@ public class XpengImportService {
             Path dir = Paths.get(tempDir);
             Files.createDirectories(dir);
             cleanupStaleTempfiles(dir);
-            recoverInFlightJobs();
+            self().recoverInFlightJobs();
         } catch (Exception e) {
             log.error("XpengImportService startup init failed", e);
         }
@@ -110,10 +123,17 @@ public class XpengImportService {
         long size = Files.size(tempfile);
         String hash = sha256(tempfile);
 
-        Optional<XpengImportJob> existing = jobRepo.findByUserIdAndFileHash(userId, hash);
+        // Dedup nur fuer erfolgreiche/laufende Imports - FAILED-Jobs duerfen mit derselben Datei
+        // wiederholt werden (z.B. nach VIN-Korrektur beim Auto).
+        Optional<XpengImportJob> existing = jobRepo.findFirstByUserIdAndFileHashAndStatusIn(
+                userId, hash, List.of(XpengImportJob.Status.QUEUED,
+                        XpengImportJob.Status.PROCESSING, XpengImportJob.Status.DONE));
         if (existing.isPresent()) {
             try { Files.deleteIfExists(tempfile); } catch (Exception ignored) {}
-            throw new IllegalStateException("Diese Datei wurde bereits importiert (Job " + existing.get().getId() + ")");
+            String msg = existing.get().getStatus() == XpengImportJob.Status.DONE
+                    ? "Diese Datei wurde bereits importiert (Job " + existing.get().getId() + ")"
+                    : "Ein Import dieser Datei laeuft bereits (Job " + existing.get().getId() + ")";
+            throw new IllegalStateException(msg);
         }
 
         XpengImportJob job = jobRepo.save(XpengImportJob.builder()
@@ -133,12 +153,12 @@ public class XpengImportService {
         final UUID jobId = job.getId();
         final String tempfilePath = tempfile.toString();
         final UUID connectionId = connection.getId();
-        final XpengImportService self = this;
+        final XpengImportService proxy = self();
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
-                    self.processJobAsync(jobId, tempfilePath, password, connectionId);
+                    proxy.processJobAsync(jobId, tempfilePath, password, connectionId);
                 }
 
                 @Override
@@ -150,7 +170,7 @@ public class XpengImportService {
             });
         } else {
             // Should not happen given @Transactional on this method, but be defensive.
-            processJobAsync(jobId, tempfilePath, password, connectionId);
+            proxy.processJobAsync(jobId, tempfilePath, password, connectionId);
         }
         return job;
     }
@@ -340,14 +360,19 @@ public class XpengImportService {
 
     private void validateMagicBytes(Path file) throws IOException {
         try (InputStream in = Files.newInputStream(file)) {
-            byte[] header = in.readNBytes(4);
-            for (int i = 0; i < ZIP_MAGIC.length; i++) {
-                if (header[i] != ZIP_MAGIC[i]) {
-                    Files.deleteIfExists(file);
-                    throw new IllegalArgumentException("Keine gültige xlsx-Datei (Magic Bytes fehlen)");
-                }
-            }
+            byte[] header = in.readNBytes(8);
+            if (matches(header, ZIP_MAGIC) || matches(header, OLE_CFB_MAGIC)) return;
+            Files.deleteIfExists(file);
+            throw new IllegalArgumentException("Keine gültige xlsx-Datei (Magic Bytes fehlen)");
         }
+    }
+
+    private static boolean matches(byte[] header, byte[] magic) {
+        if (header.length < magic.length) return false;
+        for (int i = 0; i < magic.length; i++) {
+            if (header[i] != magic[i]) return false;
+        }
+        return true;
     }
 
     private String sha256(Path file) throws IOException {

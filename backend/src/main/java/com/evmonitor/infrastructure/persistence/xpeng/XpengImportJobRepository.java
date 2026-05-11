@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -12,7 +13,8 @@ import java.util.UUID;
 public interface XpengImportJobRepository extends JpaRepository<XpengImportJob, UUID> {
     Optional<XpengImportJob> findByIdAndUserId(UUID id, UUID userId);
     List<XpengImportJob> findTop10ByUserIdOrderByCreatedAtDesc(UUID userId);
-    Optional<XpengImportJob> findByUserIdAndFileHash(UUID userId, String fileHash);
+    Optional<XpengImportJob> findFirstByUserIdAndFileHashAndStatusIn(
+            UUID userId, String fileHash, Collection<XpengImportJob.Status> statuses);
     List<XpengImportJob> findAllByStatus(XpengImportJob.Status status);
 
     @Modifying

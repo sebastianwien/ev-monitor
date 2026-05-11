@@ -16,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationContext;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.ByteArrayInputStream;
@@ -28,6 +29,9 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -38,6 +42,7 @@ class XpengImportServiceTest {
     @Mock XpengImportJobRepository jobRepo;
     @Mock TripService tripService;
     @Mock PublicApiImportService publicApiImportService;
+    @Mock ApplicationContext applicationContext;
 
     @InjectMocks XpengImportService service;
 
@@ -52,6 +57,8 @@ class XpengImportServiceTest {
     void setup() throws IOException {
         tempDir = Files.createTempDirectory("xpeng-test-");
         ReflectionTestUtils.setField(service, "tempDir", tempDir.toString());
+        // self-injection returns the same instance under test; @Async/@Transactional are no-ops in unit tests
+        lenient().when(applicationContext.getBean(XpengImportService.class)).thenReturn(service);
     }
 
     @Test
@@ -94,6 +101,20 @@ class XpengImportServiceTest {
     }
 
     @Test
+    void acceptsEncryptedXlsxWithOleCfbMagicBytes() {
+        // Password-protected xlsx uses OLE Compound File Format (D0 CF 11 E0 A1 B1 1A E1)
+        // instead of plain ZIP magic. Upload validation must NOT reject it - decryption happens
+        // later in the parser.
+        when(carRepository.findById(CAR)).thenReturn(Optional.of(ownedBy(USER)));
+        when(connectionRepo.findByCarId(CAR)).thenReturn(Optional.of(activeConnection()));
+        when(jobRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        byte[] oleMagic = {(byte) 0xD0, (byte) 0xCF, 0x11, (byte) 0xE0,
+                (byte) 0xA1, (byte) 0xB1, 0x1A, (byte) 0xE1, 0, 0};
+        assertDoesNotThrow(() -> service.uploadXlsx(USER, CAR,
+                new ByteArrayInputStream(oleMagic), "pw", "1.1.1.1", "ua"));
+    }
+
+    @Test
     void rejectsTinyFile() {
         when(carRepository.findById(CAR)).thenReturn(Optional.of(ownedBy(USER)));
         when(connectionRepo.findByCarId(CAR)).thenReturn(Optional.of(activeConnection()));
@@ -102,6 +123,35 @@ class XpengImportServiceTest {
                         new ByteArrayInputStream(new byte[]{1, 2}),
                         null, "1.1.1.1", "ua"));
         assertTrue(ex.getMessage().contains("klein"));
+    }
+
+    @Test
+    void allowsReuploadAfterPreviousAttemptFailed() {
+        // Same file hash, previous job FAILED (e.g. wrong VIN) - user must be able to retry.
+        when(carRepository.findById(CAR)).thenReturn(Optional.of(ownedBy(USER)));
+        when(connectionRepo.findByCarId(CAR)).thenReturn(Optional.of(activeConnection()));
+        when(jobRepo.findFirstByUserIdAndFileHashAndStatusIn(eq(USER), anyString(),
+                anyCollection())).thenReturn(Optional.empty());
+        when(jobRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        assertDoesNotThrow(() -> service.uploadXlsx(USER, CAR, validXlsxStream(),
+                null, "1.1.1.1", "ua"));
+        verify(jobRepo).save(any());
+    }
+
+    @Test
+    void blocksReuploadWhilePreviousJobStillRunning() {
+        when(carRepository.findById(CAR)).thenReturn(Optional.of(ownedBy(USER)));
+        when(connectionRepo.findByCarId(CAR)).thenReturn(Optional.of(activeConnection()));
+        XpengImportJob inFlight = XpengImportJob.builder()
+                .id(UUID.randomUUID()).userId(USER).carId(CAR)
+                .status(XpengImportJob.Status.PROCESSING).build();
+        when(jobRepo.findFirstByUserIdAndFileHashAndStatusIn(eq(USER), anyString(),
+                anyCollection())).thenReturn(Optional.of(inFlight));
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> service.uploadXlsx(USER, CAR, validXlsxStream(),
+                        null, "1.1.1.1", "ua"));
+        assertTrue(ex.getMessage().contains("bereits"));
+        verify(jobRepo, never()).save(any());
     }
 
     @Test
