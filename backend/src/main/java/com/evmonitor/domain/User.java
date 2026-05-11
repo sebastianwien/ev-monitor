@@ -134,6 +134,23 @@ public class User {
                 || TRIP_PUSH_PRIVILEGED_ROLES.contains(role);
     }
 
+    /**
+     * True if the user is allowed to see live-detected trips even for car models that
+     * are NOT on the live-trip eligibility whitelist (see {@code TripDetectionEligibility}).
+     * Granted to ADMIN + BETA_TESTER for data-quality audit via impersonation.
+     * AutoSync-Live customers stay bound to the whitelist - if their car model is
+     * BLOCKED, live trips are silently filtered out of their UI even though they pay
+     * for Tier-2. The data itself is still collected in the DB so eligibility can be
+     * flipped retroactively when OEM data quality improves.
+     */
+    public boolean canBypassEligibilityGate() {
+        return ELIGIBILITY_BYPASS_ROLES.contains(role);
+    }
+
+    /** Roles that bypass the car-model eligibility filter (audit access only). */
+    private static final java.util.Set<String> ELIGIBILITY_BYPASS_ROLES =
+            java.util.Set.of("ADMIN", "BETA_TESTER");
+
     /** Roles that always stream the FULL profile regardless of subscription tier. */
     private static final java.util.Set<String> FULL_PROFILE_PRIVILEGED_ROLES =
             java.util.Set.of("ADMIN", "BETA_TESTER");

@@ -13,7 +13,9 @@ public enum DataSource {
     TRONITY_IMPORT,      // Tronity XLSX export import
     SMARTCAR_LIVE,       // Smartcar webhook-based live session tracking
     VWGROUP_LIVE,        // VW Group (Skoda/VW/Audi/SEAT/CUPRA) MQTT-based live session tracking
-    TESSIE;              // Tessie fleet import
+    TESSIE,              // Tessie fleet import
+    XPENG_IMPORT,        // XPeng Phase 1: EU-Data-Act XLSX, manual user upload
+    XPENG_LIVE;          // XPeng Phase 2+: automated mail-poll / future XPeng API (AutoSync Live tier)
 
     public boolean includeInStatistics() {
         return this == USER_LOGGED || this == SPRITMONITOR_IMPORT
@@ -21,7 +23,8 @@ public enum DataSource {
                 || this == TESLA_FLEET_IMPORT || this == TESLA_LIVE
                 || this == TESLA_MANUAL_IMPORT || this == API_UPLOAD
                 || this == TRONITY_IMPORT || this == SMARTCAR_LIVE
-                || this == VWGROUP_LIVE || this == TESSIE;
+                || this == VWGROUP_LIVE || this == TESSIE
+                || this == XPENG_IMPORT || this == XPENG_LIVE;
     }
 
     /**
@@ -39,7 +42,7 @@ public enum DataSource {
     /** Returns the measurement point for energy reported by this data source. */
     public EnergyMeasurementType measurementType() {
         return switch (this) {
-            case TESLA_LIVE, SMARTCAR_LIVE, VWGROUP_LIVE, TESSIE -> EnergyMeasurementType.AT_VEHICLE;
+            case TESLA_LIVE, SMARTCAR_LIVE, VWGROUP_LIVE, TESSIE, XPENG_IMPORT, XPENG_LIVE -> EnergyMeasurementType.AT_VEHICLE;
             default -> EnergyMeasurementType.AT_CHARGER;
         };
     }

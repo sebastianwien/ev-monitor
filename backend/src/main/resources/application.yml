@@ -178,3 +178,10 @@ logging:
       max-file-size: 50MB
       max-history: 30
       total-size-cap: 500MB
+
+xpeng:
+  import:
+    # Tempdir for in-flight XLSX uploads. Files are deleted immediately after parsing
+    # (or on crash recovery). On Hetzner prod: persistent disk path with enough space.
+    # Local dev: defaults to /tmp.
+    tempdir: ${XPENG_IMPORT_TEMPDIR:/tmp/ev-monitor-xpeng-imports}

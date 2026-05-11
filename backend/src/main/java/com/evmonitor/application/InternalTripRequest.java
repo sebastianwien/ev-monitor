@@ -1,9 +1,12 @@
 package com.evmonitor.application;
 
+import lombok.Builder;
+
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
+@Builder
 public record InternalTripRequest(
         UUID externalId,
         UUID carId,

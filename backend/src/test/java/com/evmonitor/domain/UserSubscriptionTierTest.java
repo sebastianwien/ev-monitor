@@ -112,6 +112,20 @@ class UserSubscriptionTierTest {
     }
 
     @Test
+    void canBypassEligibilityGate_onlyForAdminOrBetaTester() {
+        // Audit privilege: ADMIN and BETA_TESTER see live trips even from car models
+        // that are not on the eligibility whitelist (Polestar 3 etc.), so the data
+        // can be re-evaluated by impersonation. AUTOSYNC_LIVE customers do NOT get
+        // audit access - they're bound to the same eligibility whitelist as everyone.
+        assertTrue(buildUser("ADMIN", SubscriptionTier.NONE).canBypassEligibilityGate());
+        assertTrue(buildUser("BETA_TESTER", SubscriptionTier.NONE).canBypassEligibilityGate());
+        assertFalse(buildUser("USER", SubscriptionTier.AUTOSYNC_LIVE).canBypassEligibilityGate());
+        assertFalse(buildUser("TESLA_FOUNDER", SubscriptionTier.AUTOSYNC_LIVE).canBypassEligibilityGate());
+        assertFalse(buildUser("USER", SubscriptionTier.AUTOSYNC).canBypassEligibilityGate());
+        assertFalse(buildUser("USER", SubscriptionTier.NONE).canBypassEligibilityGate());
+    }
+
+    @Test
     void isPremium_derivedFromTier() {
         assertFalse(buildUser("USER", SubscriptionTier.NONE).isPremium());
         assertTrue(buildUser("USER", SubscriptionTier.AUTOSYNC).isPremium());

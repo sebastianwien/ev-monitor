@@ -615,6 +615,87 @@ class TripControllerTest extends AbstractIntegrationTest {
         assertNull(tripRepository.findById(liveTrip.getId()).orElseThrow().getDeletedAt());
     }
 
+    // --- Car-model eligibility: live trips on BLOCKED models stay hidden for regular users ---
+
+    @Test
+    void getTrips_autoSyncLiveUser_onBlockedModel_hidesLiveTrips() {
+        // Polestar 3 is on the BLOCKED list (integer-only data, too coarse cadence).
+        // The user pays for AutoSync Live but does not see live trips for this car.
+        // The data IS collected in the DB - just filtered out of the read path. The
+        // Tessie trip from the same car remains visible.
+        Car p3 = createAndSaveCar(user1.getId(), CarBrand.CarModel.POLESTAR_3);
+        saveTripWithSource(user1.getId(), p3.getId(),
+                OffsetDateTime.now().minusHours(5), OffsetDateTime.now().minusHours(4),
+                null, null, new BigDecimal("10.0"), null, "SMARTCAR_LIVE");
+        saveTripWithSource(user1.getId(), p3.getId(),
+                OffsetDateTime.now().minusHours(3), OffsetDateTime.now().minusHours(2),
+                null, null, new BigDecimal("12.0"), null, "TESSIE");
+
+        ResponseEntity<Object[]> res = restTemplate.exchange(
+                "/api/trips?carId=" + p3.getId(), HttpMethod.GET,
+                new HttpEntity<>(createAuthHeaders(user1.getId(), user1.getEmail())),
+                Object[].class);
+
+        assertEquals(HttpStatus.OK, res.getStatusCode());
+        assertNotNull(res.getBody());
+        assertEquals(1, res.getBody().length);
+    }
+
+    @Test
+    void getTrips_autoSyncLiveUser_onEligibleModel_seesLiveTrips() {
+        // Polestar 2 is on the ELIGIBLE whitelist - live trips show up as expected.
+        Car p2 = createAndSaveCar(user1.getId(), CarBrand.CarModel.POLESTAR_2);
+        saveTripWithSource(user1.getId(), p2.getId(),
+                OffsetDateTime.now().minusHours(5), OffsetDateTime.now().minusHours(4),
+                null, null, new BigDecimal("10.0"), null, "SMARTCAR_LIVE");
+
+        ResponseEntity<Object[]> res = restTemplate.exchange(
+                "/api/trips?carId=" + p2.getId(), HttpMethod.GET,
+                new HttpEntity<>(createAuthHeaders(user1.getId(), user1.getEmail())),
+                Object[].class);
+
+        assertEquals(HttpStatus.OK, res.getStatusCode());
+        assertNotNull(res.getBody());
+        assertEquals(1, res.getBody().length);
+    }
+
+    @Test
+    void updateTrip_autoSyncLiveUser_onBlockedModel_returns404() {
+        // PATCH on a live trip of a BLOCKED model is rejected like any other gated trip.
+        Car p3 = createAndSaveCar(user1.getId(), CarBrand.CarModel.POLESTAR_3);
+        EvTrip trip = saveTripWithSource(user1.getId(), p3.getId(),
+                OffsetDateTime.now().minusHours(3), OffsetDateTime.now().minusHours(2),
+                null, null, new BigDecimal("10.0"), null, "SMARTCAR_LIVE");
+
+        ResponseEntity<String> res = restTemplate.exchange(
+                "/api/trips/" + trip.getId(), HttpMethod.PATCH,
+                new HttpEntity<>(Map.of("distanceKm", 99.0),
+                        createAuthHeaders(user1.getId(), user1.getEmail())),
+                String.class);
+
+        assertEquals(HttpStatus.NOT_FOUND, res.getStatusCode());
+    }
+
+    @Test
+    void getTrips_adminUser_onBlockedModel_seesLiveTrips() {
+        // ADMIN bypasses the eligibility gate for data-quality audit by impersonation.
+        // Same logic applies to BETA_TESTER.
+        User admin = createAndSaveAdminUser("trip-admin-" + System.nanoTime() + "@example.com");
+        Car p3 = createAndSaveCar(admin.getId(), CarBrand.CarModel.POLESTAR_3);
+        saveTripWithSource(admin.getId(), p3.getId(),
+                OffsetDateTime.now().minusHours(3), OffsetDateTime.now().minusHours(2),
+                null, null, new BigDecimal("10.0"), null, "SMARTCAR_LIVE");
+
+        ResponseEntity<Object[]> res = restTemplate.exchange(
+                "/api/trips?carId=" + p3.getId(), HttpMethod.GET,
+                new HttpEntity<>(createAuthHeaders(admin.getId(), admin.getEmail())),
+                Object[].class);
+
+        assertEquals(HttpStatus.OK, res.getStatusCode());
+        assertNotNull(res.getBody());
+        assertEquals(1, res.getBody().length);
+    }
+
     @Test
     void mergeTrip_tier1UserOnLiveTrips_returns404() {
         User tier1 = createAndSavePremiumUser("merge-tier1-" + System.nanoTime() + "@example.com");

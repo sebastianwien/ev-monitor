@@ -132,7 +132,7 @@ public class TripService {
         EvTrip trip = tripRepository.findById(tripId)
                 .filter(t -> t.getUserId().equals(user.getId()))
                 .filter(t -> t.getDeletedAt() == null)
-                .filter(t -> !t.isLiveSource() || user.canViewLiveTrips())
+                .filter(t -> userCanSeeTrip(t, user))
                 .orElseThrow(() -> new IllegalArgumentException("Trip not found"));
 
         OffsetDateTime newStart = req.tripStartedAt() != null ? req.tripStartedAt() : trip.getTripStartedAt();
@@ -161,7 +161,7 @@ public class TripService {
         EvTrip trip = tripRepository.findById(tripId)
                 .filter(t -> t.getUserId().equals(user.getId()))
                 .filter(t -> t.getDeletedAt() == null)
-                .filter(t -> !t.isLiveSource() || user.canViewLiveTrips())
+                .filter(t -> userCanSeeTrip(t, user))
                 .orElseThrow(() -> new IllegalArgumentException("Trip not found"));
         trip.setDeletedAt(OffsetDateTime.now());
         tripRepository.save(trip);
@@ -175,13 +175,13 @@ public class TripService {
         EvTrip surviving = tripRepository.findById(survivingTripId)
                 .filter(t -> t.getUserId().equals(user.getId()))
                 .filter(t -> t.getDeletedAt() == null)
-                .filter(t -> !t.isLiveSource() || user.canViewLiveTrips())
+                .filter(t -> userCanSeeTrip(t, user))
                 .orElseThrow(() -> new IllegalArgumentException("Trip not found"));
 
         EvTrip other = tripRepository.findById(mergeWithTripId)
                 .filter(t -> t.getUserId().equals(user.getId()))
                 .filter(t -> t.getDeletedAt() == null)
-                .filter(t -> !t.isLiveSource() || user.canViewLiveTrips())
+                .filter(t -> userCanSeeTrip(t, user))
                 .orElseThrow(() -> new IllegalArgumentException("Merge-with trip not found"));
 
         if (!surviving.getCarId().equals(other.getCarId())) {
@@ -280,11 +280,36 @@ public class TripService {
         if (!car.getUserId().equals(user.getId())) {
             throw new IllegalArgumentException("Car not owned by user");
         }
-        List<EvTrip> trips = user.canViewLiveTrips()
+        // Live trips are visible only if (a) the user holds the AutoSync-Live entitlement
+        // AND (b) the car model is on the eligibility whitelist (Tesla + Polestar 2/4 today).
+        // ADMIN / BETA_TESTER bypass (b) so they can audit data quality of blocked models.
+        // Non-live sources (TESSIE, USER_CREATED, ...) are always returned to the owner.
+        boolean canSeeLiveForThisCar = user.canViewLiveTrips()
+                && (user.canBypassEligibilityGate() || TripDetectionEligibility.isEligible(car));
+        List<EvTrip> trips = canSeeLiveForThisCar
                 ? tripRepository.findByUserIdAndCarIdAndDeletedAtIsNullOrderByTripEndedAtDesc(
                         user.getId(), carId, PageRequest.of(0, MAX_TRIPS_PER_CAR))
                 : tripRepository.findByUserIdAndCarIdExcludingSourcesAndDeletedAtIsNull(
                         user.getId(), carId, EvTrip.LIVE_TRIP_SOURCES, PageRequest.of(0, MAX_TRIPS_PER_CAR));
         return trips.stream().map(EvTripResponse::fromDomain).toList();
+    }
+
+    /**
+     * Single source of truth for "may this user see / mutate this trip". Combines:
+     *   1. data-source whitelist - non-live trips (TESSIE / USER_CREATED) are always
+     *      visible to the owner regardless of subscription;
+     *   2. subscription tier - live trips require AutoSync-Live or a privileged role;
+     *   3. car-model eligibility - even Tier-2 customers see live trips only for
+     *      whitelisted models (Tesla, Polestar 2/4) unless they hold ADMIN/BETA_TESTER.
+     *
+     * Performs a Car lookup only when steps 1+2 already passed and the car-model
+     * gate matters. Tessie / USER_CREATED edits skip the DB hit entirely.
+     */
+    private boolean userCanSeeTrip(EvTrip trip, User user) {
+        if (!trip.isLiveSource()) return true;
+        if (!user.canViewLiveTrips()) return false;
+        if (user.canBypassEligibilityGate()) return true;
+        Car car = carRepository.findById(trip.getCarId()).orElse(null);
+        return TripDetectionEligibility.isEligible(car);
     }
 }

@@ -1,0 +1,144 @@
+package com.evmonitor.application.imports.xpeng;
+
+import com.evmonitor.application.TripService;
+import com.evmonitor.application.publicapi.PublicApiImportService;
+import com.evmonitor.domain.Car;
+import com.evmonitor.domain.CarBrand;
+import com.evmonitor.domain.CarRepository;
+import com.evmonitor.domain.CarStatus;
+import com.evmonitor.infrastructure.persistence.xpeng.XpengConnection;
+import com.evmonitor.infrastructure.persistence.xpeng.XpengConnectionRepository;
+import com.evmonitor.infrastructure.persistence.xpeng.XpengImportJob;
+import com.evmonitor.infrastructure.persistence.xpeng.XpengImportJobRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.LocalDateTime;
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class XpengImportServiceTest {
+
+    @Mock CarRepository carRepository;
+    @Mock XpengConnectionRepository connectionRepo;
+    @Mock XpengImportJobRepository jobRepo;
+    @Mock TripService tripService;
+    @Mock PublicApiImportService publicApiImportService;
+
+    @InjectMocks XpengImportService service;
+
+    private static final UUID USER = UUID.randomUUID();
+    private static final UUID OTHER_USER = UUID.randomUUID();
+    private static final UUID CAR = UUID.randomUUID();
+    private static final String VIN = "L1NN12345678ABCDE";
+
+    private Path tempDir;
+
+    @BeforeEach
+    void setup() throws IOException {
+        tempDir = Files.createTempDirectory("xpeng-test-");
+        ReflectionTestUtils.setField(service, "tempDir", tempDir.toString());
+    }
+
+    @Test
+    void rejectsUploadForCarOfOtherUser() {
+        when(carRepository.findById(CAR)).thenReturn(Optional.of(ownedBy(OTHER_USER)));
+        SecurityException ex = assertThrows(SecurityException.class,
+                () -> service.uploadXlsx(USER, CAR, validXlsxStream(), null, "1.1.1.1", "ua"));
+        assertTrue(ex.getMessage().contains("gehört"));
+        verify(jobRepo, never()).save(any());
+    }
+
+    @Test
+    void rejectsUploadWithoutActiveConnection() {
+        when(carRepository.findById(CAR)).thenReturn(Optional.of(ownedBy(USER)));
+        when(connectionRepo.findByCarId(CAR)).thenReturn(Optional.empty());
+        assertThrows(IllegalStateException.class,
+                () -> service.uploadXlsx(USER, CAR, validXlsxStream(), null, "1.1.1.1", "ua"));
+        verify(jobRepo, never()).save(any());
+    }
+
+    @Test
+    void rejectsUploadWithRevokedConnection() {
+        when(carRepository.findById(CAR)).thenReturn(Optional.of(ownedBy(USER)));
+        when(connectionRepo.findByCarId(CAR)).thenReturn(Optional.of(revokedConnection()));
+        assertThrows(IllegalStateException.class,
+                () -> service.uploadXlsx(USER, CAR, validXlsxStream(), null, "1.1.1.1", "ua"));
+    }
+
+    @Test
+    void rejectsFileWithoutValidMagicBytes() {
+        when(carRepository.findById(CAR)).thenReturn(Optional.of(ownedBy(USER)));
+        when(connectionRepo.findByCarId(CAR)).thenReturn(Optional.of(activeConnection()));
+        // Not a ZIP/xlsx - just text bytes
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> service.uploadXlsx(USER, CAR,
+                        new ByteArrayInputStream("not an xlsx file".getBytes()),
+                        null, "1.1.1.1", "ua"));
+        assertTrue(ex.getMessage().toLowerCase().contains("magic"),
+                "Expected magic-bytes failure, got: " + ex.getMessage());
+    }
+
+    @Test
+    void rejectsTinyFile() {
+        when(carRepository.findById(CAR)).thenReturn(Optional.of(ownedBy(USER)));
+        when(connectionRepo.findByCarId(CAR)).thenReturn(Optional.of(activeConnection()));
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> service.uploadXlsx(USER, CAR,
+                        new ByteArrayInputStream(new byte[]{1, 2}),
+                        null, "1.1.1.1", "ua"));
+        assertTrue(ex.getMessage().contains("klein"));
+    }
+
+    @Test
+    void getJobForUserOnlyReturnsOwnJobs() {
+        UUID jobId = UUID.randomUUID();
+        when(jobRepo.findByIdAndUserId(jobId, USER)).thenReturn(Optional.empty());
+        assertTrue(service.getJobForUser(jobId, USER).isEmpty());
+        verify(jobRepo).findByIdAndUserId(jobId, USER);
+    }
+
+    private ByteArrayInputStream validXlsxStream() {
+        // ZIP magic bytes - enough to pass the magic-bytes check
+        // (parsing would fail later, but uploadXlsx never reaches parsing in these tests)
+        byte[] zipMagic = {0x50, 0x4B, 0x03, 0x04, 0, 0, 0, 0, 0, 0};
+        return new ByteArrayInputStream(zipMagic);
+    }
+
+    private Car ownedBy(UUID owner) {
+        return Car.builder()
+                .id(CAR).userId(owner)
+                .model(CarBrand.CarModel.XPENG_G9).year(2025)
+                .status(CarStatus.ACTIVE)
+                .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
+                .build();
+    }
+
+    private XpengConnection activeConnection() {
+        return XpengConnection.builder()
+                .id(UUID.randomUUID()).userId(USER).carId(CAR).vin(VIN)
+                .consentGrantedAt(LocalDateTime.now())
+                .consentVersion(XpengConnection.CURRENT_CONSENT_VERSION)
+                .build();
+    }
+
+    private XpengConnection revokedConnection() {
+        XpengConnection c = activeConnection();
+        c.setConsentRevokedAt(LocalDateTime.now());
+        return c;
+    }
+}

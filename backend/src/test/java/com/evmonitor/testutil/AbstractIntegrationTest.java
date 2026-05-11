@@ -98,6 +98,15 @@ public abstract class AbstractIntegrationTest {
     }
 
     /**
+     * Create an ADMIN user - bypasses the car-model eligibility filter so live trips
+     * of BLOCKED models can be audited via impersonation.
+     */
+    protected User createAndSaveAdminUser(String email) {
+        User user = TestDataBuilder.createTestUser(email).toBuilder().role("ADMIN").build();
+        return userRepository.save(user);
+    }
+
+    /**
      * Create a test car for a user and save to database.
      */
     protected Car createAndSaveCar(UUID userId, CarBrand.CarModel model) {

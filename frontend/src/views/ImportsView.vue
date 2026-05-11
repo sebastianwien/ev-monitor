@@ -10,6 +10,7 @@ import AutoSyncCarPicker from '../components/imports/AutoSyncCarPicker.vue'
 import ManualImportModal from '../components/imports/ManualImportModal.vue'
 const TronityImport = defineAsyncComponent(() => import('../components/imports/TronityImport.vue'))
 import TessieImport from '../components/imports/TessieImport.vue'
+const XpengImport = defineAsyncComponent(() => import('../components/imports/XpengImport.vue'))
 import CarSelectDropdown from '../components/car/CarSelectDropdown.vue'
 import type { Car } from '../api/carService'
 import { useCarStore } from '../stores/car'
@@ -39,6 +40,7 @@ const liveUpgradeError = ref('')
 // Live-Promo: shown only when the user is on the AutoSync tier AND has at
 // least one Tesla in their garage. Once on Live, no further upsell needed.
 const hasTesla = computed(() => cars.value.some(c => c.brand === 'TESLA'))
+const hasXpeng = computed(() => cars.value.some(c => c.brand === 'XPENG'))
 const showLivePromo = computed(() => subscriptionTier.value === 'AUTOSYNC' && hasTesla.value)
 
 async function handleLiveUpgrade() {
@@ -451,7 +453,28 @@ const teslaConnectedLabel = ref<string | null>(null)
           </Transition>
         </div>
 
-        <!-- 6. MANUELL (war 5) -->
+        <!-- 6. XPENG (nur sichtbar bei XPeng-Fahrzeug in Garage) -->
+        <div v-if="hasXpeng">
+          <button
+            @click="toggle('xpeng'); analytics.trackImportTabClicked('xpeng')"
+            class="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+          >
+            <div class="shrink-0 bg-gray-900 dark:bg-gray-700 rounded-lg p-2 w-10 h-10 flex items-center justify-center">
+              <span class="text-white font-bold text-xs leading-none">XP</span>
+            </div>
+            <div class="flex-1 min-w-0">
+              <span class="font-medium text-gray-900 dark:text-gray-100 text-sm">XPeng</span>
+            </div>
+            <ChevronDownIcon :class="['h-5 w-5 text-gray-400 shrink-0 transition-transform duration-200', activeTab === 'xpeng' ? 'rotate-180' : '']" />
+          </button>
+          <Transition name="accordion">
+            <div v-if="activeTab === 'xpeng'" class="border-t border-gray-100 dark:border-gray-700 p-4">
+              <XpengImport :cars="activeCars" />
+            </div>
+          </Transition>
+        </div>
+
+        <!-- 7. MANUELL -->
         <div>
           <button
             @click="toggle('manuell'); analytics.trackImportTabClicked('manuell')"
