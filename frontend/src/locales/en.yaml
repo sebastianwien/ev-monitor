@@ -1877,11 +1877,11 @@ announcements:
   spritmonitor_raw_refresh_v1_body: "The SpritMonitor import now has a new button 'Re-import raw data'. It re-fetches the original JSON from Sprit-Monitor and updates it, without overwriting your manually corrected values (kWh, odometer, etc.). This allows me to retroactively correct and improve charging sessions, as the SpritMonitor data format is not fully documented."
   net_capacity_v1_title: "Vehicle database updated"
   net_capacity_v1_body: "The vehicle database has been updated. Net battery capacity values have been corrected for some variants. Consumption figures may have changed slightly as a result."
-  trip_detection_beta_v1_title: "Automatic trip detection (Beta)"
-  trip_detection_beta_v1_body: "EV Monitor now automatically detects trips from your AutoSync data and shows them alongside your charging sessions in the dashboard. This is a beta feature - errors may occur. Manual corrections are available directly in the dashboard."
-  trip_detection_beta_v1_cta: "Go to dashboard"
   brutto_netto_v1_title: "Improved consumption and cost calculation"
   brutto_netto_v1_body: "EV Monitor now more consistently uses both net and gross energy values from logged charging sessions in all calculations. This may cause slight adjustments to consumption, cost, and range figures - they now reflect reality even more accurately!"
+  autosync_live_launch_v1_title: "Thanks to all beta testers"
+  autosync_live_launch_v1_body: "Your trip data over the past weeks showed me what works - and what doesn't. Tesla and Polestar deliver clean live data that allows reliable trip detection. With VW, Skoda, Audi and the rest it's currently not enough - the manufacturers send updates too irregularly and at too coarse a resolution to build a reliable feature on.\n\nFor that reason trip detection becomes part of AutoSync Live from today - currently +€1/month on top of AutoSync. The feature stays limited to Tesla and Polestar for now. As soon as I see comparable data quality from another brand, I'll switch it on for them too."
+  autosync_live_launch_v1_cta: "Upgrade to AutoSync Live"
   tesla_telemetry_rollout_v1_title: "Tesla Live-Sync now runs via Telemetry"
   tesla_telemetry_rollout_v1_body: "Tesla drivers, heads up: I switched Live-Sync from polling to push-based Telemetry. Your car no longer has to wake up for every check, charging sessions arrive in real time. To keep it working, you need to re-pair the connection once - takes less than 2 minutes and uses the Virtual Key in the Tesla app."
   tesla_telemetry_rollout_v1_cta: "Set up connection"
@@ -2031,3 +2031,63 @@ cm:
   bullet4: "<strong>Standby losses</strong> vary greatly by ambient temperature, software version, and usage behavior."
   s5_footer: "EV Monitor uses the median over multiple charging sessions to smooth out outliers, and marks individual trips with a plausibility indicator when the calculated value appears unusual."
   sources_title: "Sources"
+
+xpeng:
+  intro_title: "XPeng EU Data Act Import"
+  intro_body: "Since XPeng does not (yet) offer an API, you import your telematics data via Excel: request it from XPeng by email, receive it within 5-10 days, and upload it here."
+  no_xpeng_cars: "No XPeng vehicles in your garage."
+  step_consent_title: "Allow data processing"
+  step_request_title: "Request data from XPeng"
+  step_request_body: "Open your mail client. The request is pre-filled, just send it. XPeng will respond within 5-10 days with an encrypted Excel file."
+  step_upload_title: "Upload Excel"
+  car_label: "Vehicle"
+  vin_label: "Vehicle Identification Number (VIN)"
+  vin_hint: "17 characters, found on your registration document or in the XPeng app."
+  consent_show_full: "Show full consent text"
+  consent_full_text: |
+    I consent, pursuant to Art. 6(1)(a) GDPR, to the processing by Sebastian Wien, Berlin, Germany (operator of the "EV Monitor" service, https://ev-monitor.net - full address in the imprint) of the telematics data of my XPeng vehicle (identified by the VIN above) which I myself request from XPeng under the EU Data Act (Regulation (EU) 2023/2854) and upload to EV Monitor.
+
+    Processing comprises: decryption of the file, extraction of relevant telematics signals, aggregation into trips and charging sessions, display in my personal EV Monitor account, and storage of these aggregates. The uploaded Excel file itself is deleted after processing.
+
+    Processing is carried out solely for the purpose of trip and charging analysis of my vehicle. No data is shared with third parties.
+
+    I may revoke this consent at any time without giving reasons by removing the connection in EV Monitor. Aggregates already imported (trips, charging sessions) remain in my account until I delete them manually. Revocation does not affect the lawfulness of processing carried out before the revocation.
+
+    Note: In this phase (manual upload), data is requested from XPeng by me personally via email. Should EV Monitor take over this step on my behalf in the future, I will be asked for a separate authorization specific to that purpose pursuant to Art. 5 EU Data Act.
+  consent_accept_label: "I consent to the processing of the uploaded data as described above."
+  btn_grant_consent: "Give consent"
+  btn_open_mail: "Open mail client"
+  btn_upload: "Upload and import"
+  btn_revoke: "Withdraw consent"
+  file_label: "Excel file from XPeng (.xlsx)"
+  password_label: "Password"
+  password_optional: "if the file is encrypted"
+  uploading: "Uploading ..."
+  response_time_hint: "XPeng typically responds within 5-10 days."
+  phase2_promo_title: "Coming soon: AutoSync Live for XPeng"
+  phase2_promo_body: "Right now you have to request the data from XPeng by email and upload the Excel yourself. Soon EV Monitor will do this for you - monthly request and automatic import, hands-off. As soon as XPeng provides the official API (planned for 2026), the sync will switch to real-time automatically. Both will be part of AutoSync Live."
+  import_in_progress: "Import running"
+  job_status: "Status"
+  status_queued: "queued"
+  status_processing: "processing ..."
+  status_done: "done"
+  status_failed: "failed"
+  done_summary: "{trips} trips + {sessions} charging sessions imported ({skipped} duplicates skipped)."
+  connections_title: "Active consents"
+  imports_count: "{count} imports"
+  last_import: "Last import"
+  history_title: "Import history"
+  confirm_revoke: "Really withdraw consent? Already imported data remain in your account."
+  err_consent_required: "You must give consent to continue."
+  err_vin_length: "The VIN must be exactly 17 characters."
+  err_upload_missing: "Please select a vehicle and Excel file."
+  mail_body: |
+    Dear XPENG Data Protection Team,
+
+    Pursuant to Article 4 of the EU Data Act (Regulation (EU) 2023/2854), I am requesting access to the telematics data of my vehicle for the most recent 30-day period available.
+
+    VIN: {vin}
+
+    Please provide the data in the Excel format previously used for similar requests. If the file is encrypted, kindly send the password in a separate email.
+
+    Thank you and best regards

@@ -32,8 +32,9 @@ class TripControllerTest extends AbstractIntegrationTest {
     @BeforeEach
     void setUp() {
         long ts = System.nanoTime();
-        user1 = createAndSavePremiumUser("trip-ctrl-u1-" + ts + "@example.com");
-        user2 = createAndSavePremiumUser("trip-ctrl-u2-" + ts + "@example.com");
+        // AutoSync Live (Tier 2) - unlocks manual trip creation + live-trip CRUD.
+        user1 = createAndSaveAutoSyncLiveUser("trip-ctrl-u1-" + ts + "@example.com");
+        user2 = createAndSaveAutoSyncLiveUser("trip-ctrl-u2-" + ts + "@example.com");
         car1  = createAndSaveCar(user1.getId(), CarBrand.CarModel.MODEL_3);
         car2  = createAndSaveCar(user2.getId(), CarBrand.CarModel.MODEL_Y);
     }
@@ -89,6 +90,20 @@ class TripControllerTest extends AbstractIntegrationTest {
         ResponseEntity<String> res = restTemplate.exchange(
                 "/api/trips", HttpMethod.POST,
                 new HttpEntity<>(req, createAuthHeaders(freeUser.getId(), freeUser.getEmail())),
+                String.class);
+
+        assertEquals(HttpStatus.FORBIDDEN, res.getStatusCode());
+    }
+
+    @Test
+    void createTrip_tier1AutoSyncUser_returns403() {
+        // AUTOSYNC (Tier 1) does NOT unlock manual trip creation - that is a Tier-2 feature.
+        User tier1 = createAndSavePremiumUser("trip-ctrl-tier1-" + System.nanoTime() + "@example.com");
+        Map<String, Object> req = createTripRequest(car1.getId(), OffsetDateTime.now().minusHours(2), OffsetDateTime.now());
+
+        ResponseEntity<String> res = restTemplate.exchange(
+                "/api/trips", HttpMethod.POST,
+                new HttpEntity<>(req, createAuthHeaders(tier1.getId(), tier1.getEmail())),
                 String.class);
 
         assertEquals(HttpStatus.FORBIDDEN, res.getStatusCode());
@@ -425,21 +440,21 @@ class TripControllerTest extends AbstractIntegrationTest {
         assertEquals(HttpStatus.BAD_REQUEST, res.getStatusCode());
     }
 
-    // --- CRUD-without-C policy: Non-premium users own + edit + merge + delete imported trips ---
-    // Background: Tessie import lets free users bring their own trip data into ev-monitor.
-    // Manual creation (POST) stays premium-only (AutoSync Live Pro feature), but read /
-    // patch / merge / delete must be open so users can correct their own historical data.
+    // --- Tessie-import policy: imported trips (data_source=TESSIE) stay editable for the owner ---
+    // Background: Tessie import lets free users bring their own historical trip data into
+    // ev-monitor. Owner CRUD on TESSIE trips works without any subscription. Live-detected
+    // trips (SMARTCAR_LIVE, TESLA_LIVE, TESLA_INFERRED) are gated behind AutoSync Live.
 
     @Test
-    void mergeTrip_nonPremiumUser_returns200() {
+    void mergeTrip_nonPremiumUserOnTessieTrips_returns200() {
         User freeUser = createAndSaveUser("merge-free-" + System.nanoTime() + "@example.com");
         Car freeCar = createAndSaveCar(freeUser.getId(), CarBrand.CarModel.MODEL_3);
-        EvTrip t1 = saveTripFull(freeUser.getId(), freeCar.getId(),
+        EvTrip t1 = saveTripWithSource(freeUser.getId(), freeCar.getId(),
                 OffsetDateTime.now().minusHours(5), OffsetDateTime.now().minusHours(4),
-                null, null, new BigDecimal("10.0"), null);
-        EvTrip t2 = saveTripFull(freeUser.getId(), freeCar.getId(),
+                null, null, new BigDecimal("10.0"), null, "TESSIE");
+        EvTrip t2 = saveTripWithSource(freeUser.getId(), freeCar.getId(),
                 OffsetDateTime.now().minusHours(3), OffsetDateTime.now().minusHours(2),
-                null, null, new BigDecimal("10.0"), null);
+                null, null, new BigDecimal("10.0"), null, "TESSIE");
 
         ResponseEntity<Map<String, Object>> res = restTemplate.exchange(
                 "/api/trips/" + t2.getId() + "/merge", HttpMethod.POST,
@@ -453,10 +468,17 @@ class TripControllerTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void getTrips_nonPremiumUser_returnsOwnTrips() {
+    void getTrips_nonPremiumUser_returnsOnlyTessieTrips() {
         User freeUser = createAndSaveUser("get-free-" + System.nanoTime() + "@example.com");
         Car freeCar = createAndSaveCar(freeUser.getId(), CarBrand.CarModel.MODEL_3);
-        saveTrip(freeUser.getId(), freeCar.getId(), false);
+        // free user shouldn't have live trips, but if they exist (e.g. user downgraded)
+        // they must NOT show up in the response.
+        saveTripWithSource(freeUser.getId(), freeCar.getId(),
+                OffsetDateTime.now().minusHours(5), OffsetDateTime.now().minusHours(4),
+                null, null, new BigDecimal("10.0"), null, "TESSIE");
+        saveTripWithSource(freeUser.getId(), freeCar.getId(),
+                OffsetDateTime.now().minusHours(3), OffsetDateTime.now().minusHours(2),
+                null, null, new BigDecimal("12.0"), null, "TESLA_LIVE");
 
         ResponseEntity<Object[]> res = restTemplate.exchange(
                 "/api/trips?carId=" + freeCar.getId(), HttpMethod.GET,
@@ -469,10 +491,12 @@ class TripControllerTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void updateTrip_nonPremiumUser_returns200() {
+    void updateTrip_nonPremiumUserOnTessieTrip_returns200() {
         User freeUser = createAndSaveUser("patch-free-" + System.nanoTime() + "@example.com");
         Car freeCar = createAndSaveCar(freeUser.getId(), CarBrand.CarModel.MODEL_3);
-        EvTrip trip = saveTrip(freeUser.getId(), freeCar.getId(), false);
+        EvTrip trip = saveTripWithSource(freeUser.getId(), freeCar.getId(),
+                OffsetDateTime.now().minusHours(3), OffsetDateTime.now().minusHours(2),
+                null, null, new BigDecimal("10.0"), null, "TESSIE");
 
         Map<String, Object> patch = Map.of("distanceKm", 99.0);
 
@@ -487,10 +511,12 @@ class TripControllerTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void deleteTrip_nonPremiumUser_returns204() {
+    void deleteTrip_nonPremiumUserOnTessieTrip_returns204() {
         User freeUser = createAndSaveUser("delete-free-" + System.nanoTime() + "@example.com");
         Car freeCar = createAndSaveCar(freeUser.getId(), CarBrand.CarModel.MODEL_3);
-        EvTrip trip = saveTrip(freeUser.getId(), freeCar.getId(), false);
+        EvTrip trip = saveTripWithSource(freeUser.getId(), freeCar.getId(),
+                OffsetDateTime.now().minusHours(3), OffsetDateTime.now().minusHours(2),
+                null, null, new BigDecimal("10.0"), null, "TESSIE");
 
         ResponseEntity<Void> res = restTemplate.exchange(
                 "/api/trips/" + trip.getId(), HttpMethod.DELETE,
@@ -531,6 +557,84 @@ class TripControllerTest extends AbstractIntegrationTest {
         assertNull(tripRepository.findById(foreignTrip.getId()).orElseThrow().getDeletedAt());
     }
 
+    // --- Live-trip gating: non-Tier-2 users (free + AUTOSYNC) cannot CRUD live-detected trips ---
+
+    @Test
+    void getTrips_tier1AutoSyncUser_hidesLiveTrips() {
+        User tier1 = createAndSavePremiumUser("get-tier1-" + System.nanoTime() + "@example.com");
+        Car tier1Car = createAndSaveCar(tier1.getId(), CarBrand.CarModel.MODEL_3);
+        saveTripWithSource(tier1.getId(), tier1Car.getId(),
+                OffsetDateTime.now().minusHours(5), OffsetDateTime.now().minusHours(4),
+                null, null, new BigDecimal("10.0"), null, "TESLA_LIVE");
+        saveTripWithSource(tier1.getId(), tier1Car.getId(),
+                OffsetDateTime.now().minusHours(3), OffsetDateTime.now().minusHours(2),
+                null, null, new BigDecimal("12.0"), null, "TESSIE");
+
+        ResponseEntity<Object[]> res = restTemplate.exchange(
+                "/api/trips?carId=" + tier1Car.getId(), HttpMethod.GET,
+                new HttpEntity<>(createAuthHeaders(tier1.getId(), tier1.getEmail())),
+                Object[].class);
+
+        assertEquals(HttpStatus.OK, res.getStatusCode());
+        assertNotNull(res.getBody());
+        assertEquals(1, res.getBody().length);
+    }
+
+    @Test
+    void updateTrip_nonPremiumUserOnOwnLiveTrip_returns404() {
+        User freeUser = createAndSaveUser("patch-live-free-" + System.nanoTime() + "@example.com");
+        Car freeCar = createAndSaveCar(freeUser.getId(), CarBrand.CarModel.MODEL_3);
+        EvTrip liveTrip = saveTripWithSource(freeUser.getId(), freeCar.getId(),
+                OffsetDateTime.now().minusHours(3), OffsetDateTime.now().minusHours(2),
+                null, null, new BigDecimal("10.0"), null, "SMARTCAR_LIVE");
+
+        ResponseEntity<String> res = restTemplate.exchange(
+                "/api/trips/" + liveTrip.getId(), HttpMethod.PATCH,
+                new HttpEntity<>(Map.of("distanceKm", 99.0),
+                        createAuthHeaders(freeUser.getId(), freeUser.getEmail())),
+                String.class);
+
+        assertEquals(HttpStatus.NOT_FOUND, res.getStatusCode());
+        assertNull(tripRepository.findById(liveTrip.getId()).orElseThrow().getUserEditedAt());
+    }
+
+    @Test
+    void deleteTrip_nonPremiumUserOnOwnLiveTrip_returns404() {
+        User freeUser = createAndSaveUser("del-live-free-" + System.nanoTime() + "@example.com");
+        Car freeCar = createAndSaveCar(freeUser.getId(), CarBrand.CarModel.MODEL_3);
+        EvTrip liveTrip = saveTripWithSource(freeUser.getId(), freeCar.getId(),
+                OffsetDateTime.now().minusHours(3), OffsetDateTime.now().minusHours(2),
+                null, null, new BigDecimal("10.0"), null, "TESLA_LIVE");
+
+        ResponseEntity<String> res = restTemplate.exchange(
+                "/api/trips/" + liveTrip.getId(), HttpMethod.DELETE,
+                new HttpEntity<>(createAuthHeaders(freeUser.getId(), freeUser.getEmail())),
+                String.class);
+
+        assertEquals(HttpStatus.NOT_FOUND, res.getStatusCode());
+        assertNull(tripRepository.findById(liveTrip.getId()).orElseThrow().getDeletedAt());
+    }
+
+    @Test
+    void mergeTrip_tier1UserOnLiveTrips_returns404() {
+        User tier1 = createAndSavePremiumUser("merge-tier1-" + System.nanoTime() + "@example.com");
+        Car tier1Car = createAndSaveCar(tier1.getId(), CarBrand.CarModel.MODEL_3);
+        EvTrip t1 = saveTripWithSource(tier1.getId(), tier1Car.getId(),
+                OffsetDateTime.now().minusHours(5), OffsetDateTime.now().minusHours(4),
+                null, null, new BigDecimal("10.0"), null, "TESLA_LIVE");
+        EvTrip t2 = saveTripWithSource(tier1.getId(), tier1Car.getId(),
+                OffsetDateTime.now().minusHours(3), OffsetDateTime.now().minusHours(2),
+                null, null, new BigDecimal("10.0"), null, "TESLA_LIVE");
+
+        ResponseEntity<String> res = restTemplate.exchange(
+                "/api/trips/" + t2.getId() + "/merge", HttpMethod.POST,
+                new HttpEntity<>(Map.of("mergeWithTripId", t1.getId().toString()),
+                        createAuthHeaders(tier1.getId(), tier1.getEmail())),
+                String.class);
+
+        assertEquals(HttpStatus.NOT_FOUND, res.getStatusCode());
+    }
+
     // --- helpers ---
 
     private Map<String, Object> createTripRequest(UUID carId, OffsetDateTime start, OffsetDateTime end) {
@@ -561,10 +665,17 @@ class TripControllerTest extends AbstractIntegrationTest {
             OffsetDateTime start, OffsetDateTime end,
             BigDecimal socStart, BigDecimal socEnd,
             BigDecimal distanceKm, String routeType) {
+        return saveTripWithSource(userId, carId, start, end, socStart, socEnd, distanceKm, routeType, "TESLA_LIVE");
+    }
+
+    private EvTrip saveTripWithSource(UUID userId, UUID carId,
+            OffsetDateTime start, OffsetDateTime end,
+            BigDecimal socStart, BigDecimal socEnd,
+            BigDecimal distanceKm, String routeType, String dataSource) {
         EvTrip trip = EvTrip.builder()
                 .userId(userId)
                 .carId(carId)
-                .dataSource("TESLA_LIVE")
+                .dataSource(dataSource)
                 .tripStartedAt(start)
                 .tripEndedAt(end)
                 .socStart(socStart)

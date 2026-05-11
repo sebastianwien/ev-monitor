@@ -395,10 +395,11 @@ watch(selectedCarId, async (newId) => {
 // -- THG Banner --
 const countryStore = useCountryStore()
 const authStore    = useAuthStore()
-const isPremium    = computed(() => authStore.isPremium)
 const isAdmin      = computed(() => authStore.isAdmin)
-const isBetaTester = computed(() => authStore.isBetaTester)
-const canAccessTrips = computed(() => isPremium.value || isBetaTester.value || isAdmin.value)
+// Trip CRUD (create + edit/delete of live-detected trips) is an AutoSync Live (Tier 2)
+// feature. Read this via `authStore.canCreateTrips` directly in templates to keep the
+// gate definition in a single place. Tessie/USER_CREATED trips are filtered server-side
+// already, so non-Tier-2 users simply see no live trips in the feed.
 const isGerman = computed(() => countryStore.country === 'DE')
 const thgDismissedAt = ref<number | null>(
   Number(localStorage.getItem('thg_banner_dismissed_at')) || null
@@ -1142,7 +1143,7 @@ function onTripFormLeave(el: Element, done: () => void) {
 
                       <!-- Add-trip form triggered from this trip -->
                       <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
-                      <div v-if="canAccessTrips && addingTripAfterId === trip.id"
+                      <div v-if="authStore.canCreateTrips && addingTripAfterId === trip.id"
                            class="px-3 py-3 bg-white dark:bg-gray-700 border-t border-gray-100 dark:border-gray-600">
                         <TripForm v-model="tripForm" mode="add"
                           :error="tripError" :saving="tripSaving" :distance-unit="distanceUnitLabel()"
@@ -1209,7 +1210,7 @@ function onTripFormLeave(el: Element, done: () => void) {
                           <div v-if="openMenuTripId === trip.id"
                             :class="['absolute right-0 w-44 bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 z-50 py-1 overflow-hidden',
                                      tripIdx === 0 ? 'top-full mt-1' : 'bottom-full mb-1']">
-                            <button v-if="canAccessTrips" @click.stop="startAddTrip(trip.id, trip.tripStartedAt); openMenuTripId = null"
+                            <button v-if="authStore.canCreateTrips" @click.stop="startAddTrip(trip.id, trip.tripStartedAt); openMenuTripId = null"
                               class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
                               <PlusIcon class="w-4 h-4 flex-shrink-0" />{{ t('dashboard.action_add_trip') }}
                             </button>
@@ -1387,7 +1388,7 @@ function onTripFormLeave(el: Element, done: () => void) {
                       </div>
                       <!-- Add-trip form (full width inside container) -->
                       <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
-                      <div v-if="canAccessTrips && addingTripAfterId === trip.id"
+                      <div v-if="authStore.canCreateTrips && addingTripAfterId === trip.id"
                            class="px-3 py-3 border-t border-emerald-200/60 dark:border-emerald-800/40 bg-emerald-50/40 dark:bg-emerald-950/30">
                         <TripForm v-model="tripForm" mode="add"
                           :error="tripError" :saving="tripSaving" :distance-unit="distanceUnitLabel()"
@@ -1441,7 +1442,7 @@ function onTripFormLeave(el: Element, done: () => void) {
                             role="menu"
                             :class="['absolute right-0 w-44 bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 z-50 py-1',
                                      tripIdx === 0 ? 'top-full mt-1' : 'bottom-full mb-1']">
-                            <button v-if="canAccessTrips" role="menuitem" type="button" @click.stop="startAddTrip(trip.id, trip.tripStartedAt); openMenuTripId = null"
+                            <button v-if="authStore.canCreateTrips" role="menuitem" type="button" @click.stop="startAddTrip(trip.id, trip.tripStartedAt); openMenuTripId = null"
                               class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:bg-gray-100 dark:focus-visible:bg-gray-600">
                               <PlusIcon class="w-4 h-4 flex-shrink-0" aria-hidden="true" />{{ t('dashboard.trip_add') }}
                             </button>
@@ -1491,7 +1492,7 @@ function onTripFormLeave(el: Element, done: () => void) {
               </div>
               <!-- Add-trip form triggered from a charge entry -->
               <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
-              <div v-if="canAccessTrips && addingTripAfterId === item.entry.id" class="ml-2 mr-2 mt-1 p-3 rounded-lg shadow-sm ring-1 ring-black/5 dark:ring-white/10 border-l-4 border-l-emerald-400 dark:border-l-emerald-500 border-r-4 border-r-emerald-400 dark:border-r-emerald-500 bg-white dark:bg-gray-700 space-y-3">
+              <div v-if="authStore.canCreateTrips && addingTripAfterId === item.entry.id" class="ml-2 mr-2 mt-1 p-3 rounded-lg shadow-sm ring-1 ring-black/5 dark:ring-white/10 border-l-4 border-l-emerald-400 dark:border-l-emerald-500 border-r-4 border-r-emerald-400 dark:border-r-emerald-500 bg-white dark:bg-gray-700 space-y-3">
                 <div class="flex items-center justify-between gap-2">
                   <span class="text-sm font-medium text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
                     <PlusIcon class="w-4 h-4" />{{ t('dashboard.trip_add') }}
@@ -1663,7 +1664,7 @@ function onTripFormLeave(el: Element, done: () => void) {
                         class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:bg-gray-100 dark:focus-visible:bg-gray-600">
                         <PencilSquareIcon class="w-4 h-4 flex-shrink-0" aria-hidden="true" />{{ t('dashboard.action_edit') }}
                       </button>
-                      <button v-if="canAccessTrips" role="menuitem" type="button" @click.stop="startAddTrip(item.entry.id); openMenuLogId = null"
+                      <button v-if="authStore.canCreateTrips" role="menuitem" type="button" @click.stop="startAddTrip(item.entry.id); openMenuLogId = null"
                         class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:bg-gray-100 dark:focus-visible:bg-gray-600">
                         <MapIcon class="w-4 h-4 flex-shrink-0" aria-hidden="true" />{{ t('dashboard.action_add_trip') }}
                       </button>
@@ -2025,7 +2026,7 @@ function onTripFormLeave(el: Element, done: () => void) {
                           class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
                           <PencilSquareIcon class="w-4 h-4 flex-shrink-0" />{{ t('dashboard.action_edit') }}
                         </button>
-                        <button v-if="canAccessTrips" @click.stop="startAddTrip(item.entry.id); openMenuLogId = null"
+                        <button v-if="authStore.canCreateTrips" @click.stop="startAddTrip(item.entry.id); openMenuLogId = null"
                           class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
                           <MapIcon class="w-4 h-4 flex-shrink-0" />{{ t('dashboard.action_add_trip') }}
                         </button>

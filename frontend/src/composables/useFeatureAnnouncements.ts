@@ -54,6 +54,7 @@ export const useFeatureAnnouncements = () => {
     const ctx = {
       hasGoeConnection: wallboxStore.hasConnections,
       isPremium: authStore.isPremium,
+      isAutoSyncLive: authStore.isAutoSyncLive,
       hasTeslaConnection: hasTeslaConnection.value,
     }
     const registeredAt = authStore.user?.registeredAt

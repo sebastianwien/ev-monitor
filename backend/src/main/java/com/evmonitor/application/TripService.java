@@ -128,10 +128,11 @@ public class TripService {
     }
 
     @Transactional
-    public EvTripResponse updateTrip(UUID tripId, UUID userId, UpdateTripRequest req) {
+    public EvTripResponse updateTrip(UUID tripId, User user, UpdateTripRequest req) {
         EvTrip trip = tripRepository.findById(tripId)
-                .filter(t -> t.getUserId().equals(userId))
+                .filter(t -> t.getUserId().equals(user.getId()))
                 .filter(t -> t.getDeletedAt() == null)
+                .filter(t -> !t.isLiveSource() || user.canViewLiveTrips())
                 .orElseThrow(() -> new IllegalArgumentException("Trip not found"));
 
         OffsetDateTime newStart = req.tripStartedAt() != null ? req.tripStartedAt() : trip.getTripStartedAt();
@@ -156,28 +157,31 @@ public class TripService {
     }
 
     @Transactional
-    public void deleteTrip(UUID tripId, UUID userId) {
+    public void deleteTrip(UUID tripId, User user) {
         EvTrip trip = tripRepository.findById(tripId)
-                .filter(t -> t.getUserId().equals(userId))
+                .filter(t -> t.getUserId().equals(user.getId()))
                 .filter(t -> t.getDeletedAt() == null)
+                .filter(t -> !t.isLiveSource() || user.canViewLiveTrips())
                 .orElseThrow(() -> new IllegalArgumentException("Trip not found"));
         trip.setDeletedAt(OffsetDateTime.now());
         tripRepository.save(trip);
     }
 
     @Transactional
-    public EvTripResponse mergeTrips(UUID survivingTripId, UUID mergeWithTripId, UUID userId) {
+    public EvTripResponse mergeTrips(UUID survivingTripId, UUID mergeWithTripId, User user) {
         if (survivingTripId.equals(mergeWithTripId)) {
             throw new ValidationException("Eine Fahrt kann nicht mit sich selbst zusammengeführt werden");
         }
         EvTrip surviving = tripRepository.findById(survivingTripId)
-                .filter(t -> t.getUserId().equals(userId))
+                .filter(t -> t.getUserId().equals(user.getId()))
                 .filter(t -> t.getDeletedAt() == null)
+                .filter(t -> !t.isLiveSource() || user.canViewLiveTrips())
                 .orElseThrow(() -> new IllegalArgumentException("Trip not found"));
 
         EvTrip other = tripRepository.findById(mergeWithTripId)
-                .filter(t -> t.getUserId().equals(userId))
+                .filter(t -> t.getUserId().equals(user.getId()))
                 .filter(t -> t.getDeletedAt() == null)
+                .filter(t -> !t.isLiveSource() || user.canViewLiveTrips())
                 .orElseThrow(() -> new IllegalArgumentException("Merge-with trip not found"));
 
         if (!surviving.getCarId().equals(other.getCarId())) {
@@ -270,16 +274,17 @@ public class TripService {
     private static final int MAX_TRIPS_PER_CAR = 500;
 
     @Transactional(readOnly = true)
-    public List<EvTripResponse> getTripsForCar(UUID carId, UUID userId) {
+    public List<EvTripResponse> getTripsForCar(UUID carId, User user) {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new IllegalArgumentException("Car not found"));
-        if (!car.getUserId().equals(userId)) {
+        if (!car.getUserId().equals(user.getId())) {
             throw new IllegalArgumentException("Car not owned by user");
         }
-        return tripRepository.findByUserIdAndCarIdAndDeletedAtIsNullOrderByTripEndedAtDesc(
-                        userId, carId, PageRequest.of(0, MAX_TRIPS_PER_CAR))
-                .stream()
-                .map(EvTripResponse::fromDomain)
-                .toList();
+        List<EvTrip> trips = user.canViewLiveTrips()
+                ? tripRepository.findByUserIdAndCarIdAndDeletedAtIsNullOrderByTripEndedAtDesc(
+                        user.getId(), carId, PageRequest.of(0, MAX_TRIPS_PER_CAR))
+                : tripRepository.findByUserIdAndCarIdExcludingSourcesAndDeletedAtIsNull(
+                        user.getId(), carId, EvTrip.LIVE_TRIP_SOURCES, PageRequest.of(0, MAX_TRIPS_PER_CAR));
+        return trips.stream().map(EvTripResponse::fromDomain).toList();
     }
 }

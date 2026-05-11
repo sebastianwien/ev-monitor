@@ -1877,11 +1877,11 @@ announcements:
   spritmonitor_raw_refresh_v1_body: "Beim SpritMonitor-Import gibt es jetzt einen neuen Button 'Rohdaten nochmals importieren'. Er holt das originale JSON erneut von Sprit-Monitor und aktualisiert es, ohne deine manuell korrigierten Werte (kWh, Kilometerstand etc.) zu überschreiben. Das ermöglicht es mir nachträglich Ladungen zu korrigieren und zu verbessern, da das Datenformat von SpritMonitor nicht vollständig dokumentiert ist."
   net_capacity_v1_title: "Fahrzeugdatenbank aktualisiert"
   net_capacity_v1_body: "Die Fahrzeugdatenbank wurde aktualisiert. Bei manchen Batterievarianten wurden die Netto-Kapazitätswerte korrigiert. Dadurch können sich Verbräuche minimal geändert haben."
-  trip_detection_beta_v1_title: "Automatische Fahrterkennung (Beta)"
-  trip_detection_beta_v1_body: "EV Monitor erkennt jetzt automatisch Fahrten aus deinen AutoSync-Daten und zeigt sie neben deinen Ladevorgängen im Dashboard. Die Beta kann noch Fehler enthalten - manuelle Korrekturen sind direkt im Dashboard möglich."
-  trip_detection_beta_v1_cta: "Zum Dashboard"
   brutto_netto_v1_title: "Verbesserte Verbrauchs- und Kostenberechnung"
   brutto_netto_v1_body: "EV Monitor bezieht Netto- und Bruttowerte von gemeldeten Ladevorgängen konsequenter in alle Berechnungen mit ein. Dies kann dazu führen, dass sich Verbrauchs-, Kosten- und Reichweitenangaben leicht angepasst haben. Sie bilden die Realität nun noch besser ab!"
+  autosync_live_launch_v1_title: "Vielen Dank an alle Beta-Tester"
+  autosync_live_launch_v1_body: "Eure Trip-Daten der letzten Wochen haben mir gezeigt, was funktioniert - und was nicht. Tesla und Polestar liefern saubere Live-Daten, mit denen sich Fahrten zuverlässig erkennen lassen. Bei VW, Skoda, Audi und Konsorten reicht es derzeit nicht - die Hersteller schicken zu unregelmäßig und zu ungenau, um darauf ein verlässliches Feature aufzubauen.\n\nDeshalb wird Trip-Detection ab heute Teil von AutoSync Live - für aktuell +1 €/Monat zusätzlich zu AutoSync. Das Feature bleibt vorerst auf Tesla und Polestar beschränkt. Sobald ich bei einer weiteren Marke Datenqualität in vergleichbarer Güte sehe, schalte ich die frei."
+  autosync_live_launch_v1_cta: "Auf AutoSync Live upgraden"
   tesla_telemetry_rollout_v1_title: "Tesla Live-Sync läuft jetzt über Telemetry"
   tesla_telemetry_rollout_v1_body: "Tesla-Fahrer aufgepasst: Ich habe den Live-Sync von Polling auf Push-basierte Telemetry umgestellt. Dein Auto muss nicht mehr ständig aufwachen, Ladevorgänge kommen direkt rein. Damit es bei dir weiter funktioniert, musst du die Verbindung einmalig neu einrichten - dauert keine 2 Minuten und braucht den Virtual Key in der Tesla-App."
   tesla_telemetry_rollout_v1_cta: "Verbindung einrichten"
@@ -2031,3 +2031,63 @@ cm:
   bullet4: "<strong>Standby-Verluste</strong> variieren stark je nach Außentemperatur, Software-Version und Nutzungsverhalten."
   s5_footer: "EV Monitor verwendet den Median über mehrere Ladevorgänge um Ausreißer herauszuglätten, und markiert einzelne Trips mit einem Plausibilitäts-Indikator wenn der berechnete Wert ungewöhnlich erscheint."
   sources_title: "Quellen"
+
+xpeng:
+  intro_title: "XPeng EU-Data-Act Import"
+  intro_body: "Da XPeng (noch) keine API anbietet, importierst du deine Telematik-Daten per Excel: Du forderst sie bei XPeng per E-Mail an, erhältst sie nach 5-10 Tagen zurück und lädst sie hier hoch."
+  no_xpeng_cars: "Keine XPeng-Fahrzeuge in deiner Garage."
+  step_consent_title: "Datenverarbeitung freigeben"
+  step_request_title: "Daten bei XPeng anfordern"
+  step_request_body: "Öffne dein Mailprogramm. Die Anfrage ist vorausgefüllt, du musst sie nur absenden. XPeng schickt dir innerhalb von 5-10 Tagen eine verschlüsselte Excel-Datei zurück."
+  step_upload_title: "Excel hochladen"
+  car_label: "Fahrzeug"
+  vin_label: "Fahrzeug-Identifikationsnummer (VIN)"
+  vin_hint: "17 Zeichen, findest du im Fahrzeugschein oder in der XPeng-App."
+  consent_show_full: "Vollständigen Einwilligungstext anzeigen"
+  consent_full_text: |
+    Ich willige gemäß Art. 6 Abs. 1 lit. a DSGVO ein, dass Sebastian Wien, Berlin, Deutschland (Betreiber des Dienstes "EV Monitor", https://ev-monitor.net - vollständige Anschrift im Impressum) die Telematik-Daten meines XPeng-Fahrzeugs (identifiziert durch die angegebene VIN), die ich aus dem EU-Data-Act-Export (Verordnung (EU) 2023/2854) selbst bei XPeng anfordere und in EV Monitor hochlade, verarbeitet.
+
+    Die Verarbeitung umfasst: Entschlüsseln der Datei, Auslesen relevanter Telematik-Signale, Aggregation zu Fahrten (Trips) und Ladevorgängen, Anzeige in meinem persönlichen EV-Monitor-Account sowie Speicherung dieser Aggregate. Die hochgeladene Excel-Datei selbst wird nach der Verarbeitung gelöscht.
+
+    Die Verarbeitung erfolgt ausschließlich zum Zweck der Trip- und Lade-Analyse meines Fahrzeugs. Eine Weitergabe an Dritte findet nicht statt.
+
+    Ich kann diese Einwilligung jederzeit ohne Angabe von Gründen widerrufen, indem ich die Verbindung in EV Monitor lösche. Bereits importierte Aggregate (Trips, Ladevorgänge) bleiben in meinem Account erhalten, bis ich sie manuell lösche. Der Widerruf berührt nicht die Rechtmäßigkeit der bis dahin erfolgten Verarbeitung.
+
+    Hinweis: In dieser Phase (manueller Upload) erfolgt die Anforderung der Daten bei XPeng durch mich selbst per E-Mail. Sollte EV Monitor diesen Schritt in Zukunft im meinem Namen übernehmen, werde ich vorab um eine separate, dafür spezifische Vollmacht gemäß Art. 5 EU Data Act gebeten.
+  consent_accept_label: "Ich willige in die Verarbeitung der hochgeladenen Daten wie oben beschrieben ein."
+  btn_grant_consent: "Einwilligung erteilen"
+  btn_open_mail: "Mailprogramm öffnen"
+  btn_upload: "Datei hochladen und importieren"
+  btn_revoke: "Einwilligung widerrufen"
+  file_label: "Excel-Datei von XPeng (.xlsx)"
+  password_label: "Passwort"
+  password_optional: "falls die Datei verschlüsselt ist"
+  uploading: "Wird hochgeladen ..."
+  response_time_hint: "XPeng antwortet typischerweise innerhalb von 5-10 Tagen."
+  phase2_promo_title: "Bald automatisch: AutoSync Live für XPeng"
+  phase2_promo_body: "Aktuell musst du selbst per E-Mail bei XPeng anfragen und das Excel hochladen. Demnächst übernimmt EV Monitor das für dich - monatliche Anfrage und automatischer Import, ganz ohne dein Zutun. Sobald XPeng die offizielle API bereitstellt (geplant für 2026), wird automatisch auf Echtzeit-Sync umgestellt. Beides als Teil von AutoSync Live."
+  import_in_progress: "Import läuft"
+  job_status: "Status"
+  status_queued: "in Warteschlange"
+  status_processing: "verarbeitet ..."
+  status_done: "fertig"
+  status_failed: "fehlgeschlagen"
+  done_summary: "{trips} Fahrten + {sessions} Ladevorgänge importiert ({skipped} Duplikate übersprungen)."
+  connections_title: "Aktive Einwilligungen"
+  imports_count: "{count} Importe"
+  last_import: "Letzter Import"
+  history_title: "Import-Historie"
+  confirm_revoke: "Einwilligung wirklich widerrufen? Bereits importierte Daten bleiben erhalten."
+  err_consent_required: "Du musst die Einwilligung erteilen, um fortzufahren."
+  err_vin_length: "Die VIN muss exakt 17 Zeichen lang sein."
+  err_upload_missing: "Bitte Fahrzeug auswählen und Excel-Datei wählen."
+  mail_body: |
+    Dear XPENG Data Protection Team,
+
+    Pursuant to Article 4 of the EU Data Act (Regulation (EU) 2023/2854), I am requesting access to the telematics data of my vehicle for the most recent 30-day period available.
+
+    VIN: {vin}
+
+    Please provide the data in the Excel format previously used for similar requests. If the file is encrypted, kindly send the password in a separate email.
+
+    Thank you and best regards

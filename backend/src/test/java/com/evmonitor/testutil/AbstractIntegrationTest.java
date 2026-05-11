@@ -87,6 +87,17 @@ public abstract class AbstractIntegrationTest {
     }
 
     /**
+     * Create a user on the AutoSync Live (Tier-2) plan - the entitlement that unlocks
+     * trip CRUD on live-detected trips and manual trip creation.
+     */
+    protected User createAndSaveAutoSyncLiveUser(String email) {
+        User user = TestDataBuilder.createTestUser(email).toBuilder()
+                .subscriptionTier(com.evmonitor.domain.SubscriptionTier.AUTOSYNC_LIVE)
+                .build();
+        return userRepository.save(user);
+    }
+
+    /**
      * Create a test car for a user and save to database.
      */
     protected Car createAndSaveCar(UUID userId, CarBrand.CarModel model) {

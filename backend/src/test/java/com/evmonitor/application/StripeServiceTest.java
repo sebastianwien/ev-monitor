@@ -766,4 +766,40 @@ class StripeServiceTest {
             verifyNoInteractions(userRepository);
         }
     }
+
+    // =========================================================================
+    // appendTargetTier helper - drives UpgradeSuccessView polling to the right tier
+    // =========================================================================
+
+    @Nested
+    class AppendTargetTier {
+
+        @Test
+        void appendsAsQueryParam_whenUrlHasNoQuery() {
+            assertThat(StripeService.appendTargetTier(
+                    "https://ev-monitor.net/upgrade/success", SubscriptionTier.AUTOSYNC_LIVE))
+                    .isEqualTo("https://ev-monitor.net/upgrade/success?target_tier=AUTOSYNC_LIVE");
+        }
+
+        @Test
+        void appendsAsAdditionalParam_whenUrlAlreadyHasQuery() {
+            assertThat(StripeService.appendTargetTier(
+                    "https://ev-monitor.net/upgrade/success?from=upgrade", SubscriptionTier.AUTOSYNC))
+                    .isEqualTo("https://ev-monitor.net/upgrade/success?from=upgrade&target_tier=AUTOSYNC");
+        }
+
+        @Test
+        void returnsUrlUnchanged_whenNullOrBlank() {
+            assertThat(StripeService.appendTargetTier(null, SubscriptionTier.AUTOSYNC_LIVE)).isNull();
+            assertThat(StripeService.appendTargetTier("", SubscriptionTier.AUTOSYNC_LIVE)).isEmpty();
+            assertThat(StripeService.appendTargetTier("   ", SubscriptionTier.AUTOSYNC_LIVE)).isEqualTo("   ");
+        }
+
+        @Test
+        void returnsUrlUnchanged_whenTierNull() {
+            assertThat(StripeService.appendTargetTier(
+                    "https://ev-monitor.net/upgrade/success", null))
+                    .isEqualTo("https://ev-monitor.net/upgrade/success");
+        }
+    }
 }

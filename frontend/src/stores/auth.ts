@@ -14,6 +14,7 @@ export interface JwtClaims {
     authProvider: string
     role: string
     premium: boolean
+    subscriptionTier?: string  // 'NONE' | 'AUTOSYNC' | 'AUTOSYNC_LIVE' - present for tokens generated after 2026-05
     country?: string
     registeredAt?: string // ISO date YYYY-MM-DD, present for tokens generated after 2026-04
 }
@@ -126,6 +127,7 @@ export const useAuthStore = defineStore('auth', () => {
     const isAdmin = computed(() => user.value?.role === 'ADMIN');
     const isBetaTester = computed(() => user.value?.role === 'BETA_TESTER');
     const isTeslaFounder = computed(() => user.value?.role === 'TESLA_FOUNDER');
+    const isAutoSyncLive = computed(() => user.value?.subscriptionTier === 'AUTOSYNC_LIVE');
 
     // Mirrors backend User.canActivateTelemetry(): premium OR ADMIN/BETA_TESTER/TESLA_FOUNDER.
     // Used to decide whether the Tesla-Pairing UI is shown. Server-side gate in
@@ -133,9 +135,19 @@ export const useAuthStore = defineStore('auth', () => {
     const canActivateTelemetry = computed(() =>
         isPremium.value || isAdmin.value || isBetaTester.value || isTeslaFounder.value);
 
+    // Mirrors backend User.canViewLiveTrips(): AUTOSYNC_LIVE tier OR ADMIN/BETA_TESTER.
+    // Drives the LogFeed trip rendering and the "+ Add Trip" button visibility.
+    // Server-side gate in TripService is the security boundary - this is UX only.
+    const canViewLiveTrips = computed(() =>
+        isAutoSyncLive.value || isAdmin.value || isBetaTester.value);
+
+    // Mirrors backend User.canCreateTripsManually(): same gate as canViewLiveTrips.
+    const canCreateTrips = computed(() => canViewLiveTrips.value);
+
     return {
         token, user, isDemoAccount, isPremium, isAdmin, isBetaTester, isTeslaFounder,
-        canActivateTelemetry,
+        isAutoSyncLive,
+        canActivateTelemetry, canViewLiveTrips, canCreateTrips,
         setToken, setPremium, logout, login, register,
         refreshToken, refreshPremiumStatus,
         isAuthenticated: () => !!token.value,

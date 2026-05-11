@@ -1844,11 +1844,11 @@ announcements:
   spritmonitor_raw_refresh_v1_body: SpritMonitor-importen har nu en ny knapp för att importera rådata igen. Den hämtar den ursprungliga JSON-en från Sprit-Monitor igen och uppdaterar den, utan att skriva över dina manuellt korrigerade värden (kWh, mätarställning osv.). Detta gör det möjligt för mig att i efterhand korrigera och förbättra laddningssessioner, eftersom SpritMonitors dataformat inte är fullt dokumenterat.
   net_capacity_v1_title: "Fordonsdata har uppdaterats"
   net_capacity_v1_body: "Fordonsdatabasen har uppdaterats. Nettobatterikapaciteten har korrigerats för vissa varianter. Förbrukningsvärden kan ha ändrats något som ett resultat."
-  trip_detection_beta_v1_title: "Automatisk reseigenkänning (Beta)"
-  trip_detection_beta_v1_body: "EV Monitor känner nu automatiskt igen resor från dina AutoSync-data och visar dem bredvid dina laddningar i dashbordet. Det här är en betafunktion - fel kan förekomma. Manuella korrigeringar är möjliga direkt i dashbordet."
-  trip_detection_beta_v1_cta: "Till dashbordet"
   brutto_netto_v1_title: "Förbättrad förbruknings- och kostnadsberäkning"
   brutto_netto_v1_body: "EV Monitor använder nu netto- och bruttovärden från rapporterade laddningar mer konsekvent i alla beräkningar. Detta kan leda till att förbruknings-, kostnads- och räckviddsvärden har justerats något. De återspeglar nu verkligheten ännu bättre!"
+  autosync_live_launch_v1_title: "Stort tack till alla beta-testare"
+  autosync_live_launch_v1_body: "Era resdata under de senaste veckorna har visat mig vad som fungerar - och vad som inte gör det. Tesla och Polestar levererar rena livedata som möjliggör tillförlitlig reseigenkänning. Hos VW, Skoda, Audi och de andra räcker det för närvarande inte - tillverkarna skickar för oregelbundet och för grovt upplöst för att bygga en tillförlitlig funktion på.\n\nDärför blir reseigenkänning från och med idag en del av AutoSync Live - för närvarande +1 €/månad utöver AutoSync. Funktionen är tills vidare begränsad till Tesla och Polestar. Så snart jag ser jämförbar datakvalitet från ett annat märke slår jag på den även där."
+  autosync_live_launch_v1_cta: "Uppgradera till AutoSync Live"
   tesla_telemetry_rollout_v1_title: "Tesla Live-synk kör nu över Telemetri"
   tesla_telemetry_rollout_v1_body: "Tesla-ägare, uppmärksamhet: Jag har bytt Live-synk från polling till push-baserad telemetri. Din bil behöver inte vakna för varje koll längre, laddningar kommer in i realtid. För att det ska fortsätta fungera måste du para om anslutningen en gång - tar under 2 minuter och använder Virtual Key i Tesla-appen."
   tesla_telemetry_rollout_v1_cta: "Sätt upp anslutning"
@@ -1952,3 +1952,63 @@ upgrade:
 region_chip:
   wrong: Fel region?
   title: Välj din region
+
+xpeng:
+  intro_title: "XPeng EU Data Act-import"
+  intro_body: "Eftersom XPeng (ännu) inte erbjuder ett API importerar du dina telematikdata via Excel: begär dem från XPeng via e-post, ta emot dem inom 5-10 dagar och ladda upp dem här."
+  no_xpeng_cars: "Inga XPeng-fordon i ditt garage."
+  step_consent_title: "Tillåt databehandling"
+  step_request_title: "Begär data från XPeng"
+  step_request_body: "Öppna din e-postklient. Förfrågan är förifylld, du behöver bara skicka den. XPeng svarar inom 5-10 dagar med en krypterad Excel-fil."
+  step_upload_title: "Ladda upp Excel"
+  car_label: "Fordon"
+  vin_label: "Chassinummer (VIN)"
+  vin_hint: "17 tecken, finns i registreringsbeviset eller i XPeng-appen."
+  consent_show_full: "Visa fullständig samtyckestext"
+  consent_full_text: |
+    Jag samtycker, enligt art. 6.1 a GDPR, till att Sebastian Wien, Berlin, Tyskland (operatör av tjänsten "EV Monitor", https://ev-monitor.net - fullständig adress i avtrycket) behandlar telematikdata för mitt XPeng-fordon (identifierat med ovan angivna VIN) som jag själv begär från XPeng enligt EU Data Act (Förordning (EU) 2023/2854) och laddar upp i EV Monitor.
+
+    Behandlingen omfattar: dekryptering av filen, extraktion av relevanta telematiksignaler, aggregering till resor och laddsessioner, visning på mitt personliga EV Monitor-konto samt lagring av dessa aggregat. Den uppladdade Excel-filen raderas efter behandling.
+
+    Behandlingen sker enbart för att analysera resor och laddning av mitt fordon. Inga data delas med tredje part.
+
+    Jag kan när som helst återkalla samtycket utan motivering genom att ta bort kopplingen i EV Monitor. Aggregat som redan importerats (resor, laddsessioner) finns kvar på mitt konto tills jag tar bort dem manuellt. Återkallelsen påverkar inte lagligheten av behandlingen fram till återkallelsetidpunkten.
+
+    Obs: I denna fas (manuell uppladdning) begär jag själv data från XPeng via e-post. Skulle EV Monitor i framtiden överta detta steg i mitt namn, kommer jag i förväg att tillfrågas om en separat, specifik fullmakt enligt art. 5 EU Data Act.
+  consent_accept_label: "Jag samtycker till behandlingen av de uppladdade data enligt ovan."
+  btn_grant_consent: "Ge samtycke"
+  btn_open_mail: "Öppna e-postklient"
+  btn_upload: "Ladda upp och importera"
+  btn_revoke: "Återkalla samtycke"
+  file_label: "Excel-fil från XPeng (.xlsx)"
+  password_label: "Lösenord"
+  password_optional: "om filen är krypterad"
+  uploading: "Laddar upp ..."
+  response_time_hint: "XPeng svarar vanligtvis inom 5-10 dagar."
+  phase2_promo_title: "Snart automatiskt: AutoSync Live för XPeng"
+  phase2_promo_body: "Just nu måste du själv begära data från XPeng via e-post och ladda upp Excel-filen. Snart sköter EV Monitor det åt dig - månatlig begäran och automatisk import, helt utan din insats. Så snart XPeng tillhandahåller det officiella API:t (planerat för 2026) byter synkroniseringen automatiskt till realtid. Båda som en del av AutoSync Live."
+  import_in_progress: "Import pågår"
+  job_status: "Status"
+  status_queued: "i kö"
+  status_processing: "bearbetar ..."
+  status_done: "klart"
+  status_failed: "misslyckades"
+  done_summary: "{trips} resor + {sessions} laddsessioner importerade ({skipped} dubletter hoppade över)."
+  connections_title: "Aktiva samtycken"
+  imports_count: "{count} importer"
+  last_import: "Senaste import"
+  history_title: "Importhistorik"
+  confirm_revoke: "Vill du verkligen återkalla samtycket? Redan importerade data finns kvar på ditt konto."
+  err_consent_required: "Du måste ge samtycket för att fortsätta."
+  err_vin_length: "Chassinumret måste vara exakt 17 tecken."
+  err_upload_missing: "Välj fordon och Excel-fil."
+  mail_body: |
+    Dear XPENG Data Protection Team,
+
+    Pursuant to Article 4 of the EU Data Act (Regulation (EU) 2023/2854), I am requesting access to the telematics data of my vehicle for the most recent 30-day period available.
+
+    VIN: {vin}
+
+    Please provide the data in the Excel format previously used for similar requests. If the file is encrypted, kindly send the password in a separate email.
+
+    Thank you and best regards

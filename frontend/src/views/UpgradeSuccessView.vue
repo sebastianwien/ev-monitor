@@ -64,16 +64,28 @@
 <script setup lang="ts">
 import { computed, ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { analytics } from '../services/analytics';
 import { subscriptionService } from '../api/subscriptionService';
 
 const { t } = useI18n();
+const route = useRoute();
 const authStore = useAuthStore();
 
 const isPolling = ref(true);
 const pollTimedOut = ref(false);
 const tier = ref<'NONE' | 'AUTOSYNC' | 'AUTOSYNC_LIVE'>('NONE');
+
+// Target tier comes from the Stripe success_url query param (set server-side in
+// StripeService.appendTargetTier). Without it, an AUTOSYNC -> AUTOSYNC_LIVE upgrade
+// would exit the poll loop on the first iteration (isPremium already true) and land
+// on the dashboard before the webhook applied the new tier. Default AUTOSYNC keeps
+// the legacy NONE -> AUTOSYNC flow working for old checkout links.
+const targetTier = computed<'AUTOSYNC' | 'AUTOSYNC_LIVE'>(() => {
+    const raw = route.query.target_tier;
+    return raw === 'AUTOSYNC_LIVE' ? 'AUTOSYNC_LIVE' : 'AUTOSYNC';
+});
 
 // Live-tier success messages differ from AutoSync ("pair your Tesla" instead
 // of generic "connect your car"). Falls back to AutoSync wording while polling.
@@ -88,11 +100,15 @@ const POLL_DELAY_MS = 2000;
 onMounted(async () => {
     for (let i = 0; i < POLL_ATTEMPTS; i++) {
         await authStore.refreshToken();
-        if (authStore.isPremium) {
-            try {
-                const status = await subscriptionService.getStatus();
-                tier.value = status.tier ?? 'NONE';
-            } catch { /* keep AUTOSYNC fallback */ }
+        // Fetch the DB-tier from /subscription/status. Poll until it matches the
+        // purchased target. For NONE -> AUTOSYNC this fires on the first iteration
+        // after the webhook flips the tier; for AUTOSYNC -> AUTOSYNC_LIVE it waits
+        // until the upgrade actually landed.
+        try {
+            const status = await subscriptionService.getStatus();
+            tier.value = status.tier ?? 'NONE';
+        } catch { /* keep current value, try again next iteration */ }
+        if (tier.value === targetTier.value) {
             isPolling.value = false;
             analytics.trackCheckoutCompleted();
             return;

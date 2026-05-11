@@ -25,6 +25,15 @@ public interface EvTripRepository extends JpaRepository<EvTrip, UUID> {
 
     List<EvTrip> findByUserIdAndCarIdAndDeletedAtIsNullOrderByTripEndedAtDesc(UUID userId, UUID carId, Pageable pageable);
 
+    @Query("SELECT t FROM EvTrip t WHERE t.userId = :userId AND t.carId = :carId "
+            + "AND t.deletedAt IS NULL AND t.dataSource NOT IN :excludedSources "
+            + "ORDER BY t.tripEndedAt DESC")
+    List<EvTrip> findByUserIdAndCarIdExcludingSourcesAndDeletedAtIsNull(
+            @Param("userId") UUID userId,
+            @Param("carId") UUID carId,
+            @Param("excludedSources") java.util.Collection<String> excludedSources,
+            Pageable pageable);
+
     @Modifying
     @Transactional
     @Query("UPDATE EvTrip t SET t.outsideTempCelsius = :temp WHERE t.id = :id")

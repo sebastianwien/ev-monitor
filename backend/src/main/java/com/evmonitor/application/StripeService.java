@@ -142,6 +142,14 @@ public class StripeService {
 
         String priceId = resolvePriceId(plan, user.getCountry(), tier);
 
+        // Append target tier to the success URL so UpgradeSuccessView can poll
+        // until the webhook-driven DB-tier matches the purchased tier. Without this,
+        // an AUTOSYNC -> AUTOSYNC_LIVE upgrade can race: isPremium is already true
+        // when polling starts, the loop exits on the first iteration with the stale
+        // old tier, and the user lands on the dashboard before the webhook applies
+        // the new tier.
+        String successUrlWithTarget = appendTargetTier(successUrl, tier);
+
         SessionCreateParams.Builder builder = SessionCreateParams.builder()
                 .setMode(SessionCreateParams.Mode.SUBSCRIPTION)
                 .setCustomer(customerId)
@@ -149,7 +157,7 @@ public class StripeService {
                         .setPrice(priceId)
                         .setQuantity(1L)
                         .build())
-                .setSuccessUrl(successUrl)
+                .setSuccessUrl(successUrlWithTarget)
                 .setCancelUrl(cancelUrl);
 
         if (eligibleForTrial) {
@@ -169,6 +177,13 @@ public class StripeService {
 
         Session session = Session.create(builder.build());
         return session.getUrl();
+    }
+
+    static String appendTargetTier(String url, SubscriptionTier tier) {
+        if (url == null || url.isBlank()) return url;
+        if (tier == null) return url;
+        String separator = url.contains("?") ? "&" : "?";
+        return url + separator + "target_tier=" + tier.name();
     }
 
     /**

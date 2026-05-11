@@ -5,6 +5,7 @@ import com.evmonitor.application.EvTripResponse;
 import com.evmonitor.application.MergeTripRequest;
 import com.evmonitor.application.TripService;
 import com.evmonitor.application.UpdateTripRequest;
+import com.evmonitor.domain.exception.ForbiddenException;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,11 +27,16 @@ public class TripController {
     /**
      * Trip CRUD policy:
      *  - C (POST createTrip): only users for whom {@link com.evmonitor.domain.User#canCreateTripsManually()}
-     *    is true. Manuelles Anlegen ist Teil von AutoSync Live (Trip-Erkennung) und damit ein Pro-Feature.
-     *    The TripService re-checks the same gate as defense-in-depth.
-     *  - R/U/M/D (GET/PATCH/POST-merge/DELETE): jeder eingeloggte User auf seine eigenen Trips.
-     *    Importierte Tessie-Trips sind die Daten des Users, er muss sie sehen + bearbeiten
-     *    duerfen, auch ohne Premium. Ownership-Check passiert im TripService ueber userId.
+     *    is true (AUTOSYNC_LIVE tier or ADMIN/BETA_TESTER). Manuelles Anlegen ist Teil von
+     *    AutoSync Live. The TripService re-checks the same gate as defense-in-depth.
+     *  - R/U/M/D (GET/PATCH/POST-merge/DELETE): owner-only, plus data-source gate:
+     *      * Live-detected trips (TESLA_LIVE, SMARTCAR_LIVE, TESLA_INFERRED) require
+     *        {@link com.evmonitor.domain.User#canViewLiveTrips()} - same Tier-2/privileged gate.
+     *      * Imported/manual trips (TESSIE, USER_CREATED, etc.) stay accessible to any
+     *        owner regardless of subscription, because they're the user's own historical
+     *        data. Tessie-import users without premium need this to manage their data.
+     *    Trips that the user cannot see return 404 (not 403) to avoid leaking trip
+     *    existence to non-entitled users.
      */
     @PostMapping
     public ResponseEntity<?> createTrip(
@@ -43,6 +49,10 @@ public class TripController {
         try {
             EvTripResponse response = tripService.createUserTrip(principal.getUser(), request);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (ForbiddenException e) {
+            // Service-level gate fires when the controller pre-check is somehow bypassed.
+            // Defense in depth: surface as 403 (not 500) so the FE sees a consistent error code.
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         }
@@ -55,7 +65,7 @@ public class TripController {
             Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         try {
-            EvTripResponse response = tripService.updateTrip(id, principal.getUser().getId(), request);
+            EvTripResponse response = tripService.updateTrip(id, principal.getUser(), request);
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
@@ -68,7 +78,7 @@ public class TripController {
             Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         try {
-            tripService.deleteTrip(id, principal.getUser().getId());
+            tripService.deleteTrip(id, principal.getUser());
             return ResponseEntity.noContent().build();
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
@@ -82,7 +92,7 @@ public class TripController {
             Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         try {
-            EvTripResponse response = tripService.mergeTrips(id, request.mergeWithTripId(), principal.getUser().getId());
+            EvTripResponse response = tripService.mergeTrips(id, request.mergeWithTripId(), principal.getUser());
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
@@ -95,7 +105,7 @@ public class TripController {
             Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         try {
-            List<EvTripResponse> trips = tripService.getTripsForCar(carId, principal.getUser().getId());
+            List<EvTripResponse> trips = tripService.getTripsForCar(carId, principal.getUser());
             return ResponseEntity.ok(trips);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();

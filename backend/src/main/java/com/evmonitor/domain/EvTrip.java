@@ -18,8 +18,21 @@ import java.util.UUID;
 @Builder
 public class EvTrip {
 
-    public static final String DATA_SOURCE_TESLA_LIVE    = "TESLA_LIVE";
-    public static final String DATA_SOURCE_SMARTCAR_LIVE = "SMARTCAR_LIVE";
+    public static final String DATA_SOURCE_TESLA_LIVE     = "TESLA_LIVE";
+    public static final String DATA_SOURCE_SMARTCAR_LIVE  = "SMARTCAR_LIVE";
+    public static final String DATA_SOURCE_TESLA_INFERRED = "TESLA_INFERRED";
+
+    /**
+     * Live-detected data sources that require AutoSync-Live entitlement to view or edit.
+     * All other sources (TESSIE, USER_CREATED, etc.) are user-owned data and stay
+     * accessible to the owner regardless of subscription tier.
+     */
+    public static final java.util.Set<String> LIVE_TRIP_SOURCES = java.util.Set.of(
+            DATA_SOURCE_TESLA_LIVE, DATA_SOURCE_SMARTCAR_LIVE, DATA_SOURCE_TESLA_INFERRED);
+
+    public boolean isLiveSource() {
+        return dataSource != null && LIVE_TRIP_SOURCES.contains(dataSource);
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

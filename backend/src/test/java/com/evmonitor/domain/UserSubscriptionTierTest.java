@@ -83,6 +83,35 @@ class UserSubscriptionTierTest {
     }
 
     @Test
+    void canViewLiveTrips_onlyForLiveTierOrBetaOrAdmin() {
+        // Same gate as canUseTripPush: AutoSync-Live-tier OR privileged role.
+        // TESLA_FOUNDER without Live-tier is CHARGING_ONLY → must not see live trips.
+        // Tessie-imported trips are handled in TripService (whitelist by data_source),
+        // not here.
+        assertTrue(buildUser("USER", SubscriptionTier.AUTOSYNC_LIVE).canViewLiveTrips());
+        assertTrue(buildUser("BETA_TESTER", SubscriptionTier.NONE).canViewLiveTrips());
+        assertTrue(buildUser("ADMIN", SubscriptionTier.NONE).canViewLiveTrips());
+        assertTrue(buildUser("TESLA_FOUNDER", SubscriptionTier.AUTOSYNC_LIVE).canViewLiveTrips());
+        assertFalse(buildUser("USER", SubscriptionTier.AUTOSYNC).canViewLiveTrips());
+        assertFalse(buildUser("USER", SubscriptionTier.NONE).canViewLiveTrips());
+        assertFalse(buildUser("TESLA_FOUNDER", SubscriptionTier.NONE).canViewLiveTrips());
+        assertFalse(buildUser("TESLA_FOUNDER", SubscriptionTier.AUTOSYNC).canViewLiveTrips());
+    }
+
+    @Test
+    void canCreateTripsManually_onlyForLiveTierOrBetaOrAdmin() {
+        // Manual trip creation is part of AutoSync Live. Previously this was gated on
+        // any premium tier (AUTOSYNC or AUTOSYNC_LIVE), which leaked the feature to
+        // Tier-1 subscribers. Now Tier-2 only.
+        assertTrue(buildUser("USER", SubscriptionTier.AUTOSYNC_LIVE).canCreateTripsManually());
+        assertTrue(buildUser("BETA_TESTER", SubscriptionTier.NONE).canCreateTripsManually());
+        assertTrue(buildUser("ADMIN", SubscriptionTier.NONE).canCreateTripsManually());
+        assertFalse(buildUser("USER", SubscriptionTier.AUTOSYNC).canCreateTripsManually());
+        assertFalse(buildUser("USER", SubscriptionTier.NONE).canCreateTripsManually());
+        assertFalse(buildUser("TESLA_FOUNDER", SubscriptionTier.AUTOSYNC).canCreateTripsManually());
+    }
+
+    @Test
     void isPremium_derivedFromTier() {
         assertFalse(buildUser("USER", SubscriptionTier.NONE).isPremium());
         assertTrue(buildUser("USER", SubscriptionTier.AUTOSYNC).isPremium());

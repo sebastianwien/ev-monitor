@@ -42,6 +42,7 @@ public class JwtService {
             extraClaims.put("authProvider", principal.getUser().getAuthProvider().name());
             extraClaims.put("role", principal.getUser().getRole());
             extraClaims.put("premium", principal.getUser().isPremium());
+            extraClaims.put("subscriptionTier", principal.getUser().getSubscriptionTier().name());
             if (principal.getUser().getCountry() != null) {
                 extraClaims.put("country", principal.getUser().getCountry());
             }
@@ -67,6 +68,7 @@ public class JwtService {
             claims.put("username", principal.getUser().getUsername());
             claims.put("demoAccount", true);
             claims.put("authProvider", principal.getUser().getAuthProvider().name());
+            claims.put("subscriptionTier", principal.getUser().getSubscriptionTier().name());
         }
         long oneHourMs = 3_600_000L;
         return Jwts.builder()
@@ -85,6 +87,8 @@ public class JwtService {
             claims.put("username", principal.getUser().getUsername());
             claims.put("demoAccount", principal.getUser().isSeedData());
             claims.put("authProvider", principal.getUser().getAuthProvider().name());
+            claims.put("role", principal.getUser().getRole());
+            claims.put("subscriptionTier", principal.getUser().getSubscriptionTier().name());
         }
         claims.put("impersonatedBy", "admin");
         long oneHourMs = 3_600_000L;

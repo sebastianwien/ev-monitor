@@ -1,6 +1,7 @@
 export interface AnnouncementContext {
   hasGoeConnection: boolean
   isPremium: boolean
+  isAutoSyncLive: boolean
   hasTeslaConnection: boolean
 }
 
@@ -17,6 +18,16 @@ export interface FeatureAnnouncement {
 }
 
 export const featureAnnouncements: FeatureAnnouncement[] = [
+  {
+    key: 'autosync-live-launch-v1',
+    expiresAt: '2026-06-15',
+    releasedAt: '2026-05-12',
+    titleKey: 'announcements.autosync_live_launch_v1_title',
+    bodyKey: 'announcements.autosync_live_launch_v1_body',
+    ctaLabelKey: 'announcements.autosync_live_launch_v1_cta',
+    ctaRoute: '/upgrade',
+    condition: ctx => ctx.isPremium && !ctx.isAutoSyncLive,
+  },
   {
     key: 'tesla-telemetry-rollout-v1',
     expiresAt: '2026-05-24',
@@ -40,15 +51,6 @@ export const featureAnnouncements: FeatureAnnouncement[] = [
     releasedAt: '2026-04-28',
     titleKey: 'announcements.brutto_netto_v1_title',
     bodyKey: 'announcements.brutto_netto_v1_body',
-  },
-  {
-    key: 'trip-detection-beta-v1',
-    expiresAt: '2026-05-16',
-    titleKey: 'announcements.trip_detection_beta_v1_title',
-    bodyKey: 'announcements.trip_detection_beta_v1_body',
-    ctaLabelKey: 'announcements.trip_detection_beta_v1_cta',
-    ctaRoute: '/',
-    condition: ctx => ctx.isPremium,
   },
   {
     key: 'net-capacity-v1',
