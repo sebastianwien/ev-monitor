@@ -3,8 +3,8 @@
         <div class="max-w-lg md:max-w-2xl mx-auto bg-gray-50 dark:bg-gray-900 rounded-3xl p-3">
             <div v-if="loading" class="text-center py-16 text-gray-500 dark:text-gray-400">{{ t('upgrade.loading') }}</div>
 
-            <!-- Bereits Pro -->
-            <div v-else-if="isPremium" class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
+            <!-- Bereits Pro (nur Live-Tier) -->
+            <div v-else-if="tier === 'AUTOSYNC_LIVE'" class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
                 <div class="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
                     <svg class="w-8 h-8 text-green-600 dark:text-green-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
@@ -104,8 +104,8 @@
                     </div>
                 </details>
 
-                <!-- Pricing -->
-                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+                <!-- Pricing (nur für User ohne Abo) -->
+                <div v-if="tier === 'NONE'" class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
                     <!-- Trial Hero -->
                     <div class="text-center mb-4">
                         <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ t('upgrade.trial_days') }}</p>

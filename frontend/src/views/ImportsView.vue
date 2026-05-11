@@ -44,6 +44,7 @@ const showLivePromo = computed(() => subscriptionTier.value === 'AUTOSYNC' && ha
 async function handleLiveUpgrade() {
   liveUpgradeLoading.value = true
   liveUpgradeError.value = ''
+  let navigating = false
   try {
     await subscriptionService.upgradeToLive()
     const status = await subscriptionService.getStatus()
@@ -53,11 +54,20 @@ async function handleLiveUpgrade() {
     const err = e as { response?: { data?: { errorCode?: string } } }
     if (err.response?.data?.errorCode === 'tesla_required') {
       liveUpgradeError.value = t('upgrade.live_tesla_required_error')
+    } else if (err.response?.data?.errorCode === 'no_active_subscription') {
+      // Kein echtes Stripe-Abo hinter dem Account → normaler Checkout für Live
+      try {
+        const result = await subscriptionService.createCheckoutSession('monthly', 'autosync_live')
+        navigating = true
+        window.location.href = result.checkoutUrl
+      } catch {
+        liveUpgradeError.value = t('upgrade.error')
+      }
     } else {
       liveUpgradeError.value = t('upgrade.error')
     }
   } finally {
-    liveUpgradeLoading.value = false
+    if (!navigating) liveUpgradeLoading.value = false
   }
 }
 
