@@ -13,18 +13,21 @@
                 </div>
 
                 <!-- Active-Plan Banner -->
-                <div v-if="tier !== 'NONE'" class="max-w-2xl mx-auto mb-6 flex flex-col sm:flex-row items-center justify-center gap-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl px-4 py-3">
-                    <div class="flex items-center gap-2">
-                        <CheckCircleIcon class="w-5 h-5 text-green-600 dark:text-green-400 shrink-0" />
-                        <p class="text-sm text-gray-700 dark:text-gray-200">{{ t('upgrade.tier_active_banner', { plan: activePlanName }) }}</p>
+                <div v-if="tier !== 'NONE'" class="max-w-2xl mx-auto mb-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl px-4 py-3">
+                    <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+                        <div class="flex items-center gap-2">
+                            <CheckCircleIcon class="w-5 h-5 text-green-600 dark:text-green-400 shrink-0" />
+                            <p class="text-sm text-gray-700 dark:text-gray-200">{{ t(activeBannerKey) }}</p>
+                        </div>
+                        <button
+                            @click="handleManageSubscription"
+                            :disabled="portalLoading"
+                            class="text-sm font-medium text-green-700 dark:text-green-400 hover:text-green-900 dark:hover:text-green-200 underline underline-offset-2 disabled:opacity-50"
+                        >
+                            {{ portalLoading ? '...' : t('upgrade.tier_active_manage') }}
+                        </button>
                     </div>
-                    <button
-                        @click="handleManageSubscription"
-                        :disabled="portalLoading"
-                        class="text-sm font-medium text-green-700 dark:text-green-400 hover:text-green-900 dark:hover:text-green-200 underline underline-offset-2 disabled:opacity-50"
-                    >
-                        {{ portalLoading ? '...' : t('upgrade.tier_active_manage') }}
-                    </button>
+                    <p v-if="portalError" class="text-xs text-red-600 dark:text-red-400 text-center mt-2">{{ portalError }}</p>
                 </div>
 
                 <!-- Plan Toggle -->
@@ -99,7 +102,7 @@
                         </div>
                         <div class="mb-5">
                             <p class="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                                <template v-if="selectedPlan === 'yearly' && tier === 'NONE'">{{ pricing.yearly }}<span class="text-base font-normal text-gray-400 dark:text-gray-500"> / Jahr</span></template>
+                                <template v-if="selectedPlan === 'yearly' && tier === 'NONE'">{{ pricing.yearly }}<span class="text-base font-normal text-gray-400 dark:text-gray-500"> {{ t('upgrade.tier_per_year') }}</span></template>
                                 <template v-else>{{ pricing.monthly }}<span class="text-base font-normal text-gray-400 dark:text-gray-500"> {{ t('upgrade.tier_autosync_price_unit') }}</span></template>
                             </p>
                             <p class="text-xs text-green-600 dark:text-green-400 font-medium mt-0.5">{{ t('upgrade.tier_autosync_yearly_hint', { yearly: pricing.yearly }) }}</p>
@@ -148,10 +151,10 @@
                         </div>
                         <div class="mb-5">
                             <p class="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                                <template v-if="selectedPlan === 'yearly' && tier === 'NONE'">{{ t('upgrade.live_price_yearly') }}<span class="text-base font-normal text-gray-400 dark:text-gray-500"> / Jahr</span></template>
-                                <template v-else>{{ t('upgrade.live_price_monthly') }}<span class="text-base font-normal text-gray-400 dark:text-gray-500"> {{ t('upgrade.tier_live_price_unit') }}</span></template>
+                                <template v-if="selectedPlan === 'yearly' && tier === 'NONE'">{{ pricing.liveYearly }}<span class="text-base font-normal text-gray-400 dark:text-gray-500"> {{ t('upgrade.tier_per_year') }}</span></template>
+                                <template v-else>{{ pricing.liveMonthly }}<span class="text-base font-normal text-gray-400 dark:text-gray-500"> {{ t('upgrade.tier_live_price_unit') }}</span></template>
                             </p>
-                            <p class="text-xs text-indigo-600 dark:text-indigo-400 font-medium mt-0.5">{{ t('upgrade.tier_live_yearly_hint') }}</p>
+                            <p class="text-xs text-indigo-600 dark:text-indigo-400 font-medium mt-0.5">{{ t('upgrade.tier_live_yearly_hint', { yearly: pricing.liveYearly }) }}</p>
                         </div>
                         <ul class="space-y-2.5 text-sm text-gray-700 dark:text-gray-300 mb-6 flex-1">
                             <li class="flex items-start gap-2"><span class="text-indigo-600 dark:text-indigo-400 mt-0.5">✓</span><span>{{ t('upgrade.tier_live_feat_trip') }}</span></li>
@@ -215,6 +218,7 @@ import { CheckCircleIcon } from '@heroicons/vue/24/solid';
 import { useCountryStore } from '../stores/country';
 import { useCarStore } from '../stores/car';
 import { getPricing } from '../config/pricingConfig';
+import { useUpgradeTierState, type SubscriptionTier } from '../composables/useUpgradeTierState';
 
 const { t } = useI18n();
 const countryStore = useCountryStore();
@@ -222,17 +226,14 @@ const carStore = useCarStore();
 const pricing = computed(() => getPricing(countryStore.country));
 
 const userCarBrands = ref<string[]>([]);
-const tier = ref<'NONE' | 'AUTOSYNC' | 'AUTOSYNC_LIVE'>('NONE');
-const isLiveUpgrade = computed(() => tier.value === 'AUTOSYNC');
-
-// Card CTA-States basierend auf aktuellem Tier
-const isAutoSyncActive = computed(() => tier.value === 'AUTOSYNC');
-const isLiveActive = computed(() => tier.value === 'AUTOSYNC_LIVE');
-const showPlanToggle = computed(() => tier.value === 'NONE');
-const activePlanName = computed(() =>
-    tier.value === 'AUTOSYNC_LIVE' ? t('upgrade.tier_live_label')
-    : tier.value === 'AUTOSYNC' ? t('upgrade.tier_autosync_label')
-    : '');
+const tier = ref<SubscriptionTier>('NONE');
+const {
+    isAutoSyncActive,
+    isLiveActive,
+    isLiveUpgrade,
+    showPlanToggle,
+    activeBannerKey,
+} = useUpgradeTierState(tier);
 
 const loading = ref(true);
 const premiumEnabled = ref(false);
@@ -240,6 +241,7 @@ const selectedPlan = ref<'monthly' | 'yearly'>('yearly');
 const checkoutLoading = ref(false);
 const checkoutError = ref('');
 const portalLoading = ref(false);
+const portalError = ref('');
 
 onMounted(async () => {
     try {
@@ -302,10 +304,12 @@ async function handleLiveAction() {
 
 async function handleManageSubscription() {
     portalLoading.value = true;
+    portalError.value = '';
     try {
         const result = await subscriptionService.createPortalSession();
         window.location.href = result.portalUrl;
     } catch {
+        portalError.value = t('upgrade.tier_portal_error');
         portalLoading.value = false;
     }
 }

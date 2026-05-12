@@ -291,6 +291,7 @@ onMounted(async () => {
               {{ portalLoading ? t('upgrade.pro_manage_loading') : t('upgrade.pro_manage_btn') }}
             </button>
           </div>
+          <p class="text-xs text-gray-500 dark:text-gray-400 px-1 -mt-1">{{ t('settings.portal_hint') }}</p>
 
           <!-- Live tier but no Tesla in garage -> repair-CTA -->
           <router-link
