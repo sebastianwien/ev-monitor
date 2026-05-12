@@ -123,6 +123,47 @@ class XpengTripDetectorTest {
         return emitted;
     }
 
+    @Test
+    void aggregatesDrivingStyleExtras() {
+        XpengTripDetector detector = new XpengTripDetector();
+        // Fahrt mit einem harten Beschleunigungs-Event (0.5g) und einem harten
+        // Bremsereignis (-0.4g) sowie scharfer Kurve (|lat|=0.45g).
+        List<XpengTelematicsRow> rows = new ArrayList<>();
+        rows.add(drivingWithExtras(0, 50, "100.0", "90", "0.10", "0.05", "20"));
+        rows.add(drivingWithExtras(5, 60, "100.5", "89", "0.50", "0.10", "80"));
+        rows.add(drivingWithExtras(10, 60, "101.0", "89", "0.10", "0.45", "30"));
+        rows.add(drivingWithExtras(15, 40, "101.5", "88", "-0.40", "-0.10", "0"));
+        rows.add(parked(20, 0, "102.0", "88"));
+
+        List<DetectedTrip> trips = detect(detector, rows);
+        assertEquals(1, trips.size());
+        java.util.Map<String, Object> extras = trips.get(0).telemetryExtras();
+        assertNotNull(extras);
+        @SuppressWarnings("unchecked")
+        java.util.Map<String, Object> driving = (java.util.Map<String, Object>) extras.get("driving_style");
+        assertNotNull(driving);
+        assertEquals(new BigDecimal("0.50"), driving.get("max_long_accel_g"));
+        assertEquals(new BigDecimal("-0.40"), driving.get("max_long_deccel_g"));
+        assertEquals(new BigDecimal("0.45"), driving.get("max_lat_accel_g"));
+        assertEquals(1, driving.get("harsh_accel_count"));
+        assertEquals(1, driving.get("harsh_brake_count"));
+        assertEquals(1, driving.get("harsh_corner_count"));
+        assertEquals(new BigDecimal("80.0"), driving.get("accel_pedal_max_pct"));
+    }
+
+    private XpengTelematicsRow drivingWithExtras(int sec, int speed, String odo, String soc,
+                                                  String longAccel, String latAccel, String pedal) {
+        java.util.Map<String, BigDecimal> extras = new java.util.HashMap<>();
+        extras.put(XpengExtraKeys.LONG_ACCEL_G, new BigDecimal(longAccel));
+        extras.put(XpengExtraKeys.LAT_ACCEL_G,  new BigDecimal(latAccel));
+        extras.put(XpengExtraKeys.ACCEL_PEDAL_PCT, new BigDecimal(pedal));
+        return new XpengTelematicsRow(
+                T0.plusSeconds(sec),
+                BigDecimal.valueOf(speed), 1,
+                new BigDecimal(odo), new BigDecimal(soc),
+                null, null, null, null, null, extras);
+    }
+
     private List<XpengTelematicsRow> sequence(XpengTelematicsRow... rows) {
         return List.of(rows);
     }
@@ -132,7 +173,7 @@ class XpengTripDetectorTest {
                 T0.plusSeconds(sec),
                 BigDecimal.valueOf(speed), 4,
                 new BigDecimal(odo), new BigDecimal(soc),
-                null, null, null, null, null);
+                null, null, null, null, null, java.util.Map.of());
     }
 
     private XpengTelematicsRow driving(int sec, int speed, String odo, String soc) {
@@ -140,7 +181,7 @@ class XpengTripDetectorTest {
                 T0.plusSeconds(sec),
                 BigDecimal.valueOf(speed), 1,
                 new BigDecimal(odo), new BigDecimal(soc),
-                null, null, null, null, null);
+                null, null, null, null, null, java.util.Map.of());
     }
 
     private XpengTelematicsRow drivingWithPower(int sec, int speed, String odo, String soc,
@@ -150,6 +191,6 @@ class XpengTripDetectorTest {
                 BigDecimal.valueOf(speed), 1,
                 new BigDecimal(odo), new BigDecimal(soc),
                 new BigDecimal(volt), new BigDecimal(current),
-                null, null, null);
+                null, null, null, java.util.Map.of());
     }
 }

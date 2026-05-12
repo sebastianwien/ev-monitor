@@ -76,6 +76,10 @@ public class EvLogEntity {
     @JdbcTypeCode(SqlTypes.JSON)
     private String rawImportData;
 
+    @Column(name = "telemetry_extras", columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
+    private String telemetryExtras;
+
     @Column(name = "route_type", length = 20)
     private String routeType;
 

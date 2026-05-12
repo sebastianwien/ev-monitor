@@ -63,6 +63,7 @@ public class TripService {
                 .estimatedConsumedKwh(req.estimatedConsumedKwh())
                 .status(req.status() != null ? req.status() : "COMPLETED")
                 .rawPayload(req.rawPayload())
+                .telemetryExtras(req.telemetryExtras())
                 .userCreated(false)
                 .build();
 

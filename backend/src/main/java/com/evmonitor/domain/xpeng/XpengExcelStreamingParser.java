@@ -250,6 +250,17 @@ public class XpengExcelStreamingParser {
         private XpengTelematicsRow mapRow() {
             LocalDateTime timer = parseTimer(byHeader("timer"));
             if (timer == null) return null;
+            java.util.Map<String, BigDecimal> extras = new java.util.HashMap<>();
+            putIfNotNull(extras, XpengExtraKeys.CELL_TEMP_MAX_C, parseDecimal(byHeader("bms_celltempmaxnum_gb")));
+            putIfNotNull(extras, XpengExtraKeys.CELL_TEMP_MIN_C, parseDecimal(byHeader("bms_celltempminnum_gb")));
+            putIfNotNull(extras, XpengExtraKeys.LONG_ACCEL_G,    parseDecimal(byHeader("esp_vehlongaccel")));
+            putIfNotNull(extras, XpengExtraKeys.LAT_ACCEL_G,     parseDecimal(byHeader("esp_vehlateralaccel")));
+            putIfNotNull(extras, XpengExtraKeys.ACCEL_PEDAL_PCT, parseDecimal(byHeader("ldcu_accpedalsig")));
+            putIfNotNull(extras, XpengExtraKeys.FRONT_TORQUE_NM, parseDecimal(byHeader("ipuf_acttorq")));
+            putIfNotNull(extras, XpengExtraKeys.REAR_TORQUE_NM,  parseDecimal(byHeader("ipur_acttorq")));
+            putIfNotNull(extras, XpengExtraKeys.FRONT_RPM,       parseDecimal(byHeader("ipuf_actrotspd")));
+            putIfNotNull(extras, XpengExtraKeys.REAR_RPM,        parseDecimal(byHeader("ipur_actrotspd")));
+            putIfNotNull(extras, XpengExtraKeys.BMS_RANGE_KM,    parseDecimal(byHeader("ldcu_dstbatdisp_dynamic")));
             return new XpengTelematicsRow(
                     timer,
                     parseDecimal(byHeader("esp_vehspd")),
@@ -260,7 +271,12 @@ public class XpengExcelStreamingParser {
                     parseDecimal(byHeader("bms_battcurr")),
                     parseDecimal(byHeader("ldcu_chrgpwr")),
                     parseDecimal(byHeader("bms_batttempmax_gb")),
-                    parseDecimal(byHeader("bms_batttempmin_gb")));
+                    parseDecimal(byHeader("bms_batttempmin_gb")),
+                    extras);
+        }
+
+        private static void putIfNotNull(java.util.Map<String, BigDecimal> map, String key, BigDecimal v) {
+            if (v != null) map.put(key, v);
         }
 
         private String byHeader(String name) {

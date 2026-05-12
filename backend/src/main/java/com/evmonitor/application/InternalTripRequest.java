@@ -26,5 +26,6 @@ public record InternalTripRequest(
         BigDecimal energyRemainingEndKwh,
         BigDecimal estimatedConsumedKwh,
         String status,
-        String rawPayload
+        String rawPayload,
+        String telemetryExtras
 ) {}

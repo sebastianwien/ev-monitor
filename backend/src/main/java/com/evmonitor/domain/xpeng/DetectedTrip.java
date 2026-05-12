@@ -2,6 +2,7 @@ package com.evmonitor.domain.xpeng;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Map;
 
 public record DetectedTrip(
         LocalDateTime startedAt,
@@ -13,5 +14,6 @@ public record DetectedTrip(
         BigDecimal socEnd,
         BigDecimal consumedKwh,
         BigDecimal avgSpeedKmh,
-        BigDecimal maxSpeedKmh
+        BigDecimal maxSpeedKmh,
+        Map<String, Object> telemetryExtras
 ) {}

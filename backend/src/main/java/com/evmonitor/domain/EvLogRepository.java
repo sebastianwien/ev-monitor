@@ -44,6 +44,9 @@ public interface EvLogRepository {
 
     int countByUserIdAndDataSource(UUID userId, DataSource dataSource);
 
+    /** Set the JSON-blob telemetry_extras on the unique (carId, loggedAt) entry, if it exists. */
+    void updateTelemetryExtras(UUID carId, LocalDateTime loggedAt, String telemetryExtrasJson);
+
     Optional<EvLog> updateGeohash(UUID carId, LocalDateTime loggedAt, String geohash);
 
     List<EvLog> findAllWithGeohashAndNoTemperature();

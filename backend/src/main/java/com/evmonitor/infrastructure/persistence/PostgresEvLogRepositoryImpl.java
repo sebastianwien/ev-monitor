@@ -125,6 +125,11 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
+    public void updateTelemetryExtras(UUID carId, LocalDateTime loggedAt, String telemetryExtrasJson) {
+        jpaRepository.updateTelemetryExtras(carId, loggedAt, telemetryExtrasJson);
+    }
+
+    @Override
     public Optional<EvLog> updateGeohash(UUID carId, LocalDateTime loggedAt, String geohash) {
         return jpaRepository.findByCarIdAndLoggedAt(carId, loggedAt).map(entity -> {
             entity.setGeohash(geohash);

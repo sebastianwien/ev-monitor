@@ -99,6 +99,14 @@ public class EvTrip {
     @Column(name = "raw_payload", columnDefinition = "jsonb")
     private String rawPayload;
 
+    /**
+     * Source-spezifische aggregierte Telematik-Daten (Driving-Style, Batterie-Temp, Motor-Werte etc.)
+     * als JSON. Quelle und Schema-Version stecken im JSON unter {@code source} und {@code schema_version}.
+     */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "telemetry_extras", columnDefinition = "jsonb")
+    private String telemetryExtras;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 

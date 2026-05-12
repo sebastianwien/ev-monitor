@@ -283,9 +283,32 @@ public class XpengImportService {
                     new PublicApiSessionRequest(carId, entries), DataSource.XPENG_IMPORT);
             stats.importedSessions = apiResult.imported();
             stats.skipped = apiResult.skipped();
+
+            // telemetry_extras kann SessionEntry (public API) nicht durchreichen -
+            // nach dem Import per Direkt-Update setzen, identifiziert ueber (carId, loggedAt).
+            for (DetectedChargingSession s : sessions) {
+                String json = serializeExtras(s.telemetryExtras());
+                if (json != null) {
+                    try {
+                        evLogRepository.updateTelemetryExtras(carId, s.startedAt(), json);
+                    } catch (Exception e) {
+                        log.warn("XpengImport: telemetry_extras update for ev_log failed", e);
+                    }
+                }
+            }
         }
 
         return stats;
+    }
+
+    private String serializeExtras(java.util.Map<String, Object> extras) {
+        if (extras == null || extras.isEmpty()) return null;
+        try {
+            return new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(extras);
+        } catch (Exception e) {
+            log.warn("XpengImport: telemetry_extras JSON serialize failed", e);
+            return null;
+        }
     }
 
     private InternalTripRequest toTripRequest(UUID externalId, UUID carId, UUID userId, DetectedTrip t) {
@@ -303,6 +326,7 @@ public class XpengImportService {
                 .distanceKm(t.distanceKm())
                 .estimatedConsumedKwh(t.consumedKwh())
                 .status("COMPLETED")
+                .telemetryExtras(serializeExtras(t.telemetryExtras()))
                 // XPeng Phase 1: no GPS, no outside temp, no energy-remaining snapshots
                 .build();
     }

@@ -128,6 +128,47 @@ class XpengChargeDetectorTest {
         return emitted;
     }
 
+    @Test
+    void aggregatesBatteryTemperatureExtras() {
+        XpengChargeDetector detector = new XpengChargeDetector();
+        // 11 kW Session, batt-temp variiert ueber Zeit. Aggregator soll min/max/avg
+        // in telemetry_extras.battery liefern. Dauer >60s damit Session ueber
+        // MIN_SESSION_KWH (0.05) liegt: 11kW * 60/3600 = 0.183 kWh.
+        List<XpengTelematicsRow> rows = new ArrayList<>();
+        rows.add(parked(0, "50", null));
+        for (int t = 5; t <= 60; t += 5) {
+            // Temp 15-25 abwechselnd, gleicher Mittelwert
+            String tMax = t < 30 ? "18" : "25";
+            String tMin = t < 30 ? "10" : "15";
+            rows.add(parkedWithTemp(t, "5" + (t % 5), "11", tMax, tMin));
+        }
+        rows.add(parked(150, "55", null));
+
+        List<DetectedChargingSession> sessions = detect(detector, rows);
+        assertEquals(1, sessions.size());
+        java.util.Map<String, Object> extras = sessions.get(0).telemetryExtras();
+        assertNotNull(extras, "telemetryExtras must be populated");
+        assertEquals("xpeng", extras.get("source"));
+        assertEquals(1, extras.get("schema_version"));
+        @SuppressWarnings("unchecked")
+        java.util.Map<String, Object> battery = (java.util.Map<String, Object>) extras.get("battery");
+        assertNotNull(battery);
+        assertEquals(new BigDecimal("25.0"), battery.get("pack_temp_max_c"));
+        assertEquals(new BigDecimal("10.0"), battery.get("pack_temp_min_c"));
+        assertNotNull(battery.get("pack_temp_avg_c"));
+    }
+
+    private XpengTelematicsRow parkedWithTemp(int sec, String soc, String chargePower,
+                                                String tempMax, String tempMin) {
+        return new XpengTelematicsRow(
+                T0.plusSeconds(sec),
+                BigDecimal.ZERO, 4,
+                new BigDecimal("13508"), new BigDecimal(soc),
+                null, null,
+                chargePower == null ? null : new BigDecimal(chargePower),
+                new BigDecimal(tempMax), new BigDecimal(tempMin), java.util.Map.of());
+    }
+
     private XpengTelematicsRow parked(int sec, String soc, String chargePower) {
         return new XpengTelematicsRow(
                 T0.plusSeconds(sec),
@@ -135,7 +176,7 @@ class XpengChargeDetectorTest {
                 new BigDecimal("13508"), new BigDecimal(soc),
                 null, null,
                 chargePower == null ? null : new BigDecimal(chargePower),
-                null, null);
+                null, null, java.util.Map.of());
     }
 
     private XpengTelematicsRow driving(int sec, String soc, String chargePower) {
@@ -145,6 +186,6 @@ class XpengChargeDetectorTest {
                 new BigDecimal("13508"), new BigDecimal(soc),
                 null, null,
                 chargePower == null ? null : new BigDecimal(chargePower),
-                null, null);
+                null, null, java.util.Map.of());
     }
 }

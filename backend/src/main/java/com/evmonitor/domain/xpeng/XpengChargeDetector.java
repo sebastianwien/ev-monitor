@@ -30,6 +30,7 @@ public class XpengChargeDetector {
     private BigDecimal odometerLast;
     private BigDecimal maxPowerKw = BigDecimal.ZERO;
     private BigDecimal energyAccumKwh = BigDecimal.ZERO;
+    private ChargingExtrasAggregator extrasAggregator;
     private LocalDateTime prevSampleTime;
     private BigDecimal prevPowerKw;
 
@@ -98,12 +99,15 @@ public class XpengChargeDetector {
         prevPowerKw = row.chargePowerKw();
         lastEnergyAt = row.timer();
         lastPositivePowerAt = row.timer();
+        extrasAggregator = new ChargingExtrasAggregator();
+        extrasAggregator.consume(row);
     }
 
     private void accumulate(XpengTelematicsRow row) {
         if (row.socDisplay() != null) socLast = row.socDisplay();
         if (row.odometerKm() != null) odometerLast = row.odometerKm();
         if (row.chargePowerKw().compareTo(maxPowerKw) > 0) maxPowerKw = row.chargePowerKw();
+        if (extrasAggregator != null) extrasAggregator.consume(row);
 
         if (prevSampleTime != null && prevPowerKw != null) {
             Duration dt = Duration.between(prevSampleTime, row.timer());
@@ -134,13 +138,15 @@ public class XpengChargeDetector {
             return null;
         }
 
+        java.util.Map<String, Object> extras = extrasAggregator != null ? extrasAggregator.toMap() : null;
         DetectedChargingSession session = new DetectedChargingSession(
                 startedAt, endedAt,
                 socStart, socLast,
                 kwh,
                 maxPowerKw.setScale(2, RoundingMode.HALF_UP),
                 odometerLast,
-                DetectedChargingSession.classifyChargingType(maxPowerKw));
+                DetectedChargingSession.classifyChargingType(maxPowerKw),
+                extras);
         resetState();
         return session;
     }
@@ -156,5 +162,6 @@ public class XpengChargeDetector {
         energyAccumKwh = BigDecimal.ZERO;
         prevSampleTime = null;
         prevPowerKw = null;
+        extrasAggregator = null;
     }
 }

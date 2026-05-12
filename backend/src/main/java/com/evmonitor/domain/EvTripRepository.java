@@ -45,7 +45,12 @@ public interface EvTripRepository extends JpaRepository<EvTrip, UUID> {
     /** Soft-delete all not-yet-deleted trips of user with given data_source. Returns affected row count. */
     @Modifying
     @Transactional
-    @Query("UPDATE EvTrip t SET t.deletedAt = CURRENT_TIMESTAMP "
+    @Query("UPDATE EvTrip t SET t.deletedAt = :now "
             + "WHERE t.userId = :userId AND t.dataSource = :dataSource AND t.deletedAt IS NULL")
-    int softDeleteByUserIdAndDataSource(@Param("userId") UUID userId, @Param("dataSource") String dataSource);
+    int softDeleteByUserIdAndDataSourceAt(@Param("userId") UUID userId, @Param("dataSource") String dataSource,
+                                           @Param("now") OffsetDateTime now);
+
+    default int softDeleteByUserIdAndDataSource(UUID userId, String dataSource) {
+        return softDeleteByUserIdAndDataSourceAt(userId, dataSource, OffsetDateTime.now());
+    }
 }

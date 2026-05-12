@@ -2,6 +2,7 @@ package com.evmonitor.domain.xpeng;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Map;
 
 public record DetectedChargingSession(
         LocalDateTime startedAt,
@@ -11,7 +12,8 @@ public record DetectedChargingSession(
         BigDecimal kwhCharged,
         BigDecimal maxPowerKw,
         BigDecimal odometerKm,
-        String chargingType
+        String chargingType,
+        Map<String, Object> telemetryExtras
 ) {
     public static String classifyChargingType(BigDecimal maxPowerKw) {
         if (maxPowerKw == null) return "UNKNOWN";

@@ -38,6 +38,7 @@ public class XpengTripDetector {
     private BigDecimal energyAccumWh = BigDecimal.ZERO;
     private LocalDateTime prevSampleTime;
     private BigDecimal prevPowerW;
+    private TripExtrasAggregator extrasAggregator;
 
     // Rolling anchor of the most recent row we've seen, used to back-date trip start
     // when the gear change between samples loses a few hundred meters.
@@ -106,10 +107,13 @@ public class XpengTripDetector {
         energyAccumWh = BigDecimal.ZERO;
         prevSampleTime = row.timer();
         prevPowerW = currentPowerW(row);
+        extrasAggregator = new TripExtrasAggregator();
+        extrasAggregator.consume(row);
     }
 
     private void accumulate(XpengTelematicsRow row) {
         lastDrivingAt = row.timer();
+        if (extrasAggregator != null) extrasAggregator.consume(row);
         if (row.odometerKm() != null) odometerLast = row.odometerKm();
         if (row.socDisplay() != null) socLast = row.socDisplay();
         if (row.vehSpeedKmh() != null) {
@@ -158,12 +162,14 @@ public class XpengTripDetector {
         BigDecimal consumedKwh = energyAccumWh.abs()
                 .divide(BigDecimal.valueOf(1000), 4, RoundingMode.HALF_UP);
 
+        java.util.Map<String, Object> extras = extrasAggregator != null ? extrasAggregator.toMap() : null;
         DetectedTrip trip = new DetectedTrip(
                 startedAt, endedAt,
                 odometerStart, endOdo, distance,
                 socStart, endSoc,
                 consumedKwh.signum() == 0 ? null : consumedKwh,
-                avgSpeed, maxSpeed);
+                avgSpeed, maxSpeed,
+                extras);
         resetState();
         return trip;
     }
@@ -181,6 +187,7 @@ public class XpengTripDetector {
         energyAccumWh = BigDecimal.ZERO;
         prevSampleTime = null;
         prevPowerW = null;
+        extrasAggregator = null;
     }
 
     private static BigDecimal currentPowerW(XpengTelematicsRow row) {
