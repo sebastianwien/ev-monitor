@@ -22,7 +22,7 @@
                         <button
                             @click="handleManageSubscription"
                             :disabled="portalLoading"
-                            class="text-sm font-medium text-green-700 dark:text-green-400 hover:text-green-900 dark:hover:text-green-200 underline underline-offset-2 disabled:opacity-50"
+                            class="text-sm font-medium bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-400 text-white px-4 py-2 rounded-lg shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                         >
                             {{ portalLoading ? '...' : t('upgrade.tier_active_manage') }}
                         </button>
@@ -101,10 +101,12 @@
                             <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ t('upgrade.tier_autosync_subtitle') }}</p>
                         </div>
                         <div class="mb-5">
-                            <p class="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                                <template v-if="selectedPlan === 'yearly' && tier === 'NONE'">{{ pricing.yearly }}<span class="text-base font-normal text-gray-400 dark:text-gray-500"> {{ t('upgrade.tier_per_year') }}</span></template>
-                                <template v-else>{{ pricing.monthly }}<span class="text-base font-normal text-gray-400 dark:text-gray-500"> {{ t('upgrade.tier_autosync_price_unit') }}</span></template>
-                            </p>
+                            <Transition name="price-fade" mode="out-in">
+                                <p :key="selectedPlan + tier" class="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                                    <template v-if="selectedPlan === 'yearly' && tier === 'NONE'">{{ pricing.yearly }}<span class="text-base font-normal text-gray-400 dark:text-gray-500"> {{ t('upgrade.tier_per_year') }}</span></template>
+                                    <template v-else>{{ pricing.monthly }}<span class="text-base font-normal text-gray-400 dark:text-gray-500"> {{ t('upgrade.tier_autosync_price_unit') }}</span></template>
+                                </p>
+                            </Transition>
                             <p v-if="!(selectedPlan === 'yearly' && tier === 'NONE')" class="text-xs text-green-600 dark:text-green-400 font-medium mt-0.5">{{ t('upgrade.tier_autosync_yearly_hint', { yearly: pricing.yearly }) }}</p>
                         </div>
                         <ul class="space-y-2.5 text-sm text-gray-700 dark:text-gray-300 mb-6 flex-1">
@@ -150,10 +152,12 @@
                             <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ t('upgrade.tier_live_card_subtitle') }}</p>
                         </div>
                         <div class="mb-5">
-                            <p class="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                                <template v-if="selectedPlan === 'yearly' && tier === 'NONE'">{{ pricing.liveYearly }}<span class="text-base font-normal text-gray-400 dark:text-gray-500"> {{ t('upgrade.tier_per_year') }}</span></template>
-                                <template v-else>{{ pricing.liveMonthly }}<span class="text-base font-normal text-gray-400 dark:text-gray-500"> {{ t('upgrade.tier_live_price_unit') }}</span></template>
-                            </p>
+                            <Transition name="price-fade" mode="out-in">
+                                <p :key="selectedPlan + tier" class="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                                    <template v-if="selectedPlan === 'yearly' && tier === 'NONE'">{{ pricing.liveYearly }}<span class="text-base font-normal text-gray-400 dark:text-gray-500"> {{ t('upgrade.tier_per_year') }}</span></template>
+                                    <template v-else>{{ pricing.liveMonthly }}<span class="text-base font-normal text-gray-400 dark:text-gray-500"> {{ t('upgrade.tier_live_price_unit') }}</span></template>
+                                </p>
+                            </Transition>
                             <p v-if="!(selectedPlan === 'yearly' && tier === 'NONE')" class="text-xs text-indigo-600 dark:text-indigo-400 font-medium mt-0.5">{{ t('upgrade.tier_live_yearly_hint', { yearly: pricing.liveYearly }) }}</p>
                         </div>
                         <ul class="space-y-2.5 text-sm text-gray-700 dark:text-gray-300 mb-6 flex-1">
@@ -314,3 +318,18 @@ async function handleManageSubscription() {
     }
 }
 </script>
+
+<style scoped>
+.price-fade-enter-active,
+.price-fade-leave-active {
+    transition: opacity 150ms ease-out, transform 150ms ease-out;
+}
+.price-fade-enter-from {
+    opacity: 0;
+    transform: translateY(4px);
+}
+.price-fade-leave-to {
+    opacity: 0;
+    transform: translateY(-4px);
+}
+</style>
