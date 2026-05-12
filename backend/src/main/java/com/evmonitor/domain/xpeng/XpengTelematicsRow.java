@@ -21,6 +21,18 @@ public record XpengTelematicsRow(
         BigDecimal battTempMaxC,
         BigDecimal battTempMinC
 ) {
+    // XPeng-Sensor liefert vereinzelt Sentinel-Werte (z.B. 1638.3 kW) wenn das
+    // Auto aus dem Schlaf wacht. Realer Maximalwert auch fuer DC-Schnelllader
+    // liegt unter 400 kW; alles darueber ist ein Glitch und wird zu null
+    // entschaerft, damit Detectoren es als "kein Ladevorgang" behandeln.
+    private static final BigDecimal MAX_PLAUSIBLE_CHARGE_POWER_KW = new BigDecimal("400");
+
+    public XpengTelematicsRow {
+        if (chargePowerKw != null && chargePowerKw.compareTo(MAX_PLAUSIBLE_CHARGE_POWER_KW) > 0) {
+            chargePowerKw = null;
+        }
+    }
+
     public boolean isDriving() {
         return gearLev != null && (gearLev == 1 || gearLev == 3);
     }

@@ -80,6 +80,29 @@ class XpengChargeDetectorTest {
     }
 
     @Test
+    void ignoresChargePowerSpikeInsideRealAcSession() {
+        // Reale Beobachtung aus XPeng-File: 1638.3 kW Sensor-Sentinel taucht
+        // mitten in 10-kW-Wallbox-Session auf. Ohne Cap waere die Session
+        // faelschlich als DC klassifiziert + Phantom-kWh aufaddiert.
+        XpengChargeDetector detector = new XpengChargeDetector();
+        List<XpengTelematicsRow> rows = new ArrayList<>();
+        rows.add(parked(0, "50", null));
+        for (int t = 5; t <= 30; t += 5) rows.add(parked(t, "50", "10"));
+        rows.add(parked(35, "50", "1638.3"));
+        for (int t = 40; t <= 120; t += 5) rows.add(parked(t, "55", "10"));
+        rows.add(parked(180, "55", null));
+
+        List<DetectedChargingSession> sessions = detect(detector, rows);
+
+        assertEquals(1, sessions.size());
+        DetectedChargingSession s = sessions.get(0);
+        assertEquals("AC", s.chargingType(),
+                "Sensor-Spike darf nicht zu DC-Klassifikation fuehren");
+        assertTrue(s.maxPowerKw().compareTo(new BigDecimal("400")) <= 0,
+                "maxPowerKw muss durch Sanity-Cap begrenzt sein, war " + s.maxPowerKw());
+    }
+
+    @Test
     void tolerates60sGapBeforeEndingSession() {
         XpengChargeDetector detector = new XpengChargeDetector();
         // 22 kW * 60s = 0.367 kWh up to gap, then more after.
