@@ -100,7 +100,7 @@ async function onDeleteAllData() {
     <!-- Page header (Editorial style) -->
     <div class="pb-2">
       <p class="text-amber-600 dark:text-amber-500 text-[11px] font-bold uppercase tracking-[0.14em] mb-2">
-        XPeng · EU Data Act
+        {{ t('xpeng.eyebrow_brand') }}
       </p>
       <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white leading-tight mb-2">
         {{ t('xpeng.intro_title') }}

@@ -70,7 +70,7 @@ async function submit() {
     class="rounded-sm border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 md:p-6 shadow-[4px_4px_0_0_#d1d5db] dark:shadow-[4px_4px_0_0_#374151]">
     <p class="text-amber-600 dark:text-amber-500 text-[11px] font-bold uppercase tracking-[0.14em] mb-2 flex items-center gap-2">
       <span class="inline-flex w-5 h-5 bg-amber-500 text-gray-950 rounded-sm items-center justify-center text-[11px] font-extrabold">2</span>
-      Upload
+      {{ t('xpeng.eyebrow_step2') }}
     </p>
 
     <h3 class="text-lg md:text-xl font-bold text-gray-900 dark:text-white tracking-tight mb-4">

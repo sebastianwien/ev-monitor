@@ -2009,6 +2009,9 @@ region_chip:
   title: Välj din region
 
 xpeng:
+  eyebrow_brand: "XPeng · EU Data Act"
+  eyebrow_step1: "Skicka begäran"
+  eyebrow_step2: "Ladda upp"
   intro_title: "XPeng EU Data Act-import"
   intro_body: "Eftersom XPeng (ännu) inte erbjuder ett API importerar du dina telematikdata via Excel: begär dem från XPeng via e-post, ta emot dem inom 5-10 dagar och ladda upp dem här."
   no_xpeng_cars: "Inga XPeng-fordon i ditt garage."

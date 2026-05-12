@@ -2088,6 +2088,9 @@ cm:
   sources_title: "Quellen"
 
 xpeng:
+  eyebrow_brand: "XPeng · EU Data Act"
+  eyebrow_step1: "Anfrage stellen"
+  eyebrow_step2: "Upload"
   intro_title: "XPeng EU-Data-Act Import"
   intro_body: "Da XPeng (noch) keine API anbietet, importierst du deine Telematik-Daten per Excel: Du forderst sie bei XPeng per E-Mail an, erhältst sie nach 5-10 Tagen zurück und lädst sie hier hoch."
   no_xpeng_cars: "Keine XPeng-Fahrzeuge in deiner Garage."

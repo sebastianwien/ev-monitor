@@ -4,6 +4,7 @@ import com.evmonitor.application.InternalTripRequest;
 import com.evmonitor.application.TripService;
 import com.evmonitor.application.publicapi.PublicApiImportService;
 import com.evmonitor.application.publicapi.PublicApiSessionRequest;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.DataSource;
@@ -72,6 +73,7 @@ import java.util.UUID;
 public class XpengImportService {
 
     private static final long MAX_UPLOAD_BYTES = 100L * 1024 * 1024;
+    private static final ObjectMapper EXTRAS_MAPPER = new ObjectMapper();
     // Plain xlsx (ZIP container) starts with "PK\x03\x04".
     private static final byte[] ZIP_MAGIC = {0x50, 0x4B, 0x03, 0x04};
     // Password-protected xlsx uses OLE Compound File Format - POIFSFileSystem decrypts these.
@@ -304,7 +306,7 @@ public class XpengImportService {
     private String serializeExtras(java.util.Map<String, Object> extras) {
         if (extras == null || extras.isEmpty()) return null;
         try {
-            return new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(extras);
+            return EXTRAS_MAPPER.writeValueAsString(extras);
         } catch (Exception e) {
             log.warn("XpengImport: telemetry_extras JSON serialize failed", e);
             return null;
