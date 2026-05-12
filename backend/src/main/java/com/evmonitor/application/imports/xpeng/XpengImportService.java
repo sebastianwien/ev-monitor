@@ -86,6 +86,8 @@ public class XpengImportService {
     private final TripService tripService;
     private final PublicApiImportService publicApiImportService;
     private final ApplicationContext applicationContext;
+    private final com.evmonitor.domain.EvLogRepository evLogRepository;
+    private final com.evmonitor.domain.EvTripRepository evTripRepository;
 
     @Value("${xpeng.import.tempdir}")
     private String tempDir;
@@ -419,6 +421,27 @@ public class XpengImportService {
     public List<XpengImportJob> recentJobsForUser(UUID userId) {
         return jobRepo.findTop10ByUserIdOrderByCreatedAtDesc(userId);
     }
+
+    /**
+     * Loescht alle XPENG_IMPORT-Daten des Users: ev_log (Hard-Delete), ev_trip
+     * (Soft-Delete via deleted_at) und xpeng_import_jobs (Hard-Delete, damit
+     * der User dieselben Files erneut hochladen kann ohne Dedup-Block).
+     * xpeng_connection und User-Consent bleiben unberuehrt.
+     */
+    @Transactional
+    public DeleteSummary deleteAllImportedData(UUID userId) {
+        int chargingLogs = evLogRepository.countByUserIdAndDataSource(
+                userId, com.evmonitor.domain.DataSource.XPENG_IMPORT);
+        int trips = evTripRepository.softDeleteByUserIdAndDataSource(userId, "XPENG_IMPORT");
+        long jobs = jobRepo.deleteAllByUserId(userId);
+        evLogRepository.deleteAllByUserIdAndDataSource(
+                userId, com.evmonitor.domain.DataSource.XPENG_IMPORT);
+        log.info("XpengImport delete-all by user {}: logs={} trips={} jobs={}",
+                userId, chargingLogs, trips, jobs);
+        return new DeleteSummary(chargingLogs, trips, jobs);
+    }
+
+    public record DeleteSummary(int chargingLogs, int trips, long importJobs) {}
 
     private static String truncate(String s, int max) {
         if (s == null) return null;

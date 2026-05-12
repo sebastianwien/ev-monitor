@@ -74,6 +74,23 @@ public class XpengImportController {
                 .map(this::toDto).toList());
     }
 
+    /**
+     * Loescht alle XPENG_IMPORT-Daten des eingeloggten Users:
+     * Ladevorgaenge (ev_log), Fahrten (ev_trip, soft-delete) und Import-Jobs.
+     * Verbindung / Vollmacht (xpeng_connection) bleibt aktiv.
+     */
+    @DeleteMapping("/imported-data")
+    public ResponseEntity<?> deleteAllImportedData(@AuthenticationPrincipal UserPrincipal principal) {
+        try {
+            XpengImportService.DeleteSummary summary =
+                    importService.deleteAllImportedData(principal.getUser().getId());
+            return ResponseEntity.ok(summary);
+        } catch (Exception e) {
+            log.error("XPeng delete-all failed for user {}", principal.getUser().getId(), e);
+            return ResponseEntity.internalServerError().body(Map.of("error", "Loeschen fehlgeschlagen"));
+        }
+    }
+
     private Bucket rateLimitFor(UUID userId) {
         return rateLimits.computeIfAbsent(userId, u -> Bucket.builder()
                 .addLimit(limit -> limit.capacity(5).refillIntervally(5, Duration.ofHours(1)))

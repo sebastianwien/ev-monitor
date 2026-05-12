@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ExclamationCircleIcon, ShieldCheckIcon } from '@heroicons/vue/24/outline'
+import { ExclamationCircleIcon, ShieldCheckIcon, TrashIcon } from '@heroicons/vue/24/outline'
 import XpengConsentStep from './XpengConsentStep.vue'
 import XpengRequestMailStep from './XpengRequestMailStep.vue'
 import XpengUploadStep from './XpengUploadStep.vue'
 import XpengJobStatus from './XpengJobStatus.vue'
 import XpengConnectionsList from './XpengConnectionsList.vue'
 import { useXpengJobs } from '../../composables/useXpengJobs'
-import type { XpengJobDto } from '../../api/xpengService'
+import xpengService, { type XpengJobDto } from '../../api/xpengService'
 import type { Car } from '../../api/carService'
 
 const { t } = useI18n()
@@ -69,6 +69,30 @@ function onUploaded(job: XpengJobDto) {
   activeJob.value = job
   startPolling(job.id)
 }
+
+// Es gibt importierte Daten zum Loeschen, sobald mind. ein erfolgreicher Import vorliegt.
+const hasImportedData = computed(() => jobs.value.some(j => j.status === 'DONE' || j.status === 'FAILED'))
+const deleting = ref(false)
+const deleteResultMsg = ref('')
+
+async function onDeleteAllData() {
+  if (!confirm(t('xpeng.delete_all_confirm'))) return
+  deleting.value = true
+  deleteResultMsg.value = ''
+  localError.value = ''
+  try {
+    const r = await xpengService.deleteAllImportedData()
+    deleteResultMsg.value = t('xpeng.delete_all_success', {
+      logs: r.chargingLogs, trips: r.trips, jobs: r.importJobs,
+    })
+    activeJob.value = null
+    await refresh()
+  } catch (e: any) {
+    localError.value = e?.response?.data?.error || t('xpeng.delete_all_failed')
+  } finally {
+    deleting.value = false
+  }
+}
 </script>
 
 <template>
@@ -124,6 +148,31 @@ function onUploaded(job: XpengJobDto) {
         @refresh="refresh"
         @error="onError"
       />
+
+      <!-- Destruktive Aktion: alle XPENG_IMPORT-Daten loeschen -->
+      <div v-if="hasImportedData"
+           class="rounded-lg border border-red-200 dark:border-red-900/40 bg-red-50/40 dark:bg-red-900/10 p-4 space-y-2">
+        <div class="flex items-start gap-3">
+          <TrashIcon class="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+          <div class="text-sm flex-1">
+            <p class="font-medium text-gray-900 dark:text-gray-100">{{ t('xpeng.delete_all_title') }}</p>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">{{ t('xpeng.delete_all_body') }}</p>
+          </div>
+        </div>
+        <div v-if="deleteResultMsg"
+             class="text-sm text-green-700 dark:text-green-300 pl-8">{{ deleteResultMsg }}</div>
+        <div class="flex justify-end">
+          <button
+            type="button"
+            class="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md
+                   bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            :disabled="deleting"
+            @click="onDeleteAllData">
+            <TrashIcon class="w-4 h-4" />
+            {{ deleting ? t('common.loading') : t('xpeng.delete_all_button') }}
+          </button>
+        </div>
+      </div>
     </template>
   </div>
 </template>

@@ -41,4 +41,11 @@ public interface EvTripRepository extends JpaRepository<EvTrip, UUID> {
 
     @Query("SELECT t FROM EvTrip t WHERE t.locationStartGeohash IS NOT NULL AND t.outsideTempCelsius IS NULL AND t.deletedAt IS NULL")
     List<EvTrip> findAllWithGeohashAndNoTemperature();
+
+    /** Soft-delete all not-yet-deleted trips of user with given data_source. Returns affected row count. */
+    @Modifying
+    @Transactional
+    @Query("UPDATE EvTrip t SET t.deletedAt = CURRENT_TIMESTAMP "
+            + "WHERE t.userId = :userId AND t.dataSource = :dataSource AND t.deletedAt IS NULL")
+    int softDeleteByUserIdAndDataSource(@Param("userId") UUID userId, @Param("dataSource") String dataSource);
 }

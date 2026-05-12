@@ -63,6 +63,11 @@ export const xpengService = {
     const resp = await api.get('/imports/xpeng/jobs')
     return resp.data
   },
+
+  async deleteAllImportedData(): Promise<{ chargingLogs: number; trips: number; importJobs: number }> {
+    const resp = await api.delete('/imports/xpeng/imported-data')
+    return resp.data
+  },
 }
 
 export default xpengService

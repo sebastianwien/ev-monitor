@@ -6,6 +6,9 @@ import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.CarStatus;
+import com.evmonitor.domain.DataSource;
+import com.evmonitor.domain.EvLogRepository;
+import com.evmonitor.domain.EvTripRepository;
 import com.evmonitor.infrastructure.persistence.xpeng.XpengConnection;
 import com.evmonitor.infrastructure.persistence.xpeng.XpengConnectionRepository;
 import com.evmonitor.infrastructure.persistence.xpeng.XpengImportJob;
@@ -43,6 +46,8 @@ class XpengImportServiceTest {
     @Mock TripService tripService;
     @Mock PublicApiImportService publicApiImportService;
     @Mock ApplicationContext applicationContext;
+    @Mock EvLogRepository evLogRepository;
+    @Mock EvTripRepository evTripRepository;
 
     @InjectMocks XpengImportService service;
 
@@ -152,6 +157,22 @@ class XpengImportServiceTest {
                         null, "1.1.1.1", "ua"));
         assertTrue(ex.getMessage().contains("bereits"));
         verify(jobRepo, never()).save(any());
+    }
+
+    @Test
+    void deleteAllImportedData_clearsLogsTripsAndJobs() {
+        when(evLogRepository.countByUserIdAndDataSource(USER, DataSource.XPENG_IMPORT)).thenReturn(42);
+        when(evTripRepository.softDeleteByUserIdAndDataSource(USER, "XPENG_IMPORT")).thenReturn(70);
+        when(jobRepo.deleteAllByUserId(USER)).thenReturn(4L);
+
+        XpengImportService.DeleteSummary s = service.deleteAllImportedData(USER);
+
+        assertEquals(42, s.chargingLogs());
+        assertEquals(70, s.trips());
+        assertEquals(4L, s.importJobs());
+        verify(evLogRepository).deleteAllByUserIdAndDataSource(USER, DataSource.XPENG_IMPORT);
+        verify(evTripRepository).softDeleteByUserIdAndDataSource(USER, "XPENG_IMPORT");
+        verify(jobRepo).deleteAllByUserId(USER);
     }
 
     @Test

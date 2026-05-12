@@ -120,6 +120,11 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
+    public int countByUserIdAndDataSource(UUID userId, DataSource dataSource) {
+        return jpaRepository.countByUserIdAndDataSource(userId, dataSource.name());
+    }
+
+    @Override
     public Optional<EvLog> updateGeohash(UUID carId, LocalDateTime loggedAt, String geohash) {
         return jpaRepository.findByCarIdAndLoggedAt(carId, loggedAt).map(entity -> {
             entity.setGeohash(geohash);

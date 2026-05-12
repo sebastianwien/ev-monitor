@@ -21,4 +21,7 @@ public interface XpengImportJobRepository extends JpaRepository<XpengImportJob, 
     @Query("UPDATE XpengImportJob j SET j.status = 'FAILED', j.errorMessage = :reason, j.completedAt = :now "
             + "WHERE j.status IN ('QUEUED','PROCESSING')")
     int markAllInFlightAsFailed(String reason, LocalDateTime now);
+
+    @Modifying
+    long deleteAllByUserId(UUID userId);
 }
