@@ -172,6 +172,7 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
 </script>
 
 <template>
+<div>
   <div class="md:max-w-6xl md:mx-auto md:p-6">
     <RewardSystemUpdateBanner class="mb-4" />
     <Transition name="fade" mode="out-in">
@@ -357,58 +358,61 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
           </div>
 
           <!-- Filters (desktop only - mobile uses sticky bottom bar below) -->
-          <div v-if="selectedCarId && hasAnyLogs" class="hidden md:block mb-6 p-4 bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 shadow-sm">
-            <!-- Desktop: buttons + select -->
-            <div class="hidden md:block">
-              <div class="flex gap-4 items-start md:items-center justify-between">
-                <div class="flex-1">
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ t('dashboard.time_range_label') }}</label>
-                  <div class="flex flex-wrap gap-2">
-                    <button
-                      v-for="option in timeRangeOptions"
-                      :key="option.value"
-                      @click="selectedTimeRange = option.value"
-                      :class="[
-                        'px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
-                        selectedTimeRange === option.value
-                          ? 'bg-indigo-600 text-white translate-y-[2px] shadow-[0_2px_0_0_#3730a3] active:shadow-none active:translate-y-1 transition-all duration-75 cursor-pointer'
-                          : 'bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-500 shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] active:shadow-none active:translate-y-1 transition-all duration-75 cursor-pointer'
-                      ]">
-                      {{ option.label }}
-                    </button>
-                  </div>
-                </div>
-                <div class="w-full md:w-auto">
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ t('dashboard.group_by_label') }}</label>
-                  <div class="relative">
-                    <select v-model="selectedGroupBy"
-                      class="block w-full md:w-auto appearance-none px-4 pr-10 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                      <option v-for="opt in groupByOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-                    </select>
-                    <ChevronDownIcon class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
-                  </div>
-                </div>
-              </div>
-              <!-- Desktop: custom date inputs -->
-              <div v-if="selectedTimeRange === 'CUSTOM'" class="flex gap-3 mt-3">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('dashboard.time_custom_from') }}</label>
-                  <div class="relative">
-                    <input type="date" v-model="customStartDate" :max="customEndDate || undefined"
-                      class="px-3 pr-9 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-9 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer" />
-                    <CalendarIcon class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
-                  </div>
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('dashboard.time_custom_to') }}</label>
-                  <div class="relative">
-                    <input type="date" v-model="customEndDate" :min="customStartDate || undefined"
-                      class="px-3 pr-9 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-9 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer" />
-                    <CalendarIcon class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
-                  </div>
+          <div v-if="selectedCarId && hasAnyLogs" class="hidden md:block mb-6 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-600 shadow-sm">
+            <!-- Tab strip -->
+            <div class="flex overflow-x-auto scrollbar-hide bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-600">
+              <button
+                v-for="option in timeRangeOptions"
+                :key="option.value"
+                @click="selectedTimeRange = option.value"
+                :class="[
+                  'flex items-center gap-1.5 px-4 h-11 text-xs font-mono whitespace-nowrap border-r border-gray-200 dark:border-gray-600 border-l-[3px] flex-shrink-0 transition-all duration-100 cursor-pointer',
+                  selectedTimeRange === option.value
+                    ? option.value === 'CUSTOM'
+                      ? 'border-l-sky-400 text-sky-400 bg-sky-400/5'
+                      : 'border-l-indigo-500 text-indigo-400 bg-indigo-500/8 dark:bg-indigo-500/10'
+                    : 'border-l-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5'
+                ]">
+                <CalendarIcon v-if="option.value === 'CUSTOM'" class="h-3.5 w-3.5 flex-shrink-0" />
+                {{ option.label }}
+              </button>
+              <!-- Gruppierung at the right end -->
+              <div class="ml-auto flex items-center gap-2 px-4 border-l border-gray-200 dark:border-gray-600 flex-shrink-0">
+                <ListBulletIcon class="h-3.5 w-3.5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+                <div class="relative">
+                  <select v-model="selectedGroupBy"
+                    class="appearance-none bg-transparent text-xs font-mono text-gray-500 dark:text-gray-400 pr-5 cursor-pointer focus:outline-none focus:text-gray-700 dark:focus:text-gray-200">
+                    <option v-for="opt in groupByOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                  </select>
+                  <ChevronDownIcon class="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 h-3 w-3 text-gray-400 dark:text-gray-500" />
                 </div>
               </div>
             </div>
+            <!-- Custom date picker (only visible when CUSTOM is selected) -->
+            <Transition
+              enter-active-class="transition duration-150 ease-out"
+              enter-from-class="opacity-0 -translate-y-1"
+              enter-to-class="opacity-100 translate-y-0"
+              leave-active-class="transition duration-100 ease-in"
+              leave-from-class="opacity-100 translate-y-0"
+              leave-to-class="opacity-0 -translate-y-1">
+              <div v-if="selectedTimeRange === 'CUSTOM'"
+                class="flex items-center gap-3 px-4 py-2.5 bg-gray-50 dark:bg-gray-800/60">
+                <span class="text-xs text-gray-400 dark:text-gray-500 font-mono uppercase tracking-wide">{{ t('dashboard.time_custom_from') }}</span>
+                <div class="relative">
+                  <input type="date" v-model="customStartDate" :max="customEndDate || undefined"
+                    class="px-3 pr-9 py-1.5 text-xs font-mono border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-100 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-9 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer" />
+                  <CalendarIcon class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 dark:text-gray-500" />
+                </div>
+                <span class="text-gray-300 dark:text-gray-600">→</span>
+                <span class="text-xs text-gray-400 dark:text-gray-500 font-mono uppercase tracking-wide">{{ t('dashboard.time_custom_to') }}</span>
+                <div class="relative">
+                  <input type="date" v-model="customEndDate" :min="customStartDate || undefined"
+                    class="px-3 pr-9 py-1.5 text-xs font-mono border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-100 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-9 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer" />
+                  <CalendarIcon class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 dark:text-gray-500" />
+                </div>
+              </div>
+            </Transition>
           </div>
 
           <!-- Echte Reichweite + Peer Benchmark: mobile gestackt, desktop nebeneinander -->
@@ -867,7 +871,7 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
       </div>
     </Transition>
   </Teleport>
-
+</div>
 </template>
 
 <style scoped>

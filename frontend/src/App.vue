@@ -484,9 +484,9 @@ const closeMobileMenu = () => {
       :style="{ paddingTop: mainPaddingTop, transition: 'padding-top 0.3s ease' }">
       <router-view v-slot="{ Component, route }">
         <Transition :name="(route.meta.transition as string) || ''" mode="out-in">
-          <div :key="route.path" class="route-view-wrapper">
+          <KeepAlive :include="['DashboardView', 'LogsView']">
             <component :is="Component" />
-          </div>
+          </KeepAlive>
         </Transition>
       </router-view>
     </main>

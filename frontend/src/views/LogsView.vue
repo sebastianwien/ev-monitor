@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, reactive, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, reactive, onMounted, onUnmounted, onActivated, onDeactivated, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   TruckIcon,
@@ -230,8 +230,8 @@ function onMenuKeyEsc(event: KeyboardEvent) {
     openMenuTopUpId.value = null
   }
 }
-onMounted(() => window.addEventListener('keydown', onMenuKeyEsc))
-onUnmounted(() => window.removeEventListener('keydown', onMenuKeyEsc))
+onActivated(() => window.addEventListener('keydown', onMenuKeyEsc))
+onDeactivated(() => window.removeEventListener('keydown', onMenuKeyEsc))
 
 function toggleLogExpanded(id: string) {
   if (expandedLogs.value.has(id)) expandedLogs.value.delete(id)
@@ -568,6 +568,7 @@ function toggleAllCharges() {
 </script>
 
 <template>
+<div>
   <div class="md:max-w-6xl md:mx-auto md:p-6">
     <RewardSystemUpdateBanner class="mb-4" />
     <Transition name="fade" mode="out-in">
@@ -1942,6 +1943,7 @@ function toggleAllCharges() {
       </div>
     </Transition>
   </Teleport>
+</div>
 </template>
 
 <style scoped>
