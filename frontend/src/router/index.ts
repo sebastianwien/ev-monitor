@@ -134,6 +134,12 @@ const router = createRouter({
             meta: { requiresAuth: true }
         },
         {
+            path: '/live',
+            name: 'live',
+            component: () => import('../views/LiveView.vue'),
+            meta: { requiresAuth: true }
+        },
+        {
             path: '/upgrade',
             name: 'upgrade',
             component: UpgradeView,

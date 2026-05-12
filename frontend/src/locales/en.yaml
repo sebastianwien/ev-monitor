@@ -2185,3 +2185,22 @@ xpeng:
     Please provide the data in the Excel format previously used for similar requests. If the file is encrypted, kindly send the password in a separate email.
 
     Thank you and best regards
+live:
+  title: "Live Charging"
+  subtitle: "Real-time charging status of your vehicle"
+  no_session: "No active charging session"
+  no_session_hint: "Once your vehicle starts charging, the live status will appear here."
+  power: "Charge power"
+  soc: "State of charge"
+  eta: "Full in"
+  range: "Range"
+  amps: "Charge current"
+  duration: "Duration"
+  last_updated: "Updated"
+  dc: "DC"
+  ac: "AC"
+  minutes_short: "min"
+  seconds_short: "sec"
+  upgrade_title: "AutoSync Live required"
+  upgrade_desc: "Live charging status is exclusive to AutoSync Live. Upgrade now and monitor your charging session in real time."
+  upgrade_cta: "Upgrade now"
