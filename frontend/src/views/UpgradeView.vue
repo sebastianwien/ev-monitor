@@ -57,7 +57,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
 
                     <!-- FREE -->
-                    <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm dark:shadow-none p-6 flex flex-col">
+                    <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm dark:shadow-none p-6 flex flex-col order-3 md:order-1">
                         <div class="mb-4">
                             <p class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">{{ t('upgrade.tier_free_label') }}</p>
                             <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ t('upgrade.tier_free_title') }}</h2>
@@ -88,11 +88,11 @@
                     <!-- AUTOSYNC -->
                     <div
                         :class="isAutoSyncActive
-                            ? 'border-green-600 dark:border-green-500 shadow-xl shadow-green-500/10'
+                            ? 'border-green-600 dark:border-green-500 shadow-2xl shadow-green-500/25 md:shadow-xl md:shadow-green-500/10'
                             : tier === 'NONE'
-                                ? 'border-green-500 dark:border-green-400 shadow-xl shadow-green-500/10 md:-mt-4'
+                                ? 'border-green-500 dark:border-green-400 shadow-2xl shadow-green-500/25 md:shadow-xl md:shadow-green-500/10 md:-mt-4'
                                 : 'border-gray-200 dark:border-gray-700'"
-                        class="bg-white dark:bg-gray-900 rounded-2xl border-2 p-6 flex flex-col relative"
+                        class="bg-white dark:bg-gray-900 rounded-2xl border-2 p-6 flex flex-col relative order-1 md:order-2"
                     >
                         <span v-if="tier === 'NONE'" class="absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] font-bold bg-green-600 dark:bg-green-500 text-white px-3 py-1 rounded-full tracking-wider whitespace-nowrap">{{ t('upgrade.tier_badge_recommended') }}</span>
                         <div class="mb-4">
@@ -105,7 +105,7 @@
                                 <template v-if="selectedPlan === 'yearly' && tier === 'NONE'">{{ pricing.yearly }}<span class="text-base font-normal text-gray-400 dark:text-gray-500"> {{ t('upgrade.tier_per_year') }}</span></template>
                                 <template v-else>{{ pricing.monthly }}<span class="text-base font-normal text-gray-400 dark:text-gray-500"> {{ t('upgrade.tier_autosync_price_unit') }}</span></template>
                             </p>
-                            <p class="text-xs text-green-600 dark:text-green-400 font-medium mt-0.5">{{ t('upgrade.tier_autosync_yearly_hint', { yearly: pricing.yearly }) }}</p>
+                            <p v-if="!(selectedPlan === 'yearly' && tier === 'NONE')" class="text-xs text-green-600 dark:text-green-400 font-medium mt-0.5">{{ t('upgrade.tier_autosync_yearly_hint', { yearly: pricing.yearly }) }}</p>
                         </div>
                         <ul class="space-y-2.5 text-sm text-gray-700 dark:text-gray-300 mb-6 flex-1">
                             <li class="flex items-start gap-2"><span class="text-green-600 dark:text-green-400 mt-0.5">✓</span><span>{{ t('upgrade.tier_autosync_feat_tesla') }}</span></li>
@@ -141,7 +141,7 @@
                         :class="isLiveActive
                             ? 'border-indigo-600 dark:border-indigo-400 shadow-xl shadow-indigo-500/10'
                             : 'border-indigo-300 dark:border-indigo-800'"
-                        class="bg-white dark:bg-gray-900 rounded-2xl border-2 p-6 flex flex-col relative"
+                        class="bg-white dark:bg-gray-900 rounded-2xl border-2 p-6 flex flex-col relative order-2 md:order-3"
                     >
                         <span v-if="!isLiveActive" class="absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] font-bold bg-indigo-600 dark:bg-indigo-500 text-white px-3 py-1 rounded-full tracking-wider whitespace-nowrap">{{ t('upgrade.tier_badge_live') }}</span>
                         <div class="mb-4">
@@ -154,7 +154,7 @@
                                 <template v-if="selectedPlan === 'yearly' && tier === 'NONE'">{{ pricing.liveYearly }}<span class="text-base font-normal text-gray-400 dark:text-gray-500"> {{ t('upgrade.tier_per_year') }}</span></template>
                                 <template v-else>{{ pricing.liveMonthly }}<span class="text-base font-normal text-gray-400 dark:text-gray-500"> {{ t('upgrade.tier_live_price_unit') }}</span></template>
                             </p>
-                            <p class="text-xs text-indigo-600 dark:text-indigo-400 font-medium mt-0.5">{{ t('upgrade.tier_live_yearly_hint', { yearly: pricing.liveYearly }) }}</p>
+                            <p v-if="!(selectedPlan === 'yearly' && tier === 'NONE')" class="text-xs text-indigo-600 dark:text-indigo-400 font-medium mt-0.5">{{ t('upgrade.tier_live_yearly_hint', { yearly: pricing.liveYearly }) }}</p>
                         </div>
                         <ul class="space-y-2.5 text-sm text-gray-700 dark:text-gray-300 mb-6 flex-1">
                             <li class="flex items-start gap-2"><span class="text-indigo-600 dark:text-indigo-400 mt-0.5">✓</span><span>{{ t('upgrade.tier_live_feat_trip') }}</span></li>
