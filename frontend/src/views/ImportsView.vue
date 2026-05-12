@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, defineAsyncComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/auth'
-import { ArrowDownTrayIcon, ArrowPathIcon, BoltIcon, ExclamationTriangleIcon, CodeBracketIcon, TrashIcon, ClipboardDocumentIcon, CheckIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
+import { ArrowDownTrayIcon, ArrowPathIcon, BoltIcon, CodeBracketIcon, TrashIcon, ClipboardDocumentIcon, CheckIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
 import SpritMonitorImport from '../components/imports/SpritMonitorImport.vue'
 import GoeIntegration from '../components/imports/GoeIntegration.vue'
 import TeslaFleetIntegration from '../components/imports/TeslaFleetIntegration.vue'
@@ -200,29 +200,31 @@ const teslaConnectedLabel = ref<string | null>(null)
         </div>
 
         <!-- AutoSync Pro Teaser — nur wenn Premium-Kauf möglich und User noch kein Abonnent -->
-        <div v-if="premiumEnabled && !authStore.isPremium" class="mb-4 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-4 text-center md:text-left">
+        <div v-if="premiumEnabled && !authStore.isPremium"
+             class="mb-4 border-2 border-amber-500 bg-amber-50 dark:bg-amber-950/30 rounded-sm shadow-[4px_4px_0_0_#030712] dark:shadow-[4px_4px_0_0_#ffffff] p-4 text-center md:text-left">
           <div class="flex flex-col items-center md:flex-row md:items-start gap-3">
-            <div class="shrink-0 bg-green-600 rounded-lg p-2">
-              <BoltIcon class="h-5 w-5 text-white" />
+            <div class="shrink-0 rounded-sm border-2 border-gray-900 dark:border-white bg-amber-500 p-2 w-10 h-10 flex items-center justify-center">
+              <BoltIcon class="h-5 w-5 text-gray-950" />
             </div>
             <div class="flex-1 min-w-0">
-              <p class="font-semibold text-gray-900 dark:text-gray-100 text-sm mb-1">{{ t('imports.autosync_teaser_title') }}</p>
-              <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">{{ t('imports.autosync_teaser_desc') }}</p>
+              <p class="text-amber-600 dark:text-amber-500 text-[11px] font-bold uppercase tracking-[0.14em] mb-1">EV Monitor AutoSync</p>
+              <p class="font-bold text-gray-900 dark:text-white text-base md:text-lg mb-1 tracking-tight">{{ t('imports.autosync_teaser_title') }}</p>
+              <p class="text-sm text-gray-600 dark:text-gray-300 mb-3 font-medium">{{ t('imports.autosync_teaser_desc') }}</p>
               <div class="flex flex-col items-center sm:flex-row sm:items-center gap-2">
                 <router-link
                   to="/upgrade"
-                  class="inline-flex items-center justify-center gap-1.5 bg-green-600 hover:bg-green-500 active:translate-y-1 active:shadow-none text-white text-sm font-semibold px-4 py-2 rounded-lg transition-all shadow-[0_4px_0_0_#166534]"
+                  class="flex w-full sm:w-auto sm:inline-flex items-center justify-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-gray-950 font-bold uppercase tracking-wider text-[11px] px-4 py-2.5 rounded-sm border-2 border-amber-500 shadow-[3px_3px_0_0_#030712] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75"
                 >
                   {{ t('imports.autosync_teaser_cta') }}
                 </router-link>
-                <span class="text-xs text-gray-400 dark:text-gray-500">{{ t('imports.autosync_teaser_price', { priceMonthly: t('upgrade.price_monthly') }) }}</span>
+                <span class="text-[11px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400">{{ t('imports.autosync_teaser_price', { priceMonthly: t('upgrade.price_monthly') }) }}</span>
               </div>
             </div>
           </div>
         </div>
 
         <!-- Accordion -->
-        <div class="-mx-4 md:mx-0 border-y md:border border-gray-200 dark:border-gray-600 md:rounded-xl divide-y divide-gray-200 dark:divide-gray-700 overflow-hidden shadow-lg dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+        <div class="-mx-4 md:mx-0 border-y-2 md:border-2 border-gray-300 dark:border-gray-700 md:rounded-sm divide-y-2 divide-gray-300 dark:divide-gray-700 overflow-hidden md:shadow-[4px_4px_0_0_#d1d5db] dark:md:shadow-[4px_4px_0_0_#374151]">
 
         <!-- 1. SMARTCAR -->
         <div>
@@ -230,8 +232,8 @@ const teslaConnectedLabel = ref<string | null>(null)
             @click="toggle('smartcar'); analytics.trackImportTabClicked('smartcar')"
             class="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
           >
-            <div class="shrink-0 rounded-lg p-2 w-10 h-10 flex items-center justify-center bg-gradient-to-br from-indigo-500 to-green-500">
-              <ArrowPathIcon class="h-5 w-5 text-white" />
+            <div class="shrink-0 rounded-sm border-2 border-gray-900 dark:border-white p-2 w-10 h-10 flex items-center justify-center bg-amber-500">
+              <ArrowPathIcon class="h-5 w-5 text-gray-950" />
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 flex-wrap">
@@ -245,31 +247,42 @@ const teslaConnectedLabel = ref<string | null>(null)
           </button>
           <Transition name="accordion">
             <div v-if="activeTab === 'smartcar'" class="px-1 py-3 md:p-6 space-y-3">
-              <!-- Live-Promo: AutoSync subscriber with at least one Tesla in garage -->
-              <div v-if="showLivePromo" class="mx-3 rounded-xl bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-700 p-4 shadow-lg">
-                <div class="flex items-start gap-3 mb-3">
-                  <div class="shrink-0 w-9 h-9 rounded-lg bg-white/15 flex items-center justify-center">
-                    <BoltIcon class="h-5 w-5 text-white" />
-                  </div>
-                  <div class="flex-1">
-                    <p class="text-sm font-bold text-white">{{ t('imports.live_promo_title') }}</p>
-                    <p class="text-xs text-indigo-100 mt-0.5">{{ t('imports.live_promo_subtitle') }}</p>
+              <!-- Live-Promo: AutoSync subscriber with at least one Tesla in garage.
+                   Neo-Brutalist Style passend zum Rest des AutoSync-Tabs. -->
+              <div v-if="showLivePromo" class="mx-3 border-2 border-indigo-600 dark:border-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 rounded-sm shadow-[4px_4px_0_0_#4f46e5] p-4">
+                <div class="flex items-start justify-between gap-3 mb-3">
+                  <div class="min-w-0">
+                    <p class="text-indigo-700 dark:text-indigo-400 text-[11px] font-bold uppercase tracking-[0.14em] mb-1 flex items-center gap-2">
+                      <span class="inline-flex w-5 h-5 bg-indigo-600 text-white rounded-sm items-center justify-center text-[11px] font-extrabold">+</span>
+                      AutoSync Live
+                    </p>
+                    <h3 class="text-base md:text-lg font-bold text-gray-900 dark:text-white tracking-tight">{{ t('imports.live_promo_title') }}</h3>
                   </div>
                 </div>
-                <ul class="text-xs text-indigo-100 space-y-1.5 mb-3 ml-1">
-                  <li class="flex items-start gap-2"><span class="text-white">→</span><span v-html="t('imports.live_promo_feature_trip')"></span></li>
-                  <li class="flex items-start gap-2"><span class="text-white">→</span><span v-html="t('imports.live_promo_feature_drain')"></span></li>
+
+                <ul class="space-y-1.5 mb-3">
+                  <li class="flex items-start gap-2 text-xs md:text-sm text-gray-700 dark:text-gray-200">
+                    <span class="text-indigo-700 dark:text-indigo-400 font-extrabold mt-0.5">→</span>
+                    <span class="font-medium" v-html="t('imports.live_promo_feature_trip')"></span>
+                  </li>
+                  <li class="flex items-start gap-2 text-xs md:text-sm text-gray-700 dark:text-gray-200">
+                    <span class="text-indigo-700 dark:text-indigo-400 font-extrabold mt-0.5">→</span>
+                    <span class="font-medium" v-html="t('imports.live_promo_feature_drain')"></span>
+                  </li>
                 </ul>
-                <button
-                  @click="handleLiveUpgrade"
-                  :disabled="liveUpgradeLoading"
-                  class="w-full bg-white text-indigo-700 font-semibold text-sm py-2.5 rounded-lg hover:bg-indigo-50 transition-colors disabled:opacity-60"
-                >
-                  <span v-if="liveUpgradeLoading">…</span>
-                  <span v-else>{{ t('imports.live_promo_cta') }}</span>
-                </button>
-                <p class="text-[10px] text-indigo-200 text-center mt-2">{{ t('imports.live_promo_proration_hint') }}</p>
-                <p v-if="liveUpgradeError" class="text-xs text-amber-200 text-center mt-2">{{ liveUpgradeError }}</p>
+
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <p class="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 text-center sm:text-left order-2 sm:order-1">{{ t('imports.live_promo_proration_hint') }}</p>
+                  <button
+                    @click="handleLiveUpgrade"
+                    :disabled="liveUpgradeLoading"
+                    class="w-full sm:w-auto inline-flex items-center justify-center bg-amber-500 hover:bg-amber-400 text-gray-950 font-bold uppercase tracking-wider text-[11px] px-4 py-2.5 rounded-sm border-2 border-amber-500 shadow-[3px_3px_0_0_#030712] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75 disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap order-1 sm:order-2"
+                  >
+                    <span v-if="liveUpgradeLoading">…</span>
+                    <span v-else>{{ t('imports.live_promo_cta') }}</span>
+                  </button>
+                </div>
+                <p v-if="liveUpgradeError" class="text-xs text-amber-700 dark:text-amber-400 text-center mt-2 font-medium">{{ liveUpgradeError }}</p>
               </div>
 
               <!-- Tile-based picker per car. Tesla cars route to Tesla Fleet
@@ -295,7 +308,7 @@ const teslaConnectedLabel = ref<string | null>(null)
             @click="toggle('api'); analytics.trackImportTabClicked('api')"
             class="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
           >
-            <div class="shrink-0 bg-indigo-600 rounded-lg p-2">
+            <div class="shrink-0 rounded-sm border-2 border-gray-900 dark:border-white bg-indigo-600 p-2 w-10 h-10 flex items-center justify-center">
               <CodeBracketIcon class="h-5 w-5 text-white" />
             </div>
             <div class="flex-1 min-w-0">
@@ -304,66 +317,92 @@ const teslaConnectedLabel = ref<string | null>(null)
             <ChevronDownIcon :class="['h-5 w-5 text-gray-400 shrink-0 transition-transform duration-200', activeTab === 'api' ? 'rotate-180' : '']" />
           </button>
           <Transition name="accordion">
-            <div v-if="activeTab === 'api'" class="border-t border-gray-100 dark:border-gray-700 p-4 space-y-5">
-              <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('imports.api_desc') }}</p>
-              <div class="p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700 rounded-lg text-sm text-indigo-800 dark:text-indigo-300">
-                <p class="font-mono text-xs bg-white dark:bg-gray-700 border border-indigo-200 dark:border-indigo-700 rounded px-2 py-1.5 mb-2 break-all">
+            <div v-if="activeTab === 'api'" class="border-t-2 border-gray-300 dark:border-gray-700 p-4 md:p-5 space-y-5">
+              <p class="text-sm text-gray-700 dark:text-gray-300 font-medium leading-relaxed">{{ t('imports.api_desc') }}</p>
+
+              <!-- Endpoint-Card -->
+              <div class="border-2 border-gray-900 dark:border-white bg-gray-900 dark:bg-gray-950 rounded-sm shadow-[4px_4px_0_0_#4f46e5] p-4">
+                <p class="text-indigo-400 text-[11px] font-bold uppercase tracking-[0.14em] mb-2">Endpoint</p>
+                <p class="font-mono text-xs bg-gray-950 text-gray-100 border border-gray-700 rounded-sm px-3 py-2 mb-3 break-all">
                   POST https://ev-monitor.net/api/v1/sessions<br>
                   Authorization: Bearer evm_&lt;dein-key&gt;
                 </p>
-                <p class="text-xs mb-1">{{ t('imports.api_required') }} <code class="bg-white dark:bg-gray-700 px-1 rounded">date</code>, <code class="bg-white dark:bg-gray-700 px-1 rounded">kwh</code></p>
-                <p class="text-xs">{{ t('imports.api_optional') }} <code class="bg-white dark:bg-gray-700 px-1 rounded">odometer_km</code>, <code class="bg-white dark:bg-gray-700 px-1 rounded">soc_after</code>, <code class="bg-white dark:bg-gray-700 px-1 rounded">cost_eur</code>, <code class="bg-white dark:bg-gray-700 px-1 rounded">duration_min</code>, <code class="bg-white dark:bg-gray-700 px-1 rounded">location</code>, <code class="bg-white dark:bg-gray-700 px-1 rounded">charging_type</code> (AC/DC)</p>
-                <p class="text-xs mt-1">{{ t('imports.api_dedup') }}</p>
-                <p class="text-xs mt-1" v-html="t('imports.api_date_hint')" />
-                <a href="/swagger-ui/index.html" target="_blank" class="inline-block mt-2 text-indigo-700 hover:underline font-medium text-xs">{{ t('imports.api_docs') }}</a>
+                <p class="text-xs text-gray-300 mb-1.5"><span class="text-indigo-400 font-bold uppercase tracking-wider text-[10px]">{{ t('imports.api_required') }}</span> <code class="bg-gray-800 text-amber-300 px-1.5 py-0.5 rounded-sm font-mono">date</code>, <code class="bg-gray-800 text-amber-300 px-1.5 py-0.5 rounded-sm font-mono">kwh</code></p>
+                <p class="text-xs text-gray-300 mb-1.5"><span class="text-indigo-400 font-bold uppercase tracking-wider text-[10px]">{{ t('imports.api_optional') }}</span> <code class="bg-gray-800 text-amber-300 px-1.5 py-0.5 rounded-sm font-mono">odometer_km</code>, <code class="bg-gray-800 text-amber-300 px-1.5 py-0.5 rounded-sm font-mono">soc_after</code>, <code class="bg-gray-800 text-amber-300 px-1.5 py-0.5 rounded-sm font-mono">cost_eur</code>, <code class="bg-gray-800 text-amber-300 px-1.5 py-0.5 rounded-sm font-mono">duration_min</code>, <code class="bg-gray-800 text-amber-300 px-1.5 py-0.5 rounded-sm font-mono">location</code>, <code class="bg-gray-800 text-amber-300 px-1.5 py-0.5 rounded-sm font-mono">charging_type</code> (AC/DC)</p>
+                <p class="text-xs text-gray-400 mt-2">{{ t('imports.api_dedup') }}</p>
+                <p class="text-xs text-gray-400 mt-1" v-html="t('imports.api_date_hint')" />
+                <a href="/swagger-ui/index.html" target="_blank" class="inline-block mt-3 text-indigo-400 hover:text-indigo-300 font-bold uppercase tracking-wider text-[11px] underline underline-offset-2">{{ t('imports.api_docs') }} →</a>
               </div>
+
               <!-- Fahrzeug-IDs -->
-              <div v-if="activeCars.length > 0" class="space-y-1.5">
-                <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">{{ t('imports.api_car_ids_title') }}</p>
-                <p class="text-xs text-gray-500 dark:text-gray-400" v-html="t('imports.api_car_ids_hint')" />
+              <div v-if="activeCars.length > 0" class="space-y-2">
+                <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-gray-500 dark:text-gray-400">{{ t('imports.api_car_ids_title') }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed" v-html="t('imports.api_car_ids_hint')" />
                 <div v-for="car in activeCars" :key="car.id"
-                  class="flex items-center gap-2 p-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg">
+                  class="flex items-center gap-2 border-2 border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 rounded-sm p-3">
                   <div class="flex-1 min-w-0">
-                    <p class="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">{{ car.year }} {{ toModelLabel(car.model) }}<span v-if="car.licensePlate" class="text-gray-400 dark:text-gray-500"> · {{ car.licensePlate }}</span></p>
+                    <p class="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">{{ car.year }} {{ toModelLabel(car.model) }}<span v-if="car.licensePlate" class="text-gray-500 dark:text-gray-400 font-normal"> · {{ car.licensePlate }}</span></p>
                     <p class="text-[11px] font-mono text-gray-500 dark:text-gray-400 mt-0.5 select-all">{{ car.id }}</p>
                   </div>
                   <button @click="copyCarId(car.id)" :title="t('cars.api_id_copy')"
-                    class="shrink-0 p-1.5 text-gray-400 hover:text-indigo-500 dark:hover:text-indigo-400 hover:bg-gray-100 dark:hover:bg-gray-600 rounded transition">
-                    <CheckIcon v-if="copiedCarId === car.id" class="h-4 w-4 text-green-500" />
-                    <ClipboardDocumentIcon v-else class="h-4 w-4" />
+                    class="shrink-0 p-2 border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-sm shadow-[2px_2px_0_0_#9ca3af] dark:shadow-[2px_2px_0_0_#4b5563] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-[transform,box-shadow] duration-75">
+                    <CheckIcon v-if="copiedCarId === car.id" class="h-4 w-4 text-emerald-500" />
+                    <ClipboardDocumentIcon v-else class="h-4 w-4 text-gray-600 dark:text-gray-300" />
                   </button>
                 </div>
               </div>
 
-              <div v-if="apiKeyMessage" :class="['p-3 rounded-lg text-sm', apiKeyMessage.type === 'success' ? 'bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 text-green-700 dark:text-green-300' : 'bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300']">{{ apiKeyMessage.text }}</div>
-              <div v-if="createdKey" class="p-4 bg-green-50 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded-lg">
-                <p class="font-semibold text-green-800 dark:text-green-200 mb-1 text-sm">{{ t('imports.api_new_key_title') }}</p>
+              <div v-if="apiKeyMessage"
+                   :class="['border-l-2 px-4 py-3 rounded-r-sm text-sm font-medium',
+                            apiKeyMessage.type === 'success'
+                              ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-200'
+                              : 'border-red-500 bg-red-50 dark:bg-red-950/40 text-red-900 dark:text-red-200']">
+                {{ apiKeyMessage.text }}
+              </div>
+
+              <div v-if="createdKey" class="border-2 border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 rounded-sm shadow-[4px_4px_0_0_#10b981] p-4">
+                <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-emerald-700 dark:text-emerald-400 mb-2">{{ t('imports.api_new_key_title') }}</p>
                 <div class="flex items-center gap-2">
-                  <code class="flex-1 bg-white dark:bg-gray-700 border border-green-300 dark:border-green-700 rounded px-3 py-2 text-sm font-mono break-all">{{ createdKey.plaintextKey }}</code>
-                  <button @click="copyApiKey" class="flex-shrink-0 p-2 rounded-lg bg-green-600 text-white hover:bg-green-700 transition" :title="t('imports.api_copy_title')">
+                  <code class="flex-1 bg-gray-900 text-emerald-300 border-2 border-gray-900 dark:border-emerald-700 rounded-sm px-3 py-2 text-xs font-mono break-all">{{ createdKey.plaintextKey }}</code>
+                  <button @click="copyApiKey"
+                          class="shrink-0 p-2.5 border-2 border-gray-900 dark:border-white bg-emerald-500 hover:bg-emerald-400 text-gray-950 rounded-sm shadow-[3px_3px_0_0_#030712] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75"
+                          :title="t('imports.api_copy_title')">
                     <CheckIcon v-if="keyCopied" class="h-5 w-5" />
                     <ClipboardDocumentIcon v-else class="h-5 w-5" />
                   </button>
                 </div>
-                <p class="text-xs text-green-700 dark:text-green-300 mt-2">{{ t('imports.api_save_key_hint') }}</p>
+                <p class="text-xs text-emerald-700 dark:text-emerald-300 mt-2 font-medium">{{ t('imports.api_save_key_hint') }}</p>
               </div>
-              <div class="flex gap-2">
-                <input v-model="newKeyName" type="text" :placeholder="t('imports.api_key_placeholder')" maxlength="100" class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500" @keyup.enter="createApiKey" />
-                <button @click="createApiKey" :disabled="apiKeyLoading || !newKeyName.trim()" class="btn-3d px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition text-sm font-medium whitespace-nowrap">{{ t('imports.api_create_btn') }}</button>
+
+              <div class="flex flex-col sm:flex-row gap-2">
+                <input v-model="newKeyName" type="text" :placeholder="t('imports.api_key_placeholder')" maxlength="100"
+                       class="flex-1 px-3 py-2.5 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 rounded-sm text-sm font-medium focus:outline-none focus:border-indigo-500 transition-colors"
+                       @keyup.enter="createApiKey" />
+                <button @click="createApiKey" :disabled="apiKeyLoading || !newKeyName.trim()"
+                        class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white font-bold uppercase tracking-wider text-[11px] px-4 py-2.5 rounded-sm border-2 border-indigo-600 disabled:border-gray-300 dark:disabled:border-gray-700 shadow-[3px_3px_0_0_#030712] disabled:shadow-none active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75 whitespace-nowrap">
+                  {{ t('imports.api_create_btn') }}
+                </button>
               </div>
-              <div v-if="apiKeys.length === 0" class="text-sm text-gray-500 dark:text-gray-400 italic">{{ t('imports.api_no_keys') }}</div>
+
+              <div v-if="apiKeys.length === 0"
+                   class="text-sm font-medium border-l-2 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/40 text-gray-600 dark:text-gray-400 px-4 py-3 rounded-r-sm">
+                {{ t('imports.api_no_keys') }}
+              </div>
               <div v-else class="space-y-2">
-                <div v-for="key in apiKeys" :key="key.id" class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg gap-2">
+                <div v-for="key in apiKeys" :key="key.id"
+                     class="flex items-center justify-between gap-2 border-2 border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 rounded-sm p-3">
                   <div class="min-w-0 flex-1">
-                    <p class="font-medium text-gray-800 dark:text-gray-200 text-sm truncate">{{ key.name || t('imports.api_no_name') }}</p>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">
-                      <code class="font-mono">{{ key.keyPrefix }}…</code>
+                    <p class="font-bold text-gray-900 dark:text-gray-100 text-sm truncate">{{ key.name || t('imports.api_no_name') }}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 font-mono">
+                      <span class="text-amber-600 dark:text-amber-400">{{ key.keyPrefix }}…</span>
                       · {{ t('imports.api_last_used') }} {{ formatDate(key.lastUsedAt) }}
                       · {{ t('imports.api_created') }} {{ formatDate(key.createdAt) }}
                     </p>
                   </div>
-                  <button @click="deleteApiKey(key.id, key.name)" :disabled="deletingKeyId === key.id" class="flex-shrink-0 p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition disabled:opacity-50" :title="t('imports.api_revoke_title')">
-                    <TrashIcon class="h-5 w-5" />
+                  <button @click="deleteApiKey(key.id, key.name)" :disabled="deletingKeyId === key.id"
+                          class="shrink-0 p-2 border-2 border-red-500 bg-white dark:bg-gray-900 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-sm shadow-[2px_2px_0_0_#dc2626] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-[transform,box-shadow] duration-75 disabled:opacity-50"
+                          :title="t('imports.api_revoke_title')">
+                    <TrashIcon class="h-4 w-4" />
                   </button>
                 </div>
               </div>
@@ -377,8 +416,8 @@ const teslaConnectedLabel = ref<string | null>(null)
             @click="toggle('spritmonitor'); analytics.trackImportTabClicked('spritmonitor')"
             class="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
           >
-            <div class="shrink-0 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-2 w-10 h-10 flex items-center justify-center">
-              <img src="/logos/spritmonitor.png" alt="Sprit-Monitor" class="h-5 w-auto" />
+            <div class="shrink-0 rounded-sm border-2 border-gray-900 dark:border-white bg-sky-700 p-2 w-10 h-10 flex items-center justify-center">
+              <span class="text-white font-extrabold text-sm leading-none tracking-tight">SM</span>
             </div>
             <div class="flex-1 min-w-0">
               <span class="font-medium text-gray-900 dark:text-gray-100 text-sm">{{ t('imports.tab_spritmonitor') }}</span>
@@ -386,15 +425,16 @@ const teslaConnectedLabel = ref<string | null>(null)
             <ChevronDownIcon :class="['h-5 w-5 text-gray-400 shrink-0 transition-transform duration-200', activeTab === 'spritmonitor' ? 'rotate-180' : '']" />
           </button>
           <Transition name="accordion">
-            <div v-if="activeTab === 'spritmonitor'" class="border-t border-gray-100 dark:border-gray-700 p-4 space-y-4">
-              <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('imports.sprit_desc') }}</p>
-              <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-1 list-disc list-inside">
-                <li>{{ t('imports.sprit_feat1') }}</li>
-                <li>{{ t('imports.sprit_feat2') }}</li>
-                <li>{{ t('imports.sprit_feat3') }}</li>
-                <li>{{ t('imports.sprit_feat4') }}</li>
+            <div v-if="activeTab === 'spritmonitor'" class="border-t-2 border-gray-300 dark:border-gray-700 p-4 md:p-5 space-y-4">
+              <p class="text-sm text-gray-700 dark:text-gray-300 font-medium leading-relaxed">{{ t('imports.sprit_desc') }}</p>
+              <ul class="space-y-2">
+                <li v-for="i in 4" :key="i" class="flex items-start gap-2.5 text-sm text-gray-700 dark:text-gray-300">
+                  <span class="shrink-0 w-5 h-5 bg-sky-700 text-white rounded-sm flex items-center justify-center text-[10px] font-extrabold mt-0.5">→</span>
+                  <span class="font-medium">{{ t(`imports.sprit_feat${i}`) }}</span>
+                </li>
               </ul>
-              <button @click="showSpritMonitorModal = true" class="btn-3d flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-lg font-medium text-sm hover:bg-indigo-700 transition">
+              <button @click="showSpritMonitorModal = true"
+                      class="flex w-full sm:w-auto sm:inline-flex items-center justify-center gap-2 bg-sky-700 hover:bg-sky-600 text-white font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-sm border-2 border-sky-700 shadow-[3px_3px_0_0_#030712] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75">
                 <ArrowDownTrayIcon class="h-4 w-4" />
                 {{ t('imports.sprit_btn') }}
               </button>
@@ -408,8 +448,8 @@ const teslaConnectedLabel = ref<string | null>(null)
             @click="toggle('tronity'); analytics.trackImportTabClicked('tronity')"
             class="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
           >
-            <div class="shrink-0 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-2 w-10 h-10 flex items-center justify-center">
-              <img src="/logos/tronity.svg" alt="Tronity" class="h-4 w-auto" />
+            <div class="shrink-0 rounded-sm border-2 border-gray-900 dark:border-white bg-orange-500 p-2 w-10 h-10 flex items-center justify-center">
+              <span class="text-gray-950 font-extrabold text-sm leading-none tracking-tight">TR</span>
             </div>
             <div class="flex-1 min-w-0">
               <span class="font-medium text-gray-900 dark:text-gray-100 text-sm">{{ t('imports.tab_tronity') }}</span>
@@ -429,8 +469,8 @@ const teslaConnectedLabel = ref<string | null>(null)
             @click="toggle('tessie'); analytics.trackImportTabClicked('tessie')"
             class="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
           >
-            <div class="shrink-0 bg-gray-900 dark:bg-gray-700 rounded-lg p-2 w-10 h-10 flex items-center justify-center">
-              <span class="text-white font-bold text-xs leading-none">T</span>
+            <div class="shrink-0 rounded-sm border-2 border-gray-900 dark:border-white bg-emerald-700 p-2 w-10 h-10 flex items-center justify-center">
+              <span class="text-white font-extrabold text-sm leading-none tracking-tight">TS</span>
             </div>
             <div class="flex-1 min-w-0">
               <span class="font-medium text-gray-900 dark:text-gray-100 text-sm">{{ t('imports.tab_tessie') }}</span>
@@ -438,14 +478,16 @@ const teslaConnectedLabel = ref<string | null>(null)
             <ChevronDownIcon :class="['h-5 w-5 text-gray-400 shrink-0 transition-transform duration-200', activeTab === 'tessie' ? 'rotate-180' : '']" />
           </button>
           <Transition name="accordion">
-            <div v-if="activeTab === 'tessie'" class="border-t border-gray-100 dark:border-gray-700 p-4 space-y-4">
-              <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('imports.tessie_desc') }}</p>
-              <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-1 list-disc list-inside">
-                <li>{{ t('imports.tessie_feat1') }}</li>
-                <li>{{ t('imports.tessie_feat2') }}</li>
-                <li>{{ t('imports.tessie_feat3') }}</li>
+            <div v-if="activeTab === 'tessie'" class="border-t-2 border-gray-300 dark:border-gray-700 p-4 md:p-5 space-y-4">
+              <p class="text-sm text-gray-700 dark:text-gray-300 font-medium leading-relaxed">{{ t('imports.tessie_desc') }}</p>
+              <ul class="space-y-2">
+                <li v-for="i in 3" :key="i" class="flex items-start gap-2.5 text-sm text-gray-700 dark:text-gray-300">
+                  <span class="shrink-0 w-5 h-5 bg-emerald-700 text-white rounded-sm flex items-center justify-center text-[10px] font-extrabold mt-0.5">→</span>
+                  <span class="font-medium">{{ t(`imports.tessie_feat${i}`) }}</span>
+                </li>
               </ul>
-              <button @click="showTessieModal = true" class="btn-3d flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 rounded-lg font-medium text-sm hover:bg-gray-800 transition">
+              <button @click="showTessieModal = true"
+                      class="flex w-full sm:w-auto sm:inline-flex items-center justify-center gap-2 bg-emerald-700 hover:bg-emerald-600 text-white font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-sm border-2 border-emerald-700 shadow-[3px_3px_0_0_#030712] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75">
                 <ArrowDownTrayIcon class="h-4 w-4" />
                 {{ t('imports.tessie_btn') }}
               </button>
@@ -459,8 +501,8 @@ const teslaConnectedLabel = ref<string | null>(null)
             @click="toggle('xpeng'); analytics.trackImportTabClicked('xpeng')"
             class="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
           >
-            <div class="shrink-0 bg-gray-900 dark:bg-gray-700 rounded-lg p-2 w-10 h-10 flex items-center justify-center">
-              <span class="text-white font-bold text-xs leading-none">XP</span>
+            <div class="shrink-0 rounded-sm border-2 border-gray-900 dark:border-white bg-cyan-500 p-2 w-10 h-10 flex items-center justify-center">
+              <span class="text-gray-950 font-extrabold text-sm leading-none tracking-tight">XP</span>
             </div>
             <div class="flex-1 min-w-0">
               <span class="font-medium text-gray-900 dark:text-gray-100 text-sm">XPeng</span>
@@ -480,7 +522,7 @@ const teslaConnectedLabel = ref<string | null>(null)
             @click="toggle('manuell'); analytics.trackImportTabClicked('manuell')"
             class="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
           >
-            <div class="shrink-0 bg-green-700 rounded-lg p-2">
+            <div class="shrink-0 rounded-sm border-2 border-gray-900 dark:border-white bg-green-700 p-2 w-10 h-10">
               <ArrowDownTrayIcon class="h-5 w-5 text-white" />
             </div>
             <div class="flex-1 min-w-0">
@@ -489,30 +531,29 @@ const teslaConnectedLabel = ref<string | null>(null)
             <ChevronDownIcon :class="['h-5 w-5 text-gray-400 shrink-0 transition-transform duration-200', activeTab === 'manuell' ? 'rotate-180' : '']" />
           </button>
           <Transition name="accordion">
-            <div v-if="activeTab === 'manuell'" class="border-t border-gray-100 dark:border-gray-700 p-4 space-y-4">
-              <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('imports.manuell_desc') }}</p>
-              <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-1 list-disc list-inside">
-                <li>{{ t('imports.manuell_feat1') }}</li>
-                <li>{{ t('imports.manuell_feat2') }}</li>
-                <li>{{ t('imports.manuell_feat3') }}</li>
-                <li>{{ t('imports.manuell_feat4') }}</li>
-                <li>{{ t('imports.manuell_feat5') }}</li>
+            <div v-if="activeTab === 'manuell'" class="border-t-2 border-gray-300 dark:border-gray-700 p-4 md:p-5 space-y-4">
+              <p class="text-sm text-gray-700 dark:text-gray-300 font-medium leading-relaxed">{{ t('imports.manuell_desc') }}</p>
+              <ul class="space-y-2">
+                <li v-for="i in 5" :key="i" class="flex items-start gap-2.5 text-sm text-gray-700 dark:text-gray-300">
+                  <span class="shrink-0 w-5 h-5 bg-green-700 text-white rounded-sm flex items-center justify-center text-[10px] font-extrabold mt-0.5">→</span>
+                  <span class="font-medium">{{ t(`imports.manuell_feat${i}`) }}</span>
+                </li>
               </ul>
               <div v-if="activeCars.length > 1" class="space-y-1.5">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('imports.manuell_select_car') }}</label>
+                <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ t('imports.manuell_select_car') }}</label>
                 <CarSelectDropdown :cars="activeCars" v-model="manualImportCarId" />
               </div>
               <button
                 @click="manualImportCarId = activeCars.length === 1 ? activeCars[0].id : manualImportCarId; showManualImportModal = true"
                 :disabled="activeCars.length === 0 || (activeCars.length > 1 && !manualImportCarId)"
-                class="btn-3d w-full flex items-center justify-center gap-2 bg-green-700 text-white px-5 py-2.5 rounded-lg font-medium text-sm hover:bg-green-800 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                class="w-full inline-flex items-center justify-center gap-2 bg-green-700 hover:bg-green-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-sm border-2 border-green-700 disabled:border-gray-300 dark:disabled:border-gray-700 shadow-[3px_3px_0_0_#030712] disabled:shadow-none active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75"
               >
                 <ArrowDownTrayIcon class="h-4 w-4" />
                 {{ t('imports.manuell_btn') }}
               </button>
-              <p v-if="activeCars.length === 0" class="text-sm text-gray-500 dark:text-gray-400 italic">
+              <p v-if="activeCars.length === 0" class="text-sm font-medium border-l-2 border-amber-500 bg-amber-50 dark:bg-amber-950/30 text-gray-700 dark:text-gray-200 px-4 py-3 rounded-r-sm">
                 {{ t('imports.manuell_no_car') }}
-                <router-link to="/cars" class="text-indigo-600 hover:underline font-medium">{{ t('imports.manuell_no_car_link') }}</router-link>
+                <router-link to="/cars" class="font-bold underline hover:no-underline ml-1">{{ t('imports.manuell_no_car_link') }}</router-link>
               </p>
             </div>
           </Transition>
@@ -524,27 +565,20 @@ const teslaConnectedLabel = ref<string | null>(null)
             @click="toggle('goe'); analytics.trackImportTabClicked('goe')"
             class="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
           >
-            <div class="shrink-0 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-2 w-10 h-10 flex items-center justify-center">
-              <img src="/logos/go-e.svg" alt="go-e" class="h-5 w-auto" />
+            <div class="shrink-0 rounded-sm border-2 border-gray-900 dark:border-white bg-yellow-400 p-2 w-10 h-10 flex items-center justify-center">
+              <span class="text-gray-950 font-extrabold text-sm leading-none tracking-tight">GE</span>
             </div>
             <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2 flex-wrap">
-                <span class="font-medium text-gray-900 dark:text-gray-100 text-sm">{{ t('imports.tab_goe') }}</span>
-                <span class="text-[10px] bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 font-semibold px-1.5 py-0.5 rounded-full leading-none">BETA</span>
-              </div>
+              <span class="font-medium text-gray-900 dark:text-gray-100 text-sm">{{ t('imports.tab_goe') }}</span>
             </div>
             <ChevronDownIcon :class="['h-5 w-5 text-gray-400 shrink-0 transition-transform duration-200', activeTab === 'goe' ? 'rotate-180' : '']" />
           </button>
           <Transition name="accordion">
-            <div v-if="activeTab === 'goe'" class="border-t border-gray-100 dark:border-gray-700 p-4 space-y-4">
-              <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('imports.goe_desc') }}</p>
-              <div class="flex items-start gap-2 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-3">
-                <ExclamationTriangleIcon class="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
-                <p class="text-xs text-blue-800 dark:text-blue-200">{{ t('imports.goe_beta_hint') }}</p>
-              </div>
-              <div class="flex items-start gap-2 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg p-3">
-                <ExclamationTriangleIcon class="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
-                <p class="text-xs text-amber-800 dark:text-amber-200">{{ t('imports.goe_parallel_hint') }}</p>
+            <div v-if="activeTab === 'goe'" class="border-t-2 border-gray-300 dark:border-gray-700 p-4 md:p-5 space-y-4">
+              <p class="text-sm text-gray-700 dark:text-gray-300 font-medium leading-relaxed">{{ t('imports.goe_desc') }}</p>
+              <div class="border-l-2 border-amber-500 bg-amber-50 dark:bg-amber-950/40 px-4 py-3 rounded-r-sm">
+                <p class="text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 mb-1">Hinweis</p>
+                <p class="text-xs text-gray-700 dark:text-gray-200 font-medium leading-relaxed">{{ t('imports.goe_parallel_hint') }}</p>
               </div>
               <GoeIntegration />
             </div>
@@ -557,33 +591,31 @@ const teslaConnectedLabel = ref<string | null>(null)
             @click="toggle('wallbox'); analytics.trackImportTabClicked('wallbox')"
             class="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
           >
-            <div class="shrink-0 bg-gray-800 dark:bg-gray-600 rounded-lg p-2">
+            <div class="shrink-0 rounded-sm border-2 border-gray-900 dark:border-white bg-slate-700 p-2 w-10 h-10 flex items-center justify-center">
               <BoltIcon class="h-5 w-5 text-white" />
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 flex-wrap">
                 <span class="font-medium text-gray-900 dark:text-gray-100 text-sm">{{ t('imports.tab_wallbox') }}</span>
-                <span class="text-[10px] bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 font-semibold px-1.5 py-0.5 rounded-full leading-none">BETA</span>
+                <span class="text-[10px] font-bold uppercase tracking-wider bg-blue-600 text-white px-1.5 py-0.5 rounded-sm leading-none">BETA</span>
               </div>
             </div>
             <ChevronDownIcon :class="['h-5 w-5 text-gray-400 shrink-0 transition-transform duration-200', activeTab === 'wallbox' ? 'rotate-180' : '']" />
           </button>
           <Transition name="accordion">
-            <div v-if="activeTab === 'wallbox'" class="border-t border-gray-100 dark:border-gray-700 p-4 space-y-4">
-              <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('imports.wallbox_desc') }}</p>
-              <div class="flex items-start gap-2 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-3">
-                <ExclamationTriangleIcon class="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
-                <p class="text-xs text-blue-800 dark:text-blue-200">{{ t('imports.wallbox_beta_hint') }}</p>
+            <div v-if="activeTab === 'wallbox'" class="border-t-2 border-gray-300 dark:border-gray-700 p-4 md:p-5 space-y-4">
+              <p class="text-sm text-gray-700 dark:text-gray-300 font-medium leading-relaxed">{{ t('imports.wallbox_desc') }}</p>
+              <div class="border-l-2 border-blue-500 bg-blue-50 dark:bg-blue-950/40 px-4 py-3 rounded-r-sm">
+                <p class="text-[11px] font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400 mb-1">Beta-Hinweis</p>
+                <p class="text-xs text-gray-700 dark:text-gray-200 font-medium leading-relaxed">{{ t('imports.wallbox_beta_hint') }}</p>
               </div>
-              <div class="flex items-start gap-2 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-xl p-4">
-                <ExclamationTriangleIcon class="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
-                <div class="text-sm text-amber-800 dark:text-amber-200 space-y-1">
-                  <p class="font-semibold">{{ t('imports.wallbox_ocpp_warning_title') }}</p>
-                  <p v-html="t('imports.wallbox_ocpp_warning_desc')" />
-                  <p>{{ t('imports.wallbox_ocpp_goe_hint_pre') }} <button @click="toggle('goe')" class="underline font-medium cursor-pointer">{{ t('imports.wallbox_ocpp_goe_link') }}</button> {{ t('imports.wallbox_ocpp_goe_hint_post') }}</p>
-                </div>
+              <div class="border-l-2 border-amber-500 bg-amber-50 dark:bg-amber-950/40 px-4 py-3 rounded-r-sm space-y-1.5">
+                <p class="text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">{{ t('imports.wallbox_ocpp_warning_title') }}</p>
+                <p class="text-xs text-gray-700 dark:text-gray-200 font-medium leading-relaxed" v-html="t('imports.wallbox_ocpp_warning_desc')" />
+                <p class="text-xs text-gray-700 dark:text-gray-200 font-medium leading-relaxed">{{ t('imports.wallbox_ocpp_goe_hint_pre') }} <button @click="toggle('goe')" class="underline font-bold cursor-pointer">{{ t('imports.wallbox_ocpp_goe_link') }}</button> {{ t('imports.wallbox_ocpp_goe_hint_post') }}</p>
               </div>
-              <router-link to="/wallbox" class="btn-3d inline-flex items-center gap-2 bg-gray-800 dark:bg-gray-600 text-white px-5 py-2.5 rounded-lg font-medium text-sm hover:bg-gray-700 transition">
+              <router-link to="/wallbox"
+                           class="flex w-full sm:w-auto sm:inline-flex items-center justify-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-sm border-2 border-slate-700 shadow-[3px_3px_0_0_#030712] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75">
                 <BoltIcon class="h-4 w-4" />
                 {{ t('imports.wallbox_btn') }}
               </router-link>
@@ -598,8 +630,8 @@ const teslaConnectedLabel = ref<string | null>(null)
             @click="toggle('tesla'); analytics.trackImportTabClicked('tesla')"
             class="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
           >
-            <div class="shrink-0 bg-gray-700 rounded-lg p-2">
-              <BoltIcon class="h-5 w-5 text-white" />
+            <div class="shrink-0 rounded-sm border-2 border-gray-900 dark:border-white bg-red-600 p-2 w-10 h-10 flex items-center justify-center">
+              <span class="text-white font-extrabold text-sm leading-none tracking-tight">T</span>
             </div>
             <div class="flex-1 min-w-0">
               <span class="font-medium text-gray-900 dark:text-gray-100 text-sm">
@@ -609,7 +641,7 @@ const teslaConnectedLabel = ref<string | null>(null)
             <ChevronDownIcon :class="['h-5 w-5 text-gray-400 shrink-0 transition-transform duration-200', activeTab === 'tesla' ? 'rotate-180' : '']" />
           </button>
           <Transition name="accordion">
-            <div v-if="activeTab === 'tesla'" class="px-1 py-3 md:p-4">
+            <div v-if="activeTab === 'tesla'" class="p-4 md:p-5">
               <TeslaFleetIntegration @connected-label="teslaConnectedLabel = $event" />
             </div>
           </Transition>

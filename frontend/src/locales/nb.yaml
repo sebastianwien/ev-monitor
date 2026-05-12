@@ -1237,6 +1237,7 @@ imports:
   live_promo_proration_hint: "Forholdsmessig fakturering, ingen ny prøveperiode"
   tile_live_upsell: "+ Lås opp Trip-Tracking og Phantom-Drain"
   tile_live_upsell_price: "1 €/mnd ekstra"
+  tile_live_upsell_cta: Aktiver
   smartcar_teaser_title: Automatiske ladeøkter – alle merker
   smartcar_coming_soon: Kommer snart
   smartcar_teaser_desc: Koble til bilen én gang, så registrerer EV-Monitor automatisk hver ladeøkt – uten at du trenger å legge inn opplysninger manuelt.
@@ -1342,9 +1343,12 @@ imports:
   autosync_active_provider: Tilkoblingen går via {provider}
   autosync_no_cars_hint: Du har ikke lagt til et kjøretøy ennå.
   autosync_no_cars_cta: Legg til kjøretøy
-  autosync_state_active: Aktiv
+  autosync_state_active: Live
+  autosync_state_available: Klar
   autosync_state_locked: Låst
-  autosync_state_unavailable: Ikke tilgjengelig
+  autosync_state_unavailable: N/T
+  autosync_footer_label: Merknad
+  autosync_footer_hint: Kun ett kjøretøy kan synkronisere om gangen. Du kan bytte når som helst.
   autosync_disconnect: Koble fra
   autosync_confirm_disconnect: Sikker?
   autosync_locked_title: AutoSync kjører allerede for et annet kjøretøy

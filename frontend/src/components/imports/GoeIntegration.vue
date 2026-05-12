@@ -137,25 +137,25 @@ function carLabel(car: Car): string {
 
 <template>
   <div class="space-y-4">
-    <div v-if="error" class="flex items-start gap-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg p-3">
+    <div v-if="error" class="border-l-2 border-red-500 bg-red-50 dark:bg-red-950/40 px-4 py-3 rounded-r-sm flex items-start gap-2">
       <ExclamationTriangleIcon class="h-4 w-4 text-red-500 dark:text-red-400 mt-0.5 shrink-0" />
-      <p class="text-sm text-red-800 dark:text-red-200">{{ error }}</p>
+      <p class="text-sm text-red-900 dark:text-red-200 font-medium">{{ error }}</p>
     </div>
 
     <!-- Info Box -->
-    <div class="border border-gray-200 rounded-lg overflow-hidden">
+    <div class="border-2 border-gray-300 dark:border-gray-700 rounded-sm overflow-hidden bg-white dark:bg-gray-900">
       <button
         type="button"
         @click="infoExpanded = !infoExpanded"
-        class="w-full flex items-center justify-between px-3 py-2.5 text-sm text-gray-500 hover:bg-gray-50 transition text-left">
+        class="w-full flex items-center justify-between px-3 py-2.5 text-[11px] font-bold uppercase tracking-[0.14em] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition text-left">
         <span class="flex items-center gap-1.5">
-          <InformationCircleIcon class="w-4 h-4 text-indigo-400 flex-shrink-0" />
+          <InformationCircleIcon class="w-4 h-4 text-yellow-500 flex-shrink-0" />
           {{ t('goe.how_it_works') }}
         </span>
         <ChevronRightIcon class="w-4 h-4 flex-shrink-0 transition-transform duration-200"
           :class="infoExpanded ? 'rotate-90' : ''" />
       </button>
-      <div v-if="infoExpanded" class="px-3 pb-3 text-sm text-gray-600 dark:text-gray-200 space-y-2 border-t border-gray-100 dark:border-gray-700 pt-2.5">
+      <div v-if="infoExpanded" class="px-4 pb-3 text-sm text-gray-600 dark:text-gray-300 space-y-2 border-t-2 border-gray-300 dark:border-gray-700 pt-3 font-medium leading-relaxed">
         <p v-html="t('goe.info_auto')" />
         <p v-html="t('goe.info_session')" />
         <p v-html="t('goe.info_tariff')" />
@@ -164,7 +164,7 @@ function carLabel(car: Car): string {
 
     <!-- Connected devices -->
     <div v-if="wallboxStore.hasConnections" class="space-y-3">
-      <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">{{ t('goe.connected_devices') }}</p>
+      <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-gray-500 dark:text-gray-400">{{ t('goe.connected_devices') }}</p>
       <GoeStatusCard
         v-for="conn in wallboxStore.connections"
         :key="conn.id"
@@ -176,66 +176,69 @@ function carLabel(car: Car): string {
 
     <!-- Add form (hidden for demo users) -->
     <template v-if="!authStore.isDemoAccount">
-      <div v-if="showForm" class="border border-gray-200 rounded-lg p-4 space-y-3">
-        <p class="text-sm font-medium text-gray-800">{{ t('goe.form_title') }}</p>
+      <div v-if="showForm" class="border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-sm shadow-[4px_4px_0_0_#d1d5db] dark:shadow-[4px_4px_0_0_#374151] p-4 space-y-3">
+        <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-gray-700 dark:text-gray-300">{{ t('goe.form_title') }}</p>
         <div>
-          <label class="block text-xs text-gray-500 mb-1">{{ t('goe.serial_label') }}</label>
-          <input v-model="form.serial" type="text" :placeholder="t('goe.serial_placeholder')" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+          <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">{{ t('goe.serial_label') }}</label>
+          <input v-model="form.serial" type="text" :placeholder="t('goe.serial_placeholder')" class="w-full border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 rounded-sm px-3 py-2.5 text-sm font-medium focus:outline-none focus:border-yellow-500 transition-colors" />
         </div>
         <div>
-          <label class="block text-xs text-gray-500 mb-1">{{ t('goe.apikey_label') }}</label>
-          <input v-model="form.apiKey" type="password" :placeholder="t('goe.apikey_placeholder')" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+          <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">{{ t('goe.apikey_label') }}</label>
+          <input v-model="form.apiKey" type="password" :placeholder="t('goe.apikey_placeholder')" class="w-full border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 rounded-sm px-3 py-2.5 text-sm font-medium focus:outline-none focus:border-yellow-500 transition-colors" />
         </div>
         <div v-if="cars.length > 0">
-          <label class="block text-xs text-gray-500 mb-1">{{ t('goe.car_label') }}</label>
-          <select v-model="form.carId" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+          <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">{{ t('goe.car_label') }}</label>
+          <select v-model="form.carId" class="w-full border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 rounded-sm px-3 py-2.5 text-sm font-medium focus:outline-none focus:border-yellow-500 transition-colors">
             <option v-for="car in cars" :key="car.id" :value="car.id">
               {{ carLabel(car) }}
             </option>
           </select>
         </div>
         <div>
-          <label class="block text-xs text-gray-500 mb-1">{{ t('goe.name_label') }}</label>
-          <input v-model="form.displayName" type="text" :placeholder="t('goe.name_placeholder')" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+          <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">{{ t('goe.name_label') }}</label>
+          <input v-model="form.displayName" type="text" :placeholder="t('goe.name_placeholder')" class="w-full border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 rounded-sm px-3 py-2.5 text-sm font-medium focus:outline-none focus:border-yellow-500 transition-colors" />
         </div>
 
         <!-- Location (optional) -->
         <div class="space-y-1.5">
-          <label class="block text-xs text-gray-500">{{ t('goe.location_label') }}</label>
+          <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ t('goe.location_label') }}</label>
           <div class="relative">
             <input
               v-model="locationQuery"
               type="text"
               :placeholder="t('goe.location_placeholder')"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm pr-8"
+              class="w-full border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 rounded-sm px-3 py-2.5 pr-8 text-sm font-medium focus:outline-none focus:border-yellow-500 transition-colors"
               @input="onLocationQueryChange"
             />
-            <MapPinIcon class="absolute right-2.5 top-2.5 h-4 w-4 text-gray-400 pointer-events-none" />
+            <MapPinIcon class="absolute right-2.5 top-3 h-4 w-4 text-gray-400 pointer-events-none" />
           </div>
-          <ul v-if="locationResults.length" class="border border-gray-200 rounded-lg overflow-hidden text-xs">
+          <ul v-if="locationResults.length" class="border-2 border-gray-300 dark:border-gray-700 rounded-sm overflow-hidden text-xs bg-white dark:bg-gray-900">
             <li v-for="r in locationResults" :key="r.display_name"
-              class="px-3 py-2 hover:bg-gray-50 cursor-pointer truncate border-b border-gray-100 last:border-0"
+              class="px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer truncate border-b border-gray-200 dark:border-gray-700 last:border-0 font-medium"
               @click="selectLocation(r)">
               {{ r.display_name }}
             </li>
           </ul>
-          <p v-if="selectedLocationName" class="text-xs text-green-700 flex items-center gap-1">
+          <p v-if="selectedLocationName" class="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
             <CheckIcon class="h-3.5 w-3.5 flex-shrink-0" />
             {{ selectedLocationName }}
           </p>
         </div>
 
-        <div class="flex gap-2">
-          <button @click="handleConnect" :disabled="loading" class="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 transition">
+        <div class="flex flex-col sm:flex-row gap-2">
+          <button @click="handleConnect" :disabled="loading"
+                  class="flex-1 inline-flex items-center justify-center bg-yellow-400 hover:bg-yellow-300 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:text-gray-500 text-gray-950 font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-sm border-2 border-yellow-400 disabled:border-gray-300 dark:disabled:border-gray-700 shadow-[3px_3px_0_0_#030712] disabled:shadow-none active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75">
             {{ loading ? t('goe.connect_btn_loading') : t('goe.connect_btn') }}
           </button>
-          <button @click="showForm = false" class="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition">
+          <button @click="showForm = false"
+                  class="inline-flex items-center justify-center bg-white dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-700 text-gray-800 dark:text-gray-200 font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-sm shadow-[3px_3px_0_0_#9ca3af] dark:shadow-[3px_3px_0_0_#4b5563] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75">
             {{ t('goe.cancel_btn') }}
           </button>
         </div>
       </div>
 
-      <button v-if="!showForm" @click="showForm = true" class="btn-3d flex items-center gap-2 bg-green-600 text-white px-5 py-2.5 rounded-lg font-medium text-sm hover:bg-green-700 transition">
+      <button v-if="!showForm" @click="showForm = true"
+              class="w-full sm:w-auto flex sm:inline-flex items-center justify-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-gray-950 font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-sm border-2 border-yellow-400 shadow-[3px_3px_0_0_#030712] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75">
         {{ t('goe.add_btn') }}
       </button>
     </template>

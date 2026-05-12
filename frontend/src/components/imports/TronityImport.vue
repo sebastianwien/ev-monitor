@@ -177,48 +177,48 @@ async function runImport() {
 </script>
 
 <template>
-  <div class="p-6 space-y-5">
+  <div class="p-4 md:p-5 space-y-4">
     <!-- Header -->
-    <div class="flex items-start gap-4">
-      <div class="bg-blue-600 rounded-lg p-2 shrink-0">
-        <ArrowDownTrayIcon class="h-5 w-5 text-white" />
-      </div>
-      <div>
-        <h2 class="font-semibold text-gray-900 dark:text-gray-100">{{ t('tronity.title') }}</h2>
-        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1" v-html="t('tronity.desc')" />
-      </div>
+    <div>
+      <p class="text-orange-600 dark:text-orange-400 text-[11px] font-bold uppercase tracking-[0.14em] mb-2 flex items-center gap-2">
+        <span class="inline-flex w-5 h-5 bg-orange-500 text-gray-950 rounded-sm items-center justify-center text-[10px] font-extrabold">TR</span>
+        Tronity Import
+      </p>
+      <h2 class="text-lg md:text-xl font-bold text-gray-900 dark:text-white tracking-tight mb-1">{{ t('tronity.title') }}</h2>
+      <p class="text-sm text-gray-600 dark:text-gray-300 font-medium" v-html="t('tronity.desc')" />
     </div>
 
-    <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-1 list-disc list-inside">
-      <li>{{ t('tronity.feature_1') }}</li>
-      <li>{{ t('tronity.feature_2') }}</li>
-      <li>{{ t('tronity.feature_3') }}</li>
+    <ul class="space-y-2">
+      <li v-for="i in 3" :key="i" class="flex items-start gap-2.5 text-sm text-gray-700 dark:text-gray-300">
+        <span class="shrink-0 w-5 h-5 bg-orange-500 text-gray-950 rounded-sm flex items-center justify-center text-[10px] font-extrabold mt-0.5">→</span>
+        <span class="font-medium">{{ t(`tronity.feature_${i}`) }}</span>
+      </li>
     </ul>
 
     <!-- Car selector -->
     <div v-if="activeCars.length > 1" class="space-y-1.5">
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('tronity.car_label') }}</label>
+      <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ t('tronity.car_label') }}</label>
       <CarSelectDropdown :cars="activeCars" v-model="selectedCarId" />
     </div>
-    <p v-if="activeCars.length === 0" class="text-sm text-gray-500 dark:text-gray-400 italic">
+    <p v-if="activeCars.length === 0" class="text-sm font-medium border-l-2 border-amber-500 bg-amber-50 dark:bg-amber-950/30 text-gray-700 dark:text-gray-200 px-4 py-3 rounded-r-sm">
       {{ t('tronity.no_car') }}
-      <router-link to="/cars" class="text-indigo-600 hover:underline font-medium">{{ t('tronity.add_car') }}</router-link>
+      <router-link to="/cars" class="font-bold underline hover:no-underline ml-1">{{ t('tronity.add_car') }}</router-link>
     </p>
 
     <!-- File upload -->
     <div class="space-y-1.5">
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('tronity.file_label') }}</label>
+      <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ t('tronity.file_label') }}</label>
       <div
-        class="border-2 border-dashed border-gray-200 dark:border-gray-600 rounded-xl p-6 text-center cursor-pointer hover:border-blue-400 transition-colors"
+        class="border-2 border-dashed border-gray-400 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 rounded-sm p-6 text-center cursor-pointer hover:border-orange-500 dark:hover:border-orange-500 transition-colors"
         @click="fileInput?.click()"
         @dragover.prevent
         @drop.prevent="onDrop"
       >
-        <ArrowUpTrayIcon class="w-8 h-8 text-gray-300 mx-auto mb-2" />
-        <p v-if="!fileName" class="text-sm text-gray-500 dark:text-gray-400">
-          {{ t('tronity.file_drop') }} <span class="text-blue-600 font-medium">{{ t('tronity.file_select') }}</span>
+        <ArrowUpTrayIcon class="w-8 h-8 text-gray-400 mx-auto mb-2" />
+        <p v-if="!fileName" class="text-sm text-gray-600 dark:text-gray-400 font-medium">
+          {{ t('tronity.file_drop') }} <span class="text-orange-600 dark:text-orange-400 font-bold underline underline-offset-2">{{ t('tronity.file_select') }}</span>
         </p>
-        <p v-else class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ fileName }}</p>
+        <p v-else class="text-sm font-bold text-gray-900 dark:text-gray-100 font-mono">{{ fileName }}</p>
         <input
           ref="fileInput"
           type="file"
@@ -227,30 +227,34 @@ async function runImport() {
           @change="onFileChange"
         />
       </div>
-      <p v-if="parseError" class="text-sm text-red-600">{{ parseError }}</p>
-      <p v-if="previewCount !== null && !parseError" class="text-sm text-gray-500 dark:text-gray-400">
-        {{ t('tronity.entries_found', { n: previewCount }) }}
+      <p v-if="parseError" class="text-xs text-red-600 dark:text-red-400 font-medium">{{ parseError }}</p>
+      <p v-if="previewCount !== null && !parseError" class="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+        ✓ {{ t('tronity.entries_found', { n: previewCount }) }}
       </p>
     </div>
 
     <!-- Result -->
-    <div v-if="result" class="rounded-xl p-4"
-      :class="result.errors > 0 && result.imported === 0 ? 'bg-red-50 dark:bg-red-900/30' : 'bg-green-50 dark:bg-green-900/30'">
-      <p class="text-sm font-medium" :class="result.errors > 0 && result.imported === 0 ? 'text-red-700 dark:text-red-300' : 'text-green-700 dark:text-green-300'">
+    <div v-if="result"
+         :class="['border-l-2 px-4 py-3 rounded-r-sm',
+                  result.errors > 0 && result.imported === 0
+                    ? 'border-red-500 bg-red-50 dark:bg-red-950/40'
+                    : 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40']">
+      <p class="text-sm font-medium"
+         :class="result.errors > 0 && result.imported === 0 ? 'text-red-900 dark:text-red-200' : 'text-emerald-900 dark:text-emerald-200'">
         {{ t('tronity.result', { imported: result.imported, skipped: result.skipped }) }}
         <template v-if="result.errors > 0">{{ t('tronity.result_errors', { errors: result.errors }) }}</template>
       </p>
     </div>
 
-    <p v-if="errorMsg" class="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 rounded-xl p-3">{{ errorMsg }}</p>
+    <p v-if="errorMsg" class="text-sm font-medium border-l-2 border-red-500 bg-red-50 dark:bg-red-950/40 text-red-900 dark:text-red-200 px-4 py-3 rounded-r-sm">{{ errorMsg }}</p>
 
     <!-- Button -->
     <button
       @click="runImport"
       :disabled="!parsedEntries.length || loading || !effectiveCarId"
-      class="btn-3d w-full flex items-center justify-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-lg font-medium text-sm hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
+      class="w-full inline-flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-400 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-gray-950 font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-sm border-2 border-orange-500 disabled:border-gray-300 dark:disabled:border-gray-700 shadow-[3px_3px_0_0_#030712] disabled:shadow-none active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75"
     >
-      <span v-if="loading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+      <span v-if="loading" class="w-4 h-4 border-2 border-gray-950/30 border-t-gray-950 rounded-full animate-spin" />
       <ArrowDownTrayIcon v-else class="h-4 w-4" />
       {{ t('tronity.import_btn') }}
     </button>
