@@ -4,10 +4,10 @@ spring:
 
   servlet:
     multipart:
-      # Headroom fuer XPeng-Excel-Uploads (EU-Data-Act-Exports ~30-50 MB).
-      # Andere Endpoints sind via nginx auf 5m global limitiert; nur /api/imports/xpeng/ ist auf 50m gehoben.
-      max-file-size: 50MB
-      max-request-size: 50MB
+      # Headroom fuer XPeng-Excel-Uploads (EU-Data-Act-Exports ~30-50 MB, groessere Zeitraeume schnell daran vorbei).
+      # Andere Endpoints sind via nginx auf 5m global limitiert; nur /api/imports/xpeng/ ist auf 100m gehoben.
+      max-file-size: 100MB
+      max-request-size: 100MB
 
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:ev_monitor}

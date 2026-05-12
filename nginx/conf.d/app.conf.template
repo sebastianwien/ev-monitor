@@ -165,9 +165,9 @@ server {
     # Proxy Connectors Service (Tesla Fleet + go-eCharger Cloud)
     # Must appear before the generic /api/ block to take precedence
 
-    # XPeng Excel-Import: EU-Data-Act-Exports koennen ~30-50 MB gross sein
+    # XPeng Excel-Import: EU-Data-Act-Exports koennen ~30-50 MB gross sein, groessere Zeitraeume mehr
     location /api/imports/xpeng/ {
-        client_max_body_size 50m;
+        client_max_body_size 100m;
         proxy_pass http://backend:8080/api/imports/xpeng/;
         proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
