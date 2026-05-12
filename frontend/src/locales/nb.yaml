@@ -2108,3 +2108,22 @@ xpeng:
     Please provide the data in the Excel format previously used for similar requests. If the file is encrypted, kindly send the password in a separate email.
 
     Thank you and best regards
+live:
+  title: "Live Lading"
+  subtitle: "Sanntids ladestatus for kjoretoyet ditt"
+  no_session: "Ingen aktiv ladeokkt"
+  no_session_hint: "Nar kjoretoyet ditt lader, vises live-statusen her."
+  power: "Ladeeffekt"
+  soc: "Ladestand"
+  eta: "Full om"
+  range: "Rekkevidde"
+  amps: "Ladestrm"
+  duration: "Varighet"
+  last_updated: "Oppdatert"
+  dc: "DC"
+  ac: "AC"
+  minutes_short: "min"
+  seconds_short: "sek"
+  upgrade_title: "AutoSync Live kreves"
+  upgrade_desc: "Live ladestatus er eksklusivt for AutoSync Live. Oppgrader na og folg ladeokten din i sanntid."
+  upgrade_cta: "Oppgrader na"

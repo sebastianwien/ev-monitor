@@ -2187,3 +2187,22 @@ xpeng:
     Please provide the data in the Excel format previously used for similar requests. If the file is encrypted, kindly send the password in a separate email.
 
     Thank you and best regards
+live:
+  title: "Live Laden"
+  subtitle: "Echtzeit-Ladestatus deines Fahrzeugs"
+  no_session: "Kein aktiver Ladevorgang"
+  no_session_hint: "Sobald dein Fahrzeug ladt, erscheint hier der Live-Status."
+  power: "Ladeleistung"
+  soc: "Ladestand"
+  eta: "Voll in"
+  range: "Reichweite"
+  amps: "Ladestrom"
+  duration: "Dauer"
+  last_updated: "Aktualisiert"
+  dc: "DC"
+  ac: "AC"
+  minutes_short: "Min"
+  seconds_short: "Sek"
+  upgrade_title: "AutoSync Live erforderlich"
+  upgrade_desc: "Der Live-Ladestatus ist exklusiv fur AutoSync Live. Upgrade jetzt und beobachte deinen Ladevorgang in Echtzeit."
+  upgrade_cta: "Jetzt upgraden"
