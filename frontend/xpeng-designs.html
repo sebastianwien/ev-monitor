@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>XPeng Import - Design-Vorschläge</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Inter", system-ui, sans-serif; }
+
+  /* Top Navigation */
+  .nav {
+    position: sticky; top: 0; z-index: 100;
+    background: #0a0d11; color: #fff;
+    display: flex; gap: 0; border-bottom: 1px solid #2a2f3a;
+  }
+  .nav a {
+    flex: 1; text-align: center; padding: 14px 18px;
+    color: #b5b9c3; text-decoration: none; font-size: 13px;
+    font-weight: 500; border-right: 1px solid #2a2f3a;
+    transition: background .15s;
+  }
+  .nav a:last-child { border-right: none; }
+  .nav a:hover { background: #131820; color: #fff; }
+  .nav .num { color: #6b7383; margin-right: 8px; }
+
+  /* ==================== DESIGN 1: EDITORIAL ==================== */
+  .editorial {
+    background: #0c0e14; color: #e7e9ee;
+    padding: 80px 24px 96px;
+    min-height: 100vh;
+  }
+  .editorial-wrap { max-width: 680px; margin: 0 auto; }
+  .editorial-title {
+    font-size: 32px; font-weight: 700; letter-spacing: -0.02em;
+    color: #fff; margin-bottom: 8px;
+  }
+  .editorial-lead {
+    font-size: 16px; color: #b5b9c3; line-height: 1.6;
+    margin-bottom: 64px;
+  }
+  .editorial-eyebrow {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.14em; color: #8b92a3; margin-bottom: 14px;
+  }
+  .editorial-section { margin-bottom: 56px; }
+  .editorial-h2 {
+    font-size: 22px; font-weight: 600; letter-spacing: -0.015em;
+    color: #fff; margin-bottom: 12px;
+  }
+  .editorial-body {
+    color: #b5b9c3; font-size: 15px; line-height: 1.65;
+    margin-bottom: 24px;
+  }
+  .editorial-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .editorial-btn-primary {
+    background: #fff; color: #0c0e14; border: 0;
+    padding: 11px 22px; border-radius: 8px;
+    font-weight: 600; font-size: 14px; cursor: pointer;
+    transition: opacity .15s;
+  }
+  .editorial-btn-primary:hover { opacity: 0.85; }
+  .editorial-btn-secondary {
+    background: transparent; color: #e7e9ee;
+    border: 1px solid #2a3041; padding: 11px 22px;
+    border-radius: 8px; font-weight: 500; font-size: 14px;
+    cursor: pointer;
+  }
+  .editorial-btn-secondary:hover { background: #131820; }
+  .editorial-meta {
+    font-size: 13px; color: #6b7383; margin-top: 12px;
+  }
+  .editorial-callout {
+    border-left: 2px solid #f7b440;
+    background: linear-gradient(180deg, rgba(247,180,64,0.07), rgba(247,180,64,0.02));
+    padding: 14px 18px;
+    margin-top: 20px; font-size: 13.5px; color: #c5b591; line-height: 1.55;
+  }
+  .editorial-callout strong { color: #f7b440; font-weight: 600; }
+  .editorial-field {
+    display: grid; grid-template-columns: 140px 1fr;
+    padding: 18px 0; border-bottom: 1px solid #1f242e;
+    align-items: center;
+  }
+  .editorial-field:first-of-type { border-top: 1px solid #1f242e; }
+  .editorial-field-label {
+    color: #8b92a3; font-size: 13px; font-weight: 500;
+  }
+  .editorial-input, .editorial-select {
+    background: transparent; border: none; color: #fff;
+    font-size: 15px; font-family: inherit; width: 100%;
+    padding: 4px 0;
+  }
+  .editorial-input::placeholder { color: #4a5160; }
+  .editorial-input:focus, .editorial-select:focus { outline: none; }
+  .editorial-file {
+    display: inline-flex; align-items: center; gap: 12px;
+    color: #b5b9c3; font-size: 14px;
+  }
+  .editorial-file button {
+    background: #1f242e; color: #fff; border: 0;
+    padding: 8px 14px; border-radius: 6px;
+    font-size: 13px; cursor: pointer;
+  }
+  .editorial-divider {
+    height: 1px; background: #1f242e; margin: 56px 0;
+  }
+  .editorial-status-row {
+    display: flex; justify-content: space-between;
+    padding: 12px 0; border-bottom: 1px solid #1f242e;
+    font-size: 14px; align-items: baseline;
+  }
+  .editorial-status-row:last-child { border-bottom: 0; }
+  .editorial-mono {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 13px; color: #b5b9c3;
+  }
+  .editorial-success { color: #7ec88a; font-weight: 500; }
+  .editorial-error { color: #e87575; font-weight: 500; }
+  .editorial-tally {
+    color: #6b7383; font-size: 12.5px;
+    font-family: ui-monospace, Menlo, monospace;
+  }
+  .editorial-icon-text {
+    color: #b5b9c3; display: inline-flex;
+    align-items: center; gap: 8px;
+  }
+  .editorial-danger-link {
+    color: #e87575; font-size: 14px; cursor: pointer;
+    border: 0; background: transparent;
+    padding: 0; text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+
+  /* ==================== DESIGN 2: NEOBRUTALIST ==================== */
+  .neo {
+    background: #f4eee2; color: #0a0a0a;
+    padding: 64px 24px 96px;
+    min-height: 100vh;
+    font-family: "Inter", -apple-system, system-ui, sans-serif;
+  }
+  .neo-wrap { max-width: 760px; margin: 0 auto; }
+  .neo-banner {
+    background: #ffd84d; border: 3px solid #0a0a0a;
+    padding: 20px 24px; box-shadow: 6px 6px 0 0 #0a0a0a;
+    margin-bottom: 56px;
+  }
+  .neo-banner-title {
+    font-size: 13px; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.06em; margin-bottom: 4px;
+  }
+  .neo-banner-text { font-size: 14px; line-height: 1.5; font-weight: 500; }
+  .neo-block {
+    background: #fff; border: 3px solid #0a0a0a;
+    padding: 28px 28px 32px; box-shadow: 8px 8px 0 0 #0a0a0a;
+    margin-bottom: 40px;
+  }
+  .neo-h2 {
+    font-size: 22px; font-weight: 900;
+    text-transform: uppercase; letter-spacing: -0.01em;
+    margin-bottom: 18px; display: flex;
+    align-items: center; gap: 12px;
+  }
+  .neo-h2::before {
+    content: ''; width: 14px; height: 14px;
+    background: #0a0a0a; display: inline-block;
+  }
+  .neo-body {
+    font-size: 15px; line-height: 1.55; margin-bottom: 22px;
+    font-weight: 500;
+  }
+  .neo-row { display: flex; gap: 14px; flex-wrap: wrap; }
+  .neo-btn-primary {
+    background: #ff5722; color: #fff;
+    border: 3px solid #0a0a0a;
+    padding: 13px 22px; font-weight: 800;
+    text-transform: uppercase; font-size: 13.5px;
+    letter-spacing: 0.04em; cursor: pointer;
+    box-shadow: 4px 4px 0 0 #0a0a0a;
+    transition: transform .08s, box-shadow .08s;
+    font-family: inherit;
+  }
+  .neo-btn-primary:active {
+    transform: translate(4px, 4px);
+    box-shadow: 0 0 0 0 #0a0a0a;
+  }
+  .neo-btn-secondary {
+    background: #fff; color: #0a0a0a;
+    border: 3px solid #0a0a0a;
+    padding: 13px 22px; font-weight: 700;
+    text-transform: uppercase; font-size: 13.5px;
+    letter-spacing: 0.04em; cursor: pointer;
+    box-shadow: 4px 4px 0 0 #0a0a0a;
+    transition: transform .08s, box-shadow .08s;
+    font-family: inherit;
+  }
+  .neo-btn-secondary:active {
+    transform: translate(4px, 4px);
+    box-shadow: 0 0 0 0 #0a0a0a;
+  }
+  .neo-btn-danger {
+    background: #0a0a0a; color: #fff;
+    border: 3px solid #0a0a0a;
+    padding: 13px 22px; font-weight: 800;
+    text-transform: uppercase; font-size: 13.5px;
+    letter-spacing: 0.04em; cursor: pointer;
+    box-shadow: 4px 4px 0 0 #ff1744;
+    font-family: inherit;
+  }
+  .neo-field { margin-bottom: 16px; }
+  .neo-label {
+    font-size: 11px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    margin-bottom: 6px; display: block;
+  }
+  .neo-input, .neo-select {
+    background: #fff; border: 2.5px solid #0a0a0a;
+    padding: 12px 14px; font-family: inherit;
+    font-size: 14px; font-weight: 600; width: 100%;
+  }
+  .neo-callout {
+    background: #c1f0c1; border: 3px solid #0a0a0a;
+    padding: 16px 20px; font-weight: 600;
+    box-shadow: 4px 4px 0 0 #0a0a0a; margin-top: 24px;
+    font-size: 13.5px; line-height: 1.5;
+  }
+  .neo-table { width: 100%; border-collapse: collapse; }
+  .neo-table th {
+    text-align: left; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    font-weight: 800; padding: 0 0 10px 0;
+    border-bottom: 3px solid #0a0a0a;
+  }
+  .neo-table td {
+    padding: 14px 0; border-bottom: 2px solid #0a0a0a;
+    font-size: 14px; font-weight: 600;
+  }
+  .neo-tag {
+    display: inline-block; padding: 4px 10px;
+    border: 2.5px solid #0a0a0a; font-size: 11px;
+    font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .neo-tag-ok { background: #c1f0c1; }
+  .neo-tag-fail { background: #ffb4b4; }
+  .neo-mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+  .neo-danger-block {
+    background: #ffe1e1; border: 3px solid #0a0a0a;
+    padding: 28px; box-shadow: 8px 8px 0 0 #ff1744;
+    margin-bottom: 40px;
+  }
+
+  /* ==================== DESIGN 3: SOLID SLATE ==================== */
+  .slate {
+    background: #0a0d11; color: #d1d7e0;
+    padding: 32px 24px 64px;
+    min-height: 100vh;
+    font-family: "Inter", -apple-system, system-ui, sans-serif;
+    font-size: 14px;
+  }
+  .slate-wrap { max-width: 820px; margin: 0 auto; }
+  .slate-header {
+    display: flex; justify-content: space-between;
+    align-items: baseline; padding: 8px 0 20px;
+    border-bottom: 1px solid #1f2632; margin-bottom: 24px;
+  }
+  .slate-header-title {
+    font-size: 18px; font-weight: 600; color: #fff;
+  }
+  .slate-header-sub {
+    font-size: 12px; color: #6b7383;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  .slate-section {
+    background: #131820;
+    border-left: 3px solid #4d6080;
+    padding: 18px 22px 20px;
+    margin-bottom: 14px;
+  }
+  .slate-section.accent-amber { border-left-color: #ea8a4a; }
+  .slate-section.accent-red { border-left-color: #d04848; }
+  .slate-section.accent-green { border-left-color: #4d9d6f; }
+  .slate-section-title {
+    font-size: 13px; font-weight: 600; color: #fff;
+    margin-bottom: 2px;
+  }
+  .slate-section-subtitle {
+    font-size: 12px; color: #6b7383; margin-bottom: 16px;
+    line-height: 1.5;
+  }
+  .slate-divider {
+    height: 1px; background: #1f2632; margin: 4px 0 14px;
+  }
+  .slate-row {
+    display: grid; grid-template-columns: 110px 1fr;
+    padding: 6px 0; font-size: 13px; align-items: center;
+  }
+  .slate-row-label {
+    color: #6b7383; font-size: 12px;
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .slate-input, .slate-select {
+    background: #0a0d11; border: 1px solid #1f2632;
+    color: #fff; padding: 7px 10px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 12.5px; width: 100%;
+    border-radius: 3px;
+  }
+  .slate-input:focus, .slate-select:focus {
+    outline: none; border-color: #4d6080;
+  }
+  .slate-actions {
+    display: flex; gap: 8px; margin-top: 14px;
+    padding-top: 12px; border-top: 1px solid #1f2632;
+  }
+  .slate-btn-primary {
+    background: #2d5680; color: #fff;
+    padding: 7px 14px; font-size: 12.5px;
+    border: 1px solid #3a6a9b; font-weight: 500;
+    cursor: pointer; border-radius: 3px;
+    font-family: inherit;
+  }
+  .slate-btn-primary:hover { background: #356394; }
+  .slate-btn-secondary {
+    background: transparent; border: 1px solid #2a3140;
+    color: #d1d7e0; padding: 7px 14px;
+    font-size: 12.5px; cursor: pointer;
+    border-radius: 3px; font-family: inherit;
+  }
+  .slate-btn-secondary:hover { background: #1a2030; }
+  .slate-btn-danger {
+    background: #5a2020; color: #ffaaaa;
+    padding: 7px 14px; font-size: 12.5px;
+    border: 1px solid #7a3030; cursor: pointer;
+    border-radius: 3px; font-family: inherit;
+  }
+  .slate-history { width: 100%; }
+  .slate-history-row {
+    display: grid;
+    grid-template-columns: 140px 1fr 90px;
+    padding: 7px 0;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 12px; border-top: 1px solid #1a1f2a;
+    align-items: center;
+  }
+  .slate-history-row:first-child { border-top: none; }
+  .slate-status-ok {
+    color: #7ec88a; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    text-align: right;
+  }
+  .slate-status-fail {
+    color: #e87575; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    text-align: right;
+  }
+  .slate-error-msg {
+    color: #e87575; font-size: 11.5px;
+    font-family: ui-monospace, Menlo, monospace;
+  }
+  .slate-counts {
+    color: #b5b9c3;
+    font-family: ui-monospace, Menlo, monospace;
+  }
+  .slate-pill {
+    display: inline-block; padding: 1px 8px;
+    background: #1f2632; color: #b5b9c3;
+    font-size: 11px; border-radius: 10px;
+    font-family: ui-monospace, Menlo, monospace;
+  }
+
+  /* ==================== DESIGN 4: DARK INDUSTRIAL (Brutalism Lite) ==================== */
+  .indus {
+    background: #0b0d11; color: #d4d7df;
+    padding: 56px 24px 96px;
+    min-height: 100vh;
+    font-family: "Inter", -apple-system, system-ui, sans-serif;
+  }
+  .indus-wrap { max-width: 760px; margin: 0 auto; }
+
+  .indus-page-title {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.16em; color: #f5a623; margin-bottom: 10px;
+  }
+  .indus-page-headline {
+    font-size: 30px; font-weight: 800; letter-spacing: -0.02em;
+    color: #fff; line-height: 1.15; margin-bottom: 14px;
+  }
+  .indus-lead {
+    color: #9ba1ad; font-size: 15px; line-height: 1.6;
+    margin-bottom: 44px; max-width: 580px;
+  }
+
+  /* Card: solid bg + hard offset shadow + sharp corners + thick accent line */
+  .indus-card {
+    background: #161a23;
+    border: 1.5px solid #2a3041;
+    border-radius: 4px;
+    padding: 24px 26px;
+    margin-bottom: 22px;
+    box-shadow: 4px 4px 0 0 #2a3041;
+    position: relative;
+  }
+  .indus-card-accent {
+    border-color: #f5a623;
+    box-shadow: 4px 4px 0 0 #f5a623;
+  }
+  .indus-card-danger {
+    border-color: #c53030;
+    box-shadow: 4px 4px 0 0 #c53030;
+  }
+
+  .indus-eyebrow {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.14em; color: #f5a623;
+    margin-bottom: 8px; display: flex; align-items: center; gap: 8px;
+  }
+  .indus-eyebrow .num {
+    display: inline-block; width: 18px; height: 18px;
+    background: #f5a623; color: #0b0d11;
+    border-radius: 3px; text-align: center; line-height: 18px;
+    font-size: 11px; font-weight: 800; letter-spacing: 0;
+  }
+  .indus-card-title {
+    font-size: 19px; font-weight: 700; letter-spacing: -0.01em;
+    color: #fff; margin-bottom: 14px;
+  }
+  .indus-body {
+    color: #9ba1ad; font-size: 14.5px; line-height: 1.6;
+    margin-bottom: 20px;
+  }
+
+  .indus-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .indus-btn-primary {
+    background: #f5a623; color: #0b0d11;
+    border: 1.5px solid #f5a623;
+    padding: 11px 20px; font-weight: 700;
+    font-size: 13.5px; text-transform: uppercase;
+    letter-spacing: 0.05em; cursor: pointer;
+    border-radius: 3px;
+    box-shadow: 3px 3px 0 0 #0b0d11;
+    transition: transform .08s, box-shadow .08s;
+    font-family: inherit;
+  }
+  .indus-btn-primary:active {
+    transform: translate(3px, 3px);
+    box-shadow: 0 0 0 0 #0b0d11;
+  }
+  .indus-btn-secondary {
+    background: transparent; color: #d4d7df;
+    border: 1.5px solid #3a4256;
+    padding: 11px 20px; font-weight: 600;
+    font-size: 13.5px; text-transform: uppercase;
+    letter-spacing: 0.05em; cursor: pointer;
+    border-radius: 3px; font-family: inherit;
+    box-shadow: 3px 3px 0 0 #2a3041;
+    transition: transform .08s, box-shadow .08s;
+  }
+  .indus-btn-secondary:active {
+    transform: translate(3px, 3px);
+    box-shadow: 0 0 0 0 #2a3041;
+  }
+  .indus-btn-danger {
+    background: #c53030; color: #fff;
+    border: 1.5px solid #c53030;
+    padding: 11px 20px; font-weight: 700;
+    font-size: 13.5px; text-transform: uppercase;
+    letter-spacing: 0.05em; cursor: pointer;
+    border-radius: 3px; font-family: inherit;
+    box-shadow: 3px 3px 0 0 #0b0d11;
+    transition: transform .08s, box-shadow .08s;
+  }
+  .indus-btn-danger:active {
+    transform: translate(3px, 3px);
+    box-shadow: 0 0 0 0 #0b0d11;
+  }
+
+  .indus-callout {
+    background: #1d1810;
+    border-left: 3px solid #f5a623;
+    padding: 14px 18px;
+    margin-top: 20px;
+    font-size: 13.5px; line-height: 1.55;
+    color: #c7b78f;
+    border-radius: 0 3px 3px 0;
+  }
+  .indus-callout strong { color: #f5a623; font-weight: 700; }
+
+  .indus-field { margin-bottom: 14px; }
+  .indus-field-label {
+    font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    color: #6b7383; margin-bottom: 6px; display: block;
+  }
+  .indus-input, .indus-select {
+    background: #0b0d11; border: 1.5px solid #2a3041;
+    color: #fff; padding: 10px 12px;
+    font-family: inherit; font-size: 14px;
+    width: 100%; border-radius: 3px;
+  }
+  .indus-input:focus, .indus-select:focus {
+    outline: none; border-color: #f5a623;
+  }
+
+  /* History table - tight + monospace data */
+  .indus-history { width: 100%; }
+  .indus-history-row {
+    display: grid; grid-template-columns: 130px 1fr 100px;
+    padding: 12px 0;
+    border-top: 1px solid #2a3041;
+    align-items: center; font-size: 13px;
+  }
+  .indus-history-row:first-child { border-top: 0; }
+  .indus-mono {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 12.5px; color: #b5b9c3;
+  }
+  .indus-counts {
+    color: #d4d7df; font-size: 13px;
+  }
+  .indus-error-msg {
+    color: #e87575; font-size: 12.5px;
+    font-family: ui-monospace, Menlo, monospace;
+  }
+  .indus-status {
+    font-size: 10.5px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    text-align: right; padding: 3px 8px;
+    border-radius: 2px;
+  }
+  .indus-status-ok    { background: #1a3320; color: #7ec88a; }
+  .indus-status-fail  { background: #3a1818; color: #e87575; }
+
+  .indus-section-divider {
+    height: 1.5px; background: linear-gradient(90deg, #f5a623 0, transparent 80px);
+    margin: 36px 0 28px;
+  }
+
+  .indus-conn-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 0; font-size: 13.5px;
+  }
+  .indus-conn-meta {
+    font-size: 12px; color: #6b7383;
+    margin-top: 2px;
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="#editorial"><span class="num">01</span>Editorial</a>
+  <a href="#neo"><span class="num">02</span>Neobrutalist</a>
+  <a href="#slate"><span class="num">03</span>Solid Slate</a>
+  <a href="#indus"><span class="num">04</span>Dark Industrial</a>
+</nav>
+
+<!-- ==================== DESIGN 1: EDITORIAL ==================== -->
+<section id="editorial" class="editorial">
+  <div class="editorial-wrap">
+    <p class="editorial-eyebrow">XPeng · EU-Data-Act Import</p>
+    <h1 class="editorial-title">Telematik-Daten importieren</h1>
+    <p class="editorial-lead">
+      Da XPeng noch keine API anbietet, läuft der Import per Excel-Datei.
+      Du forderst die Daten per E-Mail an und lädst die Antwort hier hoch.
+    </p>
+
+    <div class="editorial-section">
+      <p class="editorial-eyebrow">Schritt 1</p>
+      <h2 class="editorial-h2">Daten bei XPeng anfordern</h2>
+      <p class="editorial-body">
+        Öffne dein Mailprogramm. Die Anfrage ist vorausgefüllt -
+        du musst sie nur absenden. XPeng schickt dir innerhalb
+        von 5-10 Tagen eine verschlüsselte Excel-Datei zurück.
+      </p>
+      <div class="editorial-actions">
+        <button class="editorial-btn-primary">Mailprogramm öffnen</button>
+        <button class="editorial-btn-secondary">Text kopieren</button>
+      </div>
+      <div class="editorial-callout">
+        <strong>Bald automatisch</strong> · AutoSync Live übernimmt die monatliche
+        Anfrage für dich. Sobald die offizielle XPeng-API verfügbar ist (2026),
+        schaltet der Sync auf Echtzeit um.
+      </div>
+    </div>
+
+    <div class="editorial-divider"></div>
+
+    <div class="editorial-section">
+      <p class="editorial-eyebrow">Schritt 2</p>
+      <h2 class="editorial-h2">Excel hochladen</h2>
+
+      <div class="editorial-field">
+        <span class="editorial-field-label">Fahrzeug</span>
+        <select class="editorial-select"><option>Xpeng G6</option></select>
+      </div>
+      <div class="editorial-field">
+        <span class="editorial-field-label">Datei</span>
+        <div class="editorial-file">
+          <button>Datei auswählen</button>
+          <span style="color:#6b7383">keine ausgewählt</span>
+        </div>
+      </div>
+      <div class="editorial-field">
+        <span class="editorial-field-label">Passwort</span>
+        <input class="editorial-input" type="password" placeholder="falls verschlüsselt">
+      </div>
+
+      <div style="margin-top: 28px;">
+        <button class="editorial-btn-primary">Hochladen und importieren</button>
+      </div>
+    </div>
+
+    <div class="editorial-divider"></div>
+
+    <div class="editorial-section">
+      <p class="editorial-eyebrow">Aktivität</p>
+      <h2 class="editorial-h2">Letzte Importe</h2>
+
+      <div class="editorial-status-row">
+        <div>
+          <span class="editorial-mono">12.05.2026 · 13:51</span>
+          <span class="editorial-tally" style="margin-left:12px;">130 Fahrten · 94 Sessions</span>
+        </div>
+        <span class="editorial-success">fertig</span>
+      </div>
+      <div class="editorial-status-row">
+        <div>
+          <span class="editorial-mono">12.05.2026 · 13:48</span>
+          <span class="editorial-tally" style="margin-left:12px;">Wrong password for encrypted xlsx</span>
+        </div>
+        <span class="editorial-error">fehlgeschlagen</span>
+      </div>
+      <div class="editorial-status-row">
+        <div>
+          <span class="editorial-mono">11.05.2026 · 17:52</span>
+          <span class="editorial-tally" style="margin-left:12px;">70 Fahrten · 42 Sessions</span>
+        </div>
+        <span class="editorial-success">fertig</span>
+      </div>
+
+      <p class="editorial-meta" style="margin-top: 32px;">
+        Aktive Verbindung: <span class="editorial-mono">L1NN************</span>
+        · 2 Importe · letzter 13:51
+      </p>
+
+      <div style="margin-top: 40px;">
+        <button class="editorial-danger-link">
+          Alle XPeng-Daten löschen
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== DESIGN 2: NEOBRUTALIST ==================== -->
+<section id="neo" class="neo">
+  <div class="neo-wrap">
+
+    <div class="neo-banner">
+      <div class="neo-banner-title">▶ XPeng EU-Data-Act Import</div>
+      <div class="neo-banner-text">
+        Da XPeng noch keine API anbietet, importierst du per Excel-Datei.
+        Du forderst sie bei XPeng an, erhältst sie nach 5-10 Tagen zurück
+        und lädst sie hier hoch.
+      </div>
+    </div>
+
+    <div class="neo-block">
+      <h2 class="neo-h2">Daten bei XPeng anfordern</h2>
+      <p class="neo-body">
+        Öffne dein Mailprogramm. Die Anfrage ist vorausgefüllt - du
+        musst sie nur absenden. XPeng antwortet typischerweise innerhalb
+        von 5-10 Tagen mit einer verschlüsselten Excel-Datei.
+      </p>
+      <div class="neo-row">
+        <button class="neo-btn-primary">✉ Mailprogramm öffnen</button>
+        <button class="neo-btn-secondary">Text kopieren</button>
+      </div>
+      <div class="neo-callout">
+        ⚡ <strong>BALD AUTOMATISCH</strong> - AutoSync Live übernimmt monatliche
+        Anfrage + Import. Sobald die API verfügbar ist (2026), wird auf
+        Echtzeit umgestellt.
+      </div>
+    </div>
+
+    <div class="neo-block">
+      <h2 class="neo-h2">Excel hochladen</h2>
+      <div class="neo-field">
+        <label class="neo-label">Fahrzeug</label>
+        <select class="neo-select"><option>Xpeng G6</option></select>
+      </div>
+      <div class="neo-field">
+        <label class="neo-label">Datei (.xlsx)</label>
+        <input class="neo-input" type="file">
+      </div>
+      <div class="neo-field">
+        <label class="neo-label">Passwort (falls verschlüsselt)</label>
+        <input class="neo-input" type="password">
+      </div>
+      <button class="neo-btn-primary" style="width: 100%; margin-top: 10px;">
+        ↑ Hochladen und importieren
+      </button>
+    </div>
+
+    <div class="neo-block">
+      <h2 class="neo-h2">Aktivität</h2>
+      <table class="neo-table">
+        <thead>
+          <tr><th>Zeit</th><th>Ergebnis</th><th style="text-align:right">Status</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="neo-mono">12.05 13:51</span></td>
+            <td>130 Fahrten · 94 Sessions</td>
+            <td style="text-align:right"><span class="neo-tag neo-tag-ok">Fertig</span></td>
+          </tr>
+          <tr>
+            <td><span class="neo-mono">12.05 13:48</span></td>
+            <td style="color:#cc0033; font-weight: 700">Wrong password for encrypted xlsx</td>
+            <td style="text-align:right"><span class="neo-tag neo-tag-fail">Fehler</span></td>
+          </tr>
+          <tr>
+            <td><span class="neo-mono">11.05 17:52</span></td>
+            <td>70 Fahrten · 42 Sessions</td>
+            <td style="text-align:right"><span class="neo-tag neo-tag-ok">Fertig</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <p style="margin-top: 20px; font-size: 13px; font-weight: 600;">
+        Aktive Verbindung: <span class="neo-mono">L1NN************</span>
+        · 2 Importe
+      </p>
+    </div>
+
+    <div class="neo-danger-block">
+      <h2 class="neo-h2" style="color: #cc0033;">🗑 Alle XPeng-Daten löschen</h2>
+      <p class="neo-body">
+        Entfernt alle bisher importierten Fahrten und Ladevorgänge sowie
+        die Import-Historie. Deine Vollmacht und Verbindung bleiben bestehen,
+        danach kannst du Dateien neu hochladen.
+      </p>
+      <button class="neo-btn-danger">⚠ Alles unwiderruflich löschen</button>
+    </div>
+
+  </div>
+</section>
+
+<!-- ==================== DESIGN 3: SOLID SLATE ==================== -->
+<section id="slate" class="slate">
+  <div class="slate-wrap">
+
+    <div class="slate-header">
+      <div>
+        <div class="slate-header-title">XPeng Import</div>
+      </div>
+      <div class="slate-header-sub">
+        EU Data Act · L1NN************
+      </div>
+    </div>
+
+    <div class="slate-section accent-amber">
+      <div class="slate-section-title">Daten bei XPeng anfordern</div>
+      <div class="slate-section-subtitle">
+        Excel per E-Mail anfordern (5-10 Tage Lieferzeit), dann hochladen.
+        Bald automatisch via AutoSync Live.
+      </div>
+      <div class="slate-divider"></div>
+      <div class="slate-actions" style="border-top:0; padding-top:0; margin-top:0;">
+        <button class="slate-btn-primary">Mailprogramm öffnen</button>
+        <button class="slate-btn-secondary">Text kopieren</button>
+      </div>
+    </div>
+
+    <div class="slate-section">
+      <div class="slate-section-title">Excel hochladen</div>
+      <div class="slate-section-subtitle">
+        Verschlüsselte XLSX wird lokal entschlüsselt, nicht persistiert.
+        Tempfile wird nach Verarbeitung gelöscht.
+      </div>
+      <div class="slate-divider"></div>
+
+      <div class="slate-row">
+        <span class="slate-row-label">Fahrzeug</span>
+        <select class="slate-select"><option>Xpeng G6 · L1NN************</option></select>
+      </div>
+      <div class="slate-row">
+        <span class="slate-row-label">Datei</span>
+        <input type="file" class="slate-input">
+      </div>
+      <div class="slate-row">
+        <span class="slate-row-label">Passwort</span>
+        <input type="password" class="slate-input" placeholder="optional">
+      </div>
+
+      <div class="slate-actions">
+        <button class="slate-btn-primary">→ Hochladen & importieren</button>
+      </div>
+    </div>
+
+    <div class="slate-section accent-green">
+      <div class="slate-section-title">Import-Historie</div>
+      <div class="slate-section-subtitle">
+        Letzte 4 Importe · Sortiert nach Zeit
+      </div>
+      <div class="slate-divider"></div>
+
+      <div class="slate-history-row">
+        <span>2026-05-12 13:51</span>
+        <span class="slate-counts">130 trips · 94 sessions</span>
+        <span class="slate-status-ok">● fertig</span>
+      </div>
+      <div class="slate-history-row">
+        <span>2026-05-12 13:48</span>
+        <span class="slate-error-msg">err: wrong password</span>
+        <span class="slate-status-fail">● fehler</span>
+      </div>
+      <div class="slate-history-row">
+        <span>2026-05-11 17:52</span>
+        <span class="slate-counts">70 trips · 42 sessions</span>
+        <span class="slate-status-ok">● fertig</span>
+      </div>
+      <div class="slate-history-row">
+        <span>2026-05-11 17:34</span>
+        <span class="slate-error-msg">err: VIN mismatch (1234...)</span>
+        <span class="slate-status-fail">● fehler</span>
+      </div>
+    </div>
+
+    <div class="slate-section">
+      <div class="slate-section-title">Aktive Verbindung</div>
+      <div class="slate-section-subtitle">
+        Vollmacht erteilt · v1.0 · 2 erfolgreiche Importe
+      </div>
+      <div class="slate-divider"></div>
+      <div class="slate-row">
+        <span class="slate-row-label">VIN</span>
+        <span class="slate-counts">L1NN************</span>
+      </div>
+      <div class="slate-row">
+        <span class="slate-row-label">Letzter</span>
+        <span class="slate-counts">2026-05-12 13:51:48</span>
+      </div>
+      <div class="slate-row">
+        <span class="slate-row-label">Status</span>
+        <span class="slate-pill">aktiv</span>
+      </div>
+      <div class="slate-actions">
+        <button class="slate-btn-secondary">Vollmacht widerrufen</button>
+      </div>
+    </div>
+
+    <div class="slate-section accent-red">
+      <div class="slate-section-title">Alle XPeng-Daten löschen</div>
+      <div class="slate-section-subtitle">
+        Entfernt importierte Fahrten + Ladevorgänge + Import-Historie.
+        Vollmacht und Verbindung bleiben aktiv.
+      </div>
+      <div class="slate-divider"></div>
+      <div class="slate-actions" style="border-top:0; padding-top:0; margin-top:0;">
+        <button class="slate-btn-danger">Alles löschen</button>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ==================== DESIGN 4: DARK INDUSTRIAL ==================== -->
+<section id="indus" class="indus">
+  <div class="indus-wrap">
+
+    <div class="indus-page-title">XPeng · EU Data Act</div>
+    <h1 class="indus-page-headline">Telematik-Daten<br>importieren</h1>
+    <p class="indus-lead">
+      Da XPeng noch keine API anbietet, läuft der Import per Excel-Datei.
+      Du forderst die Daten an, erhältst sie nach 5-10 Tagen, lädst sie hier hoch.
+    </p>
+
+    <div class="indus-card indus-card-accent">
+      <div class="indus-eyebrow"><span class="num">1</span>Anfrage stellen</div>
+      <div class="indus-card-title">Daten bei XPeng anfordern</div>
+      <p class="indus-body">
+        Mailprogramm öffnen, die vorausgefüllte Anfrage absenden.
+        XPeng antwortet typischerweise innerhalb von 5-10 Tagen mit
+        einer verschlüsselten Excel-Datei.
+      </p>
+      <div class="indus-actions">
+        <button class="indus-btn-primary">Mailprogramm öffnen</button>
+        <button class="indus-btn-secondary">Text kopieren</button>
+      </div>
+      <div class="indus-callout">
+        <strong>Bald automatisch.</strong> AutoSync Live übernimmt die
+        monatliche Anfrage und den Import für dich. Sobald die offizielle
+        XPeng-API verfügbar ist (2026), wird auf Echtzeit umgestellt.
+      </div>
+    </div>
+
+    <div class="indus-card">
+      <div class="indus-eyebrow"><span class="num">2</span>Upload</div>
+      <div class="indus-card-title">Excel hochladen</div>
+
+      <div class="indus-field">
+        <label class="indus-field-label">Fahrzeug</label>
+        <select class="indus-select"><option>Xpeng G6 · L1NN************</option></select>
+      </div>
+      <div class="indus-field">
+        <label class="indus-field-label">Datei (.xlsx)</label>
+        <input type="file" class="indus-input">
+      </div>
+      <div class="indus-field">
+        <label class="indus-field-label">Passwort <span style="color:#3a4256; font-weight:500; letter-spacing:0">· falls verschlüsselt</span></label>
+        <input type="password" class="indus-input">
+      </div>
+
+      <div class="indus-actions" style="margin-top: 24px;">
+        <button class="indus-btn-primary">↑ Hochladen und importieren</button>
+      </div>
+    </div>
+
+    <div class="indus-section-divider"></div>
+
+    <div class="indus-card">
+      <div class="indus-eyebrow">Aktivität</div>
+      <div class="indus-card-title">Letzte Importe</div>
+
+      <div class="indus-history">
+        <div class="indus-history-row">
+          <span class="indus-mono">12.05 · 13:51</span>
+          <span class="indus-counts">130 Fahrten · 94 Sessions</span>
+          <span class="indus-status indus-status-ok">Fertig</span>
+        </div>
+        <div class="indus-history-row">
+          <span class="indus-mono">12.05 · 13:48</span>
+          <span class="indus-error-msg">err: wrong password for encrypted xlsx</span>
+          <span class="indus-status indus-status-fail">Fehler</span>
+        </div>
+        <div class="indus-history-row">
+          <span class="indus-mono">11.05 · 17:52</span>
+          <span class="indus-counts">70 Fahrten · 42 Sessions</span>
+          <span class="indus-status indus-status-ok">Fertig</span>
+        </div>
+        <div class="indus-history-row">
+          <span class="indus-mono">11.05 · 17:34</span>
+          <span class="indus-error-msg">err: VIN mismatch (1234...)</span>
+          <span class="indus-status indus-status-fail">Fehler</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="indus-card">
+      <div class="indus-eyebrow">Verbindung</div>
+      <div class="indus-conn-row">
+        <div>
+          <div class="indus-mono">L1NN************</div>
+          <div class="indus-conn-meta">2 Importe · Letzter 12.05.2026 · 13:51</div>
+        </div>
+        <button class="indus-btn-secondary" style="padding:7px 14px; font-size:11px;">Widerrufen</button>
+      </div>
+    </div>
+
+    <div class="indus-card indus-card-danger">
+      <div class="indus-eyebrow" style="color:#e87575">⚠ Destruktiv</div>
+      <div class="indus-card-title">Alle XPeng-Daten löschen</div>
+      <p class="indus-body">
+        Entfernt alle bisher importierten Fahrten und Ladevorgänge
+        sowie die Import-Historie. Deine Vollmacht und Verbindung
+        bleiben bestehen.
+      </p>
+      <div class="indus-actions">
+        <button class="indus-btn-danger">Alles löschen</button>
+      </div>
+    </div>
+
+  </div>
+</section>
+</body>
+</html>

@@ -1,10 +1,19 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ArrowUpTrayIcon, ExclamationCircleIcon } from '@heroicons/vue/24/outline'
-import CarSelectDropdown from '../car/CarSelectDropdown.vue'
+import { ArrowUpTrayIcon, ExclamationCircleIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
 import xpengService, { type XpengJobDto } from '../../api/xpengService'
 import type { Car } from '../../api/carService'
+
+function carLabel(car: Car): string {
+  const enumToLabel = (v: string | null | undefined) => !v ? '' :
+    v.replace(/_/g, ' ').toLowerCase()
+     .split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+  const b = enumToLabel(car.brand)
+  const m = enumToLabel(car.model)
+  const name = m.toLowerCase().startsWith(b.toLowerCase()) ? m : `${b} ${m}`.trim()
+  return car.licensePlate ? `${name} · ${car.licensePlate}` : name
+}
 
 const { t } = useI18n()
 
@@ -57,41 +66,61 @@ async function submit() {
 </script>
 
 <template>
-  <section class="space-y-4 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-    <h3 class="text-base font-semibold flex items-center gap-2">
-      <ArrowUpTrayIcon class="w-5 h-5 text-blue-600 dark:text-blue-400" />
+  <section
+    class="rounded-sm border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 md:p-6 shadow-[4px_4px_0_0_#d1d5db] dark:shadow-[4px_4px_0_0_#374151]">
+    <p class="text-amber-600 dark:text-amber-500 text-[11px] font-bold uppercase tracking-[0.14em] mb-2 flex items-center gap-2">
+      <span class="inline-flex w-5 h-5 bg-amber-500 text-gray-950 rounded-sm items-center justify-center text-[11px] font-extrabold">2</span>
+      Upload
+    </p>
+
+    <h3 class="text-lg md:text-xl font-bold text-gray-900 dark:text-white tracking-tight mb-4">
       {{ t('xpeng.step_upload_title') }}
     </h3>
 
-    <div>
-      <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1">{{ t('xpeng.car_label') }}</label>
-      <CarSelectDropdown v-model="carId" :cars="carsReadyForUpload" />
-    </div>
+    <div class="space-y-4">
+      <div>
+        <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">
+          {{ t('xpeng.car_label') }}
+        </label>
+        <div class="relative">
+          <select v-model="carId"
+                  class="appearance-none w-full px-3 py-2.5 pr-10 border-2 border-gray-300 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm font-medium focus:outline-none focus:border-amber-500 dark:focus:border-amber-500 transition-colors">
+            <option value="" disabled>{{ t('cars.select_placeholder') }}</option>
+            <option v-for="car in carsReadyForUpload" :key="car.id" :value="car.id">
+              {{ carLabel(car) }}
+            </option>
+          </select>
+          <ChevronDownIcon class="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 dark:text-gray-500" />
+        </div>
+      </div>
 
-    <div>
-      <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1">{{ t('xpeng.file_label') }}</label>
-      <input type="file" accept=".xlsx" @change="onFileChange"
-             class="block w-full text-sm text-gray-700 dark:text-gray-300 file:mr-3 file:py-2 file:px-4 file:rounded file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900/40 dark:file:text-blue-300 dark:hover:file:bg-blue-900/60" />
-    </div>
+      <div>
+        <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">
+          {{ t('xpeng.file_label') }}
+        </label>
+        <input type="file" accept=".xlsx" @change="onFileChange"
+               class="block w-full text-sm text-gray-700 dark:text-gray-300 file:mr-3 file:py-2 file:px-4 file:rounded-sm file:border-2 file:border-gray-400 dark:file:border-gray-600 file:bg-transparent file:text-gray-800 dark:file:text-gray-200 file:font-bold file:uppercase file:text-xs file:tracking-wider hover:file:bg-gray-50 dark:hover:file:bg-gray-700/40 file:cursor-pointer file:shadow-[3px_3px_0_0_#9ca3af] dark:file:shadow-[3px_3px_0_0_#4b5563] file:transition-[transform,box-shadow] file:duration-75 active:file:translate-x-[3px] active:file:translate-y-[3px] active:file:shadow-none" />
+      </div>
 
-    <div>
-      <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1">
-        {{ t('xpeng.password_label') }}
-        <span class="text-xs text-gray-500">({{ t('xpeng.password_optional') }})</span>
-      </label>
-      <input v-model="password" type="password"
-             class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 dark:text-white text-sm" />
+      <div>
+        <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">
+          {{ t('xpeng.password_label') }}
+          <span class="text-gray-400 dark:text-gray-500 normal-case tracking-normal font-medium">· {{ t('xpeng.password_optional') }}</span>
+        </label>
+        <input v-model="password" type="password"
+               class="w-full px-3 py-2.5 border-2 border-gray-300 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-900 dark:text-white text-sm focus:outline-none focus:border-amber-500 dark:focus:border-amber-500 transition-colors" />
+      </div>
     </div>
 
     <div v-if="errorMessage"
-         class="rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3 text-sm text-red-800 dark:text-red-200 flex gap-2">
+         class="mt-4 border-l-2 border-red-500 bg-red-50 dark:bg-red-950/40 px-4 py-3 rounded-r-sm text-sm text-red-900 dark:text-red-200 flex gap-2">
       <ExclamationCircleIcon class="w-5 h-5 flex-shrink-0" />
       <span>{{ errorMessage }}</span>
     </div>
 
     <button @click="submit" :disabled="!canSubmit"
-            class="btn-3d w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-lg font-medium text-sm transition-colors">
-      <span v-if="busy" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            class="mt-5 w-full inline-flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:text-gray-500 dark:disabled:text-gray-500 disabled:cursor-not-allowed text-gray-950 font-bold uppercase tracking-wider text-xs px-5 py-3.5 rounded-sm border-2 border-amber-500 disabled:border-gray-300 dark:disabled:border-gray-700 shadow-[3px_3px_0_0_#030712] disabled:shadow-none active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow,background-color] duration-75">
+      <span v-if="busy" class="w-4 h-4 border-2 border-gray-950/30 border-t-gray-950 rounded-full animate-spin" />
       <ArrowUpTrayIcon v-else class="w-4 h-4" />
       <span>{{ busy ? t('xpeng.uploading') : t('xpeng.btn_upload') }}</span>
     </button>

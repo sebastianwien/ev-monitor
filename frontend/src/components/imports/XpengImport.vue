@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ExclamationCircleIcon, ShieldCheckIcon, TrashIcon } from '@heroicons/vue/24/outline'
+import { ExclamationCircleIcon, TrashIcon } from '@heroicons/vue/24/outline'
 import XpengConsentStep from './XpengConsentStep.vue'
 import XpengRequestMailStep from './XpengRequestMailStep.vue'
 import XpengUploadStep from './XpengUploadStep.vue'
@@ -96,20 +96,22 @@ async function onDeleteAllData() {
 </script>
 
 <template>
-  <div class="space-y-6">
-    <!-- Intro -->
-    <div class="rounded-lg bg-blue-50 dark:bg-blue-900/20 p-4 border border-blue-200 dark:border-blue-800">
-      <div class="flex gap-3">
-        <ShieldCheckIcon class="w-6 h-6 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-        <div class="text-sm text-gray-800 dark:text-gray-200">
-          <p class="font-medium mb-1">{{ t('xpeng.intro_title') }}</p>
-          <p class="text-gray-600 dark:text-gray-400">{{ t('xpeng.intro_body') }}</p>
-        </div>
-      </div>
+  <div class="space-y-5">
+    <!-- Page header (Editorial style) -->
+    <div class="pb-2">
+      <p class="text-amber-600 dark:text-amber-500 text-[11px] font-bold uppercase tracking-[0.14em] mb-2">
+        XPeng · EU Data Act
+      </p>
+      <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white leading-tight mb-2">
+        {{ t('xpeng.intro_title') }}
+      </h2>
+      <p class="text-gray-600 dark:text-gray-400 text-sm md:text-[15px] max-w-xl leading-relaxed">
+        {{ t('xpeng.intro_body') }}
+      </p>
     </div>
 
     <div v-if="topError"
-         class="rounded-lg bg-red-50 dark:bg-red-900/20 p-3 text-sm text-red-800 dark:text-red-200 flex gap-2">
+         class="rounded-sm border-2 border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-950/40 p-3 text-sm text-red-900 dark:text-red-200 flex gap-2 shadow-[3px_3px_0_0_#fca5a5] dark:shadow-[3px_3px_0_0_#b91c1c]">
       <ExclamationCircleIcon class="w-5 h-5 flex-shrink-0" />
       <span>{{ topError }}</span>
     </div>
@@ -151,27 +153,26 @@ async function onDeleteAllData() {
 
       <!-- Destruktive Aktion: alle XPENG_IMPORT-Daten loeschen -->
       <div v-if="hasImportedData"
-           class="rounded-lg border border-red-200 dark:border-red-900/40 bg-red-50/40 dark:bg-red-900/10 p-4 space-y-2">
-        <div class="flex items-start gap-3">
-          <TrashIcon class="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-          <div class="text-sm flex-1">
-            <p class="font-medium text-gray-900 dark:text-gray-100">{{ t('xpeng.delete_all_title') }}</p>
-            <p class="text-gray-600 dark:text-gray-400 mt-1">{{ t('xpeng.delete_all_body') }}</p>
-          </div>
-        </div>
-        <div v-if="deleteResultMsg"
-             class="text-sm text-green-700 dark:text-green-300 pl-8">{{ deleteResultMsg }}</div>
-        <div class="flex justify-end">
-          <button
-            type="button"
-            class="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md
-                   bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            :disabled="deleting"
-            @click="onDeleteAllData">
-            <TrashIcon class="w-4 h-4" />
-            {{ deleting ? t('common.loading') : t('xpeng.delete_all_button') }}
-          </button>
-        </div>
+           class="rounded-sm border-2 border-red-600 dark:border-red-700 bg-white dark:bg-gray-800 p-5 md:p-6 shadow-[4px_4px_0_0_#dc2626] dark:shadow-[4px_4px_0_0_#b91c1c]">
+        <h3 class="text-lg md:text-xl font-bold text-gray-900 dark:text-white tracking-tight mb-3 flex items-center gap-2">
+          <TrashIcon class="w-5 h-5 text-red-600 dark:text-red-400" />
+          {{ t('xpeng.delete_all_title') }}
+        </h3>
+        <p class="text-gray-600 dark:text-gray-400 text-sm leading-relaxed mb-4">
+          {{ t('xpeng.delete_all_body') }}
+        </p>
+        <p v-if="deleteResultMsg"
+           class="text-sm font-medium text-green-700 dark:text-green-300 mb-3">
+          {{ deleteResultMsg }}
+        </p>
+        <button
+          type="button"
+          class="inline-flex items-center gap-2 bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-sm border-2 border-red-600 shadow-[3px_3px_0_0_#030712] dark:shadow-[3px_3px_0_0_#030712] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75 font-family-inherit"
+          :disabled="deleting"
+          @click="onDeleteAllData">
+          <TrashIcon class="w-4 h-4" />
+          {{ deleting ? t('common.loading') : t('xpeng.delete_all_button') }}
+        </button>
       </div>
     </template>
   </div>
