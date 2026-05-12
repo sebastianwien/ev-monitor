@@ -90,6 +90,10 @@ public class XpengExcelStreamingParser {
 
                 XpengVehicleInfo info = readVehicleInfo(reader, sst, styles);
 
+                // Sheet-Detection per Header-Inhalt, NICHT per Name - schuetzt vor
+                // XPeng-Schema-Drift (Typo "TEMATICS_DATA" Jan 2026, evtl. zukuenftige
+                // Renames). Wir nehmen das erste Sheet bei dem alle Pflicht-Spalten
+                // aus XpengHeaderMapper.REQUIRED_LOGICAL aufloesbar sind.
                 XSSFReader.SheetIterator sheetIter = (XSSFReader.SheetIterator) reader.getSheetsData();
                 long rowsProcessed = 0;
                 boolean foundTelematics = false;
@@ -97,16 +101,27 @@ public class XpengExcelStreamingParser {
                     InputStream sheetStream = sheetIter.next();
                     String sheetName = sheetIter.getSheetName();
                     try {
-                        if ("TELEMATICS_DATA".equals(sheetName)) {
+                        long emitted = readTelematicsSheet(sheetStream, sst, styles, rowHandler);
+                        if (emitted > 0) {
                             foundTelematics = true;
-                            rowsProcessed = readTelematicsSheet(sheetStream, sst, styles, rowHandler);
+                            rowsProcessed = emitted;
+                            // erstes passendes Sheet reicht
+                            // (Daten-Catalogue + Basic-Vehicle-Sheets haben null oder zu wenige Pflicht-Spalten)
+                            break;
                         }
+                    } catch (Exception sheetErr) {
+                        // einzelne Sheets duerfen scheitern (z.B. Basic-Vehicle SAX-quirks) -
+                        // wir versuchen das naechste
+                        log.debug("XpengParser: sheet '{}' skipped: {}", sheetName, sheetErr.getMessage());
                     } finally {
                         sheetStream.close();
                     }
                 }
                 if (!foundTelematics) {
-                    throw new XpengParseException("TELEMATICS_DATA sheet not found - is this an XPeng export?");
+                    throw new XpengParseException(
+                            "Kein TELEMATICS-Sheet gefunden (Pflicht-Spalten "
+                            + XpengHeaderMapper.REQUIRED_LOGICAL
+                            + " in keinem Sheet aufloesbar)");
                 }
                 return new ParseResult(info, rowsProcessed);
             }
@@ -211,7 +226,9 @@ public class XpengExcelStreamingParser {
 
     private static class TelematicsHandler implements SheetContentsHandler {
         private final Consumer<XpengTelematicsRow> rowHandler;
-        private final Map<Integer, String> headers = new HashMap<>();
+        private final java.util.ArrayList<String> rawHeaders = new java.util.ArrayList<>();
+        private Map<String, Integer> logicalToColumn = Map.of();
+        private boolean isTelematics = false;
         private Map<Integer, String> currentRow = new HashMap<>();
         private int currentRowNum = -1;
         long rowsEmitted = 0;
@@ -226,7 +243,12 @@ public class XpengExcelStreamingParser {
         }
 
         @Override public void endRow(int rowNum) {
-            if (rowNum == 0) return; // header
+            if (rowNum == 0) {
+                logicalToColumn = XpengHeaderMapper.identifyColumns(rawHeaders);
+                isTelematics = XpengHeaderMapper.isTelematicsSheet(logicalToColumn);
+                return;
+            }
+            if (!isTelematics) return;
             if (rowsEmitted >= MAX_TELEMATICS_ROWS) {
                 throw new RuntimeException(
                         new XpengParseException("Too many telematics rows (" + rowsEmitted + ")"));
@@ -241,37 +263,38 @@ public class XpengExcelStreamingParser {
         @Override public void cell(String cellReference, String formattedValue, XSSFComment comment) {
             int col = columnIndex(cellReference);
             if (currentRowNum == 0) {
-                headers.put(col, formattedValue);
+                while (rawHeaders.size() <= col) rawHeaders.add(null);
+                rawHeaders.set(col, formattedValue);
             } else {
                 currentRow.put(col, formattedValue);
             }
         }
 
         private XpengTelematicsRow mapRow() {
-            LocalDateTime timer = parseTimer(byHeader("timer"));
+            LocalDateTime timer = parseTimer(byLogical(XpengHeaderMapper.TIMER));
             if (timer == null) return null;
             java.util.Map<String, BigDecimal> extras = new java.util.HashMap<>();
-            putIfNotNull(extras, XpengExtraKeys.CELL_TEMP_MAX_C, parseDecimal(byHeader("bms_celltempmaxnum_gb")));
-            putIfNotNull(extras, XpengExtraKeys.CELL_TEMP_MIN_C, parseDecimal(byHeader("bms_celltempminnum_gb")));
-            putIfNotNull(extras, XpengExtraKeys.LONG_ACCEL_G,    parseDecimal(byHeader("esp_vehlongaccel")));
-            putIfNotNull(extras, XpengExtraKeys.LAT_ACCEL_G,     parseDecimal(byHeader("esp_vehlateralaccel")));
-            putIfNotNull(extras, XpengExtraKeys.ACCEL_PEDAL_PCT, parseDecimal(byHeader("ldcu_accpedalsig")));
-            putIfNotNull(extras, XpengExtraKeys.FRONT_TORQUE_NM, parseDecimal(byHeader("ipuf_acttorq")));
-            putIfNotNull(extras, XpengExtraKeys.REAR_TORQUE_NM,  parseDecimal(byHeader("ipur_acttorq")));
-            putIfNotNull(extras, XpengExtraKeys.FRONT_RPM,       parseDecimal(byHeader("ipuf_actrotspd")));
-            putIfNotNull(extras, XpengExtraKeys.REAR_RPM,        parseDecimal(byHeader("ipur_actrotspd")));
-            putIfNotNull(extras, XpengExtraKeys.BMS_RANGE_KM,    parseDecimal(byHeader("ldcu_dstbatdisp_dynamic")));
+            putIfNotNull(extras, XpengExtraKeys.CELL_TEMP_MAX_C, parseDecimal(byLogical(XpengHeaderMapper.CELL_TEMP_MAX)));
+            putIfNotNull(extras, XpengExtraKeys.CELL_TEMP_MIN_C, parseDecimal(byLogical(XpengHeaderMapper.CELL_TEMP_MIN)));
+            putIfNotNull(extras, XpengExtraKeys.LONG_ACCEL_G,    parseDecimal(byLogical(XpengHeaderMapper.LONG_ACCEL)));
+            putIfNotNull(extras, XpengExtraKeys.LAT_ACCEL_G,     parseDecimal(byLogical(XpengHeaderMapper.LAT_ACCEL)));
+            putIfNotNull(extras, XpengExtraKeys.ACCEL_PEDAL_PCT, parseDecimal(byLogical(XpengHeaderMapper.ACCEL_PEDAL)));
+            putIfNotNull(extras, XpengExtraKeys.FRONT_TORQUE_NM, parseDecimal(byLogical(XpengHeaderMapper.FRONT_TORQUE)));
+            putIfNotNull(extras, XpengExtraKeys.REAR_TORQUE_NM,  parseDecimal(byLogical(XpengHeaderMapper.REAR_TORQUE)));
+            putIfNotNull(extras, XpengExtraKeys.FRONT_RPM,       parseDecimal(byLogical(XpengHeaderMapper.FRONT_RPM)));
+            putIfNotNull(extras, XpengExtraKeys.REAR_RPM,        parseDecimal(byLogical(XpengHeaderMapper.REAR_RPM)));
+            putIfNotNull(extras, XpengExtraKeys.BMS_RANGE_KM,    parseDecimal(byLogical(XpengHeaderMapper.BMS_RANGE)));
             return new XpengTelematicsRow(
                     timer,
-                    parseDecimal(byHeader("esp_vehspd")),
-                    parseInt(byHeader("ldcu_currentgearlev")),
-                    parseDecimal(byHeader("cdcu_totalodometer")),
-                    parseDecimal(byHeader("ldcu_bms_soc_disp")),
-                    parseDecimal(byHeader("bms_battvolt")),
-                    parseDecimal(byHeader("bms_battcurr")),
-                    parseDecimal(byHeader("ldcu_chrgpwr")),
-                    parseDecimal(byHeader("bms_batttempmax_gb")),
-                    parseDecimal(byHeader("bms_batttempmin_gb")),
+                    parseDecimal(byLogical(XpengHeaderMapper.SPEED)),
+                    parseInt(byLogical(XpengHeaderMapper.GEAR)),
+                    parseDecimal(byLogical(XpengHeaderMapper.ODOMETER)),
+                    parseDecimal(byLogical(XpengHeaderMapper.SOC)),
+                    parseDecimal(byLogical(XpengHeaderMapper.BATT_VOLT)),
+                    parseDecimal(byLogical(XpengHeaderMapper.BATT_CURR)),
+                    parseDecimal(byLogical(XpengHeaderMapper.CHARGE_POWER)),
+                    parseDecimal(byLogical(XpengHeaderMapper.BATT_TEMP_MAX)),
+                    parseDecimal(byLogical(XpengHeaderMapper.BATT_TEMP_MIN)),
                     extras);
         }
 
@@ -279,13 +302,10 @@ public class XpengExcelStreamingParser {
             if (v != null) map.put(key, v);
         }
 
-        private String byHeader(String name) {
-            for (Map.Entry<Integer, String> e : headers.entrySet()) {
-                if (name.equalsIgnoreCase(e.getValue())) {
-                    return currentRow.get(e.getKey());
-                }
-            }
-            return null;
+        private String byLogical(String logical) {
+            Integer col = logicalToColumn.get(logical);
+            if (col == null) return null;
+            return currentRow.get(col);
         }
     }
 
