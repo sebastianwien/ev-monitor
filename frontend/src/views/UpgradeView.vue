@@ -1,222 +1,206 @@
 <template>
-    <div class="py-6 md:py-10 px-4">
-        <div class="max-w-lg md:max-w-2xl mx-auto bg-gray-50 dark:bg-gray-900 rounded-3xl p-3">
+    <div class="py-6 md:py-12 px-4">
+        <div class="max-w-6xl mx-auto bg-gray-50/85 dark:bg-gray-900/75 backdrop-blur-md rounded-3xl p-4 md:p-8 shadow-xl shadow-black/5 dark:shadow-black/40">
             <div v-if="loading" class="text-center py-16 text-gray-500 dark:text-gray-400">{{ t('upgrade.loading') }}</div>
 
-            <!-- Bereits Pro (nur Live-Tier) -->
-            <div v-else-if="tier === 'AUTOSYNC_LIVE'" class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
-                <div class="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg class="w-8 h-8 text-green-600 dark:text-green-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                    </svg>
-                </div>
-                <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">{{ t('upgrade.already_pro_title') }}</h1>
-                <p class="text-gray-500 dark:text-gray-400 text-sm mb-6">{{ t('upgrade.already_pro_desc') }}</p>
-                <router-link to="/imports" class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-medium px-5 py-2.5 rounded-xl transition-colors text-sm">
-                    {{ t('upgrade.already_pro_cta') }}
-                </router-link>
-            </div>
-
-            <!-- Kaufseite -->
+            <!-- 3-Tier Upgrade View -->
             <div v-else>
-                <!-- Badge + Headline -->
-                <div class="text-center mb-6">
-                    <span class="inline-block text-xs font-bold bg-indigo-600 text-white px-3 py-1 rounded-full tracking-wide mb-4">{{ t('upgrade.badge') }}</span>
-                    <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">{{ t('upgrade.headline') }}</h1>
-                    <p class="text-gray-500 dark:text-gray-400 text-sm">{{ t('upgrade.subtitle') }}</p>
+                <!-- Headline -->
+                <div class="text-center mb-8">
+                    <span class="inline-block text-[11px] font-bold bg-indigo-600 text-white px-3 py-1 rounded-full tracking-wide mb-3">EV MONITOR</span>
+                    <h1 class="text-2xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-2">{{ t('upgrade.tier_headline') }}</h1>
+                    <p class="text-gray-500 dark:text-gray-400 text-sm md:text-base">{{ t('upgrade.tier_subtitle') }}</p>
                 </div>
 
-                <!-- Wie es funktioniert -->
-                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-5 mb-4">
-                    <div class="flex items-start gap-1">
-                        <div class="flex-1 text-center">
-                            <div class="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center mx-auto mb-2">
-                                <svg class="w-5 h-5 text-indigo-600 dark:text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
-                                </svg>
-                            </div>
-                            <p class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('upgrade.how_step1_title') }}</p>
-                            <p class="hidden md:block text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ t('upgrade.how_step1_desc') }}</p>
-                        </div>
-                        <div class="shrink-0 pt-4">
-                            <svg class="w-5 h-5 text-gray-300 dark:text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-                            </svg>
-                        </div>
-                        <div class="flex-1 text-center">
-                            <div class="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center mx-auto mb-2">
-                                <svg class="w-5 h-5 text-indigo-600 dark:text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
-                                </svg>
-                            </div>
-                            <p class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('upgrade.how_step2_title') }}</p>
-                            <p class="hidden md:block text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ t('upgrade.how_step2_desc') }}</p>
-                        </div>
-                        <div class="shrink-0 pt-4">
-                            <svg class="w-5 h-5 text-gray-300 dark:text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-                            </svg>
-                        </div>
-                        <div class="flex-1 text-center">
-                            <div class="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-2">
-                                <svg class="w-5 h-5 text-green-600 dark:text-green-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                                </svg>
-                            </div>
-                            <p class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('upgrade.how_step3_title') }}</p>
-                        </div>
+                <!-- Active-Plan Banner -->
+                <div v-if="tier !== 'NONE'" class="max-w-2xl mx-auto mb-6 flex flex-col sm:flex-row items-center justify-center gap-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl px-4 py-3">
+                    <div class="flex items-center gap-2">
+                        <CheckCircleIcon class="w-5 h-5 text-green-600 dark:text-green-400 shrink-0" />
+                        <p class="text-sm text-gray-700 dark:text-gray-200">{{ t('upgrade.tier_active_banner', { plan: activePlanName }) }}</p>
                     </div>
-                </div>
-
-                <!-- Unterstützte Marken -->
-                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 px-5 py-4 mb-4">
-                    <p class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-3 text-center">{{ t('upgrade.brands_title') }}</p>
-                    <div class="flex flex-wrap gap-1.5 justify-center">
-                        <span v-for="brand in brands" :key="brand" class="text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2.5 py-1 rounded-full">{{ brand }}</span>
-                    </div>
-                </div>
-
-                <!-- FAQ: Wie funktioniert AutoSync (Smartcar)? -->
-                <details v-if="showSmartcarFaq" class="group bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-4">
-                    <summary class="flex items-center justify-center gap-2 px-5 py-4 cursor-pointer list-none select-none hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                        <p class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">{{ t('imports.smartcar_how_title') }}</p>
-                        <ChevronDownIcon class="h-4 w-4 text-gray-400 shrink-0 transition-transform group-open:rotate-180" />
-                    </summary>
-                    <div class="border-t border-gray-100 dark:border-gray-700 px-5 pb-5 space-y-4">
-                        <div v-for="i in 5" :key="i" class="pt-4">
-                            <p v-if="i > 1" class="text-sm font-semibold text-gray-800 dark:text-gray-200">{{ t(`imports.smartcar_how_q${i}`) }}</p>
-                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ t(`imports.smartcar_how_a${i}`) }}</p>
-                        </div>
-                    </div>
-                </details>
-
-                <!-- FAQ: Wie funktioniert AutoSync für Tesla? -->
-                <details v-if="showTeslaFaq" class="group bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-4">
-                    <summary class="flex items-center justify-center gap-2 px-5 py-4 cursor-pointer list-none select-none hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                        <p class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">{{ t('imports.tesla_how_title') }}</p>
-                        <ChevronDownIcon class="h-4 w-4 text-gray-400 shrink-0 transition-transform group-open:rotate-180" />
-                    </summary>
-                    <div class="border-t border-gray-100 dark:border-gray-700 px-5 pb-5 space-y-4">
-                        <div v-for="i in 5" :key="i" class="pt-4">
-                            <p v-if="i > 1" class="text-sm font-semibold text-gray-800 dark:text-gray-200">{{ t(`imports.tesla_how_q${i}`) }}</p>
-                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1" v-html="t(`imports.tesla_how_a${i}`)"></p>
-                        </div>
-                    </div>
-                </details>
-
-                <!-- Pricing (nur für User ohne Abo) -->
-                <div v-if="tier === 'NONE'" class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
-                    <!-- Trial Hero -->
-                    <div class="text-center mb-4">
-                        <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ t('upgrade.trial_days') }}</p>
-                    </div>
-
-                    <!-- Plan Toggle -->
-                    <div class="mb-5">
-                        <p class="text-xs text-gray-400 dark:text-gray-500 text-center mb-3">{{ t('upgrade.plan_after_trial') }}</p>
-                        <div class="flex justify-center gap-2">
-                            <button
-                                @click="selectedPlan = 'monthly'"
-                                :class="selectedPlan === 'monthly' ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'"
-                                class="flex flex-col items-center px-4 py-2 rounded-lg font-medium text-sm transition-colors"
-                            >
-                                <span>{{ t('upgrade.plan_monthly') }}</span>
-                                <span>{{ pricing.monthly }}</span>
-                            </button>
-                            <button
-                                @click="selectedPlan = 'yearly'"
-                                :class="selectedPlan === 'yearly' ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'"
-                                class="flex flex-col items-center px-4 py-2 rounded-lg font-medium text-sm transition-colors"
-                            >
-                                <span>{{ t('upgrade.plan_yearly') }} · {{ pricing.yearly }}</span>
-                                <span :class="selectedPlan === 'yearly' ? 'bg-white/20 text-white' : 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400'" class="text-xs px-1.5 py-0.5 rounded mt-1">{{ pricing.yearlySavings }}</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="border-t border-gray-100 dark:border-gray-700 mb-5"></div>
-
                     <button
-                        @click="handleCheckout"
-                        :disabled="checkoutLoading || !premiumEnabled"
-                        class="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 text-white font-semibold py-3.5 rounded-xl transition-colors mb-4"
+                        @click="handleManageSubscription"
+                        :disabled="portalLoading"
+                        class="text-sm font-medium text-green-700 dark:text-green-400 hover:text-green-900 dark:hover:text-green-200 underline underline-offset-2 disabled:opacity-50"
                     >
-                        <span v-if="checkoutLoading">{{ t('upgrade.cta_loading') }}</span>
-                        <span v-else-if="!premiumEnabled">{{ t('upgrade.cta_coming_soon') }}</span>
-                        <span v-else>{{ t('upgrade.cta') }}</span>
+                        {{ portalLoading ? '...' : t('upgrade.tier_active_manage') }}
                     </button>
+                </div>
 
-                    <!-- Payment method trust indicators -->
-                    <div class="flex items-center justify-center gap-1.5 mb-3 flex-wrap">
-                        <span class="text-xs text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-500 rounded px-2 py-0.5">Visa</span>
-                        <span class="text-xs text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-500 rounded px-2 py-0.5">Mastercard</span>
-                        <span class="text-xs text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-500 rounded px-2 py-0.5">Apple Pay</span>
-                        <span class="text-xs text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-500 rounded px-2 py-0.5">Google Pay</span>
-                        <span class="text-xs text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-500 rounded px-2 py-0.5">Amazon Pay</span>
-                        <span class="text-xs text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-500 rounded px-2 py-0.5">Klarna</span>
-                        <span class="text-xs text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-500 rounded px-2 py-0.5">PayPal</span>
+                <!-- Plan Toggle -->
+                <div v-if="showPlanToggle" class="flex justify-center mb-6">
+                    <div class="inline-flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
+                        <button
+                            @click="selectedPlan = 'monthly'"
+                            :class="selectedPlan === 'monthly'
+                                ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm'
+                                : 'text-gray-600 dark:text-gray-400'"
+                            class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                        >{{ t('upgrade.tier_toggle_monthly') }}</button>
+                        <button
+                            @click="selectedPlan = 'yearly'"
+                            :class="selectedPlan === 'yearly'
+                                ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm'
+                                : 'text-gray-600 dark:text-gray-400'"
+                            class="px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5"
+                        >
+                            {{ t('upgrade.tier_toggle_yearly') }}
+                            <span class="text-[10px] bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded font-bold">{{ t('upgrade.tier_toggle_yearly_savings') }}</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 3 Tier Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
+
+                    <!-- FREE -->
+                    <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm dark:shadow-none p-6 flex flex-col">
+                        <div class="mb-4">
+                            <p class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">{{ t('upgrade.tier_free_label') }}</p>
+                            <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ t('upgrade.tier_free_title') }}</h2>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ t('upgrade.tier_free_subtitle') }}</p>
+                        </div>
+                        <div class="mb-5">
+                            <p class="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                                {{ t('upgrade.tier_free_price') }}<span class="text-base font-normal text-gray-400 dark:text-gray-500"> {{ t('upgrade.tier_free_price_unit') }}</span>
+                            </p>
+                        </div>
+                        <ul class="space-y-2.5 text-sm text-gray-700 dark:text-gray-300 mb-6 flex-1">
+                            <li class="flex items-start gap-2"><span class="text-gray-400 mt-0.5">✓</span><span>{{ t('upgrade.tier_free_feat_manual') }}</span></li>
+                            <li class="flex items-start gap-2"><span class="text-gray-400 mt-0.5">✓</span><span>{{ t('upgrade.tier_free_feat_xpeng') }}</span></li>
+                            <li class="flex items-start gap-2"><span class="text-gray-400 mt-0.5">✓</span><span>{{ t('upgrade.tier_free_feat_imports') }}</span></li>
+                            <li class="flex items-start gap-2"><span class="text-gray-400 mt-0.5">✓</span><span>{{ t('upgrade.tier_free_feat_api') }}</span></li>
+                            <li class="flex items-start gap-2"><span class="text-gray-400 mt-0.5">✓</span><span>{{ t('upgrade.tier_free_feat_stats') }}</span></li>
+                            <li class="flex items-start gap-2"><span class="text-gray-400 mt-0.5">✓</span><span>{{ t('upgrade.tier_free_feat_soh') }}</span></li>
+                            <li class="flex items-start gap-2"><span class="text-gray-400 mt-0.5">✓</span><span>{{ t('upgrade.tier_free_feat_cars') }}</span></li>
+                        </ul>
+                        <button
+                            disabled
+                            class="w-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-semibold py-3 rounded-xl text-sm cursor-default"
+                        >
+                            {{ tier === 'NONE' ? t('upgrade.tier_free_cta_current') : t('upgrade.tier_free_cta_included') }}
+                        </button>
                     </div>
 
-                    <p class="text-sm font-semibold text-gray-600 dark:text-gray-300 text-center mb-3">
-                        {{ selectedPlan === 'monthly' ? t('upgrade.trial_hint_monthly', { priceMonthly: pricing.monthly }) : t('upgrade.trial_hint_yearly', { priceYearly: pricing.yearly }) }}
-                    </p>
-
-                    <div v-if="checkoutError" class="mb-4 text-center space-y-1">
-                        <p class="text-sm text-red-600 dark:text-red-400">{{ checkoutError }}</p>
-                        <p class="text-xs text-gray-400 dark:text-gray-500">
-                            {{ t('upgrade.support_hint') }}
-                            <a href="mailto:support@ev-monitor.net" class="underline hover:no-underline">support@ev-monitor.net</a>
-                        </p>
+                    <!-- AUTOSYNC -->
+                    <div
+                        :class="isAutoSyncActive
+                            ? 'border-green-600 dark:border-green-500 shadow-xl shadow-green-500/10'
+                            : tier === 'NONE'
+                                ? 'border-green-500 dark:border-green-400 shadow-xl shadow-green-500/10 md:-mt-4'
+                                : 'border-gray-200 dark:border-gray-700'"
+                        class="bg-white dark:bg-gray-900 rounded-2xl border-2 p-6 flex flex-col relative"
+                    >
+                        <span v-if="tier === 'NONE'" class="absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] font-bold bg-green-600 dark:bg-green-500 text-white px-3 py-1 rounded-full tracking-wider whitespace-nowrap">{{ t('upgrade.tier_badge_recommended') }}</span>
+                        <div class="mb-4">
+                            <p class="text-xs font-bold text-green-600 dark:text-green-400 uppercase tracking-wider mb-1">{{ t('upgrade.tier_autosync_label') }}</p>
+                            <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ t('upgrade.tier_autosync_title') }}</h2>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ t('upgrade.tier_autosync_subtitle') }}</p>
+                        </div>
+                        <div class="mb-5">
+                            <p class="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                                <template v-if="selectedPlan === 'yearly' && tier === 'NONE'">{{ pricing.yearly }}<span class="text-base font-normal text-gray-400 dark:text-gray-500"> / Jahr</span></template>
+                                <template v-else>{{ pricing.monthly }}<span class="text-base font-normal text-gray-400 dark:text-gray-500"> {{ t('upgrade.tier_autosync_price_unit') }}</span></template>
+                            </p>
+                            <p class="text-xs text-green-600 dark:text-green-400 font-medium mt-0.5">{{ t('upgrade.tier_autosync_yearly_hint', { yearly: pricing.yearly }) }}</p>
+                        </div>
+                        <ul class="space-y-2.5 text-sm text-gray-700 dark:text-gray-300 mb-6 flex-1">
+                            <li class="flex items-start gap-2"><span class="text-green-600 dark:text-green-400 mt-0.5">✓</span><span>{{ t('upgrade.tier_autosync_feat_tesla') }}</span></li>
+                            <li class="flex items-start gap-2"><span class="text-green-600 dark:text-green-400 mt-0.5">✓</span><span>{{ t('upgrade.tier_autosync_feat_smartcar') }}</span></li>
+                            <li class="flex items-start gap-2"><span class="text-green-600 dark:text-green-400 mt-0.5">✓</span><span>{{ t('upgrade.tier_autosync_feat_connection') }}</span></li>
+                            <li class="flex items-start gap-2 text-gray-500 dark:text-gray-400"><span class="mt-0.5">+</span><span><em>{{ t('upgrade.tier_autosync_feat_inherits') }}</em></span></li>
+                        </ul>
+                        <template v-if="tier === 'NONE'">
+                            <button
+                                @click="handleCheckout"
+                                :disabled="checkoutLoading || !premiumEnabled"
+                                class="w-full bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-400 disabled:bg-gray-300 dark:disabled:bg-gray-600 text-white dark:text-gray-900 font-semibold py-3 rounded-xl text-sm shadow-[0_4px_0_0_#166534] dark:shadow-[0_4px_0_0_#064e3b] active:translate-y-1 active:shadow-none transition"
+                            >
+                                <span v-if="checkoutLoading">{{ t('upgrade.cta_loading') }}</span>
+                                <span v-else-if="!premiumEnabled">{{ t('upgrade.cta_coming_soon') }}</span>
+                                <span v-else>{{ t('upgrade.tier_autosync_cta_trial') }}</span>
+                            </button>
+                            <p class="text-[11px] text-gray-400 dark:text-gray-500 text-center mt-2">{{ t('upgrade.tier_autosync_disclaimer') }}</p>
+                            <p v-if="checkoutError" class="text-xs text-red-600 dark:text-red-400 text-center mt-2">{{ checkoutError }}</p>
+                        </template>
+                        <button
+                            v-else
+                            disabled
+                            class="w-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 font-semibold py-3 rounded-xl text-sm cursor-default flex items-center justify-center gap-1.5"
+                        >
+                            <CheckCircleIcon class="w-4 h-4" />
+                            {{ isAutoSyncActive ? t('upgrade.tier_autosync_cta_active') : t('upgrade.tier_autosync_cta_included') }}
+                        </button>
                     </div>
 
-                    <!-- Trust -->
-                    <div class="mt-4 flex items-center justify-center gap-2 text-xs text-gray-400 dark:text-gray-500">
-                        <svg class="w-4 h-4 shrink-0 text-gray-300 dark:text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
-                        </svg>
-                        <span>{{ t('upgrade.trust') }}</span>
+                    <!-- LIVE -->
+                    <div
+                        :class="isLiveActive
+                            ? 'border-indigo-600 dark:border-indigo-400 shadow-xl shadow-indigo-500/10'
+                            : 'border-indigo-300 dark:border-indigo-800'"
+                        class="bg-white dark:bg-gray-900 rounded-2xl border-2 p-6 flex flex-col relative"
+                    >
+                        <span v-if="!isLiveActive" class="absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] font-bold bg-indigo-600 dark:bg-indigo-500 text-white px-3 py-1 rounded-full tracking-wider whitespace-nowrap">{{ t('upgrade.tier_badge_live') }}</span>
+                        <div class="mb-4">
+                            <p class="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-1">{{ t('upgrade.tier_live_label') }}</p>
+                            <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ t('upgrade.tier_live_card_title') }}</h2>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ t('upgrade.tier_live_card_subtitle') }}</p>
+                        </div>
+                        <div class="mb-5">
+                            <p class="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                                <template v-if="selectedPlan === 'yearly' && tier === 'NONE'">{{ t('upgrade.live_price_yearly') }}<span class="text-base font-normal text-gray-400 dark:text-gray-500"> / Jahr</span></template>
+                                <template v-else>{{ t('upgrade.live_price_monthly') }}<span class="text-base font-normal text-gray-400 dark:text-gray-500"> {{ t('upgrade.tier_live_price_unit') }}</span></template>
+                            </p>
+                            <p class="text-xs text-indigo-600 dark:text-indigo-400 font-medium mt-0.5">{{ t('upgrade.tier_live_yearly_hint') }}</p>
+                        </div>
+                        <ul class="space-y-2.5 text-sm text-gray-700 dark:text-gray-300 mb-6 flex-1">
+                            <li class="flex items-start gap-2"><span class="text-indigo-600 dark:text-indigo-400 mt-0.5">✓</span><span>{{ t('upgrade.tier_live_feat_trip') }}</span></li>
+                            <li class="flex items-start gap-2"><span class="text-indigo-600 dark:text-indigo-400 mt-0.5">✓</span><span>{{ t('upgrade.tier_live_feat_drain') }}</span></li>
+                            <li class="flex items-start gap-2"><span class="text-indigo-600 dark:text-indigo-400 mt-0.5">✓</span><span>{{ t('upgrade.tier_live_feat_brands') }}</span></li>
+                            <li class="flex items-start gap-2 text-gray-500 dark:text-gray-400"><span class="mt-0.5">+</span><span><em>{{ t('upgrade.tier_live_feat_inherits') }}</em></span></li>
+                        </ul>
+                        <template v-if="isLiveActive">
+                            <button
+                                disabled
+                                class="w-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 font-semibold py-3 rounded-xl text-sm cursor-default flex items-center justify-center gap-1.5"
+                            >
+                                <CheckCircleIcon class="w-4 h-4" />
+                                {{ t('upgrade.tier_live_cta_active') }}
+                            </button>
+                        </template>
+                        <template v-else>
+                            <button
+                                @click="handleLiveAction"
+                                :disabled="liveLoading"
+                                class="w-full bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-400 text-white font-semibold py-3 rounded-xl text-sm shadow-[0_4px_0_0_#3730a3] dark:shadow-[0_4px_0_0_#312e81] active:translate-y-1 active:shadow-none transition disabled:opacity-60"
+                            >
+                                <span v-if="liveLoading">…</span>
+                                <span v-else>{{ isLiveUpgrade ? t('upgrade.tier_live_cta_upgrade') : t('upgrade.tier_live_cta_activate') }}</span>
+                            </button>
+                            <p class="text-[11px] text-gray-400 dark:text-gray-500 text-center mt-2">{{ t('upgrade.tier_live_disclaimer') }}</p>
+                            <p v-if="liveError" class="text-xs text-amber-600 dark:text-amber-400 text-center mt-2">{{ liveError }}</p>
+                        </template>
                     </div>
-                    <p class="text-xs text-gray-400 dark:text-gray-500 text-center mt-2">
+
+                </div>
+
+                <!-- Trust + Payments -->
+                <div v-if="tier === 'NONE'" class="mt-8 text-center">
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mb-3">{{ t('upgrade.tier_trust_hint') }}</p>
+                    <div class="flex flex-wrap justify-center gap-1.5">
+                        <span class="text-[11px] text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded px-2 py-0.5">Visa</span>
+                        <span class="text-[11px] text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded px-2 py-0.5">Mastercard</span>
+                        <span class="text-[11px] text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded px-2 py-0.5">Apple Pay</span>
+                        <span class="text-[11px] text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded px-2 py-0.5">Google Pay</span>
+                        <span class="text-[11px] text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded px-2 py-0.5">Amazon Pay</span>
+                        <span class="text-[11px] text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded px-2 py-0.5">Klarna</span>
+                        <span class="text-[11px] text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded px-2 py-0.5">PayPal</span>
+                    </div>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-3">
                         {{ t('upgrade.support_hint') }}
                         <a href="mailto:support@ev-monitor.net" class="underline hover:no-underline">support@ev-monitor.net</a>
                     </p>
                 </div>
-
-                <!-- Live-Card: only for users with at least one Tesla and not yet on Live tier -->
-                <div v-if="showLiveBlock"
-                     class="mt-4 rounded-2xl p-5 shadow-lg border border-indigo-500/40 relative bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800">
-                    <span class="absolute -top-2 right-4 text-[10px] font-bold bg-amber-400 text-amber-950 px-2 py-0.5 rounded-full">{{ t('upgrade.live_for_tesla_badge') }}</span>
-                    <div class="flex items-baseline justify-between mb-1">
-                        <h3 class="text-base font-bold text-white">{{ t('upgrade.live_title') }}</h3>
-                        <p class="text-sm text-indigo-200">
-                            <span class="text-white font-semibold">{{ t('upgrade.live_price_monthly') }}</span>
-                            <span> / </span>
-                            <span class="text-white font-semibold">{{ t('upgrade.live_price_yearly') }}</span>
-                        </p>
-                    </div>
-                    <p class="text-xs text-indigo-200 mb-3">{{ t('upgrade.live_subtitle') }}</p>
-                    <ul class="text-xs text-indigo-100 space-y-1 mb-4">
-                        <li class="flex items-start gap-1.5"><span class="text-white">✓</span><span>{{ t('upgrade.live_features_intro') }}</span></li>
-                        <li class="flex items-start gap-1.5"><span class="text-white">✓</span><strong>{{ t('upgrade.live_feature_trip') }}</strong></li>
-                        <li class="flex items-start gap-1.5"><span class="text-white">✓</span><strong>{{ t('upgrade.live_feature_drain') }}</strong></li>
-                    </ul>
-                    <button
-                        @click="handleLiveAction"
-                        :disabled="liveLoading"
-                        class="w-full bg-white text-indigo-700 font-semibold text-sm py-2.5 rounded-lg hover:bg-indigo-50 transition-colors disabled:opacity-60"
-                    >
-                        <span v-if="liveLoading">…</span>
-                        <span v-else-if="isLiveUpgrade">{{ t('upgrade.live_upgrade_cta') }}</span>
-                        <span v-else>{{ t('upgrade.live_buy_cta') }}</span>
-                    </button>
-                    <p class="text-[10px] text-indigo-200 text-center mt-2">{{ t('upgrade.live_tesla_required') }}</p>
-                    <p v-if="liveError" class="text-xs text-amber-200 text-center mt-2">{{ liveError }}</p>
-                </div>
-
-                <!-- Hint for non-Tesla users so they know Live exists -->
-                <p v-if="!hasTesla && tier === 'NONE'" class="text-[11px] text-gray-500 dark:text-gray-400 text-center mt-3">
-                    {{ t('upgrade.live_tesla_hint_for_non_tesla') }}
-                </p>
             </div>
         </div>
     </div>
@@ -227,7 +211,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { subscriptionService } from '../api/subscriptionService';
 import { analytics } from '../services/analytics';
-import { ChevronDownIcon } from '@heroicons/vue/24/outline';
+import { CheckCircleIcon } from '@heroicons/vue/24/solid';
 import { useCountryStore } from '../stores/country';
 import { useCarStore } from '../stores/car';
 import { getPricing } from '../config/pricingConfig';
@@ -238,28 +222,24 @@ const carStore = useCarStore();
 const pricing = computed(() => getPricing(countryStore.country));
 
 const userCarBrands = ref<string[]>([]);
-const hasTesla = computed(() => userCarBrands.value.some(b => b === 'TESLA'));
-const hasOnlyTesla = computed(() => userCarBrands.value.length > 0 && userCarBrands.value.every(b => b === 'TESLA'));
-const hasNonTesla = computed(() => userCarBrands.value.some(b => b !== 'TESLA'));
-const showTeslaFaq = computed(() => hasOnlyTesla.value || userCarBrands.value.length === 0);
-const showSmartcarFaq = computed(() => hasNonTesla.value || userCarBrands.value.length === 0);
 const tier = ref<'NONE' | 'AUTOSYNC' | 'AUTOSYNC_LIVE'>('NONE');
-const showLiveBlock = computed(() => hasTesla.value && tier.value !== 'AUTOSYNC_LIVE');
 const isLiveUpgrade = computed(() => tier.value === 'AUTOSYNC');
 
-const brands = [
-    'BMW', 'MINI', 'VW', 'Mercedes', 'Audi', 'Porsche', 'Skoda', 'SEAT', 'CUPRA', 'Opel',
-    'Hyundai', 'Kia', 'Volvo', 'Polestar', 'Renault', 'Dacia', 'Nissan', 'Ford',
-    'Fiat', 'Alfa Romeo', 'Peugeot', 'Citroën', 'Mazda', 'MG', 'BYD',
-    'Jaguar', 'Land Rover', 'Tesla',
-];
+// Card CTA-States basierend auf aktuellem Tier
+const isAutoSyncActive = computed(() => tier.value === 'AUTOSYNC');
+const isLiveActive = computed(() => tier.value === 'AUTOSYNC_LIVE');
+const showPlanToggle = computed(() => tier.value === 'NONE');
+const activePlanName = computed(() =>
+    tier.value === 'AUTOSYNC_LIVE' ? t('upgrade.tier_live_label')
+    : tier.value === 'AUTOSYNC' ? t('upgrade.tier_autosync_label')
+    : '');
 
 const loading = ref(true);
 const premiumEnabled = ref(false);
-const isPremium = ref(false);
 const selectedPlan = ref<'monthly' | 'yearly'>('yearly');
 const checkoutLoading = ref(false);
 const checkoutError = ref('');
+const portalLoading = ref(false);
 
 onMounted(async () => {
     try {
@@ -268,7 +248,6 @@ onMounted(async () => {
             carStore.getCars().catch(() => []),
         ]);
         premiumEnabled.value = status.premiumEnabled;
-        isPremium.value = status.isPremium;
         tier.value = status.tier ?? 'NONE';
         userCarBrands.value = cars.map(c => c.brand);
         analytics.trackUpgradePageViewed();
@@ -318,6 +297,16 @@ async function handleLiveAction() {
         }
     } finally {
         liveLoading.value = false;
+    }
+}
+
+async function handleManageSubscription() {
+    portalLoading.value = true;
+    try {
+        const result = await subscriptionService.createPortalSession();
+        window.location.href = result.portalUrl;
+    } catch {
+        portalLoading.value = false;
     }
 }
 </script>
