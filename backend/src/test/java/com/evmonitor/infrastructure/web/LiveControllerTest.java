@@ -1,5 +1,6 @@
 package com.evmonitor.infrastructure.web;
 
+import com.evmonitor.application.LiveChargingResponse;
 import com.evmonitor.application.LiveChargingService;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarBrand;

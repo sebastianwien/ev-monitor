@@ -2204,3 +2204,5 @@ live:
   upgrade_title: "AutoSync Live required"
   upgrade_desc: "Live charging status is exclusive to AutoSync Live. Upgrade now and monitor your charging session in real time."
   upgrade_cta: "Upgrade now"
+  stale_warning: "Connection lost - data may be stale"
+  refresh: "Refresh data"

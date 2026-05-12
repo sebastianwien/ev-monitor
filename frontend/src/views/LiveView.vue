@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
+import { useHead } from '@unhead/vue'
 import { BoltIcon, ArrowPathIcon } from '@heroicons/vue/24/outline'
 import { useAuthStore } from '../stores/auth'
 import { useCarStore } from '../stores/car'
@@ -18,13 +19,21 @@ const cars = ref<Car[]>([])
 const loading = ref(true)
 const selectedCarId = ref<string | null>(null)
 
+// Reactive clock for computed values that depend on current time
+const now = ref(Date.now())
+let clockInterval: ReturnType<typeof setInterval>
+onMounted(() => { clockInterval = setInterval(() => { now.value = Date.now() }, 1000) })
+onUnmounted(() => clearInterval(clockInterval))
+
+useHead(computed(() => ({
+  title: `${t('live.title')} | EV Monitor`,
+})))
+
 const activeCars = computed(() =>
   Array.isArray(cars.value) ? cars.value.filter(c => c.status === 'ACTIVE') : []
 )
 
-const canViewLive = computed(() =>
-  authStore.isAutoSyncLive || authStore.isAdmin || authStore.isBetaTester
-)
+const canViewLive = computed(() => authStore.canViewLiveTrips)
 
 onMounted(async () => {
   try {
@@ -41,12 +50,11 @@ const { data, loading: liveLoading, refresh } = useChargingLive(
   computed(() => canViewLive.value ? selectedCarId.value : null)
 )
 
-// Duration since session started
+// Duration since session started - reactive via now.value
 const sessionDuration = computed(() => {
   if (!data.value?.sessionStartedAt) return null
   const start = new Date(data.value.sessionStartedAt).getTime()
-  const now = Date.now()
-  const diffMs = Math.max(0, now - start)
+  const diffMs = Math.max(0, now.value - start)
   const totalSec = Math.floor(diffMs / 1000)
   const h = Math.floor(totalSec / 3600)
   const m = Math.floor((totalSec % 3600) / 60)
@@ -54,13 +62,16 @@ const sessionDuration = computed(() => {
   return `${m} ${t('live.minutes_short')}`
 })
 
-// Seconds since last update
+// Seconds since last update - reactive via now.value
 const secondsSinceUpdate = computed(() => {
   if (!data.value?.lastUpdatedAt) return null
   const updated = new Date(data.value.lastUpdatedAt).getTime()
-  const diff = Math.floor((Date.now() - updated) / 1000)
-  return diff
+  return Math.floor((now.value - updated) / 1000)
 })
+
+// Stale data indicators
+const dataIsStale = computed(() => (secondsSinceUpdate.value ?? 0) > 60)
+const dataIsVeryStale = computed(() => (secondsSinceUpdate.value ?? 0) > 120)
 
 // SoC progress bar color
 const socBarColor = computed(() => {
@@ -112,11 +123,12 @@ function formatNumber(val: number | null, decimals = 1): string {
             <p class="font-bold text-gray-900 dark:text-white text-lg mb-1 tracking-tight">
               {{ t('live.upgrade_title') }}
             </p>
-            <p class="text-sm text-gray-600 dark:text-gray-300 mb-4 font-medium leading-relaxed">
+            <p id="live-upgrade-desc" class="text-sm text-gray-600 dark:text-gray-300 mb-4 font-medium leading-relaxed">
               {{ t('live.upgrade_desc') }}
             </p>
             <button
               @click="router.push('/upgrade')"
+              aria-describedby="live-upgrade-desc"
               class="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-gray-950 font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-sm border-2 border-gray-900 shadow-[3px_3px_0_0_#030712] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75"
             >
               <BoltIcon class="h-4 w-4" />
@@ -169,10 +181,19 @@ function formatNumber(val: number | null, decimals = 1): string {
             </span>
           </div>
 
+          <!-- Stale data warning -->
+          <div
+            v-if="dataIsStale"
+            class="border-l-2 border-amber-500 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-xs font-medium text-amber-700 dark:text-amber-300"
+          >
+            {{ t('live.stale_warning') }}
+          </div>
+
           <!-- Power - big number -->
-          <div class="px-4 py-5 border-b-2 border-gray-900 dark:border-white flex items-end gap-2">
+          <div class="px-4 py-5 border-b-2 border-gray-900 dark:border-white flex items-end gap-2" :class="{ 'opacity-50': dataIsVeryStale }">
             <span class="text-5xl font-black tracking-tight text-gray-900 dark:text-white leading-none tabular-nums">
-              {{ formatNumber(data.powerKw) }}
+              <span v-if="data.powerKw != null">{{ formatNumber(data.powerKw) }}</span>
+              <span v-else class="opacity-40">...</span>
             </span>
             <span class="text-lg font-bold text-gray-500 dark:text-gray-400 mb-1">kW</span>
             <span class="ml-auto text-[11px] font-bold uppercase tracking-[0.14em] text-gray-500 dark:text-gray-400 mb-1.5">
@@ -181,7 +202,7 @@ function formatNumber(val: number | null, decimals = 1): string {
           </div>
 
           <!-- SoC progress bar -->
-          <div class="px-4 pt-4 pb-3 border-b-2 border-gray-900 dark:border-white">
+          <div class="px-4 pt-4 pb-3 border-b-2 border-gray-900 dark:border-white" :class="{ 'opacity-50': dataIsVeryStale }">
             <div class="flex items-center justify-between mb-1.5">
               <span class="text-[11px] font-bold uppercase tracking-[0.14em] text-gray-500 dark:text-gray-400">
                 {{ t('live.soc') }}
@@ -200,7 +221,7 @@ function formatNumber(val: number | null, decimals = 1): string {
           </div>
 
           <!-- Stats grid -->
-          <div class="divide-y-2 divide-gray-900 dark:divide-white">
+          <div class="divide-y-2 divide-gray-900 dark:divide-white" :class="{ 'opacity-50': dataIsVeryStale }">
             <!-- ETA -->
             <div class="flex items-center justify-between px-4 py-3">
               <span class="text-[11px] font-bold uppercase tracking-[0.14em] text-gray-500 dark:text-gray-400">
@@ -247,8 +268,8 @@ function formatNumber(val: number | null, decimals = 1): string {
             </span>
             <button
               @click="refresh()"
+              :aria-label="t('live.refresh')"
               class="p-1.5 border-2 border-gray-900 dark:border-white rounded-sm shadow-[2px_2px_0_0_#030712] dark:shadow-[2px_2px_0_0_#ffffff] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-[transform,box-shadow] duration-75 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700"
-              :title="t('live.last_updated')"
             >
               <ArrowPathIcon class="h-4 w-4 text-gray-700 dark:text-gray-300" />
             </button>

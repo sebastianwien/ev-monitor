@@ -1,4 +1,4 @@
-package com.evmonitor.infrastructure.web;
+package com.evmonitor.application;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;

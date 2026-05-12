@@ -27,6 +27,14 @@ public class RestTemplateConfig {
             .build();
     }
 
+    @Bean("liveChargingRestTemplate")
+    public RestTemplate liveChargingRestTemplate() {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(3_000);
+        factory.setReadTimeout(5_000);
+        return new RestTemplate(factory);
+    }
+
     @Bean("spritMonitorRestTemplate")
     public RestTemplate spritMonitorRestTemplate(
         RestTemplateBuilder builder,

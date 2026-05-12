@@ -1,14 +1,13 @@
 package com.evmonitor.application;
 
-import com.evmonitor.infrastructure.web.LiveChargingResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
@@ -34,13 +33,10 @@ public class LiveChargingService {
     @Value("${internal.token:}")
     private String internalToken;
 
-    private final RestTemplate restTemplate = buildRestTemplate();
+    private final RestTemplate restTemplate;
 
-    private static RestTemplate buildRestTemplate() {
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(3_000);
-        factory.setReadTimeout(5_000);
-        return new RestTemplate(factory);
+    public LiveChargingService(@Qualifier("liveChargingRestTemplate") RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
     }
 
     /**
