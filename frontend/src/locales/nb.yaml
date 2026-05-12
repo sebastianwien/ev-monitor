@@ -621,6 +621,24 @@ dashboard:
   action_reassign: Flytt
   action_menu_label: Handlinger
   phantom_drain_word: Standtap
+  insights_tab_donut: Energifordeling
+  insights_tab_nights: Parkeringstap
+  insights_tab_calendar: Turer
+  insights_alltime: Alltid
+  insights_driven: Kjørt
+  insights_phantom: Parkeringstap
+  insights_charging_loss: Ladetap
+  insights_loaded: ladet
+  insights_phantom_eur: "≈ {eur} € i parkeringstap"
+  insights_alltime_hint: Inkluderer alle ladeøkter
+  insights_worst_parks: Høyeste parkeringstap
+  insights_sentry_hint: Sentry Mode og kalde netter øker tapene betydelig.
+  insights_no_drain: Ingen parkeringstap i valgt periode.
+  insights_trips_detected: Registrerte turer
+  insights_no_trips: Ingen turer i valgt periode.
+  insights_trips_count: Turer
+  insights_avg_trip: Snitt / tur
+  insights_total_km: Totalt
   trip_edit: Rediger tur
   trip_save: Lagre
   trip_cancel: Avbryt

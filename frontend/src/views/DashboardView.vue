@@ -68,6 +68,7 @@ import ImplausibleLogsModal from '../components/dashboard/ImplausibleLogsModal.v
 import PeerBenchmarkCard from '../components/dashboard/PeerBenchmarkCard.vue'
 import RangeCard from '../components/dashboard/RangeCard.vue'
 import DashboardEmptyState from '../components/dashboard/DashboardEmptyState.vue'
+import DashboardInsights from '../components/dashboard/DashboardInsights.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useDashboardStats } from '../composables/useDashboardStats'
 import { useDashboardCharts } from '../composables/useDashboardCharts'
@@ -724,43 +725,6 @@ function onTripFormLeave(el: Element, done: () => void) {
             </div>
           </div>
 
-          <!-- Echte Reichweite + Peer Benchmark: mobile gestackt, desktop nebeneinander -->
-          <div class="mb-6 flex flex-col md:flex-row md:items-stretch gap-4">
-
-          <!-- Echte Reichweite -->
-          <RangeCard
-            v-if="carInfo?.batteryCapacityKwh && stats?.avgConsumptionKwhPer100km"
-            class="md:w-80 shrink-0"
-            :battery-capacity-kwh="carInfo.batteryCapacityKwh"
-            :summer-consumption="stats.summerConsumptionKwhPer100km ?? null"
-            :winter-consumption="stats.winterConsumptionKwhPer100km ?? null"
-            :avg-consumption="stats.avgConsumptionKwhPer100km"
-          />
-
-
-          <!-- Peer Benchmark -->
-          <PeerBenchmarkCard
-            v-if="stats?.peerBenchmark && stats.peerBenchmark.peerAvgConsumptionKwhPer100km != null"
-            class="flex-1 min-w-0"
-            :benchmark="stats.peerBenchmark"
-            :effective-battery-kwh="selectedCar?.effectiveBatteryCapacityKwh ?? null"
-            :car-display-name="selectedCar ? [carDisplayName(selectedCar.brand, selectedCar.model), selectedCar.trim].filter(Boolean).join(' ') : ''"
-          />
-
-          <!-- Peer Benchmark Placeholder -->
-          <div
-            v-else-if="stats && carInfo?.batteryCapacityKwh && stats?.avgConsumptionKwhPer100km"
-            class="flex-1 min-w-0 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col items-center justify-center gap-3 px-6 py-8 text-center"
-          >
-            <UsersIcon class="w-8 h-8 text-gray-300 dark:text-gray-600" />
-            <div>
-              <p class="text-sm font-semibold text-gray-400 dark:text-gray-500">{{ t('dashboard.peer_no_data_title') }}</p>
-              <p class="text-xs text-gray-400 dark:text-gray-500 mt-1 max-w-xs">{{ t('dashboard.peer_no_data_body') }}</p>
-            </div>
-          </div>
-
-          </div><!-- Ende Reichweite + Peer Wrapper -->
-
           <!-- Filters (show if there are logs in any time range) -->
           <div v-if="selectedCarId && hasAnyLogs" class="mb-6 p-4 bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 shadow-sm">
             <!-- Mobile: two selects side by side -->
@@ -859,6 +823,42 @@ function onTripFormLeave(el: Element, done: () => void) {
               </div>
             </div>
           </div>
+
+          <!-- Echte Reichweite + Peer Benchmark: mobile gestackt, desktop nebeneinander -->
+          <div class="mb-6 flex flex-col md:flex-row md:items-stretch gap-4">
+
+          <!-- Echte Reichweite -->
+          <RangeCard
+            v-if="carInfo?.batteryCapacityKwh && stats?.avgConsumptionKwhPer100km"
+            class="md:w-80 shrink-0"
+            :battery-capacity-kwh="carInfo.batteryCapacityKwh"
+            :summer-consumption="stats.summerConsumptionKwhPer100km ?? null"
+            :winter-consumption="stats.winterConsumptionKwhPer100km ?? null"
+            :avg-consumption="stats.avgConsumptionKwhPer100km"
+          />
+
+          <!-- Peer Benchmark -->
+          <PeerBenchmarkCard
+            v-if="stats?.peerBenchmark && stats.peerBenchmark.peerAvgConsumptionKwhPer100km != null"
+            class="flex-1 min-w-0"
+            :benchmark="stats.peerBenchmark"
+            :effective-battery-kwh="selectedCar?.effectiveBatteryCapacityKwh ?? null"
+            :car-display-name="selectedCar ? [carDisplayName(selectedCar.brand, selectedCar.model), selectedCar.trim].filter(Boolean).join(' ') : ''"
+          />
+
+          <!-- Peer Benchmark Placeholder -->
+          <div
+            v-else-if="stats && carInfo?.batteryCapacityKwh && stats?.avgConsumptionKwhPer100km"
+            class="flex-1 min-w-0 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col items-center justify-center gap-3 px-6 py-8 text-center"
+          >
+            <UsersIcon class="w-8 h-8 text-gray-300 dark:text-gray-600" />
+            <div>
+              <p class="text-sm font-semibold text-gray-400 dark:text-gray-500">{{ t('dashboard.peer_no_data_title') }}</p>
+              <p class="text-xs text-gray-400 dark:text-gray-500 mt-1 max-w-xs">{{ t('dashboard.peer_no_data_body') }}</p>
+            </div>
+          </div>
+
+          </div><!-- Ende Reichweite + Peer Wrapper -->
 
           <div v-if="error" class="mb-4 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300 rounded-md">{{ error }}</div>
 
@@ -1022,6 +1022,17 @@ function onTripFormLeave(el: Element, done: () => void) {
             <span class="absolute bottom-1 right-3 text-[10px] text-gray-300 dark:text-gray-600">Affiliate-Link</span>
           </div>
         </div>
+
+        <!-- Insights: Energie-Split · Standverluste · Fahrten-Kalender (AutoSync Live only) -->
+        <DashboardInsights
+          v-if="authStore.canViewLiveTrips && mergedLogFeed.length > 0"
+          :entries="mergedLogFeed"
+          :selected-car="cars.find((c: any) => c.id === selectedCarId)"
+          :selected-time-range="selectedTimeRange"
+          :custom-start-date="customStartDate"
+          :custom-end-date="customEndDate"
+          class="mb-3"
+        />
 
         <!-- Log List -->
         <div ref="logsSection" class="border-t border-gray-100 dark:border-gray-700 pt-3 scroll-mt-4 pb-6">

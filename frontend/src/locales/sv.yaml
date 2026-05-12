@@ -621,6 +621,24 @@ dashboard:
   action_reassign: Flytta
   action_menu_label: Åtgärder
   phantom_drain_word: Standby-förlust
+  insights_tab_donut: Energifördelning
+  insights_tab_nights: Parkeringsförluster
+  insights_tab_calendar: Resor
+  insights_alltime: Alltid
+  insights_driven: Kört
+  insights_phantom: Parkeringsförluster
+  insights_charging_loss: Laddningsförluster
+  insights_loaded: laddat
+  insights_phantom_eur: "≈ {eur} € i parkeringsförluster"
+  insights_alltime_hint: Inkluderar alla laddningssessioner
+  insights_worst_parks: Högsta parkeringsförluster
+  insights_sentry_hint: Sentry Mode och kalla nätter ökar förlusterna avsevärt.
+  insights_no_drain: Inga parkeringsförluster under vald period.
+  insights_trips_detected: Identifierade resor
+  insights_no_trips: Inga resor under vald period.
+  insights_trips_count: Resor
+  insights_avg_trip: Snitt / resa
+  insights_total_km: Totalt
   trip_edit: Redigera resa
   trip_save: Spara
   trip_cancel: Avbryt
