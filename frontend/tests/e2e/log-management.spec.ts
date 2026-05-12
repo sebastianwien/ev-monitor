@@ -98,6 +98,7 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
     const errors: string[] = [];
     page.on('pageerror', err => errors.push(err.message));
 
+    await page.goto('/logs');
     await page.waitForLoadState('networkidle');
 
     const editButton = page.locator('[title="Ladevorgang bearbeiten"]').first();
@@ -121,6 +122,7 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
     const errors: string[] = [];
     page.on('pageerror', err => errors.push(err.message));
 
+    await page.goto('/logs');
     await page.waitForLoadState('networkidle');
 
     // Test 3 hat Vehicle-Wert (36) gesetzt, kwhCharged (35.5) bleibt erhalten - beide Felder gesetzt
@@ -148,6 +150,7 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
     const errors: string[] = [];
     page.on('pageerror', err => errors.push(err.message));
 
+    await page.goto('/logs');
     await page.waitForLoadState('networkidle');
 
     // Log hat kwhCharged=35.5 und kwhAtVehicle=36 - Charger-Modus ist Default
@@ -264,6 +267,7 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
     const errors: string[] = [];
     page.on('pageerror', err => errors.push(err.message));
 
+    await page.goto('/logs');
     await page.waitForLoadState('networkidle');
 
     // Nach Test 5 hat der erste Log kwhCharged=38 UND kwhAtVehicle=36

@@ -93,6 +93,12 @@ const router = createRouter({
             meta: { requiresAuth: true }
         },
         {
+            path: '/logs',
+            name: 'logs',
+            component: () => import('../views/LogsView.vue'),
+            meta: { requiresAuth: true }
+        },
+        {
             path: '/statistics',
             redirect: '/dashboard'
             // Legacy redirect: /statistics → /dashboard
@@ -426,6 +432,26 @@ const router = createRouter({
             // Catch-all route - must be last!
         }
     ]
+});
+
+// Horizontal slide animation between Dashboard <-> Logs.
+// Other navigation falls back to no transition (or whatever App.vue defaults to).
+const SLIDE_PAIRS: Record<string, string[]> = {
+    '/dashboard': ['/logs'],
+    '/logs': ['/dashboard'],
+};
+router.beforeEach((to, from) => {
+    const dest = SLIDE_PAIRS[to.path];
+    const isMobile = typeof window !== 'undefined'
+        && window.matchMedia('(max-width: 767px)').matches;
+    if (isMobile && dest && dest.includes(from.path)) {
+        // Forward direction = dashboard -> logs (new slides in from right)
+        to.meta.transition = (from.path === '/dashboard' && to.path === '/logs')
+            ? 'slide-left'
+            : 'slide-right';
+    } else {
+        to.meta.transition = '';
+    }
 });
 
 router.beforeEach(async (to, _from) => {

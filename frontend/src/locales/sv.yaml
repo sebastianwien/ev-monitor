@@ -566,6 +566,8 @@ dashboard:
   logs_title: Dina laddningar
   logs_title_short: Laddningssessioner
   logs_page: Sida {n}
+  bulk_trips_label: Visa resor
+  bulk_charges_label: Visa laddningssessioner
   implausible_banner: "{n} {noun} med osannolik förbrukning"
   implausible_entry: post
   implausible_entries: poster

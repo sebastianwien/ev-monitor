@@ -572,6 +572,8 @@ dashboard:
   logs_title: "Deine Ladevorgänge"
   logs_title_short: "Ladevorgänge"
   logs_page: "Seite {n}"
+  bulk_trips_label: "Fahrten ausklappen"
+  bulk_charges_label: "Ladevorgänge ausklappen"
   implausible_banner: "{n} {noun} mit unplausiblem Verbrauch"
   implausible_entry: "Eintrag"
   implausible_entries: "Einträge"

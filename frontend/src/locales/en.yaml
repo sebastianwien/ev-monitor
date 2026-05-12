@@ -572,6 +572,8 @@ dashboard:
   logs_title: "Your charging sessions"
   logs_title_short: "Charging sessions"
   logs_page: "Page {n}"
+  bulk_trips_label: "Expand trips"
+  bulk_charges_label: "Expand charging sessions"
   implausible_banner: "{n} {noun} with implausible consumption"
   implausible_entry: "entry"
   implausible_entries: "entries"
