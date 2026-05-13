@@ -47,6 +47,15 @@ const curveMaxKw = computed(() => {
 
 interface CurvePoint { x: number; y: number }
 
+// Zeit-Spanne der aktuellen Punktreihe. Wird sowohl fuer die kW-Kurve als auch
+// fuer die km-Reichweiten-Linie als x-Achse genutzt - damit Tesla's on-change-
+// Streaming mit ungleichmaessigen dt's korrekt visualisiert wird, statt die
+// Punkte index-basiert gleichmaessig zu verteilen (sonst sieht eine 20-min-Pause
+// genauso breit aus wie eine 5-sek-Luecke).
+function pointX(ts: number, first: number, span: number): number {
+  return span > 0 ? ((ts - first) / span) * CURVE_W : 0
+}
+
 const curvePoints = computed<CurvePoint[]>(() => {
   const buf = props.points
   if (buf.length === 0) return []
@@ -55,8 +64,10 @@ const curvePoints = computed<CurvePoint[]>(() => {
     return [{ x: 0, y }, { x: CURVE_W, y }]
   }
   const max = curveMaxKw.value
-  return buf.map((p, i) => ({
-    x: (i / (buf.length - 1)) * CURVE_W,
+  const first = buf[0].ts
+  const span = buf[buf.length - 1].ts - first
+  return buf.map(p => ({
+    x: pointX(p.ts, first, span),
     y: CURVE_H - (p.kw / max) * CURVE_H,
   }))
 })
@@ -98,8 +109,10 @@ const rangePoints = computed<RangePoint[]>(() => {
   // 30 % Headroom oben, damit die km-Linie nicht in das kW-Overlay
   // rechts oben laeuft. Endpunkt liegt dann bei ~70 % Hoehe.
   const maxKm = (km[km.length - 1] || 1) / 0.70
-  return buf.map((_, i) => ({
-    x: (i / (buf.length - 1)) * CURVE_W,
+  const first = buf[0].ts
+  const span = buf[buf.length - 1].ts - first
+  return buf.map((p, i) => ({
+    x: pointX(p.ts, first, span),
     y: CURVE_H - (km[i] / maxKm) * CURVE_H,
     km: km[i],
   }))
