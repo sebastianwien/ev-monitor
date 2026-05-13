@@ -588,10 +588,13 @@ const closeMobileMenu = () => {
 <!-- Global (un-scoped) so they reach the routed view components -->
 <style>
 .slide-left-enter-active,
+.slide-right-enter-active {
+  transition: transform 0.22s cubic-bezier(0.0, 0, 0.2, 1), opacity 0.18s ease;
+  will-change: transform;
+}
 .slide-left-leave-active,
-.slide-right-enter-active,
 .slide-right-leave-active {
-  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.22s ease;
+  transition: transform 0.12s cubic-bezier(0.4, 0, 1, 1), opacity 0.10s ease;
   will-change: transform;
 }
 
