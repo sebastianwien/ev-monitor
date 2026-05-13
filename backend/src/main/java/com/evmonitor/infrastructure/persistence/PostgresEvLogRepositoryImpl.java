@@ -99,6 +99,28 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
+    public Optional<EvLog> findChargeMatchCandidate(UUID carId, Integer odometerKm, LocalDateTime sessionEnd) {
+        LocalDateTime timeMin = sessionEnd.minusMinutes(10);
+        LocalDateTime timeMax = sessionEnd.plusMinutes(10);
+        Integer odoMin = odometerKm == null ? null : odometerKm - 1;
+        Integer odoMax = odometerKm == null ? null : odometerKm + 1;
+        List<EvLogEntity> candidates = jpaRepository.findChargeMatchCandidates(
+                carId, timeMin, timeMax, odometerKm, odoMin, odoMax);
+        if (candidates.isEmpty()) return Optional.empty();
+        EvLogEntity best = candidates.get(0);
+        long bestDelta = Math.abs(java.time.Duration.between(best.getLoggedAt(), sessionEnd).toSeconds());
+        for (int i = 1; i < candidates.size(); i++) {
+            EvLogEntity c = candidates.get(i);
+            long delta = Math.abs(java.time.Duration.between(c.getLoggedAt(), sessionEnd).toSeconds());
+            if (delta < bestDelta) {
+                best = c;
+                bestDelta = delta;
+            }
+        }
+        return Optional.of(toDomain(best));
+    }
+
+    @Override
     public long countByUserId(UUID userId) {
         return jpaRepository.countByUserId(userId);
     }

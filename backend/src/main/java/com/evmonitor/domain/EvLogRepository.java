@@ -34,6 +34,17 @@ public interface EvLogRepository {
 
     boolean existsByCarIdAndLoggedAtAndKwhCharged(UUID carId, LocalDateTime loggedAt, BigDecimal kwhCharged);
 
+    /**
+     * Findet einen existierenden Log, der durch XPeng-Telemetrie angereichert werden koennte.
+     *
+     * Match-Regel: Log gehoert zum Auto, loggedAt liegt im Fenster [sessionEnd-10min, sessionEnd+10min].
+     * Falls sessionEnd-Session einen Odometer hat, muss der Log entweder keinen Odometer haben
+     * oder einen passenden (±1 km). Hat die Session keinen Odometer, reicht das Zeitfenster.
+     *
+     * Bei mehreren Kandidaten wird der mit der zeitlich naechsten loggedAt zurueckgegeben.
+     */
+    Optional<EvLog> findChargeMatchCandidate(UUID carId, Integer odometerKm, LocalDateTime sessionEnd);
+
     long countByUserId(UUID userId);
 
     void deleteById(UUID id);

@@ -79,6 +79,23 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
 
     boolean existsByCarIdAndLoggedAtAndKwhCharged(UUID carId, LocalDateTime loggedAt, BigDecimal kwhCharged);
 
+    @Query("""
+            SELECT e FROM EvLogEntity e
+            WHERE e.carId = :carId
+              AND e.loggedAt >= :timeMin
+              AND e.loggedAt <= :timeMax
+              AND (:odoKm IS NULL
+                   OR e.odometerKm IS NULL
+                   OR (e.odometerKm >= :odoMin AND e.odometerKm <= :odoMax))
+            """)
+    List<EvLogEntity> findChargeMatchCandidates(
+            @Param("carId") UUID carId,
+            @Param("timeMin") LocalDateTime timeMin,
+            @Param("timeMax") LocalDateTime timeMax,
+            @Param("odoKm") Integer odoKm,
+            @Param("odoMin") Integer odoMin,
+            @Param("odoMax") Integer odoMax);
+
     Optional<EvLogEntity> findByCarIdAndLoggedAt(UUID carId, LocalDateTime loggedAt);
 
     @Query("SELECT e FROM EvLogEntity e WHERE e.geohash IS NOT NULL AND e.temperatureCelsius IS NULL")

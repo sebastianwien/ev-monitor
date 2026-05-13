@@ -45,6 +45,7 @@ class XpengImportServiceTest {
     @Mock XpengImportJobRepository jobRepo;
     @Mock TripService tripService;
     @Mock PublicApiImportService publicApiImportService;
+    @Mock XpengChargeMatcher chargeMatcher;
     @Mock ApplicationContext applicationContext;
     @Mock EvLogRepository evLogRepository;
     @Mock EvTripRepository evTripRepository;

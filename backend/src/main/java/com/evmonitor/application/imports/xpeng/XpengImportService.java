@@ -87,6 +87,7 @@ public class XpengImportService {
     private final CarRepository carRepository;
     private final TripService tripService;
     private final PublicApiImportService publicApiImportService;
+    private final XpengChargeMatcher chargeMatcher;
     private final ApplicationContext applicationContext;
     private final com.evmonitor.domain.EvLogRepository evLogRepository;
     private final com.evmonitor.domain.EvTripRepository evTripRepository;
@@ -275,26 +276,33 @@ public class XpengImportService {
             }
         }
 
-        // Charging sessions → PublicApiImportService (dedup via timestamp+kwh)
+        // Charging sessions: erst existierende Logs anreichern (Odo ±1 km + Zeit ±10 min),
+        // restliche unmatched Sessions gehen den normalen API-Sink-Weg.
         if (!sessions.isEmpty()) {
-            List<PublicApiSessionRequest.SessionEntry> entries = new ArrayList<>();
-            for (DetectedChargingSession s : sessions) {
-                entries.add(toSessionEntry(s));
-            }
-            var apiResult = publicApiImportService.importSessions(userId,
-                    new PublicApiSessionRequest(carId, entries), DataSource.XPENG_IMPORT);
-            stats.importedSessions = apiResult.imported();
-            stats.skipped = apiResult.skipped();
+            XpengChargeMatcher.MatchResult match = chargeMatcher.matchAndEnrich(carId, sessions);
+            stats.importedSessions = match.enriched();
 
-            // telemetry_extras kann SessionEntry (public API) nicht durchreichen -
-            // nach dem Import per Direkt-Update setzen, identifiziert ueber (carId, loggedAt).
-            for (DetectedChargingSession s : sessions) {
-                String json = serializeExtras(s.telemetryExtras());
-                if (json != null) {
-                    try {
-                        evLogRepository.updateTelemetryExtras(carId, s.startedAt(), json);
-                    } catch (Exception e) {
-                        log.warn("XpengImport: telemetry_extras update for ev_log failed", e);
+            List<DetectedChargingSession> unmatched = match.unmatched();
+            if (!unmatched.isEmpty()) {
+                List<PublicApiSessionRequest.SessionEntry> entries = new ArrayList<>();
+                for (DetectedChargingSession s : unmatched) {
+                    entries.add(toSessionEntry(s));
+                }
+                var apiResult = publicApiImportService.importSessions(userId,
+                        new PublicApiSessionRequest(carId, entries), DataSource.XPENG_IMPORT);
+                stats.importedSessions += apiResult.imported();
+                stats.skipped = apiResult.skipped();
+
+                // telemetry_extras kann SessionEntry (public API) nicht durchreichen -
+                // nach dem Import per Direkt-Update setzen, identifiziert ueber (carId, loggedAt).
+                for (DetectedChargingSession s : unmatched) {
+                    String json = serializeExtras(s.telemetryExtras());
+                    if (json != null) {
+                        try {
+                            evLogRepository.updateTelemetryExtras(carId, s.startedAt(), json);
+                        } catch (Exception e) {
+                            log.warn("XpengImport: telemetry_extras update for ev_log failed", e);
+                        }
                     }
                 }
             }
