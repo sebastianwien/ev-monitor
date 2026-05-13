@@ -134,7 +134,7 @@ const handleResend = async () => {
 <template>
 <div>
   <div class="flex items-center justify-center min-h-screen px-4 py-12">
-    <div class="w-full max-w-md p-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg">
+    <div class="w-full max-w-md p-8 bg-white dark:bg-gray-800 rounded-sm shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)]">
 
       <!-- Pending Verification Screen -->
       <div v-if="pendingEmail" class="text-center">
@@ -173,7 +173,7 @@ const handleResend = async () => {
         </router-link>
         <h2 class="text-3xl font-bold text-center text-gray-800 dark:text-gray-200 mb-6">{{ t('auth.register.title') }}</h2>
 
-        <div class="bg-green-50 dark:bg-green-900/20 rounded-lg px-4 py-3 mb-6 space-y-1.5">
+        <div class="bg-green-50 dark:bg-green-900/20 rounded-sm px-4 py-3 mb-6 space-y-1.5">
           <div class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
             <span class="text-green-600 font-bold">✓</span> {{ t('auth.register.benefit_1') }}
           </div>
@@ -188,11 +188,11 @@ const handleResend = async () => {
         <form @submit.prevent="handleRegister" class="space-y-6">
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('auth.register.email') }}</label>
-            <input v-model="email" type="email" required autocomplete="email" class="block w-full px-4 py-3 mt-1 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+            <input v-model="email" type="email" required autocomplete="email" class="block w-full px-4 py-3 mt-1 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('auth.register.password') }}</label>
-            <input v-model="password" type="password" required autocomplete="new-password" class="block w-full px-4 py-3 mt-1 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+            <input v-model="password" type="password" required autocomplete="new-password" class="block w-full px-4 py-3 mt-1 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ t('auth.register.password_hint') }}</p>
           </div>
           <!-- Country picker: only shown when browser language is ambiguous -->
@@ -205,7 +205,7 @@ const handleResend = async () => {
                 :key="c.code"
                 type="button"
                 @click="selectedCountry = c.code"
-                class="flex items-center gap-1.5 px-3 py-2 rounded-lg border-2 text-sm transition-all"
+                class="flex items-center gap-1.5 px-3 py-2 rounded-sm border-2 text-sm transition-all"
                 :class="selectedCountry === c.code
                   ? 'border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 font-medium'
                   : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-500'"
@@ -215,8 +215,8 @@ const handleResend = async () => {
               </button>
             </div>
           </div>
-          <div v-if="error" class="text-sm font-medium text-red-600 bg-red-50 p-3 rounded-lg">{{ error }}</div>
-          <button type="submit" v-haptic class="btn-3d w-full px-4 py-3 font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition">{{ t('auth.register.submit') }}</button>
+          <div v-if="error" class="text-sm font-medium text-red-600 bg-red-50 p-3 rounded-sm">{{ error }}</div>
+          <button type="submit" v-haptic class="btn-3d w-full px-4 py-3 font-semibold text-white bg-green-600 rounded-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition">{{ t('auth.register.submit') }}</button>
         </form>
 
         <!-- Google SSO -->
@@ -231,7 +231,7 @@ const handleResend = async () => {
           </div>
           <a
             href="/oauth2/authorization/google"
-            class="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+            class="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
             <svg class="h-5 w-5" viewBox="0 0 24 24">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
               <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -252,7 +252,7 @@ const handleResend = async () => {
 
   <Teleport to="body">
     <div v-if="!fromDemo" class="fixed bottom-6 left-4 z-50">
-      <button @click="router.back()" class="btn-3d btn-3d-delay [--btn-shadow-color:#16a34a] inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-full px-4 py-2 shadow-lg">
+      <button @click="router.back()" class="btn-3d btn-3d-delay [--btn-shadow-color:#16a34a] inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-full px-4 py-2 shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)]">
         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
         {{ t('common.back') }}
       </button>

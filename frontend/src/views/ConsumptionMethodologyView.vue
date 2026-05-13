@@ -7,7 +7,7 @@ const { t } = useI18n()
 
 <template>
   <div class="md:max-w-3xl md:mx-auto md:p-6">
-    <div class="bg-white dark:bg-gray-800 md:rounded-xl md:shadow-lg p-4 md:p-8 space-y-12">
+    <div class="bg-white dark:bg-gray-800 md:rounded-sm md:shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:md:shadow-[4px_4px_0_rgba(255,255,255,0.30)] p-4 md:p-8 space-y-12">
 
       <!-- Hero -->
       <div>
@@ -25,7 +25,7 @@ const { t } = useI18n()
         <div class="space-y-1">
 
           <!-- Grid -->
-          <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-4">
+          <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-sm p-4">
             <div class="flex items-start gap-3">
               <div class="mt-0.5 flex-shrink-0 w-8 h-8 rounded-full bg-yellow-100 dark:bg-yellow-900 flex items-center justify-center">
                 <BoltIcon class="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
@@ -46,7 +46,7 @@ const { t } = useI18n()
           </div>
 
           <!-- AT_VEHICLE -->
-          <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4">
+          <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-sm p-4">
             <div class="flex items-start gap-3">
               <div class="mt-0.5 flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
                 <BoltIcon class="w-4 h-4 text-green-600 dark:text-green-400" />
@@ -71,7 +71,7 @@ const { t } = useI18n()
           </div>
 
           <!-- Bordcomputer -->
-          <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+          <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-sm p-4">
             <div class="flex items-start gap-3">
               <div class="mt-0.5 flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
                 <BoltSlashIcon class="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -164,7 +164,7 @@ const { t } = useI18n()
 
         </div>
 
-        <div class="mt-5 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl p-4">
+        <div class="mt-5 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-sm p-4">
           <div class="flex gap-2 items-start">
             <InformationCircleIcon class="w-5 h-5 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" />
             <div class="text-sm text-orange-800 dark:text-orange-300" v-html="t('cm.s2_info')" />
@@ -176,10 +176,10 @@ const { t } = useI18n()
       <section>
         <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">{{ t('cm.s3_title') }}</h2>
         <p class="text-gray-600 dark:text-gray-400 mb-4">{{ t('cm.s3_desc') }}</p>
-        <div class="bg-gray-900 dark:bg-gray-800 rounded-xl p-4 font-mono text-sm text-green-400 mb-4 overflow-x-auto">
+        <div class="bg-gray-900 dark:bg-gray-800 rounded-sm p-4 font-mono text-sm text-green-400 mb-4 overflow-x-auto">
           <div>{{ t('cm.formula') }}</div>
         </div>
-        <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+        <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-sm p-4">
           <div class="flex gap-2 items-start">
             <InformationCircleIcon class="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
             <div class="text-sm text-blue-800 dark:text-blue-300" v-html="t('cm.soc_correction')" />
@@ -192,11 +192,11 @@ const { t } = useI18n()
         <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">{{ t('cm.s4_title') }}</h2>
         <p class="text-gray-600 dark:text-gray-400 mb-4">{{ t('cm.s4_desc') }}</p>
         <div class="grid sm:grid-cols-2 gap-4">
-          <div class="bg-gray-50 dark:bg-gray-700 rounded-xl p-4 border border-gray-200 dark:border-gray-600">
+          <div class="bg-gray-50 dark:bg-gray-700 rounded-sm p-4 border border-gray-200 dark:border-gray-600">
             <div class="text-2xl font-bold text-green-600 dark:text-green-400 mb-1">+1.75-2 kWh</div>
             <div class="text-sm text-gray-600 dark:text-gray-400">{{ t('cm.stat1_desc') }}</div>
           </div>
-          <div class="bg-gray-50 dark:bg-gray-700 rounded-xl p-4 border border-gray-200 dark:border-gray-600">
+          <div class="bg-gray-50 dark:bg-gray-700 rounded-sm p-4 border border-gray-200 dark:border-gray-600">
             <div class="text-2xl font-bold text-orange-500 dark:text-orange-400 mb-1">1-3 kWh/{{ t('cm.per_day') }}</div>
             <div class="text-sm text-gray-600 dark:text-gray-400">{{ t('cm.stat2_desc') }}</div>
           </div>

@@ -80,12 +80,12 @@ onMounted(async () => {
   <div class="max-w-lg mx-auto px-4 py-8 space-y-5">
 
     <!-- Block 1: Community Preview -->
-    <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
+    <div class="bg-white dark:bg-gray-800 rounded-sm border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
 
       <!-- Loading skeleton -->
       <div v-if="loadingStats" class="p-5 space-y-3 animate-pulse">
         <div class="h-3 w-36 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
-        <div class="h-10 w-28 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+        <div class="h-10 w-28 bg-gray-200 dark:bg-gray-700 rounded-sm"></div>
         <div class="h-3 w-48 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
       </div>
 
@@ -158,9 +158,9 @@ onMounted(async () => {
       <!-- Manual entry -->
       <button
         @click="router.push('/erfassen')"
-        class="w-full flex items-center gap-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:border-green-400 dark:hover:border-green-600 hover:bg-green-50 dark:hover:bg-green-900/10 transition-colors text-left"
+        class="w-full flex items-center gap-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm p-4 hover:border-green-400 dark:hover:border-green-600 hover:bg-green-50 dark:hover:bg-green-900/10 transition-colors text-left"
       >
-        <div class="shrink-0 bg-green-100 dark:bg-green-900/30 rounded-lg p-2.5">
+        <div class="shrink-0 bg-green-100 dark:bg-green-900/30 rounded-sm p-2.5">
           <PencilSquareIcon class="h-5 w-5 text-green-600 dark:text-green-400" />
         </div>
         <div class="flex-1 min-w-0">
@@ -173,9 +173,9 @@ onMounted(async () => {
       <!-- Import -->
       <button
         @click="router.push('/imports')"
-        class="w-full flex items-center gap-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:border-indigo-400 dark:hover:border-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/10 transition-colors text-left"
+        class="w-full flex items-center gap-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm p-4 hover:border-indigo-400 dark:hover:border-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/10 transition-colors text-left"
       >
-        <div class="shrink-0 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg p-2.5">
+        <div class="shrink-0 bg-indigo-100 dark:bg-indigo-900/30 rounded-sm p-2.5">
           <ArrowDownTrayIcon class="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
         </div>
         <div class="flex-1 min-w-0">
@@ -195,9 +195,9 @@ onMounted(async () => {
       <!-- AutoSync Premium -->
       <button
         @click="router.push('/upgrade')"
-        class="w-full flex items-center gap-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:border-amber-400 dark:hover:border-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-colors text-left"
+        class="w-full flex items-center gap-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm p-4 hover:border-amber-400 dark:hover:border-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-colors text-left"
       >
-        <div class="shrink-0 bg-amber-100 dark:bg-amber-900/30 rounded-lg p-2.5">
+        <div class="shrink-0 bg-amber-100 dark:bg-amber-900/30 rounded-sm p-2.5">
           <ArrowPathIcon class="h-5 w-5 text-amber-600 dark:text-amber-400" />
         </div>
         <div class="flex-1 min-w-0">

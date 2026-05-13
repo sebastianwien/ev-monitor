@@ -92,24 +92,24 @@ const filteredCapacities = computed(() => {
   <div class="md:max-w-4xl md:mx-auto md:p-6">
     <Transition name="fade" mode="out-in">
       <div v-if="!loading">
-        <div class="bg-white dark:bg-gray-800 md:rounded-xl md:shadow-lg p-4 md:p-6">
+        <div class="bg-white dark:bg-gray-800 md:rounded-sm md:shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:md:shadow-[4px_4px_0_rgba(255,255,255,0.30)] p-4 md:p-6">
       <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-200">{{ t('cars.title') }}</h1>
         <button
           v-if="!showForm"
           @click="openAddForm"
           v-haptic
-          class="btn-3d bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition">
+          class="btn-3d bg-indigo-600 text-white px-4 py-2 rounded-sm hover:bg-indigo-700 transition">
           {{ t('cars.add_btn') }}
         </button>
       </div>
 
-      <div v-if="error" class="mb-4 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300 rounded-md">
+      <div v-if="error" class="mb-4 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300 rounded-sm">
         {{ error }}
       </div>
 
       <!-- Add form (inline) -->
-      <div v-if="showForm && !editingCar" class="mb-8 p-6 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+      <div v-if="showForm && !editingCar" class="mb-8 p-6 bg-gray-50 dark:bg-gray-700 rounded-sm border border-gray-200 dark:border-gray-600">
         <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">{{ t('cars.add_title') }}</h2>
 
         <form @submit.prevent="doSubmitForm" class="space-y-4">
@@ -117,7 +117,7 @@ const filteredCapacities = computed(() => {
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('cars.label_brand') }}</label>
               <select v-model="selectedBrand" required
-                class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100">
+                class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100">
                 <option value="">{{ t('cars.select_brand') }}</option>
                 <option v-for="brand in sortedBrands" :key="brand.value" :value="brand.value">
                   {{ brand.label }}
@@ -128,7 +128,7 @@ const filteredCapacities = computed(() => {
             <div v-if="!isSonstige">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('cars.label_model') }}</label>
               <select v-model="selectedModel" required :disabled="!selectedBrand"
-                class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border disabled:bg-gray-100 dark:disabled:bg-gray-600 dark:bg-gray-700 dark:text-gray-100">
+                class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border disabled:bg-gray-100 dark:disabled:bg-gray-600 dark:bg-gray-700 dark:text-gray-100">
                 <option value="">{{ selectedBrand ? t('cars.select_model') : t('cars.select_brand_first') }}</option>
                 <option v-for="m in availableModels" :key="m.value" :value="m.value">
                   {{ m.label }}
@@ -142,7 +142,7 @@ const filteredCapacities = computed(() => {
                 v-model="trim"
                 type="text"
                 :placeholder="isSonstige ? t('cars.trim_placeholder_sonstige') : t('cars.trim_placeholder')"
-                class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
+                class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
               <p v-if="!isSonstige" class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ t('cars.hint_trim') }}</p>
             </div>
 
@@ -155,9 +155,9 @@ const filteredCapacities = computed(() => {
                   <div class="flex gap-2 flex-wrap">
                     <button v-for="group in trimGroups" :key="group.trimLevel" type="button"
                       @click="selectTrimGroup(group.trimLevel)"
-                      :class="['px-4 py-2 rounded-md text-sm font-medium transition',
+                      :class="['px-4 py-2 rounded-sm text-sm font-medium transition',
                         selectedTrimLevel === group.trimLevel
-                          ? 'bg-indigo-600 text-white shadow-md'
+                          ? 'bg-indigo-600 text-white shadow-[3px_3px_0_rgba(0,0,0,0.25)] dark:shadow-[3px_3px_0_rgba(255,255,255,0.25)]'
                           : 'bg-indigo-100 dark:bg-gray-600 text-indigo-700 dark:text-white hover:bg-indigo-200 dark:hover:bg-gray-500']">
                       {{ group.trimLevel }}
                     </button>
@@ -165,9 +165,9 @@ const filteredCapacities = computed(() => {
                   <div v-if="visibleOptionsForTrim.length > 1" class="flex gap-2 flex-wrap pl-3 border-l-2 border-indigo-200 dark:border-indigo-700">
                     <button v-for="option in visibleOptionsForTrim" :key="option.vehicleSpecificationId ?? option.kWh" type="button"
                       @click="selectedCapacity = option.kWh; selectedSpecId = option.vehicleSpecificationId"
-                      :class="['px-3 py-1.5 rounded-md text-sm font-medium transition',
+                      :class="['px-3 py-1.5 rounded-sm text-sm font-medium transition',
                         selectedSpecId === option.vehicleSpecificationId
-                          ? 'bg-indigo-600 text-white shadow-md'
+                          ? 'bg-indigo-600 text-white shadow-[3px_3px_0_rgba(0,0,0,0.25)] dark:shadow-[3px_3px_0_rgba(255,255,255,0.25)]'
                           : 'bg-indigo-50 dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-gray-600']">
                       {{ formatPeriod(option.availableFrom, option.availableTo, t('cars.since')) }}
                     </button>
@@ -176,13 +176,13 @@ const filteredCapacities = computed(() => {
                 <template v-else>
                   <input v-if="selectedModelCapacities.length > VARIANT_FILTER_THRESHOLD" v-model="variantFilter" type="text"
                     :placeholder="t('cars.variant_filter_placeholder')"
-                    class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100 text-sm" />
+                    class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100 text-sm" />
                   <div class="flex gap-2 flex-wrap">
                     <button v-for="capacity in filteredCapacities" :key="capacity.vehicleSpecificationId ?? capacity.kWh" type="button"
                       @click="selectedCapacity = capacity.kWh; selectedSpecId = capacity.vehicleSpecificationId"
-                      :class="['px-4 py-2 rounded-md text-sm font-medium transition',
+                      :class="['px-4 py-2 rounded-sm text-sm font-medium transition',
                         (capacity.vehicleSpecificationId ? selectedSpecId === capacity.vehicleSpecificationId : selectedCapacity === capacity.kWh)
-                          ? 'bg-indigo-600 text-white shadow-md'
+                          ? 'bg-indigo-600 text-white shadow-[3px_3px_0_rgba(0,0,0,0.25)] dark:shadow-[3px_3px_0_rgba(255,255,255,0.25)]'
                           : 'bg-indigo-100 dark:bg-gray-600 text-indigo-700 dark:text-white hover:bg-indigo-200 dark:hover:bg-gray-500']">
                       {{ capacity.variantName ? `${capacity.variantName} · ${capacity.kWh} kWh` : `${capacity.kWh} kWh` }}
                     </button>
@@ -206,7 +206,7 @@ const filteredCapacities = computed(() => {
                   min="0"
                   required
                   :placeholder="t('cars.capacity_custom_placeholder')"
-                  class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100"
+                  class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100"
                 />
                 <button
                   type="button"
@@ -219,7 +219,7 @@ const filteredCapacities = computed(() => {
 
             <!-- WLTP Info (if available) -->
             <div v-if="wltpData && !editingCar" class="md:col-span-2">
-              <div class="p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg">
+              <div class="p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-sm">
                 <div class="flex items-start">
                   <svg class="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -241,13 +241,13 @@ const filteredCapacities = computed(() => {
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('cars.label_year') }}</label>
               <input v-model="year" type="number" required min="2000" :max="new Date().getFullYear() + 1"
-                class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
+                class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
             </div>
 
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('cars.label_plate') }}</label>
               <input v-model="licensePlate" type="text" :placeholder="t('cars.plate_placeholder')"
-                class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
+                class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
             </div>
 
             <div>
@@ -258,7 +258,7 @@ const filteredCapacities = computed(() => {
                 step="0.1"
                 min="0"
                 :placeholder="t('cars.power_placeholder')"
-                class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
+                class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
               <p v-if="powerPs" class="text-xs text-gray-500 dark:text-gray-400 mt-1">≈ {{ powerPs }} PS</p>
               <p v-else class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ t('cars.hint_power') }}</p>
             </div>
@@ -299,7 +299,7 @@ const filteredCapacities = computed(() => {
                 <div class="flex items-center gap-2">
                   <input v-model.number="batteryDegradationPercent" type="number" step="0.1" min="0" max="50"
                     :placeholder="t('cars.degradation_placeholder')"
-                    class="w-32 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
+                    class="w-32 rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
                   <span class="text-sm text-gray-500 dark:text-gray-400">%</span>
                   <button v-if="batteryDegradationPercent != null" type="button"
                     @click="batteryDegradationPercent = null"
@@ -323,21 +323,21 @@ const filteredCapacities = computed(() => {
                 <p class="text-xs text-gray-400 dark:text-gray-500 mb-2">{{ t('cars.soh_hint') }}</p>
 
                 <!-- SoH Eingabeformular -->
-                <div v-if="showSohAddForm" class="p-3 bg-gray-50 dark:bg-gray-600 rounded-lg space-y-2 mb-3">
+                <div v-if="showSohAddForm" class="p-3 bg-gray-50 dark:bg-gray-600 rounded-sm space-y-2 mb-3">
                   <div class="grid grid-cols-2 gap-2">
                     <div>
                       <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">{{ t('cars.soh_label_percent') }}</label>
                       <div class="relative">
                         <input v-model.number="sohPercent" type="number" step="0.1" min="50" max="100"
                           placeholder="z.B. 92"
-                          class="w-full rounded-md border-gray-300 dark:border-gray-500 p-2 border text-sm dark:bg-gray-700 dark:text-gray-100 pr-6" />
+                          class="w-full rounded-sm border-gray-300 dark:border-gray-500 p-2 border text-sm dark:bg-gray-700 dark:text-gray-100 pr-6" />
                         <span class="absolute right-2 top-2 text-xs text-gray-400">%</span>
                       </div>
                     </div>
                     <div>
                       <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">{{ t('cars.soh_label_date') }}</label>
                       <input v-model="sohDate" type="date"
-                        class="w-full rounded-md border-gray-300 dark:border-gray-500 p-2 border text-sm dark:bg-gray-700 dark:text-gray-100" />
+                        class="w-full rounded-sm border-gray-300 dark:border-gray-500 p-2 border text-sm dark:bg-gray-700 dark:text-gray-100" />
                     </div>
                   </div>
                   <div v-if="sohPercent && finalCapacity" class="text-xs text-amber-600">
@@ -345,11 +345,11 @@ const filteredCapacities = computed(() => {
                   </div>
                   <div class="flex gap-2">
                     <button type="button" @click="submitSohForm"
-                      class="text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-md hover:bg-indigo-700 transition">
+                      class="text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-sm hover:bg-indigo-700 transition">
                       {{ t('cars.soh_save_btn') }}
                     </button>
                     <button type="button" @click="cancelSohForm"
-                      class="text-xs bg-gray-200 dark:bg-gray-500 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-md hover:bg-gray-300 transition">
+                      class="text-xs bg-gray-200 dark:bg-gray-500 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-sm hover:bg-gray-300 transition">
                       {{ t('cars.cancel') }}
                     </button>
                   </div>
@@ -381,12 +381,12 @@ const filteredCapacities = computed(() => {
           <div class="flex gap-3 pt-2">
             <button type="submit"
               v-haptic
-              class="btn-3d bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700 transition">
+              class="btn-3d bg-indigo-600 text-white px-6 py-2 rounded-sm hover:bg-indigo-700 transition">
               {{ editingCar ? t('cars.update_btn') : t('cars.add_submit_btn') }}
             </button>
             <button type="button" @click="resetForm"
               v-haptic
-              class="btn-3d bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 px-6 py-2 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500 transition">
+              class="btn-3d bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 px-6 py-2 rounded-sm hover:bg-gray-300 dark:hover:bg-gray-500 transition">
               {{ t('cars.cancel') }}
             </button>
           </div>
@@ -402,22 +402,22 @@ const filteredCapacities = computed(() => {
         </p>
         <button
           @click="openAddForm"
-          class="inline-flex items-center gap-2 px-8 py-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium shadow-lg hover:shadow-xl transition">
+          class="inline-flex items-center gap-2 px-8 py-4 bg-indigo-600 text-white rounded-sm hover:bg-indigo-700 font-medium shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)] hover:shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:hover:shadow-[5px_5px_0_rgba(255,255,255,0.35)] transition">
           <TruckIcon class="h-5 w-5" />
           {{ t('cars.add_first_btn') }}
         </button>
         <div class="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl mx-auto text-left">
-          <div class="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
+          <div class="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-sm p-4">
             <div class="text-blue-600 mb-2">📊</div>
             <p class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">{{ t('cars.feat_models_title') }}</p>
             <p class="text-xs text-gray-600 dark:text-gray-400">{{ t('cars.feat_models_desc') }}</p>
           </div>
-          <div class="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg p-4">
+          <div class="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-sm p-4">
             <div class="text-green-600 mb-2">⚡</div>
             <p class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">{{ t('cars.feat_wltp_title') }}</p>
             <p class="text-xs text-gray-600 dark:text-gray-400">{{ t('cars.feat_wltp_desc') }}</p>
           </div>
-          <div class="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
+          <div class="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-sm p-4">
             <div class="text-purple-600 mb-2">🔒</div>
             <p class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">{{ t('cars.feat_privacy_title') }}</p>
             <p class="text-xs text-gray-600 dark:text-gray-400">{{ t('cars.feat_privacy_desc') }}</p>
@@ -427,7 +427,7 @@ const filteredCapacities = computed(() => {
 
       <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div v-for="car in cars" :key="car.id"
-          class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-sm hover:shadow-md transition overflow-hidden">
+          class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-sm shadow-sm hover:shadow-[3px_3px_0_rgba(0,0,0,0.25)] dark:hover:shadow-[3px_3px_0_rgba(255,255,255,0.25)] transition overflow-hidden">
 
           <!-- Car Image -->
           <div class="relative bg-gray-100 dark:bg-gray-600 h-40 flex items-center justify-center">
@@ -447,7 +447,7 @@ const filteredCapacities = computed(() => {
             <!-- Delete image button -->
             <button v-if="imageBlobUrls[car.id]"
               @click="handleDeleteImage(car.id)"
-              class="absolute top-2 right-2 bg-white dark:bg-gray-800 bg-opacity-80 dark:bg-opacity-80 rounded-full p-1 hover:bg-opacity-100 text-red-600 hover:text-red-700 transition"
+              class="absolute top-2 right-2 bg-white dark:bg-gray-800 bg-opacity-80 dark:bg-opacity-80 rounded-sm p-1 hover:bg-opacity-100 text-red-600 hover:text-red-700 transition"
               :title="t('cars.delete_photo')">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -476,7 +476,7 @@ const filteredCapacities = computed(() => {
             </label>
             <label class="ml-auto cursor-pointer">
               <span :class="[
-                'text-xs px-3 py-1.5 rounded-md font-medium transition',
+                'text-xs px-3 py-1.5 rounded-sm font-medium transition',
                 imageUploading[car.id]
                   ? 'bg-gray-100 dark:bg-gray-600 text-gray-400 cursor-not-allowed'
                   : 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200'
@@ -579,17 +579,17 @@ const filteredCapacities = computed(() => {
             <div class="flex gap-2 pt-1">
               <button v-if="!car.isPrimary" @click="setActiveCar(car.id)"
                 v-haptic
-                class="btn-3d flex-1 bg-green-100 dark:bg-green-700 text-green-800 dark:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-green-200 dark:hover:bg-green-600 transition">
+                class="btn-3d flex-1 bg-green-100 dark:bg-green-700 text-green-800 dark:text-white px-3 py-2 rounded-sm text-sm font-medium hover:bg-green-200 dark:hover:bg-green-600 transition">
                 {{ t('cars.set_active_btn') }}
               </button>
               <button @click="openEditForm(car)"
                 v-haptic
-                class="btn-3d flex-1 bg-indigo-100 dark:bg-indigo-700 text-indigo-800 dark:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-200 dark:hover:bg-indigo-600 transition">
+                class="btn-3d flex-1 bg-indigo-100 dark:bg-indigo-700 text-indigo-800 dark:text-white px-3 py-2 rounded-sm text-sm font-medium hover:bg-indigo-200 dark:hover:bg-indigo-600 transition">
                 {{ t('cars.edit_btn') }}
               </button>
               <button @click="doDeleteCar(car.id)"
                 v-haptic
-                class="btn-3d flex-1 bg-red-100 dark:bg-red-700 text-red-800 dark:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-red-200 dark:hover:bg-red-600 transition">
+                class="btn-3d flex-1 bg-red-100 dark:bg-red-700 text-red-800 dark:text-white px-3 py-2 rounded-sm text-sm font-medium hover:bg-red-200 dark:hover:bg-red-600 transition">
                 {{ t('cars.delete_btn') }}
               </button>
             </div>
@@ -600,7 +600,7 @@ const filteredCapacities = computed(() => {
 
     <!-- Edit Car Modal -->
     <div v-if="editingCar" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="resetForm">
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div class="bg-white dark:bg-gray-800 rounded-sm shadow-[6px_6px_0_rgba(0,0,0,0.40)] dark:shadow-[6px_6px_0_rgba(255,255,255,0.40)] w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div class="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-700">
           <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">{{ t('cars.edit_title') }}</h2>
           <button @click="resetForm" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition">
@@ -615,7 +615,7 @@ const filteredCapacities = computed(() => {
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('cars.label_brand') }}</label>
               <select v-model="selectedBrand" required
-                class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100">
+                class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100">
                 <option value="">{{ t('cars.select_brand') }}</option>
                 <option v-for="brand in sortedBrands" :key="brand.value" :value="brand.value">
                   {{ brand.label }}
@@ -626,7 +626,7 @@ const filteredCapacities = computed(() => {
             <div v-if="!isSonstige">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('cars.label_model') }}</label>
               <select v-model="selectedModel" required :disabled="!selectedBrand"
-                class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border disabled:bg-gray-100 dark:disabled:bg-gray-600 dark:bg-gray-700 dark:text-gray-100">
+                class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border disabled:bg-gray-100 dark:disabled:bg-gray-600 dark:bg-gray-700 dark:text-gray-100">
                 <option value="">{{ selectedBrand ? t('cars.select_model') : t('cars.select_brand_first') }}</option>
                 <option v-for="m in availableModels" :key="m.value" :value="m.value">
                   {{ m.label }}
@@ -638,7 +638,7 @@ const filteredCapacities = computed(() => {
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ isSonstige ? t('cars.label_model') : t('cars.label_trim') }}</label>
               <input v-model="trim" type="text"
                 :placeholder="isSonstige ? t('cars.trim_placeholder_sonstige') : t('cars.trim_placeholder')"
-                class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
+                class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
             </div>
 
             <div v-if="selectedModel" class="md:col-span-2">
@@ -648,9 +648,9 @@ const filteredCapacities = computed(() => {
                   <div class="flex gap-2 flex-wrap">
                     <button v-for="group in trimGroups" :key="group.trimLevel" type="button"
                       @click="selectTrimGroup(group.trimLevel)"
-                      :class="['px-4 py-2 rounded-md text-sm font-medium transition',
+                      :class="['px-4 py-2 rounded-sm text-sm font-medium transition',
                         selectedTrimLevel === group.trimLevel
-                          ? 'bg-indigo-600 text-white shadow-md'
+                          ? 'bg-indigo-600 text-white shadow-[3px_3px_0_rgba(0,0,0,0.25)] dark:shadow-[3px_3px_0_rgba(255,255,255,0.25)]'
                           : 'bg-indigo-100 dark:bg-gray-600 text-indigo-700 dark:text-white hover:bg-indigo-200 dark:hover:bg-gray-500']">
                       {{ group.trimLevel }}
                     </button>
@@ -658,9 +658,9 @@ const filteredCapacities = computed(() => {
                   <div v-if="visibleOptionsForTrim.length > 1" class="flex gap-2 flex-wrap pl-3 border-l-2 border-indigo-200 dark:border-indigo-700">
                     <button v-for="option in visibleOptionsForTrim" :key="option.vehicleSpecificationId ?? option.kWh" type="button"
                       @click="selectedCapacity = option.kWh; selectedSpecId = option.vehicleSpecificationId"
-                      :class="['px-3 py-1.5 rounded-md text-sm font-medium transition',
+                      :class="['px-3 py-1.5 rounded-sm text-sm font-medium transition',
                         selectedSpecId === option.vehicleSpecificationId
-                          ? 'bg-indigo-600 text-white shadow-md'
+                          ? 'bg-indigo-600 text-white shadow-[3px_3px_0_rgba(0,0,0,0.25)] dark:shadow-[3px_3px_0_rgba(255,255,255,0.25)]'
                           : 'bg-indigo-50 dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-gray-600']">
                       {{ formatPeriod(option.availableFrom, option.availableTo, t('cars.since')) }}
                     </button>
@@ -669,13 +669,13 @@ const filteredCapacities = computed(() => {
                 <template v-else>
                   <input v-if="selectedModelCapacities.length > VARIANT_FILTER_THRESHOLD" v-model="variantFilter" type="text"
                     :placeholder="t('cars.variant_filter_placeholder')"
-                    class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100 text-sm" />
+                    class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100 text-sm" />
                   <div class="flex gap-2 flex-wrap">
                     <button v-for="capacity in filteredCapacities" :key="capacity.vehicleSpecificationId ?? capacity.kWh" type="button"
                       @click="selectedCapacity = capacity.kWh; selectedSpecId = capacity.vehicleSpecificationId"
-                      :class="['px-4 py-2 rounded-md text-sm font-medium transition',
+                      :class="['px-4 py-2 rounded-sm text-sm font-medium transition',
                         (capacity.vehicleSpecificationId ? selectedSpecId === capacity.vehicleSpecificationId : selectedCapacity === capacity.kWh)
-                          ? 'bg-indigo-600 text-white shadow-md'
+                          ? 'bg-indigo-600 text-white shadow-[3px_3px_0_rgba(0,0,0,0.25)] dark:shadow-[3px_3px_0_rgba(255,255,255,0.25)]'
                           : 'bg-indigo-100 dark:bg-gray-600 text-indigo-700 dark:text-white hover:bg-indigo-200 dark:hover:bg-gray-500']">
                       {{ capacity.variantName ? `${capacity.variantName} · ${capacity.kWh} kWh` : `${capacity.kWh} kWh` }}
                     </button>
@@ -693,7 +693,7 @@ const filteredCapacities = computed(() => {
               <div v-else class="space-y-2">
                 <input v-model.number="customCapacity" type="number" step="0.1" min="0" required
                   :placeholder="t('cars.capacity_custom_placeholder')"
-                  class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
+                  class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
                 <button type="button" @click="useCustomCapacity = false; customCapacity = null"
                   class="text-sm text-indigo-600 hover:text-indigo-700 underline">
                   {{ t('cars.preset_capacity') }}
@@ -707,19 +707,19 @@ const filteredCapacities = computed(() => {
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('cars.label_year') }}</label>
               <input v-model="year" type="number" required min="2000" :max="new Date().getFullYear() + 1"
-                class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
+                class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
             </div>
 
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('cars.label_plate') }}</label>
               <input v-model="licensePlate" type="text" :placeholder="t('cars.plate_placeholder')"
-                class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
+                class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
             </div>
 
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('cars.label_power') }}</label>
               <input v-model.number="powerKw" type="number" step="0.1" min="0" :placeholder="t('cars.power_placeholder')"
-                class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
+                class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
               <p v-if="powerPs" class="text-xs text-gray-500 dark:text-gray-400 mt-1">≈ {{ powerPs }} PS</p>
               <p v-else class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ t('cars.hint_power') }}</p>
             </div>
@@ -760,7 +760,7 @@ const filteredCapacities = computed(() => {
                 <div class="flex items-center gap-2">
                   <input v-model.number="batteryDegradationPercent" type="number" step="0.1" min="0" max="50"
                     :placeholder="t('cars.degradation_placeholder')"
-                    class="w-32 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
+                    class="w-32 rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
                   <span class="text-sm text-gray-500 dark:text-gray-400">%</span>
                   <button v-if="batteryDegradationPercent != null" type="button"
                     @click="batteryDegradationPercent = null"
@@ -784,21 +784,21 @@ const filteredCapacities = computed(() => {
                 <p class="text-xs text-gray-400 dark:text-gray-500 mb-2">{{ t('cars.soh_hint') }}</p>
 
                 <!-- SoH Eingabeformular -->
-                <div v-if="showSohAddForm" class="p-3 bg-gray-50 dark:bg-gray-600 rounded-lg space-y-2 mb-3">
+                <div v-if="showSohAddForm" class="p-3 bg-gray-50 dark:bg-gray-600 rounded-sm space-y-2 mb-3">
                   <div class="grid grid-cols-2 gap-2">
                     <div>
                       <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">{{ t('cars.soh_label_percent') }}</label>
                       <div class="relative">
                         <input v-model.number="sohPercent" type="number" step="0.1" min="50" max="100"
                           placeholder="z.B. 92"
-                          class="w-full rounded-md border-gray-300 dark:border-gray-500 p-2 border text-sm dark:bg-gray-700 dark:text-gray-100 pr-6" />
+                          class="w-full rounded-sm border-gray-300 dark:border-gray-500 p-2 border text-sm dark:bg-gray-700 dark:text-gray-100 pr-6" />
                         <span class="absolute right-2 top-2 text-xs text-gray-400">%</span>
                       </div>
                     </div>
                     <div>
                       <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">{{ t('cars.soh_label_date') }}</label>
                       <input v-model="sohDate" type="date"
-                        class="w-full rounded-md border-gray-300 dark:border-gray-500 p-2 border text-sm dark:bg-gray-700 dark:text-gray-100" />
+                        class="w-full rounded-sm border-gray-300 dark:border-gray-500 p-2 border text-sm dark:bg-gray-700 dark:text-gray-100" />
                     </div>
                   </div>
                   <div v-if="sohPercent && finalCapacity" class="text-xs text-amber-600">
@@ -806,11 +806,11 @@ const filteredCapacities = computed(() => {
                   </div>
                   <div class="flex gap-2">
                     <button type="button" @click="submitSohForm"
-                      class="text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-md hover:bg-indigo-700 transition">
+                      class="text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-sm hover:bg-indigo-700 transition">
                       {{ t('cars.soh_save_btn') }}
                     </button>
                     <button type="button" @click="cancelSohForm"
-                      class="text-xs bg-gray-200 dark:bg-gray-500 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-md hover:bg-gray-300 transition">
+                      class="text-xs bg-gray-200 dark:bg-gray-500 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-sm hover:bg-gray-300 transition">
                       {{ t('cars.cancel') }}
                     </button>
                   </div>
@@ -842,12 +842,12 @@ const filteredCapacities = computed(() => {
           <div class="flex gap-3 pt-2">
             <button type="submit"
               v-haptic
-              class="btn-3d bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700 transition">
+              class="btn-3d bg-indigo-600 text-white px-6 py-2 rounded-sm hover:bg-indigo-700 transition">
               {{ t('cars.update_btn') }}
             </button>
             <button type="button" @click="resetForm"
               v-haptic
-              class="btn-3d bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 px-6 py-2 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500 transition">
+              class="btn-3d bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 px-6 py-2 rounded-sm hover:bg-gray-300 dark:hover:bg-gray-500 transition">
               {{ t('cars.cancel') }}
             </button>
           </div>
@@ -857,7 +857,7 @@ const filteredCapacities = computed(() => {
 
     <!-- WLTP Question Overlay -->
     <div v-if="showWltpQuestion" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6">
+      <div class="bg-white dark:bg-gray-800 rounded-sm shadow-[6px_6px_0_rgba(0,0,0,0.40)] dark:shadow-[6px_6px_0_rgba(255,255,255,0.40)] max-w-md w-full p-6">
         <h3 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4">🎯 {{ ratingSource === 'EPA' ? t('cars.epa_question_title') : t('cars.wltp_question_title') }}</h3>
         <p class="text-gray-600 dark:text-gray-400 mb-6">
           {{ ratingSource === 'EPA' ? t('cars.epa_question_desc') : t('cars.wltp_question_desc') }}
@@ -865,12 +865,12 @@ const filteredCapacities = computed(() => {
         <div class="flex gap-3">
           <button
             @click="openWltpForm"
-            class="flex-1 bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition shadow-md">
+            class="flex-1 bg-green-600 text-white px-6 py-3 rounded-sm font-semibold hover:bg-green-700 transition shadow-[3px_3px_0_rgba(0,0,0,0.25)] dark:shadow-[3px_3px_0_rgba(255,255,255,0.25)]">
             {{ t('cars.wltp_yes') }}
           </button>
           <button
             @click="closeWltpQuestion"
-            class="flex-1 bg-red-100 text-red-700 px-6 py-3 rounded-lg font-semibold hover:bg-red-200 transition">
+            class="flex-1 bg-red-100 text-red-700 px-6 py-3 rounded-sm font-semibold hover:bg-red-200 transition">
             {{ t('cars.wltp_no') }}
           </button>
         </div>
@@ -879,7 +879,7 @@ const filteredCapacities = computed(() => {
 
     <!-- WLTP Form Overlay -->
     <div v-if="showWltpForm" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-lg w-full p-6">
+      <div class="bg-white dark:bg-gray-800 rounded-sm shadow-[6px_6px_0_rgba(0,0,0,0.40)] dark:shadow-[6px_6px_0_rgba(255,255,255,0.40)] max-w-lg w-full p-6">
         <div class="flex items-center gap-2 mb-4">
           <ChartBarIcon class="h-6 w-6 text-gray-700 dark:text-gray-300" />
           <h3 class="text-xl font-bold text-gray-800 dark:text-gray-200">{{ ratingSource === 'EPA' ? t('cars.epa_form_title') : t('cars.wltp_form_title') }}</h3>
@@ -903,7 +903,7 @@ const filteredCapacities = computed(() => {
                 max="2000"
                 required
                 :placeholder="ratingSource === 'EPA' ? t('cars.epa_range_placeholder') : t('cars.wltp_range_placeholder')"
-                class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 border pr-12 dark:bg-gray-700 dark:text-gray-100" />
+                class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 border pr-12 dark:bg-gray-700 dark:text-gray-100" />
               <span class="absolute right-3 top-3 text-gray-500 dark:text-gray-400 text-sm">{{ distanceUnitLabel() }}</span>
             </div>
           </div>
@@ -921,7 +921,7 @@ const filteredCapacities = computed(() => {
                 max="100"
                 required
                 :placeholder="ratingSource === 'EPA' ? t('cars.epa_consumption_placeholder') : t('cars.wltp_consumption_placeholder')"
-                class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 border pr-24 dark:bg-gray-700 dark:text-gray-100" />
+                class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 border pr-24 dark:bg-gray-700 dark:text-gray-100" />
               <span class="absolute right-3 top-3 text-gray-500 dark:text-gray-400 text-sm">{{ consumptionUnitLabel() }}</span>
             </div>
           </div>
@@ -929,13 +929,13 @@ const filteredCapacities = computed(() => {
           <div class="flex gap-3 pt-2">
             <button
               type="submit"
-              class="flex-1 bg-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-indigo-700 transition shadow-md">
+              class="flex-1 bg-indigo-600 text-white px-6 py-3 rounded-sm font-semibold hover:bg-indigo-700 transition shadow-[3px_3px_0_rgba(0,0,0,0.25)] dark:shadow-[3px_3px_0_rgba(255,255,255,0.25)]">
               {{ t('cars.wltp_save_btn') }}
             </button>
             <button
               type="button"
               @click="closeWltpForm"
-              class="flex-1 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 px-6 py-3 rounded-lg font-semibold hover:bg-gray-300 dark:hover:bg-gray-500 transition">
+              class="flex-1 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 px-6 py-3 rounded-sm font-semibold hover:bg-gray-300 dark:hover:bg-gray-500 transition">
               {{ t('cars.cancel') }}
             </button>
           </div>
@@ -948,7 +948,7 @@ const filteredCapacities = computed(() => {
       <!-- Import Hub Hint -->
       <router-link
         to="/imports"
-        class="flex items-center gap-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-600 transition group"
+        class="flex items-center gap-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-sm px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-600 transition group"
       >
         <ArrowDownTrayIcon class="h-5 w-5 text-gray-500 dark:text-gray-400 shrink-0" />
         <div>
@@ -964,7 +964,7 @@ const filteredCapacities = computed(() => {
 
     <!-- Toast Notification (outside Transition) -->
     <div v-if="showToast" class="fixed bottom-6 right-6 z-50 animate-slide-in">
-      <div class="bg-green-600 text-white px-6 py-4 rounded-lg shadow-2xl max-w-md">
+      <div class="bg-green-600 text-white px-6 py-4 rounded-sm shadow-[6px_6px_0_rgba(0,0,0,0.40)] dark:shadow-[6px_6px_0_rgba(255,255,255,0.40)] max-w-md">
         <div class="flex items-start">
           <svg class="w-6 h-6 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>

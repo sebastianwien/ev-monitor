@@ -172,7 +172,7 @@ onMounted(async () => {
               <router-link :to="loginPath" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 px-2 sm:px-3 py-2 text-sm font-medium">
                 {{ t('nav.login') }}
               </router-link>
-              <router-link :to="registerPath" class="hidden sm:inline-flex bg-green-600 text-white px-3 sm:px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition">
+              <router-link :to="registerPath" class="hidden sm:inline-flex bg-green-600 text-white px-3 sm:px-4 py-2 rounded-sm text-sm font-medium hover:bg-green-700 transition">
                 {{ t('nav.register') }}
               </router-link>
             </template>
@@ -202,7 +202,7 @@ onMounted(async () => {
           <!-- Card A: EV-Besitzer -->
           <button
             @click="selectPath('owner')"
-            class="btn-3d btn-3d-delay [--btn-shadow-color:#16a34a] group text-center bg-white dark:bg-gray-900 border-2 border-green-400 dark:border-green-600 rounded-2xl p-4 cursor-pointer"
+            class="btn-3d btn-3d-delay [--btn-shadow-color:#16a34a] group text-center bg-white dark:bg-gray-900 border-2 border-green-400 dark:border-green-600 rounded-sm p-4 cursor-pointer"
           >
             <div class="flex items-center justify-center gap-2 mb-2">
               <BoltIcon class="h-5 w-5 text-green-600 shrink-0" />
@@ -222,7 +222,7 @@ onMounted(async () => {
           <!-- Card B: Interessent -->
           <button
             @click="selectPath('browser')"
-            class="btn-3d btn-3d-delay [--btn-shadow-color:#3b82f6] group text-center bg-white dark:bg-gray-900 border-2 border-blue-400 dark:border-blue-600 rounded-2xl p-4 cursor-pointer"
+            class="btn-3d btn-3d-delay [--btn-shadow-color:#3b82f6] group text-center bg-white dark:bg-gray-900 border-2 border-blue-400 dark:border-blue-600 rounded-sm p-4 cursor-pointer"
           >
             <div class="flex items-center justify-center gap-2 mb-2">
               <MagnifyingGlassIcon class="h-5 w-5 text-blue-500 shrink-0" />
@@ -244,10 +244,10 @@ onMounted(async () => {
         <button
           @click="demoLogin('lp_v2_weiche')"
           :disabled="demoLoading"
-          class="group w-full mt-3 text-left bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-800 hover:border-green-400 dark:hover:border-green-600 rounded-2xl p-3.5 sm:p-6 transition-all duration-200 cursor-pointer disabled:opacity-50 flex items-center justify-between gap-3"
+          class="group w-full mt-3 text-left bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-800 hover:border-green-400 dark:hover:border-green-600 rounded-sm p-3.5 sm:p-6 transition-all duration-200 cursor-pointer disabled:opacity-50 flex items-center justify-between gap-3"
         >
           <div class="flex items-center gap-3">
-            <div class="w-9 h-9 bg-green-100 dark:bg-green-900/50 rounded-xl flex items-center justify-center shrink-0 group-hover:bg-green-200 dark:group-hover:bg-green-900 transition-colors">
+            <div class="w-9 h-9 bg-green-100 dark:bg-green-900/50 rounded-sm flex items-center justify-center shrink-0 group-hover:bg-green-200 dark:group-hover:bg-green-900 transition-colors">
               <BoltIcon class="h-4 w-4 text-green-600" />
             </div>
             <p class="font-semibold text-gray-900 dark:text-gray-100 text-sm">
@@ -293,7 +293,7 @@ onMounted(async () => {
             v-model="searchQuery"
             type="text"
             :placeholder="t(`landing_v2.${selectedPath}.search_placeholder`)"
-            class="w-full pl-12 pr-4 py-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-base placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
+            class="w-full pl-12 pr-4 py-4 rounded-sm border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-base placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
           />
         </div>
 
@@ -316,7 +316,7 @@ onMounted(async () => {
               :key="`${selectedPath}-${model.brand}-${model.model}`"
               :href="`${modelsUrl}/${model.brandDisplayName}/${model.modelUrlSlug}`"
               @click.prevent="navigateToModel(model.brandDisplayName, model.modelUrlSlug)"
-              class="btn-3d btn-3d-delay [--btn-shadow-color:#d1d5db] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 block"
+              class="btn-3d btn-3d-delay [--btn-shadow-color:#d1d5db] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-sm p-3 block"
             >
               <p class="font-semibold text-gray-900 dark:text-gray-100 text-sm truncate mb-2">{{ model.modelDisplayName }}</p>
               <div class="grid grid-cols-[auto_1fr] items-baseline gap-x-2 gap-y-0.5 text-xs">
@@ -338,13 +338,13 @@ onMounted(async () => {
 
           <!-- Owner-only CTAs -->
           <div v-if="selectedPath === 'owner'" class="mt-5 flex flex-col items-center gap-3">
-            <button @click="goToRegister" class="btn-3d btn-3d-delay w-full bg-green-600 text-white px-6 py-3.5 rounded-xl text-base font-semibold hover:bg-green-700 active:bg-green-800 transition inline-flex items-center justify-center gap-2">
+            <button @click="goToRegister" class="btn-3d btn-3d-delay w-full bg-green-600 text-white px-6 py-3.5 rounded-sm text-base font-semibold hover:bg-green-700 active:bg-green-800 transition inline-flex items-center justify-center gap-2">
               {{ t('landing_v2.owner.cta_register') }}
             </button>
-            <button @click="demoLogin('lp_v2_owner')" :disabled="demoLoading" class="btn-3d btn-3d-delay demo-shimmer w-full px-6 py-3.5 rounded-xl text-base font-medium disabled:opacity-50 inline-flex items-center justify-center gap-2 text-green-600 dark:text-green-400">
+            <button @click="demoLogin('lp_v2_owner')" :disabled="demoLoading" class="btn-3d btn-3d-delay demo-shimmer w-full px-6 py-3.5 rounded-sm text-base font-medium disabled:opacity-50 inline-flex items-center justify-center gap-2 text-green-600 dark:text-green-400">
               {{ demoLoading ? t('landing.hero.loading_button') : t('landing_v2.owner.demo_link') }}
             </button>
-            <button @click="goBack" class="btn-3d btn-3d-delay [--btn-shadow-color:#d1d5db] inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg px-3 py-2 transition self-start mt-1">
+            <button @click="goBack" class="btn-3d btn-3d-delay [--btn-shadow-color:#d1d5db] inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-sm px-3 py-2 transition self-start mt-1">
               <ArrowLeftIcon class="h-4 w-4" />
               {{ t('landing_v2.owner.back') }}
             </button>
@@ -352,7 +352,7 @@ onMounted(async () => {
 
           <!-- Browser back button -->
           <div v-else class="mt-5">
-            <button @click="goBack" class="btn-3d btn-3d-delay [--btn-shadow-color:#d1d5db] inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg px-3 py-2 transition">
+            <button @click="goBack" class="btn-3d btn-3d-delay [--btn-shadow-color:#d1d5db] inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-sm px-3 py-2 transition">
               <ArrowLeftIcon class="h-4 w-4" />
               {{ t('landing_v2.browser.back') }}
             </button>

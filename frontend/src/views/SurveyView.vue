@@ -67,7 +67,7 @@ async function submit() {
         <div class="max-w-md mx-auto">
 
             <!-- Unknown slug -->
-            <div v-if="!survey" class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
+            <div v-if="!survey" class="bg-white dark:bg-gray-800 rounded-sm shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
                 <p class="text-gray-500 dark:text-gray-400">Diese Umfrage existiert nicht.</p>
             </div>
 
@@ -75,7 +75,7 @@ async function submit() {
             <div v-else-if="loading" class="text-center py-16 text-gray-400 dark:text-gray-500">Lädt...</div>
 
             <!-- Already responded -->
-            <div v-else-if="alreadyResponded || submitted" class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center space-y-3">
+            <div v-else-if="alreadyResponded || submitted" class="bg-white dark:bg-gray-800 rounded-sm shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center space-y-3">
                 <div class="w-14 h-14 bg-green-100 dark:bg-green-900/40 rounded-full flex items-center justify-center mx-auto">
                     <svg class="w-7 h-7 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
@@ -93,17 +93,17 @@ async function submit() {
                 </div>
 
 
-                <div v-if="survey.info" class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                <div v-if="survey.info" class="bg-white dark:bg-gray-800 rounded-sm border border-gray-200 dark:border-gray-700 p-5 space-y-2 text-sm text-gray-600 dark:text-gray-400">
                     <p v-for="(paragraph, i) in survey.info" :key="i">{{ paragraph }}</p>
                 </div>
 
                 <div v-for="question in survey.questions" :key="question.key"
-                     class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-5 space-y-3">
+                     class="bg-white dark:bg-gray-800 rounded-sm shadow-sm border border-gray-200 dark:border-gray-700 p-5 space-y-3">
                     <p class="font-medium text-gray-900 dark:text-gray-100 text-sm">{{ question.label }}</p>
                     <div class="space-y-2">
                         <div v-for="option in question.options" :key="option.value" class="space-y-2">
                             <label
-                                class="flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors"
+                                class="flex items-center gap-3 p-3 rounded-sm border cursor-pointer transition-colors"
                                 :class="(question.multiple ? (answers[question.key] as string[] ?? []).includes(option.value) : answers[question.key] === option.value)
                                     ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
                                     : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'">
@@ -130,7 +130,7 @@ async function submit() {
                                 v-model="freeTextValues[`${question.key}_detail`]"
                                 type="text"
                                 placeholder="Welches Tool?"
-                                class="w-full px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-green-500"
+                                class="w-full px-3 py-2 text-sm rounded-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-green-500"
                             />
                         </div>
                     </div>
@@ -141,7 +141,7 @@ async function submit() {
                 <button
                     @click="submit"
                     :disabled="!allAnswered || submitting"
-                    class="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-colors"
+                    class="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-sm transition-colors"
                 >
                     {{ submitting ? 'Wird gespeichert...' : 'Absenden' }}
                 </button>

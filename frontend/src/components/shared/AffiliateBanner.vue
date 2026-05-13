@@ -49,12 +49,12 @@ const banner = computed(() => {
 <template>
   <div
     v-if="banner && isGerman"
-    class="relative bg-green-50/60 dark:bg-green-900/10 md:rounded-2xl md:border-x border-t md:border-b border-green-100 dark:border-green-900/40 px-6 py-4"
+    class="relative bg-green-50/60 dark:bg-green-900/10 md:rounded-sm md:border-x border-t md:border-b border-green-100 dark:border-green-900/40 px-6 py-4"
   >
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
       <!-- Icon + Text -->
       <div class="flex items-start gap-3 min-w-0">
-        <div class="shrink-0 mt-0.5 p-2 rounded-lg bg-green-50 dark:bg-green-900/30">
+        <div class="shrink-0 mt-0.5 p-2 rounded-sm bg-green-50 dark:bg-green-900/30">
           <CurrencyEuroIcon v-if="banner.icon === 'currency'" class="h-5 w-5 text-green-600 dark:text-green-400" />
           <BoltIcon v-else class="h-5 w-5 text-green-600 dark:text-green-400" />
         </div>
@@ -70,7 +70,7 @@ const banner = computed(() => {
         target="_blank"
         rel="noopener sponsored"
         @click="handleClick"
-        class="shrink-0 self-center sm:self-auto text-xs font-medium bg-green-600 hover:bg-green-500 text-white px-3 py-2 rounded-lg whitespace-nowrap shadow-[0_4px_0_0_#15803d] active:shadow-[0_1px_0_0_#15803d] active:translate-y-[3px] transition-transform"
+        class="shrink-0 self-center sm:self-auto text-xs font-medium bg-green-600 hover:bg-green-500 text-white px-3 py-2 rounded-sm whitespace-nowrap shadow-[0_4px_0_0_#15803d] active:shadow-[0_1px_0_0_#15803d] active:translate-y-[3px] transition-transform"
       >
         {{ banner.cta }}
       </a>

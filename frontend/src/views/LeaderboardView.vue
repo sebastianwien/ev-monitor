@@ -128,7 +128,7 @@ const periodLabel = computed(() => {
 
 <template>
   <div class="md:max-w-2xl md:mx-auto md:p-6">
-    <div class="bg-white dark:bg-gray-800 md:rounded-xl md:shadow-lg overflow-hidden">
+    <div class="bg-white dark:bg-gray-800 md:rounded-sm md:shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:md:shadow-[4px_4px_0_rgba(255,255,255,0.30)] overflow-hidden">
 
       <!-- Header -->
       <div class="p-4 md:p-6 border-b border-gray-100 dark:border-gray-700">
@@ -170,7 +170,7 @@ const periodLabel = computed(() => {
         </div>
 
         <!-- Error -->
-        <div v-else-if="error" class="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300 rounded-xl p-4 text-sm">
+        <div v-else-if="error" class="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300 rounded-sm p-4 text-sm">
           {{ error }}
         </div>
 
@@ -185,7 +185,7 @@ const periodLabel = computed(() => {
           </div>
 
           <!-- Empty state -->
-          <div v-if="data.entries.length === 0" class="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-8 text-center text-gray-400">
+          <div v-if="data.entries.length === 0" class="bg-gray-50 dark:bg-gray-700/50 rounded-sm p-8 text-center text-gray-400">
             <TrophyIcon class="h-10 w-10 mx-auto mb-3 opacity-30" />
             <p class="text-sm">{{ t('leaderboard.no_data') }}</p>
             <p class="text-xs mt-1">{{ t('leaderboard.no_data_subtitle') }}</p>
@@ -195,7 +195,7 @@ const periodLabel = computed(() => {
           <div
             v-for="entry in data.entries"
             :key="entry.rank"
-            :class="['rounded-xl border p-3 flex items-center gap-3 transition', podiumClass(entry.rank)]">
+            :class="['rounded-sm border p-3 flex items-center gap-3 transition', podiumClass(entry.rank)]">
             <div :class="['w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0', rankLabelClass(entry.rank)]">
               {{ rankLabel(entry.rank) }}
             </div>
@@ -222,7 +222,7 @@ const periodLabel = computed(() => {
           <!-- Own rank (if not in top 10) -->
           <template v-if="data.ownEntry">
             <div class="text-center text-xs text-gray-400 py-1">- - -</div>
-            <div class="rounded-xl border-2 border-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 p-3 flex items-center gap-3">
+            <div class="rounded-sm border-2 border-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 p-3 flex items-center gap-3">
               <div class="w-8 h-8 rounded-full bg-indigo-500 text-white flex items-center justify-center text-sm font-bold flex-shrink-0">
                 {{ data.ownEntry.rank }}
               </div>
@@ -259,13 +259,13 @@ const periodLabel = computed(() => {
           <router-link
             v-if="activeCategory === 'MONTHLY_COINS'"
             to="/coins"
-            class="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700 rounded-xl p-3 text-sm text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition mt-1">
+            class="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700 rounded-sm p-3 text-sm text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition mt-1">
             <ClockIcon class="h-4 w-4 flex-shrink-0 text-indigo-400" />
             <span>{{ t('leaderboard.coins_history') }}</span>
           </router-link>
 
           <!-- Month-end reward hint -->
-          <div v-if="data.hasMonthEndReward" class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-xl p-3 text-xs text-yellow-800 dark:text-yellow-300 flex gap-2 mt-4">
+          <div v-if="data.hasMonthEndReward" class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-sm p-3 text-xs text-yellow-800 dark:text-yellow-300 flex gap-2 mt-4">
             <TrophyIcon class="h-4 w-4 flex-shrink-0 text-yellow-500 mt-0.5" />
             <span>
               {{ t('leaderboard.top3_reward') }}

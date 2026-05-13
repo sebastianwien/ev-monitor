@@ -50,7 +50,7 @@ onUnmounted(() => {
   >
     <div
       v-if="visible"
-      class="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl p-4"
+      class="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm shadow-[6px_6px_0_rgba(0,0,0,0.40)] dark:shadow-[6px_6px_0_rgba(255,255,255,0.40)] p-4"
     >
       <button
         @click="dismiss"
@@ -61,7 +61,7 @@ onUnmounted(() => {
       </button>
 
       <div class="flex items-start gap-3 pr-4">
-        <div class="flex-shrink-0 mt-0.5 p-1.5 bg-green-50 rounded-lg">
+        <div class="flex-shrink-0 mt-0.5 p-1.5 bg-green-50 rounded-sm">
           <ChatBubbleLeftEllipsisIcon class="h-5 w-5 text-green-600" />
         </div>
         <div>
@@ -74,7 +74,7 @@ onUnmounted(() => {
             target="_blank"
             rel="noopener noreferrer"
             @click="dismiss"
-            class="inline-block mt-3 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition"
+            class="inline-block mt-3 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-sm transition"
           >
             Feedback geben →
           </a>

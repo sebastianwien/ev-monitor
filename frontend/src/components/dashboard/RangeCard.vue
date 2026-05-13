@@ -58,7 +58,7 @@ const tabColor = computed(() => {
 </script>
 
 <template>
-  <div class="bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 shadow-sm overflow-hidden">
+  <div class="bg-white dark:bg-gray-700 rounded-sm border border-gray-200 dark:border-gray-600 shadow-sm overflow-hidden">
 
     <!-- Titel -->
     <button @click="toggleCollapsed"

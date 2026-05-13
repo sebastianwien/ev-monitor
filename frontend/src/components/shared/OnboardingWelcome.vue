@@ -251,7 +251,7 @@ const complete = () => {
           leave-active-class="transition-all duration-200"
           enter-from-class="opacity-0 scale-95"
           leave-to-class="opacity-0 scale-95">
-          <div v-if="showWelcome" class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full relative max-h-[90dvh] overflow-y-auto">
+          <div v-if="showWelcome" class="bg-white dark:bg-gray-800 rounded-sm shadow-[6px_6px_0_rgba(0,0,0,0.40)] dark:shadow-[6px_6px_0_rgba(255,255,255,0.40)] max-w-2xl w-full relative max-h-[90dvh] overflow-y-auto">
 
             <!-- Stable Header: Close + Progress (kein Slide, kein Flackern) -->
             <div class="px-8 pt-8 pb-0">
@@ -308,7 +308,7 @@ const complete = () => {
                   <div class="flex flex-col items-center gap-2 pt-4">
                     <button
                       @click="next"
-                      class="px-8 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium text-lg shadow-lg hover:shadow-xl">
+                      class="px-8 py-3 bg-indigo-600 text-white rounded-sm hover:bg-indigo-700 transition font-medium text-lg shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)] hover:shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:hover:shadow-[5px_5px_0_rgba(255,255,255,0.35)]">
                       {{ t('onboarding.start_btn') }}
                     </button>
                   </div>
@@ -323,7 +323,7 @@ const complete = () => {
                     <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200">{{ t('onboarding.step2_title') }}</h2>
                     <p class="text-gray-600 dark:text-gray-400 max-w-md mx-auto" v-html="t('onboarding.step2_desc')" />
                     <div class="w-full max-w-sm mx-auto">
-                      <div class="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-3">
+                      <div class="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-sm px-4 py-3">
                         <MagnifyingGlassIcon class="h-5 w-5 text-gray-400 flex-shrink-0" />
                         <input v-model="carSearchQuery" type="text" :placeholder="t('onboarding.step2_search_placeholder')"
                           class="bg-transparent flex-1 text-sm text-gray-700 dark:text-gray-300 outline-none placeholder-gray-400 dark:placeholder-gray-500" />
@@ -351,7 +351,7 @@ const complete = () => {
                     <div v-else class="grid grid-cols-2 gap-2">
                       <button v-for="model in carModels" :key="model.value"
                         @click="selectModel(model)"
-                        class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl p-3 text-left text-sm font-medium text-gray-800 dark:text-gray-200 hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:text-indigo-700 dark:hover:text-indigo-300 transition">
+                        class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-sm p-3 text-left text-sm font-medium text-gray-800 dark:text-gray-200 hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:text-indigo-700 dark:hover:text-indigo-300 transition">
                         {{ model.label }}
                       </button>
                     </div>
@@ -369,7 +369,7 @@ const complete = () => {
                     <template v-if="isWizardGrouped && !selectedCarTrimLevel">
                       <button v-for="group in wizardTrimGroups" :key="group.trimLevel"
                         @click="selectTrim(group.trimLevel)"
-                        class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl p-3 text-left text-sm font-medium text-gray-800 dark:text-gray-200 hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition">
+                        class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-sm p-3 text-left text-sm font-medium text-gray-800 dark:text-gray-200 hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition">
                         {{ group.trimLevel }}
                         <span class="text-xs text-gray-500 dark:text-gray-400 ml-1">({{ group.options.map(o => o.kWh + ' kWh').join(' / ') }})</span>
                       </button>
@@ -385,7 +385,7 @@ const complete = () => {
                       <button
                         v-for="spec in (selectedCarTrimLevel ? wizardSpecsForTrim : selectedCarModel?.capacities ?? [])" :key="spec.vehicleSpecificationId ?? spec.kWh"
                         @click="selectSpec(spec)"
-                        class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl p-3 text-left text-sm font-medium text-gray-800 dark:text-gray-200 hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition">
+                        class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-sm p-3 text-left text-sm font-medium text-gray-800 dark:text-gray-200 hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition">
                         {{ spec.variantName ?? spec.kWh + ' kWh' }}
                         <span v-if="spec.availableFrom" class="text-xs text-gray-500 dark:text-gray-400 ml-1">{{ spec.availableFrom }}{{ spec.availableTo ? ' – ' + spec.availableTo : '+' }}</span>
                       </button>
@@ -408,7 +408,7 @@ const complete = () => {
                     </div>
                     <p v-if="carCreateError" class="text-sm text-red-500 dark:text-red-400">{{ carCreateError }}</p>
                     <button @click="createCarInWizard" :disabled="carCreating"
-                      class="px-8 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium transition shadow-lg hover:shadow-xl disabled:opacity-60 flex items-center gap-2">
+                      class="px-8 py-3 bg-indigo-600 text-white rounded-sm hover:bg-indigo-700 font-medium transition shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)] hover:shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:hover:shadow-[5px_5px_0_rgba(255,255,255,0.35)] disabled:opacity-60 flex items-center gap-2">
                       <ArrowPathIcon v-if="carCreating" class="h-4 w-4 animate-spin" />
                       {{ t('onboarding.step2_create_btn') }}
                     </button>
@@ -425,8 +425,8 @@ const complete = () => {
 
                   <!-- Bottom buttons (always visible) -->
                   <div class="flex gap-4 justify-center pt-5 mt-2">
-                    <button @click="back" class="px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">{{ t('onboarding.back_btn') }}</button>
-                    <button @click="next" class="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium transition shadow-lg hover:shadow-xl">
+                    <button @click="back" class="px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition">{{ t('onboarding.back_btn') }}</button>
+                    <button @click="next" class="px-6 py-3 bg-indigo-600 text-white rounded-sm hover:bg-indigo-700 font-medium transition shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)] hover:shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:hover:shadow-[5px_5px_0_rgba(255,255,255,0.35)]">
                       {{ carAddPhase === 'success' ? t('onboarding.next_btn') : t('onboarding.step2_skip') }}
                     </button>
                   </div>
@@ -457,8 +457,8 @@ const complete = () => {
                     </div>
                   </div>
                   <div class="flex gap-4 justify-center pt-4">
-                    <button @click="back" class="px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">{{ t('onboarding.back_btn') }}</button>
-                    <button @click="next" class="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium transition shadow-lg hover:shadow-xl">{{ t('onboarding.next_btn') }}</button>
+                    <button @click="back" class="px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition">{{ t('onboarding.back_btn') }}</button>
+                    <button @click="next" class="px-6 py-3 bg-indigo-600 text-white rounded-sm hover:bg-indigo-700 font-medium transition shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)] hover:shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:hover:shadow-[5px_5px_0_rgba(255,255,255,0.35)]">{{ t('onboarding.next_btn') }}</button>
                   </div>
                 </div>
 
@@ -477,7 +477,7 @@ const complete = () => {
                           { key: 'csv', color: 'bg-gray-400' },
                           { key: 'api', color: 'bg-teal-500' },
                         ]" :key="item.key"
-                          class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl p-3 flex items-center gap-2">
+                          class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-sm p-3 flex items-center gap-2">
                           <div :class="item.color" class="w-2 h-2 rounded-full flex-shrink-0" />
                           <div class="text-left">
                             <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ t('onboarding.step4_' + item.key) }}</p>
@@ -491,7 +491,7 @@ const complete = () => {
                           { key: 'goe', color: 'bg-blue-500' },
                           { key: 'ocpp', color: 'bg-orange-500' },
                         ]" :key="item.key"
-                          class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl p-3 flex items-center gap-2">
+                          class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-sm p-3 flex items-center gap-2">
                           <div :class="item.color" class="w-2 h-2 rounded-full flex-shrink-0" />
                           <div class="text-left">
                             <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ t('onboarding.step4_' + item.key) }}</p>
@@ -502,8 +502,8 @@ const complete = () => {
                     </div>
                   </div>
                   <div class="flex gap-4 justify-center mt-4">
-                    <button @click="back" class="px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">{{ t('onboarding.back_btn') }}</button>
-                    <button @click="next" class="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium transition shadow-lg hover:shadow-xl">{{ t('onboarding.next_btn') }}</button>
+                    <button @click="back" class="px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition">{{ t('onboarding.back_btn') }}</button>
+                    <button @click="next" class="px-6 py-3 bg-indigo-600 text-white rounded-sm hover:bg-indigo-700 font-medium transition shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)] hover:shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:hover:shadow-[5px_5px_0_rgba(255,255,255,0.35)]">{{ t('onboarding.next_btn') }}</button>
                   </div>
                 </div>
 
@@ -518,10 +518,10 @@ const complete = () => {
                   </div>
                   <div class="flex flex-col items-center gap-3 pt-2">
                     <div class="flex gap-3 justify-center w-full">
-                      <button @click="back" class="px-5 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition text-sm">{{ t('onboarding.back_btn') }}</button>
-                      <button @click="completeAndNavigate('/upgrade')" class="px-5 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium transition shadow-lg hover:shadow-xl text-sm">{{ t('onboarding.step5_cta') }}</button>
+                      <button @click="back" class="px-5 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition text-sm">{{ t('onboarding.back_btn') }}</button>
+                      <button @click="completeAndNavigate('/upgrade')" class="px-5 py-3 bg-indigo-600 text-white rounded-sm hover:bg-indigo-700 font-medium transition shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)] hover:shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:hover:shadow-[5px_5px_0_rgba(255,255,255,0.35)] text-sm">{{ t('onboarding.step5_cta') }}</button>
                     </div>
-                    <button @click="next" class="px-5 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition text-sm w-full max-w-xs">{{ t('onboarding.step5_skip') }}</button>
+                    <button @click="next" class="px-5 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition text-sm w-full max-w-xs">{{ t('onboarding.step5_skip') }}</button>
                   </div>
                 </div>
 
@@ -532,18 +532,18 @@ const complete = () => {
                     <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200">{{ t('onboarding.step6_title') }}</h2>
                     <p class="text-gray-600 dark:text-gray-400 max-w-md mx-auto">{{ t('onboarding.step6_desc') }}</p>
 
-                    <div v-if="isAlreadyInstalled" class="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-xl p-3 max-w-md mx-auto w-full">
+                    <div v-if="isAlreadyInstalled" class="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-sm p-3 max-w-md mx-auto w-full">
                       <p class="text-sm text-green-800 dark:text-green-200 font-medium">{{ t('onboarding.step6_installed') }}</p>
                     </div>
 
                     <template v-else>
                       <div v-if="deferredInstallPrompt" class="max-w-md mx-auto w-full">
-                        <button @click="triggerInstall" class="w-full px-5 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-medium transition shadow-lg flex items-center justify-center gap-2">
+                        <button @click="triggerInstall" class="w-full px-5 py-3 bg-indigo-600 text-white rounded-sm hover:bg-indigo-700 font-medium transition shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)] flex items-center justify-center gap-2">
                           <PlusCircleIcon class="h-5 w-5" />
                           {{ t('onboarding.step6_install_btn') }}
                         </button>
                       </div>
-                      <div v-else-if="isIOS" class="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-xl p-3 text-left max-w-md mx-auto w-full">
+                      <div v-else-if="isIOS" class="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-sm p-3 text-left max-w-md mx-auto w-full">
                         <p class="font-semibold text-blue-900 dark:text-blue-200 text-sm mb-1.5">{{ t('onboarding.step6_ios_title') }}</p>
                         <ol class="text-sm text-blue-800 dark:text-blue-200 space-y-1.5">
                           <li class="flex items-center gap-2"><span class="font-bold">1.</span><ArrowUpOnSquareIcon class="h-4 w-4 flex-shrink-0" />{{ t('onboarding.step6_ios_step1') }}</li>
@@ -551,7 +551,7 @@ const complete = () => {
                           <li class="flex items-center gap-2"><span class="font-bold">3.</span><BoltIcon class="h-4 w-4 flex-shrink-0 text-green-600" />{{ t('onboarding.step6_ios_step3') }}</li>
                         </ol>
                       </div>
-                      <div v-else-if="isAndroid" class="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-xl p-3 text-left max-w-md mx-auto w-full">
+                      <div v-else-if="isAndroid" class="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-sm p-3 text-left max-w-md mx-auto w-full">
                         <p class="font-semibold text-blue-900 dark:text-blue-200 text-sm mb-1.5">{{ t('onboarding.step6_android_title') }}</p>
                         <ol class="text-sm text-blue-800 dark:text-blue-200 space-y-1.5">
                           <li class="flex items-center gap-2"><span class="font-bold">1.</span><EllipsisVerticalIcon class="h-4 w-4 flex-shrink-0" />{{ t('onboarding.step6_android_step1') }}</li>
@@ -559,12 +559,12 @@ const complete = () => {
                           <li class="flex items-center gap-2"><span class="font-bold">3.</span><BoltIcon class="h-4 w-4 flex-shrink-0 text-green-600" />{{ t('onboarding.step6_android_step3') }}</li>
                         </ol>
                       </div>
-                      <div v-else class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl p-3 text-sm text-gray-600 dark:text-gray-400 max-w-md mx-auto w-full">
+                      <div v-else class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-sm p-3 text-sm text-gray-600 dark:text-gray-400 max-w-md mx-auto w-full">
                         <span v-html="t('onboarding.step6_generic')" />
                       </div>
                     </template>
 
-                    <div class="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/30 dark:to-pink-900/30 border border-purple-200 dark:border-purple-700 rounded-xl p-3 max-w-md mx-auto w-full">
+                    <div class="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/30 dark:to-pink-900/30 border border-purple-200 dark:border-purple-700 rounded-sm p-3 max-w-md mx-auto w-full">
                       <div class="flex items-center gap-3">
                         <ChatBubbleLeftEllipsisIcon class="h-5 w-5 text-purple-600 dark:text-purple-400 flex-shrink-0" />
                         <div class="text-left">
@@ -576,8 +576,8 @@ const complete = () => {
                   </div>
 
                   <div class="flex gap-4 justify-center mt-4">
-                    <button @click="back" class="px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">{{ t('onboarding.back_btn') }}</button>
-                    <button @click="complete" class="px-8 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition shadow-lg hover:shadow-xl flex items-center gap-2">
+                    <button @click="back" class="px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition">{{ t('onboarding.back_btn') }}</button>
+                    <button @click="complete" class="px-8 py-3 bg-green-600 text-white rounded-sm hover:bg-green-700 font-medium transition shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)] hover:shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:hover:shadow-[5px_5px_0_rgba(255,255,255,0.35)] flex items-center gap-2">
                       <BoltIcon class="h-5 w-5" />
                       {{ t('onboarding.complete_btn') }}
                     </button>

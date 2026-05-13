@@ -33,7 +33,7 @@ const handleSubmit = async () => {
 
 <template>
   <div class="flex items-center justify-center min-h-[80vh] bg-gray-100">
-    <div class="w-full max-w-md p-8 bg-white rounded-xl shadow-lg">
+    <div class="w-full max-w-md p-8 bg-white rounded-sm shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)]">
       <h2 class="text-3xl font-bold text-center text-gray-800 mb-2">{{ t('auth.forgot_password.title') }}</h2>
 
       <!-- Success State -->
@@ -65,15 +65,15 @@ const handleSubmit = async () => {
             type="email"
             required
             autocomplete="email"
-            class="block w-full px-4 py-3 mt-1 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+            class="block w-full px-4 py-3 mt-1 border border-gray-300 rounded-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
             :placeholder="t('auth.forgot_password.email_placeholder')"
           />
         </div>
-        <div v-if="error" class="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{{ error }}</div>
+        <div v-if="error" class="text-sm text-red-600 bg-red-50 p-3 rounded-sm">{{ error }}</div>
         <button
           type="submit"
           :disabled="loading"
-          class="w-full px-4 py-3 font-semibold text-white bg-indigo-600 rounded-lg shadow hover:bg-indigo-700 disabled:bg-gray-300 transition"
+          class="w-full px-4 py-3 font-semibold text-white bg-indigo-600 rounded-sm shadow hover:bg-indigo-700 disabled:bg-gray-300 transition"
         >
           {{ loading ? t('auth.forgot_password.sending') : t('auth.forgot_password.submit') }}
         </button>

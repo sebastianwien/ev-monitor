@@ -9,7 +9,7 @@
         <LocaleSwitcher class="hidden sm:flex" />
         <ThemeToggle class="text-gray-600 dark:text-gray-300" />
         <a :href="loginPath" class="hidden sm:inline text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">{{ t('nav.login') }}</a>
-        <a :href="registerPath" class="text-sm bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 whitespace-nowrap">
+        <a :href="registerPath" class="text-sm bg-green-600 text-white px-3 py-1.5 rounded-sm hover:bg-green-700 whitespace-nowrap">
           {{ t('nav.register') }}
         </a>
       </div>

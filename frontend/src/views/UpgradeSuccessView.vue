@@ -1,6 +1,6 @@
 <template>
     <div class="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-start justify-center pt-10 px-4">
-        <div class="max-w-md w-full bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
+        <div class="max-w-md w-full bg-white dark:bg-gray-800 rounded-sm shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
 
             <!-- Loading state: polling for premium activation -->
             <template v-if="isPolling">
@@ -24,7 +24,7 @@
                 <p class="text-sm text-gray-500 dark:text-gray-400 mb-8">{{ t('upgrade.success_slow') }}</p>
                 <router-link
                     to="/imports"
-                    class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-3 rounded-xl transition-colors"
+                    class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-3 rounded-sm transition-colors"
                 >
                     {{ t('upgrade.success_cta') }}
                 </router-link>
@@ -46,7 +46,7 @@
                 <p class="text-gray-600 dark:text-gray-400 mb-8">{{ successDesc }}</p>
                 <router-link
                     to="/imports"
-                    class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-3 rounded-xl transition-colors"
+                    class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-3 rounded-sm transition-colors"
                 >
                     {{ t('upgrade.success_cta') }}
                 </router-link>

@@ -63,7 +63,7 @@ const handleResend = async () => {
 
 <template>
   <div class="flex items-center justify-center min-h-[80vh] bg-gray-100">
-    <div class="w-full max-w-md p-8 bg-white rounded-xl shadow-lg text-center">
+    <div class="w-full max-w-md p-8 bg-white rounded-sm shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)] text-center">
 
       <!-- Loading -->
       <div v-if="status === 'loading'">
@@ -89,12 +89,12 @@ const handleResend = async () => {
             v-model="resendEmail"
             type="email"
             placeholder="your@email.com"
-            class="block w-full px-4 py-3 mb-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+            class="block w-full px-4 py-3 mb-3 border border-gray-300 rounded-sm focus:ring-indigo-500 focus:border-indigo-500"
           />
           <div v-if="resendError" class="text-sm text-red-600 bg-red-50 p-2 rounded mb-3">{{ resendError }}</div>
           <button
             @click="handleResend"
-            class="w-full px-4 py-3 font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition"
+            class="w-full px-4 py-3 font-semibold text-white bg-indigo-600 rounded-sm hover:bg-indigo-700 transition"
           >
             {{ t('auth.verify_email.expired_resend') }}
           </button>

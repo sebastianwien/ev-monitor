@@ -11,13 +11,13 @@
         <div class="text-5xl mb-4">🔍</div>
         <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">{{ t('model.not_found_title') }}</h1>
         <p class="text-gray-500 dark:text-gray-400 mb-6">{{ t('model.not_found_desc') }}</p>
-        <a href="/" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">{{ t('model.goto_home') }}</a>
+        <a href="/" class="bg-green-600 text-white px-4 py-2 rounded-sm hover:bg-green-700">{{ t('model.goto_home') }}</a>
       </div>
 
       <div v-else-if="apiError" class="text-center py-20">
         <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">{{ t('model.error_title') }}</h1>
         <p class="text-gray-500 dark:text-gray-400 mb-6">{{ t('model.error_desc') }}</p>
-        <button @click="reload" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">{{ t('model.reload') }}</button>
+        <button @click="reload" class="bg-green-600 text-white px-4 py-2 rounded-sm hover:bg-green-700">{{ t('model.reload') }}</button>
       </div>
 
       <div v-else-if="stats">
@@ -34,7 +34,7 @@
         </nav>
 
         <!-- Hero Card -->
-        <div class="bg-white dark:bg-gray-800 md:rounded-2xl md:border-x border-t md:border-b border-gray-200 dark:border-gray-700 md:shadow-sm px-4 pt-3 pb-6 md:p-6 md:mb-6">
+        <div class="bg-white dark:bg-gray-800 md:rounded-sm md:border-x border-t md:border-b border-gray-200 dark:border-gray-700 md:shadow-sm px-4 pt-3 pb-6 md:p-6 md:mb-6">
           <a :href="`${modelsBaseUrl}/${canonicalBrand}`" class="inline-flex items-center gap-1 text-sm text-green-600 hover:underline mb-2">
             {{ t('model.back_link', { brand: stats.brandDisplayName }) }}
           </a>
@@ -50,7 +50,7 @@
             <div class="flex gap-2 flex-wrap justify-center">
               <button v-for="(v, i) in activeVariants" :key="v.displayLabel ?? v.batteryCapacityKwh"
                       @click="selectedVariantIndex = i"
-                      class="btn-3d px-3 py-1.5 rounded-md text-sm font-medium transition whitespace-nowrap"
+                      class="btn-3d px-3 py-1.5 rounded-sm text-sm font-medium transition whitespace-nowrap"
                       :class="i === selectedVariantIndex
                         ? 'bg-blue-600 text-white active'
                         : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'">
@@ -65,7 +65,7 @@
           </div>
 
           <!-- Primary metric: Realer Verbrauch -->
-          <div v-if="displayConsumption" class="flex flex-col items-center py-6 rounded-xl bg-gradient-to-b from-green-50 to-white dark:from-green-900/20 dark:to-gray-800/0 border border-green-100 dark:border-green-900/30 mb-3">
+          <div v-if="displayConsumption" class="flex flex-col items-center py-6 rounded-sm bg-gradient-to-b from-green-50 to-white dark:from-green-900/20 dark:to-gray-800/0 border border-green-100 dark:border-green-900/30 mb-3">
             <div class="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-2">
               {{ t('model.hero_consumption_label') }}
             </div>
@@ -114,12 +114,12 @@
           </div>
 
           <!-- No data for selected variant -->
-          <div v-if="variantHasNoData" class="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 text-center">
+          <div v-if="variantHasNoData" class="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-sm border border-gray-200 dark:border-gray-600 text-center">
             <p class="text-gray-500 dark:text-gray-400 text-sm">{{ t('model.variant_no_data') }}</p>
           </div>
 
           <!-- No data notice -->
-          <div v-if="stats.logCount === 0" class="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600">
+          <div v-if="stats.logCount === 0" class="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-sm border border-gray-200 dark:border-gray-600">
             <p class="text-gray-600 dark:text-gray-300 text-sm">
               {{ t('common.be_first') }}
               <a :href="registerPath" class="text-green-600 font-medium hover:underline">{{ t('common.register') }}</a>
@@ -136,7 +136,7 @@
           </div>
 
           <!-- Secondary stats row: 2-col on mobile, 3-col on desktop -->
-          <div class="mt-3 bg-gradient-to-br from-indigo-50 via-gray-50 to-white dark:from-indigo-900/20 dark:via-gray-700/30 dark:to-gray-800/0 border border-indigo-100 dark:border-indigo-900/30 rounded-xl py-4">
+          <div class="mt-3 bg-gradient-to-br from-indigo-50 via-gray-50 to-white dark:from-indigo-900/20 dark:via-gray-700/30 dark:to-gray-800/0 border border-indigo-100 dark:border-indigo-900/30 rounded-sm py-4">
             <div class="grid grid-cols-2 md:grid-cols-3">
             <!-- Links: AC/DC auf Mobile, Ladevorgänge auf Desktop -->
             <div class="px-4 text-center border-r border-gray-200 dark:border-gray-700">
@@ -271,7 +271,7 @@
 
         <!-- Baujahr-Verteilung -->
         <div v-if="stats.yearDistribution && stats.yearDistribution.length > 0"
-             class="bg-white dark:bg-gray-800 md:rounded-2xl md:border-x border-t md:border-b border-gray-200 dark:border-gray-700 md:shadow-sm px-6 py-5 md:mb-6">
+             class="bg-white dark:bg-gray-800 md:rounded-sm md:border-x border-t md:border-b border-gray-200 dark:border-gray-700 md:shadow-sm px-6 py-5 md:mb-6">
           <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-1.5">
             <ChartBarIcon class="h-4 w-4 text-gray-400" />
             {{ t('model.year_distribution_title', { count: stats.uniqueCars }) }}
@@ -301,7 +301,7 @@
 
         <!-- Streckentyp-Verteilung -->
         <div v-if="showRouteTypeBar"
-             class="bg-white dark:bg-gray-800 md:rounded-2xl md:border-x border-t md:border-b border-gray-200 dark:border-gray-700 md:shadow-sm px-6 py-5 md:mb-6">
+             class="bg-white dark:bg-gray-800 md:rounded-sm md:border-x border-t md:border-b border-gray-200 dark:border-gray-700 md:shadow-sm px-6 py-5 md:mb-6">
           <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-1.5">
             <ChartBarIcon class="h-4 w-4 text-gray-400" />
             {{ t('model.route_type_title') }}
@@ -333,7 +333,7 @@
 
         <!-- Variant Switcher + Seasonal + WLTP -->
         <div v-if="activeVariants.length > 0 || showSeasonalBreakdown"
-             class="bg-white dark:bg-gray-800 md:rounded-2xl md:border-x border-t md:border-b border-gray-200 dark:border-gray-700 md:shadow-sm md:mb-6 overflow-hidden">
+             class="bg-white dark:bg-gray-800 md:rounded-sm md:border-x border-t md:border-b border-gray-200 dark:border-gray-700 md:shadow-sm md:mb-6 overflow-hidden">
 
           <!-- Seasonal Breakdown -->
           <div v-if="showSeasonalBreakdown" class="px-6 py-5 border-b border-gray-100 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-700/20">
@@ -429,7 +429,7 @@
 
             <!-- US fallback: no EPA data yet for this model -->
             <p v-if="isUS && ratingLabel !== 'EPA'"
-               class="mx-6 mb-3 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
+               class="mx-6 mb-3 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-sm px-3 py-2">
               {{ t('model.epa_not_available') }}
             </p>
 
@@ -458,7 +458,7 @@
                   </span>
                 </div>
                 <div class="grid grid-cols-2 gap-2 text-sm">
-                  <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
+                  <div class="bg-gray-50 dark:bg-gray-700 rounded-sm p-2">
                     <div class="text-xs text-gray-500 mb-0.5">{{ ratingLabel === 'EPA' ? t('model.epa_range_label') : t('model.wltp_wltp_range') }}</div>
                     <div class="font-medium text-gray-800 dark:text-gray-200">
                       <template v-if="selectedVariant.officialRangeMinKm">
@@ -467,7 +467,7 @@
                       <template v-else>{{ formatDistance(selectedVariant.officialRangeKm) }}</template>
                     </div>
                   </div>
-                  <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
+                  <div class="bg-gray-50 dark:bg-gray-700 rounded-sm p-2">
                     <div class="text-xs text-gray-500 mb-0.5">{{ ratingLabel === 'EPA' ? t('model.epa_consumption_label') : t('model.wltp_wltp_consumption') }}</div>
                     <div class="font-medium text-gray-800 dark:text-gray-200">
                       <template v-if="selectedVariant.officialConsumptionMinKwhPer100km && selectedVariant.officialConsumptionMaxKwhPer100km">
@@ -476,7 +476,7 @@
                       <template v-else>{{ formatConsumption(selectedVariant.officialConsumptionKwhPer100km) }}</template>
                     </div>
                   </div>
-                  <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
+                  <div class="bg-gray-50 dark:bg-gray-700 rounded-sm p-2">
                     <div class="text-xs text-gray-500 mb-0.5">{{ t('model.wltp_real_range') }}</div>
                     <div class="font-medium text-gray-800 dark:text-gray-200">
                       {{ selectedVariant.realConsumptionKwhPer100km
@@ -485,7 +485,7 @@
                     </div>
                     <div class="text-xs text-gray-400">{{ t('model.wltp_full_range') }}</div>
                   </div>
-                  <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
+                  <div class="bg-gray-50 dark:bg-gray-700 rounded-sm p-2">
                     <div class="text-xs text-gray-500 mb-0.5">{{ t('model.wltp_real_consumption') }}</div>
                     <template v-if="selectedVariant.realConsumptionKwhPer100km">
                       <div :class="consumptionDeltaClass(selectedVariant.realConsumptionKwhPer100km, selectedVariant.officialConsumptionKwhPer100km)" class="font-medium">
@@ -596,24 +596,24 @@
         </div>
 
         <!-- CTA -->
-        <div class="bg-gradient-to-br from-green-600 to-green-700 md:rounded-2xl p-6 text-white">
+        <div class="bg-gradient-to-br from-green-600 to-green-700 md:rounded-sm p-6 text-white">
           <div class="flex items-center gap-2 mb-2">
             <ArrowTrendingUpIcon class="h-6 w-6" />
             <h2 class="text-xl font-bold">{{ t('model.cta_title') }}</h2>
           </div>
           <p class="text-green-100 mb-4">{{ t('model.cta_desc') }}</p>
           <div class="flex flex-wrap gap-3">
-            <a :href="registerPath" class="bg-white text-green-700 font-semibold px-4 py-2 rounded-lg hover:bg-green-50 transition-colors">
+            <a :href="registerPath" class="bg-white text-green-700 font-semibold px-4 py-2 rounded-sm hover:bg-green-50 transition-colors">
               {{ t('model.cta_free_start') }}
             </a>
-            <a :href="loginPath" class="border border-white text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors">
+            <a :href="loginPath" class="border border-white text-white px-4 py-2 rounded-sm hover:bg-green-600 transition-colors">
               {{ t('model.cta_login') }}
             </a>
           </div>
         </div>
 
         <!-- SEO Text -->
-        <div class="bg-white dark:bg-gray-800 md:rounded-2xl md:border-x border-y border-gray-200 dark:border-gray-700 md:shadow-sm p-6 md:mt-6">
+        <div class="bg-white dark:bg-gray-800 md:rounded-sm md:border-x border-y border-gray-200 dark:border-gray-700 md:shadow-sm p-6 md:mt-6">
           <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
             {{ t('model.seo_section_title', { model: stats.modelDisplayName }) }}
           </h2>
@@ -672,13 +672,13 @@
         </div>
 
         <!-- FAQ -->
-        <div v-if="faqItems.length > 0" class="bg-white dark:bg-gray-800 md:rounded-2xl md:border-x border-y border-gray-200 dark:border-gray-700 md:shadow-sm p-6 mt-6">
+        <div v-if="faqItems.length > 0" class="bg-white dark:bg-gray-800 md:rounded-sm md:border-x border-y border-gray-200 dark:border-gray-700 md:shadow-sm p-6 mt-6">
           <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
             {{ t('model.faq_title', { model: stats.modelDisplayName }) }}
           </h2>
           <div class="space-y-3">
             <details v-for="(faq, i) in faqItems" :key="i"
-                     class="border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden">
+                     class="border border-gray-100 dark:border-gray-700 rounded-sm overflow-hidden">
               <summary class="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700
                               font-medium text-gray-900 dark:text-gray-100 text-sm list-none">
                 {{ faq.question }}
@@ -697,7 +697,7 @@
 
     <!-- Related models -->
     <div class="max-w-4xl mx-auto md:px-4 mt-8">
-      <div class="bg-white dark:bg-gray-800 md:rounded-2xl md:border-x border-y border-gray-200 dark:border-gray-700 p-6">
+      <div class="bg-white dark:bg-gray-800 md:rounded-sm md:border-x border-y border-gray-200 dark:border-gray-700 p-6">
         <h2 class="text-base font-bold text-gray-900 dark:text-gray-100 mb-3">{{ t('model.related_title') }}</h2>
         <div class="flex flex-wrap gap-2 text-sm">
           <a :href="`${modelsBaseUrl}/Tesla/Model_3`" class="text-green-600 hover:underline">Tesla Model 3</a>
@@ -739,7 +739,7 @@
       <div v-if="showBackPill" class="fixed bottom-6 left-4 z-50">
         <button
           @click="goBackToLpV2"
-          class="back-pill btn-3d-delay inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-full px-4 py-2 shadow-lg"
+          class="back-pill btn-3d-delay inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-full px-4 py-2 shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)]"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="h-4 w-4">
             <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />

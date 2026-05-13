@@ -4,7 +4,7 @@
 
 <template>
   <div class="min-h-screen bg-gray-50 py-12 px-4">
-    <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-8">
+    <div class="max-w-4xl mx-auto bg-white rounded-sm shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)] p-8">
       <h1 class="text-4xl font-bold text-gray-900 mb-8">
         Allgemeine Geschäftsbedingungen & Datenschutz
       </h1>
@@ -269,8 +269,8 @@
       <div class="mt-12 text-center">
         <router-link
           to="/"
-          class="inline-block px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg
-                 font-medium shadow-md transition">
+          class="inline-block px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-sm
+                 font-medium shadow-[3px_3px_0_rgba(0,0,0,0.25)] dark:shadow-[3px_3px_0_rgba(255,255,255,0.25)] transition">
           ← Zurück zur Startseite
         </router-link>
       </div>

@@ -90,7 +90,7 @@ function formatDate(iso: string) {
       <div class="absolute inset-0 bg-black/50" @click="emit('close')" />
 
       <!-- Modal -->
-      <div class="relative w-full sm:max-w-2xl bg-white dark:bg-gray-800 sm:rounded-2xl shadow-xl ring-1 ring-black/10 dark:ring-white/10 overflow-hidden flex flex-col max-h-[90dvh]">
+      <div class="relative w-full sm:max-w-2xl bg-white dark:bg-gray-800 sm:rounded-sm shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:shadow-[5px_5px_0_rgba(255,255,255,0.35)] ring-1 ring-black/10 dark:ring-white/10 overflow-hidden flex flex-col max-h-[90dvh]">
         <!-- Header -->
         <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
           <div class="flex items-center gap-2">
@@ -101,7 +101,7 @@ function formatDate(iso: string) {
               {{ openLogs.length }}
             </span>
           </div>
-          <button @click="emit('close')" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1 rounded-lg">
+          <button @click="emit('close')" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1 rounded-sm">
             <XMarkIcon class="h-5 w-5" />
           </button>
         </div>
@@ -244,7 +244,7 @@ function formatDate(iso: string) {
         <!-- Footer -->
         <div class="px-5 py-3 border-t border-gray-100 dark:border-gray-700 flex justify-end">
           <button @click="emit('close')"
-            class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition">
+            class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-sm transition">
             {{ t('implausible.close') }}
           </button>
         </div>

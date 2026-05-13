@@ -1,6 +1,6 @@
 <template>
     <div class="py-6 md:py-12 px-4">
-        <div class="max-w-6xl mx-auto bg-gray-50/85 dark:bg-gray-900/75 backdrop-blur-md rounded-3xl p-4 md:p-8 shadow-xl shadow-black/5 dark:shadow-black/40">
+        <div class="max-w-6xl mx-auto bg-gray-50/85 dark:bg-gray-900/75 backdrop-blur-md rounded-sm p-4 md:p-8 shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:shadow-[5px_5px_0_rgba(255,255,255,0.35)] shadow-black/5 dark:shadow-black/40">
             <div v-if="loading" class="text-center py-16 text-gray-500 dark:text-gray-400">{{ t('upgrade.loading') }}</div>
 
             <!-- 3-Tier Upgrade View -->
@@ -13,7 +13,7 @@
                 </div>
 
                 <!-- Active-Plan Banner -->
-                <div v-if="tier !== 'NONE'" class="max-w-2xl mx-auto mb-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl px-4 py-3">
+                <div v-if="tier !== 'NONE'" class="max-w-2xl mx-auto mb-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-sm px-4 py-3">
                     <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
                         <div class="flex items-center gap-2">
                             <CheckCircleIcon class="w-5 h-5 text-green-600 dark:text-green-400 shrink-0" />
@@ -22,7 +22,7 @@
                         <button
                             @click="handleManageSubscription"
                             :disabled="portalLoading"
-                            class="text-sm font-medium bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-400 text-white px-4 py-2 rounded-lg shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                            class="text-sm font-medium bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-400 text-white px-4 py-2 rounded-sm shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                         >
                             {{ portalLoading ? '...' : t('upgrade.tier_active_manage') }}
                         </button>
@@ -32,20 +32,20 @@
 
                 <!-- Plan Toggle -->
                 <div v-if="showPlanToggle" class="flex justify-center mb-6">
-                    <div class="inline-flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
+                    <div class="inline-flex bg-gray-100 dark:bg-gray-800 p-1 rounded-sm">
                         <button
                             @click="selectedPlan = 'monthly'"
                             :class="selectedPlan === 'monthly'
                                 ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm'
                                 : 'text-gray-600 dark:text-gray-400'"
-                            class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                            class="px-4 py-2 rounded-sm text-sm font-medium transition-colors"
                         >{{ t('upgrade.tier_toggle_monthly') }}</button>
                         <button
                             @click="selectedPlan = 'yearly'"
                             :class="selectedPlan === 'yearly'
                                 ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm'
                                 : 'text-gray-600 dark:text-gray-400'"
-                            class="px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5"
+                            class="px-4 py-2 rounded-sm text-sm font-medium transition-colors flex items-center gap-1.5"
                         >
                             {{ t('upgrade.tier_toggle_yearly') }}
                             <span class="text-[10px] bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded font-bold">{{ t('upgrade.tier_toggle_yearly_savings') }}</span>
@@ -57,7 +57,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
 
                     <!-- FREE -->
-                    <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm dark:shadow-none p-6 flex flex-col order-3 md:order-1">
+                    <div class="bg-white dark:bg-gray-900 rounded-sm border border-gray-200 dark:border-gray-700 shadow-sm dark:shadow-none p-6 flex flex-col order-3 md:order-1">
                         <div class="mb-4">
                             <p class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">{{ t('upgrade.tier_free_label') }}</p>
                             <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ t('upgrade.tier_free_title') }}</h2>
@@ -79,7 +79,7 @@
                         </ul>
                         <button
                             disabled
-                            class="w-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-semibold py-3 rounded-xl text-sm cursor-default"
+                            class="w-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-semibold py-3 rounded-sm text-sm cursor-default"
                         >
                             {{ tier === 'NONE' ? t('upgrade.tier_free_cta_current') : t('upgrade.tier_free_cta_included') }}
                         </button>
@@ -88,11 +88,11 @@
                     <!-- AUTOSYNC -->
                     <div
                         :class="isAutoSyncActive
-                            ? 'border-green-600 dark:border-green-500 shadow-2xl shadow-green-500/25 md:shadow-xl md:shadow-green-500/10'
+                            ? 'border-green-600 dark:border-green-500 shadow-[6px_6px_0_rgba(0,0,0,0.40)] dark:shadow-[6px_6px_0_rgba(255,255,255,0.40)] shadow-green-500/25 md:shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:md:shadow-[5px_5px_0_rgba(255,255,255,0.35)] md:shadow-green-500/10'
                             : tier === 'NONE'
-                                ? 'border-green-500 dark:border-green-400 shadow-2xl shadow-green-500/25 md:shadow-xl md:shadow-green-500/10 md:-mt-4'
+                                ? 'border-green-500 dark:border-green-400 shadow-[6px_6px_0_rgba(0,0,0,0.40)] dark:shadow-[6px_6px_0_rgba(255,255,255,0.40)] shadow-green-500/25 md:shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:md:shadow-[5px_5px_0_rgba(255,255,255,0.35)] md:shadow-green-500/10 md:-mt-4'
                                 : 'border-gray-200 dark:border-gray-700'"
-                        class="bg-white dark:bg-gray-900 rounded-2xl border-2 p-6 flex flex-col relative order-1 md:order-2"
+                        class="bg-white dark:bg-gray-900 rounded-sm border-2 p-6 flex flex-col relative order-1 md:order-2"
                     >
                         <span v-if="tier === 'NONE'" class="absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] font-bold bg-green-600 dark:bg-green-500 text-white px-3 py-1 rounded-full tracking-wider whitespace-nowrap">{{ t('upgrade.tier_badge_recommended') }}</span>
                         <div class="mb-4">
@@ -119,7 +119,7 @@
                             <button
                                 @click="handleCheckout"
                                 :disabled="checkoutLoading || !premiumEnabled"
-                                class="w-full bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-400 disabled:bg-gray-300 dark:disabled:bg-gray-600 text-white dark:text-gray-900 font-semibold py-3 rounded-xl text-sm shadow-[0_4px_0_0_#166534] dark:shadow-[0_4px_0_0_#064e3b] active:translate-y-1 active:shadow-none transition"
+                                class="w-full bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-400 disabled:bg-gray-300 dark:disabled:bg-gray-600 text-white dark:text-gray-900 font-semibold py-3 rounded-sm text-sm shadow-[0_4px_0_0_#166534] dark:shadow-[0_4px_0_0_#064e3b] active:translate-y-1 active:shadow-none transition"
                             >
                                 <span v-if="checkoutLoading">{{ t('upgrade.cta_loading') }}</span>
                                 <span v-else-if="!premiumEnabled">{{ t('upgrade.cta_coming_soon') }}</span>
@@ -131,7 +131,7 @@
                         <button
                             v-else
                             disabled
-                            class="w-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 font-semibold py-3 rounded-xl text-sm cursor-default flex items-center justify-center gap-1.5"
+                            class="w-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 font-semibold py-3 rounded-sm text-sm cursor-default flex items-center justify-center gap-1.5"
                         >
                             <CheckCircleIcon class="w-4 h-4" />
                             {{ isAutoSyncActive ? t('upgrade.tier_autosync_cta_active') : t('upgrade.tier_autosync_cta_included') }}
@@ -141,9 +141,9 @@
                     <!-- LIVE -->
                     <div
                         :class="isLiveActive
-                            ? 'border-indigo-600 dark:border-indigo-400 shadow-xl shadow-indigo-500/10'
+                            ? 'border-indigo-600 dark:border-indigo-400 shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:shadow-[5px_5px_0_rgba(255,255,255,0.35)] shadow-indigo-500/10'
                             : 'border-indigo-300 dark:border-indigo-800'"
-                        class="bg-white dark:bg-gray-900 rounded-2xl border-2 p-6 flex flex-col relative order-2 md:order-3"
+                        class="bg-white dark:bg-gray-900 rounded-sm border-2 p-6 flex flex-col relative order-2 md:order-3"
                     >
                         <span v-if="!isLiveActive" class="absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] font-bold bg-indigo-600 dark:bg-indigo-500 text-white px-3 py-1 rounded-full tracking-wider whitespace-nowrap">{{ t('upgrade.tier_badge_live') }}</span>
                         <div class="mb-4">
@@ -169,7 +169,7 @@
                         <template v-if="isLiveActive">
                             <button
                                 disabled
-                                class="w-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 font-semibold py-3 rounded-xl text-sm cursor-default flex items-center justify-center gap-1.5"
+                                class="w-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 font-semibold py-3 rounded-sm text-sm cursor-default flex items-center justify-center gap-1.5"
                             >
                                 <CheckCircleIcon class="w-4 h-4" />
                                 {{ t('upgrade.tier_live_cta_active') }}
@@ -179,7 +179,7 @@
                             <button
                                 @click="handleLiveAction"
                                 :disabled="liveLoading"
-                                class="w-full bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-400 text-white font-semibold py-3 rounded-xl text-sm shadow-[0_4px_0_0_#3730a3] dark:shadow-[0_4px_0_0_#312e81] active:translate-y-1 active:shadow-none transition disabled:opacity-60"
+                                class="w-full bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-400 text-white font-semibold py-3 rounded-sm text-sm shadow-[0_4px_0_0_#3730a3] dark:shadow-[0_4px_0_0_#312e81] active:translate-y-1 active:shadow-none transition disabled:opacity-60"
                             >
                                 <span v-if="liveLoading">…</span>
                                 <span v-else>{{ isLiveUpgrade ? t('upgrade.tier_live_cta_upgrade') : t('upgrade.tier_live_cta_activate') }}</span>

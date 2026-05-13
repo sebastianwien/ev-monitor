@@ -17,7 +17,7 @@
       </div>
 
       <!-- Efficiency Section -->
-      <section class="bg-white dark:bg-gray-800 md:rounded-2xl md:border-x border-t md:border-b border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
+      <section class="bg-white dark:bg-gray-800 md:rounded-sm md:border-x border-t md:border-b border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
         <!-- Section header -->
         <div class="px-4 py-4 border-b border-gray-100 dark:border-gray-700">
           <div class="flex items-center gap-2 mb-3">
@@ -110,7 +110,7 @@
       </section>
 
       <!-- Weitere Rankings - Platzhalter -->
-      <div class="bg-white dark:bg-gray-800 md:rounded-2xl md:border-x border-t md:border-b border-gray-200 dark:border-gray-700 px-4 py-5 text-center">
+      <div class="bg-white dark:bg-gray-800 md:rounded-sm md:border-x border-t md:border-b border-gray-200 dark:border-gray-700 px-4 py-5 text-center">
         <p class="text-sm text-gray-400 dark:text-gray-500">{{ t('rankings.coming_soon') }}</p>
       </div>
     </main>

@@ -14,10 +14,10 @@ const { visible, dismiss } = useDemoModal('ev_demo_welcome_shown')
       <div class="absolute inset-0 bg-black/60" @click="dismiss" />
 
       <!-- Modal -->
-      <div class="relative w-full max-w-sm bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-6 flex flex-col gap-5">
+      <div class="relative w-full max-w-sm bg-white dark:bg-gray-900 rounded-sm shadow-[6px_6px_0_rgba(0,0,0,0.40)] dark:shadow-[6px_6px_0_rgba(255,255,255,0.40)] p-6 flex flex-col gap-5">
         <!-- Header -->
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 bg-amber-100 dark:bg-amber-900/40 rounded-xl flex items-center justify-center shrink-0">
+          <div class="w-10 h-10 bg-amber-100 dark:bg-amber-900/40 rounded-sm flex items-center justify-center shrink-0">
             <BoltIcon class="h-5 w-5 text-amber-500" />
           </div>
           <div>
@@ -56,7 +56,7 @@ const { visible, dismiss } = useDemoModal('ev_demo_welcome_shown')
         <!-- CTA -->
         <button
           @click="dismiss"
-          class="btn-3d w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-sm transition">
+          class="btn-3d w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-sm text-sm transition">
           {{ t('demo.welcome_cta') }}
         </button>
       </div>

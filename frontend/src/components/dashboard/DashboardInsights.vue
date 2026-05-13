@@ -224,7 +224,7 @@ function drainBarWidth(ev: { kwh: number }): string {
 </script>
 
 <template>
-  <div class="bg-white dark:bg-gray-800 -mx-4 md:mx-0 md:rounded-xl md:border md:border-gray-200 md:dark:border-gray-700 overflow-hidden">
+  <div class="bg-white dark:bg-gray-800 -mx-4 md:mx-0 md:rounded-sm md:border md:border-gray-200 md:dark:border-gray-700 overflow-hidden">
 
     <!-- Tab bar -->
     <div class="flex items-center gap-5 px-4 md:px-5 border-b border-gray-200 dark:border-gray-700">

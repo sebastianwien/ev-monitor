@@ -155,7 +155,7 @@ const getCurrentDateTimeLocal = () => {
 
 const inputClass = (field: string) =>
   [
-    'mt-1 block w-full rounded-md shadow-sm sm:text-sm p-2 border bg-white dark:bg-gray-700 dark:text-gray-100',
+    'mt-1 block w-full rounded-sm shadow-sm sm:text-sm p-2 border bg-white dark:bg-gray-700 dark:text-gray-100',
     props.fieldErrors?.has(field)
       ? 'border-red-400 focus:border-red-500 focus:ring-red-500'
       : 'border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-indigo-500',
@@ -415,7 +415,7 @@ function cardSubTextColor(id: string): string {
 
 <template>
   <!-- Pflichtfelder-Gruppe -->
-  <div :class="locationMode !== 'edit' ? 'bg-gray-100 dark:bg-gray-800 md:rounded-xl p-3 space-y-3 -mx-4 md:mx-0' : 'space-y-3'">
+  <div :class="locationMode !== 'edit' ? 'bg-gray-100 dark:bg-gray-800 md:rounded-sm p-3 space-y-3 -mx-4 md:mx-0' : 'space-y-3'">
 
   <!-- Row 1: kWh + Kosten -->
   <div class="grid grid-cols-2 gap-3 items-end">
@@ -570,7 +570,7 @@ function cardSubTextColor(id: string): string {
         type="button"
         @click="form.chargingProviderId = form.chargingProviderId === p.id ? null : p.id"
         :class="[
-          'btn-3d flex-shrink-0 w-28 h-[4.5rem] rounded-xl overflow-hidden relative select-none',
+          'btn-3d flex-shrink-0 w-28 h-[4.5rem] rounded-sm overflow-hidden relative select-none',
           form.chargingProviderId === p.id ? 'active opacity-100' : 'opacity-65 hover:opacity-85'
         ]"
         :style="cardContainerStyle(p.id)">
@@ -663,12 +663,12 @@ function cardSubTextColor(id: string): string {
     <div>
       <label class="block text-sm font-medium text-gray-600 dark:text-gray-400">{{ t('logfields.duration') }}</label>
       <input v-model="form.chargeDurationMinutes" type="number"
-        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
+        class="mt-1 block w-full rounded-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
     </div>
     <div>
       <label class="block text-sm font-medium text-gray-600 dark:text-gray-400"><span class="sm:hidden">{{ t('logfields.max_power') }}</span><span class="hidden sm:inline">{{ t('logfields.max_power_full') }}</span></label>
       <input v-model="form.maxChargingPowerKw" type="number" step="0.1"
-        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
+        class="mt-1 block w-full rounded-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
     </div>
   </div>
 
@@ -679,7 +679,7 @@ function cardSubTextColor(id: string): string {
       v-model="form.loggedAt"
       type="datetime-local"
       :max="getCurrentDateTimeLocal()"
-      class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
+      class="mt-1 block w-full rounded-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
     <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ t('logfields.timestamp_hint') }}</p>
   </div>
 </template>

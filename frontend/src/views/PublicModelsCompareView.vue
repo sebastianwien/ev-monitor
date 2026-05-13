@@ -20,14 +20,14 @@
         <TruckIcon class="h-16 w-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
         <h1 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-2">{{ t('compare.error_title') }}</h1>
         <p class="text-gray-500 dark:text-gray-400 mb-6">{{ error || t('compare.error_min_models') }}</p>
-        <a href="/modelle" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700">
+        <a href="/modelle" class="bg-green-600 text-white px-6 py-3 rounded-sm hover:bg-green-700">
           {{ t('compare.breadcrumb_models') }}
         </a>
       </div>
 
       <template v-else>
         <!-- Header -->
-        <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 mb-6">
+        <div class="bg-white dark:bg-gray-900 rounded-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
           <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
             {{ validModels.map(m => m.modelDisplayName).join(' vs. ') }}
           </h1>
@@ -46,7 +46,7 @@
         <!-- Fixed floating header (shown when sentinel scrolls out of view) -->
         <Transition name="slide-down">
           <div v-if="floatingHeaderVisible"
-               class="block md:hidden fixed left-0 right-0 z-40 bg-white dark:bg-gray-900 border-b-2 border-gray-100 dark:border-gray-800 px-4 py-2 shadow-md"
+               class="block md:hidden fixed left-0 right-0 z-40 bg-white dark:bg-gray-900 border-b-2 border-gray-100 dark:border-gray-800 px-4 py-2 shadow-[3px_3px_0_rgba(0,0,0,0.25)] dark:shadow-[3px_3px_0_rgba(255,255,255,0.25)]"
                :style="{ top: floatingHeaderTop }">
             <div :class="validModels.length === 3 ? 'grid grid-cols-3 gap-3' : 'grid grid-cols-2 gap-3'">
               <div v-for="(m, mi) in validModels" :key="m.brand + m.model" class="text-center">
@@ -64,7 +64,7 @@
         </Transition>
 
         <!-- Comparison: Mobile Card Layout -->
-        <div class="block md:hidden bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 mb-6">
+        <div class="block md:hidden bg-white dark:bg-gray-900 rounded-sm border border-gray-200 dark:border-gray-700 mb-6">
           <!-- Static model header (inside card, always present) -->
           <div class="bg-white dark:bg-gray-900 border-b-2 border-gray-100 dark:border-gray-800 px-4 py-3 rounded-t-2xl">
             <div :class="validModels.length === 3 ? 'grid grid-cols-3 gap-2' : 'grid grid-cols-2 gap-2'">
@@ -102,7 +102,7 @@
               </div>
               <div :class="validModels.length === 3 ? 'grid grid-cols-3 gap-2' : 'grid grid-cols-2 gap-2'">
                 <div v-for="(cell, i) in row.cells" :key="i"
-                     class="text-center text-sm font-medium py-1 rounded-lg"
+                     class="text-center text-sm font-medium py-1 rounded-sm"
                      :class="[cell.highlight, cell.isBest ? 'bg-green-50 dark:bg-green-900/20' : cell.isWorst ? 'bg-red-50 dark:bg-red-900/20' : '']">
                   <template v-if="cell.chip">
                     <span :class="cell.chipClass" class="text-xs px-2 py-0.5 rounded-full font-medium">
@@ -130,7 +130,7 @@
         </div>
 
         <!-- Comparison: Desktop Table -->
-        <div class="hidden md:block bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
+        <div class="hidden md:block bg-white dark:bg-gray-900 rounded-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
           <div class="overflow-x-auto">
             <table class="w-full min-w-[480px] text-sm">
               <!-- Model header row -->
@@ -327,7 +327,7 @@
         </div>
 
         <!-- Links to individual pages -->
-        <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 mb-6">
+        <div class="bg-white dark:bg-gray-900 rounded-sm border border-gray-200 dark:border-gray-700 p-5 mb-6">
           <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">{{ t('compare.detail_pages') }}</p>
           <div class="flex flex-wrap gap-3">
             <a v-for="m in validModels" :key="m.brand + m.model"
@@ -340,16 +340,16 @@
         </div>
 
         <!-- CTA -->
-        <div class="bg-gradient-to-br from-green-600 to-green-700 rounded-2xl p-6 text-white">
+        <div class="bg-gradient-to-br from-green-600 to-green-700 rounded-sm p-6 text-white">
           <h2 class="text-xl font-bold mb-2">{{ t('compare.cta_title') }}</h2>
           <p class="text-green-100 text-sm mb-4">
             {{ t('compare.cta_desc') }}
           </p>
           <div class="flex flex-wrap gap-3">
-            <a :href="registerPath" class="bg-white text-green-700 font-semibold px-4 py-2 rounded-lg hover:bg-green-50 transition-colors text-sm">
+            <a :href="registerPath" class="bg-white text-green-700 font-semibold px-4 py-2 rounded-sm hover:bg-green-50 transition-colors text-sm">
               {{ t('compare.cta_register') }}
             </a>
-            <a :href="loginPath" class="border border-white text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors text-sm">
+            <a :href="loginPath" class="border border-white text-white px-4 py-2 rounded-sm hover:bg-green-600 transition-colors text-sm">
               {{ t('compare.cta_login') }}
             </a>
           </div>

@@ -47,7 +47,7 @@ onBeforeUnmount(() => document.removeEventListener('click', handleOutsideClick))
     <!-- Dropdown - opens upward so it doesn't go off-screen in footer -->
     <div
       v-if="open"
-      class="absolute z-50 bottom-full mb-1 right-0 w-64 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 p-3"
+      class="absolute z-50 bottom-full mb-1 right-0 w-64 bg-white dark:bg-gray-800 rounded-sm shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:shadow-[5px_5px_0_rgba(255,255,255,0.35)] border border-gray-200 dark:border-gray-700 p-3"
     >
       <div class="flex items-center justify-between mb-2.5">
         <span class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
@@ -62,7 +62,7 @@ onBeforeUnmount(() => document.removeEventListener('click', handleOutsideClick))
           v-for="c in COUNTRY_OPTIONS"
           :key="c.code"
           @click="select(c.code)"
-          class="flex items-center gap-2 px-2.5 py-2 rounded-lg text-sm transition-colors text-left"
+          class="flex items-center gap-2 px-2.5 py-2 rounded-sm text-sm transition-colors text-left"
           :class="countryStore.country === c.code
             ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 font-medium border border-green-300 dark:border-green-700'
             : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'"

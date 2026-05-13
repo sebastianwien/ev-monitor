@@ -17,7 +17,7 @@ const expanded = ref(props.initialExpanded)
 </script>
 
 <template>
-  <div class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl overflow-hidden">
+  <div class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-sm overflow-hidden">
     <button
       type="button"
       @click="expanded = !expanded"

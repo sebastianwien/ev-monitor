@@ -430,7 +430,7 @@ const onResizeUp = () => {
 
 <template>
   <div class="p-4 sm:p-8 text-gray-100">
-    <div class="max-w-7xl mx-auto bg-gray-900/80 backdrop-blur-sm rounded-2xl p-4 sm:p-6 border border-white/10">
+    <div class="max-w-7xl mx-auto bg-gray-900/80 backdrop-blur-sm rounded-sm p-4 sm:p-6 border border-white/10">
       <!-- Header -->
       <div class="mb-6">
         <h1 class="text-2xl font-bold text-white">Admin Dashboard</h1>
@@ -438,7 +438,7 @@ const onResizeUp = () => {
       </div>
 
       <!-- Tabs -->
-      <div class="flex gap-1 mb-6 bg-gray-900 rounded-xl p-1 w-fit">
+      <div class="flex gap-1 mb-6 bg-gray-900 rounded-sm p-1 w-fit">
         <button
           v-for="tab in ([
             { key: 'users', label: 'User' },
@@ -450,7 +450,7 @@ const onResizeUp = () => {
           :key="tab.key"
           @click="setTab(tab.key)"
           :class="[
-            'px-4 py-2 rounded-lg text-sm font-medium transition',
+            'px-4 py-2 rounded-sm text-sm font-medium transition',
             activeTab === tab.key
               ? 'bg-indigo-600 text-white'
               : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'
@@ -471,13 +471,13 @@ const onResizeUp = () => {
             v-model="userSearch"
             type="text"
             placeholder="Suchen..."
-            class="px-3 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-indigo-500 w-56"
+            class="px-3 py-1.5 rounded-sm bg-gray-800 border border-gray-700 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-indigo-500 w-56"
           />
         </div>
 
         <div v-if="usersLoading" class="text-gray-400 text-sm py-8 text-center">Lade...</div>
         <div v-else-if="usersError" class="text-red-400 text-sm py-4">{{ usersError }}</div>
-        <div v-else class="overflow-x-auto rounded-xl border border-gray-800">
+        <div v-else class="overflow-x-auto rounded-sm border border-gray-800">
           <table class="text-sm text-left" :style="{ tableLayout: 'fixed', width: tableWidth }">
             <colgroup>
               <col v-for="(w, i) in colWidths" :key="i" :style="{ width: w + 'px', minWidth: '60px' }" />
@@ -574,18 +574,18 @@ const onResizeUp = () => {
         <h2 class="text-lg font-semibold text-white mb-4">User-Wachstum</h2>
         <div v-if="growthLoading" class="text-gray-400 text-sm py-8 text-center">Lade...</div>
         <div v-else-if="growthError" class="text-red-400 text-sm py-4">{{ growthError }}</div>
-        <div v-else class="bg-gray-900 rounded-xl p-4 border border-gray-800">
+        <div v-else class="bg-gray-900 rounded-sm p-4 border border-gray-800">
           <div class="h-96">
             <Line :data="growthChartData" :options="growthChartOptions" />
           </div>
         </div>
         <!-- Summary -->
         <div class="mt-4 flex gap-4 flex-wrap">
-          <div class="bg-gray-900 rounded-xl px-5 py-4 border border-gray-800 flex-1 min-w-40">
+          <div class="bg-gray-900 rounded-sm px-5 py-4 border border-gray-800 flex-1 min-w-40">
             <div class="text-2xl font-bold text-indigo-400">{{ growthData.length > 0 ? growthData[growthData.length - 1].cumulativeUsers : 0 }}</div>
             <div class="text-xs text-gray-400 mt-1">User gesamt</div>
           </div>
-          <div class="bg-gray-900 rounded-xl px-5 py-4 border border-gray-800 flex-1 min-w-40">
+          <div class="bg-gray-900 rounded-sm px-5 py-4 border border-gray-800 flex-1 min-w-40">
             <div class="text-2xl font-bold text-emerald-400">{{ growthData.reduce((s, r) => s + r.newUsers, 0) }}</div>
             <div class="text-xs text-gray-400 mt-1">Aktivierungstage total</div>
           </div>
@@ -603,7 +603,7 @@ const onResizeUp = () => {
                 v-for="preset in [{ label: '7T', days: 7 }, { label: '30T', days: 30 }, { label: '90T', days: 90 }, { label: 'Alles', days: null }]"
                 :key="preset.label"
                 @click="setActivityPreset(preset.days)"
-                class="px-2.5 py-1 rounded-lg text-xs font-medium transition bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200"
+                class="px-2.5 py-1 rounded-sm text-xs font-medium transition bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200"
               >
                 {{ preset.label }}
               </button>
@@ -611,34 +611,34 @@ const onResizeUp = () => {
             <input
               v-model="activityFrom"
               type="date"
-              class="px-2 py-1 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-200 focus:outline-none focus:border-indigo-500"
+              class="px-2 py-1 rounded-sm bg-gray-800 border border-gray-700 text-sm text-gray-200 focus:outline-none focus:border-indigo-500"
             />
             <span class="text-gray-500 text-sm">-</span>
             <input
               v-model="activityTo"
               type="date"
-              class="px-2 py-1 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-200 focus:outline-none focus:border-indigo-500"
+              class="px-2 py-1 rounded-sm bg-gray-800 border border-gray-700 text-sm text-gray-200 focus:outline-none focus:border-indigo-500"
             />
           </div>
         </div>
         <div v-if="activityLoading" class="text-gray-400 text-sm py-8 text-center">Lade...</div>
         <div v-else-if="activityError" class="text-red-400 text-sm py-4">{{ activityError }}</div>
-        <div v-else class="bg-gray-900 rounded-xl p-4 border border-gray-800">
+        <div v-else class="bg-gray-900 rounded-sm p-4 border border-gray-800">
           <div class="h-96">
             <Line :data="activityChartData" :options="activityChartOptions" />
           </div>
         </div>
         <!-- Summary -->
         <div class="mt-4 flex gap-4 flex-wrap">
-          <div class="bg-gray-900 rounded-xl px-5 py-4 border border-gray-800 flex-1 min-w-40">
+          <div class="bg-gray-900 rounded-sm px-5 py-4 border border-gray-800 flex-1 min-w-40">
             <div class="text-2xl font-bold text-amber-400">{{ filteredActivityData.reduce((s, r) => s + r.chargeCount, 0) }}</div>
             <div class="text-xs text-gray-400 mt-1">Ladevorgange im Zeitraum</div>
           </div>
-          <div class="bg-gray-900 rounded-xl px-5 py-4 border border-gray-800 flex-1 min-w-40">
+          <div class="bg-gray-900 rounded-sm px-5 py-4 border border-gray-800 flex-1 min-w-40">
             <div class="text-2xl font-bold text-blue-400">{{ filteredActivityData.reduce((s, r) => s + Number(r.kwhTotal), 0).toFixed(1) }}</div>
             <div class="text-xs text-gray-400 mt-1">kWh im Zeitraum</div>
           </div>
-          <div class="bg-gray-900 rounded-xl px-5 py-4 border border-gray-800 flex-1 min-w-40">
+          <div class="bg-gray-900 rounded-sm px-5 py-4 border border-gray-800 flex-1 min-w-40">
             <div class="text-2xl font-bold text-emerald-400">{{ filteredActivityData.reduce((s, r) => s + Number(r.costTotal), 0).toFixed(2) }} €</div>
             <div class="text-xs text-gray-400 mt-1">Kosten im Zeitraum</div>
           </div>
@@ -655,7 +655,7 @@ const onResizeUp = () => {
               :key="preset.period"
               @click="setTrafficPreset(preset.period)"
               :class="[
-                'px-2.5 py-1 rounded-lg text-xs font-medium transition',
+                'px-2.5 py-1 rounded-sm text-xs font-medium transition',
                 trafficPeriod === preset.period
                   ? 'bg-indigo-600 text-white'
                   : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200'
@@ -670,29 +670,29 @@ const onResizeUp = () => {
         <div v-else-if="trafficData.length === 0" class="text-gray-500 text-sm py-8 text-center">
           Keine Daten - PLAUSIBLE_API_KEY gesetzt?
         </div>
-        <div v-else class="bg-gray-900 rounded-xl p-4 border border-gray-800">
+        <div v-else class="bg-gray-900 rounded-sm p-4 border border-gray-800">
           <div class="h-96">
             <Line :data="trafficChartData" :options="trafficChartOptions" />
           </div>
         </div>
         <!-- Summary -->
         <div v-if="trafficData.length > 0" class="mt-4 flex gap-4 flex-wrap">
-          <div class="bg-gray-900 rounded-xl px-5 py-4 border border-gray-800 flex-1 min-w-40">
+          <div class="bg-gray-900 rounded-sm px-5 py-4 border border-gray-800 flex-1 min-w-40">
             <div class="text-2xl font-bold text-indigo-400">{{ trafficData.reduce((s, r) => s + r.visitors, 0).toLocaleString() }}</div>
             <div class="text-xs text-gray-400 mt-1">{{ isHourly ? 'Visitors heute' : 'Unique Visitors' }}</div>
           </div>
-          <div class="bg-gray-900 rounded-xl px-5 py-4 border border-gray-800 flex-1 min-w-40">
+          <div class="bg-gray-900 rounded-sm px-5 py-4 border border-gray-800 flex-1 min-w-40">
             <div class="text-2xl font-bold text-purple-400">{{ trafficData.reduce((s, r) => s + r.pageviews, 0).toLocaleString() }}</div>
             <div class="text-xs text-gray-400 mt-1">{{ isHourly ? 'Pageviews heute' : 'Pageviews' }}</div>
           </div>
           <template v-if="!isHourly">
-            <div class="bg-gray-900 rounded-xl px-5 py-4 border border-gray-800 flex-1 min-w-40">
+            <div class="bg-gray-900 rounded-sm px-5 py-4 border border-gray-800 flex-1 min-w-40">
               <div class="text-2xl font-bold text-emerald-400">
                 {{ trafficData.reduce((s, r) => s + (new Map(growthData.map(g => [g.day, g.newUsers])).get(r.date) ?? 0), 0) }}
               </div>
               <div class="text-xs text-gray-400 mt-1">Neue Registrierungen</div>
             </div>
-            <div class="bg-gray-900 rounded-xl px-5 py-4 border border-gray-800 flex-1 min-w-40">
+            <div class="bg-gray-900 rounded-sm px-5 py-4 border border-gray-800 flex-1 min-w-40">
               <div class="text-2xl font-bold text-amber-400">
                 {{
                   (() => {
@@ -713,10 +713,10 @@ const onResizeUp = () => {
       <!-- Tab: Impersonate -->
       <div v-else-if="activeTab === 'impersonate'">
         <h2 class="text-lg font-semibold text-white mb-4">Als User einloggen</h2>
-        <div class="max-w-md bg-gray-900 rounded-xl p-6 border border-gray-800">
+        <div class="max-w-md bg-gray-900 rounded-sm p-6 border border-gray-800">
           <p class="text-sm text-gray-400 mb-5">Generiert ein 1h-Token fur den Ziel-User.</p>
 
-          <div v-if="impersonateError" class="mb-4 p-3 bg-red-900/40 border border-red-700 text-red-300 text-sm rounded-lg">
+          <div v-if="impersonateError" class="mb-4 p-3 bg-red-900/40 border border-red-700 text-red-300 text-sm rounded-sm">
             {{ impersonateError }}
           </div>
 
@@ -727,7 +727,7 @@ const onResizeUp = () => {
                 v-model="email"
                 type="email"
                 placeholder="user@example.com"
-                class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none text-sm" />
+                class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none text-sm" />
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-300 mb-1">Internal Token</label>
@@ -735,12 +735,12 @@ const onResizeUp = () => {
                 v-model="internalToken"
                 type="password"
                 placeholder="dev-internal-token-..."
-                class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none text-sm" />
+                class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none text-sm" />
             </div>
             <button
               @click="impersonate"
               :disabled="impersonateLoading"
-              class="w-full py-2.5 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition flex items-center justify-center gap-2 text-sm">
+              class="w-full py-2.5 bg-indigo-600 text-white font-semibold rounded-sm hover:bg-indigo-700 disabled:opacity-50 transition flex items-center justify-center gap-2 text-sm">
               <svg v-if="impersonateLoading" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>

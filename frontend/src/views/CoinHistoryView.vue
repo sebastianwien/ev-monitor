@@ -109,18 +109,18 @@ onMounted(() => {
 
 <template>
   <div class="md:max-w-2xl md:mx-auto p-4 md:p-6 md:mt-8">
-    <div class="bg-white dark:bg-gray-800 md:rounded-xl md:shadow-lg p-4 md:p-6">
+    <div class="bg-white dark:bg-gray-800 md:rounded-sm md:shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:md:shadow-[4px_4px_0_rgba(255,255,255,0.30)] p-4 md:p-6">
       <!-- Header -->
       <div class="mb-6">
         <div class="flex items-center justify-between">
           <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200">{{ t('coins.title') }}</h1>
-          <div class="flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700 rounded-lg">
+          <div class="flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700 rounded-sm">
             <BoltIcon class="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
             <span class="text-xl font-bold text-indigo-700 dark:text-indigo-300">{{ coinStore.balance }}</span>
             <span class="text-sm text-indigo-500 dark:text-indigo-400">{{ t('coins.unit') }}</span>
           </div>
         </div>
-        <router-link to="/leaderboard" class="mt-3 flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-yellow-400 hover:bg-yellow-300 active:translate-y-0.5 active:shadow-none text-yellow-900 font-semibold text-sm rounded-xl shadow-[0_4px_0_0_#b45309] hover:shadow-[0_4px_0_0_#92400e] active:shadow-[0_2px_0_0_#92400e] transition-all">
+        <router-link to="/leaderboard" class="mt-3 flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-yellow-400 hover:bg-yellow-300 active:translate-y-0.5 active:shadow-none text-yellow-900 font-semibold text-sm rounded-sm shadow-[0_4px_0_0_#b45309] hover:shadow-[0_4px_0_0_#92400e] active:shadow-[0_2px_0_0_#92400e] transition-all">
           <TrophyIcon class="h-4 w-4" />
           {{ t('coins.to_leaderboard') }}
         </router-link>
@@ -134,7 +134,7 @@ onMounted(() => {
         </button>
         <div v-if="standingsOpen">
         <div v-if="standingsLoading" class="text-center py-4 text-gray-400 text-sm">{{ t('coins.standings_loading') }}</div>
-        <div v-else class="rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+        <div v-else class="rounded-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
           <table class="w-full text-sm">
             <tbody>
               <tr
@@ -170,7 +170,7 @@ onMounted(() => {
       </div>
 
       <!-- Legende -->
-      <details class="mb-6 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 text-sm">
+      <details class="mb-6 rounded-sm border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 text-sm">
         <summary class="cursor-pointer px-4 py-3 font-medium text-gray-700 dark:text-gray-300 select-none">{{ t('coins.legend_title') }}</summary>
         <div class="px-4 pb-4 pt-2 space-y-3">
           <div>
@@ -214,7 +214,7 @@ onMounted(() => {
       </details>
 
       <!-- Error -->
-      <div v-if="error" class="mb-4 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300 rounded-md text-sm">
+      <div v-if="error" class="mb-4 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300 rounded-sm text-sm">
         {{ error }}
       </div>
 
@@ -236,7 +236,7 @@ onMounted(() => {
         <li
           v-for="log in logs"
           :key="log.id"
-          class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg">
+          class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-sm">
           <div class="flex items-center gap-3">
             <BoltIcon class="h-6 w-6 text-indigo-400 flex-shrink-0" />
             <div>

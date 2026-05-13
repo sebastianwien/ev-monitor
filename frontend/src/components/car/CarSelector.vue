@@ -84,13 +84,13 @@ onMounted(() => {
     </div>
 
     <div v-else-if="cars.length === 0" class="space-y-2">
-      <p class="text-sm text-gray-600 dark:text-gray-400 p-2 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-md">
+      <p class="text-sm text-gray-600 dark:text-gray-400 p-2 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-sm">
         {{ t('carselector.no_cars') }}
       </p>
       <button
         @click="goToCarManagement"
         type="button"
-        class="w-full bg-indigo-100 text-indigo-700 px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-200 transition">
+        class="w-full bg-indigo-100 text-indigo-700 px-4 py-2 rounded-sm text-sm font-medium hover:bg-indigo-200 transition">
         {{ t('carselector.go_to_cars') }}
       </button>
     </div>
@@ -99,7 +99,7 @@ onMounted(() => {
       v-else
       v-model="selectedCarId"
       required
-      class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border">
+      class="w-full rounded-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border">
       <option :value="null" disabled>{{ t('carselector.select') }}</option>
       <option v-for="car in cars" :key="car.id" :value="car.id">
         {{ carLabel(car) }}

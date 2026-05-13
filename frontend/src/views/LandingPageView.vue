@@ -184,7 +184,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
               </router-link>
               <router-link
                 :to="registerPath"
-                class="hidden sm:inline-flex bg-green-600 text-white px-3 sm:px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition whitespace-nowrap"
+                class="hidden sm:inline-flex bg-green-600 text-white px-3 sm:px-4 py-2 rounded-sm text-sm font-medium hover:bg-green-700 transition whitespace-nowrap"
               >
                 {{ t('nav.register') }}
               </router-link>
@@ -212,7 +212,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
               v-for="preview in topModels.slice(0, 3)"
               :key="`hero-mobile-${preview.brand}-${preview.model}`"
               :href="`${modelsUrl}/${preview.brandDisplayName}/${preview.modelUrlSlug}`"
-              class="snap-start shrink-0 w-[75vw] max-w-[280px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 text-left hover:border-green-500 transition block"
+              class="snap-start shrink-0 w-[75vw] max-w-[280px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm p-4 text-left hover:border-green-500 transition block"
             >
               <div class="flex items-start justify-between gap-2 mb-1">
                 <span class="font-semibold text-gray-900 dark:text-gray-100">{{ preview.modelDisplayName }}</span>
@@ -234,7 +234,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
                     <span class="relative group cursor-help inline-flex items-center gap-0.5 text-xs text-gray-400">
                       <span>Ø {{ formatCostPerKwh(preview.avgCostPerKwh) }}</span>
                       <InformationCircleIcon class="h-3 w-3 flex-shrink-0" />
-                      <span class="absolute bottom-full left-0 mb-1.5 px-2.5 py-2 bg-gray-800 text-white text-xs rounded-lg w-60 hidden group-hover:block z-20 pointer-events-none leading-snug shadow-lg">
+                      <span class="absolute bottom-full left-0 mb-1.5 px-2.5 py-2 bg-gray-800 text-white text-xs rounded-sm w-60 hidden group-hover:block z-20 pointer-events-none leading-snug shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)]">
                         {{ t('landing.hero.cost_tooltip') }}
                       </span>
                     </span>
@@ -253,7 +253,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
               v-for="preview in topModels.slice(0, 3)"
               :key="`hero-${preview.brand}-${preview.model}`"
               :href="`${modelsUrl}/${preview.brandDisplayName}/${preview.modelUrlSlug}`"
-              class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 text-left hover:border-green-500 transition block"
+              class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm p-4 text-left hover:border-green-500 transition block"
             >
               <div class="flex items-start justify-between gap-2 mb-1">
                 <span class="font-semibold text-gray-900 dark:text-gray-100">{{ preview.modelDisplayName }}</span>
@@ -275,7 +275,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
                     <span class="relative group cursor-help inline-flex items-center gap-0.5 text-xs text-gray-400">
                       <span>Ø {{ formatCostPerKwh(preview.avgCostPerKwh) }}</span>
                       <InformationCircleIcon class="h-3 w-3 flex-shrink-0" />
-                      <span class="absolute bottom-full left-0 mb-1.5 px-2.5 py-2 bg-gray-800 text-white text-xs rounded-lg w-60 hidden group-hover:block z-20 pointer-events-none leading-snug shadow-lg">
+                      <span class="absolute bottom-full left-0 mb-1.5 px-2.5 py-2 bg-gray-800 text-white text-xs rounded-sm w-60 hidden group-hover:block z-20 pointer-events-none leading-snug shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)]">
                         {{ t('landing.hero.cost_tooltip') }}
                       </span>
                     </span>
@@ -295,14 +295,14 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
           <button
             @click="demoLogin('hero')"
             :disabled="demoLoading"
-            class="demo-shimmer w-full sm:w-auto cursor-pointer bg-green-600 text-white px-6 py-3 sm:px-8 sm:py-4 rounded-lg text-base sm:text-lg font-semibold hover:bg-green-700 disabled:opacity-50 inline-flex items-center justify-center gap-2 transition"
+            class="demo-shimmer w-full sm:w-auto cursor-pointer bg-green-600 text-white px-6 py-3 sm:px-8 sm:py-4 rounded-sm text-base sm:text-lg font-semibold hover:bg-green-700 disabled:opacity-50 inline-flex items-center justify-center gap-2 transition"
           >
             {{ demoLoading ? t('landing.hero.loading_button') : t('landing.hero.demo_button') }}
           </button>
           <router-link
             :to="modelsUrl"
             @click="analytics.trackCtaModelsClicked('hero')"
-            class="w-full sm:w-auto border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-6 py-3 sm:px-8 sm:py-4 rounded-lg text-base sm:text-lg font-semibold hover:border-green-500 hover:text-green-700 transition inline-flex items-center justify-center space-x-2"
+            class="w-full sm:w-auto border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-6 py-3 sm:px-8 sm:py-4 rounded-sm text-base sm:text-lg font-semibold hover:border-green-500 hover:text-green-700 transition inline-flex items-center justify-center space-x-2"
           >
             <span>{{ t('landing.hero.models_button') }}</span>
             <ArrowRightIcon class="h-5 w-5" />
@@ -330,7 +330,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
       <div class="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
           <!-- Feature 1: Open Source -->
-          <div class="bg-white dark:bg-gray-800 border border-green-200 rounded-xl p-3 sm:p-6 hover:border-green-500 transition">
+          <div class="bg-white dark:bg-gray-800 border border-green-200 rounded-sm p-3 sm:p-6 hover:border-green-500 transition">
             <svg class="h-6 w-6 sm:h-10 sm:w-10 text-green-600 mb-2 sm:mb-3" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" />
             </svg>
@@ -343,7 +343,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
           </div>
 
           <!-- Feature 2: Auto-Import -->
-          <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 sm:p-6 hover:border-green-500 transition">
+          <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm p-3 sm:p-6 hover:border-green-500 transition">
             <ArrowDownTrayIcon class="h-6 w-6 sm:h-10 sm:w-10 text-gray-400 mb-2 sm:mb-3" />
             <h3 class="text-sm sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1 sm:mb-2">{{ t('landing.features.auto_import_title') }}</h3>
             <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-2">{{ t('landing.features.auto_import_desc') }}</p>
@@ -354,14 +354,14 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
           </div>
 
           <!-- Feature 3: Privacy First -->
-          <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 sm:p-6 hover:border-green-500 transition">
+          <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm p-3 sm:p-6 hover:border-green-500 transition">
             <LockClosedIcon class="h-6 w-6 sm:h-10 sm:w-10 text-gray-400 mb-2 sm:mb-3" />
             <h3 class="text-sm sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1 sm:mb-2">{{ t('landing.features.privacy_title') }}</h3>
             <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{{ t('landing.features.privacy_desc') }}</p>
           </div>
 
           <!-- Feature 4: Community -->
-          <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 sm:p-6 hover:border-green-500 transition">
+          <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm p-3 sm:p-6 hover:border-green-500 transition">
             <UsersIcon class="h-6 w-6 sm:h-10 sm:w-10 text-gray-400 mb-2 sm:mb-3" />
             <h3 class="text-sm sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1 sm:mb-2">{{ t('landing.features.community_title') }}</h3>
             <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{{ t('landing.features.community_desc') }}</p>
@@ -392,7 +392,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
             v-for="preview in topModels"
             :key="`${preview.brand}-${preview.model}`"
             :href="`/modelle/${preview.brandDisplayName}/${preview.modelUrlSlug}`"
-            class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:border-green-500 transition block"
+            class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm p-4 hover:border-green-500 transition block"
           >
             <div class="flex items-start justify-between gap-2 mb-2">
               <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ preview.modelDisplayName }}</h3>
@@ -415,7 +415,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
                   <span class="relative group cursor-help inline-flex items-center gap-0.5 text-xs text-gray-400">
                     <span>Ø {{ formatCostPerKwh(preview.avgCostPerKwh) }}</span>
                     <InformationCircleIcon class="h-3 w-3 flex-shrink-0" />
-                    <span class="absolute bottom-full left-0 mb-1.5 px-2.5 py-2 bg-gray-800 text-white text-xs rounded-lg w-60 hidden group-hover:block z-20 pointer-events-none leading-snug shadow-lg">
+                    <span class="absolute bottom-full left-0 mb-1.5 px-2.5 py-2 bg-gray-800 text-white text-xs rounded-sm w-60 hidden group-hover:block z-20 pointer-events-none leading-snug shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)]">
                       {{ t('landing.hero.cost_tooltip') }}
                     </span>
                   </span>
@@ -449,7 +449,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
                   v-for="m in nextModels"
                   :key="`${m.brand}-${m.model}`"
                   :href="`${modelsUrl}/${m.brandDisplayName}/${m.modelUrlSlug}`"
-                  class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:border-green-500 transition"
+                  class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm p-4 hover:border-green-500 transition"
                 >
                   <div class="flex items-start justify-between gap-2 mb-2">
                     <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ m.modelDisplayName }}</h3>
@@ -471,7 +471,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
                         <span class="relative group cursor-help inline-flex items-center gap-0.5 text-gray-400">
                           <span>Ø {{ formatCostPerKwh(m.avgCostPerKwh) }}</span>
                           <InformationCircleIcon class="h-3 w-3 flex-shrink-0" />
-                          <span class="absolute bottom-full left-0 mb-1.5 px-2.5 py-2 bg-gray-800 text-white text-xs rounded-lg w-56 hidden group-hover:block z-20 pointer-events-none leading-snug shadow-lg">
+                          <span class="absolute bottom-full left-0 mb-1.5 px-2.5 py-2 bg-gray-800 text-white text-xs rounded-sm w-56 hidden group-hover:block z-20 pointer-events-none leading-snug shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)]">
                             {{ t('landing.hero.cost_tooltip') }}
                           </span>
                         </span>
@@ -484,7 +484,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
             <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 mt-4 sm:mt-6">
               <router-link
                 :to="modelsUrl"
-                class="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition inline-flex items-center justify-center space-x-2"
+                class="bg-green-600 text-white px-6 py-3 rounded-sm font-semibold hover:bg-green-700 transition inline-flex items-center justify-center space-x-2"
               >
                 <span>{{ t('landing.models_section.compare_button') }}</span>
                 <ArrowRightIcon class="h-5 w-5" />
@@ -492,7 +492,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
               <button
                 @click="demoLogin('models_section')"
                 :disabled="demoLoading"
-                class="border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-6 py-3 rounded-lg font-semibold hover:border-green-500 hover:text-green-700 transition disabled:opacity-50 inline-flex items-center justify-center space-x-2"
+                class="border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-6 py-3 rounded-sm font-semibold hover:border-green-500 hover:text-green-700 transition disabled:opacity-50 inline-flex items-center justify-center space-x-2"
               >
                 <span>{{ demoLoading ? t('landing.models_section.loading_button') : t('landing.models_section.demo_button') }}</span>
               </button>
@@ -538,8 +538,8 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <!-- Tesla -->
-          <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 flex items-start gap-4">
-            <div class="bg-gray-900 rounded-lg p-2 shrink-0">
+          <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm p-5 flex items-start gap-4">
+            <div class="bg-gray-900 rounded-sm p-2 shrink-0">
               <BoltIcon class="h-5 w-5 text-white" />
             </div>
             <div>
@@ -552,8 +552,8 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
           </div>
 
           <!-- Sprit-Monitor -->
-          <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 flex items-start gap-4">
-            <div class="bg-indigo-600 rounded-lg p-2 shrink-0">
+          <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm p-5 flex items-start gap-4">
+            <div class="bg-indigo-600 rounded-sm p-2 shrink-0">
               <ArrowDownTrayIcon class="h-5 w-5 text-white" />
             </div>
             <div>
@@ -566,8 +566,8 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
           </div>
 
           <!-- go-eCharger -->
-          <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 flex items-start gap-4">
-            <div class="bg-green-600 rounded-lg p-2 shrink-0">
+          <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm p-5 flex items-start gap-4">
+            <div class="bg-green-600 rounded-sm p-2 shrink-0">
               <BoltIcon class="h-5 w-5 text-white" />
             </div>
             <div>
@@ -581,8 +581,8 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
           </div>
 
           <!-- OCPP -->
-          <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 flex items-start gap-4">
-            <div class="bg-gray-700 rounded-lg p-2 shrink-0">
+          <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm p-5 flex items-start gap-4">
+            <div class="bg-gray-700 rounded-sm p-2 shrink-0">
               <BoltIcon class="h-5 w-5 text-white" />
             </div>
             <div>
@@ -610,7 +610,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
         </p>
         <button
           @click="goToRegister('footer_cta')"
-          class="bg-green-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-green-700 transition"
+          class="bg-green-600 text-white px-8 py-4 rounded-sm text-lg font-semibold hover:bg-green-700 transition"
         >
           {{ t('landing.cta.button') }}
         </button>
@@ -649,13 +649,13 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
 <style scoped>
 /* 3D press effect for buttons in sections (not nav) */
 section a[class*="rounded"], section button[class*="rounded"] {
-  box-shadow: 0 4px 0 0 rgba(0,0,0,0.15);
+  box-shadow: 0 4px 0 0 rgba(0,0,0,0.30);
   transform: translateY(0);
   transition: transform 0.08s ease, box-shadow 0.08s ease;
 }
 
 section a[class*="rounded"]:active, section button[class*="rounded"]:active {
-  box-shadow: 0 1px 0 0 rgba(0,0,0,0.15);
+  box-shadow: 0 1px 0 0 rgba(0,0,0,0.30);
   transform: translateY(3px);
   transition: transform 0.05s ease, box-shadow 0.05s ease;
 }

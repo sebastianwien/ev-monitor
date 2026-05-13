@@ -4,7 +4,7 @@
     <PublicNav />
 
     <main :class="isAuthenticated ? 'md:max-w-6xl md:mx-auto md:p-6' : 'max-w-6xl mx-auto px-4 py-8'">
-      <div :class="isAuthenticated ? 'bg-white dark:bg-gray-800 md:rounded-xl md:shadow-lg p-4 md:p-6' : ''">
+      <div :class="isAuthenticated ? 'bg-white dark:bg-gray-800 md:rounded-sm md:shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:md:shadow-[4px_4px_0_rgba(255,255,255,0.30)] p-4 md:p-6' : ''">
       <!-- Hero -->
       <div class="mb-6">
 
@@ -57,7 +57,7 @@
             </div>
             <div class="flex flex-wrap gap-3">
               <a :href="registerPath"
-                 class="inline-flex items-center gap-2 bg-green-500 hover:bg-green-400 text-white font-semibold px-5 py-2.5 rounded-lg transition-colors text-sm">
+                 class="inline-flex items-center gap-2 bg-green-500 hover:bg-green-400 text-white font-semibold px-5 py-2.5 rounded-sm transition-colors text-sm">
                 {{ t('models_list.reddit.cta') }}
                 <ArrowRightIcon class="h-4 w-4" />
               </a>
@@ -87,7 +87,7 @@
               v-model="searchQuery"
               type="text"
               placeholder=""
-              class="w-full pl-9 pr-8 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent shadow-sm"
+              class="w-full pl-9 pr-8 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent shadow-sm"
               :style="!searchQuery ? 'caret-color: transparent' : ''"
               @click.stop
             />
@@ -101,7 +101,7 @@
             <button
               v-if="searchQuery"
               @click.stop="searchQuery = ''"
-              class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full transition-colors"
+              class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-sm transition-colors"
             >
               <XMarkIcon class="h-3.5 w-3.5" />
             </button>
@@ -111,7 +111,7 @@
           <div class="relative flex-shrink-0">
             <button
               @click="dropdownOpen = !dropdownOpen; categoryDropdownOpen = false"
-              class="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+              class="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-sm hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
             >
                 <span class="text-sm">
                   {{ selectedBrands.length === 0 ? t('models_list.filters.all_brands') : t('models_list.filters.brand_count', { count: selectedBrands.length }) }}
@@ -121,7 +121,7 @@
 
               <div
                 v-if="dropdownOpen"
-                class="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg z-50 max-h-96 overflow-y-auto"
+                class="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)] z-50 max-h-96 overflow-y-auto"
               >
                 <div class="p-2">
                   <div class="flex gap-2 pb-2 mb-2 border-b border-gray-100 dark:border-gray-700">
@@ -159,7 +159,7 @@
             <div class="relative flex-shrink-0">
               <button
                 @click="categoryDropdownOpen = !categoryDropdownOpen; dropdownOpen = false"
-                class="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-700 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                class="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-700 border rounded-sm hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
                 :class="selectedCategory !== null
                   ? 'border-green-500 text-green-700 dark:text-green-400'
                   : 'border-gray-300 dark:border-gray-600'"
@@ -172,12 +172,12 @@
 
               <div
                 v-if="categoryDropdownOpen"
-                class="absolute top-full left-0 mt-2 w-52 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg z-50 overflow-hidden"
+                class="absolute top-full left-0 mt-2 w-52 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)] z-50 overflow-hidden"
               >
                 <div class="p-1">
                   <button
                     @click="selectCategory(null)"
-                    class="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    class="w-full text-left px-3 py-2 text-sm rounded-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                     :class="selectedCategory === null ? 'text-green-700 dark:text-green-400 font-medium bg-green-50 dark:bg-green-900/20' : 'text-gray-700 dark:text-gray-300'"
                   >
                     {{ t('models_list.filters.all_categories') }}
@@ -186,7 +186,7 @@
                     v-for="cat in categories"
                     :key="cat.key"
                     @click="selectCategory(cat.key)"
-                    class="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    class="w-full text-left px-3 py-2 text-sm rounded-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                     :class="selectedCategory === cat.key ? 'text-green-700 dark:text-green-400 font-medium bg-green-50 dark:bg-green-900/20' : 'text-gray-700 dark:text-gray-300'"
                   >
                     {{ t(`models_list.filters.categories.${cat.key}`, cat.displayName) }}
@@ -215,7 +215,7 @@
           <AffiliateBanner />
         </div>
         <div
-          class="model-card flex flex-col bg-white dark:bg-gray-800 rounded-xl border p-4 transition-all shadow-[0_10px_0_0_rgb(0_0_0/0.13)] dark:shadow-none hover:-translate-y-1 hover:shadow-[0_12px_0_0_rgb(0_0_0/0.17)] dark:hover:shadow-lg hover:z-10 active:translate-y-0 active:shadow-[0_10px_0_0_rgb(0_0_0/0.13)] relative"
+          class="model-card flex flex-col bg-white dark:bg-gray-800 rounded-sm border p-4 transition-all shadow-[0_10px_0_0_rgb(0_0_0/0.13)] dark:shadow-none hover:-translate-y-1 hover:shadow-[0_12px_0_0_rgb(0_0_0/0.17)] dark:hover:shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:hover:shadow-[4px_4px_0_rgba(255,255,255,0.30)] hover:z-10 active:translate-y-0 active:shadow-[0_10px_0_0_rgb(0_0_0/0.13)] relative"
           :class="isSelectedForCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`)
             ? 'border-green-500 ring-2 ring-green-200 dark:ring-green-900'
             : 'border-gray-200 dark:border-gray-700 hover:border-green-500'"
@@ -241,7 +241,7 @@
                   <span class="relative group cursor-help inline-flex items-center gap-0.5 text-xs text-gray-400">
                     <span>{{ t('models_list.card.avg_prefix') }} {{ formatCostPerKwh(model.avgCostPerKwh) }}</span>
                     <InformationCircleIcon class="h-3 w-3 flex-shrink-0" />
-                    <span class="absolute bottom-full left-0 mb-1.5 px-2.5 py-2 bg-gray-900 ring-1 ring-white/10 text-white text-xs rounded-lg w-60 hidden group-hover:block z-50 pointer-events-none leading-snug shadow-xl">
+                    <span class="absolute bottom-full left-0 mb-1.5 px-2.5 py-2 bg-gray-900 ring-1 ring-white/10 text-white text-xs rounded-sm w-60 hidden group-hover:block z-50 pointer-events-none leading-snug shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:shadow-[5px_5px_0_rgba(255,255,255,0.35)]">
                       {{ t('models_list.card.cost_tooltip') }}
                     </span>
                   </span>
@@ -277,7 +277,7 @@
           v-for="model in mobileFillModels"
           :key="`fallback/${model.brand}/${model.model}`"
           :href="`${modelsBaseUrl}/${model.brand}/${model.model}`"
-          class="model-card bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 hover:border-green-400 hover:shadow-sm transition-all opacity-80"
+          class="model-card bg-white dark:bg-gray-800 rounded-sm border border-gray-100 dark:border-gray-700 p-4 hover:border-green-400 hover:shadow-sm transition-all opacity-80"
         >
           <div class="flex items-start justify-between mb-2">
             <h3 class="font-semibold text-gray-700 dark:text-gray-300 text-base">{{ model.displayName }}</h3>
@@ -297,7 +297,7 @@
         <p class="text-gray-500 dark:text-gray-400 mb-6">
           {{ t('models_list.empty.no_data_desc') }}
         </p>
-        <a :href="registerPath" class="inline-block bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700">
+        <a :href="registerPath" class="inline-block bg-green-600 text-white px-6 py-3 rounded-sm hover:bg-green-700">
           {{ t('models_list.empty.free_register') }}
         </a>
       </div>
@@ -311,7 +311,7 @@
         </p>
         <button
           @click="clearAllFilters"
-          class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+          class="bg-green-600 text-white px-4 py-2 rounded-sm hover:bg-green-700"
         >
           {{ t('models_list.empty.reset_filters') }}
         </button>
@@ -325,7 +325,7 @@
             v-for="brand in availableBrands"
             :key="brand"
             :href="`${modelsBaseUrl}/${brand}`"
-            class="brand-card bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center gap-2 hover:border-green-500 hover:shadow-sm transition-all"
+            class="brand-card bg-white dark:bg-gray-800 rounded-sm border border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center gap-2 hover:border-green-500 hover:shadow-sm transition-all"
           >
             <TruckIcon class="h-5 w-5 text-gray-400 flex-shrink-0" />
             <span class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{{ brand }}</span>
@@ -335,7 +335,7 @@
             v-for="brand in brandFillItems"
             :key="`fallback/${brand}`"
             :href="`${modelsBaseUrl}/${brand}`"
-            class="brand-card bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center gap-2 hover:border-green-400 hover:shadow-sm transition-all opacity-70"
+            class="brand-card bg-white dark:bg-gray-800 rounded-sm border border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center gap-2 hover:border-green-400 hover:shadow-sm transition-all opacity-70"
           >
             <TruckIcon class="h-5 w-5 text-gray-300 flex-shrink-0" />
             <span class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">{{ brand }}</span>
@@ -344,7 +344,7 @@
       </div>
 
       <!-- CTA Section -->
-      <div v-if="!loading" class="bg-gradient-to-br from-green-600 to-green-700 rounded-2xl p-8 text-white mt-8">
+      <div v-if="!loading" class="bg-gradient-to-br from-green-600 to-green-700 rounded-sm p-8 text-white mt-8">
         <div class="flex items-center gap-2 mb-3">
           <ArrowTrendingUpIcon class="h-7 w-7" />
           <h2 class="text-2xl font-bold">{{ t('models_list.cta.missing_vehicle') }}</h2>
@@ -354,11 +354,11 @@
         </p>
         <div class="flex flex-wrap gap-3">
           <a :href="registerPath"
-             class="bg-white text-green-700 font-semibold px-6 py-3 rounded-lg hover:bg-green-50 transition-colors">
+             class="bg-white text-green-700 font-semibold px-6 py-3 rounded-sm hover:bg-green-50 transition-colors">
             {{ t('models_list.cta.free_start') }}
           </a>
           <a :href="loginPath"
-             class="border-2 border-white text-white px-6 py-3 rounded-lg hover:bg-green-600 transition-colors">
+             class="border-2 border-white text-white px-6 py-3 rounded-sm hover:bg-green-600 transition-colors">
             {{ t('models_list.cta.login') }}
           </a>
         </div>
@@ -370,7 +370,7 @@
           v-if="selectedForCompare.length >= 1"
           class="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 w-full max-w-lg px-4"
         >
-          <div class="bg-gray-900 text-white rounded-2xl shadow-2xl px-4 py-3 flex items-center gap-3">
+          <div class="bg-gray-900 text-white rounded-sm shadow-[6px_6px_0_rgba(0,0,0,0.40)] dark:shadow-[6px_6px_0_rgba(255,255,255,0.40)] px-4 py-3 flex items-center gap-3">
             <ArrowsRightLeftIcon class="h-5 w-5 text-green-400 flex-shrink-0" />
             <div class="flex-1 min-w-0">
               <div class="text-xs text-gray-400 mb-0.5">{{ t('models_list.compare.title', { current: selectedForCompare.length, max: MAX_COMPARE }) }}</div>
@@ -380,7 +380,7 @@
             </div>
             <button
               @click="startCompare"
-              class="flex-shrink-0 bg-green-500 hover:bg-green-400 text-white text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors">
+              class="flex-shrink-0 bg-green-500 hover:bg-green-400 text-white text-sm font-semibold px-4 py-1.5 rounded-sm transition-colors">
               {{ t('models_list.compare.button') }}
             </button>
             <button @click="clearCompare" class="flex-shrink-0 p-1 text-gray-400 hover:text-white transition-colors">

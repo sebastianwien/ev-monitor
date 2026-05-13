@@ -12,7 +12,7 @@
       <div v-else-if="notFound" class="text-center py-20">
         <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">{{ t('brand.not_found_title') }}</h1>
         <p class="text-gray-500 dark:text-gray-400 mb-6">{{ t('brand.not_found_text') }}</p>
-        <a :href="modelsUrl" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+        <a :href="modelsUrl" class="bg-green-600 text-white px-4 py-2 rounded-sm hover:bg-green-700">
           {{ t('common.all_models') }}
         </a>
       </div>
@@ -21,7 +21,7 @@
       <div v-else-if="apiError" class="text-center py-20">
         <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">{{ t('brand.error_title') }}</h1>
         <p class="text-gray-500 dark:text-gray-400 mb-6">{{ t('brand.error_text') }}</p>
-        <a :href="modelsUrl" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+        <a :href="modelsUrl" class="bg-green-600 text-white px-4 py-2 rounded-sm hover:bg-green-700">
           {{ t('common.all_models') }}
         </a>
       </div>
@@ -38,7 +38,7 @@
         </nav>
 
         <!-- Hero -->
-        <div class="bg-white dark:bg-gray-800 md:rounded-2xl md:border-x border-t md:border-b border-gray-200 dark:border-gray-700 p-6 mb-6">
+        <div class="bg-white dark:bg-gray-800 md:rounded-sm md:border-x border-t md:border-b border-gray-200 dark:border-gray-700 p-6 mb-6">
           <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
             {{ t('brand.hero_title', { brand: brand.brandDisplayName }) }}
           </h1>
@@ -60,7 +60,7 @@
             v-for="model in brand.models"
             :key="model.modelEnum"
             :href="`${modelsUrl}/${brand.brandDisplayName}/${model.modelUrlSlug}`"
-            class="bg-white dark:bg-gray-800 sm:rounded-2xl border-t sm:border border-l-4 border-r-4 border-l-green-500 border-r-green-500 border-gray-200 dark:border-gray-700 p-6 hover:border-green-400 hover:shadow-md transition-all group"
+            class="bg-white dark:bg-gray-800 sm:rounded-sm border-t sm:border border-l-4 border-r-4 border-l-green-500 border-r-green-500 border-gray-200 dark:border-gray-700 p-6 hover:border-green-400 hover:shadow-[3px_3px_0_rgba(0,0,0,0.25)] dark:hover:shadow-[3px_3px_0_rgba(255,255,255,0.25)] transition-all group"
           >
             <!-- Model name & log badge -->
             <div class="flex items-start justify-between mb-4 gap-2">
@@ -95,7 +95,7 @@
                 <div
                   v-for="v in model.wltpVariants"
                   :key="v.displayLabel ?? String(v.batteryCapacityKwh)"
-                  class="grid grid-cols-[2fr_1.5fr_1.2fr] gap-x-2 bg-gray-50 dark:bg-gray-700 rounded-xl px-3 py-2.5 items-center"
+                  class="grid grid-cols-[2fr_1.5fr_1.2fr] gap-x-2 bg-gray-50 dark:bg-gray-700 rounded-sm px-3 py-2.5 items-center"
                 >
                   <span class="text-sm text-gray-700 dark:text-gray-300 font-medium leading-tight">
                     {{ v.displayLabel ?? v.variantName ?? v.batteryCapacityKwh + ' kWh' }}
@@ -133,7 +133,7 @@
         </div>
 
         <!-- SEO text section -->
-        <div class="bg-white dark:bg-gray-800 md:rounded-2xl md:border-x border-t md:border-b border-gray-200 dark:border-gray-700 p-6 mt-6">
+        <div class="bg-white dark:bg-gray-800 md:rounded-sm md:border-x border-t md:border-b border-gray-200 dark:border-gray-700 p-6 mt-6">
           <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-3">
             {{ t('brand.seo_title', { brand: brand.brandDisplayName }) }}
           </h2>
@@ -150,7 +150,7 @@
         </div>
 
         <!-- CTA -->
-        <div class="bg-gradient-to-br from-green-600 to-green-700 md:rounded-2xl p-6 text-white mt-6">
+        <div class="bg-gradient-to-br from-green-600 to-green-700 md:rounded-sm p-6 text-white mt-6">
           <div class="flex items-center gap-2 mb-2">
             <ArrowTrendingUpIcon class="h-6 w-6" />
             <h2 class="text-xl font-bold">{{ t('brand.cta_title', { brand: brand.brandDisplayName }) }}</h2>
@@ -158,11 +158,11 @@
           <p class="text-green-100 mb-4">{{ t('brand.cta_text') }}</p>
           <div class="flex flex-wrap gap-3">
             <a :href="registerPath"
-               class="bg-white text-green-700 font-semibold px-4 py-2 rounded-lg hover:bg-green-50 transition-colors">
+               class="bg-white text-green-700 font-semibold px-4 py-2 rounded-sm hover:bg-green-50 transition-colors">
               {{ t('brand.free_start') }}
             </a>
             <a :href="loginPath"
-               class="border border-white text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors">
+               class="border border-white text-white px-4 py-2 rounded-sm hover:bg-green-600 transition-colors">
               {{ t('brand.login') }}
             </a>
           </div>

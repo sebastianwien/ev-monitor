@@ -258,19 +258,19 @@ onMounted(async () => {
 
 <template>
   <div class="relative isolate">
-    <div v-if="loading" class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-90 z-10 rounded-lg backdrop-blur-sm">
+    <div v-if="loading" class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-90 z-10 rounded-sm backdrop-blur-sm">
       <div class="text-center">
         <div class="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 mb-3"></div>
         <p class="text-sm text-gray-600 font-medium">{{ t('heatmap.loading') }}</p>
       </div>
     </div>
 
-    <div v-if="error" class="p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300 rounded-md text-sm mb-4">
+    <div v-if="error" class="p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300 rounded-sm text-sm mb-4">
       {{ error }}
     </div>
 
     <!-- Empty State: No Car Selected -->
-    <div v-if="!carId" class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 z-10 rounded-lg">
+    <div v-if="!carId" class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 z-10 rounded-sm">
       <div class="p-6 md:p-10 text-center">
         <MapIcon class="h-20 w-20 mx-auto mb-4 text-gray-300" />
         <p class="text-lg font-semibold text-gray-700 mb-2">{{ t('heatmap.no_car_title') }}</p>
@@ -279,12 +279,12 @@ onMounted(async () => {
     </div>
 
     <!-- Empty State: No Locations -->
-    <div v-else-if="chargeCount === 0 && !loading" class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 z-10 rounded-lg">
+    <div v-else-if="chargeCount === 0 && !loading" class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 z-10 rounded-sm">
       <div class="p-6 md:p-10 text-center max-w-sm">
         <MapPinIcon class="h-20 w-20 mx-auto mb-4 text-indigo-300" />
         <p class="text-lg font-semibold text-gray-800 mb-2">{{ t('heatmap.no_locations_title') }}</p>
         <p class="text-sm text-gray-600 mb-4">{{ t('heatmap.no_locations_desc') }}</p>
-        <div class="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 border border-blue-200 rounded-lg text-xs text-blue-800">
+        <div class="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 border border-blue-200 rounded-sm text-xs text-blue-800">
           <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
@@ -296,7 +296,7 @@ onMounted(async () => {
     <!-- Map container (always rendered) -->
     <div>
       <!-- Controls (only shown when we have data) -->
-      <div v-if="chargeCount > 0" class="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-3 md:p-4 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/30 dark:to-purple-900/20 md:rounded-lg border border-indigo-100 dark:border-indigo-800">
+      <div v-if="chargeCount > 0" class="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-3 md:p-4 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/30 dark:to-purple-900/20 md:rounded-sm border border-indigo-100 dark:border-indigo-800">
         <div class="flex items-center gap-2">
           <MapPinIcon class="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
           <span class="text-sm font-semibold text-gray-700 dark:text-gray-200">
@@ -310,9 +310,9 @@ onMounted(async () => {
           <button
             @click="setViewMode('heatmap')"
             :class="[
-              'px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200',
+              'px-3 py-1.5 rounded-sm text-xs font-medium transition-all duration-200',
               viewMode === 'heatmap'
-                ? 'bg-indigo-600 text-white shadow-md'
+                ? 'bg-indigo-600 text-white shadow-[3px_3px_0_rgba(0,0,0,0.25)] dark:shadow-[3px_3px_0_rgba(255,255,255,0.25)]'
                 : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
             ]">
             Heatmap
@@ -320,9 +320,9 @@ onMounted(async () => {
           <button
             @click="setViewMode('markers')"
             :class="[
-              'px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200',
+              'px-3 py-1.5 rounded-sm text-xs font-medium transition-all duration-200',
               viewMode === 'markers'
-                ? 'bg-indigo-600 text-white shadow-md'
+                ? 'bg-indigo-600 text-white shadow-[3px_3px_0_rgba(0,0,0,0.25)] dark:shadow-[3px_3px_0_rgba(255,255,255,0.25)]'
                 : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
             ]">
             Marker
@@ -330,9 +330,9 @@ onMounted(async () => {
           <button
             @click="setViewMode('both')"
             :class="[
-              'px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200',
+              'px-3 py-1.5 rounded-sm text-xs font-medium transition-all duration-200',
               viewMode === 'both'
-                ? 'bg-indigo-600 text-white shadow-md'
+                ? 'bg-indigo-600 text-white shadow-[3px_3px_0_rgba(0,0,0,0.25)] dark:shadow-[3px_3px_0_rgba(255,255,255,0.25)]'
                 : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
             ]">
             {{ t('heatmap.view_both') }}
@@ -358,7 +358,7 @@ onMounted(async () => {
         <span class="text-gray-400 ml-2">{{ t('heatmap.click_for_details') }}</span>
       </div>
 
-      <div ref="mapContainer" class="w-full h-[400px] sm:h-[550px] md:rounded-lg border md:border-2 border-gray-300 md:shadow-lg transition-all duration-300 hover:shadow-xl"></div>
+      <div ref="mapContainer" class="w-full h-[400px] sm:h-[550px] md:rounded-sm border md:border-2 border-gray-300 md:shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:md:shadow-[4px_4px_0_rgba(255,255,255,0.30)] transition-all duration-300 hover:shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:hover:shadow-[5px_5px_0_rgba(255,255,255,0.35)]"></div>
     </div>
   </div>
 </template>

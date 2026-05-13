@@ -573,7 +573,7 @@ function toggleAllCharges() {
     <RewardSystemUpdateBanner class="mb-4" />
     <Transition name="fade" mode="out-in">
       <div v-if="!loading || !isInitialLoad">
-        <div class="bg-gray-100 dark:bg-gray-800 md:rounded-xl md:shadow-lg p-2 md:p-6">
+        <div class="bg-gray-100 dark:bg-gray-800 md:rounded-sm md:shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:md:shadow-[4px_4px_0_rgba(255,255,255,0.30)] p-2 md:p-6">
           <!-- Car card selector (all breakpoints) -->
           <div
             v-if="cars.length > 0"
@@ -590,7 +590,7 @@ function toggleAllCharges() {
               <router-link
                 to="/dashboard"
                 :aria-label="t('dashboard.title')"
-                class="flex-shrink-0 self-stretch flex items-center gap-1 px-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-medium hover:border-indigo-300 active:translate-y-0.5 transition">
+                class="flex-shrink-0 self-stretch flex items-center gap-1 px-2 rounded-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-medium hover:border-indigo-300 active:translate-y-0.5 transition">
                 <ChevronLeftIcon class="w-4 h-4 flex-shrink-0" />
                 <span class="hidden sm:inline">{{ t('dashboard.title') }}</span>
               </router-link>
@@ -601,8 +601,8 @@ function toggleAllCharges() {
                 @click="selectedCarId = car.id"
                 :class="[
                   cars.length === 1
-                    ? 'flex items-center md:items-stretch rounded-xl border-2 text-left transition w-full md:w-auto overflow-hidden'
-                    : 'flex items-center md:items-stretch rounded-xl border-2 text-left transition flex-shrink-0 min-w-[180px] max-w-[240px] lg:flex-shrink lg:min-w-0 lg:max-w-none overflow-hidden',
+                    ? 'flex items-center md:items-stretch rounded-sm border-2 text-left transition w-full md:w-auto overflow-hidden'
+                    : 'flex items-center md:items-stretch rounded-sm border-2 text-left transition flex-shrink-0 min-w-[180px] max-w-[240px] lg:flex-shrink lg:min-w-0 lg:max-w-none overflow-hidden',
                   selectedCarId === car.id
                     ? isVehicleCharging(car)
                       ? 'border-transparent bg-green-50 dark:bg-green-900/20 shadow-[0_4px_0_0_#16a34a] dark:shadow-[0_4px_0_0_#14532d] translate-y-[2px]'
@@ -723,7 +723,7 @@ function toggleAllCharges() {
           :style="{ paddingBottom: `calc(var(--bulk-bar-offset, 0px) + 1.5rem)` }">
           <!-- AutoSync Live discoverability hint (Tesla-users without Live, dismissible) -->
           <div v-if="showLiveBanner"
-            class="w-full flex items-center justify-between gap-2 px-3 py-2 mb-4 rounded-md border-l-2 border-indigo-400 bg-indigo-500/15">
+            class="w-full flex items-center justify-between gap-2 px-3 py-2 mb-4 rounded-sm border-l-2 border-indigo-400 bg-indigo-500/15">
             <div class="flex items-center gap-2 min-w-0">
               <span class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500 text-white font-semibold tracking-wide uppercase flex-shrink-0">{{ t('dashboard.live_banner_new_chip') }}</span>
               <svg class="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-300 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -748,7 +748,7 @@ function toggleAllCharges() {
 
           <!-- Implausible logs banner (position 2: under ConsumptionInfoBox) -->
           <div v-if="implausibleCount > 0 && !implausibleBannerDismissed"
-            class="w-full mb-4 flex items-center gap-3 px-4 py-3 rounded-lg bg-amber-200 dark:bg-amber-500/20 border border-amber-300 dark:border-amber-600/50">
+            class="w-full mb-4 flex items-center gap-3 px-4 py-3 rounded-sm bg-amber-200 dark:bg-amber-500/20 border border-amber-300 dark:border-amber-600/50">
             <button
               @click="showImplausibleModal = true"
               class="flex-1 flex items-center justify-between gap-3 text-left">
@@ -771,7 +771,7 @@ function toggleAllCharges() {
           <div v-if="!logsLoading && logsPage > 0" class="text-sm text-gray-400 mb-2 text-right">{{ t('dashboard.logs_page', { n: logsPage + 1 }) }}</div>
 
           <Transition enter-active-class="transition duration-200 ease-out" enter-from-class="opacity-0 -translate-y-1" enter-to-class="opacity-100 translate-y-0" leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100" leave-to-class="opacity-0">
-            <div v-if="reassignSuccessMessage" class="mb-2 px-3 py-2 rounded-lg bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
+            <div v-if="reassignSuccessMessage" class="mb-2 px-3 py-2 rounded-sm bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
               <ArrowsRightLeftIcon class="w-4 h-4 flex-shrink-0" />
               {{ reassignSuccessMessage }}
             </div>
@@ -790,7 +790,7 @@ function toggleAllCharges() {
 
               <!-- ===== TRIP GROUP CONTAINER ===== -->
               <template v-if="item.kind === 'tripGroup'">
-                <div class="gridfeed:hidden rounded-xl overflow-hidden border border-gray-300 dark:border-gray-600 border-l-4 border-r-4 border-l-emerald-400 dark:border-l-emerald-500 border-r-emerald-400 dark:border-r-emerald-500">
+                <div class="gridfeed:hidden rounded-sm overflow-hidden border border-gray-300 dark:border-gray-600 border-l-4 border-r-4 border-l-emerald-400 dark:border-l-emerald-500 border-r-emerald-400 dark:border-r-emerald-500">
 
                   <!-- Group header -->
                   <div @click="toggleTripGroup(item.groupId)"
@@ -896,7 +896,7 @@ function toggleAllCharges() {
                             <EllipsisVerticalIcon class="w-5 h-5" />
                           </button>
                           <div v-if="openMenuTripId === trip.id"
-                            :class="['absolute right-0 w-44 bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 z-50 py-1 overflow-hidden',
+                            :class="['absolute right-0 w-44 bg-white dark:bg-gray-700 rounded-sm shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)] border border-gray-200 dark:border-gray-600 z-50 py-1 overflow-hidden',
                                      tripIdx === 0 ? 'top-full mt-1' : 'bottom-full mb-1']">
                             <button @click.stop="startAddTrip(trip.id, trip.tripStartedAt); openMenuTripId = null"
                               class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
@@ -928,10 +928,10 @@ function toggleAllCharges() {
                         </button>
                       </div>
                       <textarea v-model="feedbackComment" rows="2" :placeholder="t('dashboard.trip_feedback_comment')"
-                        class="w-full px-2 py-1.5 text-xs border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-red-400 resize-none" />
+                        class="w-full px-2 py-1.5 text-xs border border-gray-200 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-red-400 resize-none" />
                       <div class="flex justify-end">
                         <button @click="sendNegativeFeedback(trip.id)"
-                          class="px-3 py-1 text-xs font-medium bg-red-500 hover:bg-red-600 text-white rounded-md transition">
+                          class="px-3 py-1 text-xs font-medium bg-red-500 hover:bg-red-600 text-white rounded-sm transition">
                           {{ t('dashboard.trip_feedback_send') }}
                         </button>
                       </div>
@@ -962,7 +962,7 @@ function toggleAllCharges() {
                       </button>
                       <input v-if="tripForm.feedback?.startsWith('negative')" v-model="tripForm.feedback"
                         type="text" maxlength="200" :placeholder="t('dashboard.trip_feedback_comment')"
-                        class="flex-1 px-2 py-1 text-xs border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-red-400" />
+                        class="flex-1 px-2 py-1 text-xs border border-gray-200 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-red-400" />
                     </div>
                     <button v-if="previousTripMap[trip.id] && mergePreviewForTripId !== trip.id"
                       @click="mergePreviewForTripId = trip.id"
@@ -992,11 +992,11 @@ function toggleAllCharges() {
                       <p v-if="tripMergeError" class="text-xs text-red-500">{{ tripMergeError }}</p>
                       <div class="flex gap-2">
                         <button @click="doMergeTrip(trip.id, previousTripMap[trip.id].id)" :disabled="tripMerging"
-                          class="px-3 py-1 text-xs font-medium bg-orange-500 hover:bg-orange-600 text-white rounded-md disabled:opacity-50 transition">
+                          class="px-3 py-1 text-xs font-medium bg-orange-500 hover:bg-orange-600 text-white rounded-sm disabled:opacity-50 transition">
                           {{ t('dashboard.trip_merge_confirm') }}
                         </button>
                         <button @click="mergePreviewForTripId = null"
-                          class="px-3 py-1 text-xs font-medium bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition">
+                          class="px-3 py-1 text-xs font-medium bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-sm hover:bg-gray-50 dark:hover:bg-gray-600 transition">
                           {{ t('dashboard.trip_cancel') }}
                         </button>
                       </div>
@@ -1013,7 +1013,7 @@ function toggleAllCharges() {
                 </div><!-- end trip group container (mobile) -->
 
                 <!-- DESKTOP TRIP GROUP -->
-                <div class="hidden gridfeed:block rounded-lg border border-emerald-200 dark:border-emerald-800/50 border-l-4 border-l-emerald-400 dark:border-l-emerald-500">
+                <div class="hidden gridfeed:block rounded-sm border border-emerald-200 dark:border-emerald-800/50 border-l-4 border-l-emerald-400 dark:border-l-emerald-500">
                   <!-- Header as grid row -->
                   <button type="button" @click="toggleTripGroup(item.groupId)"
                     :aria-expanded="!collapsedTripGroups.has(item.groupId)"
@@ -1128,7 +1128,7 @@ function toggleAllCharges() {
                           </button>
                           <div v-if="openMenuTripId === trip.id + '__d'"
                             role="menu"
-                            :class="['absolute right-0 w-44 bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 z-50 py-1',
+                            :class="['absolute right-0 w-44 bg-white dark:bg-gray-700 rounded-sm shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)] border border-gray-200 dark:border-gray-600 z-50 py-1',
                                      tripIdx === 0 ? 'top-full mt-1' : 'bottom-full mb-1']">
                             <button role="menuitem" type="button" @click.stop="startAddTrip(trip.id, trip.tripStartedAt); openMenuTripId = null"
                               class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:bg-gray-100 dark:focus-visible:bg-gray-600">
@@ -1180,18 +1180,18 @@ function toggleAllCharges() {
               </div>
               <!-- Add-trip form triggered from a charge entry -->
               <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
-              <div v-if="addingTripAfterId === item.entry.id" class="ml-2 mr-2 mt-1 p-3 rounded-lg shadow-sm ring-1 ring-black/5 dark:ring-white/10 border-l-4 border-l-emerald-400 dark:border-l-emerald-500 border-r-4 border-r-emerald-400 dark:border-r-emerald-500 bg-white dark:bg-gray-700 space-y-3">
+              <div v-if="addingTripAfterId === item.entry.id" class="ml-2 mr-2 mt-1 p-3 rounded-sm shadow-sm ring-1 ring-black/5 dark:ring-white/10 border-l-4 border-l-emerald-400 dark:border-l-emerald-500 border-r-4 border-r-emerald-400 dark:border-r-emerald-500 bg-white dark:bg-gray-700 space-y-3">
                 <div class="flex items-center justify-between gap-2">
                   <span class="text-sm font-medium text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
                     <PlusIcon class="w-4 h-4" />{{ t('dashboard.trip_add') }}
                   </span>
                   <div class="flex gap-1">
                     <button @click="saveNewTrip()" :disabled="tripSaving"
-                      class="px-3 py-1 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-md disabled:opacity-50 transition">
+                      class="px-3 py-1 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-sm disabled:opacity-50 transition">
                       {{ t('dashboard.trip_save') }}
                     </button>
                     <button @click="cancelTripEdit()"
-                      class="px-3 py-1 text-xs font-medium bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition">
+                      class="px-3 py-1 text-xs font-medium bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-sm hover:bg-gray-50 dark:hover:bg-gray-600 transition">
                       {{ t('dashboard.trip_cancel') }}
                     </button>
                   </div>
@@ -1201,26 +1201,26 @@ function toggleAllCharges() {
                   <div>
                     <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('dashboard.trip_started_at') }}</label>
                     <input v-model="tripForm.tripStartedAt" type="datetime-local"
-                      class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+                      class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
                   </div>
                   <div>
                     <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('dashboard.trip_ended_at') }}</label>
                     <input v-model="tripForm.tripEndedAt" type="datetime-local"
-                      class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+                      class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
                   </div>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <div>
                     <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('dashboard.trip_distance', { unit: distanceUnitLabel() }) }}</label>
                     <input v-model="tripForm.distanceKm" type="number" min="0" max="9999" step="0.1"
-                      class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+                      class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
                   </div>
                   <div>
                     <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('dashboard.trip_route_type') }}</label>
                     <div class="flex gap-1">
                       <button v-for="rt in ['CITY','COMBINED','HIGHWAY']" :key="rt"
                         @click="tripForm.routeType = rt"
-                        :class="['flex-1 px-1 py-1.5 text-xs rounded-md border transition',
+                        :class="['flex-1 px-1 py-1.5 text-xs rounded-sm border transition',
                                  tripForm.routeType === rt
                                    ? 'bg-emerald-600 border-emerald-600 text-white'
                                    : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-emerald-400']">
@@ -1234,7 +1234,7 @@ function toggleAllCharges() {
 
               <!-- CHARGE ENTRY (DESKTOP GRID, normal logs only) -->
               <div v-if="!item.entry._isLadegruppe"
-                class="hidden gridfeed:block relative bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 shadow-sm rounded-lg">
+                class="hidden gridfeed:block relative bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 shadow-sm rounded-sm">
                 <div class="grid grid-cols-[52px_90px_minmax(110px,1fr)_125px_80px_56px_88px_108px_40px] gap-2.5 items-center px-3 py-2.5">
                   <!-- 1. Type cell: Bolt + AC/DC badge -->
                   <div class="flex items-center gap-1.5">
@@ -1347,7 +1347,7 @@ function toggleAllCharges() {
                     </button>
                     <div v-if="openMenuLogId === item.entry.id + '__d'"
                       role="menu"
-                      class="absolute right-0 top-full mt-1 w-44 bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 z-50 py-1 overflow-hidden">
+                      class="absolute right-0 top-full mt-1 w-44 bg-white dark:bg-gray-700 rounded-sm shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)] border border-gray-200 dark:border-gray-600 z-50 py-1 overflow-hidden">
                       <button role="menuitem" type="button" @click.stop="editingLog = item.entry; openMenuLogId = null"
                         class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:bg-gray-100 dark:focus-visible:bg-gray-600">
                         <PencilSquareIcon class="w-4 h-4 flex-shrink-0" aria-hidden="true" />{{ t('dashboard.action_edit') }}
@@ -1373,7 +1373,7 @@ function toggleAllCharges() {
                 <div
                   v-if="item.entry.consumptionImplausible && openTooltipLogId === item.entry.id"
                   class="px-3 pb-2.5">
-                  <div class="p-2.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-xs text-amber-800 dark:text-amber-300 space-y-1">
+                  <div class="p-2.5 rounded-sm bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-xs text-amber-800 dark:text-amber-300 space-y-1">
                     <p class="font-medium">{{ t('dashboard.implausible_tooltip_title') }}</p>
                     <p>{{ t('dashboard.implausible_tooltip_desc', { value: formatConsumption(item.entry.consumptionKwhPer100km) }) }}</p>
                     <ul class="list-disc list-inside space-y-0.5 mt-1">
@@ -1385,7 +1385,7 @@ function toggleAllCharges() {
                 <div
                   v-if="item.entry.consumptionKwhPer100km == null && isShortTrip(item.entry) && openTooltipLogId === item.entry.id"
                   class="px-3 pb-2.5">
-                  <div class="p-2.5 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-xs text-gray-600 dark:text-gray-300 space-y-1">
+                  <div class="p-2.5 rounded-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-xs text-gray-600 dark:text-gray-300 space-y-1">
                     <p class="font-medium">{{ t('dashboard.short_trip_tooltip_title') }}</p>
                     <p>{{ t('dashboard.short_trip_tooltip_desc') }}</p>
                   </div>
@@ -1407,7 +1407,7 @@ function toggleAllCharges() {
 
               <!-- CHARGE ENTRY (DESKTOP GRID, Ladegruppe) -->
               <div v-if="item.entry._isLadegruppe"
-                class="hidden gridfeed:block rounded-lg border border-blue-200 dark:border-blue-800/60 border-l-4 border-l-blue-400 dark:border-l-blue-500">
+                class="hidden gridfeed:block rounded-sm border border-blue-200 dark:border-blue-800/60 border-l-4 border-l-blue-400 dark:border-l-blue-500">
                 <button type="button" @click="toggleLadegruppe(item.entry.id)"
                   :aria-expanded="expandedGroups.has(item.entry.id)"
                   class="w-full grid grid-cols-[52px_90px_minmax(110px,1fr)_125px_80px_56px_88px_108px_40px] gap-2.5 items-center px-3 py-2 bg-blue-50/40 dark:bg-blue-900/15 hover:bg-blue-50 dark:hover:bg-blue-900/25 transition text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-inset">
@@ -1504,7 +1504,7 @@ function toggleAllCharges() {
                         </button>
                         <div v-if="openMenuTopUpId === topUp.id + '__d'"
                           role="menu"
-                          class="absolute right-0 top-full mt-1 w-40 bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 z-50 py-1 overflow-hidden">
+                          class="absolute right-0 top-full mt-1 w-40 bg-white dark:bg-gray-700 rounded-sm shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)] border border-gray-200 dark:border-gray-600 z-50 py-1 overflow-hidden">
                           <button role="menuitem" type="button" @click.stop="editingLog = topUp; openMenuTopUpId = null"
                             class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:bg-gray-100 dark:focus-visible:bg-gray-600">
                             <PencilSquareIcon class="w-4 h-4 flex-shrink-0" aria-hidden="true" />{{ t('dashboard.action_edit') }}
@@ -1525,7 +1525,7 @@ function toggleAllCharges() {
               <!-- CHARGE ENTRY -->
               <div>
               <div
-                :class="['relative p-3 border rounded-lg space-y-2 gridfeed:hidden',
+                :class="['relative p-3 border rounded-sm space-y-2 gridfeed:hidden',
                          item.entry._isLadegruppe
                            ? 'bg-white dark:bg-gray-700 border-blue-200 dark:border-blue-800 cursor-pointer'
                            : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 shadow-sm']"
@@ -1709,7 +1709,7 @@ function toggleAllCharges() {
                         <EllipsisVerticalIcon class="w-5 h-5" />
                       </button>
                       <div v-if="openMenuLogId === item.entry.id"
-                        class="absolute right-0 bottom-full mb-1 w-44 bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 z-50 py-1 overflow-hidden">
+                        class="absolute right-0 bottom-full mb-1 w-44 bg-white dark:bg-gray-700 rounded-sm shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)] border border-gray-200 dark:border-gray-600 z-50 py-1 overflow-hidden">
                         <button @click.stop="editingLog = item.entry; openMenuLogId = null"
                           class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
                           <PencilSquareIcon class="w-4 h-4 flex-shrink-0" />{{ t('dashboard.action_edit') }}
@@ -1736,7 +1736,7 @@ function toggleAllCharges() {
                 <!-- Implausibility tooltip panel (normal log only) -->
                 <div
                   v-if="!item.entry._isLadegruppe && item.entry.consumptionImplausible && openTooltipLogId === item.entry.id"
-                  class="mt-1 p-2.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-xs text-amber-800 dark:text-amber-300 space-y-1">
+                  class="mt-1 p-2.5 rounded-sm bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-xs text-amber-800 dark:text-amber-300 space-y-1">
                   <p class="font-medium">{{ t('dashboard.implausible_tooltip_title') }}</p>
                   <p>{{ t('dashboard.implausible_tooltip_desc', { value: formatConsumption(item.entry.consumptionKwhPer100km) }) }}</p>
                   <ul class="list-disc list-inside space-y-0.5 mt-1">
@@ -1747,7 +1747,7 @@ function toggleAllCharges() {
                 <!-- Short trip tooltip panel -->
                 <div
                   v-if="!item.entry._isLadegruppe && item.entry.consumptionKwhPer100km == null && isShortTrip(item.entry) && openTooltipLogId === item.entry.id"
-                  class="mt-1 p-2.5 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-xs text-gray-600 dark:text-gray-300 space-y-1">
+                  class="mt-1 p-2.5 rounded-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-xs text-gray-600 dark:text-gray-300 space-y-1">
                   <p class="font-medium">{{ t('dashboard.short_trip_tooltip_title') }}</p>
                   <p>{{ t('dashboard.short_trip_tooltip_desc') }}</p>
                 </div>
@@ -1781,7 +1781,7 @@ function toggleAllCharges() {
                             <EllipsisVerticalIcon class="w-4 h-4" />
                           </button>
                           <div v-if="openMenuTopUpId === topUp.id"
-                            class="absolute right-0 bottom-full mb-1 w-40 bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 z-50 py-1 overflow-hidden">
+                            class="absolute right-0 bottom-full mb-1 w-40 bg-white dark:bg-gray-700 rounded-sm shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)] border border-gray-200 dark:border-gray-600 z-50 py-1 overflow-hidden">
                             <button @click.stop="editingLog = topUp; openMenuTopUpId = null"
                               class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
                               <PencilSquareIcon class="w-4 h-4 flex-shrink-0" />{{ t('dashboard.action_edit') }}
@@ -1818,13 +1818,13 @@ function toggleAllCharges() {
             <button
               @click="fetchLogsAndScroll(logsPage - 1)"
               :disabled="logsPage === 0"
-              class="flex items-center gap-1 px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-600 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+              class="flex items-center gap-1 px-3 py-2 text-sm rounded-sm border border-gray-200 dark:border-gray-600 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition">
               <ChevronLeftIcon class="w-4 h-4" />{{ t('dashboard.prev') }}
             </button>
             <button
               @click="fetchLogsAndScroll(logsPage + 1)"
               :disabled="!hasMoreLogs"
-              class="flex items-center gap-1 px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-600 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+              class="flex items-center gap-1 px-3 py-2 text-sm rounded-sm border border-gray-200 dark:border-gray-600 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition">
               {{ t('dashboard.next') }}<ChevronRightIcon class="w-4 h-4" />
             </button>
           </div>
@@ -1857,7 +1857,7 @@ function toggleAllCharges() {
     <Transition enter-active-class="transition duration-200 ease-out" enter-from-class="opacity-0" enter-to-class="opacity-100" leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100" leave-to-class="opacity-0">
       <div v-if="reassignModalEntry" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" @click.self="reassignModalEntry = null">
         <div class="absolute inset-0 bg-black/40" @click="reassignModalEntry = null" />
-        <div class="relative w-full sm:max-w-sm bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-2xl shadow-2xl p-6 space-y-5">
+        <div class="relative w-full sm:max-w-sm bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-sm shadow-[6px_6px_0_rgba(0,0,0,0.40)] dark:shadow-[6px_6px_0_rgba(255,255,255,0.40)] p-6 space-y-5">
           <div>
             <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100">{{ t('dashboard.reassign_car') }}</h3>
             <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ t('dashboard.reassign_car_hint') }}</p>
@@ -1868,7 +1868,7 @@ function toggleAllCharges() {
               v-for="car in otherCars"
               :key="car.id"
               @click="reassignSelectedCarId = car.id; reassignError = null"
-              :class="['w-full flex items-center gap-3 p-3 rounded-xl border-2 transition text-left',
+              :class="['w-full flex items-center gap-3 p-3 rounded-sm border-2 transition text-left',
                        reassignSelectedCarId === car.id
                          ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30'
                          : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500']">
@@ -1882,12 +1882,12 @@ function toggleAllCharges() {
 
           <div class="flex gap-3 pt-1">
             <button @click="reassignModalEntry = null"
-              class="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+              class="flex-1 px-4 py-2.5 rounded-sm border border-gray-200 dark:border-gray-600 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
               {{ t('common.cancel') }}
             </button>
             <button @click="doSaveReassign"
               :disabled="!reassignSelectedCarId || reassignSaving"
-              class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white transition disabled:opacity-40"
+              class="flex-1 px-4 py-2.5 rounded-sm text-sm font-medium text-white transition disabled:opacity-40"
               :class="reassignSelectedCarId ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-gray-300 dark:bg-gray-600'">
               {{ reassignSaving ? t('common.saving') : t('common.save') }}
             </button>

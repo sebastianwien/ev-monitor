@@ -25,7 +25,7 @@ function handleDismiss(e: Event) {
     href="https://Geld-fuer-eAuto.de/ref/evmonitor"
     target="_blank"
     rel="noopener sponsored"
-    class="relative flex items-center justify-between gap-3 bg-green-50 dark:bg-green-900/15 border border-green-100 dark:border-green-900/40 rounded-xl px-4 py-3 hover:bg-green-100 dark:hover:bg-green-900/25 transition-colors group mb-4"
+    class="relative flex items-center justify-between gap-3 bg-green-50 dark:bg-green-900/15 border border-green-100 dark:border-green-900/40 rounded-sm px-4 py-3 hover:bg-green-100 dark:hover:bg-green-900/25 transition-colors group mb-4"
     @click="handleClick"
   >
     <div class="flex items-center gap-3 min-w-0">
@@ -39,7 +39,7 @@ function handleDismiss(e: Event) {
     <button
       v-if="dismissable"
       @click="handleDismiss"
-      class="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-green-200 hover:bg-green-300 text-green-700 flex items-center justify-center transition"
+      class="absolute -top-2 -right-2 h-5 w-5 rounded-sm bg-green-200 hover:bg-green-300 text-green-700 flex items-center justify-center transition"
       title="Hinweis ausblenden"
     >
       <XMarkIcon class="h-3 w-3" />

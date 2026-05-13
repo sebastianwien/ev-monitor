@@ -44,13 +44,13 @@ onUnmounted(() => document.removeEventListener('click', handleOutsideClick))
   <div v-if="variant === 'block'" class="flex gap-3">
     <button
       @click="openPaypal"
-      class="btn-3d flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded-lg hover:bg-indigo-200 dark:hover:bg-indigo-900/60 transition font-medium shadow-[0_4px_0_0_#a5b4fc] dark:shadow-[0_4px_0_0_#312e81] active:shadow-none active:translate-y-1" style="transition: transform 0.075s ease, box-shadow 0.075s ease;">
+      class="btn-3d flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded-sm hover:bg-indigo-200 dark:hover:bg-indigo-900/60 transition font-medium shadow-[0_4px_0_0_#a5b4fc] dark:shadow-[0_4px_0_0_#312e81] active:shadow-none active:translate-y-1" style="transition: transform 0.075s ease, box-shadow 0.075s ease;">
       <img src="https://www.paypalobjects.com/webstatic/icon/pp16.png" alt="PayPal" class="h-4 w-4" />
       <span>Per PayPal</span>
     </button>
     <button
       @click="openKofi"
-      class="btn-3d flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded-lg hover:bg-indigo-200 dark:hover:bg-indigo-900/60 transition font-medium shadow-[0_4px_0_0_#a5b4fc] dark:shadow-[0_4px_0_0_#312e81] active:shadow-none active:translate-y-1" style="transition: transform 0.075s ease, box-shadow 0.075s ease;">
+      class="btn-3d flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded-sm hover:bg-indigo-200 dark:hover:bg-indigo-900/60 transition font-medium shadow-[0_4px_0_0_#a5b4fc] dark:shadow-[0_4px_0_0_#312e81] active:shadow-none active:translate-y-1" style="transition: transform 0.075s ease, box-shadow 0.075s ease;">
       <HeartIcon class="h-4 w-4" />
       <span>Per Ko-fi</span>
     </button>
@@ -85,18 +85,18 @@ onUnmounted(() => document.removeEventListener('click', handleOutsideClick))
       leave-to-class="opacity-0 scale-95">
       <div
         v-if="open"
-        class="absolute z-50 mt-2 w-52 rounded-xl shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black/10 overflow-hidden"
+        class="absolute z-50 mt-2 w-52 rounded-sm shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)] bg-white dark:bg-gray-800 ring-1 ring-black/10 overflow-hidden"
         :class="variant === 'footer' ? 'bottom-full mb-2 left-1/2 -translate-x-1/2' : 'right-0'">
         <div class="p-1">
           <button
             @click="openPaypal"
-            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-700 transition cursor-pointer">
+            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-700 transition cursor-pointer">
             <img src="https://www.paypalobjects.com/webstatic/icon/pp16.png" alt="PayPal" class="h-4 w-4" />
             PayPal
           </button>
           <button
             @click="openKofi"
-            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 transition cursor-pointer">
+            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 transition cursor-pointer">
             <HeartIcon class="h-4 w-4 text-red-400" />
             Ko-fi
           </button>

@@ -164,7 +164,7 @@ const closeMobileMenu = () => {
 <template>
   <div :class="['min-h-screen flex flex-col', authStore.isAuthenticated() ? 'app-wallpaper' : 'bg-gray-100 dark:bg-gray-950']">
     <!-- Navigation -->
-    <nav class="bg-indigo-600 shadow-md text-white fixed top-0 left-0 right-0 z-40" v-if="authStore.isAuthenticated()">
+    <nav class="bg-indigo-600 shadow-[3px_3px_0_rgba(0,0,0,0.25)] dark:shadow-[3px_3px_0_rgba(255,255,255,0.25)] text-white fixed top-0 left-0 right-0 z-40" v-if="authStore.isAuthenticated()">
       <div class="px-4 py-3">
         <div class="flex justify-between items-center">
           <!-- Left: Logo + Nav Buttons (Desktop) -->
@@ -178,13 +178,13 @@ const closeMobileMenu = () => {
             <div class="hidden sm:flex lg:hidden items-center space-x-2">
               <button
                 @click="handleNewLog(); haptic()"
-                class="nav-3d p-2 rounded-md bg-green-600 hover:bg-green-700 transition"
+                class="nav-3d p-2 rounded-sm bg-green-600 hover:bg-green-700 transition"
                 title="Ladevorgang erfassen">
                 <BoltIcon class="h-5 w-5" />
               </button>
               <router-link
                 to="/imports"
-                class="nav-3d p-2 rounded-md border border-indigo-500 hover:bg-indigo-500 transition"
+                class="nav-3d p-2 rounded-sm border border-indigo-500 hover:bg-indigo-500 transition"
                 @click="haptic()"
                 :class="{ 'bg-indigo-500': $route.path === '/imports' }"
                 title="Import">
@@ -193,7 +193,7 @@ const closeMobileMenu = () => {
               <router-link
                 v-if="authStore.isAutoSyncLive || authStore.isBetaTester || authStore.isAdmin"
                 to="/live"
-                class="nav-3d p-2 rounded-md border border-emerald-400 hover:bg-emerald-500 transition"
+                class="nav-3d p-2 rounded-sm border border-emerald-400 hover:bg-emerald-500 transition"
                 @click="haptic()"
                 :class="{ 'bg-emerald-500': $route.path === '/live' }"
                 :title="t('live.title')">
@@ -201,7 +201,7 @@ const closeMobileMenu = () => {
               </router-link>
               <router-link
                 to="/modelle"
-                class="nav-3d p-2 rounded-md border border-indigo-500 hover:bg-indigo-500 transition"
+                class="nav-3d p-2 rounded-sm border border-indigo-500 hover:bg-indigo-500 transition"
                 @click="haptic()"
                 :class="{ 'bg-indigo-500': $route.path.startsWith('/modelle') }"
                 :title="t('nav.models_compare')">
@@ -209,7 +209,7 @@ const closeMobileMenu = () => {
               </router-link>
               <router-link
                 to="/dashboard"
-                class="nav-3d p-2 rounded-md border border-indigo-500 hover:bg-indigo-500 transition"
+                class="nav-3d p-2 rounded-sm border border-indigo-500 hover:bg-indigo-500 transition"
                 @click="haptic()"
                 :class="{ 'bg-indigo-500': $route.path === '/dashboard' }"
                 title="Dashboard">
@@ -221,7 +221,7 @@ const closeMobileMenu = () => {
             <div class="hidden lg:flex items-center space-x-4">
               <router-link
                 to="/dashboard"
-                class="nav-3d p-2 rounded-md border border-indigo-500 hover:bg-indigo-500 transition"
+                class="nav-3d p-2 rounded-sm border border-indigo-500 hover:bg-indigo-500 transition"
                 @click="haptic()"
                 :class="{ 'bg-indigo-500': $route.path === '/dashboard' }"
                 title="Dashboard">
@@ -229,7 +229,7 @@ const closeMobileMenu = () => {
               </router-link>
               <router-link
                 to="/imports"
-                class="nav-3d flex items-center gap-2 px-3 py-2 rounded-md border border-indigo-500 text-sm font-medium hover:bg-indigo-500 transition"
+                class="nav-3d flex items-center gap-2 px-3 py-2 rounded-sm border border-indigo-500 text-sm font-medium hover:bg-indigo-500 transition"
                 @click="haptic()"
                 :class="{ 'bg-indigo-500': $route.path === '/imports' }">
                 <ArrowDownTrayIcon class="h-5 w-5" />
@@ -238,7 +238,7 @@ const closeMobileMenu = () => {
               <router-link
                 v-if="authStore.isAutoSyncLive || authStore.isBetaTester || authStore.isAdmin"
                 to="/live"
-                class="nav-3d flex items-center gap-2 px-3 py-2 rounded-md border border-emerald-400 text-sm font-medium hover:bg-emerald-500 transition"
+                class="nav-3d flex items-center gap-2 px-3 py-2 rounded-sm border border-emerald-400 text-sm font-medium hover:bg-emerald-500 transition"
                 @click="haptic()"
                 :class="{ 'bg-emerald-500': $route.path === '/live' }">
                 <BoltIcon class="h-5 w-5 text-emerald-300" :class="{ 'text-white': $route.path === '/live' }" />
@@ -246,7 +246,7 @@ const closeMobileMenu = () => {
               </router-link>
               <router-link
                 to="/modelle"
-                class="nav-3d flex items-center gap-2 px-3 py-2 rounded-md border border-indigo-500 text-sm font-medium hover:bg-indigo-500 transition"
+                class="nav-3d flex items-center gap-2 px-3 py-2 rounded-sm border border-indigo-500 text-sm font-medium hover:bg-indigo-500 transition"
                 @click="haptic()"
                 :class="{ 'bg-indigo-500': $route.path.startsWith('/modelle') }">
                 <ArrowsRightLeftIcon class="h-5 w-5" />
@@ -254,7 +254,7 @@ const closeMobileMenu = () => {
               </router-link>
               <button
                 @click="handleNewLog(); haptic()"
-                class="nav-3d p-2 rounded-md bg-green-600 hover:bg-green-700 transition"
+                class="nav-3d p-2 rounded-sm bg-green-600 hover:bg-green-700 transition"
                 title="Ladevorgang erfassen">
                 <BoltIcon class="h-5 w-5" />
               </button>
@@ -272,7 +272,7 @@ const closeMobileMenu = () => {
               v-if="showWallboxChip"
               @click="goToGoeTab"
               :title="`${wallboxConn?.displayName || 'Wallbox'} · ${wallboxConn?.carStateLabel}`"
-              class="p-2 rounded-md hover:bg-indigo-500 transition flex items-center justify-center"
+              class="p-2 rounded-sm hover:bg-indigo-500 transition flex items-center justify-center"
             >
               <span
                 :class="['w-2.5 h-2.5 rounded-full', wallboxChipColor,
@@ -281,7 +281,7 @@ const closeMobileMenu = () => {
             </button>
             <router-link
               to="/coins/history"
-              class="nav-3d flex items-center gap-1 px-2 h-9 text-sm border border-indigo-500 rounded-md hover:bg-indigo-500 transition font-medium"
+              class="nav-3d flex items-center gap-1 px-2 h-9 text-sm border border-indigo-500 rounded-sm hover:bg-indigo-500 transition font-medium"
               @click="haptic()"
               :class="{ 'watt-bump': balanceBumping }"
               title="Watt-Guthaben">
@@ -291,7 +291,7 @@ const closeMobileMenu = () => {
             <router-link
               v-if="authStore.user"
               to="/settings"
-              class="nav-3d flex items-center justify-center h-9 w-9 border border-indigo-500 rounded-md hover:bg-indigo-500 transition"
+              class="nav-3d flex items-center justify-center h-9 w-9 border border-indigo-500 rounded-sm hover:bg-indigo-500 transition"
               :class="{ 'bg-indigo-500': $route.path === '/settings' }"
               @click="haptic()"
               title="Einstellungen">
@@ -314,7 +314,7 @@ const closeMobileMenu = () => {
             <button
               v-if="showWallboxChip"
               @click="goToGoeTab"
-              class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition hover:opacity-80"
+              class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm border text-xs font-medium transition hover:opacity-80"
               :class="wallboxConn?.carState === 2
                 ? 'bg-green-500 bg-opacity-30 border-green-400 text-white'
                 : wallboxConn?.carState === 5 || wallboxConn?.lastPollError
@@ -331,14 +331,14 @@ const closeMobileMenu = () => {
             <div class="relative group">
               <router-link
                 to="/coins/history"
-                class="nav-3d flex items-center gap-1.5 px-3 py-1.5 text-sm border border-indigo-500 rounded-md hover:bg-indigo-500 transition font-medium"
+                class="nav-3d flex items-center gap-1.5 px-3 py-1.5 text-sm border border-indigo-500 rounded-sm hover:bg-indigo-500 transition font-medium"
                 @click="haptic()"
                 :class="{ 'watt-bump': balanceBumping }">
                 <BoltIcon class="h-4 w-4" />
                 <span>{{ coinStore.balance }}</span>
               </router-link>
               <!-- Tooltip -->
-              <div class="absolute right-0 top-full mt-2 w-48 bg-gray-900 text-white text-xs rounded-lg shadow-xl p-3 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50">
+              <div class="absolute right-0 top-full mt-2 w-48 bg-gray-900 text-white text-xs rounded-sm shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:shadow-[5px_5px_0_rgba(255,255,255,0.35)] p-3 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50">
                 <div class="flex justify-between mb-1.5">
                   <span class="text-gray-400">{{ t('dashboard.coins_total') }}</span>
                   <span class="font-semibold">{{ coinStore.balance }} Watt</span>
@@ -354,7 +354,7 @@ const closeMobileMenu = () => {
             <router-link
               v-if="authStore.user"
               to="/settings"
-              class="nav-3d flex items-center justify-center h-9 w-9 border border-indigo-500 rounded-md hover:bg-indigo-500 transition"
+              class="nav-3d flex items-center justify-center h-9 w-9 border border-indigo-500 rounded-sm hover:bg-indigo-500 transition"
               :class="{ 'bg-indigo-500': $route.path === '/settings' }"
               @click="haptic()">
               <UserIcon class="h-5 w-5" />
@@ -387,7 +387,7 @@ const closeMobileMenu = () => {
             </button>
             <router-link
               to="/coins/history"
-              class="flex items-center gap-1 px-2 py-1 text-sm bg-indigo-500 bg-opacity-30 border border-indigo-500 rounded-md hover:bg-opacity-50 transition font-medium"
+              class="flex items-center gap-1 px-2 py-1 text-sm bg-indigo-500 bg-opacity-30 border border-indigo-500 rounded-sm hover:bg-opacity-50 transition font-medium"
               :class="{ 'watt-bump': balanceBumping }"
               title="Watt-Guthaben">
               <BoltIcon class="h-4 w-4" />
@@ -401,7 +401,7 @@ const closeMobileMenu = () => {
             </button>
             <button
               @click="mobileMenuOpen = !mobileMenuOpen"
-              class="p-2 rounded-md hover:bg-indigo-700 transition"
+              class="p-2 rounded-sm hover:bg-indigo-700 transition"
               aria-label="Menu">
               <Bars3Icon v-if="!mobileMenuOpen" class="h-6 w-6" />
               <XMarkIcon v-else class="h-6 w-6" />
@@ -425,7 +425,7 @@ const closeMobileMenu = () => {
         <div class="absolute inset-0 bg-black bg-opacity-50" @click="closeMobileMenu"></div>
 
         <!-- Menu Panel (slides in from top) -->
-        <div class="absolute top-0 left-0 right-0 bg-indigo-700 shadow-2xl overflow-y-auto max-h-[70vh]">
+        <div class="absolute top-0 left-0 right-0 bg-indigo-700 shadow-[6px_6px_0_rgba(0,0,0,0.40)] dark:shadow-[6px_6px_0_rgba(255,255,255,0.40)] overflow-y-auto max-h-[70vh]">
           <div class="px-4 py-4 space-y-2">
             <!-- Header -->
             <div class="flex items-center justify-between px-3 py-2">
@@ -435,7 +435,7 @@ const closeMobileMenu = () => {
               </div>
               <button
                 @click="closeMobileMenu"
-                class="p-1.5 rounded-full bg-indigo-500 hover:bg-indigo-400 transition"
+                class="p-1.5 rounded-sm bg-indigo-500 hover:bg-indigo-400 transition"
                 aria-label="Menü schließen">
                 <XMarkIcon class="h-5 w-5 text-white" />
               </button>
@@ -445,7 +445,7 @@ const closeMobileMenu = () => {
             <router-link
               to="/dashboard"
               @click="closeMobileMenu"
-              class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-indigo-100 hover:bg-indigo-600 transition"
+              class="flex items-center gap-2 px-3 py-2 rounded-sm text-sm font-medium text-indigo-100 hover:bg-indigo-600 transition"
               :class="{ 'bg-indigo-800': $route.path === '/dashboard' }">
               <HomeIcon class="h-5 w-5" />
               <span>Dashboard</span>
@@ -453,7 +453,7 @@ const closeMobileMenu = () => {
             <router-link
               to="/imports"
               @click="closeMobileMenu"
-              class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-indigo-100 hover:bg-indigo-600 transition"
+              class="flex items-center gap-2 px-3 py-2 rounded-sm text-sm font-medium text-indigo-100 hover:bg-indigo-600 transition"
               :class="{ 'bg-indigo-800': $route.path === '/imports' }">
               <ArrowDownTrayIcon class="h-5 w-5" />
               <span>Import</span>
@@ -462,7 +462,7 @@ const closeMobileMenu = () => {
               v-if="authStore.isAutoSyncLive || authStore.isBetaTester || authStore.isAdmin"
               to="/live"
               @click="closeMobileMenu"
-              class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-emerald-200 hover:bg-emerald-700 transition"
+              class="flex items-center gap-2 px-3 py-2 rounded-sm text-sm font-medium text-emerald-200 hover:bg-emerald-700 transition"
               :class="{ 'bg-emerald-800': $route.path === '/live' }">
               <BoltIcon class="h-5 w-5" />
               <span>{{ t('live.title') }}</span>
@@ -470,7 +470,7 @@ const closeMobileMenu = () => {
             <router-link
               to="/modelle"
               @click="closeMobileMenu"
-              class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-indigo-100 hover:bg-indigo-600 transition"
+              class="flex items-center gap-2 px-3 py-2 rounded-sm text-sm font-medium text-indigo-100 hover:bg-indigo-600 transition"
               :class="{ 'bg-indigo-800': $route.path.startsWith('/modelle') }">
               <ArrowsRightLeftIcon class="h-5 w-5" />
               <span>{{ t('nav.models_compare') }}</span>
@@ -479,7 +479,7 @@ const closeMobileMenu = () => {
               v-if="authStore.user"
               to="/settings"
               @click="closeMobileMenu"
-              class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-indigo-100 hover:bg-indigo-600 transition"
+              class="flex items-center gap-2 px-3 py-2 rounded-sm text-sm font-medium text-indigo-100 hover:bg-indigo-600 transition"
               :class="{ 'bg-indigo-800': $route.path === '/settings' }">
               <UserIcon class="h-5 w-5" />
               <span>{{ authStore.user.username || authStore.user.sub }}</span>
@@ -496,7 +496,7 @@ const closeMobileMenu = () => {
       <span>Impersonation aktiv: <strong>{{ impersonatingAs }}</strong> · Token läuft in 1h ab</span>
       <button
         @click="stopImpersonation"
-        class="px-3 py-1 bg-amber-900 text-amber-100 rounded-md hover:bg-amber-800 transition text-xs font-semibold">
+        class="px-3 py-1 bg-amber-900 text-amber-100 rounded-sm hover:bg-amber-800 transition text-xs font-semibold">
         Beenden
       </button>
     </div>

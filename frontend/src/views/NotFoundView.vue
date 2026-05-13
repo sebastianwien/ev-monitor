@@ -43,7 +43,7 @@ const goBack = () => {
       </p>
 
       <!-- Fun Facts -->
-      <div class="bg-gray-800/50 border border-gray-700 rounded-lg p-6 mb-8 text-left">
+      <div class="bg-gray-800/50 border border-gray-700 rounded-sm p-6 mb-8 text-left">
         <p class="text-gray-300 text-sm mb-2">
           <span class="text-yellow-400">💡 {{ t('notfound.fun_fact_label') }}</span> {{ t('notfound.fun_fact') }}
         </p>
@@ -53,13 +53,13 @@ const goBack = () => {
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
         <button
           @click="goBack"
-          class="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors font-medium"
+          class="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-sm transition-colors font-medium"
         >
           {{ t('notfound.go_back') }}
         </button>
         <button
           @click="goHome"
-          class="px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white rounded-lg transition-all font-medium shadow-lg hover:shadow-xl"
+          class="px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white rounded-sm transition-all font-medium shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)] hover:shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:hover:shadow-[5px_5px_0_rgba(255,255,255,0.35)]"
         >
           {{ t('notfound.go_home') }}
         </button>

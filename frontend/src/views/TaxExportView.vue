@@ -120,14 +120,14 @@ const downloadFile = async (type: 'csv' | 'pdf') => {
       <div class="mb-6">
         <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ t('tax_export.title') }}</h1>
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ t('tax_export.subtitle') }}</p>
-        <div v-if="!isGerman" class="mt-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg px-4 py-3">
+        <div v-if="!isGerman" class="mt-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-sm px-4 py-3">
           <p class="text-sm text-amber-700 dark:text-amber-300">{{ t('tax_export.german_only_note') }}</p>
         </div>
       </div>
 
       <!-- Kein Dienstwagen -->
       <div v-if="!loading && businessCars.length === 0"
-        class="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-xl p-5">
+        class="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-sm p-5">
         <div class="flex gap-3">
           <InformationCircleIcon class="w-5 h-5 text-blue-500 mt-0.5 shrink-0" />
           <div>
@@ -144,7 +144,7 @@ const downloadFile = async (type: 'csv' | 'pdf') => {
       <div v-else-if="!loading" class="space-y-5">
 
         <!-- Fahrzeug -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-5">
+        <div class="bg-white dark:bg-gray-800 rounded-sm shadow-sm p-5">
           <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
             {{ t('tax_export.select_car') }}
           </label>
@@ -152,7 +152,7 @@ const downloadFile = async (type: 'csv' | 'pdf') => {
             <button v-for="car in businessCars" :key="car.id"
               @click="selectedCarId = car.id"
               :class="[
-                'text-left px-4 py-3 rounded-lg border-2 transition',
+                'text-left px-4 py-3 rounded-sm border-2 transition',
                 selectedCarId === car.id
                   ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
                   : 'border-gray-200 dark:border-gray-600 hover:border-blue-300'
@@ -168,7 +168,7 @@ const downloadFile = async (type: 'csv' | 'pdf') => {
         </div>
 
         <!-- Zeitraum -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-5">
+        <div class="bg-white dark:bg-gray-800 rounded-sm shadow-sm p-5">
           <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
             {{ t('tax_export.period') }}
           </label>
@@ -183,18 +183,18 @@ const downloadFile = async (type: 'csv' | 'pdf') => {
             <div>
               <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('tax_export.from') }}</label>
               <input type="date" v-model="fromDate"
-                class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
+                class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
             </div>
             <div>
               <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('tax_export.to') }}</label>
               <input type="date" v-model="toDate"
-                class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
+                class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
             </div>
           </div>
         </div>
 
         <!-- Abrechnungsmodell -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-5">
+        <div class="bg-white dark:bg-gray-800 rounded-sm shadow-sm p-5">
           <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
             {{ t('tax_export.billing_model') }}
           </label>
@@ -217,7 +217,7 @@ const downloadFile = async (type: 'csv' | 'pdf') => {
                 <div v-if="!usePauschale" class="mt-2 flex items-center gap-2">
                   <input type="number" v-model="customTariff" step="0.001" min="0.01" max="1"
                     placeholder="0.280"
-                    class="w-28 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
+                    class="w-28 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
                   <span class="text-sm text-gray-500">EUR/kWh</span>
                 </div>
               </div>
@@ -226,14 +226,14 @@ const downloadFile = async (type: 'csv' | 'pdf') => {
         </div>
 
         <!-- Vorschau -->
-        <div v-if="previewLoading" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-5">
+        <div v-if="previewLoading" class="bg-white dark:bg-gray-800 rounded-sm shadow-sm p-5">
           <div class="animate-pulse space-y-2">
             <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
             <div class="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
           </div>
         </div>
 
-        <div v-else-if="preview" class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-xl p-5">
+        <div v-else-if="preview" class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-sm p-5">
           <p class="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide mb-3">
             {{ t('tax_export.preview_title') }}
           </p>
@@ -253,7 +253,7 @@ const downloadFile = async (type: 'csv' | 'pdf') => {
           </div>
         </div>
 
-        <div v-else-if="canExport && !previewLoading" class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl p-4">
+        <div v-else-if="canExport && !previewLoading" class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-sm p-4">
           <p class="text-sm text-amber-700 dark:text-amber-300">{{ t('tax_export.no_sessions') }}</p>
         </div>
 
@@ -261,13 +261,13 @@ const downloadFile = async (type: 'csv' | 'pdf') => {
         <div class="flex gap-3">
           <button @click="downloadFile('csv')"
             :disabled="!preview || preview.sessionCount === 0 || downloading"
-            class="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded-xl font-medium text-sm transition">
+            class="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded-sm font-medium text-sm transition">
             <DocumentArrowDownIcon class="w-4 h-4" />
             {{ downloading ? '...' : t('tax_export.download_csv') }}
           </button>
           <button @click="downloadFile('pdf')"
             :disabled="!preview || preview.sessionCount === 0 || downloading"
-            class="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gray-800 hover:bg-gray-900 dark:bg-gray-700 dark:hover:bg-gray-600 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-xl font-medium text-sm transition">
+            class="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gray-800 hover:bg-gray-900 dark:bg-gray-700 dark:hover:bg-gray-600 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-sm font-medium text-sm transition">
             <DocumentArrowDownIcon class="w-4 h-4" />
             {{ downloading ? '...' : t('tax_export.download_pdf') }}
           </button>

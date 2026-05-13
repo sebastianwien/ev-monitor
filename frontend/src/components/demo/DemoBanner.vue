@@ -54,12 +54,12 @@ onUnmounted(() => window.removeEventListener('demo-account-blocked', onBlocked))
     <div class="flex items-center gap-2">
       <button
         @click="goToRegister"
-        class="btn-3d flex-1 text-center px-3 py-1.5 rounded-md bg-amber-900 hover:bg-amber-800 text-amber-100 font-semibold transition text-xs whitespace-nowrap">
+        class="btn-3d flex-1 text-center px-3 py-1.5 rounded-sm bg-amber-900 hover:bg-amber-800 text-amber-100 font-semibold transition text-xs whitespace-nowrap">
         {{ t('demo.register_btn') }}
       </button>
       <button
         @click="exitDemo"
-        class="btn-3d flex-1 px-3 py-1.5 rounded-md bg-amber-100 hover:bg-white text-amber-900 font-semibold transition text-xs border border-amber-600 whitespace-nowrap">
+        class="btn-3d flex-1 px-3 py-1.5 rounded-sm bg-amber-100 hover:bg-white text-amber-900 font-semibold transition text-xs border border-amber-600 whitespace-nowrap">
         {{ t('demo.exit_btn') }}
       </button>
     </div>

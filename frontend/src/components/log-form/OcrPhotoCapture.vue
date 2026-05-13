@@ -247,13 +247,13 @@ const cancel = () => {
         <CameraIcon class="h-6 w-6 text-indigo-600" />
         {{ t('ocr.title') }}
       </h2>
-      <button @click="cancel" class="p-2 hover:bg-gray-100 rounded-lg transition">
+      <button @click="cancel" class="p-2 hover:bg-gray-100 rounded-sm transition">
         <XMarkIcon class="h-6 w-6 text-gray-600" />
       </button>
     </div>
 
     <!-- Error Message -->
-    <div v-if="error" class="mb-4 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300 rounded-lg text-sm">
+    <div v-if="error" class="mb-4 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300 rounded-sm text-sm">
       {{ error }}
     </div>
 
@@ -264,7 +264,7 @@ const cancel = () => {
 
       <button
         @click="openCamera"
-        class="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium">
+        class="px-6 py-3 bg-indigo-600 text-white rounded-sm hover:bg-indigo-700 transition font-medium">
         <CameraIcon class="h-5 w-5 inline mr-2" />
         {{ t('ocr.take_photo_btn') }}
       </button>
@@ -286,14 +286,14 @@ const cancel = () => {
     <!-- Step 2: Image Preview + OCR Button -->
     <div v-if="imagePreview && !ocrResults">
       <div class="mb-4">
-        <img :src="imagePreview" alt="Preview" class="w-full rounded-lg border-2 border-gray-300" />
+        <img :src="imagePreview" alt="Preview" class="w-full rounded-sm border-2 border-gray-300" />
       </div>
 
       <div class="flex gap-3">
         <button
           @click="startOcr"
           :disabled="isProcessing"
-          class="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition font-medium">
+          class="flex-1 px-6 py-3 bg-green-600 text-white rounded-sm hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition font-medium">
           <span v-if="!isProcessing">🔍 {{ t('ocr.start_ocr_btn') }}</span>
           <span v-else class="flex items-center justify-center">
             <ArrowPathIcon class="h-5 w-5 animate-spin mr-2" />
@@ -303,7 +303,7 @@ const cancel = () => {
         <button
           @click="reset"
           :disabled="isProcessing"
-          class="px-6 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 disabled:opacity-50 transition font-medium">
+          class="px-6 py-3 bg-gray-300 text-gray-700 rounded-sm hover:bg-gray-400 disabled:opacity-50 transition font-medium">
           {{ t('ocr.retry_btn') }}
         </button>
       </div>
@@ -316,7 +316,7 @@ const cancel = () => {
     <!-- Step 3: OCR Results -->
     <div v-if="ocrResults" class="space-y-4">
       <!-- Confidence Indicator -->
-      <div class="p-3 rounded-lg" :class="{
+      <div class="p-3 rounded-sm" :class="{
         'bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700': ocrResults.confidence >= 66,
         'bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700': ocrResults.confidence >= 33 && ocrResults.confidence < 66,
         'bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700': ocrResults.confidence < 33
@@ -343,7 +343,7 @@ const cancel = () => {
             type="number"
             step="0.1"
             :placeholder="t('ocr.kwh_placeholder')"
-            class="flex-1 px-3 py-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+            class="flex-1 px-3 py-2 border rounded-sm focus:ring-indigo-500 focus:border-indigo-500"
             :class="ocrResults.kwh ? 'border-green-500 bg-green-50' : 'border-gray-300'"
           />
           <span v-if="ocrResults.kwh" class="text-green-600 font-medium">✓</span>
@@ -360,7 +360,7 @@ const cancel = () => {
             type="number"
             step="0.01"
             :placeholder="t('ocr.cost_placeholder')"
-            class="flex-1 px-3 py-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+            class="flex-1 px-3 py-2 border rounded-sm focus:ring-indigo-500 focus:border-indigo-500"
             :class="ocrResults.cost ? 'border-green-500 bg-green-50' : 'border-gray-300'"
           />
           <span v-if="ocrResults.cost" class="text-green-600 font-medium">✓</span>
@@ -376,7 +376,7 @@ const cancel = () => {
             v-model.number="ocrResults.durationMinutes"
             type="number"
             :placeholder="t('ocr.duration_placeholder')"
-            class="flex-1 px-3 py-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+            class="flex-1 px-3 py-2 border rounded-sm focus:ring-indigo-500 focus:border-indigo-500"
             :class="ocrResults.durationMinutes ? 'border-green-500 bg-green-50' : 'border-gray-300'"
           />
           <span v-if="ocrResults.durationMinutes" class="text-green-600 font-medium">✓</span>
@@ -393,7 +393,7 @@ const cancel = () => {
             type="number"
             step="0.1"
             :placeholder="t('ocr.power_placeholder')"
-            class="flex-1 px-3 py-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+            class="flex-1 px-3 py-2 border rounded-sm focus:ring-indigo-500 focus:border-indigo-500"
             :class="ocrResults.maxChargingPowerKw ? 'border-green-500 bg-green-50' : 'border-gray-300'"
           />
           <span v-if="ocrResults.maxChargingPowerKw" class="text-green-600 font-medium">✓</span>
@@ -405,12 +405,12 @@ const cancel = () => {
       <div class="flex gap-3 pt-4">
         <button
           @click="applyData"
-          class="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium">
+          class="flex-1 px-6 py-3 bg-green-600 text-white rounded-sm hover:bg-green-700 transition font-medium">
           ✓ {{ t('ocr.apply_btn') }}
         </button>
         <button
           @click="reset"
-          class="px-6 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition font-medium">
+          class="px-6 py-3 bg-gray-300 text-gray-700 rounded-sm hover:bg-gray-400 transition font-medium">
           {{ t('ocr.rescan_btn') }}
         </button>
       </div>

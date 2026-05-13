@@ -33,7 +33,7 @@ function dismiss() {
     >
       <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
         <div
-          class="relative w-full max-w-md rounded-2xl bg-white dark:bg-gray-800 shadow-2xl p-6"
+          class="relative w-full max-w-md rounded-sm bg-white dark:bg-gray-800 shadow-[6px_6px_0_rgba(0,0,0,0.40)] dark:shadow-[6px_6px_0_rgba(255,255,255,0.40)] p-6"
           @click.stop
         >
           <!-- Header -->
@@ -71,7 +71,7 @@ function dismiss() {
           <!-- CTA -->
           <button
             @click="dismiss"
-            class="mt-5 w-full rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 active:scale-95 transition"
+            class="mt-5 w-full rounded-sm bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 active:scale-95 transition"
           >
             Verstanden
           </button>

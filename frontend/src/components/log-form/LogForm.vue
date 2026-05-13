@@ -249,12 +249,12 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="md:max-w-2xl md:mx-auto p-4 md:p-6 bg-white dark:bg-gray-800 md:rounded-xl md:shadow-lg md:mt-8">
+  <div class="md:max-w-2xl md:mx-auto p-4 md:p-6 bg-white dark:bg-gray-800 md:rounded-sm md:shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:md:shadow-[4px_4px_0_rgba(255,255,255,0.30)] md:mt-8">
     <div class="flex items-center justify-between mb-4 md:mb-6">
       <div class="w-8" />
       <h1 class="text-xl md:text-3xl font-bold text-gray-800 dark:text-gray-200 text-center">{{ t('logform.title') }}</h1>
       <button type="button" @click="emit('cancel')"
-        class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-200 dark:hover:bg-gray-700 transition-colors">
+        class="w-8 h-8 flex items-center justify-center rounded-sm text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-200 dark:hover:bg-gray-700 transition-colors">
         <XMarkIcon class="h-5 w-5" />
       </button>
     </div>
@@ -266,7 +266,7 @@ onMounted(async () => {
       <p class="text-sm text-gray-400 dark:text-gray-500">{{ t('logform.no_car_desc') }}</p>
       <router-link
         to="/cars"
-        class="inline-flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-indigo-700 transition"
+        class="inline-flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-sm text-sm font-medium hover:bg-indigo-700 transition"
       >
         <TruckIcon class="h-4 w-4" />
         {{ t('logform.no_car_btn') }}
@@ -312,7 +312,7 @@ onMounted(async () => {
             <template #after-required>
               <button :key="shakeKey" type="submit" @click="haptic(20)"
                 :disabled="!isFormValid"
-                :class="['w-full bg-indigo-600 text-white p-3 rounded-md btn-3d transition', !isFormValid ? 'opacity-40 cursor-not-allowed' : 'hover:bg-indigo-700', error ? 'ring-2 ring-red-400 ring-offset-2 animate-shake' : '']">
+                :class="['w-full bg-indigo-600 text-white p-3 rounded-sm btn-3d transition', !isFormValid ? 'opacity-40 cursor-not-allowed' : 'hover:bg-indigo-700', error ? 'ring-2 ring-red-400 ring-offset-2 animate-shake' : '']">
                 {{ t('logform.save_btn') }}
               </button>
               <p v-if="error" class="text-red-500 dark:text-red-400 text-sm text-center mt-1">{{ error }}</p>
@@ -326,7 +326,7 @@ onMounted(async () => {
               v-model="formData.loggedAt"
               type="datetime-local"
               :max="logFormFieldsRef?.getCurrentDateTimeLocal()"
-              class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
+              class="mt-1 block w-full rounded-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
             <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ t('logfields.timestamp_hint') }}</p>
           </div>
 
@@ -338,7 +338,7 @@ onMounted(async () => {
 
         <!-- Watt Toast -->
         <div v-if="showToast" class="fixed bottom-6 right-6 z-50 animate-slide-in">
-          <div class="bg-green-600 text-white px-5 py-3 rounded-lg shadow-2xl flex items-center gap-2">
+          <div class="bg-green-600 text-white px-5 py-3 rounded-sm shadow-[6px_6px_0_rgba(0,0,0,0.40)] dark:shadow-[6px_6px_0_rgba(255,255,255,0.40)] flex items-center gap-2">
             <BoltIcon class="h-5 w-5 flex-shrink-0" />
             <span class="font-medium text-sm">{{ toastMessage }}</span>
           </div>
@@ -350,7 +350,7 @@ onMounted(async () => {
           <div v-if="!selectedCarId" class="text-gray-500 dark:text-gray-400 text-center">{{ t('logform.no_car_selected') }}</div>
           <div v-else-if="logs.length === 0" class="text-gray-500 dark:text-gray-400 text-center">{{ t('logform.no_logs_yet') }}</div>
           <ul v-else class="space-y-3">
-            <li v-for="log in logs" :key="log.id" class="p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:shadow transition space-y-2">
+            <li v-for="log in logs" :key="log.id" class="p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-sm shadow-sm hover:shadow transition space-y-2">
               <div class="flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2 min-w-0">
                   <BoltIcon class="w-4 h-4 text-indigo-600 flex-shrink-0" />

@@ -45,11 +45,11 @@ const { t } = useI18n()
       </span>
       <div class="flex gap-1">
         <button type="button" @click="emit('save')" :disabled="saving"
-          class="px-3 py-1 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-md disabled:opacity-50 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300">
+          class="px-3 py-1 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-sm disabled:opacity-50 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300">
           {{ t('dashboard.trip_save') }}
         </button>
         <button type="button" @click="emit('cancel')"
-          class="px-3 py-1 text-xs font-medium bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300">
+          class="px-3 py-1 text-xs font-medium bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-sm hover:bg-gray-50 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300">
           {{ t('dashboard.trip_cancel') }}
         </button>
       </div>
@@ -59,24 +59,24 @@ const { t } = useI18n()
       <div>
         <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('dashboard.trip_started_at') }}</label>
         <input v-model="form!.tripStartedAt" type="datetime-local"
-          class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+          class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
       </div>
       <div>
         <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('dashboard.trip_ended_at') }}</label>
         <input v-model="form!.tripEndedAt" type="datetime-local"
-          class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+          class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
       </div>
       <div>
         <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('dashboard.trip_distance', { unit: distanceUnit }) }}</label>
         <input v-model="form!.distanceKm" type="number" min="0" max="9999" step="0.1"
-          class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+          class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
       </div>
       <div>
         <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('dashboard.trip_route_type') }}</label>
         <div class="flex gap-1">
           <button v-for="rt in ['CITY','COMBINED','HIGHWAY']" :key="rt" type="button"
             @click="form!.routeType = rt"
-            :class="['flex-1 px-1 py-1.5 text-xs rounded-md border transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300',
+            :class="['flex-1 px-1 py-1.5 text-xs rounded-sm border transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300',
                      form!.routeType === rt
                        ? 'bg-emerald-600 border-emerald-600 text-white'
                        : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-emerald-400']">
@@ -88,12 +88,12 @@ const { t } = useI18n()
         <div>
           <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('dashboard.trip_soc_start') }}</label>
           <input v-model="form!.socStart" type="number" min="0" max="100"
-            class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+            class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
         </div>
         <div>
           <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('dashboard.trip_soc_end') }}</label>
           <input v-model="form!.socEnd" type="number" min="0" max="100"
-            class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+            class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
         </div>
       </template>
     </div>

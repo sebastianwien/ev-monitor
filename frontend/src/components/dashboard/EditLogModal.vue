@@ -1,6 +1,6 @@
 <template>
   <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-3xl flex flex-col max-h-[90vh]">
+    <div class="bg-white dark:bg-gray-800 rounded-sm shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:shadow-[5px_5px_0_rgba(255,255,255,0.35)] w-full max-w-3xl flex flex-col max-h-[90vh]">
       <!-- Header -->
       <div class="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-700">
         <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ t('dashboard.edit_title') }}</h2>
@@ -24,11 +24,11 @@
               v-model="locationSearchQuery"
               type="text"
               :placeholder="t('logfields.location_search_placeholder')"
-              class="w-full border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              class="w-full border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-sm px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
               @focus="showSuggestions = suggestions.length > 0"
             />
             <ul v-if="showSuggestions && suggestions.length > 0"
-              class="absolute z-10 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+              class="absolute z-10 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)] max-h-48 overflow-y-auto">
               <li v-for="s in suggestions" :key="s.place_id"
                 class="px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
                 @mousedown.prevent="selectLocation(s)">
@@ -40,18 +40,18 @@
           <p v-else-if="log.geohash" class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ t('logfields.current_location', { geohash: log.geohash }) }}</p>
         </div>
 
-        <p v-if="errorMsg" class="text-sm text-red-600 bg-red-50 rounded-xl p-3">{{ errorMsg }}</p>
+        <p v-if="errorMsg" class="text-sm text-red-600 bg-red-50 rounded-sm p-3">{{ errorMsg }}</p>
       </div>
 
       <!-- Footer -->
       <div class="flex justify-end gap-3 p-5 border-t border-gray-100 dark:border-gray-700 shrink-0">
         <button @click="$emit('close')" v-haptic
-          class="btn-3d px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+          class="btn-3d px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-sm hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
           {{ t('cars.cancel') }}
         </button>
         <button @click="save" v-haptic
           :disabled="loading || !isFormValid"
-          class="btn-3d px-5 py-2 text-sm font-medium text-white bg-green-600 rounded-xl hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-2">
+          class="btn-3d px-5 py-2 text-sm font-medium text-white bg-green-600 rounded-sm hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-2">
           <span v-if="loading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
           {{ t('logfields.save') }}
         </button>

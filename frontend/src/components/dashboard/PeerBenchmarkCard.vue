@@ -122,7 +122,7 @@ function formatCostPer100km(val: number | null | undefined): string {
 </script>
 
 <template>
-  <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm flex flex-col">
+  <div class="bg-white dark:bg-gray-800 rounded-sm border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm flex flex-col">
 
     <!-- Header: mobile gestackt + einklappbar, sm+ absolut zentriert -->
     <div class="border-b border-gray-100 dark:border-gray-700">
