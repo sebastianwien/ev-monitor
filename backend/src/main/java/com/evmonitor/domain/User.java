@@ -118,6 +118,16 @@ public class User {
     }
 
     /**
+     * Strict gate for the dashboard Live-Charging card (current power, SoC, ETA, history).
+     * Reserved for paying Tier-2 subscribers and ADMINs only - BETA_TESTERs explicitly
+     * excluded so the card stays a paid-feature preview.
+     */
+    public boolean canViewLiveCharging() {
+        return subscriptionTier == SubscriptionTier.AUTOSYNC_LIVE
+                || "ADMIN".equals(role);
+    }
+
+    /**
      * True if the user is allowed to see live-detected trips even for car models that
      * are NOT on the live-trip eligibility whitelist (see {@code TripDetectionEligibility}).
      * Granted to ADMIN + BETA_TESTER for data-quality audit via impersonation.

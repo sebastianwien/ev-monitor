@@ -99,6 +99,20 @@ class UserSubscriptionTierTest {
     }
 
     @Test
+    void canViewLiveCharging_onlyForLiveTierOrAdmin_betaTesterExcluded() {
+        // Strict gate for the dashboard Live-Charging card: AUTOSYNC_LIVE or ADMIN only.
+        // BETA_TESTER is intentionally excluded so the card remains a paid-feature preview.
+        assertTrue(buildUser("USER", SubscriptionTier.AUTOSYNC_LIVE).canViewLiveCharging());
+        assertTrue(buildUser("ADMIN", SubscriptionTier.NONE).canViewLiveCharging());
+        assertTrue(buildUser("TESLA_FOUNDER", SubscriptionTier.AUTOSYNC_LIVE).canViewLiveCharging());
+        assertFalse(buildUser("BETA_TESTER", SubscriptionTier.NONE).canViewLiveCharging());
+        assertFalse(buildUser("BETA_TESTER", SubscriptionTier.AUTOSYNC).canViewLiveCharging());
+        assertFalse(buildUser("USER", SubscriptionTier.AUTOSYNC).canViewLiveCharging());
+        assertFalse(buildUser("USER", SubscriptionTier.NONE).canViewLiveCharging());
+        assertFalse(buildUser("TESLA_FOUNDER", SubscriptionTier.NONE).canViewLiveCharging());
+    }
+
+    @Test
     void canBypassEligibilityGate_onlyForAdminOrBetaTester() {
         // Audit privilege: ADMIN and BETA_TESTER see live trips even from car models
         // that are not on the eligibility whitelist (Polestar 3 etc.), so the data

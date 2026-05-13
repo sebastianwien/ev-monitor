@@ -141,10 +141,16 @@ export const useAuthStore = defineStore('auth', () => {
     const canViewLiveTrips = computed(() =>
         isAutoSyncLive.value || isAdmin.value || isBetaTester.value);
 
+    // Mirrors backend User.canViewLiveCharging(): strict Tier-2/ADMIN-only gate for the
+    // dashboard Live-Charging card. BETA_TESTERs are intentionally excluded so the card
+    // stays a paid-feature preview. Server-side gate in LiveController.
+    const canViewLiveCharging = computed(() =>
+        isAutoSyncLive.value || isAdmin.value);
+
     return {
         token, user, isDemoAccount, isPremium, isAdmin, isBetaTester, isTeslaFounder,
         isAutoSyncLive,
-        canActivateTelemetry, canViewLiveTrips,
+        canActivateTelemetry, canViewLiveTrips, canViewLiveCharging,
         setToken, setPremium, logout, login, register,
         refreshToken, refreshPremiumStatus,
         isAuthenticated: () => !!token.value,

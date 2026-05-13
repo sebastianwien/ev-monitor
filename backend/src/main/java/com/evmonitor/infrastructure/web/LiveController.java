@@ -27,7 +27,7 @@ import java.util.UUID;
  * <ol>
  *   <li>Caller must be authenticated (covered by SecurityConfig for all /api/**).</li>
  *   <li>Caller must own the car ({@code car.userId == user.id}).</li>
- *   <li>Caller must have Tier-2 entitlement ({@link User#canViewLiveTrips()}) -
+ *   <li>Caller must have Tier-2 entitlement ({@link User#canViewLiveCharging()}) -
  *       i.e. AUTOSYNC_LIVE subscription, ADMIN, or BETA_TESTER role.</li>
  * </ol>
  *
@@ -63,7 +63,7 @@ public class LiveController {
             throw ForbiddenException.notOwner("Car", carId);
         }
 
-        if (!user.canViewLiveTrips()) {
+        if (!user.canViewLiveCharging()) {
             throw new ForbiddenException("AutoSync Live entitlement required for live charging data");
         }
 
@@ -96,7 +96,7 @@ public class LiveController {
             throw ForbiddenException.notOwner("Car", carId);
         }
 
-        if (!user.canViewLiveTrips()) {
+        if (!user.canViewLiveCharging()) {
             throw new ForbiddenException("AutoSync Live entitlement required for live charging data");
         }
 

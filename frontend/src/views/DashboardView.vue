@@ -377,7 +377,7 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
 
           <!-- Live-Ladevorgang: blendet sich automatisch ein wenn aktive Session und User AS Live -->
           <LiveChargingCard
-            v-if="selectedCarId && authStore.canViewLiveTrips"
+            v-if="selectedCarId && authStore.canViewLiveCharging"
             :car-id="selectedCarId"
             :car-display-name="selectedCar ? [carDisplayName(selectedCar.brand, selectedCar.model), selectedCar.trim].filter(Boolean).join(' ') : ''"
             :license-plate="selectedCar?.licensePlate ?? null"

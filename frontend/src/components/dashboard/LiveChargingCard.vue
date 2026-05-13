@@ -20,11 +20,11 @@ let clockInterval: ReturnType<typeof setInterval>
 onMounted(() => { clockInterval = setInterval(() => { now.value = Date.now() }, 1000) })
 onUnmounted(() => clearInterval(clockInterval))
 
-const carIdRef = computed(() => authStore.canViewLiveTrips ? props.carId : null)
+const carIdRef = computed(() => authStore.canViewLiveCharging ? props.carId : null)
 const { data, powerHistory, refresh } = useChargingLive(carIdRef)
 
 // Sichtbarkeit: nur wenn entitled + aktiver Ladevorgang
-const visible = computed(() => authStore.canViewLiveTrips && !!data.value?.isActive)
+const visible = computed(() => authStore.canViewLiveCharging && !!data.value?.isActive)
 
 // Collapse-State: persistiert pro (carId, sessionStartedAt) - jede neue Session
 // startet expanded. localStorage-Key wechselt mit Session-Start.
