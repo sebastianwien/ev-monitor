@@ -131,11 +131,13 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
+    @Transactional
     public void deleteAllByUserIdAndDataSource(UUID userId, DataSource dataSource) {
         jpaRepository.deleteAllByUserIdAndDataSource(userId, dataSource.name());
     }
 
     @Override
+    @Transactional
     public void deleteAllByUserIdAndDataSourceIn(UUID userId, List<DataSource> dataSources) {
         List<String> names = dataSources.stream().map(DataSource::name).toList();
         jpaRepository.deleteAllByUserIdAndDataSourceIn(userId, names);
@@ -147,7 +149,12 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
+    @Transactional
     public void updateTelemetryExtras(UUID carId, LocalDateTime loggedAt, String telemetryExtrasJson) {
+        // @Modifying-Query benoetigt eine Transaktion. Wenn Caller (z.B.
+        // XpengImportService.runImport) keine eigene tx aufspannt, fliegt
+        // sonst TransactionRequiredException. updatePowerCurvePoints +
+        // updateTelemetryExtrasById sind aus demselben Grund @Transactional.
         jpaRepository.updateTelemetryExtras(carId, loggedAt, telemetryExtrasJson);
     }
 
