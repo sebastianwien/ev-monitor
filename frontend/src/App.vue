@@ -21,7 +21,7 @@ import DemoBanner from './components/demo/DemoBanner.vue'
 import DemoWelcomeModal from './components/demo/DemoWelcomeModal.vue'
 import RedditConsentBanner from './components/shared/RedditConsentBanner.vue'
 import FeedbackToast from './components/shared/FeedbackToast.vue'
-import { Bars3Icon, XMarkIcon, HomeIcon, ArrowDownTrayIcon, UserIcon, BoltIcon, ChatBubbleLeftEllipsisIcon, ArrowsRightLeftIcon } from '@heroicons/vue/24/outline'
+import { Bars3Icon, XMarkIcon, HomeIcon, ArrowDownTrayIcon, UserIcon, BoltIcon, ChatBubbleLeftEllipsisIcon, ArrowsRightLeftIcon, TruckIcon } from '@heroicons/vue/24/outline'
 // Note: showImportOverlay kept for backward compat but SpritMonitor moved to /imports
 import { captureUtmParams, captureReferrer } from './utils/reddit-pixel'
 import { detectCountry } from './composables/useCountryDetection'
@@ -164,7 +164,7 @@ const closeMobileMenu = () => {
 <template>
   <div :class="['min-h-screen flex flex-col', authStore.isAuthenticated() ? 'app-wallpaper' : 'bg-gray-100 dark:bg-gray-950']">
     <!-- Navigation -->
-    <nav class="bg-indigo-600 shadow-[3px_3px_0_rgba(0,0,0,0.25)] dark:shadow-[3px_3px_0_rgba(255,255,255,0.25)] text-white fixed top-0 left-0 right-0 z-40" v-if="authStore.isAuthenticated()">
+    <nav class="bg-indigo-600 text-white fixed top-0 left-0 right-0 z-40" v-if="authStore.isAuthenticated()">
       <div class="px-4 py-3">
         <div class="flex justify-between items-center">
           <!-- Left: Logo + Nav Buttons (Desktop) -->
@@ -431,6 +431,14 @@ const closeMobileMenu = () => {
               :class="{ 'bg-indigo-800': $route.path === '/dashboard' }">
               <HomeIcon class="h-5 w-5" />
               <span>Dashboard</span>
+            </router-link>
+            <router-link
+              to="/cars"
+              @click="closeMobileMenu"
+              class="flex items-center gap-2 px-3 py-2 rounded-sm text-sm font-medium text-indigo-100 hover:bg-indigo-600 transition"
+              :class="{ 'bg-indigo-800': $route.path === '/cars' }">
+              <TruckIcon class="h-5 w-5" />
+              <span>{{ t('dashboard.vehicles_btn') }}</span>
             </router-link>
             <router-link
               to="/imports"

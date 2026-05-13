@@ -1781,6 +1781,7 @@ function toggleAllCharges() {
                         v-else-if="(powerCurveCache.get(item.entry.id) ?? []).length > 0"
                         :points="powerCurveCache.get(item.entry.id)!"
                         :height="180"
+                        :aria-label="t('dashboard.show_power_curve')"
                       />
                       <div v-else class="text-xs text-gray-500 dark:text-gray-400 text-center py-6">
                         {{ t('dashboard.no_power_curve') }}
