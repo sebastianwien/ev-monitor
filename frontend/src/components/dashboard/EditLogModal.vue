@@ -1,11 +1,12 @@
 <template>
   <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-3xl flex flex-col max-h-[90vh]">
+    <div class="bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-white rounded-sm shadow-[4px_4px_0_0_#030712] dark:shadow-[4px_4px_0_0_#ffffff] w-full max-w-3xl flex flex-col max-h-[90vh]">
       <!-- Header -->
-      <div class="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-700">
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ t('dashboard.edit_title') }}</h2>
-        <button @click="$emit('close')" class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
-          <XMarkIcon class="w-5 h-5" />
+      <div class="flex items-center justify-between p-5 border-b-2 border-gray-300 dark:border-gray-700">
+        <h2 class="text-lg font-bold tracking-tight text-gray-900 dark:text-gray-100">{{ t('dashboard.edit_title') }}</h2>
+        <button @click="$emit('close')"
+          class="p-2 border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-sm shadow-[2px_2px_0_0_#9ca3af] dark:shadow-[2px_2px_0_0_#4b5563] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-[transform,box-shadow] duration-75">
+          <XMarkIcon class="w-4 h-4 text-gray-600 dark:text-gray-300" />
         </button>
       </div>
 
@@ -18,40 +19,40 @@
 
         <!-- Standort aktualisieren -->
         <div class="space-y-1">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('logfields.update_location') }}</label>
+          <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">{{ t('logfields.update_location') }}</label>
           <div class="relative">
             <input
               v-model="locationSearchQuery"
               type="text"
               :placeholder="t('logfields.location_search_placeholder')"
-              class="w-full border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              class="w-full border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 rounded-sm px-3 py-2 text-sm font-medium focus:outline-none focus:border-green-500 transition-colors"
               @focus="showSuggestions = suggestions.length > 0"
             />
             <ul v-if="showSuggestions && suggestions.length > 0"
-              class="absolute z-10 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+              class="absolute z-10 mt-1 w-full bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-white rounded-sm shadow-[4px_4px_0_0_#030712] dark:shadow-[4px_4px_0_0_#ffffff] max-h-48 overflow-y-auto">
               <li v-for="s in suggestions" :key="s.place_id"
-                class="px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
+                class="px-3 py-2 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
                 @mousedown.prevent="selectLocation(s)">
                 {{ s.display_name }}
               </li>
             </ul>
           </div>
-          <p v-if="newLocationName" class="text-xs text-green-600 mt-1">{{ t('logfields.new_location') }} {{ newLocationName }}</p>
-          <p v-else-if="log.geohash" class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ t('logfields.current_location', { geohash: log.geohash }) }}</p>
+          <p v-if="newLocationName" class="text-xs font-medium text-green-700 dark:text-green-400 mt-1">{{ t('logfields.new_location') }} {{ newLocationName }}</p>
+          <p v-else-if="log.geohash" class="text-xs font-medium text-gray-500 dark:text-gray-500 mt-1">{{ t('logfields.current_location', { geohash: log.geohash }) }}</p>
         </div>
 
-        <p v-if="errorMsg" class="text-sm text-red-600 bg-red-50 rounded-xl p-3">{{ errorMsg }}</p>
+        <p v-if="errorMsg" class="text-sm font-medium border-l-2 border-red-500 bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300 px-4 py-3 rounded-r-sm">{{ errorMsg }}</p>
       </div>
 
       <!-- Footer -->
-      <div class="flex justify-end gap-3 p-5 border-t border-gray-100 dark:border-gray-700 shrink-0">
+      <div class="flex justify-end gap-3 p-5 border-t-2 border-gray-300 dark:border-gray-700 shrink-0">
         <button @click="$emit('close')" v-haptic
-          class="btn-3d px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+          class="inline-flex items-center justify-center px-4 py-2.5 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-bold uppercase tracking-wider text-[11px] rounded-sm border-2 border-gray-300 dark:border-gray-700 shadow-[2px_2px_0_0_#9ca3af] dark:shadow-[2px_2px_0_0_#4b5563] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-[transform,box-shadow] duration-75">
           {{ t('cars.cancel') }}
         </button>
         <button @click="save" v-haptic
           :disabled="loading || !isFormValid"
-          class="btn-3d px-5 py-2 text-sm font-medium text-white bg-green-600 rounded-xl hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-2">
+          class="inline-flex items-center justify-center gap-2 bg-green-600 hover:bg-green-500 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white font-bold uppercase tracking-wider text-[11px] px-5 py-2.5 rounded-sm border-2 border-green-600 disabled:border-gray-300 dark:disabled:border-gray-700 shadow-[3px_3px_0_0_#030712] disabled:shadow-none active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75">
           <span v-if="loading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
           {{ t('logfields.save') }}
         </button>
@@ -222,14 +223,3 @@ async function save() {
 }
 </script>
 
-<style scoped>
-.btn-3d {
-  box-shadow: 0 4px 0 0 rgba(0,0,0,0.2);
-  transform: translateY(0);
-  transition: transform 0.08s ease, box-shadow 0.08s ease;
-}
-.btn-3d:active {
-  box-shadow: 0 1px 0 0 rgba(0,0,0,0.2);
-  transform: translateY(3px);
-}
-</style>

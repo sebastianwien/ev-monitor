@@ -164,97 +164,99 @@ const closeMobileMenu = () => {
 <template>
   <div :class="['min-h-screen flex flex-col', authStore.isAuthenticated() ? 'app-wallpaper' : 'bg-gray-100 dark:bg-gray-950']">
     <!-- Navigation -->
-    <nav class="bg-indigo-600 shadow-md text-white fixed top-0 left-0 right-0 z-40" v-if="authStore.isAuthenticated()">
-      <div class="px-4 py-3">
-        <div class="flex justify-between items-center">
+    <nav class="bg-white dark:bg-gray-900 border-b-2 border-gray-900 dark:border-white text-gray-900 dark:text-gray-100 fixed top-0 left-0 right-0 z-40" v-if="authStore.isAuthenticated()">
+      <div class="px-4 py-2.5">
+        <div class="flex justify-between items-center gap-3">
           <!-- Left: Logo + Nav Buttons (Desktop) -->
-          <div class="flex items-center space-x-4">
-            <router-link to="/dashboard" class="flex items-center gap-1.5 text-2xl font-bold tracking-wide hover:opacity-80 transition whitespace-nowrap">
-              <BoltIcon class="h-7 w-7" />
-              <span class="hidden sm:inline">EV Monitor</span>
+          <div class="flex items-center gap-3">
+            <router-link to="/dashboard" class="flex items-center gap-2 hover:opacity-80 transition whitespace-nowrap">
+              <span class="shrink-0 rounded-sm border-2 border-gray-900 dark:border-white bg-amber-500 p-1.5 w-9 h-9 flex items-center justify-center shadow-[2px_2px_0_0_#030712] dark:shadow-[2px_2px_0_0_#ffffff]">
+                <BoltIcon class="h-5 w-5 text-gray-950" />
+              </span>
+              <span class="hidden sm:inline text-lg font-extrabold tracking-tight text-gray-900 dark:text-white">EV Monitor</span>
             </router-link>
 
             <!-- Compact Icon Nav (640px - 1024px) -->
-            <div class="hidden sm:flex lg:hidden items-center space-x-2">
+            <div class="hidden sm:flex lg:hidden items-center gap-1.5">
               <button
                 @click="handleNewLog(); haptic()"
-                class="nav-3d p-2 rounded-md bg-green-600 hover:bg-green-700 transition"
+                class="p-2 rounded-sm border-2 border-gray-900 dark:border-white bg-emerald-500 hover:bg-emerald-400 text-gray-950 shadow-[2px_2px_0_0_#030712] dark:shadow-[2px_2px_0_0_#ffffff] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-[transform,box-shadow] duration-75"
                 title="Ladevorgang erfassen">
                 <BoltIcon class="h-5 w-5" />
               </button>
               <router-link
                 to="/imports"
-                class="nav-3d p-2 rounded-md border border-indigo-500 hover:bg-indigo-500 transition"
+                class="p-2 rounded-sm border-2 border-gray-900 dark:border-white bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 shadow-[2px_2px_0_0_#030712] dark:shadow-[2px_2px_0_0_#ffffff] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-[transform,box-shadow] duration-75"
                 @click="haptic()"
-                :class="{ 'bg-indigo-500': $route.path === '/imports' }"
+                :class="{ 'bg-sky-700 text-white dark:bg-sky-700': $route.path === '/imports' }"
                 title="Import">
                 <ArrowDownTrayIcon class="h-5 w-5" />
               </router-link>
               <router-link
                 v-if="authStore.isAutoSyncLive || authStore.isBetaTester || authStore.isAdmin"
                 to="/live"
-                class="nav-3d p-2 rounded-md border border-emerald-400 hover:bg-emerald-500 transition"
+                class="p-2 rounded-sm border-2 border-gray-900 dark:border-white bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 shadow-[2px_2px_0_0_#030712] dark:shadow-[2px_2px_0_0_#ffffff] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-[transform,box-shadow] duration-75"
                 @click="haptic()"
-                :class="{ 'bg-emerald-500': $route.path === '/live' }"
+                :class="{ 'bg-emerald-500 text-gray-950 dark:bg-emerald-500': $route.path === '/live' }"
                 :title="t('live.title')">
-                <BoltIcon class="h-5 w-5 text-emerald-300" :class="{ 'text-white': $route.path === '/live' }" />
+                <BoltIcon class="h-5 w-5" />
               </router-link>
               <router-link
                 to="/modelle"
-                class="nav-3d p-2 rounded-md border border-indigo-500 hover:bg-indigo-500 transition"
+                class="p-2 rounded-sm border-2 border-gray-900 dark:border-white bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 shadow-[2px_2px_0_0_#030712] dark:shadow-[2px_2px_0_0_#ffffff] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-[transform,box-shadow] duration-75"
                 @click="haptic()"
-                :class="{ 'bg-indigo-500': $route.path.startsWith('/modelle') }"
+                :class="{ 'bg-indigo-600 text-white dark:bg-indigo-600': $route.path.startsWith('/modelle') }"
                 :title="t('nav.models_compare')">
                 <ArrowsRightLeftIcon class="h-5 w-5" />
               </router-link>
               <router-link
                 to="/dashboard"
-                class="nav-3d p-2 rounded-md border border-indigo-500 hover:bg-indigo-500 transition"
+                class="p-2 rounded-sm border-2 border-gray-900 dark:border-white bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 shadow-[2px_2px_0_0_#030712] dark:shadow-[2px_2px_0_0_#ffffff] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-[transform,box-shadow] duration-75"
                 @click="haptic()"
-                :class="{ 'bg-indigo-500': $route.path === '/dashboard' }"
+                :class="{ 'bg-amber-500 text-gray-950 dark:bg-amber-500': $route.path === '/dashboard' }"
                 title="Dashboard">
                 <HomeIcon class="h-5 w-5" />
               </router-link>
             </div>
 
             <!-- Full Nav (1024px+) -->
-            <div class="hidden lg:flex items-center space-x-4">
+            <div class="hidden lg:flex items-center gap-1.5">
               <router-link
                 to="/dashboard"
-                class="nav-3d p-2 rounded-md border border-indigo-500 hover:bg-indigo-500 transition"
+                class="flex items-center gap-2 px-3 py-2 rounded-sm border-2 border-gray-900 dark:border-white bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-sm font-bold uppercase tracking-wider shadow-[2px_2px_0_0_#030712] dark:shadow-[2px_2px_0_0_#ffffff] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-[transform,box-shadow] duration-75"
                 @click="haptic()"
-                :class="{ 'bg-indigo-500': $route.path === '/dashboard' }"
+                :class="{ 'bg-amber-500 text-gray-950 dark:bg-amber-500 dark:text-gray-950': $route.path === '/dashboard' }"
                 title="Dashboard">
                 <HomeIcon class="h-5 w-5" />
               </router-link>
               <router-link
                 to="/imports"
-                class="nav-3d flex items-center gap-2 px-3 py-2 rounded-md border border-indigo-500 text-sm font-medium hover:bg-indigo-500 transition"
+                class="flex items-center gap-2 px-3 py-2 rounded-sm border-2 border-gray-900 dark:border-white bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-[11px] font-bold uppercase tracking-wider shadow-[2px_2px_0_0_#030712] dark:shadow-[2px_2px_0_0_#ffffff] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-[transform,box-shadow] duration-75"
                 @click="haptic()"
-                :class="{ 'bg-indigo-500': $route.path === '/imports' }">
+                :class="{ 'bg-sky-700 text-white dark:bg-sky-700 dark:text-white': $route.path === '/imports' }">
                 <ArrowDownTrayIcon class="h-5 w-5" />
                 Import
               </router-link>
               <router-link
                 v-if="authStore.isAutoSyncLive || authStore.isBetaTester || authStore.isAdmin"
                 to="/live"
-                class="nav-3d flex items-center gap-2 px-3 py-2 rounded-md border border-emerald-400 text-sm font-medium hover:bg-emerald-500 transition"
+                class="flex items-center gap-2 px-3 py-2 rounded-sm border-2 border-gray-900 dark:border-white bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-[11px] font-bold uppercase tracking-wider shadow-[2px_2px_0_0_#030712] dark:shadow-[2px_2px_0_0_#ffffff] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-[transform,box-shadow] duration-75"
                 @click="haptic()"
-                :class="{ 'bg-emerald-500': $route.path === '/live' }">
-                <BoltIcon class="h-5 w-5 text-emerald-300" :class="{ 'text-white': $route.path === '/live' }" />
+                :class="{ 'bg-emerald-500 text-gray-950 dark:bg-emerald-500 dark:text-gray-950': $route.path === '/live' }">
+                <BoltIcon class="h-5 w-5" />
                 {{ t('live.title') }}
               </router-link>
               <router-link
                 to="/modelle"
-                class="nav-3d flex items-center gap-2 px-3 py-2 rounded-md border border-indigo-500 text-sm font-medium hover:bg-indigo-500 transition"
+                class="flex items-center gap-2 px-3 py-2 rounded-sm border-2 border-gray-900 dark:border-white bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-[11px] font-bold uppercase tracking-wider shadow-[2px_2px_0_0_#030712] dark:shadow-[2px_2px_0_0_#ffffff] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-[transform,box-shadow] duration-75"
                 @click="haptic()"
-                :class="{ 'bg-indigo-500': $route.path.startsWith('/modelle') }">
+                :class="{ 'bg-indigo-600 text-white dark:bg-indigo-600 dark:text-white': $route.path.startsWith('/modelle') }">
                 <ArrowsRightLeftIcon class="h-5 w-5" />
                 {{ t('nav.models_compare') }}
               </router-link>
               <button
                 @click="handleNewLog(); haptic()"
-                class="nav-3d p-2 rounded-md bg-green-600 hover:bg-green-700 transition"
+                class="p-2 rounded-sm border-2 border-gray-900 dark:border-white bg-emerald-500 hover:bg-emerald-400 text-gray-950 shadow-[2px_2px_0_0_#030712] dark:shadow-[2px_2px_0_0_#ffffff] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-[transform,box-shadow] duration-75"
                 title="Ladevorgang erfassen">
                 <BoltIcon class="h-5 w-5" />
               </button>
@@ -264,15 +266,15 @@ const closeMobileMenu = () => {
           <!-- Right: Coin Balance + User Info + Logout (Desktop) / Hamburger (Mobile) -->
 
           <!-- Compact Right Nav (768px - 1280px) -->
-          <div class="hidden md:flex xl:hidden items-center space-x-2">
+          <div class="hidden md:flex xl:hidden items-center gap-1.5">
             <LocaleSwitcher variant="nav" />
-            <ThemeToggle v-if="!authStore.isDemoAccount" class="text-white" />
+            <ThemeToggle v-if="!authStore.isDemoAccount" />
             <!-- Wallbox dot -->
             <button
               v-if="showWallboxChip"
               @click="goToGoeTab"
               :title="`${wallboxConn?.displayName || 'Wallbox'} · ${wallboxConn?.carStateLabel}`"
-              class="p-2 rounded-md hover:bg-indigo-500 transition flex items-center justify-center"
+              class="p-2 rounded-sm border-2 border-gray-900 dark:border-white bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 shadow-[2px_2px_0_0_#030712] dark:shadow-[2px_2px_0_0_#ffffff] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-[transform,box-shadow] duration-75 flex items-center justify-center"
             >
               <span
                 :class="['w-2.5 h-2.5 rounded-full', wallboxChipColor,
@@ -281,7 +283,7 @@ const closeMobileMenu = () => {
             </button>
             <router-link
               to="/coins/history"
-              class="nav-3d flex items-center gap-1 px-2 h-9 text-sm border border-indigo-500 rounded-md hover:bg-indigo-500 transition font-medium"
+              class="flex items-center gap-1 px-2 h-9 text-[11px] font-bold uppercase tracking-wider border-2 border-gray-900 dark:border-white bg-amber-500 text-gray-950 hover:bg-amber-400 rounded-sm shadow-[2px_2px_0_0_#030712] dark:shadow-[2px_2px_0_0_#ffffff] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-[transform,box-shadow] duration-75"
               @click="haptic()"
               :class="{ 'watt-bump': balanceBumping }"
               title="Watt-Guthaben">
@@ -291,15 +293,15 @@ const closeMobileMenu = () => {
             <router-link
               v-if="authStore.user"
               to="/settings"
-              class="nav-3d flex items-center justify-center h-9 w-9 border border-indigo-500 rounded-md hover:bg-indigo-500 transition"
-              :class="{ 'bg-indigo-500': $route.path === '/settings' }"
+              class="flex items-center justify-center h-9 w-9 border-2 border-gray-900 dark:border-white bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-sm shadow-[2px_2px_0_0_#030712] dark:shadow-[2px_2px_0_0_#ffffff] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-[transform,box-shadow] duration-75"
+              :class="{ 'bg-indigo-600 text-white dark:bg-indigo-600 dark:text-white': $route.path === '/settings' }"
               @click="haptic()"
               title="Einstellungen">
               <UserIcon class="h-5 w-5" />
             </router-link>
             <button
               data-tally-open="vGB8XA" data-tally-emoji-text="👋" data-tally-emoji-animation="wave"
-              class="p-2 text-indigo-300 hover:text-white transition"
+              class="p-2 rounded-sm border-2 border-gray-900 dark:border-white bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-700 dark:text-gray-200 shadow-[2px_2px_0_0_#030712] dark:shadow-[2px_2px_0_0_#ffffff] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-[transform,box-shadow] duration-75"
               title="Feedback geben">
               <ChatBubbleLeftEllipsisIcon class="h-5 w-5" />
             </button>
@@ -307,61 +309,59 @@ const closeMobileMenu = () => {
           </div>
 
           <!-- Full Right Nav (1280px+) -->
-          <div class="hidden xl:flex items-center space-x-4">
+          <div class="hidden xl:flex items-center gap-2">
             <LocaleSwitcher variant="nav" />
-            <ThemeToggle v-if="!authStore.isDemoAccount" class="text-white" />
+            <ThemeToggle v-if="!authStore.isDemoAccount" />
             <!-- Wallbox chip -->
             <button
               v-if="showWallboxChip"
               @click="goToGoeTab"
-              class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition hover:opacity-80"
+              class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm border-2 text-[11px] font-bold uppercase tracking-wider shadow-[2px_2px_0_0_#030712] dark:shadow-[2px_2px_0_0_#ffffff] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-[transform,box-shadow] duration-75"
               :class="wallboxConn?.carState === 2
-                ? 'bg-green-500 bg-opacity-30 border-green-400 text-white'
+                ? 'bg-emerald-500 border-gray-900 dark:border-white text-gray-950'
                 : wallboxConn?.carState === 5 || wallboxConn?.lastPollError
-                  ? 'bg-red-500 bg-opacity-30 border-red-400 text-white'
-                  : 'bg-indigo-500 bg-opacity-30 border-indigo-500 text-white'"
+                  ? 'bg-red-500 border-gray-900 dark:border-white text-white'
+                  : 'bg-white dark:bg-gray-800 border-gray-900 dark:border-white text-gray-900 dark:text-gray-100'"
             >
               <span
                 :class="['w-2 h-2 rounded-full flex-shrink-0', wallboxChipColor,
                          wallboxConn?.carState === 2 ? 'animate-pulse' : '']"
               />
-              <span class="truncate max-w-[120px]">{{ wallboxConn?.displayName || 'Wallbox' }}</span>
-              <span class="opacity-90">· {{ wallboxConn?.carStateLabel }}</span>
+              <span class="truncate max-w-[120px] normal-case tracking-normal">{{ wallboxConn?.displayName || 'Wallbox' }}</span>
+              <span class="opacity-90 normal-case tracking-normal">· {{ wallboxConn?.carStateLabel }}</span>
             </button>
             <div class="relative group">
               <router-link
                 to="/coins/history"
-                class="nav-3d flex items-center gap-1.5 px-3 py-1.5 text-sm border border-indigo-500 rounded-md hover:bg-indigo-500 transition font-medium"
+                class="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider border-2 border-gray-900 dark:border-white bg-amber-500 text-gray-950 hover:bg-amber-400 rounded-sm shadow-[2px_2px_0_0_#030712] dark:shadow-[2px_2px_0_0_#ffffff] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-[transform,box-shadow] duration-75"
                 @click="haptic()"
                 :class="{ 'watt-bump': balanceBumping }">
                 <BoltIcon class="h-4 w-4" />
                 <span>{{ coinStore.balance }}</span>
               </router-link>
               <!-- Tooltip -->
-              <div class="absolute right-0 top-full mt-2 w-48 bg-gray-900 text-white text-xs rounded-lg shadow-xl p-3 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50">
+              <div class="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-900 border-2 border-gray-900 dark:border-white text-gray-900 dark:text-gray-100 text-xs rounded-sm shadow-[4px_4px_0_0_#030712] dark:shadow-[4px_4px_0_0_#ffffff] p-3 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50">
                 <div class="flex justify-between mb-1.5">
-                  <span class="text-gray-400">{{ t('dashboard.coins_total') }}</span>
-                  <span class="font-semibold">{{ coinStore.balance }} Watt</span>
+                  <span class="text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider text-[10px]">{{ t('dashboard.coins_total') }}</span>
+                  <span class="font-bold">{{ coinStore.balance }} Watt</span>
                 </div>
-                <div class="flex justify-between border-t border-gray-700 pt-1.5">
-                  <span class="text-gray-400">{{ t('dashboard.coins_this_month') }}</span>
-                  <span class="font-semibold text-yellow-400">+{{ coinStore.coinsThisMonth }} Watt</span>
+                <div class="flex justify-between border-t-2 border-gray-300 dark:border-gray-700 pt-1.5">
+                  <span class="text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider text-[10px]">{{ t('dashboard.coins_this_month') }}</span>
+                  <span class="font-bold text-amber-600 dark:text-amber-500">+{{ coinStore.coinsThisMonth }} Watt</span>
                 </div>
-                <!-- Arrow -->
-                <div class="absolute -top-1.5 right-4 w-3 h-3 bg-gray-900 rotate-45"></div>
               </div>
             </div>
             <router-link
               v-if="authStore.user"
               to="/settings"
-              class="nav-3d flex items-center justify-center h-9 w-9 border border-indigo-500 rounded-md hover:bg-indigo-500 transition"
-              :class="{ 'bg-indigo-500': $route.path === '/settings' }"
+              class="flex items-center justify-center h-9 w-9 border-2 border-gray-900 dark:border-white bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-sm shadow-[2px_2px_0_0_#030712] dark:shadow-[2px_2px_0_0_#ffffff] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-[transform,box-shadow] duration-75"
+              :class="{ 'bg-indigo-600 text-white dark:bg-indigo-600 dark:text-white': $route.path === '/settings' }"
               @click="haptic()">
               <UserIcon class="h-5 w-5" />
             </router-link>
             <button
               data-tally-open="vGB8XA" data-tally-emoji-text="👋" data-tally-emoji-animation="wave"
-              class="text-indigo-300 hover:text-white transition"
+              class="p-2 rounded-sm border-2 border-gray-900 dark:border-white bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-700 dark:text-gray-200 shadow-[2px_2px_0_0_#030712] dark:shadow-[2px_2px_0_0_#ffffff] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-[transform,box-shadow] duration-75"
               title="Feedback geben"
             >
               <ChatBubbleLeftEllipsisIcon class="h-5 w-5" />
@@ -370,15 +370,15 @@ const closeMobileMenu = () => {
           </div>
 
           <!-- Mobile: Icons + Hamburger Button -->
-          <div class="md:hidden flex items-center gap-3">
+          <div class="md:hidden flex items-center gap-1.5">
             <LocaleSwitcher variant="nav" />
-            <ThemeToggle v-if="!authStore.isDemoAccount" class="text-white" />
+            <ThemeToggle v-if="!authStore.isDemoAccount" />
             <!-- Wallbox dot -->
             <button
               v-if="showWallboxChip"
               @click="goToGoeTab"
               :title="`${wallboxConn?.displayName || 'Wallbox'} · ${wallboxConn?.carStateLabel}`"
-              class="flex items-center justify-center"
+              class="flex items-center justify-center p-1.5"
             >
               <span
                 :class="['w-2.5 h-2.5 rounded-full', wallboxChipColor,
@@ -387,21 +387,15 @@ const closeMobileMenu = () => {
             </button>
             <router-link
               to="/coins/history"
-              class="flex items-center gap-1 px-2 py-1 text-sm bg-indigo-500 bg-opacity-30 border border-indigo-500 rounded-md hover:bg-opacity-50 transition font-medium"
+              class="flex items-center gap-1 px-2 py-1.5 text-[11px] font-bold uppercase tracking-wider border-2 border-gray-900 dark:border-white bg-amber-500 text-gray-950 hover:bg-amber-400 rounded-sm shadow-[2px_2px_0_0_#030712] dark:shadow-[2px_2px_0_0_#ffffff] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-[transform,box-shadow] duration-75"
               :class="{ 'watt-bump': balanceBumping }"
               title="Watt-Guthaben">
               <BoltIcon class="h-4 w-4" />
               <span>{{ coinStore.balance }}</span>
             </router-link>
             <button
-              data-tally-open="vGB8XA" data-tally-emoji-text="👋" data-tally-emoji-animation="wave"
-              class="text-indigo-300 hover:text-white transition"
-              title="Feedback geben">
-              <ChatBubbleLeftEllipsisIcon class="h-5 w-5" />
-            </button>
-            <button
               @click="mobileMenuOpen = !mobileMenuOpen"
-              class="p-2 rounded-md hover:bg-indigo-700 transition"
+              class="p-2 rounded-sm border-2 border-gray-900 dark:border-white bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-900 dark:text-gray-100 shadow-[2px_2px_0_0_#030712] dark:shadow-[2px_2px_0_0_#ffffff] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-[transform,box-shadow] duration-75"
               aria-label="Menu">
               <Bars3Icon v-if="!mobileMenuOpen" class="h-6 w-6" />
               <XMarkIcon v-else class="h-6 w-6" />
@@ -425,65 +419,88 @@ const closeMobileMenu = () => {
         <div class="absolute inset-0 bg-black bg-opacity-50" @click="closeMobileMenu"></div>
 
         <!-- Menu Panel (slides in from top) -->
-        <div class="absolute top-0 left-0 right-0 bg-indigo-700 shadow-2xl overflow-y-auto max-h-[70vh]">
-          <div class="px-4 py-4 space-y-2">
-            <!-- Header -->
-            <div class="flex items-center justify-between px-3 py-2">
-              <div class="flex items-center gap-2">
-                <BoltIcon class="h-5 w-5 text-yellow-400" />
-                <span class="text-base font-bold tracking-wide text-white">EV-Monitor</span>
-              </div>
-              <button
-                @click="closeMobileMenu"
-                class="p-1.5 rounded-full bg-indigo-500 hover:bg-indigo-400 transition"
-                aria-label="Menü schließen">
-                <XMarkIcon class="h-5 w-5 text-white" />
-              </button>
+        <div class="absolute top-0 left-0 right-0 bg-white dark:bg-gray-900 border-b-2 border-gray-900 dark:border-white shadow-[0_4px_0_0_#030712] dark:shadow-[0_4px_0_0_#ffffff] overflow-y-auto max-h-[80vh]">
+          <!-- Header -->
+          <div class="flex items-center justify-between px-4 py-3 border-b-2 border-gray-300 dark:border-gray-700">
+            <div class="flex items-center gap-2">
+              <span class="shrink-0 rounded-sm border-2 border-gray-900 dark:border-white bg-amber-500 p-1.5 w-9 h-9 flex items-center justify-center shadow-[2px_2px_0_0_#030712] dark:shadow-[2px_2px_0_0_#ffffff]">
+                <BoltIcon class="h-5 w-5 text-gray-950" />
+              </span>
+              <span class="text-base font-extrabold tracking-tight text-gray-900 dark:text-white">EV Monitor</span>
             </div>
-            <div class="border-t border-indigo-500 mb-2"></div>
+            <button
+              @click="closeMobileMenu"
+              class="p-2 rounded-sm border-2 border-gray-900 dark:border-white bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 shadow-[2px_2px_0_0_#030712] dark:shadow-[2px_2px_0_0_#ffffff] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-[transform,box-shadow] duration-75"
+              aria-label="Menü schließen">
+              <XMarkIcon class="h-5 w-5 text-gray-900 dark:text-gray-100" />
+            </button>
+          </div>
 
+          <!-- Nav rows (flat accordion-style) -->
+          <div class="divide-y-2 divide-gray-300 dark:divide-gray-700">
             <router-link
               to="/dashboard"
               @click="closeMobileMenu"
-              class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-indigo-100 hover:bg-indigo-600 transition"
-              :class="{ 'bg-indigo-800': $route.path === '/dashboard' }">
-              <HomeIcon class="h-5 w-5" />
-              <span>Dashboard</span>
+              class="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors border-l-2"
+              :class="$route.path === '/dashboard' ? 'border-l-amber-500 bg-amber-50/40 dark:bg-amber-950/20' : 'border-l-transparent'">
+              <div class="shrink-0 rounded-sm border-2 border-gray-900 dark:border-white p-2 w-10 h-10 flex items-center justify-center bg-amber-500">
+                <HomeIcon class="h-5 w-5 text-gray-950" />
+              </div>
+              <span class="font-medium text-gray-900 dark:text-gray-100 text-sm">Dashboard</span>
             </router-link>
             <router-link
               to="/imports"
               @click="closeMobileMenu"
-              class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-indigo-100 hover:bg-indigo-600 transition"
-              :class="{ 'bg-indigo-800': $route.path === '/imports' }">
-              <ArrowDownTrayIcon class="h-5 w-5" />
-              <span>Import</span>
+              class="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors border-l-2"
+              :class="$route.path === '/imports' ? 'border-l-sky-700 bg-sky-50/40 dark:bg-sky-950/20' : 'border-l-transparent'">
+              <div class="shrink-0 rounded-sm border-2 border-gray-900 dark:border-white p-2 w-10 h-10 flex items-center justify-center bg-sky-700">
+                <ArrowDownTrayIcon class="h-5 w-5 text-white" />
+              </div>
+              <span class="font-medium text-gray-900 dark:text-gray-100 text-sm">Import</span>
             </router-link>
             <router-link
               v-if="authStore.isAutoSyncLive || authStore.isBetaTester || authStore.isAdmin"
               to="/live"
               @click="closeMobileMenu"
-              class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-emerald-200 hover:bg-emerald-700 transition"
-              :class="{ 'bg-emerald-800': $route.path === '/live' }">
-              <BoltIcon class="h-5 w-5" />
-              <span>{{ t('live.title') }}</span>
+              class="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors border-l-2"
+              :class="$route.path === '/live' ? 'border-l-emerald-500 bg-emerald-50/40 dark:bg-emerald-950/20' : 'border-l-transparent'">
+              <div class="shrink-0 rounded-sm border-2 border-gray-900 dark:border-white p-2 w-10 h-10 flex items-center justify-center bg-emerald-500">
+                <BoltIcon class="h-5 w-5 text-gray-950" />
+              </div>
+              <span class="font-medium text-gray-900 dark:text-gray-100 text-sm">{{ t('live.title') }}</span>
             </router-link>
             <router-link
               to="/modelle"
               @click="closeMobileMenu"
-              class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-indigo-100 hover:bg-indigo-600 transition"
-              :class="{ 'bg-indigo-800': $route.path.startsWith('/modelle') }">
-              <ArrowsRightLeftIcon class="h-5 w-5" />
-              <span>{{ t('nav.models_compare') }}</span>
+              class="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors border-l-2"
+              :class="$route.path.startsWith('/modelle') ? 'border-l-indigo-600 bg-indigo-50/40 dark:bg-indigo-950/20' : 'border-l-transparent'">
+              <div class="shrink-0 rounded-sm border-2 border-gray-900 dark:border-white p-2 w-10 h-10 flex items-center justify-center bg-indigo-600">
+                <ArrowsRightLeftIcon class="h-5 w-5 text-white" />
+              </div>
+              <span class="font-medium text-gray-900 dark:text-gray-100 text-sm">{{ t('nav.models_compare') }}</span>
             </router-link>
             <router-link
               v-if="authStore.user"
               to="/settings"
               @click="closeMobileMenu"
-              class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-indigo-100 hover:bg-indigo-600 transition"
-              :class="{ 'bg-indigo-800': $route.path === '/settings' }">
-              <UserIcon class="h-5 w-5" />
-              <span>{{ authStore.user.username || authStore.user.sub }}</span>
+              class="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors border-l-2"
+              :class="$route.path === '/settings' ? 'border-l-indigo-600 bg-indigo-50/40 dark:bg-indigo-950/20' : 'border-l-transparent'">
+              <div class="shrink-0 rounded-sm border-2 border-gray-900 dark:border-white p-2 w-10 h-10 flex items-center justify-center bg-gray-900 dark:bg-gray-700">
+                <UserIcon class="h-5 w-5 text-white" />
+              </div>
+              <span class="font-medium text-gray-900 dark:text-gray-100 text-sm truncate">{{ authStore.user.username || authStore.user.sub }}</span>
             </router-link>
+            <button
+              data-tally-open="vGB8XA" data-tally-emoji-text="👋" data-tally-emoji-animation="wave"
+              @click="closeMobileMenu"
+              class="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors border-l-2 border-l-transparent">
+              <div class="shrink-0 rounded-sm border-2 border-gray-900 dark:border-white p-2 w-10 h-10 flex items-center justify-center bg-white dark:bg-gray-800">
+                <ChatBubbleLeftEllipsisIcon class="h-5 w-5 text-gray-900 dark:text-gray-100" />
+              </div>
+              <span class="font-medium text-gray-900 dark:text-gray-100 text-sm">Feedback</span>
+            </button>
+          </div>
+          <div class="px-4 py-3 border-t-2 border-gray-300 dark:border-gray-700">
             <SupportPopover variant="nav" />
           </div>
         </div>
@@ -492,11 +509,11 @@ const closeMobileMenu = () => {
     <!-- Impersonation Banner -->
     <div
       v-if="impersonatingAs"
-      class="sticky top-0 z-50 flex items-center justify-between px-4 py-2 bg-amber-400 text-amber-900 text-sm font-medium">
-      <span>Impersonation aktiv: <strong>{{ impersonatingAs }}</strong> · Token läuft in 1h ab</span>
+      class="sticky top-0 z-50 flex items-center justify-between px-4 py-2 bg-amber-400 border-b-2 border-gray-900 text-gray-950 text-[11px] font-bold uppercase tracking-wider">
+      <span class="normal-case tracking-normal text-sm">Impersonation aktiv: <strong>{{ impersonatingAs }}</strong> · Token läuft in 1h ab</span>
       <button
         @click="stopImpersonation"
-        class="px-3 py-1 bg-amber-900 text-amber-100 rounded-md hover:bg-amber-800 transition text-xs font-semibold">
+        class="px-3 py-1.5 bg-gray-900 text-amber-100 rounded-sm border-2 border-gray-900 hover:bg-gray-800 shadow-[2px_2px_0_0_#030712] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-[transform,box-shadow] duration-75 text-[11px] font-bold uppercase tracking-wider">
         Beenden
       </button>
     </div>
@@ -561,25 +578,10 @@ const closeMobileMenu = () => {
 
 <style scoped>
 @keyframes watt-bump {
-  0%   { transform: scale(1);    box-shadow: none; background-color: transparent; border-color: rgba(129, 140, 248, 0.5); }
-  25%  { transform: scale(1.45); box-shadow: 0 0 0 4px rgba(250, 204, 21, 0.4), 0 0 16px rgba(250, 204, 21, 0.6); background-color: rgba(250, 204, 21, 0.25); border-color: rgba(250, 204, 21, 0.9); color: #fef08a; }
-  60%  { transform: scale(0.95); box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.2); }
-  100% { transform: scale(1);    box-shadow: none; background-color: transparent; border-color: rgba(129, 140, 248, 0.5); color: inherit; }
-}
-
-/* 3D press effect for navbar buttons */
-.nav-3d {
-  box-shadow: 0 3px 0 0 rgba(0,0,0,0.25);
-  transform: translateY(0);
-  transition: transform 0.08s ease, box-shadow 0.08s ease;
-  touch-action: manipulation;
-}
-.nav-3d:active,
-.nav-3d.router-link-active,
-.nav-3d.router-link-exact-active {
-  box-shadow: 0 1px 0 0 rgba(0,0,0,0.25);
-  transform: translateY(2px);
-  transition: transform 0.05s ease, box-shadow 0.05s ease;
+  0%   { transform: scale(1); }
+  25%  { transform: scale(1.35); box-shadow: 0 0 0 4px rgba(250, 204, 21, 0.5), 0 0 16px rgba(250, 204, 21, 0.7); }
+  60%  { transform: scale(0.95); }
+  100% { transform: scale(1); }
 }
 
 .watt-bump {

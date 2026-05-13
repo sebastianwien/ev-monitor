@@ -90,26 +90,29 @@ function formatDate(iso: string) {
       <div class="absolute inset-0 bg-black/50" @click="emit('close')" />
 
       <!-- Modal -->
-      <div class="relative w-full sm:max-w-2xl bg-white dark:bg-gray-800 sm:rounded-2xl shadow-xl ring-1 ring-black/10 dark:ring-white/10 overflow-hidden flex flex-col max-h-[90dvh]">
+      <div class="relative w-full sm:max-w-2xl bg-white dark:bg-gray-800 sm:border-2 sm:border-gray-900 sm:dark:border-white sm:rounded-sm sm:shadow-[4px_4px_0_0_#030712] sm:dark:shadow-[4px_4px_0_0_#ffffff] overflow-hidden flex flex-col max-h-[90dvh]">
         <!-- Header -->
-        <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+        <div class="flex items-center justify-between px-5 py-4 border-b-2 border-gray-300 dark:border-gray-700">
           <div class="flex items-center gap-2">
-            <ExclamationTriangleIcon class="h-5 w-5 text-amber-500" />
-            <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100">{{ t('implausible.title') }}</h2>
+            <div class="shrink-0 rounded-sm border-2 border-gray-900 dark:border-white bg-amber-500 p-1.5 w-8 h-8 flex items-center justify-center">
+              <ExclamationTriangleIcon class="h-4 w-4 text-gray-950" />
+            </div>
+            <h2 class="text-base font-bold tracking-tight text-gray-900 dark:text-gray-100">{{ t('implausible.title') }}</h2>
             <span v-if="openLogs.length > 0"
-              class="text-xs bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full font-medium">
+              class="text-[10px] font-bold uppercase tracking-wider bg-amber-500 text-gray-950 border-2 border-amber-500 px-2 py-0.5 rounded-sm">
               {{ openLogs.length }}
             </span>
           </div>
-          <button @click="emit('close')" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1 rounded-lg">
-            <XMarkIcon class="h-5 w-5" />
+          <button @click="emit('close')"
+            class="p-2 border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-sm shadow-[2px_2px_0_0_#9ca3af] dark:shadow-[2px_2px_0_0_#4b5563] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-[transform,box-shadow] duration-75">
+            <XMarkIcon class="h-4 w-4 text-gray-600 dark:text-gray-300" />
           </button>
         </div>
 
         <!-- Info -->
-        <div class="px-5 py-3 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-100 dark:border-amber-800/40 flex items-start gap-2">
+        <div class="px-5 py-3 border-l-2 border-amber-500 bg-amber-50 dark:bg-amber-950/30 flex items-start gap-2">
           <InformationCircleIcon class="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
-          <p class="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
+          <p class="text-xs font-medium text-amber-700 dark:text-amber-300 leading-relaxed">
             {{ t('implausible.info') }}
           </p>
         </div>
@@ -137,7 +140,7 @@ function formatDate(iso: string) {
             </div>
 
             <!-- Open entries -->
-            <ul v-if="openLogs.length > 0" class="divide-y divide-gray-100 dark:divide-gray-700">
+            <ul v-if="openLogs.length > 0" class="divide-y-2 divide-gray-200 dark:divide-gray-700">
               <li v-for="log in openLogs" :key="log.id"
                 class="flex items-center gap-3 px-5 py-3.5">
                 <div class="min-w-0 flex-1">
@@ -173,16 +176,16 @@ function formatDate(iso: string) {
                     @click="toggle(log)"
                     :disabled="saving.has(log.id)"
                     :title="t('implausible.exclude_title')"
-                    :class="['relative inline-flex h-5 w-9 items-center rounded-full transition-colors disabled:opacity-50 mr-1 bg-green-500']">
-                    <span class="inline-block h-3 w-3 transform rounded-full bg-white transition-transform translate-x-5" />
+                    :class="['relative inline-flex h-5 w-9 items-center rounded-full border-2 border-gray-900 dark:border-white transition-colors disabled:opacity-50 mr-1 bg-emerald-500']">
+                    <span class="inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform translate-x-[18px]" />
                   </button>
                   <button @click="editingLog = log"
-                    class="p-1.5 rounded text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition"
+                    class="p-1.5 border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded-sm shadow-[2px_2px_0_0_#9ca3af] dark:shadow-[2px_2px_0_0_#4b5563] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-[transform,box-shadow] duration-75"
                     :title="t('implausible.edit_title')">
-                    <PencilSquareIcon class="h-4 w-4" />
+                    <PencilSquareIcon class="h-4 w-4 text-blue-600 dark:text-blue-400" />
                   </button>
                   <button @click="deleteLog(log)"
-                    class="p-1.5 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition"
+                    class="p-1.5 border-2 border-red-500 bg-white dark:bg-gray-900 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-sm shadow-[2px_2px_0_0_#dc2626] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-[transform,box-shadow] duration-75"
                     :title="t('implausible.delete_title')">
                     <TrashIcon class="h-4 w-4" />
                   </button>
@@ -191,14 +194,14 @@ function formatDate(iso: string) {
             </ul>
 
             <!-- Excluded section -->
-            <div v-if="excludedLogs.length > 0" class="border-t border-gray-100 dark:border-gray-700">
+            <div v-if="excludedLogs.length > 0" class="border-t-2 border-gray-300 dark:border-gray-700">
               <button
                 @click="showExcluded = !showExcluded"
-                class="w-full flex items-center justify-between px-5 py-3 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+                class="w-full flex items-center justify-between px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
                 <span>{{ t('implausible.excluded_count', excludedLogs.length) }}</span>
                 <ChevronDownIcon :class="['h-4 w-4 transition-transform', showExcluded ? 'rotate-180' : '']" />
               </button>
-              <ul v-if="showExcluded" class="divide-y divide-gray-100 dark:divide-gray-700 bg-gray-50 dark:bg-gray-700/30">
+              <ul v-if="showExcluded" class="divide-y-2 divide-gray-200 dark:divide-gray-700 bg-gray-50 dark:bg-gray-900/40">
                 <li v-for="log in excludedLogs" :key="log.id"
                   class="flex items-center gap-3 px-5 py-3.5 opacity-60">
                   <div class="min-w-0 flex-1">
@@ -226,11 +229,11 @@ function formatDate(iso: string) {
                       @click="toggle(log)"
                       :disabled="saving.has(log.id)"
                       :title="t('implausible.include_title')"
-                      :class="['relative inline-flex h-5 w-9 items-center rounded-full transition-colors disabled:opacity-50 mr-1 bg-gray-300 dark:bg-gray-600']">
-                      <span class="inline-block h-3 w-3 transform rounded-full bg-white transition-transform translate-x-1" />
+                      :class="['relative inline-flex h-5 w-9 items-center rounded-full border-2 border-gray-900 dark:border-white transition-colors disabled:opacity-50 mr-1 bg-gray-300 dark:bg-gray-600']">
+                      <span class="inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform translate-x-[2px]" />
                     </button>
                     <button @click="deleteLog(log)"
-                      class="p-1.5 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition"
+                      class="p-1.5 border-2 border-red-500 bg-white dark:bg-gray-900 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-sm shadow-[2px_2px_0_0_#dc2626] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-[transform,box-shadow] duration-75"
                       :title="t('implausible.delete_title')">
                       <TrashIcon class="h-4 w-4" />
                     </button>
@@ -242,9 +245,9 @@ function formatDate(iso: string) {
         </div>
 
         <!-- Footer -->
-        <div class="px-5 py-3 border-t border-gray-100 dark:border-gray-700 flex justify-end">
+        <div class="px-5 py-3 border-t-2 border-gray-300 dark:border-gray-700 flex justify-end">
           <button @click="emit('close')"
-            class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition">
+            class="inline-flex items-center justify-center px-4 py-2.5 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-bold uppercase tracking-wider text-[11px] rounded-sm border-2 border-gray-300 dark:border-gray-700 shadow-[2px_2px_0_0_#9ca3af] dark:shadow-[2px_2px_0_0_#4b5563] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-[transform,box-shadow] duration-75">
             {{ t('implausible.close') }}
           </button>
         </div>

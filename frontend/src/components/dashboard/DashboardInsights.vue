@@ -224,18 +224,18 @@ function drainBarWidth(ev: { kwh: number }): string {
 </script>
 
 <template>
-  <div class="bg-white dark:bg-gray-800 -mx-4 md:mx-0 md:rounded-xl md:border md:border-gray-200 md:dark:border-gray-700 overflow-hidden">
+  <div class="bg-white dark:bg-gray-800 -mx-4 md:mx-0 md:border-2 md:border-gray-900 md:dark:border-white md:rounded-sm md:shadow-[4px_4px_0_0_#030712] md:dark:shadow-[4px_4px_0_0_#ffffff] overflow-hidden">
 
     <!-- Tab bar -->
-    <div class="flex items-center gap-5 px-4 md:px-5 border-b border-gray-200 dark:border-gray-700">
+    <div class="flex items-center gap-5 px-4 md:px-5 border-b-2 border-gray-300 dark:border-gray-700">
       <button
         v-for="tab in (['donut', 'nights', 'calendar'] as Tab[])"
         :key="tab"
         @click="activeTab = tab"
         :class="[
-          'py-3 text-xs font-semibold border-b-2 transition-colors -mb-px',
+          'py-3 text-[11px] font-bold uppercase tracking-wider border-b-2 transition-colors -mb-0.5',
           activeTab === tab
-            ? 'border-indigo-500 text-indigo-500 dark:text-indigo-400'
+            ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
             : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
         ]"
       >
@@ -326,9 +326,9 @@ function drainBarWidth(ev: { kwh: number }): string {
               </div>
             </div>
             <!-- Footer -->
-            <div class="pt-1.5 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
-              <span class="text-[11px] text-gray-400 dark:text-gray-500">{{ fmt1(allChargedKwh) }} kWh {{ t('dashboard.insights_loaded') }}</span>
-              <span class="text-[11px] text-amber-500 dark:text-amber-400">{{ t('dashboard.insights_phantom_eur', { eur: fmt1(phantomEur) }) }}</span>
+            <div class="pt-1.5 border-t-2 border-gray-200 dark:border-gray-700 flex items-center justify-between">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 tabular-nums">{{ fmt1(allChargedKwh) }} kWh {{ t('dashboard.insights_loaded') }}</span>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 tabular-nums">{{ t('dashboard.insights_phantom_eur', { eur: fmt1(phantomEur) }) }}</span>
             </div>
           </div>
         </div>
@@ -336,8 +336,8 @@ function drainBarWidth(ev: { kwh: number }): string {
         <!-- ── STANDVERLUSTE ── -->
         <div v-else-if="activeTab === 'nights'" class="p-4 md:p-5">
           <div class="flex items-center justify-between mb-4">
-            <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('dashboard.insights_worst_parks') }}</p>
-            <span class="text-xs font-semibold text-amber-500 dark:text-amber-400 mono tabular-nums">∑ {{ fmt1(totalDrainFiltered) }} kWh</span>
+            <p class="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ t('dashboard.insights_worst_parks') }}</p>
+            <span class="text-xs font-bold text-amber-600 dark:text-amber-400 mono tabular-nums">∑ {{ fmt1(totalDrainFiltered) }} kWh</span>
           </div>
           <div v-if="drainEvents.length === 0" class="text-center py-6 text-sm text-gray-400 dark:text-gray-500">
             {{ t('dashboard.insights_no_drain') }}
@@ -365,7 +365,7 @@ function drainBarWidth(ev: { kwh: number }): string {
               </span>
             </div>
           </div>
-          <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-4 pt-3 border-t border-gray-100 dark:border-gray-700">
+          <p class="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mt-4 pt-3 border-t-2 border-gray-200 dark:border-gray-700">
             {{ t('dashboard.insights_sentry_hint') }}
           </p>
         </div>
@@ -373,10 +373,10 @@ function drainBarWidth(ev: { kwh: number }): string {
         <!-- ── CALENDAR ── -->
         <div v-else-if="activeTab === 'calendar'" class="p-4 md:p-5">
           <div class="flex items-center justify-between mb-4">
-            <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('dashboard.insights_trips_detected') }}</p>
+            <p class="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ t('dashboard.insights_trips_detected') }}</p>
             <div class="flex items-center gap-3">
-              <span class="text-xs font-semibold text-gray-800 dark:text-gray-200 mono tabular-nums">{{ tripCount }}</span>
-              <span class="text-xs text-gray-400 dark:text-gray-500 mono tabular-nums">{{ Math.round(totalTripKm) }} km</span>
+              <span class="text-xs font-bold text-gray-800 dark:text-gray-200 mono tabular-nums">{{ tripCount }}</span>
+              <span class="text-xs font-medium text-gray-500 dark:text-gray-500 mono tabular-nums">{{ Math.round(totalTripKm) }} km</span>
             </div>
           </div>
           <div v-if="tripCount === 0" class="text-center py-6 text-sm text-gray-400 dark:text-gray-500">
@@ -407,18 +407,18 @@ function drainBarWidth(ev: { kwh: number }): string {
               </div>
             </div>
           </div>
-          <div class="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700 grid grid-cols-3 gap-3 text-center">
+          <div class="mt-4 pt-3 border-t-2 border-gray-200 dark:border-gray-700 grid grid-cols-3 gap-3 text-center divide-x-2 divide-gray-200 dark:divide-gray-700">
             <div>
-              <p class="text-sm font-bold text-emerald-500 mono tabular-nums">{{ tripCount }}</p>
-              <p class="text-[10px] text-gray-400 dark:text-gray-500">{{ t('dashboard.insights_trips_count') }}</p>
+              <p class="text-sm font-bold text-emerald-600 dark:text-emerald-400 mono tabular-nums">{{ tripCount }}</p>
+              <p class="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ t('dashboard.insights_trips_count') }}</p>
             </div>
-            <div class="border-x border-gray-100 dark:border-gray-700">
+            <div>
               <p class="text-sm font-bold text-gray-800 dark:text-gray-200 mono tabular-nums">{{ fmt1(avgTripKm) }} km</p>
-              <p class="text-[10px] text-gray-400 dark:text-gray-500">{{ t('dashboard.insights_avg_trip') }}</p>
+              <p class="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ t('dashboard.insights_avg_trip') }}</p>
             </div>
             <div>
               <p class="text-sm font-bold text-gray-800 dark:text-gray-200 mono tabular-nums">{{ Math.round(totalTripKm) }} km</p>
-              <p class="text-[10px] text-gray-400 dark:text-gray-500">{{ t('dashboard.insights_total_km') }}</p>
+              <p class="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ t('dashboard.insights_total_km') }}</p>
             </div>
           </div>
         </div>

@@ -296,44 +296,46 @@ onMounted(async () => {
     <!-- Map container (always rendered) -->
     <div>
       <!-- Controls (only shown when we have data) -->
-      <div v-if="chargeCount > 0" class="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-3 md:p-4 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/30 dark:to-purple-900/20 md:rounded-lg border border-indigo-100 dark:border-indigo-800">
+      <div v-if="chargeCount > 0" class="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-3 md:p-4 bg-indigo-50 dark:bg-indigo-950/30 md:rounded-sm border-2 border-gray-900 dark:border-white shadow-[3px_3px_0_0_#030712] dark:shadow-[3px_3px_0_0_#ffffff]">
         <div class="flex items-center gap-2">
-          <MapPinIcon class="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-          <span class="text-sm font-semibold text-gray-700 dark:text-gray-200">
+          <div class="shrink-0 rounded-sm border-2 border-gray-900 dark:border-white bg-indigo-600 p-1.5 w-8 h-8 flex items-center justify-center">
+            <MapPinIcon class="h-4 w-4 text-white" />
+          </div>
+          <span class="text-[11px] font-bold uppercase tracking-[0.14em] text-gray-700 dark:text-gray-200">
             {{ t('heatmap.charges_count', { n: chargeCount }) }}
           </span>
         </div>
 
         <!-- View Mode Toggle -->
         <div class="flex items-center gap-2">
-          <span class="text-xs font-medium text-gray-600 dark:text-gray-400 mr-2">{{ t('heatmap.view_label') }}</span>
+          <span class="text-[10px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400 mr-1">{{ t('heatmap.view_label') }}</span>
           <button
             @click="setViewMode('heatmap')"
             :class="[
-              'px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200',
+              'px-3 py-1.5 rounded-sm text-[10px] font-bold uppercase tracking-wider border-2 transition-[transform,box-shadow] duration-75',
               viewMode === 'heatmap'
-                ? 'bg-indigo-600 text-white shadow-md'
-                : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
+                ? 'bg-indigo-600 border-indigo-600 text-white shadow-[2px_2px_0_0_#030712] dark:shadow-[2px_2px_0_0_#ffffff]'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-700 shadow-[2px_2px_0_0_#9ca3af] dark:shadow-[2px_2px_0_0_#4b5563] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none'
             ]">
             Heatmap
           </button>
           <button
             @click="setViewMode('markers')"
             :class="[
-              'px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200',
+              'px-3 py-1.5 rounded-sm text-[10px] font-bold uppercase tracking-wider border-2 transition-[transform,box-shadow] duration-75',
               viewMode === 'markers'
-                ? 'bg-indigo-600 text-white shadow-md'
-                : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
+                ? 'bg-indigo-600 border-indigo-600 text-white shadow-[2px_2px_0_0_#030712] dark:shadow-[2px_2px_0_0_#ffffff]'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-700 shadow-[2px_2px_0_0_#9ca3af] dark:shadow-[2px_2px_0_0_#4b5563] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none'
             ]">
             Marker
           </button>
           <button
             @click="setViewMode('both')"
             :class="[
-              'px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200',
+              'px-3 py-1.5 rounded-sm text-[10px] font-bold uppercase tracking-wider border-2 transition-[transform,box-shadow] duration-75',
               viewMode === 'both'
-                ? 'bg-indigo-600 text-white shadow-md'
-                : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
+                ? 'bg-indigo-600 border-indigo-600 text-white shadow-[2px_2px_0_0_#030712] dark:shadow-[2px_2px_0_0_#ffffff]'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-700 shadow-[2px_2px_0_0_#9ca3af] dark:shadow-[2px_2px_0_0_#4b5563] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none'
             ]">
             {{ t('heatmap.view_both') }}
           </button>
@@ -341,24 +343,24 @@ onMounted(async () => {
       </div>
 
       <!-- Legend (only shown when we have data) -->
-      <div v-if="chargeCount > 0" class="mb-3 flex flex-wrap items-center gap-4 text-xs text-gray-600 dark:text-gray-400 px-2">
-        <span class="font-semibold text-gray-700 dark:text-gray-300">{{ t('heatmap.legend') }}</span>
+      <div v-if="chargeCount > 0" class="mb-3 flex flex-wrap items-center gap-4 text-[10px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400 px-2">
+        <span class="text-gray-700 dark:text-gray-300">{{ t('heatmap.legend') }}</span>
         <span class="flex items-center gap-1.5">
-          <span class="inline-block w-4 h-4 rounded-full bg-green-500 shadow-sm"></span>
+          <span class="inline-block w-4 h-4 rounded-sm border-2 border-gray-900 dark:border-white bg-green-500"></span>
           {{ t('heatmap.legend_low') }}
         </span>
         <span class="flex items-center gap-1.5">
-          <span class="inline-block w-4 h-4 rounded-full bg-yellow-500 shadow-sm"></span>
+          <span class="inline-block w-4 h-4 rounded-sm border-2 border-gray-900 dark:border-white bg-yellow-500"></span>
           {{ t('heatmap.legend_medium') }}
         </span>
         <span class="flex items-center gap-1.5">
-          <span class="inline-block w-4 h-4 rounded-full bg-red-500 shadow-sm"></span>
+          <span class="inline-block w-4 h-4 rounded-sm border-2 border-gray-900 dark:border-white bg-red-500"></span>
           {{ t('heatmap.legend_high') }}
         </span>
-        <span class="text-gray-400 ml-2">{{ t('heatmap.click_for_details') }}</span>
+        <span class="text-gray-500 dark:text-gray-500 ml-2 normal-case tracking-normal font-medium">{{ t('heatmap.click_for_details') }}</span>
       </div>
 
-      <div ref="mapContainer" class="w-full h-[400px] sm:h-[550px] md:rounded-lg border md:border-2 border-gray-300 md:shadow-lg transition-all duration-300 hover:shadow-xl"></div>
+      <div ref="mapContainer" class="w-full h-[400px] sm:h-[550px] md:rounded-sm border-2 border-gray-900 dark:border-white md:shadow-[4px_4px_0_0_#030712] md:dark:shadow-[4px_4px_0_0_#ffffff]"></div>
     </div>
   </div>
 </template>
