@@ -147,7 +147,17 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     int updateTelemetryExtras(@Param("carId") UUID carId, @Param("loggedAt") LocalDateTime loggedAt, @Param("json") String json);
 
     @Modifying
-    @Query("UPDATE EvLogEntity e SET e.powerCurvePoints = :json WHERE e.id = :id")
+    @Query("UPDATE EvLogEntity e SET e.telemetryExtras = :json WHERE e.id = :id")
+    int updateTelemetryExtrasById(@Param("id") UUID id, @Param("json") String json);
+
+    /**
+     * Schreibt die Power-Curve nur, solange noch keine gesetzt ist. Garantiert
+     * Immutabilitaet nach Session-Finalize - damit haelt das 7d-ETag-/Cache-Control-
+     * Header im EvLogController (ETag = "pc-<id>") seine Aussage. Spaetere Reruns
+     * (z.B. zweiter Telemetry-Push) werden als No-Op verworfen.
+     */
+    @Modifying
+    @Query("UPDATE EvLogEntity e SET e.powerCurvePoints = :json WHERE e.id = :id AND e.powerCurvePoints IS NULL")
     int updatePowerCurvePoints(@Param("id") UUID id, @Param("json") String json);
 
     /**

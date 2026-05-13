@@ -151,10 +151,10 @@ class XpengChargeMatcherTest {
         assertEquals(0, saved.getMaxChargingPowerKw().compareTo(new BigDecimal("125.0")));
         assertEquals(ChargingType.DC, saved.getChargingType());
 
-        // telemetry_extras geht NICHT via save() - direkt via Update auf (carId, loggedAt)
-        // Die loggedAt-Identitaet ist die des EXISTIERENDEN Logs, nicht die der Session
-        verify(evLogRepository).updateTelemetryExtras(eq(CAR),
-                eq(manual.getLoggedAt()), anyString());
+        // telemetry_extras geht NICHT via save() - direkt via Update auf die Log-ID.
+        // ID-basierter Update vermeidet Mismatches bei nicht-eindeutigem Composite-Key
+        // (z.B. wenn loggedAt nachtraeglich angepasst wird).
+        verify(evLogRepository).updateTelemetryExtrasById(eq(manual.getId()), anyString());
     }
 
     @Test

@@ -344,6 +344,7 @@ public class EvLogService {
      * curve (most data sources). Throws {@link IllegalArgumentException} on
      * log-not-found or ownership mismatch - mapped to 404 by the controller.
      */
+    @Transactional(readOnly = true)
     public PowerCurveResponse getPowerCurveForUser(UUID logId, UUID userId) {
         // Single JOIN-Query: holt owner-userId + curve-JSON in einem DB-Roundtrip.
         // Spart zwei separate findById-Calls (Log + Car) gegenueber der vorherigen

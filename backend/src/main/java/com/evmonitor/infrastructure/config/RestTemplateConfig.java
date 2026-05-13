@@ -7,12 +7,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.InetSocketAddress;
 import java.net.Proxy;
+import java.net.http.HttpClient;
 import java.time.Duration;
 
 @Configuration
@@ -27,11 +29,23 @@ public class RestTemplateConfig {
             .build();
     }
 
+    /**
+     * Live-Charging-Polling laeuft pro AutoSync-Live-User adaptiv alle 3-15s gegen
+     * den Connectors-Service. Mit {@link SimpleClientHttpRequestFactory} oeffnet
+     * jeder Request einen neuen Socket - bei N gleichzeitigen Live-Sessions landet
+     * man schnell in der TIME_WAIT-Hoelle.
+     *
+     * <p>{@link JdkClientHttpRequestFactory} wrappt den JDK {@link HttpClient},
+     * der Connection-Pooling + HTTP/1.1 Keep-Alive von Haus aus mitbringt - ohne
+     * neue Library-Dependency.
+     */
     @Bean("liveChargingRestTemplate")
     public RestTemplate liveChargingRestTemplate() {
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(3_000);
-        factory.setReadTimeout(5_000);
+        HttpClient httpClient = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(3))
+                .build();
+        JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(httpClient);
+        factory.setReadTimeout(Duration.ofSeconds(5));
         return new RestTemplate(factory);
     }
 

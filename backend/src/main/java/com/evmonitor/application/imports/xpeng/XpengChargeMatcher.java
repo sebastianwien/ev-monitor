@@ -84,7 +84,7 @@ public class XpengChargeMatcher {
             String extrasJson = serializeExtras(s.telemetryExtras());
             if (extrasJson != null) {
                 try {
-                    evLogRepository.updateTelemetryExtras(carId, existing.getLoggedAt(), extrasJson);
+                    evLogRepository.updateTelemetryExtrasById(existing.getId(), extrasJson);
                 } catch (Exception e) {
                     log.warn("XpengChargeMatcher: telemetry_extras update failed for log {}",
                             existing.getId(), e);

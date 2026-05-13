@@ -1,5 +1,6 @@
 package com.evmonitor.application;
 
+import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -27,16 +28,29 @@ public class LiveChargingService {
 
     private static final Logger log = LoggerFactory.getLogger(LiveChargingService.class);
 
-    @Value("${connectors.base-url:http://connectors-service:8081}")
-    private String connectorsBaseUrl;
-
-    @Value("${internal.token:}")
-    private String internalToken;
-
+    private final String connectorsBaseUrl;
+    private final String internalToken;
     private final RestTemplate restTemplate;
 
-    public LiveChargingService(@Qualifier("liveChargingRestTemplate") RestTemplate restTemplate) {
+    public LiveChargingService(
+            @Qualifier("liveChargingRestTemplate") RestTemplate restTemplate,
+            @Value("${connectors.base-url:http://connectors-service:8081}") String connectorsBaseUrl,
+            @Value("${internal.token:}") String internalToken) {
         this.restTemplate = restTemplate;
+        this.connectorsBaseUrl = connectorsBaseUrl;
+        this.internalToken = internalToken;
+    }
+
+    @PostConstruct
+    void validateInternalToken() {
+        if (internalToken == null || internalToken.isBlank()) {
+            // Fail-fast statt zur Runtime einen wirkungslosen Header zu senden, den der
+            // Connectors-Service eh ablehnt. Lokal kann ueber Property
+            // 'internal.token' ein Dummy gesetzt werden.
+            throw new IllegalStateException(
+                    "internal.token is not configured - cannot call connectors-service "
+                            + "for live-charging. Set INTERNAL_TOKEN env or 'internal.token' property.");
+        }
     }
 
     /**

@@ -58,6 +58,11 @@ public interface EvLogRepository {
     /** Set the JSON-blob telemetry_extras on the unique (carId, loggedAt) entry, if it exists. */
     void updateTelemetryExtras(UUID carId, LocalDateTime loggedAt, String telemetryExtrasJson);
 
+    /** Set the JSON-blob telemetry_extras on a known log id. Preferred over the (carId, loggedAt)
+     *  variant when the caller already has the id - vermeidet Mismatches bei nicht-eindeutigem
+     *  Composite-Key (z.B. wenn loggedAt nachtraeglich angepasst wird). */
+    void updateTelemetryExtrasById(UUID logId, String telemetryExtrasJson);
+
     /** Persist the downsampled power-curve JSON for the given log id. No-op if id not found. */
     void updatePowerCurvePoints(UUID id, String powerCurvePointsJson);
 

@@ -172,7 +172,8 @@ function formatNumber(val: number | null, decimals = 1): string {
         </div>
       </header>
 
-      <div v-if="dataIsStale" class="border-l-4 border-amber-500 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-xs font-medium text-amber-700 dark:text-amber-300">
+      <div v-if="dataIsStale" role="status" aria-live="polite"
+           class="border-l-4 border-amber-500 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-xs font-medium text-amber-700 dark:text-amber-300">
         {{ t('live.stale_warning') }}
       </div>
 
@@ -270,8 +271,8 @@ function formatNumber(val: number | null, decimals = 1): string {
         </p>
         <span v-else></span>
         <div class="flex items-center gap-3 shrink-0">
-          <div class="flex items-center gap-2">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 pulse-dot shrink-0"></span>
+          <div class="flex items-center gap-2" role="status" aria-live="polite">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 pulse-dot shrink-0" aria-hidden="true"></span>
             <p class="text-[11px] text-gray-500 dark:text-gray-400 tabular-nums">
               {{ secondsSinceUpdate != null ? t('live.seconds_ago', { n: secondsSinceUpdate }) : '-' }}
             </p>

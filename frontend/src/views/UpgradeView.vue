@@ -69,13 +69,13 @@
                             </p>
                         </div>
                         <ul class="space-y-2.5 text-sm text-gray-700 dark:text-gray-300 mb-6 flex-1">
-                            <li class="flex items-start gap-2"><span class="text-gray-400 mt-0.5">✓</span><span>{{ t('upgrade.tier_free_feat_manual') }}</span></li>
-                            <li class="flex items-start gap-2"><span class="text-gray-400 mt-0.5">✓</span><span>{{ t('upgrade.tier_free_feat_xpeng') }}</span></li>
-                            <li class="flex items-start gap-2"><span class="text-gray-400 mt-0.5">✓</span><span>{{ t('upgrade.tier_free_feat_imports') }}</span></li>
-                            <li class="flex items-start gap-2"><span class="text-gray-400 mt-0.5">✓</span><span>{{ t('upgrade.tier_free_feat_api') }}</span></li>
-                            <li class="flex items-start gap-2"><span class="text-gray-400 mt-0.5">✓</span><span>{{ t('upgrade.tier_free_feat_stats') }}</span></li>
-                            <li class="flex items-start gap-2"><span class="text-gray-400 mt-0.5">✓</span><span>{{ t('upgrade.tier_free_feat_soh') }}</span></li>
-                            <li class="flex items-start gap-2"><span class="text-gray-400 mt-0.5">✓</span><span>{{ t('upgrade.tier_free_feat_cars') }}</span></li>
+                            <li class="flex items-start gap-2"><CheckCircleIcon class="w-4 h-4 text-gray-400 shrink-0 mt-0.5" /><span>{{ t('upgrade.tier_free_feat_manual') }}</span></li>
+                            <li class="flex items-start gap-2"><CheckCircleIcon class="w-4 h-4 text-gray-400 shrink-0 mt-0.5" /><span>{{ t('upgrade.tier_free_feat_xpeng') }}</span></li>
+                            <li class="flex items-start gap-2"><CheckCircleIcon class="w-4 h-4 text-gray-400 shrink-0 mt-0.5" /><span>{{ t('upgrade.tier_free_feat_imports') }}</span></li>
+                            <li class="flex items-start gap-2"><CheckCircleIcon class="w-4 h-4 text-gray-400 shrink-0 mt-0.5" /><span>{{ t('upgrade.tier_free_feat_api') }}</span></li>
+                            <li class="flex items-start gap-2"><CheckCircleIcon class="w-4 h-4 text-gray-400 shrink-0 mt-0.5" /><span>{{ t('upgrade.tier_free_feat_stats') }}</span></li>
+                            <li class="flex items-start gap-2"><CheckCircleIcon class="w-4 h-4 text-gray-400 shrink-0 mt-0.5" /><span>{{ t('upgrade.tier_free_feat_soh') }}</span></li>
+                            <li class="flex items-start gap-2"><CheckCircleIcon class="w-4 h-4 text-gray-400 shrink-0 mt-0.5" /><span>{{ t('upgrade.tier_free_feat_cars') }}</span></li>
                         </ul>
                         <button
                             disabled
@@ -110,9 +110,9 @@
                             <p v-if="!(selectedPlan === 'yearly' && tier === 'NONE')" class="text-xs text-green-600 dark:text-green-400 font-medium mt-0.5">{{ t('upgrade.tier_autosync_yearly_hint', { yearly: pricing.yearly }) }}</p>
                         </div>
                         <ul class="space-y-2.5 text-sm text-gray-700 dark:text-gray-300 mb-6 flex-1">
-                            <li class="flex items-start gap-2"><span class="text-green-600 dark:text-green-400 mt-0.5">✓</span><span>{{ t('upgrade.tier_autosync_feat_tesla') }}</span></li>
-                            <li class="flex items-start gap-2"><span class="text-green-600 dark:text-green-400 mt-0.5">✓</span><span>{{ t('upgrade.tier_autosync_feat_smartcar') }}</span></li>
-                            <li class="flex items-start gap-2"><span class="text-green-600 dark:text-green-400 mt-0.5">✓</span><span>{{ t('upgrade.tier_autosync_feat_connection') }}</span></li>
+                            <li class="flex items-start gap-2"><CheckCircleIcon class="w-4 h-4 text-green-600 dark:text-green-400 shrink-0 mt-0.5" /><span>{{ t('upgrade.tier_autosync_feat_tesla') }}</span></li>
+                            <li class="flex items-start gap-2"><CheckCircleIcon class="w-4 h-4 text-green-600 dark:text-green-400 shrink-0 mt-0.5" /><span>{{ t('upgrade.tier_autosync_feat_smartcar') }}</span></li>
+                            <li class="flex items-start gap-2"><CheckCircleIcon class="w-4 h-4 text-green-600 dark:text-green-400 shrink-0 mt-0.5" /><span>{{ t('upgrade.tier_autosync_feat_connection') }}</span></li>
                             <li class="flex items-start gap-2 text-gray-500 dark:text-gray-400"><span class="mt-0.5">+</span><span><em>{{ t('upgrade.tier_autosync_feat_inherits') }}</em></span></li>
                         </ul>
                         <template v-if="tier === 'NONE'">
@@ -165,32 +165,32 @@
                             <template v-if="showTeslaOnlyFeatures">
                                 <li class="space-y-1">
                                     <div class="flex items-start gap-2">
-                                        <span class="text-indigo-600 dark:text-indigo-400 mt-0.5">✓</span>
+                                        <CheckCircleIcon class="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
                                         <span class="flex-1">{{ t('upgrade.tier_live_feat_live_view') }}</span>
-                                        <button v-if="!failedPreviews.has('live_view')" type="button" @click="togglePreview('live_view')"
+                                        <button v-if="hasPreview('live_view')" type="button" @click="togglePreview('live_view')"
                                             :aria-label="t('upgrade.tier_live_feat_preview_hint')"
                                             class="shrink-0 p-0.5 text-indigo-400 dark:text-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-300 transition">
                                             <ChevronDownIcon v-if="expandedPreview !== 'live_view'" class="w-3.5 h-3.5" />
                                             <ChevronUpIcon v-else class="w-3.5 h-3.5" />
                                         </button>
                                     </div>
-                                    <img v-if="expandedPreview === 'live_view' && !failedPreviews.has('live_view')" :src="'/upgrade-previews/live-view.png'" loading="lazy"
+                                    <img v-if="expandedPreview === 'live_view' && hasPreview('live_view')" :src="'/upgrade-previews/live-view.png'" loading="lazy"
                                         :alt="t('upgrade.tier_live_feat_live_view')"
                                         @error="onPreviewError('live_view')"
                                         class="mt-1 ml-5 rounded-sm border border-indigo-200 dark:border-indigo-800 shadow-sm max-w-full" />
                                 </li>
                                 <li class="space-y-1">
                                     <div class="flex items-start gap-2">
-                                        <span class="text-indigo-600 dark:text-indigo-400 mt-0.5">✓</span>
+                                        <CheckCircleIcon class="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
                                         <span class="flex-1">{{ t('upgrade.tier_live_feat_curves') }}</span>
-                                        <button v-if="!failedPreviews.has('curves')" type="button" @click="togglePreview('curves')"
+                                        <button v-if="hasPreview('curves')" type="button" @click="togglePreview('curves')"
                                             :aria-label="t('upgrade.tier_live_feat_preview_hint')"
                                             class="shrink-0 p-0.5 text-indigo-400 dark:text-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-300 transition">
                                             <ChevronDownIcon v-if="expandedPreview !== 'curves'" class="w-3.5 h-3.5" />
                                             <ChevronUpIcon v-else class="w-3.5 h-3.5" />
                                         </button>
                                     </div>
-                                    <img v-if="expandedPreview === 'curves' && !failedPreviews.has('curves')" :src="'/upgrade-previews/curves.png'" loading="lazy"
+                                    <img v-if="expandedPreview === 'curves' && hasPreview('curves')" :src="'/upgrade-previews/curves.png'" loading="lazy"
                                         :alt="t('upgrade.tier_live_feat_curves')"
                                         @error="onPreviewError('curves')"
                                         class="mt-1 ml-5 rounded-sm border border-indigo-200 dark:border-indigo-800 shadow-sm max-w-full" />
@@ -199,53 +199,53 @@
                             <!-- Universelle Live-Features (Tesla + Polestar) -->
                             <li class="space-y-1">
                                 <div class="flex items-start gap-2">
-                                    <span class="text-indigo-600 dark:text-indigo-400 mt-0.5">✓</span>
+                                    <CheckCircleIcon class="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
                                     <span class="flex-1">{{ t('upgrade.tier_live_feat_insights') }}</span>
-                                    <button v-if="!failedPreviews.has('insights')" type="button" @click="togglePreview('insights')"
+                                    <button v-if="hasPreview('insights')" type="button" @click="togglePreview('insights')"
                                         :aria-label="t('upgrade.tier_live_feat_preview_hint')"
                                         class="shrink-0 p-0.5 text-indigo-400 dark:text-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-300 transition">
                                         <ChevronDownIcon v-if="expandedPreview !== 'insights'" class="w-3.5 h-3.5" />
                                         <ChevronUpIcon v-else class="w-3.5 h-3.5" />
                                     </button>
                                 </div>
-                                <img v-if="expandedPreview === 'insights' && !failedPreviews.has('insights')" :src="'/upgrade-previews/insights.png'" loading="lazy"
+                                <img v-if="expandedPreview === 'insights' && hasPreview('insights')" :src="'/upgrade-previews/insights.png'" loading="lazy"
                                     :alt="t('upgrade.tier_live_feat_insights')"
                                     @error="onPreviewError('insights')"
                                     class="mt-1 ml-5 rounded-sm border border-indigo-200 dark:border-indigo-800 shadow-sm max-w-full" />
                             </li>
                             <li class="space-y-1">
                                 <div class="flex items-start gap-2">
-                                    <span class="text-indigo-600 dark:text-indigo-400 mt-0.5">✓</span>
+                                    <CheckCircleIcon class="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
                                     <span class="flex-1">{{ t('upgrade.tier_live_feat_calendar') }}</span>
-                                    <button v-if="!failedPreviews.has('calendar')" type="button" @click="togglePreview('calendar')"
+                                    <button v-if="hasPreview('calendar')" type="button" @click="togglePreview('calendar')"
                                         :aria-label="t('upgrade.tier_live_feat_preview_hint')"
                                         class="shrink-0 p-0.5 text-indigo-400 dark:text-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-300 transition">
                                         <ChevronDownIcon v-if="expandedPreview !== 'calendar'" class="w-3.5 h-3.5" />
                                         <ChevronUpIcon v-else class="w-3.5 h-3.5" />
                                     </button>
                                 </div>
-                                <img v-if="expandedPreview === 'calendar' && !failedPreviews.has('calendar')" :src="'/upgrade-previews/calendar.png'" loading="lazy"
+                                <img v-if="expandedPreview === 'calendar' && hasPreview('calendar')" :src="'/upgrade-previews/calendar.png'" loading="lazy"
                                     :alt="t('upgrade.tier_live_feat_calendar')"
                                     @error="onPreviewError('calendar')"
                                     class="mt-1 ml-5 rounded-sm border border-indigo-200 dark:border-indigo-800 shadow-sm max-w-full" />
                             </li>
                             <li class="space-y-1">
                                 <div class="flex items-start gap-2">
-                                    <span class="text-indigo-600 dark:text-indigo-400 mt-0.5">✓</span>
+                                    <CheckCircleIcon class="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
                                     <span class="flex-1">{{ t('upgrade.tier_live_feat_drain') }}</span>
-                                    <button v-if="!failedPreviews.has('drain')" type="button" @click="togglePreview('drain')"
+                                    <button v-if="hasPreview('drain')" type="button" @click="togglePreview('drain')"
                                         :aria-label="t('upgrade.tier_live_feat_preview_hint')"
                                         class="shrink-0 p-0.5 text-indigo-400 dark:text-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-300 transition">
                                         <ChevronDownIcon v-if="expandedPreview !== 'drain'" class="w-3.5 h-3.5" />
                                         <ChevronUpIcon v-else class="w-3.5 h-3.5" />
                                     </button>
                                 </div>
-                                <img v-if="expandedPreview === 'drain' && !failedPreviews.has('drain')" :src="'/upgrade-previews/drain.png'" loading="lazy"
+                                <img v-if="expandedPreview === 'drain' && hasPreview('drain')" :src="'/upgrade-previews/drain.png'" loading="lazy"
                                     :alt="t('upgrade.tier_live_feat_drain')"
                                     @error="onPreviewError('drain')"
                                     class="mt-1 ml-5 rounded-sm border border-indigo-200 dark:border-indigo-800 shadow-sm max-w-full" />
                             </li>
-                            <li class="flex items-start gap-2"><span class="text-indigo-600 dark:text-indigo-400 mt-0.5">✓</span><span>{{ t('upgrade.tier_live_feat_brands') }}</span></li>
+                            <li class="flex items-start gap-2"><CheckCircleIcon class="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" /><span>{{ t('upgrade.tier_live_feat_brands') }}</span></li>
                             <li class="flex items-start gap-2 text-gray-500 dark:text-gray-400"><span class="mt-0.5">+</span><span><em>{{ t('upgrade.tier_live_feat_inherits') }}</em></span></li>
                         </ul>
                         <template v-if="isLiveActive">
@@ -322,9 +322,17 @@ const hasOnlyNonTeslaCars = computed(() =>
     && !userCarBrands.value.some(b => b?.toUpperCase() === 'TESLA'));
 const showTeslaOnlyFeatures = computed(() => !hasOnlyNonTeslaCars.value);
 
-// Feature-Preview-Expand State: nur eines gleichzeitig sichtbar
+// Feature-Preview-Expand State: nur eines gleichzeitig sichtbar.
+// AVAILABLE_PREVIEWS listet vorhandene PNGs in /public/upgrade-previews/.
+// Fehlende Bilder (z.B. calendar/curves) erzeugen sonst beim ersten Page-View
+// einen sichtbaren 404 + Layout-Shift. Wird zur Build-Time evaluiert -
+// neue Previews nach dem Hinzufuegen der PNG in dieses Set aufnehmen.
+const AVAILABLE_PREVIEWS = new Set<string>(['live_view', 'insights', 'drain']);
 const expandedPreview = ref<string | null>(null);
 const failedPreviews = ref(new Set<string>());
+function hasPreview(key: string) {
+    return AVAILABLE_PREVIEWS.has(key) && !failedPreviews.value.has(key);
+}
 function togglePreview(key: string) {
     expandedPreview.value = expandedPreview.value === key ? null : key;
 }

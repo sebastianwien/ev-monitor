@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, useId } from 'vue'
 
 interface PowerPoint { ts: number; kw: number }
 
@@ -162,8 +162,9 @@ const curveXLabels = computed<{ text: string; isNow: boolean }[]>(() => {
 })
 
 // Unique id-Suffix damit mehrere Instanzen auf einer Seite keine Gradient-IDs
-// teilen und sich gegenseitig "verlieren".
-const uid = Math.random().toString(36).slice(2, 9)
+// teilen und sich gegenseitig "verlieren". Vue 3.5 useId() ist SSR-stabil
+// (waehrend Math.random() Hydration-Mismatch ausloesen wuerde).
+const uid = useId()
 const fillId = `pc-fill-${uid}`
 const strokeId = `pc-stroke-${uid}`
 const glowId = `pc-glow-${uid}`

@@ -153,6 +153,12 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
 
     @Override
     @Transactional
+    public void updateTelemetryExtrasById(UUID logId, String telemetryExtrasJson) {
+        jpaRepository.updateTelemetryExtrasById(logId, telemetryExtrasJson);
+    }
+
+    @Override
+    @Transactional
     public void updatePowerCurvePoints(UUID id, String powerCurvePointsJson) {
         jpaRepository.updatePowerCurvePoints(id, powerCurvePointsJson);
     }
