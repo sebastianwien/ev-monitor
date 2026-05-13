@@ -36,6 +36,7 @@ import { useAuthStore } from '../stores/auth'
 import { analytics } from '../services/analytics'
 import ImplausibleLogsModal from '../components/dashboard/ImplausibleLogsModal.vue'
 import PeerBenchmarkCard from '../components/dashboard/PeerBenchmarkCard.vue'
+import WltpComparisonCard from '../components/dashboard/WltpComparisonCard.vue'
 import RangeCard from '../components/dashboard/RangeCard.vue'
 import DashboardEmptyState from '../components/dashboard/DashboardEmptyState.vue'
 import DashboardInsights from '../components/dashboard/DashboardInsights.vue'
@@ -229,7 +230,7 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
             :class="[
               cars.length > 1
                 ? 'sticky top-16 z-10 bg-white dark:bg-gray-800 -mx-4 px-4 md:-mx-6 md:px-6 py-1.5 md:py-3 mb-3 border-b border-gray-100 dark:border-gray-700 shadow-sm'
-                : 'sticky top-16 z-10 bg-white dark:bg-gray-800 -mx-4 px-4 py-1.5 mb-3 border-b border-gray-100 dark:border-gray-700 shadow-sm md:static md:bg-transparent md:p-0 md:mb-6 md:rounded-xl md:w-fit md:border-0 md:shadow-none',
+                : 'mb-6 md:w-fit',
               cars.length === 1 && anyVehicleCharging ? 'vehicle-charging-glow' : '',
               isCarHeaderSticky ? 'car-header-compact' : ''
             ]"
@@ -360,13 +361,13 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
           <!-- Filters (desktop only - mobile uses sticky bottom bar below) -->
           <div v-if="selectedCarId && hasAnyLogs" class="hidden md:block mb-6 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-600 shadow-sm">
             <!-- Tab strip -->
-            <div class="flex overflow-x-auto scrollbar-hide bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-600">
+            <div class="flex overflow-x-auto scrollbar-hide bg-white dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
               <button
                 v-for="option in timeRangeOptions"
                 :key="option.value"
                 @click="selectedTimeRange = option.value"
                 :class="[
-                  'flex items-center gap-1.5 px-4 h-11 text-xs font-mono whitespace-nowrap border-r border-gray-200 dark:border-gray-600 border-l-[3px] flex-shrink-0 transition-all duration-100 cursor-pointer',
+                  'flex items-center gap-1.5 px-3 h-10 text-xs font-mono whitespace-nowrap border-r border-gray-200 dark:border-gray-600 border-l-[3px] flex-shrink-0 transition-all duration-100 cursor-pointer',
                   selectedTimeRange === option.value
                     ? option.value === 'CUSTOM'
                       ? 'border-l-sky-400 text-sky-400 bg-sky-400/5'
@@ -374,10 +375,10 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
                     : 'border-l-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5'
                 ]">
                 <CalendarIcon v-if="option.value === 'CUSTOM'" class="h-3.5 w-3.5 flex-shrink-0" />
-                {{ option.label }}
+                {{ option.shortLabel }}
               </button>
               <!-- Gruppierung at the right end -->
-              <div class="ml-auto flex items-center gap-2 px-4 border-l border-gray-200 dark:border-gray-600 flex-shrink-0">
+              <div class="ml-auto flex items-center gap-2 px-3 border-l border-gray-200 dark:border-gray-600 flex-shrink-0">
                 <ListBulletIcon class="h-3.5 w-3.5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
                 <div class="relative">
                   <select v-model="selectedGroupBy"
@@ -397,7 +398,7 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
               leave-from-class="opacity-100 translate-y-0"
               leave-to-class="opacity-0 -translate-y-1">
               <div v-if="selectedTimeRange === 'CUSTOM'"
-                class="flex items-center gap-3 px-4 py-2.5 bg-gray-50 dark:bg-gray-800/60">
+                class="flex items-center gap-3 px-4 py-2.5 bg-gray-50 dark:bg-gray-700/60">
                 <span class="text-xs text-gray-400 dark:text-gray-500 font-mono uppercase tracking-wide">{{ t('dashboard.time_custom_from') }}</span>
                 <div class="relative">
                   <input type="date" v-model="customStartDate" :max="customEndDate || undefined"
@@ -437,7 +438,19 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
             :car-display-name="selectedCar ? [carDisplayName(selectedCar.brand, selectedCar.model), selectedCar.trim].filter(Boolean).join(' ') : ''"
           />
 
-          <!-- Peer Benchmark Placeholder (collapsible: takes one line when empty) -->
+          <!-- WLTP-Vergleich (Fallback wenn keine Peer-Daten aber WLTP vorhanden) -->
+          <WltpComparisonCard
+            v-else-if="wltp && stats?.avgConsumptionKwhPer100km && selectedCar?.effectiveBatteryCapacityKwh"
+            class="flex-1 min-w-0"
+            :official-range-km="wltp.officialRangeKm"
+            :official-consumption-kwh-per100km="wltp.officialConsumptionKwhPer100km"
+            :user-avg-consumption-kwh-per100km="stats.avgConsumptionKwhPer100km"
+            :effective-battery-kwh="selectedCar.effectiveBatteryCapacityKwh"
+            :car-display-name="selectedCar ? [carDisplayName(selectedCar.brand, selectedCar.model), selectedCar.trim].filter(Boolean).join(' ') : ''"
+            :rating-source="wltp.ratingSource"
+          />
+
+          <!-- Peer Benchmark Placeholder (nur wenn auch keine WLTP-Daten) -->
           <div
             v-else-if="stats && carInfo?.batteryCapacityKwh && stats?.avgConsumptionKwhPer100km"
             class="flex-1 min-w-0 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden"

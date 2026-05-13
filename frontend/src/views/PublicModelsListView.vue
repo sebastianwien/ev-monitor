@@ -1,4 +1,5 @@
 <template>
+<div>
   <div :class="isAuthenticated ? '' : 'min-h-screen bg-gray-50 dark:bg-gray-950'">
     <PublicNav />
 
@@ -402,6 +403,7 @@
     </footer>
   </div>
   <DemoModelsModal />
+</div>
 </template>
 
 <script setup lang="ts">

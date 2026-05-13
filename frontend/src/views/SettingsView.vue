@@ -104,6 +104,7 @@ onMounted(async () => {
 </script>
 
 <template>
+<div>
   <div class="md:max-w-4xl md:mx-auto md:p-6">
     <div class="bg-white dark:bg-gray-800 md:rounded-xl md:shadow-lg p-4 md:p-6">
       <!-- Header -->
@@ -772,4 +773,5 @@ onMounted(async () => {
       </div>
     </div>
   </Teleport>
+</div>
 </template>

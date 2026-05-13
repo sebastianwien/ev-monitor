@@ -492,6 +492,8 @@ dashboard:
   peer_insufficient_data: "Only {n} drivers with same spec - trend visible, not yet statistically robust"
   peer_no_data_title: "No comparison available"
   peer_no_data_body: "Once more drivers with the same model track their data, your community comparison will appear here."
+  wltp_comparison_subtitle: "WLTP manufacturer spec"
+  wltp_comparison_note: "Both ranges calculated with 90→10% charging window - not the official spec range"
   peer_footer: "{trips} trips analysed"
   peer_range_window: "90→10% charging window"
   peer_cost_country_note: "cost data {country} only"

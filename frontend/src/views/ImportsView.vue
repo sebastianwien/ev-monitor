@@ -185,6 +185,7 @@ const teslaConnectedLabel = ref<string | null>(null)
 </script>
 
 <template>
+<div>
   <div class="md:max-w-5xl md:mx-auto md:p-6">
     <Transition name="fade" mode="out-in">
       <div v-if="!loading" class="bg-white dark:bg-gray-800 md:rounded-xl md:shadow-lg p-4 md:p-6">
@@ -666,6 +667,7 @@ const teslaConnectedLabel = ref<string | null>(null)
     @imported="showManualImportModal = false"
   />
   <DemoImportsModal v-if="authStore.isDemoAccount" />
+</div>
 </template>
 
 <style scoped>

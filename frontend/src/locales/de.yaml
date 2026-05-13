@@ -492,6 +492,8 @@ dashboard:
   peer_insufficient_data: "Nur {n} Fahrer mit gleicher Spec - Tendenz sichtbar, noch keine belastbare Aussage"
   peer_no_data_title: "Kein Vergleich verfügbar"
   peer_no_data_body: "Sobald mehr Fahrer mit gleichem Modell Daten erfassen, erscheint hier dein Community-Vergleich."
+  wltp_comparison_subtitle: "WLTP-Herstellerangabe"
+  wltp_comparison_note: "Beide Reichweiten mit 90→10% Ladefenster gerechnet - nicht der Prospektwert"
   peer_footer: "{trips} Fahrten ausgewertet"
   peer_range_window: "90→10% Ladefenster"
   peer_cost_country_note: "Kosten nur {country}"

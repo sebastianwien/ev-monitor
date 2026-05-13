@@ -132,6 +132,7 @@ const handleResend = async () => {
 </script>
 
 <template>
+<div>
   <div class="flex items-center justify-center min-h-screen px-4 py-12">
     <div class="w-full max-w-md p-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg">
 
@@ -257,4 +258,5 @@ const handleResend = async () => {
       </button>
     </div>
   </Teleport>
+</div>
 </template>

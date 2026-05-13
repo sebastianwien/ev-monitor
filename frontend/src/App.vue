@@ -481,6 +481,7 @@ const closeMobileMenu = () => {
         authStore.isAuthenticated() ? 'md:px-4' : '',
         authStore.isDemoAccount ? 'pb-14' : authStore.isAuthenticated() ? 'md:pb-10' : ''
       ]"
+      style="overflow-x: clip;"
       :style="{ paddingTop: mainPaddingTop, transition: 'padding-top 0.3s ease' }">
       <router-view v-slot="{ Component, route }">
         <Transition :name="(route.meta.transition as string) || ''" mode="out-in">

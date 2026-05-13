@@ -486,6 +486,8 @@ dashboard:
   peer_insufficient_data: Bara {n} förare med samma spec - trend synlig, ännu inte statistiskt robust
   peer_no_data_title: Ingen jämförelse tillgänglig
   peer_no_data_body: När fler förare med samma modell registrerar data visas din jämförelse här.
+  wltp_comparison_subtitle: WLTP tillverkaruppgift
+  wltp_comparison_note: Båda räckvidderna beräknade med 90→10% laddningsfönster - inte officiell prospekträckvidd
   peer_footer: "{trips} resor analyserade"
   peer_range_window: 90→10% laddningsfönster
   peer_cost_country_note: "kostnad endast {country}"

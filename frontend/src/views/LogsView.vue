@@ -581,7 +581,7 @@ function toggleAllCharges() {
             :class="[
               cars.length > 1
                 ? 'sticky top-16 z-10 bg-white dark:bg-gray-800 -mx-4 px-4 md:-mx-6 md:px-6 py-1.5 md:py-3 mb-3 border-b border-gray-100 dark:border-gray-700 shadow-sm'
-                : 'sticky top-16 z-10 bg-white dark:bg-gray-800 -mx-4 px-4 py-1.5 mb-3 border-b border-gray-100 dark:border-gray-700 shadow-sm md:static md:bg-transparent md:p-0 md:mb-6 md:rounded-xl md:w-fit md:border-0 md:shadow-none',
+                : 'mb-6 md:w-fit',
               cars.length === 1 && anyVehicleCharging ? 'vehicle-charging-glow' : '',
               isCarHeaderSticky ? 'car-header-compact' : ''
             ]"
