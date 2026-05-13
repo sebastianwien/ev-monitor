@@ -787,7 +787,7 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
               <div v-else class="text-center py-10 text-gray-400 text-sm px-4 md:px-0">
                 {{ t('dashboard.chart_no_data') }}
               </div>
-              <div class="flex flex-wrap gap-x-6 gap-y-1 mt-3 text-xs text-gray-400 px-4 md:px-0">
+              <div class="hidden md:flex flex-wrap gap-x-6 gap-y-1 mt-3 text-xs text-gray-400 px-4 md:px-0">
                 <span>{{ t('dashboard.chart_left_axis') }}: {{ currencySymbol }}/kWh</span>
                 <span>{{ t('dashboard.chart_right_axis') }}: kWh</span>
               </div>
@@ -827,7 +827,7 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
               <div v-else class="text-center py-10 text-gray-400 text-sm px-4 md:px-0">
                 {{ t('dashboard.chart_no_data') }}
               </div>
-              <div class="flex flex-wrap gap-x-6 gap-y-1 mt-3 text-xs text-gray-400 px-4 md:px-0">
+              <div class="hidden md:flex flex-wrap gap-x-6 gap-y-1 mt-3 text-xs text-gray-400 px-4 md:px-0">
                 <span>{{ t('dashboard.chart_left_axis') }}: {{ consumptionUnitLabel() }}</span>
                 <span>{{ t('dashboard.chart_right_axis') }}: {{ distanceUnitLabel() }}</span>
               </div>

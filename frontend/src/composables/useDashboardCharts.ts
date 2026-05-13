@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { storeToRefs } from 'pinia'
 import { useThemeStore } from '../stores/theme'
@@ -27,6 +27,13 @@ export function useDashboardCharts(
   // Dataset toggles - Chart 2 (Range & Efficiency)
   const showDistance = ref(true)
   const showConsumption = ref(true)
+
+  // Mobile-Breakpoint reaktiv - bestimmt ob Y-Achsen-Labels inside (mirror) gerendert werden
+  const isMobile = ref(typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches)
+  const mql = typeof window !== 'undefined' ? window.matchMedia('(max-width: 767px)') : null
+  const onMqlChange = (e: MediaQueryListEvent) => { isMobile.value = e.matches }
+  mql?.addEventListener('change', onMqlChange)
+  onUnmounted(() => mql?.removeEventListener('change', onMqlChange))
 
   // Custom comparison value
   const customCompareValue = ref<number | null>(
@@ -63,8 +70,11 @@ export function useDashboardCharts(
     const year = date.getFullYear()
     const yearSuffix = year !== currentYear ? ` '${String(year).slice(-2)}` : ''
 
-    if (selectedGroupBy.value === 'DAY')
-      return date.toLocaleDateString(locale.value === 'en' ? 'en-GB' : 'de-DE', { month: 'short', day: 'numeric' }) + yearSuffix
+    if (selectedGroupBy.value === 'DAY') {
+      const d = date.getDate()
+      const m = date.getMonth() + 1
+      return (locale.value === 'en' ? `${d}/${m}` : `${d}.${m}.`) + yearSuffix
+    }
     if (selectedGroupBy.value === 'WEEK')
       return `${t('dashboard.week_abbr')} ${Math.ceil(date.getDate() / 7)} ${date.toLocaleDateString(locale.value === 'en' ? 'en-GB' : 'de-DE', { month: 'short' })}${yearSuffix}`
     return date.toLocaleDateString(locale.value === 'en' ? 'en-GB' : 'de-DE', { month: 'short', year: 'numeric' })
@@ -121,17 +131,34 @@ export function useDashboardCharts(
     scales: {
       y: {
         type: 'linear' as const, position: 'left' as const,
-        title: { display: true, text: `${currencySymbol.value}/kWh`, color: isDark.value ? '#9ca3af' : '#6b7280' },
+        title: { display: false },
         beginAtZero: true,
         grid: { color: isDark.value ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' },
-        ticks: { color: isDark.value ? '#9ca3af' : '#6b7280' }
+        ticks: {
+          // Mirror (mobile): hoher Kontrast + Bold gegen Daten-Linien
+          color: isMobile.value
+            ? (isDark.value ? '#f9fafb' : '#111827')
+            : (isDark.value ? '#9ca3af' : '#6b7280'),
+          font: isMobile.value ? { weight: 600 as const } : undefined,
+          mirror: isMobile.value,
+          padding: isMobile.value ? 4 : 3,
+          z: isMobile.value ? 10 : 0,
+        }
       },
       y1: {
         type: 'linear' as const, position: 'right' as const,
-        title: { display: true, text: 'kWh', color: isDark.value ? '#9ca3af' : '#6b7280' },
+        title: { display: false },
         beginAtZero: true,
         grid: { drawOnChartArea: false },
-        ticks: { color: isDark.value ? '#9ca3af' : '#6b7280' }
+        ticks: {
+          color: isMobile.value
+            ? (isDark.value ? '#f9fafb' : '#111827')
+            : (isDark.value ? '#9ca3af' : '#6b7280'),
+          font: isMobile.value ? { weight: 600 as const } : undefined,
+          mirror: isMobile.value,
+          padding: isMobile.value ? 4 : 3,
+          z: isMobile.value ? 10 : 0,
+        }
       }
     }
   }))
@@ -185,17 +212,34 @@ export function useDashboardCharts(
     scales: {
       y: {
         type: 'linear' as const, position: 'left' as const,
-        title: { display: true, text: consumptionUnitLabel(), color: isDark.value ? '#9ca3af' : '#6b7280' },
+        title: { display: false },
         beginAtZero: true,
         grid: { color: isDark.value ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' },
-        ticks: { color: isDark.value ? '#9ca3af' : '#6b7280' }
+        ticks: {
+          // Mirror (mobile): hoher Kontrast + Bold gegen Daten-Linien
+          color: isMobile.value
+            ? (isDark.value ? '#f9fafb' : '#111827')
+            : (isDark.value ? '#9ca3af' : '#6b7280'),
+          font: isMobile.value ? { weight: 600 as const } : undefined,
+          mirror: isMobile.value,
+          padding: isMobile.value ? 4 : 3,
+          z: isMobile.value ? 10 : 0,
+        }
       },
       y1: {
         type: 'linear' as const, position: 'right' as const,
-        title: { display: true, text: distanceUnitLabel(), color: isDark.value ? '#9ca3af' : '#6b7280' },
+        title: { display: false },
         beginAtZero: true,
         grid: { drawOnChartArea: false },
-        ticks: { color: isDark.value ? '#9ca3af' : '#6b7280' }
+        ticks: {
+          color: isMobile.value
+            ? (isDark.value ? '#f9fafb' : '#111827')
+            : (isDark.value ? '#9ca3af' : '#6b7280'),
+          font: isMobile.value ? { weight: 600 as const } : undefined,
+          mirror: isMobile.value,
+          padding: isMobile.value ? 4 : 3,
+          z: isMobile.value ? 10 : 0,
+        }
       }
     }
   }))
