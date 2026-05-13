@@ -1,6 +1,9 @@
 import { ref, watch, watchEffect, onMounted, onUnmounted } from 'vue'
 import type { Ref } from 'vue'
-import axios from 'axios'
+// IMPORTANT: 'api' aus '../api/axios' importieren (nicht raw axios!) - sonst
+// fehlt der Authorization-Header und das Backend antwortet mit 401, obwohl der
+// User eingeloggt ist. baseURL ist auf '/api' gesetzt, also URLs ohne /api-Prefix.
+import api from '../api/axios'
 
 export interface LiveChargingData {
   isActive: boolean
@@ -58,8 +61,8 @@ export function useChargingLive(carId: Ref<string | null>) {
   async function fetchHistory(id: string, sessionStartIso: string, signal: AbortSignal) {
     try {
       const toIso = new Date().toISOString()
-      const res = await axios.get<{ points: { timestamp: string, powerKw: number }[] }>(
-        `/api/cars/${id}/live/charging/history?from=${encodeURIComponent(sessionStartIso)}&to=${encodeURIComponent(toIso)}`,
+      const res = await api.get<{ points: { timestamp: string, powerKw: number }[] }>(
+        `/cars/${id}/live/charging/history?from=${encodeURIComponent(sessionStartIso)}&to=${encodeURIComponent(toIso)}`,
         { signal },
       )
       if (signal.aborted) return
@@ -78,8 +81,8 @@ export function useChargingLive(carId: Ref<string | null>) {
 
   async function pollLive(id: string, signal: AbortSignal) {
     try {
-      const res = await axios.get<LiveChargingData>(
-        `/api/cars/${id}/live/charging`,
+      const res = await api.get<LiveChargingData>(
+        `/cars/${id}/live/charging`,
         { signal },
       )
       if (signal.aborted) return
