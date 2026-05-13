@@ -168,7 +168,7 @@ function formatNumber(val: number | null, decimals = 1): string {
       <!-- Curve -->
       <div class="relative px-4 sm:px-6 pt-3 pb-3" :class="{ 'opacity-50': dataIsVeryStale }">
         <div class="relative">
-          <PowerCurveChart :points="powerHistory" :height="234" :show-live-marker="true" :now-label="t('live.now_short')" />
+          <PowerCurveChart :points="powerHistory" :height="234" :show-live-marker="true" :now-label="t('live.now_short')" :aria-label="t('live.power_curve')" />
           <!-- kW-Anzeige als Overlay rechts oben (Platz sparen) -->
           <div class="pointer-events-none absolute top-1 right-2 text-right">
             <p class="text-[10px] font-semibold tracking-[0.12em] uppercase text-gray-500 mb-0.5">

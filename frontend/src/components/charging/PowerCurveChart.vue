@@ -9,11 +9,13 @@ const props = withDefaults(defineProps<{
   showLiveMarker?: boolean // pulsierender Endpunkt + vertikale Dotted-Linie (Live-Modus)
   yStepKw?: number         // Y-Tick-Schrittweite in kW
   nowLabel?: string        // wenn gesetzt: Praefix fuer die rechteste X-Achsen-Beschriftung (z.B. "jetzt")
+  ariaLabel?: string       // a11y - SVG-Beschreibung fuer Screenreader
 }>(), {
   height: 234,
   showLiveMarker: false,
   yStepKw: 25,
   nowLabel: '',
+  ariaLabel: 'Ladekurve',
 })
 
 const CURVE_W = 600
@@ -99,7 +101,7 @@ const glowId = `pc-glow-${uid}`
 
 <template>
   <div class="relative">
-    <svg viewBox="0 0 600 200" :style="`height: ${height}px`" class="w-full" preserveAspectRatio="none" role="img">
+    <svg viewBox="0 0 600 200" :style="`height: ${height}px`" class="w-full" preserveAspectRatio="none" role="img" :aria-label="ariaLabel">
       <defs>
         <linearGradient :id="fillId" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stop-color="#10b981" stop-opacity="0.45" />

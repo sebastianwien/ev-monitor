@@ -130,6 +130,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
+    @Transactional
     public void updatePowerCurvePoints(UUID id, String powerCurvePointsJson) {
         jpaRepository.updatePowerCurvePoints(id, powerCurvePointsJson);
     }

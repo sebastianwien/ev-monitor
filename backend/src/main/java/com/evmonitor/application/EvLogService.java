@@ -34,6 +34,7 @@ public class EvLogService {
     private final ConsumptionCalculationService calculationService;
     private final JpaUserChargingProviderRepository chargingProviderRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
 
     @Transactional
     public EvLogCreateResponse logCharging(UUID userId, EvLogRequest request) {
@@ -359,9 +360,8 @@ public class EvLogService {
             return PowerCurveResponse.empty();
         }
         try {
-            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-            List<PowerCurveResponse.Point> points = mapper.readValue(
-                    json, mapper.getTypeFactory().constructCollectionType(List.class, PowerCurveResponse.Point.class));
+            List<PowerCurveResponse.Point> points = objectMapper.readValue(
+                    json, objectMapper.getTypeFactory().constructCollectionType(List.class, PowerCurveResponse.Point.class));
             return new PowerCurveResponse(points);
         } catch (Exception e) {
             log.warn("Failed to parse power-curve JSON for log {}: {}", logId, e.getMessage());

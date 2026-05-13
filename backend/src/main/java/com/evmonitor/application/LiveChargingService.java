@@ -76,8 +76,13 @@ public class LiveChargingService {
             HttpHeaders headers = new HttpHeaders();
             headers.set("X-Internal-Token", internalToken);
 
+            // URL-encode the timestamp strings so a maliciously crafted "to"-Param mit
+            // eingebauten Query-Trennern keine zusätzlichen Params an die Connectors-API
+            // injizieren kann (defense-in-depth, Connectors validiert eh).
+            String encFrom = java.net.URLEncoder.encode(fromIso, java.nio.charset.StandardCharsets.UTF_8);
+            String encTo = java.net.URLEncoder.encode(toIso, java.nio.charset.StandardCharsets.UTF_8);
             String url = connectorsBaseUrl + "/api/internal/tesla/" + carId
-                    + "/live/charging/history?from=" + fromIso + "&to=" + toIso;
+                    + "/live/charging/history?from=" + encFrom + "&to=" + encTo;
 
             ResponseEntity<LiveChargingHistoryResponse> response = restTemplate.exchange(
                     url,
