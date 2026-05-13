@@ -67,6 +67,15 @@ const mobileMenuOpen = ref(false)
 const balanceBumping = ref(false)
 const balanceInitialized = ref(false)
 
+// Mailto-Link mit User-ID im Body fuer den Burger-Menu Feedback-Eintrag
+const feedbackMailto = computed(() => {
+  const u = authStore.user
+  const userInfo = u?.username ? `${u.username} (ID: ${u.sub})` : (u?.sub || 'anonymous')
+  const subject = encodeURIComponent('EV-Monitor Feedback')
+  const body = encodeURIComponent(`User: ${userInfo}\n\n---\n`)
+  return `mailto:support@ev-monitor.net?subject=${subject}&body=${body}`
+})
+
 // Fetch balance + init wallbox store on load and whenever token changes (login/logout)
 watch(() => route.path, (path) => {
   if (path === '/dashboard') analytics.track('dashboard_viewed')
@@ -376,12 +385,6 @@ const closeMobileMenu = () => {
               <span>{{ coinStore.balance }}</span>
             </router-link>
             <button
-              data-tally-open="vGB8XA" data-tally-emoji-text="👋" data-tally-emoji-animation="wave"
-              class="text-indigo-300 hover:text-white transition"
-              title="Feedback geben">
-              <ChatBubbleLeftEllipsisIcon class="h-5 w-5" />
-            </button>
-            <button
               @click="mobileMenuOpen = !mobileMenuOpen"
               class="p-2 rounded-sm hover:bg-indigo-700 transition"
               aria-label="Menu">
@@ -465,6 +468,13 @@ const closeMobileMenu = () => {
               <UserIcon class="h-5 w-5" />
               <span>{{ authStore.user.username || authStore.user.sub }}</span>
             </router-link>
+            <a
+              :href="feedbackMailto"
+              @click="closeMobileMenu"
+              class="flex items-center gap-2 px-3 py-2 rounded-sm text-sm font-medium text-indigo-100 hover:bg-indigo-600 transition">
+              <ChatBubbleLeftEllipsisIcon class="h-5 w-5" />
+              <span>Feedback</span>
+            </a>
             <SupportPopover variant="nav" />
           </div>
         </div>

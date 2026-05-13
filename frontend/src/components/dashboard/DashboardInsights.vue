@@ -142,35 +142,39 @@ const totalDrainFiltered = computed(() =>
 // ── CALENDAR: trips grouped by ISO week + weekday ────────────────────────────
 
 type DayData = { count: number; km: number }
-type WeekRow = { label: string; days: (DayData | null)[] }
+type WeekRow = { label: string; monday: Date; days: (DayData | null)[] }
 
 const calendarWeeks = computed((): WeekRow[] => {
   const trips = filteredEntries.value.filter(e => e._isTrip)
   if (trips.length === 0) return []
 
-  const weekMap = new Map<string, { label: string; days: Map<number, DayData> }>()
+  // Kalender immer auf aktuelle Woche verankert - zeigt die letzten 2 KWs (heutige + eine davor)
+  const NUM_WEEKS = 2
+  const currentMonday = mondayOf(new Date())
+  const weeks: WeekRow[] = []
+  for (let i = NUM_WEEKS - 1; i >= 0; i--) {
+    const monday = new Date(currentMonday)
+    monday.setDate(currentMonday.getDate() - i * 7)
+    weeks.push({
+      label: isoWeekInfo(monday).weekLabel,
+      monday,
+      days: Array(7).fill(null) as (DayData | null)[],
+    })
+  }
+
+  // Trip-Daten in passende Kalenderzellen einfuellen
   for (const trip of trips) {
     const d = entryDate(trip)
     if (!d) continue
-    const { weekKey, weekLabel } = isoWeekInfo(d)
-    if (!weekMap.has(weekKey)) weekMap.set(weekKey, { label: weekLabel, days: new Map() })
+    const tripMondayTs = mondayOf(d).getTime()
+    const week = weeks.find(w => w.monday.getTime() === tripMondayTs)
+    if (!week) continue
     const dayIdx = (d.getDay() + 6) % 7
-    const week = weekMap.get(weekKey)!
-    const prev = week.days.get(dayIdx) ?? { count: 0, km: 0 }
-    week.days.set(dayIdx, { count: prev.count + 1, km: prev.km + (trip.distanceKm ?? 0) })
+    const prev = week.days[dayIdx] ?? { count: 0, km: 0 }
+    week.days[dayIdx] = { count: prev.count + 1, km: prev.km + (trip.distanceKm ?? 0) }
   }
 
-  const sorted = [...weekMap.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([, v]) => ({
-      label: v.label,
-      days: Array.from({ length: 7 }, (_, i) => v.days.get(i) ?? null),
-    }))
-
-  // Always 3 rows: last 3 weeks, front-padded with empty rows if fewer
-  const last3 = sorted.slice(-3)
-  while (last3.length < 3) last3.unshift({ label: '', days: Array(7).fill(null) })
-  return last3
+  return weeks
 })
 
 const maxCellKm = computed(() => {
@@ -186,6 +190,29 @@ const totalTripKm = computed(() =>
 const avgTripKm = computed(() => tripCount.value > 0 ? totalTripKm.value / tripCount.value : 0)
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
+
+function mondayOf(d: Date): Date {
+  const date = new Date(d)
+  date.setHours(0, 0, 0, 0)
+  const day = date.getDay() || 7  // Sun=0 → 7 (ISO Mon=1..Sun=7)
+  date.setDate(date.getDate() - (day - 1))
+  return date
+}
+
+function dayOfMonth(monday: Date, dayIdx: number): number {
+  const d = new Date(monday)
+  d.setDate(monday.getDate() + dayIdx)
+  return d.getDate()
+}
+
+function isToday(monday: Date, dayIdx: number): boolean {
+  const d = new Date(monday)
+  d.setDate(monday.getDate() + dayIdx)
+  const today = new Date()
+  return d.getFullYear() === today.getFullYear()
+    && d.getMonth() === today.getMonth()
+    && d.getDate() === today.getDate()
+}
 
 function isoWeekInfo(d: Date): { weekKey: string; weekLabel: string } {
   const date = new Date(d)
@@ -209,13 +236,13 @@ function fmtShortDate(d: Date | null): string {
   return d.toLocaleDateString(undefined, { day: 'numeric', month: 'numeric' })
 }
 
-function cellOpacityClass(d: DayData | null): string {
-  if (!d || d.km === 0) return 'opacity-0'
+function cellBgClass(d: DayData | null): string {
+  if (!d || d.km === 0) return 'bg-gray-100 dark:bg-gray-700/30'
   const ratio = Math.max(0.15, d.km / maxCellKm.value)
-  if (ratio < 0.35) return 'opacity-20'
-  if (ratio < 0.6) return 'opacity-40'
-  if (ratio < 0.85) return 'opacity-70'
-  return 'opacity-100'
+  if (ratio < 0.35) return 'bg-emerald-500/30'
+  if (ratio < 0.6) return 'bg-emerald-500/55'
+  if (ratio < 0.85) return 'bg-emerald-500/80'
+  return 'bg-emerald-500'
 }
 
 function drainBarWidth(ev: { kwh: number }): string {
@@ -281,7 +308,7 @@ function drainBarWidth(ev: { kwh: number }): string {
             </svg>
             <div class="absolute inset-0 flex flex-col items-center justify-center">
               <p class="text-sm font-bold text-amber-500 dark:text-amber-400 mono">{{ fmt1(phantomPct) }}%</p>
-              <p class="text-[9px] text-gray-400 dark:text-gray-500 text-center leading-tight mt-0.5">{{ t('dashboard.insights_phantom') }}</p>
+              <p class="text-[9px] text-gray-500 dark:text-gray-400 text-center leading-tight mt-0.5">{{ t('dashboard.insights_phantom') }}</p>
             </div>
           </div>
 
@@ -327,7 +354,7 @@ function drainBarWidth(ev: { kwh: number }): string {
             </div>
             <!-- Footer -->
             <div class="pt-1.5 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
-              <span class="text-[11px] text-gray-400 dark:text-gray-500">{{ fmt1(allChargedKwh) }} kWh {{ t('dashboard.insights_loaded') }}</span>
+              <span class="text-[11px] text-gray-500 dark:text-gray-400">{{ fmt1(allChargedKwh) }} kWh {{ t('dashboard.insights_loaded') }}</span>
               <span class="text-[11px] text-amber-500 dark:text-amber-400">{{ t('dashboard.insights_phantom_eur', { eur: fmt1(phantomEur) }) }}</span>
             </div>
           </div>
@@ -339,12 +366,12 @@ function drainBarWidth(ev: { kwh: number }): string {
             <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('dashboard.insights_worst_parks') }}</p>
             <span class="text-xs font-semibold text-amber-500 dark:text-amber-400 mono tabular-nums">∑ {{ fmt1(totalDrainFiltered) }} kWh</span>
           </div>
-          <div v-if="drainEvents.length === 0" class="text-center py-6 text-sm text-gray-400 dark:text-gray-500">
+          <div v-if="drainEvents.length === 0" class="text-center py-6 text-sm text-gray-500 dark:text-gray-400">
             {{ t('dashboard.insights_no_drain') }}
           </div>
           <div v-else class="space-y-2.5">
             <div v-for="(ev, i) in drainEvents" :key="i" class="flex items-center gap-3">
-              <span class="text-[11px] text-gray-400 dark:text-gray-500 w-12 text-right flex-shrink-0 mono tabular-nums">
+              <span class="text-[11px] text-gray-500 dark:text-gray-400 w-12 text-right flex-shrink-0 mono tabular-nums">
                 {{ fmtShortDate(ev.date) }}
               </span>
               <div class="flex-1 h-5 bg-gray-100 dark:bg-gray-700/50 rounded overflow-hidden">
@@ -360,12 +387,12 @@ function drainBarWidth(ev: { kwh: number }): string {
               <span class="text-xs font-semibold text-amber-500 dark:text-amber-400 mono tabular-nums w-14 text-right flex-shrink-0">
                 {{ fmt1(ev.kwh) }} kWh
               </span>
-              <span class="text-[10px] text-gray-400 dark:text-gray-500 w-9 flex-shrink-0">
+              <span class="text-[10px] text-gray-500 dark:text-gray-400 w-9 flex-shrink-0">
                 {{ fmt1(ev.hours) }} h
               </span>
             </div>
           </div>
-          <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-4 pt-3 border-t border-gray-100 dark:border-gray-700">
+          <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-4 pt-3 border-t border-gray-100 dark:border-gray-700">
             {{ t('dashboard.insights_sentry_hint') }}
           </p>
         </div>
@@ -376,33 +403,38 @@ function drainBarWidth(ev: { kwh: number }): string {
             <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('dashboard.insights_trips_detected') }}</p>
             <div class="flex items-center gap-3">
               <span class="text-xs font-semibold text-gray-800 dark:text-gray-200 mono tabular-nums">{{ tripCount }}</span>
-              <span class="text-xs text-gray-400 dark:text-gray-500 mono tabular-nums">{{ Math.round(totalTripKm) }} km</span>
+              <span class="text-xs text-gray-500 dark:text-gray-400 mono tabular-nums">{{ Math.round(totalTripKm) }} km</span>
             </div>
           </div>
-          <div v-if="tripCount === 0" class="text-center py-6 text-sm text-gray-400 dark:text-gray-500">
+          <div v-if="tripCount === 0" class="text-center py-6 text-sm text-gray-500 dark:text-gray-400">
             {{ t('dashboard.insights_no_trips') }}
           </div>
           <div v-else class="space-y-1.5">
             <div class="grid grid-cols-8 gap-1">
               <div></div>
               <div v-for="day in ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']" :key="day"
-                class="text-[9px] text-gray-400 dark:text-gray-500 text-center font-semibold">
+                class="text-[9px] text-gray-500 dark:text-gray-400 text-center font-semibold">
                 {{ day }}
               </div>
             </div>
             <div v-for="(week, wi) in calendarWeeks" :key="wi" class="grid grid-cols-8 gap-1 items-center">
-              <span class="text-[9px] text-gray-400 dark:text-gray-500 font-semibold text-right pr-1">{{ week.label }}</span>
+              <span class="text-[9px] text-gray-500 dark:text-gray-400 font-semibold text-right pr-1">{{ week.label }}</span>
               <div v-for="(day, di) in week.days" :key="di"
                 :class="[
-                  'rounded h-8 flex flex-col items-center justify-center gap-px transition-opacity',
-                  day
-                    ? 'bg-emerald-500 dark:bg-emerald-500 cursor-default ' + cellOpacityClass(day)
-                    : 'bg-gray-100 dark:bg-gray-700/30'
+                  'relative rounded h-12 flex flex-col items-center justify-center gap-px',
+                  cellBgClass(day),
+                  isToday(week.monday, di) ? 'ring-2 ring-indigo-400 dark:ring-indigo-300' : ''
                 ]"
               >
+                <span :class="[
+                  'absolute top-0.5 left-1 text-[8px] font-medium leading-none',
+                  isToday(week.monday, di)
+                    ? 'text-indigo-500 dark:text-indigo-300 font-bold'
+                    : (day ? 'text-white/90' : 'text-gray-500 dark:text-gray-400')
+                ]">{{ dayOfMonth(week.monday, di) }}</span>
                 <template v-if="day">
-                  <span class="text-[9px] font-bold text-white">{{ day.count }}</span>
-                  <span class="text-[8px] text-white/80">{{ Math.round(day.km) }} km</span>
+                  <span class="text-[11px] font-bold text-white leading-none">{{ day.count }}</span>
+                  <span class="text-[9px] text-white/90 leading-none">{{ Math.round(day.km) }} km</span>
                 </template>
               </div>
             </div>
@@ -410,15 +442,15 @@ function drainBarWidth(ev: { kwh: number }): string {
           <div class="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700 grid grid-cols-3 gap-3 text-center">
             <div>
               <p class="text-sm font-bold text-emerald-500 mono tabular-nums">{{ tripCount }}</p>
-              <p class="text-[10px] text-gray-400 dark:text-gray-500">{{ t('dashboard.insights_trips_count') }}</p>
+              <p class="text-[10px] text-gray-500 dark:text-gray-400">{{ t('dashboard.insights_trips_count') }}</p>
             </div>
             <div class="border-x border-gray-100 dark:border-gray-700">
               <p class="text-sm font-bold text-gray-800 dark:text-gray-200 mono tabular-nums">{{ fmt1(avgTripKm) }} km</p>
-              <p class="text-[10px] text-gray-400 dark:text-gray-500">{{ t('dashboard.insights_avg_trip') }}</p>
+              <p class="text-[10px] text-gray-500 dark:text-gray-400">{{ t('dashboard.insights_avg_trip') }}</p>
             </div>
             <div>
               <p class="text-sm font-bold text-gray-800 dark:text-gray-200 mono tabular-nums">{{ Math.round(totalTripKm) }} km</p>
-              <p class="text-[10px] text-gray-400 dark:text-gray-500">{{ t('dashboard.insights_total_km') }}</p>
+              <p class="text-[10px] text-gray-500 dark:text-gray-400">{{ t('dashboard.insights_total_km') }}</p>
             </div>
           </div>
         </div>
