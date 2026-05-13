@@ -69,6 +69,7 @@ class LiveControllerTest extends AbstractIntegrationTest {
                 new BigDecimal("210.0"),
                 new BigDecimal("200.0"),
                 Instant.now().minusSeconds(600),
+                null,                              // sessionEndedAt - aktive Session, kein Grace
                 new BigDecimal("40.0"),
                 80,
                 Instant.now());

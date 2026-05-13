@@ -12,6 +12,10 @@ import java.time.Instant;
  * serialisiert - sonst interpretiert das Frontend naked-LocalDateTime als
  * Browser-Lokal-Zeit und produziert je nach TZ einen Stunden-Versatz in
  * Session-Dauer und Start-Anzeige.
+ *
+ * <p>{@code sessionEndedAt} ist nur in der 30-min-Grace-Period nach Session-
+ * Ende gesetzt: das Frontend zeigt die fertige Kurve weiter, der Stale-
+ * Indikator wird durch ein "Beendet vor X min"-Label ersetzt.
  */
 public record LiveChargingResponse(
         boolean isActive,
@@ -23,6 +27,7 @@ public record LiveChargingResponse(
         BigDecimal estRangeKm,
         BigDecimal chargeAmps,
         Instant sessionStartedAt,
+        Instant sessionEndedAt,
         BigDecimal socAtSessionStart,
         Integer chargeLimitSoc,
         Instant lastUpdatedAt
@@ -30,6 +35,6 @@ public record LiveChargingResponse(
 
     /** Inactive placeholder - returned when no session is running or connectors unreachable. */
     public static LiveChargingResponse inactive() {
-        return new LiveChargingResponse(false, null, null, null, null, null, null, null, null, null, null, null);
+        return new LiveChargingResponse(false, null, null, null, null, null, null, null, null, null, null, null, null);
     }
 }

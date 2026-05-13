@@ -15,6 +15,7 @@ export interface LiveChargingData {
   estRangeKm: number | null
   chargeAmps: number | null
   sessionStartedAt: string | null
+  sessionEndedAt: string | null    // nur in 30-min-Grace-Period nach Session-Ende gesetzt
   socAtSessionStart: number | null
   chargeLimitSoc: number | null
   lastUpdatedAt: string | null
@@ -87,16 +88,18 @@ export function useChargingLive(carId: Ref<string | null>) {
       )
       if (signal.aborted) return
       data.value = res.data
+      // Grace-Period: Backend liefert sessionStartedAt auch nach Session-Ende fuer
+      // 30 Min weiter (isActive=false, sessionEndedAt gesetzt). Wir behalten den
+      // History-Buffer in diesem Fenster und ziehen die fertige Kurve nach.
+      const hasSession = !!res.data.sessionStartedAt
       if (res.data.isActive) {
         appendPowerPoint(res.data.powerKw, res.data.lastUpdatedAt)
-        // Defense-in-Depth: erstes Tick mit aktiver Session - History direkt ziehen.
-        // Der watch unten loest das normalerweise via sessionStartedAt-delta aus,
-        // aber bei page-mount mit bereits laufender Session ist die Subscription-
-        // reihenfolge fragil. Doppel-fetch ist harmlos (idempotente Liste).
-        if (powerHistory.value.length <= 1 && res.data.sessionStartedAt) {
-          fetchHistory(id, res.data.sessionStartedAt, signal)
-        }
-      } else {
+      }
+      if (hasSession && powerHistory.value.length <= 1 && res.data.sessionStartedAt) {
+        // Erstes Tick einer aktiven oder grace-Session - History direkt ziehen.
+        fetchHistory(id, res.data.sessionStartedAt, signal)
+      }
+      if (!hasSession) {
         powerHistory.value = []
       }
       error.value = null
