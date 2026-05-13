@@ -135,9 +135,7 @@ const router = createRouter({
         },
         {
             path: '/live',
-            name: 'live',
-            component: () => import('../views/LiveView.vue'),
-            meta: { requiresAuth: true }
+            redirect: '/dashboard'
         },
         {
             path: '/upgrade',

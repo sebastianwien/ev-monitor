@@ -38,6 +38,7 @@ import ImplausibleLogsModal from '../components/dashboard/ImplausibleLogsModal.v
 import PeerBenchmarkCard from '../components/dashboard/PeerBenchmarkCard.vue'
 import WltpComparisonCard from '../components/dashboard/WltpComparisonCard.vue'
 import RangeCard from '../components/dashboard/RangeCard.vue'
+import LiveChargingCard from '../components/dashboard/LiveChargingCard.vue'
 import DashboardEmptyState from '../components/dashboard/DashboardEmptyState.vue'
 import DashboardInsights from '../components/dashboard/DashboardInsights.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
@@ -373,6 +374,15 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
           </div>
 
           <!-- Filter-Bar (sticky footer auf allen Breakpoints - siehe Teleport unten) -->
+
+          <!-- Live-Ladevorgang: blendet sich automatisch ein wenn aktive Session und User AS Live -->
+          <LiveChargingCard
+            v-if="selectedCarId && authStore.canViewLiveTrips"
+            :car-id="selectedCarId"
+            :car-display-name="selectedCar ? [carDisplayName(selectedCar.brand, selectedCar.model), selectedCar.trim].filter(Boolean).join(' ') : ''"
+            :license-plate="selectedCar?.licensePlate ?? null"
+            class="mb-6"
+          />
 
           <!-- Echte Reichweite + Peer Benchmark: mobile gestackt, desktop nebeneinander -->
           <div class="mb-6 flex flex-col md:flex-row md:items-stretch gap-4">

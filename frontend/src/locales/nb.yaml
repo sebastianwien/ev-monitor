@@ -2129,6 +2129,8 @@ live:
   upgrade_cta: "Oppgrader nå"
   stale_warning: "Tilkobling mistet - data kan være foreldet"
   refresh: "Oppdater data"
+  collapse_aria: "Skjul live-ladevisning"
+  expand_aria: "Vis live-ladevisning"
   now_short: "nå"
   power_curve: "Effektkurve"
   last_minutes: "siste {count} min"

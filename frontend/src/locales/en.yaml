@@ -2208,6 +2208,8 @@ live:
   upgrade_cta: "Upgrade now"
   stale_warning: "Connection lost - data may be stale"
   refresh: "Refresh data"
+  collapse_aria: "Collapse live charging view"
+  expand_aria: "Expand live charging view"
   now_short: "now"
   power_curve: "Power curve"
   last_minutes: "last {count} min"

@@ -2208,6 +2208,8 @@ live:
   upgrade_cta: "Jetzt upgraden"
   stale_warning: "Verbindung unterbrochen - Daten möglicherweise veraltet"
   refresh: "Daten aktualisieren"
+  collapse_aria: "Live-Ladeansicht einklappen"
+  expand_aria: "Live-Ladeansicht ausklappen"
   now_short: "jetzt"
   power_curve: "Leistungskurve"
   last_minutes: "letzte {count} Min"

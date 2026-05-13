@@ -2129,6 +2129,8 @@ live:
   upgrade_cta: "Uppgradera nu"
   stale_warning: "Anslutning bruten - data kan vara föråldrad"
   refresh: "Uppdatera data"
+  collapse_aria: "Dölj live-laddningsvy"
+  expand_aria: "Visa live-laddningsvy"
   now_short: "nu"
   power_curve: "Effektkurva"
   last_minutes: "senaste {count} min"

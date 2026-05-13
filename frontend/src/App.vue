@@ -191,15 +191,6 @@ const closeMobileMenu = () => {
                 <ArrowDownTrayIcon class="h-5 w-5" />
               </router-link>
               <router-link
-                v-if="authStore.isAutoSyncLive || authStore.isBetaTester || authStore.isAdmin"
-                to="/live"
-                class="nav-3d p-2 rounded-sm border border-emerald-400 hover:bg-emerald-500 transition"
-                @click="haptic()"
-                :class="{ 'bg-emerald-500': $route.path === '/live' }"
-                :title="t('live.title')">
-                <BoltIcon class="h-5 w-5 text-emerald-300" :class="{ 'text-white': $route.path === '/live' }" />
-              </router-link>
-              <router-link
                 to="/modelle"
                 class="nav-3d p-2 rounded-sm border border-indigo-500 hover:bg-indigo-500 transition"
                 @click="haptic()"
@@ -234,15 +225,6 @@ const closeMobileMenu = () => {
                 :class="{ 'bg-indigo-500': $route.path === '/imports' }">
                 <ArrowDownTrayIcon class="h-5 w-5" />
                 Import
-              </router-link>
-              <router-link
-                v-if="authStore.isAutoSyncLive || authStore.isBetaTester || authStore.isAdmin"
-                to="/live"
-                class="nav-3d flex items-center gap-2 px-3 py-2 rounded-sm border border-emerald-400 text-sm font-medium hover:bg-emerald-500 transition"
-                @click="haptic()"
-                :class="{ 'bg-emerald-500': $route.path === '/live' }">
-                <BoltIcon class="h-5 w-5 text-emerald-300" :class="{ 'text-white': $route.path === '/live' }" />
-                {{ t('live.title') }}
               </router-link>
               <router-link
                 to="/modelle"
@@ -457,15 +439,6 @@ const closeMobileMenu = () => {
               :class="{ 'bg-indigo-800': $route.path === '/imports' }">
               <ArrowDownTrayIcon class="h-5 w-5" />
               <span>Import</span>
-            </router-link>
-            <router-link
-              v-if="authStore.isAutoSyncLive || authStore.isBetaTester || authStore.isAdmin"
-              to="/live"
-              @click="closeMobileMenu"
-              class="flex items-center gap-2 px-3 py-2 rounded-sm text-sm font-medium text-emerald-200 hover:bg-emerald-700 transition"
-              :class="{ 'bg-emerald-800': $route.path === '/live' }">
-              <BoltIcon class="h-5 w-5" />
-              <span>{{ t('live.title') }}</span>
             </router-link>
             <router-link
               to="/modelle"
