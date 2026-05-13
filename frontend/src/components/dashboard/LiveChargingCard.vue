@@ -10,6 +10,8 @@ const props = defineProps<{
   carId: string | null
   carDisplayName: string
   licensePlate: string | null
+  /** User-Avg-Verbrauch (kWh/100km) zur Berechnung der nachgeladenen Reichweite. */
+  avgConsumptionKwhPer100km?: number | null
 }>()
 
 const { t } = useI18n()
@@ -23,6 +25,15 @@ onUnmounted(() => clearInterval(clockInterval))
 
 const carIdRef = computed(() => authStore.canViewLiveCharging ? props.carId : null)
 const { data, powerHistory, refresh } = useChargingLive(carIdRef)
+
+// Fallback wenn der User noch keinen Historie-Schnitt hat - sonst bliebe die
+// "nachgeladene Reichweite"-Linie unsichtbar bei Neukunden. 16 kWh/100km ist ein
+// realistischer Tesla-M3-LR-Wert; sobald historische Daten da sind, gewinnt der
+// echte User-Avg.
+const effectiveConsumption = computed(() =>
+  props.avgConsumptionKwhPer100km && props.avgConsumptionKwhPer100km > 0
+    ? props.avgConsumptionKwhPer100km
+    : 16)
 
 // Sichtbarkeit: nur wenn entitled + aktiver Ladevorgang
 const visible = computed(() => authStore.canViewLiveCharging && !!data.value?.isActive)
@@ -168,7 +179,7 @@ function formatNumber(val: number | null, decimals = 1): string {
       <!-- Curve -->
       <div class="relative px-4 sm:px-6 pt-3 pb-3" :class="{ 'opacity-50': dataIsVeryStale }">
         <div class="relative">
-          <PowerCurveChart :points="powerHistory" :height="234" :show-live-marker="true" :now-label="t('live.now_short')" :aria-label="t('live.power_curve')" />
+          <PowerCurveChart :points="powerHistory" :height="234" :height-desktop="281" :show-live-marker="true" :now-label="t('live.now_short')" :aria-label="t('live.power_curve')" :consumption-kwh-per100km="effectiveConsumption" />
           <!-- kW-Anzeige als Overlay rechts oben (Platz sparen) -->
           <div class="pointer-events-none absolute top-1 right-2 text-right">
             <p class="text-[10px] font-semibold tracking-[0.12em] uppercase text-gray-500 mb-0.5">

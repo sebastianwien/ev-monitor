@@ -161,7 +161,74 @@
                             <p v-if="!(selectedPlan === 'yearly' && tier === 'NONE')" class="text-xs text-indigo-600 dark:text-indigo-400 font-medium mt-0.5">{{ t('upgrade.tier_live_yearly_hint', { yearly: pricing.liveYearly }) }}</p>
                         </div>
                         <ul class="space-y-2.5 text-sm text-gray-700 dark:text-gray-300 mb-6 flex-1">
-                            <li class="flex items-start gap-2"><span class="text-indigo-600 dark:text-indigo-400 mt-0.5">✓</span><span>{{ t('upgrade.tier_live_feat_trip') }}</span></li>
+                            <!-- Tesla-only Features (Live-Power-Stream nur via Tesla Telemetry) -->
+                            <template v-if="showTeslaOnlyFeatures">
+                                <li class="space-y-1">
+                                    <div class="flex items-start gap-2">
+                                        <span class="text-indigo-600 dark:text-indigo-400 mt-0.5">✓</span>
+                                        <span class="flex-1">{{ t('upgrade.tier_live_feat_live_view') }}</span>
+                                        <button v-if="!failedPreviews.has('live_view')" type="button" @click="togglePreview('live_view')"
+                                            :aria-label="t('upgrade.tier_live_feat_preview_hint')"
+                                            class="shrink-0 p-0.5 text-indigo-400 dark:text-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-300 transition">
+                                            <ChevronDownIcon v-if="expandedPreview !== 'live_view'" class="w-3.5 h-3.5" />
+                                            <ChevronUpIcon v-else class="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+                                    <img v-if="expandedPreview === 'live_view' && !failedPreviews.has('live_view')" :src="'/upgrade-previews/live-view.png'" loading="lazy"
+                                        :alt="t('upgrade.tier_live_feat_live_view')"
+                                        @error="onPreviewError('live_view')"
+                                        class="mt-1 ml-5 rounded-sm border border-indigo-200 dark:border-indigo-800 shadow-sm max-w-full" />
+                                </li>
+                                <li class="space-y-1">
+                                    <div class="flex items-start gap-2">
+                                        <span class="text-indigo-600 dark:text-indigo-400 mt-0.5">✓</span>
+                                        <span class="flex-1">{{ t('upgrade.tier_live_feat_curves') }}</span>
+                                        <button v-if="!failedPreviews.has('curves')" type="button" @click="togglePreview('curves')"
+                                            :aria-label="t('upgrade.tier_live_feat_preview_hint')"
+                                            class="shrink-0 p-0.5 text-indigo-400 dark:text-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-300 transition">
+                                            <ChevronDownIcon v-if="expandedPreview !== 'curves'" class="w-3.5 h-3.5" />
+                                            <ChevronUpIcon v-else class="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+                                    <img v-if="expandedPreview === 'curves' && !failedPreviews.has('curves')" :src="'/upgrade-previews/curves.png'" loading="lazy"
+                                        :alt="t('upgrade.tier_live_feat_curves')"
+                                        @error="onPreviewError('curves')"
+                                        class="mt-1 ml-5 rounded-sm border border-indigo-200 dark:border-indigo-800 shadow-sm max-w-full" />
+                                </li>
+                            </template>
+                            <!-- Universelle Live-Features (Tesla + Polestar) -->
+                            <li class="space-y-1">
+                                <div class="flex items-start gap-2">
+                                    <span class="text-indigo-600 dark:text-indigo-400 mt-0.5">✓</span>
+                                    <span class="flex-1">{{ t('upgrade.tier_live_feat_insights') }}</span>
+                                    <button v-if="!failedPreviews.has('insights')" type="button" @click="togglePreview('insights')"
+                                        :aria-label="t('upgrade.tier_live_feat_preview_hint')"
+                                        class="shrink-0 p-0.5 text-indigo-400 dark:text-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-300 transition">
+                                        <ChevronDownIcon v-if="expandedPreview !== 'insights'" class="w-3.5 h-3.5" />
+                                        <ChevronUpIcon v-else class="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                                <img v-if="expandedPreview === 'insights' && !failedPreviews.has('insights')" :src="'/upgrade-previews/insights.png'" loading="lazy"
+                                    :alt="t('upgrade.tier_live_feat_insights')"
+                                    @error="onPreviewError('insights')"
+                                    class="mt-1 ml-5 rounded-sm border border-indigo-200 dark:border-indigo-800 shadow-sm max-w-full" />
+                            </li>
+                            <li class="space-y-1">
+                                <div class="flex items-start gap-2">
+                                    <span class="text-indigo-600 dark:text-indigo-400 mt-0.5">✓</span>
+                                    <span class="flex-1">{{ t('upgrade.tier_live_feat_calendar') }}</span>
+                                    <button v-if="!failedPreviews.has('calendar')" type="button" @click="togglePreview('calendar')"
+                                        :aria-label="t('upgrade.tier_live_feat_preview_hint')"
+                                        class="shrink-0 p-0.5 text-indigo-400 dark:text-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-300 transition">
+                                        <ChevronDownIcon v-if="expandedPreview !== 'calendar'" class="w-3.5 h-3.5" />
+                                        <ChevronUpIcon v-else class="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                                <img v-if="expandedPreview === 'calendar' && !failedPreviews.has('calendar')" :src="'/upgrade-previews/calendar.png'" loading="lazy"
+                                    :alt="t('upgrade.tier_live_feat_calendar')"
+                                    @error="onPreviewError('calendar')"
+                                    class="mt-1 ml-5 rounded-sm border border-indigo-200 dark:border-indigo-800 shadow-sm max-w-full" />
+                            </li>
                             <li class="flex items-start gap-2"><span class="text-indigo-600 dark:text-indigo-400 mt-0.5">✓</span><span>{{ t('upgrade.tier_live_feat_drain') }}</span></li>
                             <li class="flex items-start gap-2"><span class="text-indigo-600 dark:text-indigo-400 mt-0.5">✓</span><span>{{ t('upgrade.tier_live_feat_brands') }}</span></li>
                             <li class="flex items-start gap-2 text-gray-500 dark:text-gray-400"><span class="mt-0.5">+</span><span><em>{{ t('upgrade.tier_live_feat_inherits') }}</em></span></li>
@@ -219,6 +286,7 @@ import { useI18n } from 'vue-i18n';
 import { subscriptionService } from '../api/subscriptionService';
 import { analytics } from '../services/analytics';
 import { CheckCircleIcon } from '@heroicons/vue/24/solid';
+import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/vue/24/outline';
 import { useCountryStore } from '../stores/country';
 import { useCarStore } from '../stores/car';
 import { getPricing } from '../config/pricingConfig';
@@ -230,6 +298,26 @@ const carStore = useCarStore();
 const pricing = computed(() => getPricing(countryStore.country));
 
 const userCarBrands = ref<string[]>([]);
+// Features wie Live-Ansicht und Ladekurven sind nur fuer Tesla verfuegbar
+// (Smartcar liefert keine Power-Daten). Wenn der User schon mindestens ein
+// Auto angelegt hat und keines davon ein Tesla ist, blende diese Bullets aus.
+// Wer noch kein Auto hat, sieht alles - das ist Akquise-Modus.
+const hasOnlyNonTeslaCars = computed(() =>
+    userCarBrands.value.length > 0
+    && !userCarBrands.value.some(b => b?.toUpperCase() === 'TESLA'));
+const showTeslaOnlyFeatures = computed(() => !hasOnlyNonTeslaCars.value);
+
+// Feature-Preview-Expand State: nur eines gleichzeitig sichtbar
+const expandedPreview = ref<string | null>(null);
+const failedPreviews = ref(new Set<string>());
+function togglePreview(key: string) {
+    expandedPreview.value = expandedPreview.value === key ? null : key;
+}
+function onPreviewError(key: string) {
+    failedPreviews.value.add(key);
+    failedPreviews.value = new Set(failedPreviews.value);
+}
+
 const tier = ref<SubscriptionTier>('NONE');
 const {
     isAutoSyncActive,

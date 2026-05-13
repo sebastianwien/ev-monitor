@@ -392,6 +392,7 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
             :car-id="selectedCarId"
             :car-display-name="selectedCar ? [carDisplayName(selectedCar.brand, selectedCar.model), selectedCar.trim].filter(Boolean).join(' ') : ''"
             :license-plate="selectedCar?.licensePlate ?? null"
+            :avg-consumption-kwh-per100km="stats?.avgConsumptionKwhPer100km != null ? Number(stats.avgConsumptionKwhPer100km) : null"
             class="mb-6"
           />
 

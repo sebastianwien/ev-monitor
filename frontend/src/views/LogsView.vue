@@ -1786,6 +1786,9 @@ function toggleAllCharges() {
                         :points="powerCurveCache.get(item.entry.id)!"
                         :height="180"
                         :aria-label="t('dashboard.show_power_curve')"
+                        :consumption-kwh-per100km="item.entry.consumptionKwhPer100km != null
+                          ? Number(item.entry.consumptionKwhPer100km)
+                          : (stats?.avgConsumptionKwhPer100km != null ? Number(stats.avgConsumptionKwhPer100km) : null)"
                       />
                       <div v-else class="text-xs text-gray-500 dark:text-gray-400 text-center py-6">
                         {{ t('dashboard.no_power_curve') }}
