@@ -12,6 +12,8 @@ export interface LiveChargingData {
   estRangeKm: number | null
   chargeAmps: number | null
   sessionStartedAt: string | null
+  socAtSessionStart: number | null
+  chargeLimitSoc: number | null
   lastUpdatedAt: string | null
 }
 
