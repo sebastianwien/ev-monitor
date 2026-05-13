@@ -391,67 +391,6 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
             class="mb-6"
           />
 
-          <!-- Echte Reichweite + Peer Benchmark: mobile gestackt, desktop nebeneinander -->
-          <div class="mb-6 flex flex-col md:flex-row md:items-stretch gap-4">
-
-          <!-- Echte Reichweite -->
-          <RangeCard
-            v-if="carInfo?.batteryCapacityKwh && stats?.avgConsumptionKwhPer100km"
-            class="md:w-80 shrink-0"
-            :battery-capacity-kwh="carInfo.batteryCapacityKwh"
-            :summer-consumption="stats.summerConsumptionKwhPer100km ?? null"
-            :winter-consumption="stats.winterConsumptionKwhPer100km ?? null"
-            :avg-consumption="stats.avgConsumptionKwhPer100km"
-          />
-
-          <!-- Peer Benchmark -->
-          <PeerBenchmarkCard
-            v-if="stats?.peerBenchmark && stats.peerBenchmark.peerAvgConsumptionKwhPer100km != null"
-            class="flex-1 min-w-0"
-            :benchmark="stats.peerBenchmark"
-            :effective-battery-kwh="selectedCar?.effectiveBatteryCapacityKwh ?? null"
-            :car-display-name="selectedCar ? [carDisplayName(selectedCar.brand, selectedCar.model), selectedCar.trim].filter(Boolean).join(' ') : ''"
-          />
-
-          <!-- WLTP-Vergleich (Fallback wenn keine Peer-Daten aber WLTP vorhanden) -->
-          <WltpComparisonCard
-            v-else-if="wltp && stats?.avgConsumptionKwhPer100km && selectedCar?.effectiveBatteryCapacityKwh"
-            class="flex-1 min-w-0"
-            :official-range-km="wltp.officialRangeKm"
-            :official-consumption-kwh-per100km="wltp.officialConsumptionKwhPer100km"
-            :user-avg-consumption-kwh-per100km="stats.avgConsumptionKwhPer100km"
-            :effective-battery-kwh="selectedCar.effectiveBatteryCapacityKwh"
-            :car-display-name="selectedCar ? [carDisplayName(selectedCar.brand, selectedCar.model), selectedCar.trim].filter(Boolean).join(' ') : ''"
-            :rating-source="wltp.ratingSource"
-          />
-
-          <!-- Peer Benchmark Placeholder (nur wenn auch keine WLTP-Daten) -->
-          <div
-            v-else-if="stats && carInfo?.batteryCapacityKwh && stats?.avgConsumptionKwhPer100km"
-            class="flex-1 min-w-0 bg-white dark:bg-gray-800 rounded-sm border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden"
-          >
-            <button
-              type="button"
-              @click="togglePeerPlaceholder"
-              class="w-full px-4 py-2.5 flex items-center gap-2 text-left"
-              :aria-expanded="!peerPlaceholderCollapsed">
-              <UsersIcon class="w-4 h-4 text-gray-400 dark:text-gray-500 flex-shrink-0" />
-              <span class="flex-1 text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                {{ t('dashboard.peer_no_data_title') }}
-              </span>
-              <ChevronDownIcon
-                class="w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-200"
-                :class="{ 'rotate-180': !peerPlaceholderCollapsed }" />
-            </button>
-            <Transition name="slide-down">
-              <div v-if="!peerPlaceholderCollapsed" class="px-4 pb-4 -mt-1 text-center">
-                <p class="text-xs text-gray-400 dark:text-gray-500 max-w-xs mx-auto">{{ t('dashboard.peer_no_data_body') }}</p>
-              </div>
-            </Transition>
-          </div>
-
-          </div><!-- Ende Reichweite + Peer Wrapper -->
-
           <div v-if="error" class="mb-4 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300 rounded-sm">{{ error }}</div>
 
           <!-- Empty State: No Cars -->
@@ -749,6 +688,67 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
           :custom-end-date="customEndDate"
           class="mb-3"
         />
+
+        <!-- Echte Reichweite + Peer Benchmark: mobile gestackt, desktop nebeneinander -->
+        <div class="mb-6 flex flex-col md:flex-row md:items-stretch gap-4">
+
+        <!-- Echte Reichweite -->
+        <RangeCard
+          v-if="carInfo?.batteryCapacityKwh && stats?.avgConsumptionKwhPer100km"
+          class="md:w-80 shrink-0"
+          :battery-capacity-kwh="carInfo.batteryCapacityKwh"
+          :summer-consumption="stats.summerConsumptionKwhPer100km ?? null"
+          :winter-consumption="stats.winterConsumptionKwhPer100km ?? null"
+          :avg-consumption="stats.avgConsumptionKwhPer100km"
+        />
+
+        <!-- Peer Benchmark -->
+        <PeerBenchmarkCard
+          v-if="stats?.peerBenchmark && stats.peerBenchmark.peerAvgConsumptionKwhPer100km != null"
+          class="flex-1 min-w-0"
+          :benchmark="stats.peerBenchmark"
+          :effective-battery-kwh="selectedCar?.effectiveBatteryCapacityKwh ?? null"
+          :car-display-name="selectedCar ? [carDisplayName(selectedCar.brand, selectedCar.model), selectedCar.trim].filter(Boolean).join(' ') : ''"
+        />
+
+        <!-- WLTP-Vergleich (Fallback wenn keine Peer-Daten aber WLTP vorhanden) -->
+        <WltpComparisonCard
+          v-else-if="wltp && stats?.avgConsumptionKwhPer100km && selectedCar?.effectiveBatteryCapacityKwh"
+          class="flex-1 min-w-0"
+          :official-range-km="wltp.officialRangeKm"
+          :official-consumption-kwh-per100km="wltp.officialConsumptionKwhPer100km"
+          :user-avg-consumption-kwh-per100km="stats.avgConsumptionKwhPer100km"
+          :effective-battery-kwh="selectedCar.effectiveBatteryCapacityKwh"
+          :car-display-name="selectedCar ? [carDisplayName(selectedCar.brand, selectedCar.model), selectedCar.trim].filter(Boolean).join(' ') : ''"
+          :rating-source="wltp.ratingSource"
+        />
+
+        <!-- Peer Benchmark Placeholder (nur wenn auch keine WLTP-Daten) -->
+        <div
+          v-else-if="stats && carInfo?.batteryCapacityKwh && stats?.avgConsumptionKwhPer100km"
+          class="flex-1 min-w-0 bg-white dark:bg-gray-800 rounded-sm border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden"
+        >
+          <button
+            type="button"
+            @click="togglePeerPlaceholder"
+            class="w-full px-4 py-2.5 flex items-center gap-2 text-left"
+            :aria-expanded="!peerPlaceholderCollapsed">
+            <UsersIcon class="w-4 h-4 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+            <span class="flex-1 text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
+              {{ t('dashboard.peer_no_data_title') }}
+            </span>
+            <ChevronDownIcon
+              class="w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-200"
+              :class="{ 'rotate-180': !peerPlaceholderCollapsed }" />
+          </button>
+          <Transition name="slide-down">
+            <div v-if="!peerPlaceholderCollapsed" class="px-4 pb-4 -mt-1 text-center">
+              <p class="text-xs text-gray-400 dark:text-gray-500 max-w-xs mx-auto">{{ t('dashboard.peer_no_data_body') }}</p>
+            </div>
+          </Transition>
+        </div>
+
+        </div><!-- Ende Reichweite + Peer Wrapper -->
 
 
         <!-- Chart 1: Charging & Costs -->
