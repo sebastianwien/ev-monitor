@@ -592,7 +592,7 @@ dashboard:
   short_trip_tooltip_title: Förbrukningen kan inte beräknas
   short_trip_tooltip_desc: "På sträckor under 10 km förvränger små mätosäkerheter den beräknade förbrukningen avsevärt. Redan ett hopp på 1 % i den visade batterinivån motsvarar ungefär 0,7 kWh - på 1 km ger det snabbt orealistiska värden på 70 kWh/100km eller mer. I stället för att visa ett fantomvärde låter jag det vara."
   live_banner_new_chip: Nytt
-  live_banner_text_prefix: "Importera dina resor automatiskt och upptäck standby-förlust med"
+  live_banner_text_prefix: "Auto-import av resor, laddkurvor och standby-detektering med"
   live_banner_text_suffix: ""
   live_banner_price: "- 49 kr/månad"
   live_banner_cta: "läs mer →"
