@@ -169,7 +169,8 @@ public class EvLogService {
                 request.temperatureCelsius(),
                 request.rawImportData(),
                 request.isPublicCharging(),
-                request.cpoName());
+                request.cpoName(),
+                request.maxChargingPowerKw());
 
         // Inherit tireType/routeType from the most recent prior log so auto-created logs
         // (Tesla/Wallbox/SmartCar) don't reset the user's last known setting to NULL/SUMMER.
