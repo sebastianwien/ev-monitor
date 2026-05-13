@@ -72,10 +72,11 @@ public class LiveController {
     }
 
     /**
-     * Returns a chronological power-over-time series for the live-charging sparkline.
+     * Returns a chronological power-over-time series for the live-charging sparkline
+     * between {@code from} and {@code to} (ISO-8601). Window must be <=24h, enforced
+     * on the connectors side.
      *
-     * <p>Same auth chain as {@link #getLiveCharging}. The {@code minutes} parameter is
-     * clamped server-side to [1, 120] to prevent unbounded queries.
+     * <p>Same auth chain as {@link #getLiveCharging}.
      *
      * <p>Returns 200 with an empty {@code points} list when the connectors-service is
      * unreachable - the UI just renders an empty chart.
@@ -83,7 +84,8 @@ public class LiveController {
     @GetMapping("/charging/history")
     public ResponseEntity<LiveChargingHistoryResponse> getLiveChargingHistory(
             @PathVariable UUID carId,
-            @RequestParam(defaultValue = "30") int minutes,
+            @RequestParam("from") String fromIso,
+            @RequestParam("to") String toIso,
             Authentication authentication) {
 
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
@@ -100,8 +102,7 @@ public class LiveController {
             throw new ForbiddenException("AutoSync Live entitlement required for live charging data");
         }
 
-        int clampedMinutes = Math.max(1, Math.min(120, minutes));
-        LiveChargingHistoryResponse response = liveChargingService.getLiveChargingHistory(carId, clampedMinutes);
+        LiveChargingHistoryResponse response = liveChargingService.getLiveChargingHistory(carId, fromIso, toIso);
         return ResponseEntity.ok(response);
     }
 }

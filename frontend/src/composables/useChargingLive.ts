@@ -1,4 +1,4 @@
-import { ref, watchEffect, onUnmounted } from 'vue'
+import { ref, watch, watchEffect, onUnmounted } from 'vue'
 import type { Ref } from 'vue'
 import axios from 'axios'
 
@@ -23,7 +23,6 @@ interface PowerHistoryPoint {
 }
 
 const HISTORY_MAX_POINTS = 120
-const HISTORY_WINDOW_MIN = 30
 // Aktive Session: schnell, damit die Kurve fluessig waechst.
 // Idle (keine Session): seltener, weil >99% der Zeit nichts zu tun ist.
 const POLL_INTERVAL_ACTIVE_MS = 10_000
@@ -51,10 +50,11 @@ export function useChargingLive(carId: Ref<string | null>) {
     powerHistory.value = [...powerHistory.value, { ts, kw }].slice(-HISTORY_MAX_POINTS)
   }
 
-  async function fetchHistory(id: string, signal: AbortSignal) {
+  async function fetchHistory(id: string, sessionStartIso: string, signal: AbortSignal) {
     try {
+      const toIso = new Date().toISOString()
       const res = await axios.get<{ points: { timestamp: string, powerKw: number }[] }>(
-        `/api/cars/${id}/live/charging/history?minutes=${HISTORY_WINDOW_MIN}`,
+        `/api/cars/${id}/live/charging/history?from=${encodeURIComponent(sessionStartIso)}&to=${encodeURIComponent(toIso)}`,
         { signal },
       )
       if (signal.aborted) return
@@ -120,6 +120,7 @@ export function useChargingLive(carId: Ref<string | null>) {
     activeController?.abort()
     clearTimeout(timeoutId)
     powerHistory.value = []
+    data.value = null
 
     const id = carId.value
     if (!id) return
@@ -127,11 +128,22 @@ export function useChargingLive(carId: Ref<string | null>) {
     const controller = new AbortController()
     activeController = controller
 
-    fetchHistory(id, controller.signal)
-      .then(() => pollLive(id, controller.signal))
+    // Erst pollLive: liefert isActive + sessionStartedAt. History wird dann durch
+    // den watch unten ausgeloest, sobald sessionStartedAt bekannt ist.
+    pollLive(id, controller.signal)
       .then(() => {
         if (!controller.signal.aborted) scheduleNext(id, controller)
       })
+  })
+
+  // Sobald wir eine neue Session sehen (auch ohne carId-Wechsel - z.B. User
+  // steckt das Auto neu an waehrend Dashboard offen ist), die volle Kurve
+  // ab Session-Start vom Backend ziehen.
+  watch(() => data.value?.sessionStartedAt ?? null, (sessionStart) => {
+    const id = carId.value
+    const controller = activeController
+    if (!id || !controller || !sessionStart) return
+    fetchHistory(id, sessionStart, controller.signal)
   })
 
   onUnmounted(() => {

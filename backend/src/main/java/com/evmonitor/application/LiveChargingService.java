@@ -65,19 +65,22 @@ public class LiveChargingService {
     }
 
     /**
-     * Returns a chronological power-over-time series for the given car.
+     * Returns a chronological power-over-time series for the given car between
+     * {@code fromIso} and {@code toIso} (ISO-8601). Window is hard-capped at 24h
+     * on the connectors side.
      *
-     * @param carId   the car's UUID as known to the core-api
-     * @param minutes lookback window in minutes; the connectors-service clamps this to [1, 120]
      * @return live charging history, or an empty list on error
      */
-    public LiveChargingHistoryResponse getLiveChargingHistory(UUID carId, int minutes) {
+    public LiveChargingHistoryResponse getLiveChargingHistory(UUID carId, String fromIso, String toIso) {
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.set("X-Internal-Token", internalToken);
 
+            String url = connectorsBaseUrl + "/api/internal/tesla/" + carId
+                    + "/live/charging/history?from=" + fromIso + "&to=" + toIso;
+
             ResponseEntity<LiveChargingHistoryResponse> response = restTemplate.exchange(
-                    connectorsBaseUrl + "/api/internal/tesla/" + carId + "/live/charging/history?minutes=" + minutes,
+                    url,
                     HttpMethod.GET,
                     new HttpEntity<>(headers),
                     LiveChargingHistoryResponse.class);

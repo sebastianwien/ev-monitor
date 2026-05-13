@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
@@ -222,11 +222,11 @@ class LiveControllerTest extends AbstractIntegrationTest {
         LiveChargingHistoryResponse history = new LiveChargingHistoryResponse(List.of(
                 new LiveChargingHistoryResponse.Point(Instant.parse("2026-05-12T10:00:00Z"), 11.0),
                 new LiveChargingHistoryResponse.Point(Instant.parse("2026-05-12T10:00:05Z"), 150.0)));
-        when(liveChargingService.getLiveChargingHistory(eq(liveCar.getId()), anyInt()))
+        when(liveChargingService.getLiveChargingHistory(eq(liveCar.getId()), anyString(), anyString()))
                 .thenReturn(history);
 
         ResponseEntity<Map<String, Object>> res = restTemplate.exchange(
-                "/api/cars/" + liveCar.getId() + "/live/charging/history",
+                "/api/cars/" + liveCar.getId() + "/live/charging/history?from=2026-05-12T08:00:00Z&to=2026-05-12T10:30:00Z",
                 HttpMethod.GET,
                 new HttpEntity<>(createAuthHeaders(liveUser.getId(), liveUser.getEmail())),
                 new ParameterizedTypeReference<>() {});
@@ -244,7 +244,7 @@ class LiveControllerTest extends AbstractIntegrationTest {
         Car tier1Car = createAndSaveCar(tier1User.getId(), CarBrand.CarModel.MODEL_3);
 
         ResponseEntity<String> res = restTemplate.exchange(
-                "/api/cars/" + tier1Car.getId() + "/live/charging/history",
+                "/api/cars/" + tier1Car.getId() + "/live/charging/history?from=2026-05-12T08:00:00Z&to=2026-05-12T10:30:00Z",
                 HttpMethod.GET,
                 new HttpEntity<>(createAuthHeaders(tier1User.getId(), tier1User.getEmail())),
                 String.class);
@@ -255,7 +255,7 @@ class LiveControllerTest extends AbstractIntegrationTest {
     @Test
     void getLiveChargingHistory_nonOwner_returns403() {
         ResponseEntity<String> res = restTemplate.exchange(
-                "/api/cars/" + otherCar.getId() + "/live/charging/history",
+                "/api/cars/" + otherCar.getId() + "/live/charging/history?from=2026-05-12T08:00:00Z&to=2026-05-12T10:30:00Z",
                 HttpMethod.GET,
                 new HttpEntity<>(createAuthHeaders(liveUser.getId(), liveUser.getEmail())),
                 String.class);
@@ -265,11 +265,11 @@ class LiveControllerTest extends AbstractIntegrationTest {
 
     @Test
     void getLiveChargingHistory_connectorsUnavailable_returns200WithEmptyPoints() {
-        when(liveChargingService.getLiveChargingHistory(eq(liveCar.getId()), anyInt()))
+        when(liveChargingService.getLiveChargingHistory(eq(liveCar.getId()), anyString(), anyString()))
                 .thenReturn(LiveChargingHistoryResponse.empty());
 
         ResponseEntity<Map<String, Object>> res = restTemplate.exchange(
-                "/api/cars/" + liveCar.getId() + "/live/charging/history",
+                "/api/cars/" + liveCar.getId() + "/live/charging/history?from=2026-05-12T08:00:00Z&to=2026-05-12T10:30:00Z",
                 HttpMethod.GET,
                 new HttpEntity<>(createAuthHeaders(liveUser.getId(), liveUser.getEmail())),
                 new ParameterizedTypeReference<>() {});
@@ -285,7 +285,7 @@ class LiveControllerTest extends AbstractIntegrationTest {
     @Test
     void getLiveChargingHistory_carNotFound_returns404() {
         ResponseEntity<String> res = restTemplate.exchange(
-                "/api/cars/" + java.util.UUID.randomUUID() + "/live/charging/history",
+                "/api/cars/" + java.util.UUID.randomUUID() + "/live/charging/history?from=2026-05-12T08:00:00Z&to=2026-05-12T10:30:00Z",
                 HttpMethod.GET,
                 new HttpEntity<>(createAuthHeaders(liveUser.getId(), liveUser.getEmail())),
                 String.class);
