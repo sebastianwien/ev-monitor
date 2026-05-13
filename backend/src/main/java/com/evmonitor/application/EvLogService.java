@@ -345,17 +345,17 @@ public class EvLogService {
      * log-not-found or ownership mismatch - mapped to 404 by the controller.
      */
     public PowerCurveResponse getPowerCurveForUser(UUID logId, UUID userId) {
-        EvLog evLog = evLogRepository.findById(logId)
+        // Single JOIN-Query: holt owner-userId + curve-JSON in einem DB-Roundtrip.
+        // Spart zwei separate findById-Calls (Log + Car) gegenueber der vorherigen
+        // Implementierung, ohne die Ownership-Garantie zu schwaechen.
+        EvLogRepository.PowerCurveLookup lookup = evLogRepository.findOwnerIdAndPowerCurveJson(logId)
                 .orElseThrow(() -> new IllegalArgumentException("Log not found with ID: " + logId));
 
-        Car car = carRepository.findById(evLog.getCarId())
-                .orElseThrow(() -> new IllegalArgumentException("Associated car not found"));
-
-        if (!car.getUserId().equals(userId)) {
+        if (!lookup.ownerUserId().equals(userId)) {
             throw new IllegalArgumentException("Log not found for current user (ownership mismatch).");
         }
 
-        String json = evLogRepository.findPowerCurvePointsJson(logId).orElse(null);
+        String json = lookup.powerCurvePointsJson();
         if (json == null || json.isBlank()) {
             return PowerCurveResponse.empty();
         }

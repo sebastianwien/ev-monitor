@@ -93,13 +93,27 @@ public class EvLogController {
      * Returns the persisted charging power curve for the given log, or 404 if the
      * log doesn't exist or doesn't belong to the caller. 200 with empty points
      * when the log exists but has no curve (most data sources).
+     *
+     * <p>Caching: Power-curves sind nach Session-Finalize immutable, daher
+     * private max-age=7d + ETag basierend auf der Log-ID. Spart Re-Fetches beim
+     * Auf-/Zuklappen derselben Curve im Logfeed.
      */
     @GetMapping("/{id}/power-curve")
     public ResponseEntity<com.evmonitor.application.PowerCurveResponse> getPowerCurve(
-            @PathVariable UUID id, Authentication authentication) {
+            @PathVariable UUID id, Authentication authentication,
+            @RequestHeader(value = "If-None-Match", required = false) String ifNoneMatch) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         try {
-            return ResponseEntity.ok(evLogService.getPowerCurveForUser(id, principal.getUser().getId()));
+            String etag = "\"pc-" + id + "\"";
+            if (etag.equals(ifNoneMatch)) {
+                return ResponseEntity.status(org.springframework.http.HttpStatus.NOT_MODIFIED).eTag(etag).build();
+            }
+            com.evmonitor.application.PowerCurveResponse body =
+                    evLogService.getPowerCurveForUser(id, principal.getUser().getId());
+            return ResponseEntity.ok()
+                    .eTag(etag)
+                    .cacheControl(org.springframework.http.CacheControl.maxAge(java.time.Duration.ofDays(7)).cachePrivate())
+                    .body(body);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         }

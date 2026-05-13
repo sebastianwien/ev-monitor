@@ -150,6 +150,20 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     @Query("UPDATE EvLogEntity e SET e.powerCurvePoints = :json WHERE e.id = :id")
     int updatePowerCurvePoints(@Param("id") UUID id, @Param("json") String json);
 
+    /**
+     * Single-query ownership-aware lookup: returns the owner-userId + power-curve JSON
+     * fuer den gegebenen Log. Ersetzt drei einzelne Roundtrips (findLog + findCar +
+     * findCurve) durch eine JOIN-Query. Interface-based Projection vermeidet die
+     * fehleranfaellige Optional<Object[]>-Variante.
+     */
+    interface OwnerCurveRow {
+        UUID getOwnerUserId();
+        String getPowerCurveJson();
+    }
+
+    @Query("SELECT c.userId AS ownerUserId, e.powerCurvePoints AS powerCurveJson FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id WHERE e.id = :id")
+    Optional<OwnerCurveRow> findOwnerIdAndPowerCurveJson(@Param("id") UUID id);
+
     @Modifying
     @Query("DELETE FROM EvLogEntity e WHERE e.carId IN (SELECT c.id FROM CarEntity c WHERE c.userId = :userId) AND e.dataSource IN :dataSources")
     void deleteAllByUserIdAndDataSourceIn(@Param("userId") UUID userId, @Param("dataSources") List<String> dataSources);

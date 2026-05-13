@@ -64,6 +64,14 @@ public interface EvLogRepository {
     /** Returns the raw JSON-Array string of the power-curve, or null if the log has no curve. */
     Optional<String> findPowerCurvePointsJson(UUID id);
 
+    /**
+     * Single-query ownership-aware lookup. Returns the owner userId + curve-JSON
+     * for the log in one Postgres round-trip.
+     */
+    Optional<PowerCurveLookup> findOwnerIdAndPowerCurveJson(UUID logId);
+
+    record PowerCurveLookup(UUID ownerUserId, String powerCurvePointsJson) {}
+
     Optional<EvLog> updateGeohash(UUID carId, LocalDateTime loggedAt, String geohash);
 
     List<EvLog> findAllWithGeohashAndNoTemperature();

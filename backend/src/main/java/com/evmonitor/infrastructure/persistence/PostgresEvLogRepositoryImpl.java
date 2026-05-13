@@ -163,6 +163,12 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
+    public Optional<PowerCurveLookup> findOwnerIdAndPowerCurveJson(UUID logId) {
+        return jpaRepository.findOwnerIdAndPowerCurveJson(logId)
+                .map(row -> new PowerCurveLookup(row.getOwnerUserId(), row.getPowerCurveJson()));
+    }
+
+    @Override
     public Optional<EvLog> updateGeohash(UUID carId, LocalDateTime loggedAt, String geohash) {
         return jpaRepository.findByCarIdAndLoggedAt(carId, loggedAt).map(entity -> {
             entity.setGeohash(geohash);
