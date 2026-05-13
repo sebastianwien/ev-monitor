@@ -488,8 +488,132 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
 
           <div v-else-if="stats" class="space-y-0">
 
-        <!-- Key Metrics -->
-        <div :class="['grid grid-cols-2 md:grid-cols-3 gap-4 pb-6 mb-0', showThgBanner && isGerman ? 'lg:grid-cols-6' : 'lg:grid-cols-5']">
+        <!-- Key Metrics: Mobile Data Strip -->
+        <div class="md:hidden mb-6">
+          <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-800">
+            <!-- Gesamtenergie -->
+            <div class="relative flex items-center px-4 min-h-[3.75rem] border-b border-gray-100 dark:border-gray-700"
+              style="background: linear-gradient(90deg, rgba(239,68,68,0.22) 0%, transparent 65%);">
+              <div class="text-xs font-medium text-gray-500 dark:text-gray-400 flex-1 truncate">{{ t('dashboard.metric_total_energy') }}</div>
+              <div class="flex flex-col items-end leading-tight">
+                <div class="flex items-baseline gap-1">
+                  <span class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ stats.totalKwhCharged?.toFixed(1) ?? '–' }}</span>
+                  <span class="text-[10px] text-gray-400 dark:text-gray-500 font-medium">kWh</span>
+                </div>
+                <div class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+                  {{ stats.totalCharges }} {{ t('dashboard.metric_charges') }}
+                </div>
+              </div>
+            </div>
+            <!-- Gesamtkosten -->
+            <div class="relative flex items-center px-4 min-h-[3.75rem] border-b border-gray-100 dark:border-gray-700"
+              style="background: linear-gradient(90deg, rgba(99,102,241,0.22) 0%, transparent 65%);">
+              <div class="text-xs font-medium text-gray-500 dark:text-gray-400 flex-1 truncate">{{ t('dashboard.metric_total_cost') }}</div>
+              <div class="flex flex-col items-end leading-tight">
+                <div class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ stats.totalCostEur != null ? formatCurrency(stats.totalCostEur) : '–' }}</div>
+                <div class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+                  Ø {{ stats.avgCostPerKwh != null ? formatCostPerKwh(stats.avgCostPerKwh) : '–' }}
+                </div>
+              </div>
+            </div>
+            <!-- Gesamtstrecke -->
+            <template v-if="stats.totalDistanceKm != null">
+              <button type="button"
+                class="w-full relative flex items-center px-4 min-h-[3.75rem] border-b border-gray-100 dark:border-gray-700 text-left"
+                style="background: linear-gradient(90deg, rgba(34,197,94,0.22) 0%, transparent 65%);"
+                @click.stop="openMetricTooltip = openMetricTooltip === 'distance' ? null : 'distance'">
+                <div class="text-xs font-medium text-gray-500 dark:text-gray-400 flex-1 flex items-center gap-1.5 truncate">
+                  {{ t('dashboard.metric_total_distance') }}
+                  <InformationCircleIcon class="w-3 h-3 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+                </div>
+                <div class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ formatDistance(stats.totalDistanceKm) }}</div>
+              </button>
+              <div v-if="openMetricTooltip === 'distance'"
+                class="px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-700 text-xs text-gray-700 dark:text-gray-300 leading-relaxed space-y-1.5">
+                <p>{{ t('dashboard.metric_total_distance_tooltip') }}</p>
+                <p class="italic text-gray-500 dark:text-gray-400">{{ t('dashboard.metric_complete_definition') }}</p>
+                <router-link to="/consumption-methodology" class="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400 underline underline-offset-2">
+                  {{ t('dashboard.metric_consumption_methodology_link') }}
+                  <ChevronRightIcon class="w-3 h-3" />
+                </router-link>
+              </div>
+            </template>
+            <!-- Ø Verbrauch -->
+            <template v-if="stats.avgConsumptionKwhPer100km != null">
+              <button type="button"
+                class="w-full relative flex items-center px-4 min-h-[3.75rem] border-b border-gray-100 dark:border-gray-700 text-left"
+                style="background: linear-gradient(90deg, rgba(234,179,8,0.22) 0%, transparent 65%);"
+                @click.stop="openMetricTooltip = openMetricTooltip === 'consumption' ? null : 'consumption'">
+                <div class="text-xs font-medium text-gray-500 dark:text-gray-400 flex-1 flex items-center gap-1.5 truncate">
+                  {{ t('dashboard.metric_avg_consumption') }}
+                  <InformationCircleIcon class="w-3 h-3 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+                </div>
+                <div class="flex items-baseline gap-1">
+                  <span class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ formatConsumption(stats.avgConsumptionKwhPer100km, { showUnit: false }) }}</span>
+                  <span class="text-[10px] text-gray-400 dark:text-gray-500 font-medium">{{ consumptionUnitLabel() }}</span>
+                </div>
+              </button>
+              <div v-if="stats.estimatedConsumptionCount > 0 && openMetricTooltip !== 'consumption'"
+                class="px-4 py-1.5 border-b border-gray-100 dark:border-gray-700 text-[11px] text-red-500 italic">
+                {{ t('dashboard.metric_estimated', { n: stats.estimatedConsumptionCount }) }}
+              </div>
+              <div v-if="openMetricTooltip === 'consumption'"
+                class="px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-700 text-xs text-gray-700 dark:text-gray-300 leading-relaxed space-y-1.5">
+                <p v-if="stats.estimatedConsumptionCount > 0" class="text-red-500 italic">{{ t('dashboard.metric_estimated', { n: stats.estimatedConsumptionCount }) }}</p>
+                <p>{{ t('dashboard.metric_avg_consumption_tooltip') }}</p>
+                <p class="italic text-gray-500 dark:text-gray-400">{{ t('dashboard.metric_complete_definition') }}</p>
+                <router-link to="/consumption-methodology" class="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400 underline underline-offset-2">
+                  {{ t('dashboard.metric_consumption_methodology_link') }}
+                  <ChevronRightIcon class="w-3 h-3" />
+                </router-link>
+              </div>
+            </template>
+            <!-- Ø Kosten -->
+            <template v-if="avgCostPer100km != null">
+              <button type="button"
+                class="w-full relative flex items-center px-4 min-h-[3.75rem] text-left"
+                style="background: linear-gradient(90deg, rgba(236,72,153,0.22) 0%, transparent 65%);"
+                @click.stop="openMetricTooltip = openMetricTooltip === 'costPer100km' ? null : 'costPer100km'">
+                <div class="text-xs font-medium text-gray-500 dark:text-gray-400 flex-1 flex items-center gap-1.5 truncate">
+                  {{ t('dashboard.metric_avg_cost') }}
+                  <InformationCircleIcon class="w-3 h-3 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+                </div>
+                <div class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ formatCostPerDistance(avgCostPer100km) }}</div>
+              </button>
+              <div v-if="openMetricTooltip === 'costPer100km'"
+                class="px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-100 dark:border-gray-700 text-xs text-gray-700 dark:text-gray-300 leading-relaxed space-y-1.5">
+                <p>{{ t('dashboard.metric_avg_cost_tooltip') }}</p>
+                <p class="italic text-gray-500 dark:text-gray-400">{{ t('dashboard.metric_complete_definition') }}</p>
+                <router-link to="/consumption-methodology" class="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400 underline underline-offset-2">
+                  {{ t('dashboard.metric_consumption_methodology_link') }}
+                  <ChevronRightIcon class="w-3 h-3" />
+                </router-link>
+              </div>
+            </template>
+          </div>
+          <!-- THG Card Mobile -->
+          <div v-if="showThgBanner && isGerman"
+            role="link" tabindex="0"
+            @click="handleThgCardClick"
+            @keydown.enter="handleThgCardClick"
+            @keydown.space.prevent="handleThgCardClick"
+            class="relative mt-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg overflow-hidden cursor-pointer"
+            style="background: linear-gradient(90deg, rgba(34,197,94,0.12) 0%, rgba(34,197,94,0.04) 55%);">
+            <div class="px-4 py-3 pr-8">
+              <p class="text-xs text-gray-700 dark:text-gray-200 font-medium">THG-Prämie schon beantragt?</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400 leading-snug mt-1">Falls nicht, kannst du das hier tun und gleichzeitig den Betrieb der Seite unterstützen.</p>
+            </div>
+            <button @click.stop="dismissThgBanner"
+              class="absolute top-2 right-2 h-5 w-5 rounded-sm bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-500 dark:text-gray-300 flex items-center justify-center"
+              title="Hinweis ausblenden">
+              <XMarkIcon class="h-3 w-3" />
+            </button>
+            <span class="absolute bottom-1 right-3 text-[10px] text-gray-300 dark:text-gray-600">Affiliate-Link</span>
+          </div>
+        </div>
+
+        <!-- Key Metrics: Desktop Grid (mobile uses Data Strip below) -->
+        <div :class="['hidden md:grid md:grid-cols-3 gap-4 pb-6 mb-0', showThgBanner && isGerman ? 'lg:grid-cols-6' : 'lg:grid-cols-5']">
           <div class="bg-white dark:bg-gray-800 rounded-sm border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
             <div class="h-1 bg-amber-500"></div>
             <div class="p-4">
