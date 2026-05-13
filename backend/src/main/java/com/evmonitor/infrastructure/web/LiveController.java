@@ -1,5 +1,6 @@
 package com.evmonitor.infrastructure.web;
 
+import com.evmonitor.application.LiveChargingHistoryResponse;
 import com.evmonitor.application.LiveChargingResponse;
 import com.evmonitor.application.LiveChargingService;
 import com.evmonitor.domain.Car;
@@ -14,6 +15,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
@@ -66,6 +68,40 @@ public class LiveController {
         }
 
         LiveChargingResponse response = liveChargingService.getLiveCharging(carId);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Returns a chronological power-over-time series for the live-charging sparkline.
+     *
+     * <p>Same auth chain as {@link #getLiveCharging}. The {@code minutes} parameter is
+     * clamped server-side to [1, 120] to prevent unbounded queries.
+     *
+     * <p>Returns 200 with an empty {@code points} list when the connectors-service is
+     * unreachable - the UI just renders an empty chart.
+     */
+    @GetMapping("/charging/history")
+    public ResponseEntity<LiveChargingHistoryResponse> getLiveChargingHistory(
+            @PathVariable UUID carId,
+            @RequestParam(defaultValue = "30") int minutes,
+            Authentication authentication) {
+
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        User user = principal.getUser();
+
+        Car car = carRepository.findById(carId)
+                .orElseThrow(() -> NotFoundException.forEntity("Car", carId));
+
+        if (!car.getUserId().equals(user.getId())) {
+            throw ForbiddenException.notOwner("Car", carId);
+        }
+
+        if (!user.canViewLiveTrips()) {
+            throw new ForbiddenException("AutoSync Live entitlement required for live charging data");
+        }
+
+        int clampedMinutes = Math.max(1, Math.min(120, minutes));
+        LiveChargingHistoryResponse response = liveChargingService.getLiveChargingHistory(carId, clampedMinutes);
         return ResponseEntity.ok(response);
     }
 }

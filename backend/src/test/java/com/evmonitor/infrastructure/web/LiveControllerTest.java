@@ -1,5 +1,6 @@
 package com.evmonitor.infrastructure.web;
 
+import com.evmonitor.application.LiveChargingHistoryResponse;
 import com.evmonitor.application.LiveChargingResponse;
 import com.evmonitor.application.LiveChargingService;
 import com.evmonitor.domain.Car;
@@ -17,11 +18,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 /**
@@ -204,6 +208,84 @@ class LiveControllerTest extends AbstractIntegrationTest {
     void getLiveCharging_carNotFound_returns404() {
         ResponseEntity<String> res = restTemplate.exchange(
                 "/api/cars/" + java.util.UUID.randomUUID() + "/live/charging",
+                HttpMethod.GET,
+                new HttpEntity<>(createAuthHeaders(liveUser.getId(), liveUser.getEmail())),
+                String.class);
+
+        assertEquals(HttpStatus.NOT_FOUND, res.getStatusCode());
+    }
+
+    // ── /live/charging/history ──────────────────────────────────────────────
+
+    @Test
+    void getLiveChargingHistory_autoSyncLiveUser_returns200WithPoints() {
+        LiveChargingHistoryResponse history = new LiveChargingHistoryResponse(List.of(
+                new LiveChargingHistoryResponse.Point(Instant.parse("2026-05-12T10:00:00Z"), 11.0),
+                new LiveChargingHistoryResponse.Point(Instant.parse("2026-05-12T10:00:05Z"), 150.0)));
+        when(liveChargingService.getLiveChargingHistory(eq(liveCar.getId()), anyInt()))
+                .thenReturn(history);
+
+        ResponseEntity<Map<String, Object>> res = restTemplate.exchange(
+                "/api/cars/" + liveCar.getId() + "/live/charging/history",
+                HttpMethod.GET,
+                new HttpEntity<>(createAuthHeaders(liveUser.getId(), liveUser.getEmail())),
+                new ParameterizedTypeReference<>() {});
+
+        assertEquals(HttpStatus.OK, res.getStatusCode());
+        assertNotNull(res.getBody());
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> points = (List<Map<String, Object>>) res.getBody().get("points");
+        assertNotNull(points);
+        assertEquals(2, points.size());
+    }
+
+    @Test
+    void getLiveChargingHistory_tier1AutoSyncUser_returns403() {
+        Car tier1Car = createAndSaveCar(tier1User.getId(), CarBrand.CarModel.MODEL_3);
+
+        ResponseEntity<String> res = restTemplate.exchange(
+                "/api/cars/" + tier1Car.getId() + "/live/charging/history",
+                HttpMethod.GET,
+                new HttpEntity<>(createAuthHeaders(tier1User.getId(), tier1User.getEmail())),
+                String.class);
+
+        assertEquals(HttpStatus.FORBIDDEN, res.getStatusCode());
+    }
+
+    @Test
+    void getLiveChargingHistory_nonOwner_returns403() {
+        ResponseEntity<String> res = restTemplate.exchange(
+                "/api/cars/" + otherCar.getId() + "/live/charging/history",
+                HttpMethod.GET,
+                new HttpEntity<>(createAuthHeaders(liveUser.getId(), liveUser.getEmail())),
+                String.class);
+
+        assertEquals(HttpStatus.FORBIDDEN, res.getStatusCode());
+    }
+
+    @Test
+    void getLiveChargingHistory_connectorsUnavailable_returns200WithEmptyPoints() {
+        when(liveChargingService.getLiveChargingHistory(eq(liveCar.getId()), anyInt()))
+                .thenReturn(LiveChargingHistoryResponse.empty());
+
+        ResponseEntity<Map<String, Object>> res = restTemplate.exchange(
+                "/api/cars/" + liveCar.getId() + "/live/charging/history",
+                HttpMethod.GET,
+                new HttpEntity<>(createAuthHeaders(liveUser.getId(), liveUser.getEmail())),
+                new ParameterizedTypeReference<>() {});
+
+        assertEquals(HttpStatus.OK, res.getStatusCode());
+        assertNotNull(res.getBody());
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> points = (List<Map<String, Object>>) res.getBody().get("points");
+        assertNotNull(points);
+        assertEquals(0, points.size());
+    }
+
+    @Test
+    void getLiveChargingHistory_carNotFound_returns404() {
+        ResponseEntity<String> res = restTemplate.exchange(
+                "/api/cars/" + java.util.UUID.randomUUID() + "/live/charging/history",
                 HttpMethod.GET,
                 new HttpEntity<>(createAuthHeaders(liveUser.getId(), liveUser.getEmail())),
                 String.class);

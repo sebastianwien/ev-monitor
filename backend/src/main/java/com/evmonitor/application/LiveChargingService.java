@@ -63,4 +63,30 @@ public class LiveChargingService {
             return LiveChargingResponse.inactive();
         }
     }
+
+    /**
+     * Returns a chronological power-over-time series for the given car.
+     *
+     * @param carId   the car's UUID as known to the core-api
+     * @param minutes lookback window in minutes; the connectors-service clamps this to [1, 120]
+     * @return live charging history, or an empty list on error
+     */
+    public LiveChargingHistoryResponse getLiveChargingHistory(UUID carId, int minutes) {
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("X-Internal-Token", internalToken);
+
+            ResponseEntity<LiveChargingHistoryResponse> response = restTemplate.exchange(
+                    connectorsBaseUrl + "/api/internal/tesla/" + carId + "/live/charging/history?minutes=" + minutes,
+                    HttpMethod.GET,
+                    new HttpEntity<>(headers),
+                    LiveChargingHistoryResponse.class);
+
+            LiveChargingHistoryResponse body = response.getBody();
+            return body != null ? body : LiveChargingHistoryResponse.empty();
+        } catch (RestClientException e) {
+            log.debug("[LIVE-CHARGING-HISTORY] Connectors call failed for carId={}: {}", carId, e.getMessage());
+            return LiveChargingHistoryResponse.empty();
+        }
+    }
 }

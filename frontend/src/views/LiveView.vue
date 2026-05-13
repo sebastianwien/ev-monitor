@@ -9,6 +9,7 @@ import { useCarStore } from '../stores/car'
 import { useChargingLive } from '../composables/useChargingLive'
 import CarSelectDropdown from '../components/car/CarSelectDropdown.vue'
 import type { Car } from '../api/carService'
+import { carDisplayName } from '../utils/enumLabel'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -46,9 +47,110 @@ onMounted(async () => {
   }
 })
 
-const { data, loading: liveLoading, refresh } = useChargingLive(
+const { data, powerHistory, loading: liveLoading, refresh } = useChargingLive(
   computed(() => canViewLive.value ? selectedCarId.value : null)
 )
+
+// Currently selected car (for header display)
+const selectedCar = computed<Car | undefined>(() =>
+  activeCars.value.find(c => c.id === selectedCarId.value)
+)
+
+// --- Curve geometry ---
+// SVG is rendered at viewBox 0 0 600 200. We compute the polyline / area path
+// from powerHistory, normalising kW to pixel space with 15% headroom.
+const CURVE_W = 600
+const CURVE_H = 200
+
+const curveMaxKw = computed(() => {
+  const buf = powerHistory.value
+  const max = buf.length > 0 ? Math.max(...buf.map(p => p.kw)) : 0
+  return Math.max(80, max) * 1.15
+})
+
+interface CurvePoint { x: number; y: number }
+const curvePoints = computed<CurvePoint[]>(() => {
+  const buf = powerHistory.value
+  if (buf.length === 0) return []
+  if (buf.length === 1) {
+    const y = CURVE_H - (buf[0].kw / curveMaxKw.value) * CURVE_H
+    return [{ x: 0, y }, { x: CURVE_W, y }]
+  }
+  const max = curveMaxKw.value
+  return buf.map((p, i) => ({
+    x: (i / (buf.length - 1)) * CURVE_W,
+    y: CURVE_H - (p.kw / max) * CURVE_H,
+  }))
+})
+
+const curveStrokePath = computed(() => {
+  const pts = curvePoints.value
+  if (pts.length === 0) return ''
+  return pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ')
+})
+
+const curveFillPath = computed(() => {
+  const pts = curvePoints.value
+  if (pts.length === 0) return ''
+  const lastX = pts[pts.length - 1].x.toFixed(1)
+  return `${curveStrokePath.value} L ${lastX} ${CURVE_H} L 0 ${CURVE_H} Z`
+})
+
+const curveLastPoint = computed<CurvePoint | null>(() => {
+  const pts = curvePoints.value
+  return pts.length > 0 ? pts[pts.length - 1] : null
+})
+
+// Y-axis gridlines & labels - feste 25-kW-Schritte (25, 50, 75, 100, ...).
+// Ticks innerhalb der sichtbaren Hoehe; oberer Rand der Curve wird nicht beschriftet.
+const curveYTicks = computed(() => {
+  const max = curveMaxKw.value
+  const STEP = 25
+  const ticks: { kw: number; y: number }[] = []
+  for (let kw = STEP; kw < max; kw += STEP) {
+    ticks.push({ kw, y: CURVE_H - (kw / max) * CURVE_H })
+  }
+  return ticks
+})
+
+// X-axis labels: 5 evenly spaced timestamps from first→last history point.
+const curveXLabels = computed<{ label: string; isNow: boolean }[]>(() => {
+  const buf = powerHistory.value
+  if (buf.length < 2) {
+    const nowLabel = new Date(now.value).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+    return [
+      { label: '', isNow: false },
+      { label: '', isNow: false },
+      { label: '', isNow: false },
+      { label: '', isNow: false },
+      { label: `${t('live.now_short')} ${nowLabel}`, isNow: true },
+    ]
+  }
+  const first = buf[0].ts
+  const last = buf[buf.length - 1].ts
+  const span = last - first
+  const labels: { label: string; isNow: boolean }[] = []
+  for (let i = 0; i < 5; i++) {
+    const ts = first + (span * i / 4)
+    const hhmm = new Date(ts).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+    const isLast = i === 4
+    labels.push({
+      label: isLast ? `${t('live.now_short')} ${hhmm}` : hhmm,
+      isNow: isLast,
+    })
+  }
+  return labels
+})
+
+// Window for curve title: minutes covered by current history buffer
+const curveWindowMinutes = computed(() => {
+  const buf = powerHistory.value
+  if (buf.length < 2) return 0
+  return Math.round((buf[buf.length - 1].ts - buf[0].ts) / 60000)
+})
+
+// SoC percentage clamped 0..100 for the wave bar
+const socPct = computed(() => Math.max(0, Math.min(100, data.value?.socPercent ?? 0)))
 
 // Duration since session started - reactive via now.value
 const sessionDuration = computed(() => {
@@ -170,181 +272,266 @@ function formatNumber(val: number | null, decimals = 1): string {
           <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('live.no_session_hint') }}</p>
         </div>
 
-        <!-- Active charging session card - Charging Arc design -->
-        <div
+        <!-- Active charging session card - Live Stream design (Design 3) -->
+        <section
           v-else
-          class="border-2 border-gray-900 dark:border-white rounded-sm shadow-[4px_4px_0_0_#030712] dark:shadow-[4px_4px_0_0_#ffffff] overflow-hidden"
+          class="bg-white dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg overflow-hidden"
         >
-          <!-- HEADER: car info left, LIVE badge right -->
-          <div class="flex items-center justify-between px-4 pt-4 pb-3 border-b-2 border-gray-900 dark:border-white">
-            <div>
-              <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-gray-500 dark:text-gray-400">
-                {{ activeCars[0]?.brand ?? 'Tesla' }}
-              </p>
-            </div>
-            <!-- LIVE badge -->
-            <div class="relative flex items-center gap-2 border-2 border-emerald-600 dark:border-emerald-400 rounded-sm px-2.5 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 shadow-[2px_2px_0_0_#030712] dark:shadow-[2px_2px_0_0_#ffffff]">
-              <div class="relative w-2.5 h-2.5">
-                <span class="live-ring absolute inset-0 rounded-full border-2 border-emerald-500"></span>
-                <span class="live-dot absolute rounded-full bg-emerald-500" style="inset:1px;"></span>
+          <!-- Header: car identity left, charging-type + LIVE pill right -->
+          <header class="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700/70">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-9 h-9 shrink-0 rounded-md bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
+                <BoltIcon class="w-5 h-5 text-emerald-500 dark:text-emerald-400" />
               </div>
-              <span class="text-[11px] font-bold uppercase tracking-[0.14em] text-emerald-700 dark:text-emerald-400">LIVE</span>
+              <div class="min-w-0">
+                <h2 class="text-sm font-semibold text-gray-900 dark:text-white leading-tight truncate">
+                  {{ selectedCar ? carDisplayName(selectedCar.brand, selectedCar.model) : 'Tesla Model 3' }}
+                </h2>
+                <p v-if="selectedCar?.licensePlate" class="text-xs text-gray-500 dark:text-gray-400 leading-tight mt-0.5 tracking-wide truncate">
+                  {{ selectedCar.licensePlate }}
+                </p>
+              </div>
             </div>
-          </div>
+
+            <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+              <div
+                v-if="data.chargingType"
+                class="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md border"
+                :class="data.chargingType === 'DC'
+                  ? 'bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300'
+                  : 'bg-sky-500/10 border-sky-500/30 text-sky-700 dark:text-sky-300'"
+              >
+                <BoltIcon class="w-3 h-3" />
+                <span class="text-[10px] font-semibold tracking-[0.12em] uppercase">
+                  {{ data.chargingType === 'DC' ? t('live.dc') : t('live.ac') }}
+                </span>
+              </div>
+              <div class="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-emerald-500/10 border border-emerald-500/30">
+                <span class="relative flex h-2 w-2">
+                  <span class="absolute inline-flex h-full w-full rounded-full bg-emerald-400 pulse-ring"></span>
+                  <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 dark:bg-emerald-400 pulse-dot"></span>
+                </span>
+                <span class="text-[11px] font-semibold tracking-wider text-emerald-700 dark:text-emerald-300 uppercase">{{ t('live.live') }}</span>
+              </div>
+            </div>
+          </header>
 
           <!-- Stale warning -->
-          <div v-if="dataIsStale" class="border-l-2 border-amber-500 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-xs font-medium text-amber-700 dark:text-amber-300">
+          <div v-if="dataIsStale" class="border-l-4 border-amber-500 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-xs font-medium text-amber-700 dark:text-amber-300">
             {{ t('live.stale_warning') }}
           </div>
 
-          <!-- POWER SECTION -->
-          <div class="px-4 pt-4 pb-3" :class="{ 'opacity-50': dataIsVeryStale }">
-            <div class="flex items-end gap-3">
-              <!-- kW box: dark bg, neo-brutalist border -->
-              <div class="border-2 border-gray-900 dark:border-white rounded-sm px-4 py-2 bg-gray-950 shadow-[4px_4px_0_0_#030712] dark:shadow-[4px_4px_0_0_#4f4f4f]">
-                <div class="flex items-baseline justify-center gap-1">
-                  <span class="kw-value text-white font-extrabold leading-none" style="font-size:56px;letter-spacing:-0.03em;line-height:1;">
-                    <template v-if="data.powerKw != null">{{ formatNumber(data.powerKw) }}</template>
-                    <span v-else class="opacity-40">...</span>
-                  </span>
-                  <span class="font-extrabold text-amber-400" style="font-size:22px;line-height:1;align-self:flex-end;padding-bottom:4px;">kW</span>
-                </div>
-              </div>
-              <!-- Type + label -->
-              <div class="pb-1">
-                <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-emerald-600 dark:text-emerald-400">
-                  {{ data.chargingType === 'DC' ? t('live.dc') : t('live.ac') }}<span v-if="data.chargingType === 'DC'"> · Supercharger</span>
-                </p>
-                <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5">{{ t('live.power') }}</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- THE CHARGING ARC / PROGRESS TRACK -->
-          <div class="px-4 pb-4" :class="{ 'opacity-50': dataIsVeryStale }">
-            <!-- Labels row above track -->
-            <div class="relative mb-1" style="height:36px;">
-              <!-- START label at socStart% position -->
-              <div :style="`position:absolute;left:${socStart}%;transform:translateX(-50%);bottom:0;text-align:center;`">
-                <p class="text-[9px] font-bold uppercase tracking-[0.1em] text-gray-400 leading-none">START</p>
-                <p class="text-xs font-bold text-gray-500 dark:text-gray-400">{{ Math.round(socStart) }}%</p>
-              </div>
-              <!-- CURRENT label at current SoC% -->
-              <div :style="`position:absolute;left:${data.socPercent ?? 0}%;transform:translateX(-50%);bottom:0;text-align:center;`">
-                <p class="text-base font-extrabold text-emerald-600 dark:text-emerald-400 leading-none">{{ Math.round(data.socPercent ?? 0) }}%</p>
-                <p class="text-[9px] font-bold uppercase tracking-[0.1em] text-gray-400">jetzt</p>
-              </div>
-              <!-- TARGET label at socTarget% -->
-              <div :style="`position:absolute;left:${Math.min(socTarget, 95)}%;transform:translateX(-50%);bottom:0;text-align:center;`">
-                <p class="text-base font-extrabold text-amber-500 leading-none">{{ socTarget }}%</p>
-                <p class="text-[9px] font-bold uppercase tracking-[0.1em] text-gray-400">Ziel</p>
-              </div>
-            </div>
-
-            <!-- Track bar -->
-            <div class="relative w-full border-2 border-gray-900 dark:border-white rounded-sm shadow-[4px_4px_0_0_#030712] dark:shadow-[4px_4px_0_0_#ffffff] overflow-visible" style="height:28px;">
-              <!-- Light bg -->
-              <div class="absolute inset-0 bg-gray-50 dark:bg-gray-800"></div>
-
-              <!-- Zone 0: pre-session gray (0% to socStart) -->
-              <div class="absolute top-0 left-0 h-full bg-gray-200 dark:bg-gray-700"
-                   :style="`width:${socStart}%;`"></div>
-
-              <!-- Zone 1: filled emerald (socStart to current SoC) -->
-              <div class="absolute top-0 h-full bg-emerald-500"
-                   :style="`left:${socStart}%;width:${Math.max(0,(data.socPercent ?? 0)-socStart)}%;`"></div>
-
-              <!-- Zone 2: amber striped (current to target) -->
-              <div class="absolute top-0 h-full"
-                   :style="`left:${data.socPercent ?? 0}%;width:${Math.max(0,socTarget-(data.socPercent ?? 0))}%;background:repeating-linear-gradient(45deg,#fef3c7,#fef3c7 4px,#fde68a 4px,#fde68a 8px);border-right:2px dashed #f59e0b;`"></div>
-
-              <!-- Zone 3: post-target gray (target to 100%) -->
-              <div class="absolute top-0 right-0 h-full bg-gray-200 dark:bg-gray-700"
-                   :style="`width:${100-socTarget}%;`"></div>
-
-              <!-- Start tick line -->
-              <div class="absolute top-0 h-full w-0.5 bg-gray-700 dark:bg-gray-300"
-                   :style="`left:${socStart}%;`"></div>
-
-              <!-- Target tick line -->
-              <div class="absolute top-0 h-full w-0.5 bg-amber-500"
-                   :style="`left:${socTarget}%;`"></div>
-
-              <!-- Current position: pulsing circle -->
-              <div class="absolute" :style="`top:50%;left:${data.socPercent ?? 0}%;transform:translate(-50%,-50%);`">
-                <span class="live-ring absolute rounded-full border-2 border-emerald-500" style="width:20px;height:20px;top:0;left:0;transform:translate(-50%,-50%);"></span>
-                <span class="w-5 h-5 rounded-full bg-emerald-500 border-2 border-gray-900 dark:border-white block relative z-10" style="transform:translate(-50%,-50%);"></span>
-              </div>
-            </div>
-
-            <!-- Bottom tick labels -->
-            <div class="relative mt-1" style="height:14px;">
-              <span class="absolute left-0 text-[10px] font-bold uppercase tracking-[0.1em] text-gray-400">0%</span>
-              <span class="absolute right-0 text-[10px] font-bold uppercase tracking-[0.1em] text-gray-400">100%</span>
-            </div>
-
-            <!-- ETA chip centered -->
-            <div class="flex justify-center mt-3">
-              <div v-if="data.timeToFullMinutes != null"
-                   class="border-2 border-amber-500 rounded-sm px-3 py-1.5 flex items-center gap-2 bg-amber-50 dark:bg-amber-950/30 shadow-[2px_2px_0_0_#030712] dark:shadow-[2px_2px_0_0_#ffffff]">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="#f59e0b" class="w-3.5 h-3.5 shrink-0">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                </svg>
-                <span class="font-extrabold text-amber-800 dark:text-amber-300" style="font-size:11px;letter-spacing:0.12em;text-transform:uppercase;">
-                  {{ t('live.eta') }}: ~{{ data.timeToFullMinutes }} {{ t('live.minutes_short') }}
+          <!-- Curve area -->
+          <div class="relative dot-pattern px-4 sm:px-6 pt-5 pb-3" :class="{ 'opacity-50': dataIsVeryStale }">
+            <!-- Top label row -->
+            <div class="flex items-end justify-between mb-2 px-1">
+              <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-gray-500">
+                {{ t('live.power_curve') }}
+                <span v-if="curveWindowMinutes > 0"> · {{ t('live.last_minutes', { count: curveWindowMinutes }) }}</span>
+              </p>
+              <div class="flex items-baseline gap-1">
+                <span class="text-3xl font-bold text-gray-900 dark:text-white tabular-nums leading-none">
+                  <template v-if="data.powerKw != null">{{ formatNumber(data.powerKw) }}</template>
+                  <span v-else class="opacity-40">-</span>
                 </span>
+                <span class="text-sm font-medium text-gray-500 dark:text-gray-400">kW</span>
+              </div>
+            </div>
+
+            <!-- SVG curve -->
+            <div class="relative">
+              <svg
+                viewBox="0 0 600 200"
+                class="w-full h-[180px]"
+                preserveAspectRatio="none"
+                role="img"
+                :aria-label="t('live.power_curve')"
+              >
+                <defs>
+                  <linearGradient id="curveFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#10b981" stop-opacity="0.45" />
+                    <stop offset="60%" stop-color="#10b981" stop-opacity="0.12" />
+                    <stop offset="100%" stop-color="#10b981" stop-opacity="0" />
+                  </linearGradient>
+                  <linearGradient id="curveStroke" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stop-color="#059669" />
+                    <stop offset="100%" stop-color="#34d399" />
+                  </linearGradient>
+                  <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="3" result="blur" />
+                    <feMerge>
+                      <feMergeNode in="blur" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                </defs>
+
+                <!-- Horizontal grid -->
+                <g stroke="currentColor" class="text-gray-300 dark:text-slate-700" stroke-width="1" stroke-dasharray="2 4" opacity="0.6">
+                  <line v-for="(tick, i) in curveYTicks" :key="`g-${i}`" x1="0" :y1="tick.y" x2="600" :y2="tick.y" />
+                </g>
+
+                <!-- Y-axis labels -->
+                <g fill="currentColor" class="text-gray-500 dark:text-slate-500" font-size="9" font-family="system-ui">
+                  <text v-for="(tick, i) in curveYTicks" :key="`t-${i}`" x="6" :y="tick.y + 4">{{ tick.kw }} kW</text>
+                </g>
+
+                <!-- Fill under curve -->
+                <path
+                  v-if="curveFillPath"
+                  :d="curveFillPath"
+                  fill="url(#curveFill)"
+                />
+
+                <!-- Curve stroke -->
+                <path
+                  v-if="curveStrokePath"
+                  :d="curveStrokePath"
+                  fill="none"
+                  stroke="url(#curveStroke)"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  filter="url(#glow)"
+                />
+
+                <!-- Current value marker -->
+                <template v-if="curveLastPoint">
+                  <line
+                    :x1="curveLastPoint.x" :y1="curveLastPoint.y" :x2="curveLastPoint.x" y2="200"
+                    stroke="#10b981" stroke-width="1" stroke-dasharray="2 3" opacity="0.5"
+                  />
+                  <circle :cx="curveLastPoint.x" :cy="curveLastPoint.y" r="8" fill="#10b981" opacity="0.25" />
+                  <circle :cx="curveLastPoint.x" :cy="curveLastPoint.y" r="4" fill="#10b981" class="marker-pulse" />
+                  <circle :cx="curveLastPoint.x" :cy="curveLastPoint.y" r="2" fill="#ffffff" />
+                </template>
+              </svg>
+
+              <!-- Loading state overlay -->
+              <div
+                v-if="curvePoints.length === 0"
+                class="absolute inset-0 flex items-center justify-center text-xs text-gray-500 dark:text-gray-400"
+              >
+                {{ t('live.loading_data') }}
+              </div>
+
+              <!-- X axis labels -->
+              <div class="flex justify-between text-[10px] text-gray-500 dark:text-gray-500 px-1 tabular-nums mt-1">
+                <span
+                  v-for="(lab, i) in curveXLabels"
+                  :key="`x-${i}`"
+                  :class="lab.isNow ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-gray-500 dark:text-gray-600'"
+                >{{ lab.label }}</span>
               </div>
             </div>
           </div>
 
-          <!-- STATS ROW: 3-column grid -->
-          <div class="border-t-2 border-gray-900 dark:border-white grid grid-cols-3 divide-x-2 divide-gray-900 dark:divide-white"
-               :class="{ 'opacity-50': dataIsVeryStale }">
+          <!-- SoC bar with wave-flow -->
+          <div class="px-4 sm:px-6 py-4 border-t border-gray-200 dark:border-gray-700/70" :class="{ 'opacity-50': dataIsVeryStale }">
+            <div class="flex items-end justify-between mb-2 gap-2">
+              <div class="flex items-baseline gap-2 flex-wrap min-w-0">
+                <span class="text-[10px] font-semibold tracking-[0.18em] uppercase text-gray-500">{{ t('live.soc') }}</span>
+                <span class="text-xl font-bold text-gray-900 dark:text-white tabular-nums">{{ Math.round(socPct) }}%</span>
+                <span v-if="socStart > 0" class="text-[11px] text-gray-500 tabular-nums whitespace-nowrap">← {{ Math.round(socStart) }}% {{ t('live.start_label') }}</span>
+              </div>
+              <span class="text-[11px] text-amber-600 dark:text-amber-400 font-semibold tabular-nums whitespace-nowrap">{{ t('live.target_label') }} {{ socTarget }}%</span>
+            </div>
+
+            <div class="relative h-3 bg-gray-200 dark:bg-gray-700/60 rounded-full overflow-hidden">
+              <div class="absolute inset-y-0 left-0 wave-flow rounded-full" :style="`width: ${socPct}%;`"></div>
+              <!-- Target marker -->
+              <div class="absolute top-0 bottom-0 w-px bg-amber-400/70" :style="`left: ${socTarget}%;`"></div>
+              <div
+                class="absolute -top-0.5 w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)]"
+                :style="`left: calc(${socTarget}% - 4px);`"
+              ></div>
+            </div>
+          </div>
+
+          <!-- Metric strip: 2x2 on mobile, 4-col on sm+ -->
+          <div
+            class="grid grid-cols-2 sm:grid-cols-4 border-t border-gray-200 dark:border-gray-700/70 divide-x divide-y sm:divide-y-0 divide-gray-200 dark:divide-gray-700/70"
+            :class="{ 'opacity-50': dataIsVeryStale }"
+          >
+            <!-- Bis Ziel% -->
+            <div class="px-4 py-4">
+              <div class="flex items-center gap-1.5 mb-1">
+                <svg class="w-3 h-3 text-amber-500 dark:text-amber-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p class="text-[10px] font-semibold tracking-[0.12em] uppercase text-gray-500">{{ t('live.until_target', { pct: socTarget }) }}</p>
+              </div>
+              <p class="text-lg font-bold text-gray-900 dark:text-white tabular-nums">
+                <template v-if="data.timeToFullMinutes != null">{{ data.timeToFullMinutes }}<span class="text-xs text-gray-500 dark:text-gray-400 ml-1 font-medium">{{ t('live.minutes_short') }}</span></template>
+                <template v-else>-</template>
+              </p>
+            </div>
+
             <!-- Reichweite -->
-            <div class="px-3 py-3 text-center">
-              <p class="text-[9px] font-bold uppercase tracking-[0.14em] text-gray-400 mb-1">{{ t('live.range') }}</p>
-              <p class="text-xl font-extrabold text-gray-900 dark:text-white leading-none tracking-tight tabular-nums">
-                {{ data.estRangeKm != null ? formatNumber(data.estRangeKm, 0) : '-' }}
+            <div class="px-4 py-4">
+              <div class="flex items-center gap-1.5 mb-1">
+                <svg class="w-3 h-3 text-sky-500 dark:text-sky-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+                <p class="text-[10px] font-semibold tracking-[0.12em] uppercase text-gray-500">{{ t('live.range') }}</p>
+              </div>
+              <p class="text-lg font-bold text-gray-900 dark:text-white tabular-nums">
+                <template v-if="data.estRangeKm != null">{{ formatNumber(data.estRangeKm, 0) }}<span class="text-xs text-gray-500 dark:text-gray-400 ml-1 font-medium">km</span></template>
+                <template v-else>-</template>
               </p>
-              <p class="text-[9px] font-bold uppercase tracking-[0.1em] text-gray-400 mt-1">km</p>
             </div>
-            <!-- Ladestrom -->
-            <div class="px-3 py-3 text-center bg-gray-50 dark:bg-gray-700/30">
-              <p class="text-[9px] font-bold uppercase tracking-[0.14em] text-gray-400 mb-1">{{ t('live.amps') }}</p>
-              <p class="text-xl font-extrabold text-gray-900 dark:text-white leading-none tracking-tight tabular-nums">
-                {{ data.chargeAmps != null ? formatNumber(data.chargeAmps, 0) : '-' }}
+
+            <!-- Strom -->
+            <div class="px-4 py-4">
+              <div class="flex items-center gap-1.5 mb-1">
+                <svg class="w-3 h-3 text-emerald-500 dark:text-emerald-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                <p class="text-[10px] font-semibold tracking-[0.12em] uppercase text-gray-500">{{ t('live.amps') }}</p>
+              </div>
+              <p class="text-lg font-bold text-gray-900 dark:text-white tabular-nums">
+                <template v-if="data.chargeAmps != null">{{ formatNumber(data.chargeAmps, 0) }}<span class="text-xs text-gray-500 dark:text-gray-400 ml-1 font-medium">A</span></template>
+                <template v-else>-</template>
               </p>
-              <p class="text-[9px] font-bold uppercase tracking-[0.1em] text-gray-400 mt-1">A</p>
             </div>
+
             <!-- Dauer -->
-            <div class="px-3 py-3 text-center">
-              <p class="text-[9px] font-bold uppercase tracking-[0.14em] text-gray-400 mb-1">{{ t('live.duration') }}</p>
-              <p class="text-xl font-extrabold text-gray-900 dark:text-white leading-none tracking-tight tabular-nums">
+            <div class="px-4 py-4">
+              <div class="flex items-center gap-1.5 mb-1">
+                <svg class="w-3 h-3 text-indigo-500 dark:text-indigo-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <p class="text-[10px] font-semibold tracking-[0.12em] uppercase text-gray-500">{{ t('live.duration') }}</p>
+              </div>
+              <p class="text-lg font-bold text-gray-900 dark:text-white tabular-nums">
                 {{ sessionDuration ?? '-' }}
               </p>
-              <p v-if="sessionStartTime" class="text-[9px] font-bold uppercase tracking-[0.1em] text-gray-400 mt-1">
-                seit {{ sessionStartTime }}
-              </p>
             </div>
           </div>
 
-          <!-- FOOTER -->
-          <div class="border-t-2 border-gray-200 dark:border-gray-700 px-4 py-2.5 flex items-center justify-between bg-gray-50 dark:bg-gray-700/30">
-            <span class="text-[11px] font-medium text-gray-400">
-              {{ t('live.last_updated') }}:
-              {{ secondsSinceUpdate != null ? `vor ${secondsSinceUpdate} Sek.` : '-' }}
-            </span>
-            <div class="flex items-center gap-2">
+          <!-- Footer -->
+          <footer class="flex items-center justify-between gap-3 px-4 sm:px-6 py-3 bg-gray-50 dark:bg-gray-900/40 border-t border-gray-200 dark:border-gray-700/70">
+            <p v-if="sessionStartTime" class="text-[11px] text-gray-500 dark:text-gray-500 tabular-nums min-w-0 truncate">
+              {{ t('live.start_label') }} {{ sessionStartTime }}
+            </p>
+            <span v-else></span>
+            <div class="flex items-center gap-3 shrink-0">
+              <div class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 pulse-dot shrink-0"></span>
+                <p class="text-[11px] text-gray-500 dark:text-gray-400 tabular-nums">
+                  {{ secondsSinceUpdate != null ? t('live.seconds_ago', { n: secondsSinceUpdate }) : '-' }}
+                </p>
+              </div>
               <button
                 @click="refresh()"
                 :aria-label="t('live.refresh')"
-                class="p-1.5 border-2 border-gray-900 dark:border-white rounded-sm shadow-[2px_2px_0_0_#030712] dark:shadow-[2px_2px_0_0_#ffffff] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-[transform,box-shadow] duration-75 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700"
+                class="p-1.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               >
-                <ArrowPathIcon class="h-4 w-4 text-gray-700 dark:text-gray-300" />
+                <ArrowPathIcon class="h-4 w-4 text-gray-500 dark:text-gray-400" />
               </button>
             </div>
-          </div>
-        </div>
+          </footer>
+        </section>
       </template>
     </div>
   </div>
@@ -353,19 +540,46 @@ function formatNumber(val: number | null, decimals = 1): string {
 <style scoped>
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.35; transform: scale(0.75); }
+  50% { opacity: 0.4; transform: scale(0.85); }
 }
 @keyframes pulse-ring {
-  0% { transform: scale(1); opacity: 0.8; }
-  100% { transform: scale(2.2); opacity: 0; }
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(2.4); opacity: 0; }
 }
-@keyframes kw-tick {
-  0%, 100% { opacity: 1; }
-  48% { opacity: 1; }
-  50% { opacity: 0.7; }
-  52% { opacity: 1; }
+@keyframes marker-pulse {
+  0%, 100% { r: 4; opacity: 1; }
+  50% { r: 6; opacity: 0.85; }
 }
-.live-dot { animation: pulse-dot 1.6s ease-in-out infinite; }
-.live-ring { animation: pulse-ring 1.6s ease-out infinite; }
-.kw-value { animation: kw-tick 4s ease-in-out infinite; }
+@keyframes wave-flow {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+.pulse-dot { animation: pulse-dot 1.5s ease-in-out infinite; }
+.pulse-ring { animation: pulse-ring 1.8s cubic-bezier(0.215, 0.61, 0.355, 1) infinite; }
+.marker-pulse {
+  animation: marker-pulse 1.6s ease-in-out infinite;
+  transform-origin: center;
+  transform-box: fill-box;
+}
+.wave-flow {
+  background: linear-gradient(90deg,
+    #059669 0%,
+    #10b981 30%,
+    #34d399 50%,
+    #10b981 70%,
+    #059669 100%);
+  background-size: 200% 100%;
+  animation: wave-flow 3s linear infinite;
+}
+
+/* Subtle dot pattern behind the curve area */
+.dot-pattern {
+  background-image: radial-gradient(circle, rgba(148, 163, 184, 0.15) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+:global(.dark) .dot-pattern,
+.dark .dot-pattern {
+  background-image: radial-gradient(circle, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+}
 </style>
