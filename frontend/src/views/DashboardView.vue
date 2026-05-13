@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, defineAsyncComponent } from 'vue'
+import { ref, computed, onMounted, onActivated, onDeactivated, watch, defineAsyncComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Line, Bar } from 'vue-chartjs'
 import {
@@ -174,8 +174,12 @@ function togglePeerPlaceholder() {
 }
 
 // -- Mobile sticky filter bar: lift FAB so they don't collide --
+// viewActive: KeepAlive-Cached Views verstecken ihren Teleport-Footer waehrend sie inaktiv sind
+const viewActive = ref(true)
+onActivated(() => { viewActive.value = true })
+onDeactivated(() => { viewActive.value = false })
 const filterBar = ref<HTMLElement | null>(null)
-const filterBarVisible = computed(() => !!selectedCarId.value && hasAnyLogs.value)
+const filterBarVisible = computed(() => viewActive.value && !!selectedCarId.value && hasAnyLogs.value)
 useBulkBarOffset(filterBar, filterBarVisible)
 
 onMounted(() => initCars())

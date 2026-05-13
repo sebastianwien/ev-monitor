@@ -572,9 +572,13 @@ function toggleAllTrips() {
 }
 
 // -- Coordinate FAB position with the sticky bulk-bar (mobile only) --
+// viewActive: KeepAlive-Cached Views verstecken ihren Teleport-Footer waehrend sie inaktiv sind
+const viewActive = ref(true)
+onActivated(() => { viewActive.value = true })
+onDeactivated(() => { viewActive.value = false })
 const bulkBar = ref<HTMLElement | null>(null)
 const bulkBarVisible = computed(() =>
-  hasAnyLogs.value && (totalTripCount.value > 0 || chargeCount.value > 0),
+  viewActive.value && hasAnyLogs.value && (totalTripCount.value > 0 || chargeCount.value > 0),
 )
 useBulkBarOffset(bulkBar, bulkBarVisible)
 
@@ -1963,7 +1967,7 @@ function toggleAllCharges() {
       leave-active-class="transition duration-150 ease-in"
       leave-from-class="opacity-100 translate-y-0"
       leave-to-class="opacity-0 translate-y-2">
-      <div v-if="hasAnyLogs && (totalTripCount > 0 || chargeCount > 0)"
+      <div v-if="bulkBarVisible"
         ref="bulkBar"
         class="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-gray-900/95 dark:bg-gray-800/95 backdrop-blur border-t border-white/10 flex items-center justify-around gap-3 px-4 py-2.5"
         style="padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);">
