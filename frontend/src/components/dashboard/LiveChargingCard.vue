@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../../stores/auth'
 import { useChargingLive } from '../../composables/useChargingLive'
+import PowerCurveChart from '../charging/PowerCurveChart.vue'
 import { BoltIcon, ArrowPathIcon, ChevronUpIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
 
 const props = defineProps<{
@@ -41,72 +42,6 @@ function toggleCollapsed() {
   if (sessionKey.value) localStorage.setItem(sessionKey.value, collapsed.value ? '1' : '0')
 }
 
-// --- Curve geometry: viewBox 0 0 600 200, 15% Headroom auf max(80, peak) ---
-const CURVE_W = 600
-const CURVE_H = 200
-const curveMaxKw = computed(() => {
-  const buf = powerHistory.value
-  const max = buf.length > 0 ? Math.max(...buf.map(p => p.kw)) : 0
-  // Nur ~5% Headroom: bei Peak 250kW endet die Y-Achse bei ~263kW, kein
-  // 275-kW-Tick mehr nach oben, Kurve nutzt die volle Hoehe.
-  return Math.max(80, max) * 1.05
-})
-interface CurvePoint { x: number; y: number }
-const curvePoints = computed<CurvePoint[]>(() => {
-  const buf = powerHistory.value
-  if (buf.length === 0) return []
-  if (buf.length === 1) {
-    const y = CURVE_H - (buf[0].kw / curveMaxKw.value) * CURVE_H
-    return [{ x: 0, y }, { x: CURVE_W, y }]
-  }
-  const max = curveMaxKw.value
-  return buf.map((p, i) => ({
-    x: (i / (buf.length - 1)) * CURVE_W,
-    y: CURVE_H - (p.kw / max) * CURVE_H,
-  }))
-})
-const curveStrokePath = computed(() => {
-  const pts = curvePoints.value
-  if (pts.length === 0) return ''
-  return pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ')
-})
-const curveFillPath = computed(() => {
-  const pts = curvePoints.value
-  if (pts.length === 0) return ''
-  const lastX = pts[pts.length - 1].x.toFixed(1)
-  return `${curveStrokePath.value} L ${lastX} ${CURVE_H} L 0 ${CURVE_H} Z`
-})
-const curveLastPoint = computed<CurvePoint | null>(() => {
-  const pts = curvePoints.value
-  return pts.length > 0 ? pts[pts.length - 1] : null
-})
-// Y-axis gridlines & labels - feste 25-kW-Schritte
-const curveYTicks = computed(() => {
-  const max = curveMaxKw.value
-  const STEP = 25
-  const ticks: { kw: number; y: number }[] = []
-  for (let kw = STEP; kw < max; kw += STEP) ticks.push({ kw, y: CURVE_H - (kw / max) * CURVE_H })
-  return ticks
-})
-// X-axis labels: 5 evenly spaced timestamps
-const curveXLabels = computed<{ label: string; isNow: boolean }[]>(() => {
-  const buf = powerHistory.value
-  if (buf.length < 2) {
-    const nowLabel = new Date(now.value).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
-    return [{ label: '', isNow: false }, { label: '', isNow: false }, { label: '', isNow: false }, { label: '', isNow: false }, { label: `${t('live.now_short')} ${nowLabel}`, isNow: true }]
-  }
-  const first = buf[0].ts
-  const last = buf[buf.length - 1].ts
-  const span = last - first
-  const labels: { label: string; isNow: boolean }[] = []
-  for (let i = 0; i < 5; i++) {
-    const ts = first + (span * i / 4)
-    const hhmm = new Date(ts).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
-    const isLast = i === 4
-    labels.push({ label: isLast ? `${t('live.now_short')} ${hhmm}` : hhmm, isNow: isLast })
-  }
-  return labels
-})
 const curveWindowMinutes = computed(() => {
   const buf = powerHistory.value
   if (buf.length < 2) return 0
@@ -233,43 +168,7 @@ function formatNumber(val: number | null, decimals = 1): string {
       <!-- Curve -->
       <div class="relative px-4 sm:px-6 pt-3 pb-3" :class="{ 'opacity-50': dataIsVeryStale }">
         <div class="relative">
-          <svg viewBox="0 0 600 200" class="w-full h-[234px]" preserveAspectRatio="none" role="img" :aria-label="t('live.power_curve')">
-            <defs>
-              <linearGradient id="liveCurveFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="#10b981" stop-opacity="0.45" />
-                <stop offset="60%" stop-color="#10b981" stop-opacity="0.12" />
-                <stop offset="100%" stop-color="#10b981" stop-opacity="0" />
-              </linearGradient>
-              <linearGradient id="liveCurveStroke" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stop-color="#059669" />
-                <stop offset="100%" stop-color="#34d399" />
-              </linearGradient>
-              <filter id="liveGlow" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="3" result="blur" />
-                <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-              </filter>
-            </defs>
-            <g stroke="currentColor" class="text-gray-300 dark:text-slate-700" stroke-width="1" stroke-dasharray="2 4" opacity="0.6">
-              <line v-for="(tick, i) in curveYTicks" :key="`g-${i}`" x1="0" :y1="tick.y" x2="600" :y2="tick.y" />
-            </g>
-            <path v-if="curveFillPath" :d="curveFillPath" fill="url(#liveCurveFill)" />
-            <path v-if="curveStrokePath" :d="curveStrokePath" fill="none" stroke="url(#liveCurveStroke)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" filter="url(#liveGlow)" />
-            <template v-if="curveLastPoint">
-              <line :x1="curveLastPoint.x" :y1="curveLastPoint.y" :x2="curveLastPoint.x" y2="200" stroke="#10b981" stroke-width="1" stroke-dasharray="2 3" opacity="0.5" />
-              <circle :cx="curveLastPoint.x" :cy="curveLastPoint.y" r="8" fill="#10b981" opacity="0.25" />
-              <circle :cx="curveLastPoint.x" :cy="curveLastPoint.y" r="4" fill="#10b981" class="marker-pulse" />
-              <circle :cx="curveLastPoint.x" :cy="curveLastPoint.y" r="2" fill="#ffffff" />
-            </template>
-          </svg>
-          <!-- Y-Achse als HTML-Overlay (aspect-preserving) -->
-          <div class="pointer-events-none absolute inset-0">
-            <span
-              v-for="(tick, i) in curveYTicks"
-              :key="`yt-${i}`"
-              class="absolute left-1.5 text-[9px] text-gray-500 dark:text-slate-500 tabular-nums leading-none"
-              :style="`top: calc(${(tick.y / 200) * 100}% - 0.3em);`"
-            >{{ tick.kw }} kW</span>
-          </div>
+          <PowerCurveChart :points="powerHistory" :height="234" :show-live-marker="true" :now-label="t('live.now_short')" />
           <!-- kW-Anzeige als Overlay rechts oben (Platz sparen) -->
           <div class="pointer-events-none absolute top-1 right-2 text-right">
             <p class="text-[10px] font-semibold tracking-[0.12em] uppercase text-gray-500 mb-0.5">
@@ -284,14 +183,8 @@ function formatNumber(val: number | null, decimals = 1): string {
               <span class="text-sm font-medium text-gray-500 dark:text-gray-400">kW</span>
             </div>
           </div>
-          <div v-if="curvePoints.length === 0" class="absolute inset-0 flex items-center justify-center text-xs text-gray-500 dark:text-gray-400">
+          <div v-if="powerHistory.length === 0" class="absolute inset-0 flex items-center justify-center text-xs text-gray-500 dark:text-gray-400">
             {{ t('live.loading_data') }}
-          </div>
-          <div class="flex justify-between text-[10px] text-gray-500 dark:text-gray-500 px-1 tabular-nums mt-1">
-            <span v-for="(lab, i) in curveXLabels" :key="`x-${i}`"
-                  :class="lab.isNow ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-gray-500 dark:text-gray-600'">
-              {{ lab.label }}
-            </span>
           </div>
         </div>
       </div>
@@ -391,17 +284,12 @@ function formatNumber(val: number | null, decimals = 1): string {
   0% { transform: scale(1); opacity: 0.6; }
   100% { transform: scale(2.4); opacity: 0; }
 }
-@keyframes marker-pulse {
-  0%, 100% { r: 4; opacity: 1; }
-  50% { r: 6; opacity: 0.85; }
-}
 @keyframes wave-flow {
   0% { background-position: 0% 50%; }
   100% { background-position: 200% 50%; }
 }
 .pulse-dot { animation: pulse-dot 1.5s ease-in-out infinite; }
 .pulse-ring { animation: pulse-ring 1.8s cubic-bezier(0.215, 0.61, 0.355, 1) infinite; }
-.marker-pulse { animation: marker-pulse 1.6s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
 .wave-flow {
   background: linear-gradient(90deg, #059669 0%, #10b981 30%, #34d399 50%, #10b981 70%, #059669 100%);
   background-size: 200% 100%;

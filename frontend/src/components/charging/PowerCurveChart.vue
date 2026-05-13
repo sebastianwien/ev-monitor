@@ -1,0 +1,155 @@
+<script setup lang="ts">
+import { computed } from 'vue'
+
+interface PowerPoint { ts: number; kw: number }
+
+const props = withDefaults(defineProps<{
+  points: PowerPoint[]
+  height?: number          // SVG-Hoehe in px
+  showLiveMarker?: boolean // pulsierender Endpunkt + vertikale Dotted-Linie (Live-Modus)
+  yStepKw?: number         // Y-Tick-Schrittweite in kW
+  nowLabel?: string        // wenn gesetzt: Praefix fuer die rechteste X-Achsen-Beschriftung (z.B. "jetzt")
+}>(), {
+  height: 234,
+  showLiveMarker: false,
+  yStepKw: 25,
+  nowLabel: '',
+})
+
+const CURVE_W = 600
+const CURVE_H = 200
+
+const curveMaxKw = computed(() => {
+  const buf = props.points
+  const max = buf.length > 0 ? Math.max(...buf.map(p => p.kw)) : 0
+  // 5% Headroom: bei Peak 250kW endet die Y-Achse bei ~263kW, kein
+  // verschenkter Platz oberhalb der Spitze.
+  return Math.max(80, max) * 1.05
+})
+
+interface CurvePoint { x: number; y: number }
+
+const curvePoints = computed<CurvePoint[]>(() => {
+  const buf = props.points
+  if (buf.length === 0) return []
+  if (buf.length === 1) {
+    const y = CURVE_H - (buf[0].kw / curveMaxKw.value) * CURVE_H
+    return [{ x: 0, y }, { x: CURVE_W, y }]
+  }
+  const max = curveMaxKw.value
+  return buf.map((p, i) => ({
+    x: (i / (buf.length - 1)) * CURVE_W,
+    y: CURVE_H - (p.kw / max) * CURVE_H,
+  }))
+})
+
+const curveStrokePath = computed(() => {
+  const pts = curvePoints.value
+  if (pts.length === 0) return ''
+  return pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ')
+})
+
+const curveFillPath = computed(() => {
+  const pts = curvePoints.value
+  if (pts.length === 0) return ''
+  const lastX = pts[pts.length - 1].x.toFixed(1)
+  return `${curveStrokePath.value} L ${lastX} ${CURVE_H} L 0 ${CURVE_H} Z`
+})
+
+const curveLastPoint = computed<CurvePoint | null>(() => {
+  const pts = curvePoints.value
+  return pts.length > 0 ? pts[pts.length - 1] : null
+})
+
+const curveYTicks = computed(() => {
+  const max = curveMaxKw.value
+  const ticks: { kw: number; y: number }[] = []
+  for (let kw = props.yStepKw; kw < max; kw += props.yStepKw) {
+    ticks.push({ kw, y: CURVE_H - (kw / max) * CURVE_H })
+  }
+  return ticks
+})
+
+const curveXLabels = computed<{ text: string; isNow: boolean }[]>(() => {
+  const buf = props.points
+  if (buf.length < 2) return [{ text: '', isNow: false }, { text: '', isNow: false }, { text: '', isNow: false }, { text: '', isNow: false }, { text: '', isNow: false }]
+  const first = buf[0].ts
+  const last = buf[buf.length - 1].ts
+  const span = last - first
+  const labels: { text: string; isNow: boolean }[] = []
+  for (let i = 0; i < 5; i++) {
+    const ts = first + (span * i / 4)
+    const hhmm = new Date(ts).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+    const isLast = i === 4
+    labels.push({
+      text: isLast && props.nowLabel ? `${props.nowLabel} ${hhmm}` : hhmm,
+      isNow: isLast && !!props.nowLabel,
+    })
+  }
+  return labels
+})
+
+// Unique id-Suffix damit mehrere Instanzen auf einer Seite keine Gradient-IDs
+// teilen und sich gegenseitig "verlieren".
+const uid = Math.random().toString(36).slice(2, 9)
+const fillId = `pc-fill-${uid}`
+const strokeId = `pc-stroke-${uid}`
+const glowId = `pc-glow-${uid}`
+</script>
+
+<template>
+  <div class="relative">
+    <svg viewBox="0 0 600 200" :style="`height: ${height}px`" class="w-full" preserveAspectRatio="none" role="img">
+      <defs>
+        <linearGradient :id="fillId" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#10b981" stop-opacity="0.45" />
+          <stop offset="60%" stop-color="#10b981" stop-opacity="0.12" />
+          <stop offset="100%" stop-color="#10b981" stop-opacity="0" />
+        </linearGradient>
+        <linearGradient :id="strokeId" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#059669" />
+          <stop offset="100%" stop-color="#34d399" />
+        </linearGradient>
+        <filter :id="glowId" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="3" result="blur" />
+          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+      </defs>
+      <g stroke="currentColor" class="text-gray-300 dark:text-slate-700" stroke-width="1" stroke-dasharray="2 4" opacity="0.6">
+        <line v-for="(tick, i) in curveYTicks" :key="`g-${i}`" x1="0" :y1="tick.y" x2="600" :y2="tick.y" />
+      </g>
+      <path v-if="curveFillPath" :d="curveFillPath" :fill="`url(#${fillId})`" />
+      <path v-if="curveStrokePath" :d="curveStrokePath" fill="none" :stroke="`url(#${strokeId})`" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" :filter="`url(#${glowId})`" />
+      <template v-if="showLiveMarker && curveLastPoint">
+        <line :x1="curveLastPoint.x" :y1="curveLastPoint.y" :x2="curveLastPoint.x" y2="200" stroke="#10b981" stroke-width="1" stroke-dasharray="2 3" opacity="0.5" />
+        <circle :cx="curveLastPoint.x" :cy="curveLastPoint.y" r="8" fill="#10b981" opacity="0.25" />
+        <circle :cx="curveLastPoint.x" :cy="curveLastPoint.y" r="4" fill="#10b981" class="marker-pulse" />
+        <circle :cx="curveLastPoint.x" :cy="curveLastPoint.y" r="2" fill="#ffffff" />
+      </template>
+    </svg>
+    <!-- Y-Achse als HTML-Overlay (vermeidet preserveAspectRatio="none"-Stretching von SVG-Text) -->
+    <div class="pointer-events-none absolute inset-0">
+      <span
+        v-for="(tick, i) in curveYTicks"
+        :key="`yt-${i}`"
+        class="absolute left-1.5 text-[9px] text-gray-500 dark:text-slate-500 tabular-nums leading-none"
+        :style="`top: calc(${(tick.y / 200) * 100}% - 0.3em);`"
+      >{{ tick.kw }} kW</span>
+    </div>
+    <div class="flex justify-between text-[10px] text-gray-500 dark:text-gray-500 px-1 tabular-nums mt-1">
+      <span
+        v-for="(lab, i) in curveXLabels"
+        :key="`x-${i}`"
+        :class="lab.isNow ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : ''"
+      >{{ lab.text }}</span>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+@keyframes marker-pulse {
+  0%, 100% { r: 4; opacity: 1; }
+  50% { r: 6; opacity: 0.85; }
+}
+.marker-pulse { animation: marker-pulse 1.6s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
+</style>

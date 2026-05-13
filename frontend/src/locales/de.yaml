@@ -592,6 +592,8 @@ dashboard:
   implausible_tooltip_desc: "Der berechnete Verbrauch von {value} erscheint unrealistisch. Mögliche Ursachen:"
   implausible_tooltip_cause1: "Der SoC-Endwert (Ladestand %) des vorherigen Eintrags fehlt"
   implausible_tooltip_cause2: "Zwischen diesem und dem vorherigen Eintrag fehlt ein Ladevorgang"
+  show_power_curve: "Ladekurve anzeigen"
+  no_power_curve: "Keine Ladekurven-Daten vorhanden."
   short_trip_hint: "Distanz zu kurz"
   short_trip_tooltip_title: "Verbrauch nicht berechenbar"
   short_trip_tooltip_desc: "Bei Strecken unter 10 km verzerren kleinste Mess-Ungenauigkeiten den errechneten Verbrauch enorm. Schon ein 1%-Sprung im angezeigten Akkustand entspricht ungefähr 0,7 kWh - auf 1 km Strecke ergibt das schnell unrealistische Verbräuche von 70 kWh/100km oder mehr. Statt einen Phantom-Wert anzuzeigen, blende ich ihn aus."

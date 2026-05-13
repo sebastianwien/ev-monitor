@@ -586,6 +586,8 @@ dashboard:
   implausible_tooltip_desc: "Den beräknade förbrukningen för {value} verkar orealistisk. Möjliga orsaker:"
   implausible_tooltip_cause1: Slutvärdet för SoC (laddningsnivå i %) för den föregående posten saknas
   implausible_tooltip_cause2: Det saknas en laddningsomgång mellan denna och den föregående posten
+  show_power_curve: Visa laddningskurva
+  no_power_curve: Ingen laddningskurvdata tillgänglig.
   short_trip_hint: Avståndet är för kort
   short_trip_tooltip_title: Förbrukningen kan inte beräknas
   short_trip_tooltip_desc: "På sträckor under 10 km förvränger små mätosäkerheter den beräknade förbrukningen avsevärt. Redan ett hopp på 1 % i den visade batterinivån motsvarar ungefär 0,7 kWh - på 1 km ger det snabbt orealistiska värden på 70 kWh/100km eller mer. I stället för att visa ett fantomvärde låter jag det vara."

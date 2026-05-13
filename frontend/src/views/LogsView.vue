@@ -33,6 +33,8 @@ import {
   tripGroupCostPer100km as tripGroupCostPer100kmPure,
   buildTripCostPerKwhMap,
 } from '../utils/tripCalculations'
+import api from '../api/axios'
+import PowerCurveChart from '../components/charging/PowerCurveChart.vue'
 import ConsumptionInfoBox from '../components/dashboard/ConsumptionInfoBox.vue'
 import EditLogModal from '../components/dashboard/EditLogModal.vue'
 import TripForm from '../components/dashboard/TripForm.vue'
@@ -236,6 +238,33 @@ onDeactivated(() => window.removeEventListener('keydown', onMenuKeyEsc))
 function toggleLogExpanded(id: string) {
   if (expandedLogs.value.has(id)) expandedLogs.value.delete(id)
   else expandedLogs.value.add(id)
+}
+
+// Power-Curve: lazy-loaded pro Log-ID, einmal geladen wird's gecached. Punkt-Format: [{ts, kw}].
+const expandedPowerCurves = ref(new Set<string>())
+const powerCurveCache = ref(new Map<string, { ts: number; kw: number }[]>())
+const powerCurveLoading = ref(new Set<string>())
+async function togglePowerCurve(logId: string) {
+  if (expandedPowerCurves.value.has(logId)) {
+    expandedPowerCurves.value.delete(logId)
+    expandedPowerCurves.value = new Set(expandedPowerCurves.value)
+    return
+  }
+  expandedPowerCurves.value.add(logId)
+  expandedPowerCurves.value = new Set(expandedPowerCurves.value)
+  if (powerCurveCache.value.has(logId)) return
+  powerCurveLoading.value.add(logId)
+  powerCurveLoading.value = new Set(powerCurveLoading.value)
+  try {
+    const res = await api.get<{ points: { ts: number; kw: number }[] }>(`/logs/${logId}/power-curve`)
+    powerCurveCache.value.set(logId, res.data.points ?? [])
+    powerCurveCache.value = new Map(powerCurveCache.value)
+  } catch {
+    powerCurveCache.value.set(logId, [])
+  } finally {
+    powerCurveLoading.value.delete(logId)
+    powerCurveLoading.value = new Set(powerCurveLoading.value)
+  }
 }
 
 function chargingEfficiency(kwhCharged: number | null, kwhAtVehicle: number | null): number | null {
@@ -594,7 +623,7 @@ function toggleAllCharges() {
                 <ChevronLeftIcon class="w-4 h-4 flex-shrink-0" />
                 <span class="hidden sm:inline">{{ t('dashboard.title') }}</span>
               </router-link>
-              <div class="flex gap-3 overflow-x-auto car-scroll-hide flex-1 lg:flex-wrap lg:overflow-x-visible">
+              <div class="flex gap-3 overflow-x-auto car-scroll-hide flex-1 pb-1 lg:flex-wrap lg:overflow-x-visible">
               <button
                 v-for="car in cars"
                 :key="car.id"
@@ -1728,6 +1757,33 @@ function toggleAllCharges() {
                             <TrashIcon class="w-4 h-4 flex-shrink-0" />{{ t('dashboard.action_delete') }}
                           </button>
                         </div>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Ladekurve (nur Tesla FULL-Profil) -->
+                  <div v-if="item.entry.hasPowerCurve" class="pt-1">
+                    <button
+                      type="button"
+                      class="inline-flex items-center gap-1 text-xs text-emerald-700 dark:text-emerald-300 hover:text-emerald-800 dark:hover:text-emerald-200 transition"
+                      @click.stop="togglePowerCurve(item.entry.id)"
+                      :aria-expanded="expandedPowerCurves.has(item.entry.id)"
+                    >
+                      <BoltIcon class="w-3.5 h-3.5" />
+                      <span>{{ t('dashboard.show_power_curve') }}</span>
+                      <ChevronDownIcon v-if="!expandedPowerCurves.has(item.entry.id)" class="w-3 h-3" />
+                      <ChevronUpIcon v-else class="w-3 h-3" />
+                    </button>
+                    <div v-if="expandedPowerCurves.has(item.entry.id)" class="mt-2 px-1 pb-2">
+                      <div v-if="powerCurveLoading.has(item.entry.id)" class="text-xs text-gray-500 dark:text-gray-400 text-center py-6">
+                        {{ t('live.loading_data') }}
+                      </div>
+                      <PowerCurveChart
+                        v-else-if="(powerCurveCache.get(item.entry.id) ?? []).length > 0"
+                        :points="powerCurveCache.get(item.entry.id)!"
+                        :height="180"
+                      />
+                      <div v-else class="text-xs text-gray-500 dark:text-gray-400 text-center py-6">
+                        {{ t('dashboard.no_power_curve') }}
                       </div>
                     </div>
                   </div>

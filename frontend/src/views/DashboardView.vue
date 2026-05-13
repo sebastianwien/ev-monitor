@@ -250,7 +250,7 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
               isCarHeaderSticky ? 'car-header-compact' : ''
             ]"
           >
-            <div class="flex gap-3 overflow-x-auto car-scroll-hide lg:flex-wrap lg:overflow-x-visible">
+            <div class="flex gap-3 overflow-x-auto car-scroll-hide pb-1 lg:flex-wrap lg:overflow-x-visible">
               <button
                 v-for="car in cars"
                 :key="car.id"
