@@ -66,6 +66,8 @@ class LiveControllerTest extends AbstractIntegrationTest {
                 new BigDecimal("210.0"),
                 new BigDecimal("200.0"),
                 LocalDateTime.now().minusMinutes(10),
+                new BigDecimal("40.0"),
+                80,
                 LocalDateTime.now());
         when(liveChargingService.getLiveCharging(liveCar.getId())).thenReturn(active);
 

@@ -18,11 +18,13 @@ public record LiveChargingResponse(
         BigDecimal estRangeKm,
         BigDecimal chargeAmps,
         LocalDateTime sessionStartedAt,
+        BigDecimal socAtSessionStart,
+        Integer chargeLimitSoc,
         LocalDateTime lastUpdatedAt
 ) {
 
     /** Inactive placeholder - returned when no session is running or connectors unreachable. */
     public static LiveChargingResponse inactive() {
-        return new LiveChargingResponse(false, null, null, null, null, null, null, null, null, null);
+        return new LiveChargingResponse(false, null, null, null, null, null, null, null, null, null, null, null);
     }
 }
