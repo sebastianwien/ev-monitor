@@ -130,6 +130,16 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
+    public void updatePowerCurvePoints(UUID id, String powerCurvePointsJson) {
+        jpaRepository.updatePowerCurvePoints(id, powerCurvePointsJson);
+    }
+
+    @Override
+    public Optional<String> findPowerCurvePointsJson(UUID id) {
+        return jpaRepository.findById(id).map(EvLogEntity::getPowerCurvePoints);
+    }
+
+    @Override
     public Optional<EvLog> updateGeohash(UUID carId, LocalDateTime loggedAt, String geohash) {
         return jpaRepository.findByCarIdAndLoggedAt(carId, loggedAt).map(entity -> {
             entity.setGeohash(geohash);
@@ -316,6 +326,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 .chargingProviderId(entity.getChargingProviderId())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
+                .hasPowerCurve(entity.getPowerCurvePoints() != null && !entity.getPowerCurvePoints().isBlank())
                 .build();
     }
 }

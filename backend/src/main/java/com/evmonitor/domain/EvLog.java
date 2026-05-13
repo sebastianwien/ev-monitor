@@ -46,6 +46,10 @@ public class EvLog {
     private final UUID chargingProviderId;   // Optional: FK to user_charging_providers (which tariff was used)
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
+    /** True if a downsampled charging-power curve is persisted alongside this log
+     *  (only Tesla FULL-Profil currently writes it). Read-side flag derived from
+     *  the persistence layer - not stored on the domain itself. */
+    private final boolean hasPowerCurve;
 
     // Full constructor - only called by the Lombok-generated builder.
     // Applies normalisation of loggedAt, dataSource defaults, and charging-type inference.
@@ -59,7 +63,8 @@ public class EvLog {
             LocalDateTime createdAt, LocalDateTime updatedAt,
             RouteType routeType, TireType tireType, UUID sessionGroupId,
             boolean publicCharging, String cpoName, EnergyMeasurementType measurementType,
-            BigDecimal costExchangeRate, String costCurrency, UUID chargingProviderId) {
+            BigDecimal costExchangeRate, String costCurrency, UUID chargingProviderId,
+            boolean hasPowerCurve) {
         this.id = id;
         this.carId = carId;
         LocalDateTime base = loggedAt != null ? loggedAt : LocalDateTime.now();
@@ -101,6 +106,7 @@ public class EvLog {
         this.chargingProviderId = chargingProviderId;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+        this.hasPowerCurve = hasPowerCurve;
     }
 
     public static EvLog createNew(UUID carId, BigDecimal kwhCharged, BigDecimal costEur,

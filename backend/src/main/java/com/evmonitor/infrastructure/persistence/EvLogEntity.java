@@ -80,6 +80,10 @@ public class EvLogEntity {
     @JdbcTypeCode(SqlTypes.JSON)
     private String telemetryExtras;
 
+    @Column(name = "power_curve_points", columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
+    private String powerCurvePoints;
+
     @Column(name = "route_type", length = 20)
     private String routeType;
 

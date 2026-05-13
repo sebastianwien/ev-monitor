@@ -47,6 +47,12 @@ public interface EvLogRepository {
     /** Set the JSON-blob telemetry_extras on the unique (carId, loggedAt) entry, if it exists. */
     void updateTelemetryExtras(UUID carId, LocalDateTime loggedAt, String telemetryExtrasJson);
 
+    /** Persist the downsampled power-curve JSON for the given log id. No-op if id not found. */
+    void updatePowerCurvePoints(UUID id, String powerCurvePointsJson);
+
+    /** Returns the raw JSON-Array string of the power-curve, or null if the log has no curve. */
+    Optional<String> findPowerCurvePointsJson(UUID id);
+
     Optional<EvLog> updateGeohash(UUID carId, LocalDateTime loggedAt, String geohash);
 
     List<EvLog> findAllWithGeohashAndNoTemperature();

@@ -130,6 +130,10 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     int updateTelemetryExtras(@Param("carId") UUID carId, @Param("loggedAt") LocalDateTime loggedAt, @Param("json") String json);
 
     @Modifying
+    @Query("UPDATE EvLogEntity e SET e.powerCurvePoints = :json WHERE e.id = :id")
+    int updatePowerCurvePoints(@Param("id") UUID id, @Param("json") String json);
+
+    @Modifying
     @Query("DELETE FROM EvLogEntity e WHERE e.carId IN (SELECT c.id FROM CarEntity c WHERE c.userId = :userId) AND e.dataSource IN :dataSources")
     void deleteAllByUserIdAndDataSourceIn(@Param("userId") UUID userId, @Param("dataSources") List<String> dataSources);
 

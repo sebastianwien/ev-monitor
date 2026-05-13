@@ -42,7 +42,8 @@ public record EvLogResponse(
         String cpoName,
         BigDecimal costExchangeRate,
         String costCurrency,
-        UUID chargingProviderId) {
+        UUID chargingProviderId,
+        boolean hasPowerCurve) {
 
     public static EvLogResponse fromDomain(EvLog evLog) {
         return fromDomain(evLog, null, null);
@@ -86,6 +87,7 @@ public record EvLogResponse(
                 evLog.getCpoName(),
                 evLog.getCostExchangeRate(),
                 evLog.getCostCurrency(),
-                evLog.getChargingProviderId());
+                evLog.getChargingProviderId(),
+                evLog.isHasPowerCurve());
     }
 }

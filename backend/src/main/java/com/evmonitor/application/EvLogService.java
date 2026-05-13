@@ -181,6 +181,13 @@ public class EvLogService {
 
         EvLog savedLog = evLogRepository.save(newLog);
 
+        // Power-curve-Snapshot (~30 Punkte) als JSONB neben den Log persistieren -
+        // ueberlebt das 28-Tage-Retention-Limit auf vehicle_signal_events. Nur Tesla
+        // FULL-Profil-Connectoren liefern hier was, alle anderen lassen NULL.
+        if (request.powerCurvePointsJson() != null && !request.powerCurvePointsJson().isBlank()) {
+            evLogRepository.updatePowerCurvePoints(savedLog.getId(), request.powerCurvePointsJson());
+        }
+
         if (savedLog.getTemperatureCelsius() == null) {
             temperatureEnricher.enrichLog(savedLog.getId(), savedLog.getGeohash(), savedLog.getLoggedAt());
         }
@@ -328,6 +335,38 @@ public class EvLogService {
         }
 
         return EvLogResponse.fromDomain(log);
+    }
+
+    /**
+     * Returns the persisted downsampled charging-power curve for the given log,
+     * gated by ownership. {@link PowerCurveResponse#empty()} when the log has no
+     * curve (most data sources). Throws {@link IllegalArgumentException} on
+     * log-not-found or ownership mismatch - mapped to 404 by the controller.
+     */
+    public PowerCurveResponse getPowerCurveForUser(UUID logId, UUID userId) {
+        EvLog evLog = evLogRepository.findById(logId)
+                .orElseThrow(() -> new IllegalArgumentException("Log not found with ID: " + logId));
+
+        Car car = carRepository.findById(evLog.getCarId())
+                .orElseThrow(() -> new IllegalArgumentException("Associated car not found"));
+
+        if (!car.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("Log not found for current user (ownership mismatch).");
+        }
+
+        String json = evLogRepository.findPowerCurvePointsJson(logId).orElse(null);
+        if (json == null || json.isBlank()) {
+            return PowerCurveResponse.empty();
+        }
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            List<PowerCurveResponse.Point> points = mapper.readValue(
+                    json, mapper.getTypeFactory().constructCollectionType(List.class, PowerCurveResponse.Point.class));
+            return new PowerCurveResponse(points);
+        } catch (Exception e) {
+            log.warn("Failed to parse power-curve JSON for log {}: {}", logId, e.getMessage());
+            return PowerCurveResponse.empty();
+        }
     }
 
     @Transactional

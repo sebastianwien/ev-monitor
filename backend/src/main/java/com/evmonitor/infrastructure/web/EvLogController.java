@@ -89,6 +89,22 @@ public class EvLogController {
         return ResponseEntity.ok(log);
     }
 
+    /**
+     * Returns the persisted charging power curve for the given log, or 404 if the
+     * log doesn't exist or doesn't belong to the caller. 200 with empty points
+     * when the log exists but has no curve (most data sources).
+     */
+    @GetMapping("/{id}/power-curve")
+    public ResponseEntity<com.evmonitor.application.PowerCurveResponse> getPowerCurve(
+            @PathVariable UUID id, Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        try {
+            return ResponseEntity.ok(evLogService.getPowerCurveForUser(id, principal.getUser().getId()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     @PatchMapping("/{id}")
     public ResponseEntity<?> updateLog(
             @PathVariable UUID id,
