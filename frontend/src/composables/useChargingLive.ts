@@ -18,19 +18,30 @@ export interface LiveChargingData {
 }
 
 interface PowerHistoryPoint {
-  ts: number   // ms timestamp
-  kw: number   // momentane Ladeleistung
+  ts: number
+  kw: number
 }
 
-const HISTORY_MAX_POINTS = 120     // ~30 Minuten Backend-History + Realtime-Buffer
-const HISTORY_WINDOW_MIN = 30      // initial vom Backend geladen
-const POLL_INTERVAL_MS = 5000
+const HISTORY_MAX_POINTS = 120
+const HISTORY_WINDOW_MIN = 30
+// Aktive Session: schnell, damit die Kurve fluessig waechst.
+// Idle (keine Session): seltener, weil >99% der Zeit nichts zu tun ist.
+const POLL_INTERVAL_ACTIVE_MS = 10_000
+const POLL_INTERVAL_IDLE_MS = 60_000
 
 export function useChargingLive(carId: Ref<string | null>) {
   const data = ref<LiveChargingData | null>(null)
   const powerHistory = ref<PowerHistoryPoint[]>([])
-  let intervalId: ReturnType<typeof setInterval> | undefined
+  let timeoutId: ReturnType<typeof setTimeout> | undefined
   let activeController: AbortController | undefined
+
+  function isPageVisible(): boolean {
+    return typeof document === 'undefined' || document.visibilityState !== 'hidden'
+  }
+
+  function nextDelay(): number {
+    return data.value?.isActive ? POLL_INTERVAL_ACTIVE_MS : POLL_INTERVAL_IDLE_MS
+  }
 
   function appendPowerPoint(kw: number | null, lastUpdatedAt: string | null) {
     if (kw == null) return
@@ -52,7 +63,7 @@ export function useChargingLive(carId: Ref<string | null>) {
         kw: p.powerKw,
       })).slice(-HISTORY_MAX_POINTS)
     } catch {
-      // best-effort - bei Fehler bleibt der Buffer leer, realtime-Ticks fuellen ihn
+      // best-effort - realtime-Ticks fuellen den Buffer
     }
   }
 
@@ -67,8 +78,18 @@ export function useChargingLive(carId: Ref<string | null>) {
       if (res.data.isActive) appendPowerPoint(res.data.powerKw, res.data.lastUpdatedAt)
       else powerHistory.value = []
     } catch {
-      // Polling laeuft weiter, naechster Tick versucht Recovery
+      // Naechster Tick versucht Recovery
     }
+  }
+
+  function scheduleNext(id: string, controller: AbortController) {
+    clearTimeout(timeoutId)
+    if (!isPageVisible()) return   // Hidden Tab pausiert - visibilitychange weckt
+    timeoutId = setTimeout(async () => {
+      await pollLive(id, controller.signal)
+      if (controller.signal.aborted) return
+      scheduleNext(id, controller)
+    }, nextDelay())
   }
 
   function refresh() {
@@ -77,10 +98,27 @@ export function useChargingLive(carId: Ref<string | null>) {
     pollLive(id, activeController.signal)
   }
 
+  function onVisibilityChange() {
+    const id = carId.value
+    const controller = activeController
+    if (!id || !controller) return
+    if (isPageVisible()) {
+      // Beim Zurueckkommen sofort einholen + Zyklus neu starten
+      pollLive(id, controller.signal).then(() => {
+        if (!controller.signal.aborted) scheduleNext(id, controller)
+      })
+    } else {
+      clearTimeout(timeoutId)
+    }
+  }
+
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', onVisibilityChange)
+  }
+
   watchEffect(() => {
-    // Vorherige Iteration sauber abreissen: pending Requests verwerfen + Interval stoppen
     activeController?.abort()
-    clearInterval(intervalId)
+    clearTimeout(timeoutId)
     powerHistory.value = []
 
     const id = carId.value
@@ -91,13 +129,17 @@ export function useChargingLive(carId: Ref<string | null>) {
 
     fetchHistory(id, controller.signal)
       .then(() => pollLive(id, controller.signal))
-
-    intervalId = setInterval(() => pollLive(id, controller.signal), POLL_INTERVAL_MS)
+      .then(() => {
+        if (!controller.signal.aborted) scheduleNext(id, controller)
+      })
   })
 
   onUnmounted(() => {
     activeController?.abort()
-    clearInterval(intervalId)
+    clearTimeout(timeoutId)
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+    }
   })
 
   return { data, powerHistory, refresh }
