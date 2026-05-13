@@ -11,6 +11,9 @@ const props = withDefaults(defineProps<{
   yStepKw?: number         // Y-Tick-Schrittweite in kW
   nowLabel?: string        // wenn gesetzt: Praefix fuer die rechteste X-Achsen-Beschriftung (z.B. "jetzt")
   ariaLabel?: string       // a11y - SVG-Beschreibung fuer Screenreader
+  /** X-Achsen-Modus: 'time' zeigt Uhrzeit (HH:MM), 'duration' zeigt verstrichene
+   *  Dauer ab Session-Start (z.B. "0", "5 Min", "10 Min", ...). Default 'time'. */
+  xAxisMode?: 'time' | 'duration'
   /** Wenn gesetzt: Overlay-Linie "nachgeladene Reichweite (km)" wird gerendert.
    *  km = (kumulierte kWh) * 100 / consumptionKwhPer100km. Endwert als
    *  Inline-Label statt zweiter Y-Achse (mobile-freundlich). */
@@ -23,6 +26,7 @@ const props = withDefaults(defineProps<{
   nowLabel: '',
   ariaLabel: 'Ladekurve',
   consumptionKwhPer100km: null,
+  xAxisMode: 'time',
 })
 
 const svgHeightStyle = computed(() => ({
@@ -121,6 +125,14 @@ const curveYTicks = computed(() => {
   return ticks
 })
 
+function formatDuration(ms: number): string {
+  const totalMin = Math.round(ms / 60000)
+  if (totalMin < 60) return `${totalMin} Min`
+  const h = Math.floor(totalMin / 60)
+  const m = totalMin % 60
+  return m === 0 ? `${h} h` : `${h}h ${m}`
+}
+
 const curveXLabels = computed<{ text: string; isNow: boolean }[]>(() => {
   const buf = props.points
   if (buf.length < 2) return [{ text: '', isNow: false }, { text: '', isNow: false }, { text: '', isNow: false }, { text: '', isNow: false }, { text: '', isNow: false }]
@@ -129,12 +141,21 @@ const curveXLabels = computed<{ text: string; isNow: boolean }[]>(() => {
   const span = last - first
   const labels: { text: string; isNow: boolean }[] = []
   for (let i = 0; i < 5; i++) {
-    const ts = first + (span * i / 4)
-    const hhmm = new Date(ts).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
     const isLast = i === 4
+    const isFirst = i === 0
+    let text: string
+    if (props.xAxisMode === 'duration') {
+      // Dauer ab Session-Start. Start-Label leer/0, sonst "X Min"
+      const elapsedMs = (span * i / 4)
+      text = isFirst ? '0' : formatDuration(elapsedMs)
+    } else {
+      const ts = first + (span * i / 4)
+      const hhmm = new Date(ts).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+      text = isLast && props.nowLabel ? `${props.nowLabel} ${hhmm}` : hhmm
+    }
     labels.push({
-      text: isLast && props.nowLabel ? `${props.nowLabel} ${hhmm}` : hhmm,
-      isNow: isLast && !!props.nowLabel,
+      text,
+      isNow: isLast && !!props.nowLabel && props.xAxisMode !== 'duration',
     })
   }
   return labels

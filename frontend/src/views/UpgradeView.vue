@@ -229,7 +229,22 @@
                                     @error="onPreviewError('calendar')"
                                     class="mt-1 ml-5 rounded-sm border border-indigo-200 dark:border-indigo-800 shadow-sm max-w-full" />
                             </li>
-                            <li class="flex items-start gap-2"><span class="text-indigo-600 dark:text-indigo-400 mt-0.5">✓</span><span>{{ t('upgrade.tier_live_feat_drain') }}</span></li>
+                            <li class="space-y-1">
+                                <div class="flex items-start gap-2">
+                                    <span class="text-indigo-600 dark:text-indigo-400 mt-0.5">✓</span>
+                                    <span class="flex-1">{{ t('upgrade.tier_live_feat_drain') }}</span>
+                                    <button v-if="!failedPreviews.has('drain')" type="button" @click="togglePreview('drain')"
+                                        :aria-label="t('upgrade.tier_live_feat_preview_hint')"
+                                        class="shrink-0 p-0.5 text-indigo-400 dark:text-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-300 transition">
+                                        <ChevronDownIcon v-if="expandedPreview !== 'drain'" class="w-3.5 h-3.5" />
+                                        <ChevronUpIcon v-else class="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                                <img v-if="expandedPreview === 'drain' && !failedPreviews.has('drain')" :src="'/upgrade-previews/drain.png'" loading="lazy"
+                                    :alt="t('upgrade.tier_live_feat_drain')"
+                                    @error="onPreviewError('drain')"
+                                    class="mt-1 ml-5 rounded-sm border border-indigo-200 dark:border-indigo-800 shadow-sm max-w-full" />
+                            </li>
                             <li class="flex items-start gap-2"><span class="text-indigo-600 dark:text-indigo-400 mt-0.5">✓</span><span>{{ t('upgrade.tier_live_feat_brands') }}</span></li>
                             <li class="flex items-start gap-2 text-gray-500 dark:text-gray-400"><span class="mt-0.5">+</span><span><em>{{ t('upgrade.tier_live_feat_inherits') }}</em></span></li>
                         </ul>

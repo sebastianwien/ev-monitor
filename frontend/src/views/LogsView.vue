@@ -22,6 +22,7 @@ import {
   HandThumbUpIcon,
   HandThumbDownIcon,
   EllipsisVerticalIcon,
+  ChartBarSquareIcon,
 } from '@heroicons/vue/24/outline'
 import { tempBadgeClass } from '../utils/temperatureColor'
 import { consumptionTextClass } from '../utils/consumptionColor'
@@ -240,10 +241,27 @@ function toggleLogExpanded(id: string) {
   else expandedLogs.value.add(id)
 }
 
-// Power-Curve: lazy-loaded pro Log-ID, einmal geladen wird's gecached. Punkt-Format: [{ts, kw}].
+// Power-Curve: lazy-loaded pro Log-ID, einmal geladen wird's gecached.
+// LRU mit Hard-Cap auf POWER_CURVE_CACHE_MAX: bei einem Power-User der hunderte
+// Logs aufklappt waere die Map sonst unbounded (~600 Byte pro Eintrag).
+const POWER_CURVE_CACHE_MAX = 50
 const expandedPowerCurves = ref(new Set<string>())
 const powerCurveCache = ref(new Map<string, { ts: number; kw: number }[]>())
 const powerCurveLoading = ref(new Set<string>())
+
+function cachePut(logId: string, points: { ts: number; kw: number }[]) {
+  // LRU-Verhalten via JS-Map-Insertion-Order: bei Hit erst delete dann set
+  // schiebt den Eintrag ans Ende; oldest fliegt raus wenn Cap erreicht.
+  if (powerCurveCache.value.has(logId)) powerCurveCache.value.delete(logId)
+  powerCurveCache.value.set(logId, points)
+  while (powerCurveCache.value.size > POWER_CURVE_CACHE_MAX) {
+    const oldest = powerCurveCache.value.keys().next().value
+    if (oldest === undefined) break
+    powerCurveCache.value.delete(oldest)
+  }
+  powerCurveCache.value = new Map(powerCurveCache.value)
+}
+
 async function togglePowerCurve(logId: string) {
   if (expandedPowerCurves.value.has(logId)) {
     expandedPowerCurves.value.delete(logId)
@@ -252,15 +270,19 @@ async function togglePowerCurve(logId: string) {
   }
   expandedPowerCurves.value.add(logId)
   expandedPowerCurves.value = new Set(expandedPowerCurves.value)
-  if (powerCurveCache.value.has(logId)) return
+  if (powerCurveCache.value.has(logId)) {
+    // Recency-Touch fuer LRU: re-insert um den Eintrag ans Map-Ende zu schieben
+    const cached = powerCurveCache.value.get(logId)!
+    cachePut(logId, cached)
+    return
+  }
   powerCurveLoading.value.add(logId)
   powerCurveLoading.value = new Set(powerCurveLoading.value)
   try {
     const res = await api.get<{ points: { ts: number; kw: number }[] }>(`/logs/${logId}/power-curve`)
-    powerCurveCache.value.set(logId, res.data.points ?? [])
-    powerCurveCache.value = new Map(powerCurveCache.value)
+    cachePut(logId, res.data.points ?? [])
   } catch {
-    powerCurveCache.value.set(logId, [])
+    cachePut(logId, [])
   } finally {
     powerCurveLoading.value.delete(logId)
     powerCurveLoading.value = new Set(powerCurveLoading.value)
@@ -1281,9 +1303,19 @@ function toggleAllCharges() {
                   <div class="font-semibold text-indigo-700 dark:text-indigo-300 whitespace-nowrap">
                     +{{ item.entry.kwhAtVehicle ?? item.entry.kwhCharged ?? '-' }} kWh
                   </div>
-                  <!-- 3. Date -->
-                  <div class="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap truncate">
-                    {{ formatLogDate(item.entry.loggedAt) }}
+                  <!-- 3. Date + optionaler Ladekurve-Toggle -->
+                  <div class="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap truncate flex items-center gap-1.5">
+                    <span class="truncate">{{ formatLogDate(item.entry.loggedAt) }}</span>
+                    <button
+                      v-if="item.entry.hasPowerCurve"
+                      type="button"
+                      @click.stop="togglePowerCurve(item.entry.id)"
+                      :aria-label="t('dashboard.show_power_curve')"
+                      :aria-expanded="expandedPowerCurves.has(item.entry.id)"
+                      class="p-0.5 rounded text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100/40 dark:hover:bg-emerald-900/30 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 flex-shrink-0"
+                    >
+                      <ChartBarSquareIcon class="w-4 h-4" />
+                    </button>
                   </div>
                   <!-- 4. Consumption (or short-trip hint) -->
                   <div class="text-sm whitespace-nowrap">
@@ -1436,6 +1468,28 @@ function toggleAllCharges() {
                     {{ sourceInfo(item.entry.dataSource)!.label }}
                   </span>
                 </div>
+                <!-- Inline-Expand Ladekurve (Desktop), animiert -->
+                <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
+                <div v-if="item.entry.hasPowerCurve && expandedPowerCurves.has(item.entry.id)"
+                  class="px-3 pb-3 border-t border-gray-200 dark:border-gray-600/60 pt-2">
+                  <div v-if="powerCurveLoading.has(item.entry.id)" class="text-xs text-gray-500 dark:text-gray-400 text-center py-6">
+                    {{ t('live.loading_data') }}
+                  </div>
+                  <PowerCurveChart
+                    v-else-if="(powerCurveCache.get(item.entry.id) ?? []).length > 0"
+                    :points="powerCurveCache.get(item.entry.id)!"
+                    :height="200"
+                    x-axis-mode="duration"
+                    :aria-label="t('dashboard.show_power_curve')"
+                    :consumption-kwh-per100km="item.entry.consumptionKwhPer100km != null
+                      ? Number(item.entry.consumptionKwhPer100km)
+                      : (stats?.avgConsumptionKwhPer100km != null ? Number(stats.avgConsumptionKwhPer100km) : null)"
+                  />
+                  <div v-else class="text-xs text-gray-500 dark:text-gray-400 text-center py-6">
+                    {{ t('dashboard.no_power_curve') }}
+                  </div>
+                </div>
+                </Transition>
               </div>
 
               <!-- CHARGE ENTRY (DESKTOP GRID, Ladegruppe) -->
@@ -1638,6 +1692,10 @@ function toggleAllCharges() {
                     <BoltIcon class="w-4 h-4 text-green-500 dark:text-green-400 flex-shrink-0" />
                     <span class="font-semibold text-indigo-700 dark:text-indigo-300 whitespace-nowrap">{{ item.entry.kwhAtVehicle ?? item.entry.kwhCharged ?? '-' }} kWh</span>
                     <span class="text-xs text-gray-500 whitespace-nowrap truncate">{{ formatLogDate(item.entry.loggedAt) }}</span>
+                    <ChartBarSquareIcon
+                      v-if="item.entry.hasPowerCurve"
+                      class="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400 flex-shrink-0"
+                      :aria-label="t('dashboard.show_power_curve')" />
                   </div>
                   <div class="flex items-center gap-1.5 flex-shrink-0">
                     <span v-if="item.entry.costEur != null && (item.entry.kwhCharged ?? item.entry.kwhAtVehicle)"
@@ -1777,6 +1835,7 @@ function toggleAllCharges() {
                       <ChevronDownIcon v-if="!expandedPowerCurves.has(item.entry.id)" class="w-3 h-3" />
                       <ChevronUpIcon v-else class="w-3 h-3" />
                     </button>
+                    <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
                     <div v-if="expandedPowerCurves.has(item.entry.id)" class="mt-2 px-1 pb-2">
                       <div v-if="powerCurveLoading.has(item.entry.id)" class="text-xs text-gray-500 dark:text-gray-400 text-center py-6">
                         {{ t('live.loading_data') }}
@@ -1785,6 +1844,7 @@ function toggleAllCharges() {
                         v-else-if="(powerCurveCache.get(item.entry.id) ?? []).length > 0"
                         :points="powerCurveCache.get(item.entry.id)!"
                         :height="180"
+                        x-axis-mode="duration"
                         :aria-label="t('dashboard.show_power_curve')"
                         :consumption-kwh-per100km="item.entry.consumptionKwhPer100km != null
                           ? Number(item.entry.consumptionKwhPer100km)
@@ -1794,6 +1854,7 @@ function toggleAllCharges() {
                         {{ t('dashboard.no_power_curve') }}
                       </div>
                     </div>
+                    </Transition>
                   </div>
                 </div>
                 </Transition>
