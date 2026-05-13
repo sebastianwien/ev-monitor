@@ -19,7 +19,6 @@ import org.springframework.http.ResponseEntity;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -69,10 +68,10 @@ class LiveControllerTest extends AbstractIntegrationTest {
                 25,
                 new BigDecimal("210.0"),
                 new BigDecimal("200.0"),
-                LocalDateTime.now().minusMinutes(10),
+                Instant.now().minusSeconds(600),
                 new BigDecimal("40.0"),
                 80,
-                LocalDateTime.now());
+                Instant.now());
         when(liveChargingService.getLiveCharging(liveCar.getId())).thenReturn(active);
 
         ResponseEntity<Map<String, Object>> res = restTemplate.exchange(

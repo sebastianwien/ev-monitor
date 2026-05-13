@@ -87,8 +87,18 @@ export function useChargingLive(carId: Ref<string | null>) {
       )
       if (signal.aborted) return
       data.value = res.data
-      if (res.data.isActive) appendPowerPoint(res.data.powerKw, res.data.lastUpdatedAt)
-      else powerHistory.value = []
+      if (res.data.isActive) {
+        appendPowerPoint(res.data.powerKw, res.data.lastUpdatedAt)
+        // Defense-in-Depth: erstes Tick mit aktiver Session - History direkt ziehen.
+        // Der watch unten loest das normalerweise via sessionStartedAt-delta aus,
+        // aber bei page-mount mit bereits laufender Session ist die Subscription-
+        // reihenfolge fragil. Doppel-fetch ist harmlos (idempotente Liste).
+        if (powerHistory.value.length <= 1 && res.data.sessionStartedAt) {
+          fetchHistory(id, res.data.sessionStartedAt, signal)
+        }
+      } else {
+        powerHistory.value = []
+      }
       error.value = null
     } catch (e) {
       if (signal.aborted) return

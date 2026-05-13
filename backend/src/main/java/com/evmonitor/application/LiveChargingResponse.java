@@ -1,12 +1,17 @@
 package com.evmonitor.application;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * Response DTO for the live charging endpoint.
  * All fields except {@code isActive} may be null when no session is active
  * or when the connectors-service cannot be reached.
+ *
+ * <p>Zeitstempel sind {@link Instant} (UTC), damit Jackson sie mit Z-Suffix
+ * serialisiert - sonst interpretiert das Frontend naked-LocalDateTime als
+ * Browser-Lokal-Zeit und produziert je nach TZ einen Stunden-Versatz in
+ * Session-Dauer und Start-Anzeige.
  */
 public record LiveChargingResponse(
         boolean isActive,
@@ -17,10 +22,10 @@ public record LiveChargingResponse(
         Integer timeToFullMinutes,
         BigDecimal estRangeKm,
         BigDecimal chargeAmps,
-        LocalDateTime sessionStartedAt,
+        Instant sessionStartedAt,
         BigDecimal socAtSessionStart,
         Integer chargeLimitSoc,
-        LocalDateTime lastUpdatedAt
+        Instant lastUpdatedAt
 ) {
 
     /** Inactive placeholder - returned when no session is running or connectors unreachable. */
