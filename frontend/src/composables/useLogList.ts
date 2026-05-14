@@ -1,6 +1,7 @@
 import { ref, computed, nextTick, watch, type Component, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import api from '../api/axios'
+import { useLogsRefreshStore } from '../stores/logsRefresh'
 import {
   BoltIcon,
   ArrowDownTrayIcon,
@@ -36,6 +37,7 @@ function toOffsetDateTime(localDt: string): string {
 
 export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, logsSection: Ref<HTMLElement | null>) {
   const { t, locale } = useI18n()
+  const logsRefreshStore = useLogsRefreshStore()
 
   const logs = ref<any[]>([])
   const trips = ref<any[]>([])
@@ -583,6 +585,11 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
     reassignModalEntry.value = null
     editingTripId.value = null
     addingTripAfterId.value = null
+  })
+
+  // Refresh when a new log was saved via the modal
+  watch(() => logsRefreshStore.version, () => {
+    fetchLogs(0)
   })
 
   return {

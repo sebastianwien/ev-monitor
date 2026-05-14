@@ -8,6 +8,7 @@ const OcrPhotoCapture = defineAsyncComponent(() => import('./OcrPhotoCapture.vue
 import LogFormFields, { type LogFormData } from './LogFormFields.vue'
 import { CameraIcon, PencilSquareIcon, TrashIcon, BoltIcon, TruckIcon, ClockIcon, Battery0Icon, SunIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import { useCoinStore } from '../../stores/coins'
+import { useLogsRefreshStore } from '../../stores/logsRefresh'
 import { useHaptic } from '../../composables/useHaptic'
 import { analytics } from '../../services/analytics'
 import { useCarStore } from '../../stores/car'
@@ -21,6 +22,7 @@ const { haptic } = useHaptic()
 const { formatDistance } = useLocaleFormat()
 const coinStore = useCoinStore()
 const carStore = useCarStore()
+const logsRefreshStore = useLogsRefreshStore()
 
 const emit = defineEmits<{ success: []; cancel: [] }>()
 
@@ -217,6 +219,7 @@ const submitLog = async () => {
     logFormFieldsRef.value?.clearLocation()
 
     await fetchLogs()
+    logsRefreshStore.notifyLogSaved()
     emit('success')
   } catch (err: any) {
     error.value = err.response?.data?.message || t('logform.error_save')
