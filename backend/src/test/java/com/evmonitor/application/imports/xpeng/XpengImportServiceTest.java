@@ -162,8 +162,11 @@ class XpengImportServiceTest {
 
     @Test
     void deleteAllImportedData_clearsLogsTripsAndJobs() {
+        // Trips hart loeschen: der UNIQUE-Index auf external_id ignoriert deleted_at,
+        // sodass Soft-Delete einen Re-Import desselben Trips an einem Constraint-Violation
+        // scheitern liesse.
         when(evLogRepository.countByUserIdAndDataSource(USER, DataSource.XPENG_IMPORT)).thenReturn(42);
-        when(evTripRepository.softDeleteByUserIdAndDataSource(USER, "XPENG_IMPORT")).thenReturn(70);
+        when(evTripRepository.deleteAllByUserIdAndDataSource(USER, "XPENG_IMPORT")).thenReturn(70);
         when(jobRepo.deleteAllByUserId(USER)).thenReturn(4L);
 
         XpengImportService.DeleteSummary s = service.deleteAllImportedData(USER);
@@ -172,7 +175,7 @@ class XpengImportServiceTest {
         assertEquals(70, s.trips());
         assertEquals(4L, s.importJobs());
         verify(evLogRepository).deleteAllByUserIdAndDataSource(USER, DataSource.XPENG_IMPORT);
-        verify(evTripRepository).softDeleteByUserIdAndDataSource(USER, "XPENG_IMPORT");
+        verify(evTripRepository).deleteAllByUserIdAndDataSource(USER, "XPENG_IMPORT");
         verify(jobRepo).deleteAllByUserId(USER);
     }
 

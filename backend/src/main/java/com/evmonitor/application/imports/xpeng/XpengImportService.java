@@ -457,16 +457,15 @@ public class XpengImportService {
     }
 
     /**
-     * Loescht alle XPENG_IMPORT-Daten des Users: ev_log (Hard-Delete), ev_trip
-     * (Soft-Delete via deleted_at) und xpeng_import_jobs (Hard-Delete, damit
-     * der User dieselben Files erneut hochladen kann ohne Dedup-Block).
+     * Loescht alle XPENG_IMPORT-Daten des Users: ev_log, ev_trip und xpeng_import_jobs
+     * (alles Hard-Delete, damit der User die Daten ohne Dedup-Block neu hochladen kann).
      * xpeng_connection und User-Consent bleiben unberuehrt.
      */
     @Transactional
     public DeleteSummary deleteAllImportedData(UUID userId) {
         int chargingLogs = evLogRepository.countByUserIdAndDataSource(
                 userId, com.evmonitor.domain.DataSource.XPENG_IMPORT);
-        int trips = evTripRepository.softDeleteByUserIdAndDataSource(userId, "XPENG_IMPORT");
+        int trips = evTripRepository.deleteAllByUserIdAndDataSource(userId, "XPENG_IMPORT");
         long jobs = jobRepo.deleteAllByUserId(userId);
         evLogRepository.deleteAllByUserIdAndDataSource(
                 userId, com.evmonitor.domain.DataSource.XPENG_IMPORT);

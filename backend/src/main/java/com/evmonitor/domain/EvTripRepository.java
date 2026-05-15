@@ -42,15 +42,14 @@ public interface EvTripRepository extends JpaRepository<EvTrip, UUID> {
     @Query("SELECT t FROM EvTrip t WHERE t.locationStartGeohash IS NOT NULL AND t.outsideTempCelsius IS NULL AND t.deletedAt IS NULL")
     List<EvTrip> findAllWithGeohashAndNoTemperature();
 
-    /** Soft-delete all not-yet-deleted trips of user with given data_source. Returns affected row count. */
+    /**
+     * Hard-delete aller Trips eines Users mit gegebener data_source. Liefert die geloeschte
+     * Zeilenzahl. Genutzt fuer Bulk-Import-Resets (z.B. "Alle XPENG-Imports loeschen"). Soft-Delete
+     * waere hier schaedlich: der UNIQUE-Index auf external_id ignoriert deleted_at, sodass ein
+     * Re-Import desselben Trips an einem Constraint-Violation scheitert. Daher hart loeschen.
+     */
     @Modifying
     @Transactional
-    @Query("UPDATE EvTrip t SET t.deletedAt = :now "
-            + "WHERE t.userId = :userId AND t.dataSource = :dataSource AND t.deletedAt IS NULL")
-    int softDeleteByUserIdAndDataSourceAt(@Param("userId") UUID userId, @Param("dataSource") String dataSource,
-                                           @Param("now") OffsetDateTime now);
-
-    default int softDeleteByUserIdAndDataSource(UUID userId, String dataSource) {
-        return softDeleteByUserIdAndDataSourceAt(userId, dataSource, OffsetDateTime.now());
-    }
+    @Query("DELETE FROM EvTrip t WHERE t.userId = :userId AND t.dataSource = :dataSource")
+    int deleteAllByUserIdAndDataSource(@Param("userId") UUID userId, @Param("dataSource") String dataSource);
 }
