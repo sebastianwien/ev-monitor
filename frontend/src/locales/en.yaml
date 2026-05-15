@@ -459,6 +459,14 @@ auth:
 
 dashboard:
   title: "Dashboard"
+  cost_pill_netto_title: "Price per netto kWh. Wallbox brutto unknown - your actual electricity bill can be slightly higher."
+  real_cost_label: "Real"
+  real_cost_inline_suffix: "real"
+  efficiency_source_measured: "from your own measurement (~{pct}% efficiency) | from {count} of your own measurements (~{pct}% efficiency)"
+  efficiency_source_pauschale: "Estimate with ~{pct}% efficiency (flat rate)"
+  real_cost_tooltip_title: "Estimated real electricity cost"
+  real_cost_tooltip_measured: "{count} previous session contained both brutto and netto values. The resulting charging efficiency of ~{pct}% is used to derive a rough estimate of the real electricity cost. | {count} previous sessions contained both brutto and netto values. The resulting average charging efficiency of ~{pct}% is used to derive a rough estimate of the real electricity cost."
+  real_cost_tooltip_pauschale: "No sessions with combined brutto and netto values are available. A flat AC charging-loss rate of ~{pct}% efficiency is used as the estimation basis."
   vehicles_btn: "Vehicles"
   logs_btn: "Your charging sessions"
   import_banner: "Import charging sessions"
@@ -752,7 +760,7 @@ logfields:
   soc_after: "Battery after charging (%)"
   soc_before: "Battery before charging (%)"
   kwh_at_vehicle: "kWh (vehicle)"
-  kwh_at_vehicle_hint: "Net kWh your battery actually received (from vehicle display, not charger). Charging loss is calculated automatically."
+  kwh_at_vehicle_hint: "Net kWh your battery actually received (from vehicle display, not charger). Your actual electricity bill can be slightly higher due to AC charging losses."
   kwh_mode_charger: "Grid"
   kwh_mode_vehicle: "Car"
   charge_type: "Charge type"

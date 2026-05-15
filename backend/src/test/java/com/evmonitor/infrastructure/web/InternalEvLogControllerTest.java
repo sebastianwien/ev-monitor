@@ -444,7 +444,7 @@ class InternalEvLogControllerTest extends AbstractIntegrationTest {
         // Tesla log: no geohash, no cost.
         // TESLA_LIVE is AT_VEHICLE → kwhCharged moves to kwhAtVehicle.
         // 27 kWh / 90 min = 18 kW avg → AC inferred (threshold > 22 kW).
-        // Test env has ac-charging-efficiency=1.0 → effectiveKwhForCost = 27 / 1.0 = 27 → 27 × 0.32 = 8.64 EUR
+        // Test env has ac-charging-efficiency=1.0 → gridSideKwhEstimate = 27 / 1.0 = 27 → 27 × 0.32 = 8.64 EUR
         LocalDateTime loggedAt = LocalDateTime.now().minusHours(2).withSecond(0).withNano(0);
         Map<String, Object> createRequest = logRequest(testCar.getId(), testUser.getId(),
                 "27.0", 90, loggedAt, null, "TESLA_LIVE", null);

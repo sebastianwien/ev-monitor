@@ -48,8 +48,14 @@ const props = defineProps<{
 
 const form = defineModel<LogFormData>({ required: true })
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const countryStore = useCountryStore()
+
+const numberLocale = computed(() => locale.value === 'en' ? 'en-GB' : 'de-DE')
+const formatLocalPerKwh = (v: number) =>
+  `${v.toLocaleString(numberLocale.value, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${localSymbol.value}/kWh`
+const formatLocalAmount = (v: number) =>
+  `${v.toLocaleString(numberLocale.value, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${localSymbol.value}`
 
 const isEurCountry = computed(() => EUR_ZONE_COUNTRIES.includes(countryStore.country))
 const localCurrency = computed(() => countryStore.unitSystem.currency)
@@ -441,11 +447,11 @@ function cardSubTextColor(id: string): string {
         {{ t('logfields.cost_eur') }}
         <span v-if="costMode === 'total' && calculatedLocalPerKwh !== null"
           class="text-xs text-gray-400 dark:text-gray-500 font-normal whitespace-nowrap">
-          = {{ calculatedLocalPerKwh.toFixed(2) }} {{ (localSubunit || localSymbol) + '/kWh' }}
+          = {{ formatLocalPerKwh(calculatedLocalPerKwh) }}
         </span>
         <span v-if="costMode === 'per_kwh' && calculatedLocalTotal !== null"
           class="text-xs text-gray-400 dark:text-gray-500 font-normal whitespace-nowrap">
-          = {{ calculatedLocalTotal.toFixed(2) }} {{ localSymbol }}
+          = {{ formatLocalAmount(calculatedLocalTotal) }}
         </span>
       </label>
       <div class="relative">
@@ -461,7 +467,7 @@ function cardSubTextColor(id: string): string {
           </button>
           <button type="button" @click="toggleCostMode('per_kwh')"
             :class="['px-1.5 py-0.5 rounded-full font-medium transition-all duration-200', costMode === 'per_kwh' ? 'bg-white dark:bg-gray-500 text-indigo-700 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400']">
-            {{ (localSubunit || localSymbol) + '/kWh' }}
+            {{ localSymbol + '/kWh' }}
           </button>
         </div>
       </div>

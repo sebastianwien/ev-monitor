@@ -459,6 +459,14 @@ auth:
 
 dashboard:
   title: "Dashboard"
+  cost_pill_netto_title: "Preis pro netto-kWh. Wallbox-Brutto unbekannt - echte Stromrechnung kann etwas höher liegen."
+  real_cost_label: "Real"
+  real_cost_inline_suffix: "real"
+  efficiency_source_measured: "aus einer eigenen Messung (~{pct}% Effizienz) | aus {count} eigenen Messungen (~{pct}% Effizienz)"
+  efficiency_source_pauschale: "Schätzung mit ~{pct}% Effizienz (Pauschale)"
+  real_cost_tooltip_title: "Geschätzte echte Stromkosten"
+  real_cost_tooltip_measured: "{count} vorherige Ladung enthielt sowohl Brutto- als auch Netto-Werte. Daraus ergibt sich eine Ladeeffizienz von ~{pct}%, mit der ein grober Richtwert für die echten Stromkosten abgeleitet wird. | {count} vorherige Ladungen enthielten sowohl Brutto- als auch Netto-Werte. Daraus ergibt sich eine durchschnittliche Ladeeffizienz von ~{pct}%, mit der ein grober Richtwert für die echten Stromkosten abgeleitet wird."
+  real_cost_tooltip_pauschale: "Es liegen keine Ladungen mit kombinierten Brutto- und Netto-Werten vor. Als Schätzgrundlage dient eine AC-Ladeverlust-Pauschale von ~{pct}% Effizienz."
   vehicles_btn: "Fahrzeuge"
   logs_btn: "Deine Ladevorgänge"
   import_banner: "Ladevorgänge importieren"
@@ -752,7 +760,7 @@ logfields:
   soc_after: "Akku nach Laden (%)"
   soc_before: "Akku vor Laden (%)"
   kwh_at_vehicle: "kWh laut Fahrzeug"
-  kwh_at_vehicle_hint: "Netto-kWh die dein Akku aufgenommen hat (laut Fahrzeug-Display, nicht Wallbox). Ladeverlust wird automatisch hochgerechnet."
+  kwh_at_vehicle_hint: "Netto-kWh die dein Akku aufgenommen hat (laut Fahrzeug-Display, nicht Wallbox). Deine echte Stromrechnung kann durch AC-Ladeverluste leicht höher liegen."
   kwh_mode_charger: "Netz"
   kwh_mode_vehicle: "Auto"
   charge_type: "Ladeart"

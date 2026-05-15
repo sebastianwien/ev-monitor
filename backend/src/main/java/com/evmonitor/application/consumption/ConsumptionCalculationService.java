@@ -53,17 +53,19 @@ public class ConsumptionCalculationService {
 
 
     /**
-     * Returns the grid-side kWh for cost calculations (what was billed at the charger).
+     * Returns the estimated grid-side kWh of a log - what the wallbox/charger drew from the
+     * grid, regardless of which side was actually measured.
      *
      * Priority:
      *   1. kwhCharged when present — precise grid-side measurement, used as-is.
      *   2. kwhAtVehicle — netto measurement, divided by efficiency to estimate grid equivalent.
      *
-     * kwhCharged takes priority: when both fields are set (user entered brutto + netto),
-     * kwhCharged is the exact billing basis — deriving it from kwhAtVehicle/efficiency
-     * would introduce unnecessary approximation error.
+     * <b>NOT</b> the basis for cost_eur. cost_eur uses {@link EvLog#costBasisKwh()} so the
+     * displayed ct/kWh always matches the tariff the user set. Use this method only for
+     * grid-side energy aggregations (total kWh consumed from the grid, etc.) where the
+     * AC-loss pauschale is the right approximation.
      */
-    public BigDecimal effectiveKwhForCost(EvLog log) {
+    public BigDecimal gridSideKwhEstimate(EvLog log) {
         if (log.getKwhCharged() != null && log.getKwhCharged().compareTo(BigDecimal.ZERO) > 0) {
             return log.getKwhCharged();
         }

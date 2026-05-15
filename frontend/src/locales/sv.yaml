@@ -453,6 +453,14 @@ auth:
     error_generic: Ett fel har uppstått. Försök igen.
 dashboard:
   title: Dashboard
+  cost_pill_netto_title: "Pris per netto-kWh. Wallbox-brutto okänd - din faktiska elräkning kan vara något högre."
+  real_cost_label: "Verklig"
+  real_cost_inline_suffix: "verklig"
+  efficiency_source_measured: "från din egen mätning (~{pct}% effektivitet) | från {count} av dina mätningar (~{pct}% effektivitet)"
+  efficiency_source_pauschale: "Uppskattning med ~{pct}% effektivitet (schablon)"
+  real_cost_tooltip_title: "Uppskattad verklig elkostnad"
+  real_cost_tooltip_measured: "{count} tidigare laddning innehöll både brutto- och nettovärden. Den resulterande laddningseffektiviteten på ~{pct}% används för att härleda en grov uppskattning av de verkliga elkostnaderna. | {count} tidigare laddningar innehöll både brutto- och nettovärden. Den resulterande genomsnittliga laddningseffektiviteten på ~{pct}% används för att härleda en grov uppskattning av de verkliga elkostnaderna."
+  real_cost_tooltip_pauschale: "Inga laddningar med kombinerade brutto- och nettovärden finns tillgängliga. En AC-laddningsförlust-schablon på ~{pct}% effektivitet används som uppskattningsgrund."
   vehicles_btn: Fordon
   logs_btn: Dina laddningar
   import_banner: Importera laddningssessioner
@@ -743,7 +751,7 @@ logfields:
   soc_after: Batterinivå efter laddning (%)
   soc_before: Batterinivå före laddning (%)
   kwh_at_vehicle: "kWh (fordon)"
-  kwh_at_vehicle_hint: "Netto-kWh som batteriet faktiskt tog emot (från fordonets display, inte laddaren). Laddningsförlust beräknas automatiskt."
+  kwh_at_vehicle_hint: "Netto-kWh som batteriet faktiskt tog emot (från fordonets display, inte laddaren). Den faktiska elräkningen kan bli något högre på grund av AC-laddningsförluster."
   kwh_mode_charger: "Nät"
   kwh_mode_vehicle: "Bil"
   charge_type: Laddningstyp

@@ -53,6 +53,12 @@ import { useWallboxStore } from '../stores/wallbox'
 import { carDisplayName } from '../utils/enumLabel'
 import { isVwGroupBrand } from '../api/vwGroupService'
 import { subscriptionService, type SubscriptionTier } from '../api/subscriptionService'
+import {
+  computeRealCostHint,
+  isNettoOnlyCostLog,
+  type RealCostHint,
+  type CostHintLog,
+} from '../composables/useChargingEfficiency'
 
 const { t } = useI18n()
 const { formatConsumption, formatDistance, distanceUnitLabel, formatCurrency, formatCostPerKwh } = useLocaleFormat()
@@ -292,6 +298,34 @@ async function togglePowerCurve(logId: string) {
 function chargingEfficiency(kwhCharged: number | null, kwhAtVehicle: number | null): number | null {
   if (!kwhCharged || !kwhAtVehicle || kwhCharged <= 0) return null
   return Math.round((kwhAtVehicle / kwhCharged) * 1000) / 10
+}
+
+// A log without kwhCharged carries only the netto-side cost (= tariff x kwhAtVehicle).
+// We hint the realistic grid-side cost in the expanded card - estimated from the user's
+// own measured efficiency at this tariff when available, else from the AC/DC pauschale.
+// realCostHintMap memoizes the per-log result so the template can read it 4-6x per row
+// without re-filtering+sorting the full logs array each time.
+type HintInputLog = CostHintLog & { id: string; loggedAt: string }
+const realCostHintMap = computed<Map<string, RealCostHint>>(() => {
+  const result = new Map<string, RealCostHint>()
+  const all = (logs.value ?? []) as HintInputLog[]
+  for (const log of all) {
+    if (!log?.id) continue
+    const hint = computeRealCostHint(log, all)
+    if (hint) result.set(log.id, hint)
+  }
+  return result
+})
+function realCostHintFor(logId: string | undefined): RealCostHint | null {
+  if (!logId) return null
+  return realCostHintMap.value.get(logId) ?? null
+}
+
+// Separate state from openTooltipLogId so the implausible/short-trip tooltips
+// don't clobber the real-cost tooltip (and vice versa).
+const openRealCostTooltipId = ref<string | null>(null)
+function toggleRealCostTooltip(logId: string) {
+  openRealCostTooltipId.value = openRealCostTooltipId.value === logId ? null : logId
 }
 
 const feedbackOpenId    = ref<string | null>(null)
@@ -841,6 +875,8 @@ function toggleAllCharges() {
               <div v-if="openMenuLogId" class="fixed inset-0 z-40" @click="openMenuLogId = null" />
               <div v-if="openMenuTripId" class="fixed inset-0 z-40" @click="openMenuTripId = null" />
               <div v-if="openMenuTopUpId" class="fixed inset-0 z-40" @click="openMenuTopUpId = null" />
+              <!-- Backdrop nur fuer Desktop-Popover (mobile Tooltip ist Teil der Expanded-Card). -->
+              <div v-if="openRealCostTooltipId?.endsWith('__d')" class="fixed inset-0 z-40" @click="openRealCostTooltipId = null" />
               <template v-for="item in groupedFeed" :key="item.id">
 
               <!-- ===== TRIP GROUP CONTAINER ===== -->
@@ -1386,11 +1422,20 @@ function toggleAllCharges() {
                     </component>
                     <span v-else class="text-gray-400 dark:text-gray-600 text-sm">-</span>
                   </div>
-                  <!-- 8. Price chip -->
-                  <div class="flex justify-end">
+                  <!-- 8. Price chip + Real-Cost-Info (Info-Icon LINKS des Preises, Popover-Overlay, Click-Außerhalb schließt) -->
+                  <div class="flex justify-end items-center gap-1 relative">
+                    <button v-if="realCostHintFor(item.entry.id)"
+                      type="button"
+                      class="p-0.5 rounded-full text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+                      :aria-expanded="openRealCostTooltipId === item.entry.id + '__d'"
+                      :aria-label="t('dashboard.real_cost_tooltip_title')"
+                      @click.stop="openRealCostTooltipId = openRealCostTooltipId === item.entry.id + '__d' ? null : item.entry.id + '__d'">
+                      <InformationCircleIcon class="w-4 h-4" aria-hidden="true" />
+                    </button>
                     <button v-if="item.entry.costEur != null && (item.entry.kwhCharged ?? item.entry.kwhAtVehicle)"
                       type="button"
-                      :class="['inline-flex items-center px-2 py-0.5 border text-xs rounded-full font-medium whitespace-nowrap cursor-pointer transition-all duration-75 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400',
+                      :class="['inline-flex items-center px-2 py-0.5 text-xs rounded-full font-medium whitespace-nowrap cursor-pointer transition-all duration-75 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400',
+                               isNettoOnlyCostLog(item.entry) ? 'border border-dashed' : 'border',
                                showCostAbsolute
                                  ? 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'
                                  : [(costBadgeClass(item.entry.costEur, item.entry.kwhCharged ?? item.entry.kwhAtVehicle) ?? 'bg-green-50 border-green-200 text-green-700'), 'shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'].join(' ')]"
@@ -1399,6 +1444,18 @@ function toggleAllCharges() {
                       <template v-else>{{ formatCostPerKwh(item.entry.costEur / (item.entry.kwhCharged ?? item.entry.kwhAtVehicle)) }}</template>
                     </button>
                     <span v-else class="text-gray-400 dark:text-gray-600 text-sm">-</span>
+                    <div v-if="openRealCostTooltipId === item.entry.id + '__d' && realCostHintFor(item.entry.id)"
+                      class="absolute right-0 top-full mt-1.5 w-72 p-3 rounded-sm bg-amber-50 dark:bg-gray-800 border border-amber-300 dark:border-amber-700 text-xs text-amber-900 dark:text-amber-200 space-y-1.5 leading-relaxed shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.10)] z-[60]"
+                      @click.stop>
+                      <p class="font-semibold">{{ t('dashboard.real_cost_tooltip_title') }}</p>
+                      <p>{{ t('dashboard.real_cost_label') }} ≈
+                        <template v-if="showCostAbsolute">{{ formatCurrency(realCostHintFor(item.entry.id)!.bruttoCostEur) }}</template>
+                        <template v-else>{{ formatCostPerKwh(realCostHintFor(item.entry.id)!.bruttoRatePerNettoKwhEur) }}</template>
+                      </p>
+                      <p>{{ realCostHintFor(item.entry.id)!.source === 'measured-median'
+                            ? t('dashboard.real_cost_tooltip_measured', { count: realCostHintFor(item.entry.id)!.sampleSize, pct: realCostHintFor(item.entry.id)!.efficiencyPercent }, realCostHintFor(item.entry.id)!.sampleSize)
+                            : t('dashboard.real_cost_tooltip_pauschale', { pct: realCostHintFor(item.entry.id)!.efficiencyPercent }) }}</p>
+                    </div>
                   </div>
                   <!-- 9. Actions menu -->
                   <div class="flex justify-end relative">
@@ -1699,10 +1756,12 @@ function toggleAllCharges() {
                   </div>
                   <div class="flex items-center gap-1.5 flex-shrink-0">
                     <span v-if="item.entry.costEur != null && (item.entry.kwhCharged ?? item.entry.kwhAtVehicle)"
-                      :class="['inline-flex items-center px-2 py-0.5 border text-xs rounded-full font-medium whitespace-nowrap cursor-pointer transition-all duration-75',
+                      :class="['inline-flex items-center px-2 py-0.5 text-xs rounded-full font-medium whitespace-nowrap cursor-pointer transition-all duration-75',
+                               isNettoOnlyCostLog(item.entry) ? 'border border-dashed' : 'border',
                                showCostAbsolute
                                  ? 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'
                                  : [(costBadgeClass(item.entry.costEur, item.entry.kwhCharged ?? item.entry.kwhAtVehicle) ?? 'bg-green-50 border-green-200 text-green-700'), 'shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'].join(' ')]"
+                      :title="isNettoOnlyCostLog(item.entry) ? t('dashboard.cost_pill_netto_title') : undefined"
                       @click.stop="showCostAbsolute = !showCostAbsolute">
                       <template v-if="showCostAbsolute">{{ formatCurrency(item.entry.costEur) }}</template>
                       <template v-else>{{ formatCostPerKwh(item.entry.costEur / (item.entry.kwhCharged ?? item.entry.kwhAtVehicle)) }}</template>
@@ -1715,7 +1774,7 @@ function toggleAllCharges() {
                 <!-- Expanded content (normal log only) -->
                 <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
                 <div v-if="!item.entry._isLadegruppe && expandedLogs.has(item.entry.id)" class="space-y-2">
-                  <!-- Brutto + Ladeeffizienz -->
+                  <!-- Brutto + Ladeeffizienz (measured both sides) -->
                   <div v-if="item.entry.kwhCharged != null && item.entry.kwhAtVehicle != null"
                     class="flex flex-wrap gap-x-4 gap-y-0.5 items-center text-xs text-gray-500 dark:text-gray-400">
                     <span class="whitespace-nowrap">{{ item.entry.kwhCharged }} kWh brutto</span>
@@ -1724,8 +1783,8 @@ function toggleAllCharges() {
                       {{ chargingEfficiency(item.entry.kwhCharged, item.entry.kwhAtVehicle) }}% Effizienz
                     </span>
                   </div>
-                  <!-- Plain text stats - Zeile 2 -->
-                  <div v-if="item.entry.consumptionKwhPer100km != null || isShortTrip(item.entry) || item.entry.chargeDurationMinutes || item.entry.socAfterChargePercent != null || (item.entry.costEur != null && !item.entry.kwhCharged && !item.entry.kwhAtVehicle)"
+                  <!-- Plain text stats - Zeile 2 (Real-Cost-Hint rechtsbündig via ml-auto) -->
+                  <div v-if="item.entry.consumptionKwhPer100km != null || isShortTrip(item.entry) || item.entry.chargeDurationMinutes || item.entry.socAfterChargePercent != null || (item.entry.costEur != null && !item.entry.kwhCharged && !item.entry.kwhAtVehicle) || realCostHintFor(item.entry.id)"
                     class="flex flex-wrap gap-x-3 gap-y-0.5 items-center">
                     <button
                       v-if="item.entry.consumptionKwhPer100km == null && isShortTrip(item.entry)"
@@ -1770,6 +1829,20 @@ function toggleAllCharges() {
                     <span v-if="item.entry.maxChargingPowerKw" class="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
                       <BoltIcon class="w-3 h-3" />{{ item.entry.maxChargingPowerKw }} kW
                     </span>
+                    <!-- Real-Cost-Hint rechtsbündig, Info-Icon öffnet erklärendes Panel.
+                         Einheit synchron zur Pill: € im Absolut-Modus, ct/kWh im pro-kWh-Modus. -->
+                    <button v-if="realCostHintFor(item.entry.id)" type="button"
+                      class="ml-auto inline-flex items-center gap-1 text-xs text-amber-700 dark:text-amber-300 hover:text-amber-800 dark:hover:text-amber-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 rounded-full px-1.5 py-0.5 whitespace-nowrap"
+                      :aria-expanded="openRealCostTooltipId === item.entry.id"
+                      :aria-label="t('dashboard.real_cost_tooltip_title')"
+                      @click.stop="toggleRealCostTooltip(item.entry.id)">
+                      <span class="font-medium">
+                        {{ t('dashboard.real_cost_label') }} ≈
+                        <template v-if="showCostAbsolute">{{ formatCurrency(realCostHintFor(item.entry.id)!.bruttoCostEur) }}</template>
+                        <template v-else>{{ formatCostPerKwh(realCostHintFor(item.entry.id)!.bruttoRatePerNettoKwhEur) }}</template>
+                      </span>
+                      <InformationCircleIcon class="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+                    </button>
                   </div>
                   <!-- Chips + Aktions-Menü - Zeile 3 -->
                   <div class="flex flex-wrap gap-1.5 items-center">
@@ -1875,6 +1948,15 @@ function toggleAllCharges() {
                   class="mt-1 p-2.5 rounded-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-xs text-gray-600 dark:text-gray-300 space-y-1">
                   <p class="font-medium">{{ t('dashboard.short_trip_tooltip_title') }}</p>
                   <p>{{ t('dashboard.short_trip_tooltip_desc') }}</p>
+                </div>
+                <!-- Real-cost tooltip panel: source-aware (measured-median vs pauschale) -->
+                <div
+                  v-if="!item.entry._isLadegruppe && openRealCostTooltipId === item.entry.id && realCostHintFor(item.entry.id)"
+                  class="mt-1 p-3 rounded-sm bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-xs text-amber-900 dark:text-amber-200 space-y-1.5 leading-relaxed">
+                  <p class="font-semibold">{{ t('dashboard.real_cost_tooltip_title') }}</p>
+                  <p>{{ realCostHintFor(item.entry.id)!.source === 'measured-median'
+                        ? t('dashboard.real_cost_tooltip_measured', { count: realCostHintFor(item.entry.id)!.sampleSize, pct: realCostHintFor(item.entry.id)!.efficiencyPercent }, realCostHintFor(item.entry.id)!.sampleSize)
+                        : t('dashboard.real_cost_tooltip_pauschale', { pct: realCostHintFor(item.entry.id)!.efficiencyPercent }) }}</p>
                 </div>
               </div>
               <!-- Ladegruppe Sub-Eintraege (collapsible, mobile only) -->

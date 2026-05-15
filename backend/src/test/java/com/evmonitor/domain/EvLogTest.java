@@ -204,4 +204,46 @@ class EvLogTest {
         assertEquals(createdAt, evLog.getCreatedAt());
         assertEquals(updatedAt, evLog.getUpdatedAt());
     }
+
+    // --- costBasisKwh ------------------------------------------------------
+
+    @Test
+    void costBasisKwh_prefersKwhChargedWhenPresent() {
+        EvLog log = EvLog.builder()
+                .id(UUID.randomUUID()).carId(UUID.randomUUID())
+                .kwhCharged(new BigDecimal("15.4")).kwhAtVehicle(new BigDecimal("13.83"))
+                .dataSource(DataSource.WALLBOX_OCPP)
+                .loggedAt(LocalDateTime.now()).build();
+        assertEquals(0, log.costBasisKwh().compareTo(new BigDecimal("15.4")));
+    }
+
+    @Test
+    void costBasisKwh_fallsBackToKwhAtVehicleWhenKwhChargedNull() {
+        EvLog log = EvLog.builder()
+                .id(UUID.randomUUID()).carId(UUID.randomUUID())
+                .kwhAtVehicle(new BigDecimal("13.83"))
+                .dataSource(DataSource.SMARTCAR_LIVE)
+                .loggedAt(LocalDateTime.now()).build();
+        assertEquals(0, log.costBasisKwh().compareTo(new BigDecimal("13.83")));
+    }
+
+    @Test
+    void costBasisKwh_ignoresZeroOrNegativeKwhCharged() {
+        // Defensive: a stored 0 in kwhCharged must not preempt a real kwhAtVehicle reading.
+        EvLog log = EvLog.builder()
+                .id(UUID.randomUUID()).carId(UUID.randomUUID())
+                .kwhCharged(BigDecimal.ZERO).kwhAtVehicle(new BigDecimal("13.83"))
+                .dataSource(DataSource.WALLBOX_OCPP)
+                .loggedAt(LocalDateTime.now()).build();
+        assertEquals(0, log.costBasisKwh().compareTo(new BigDecimal("13.83")));
+    }
+
+    @Test
+    void costBasisKwh_returnsNullWhenNoEnergyData() {
+        EvLog log = EvLog.builder()
+                .id(UUID.randomUUID()).carId(UUID.randomUUID())
+                .dataSource(DataSource.USER_LOGGED)
+                .loggedAt(LocalDateTime.now()).build();
+        assertNull(log.costBasisKwh());
+    }
 }

@@ -135,35 +135,35 @@ class EvLogServiceChargingEfficiencyTest {
         assertEquals(new BigDecimal("20.00"), result);
     }
 
-    // ── effectiveKwhForCost ───────────────────────────────────────────────────
+    // ── gridSideKwhEstimate ───────────────────────────────────────────────────
 
     /**
-     * AT_CHARGER log: effectiveKwhForCost returns kwhCharged unchanged.
+     * AT_CHARGER log: gridSideKwhEstimate returns kwhCharged unchanged.
      * Cost per kWh is already on AT_CHARGER basis.
      */
     @Test
-    void effectiveKwhForCost_atCharger_returnsUnchanged() {
+    void gridSideKwhEstimate_atCharger_returnsUnchanged() {
         EvLog log = atChargerLog(null, new BigDecimal("30.0"), null, ChargingType.UNKNOWN, false, T1);
 
-        BigDecimal result = service.effectiveKwhForCost(log);
+        BigDecimal result = service.gridSideKwhEstimate(log);
 
         assertEquals(new BigDecimal("30.0"), result);
     }
 
     /**
      * SMARTCAR_LIVE log: kwhCharged=30 normalized to kwhAtVehicle=30.
-     * effectiveKwhForCost divides kwhAtVehicle by AC efficiency to get AT_CHARGER equivalent.
+     * gridSideKwhEstimate divides kwhAtVehicle by AC efficiency to get AT_CHARGER equivalent.
      *
-     *   effectiveKwhForCost = 30 / 0.90 = 33.3333 kWh
+     *   gridSideKwhEstimate = 30 / 0.90 = 33.3333 kWh
      *
      * Without this: avgCostPerKwh = cost / 30 kWh → appears 11% too expensive.
      * With this:    avgCostPerKwh = cost / 33.33 kWh → reflects true grid price.
      */
     @Test
-    void effectiveKwhForCost_atVehicle_dividedByAcEfficiency() {
+    void gridSideKwhEstimate_atVehicle_dividedByAcEfficiency() {
         EvLog log = atVehicleLog(null, new BigDecimal("30.0"), null, T1);
 
-        BigDecimal result = service.effectiveKwhForCost(log);
+        BigDecimal result = service.gridSideKwhEstimate(log);
 
         // 30 / 0.90 = 33.3333...
         assertEquals(0, new BigDecimal("33.3333").compareTo(result),
@@ -173,10 +173,10 @@ class EvLogServiceChargingEfficiencyTest {
     /**
      * SMARTCAR_LIVE at public DC charger: kwhAtVehicle divided by DC efficiency (0.95).
      *
-     *   effectiveKwhForCost = 30 / 0.95 = 31.5789 kWh
+     *   gridSideKwhEstimate = 30 / 0.95 = 31.5789 kWh
      */
     @Test
-    void effectiveKwhForCost_atVehicleDcPublic_dividedByDcEfficiency() {
+    void gridSideKwhEstimate_atVehicleDcPublic_dividedByDcEfficiency() {
         // Smartcar at public DC charger — maxChargingPowerKw=50 triggers DC inference
         EvLog log = EvLog.builder()
                 .id(UUID.randomUUID())
@@ -195,7 +195,7 @@ class EvLogServiceChargingEfficiencyTest {
                 .updatedAt(T1)
                 .build();
 
-        BigDecimal result = service.effectiveKwhForCost(log);
+        BigDecimal result = service.gridSideKwhEstimate(log);
 
         // 30 / 0.95 = 31.5789...
         assertEquals(0, new BigDecimal("31.5789").compareTo(result),
@@ -288,10 +288,10 @@ class EvLogServiceChargingEfficiencyTest {
      * Distinct from the AC test (36/0.90=40.0000) and from the SMARTCAR_LIVE DC test above.
      */
     @Test
-    void effectiveKwhForCost_kwhAtVehicle_dc_dividedByDcEfficiency() {
+    void gridSideKwhEstimate_kwhAtVehicle_dc_dividedByDcEfficiency() {
         EvLog log = logWithKwhAtVehicle(null, null, new BigDecimal("36.0"), null, ChargingType.DC, T1);
 
-        BigDecimal result = service.effectiveKwhForCost(log);
+        BigDecimal result = service.gridSideKwhEstimate(log);
 
         assertEquals(0, new BigDecimal("37.8947").compareTo(result),
                 "AT_VEHICLE at DC charger should use DC efficiency: 36.0 / 0.95 = 37.8947");
@@ -331,10 +331,10 @@ class EvLogServiceChargingEfficiencyTest {
      * a value we already have precisely.
      */
     @Test
-    void effectiveKwhForCost_bothFieldsSet_kwhChargedTakesPriority() {
+    void gridSideKwhEstimate_bothFieldsSet_kwhChargedTakesPriority() {
         EvLog log = logWithKwhAtVehicle(null, new BigDecimal("50.0"), new BigDecimal("36.0"), null, ChargingType.AC, T1);
 
-        BigDecimal result = service.effectiveKwhForCost(log);
+        BigDecimal result = service.gridSideKwhEstimate(log);
 
         assertEquals(0, new BigDecimal("50.0").compareTo(result));
     }

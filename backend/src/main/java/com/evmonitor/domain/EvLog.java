@@ -304,6 +304,27 @@ public class EvLog {
     }
 
     /**
+     * The kWh amount the stored cost_eur refers to.
+     *
+     * Contract: when kwhCharged is present, cost_eur reflects the real grid billing
+     * (wallbox-measured). When only kwhAtVehicle is present, cost_eur was computed as
+     * tariff x netto and does NOT include AC charging losses - any real-cost estimate
+     * has to grossUp from this value via charging-efficiency. Centralising the rule
+     * here keeps the price-suggestion paths (apply + GET) consistent.
+     *
+     * Returns null when neither field is positive.
+     */
+    public BigDecimal costBasisKwh() {
+        if (kwhCharged != null && kwhCharged.compareTo(BigDecimal.ZERO) > 0) {
+            return kwhCharged;
+        }
+        if (kwhAtVehicle != null && kwhAtVehicle.compareTo(BigDecimal.ZERO) > 0) {
+            return kwhAtVehicle;
+        }
+        return null;
+    }
+
+    /**
      * True if any energy measurement is present: kwhAtVehicle (preferred) or kwhCharged.
      * Use this to guard formula calls instead of checking individual fields.
      */

@@ -453,6 +453,14 @@ auth:
     error_generic: Det oppstod en feil. Prøv på nytt.
 dashboard:
   title: Dashbord
+  cost_pill_netto_title: "Pris per netto kWh. Wallbox-brutto ukjent - faktisk strømregning kan være litt høyere."
+  real_cost_label: "Reell"
+  real_cost_inline_suffix: "reell"
+  efficiency_source_measured: "fra din egen måling (~{pct}% effektivitet) | fra {count} av dine målinger (~{pct}% effektivitet)"
+  efficiency_source_pauschale: "Estimat med ~{pct}% effektivitet (sjablong)"
+  real_cost_tooltip_title: "Estimerte faktiske strømkostnader"
+  real_cost_tooltip_measured: "{count} tidligere lading inneholdt både brutto- og nettoverdier. Den resulterende ladeeffektiviteten på ~{pct}% brukes til å utlede et grovt anslag for de faktiske strømkostnadene. | {count} tidligere ladinger inneholdt både brutto- og nettoverdier. Den resulterende gjennomsnittlige ladeeffektiviteten på ~{pct}% brukes til å utlede et grovt anslag for de faktiske strømkostnadene."
+  real_cost_tooltip_pauschale: "Ingen ladinger med kombinerte brutto- og nettoverdier foreligger. En AC-ladetap-sjablong på ~{pct}% effektivitet brukes som estimeringsgrunnlag."
   vehicles_btn: Kjøretøy
   logs_btn: Ladingsøktene dine
   import_banner: Importer ladingsøkter
@@ -743,7 +751,7 @@ logfields:
   soc_after: Batterinivå etter lading (%)
   soc_before: Batterinivå før lading (%)
   kwh_at_vehicle: "kWh (kjøretøy)"
-  kwh_at_vehicle_hint: "Netto-kWh batteriet faktisk mottok (fra kjøretøyets display, ikke laderen). Ladetap beregnes automatisk."
+  kwh_at_vehicle_hint: "Netto-kWh batteriet faktisk mottok (fra kjøretøyets display, ikke laderen). Den faktiske strømregningen kan bli litt høyere på grunn av AC-ladetap."
   kwh_mode_charger: "Nett"
   kwh_mode_vehicle: "Bil"
   charge_type: Ladetype

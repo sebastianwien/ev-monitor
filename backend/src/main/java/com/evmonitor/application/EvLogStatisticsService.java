@@ -150,10 +150,10 @@ public class EvLogStatisticsService {
 
         // For avgCostPerKwh: normalize AT_VEHICLE logs to AT_CHARGER equivalent — because cost_eur
         // reflects what was billed at the charger, not what entered the battery.
-        // Skip logs without any energy data to avoid NPE in effectiveKwhForCost.
+        // Skip logs without any energy data to avoid NPE in gridSideKwhEstimate.
         BigDecimal totalKwhForCost = logs.stream()
                 .filter(l -> l.getKwhCharged() != null || l.getKwhAtVehicle() != null)
-                .map(calculationService::effectiveKwhForCost)
+                .map(calculationService::gridSideKwhEstimate)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal avgCostPerKwh = totalKwhForCost.compareTo(BigDecimal.ZERO) > 0
@@ -301,7 +301,7 @@ public class EvLogStatisticsService {
         BigDecimal totalUserKwh = BigDecimal.ZERO;
         for (EvLog log : userStatsLogs) {
             if (log.getCostEur() == null) continue;
-            BigDecimal kwh = calculationService.effectiveKwhForCost(log);
+            BigDecimal kwh = calculationService.gridSideKwhEstimate(log);
             if (kwh == null || kwh.compareTo(BigDecimal.ZERO) <= 0) continue;
             totalUserCost = totalUserCost.add(log.getCostEur());
             totalUserKwh = totalUserKwh.add(kwh);
@@ -333,7 +333,7 @@ public class EvLogStatisticsService {
                 if (!sameCountryCarIds.contains(log.getCarId())) continue;
                 if (!log.isIncludeInStatistics()) continue;
                 if (log.getCostEur() == null) continue;
-                BigDecimal kwh = calculationService.effectiveKwhForCost(log);
+                BigDecimal kwh = calculationService.gridSideKwhEstimate(log);
                 if (kwh == null || kwh.compareTo(BigDecimal.ZERO) <= 0) continue;
                 totalPeerCost = totalPeerCost.add(log.getCostEur());
                 totalPeerKwh = totalPeerKwh.add(kwh);
@@ -551,10 +551,10 @@ public class EvLogStatisticsService {
                 .map(entry -> {
                     List<EvLog> periodLogs = entry.getValue();
 
-                    // totalKwh ueber effectiveKwhForCost: faellt auf kwh_at_vehicle/efficiency
+                    // totalKwh ueber gridSideKwhEstimate: faellt auf kwh_at_vehicle/efficiency
                     // zurueck, wenn kwh_charged fehlt (typisch Smartcar/Tesla-Telemetry-Logs).
                     BigDecimal totalKwh = periodLogs.stream()
-                            .map(calculationService::effectiveKwhForCost)
+                            .map(calculationService::gridSideKwhEstimate)
                             .filter(Objects::nonNull)
                             .reduce(BigDecimal.ZERO, BigDecimal::add);
 
@@ -639,8 +639,12 @@ public class EvLogStatisticsService {
         return evLogRepository.findMostRecentLogAtGeohash(userId, geohash)
                 .filter(log -> log.getCostEur() != null && log.getCostEur().compareTo(BigDecimal.ZERO) > 0)
                 .flatMap(log -> {
-                    BigDecimal kwh = calculationService.effectiveKwhForCost(log);
-                    if (kwh == null || kwh.compareTo(BigDecimal.ZERO) <= 0) return Optional.empty();
+                    // Divide by the same basis applyPriceSuggestion multiplies with
+                    // (kwhCharged when measured, else kwhAtVehicle) - using grossUp here would
+                    // round-trip back through the AC-loss pauschale and silently return a
+                    // lower ct/kWh than the tariff the user set.
+                    BigDecimal kwh = log.costBasisKwh();
+                    if (kwh == null) return Optional.empty();
                     return Optional.of(new PriceSuggestion(
                             log.getCostEur().divide(kwh, 4, RoundingMode.HALF_UP),
                             log.getChargingProviderId()));

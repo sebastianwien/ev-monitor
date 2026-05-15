@@ -322,13 +322,13 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
     void shouldComputeCostPerKwh_FromSmartcarLogs_AndDropPeriodWithAllNullCosts() {
         // Smartcar/Tesla-Telemetry schreibt nur kwh_at_vehicle, kwh_charged bleibt NULL.
         // Vorher: Period-Aggregation summierte nur kwh_charged → totalKwh=0 → Frontend Luecke.
-        // Jetzt: Period-Aggregation nutzt effectiveKwhForCost (faellt auf kwh_at_vehicle/efficiency zurueck).
+        // Jetzt: Period-Aggregation nutzt gridSideKwhEstimate (faellt auf kwh_at_vehicle/efficiency zurueck).
         LocalDateTime day1 = LocalDateTime.of(2026, 4, 8, 10, 0);
         LocalDateTime day2 = LocalDateTime.of(2026, 4, 9, 10, 0);
         LocalDateTime day3 = LocalDateTime.of(2026, 4, 10, 10, 0);
 
         // Day 1: Smartcar AC mit Preis - kwh_at_vehicle=18, cost=4€
-        // -> effectiveKwhForCost = 18/0.90 = 20 -> 4/20 = 0.20 €/kWh
+        // -> gridSideKwhEstimate = 18/0.90 = 20 -> 4/20 = 0.20 €/kWh
         evLogRepository.save(TestDataBuilder.createSmartcarStyleLog(
                 carId, day1, new BigDecimal("18.0"), new BigDecimal("4.00"),
                 com.evmonitor.domain.ChargingType.AC, 50000));
@@ -364,7 +364,7 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
                 .filter(p -> p.timestamp().toLocalDate().equals(day3.toLocalDate()))
                 .findFirst().orElseThrow(() -> new AssertionError("day3 period missing"));
 
-        // Day 1: kwh_at_vehicle wird ueber effectiveKwhForCost gezaehlt → kWh > 0
+        // Day 1: kwh_at_vehicle wird ueber gridSideKwhEstimate gezaehlt → kWh > 0
         assertNotNull(d1.kwhCharged());
         assertTrue(d1.kwhCharged().compareTo(BigDecimal.ZERO) > 0,
                 "Smartcar-Log mit kwh_at_vehicle muss in totalKwh zaehlen");

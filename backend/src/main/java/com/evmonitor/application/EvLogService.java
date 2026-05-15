@@ -300,8 +300,11 @@ public class EvLogService {
 
     private EvLog applyPriceSuggestion(EvLog log, UUID userId, boolean hasCostAlready) {
         if (log.getGeohash() == null || hasCostAlready) return log;
-        BigDecimal effectiveEnergy = calculationService.effectiveKwhForCost(log);
-        if (effectiveEnergy == null || effectiveEnergy.compareTo(BigDecimal.ZERO) <= 0) return log;
+        // EvLog.costBasisKwh() = kwhCharged when measured, else kwhAtVehicle. We do NOT
+        // gross up netto by the AC-loss pauschale here: that would produce a ct/kWh higher
+        // than the tariff the user actually set. See PriceSuggestionEfficiencyIntegrationTest.
+        BigDecimal effectiveEnergy = log.costBasisKwh();
+        if (effectiveEnergy == null) return log;
 
         Optional<UUID> providerIdOpt = evLogRepository.findMostRecentChargingProviderAtGeohash(userId, log.getGeohash());
         if (providerIdOpt.isEmpty()) return log;
