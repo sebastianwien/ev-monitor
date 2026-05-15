@@ -99,25 +99,14 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
-    public Optional<EvLog> findChargeMatchCandidate(UUID carId, Integer odometerKm, LocalDateTime sessionEnd) {
-        LocalDateTime timeMin = sessionEnd.minusMinutes(10);
-        LocalDateTime timeMax = sessionEnd.plusMinutes(10);
-        Integer odoMin = odometerKm == null ? null : odometerKm - 1;
-        Integer odoMax = odometerKm == null ? null : odometerKm + 1;
-        List<EvLogEntity> candidates = jpaRepository.findChargeMatchCandidates(
-                carId, timeMin, timeMax, odometerKm, odoMin, odoMax);
-        if (candidates.isEmpty()) return Optional.empty();
-        EvLogEntity best = candidates.get(0);
-        long bestDelta = Math.abs(java.time.Duration.between(best.getLoggedAt(), sessionEnd).toSeconds());
-        for (int i = 1; i < candidates.size(); i++) {
-            EvLogEntity c = candidates.get(i);
-            long delta = Math.abs(java.time.Duration.between(c.getLoggedAt(), sessionEnd).toSeconds());
-            if (delta < bestDelta) {
-                best = c;
-                bestDelta = delta;
-            }
-        }
-        return Optional.of(toDomain(best));
+    public List<EvLog> findChargeMatchCandidates(UUID carId, Integer odoMin, Integer odoMax,
+                                                  LocalDateTime timeMin, LocalDateTime timeMax) {
+        // JpaQuery erwartet :odoKm als Disable-Flag (null = Odo-Filter aus).
+        Integer odoFilterFlag = (odoMin == null && odoMax == null) ? null : 1;
+        return jpaRepository.findChargeMatchCandidates(
+                carId, timeMin, timeMax, odoFilterFlag, odoMin, odoMax).stream()
+                .map(this::toDomain)
+                .toList();
     }
 
     @Override

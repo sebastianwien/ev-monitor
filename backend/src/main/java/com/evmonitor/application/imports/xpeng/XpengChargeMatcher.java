@@ -10,32 +10,41 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Verheiratet detektierte XPeng-Ladevorgänge mit bereits existierenden ev_log-Einträgen
- * (z.B. manuelle Wallbox-Einträge mit Brutto-kWh + Preis), bevor unmatched Sessions als
- * neue Logs angelegt werden.
+ * Verheiratet detektierte XPeng-Ladevorgaenge mit bereits existierenden ev_log-Eintraegen
+ * (typischerweise Brutto-Wallbox-Logs ueber die Public-API).
  *
- * Matching:
- * - Odometer ±1 km (falls Session Odometer hat)
- * - Zeitfenster ±10 min um Session-Ende (immer geprüft)
- *
- * Enrichment-Regeln:
- * - kwhAtVehicle leer → mit Session-Wert füllen (XPeng misst fahrzeugseitig = netto)
- * - kwhAtVehicle bereits gesetzt → unangetastet lassen (User-Edit / früherer Import gewinnt)
- * - maxChargingPowerKw / chargingType: nur befüllen wenn null
- * - kwhCharged (Brutto), costEur, cpoName, chargingProviderId bleiben immer unangetastet
+ * Match-Strategie:
+ *   1. Sessions ohne Odometer werden direkt unmatched -> Service legt neue XPENG_IMPORT-Logs an.
+ *   2. Sessions mit Odometer werden nach Odometer-Wert gruppiert (n XPeng-Sub-Sessions am
+ *      gleichen Kilometerstand gehoeren physikalisch zum selben Ladevorgang).
+ *   3. Pro Odo-Gruppe: Repository liefert alle ev_logs mit Odo ±1 km im Zeitbereich
+ *      [min(startedAt) - 1d, max(endedAt) + 1d]. Das 1-Tages-Fenster faengt Nachtladungen
+ *      und Timezone-Drift ab.
+ *   4. Tie-Breaker bei mehreren Kandidaten: zeitlich naechster zur fruehesten Session-Start-Zeit.
+ *   5. Hat der gewaehlte Kandidat schon kwh_at_vehicle -> skip (kein doppelter Eintrag,
+ *      auch kein unmatched, weil die Daten konzeptionell schon drin sind).
+ *   6. Sonst: Summe aller Session-kWh in kwh_at_vehicle, max_power und charging_type
+ *      werden nur befuellt wenn leer. Brutto-kWh und Preis bleiben unangetastet.
+ *   7. Restliche Sessions (kein passender ev_log gefunden) -> unmatched.
  */
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class XpengChargeMatcher {
+
+    /** Wie weit logged_at von der Session-Range abweichen darf - faengt Nachtladungen + TZ-Drift ab. */
+    private static final Duration TIME_SLACK = Duration.ofDays(1);
 
     private static final ObjectMapper EXTRAS_MAPPER = new ObjectMapper();
 
@@ -48,49 +57,32 @@ public class XpengChargeMatcher {
         if (sessions.isEmpty()) return new MatchResult(0, List.of());
 
         List<DetectedChargingSession> unmatched = new ArrayList<>();
-        int enriched = 0;
+        Map<Integer, List<DetectedChargingSession>> byOdometer = new HashMap<>();
 
+        // Pass 1: alles ohne Odometer faellt sofort durch
         for (DetectedChargingSession s : sessions) {
-            // Detector liefert MIN_SESSION_KWH=0.05; null waere bug-Indikator, nicht enrichen.
-            if (s.kwhCharged() == null) {
+            if (s.kwhCharged() == null) { // Detector-Bug-Indikator, nicht enrichen
                 unmatched.add(s);
                 continue;
             }
-            Integer odo = s.odometerKm() == null ? null : s.odometerKm().intValue();
-            Optional<EvLog> candidate = evLogRepository.findChargeMatchCandidate(carId, odo, s.endedAt());
-
-            if (candidate.isEmpty()) {
+            if (s.odometerKm() == null) {
                 unmatched.add(s);
                 continue;
             }
-            EvLog existing = candidate.get();
-            if (existing.getKwhAtVehicle() != null) {
-                log.debug("XpengChargeMatcher: log {} hat bereits kwhAtVehicle - skip", existing.getId());
-                continue;
-            }
+            byOdometer
+                    .computeIfAbsent(s.odometerKm().intValue(), k -> new ArrayList<>())
+                    .add(s);
+        }
 
-            EvLog patched = existing.toBuilder()
-                    .kwhAtVehicle(s.kwhCharged())
-                    .maxChargingPowerKw(existing.getMaxChargingPowerKw() != null
-                            ? existing.getMaxChargingPowerKw()
-                            : s.maxPowerKw())
-                    .chargingType(existing.getChargingType() != null && existing.getChargingType() != ChargingType.UNKNOWN
-                            ? existing.getChargingType()
-                            : parseChargingType(s.chargingType()))
-                    .updatedAt(LocalDateTime.now())
-                    .build();
-            evLogRepository.save(patched);
-
-            String extrasJson = serializeExtras(s.telemetryExtras());
-            if (extrasJson != null) {
-                try {
-                    evLogRepository.updateTelemetryExtrasById(existing.getId(), extrasJson);
-                } catch (Exception e) {
-                    log.warn("XpengChargeMatcher: telemetry_extras update failed for log {}",
-                            existing.getId(), e);
-                }
+        int enriched = 0;
+        for (Map.Entry<Integer, List<DetectedChargingSession>> entry : byOdometer.entrySet()) {
+            int odo = entry.getKey();
+            List<DetectedChargingSession> group = entry.getValue();
+            switch (tryEnrichGroup(carId, odo, group)) {
+                case ENRICHED -> enriched++;
+                case SKIPPED -> { /* schon befuellt, kein doppelter Eintrag noetig */ }
+                case NO_MATCH -> unmatched.addAll(group);
             }
-            enriched++;
         }
 
         log.info("XpengChargeMatcher: car={} enriched={} unmatched={}",
@@ -98,17 +90,103 @@ public class XpengChargeMatcher {
         return new MatchResult(enriched, unmatched);
     }
 
-    /**
-     * "UNKNOWN" wird zu null gemappt, damit der EvLog-Konstruktor via inferChargingType()
-     * aus maxPowerKw/kWh/Duration ableiten kann statt UNKNOWN zu persistieren.
-     */
-    private static ChargingType parseChargingType(String raw) {
-        if (raw == null || "UNKNOWN".equalsIgnoreCase(raw)) return null;
-        try {
-            return ChargingType.valueOf(raw);
-        } catch (IllegalArgumentException e) {
-            return null;
+    private enum GroupOutcome { ENRICHED, SKIPPED, NO_MATCH }
+
+    private GroupOutcome tryEnrichGroup(UUID carId, int odoKm, List<DetectedChargingSession> group) {
+        // Zeitbereich der Gruppe
+        LocalDateTime earliestStart = group.stream()
+                .map(DetectedChargingSession::startedAt)
+                .min(LocalDateTime::compareTo).orElseThrow();
+        LocalDateTime latestEnd = group.stream()
+                .map(DetectedChargingSession::endedAt)
+                .max(LocalDateTime::compareTo).orElseThrow();
+
+        List<EvLog> candidates = evLogRepository.findChargeMatchCandidates(
+                carId, odoKm - 1, odoKm + 1,
+                earliestStart.minus(TIME_SLACK), latestEnd.plus(TIME_SLACK));
+
+        if (candidates.isEmpty()) return GroupOutcome.NO_MATCH;
+
+        // Tie-Breaker: zeitlich naechster Log zur fruehesten Session-Start-Zeit
+        EvLog best = candidates.get(0);
+        long bestDelta = Math.abs(Duration.between(best.getLoggedAt(), earliestStart).toSeconds());
+        for (int i = 1; i < candidates.size(); i++) {
+            EvLog c = candidates.get(i);
+            long delta = Math.abs(Duration.between(c.getLoggedAt(), earliestStart).toSeconds());
+            if (delta < bestDelta) {
+                best = c;
+                bestDelta = delta;
+            }
         }
+
+        if (best.getKwhAtVehicle() != null) {
+            // Anderer Job hat den Log schon angereichert - nichts tun, aber auch nicht doppelt anlegen.
+            log.debug("XpengChargeMatcher: log {} hat bereits kwhAtVehicle - skip {} Sessions",
+                    best.getId(), group.size());
+            return GroupOutcome.SKIPPED;
+        }
+
+        BigDecimal kwhSum = BigDecimal.ZERO;
+        for (DetectedChargingSession s : group) {
+            kwhSum = kwhSum.add(s.kwhCharged());
+        }
+        kwhSum = kwhSum.setScale(4, RoundingMode.HALF_UP);
+
+        // Max-Power: groesster maxPower-Wert der Gruppe (z.B. erste Session 3.9 kW, zweite 10.1 kW -> 10.1)
+        BigDecimal groupMaxPower = group.stream()
+                .map(DetectedChargingSession::maxPowerKw)
+                .filter(java.util.Objects::nonNull)
+                .max(BigDecimal::compareTo).orElse(null);
+
+        ChargingType inferredType = inferChargingType(group, groupMaxPower);
+
+        EvLog patched = best.toBuilder()
+                .kwhAtVehicle(kwhSum)
+                .maxChargingPowerKw(best.getMaxChargingPowerKw() != null
+                        ? best.getMaxChargingPowerKw()
+                        : groupMaxPower)
+                .chargingType(best.getChargingType() != null && best.getChargingType() != ChargingType.UNKNOWN
+                        ? best.getChargingType()
+                        : inferredType)
+                .updatedAt(LocalDateTime.now())
+                .build();
+        evLogRepository.save(patched);
+
+        // telemetry_extras: erste Session mit nicht-leerem extras-Map gewinnt (per-row-Aggregation
+        // ueber mehrere Sub-Sessions ist nicht trivial - vereinfacht).
+        Map<String, Object> extrasSource = group.stream()
+                .map(DetectedChargingSession::telemetryExtras)
+                .filter(m -> m != null && !m.isEmpty())
+                .findFirst().orElse(null);
+        String extrasJson = serializeExtras(extrasSource);
+        if (extrasJson != null) {
+            try {
+                evLogRepository.updateTelemetryExtrasById(best.getId(), extrasJson);
+            } catch (Exception e) {
+                log.warn("XpengChargeMatcher: telemetry_extras update failed for log {}",
+                        best.getId(), e);
+            }
+        }
+        return GroupOutcome.ENRICHED;
+    }
+
+    private static ChargingType inferChargingType(List<DetectedChargingSession> group, BigDecimal maxPower) {
+        // Wenn alle Sessions identischen Type haben, dominiere; sonst leite aus max-Power ab.
+        String firstType = null;
+        boolean uniform = true;
+        for (DetectedChargingSession s : group) {
+            String t = s.chargingType();
+            if (firstType == null) firstType = t;
+            else if (!java.util.Objects.equals(firstType, t)) { uniform = false; break; }
+        }
+        if (uniform && firstType != null && !"UNKNOWN".equalsIgnoreCase(firstType)) {
+            try { return ChargingType.valueOf(firstType); } catch (IllegalArgumentException ignored) {}
+        }
+        if (maxPower != null) {
+            return DetectedChargingSession.classifyChargingType(maxPower).equals("DC")
+                    ? ChargingType.DC : ChargingType.AC;
+        }
+        return null;
     }
 
     private static String serializeExtras(Map<String, Object> extras) {
