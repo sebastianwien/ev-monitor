@@ -202,6 +202,8 @@ public class TripService {
         surviving.setSocEnd(mergedSocEnd);
         surviving.setOdometerStartKm(earlier.getOdometerStartKm());
         surviving.setOdometerEndKm(later.getOdometerEndKm());
+        surviving.setEnergyRemainingStartKwh(earlier.getEnergyRemainingStartKwh());
+        surviving.setEnergyRemainingEndKwh(later.getEnergyRemainingEndKwh());
         surviving.setDistanceKm(sumNullable(earlier.getDistanceKm(), later.getDistanceKm(), 1));
         surviving.setLocationStartGeohash(earlier.getLocationStartGeohash());
         surviving.setLocationEndGeohash(later.getLocationEndGeohash());

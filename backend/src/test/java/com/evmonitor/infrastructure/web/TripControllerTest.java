@@ -337,6 +337,48 @@ class TripControllerTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void mergeTrip_propagatesEnergyRemaining_fromEarlierStartAndLaterEnd() {
+        // Regression: Tesla LIVE trips carry energyRemainingStart/End. Bei mergen
+        // mehrerer Fragmente einer Fahrt muss surviving den Start vom frühesten
+        // Trip und das End vom spätesten erben - sonst wirkt der Phantom-Drain
+        // im FE falsch (siehe florianbehr0, 2026-05-05).
+        EvTrip previous = tripRepository.save(EvTrip.builder()
+                .userId(user1.getId()).carId(car1.getId())
+                .dataSource("TESLA_LIVE").status("COMPLETED").userCreated(false)
+                .tripStartedAt(OffsetDateTime.now().minusHours(5))
+                .tripEndedAt(OffsetDateTime.now().minusHours(4))
+                .socStart(new BigDecimal("80.0")).socEnd(new BigDecimal("60.0"))
+                .distanceKm(new BigDecimal("20.0"))
+                .energyRemainingStartKwh(new BigDecimal("50.240"))
+                .energyRemainingEndKwh(new BigDecimal("47.000"))
+                .build());
+        EvTrip active = tripRepository.save(EvTrip.builder()
+                .userId(user1.getId()).carId(car1.getId())
+                .dataSource("TESLA_LIVE").status("COMPLETED").userCreated(false)
+                .tripStartedAt(OffsetDateTime.now().minusHours(3))
+                .tripEndedAt(OffsetDateTime.now().minusHours(2))
+                .socStart(new BigDecimal("58.0")).socEnd(new BigDecimal("40.0"))
+                .distanceKm(new BigDecimal("15.0"))
+                .energyRemainingStartKwh(new BigDecimal("44.120"))
+                .energyRemainingEndKwh(new BigDecimal("40.000"))
+                .build());
+
+        ResponseEntity<Map<String, Object>> res = restTemplate.exchange(
+                "/api/trips/" + active.getId() + "/merge", HttpMethod.POST,
+                new HttpEntity<>(Map.of("mergeWithTripId", previous.getId().toString()),
+                        createAuthHeaders(user1.getId(), user1.getEmail())),
+                new ParameterizedTypeReference<>() {});
+
+        assertEquals(HttpStatus.OK, res.getStatusCode());
+        Map<String, Object> body = res.getBody();
+        assertNotNull(body);
+        // energyRemainingStartKwh muss vom earlier (previous) kommen
+        assertEquals(50.240, ((Number) body.get("energyRemainingStartKwh")).doubleValue(), 0.001);
+        // energyRemainingEndKwh muss vom later (active = surviving) kommen
+        assertEquals(40.000, ((Number) body.get("energyRemainingEndKwh")).doubleValue(), 0.001);
+    }
+
+    @Test
     void mergeTrip_differentRouteTypes_setsCombined() {
         EvTrip previous = saveTripFull(user1.getId(), car1.getId(),
                 OffsetDateTime.now().minusHours(5), OffsetDateTime.now().minusHours(4),
