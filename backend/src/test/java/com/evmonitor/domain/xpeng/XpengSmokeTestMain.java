@@ -79,9 +79,30 @@ public class XpengSmokeTestMain {
                 System.out.println("Trips mit extras:    " + tripsWithExtras + "/" + trips.size());
 
                 if (!sessions.isEmpty()) {
+                    // Brutto/Netto-Aggregat ueber alle Sessions (Sanity-Check fuer OBC-Wirkungsgrad).
+                    java.math.BigDecimal totalGross = java.math.BigDecimal.ZERO;
+                    java.math.BigDecimal totalNet = java.math.BigDecimal.ZERO;
+                    int withNet = 0;
+                    for (var sess : sessions) {
+                        totalGross = totalGross.add(sess.kwhCharged());
+                        if (sess.kwhAtVehicle() != null) {
+                            totalNet = totalNet.add(sess.kwhAtVehicle());
+                            withNet++;
+                        }
+                    }
+                    System.out.println("Energie-Aggregat: brutto=" + totalGross + " kWh,"
+                            + " netto=" + totalNet + " kWh (" + withNet + "/" + sessions.size() + " Sessions mit U/I)");
+                    if (totalGross.signum() > 0 && totalNet.signum() > 0) {
+                        java.math.BigDecimal ratio = totalNet.multiply(java.math.BigDecimal.valueOf(100))
+                                .divide(totalGross, 1, java.math.RoundingMode.HALF_UP);
+                        System.out.println("OBC-Wirkungsgrad (netto/brutto): " + ratio + " %");
+                    }
+
                     var s = sessions.get(0);
                     System.out.println("\n  Erste Session (" + s.chargingType() + ", maxPower=" + s.maxPowerKw() + " kW):");
-                    System.out.println("    kwh=" + s.kwhCharged() + ", soc=" + s.socStart() + "->" + s.socEnd());
+                    System.out.println("    kwh_brutto=" + s.kwhCharged()
+                            + ", kwh_netto=" + s.kwhAtVehicle()
+                            + ", soc=" + s.socStart() + "->" + s.socEnd());
                     if (s.telemetryExtras() != null) {
                         System.out.println("    extras=" + mapper.writerWithDefaultPrettyPrinter()
                                 .writeValueAsString(s.telemetryExtras()));

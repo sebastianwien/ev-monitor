@@ -46,6 +46,7 @@ class XpengChargeMatcherTest {
         return new DetectedChargingSession(
                 startedAt, endedAt,
                 new BigDecimal("50"), new BigDecimal("90"), kwh,
+                null,
                 new BigDecimal("11.0"),
                 odoKm,
                 "AC",
@@ -239,6 +240,7 @@ class XpengChargeMatcherTest {
                 LocalDateTime.of(2026, 5, 10, 13, 30),
                 new BigDecimal("50"), new BigDecimal("90"),
                 new BigDecimal("25.50"),
+                null,
                 new BigDecimal("125.0"),
                 new BigDecimal("13508"),
                 "DC",

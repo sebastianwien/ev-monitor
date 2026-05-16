@@ -343,11 +343,21 @@ public class XpengImportService {
                 .build();
     }
 
-    private PublicApiSessionRequest.SessionEntry toSessionEntry(DetectedChargingSession s) {
+    /**
+     * Mappt eine erkannte XPeng-Charging-Session auf die Public-API-DTO.
+     *
+     * <p>Energie-Konvention: {@code chrgpwr} (XPeng) ist die AC-Leistung am Onboard-Charger-Eingang -
+     * also <b>brutto</b> wie ein Wallbox-Zaehler, daher {@code measurement_type = AT_CHARGER}.
+     * {@code kwhAtVehicle} (Netto, aus U x I integriert) wird zusaetzlich uebergeben, falls
+     * vorhanden - die Public-API speichert beides nebeneinander.
+     *
+     * <p>Static + package-private, damit der Mapper ohne Service-Bean testbar ist.
+     */
+    static PublicApiSessionRequest.SessionEntry toSessionEntry(DetectedChargingSession s) {
         return new PublicApiSessionRequest.SessionEntry(
                 s.startedAt().atOffset(ZoneOffset.UTC).toString(),
-                null,                              // kwh (grid-side) unknown - XPeng EU-Data-Act delivers vehicle-side
-                s.kwhCharged().doubleValue(),      // kwhAtVehicle: matched net energy from DC session sheet
+                s.kwhCharged().doubleValue(),
+                s.kwhAtVehicle() == null ? null : s.kwhAtVehicle().doubleValue(),
                 s.odometerKm() == null ? null : s.odometerKm().intValue(),
                 s.socStart(), s.socEnd(),
                 null,                              // costEur unknown
@@ -357,10 +367,10 @@ public class XpengImportService {
                 s.maxPowerKw() == null ? null : s.maxPowerKw().doubleValue(),
                 null, null, null,                  // routeType, tireType, rawImportData
                 null, null,                        // isPublic, cpoName (user editiert nach)
-                "AT_VEHICLE");
+                "AT_CHARGER");
     }
 
-    private Integer durationMinutes(DetectedChargingSession s) {
+    static Integer durationMinutes(DetectedChargingSession s) {
         if (s.startedAt() == null || s.endedAt() == null) return null;
         long minutes = java.time.Duration.between(s.startedAt(), s.endedAt()).toMinutes();
         return minutes <= 0 ? 1 : (int) minutes;
