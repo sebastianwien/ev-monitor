@@ -176,7 +176,7 @@ function carLabel(car: Car): string {
 
     <!-- Add form (hidden for demo users) -->
     <template v-if="!authStore.isDemoAccount">
-      <div v-if="showForm" class="border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-sm shadow-[4px_4px_0_0_#d1d5db] dark:shadow-[4px_4px_0_0_#374151] p-4 space-y-3">
+      <div v-if="showForm" class="border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] p-4 space-y-3">
         <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-gray-700 dark:text-gray-300">{{ t('goe.form_title') }}</p>
         <div>
           <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">{{ t('goe.serial_label') }}</label>
@@ -227,18 +227,18 @@ function carLabel(car: Car): string {
 
         <div class="flex flex-col sm:flex-row gap-2">
           <button @click="handleConnect" :disabled="loading"
-                  class="flex-1 inline-flex items-center justify-center bg-yellow-400 hover:bg-yellow-300 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:text-gray-500 text-gray-950 font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-sm border-2 border-yellow-400 disabled:border-gray-300 dark:disabled:border-gray-700 shadow-[3px_3px_0_0_#030712] disabled:shadow-none active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75">
+                  class="flex-1 inline-flex items-center justify-center bg-yellow-400 hover:bg-yellow-300 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:text-gray-500 text-gray-950 font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-sm border-2 border-yellow-400 disabled:border-gray-300 dark:disabled:border-gray-700 shadow-[2px_2px_0_0_#030712] disabled:shadow-none active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75">
             {{ loading ? t('goe.connect_btn_loading') : t('goe.connect_btn') }}
           </button>
           <button @click="showForm = false"
-                  class="inline-flex items-center justify-center bg-white dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-700 text-gray-800 dark:text-gray-200 font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-sm shadow-[3px_3px_0_0_#9ca3af] dark:shadow-[3px_3px_0_0_#4b5563] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75">
+                  class="inline-flex items-center justify-center bg-white dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-700 text-gray-800 dark:text-gray-200 font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-sm shadow-[2px_2px_0_0_#9ca3af] dark:shadow-[2px_2px_0_0_#4b5563] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75">
             {{ t('goe.cancel_btn') }}
           </button>
         </div>
       </div>
 
       <button v-if="!showForm" @click="showForm = true"
-              class="w-full sm:w-auto flex sm:inline-flex items-center justify-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-gray-950 font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-sm border-2 border-yellow-400 shadow-[3px_3px_0_0_#030712] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75">
+              class="w-full sm:w-auto flex sm:inline-flex items-center justify-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-gray-950 font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-sm border-2 border-yellow-400 shadow-[2px_2px_0_0_#030712] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75">
         {{ t('goe.add_btn') }}
       </button>
     </template>

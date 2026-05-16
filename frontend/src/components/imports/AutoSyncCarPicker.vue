@@ -178,7 +178,7 @@ function toggleExpand(carId: string) {
                 <p class="text-sm text-gray-600 dark:text-gray-400 font-medium">{{ t('imports.autosync_no_cars_hint') }}</p>
                 <router-link
                     to="/cars"
-                    class="inline-block mt-3 bg-amber-500 hover:bg-amber-400 text-gray-950 font-bold uppercase tracking-wider text-[11px] px-4 py-2 rounded-sm border-2 border-amber-500 shadow-[3px_3px_0_0_#030712] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75"
+                    class="inline-block mt-3 bg-amber-500 hover:bg-amber-400 text-gray-950 font-bold uppercase tracking-wider text-[11px] px-4 py-2 rounded-sm border-2 border-amber-500 shadow-[2px_2px_0_0_#030712] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75"
                 >
                     {{ t('imports.autosync_no_cars_cta') }}
                 </router-link>
@@ -191,10 +191,10 @@ function toggleExpand(carId: string) {
                     :key="car.id"
                     class="rounded-sm overflow-hidden transition-[box-shadow] duration-150"
                     :class="tileStateFor(car) === 'active'
-                        ? 'border-2 border-gray-900 dark:border-white bg-white dark:bg-gray-900 shadow-[4px_4px_0_0_#0a0a0a] dark:shadow-[4px_4px_0_0_#ffffff]'
+                        ? 'border-2 border-gray-900 dark:border-white bg-white dark:bg-gray-900 shadow-[2px_2px_0_0_#0a0a0a] dark:shadow-[2px_2px_0_0_#ffffff]'
                         : tileStateFor(car) === 'unavailable'
                             ? 'border-2 border-dashed border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 opacity-75'
-                            : 'border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-[4px_4px_0_0_#d1d5db] dark:shadow-[4px_4px_0_0_#374151]'"
+                            : 'border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]'"
                 >
                     <!-- Row header -->
                     <button
@@ -313,7 +313,7 @@ function toggleExpand(carId: string) {
                         <button
                             type="button"
                             @click="emit('live-upgrade-requested')"
-                            class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold uppercase tracking-wider text-[11px] px-3 py-2 rounded-sm border-2 border-indigo-600 shadow-[3px_3px_0_0_#030712] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75 whitespace-nowrap"
+                            class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold uppercase tracking-wider text-[11px] px-3 py-2 rounded-sm border-2 border-indigo-600 shadow-[2px_2px_0_0_#030712] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75 whitespace-nowrap"
                         >
                             {{ t('imports.tile_live_upsell_cta') }} →
                         </button>

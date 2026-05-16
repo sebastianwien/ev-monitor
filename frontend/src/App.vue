@@ -561,16 +561,16 @@ const closeMobileMenu = () => {
 
 /* 3D press effect for navbar buttons */
 .nav-3d {
-  box-shadow: 0 3px 0 0 rgba(0,0,0,0.25);
-  transform: translateY(0);
+  box-shadow: 3px 3px 0 0 rgba(0,0,0,0.25);
+  transform: translate(0, 0);
   transition: transform 0.08s ease, box-shadow 0.08s ease;
   touch-action: manipulation;
 }
 .nav-3d:active,
 .nav-3d.router-link-active,
 .nav-3d.router-link-exact-active {
-  box-shadow: 0 1px 0 0 rgba(0,0,0,0.25);
-  transform: translateY(2px);
+  box-shadow: 1px 1px 0 0 rgba(0,0,0,0.25);
+  transform: translate(2px, 2px);
   transition: transform 0.05s ease, box-shadow 0.05s ease;
 }
 

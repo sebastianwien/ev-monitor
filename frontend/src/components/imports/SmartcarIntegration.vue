@@ -143,7 +143,7 @@ const stateLabel = (state: string | null) => {
     </ul>
 
     <!-- Brand-List Block -->
-    <div class="border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-sm shadow-[4px_4px_0_0_#d1d5db] dark:shadow-[4px_4px_0_0_#374151] p-4 md:p-5">
+    <div class="border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] p-4 md:p-5">
       <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-gray-500 dark:text-gray-400 mb-3">{{ t('imports.smartcar_brands_title') }}</p>
       <div class="flex flex-wrap gap-1.5">
         <span
@@ -154,7 +154,7 @@ const stateLabel = (state: string | null) => {
     </div>
 
     <!-- FAQ Accordion -->
-    <details class="group border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-sm shadow-[4px_4px_0_0_#d1d5db] dark:shadow-[4px_4px_0_0_#374151] overflow-hidden">
+    <details class="group border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] overflow-hidden">
       <summary class="flex items-center justify-between px-4 py-3 cursor-pointer text-[11px] font-bold uppercase tracking-[0.14em] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 list-none select-none">
         {{ t('imports.smartcar_how_title') }}
         <ChevronDownIcon class="h-4 w-4 text-gray-500 transition-transform group-open:rotate-180 shrink-0" />
@@ -171,7 +171,7 @@ const stateLabel = (state: string | null) => {
     <div>
       <router-link
         to="/upgrade"
-        class="w-full block text-center bg-amber-500 hover:bg-amber-400 text-gray-950 font-bold uppercase tracking-wider text-xs md:text-sm px-5 py-3.5 rounded-sm border-2 border-amber-500 shadow-[4px_4px_0_0_#030712] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-[transform,box-shadow] duration-75"
+        class="w-full block text-center bg-amber-500 hover:bg-amber-400 text-gray-950 font-bold uppercase tracking-wider text-xs md:text-sm px-5 py-3.5 rounded-sm border-2 border-amber-500 shadow-[2px_2px_0_0_#030712] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-[transform,box-shadow] duration-75"
       >
         {{ t('imports.smartcar_upgrade_cta', { priceMonthly: t('upgrade.price_monthly') }) }}
       </router-link>
@@ -191,7 +191,7 @@ const stateLabel = (state: string | null) => {
     <template v-else>
       <!-- How it works FAQ. Hidden in embedded (tile) mode - picker shows it at
            the parent level so each tile stays focused on the per-car action. -->
-      <details v-if="!props.embedded" class="group border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-sm shadow-[4px_4px_0_0_#d1d5db] dark:shadow-[4px_4px_0_0_#374151] overflow-hidden">
+      <details v-if="!props.embedded" class="group border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] overflow-hidden">
         <summary class="flex items-center justify-between px-4 py-3 cursor-pointer text-[11px] font-bold uppercase tracking-[0.14em] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 list-none select-none">
           {{ t('imports.smartcar_how_title') }}
           <ChevronDownIcon class="h-4 w-4 text-gray-500 transition-transform group-open:rotate-180 shrink-0" />
@@ -244,7 +244,7 @@ const stateLabel = (state: string | null) => {
 
         <!-- Standalone mode: full card -->
         <template v-else>
-          <div class="border-2 border-emerald-500 dark:border-emerald-400 bg-white dark:bg-gray-900 rounded-sm shadow-[4px_4px_0_0_#10b981] p-4 md:p-5">
+          <div class="border-2 border-emerald-500 dark:border-emerald-400 bg-white dark:bg-gray-900 rounded-sm shadow-[2px_2px_0_0_#10b981] p-4 md:p-5">
             <div class="flex items-start gap-3 mb-3">
               <span class="inline-flex w-7 h-7 bg-emerald-500 text-white rounded-sm items-center justify-center text-sm font-extrabold shrink-0 mt-0.5">✓</span>
               <div class="flex-1 min-w-0">
@@ -281,7 +281,7 @@ const stateLabel = (state: string | null) => {
         <button
           @click="disconnect"
           :disabled="disconnecting"
-          class="inline-flex items-center gap-2 bg-gray-950 dark:bg-white text-white dark:text-gray-950 font-bold uppercase tracking-wider text-[11px] px-4 py-2.5 rounded-sm border-2 border-gray-950 dark:border-white shadow-[3px_3px_0_0_#dc2626] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75 disabled:opacity-50 disabled:cursor-not-allowed"
+          class="inline-flex items-center gap-2 bg-gray-950 dark:bg-white text-white dark:text-gray-950 font-bold uppercase tracking-wider text-[11px] px-4 py-2.5 rounded-sm border-2 border-gray-950 dark:border-white shadow-[2px_2px_0_0_#dc2626] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <XCircleIcon class="h-4 w-4" />
           {{ disconnecting ? t('imports.smartcar_disconnecting') : t('imports.smartcar_disconnect_btn') }}
@@ -304,7 +304,7 @@ const stateLabel = (state: string | null) => {
           <button
             @click="connect"
             :disabled="connecting || !selectedCarId"
-            class="w-full inline-flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-gray-950 font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-sm border-2 border-amber-500 disabled:border-gray-300 dark:disabled:border-gray-700 shadow-[3px_3px_0_0_#030712] disabled:shadow-none active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75"
+            class="w-full inline-flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-gray-950 font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-sm border-2 border-amber-500 disabled:border-gray-300 dark:disabled:border-gray-700 shadow-[2px_2px_0_0_#030712] disabled:shadow-none active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75"
           >
             <BoltIcon class="h-4 w-4" />
             {{ connecting ? t('imports.smartcar_connecting') : t('imports.smartcar_connect_btn') }}

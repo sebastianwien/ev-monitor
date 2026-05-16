@@ -111,7 +111,7 @@ async function onDeleteAllData() {
     </div>
 
     <div v-if="topError"
-         class="rounded-sm border-2 border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-950/40 p-3 text-sm text-red-900 dark:text-red-200 flex gap-2 shadow-[3px_3px_0_0_#fca5a5] dark:shadow-[3px_3px_0_0_#b91c1c]">
+         class="rounded-sm border-2 border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-950/40 p-3 text-sm text-red-900 dark:text-red-200 flex gap-2 shadow-[2px_2px_0_0_#fca5a5] dark:shadow-[2px_2px_0_0_#b91c1c]">
       <ExclamationCircleIcon class="w-5 h-5 flex-shrink-0" />
       <span>{{ topError }}</span>
     </div>
@@ -153,7 +153,7 @@ async function onDeleteAllData() {
 
       <!-- Destruktive Aktion: alle XPENG_IMPORT-Daten loeschen -->
       <div v-if="hasImportedData"
-           class="rounded-sm border-2 border-red-600 dark:border-red-700 bg-white dark:bg-gray-800 p-5 md:p-6 shadow-[4px_4px_0_0_#dc2626] dark:shadow-[4px_4px_0_0_#b91c1c]">
+           class="rounded-sm border-2 border-red-600 dark:border-red-700 bg-white dark:bg-gray-800 p-5 md:p-6 shadow-[2px_2px_0_0_#dc2626] dark:shadow-[2px_2px_0_0_#b91c1c]">
         <h3 class="text-lg md:text-xl font-bold text-gray-900 dark:text-white tracking-tight mb-3 flex items-center gap-2">
           <TrashIcon class="w-5 h-5 text-red-600 dark:text-red-400" />
           {{ t('xpeng.delete_all_title') }}
@@ -167,7 +167,7 @@ async function onDeleteAllData() {
         </p>
         <button
           type="button"
-          class="inline-flex items-center gap-2 bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-sm border-2 border-red-600 shadow-[3px_3px_0_0_#030712] dark:shadow-[3px_3px_0_0_#030712] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75 font-family-inherit"
+          class="inline-flex items-center gap-2 bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-sm border-2 border-red-600 shadow-[2px_2px_0_0_#030712] dark:shadow-[2px_2px_0_0_#030712] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75 font-family-inherit"
           :disabled="deleting"
           @click="onDeleteAllData">
           <TrashIcon class="w-4 h-4" />

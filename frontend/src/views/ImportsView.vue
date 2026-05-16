@@ -202,7 +202,7 @@ const teslaConnectedLabel = ref<string | null>(null)
 
         <!-- AutoSync Pro Teaser — nur wenn Premium-Kauf möglich und User noch kein Abonnent -->
         <div v-if="premiumEnabled && !authStore.isPremium"
-             class="mb-4 border-2 border-amber-500 bg-amber-50 dark:bg-amber-950/30 rounded-sm shadow-[4px_4px_0_0_#030712] dark:shadow-[4px_4px_0_0_#ffffff] p-4 text-center md:text-left">
+             class="mb-4 border-2 border-amber-500 bg-amber-50 dark:bg-amber-950/30 rounded-sm shadow-[2px_2px_0_0_#030712] dark:shadow-[2px_2px_0_0_#ffffff] p-4 text-center md:text-left">
           <div class="flex flex-col items-center md:flex-row md:items-start gap-3">
             <div class="shrink-0 rounded-sm border-2 border-gray-900 dark:border-white bg-amber-500 p-2 w-10 h-10 flex items-center justify-center">
               <BoltIcon class="h-5 w-5 text-gray-950" />
@@ -214,7 +214,7 @@ const teslaConnectedLabel = ref<string | null>(null)
               <div class="flex flex-col items-center sm:flex-row sm:items-center gap-2">
                 <router-link
                   to="/upgrade"
-                  class="flex w-full sm:w-auto sm:inline-flex items-center justify-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-gray-950 font-bold uppercase tracking-wider text-[11px] px-4 py-2.5 rounded-sm border-2 border-amber-500 shadow-[3px_3px_0_0_#030712] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75"
+                  class="flex w-full sm:w-auto sm:inline-flex items-center justify-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-gray-950 font-bold uppercase tracking-wider text-[11px] px-4 py-2.5 rounded-sm border-2 border-amber-500 shadow-[2px_2px_0_0_#030712] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75"
                 >
                   {{ t('imports.autosync_teaser_cta') }}
                 </router-link>
@@ -225,7 +225,7 @@ const teslaConnectedLabel = ref<string | null>(null)
         </div>
 
         <!-- Accordion -->
-        <div class="-mx-4 md:mx-0 border-y-2 md:border-2 border-gray-300 dark:border-gray-700 md:rounded-sm divide-y-2 divide-gray-300 dark:divide-gray-700 overflow-hidden md:shadow-[4px_4px_0_0_#d1d5db] dark:md:shadow-[4px_4px_0_0_#374151]">
+        <div class="-mx-4 md:mx-0 border-y-2 md:border-2 border-gray-300 dark:border-gray-700 md:rounded-sm divide-y-2 divide-gray-300 dark:divide-gray-700 overflow-hidden md:shadow-[2px_2px_0_0_#d1d5db] dark:md:shadow-[2px_2px_0_0_#374151]">
 
         <!-- 1. SMARTCAR -->
         <div>
@@ -250,7 +250,7 @@ const teslaConnectedLabel = ref<string | null>(null)
             <div v-if="activeTab === 'smartcar'" class="px-1 py-3 md:p-6 space-y-3">
               <!-- Live-Promo: AutoSync subscriber with at least one Tesla in garage.
                    Neo-Brutalist Style passend zum Rest des AutoSync-Tabs. -->
-              <div v-if="showLivePromo" class="border-2 border-indigo-600 dark:border-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 rounded-sm shadow-[4px_4px_0_0_#4f46e5] overflow-hidden">
+              <div v-if="showLivePromo" class="border-2 border-indigo-600 dark:border-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 rounded-sm shadow-[2px_2px_0_0_#4f46e5] overflow-hidden">
                 <div class="h-1 bg-gradient-to-r from-indigo-400 via-indigo-600 to-indigo-400"></div>
                 <div class="px-3 py-2.5 flex items-center gap-3 flex-wrap sm:flex-nowrap">
                   <div class="flex items-center gap-2 shrink-0">
@@ -270,7 +270,7 @@ const teslaConnectedLabel = ref<string | null>(null)
                   <button
                     @click="handleLiveUpgrade"
                     :disabled="liveUpgradeLoading"
-                    class="shrink-0 inline-flex items-center justify-center bg-green-600 hover:bg-green-700 text-white font-bold uppercase tracking-wider text-[11px] px-3 py-1.5 rounded-sm border-2 border-green-600 shadow-[3px_3px_0_0_rgba(0,0,0,0.3)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75 disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
+                    class="shrink-0 inline-flex items-center justify-center bg-green-600 hover:bg-green-700 text-white font-bold uppercase tracking-wider text-[11px] px-3 py-1.5 rounded-sm border-2 border-green-600 shadow-[2px_2px_0_0_rgba(0,0,0,0.3)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75 disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
                   >
                     <span v-if="liveUpgradeLoading">…</span>
                     <span v-else>{{ t('imports.live_promo_cta') }}</span>
@@ -315,7 +315,7 @@ const teslaConnectedLabel = ref<string | null>(null)
               <p class="text-sm text-gray-700 dark:text-gray-300 font-medium leading-relaxed">{{ t('imports.api_desc') }}</p>
 
               <!-- Endpoint-Card -->
-              <div class="border-2 border-gray-900 dark:border-white bg-gray-900 dark:bg-gray-950 rounded-sm shadow-[4px_4px_0_0_#4f46e5] p-4">
+              <div class="border-2 border-gray-900 dark:border-white bg-gray-900 dark:bg-gray-950 rounded-sm shadow-[2px_2px_0_0_#4f46e5] p-4">
                 <p class="text-indigo-400 text-[11px] font-bold uppercase tracking-[0.14em] mb-2">Endpoint</p>
                 <p class="font-mono text-xs bg-gray-950 text-gray-100 border border-gray-700 rounded-sm px-3 py-2 mb-3 break-all">
                   POST https://ev-monitor.net/api/v1/sessions<br>
@@ -354,12 +354,12 @@ const teslaConnectedLabel = ref<string | null>(null)
                 {{ apiKeyMessage.text }}
               </div>
 
-              <div v-if="createdKey" class="border-2 border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 rounded-sm shadow-[4px_4px_0_0_#10b981] p-4">
+              <div v-if="createdKey" class="border-2 border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 rounded-sm shadow-[2px_2px_0_0_#10b981] p-4">
                 <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-emerald-700 dark:text-emerald-400 mb-2">{{ t('imports.api_new_key_title') }}</p>
                 <div class="flex items-center gap-2">
                   <code class="flex-1 bg-gray-900 text-emerald-300 border-2 border-gray-900 dark:border-emerald-700 rounded-sm px-3 py-2 text-xs font-mono break-all">{{ createdKey.plaintextKey }}</code>
                   <button @click="copyApiKey"
-                          class="shrink-0 p-2.5 border-2 border-gray-900 dark:border-white bg-emerald-500 hover:bg-emerald-400 text-gray-950 rounded-sm shadow-[3px_3px_0_0_#030712] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75"
+                          class="shrink-0 p-2.5 border-2 border-gray-900 dark:border-white bg-emerald-500 hover:bg-emerald-400 text-gray-950 rounded-sm shadow-[2px_2px_0_0_#030712] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75"
                           :title="t('imports.api_copy_title')">
                     <CheckIcon v-if="keyCopied" class="h-5 w-5" />
                     <ClipboardDocumentIcon v-else class="h-5 w-5" />
@@ -373,7 +373,7 @@ const teslaConnectedLabel = ref<string | null>(null)
                        class="flex-1 px-3 py-2.5 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 rounded-sm text-sm font-medium focus:outline-none focus:border-indigo-500 transition-colors"
                        @keyup.enter="createApiKey" />
                 <button @click="createApiKey" :disabled="apiKeyLoading || !newKeyName.trim()"
-                        class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white font-bold uppercase tracking-wider text-[11px] px-4 py-2.5 rounded-sm border-2 border-indigo-600 disabled:border-gray-300 dark:disabled:border-gray-700 shadow-[3px_3px_0_0_#030712] disabled:shadow-none active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75 whitespace-nowrap">
+                        class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white font-bold uppercase tracking-wider text-[11px] px-4 py-2.5 rounded-sm border-2 border-indigo-600 disabled:border-gray-300 dark:disabled:border-gray-700 shadow-[2px_2px_0_0_#030712] disabled:shadow-none active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75 whitespace-nowrap">
                   {{ t('imports.api_create_btn') }}
                 </button>
               </div>
@@ -428,7 +428,7 @@ const teslaConnectedLabel = ref<string | null>(null)
                 </li>
               </ul>
               <button @click="showSpritMonitorModal = true"
-                      class="flex w-full sm:w-auto sm:inline-flex items-center justify-center gap-2 bg-sky-700 hover:bg-sky-600 text-white font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-sm border-2 border-sky-700 shadow-[3px_3px_0_0_#030712] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75">
+                      class="flex w-full sm:w-auto sm:inline-flex items-center justify-center gap-2 bg-sky-700 hover:bg-sky-600 text-white font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-sm border-2 border-sky-700 shadow-[2px_2px_0_0_#030712] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75">
                 <ArrowDownTrayIcon class="h-4 w-4" />
                 {{ t('imports.sprit_btn') }}
               </button>
@@ -481,7 +481,7 @@ const teslaConnectedLabel = ref<string | null>(null)
                 </li>
               </ul>
               <button @click="showTessieModal = true"
-                      class="flex w-full sm:w-auto sm:inline-flex items-center justify-center gap-2 bg-emerald-700 hover:bg-emerald-600 text-white font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-sm border-2 border-emerald-700 shadow-[3px_3px_0_0_#030712] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75">
+                      class="flex w-full sm:w-auto sm:inline-flex items-center justify-center gap-2 bg-emerald-700 hover:bg-emerald-600 text-white font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-sm border-2 border-emerald-700 shadow-[2px_2px_0_0_#030712] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75">
                 <ArrowDownTrayIcon class="h-4 w-4" />
                 {{ t('imports.tessie_btn') }}
               </button>
@@ -540,7 +540,7 @@ const teslaConnectedLabel = ref<string | null>(null)
               <button
                 @click="manualImportCarId = activeCars.length === 1 ? activeCars[0].id : manualImportCarId; showManualImportModal = true"
                 :disabled="activeCars.length === 0 || (activeCars.length > 1 && !manualImportCarId)"
-                class="w-full inline-flex items-center justify-center gap-2 bg-green-700 hover:bg-green-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-sm border-2 border-green-700 disabled:border-gray-300 dark:disabled:border-gray-700 shadow-[3px_3px_0_0_#030712] disabled:shadow-none active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75"
+                class="w-full inline-flex items-center justify-center gap-2 bg-green-700 hover:bg-green-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-sm border-2 border-green-700 disabled:border-gray-300 dark:disabled:border-gray-700 shadow-[2px_2px_0_0_#030712] disabled:shadow-none active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75"
               >
                 <ArrowDownTrayIcon class="h-4 w-4" />
                 {{ t('imports.manuell_btn') }}
@@ -609,7 +609,7 @@ const teslaConnectedLabel = ref<string | null>(null)
                 <p class="text-xs text-gray-700 dark:text-gray-200 font-medium leading-relaxed">{{ t('imports.wallbox_ocpp_goe_hint_pre') }} <button @click="toggle('goe')" class="underline font-bold cursor-pointer">{{ t('imports.wallbox_ocpp_goe_link') }}</button> {{ t('imports.wallbox_ocpp_goe_hint_post') }}</p>
               </div>
               <router-link to="/wallbox"
-                           class="flex w-full sm:w-auto sm:inline-flex items-center justify-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-sm border-2 border-slate-700 shadow-[3px_3px_0_0_#030712] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75">
+                           class="flex w-full sm:w-auto sm:inline-flex items-center justify-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-sm border-2 border-slate-700 shadow-[2px_2px_0_0_#030712] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75">
                 <BoltIcon class="h-4 w-4" />
                 {{ t('imports.wallbox_btn') }}
               </router-link>

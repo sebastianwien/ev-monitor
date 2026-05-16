@@ -80,7 +80,7 @@ onMounted(async () => {
   <div class="max-w-lg mx-auto px-4 py-8 space-y-5">
 
     <!-- Block 1: Community Preview -->
-    <div class="bg-white dark:bg-gray-800 rounded-sm border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
+    <div class="bg-white dark:bg-gray-800 rounded-sm border-2 border-gray-300 dark:border-gray-700 overflow-hidden shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]">
 
       <!-- Loading skeleton -->
       <div v-if="loadingStats" class="p-5 space-y-3 animate-pulse">

@@ -252,7 +252,7 @@ async function runImport() {
     <button
       @click="runImport"
       :disabled="!parsedEntries.length || loading || !effectiveCarId"
-      class="w-full inline-flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-400 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-gray-950 font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-sm border-2 border-orange-500 disabled:border-gray-300 dark:disabled:border-gray-700 shadow-[3px_3px_0_0_#030712] disabled:shadow-none active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75"
+      class="w-full inline-flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-400 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-gray-950 font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-sm border-2 border-orange-500 disabled:border-gray-300 dark:disabled:border-gray-700 shadow-[2px_2px_0_0_#030712] disabled:shadow-none active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75"
     >
       <span v-if="loading" class="w-4 h-4 border-2 border-gray-950/30 border-t-gray-950 rounded-full animate-spin" />
       <ArrowDownTrayIcon v-else class="h-4 w-4" />

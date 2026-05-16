@@ -67,7 +67,7 @@ async function submit() {
 
 <template>
   <section
-    class="rounded-sm border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 md:p-6 shadow-[4px_4px_0_0_#d1d5db] dark:shadow-[4px_4px_0_0_#374151]">
+    class="rounded-sm border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 md:p-6 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]">
     <p class="text-amber-600 dark:text-amber-500 text-[11px] font-bold uppercase tracking-[0.14em] mb-2 flex items-center gap-2">
       <span class="inline-flex w-5 h-5 bg-amber-500 text-gray-950 rounded-sm items-center justify-center text-[11px] font-extrabold">2</span>
       {{ t('xpeng.eyebrow_step2') }}
@@ -99,7 +99,7 @@ async function submit() {
           {{ t('xpeng.file_label') }}
         </label>
         <input type="file" accept=".xlsx" @change="onFileChange"
-               class="block w-full text-sm text-gray-700 dark:text-gray-300 file:mr-3 file:py-2 file:px-4 file:rounded-sm file:border-2 file:border-gray-400 dark:file:border-gray-600 file:bg-transparent file:text-gray-800 dark:file:text-gray-200 file:font-bold file:uppercase file:text-xs file:tracking-wider hover:file:bg-gray-50 dark:hover:file:bg-gray-700/40 file:cursor-pointer file:shadow-[3px_3px_0_0_#9ca3af] dark:file:shadow-[3px_3px_0_0_#4b5563] file:transition-[transform,box-shadow] file:duration-75 active:file:translate-x-[3px] active:file:translate-y-[3px] active:file:shadow-none" />
+               class="block w-full text-sm text-gray-700 dark:text-gray-300 file:mr-3 file:py-2 file:px-4 file:rounded-sm file:border-2 file:border-gray-400 dark:file:border-gray-600 file:bg-transparent file:text-gray-800 dark:file:text-gray-200 file:font-bold file:uppercase file:text-xs file:tracking-wider hover:file:bg-gray-50 dark:hover:file:bg-gray-700/40 file:cursor-pointer file:shadow-[2px_2px_0_0_#9ca3af] dark:file:shadow-[2px_2px_0_0_#4b5563] file:transition-[transform,box-shadow] file:duration-75 active:file:translate-x-[3px] active:file:translate-y-[3px] active:file:shadow-none" />
       </div>
 
       <div>
@@ -119,7 +119,7 @@ async function submit() {
     </div>
 
     <button @click="submit" :disabled="!canSubmit"
-            class="mt-5 w-full inline-flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:text-gray-500 dark:disabled:text-gray-500 disabled:cursor-not-allowed text-gray-950 font-bold uppercase tracking-wider text-xs px-5 py-3.5 rounded-sm border-2 border-amber-500 disabled:border-gray-300 dark:disabled:border-gray-700 shadow-[3px_3px_0_0_#030712] disabled:shadow-none active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow,background-color] duration-75">
+            class="mt-5 w-full inline-flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:text-gray-500 dark:disabled:text-gray-500 disabled:cursor-not-allowed text-gray-950 font-bold uppercase tracking-wider text-xs px-5 py-3.5 rounded-sm border-2 border-amber-500 disabled:border-gray-300 dark:disabled:border-gray-700 shadow-[2px_2px_0_0_#030712] disabled:shadow-none active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow,background-color] duration-75">
       <span v-if="busy" class="w-4 h-4 border-2 border-gray-950/30 border-t-gray-950 rounded-full animate-spin" />
       <ArrowUpTrayIcon v-else class="w-4 h-4" />
       <span>{{ busy ? t('xpeng.uploading') : t('xpeng.btn_upload') }}</span>

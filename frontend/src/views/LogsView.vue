@@ -679,7 +679,7 @@ function toggleAllCharges() {
               <router-link
                 to="/dashboard"
                 :aria-label="t('dashboard.title')"
-                class="flex-shrink-0 self-stretch flex items-center gap-1 px-2 rounded-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-medium hover:border-indigo-300 active:translate-y-0.5 transition">
+                class="flex-shrink-0 self-stretch flex items-center gap-1 px-2 rounded-sm border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-medium shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] hover:border-indigo-300">
                 <ChevronLeftIcon class="w-4 h-4 flex-shrink-0" />
                 <span class="hidden sm:inline">{{ t('dashboard.title') }}</span>
               </router-link>
@@ -694,11 +694,11 @@ function toggleAllCharges() {
                     : 'flex items-center md:items-stretch rounded-sm border-2 text-left transition flex-shrink-0 min-w-[180px] max-w-[240px] lg:flex-shrink lg:min-w-0 lg:max-w-none overflow-hidden',
                   selectedCarId === car.id
                     ? isVehicleCharging(car)
-                      ? 'border-transparent bg-green-50 dark:bg-green-900/20 shadow-[0_4px_0_0_#16a34a] dark:shadow-[0_4px_0_0_#14532d] translate-y-[2px]'
-                      : 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 shadow-[0_4px_0_0_#4338ca] translate-y-[2px]'
+                      ? 'border-2 border-green-500 bg-green-50 dark:bg-green-900/20 shadow-[2px_2px_0_0_#16a34a] dark:shadow-[2px_2px_0_0_#14532d]'
+                      : 'border-2 border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 shadow-[2px_2px_0_0_#4338ca] dark:shadow-[2px_2px_0_0_#312e81]'
                     : isVehicleCharging(car)
-                      ? 'border-transparent bg-white dark:bg-gray-700 shadow-[0_4px_0_0_#16a34a] dark:shadow-[0_4px_0_0_#14532d] active:shadow-none active:translate-y-1'
-                      : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:border-indigo-300 active:shadow-none active:translate-y-1',
+                      ? 'border-2 border-green-300 dark:border-green-700 bg-white dark:bg-gray-700 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]'
+                      : 'border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] hover:border-indigo-300',
                   cars.length > 1 && isVehicleCharging(car) ? 'ring-2 ring-green-400 dark:ring-green-500' : '',
                 ]" style="transition: transform 0.075s ease, box-shadow 0.075s ease;">
                 <div class="flex-shrink-0 h-12 aspect-[4/3] md:w-24 md:h-auto md:aspect-auto md:self-stretch bg-gray-100 dark:bg-gray-600 flex items-center justify-center overflow-hidden compact-shrink-thumb">
@@ -881,7 +881,7 @@ function toggleAllCharges() {
 
               <!-- ===== TRIP GROUP CONTAINER ===== -->
               <template v-if="item.kind === 'tripGroup'">
-                <div class="gridfeed:hidden rounded-sm overflow-hidden border border-gray-300 dark:border-gray-600 border-l-4 border-r-4 border-l-emerald-400 dark:border-l-emerald-500 border-r-emerald-400 dark:border-r-emerald-500">
+                <div class="gridfeed:hidden rounded-sm overflow-hidden border-2 border-emerald-200 dark:border-emerald-800/60 border-l-4 border-r-4 border-l-emerald-400 dark:border-l-emerald-500 border-r-emerald-400 dark:border-r-emerald-500 shadow-[2px_2px_0_0_#a7f3d0] dark:shadow-[2px_2px_0_0_#064e3b]">
 
                   <!-- Group header -->
                   <div @click="toggleTripGroup(item.groupId)"
@@ -1107,7 +1107,7 @@ function toggleAllCharges() {
                 </div><!-- end trip group container (mobile) -->
 
                 <!-- DESKTOP TRIP GROUP -->
-                <div class="hidden gridfeed:block rounded-sm border border-emerald-200 dark:border-emerald-800/50 border-l-4 border-l-emerald-400 dark:border-l-emerald-500">
+                <div class="hidden gridfeed:block rounded-sm border-2 border-emerald-200 dark:border-emerald-800/50 border-l-4 border-l-emerald-400 dark:border-l-emerald-500 shadow-[2px_2px_0_0_#a7f3d0] dark:shadow-[2px_2px_0_0_#064e3b]">
                   <!-- Header as grid row -->
                   <button type="button" @click="toggleTripGroup(item.groupId)"
                     :aria-expanded="!collapsedTripGroups.has(item.groupId)"
@@ -1328,7 +1328,7 @@ function toggleAllCharges() {
 
               <!-- CHARGE ENTRY (DESKTOP GRID, normal logs only) -->
               <div v-if="!item.entry._isLadegruppe"
-                class="hidden gridfeed:block relative bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 shadow-sm rounded-sm">
+                class="hidden gridfeed:block relative bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]">
                 <div class="grid grid-cols-[52px_90px_minmax(110px,1fr)_125px_80px_56px_88px_108px_40px] gap-2.5 items-center px-3 py-2.5">
                   <!-- 1. Type cell: Bolt + AC/DC badge -->
                   <div class="flex items-center gap-1.5">
@@ -1554,7 +1554,7 @@ function toggleAllCharges() {
 
               <!-- CHARGE ENTRY (DESKTOP GRID, Ladegruppe) -->
               <div v-if="item.entry._isLadegruppe"
-                class="hidden gridfeed:block rounded-sm border border-blue-200 dark:border-blue-800/60 border-l-4 border-l-blue-400 dark:border-l-blue-500">
+                class="hidden gridfeed:block rounded-sm border-2 border-blue-200 dark:border-blue-800/60 border-l-4 border-l-blue-400 dark:border-l-blue-500 shadow-[2px_2px_0_0_#bfdbfe] dark:shadow-[2px_2px_0_0_#1e3a8a]">
                 <button type="button" @click="toggleLadegruppe(item.entry.id)"
                   :aria-expanded="expandedGroups.has(item.entry.id)"
                   class="w-full grid grid-cols-[52px_90px_minmax(110px,1fr)_125px_80px_56px_88px_108px_40px] gap-2.5 items-center px-3 py-2 bg-blue-50/40 dark:bg-blue-900/15 hover:bg-blue-50 dark:hover:bg-blue-900/25 transition text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-inset">
@@ -1672,10 +1672,10 @@ function toggleAllCharges() {
               <!-- CHARGE ENTRY -->
               <div>
               <div
-                :class="['relative p-3 border rounded-sm space-y-2 gridfeed:hidden',
+                :class="['relative p-3 border-2 rounded-sm space-y-2 gridfeed:hidden',
                          item.entry._isLadegruppe
-                           ? 'bg-white dark:bg-gray-700 border-blue-200 dark:border-blue-800 cursor-pointer'
-                           : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 shadow-sm']"
+                           ? 'bg-white dark:bg-gray-700 border-blue-200 dark:border-blue-800 cursor-pointer shadow-[2px_2px_0_0_#bfdbfe] dark:shadow-[2px_2px_0_0_#1e3a8a]'
+                           : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]']"
                 v-bind="item.entry._isLadegruppe ? { role: 'button', tabindex: '0', 'aria-expanded': expandedGroups.has(item.entry.id) } : {}"
                 @click="item.entry._isLadegruppe ? toggleLadegruppe(item.entry.id) : null"
                 @keydown.enter.space.prevent="item.entry._isLadegruppe ? toggleLadegruppe(item.entry.id) : null">
