@@ -935,7 +935,7 @@ function toggleAllCharges() {
                       <div v-if="editingTripId !== trip.id && deletingTripId !== trip.id"
                            class="px-3 py-3 bg-white dark:bg-gray-700 border-t border-gray-100 dark:border-gray-600 space-y-2">
                     <!-- Single row: distance, consumption, time, SoC, badges, temp, actions, menu -->
-                    <div class="flex items-center justify-between gap-2">
+                    <div class="flex items-start justify-between gap-2">
                       <div class="flex items-center flex-wrap gap-x-2 gap-y-1 min-w-0">
                         <MapIcon :class="['w-4 h-4 flex-shrink-0',
                           isAdmin && trip.dataSource === 'TESLA_LIVE'    ? 'text-red-500 dark:text-red-400' :
@@ -1112,7 +1112,7 @@ function toggleAllCharges() {
                   <button type="button" @click="toggleTripGroup(item.groupId)"
                     :aria-expanded="!collapsedTripGroups.has(item.groupId)"
                     :aria-label="t('dashboard.trip_group_count', { count: item.groupSize }, item.groupSize)"
-                    class="w-full grid grid-cols-[52px_90px_minmax(110px,1fr)_125px_80px_56px_88px_108px_40px] gap-2.5 items-center px-3 py-2 bg-emerald-50/60 dark:bg-emerald-900/15 hover:bg-emerald-50 dark:hover:bg-emerald-900/25 transition text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-inset">
+                    class="w-full grid grid-cols-[52px_90px_minmax(110px,1fr)_125px_80px_140px_88px_108px_40px] gap-2.5 items-center px-3 py-2 bg-emerald-50/60 dark:bg-emerald-900/15 hover:bg-emerald-50 dark:hover:bg-emerald-900/25 transition text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-inset">
                     <div class="flex items-center gap-1.5">
                       <MapIcon class="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
                       <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 font-medium">{{ item.groupSize }}×</span>
@@ -1179,7 +1179,7 @@ function toggleAllCharges() {
                       </Transition>
                       <!-- Display row -->
                       <div v-if="editingTripId !== trip.id && deletingTripId !== trip.id"
-                        class="grid grid-cols-[52px_90px_minmax(110px,1fr)_125px_80px_56px_88px_108px_40px] gap-2.5 items-center px-3 py-1.5 border-t border-emerald-200/40 dark:border-emerald-800/30 hover:bg-emerald-50/60 dark:hover:bg-emerald-900/20 transition">
+                        class="grid grid-cols-[52px_90px_minmax(110px,1fr)_125px_80px_140px_88px_108px_40px] gap-2.5 items-center px-3 py-1.5 border-t border-emerald-200/40 dark:border-emerald-800/30 hover:bg-emerald-50/60 dark:hover:bg-emerald-900/20 transition">
                         <div class="flex items-center gap-1.5 pl-4 text-gray-500 text-xs">└</div>
                         <div class="text-sm font-medium text-rose-500 dark:text-rose-300 whitespace-nowrap">
                           <template v-if="tripConsumption(trip) && trip.distanceKm">−{{ (tripConsumption(trip)!.kwhPer100km * trip.distanceKm / 100).toFixed(2) }} kWh</template>
@@ -1198,7 +1198,12 @@ function toggleAllCharges() {
                           <template v-if="trip.socStart != null && trip.socEnd != null">{{ trip.socStart }}→{{ trip.socEnd }}%</template>
                           <span v-else class="text-gray-400 dark:text-gray-600">-</span>
                         </div>
-                        <div class="text-gray-400 dark:text-gray-600 text-xs">-</div>
+                        <div class="text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap text-center">
+                          <template v-if="trip.maxSpeedKmh != null">
+                            {{ t('dashboard.trip_speed_summary', { avg: Math.round(Number(trip.avgSpeedKmh)), max: Math.round(Number(trip.maxSpeedKmh)) }) }}
+                          </template>
+                          <span v-else class="text-gray-400 dark:text-gray-600">-</span>
+                        </div>
                         <div>
                           <span v-if="trip.distanceKm != null" class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-full text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">
                             +{{ formatDistance(trip.distanceKm, { round: false }) }}
@@ -1329,7 +1334,7 @@ function toggleAllCharges() {
               <!-- CHARGE ENTRY (DESKTOP GRID, normal logs only) -->
               <div v-if="!item.entry._isLadegruppe"
                 class="hidden gridfeed:block relative bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]">
-                <div class="grid grid-cols-[52px_90px_minmax(110px,1fr)_125px_80px_56px_88px_108px_40px] gap-2.5 items-center px-3 py-2.5">
+                <div class="grid grid-cols-[52px_90px_minmax(110px,1fr)_125px_80px_140px_88px_108px_40px] gap-2.5 items-center px-3 py-2.5">
                   <!-- 1. Type cell: Bolt + AC/DC badge -->
                   <div class="flex items-center gap-1.5">
                     <BoltIcon class="w-4 h-4 text-green-500 dark:text-green-400 flex-shrink-0" />
@@ -1557,7 +1562,7 @@ function toggleAllCharges() {
                 class="hidden gridfeed:block rounded-sm border-2 border-blue-200 dark:border-blue-800/60 border-l-4 border-l-blue-400 dark:border-l-blue-500 shadow-[2px_2px_0_0_#bfdbfe] dark:shadow-[2px_2px_0_0_#1e3a8a]">
                 <button type="button" @click="toggleLadegruppe(item.entry.id)"
                   :aria-expanded="expandedGroups.has(item.entry.id)"
-                  class="w-full grid grid-cols-[52px_90px_minmax(110px,1fr)_125px_80px_56px_88px_108px_40px] gap-2.5 items-center px-3 py-2 bg-blue-50/40 dark:bg-blue-900/15 hover:bg-blue-50 dark:hover:bg-blue-900/25 transition text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-inset">
+                  class="w-full grid grid-cols-[52px_90px_minmax(110px,1fr)_125px_80px_140px_88px_108px_40px] gap-2.5 items-center px-3 py-2 bg-blue-50/40 dark:bg-blue-900/15 hover:bg-blue-50 dark:hover:bg-blue-900/25 transition text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-inset">
                   <div class="flex items-center gap-1.5">
                     <BoltIcon class="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
                     <span class="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-medium">{{ item.entry._topUps?.length ?? 0 }}×</span>
@@ -1619,7 +1624,7 @@ function toggleAllCharges() {
                 <Transition name="slide-down">
                   <div v-if="expandedGroups.has(item.entry.id)" class="bg-blue-50/30 dark:bg-blue-950/20">
                     <div v-for="topUp in item.entry._topUps" :key="topUp.id + '__d'"
-                      class="grid grid-cols-[52px_90px_minmax(110px,1fr)_125px_80px_56px_88px_108px_40px] gap-2.5 items-center px-3 py-1.5 border-t border-blue-200/40 dark:border-blue-800/30 hover:bg-blue-50/60 dark:hover:bg-blue-900/20 transition">
+                      class="grid grid-cols-[52px_90px_minmax(110px,1fr)_125px_80px_140px_88px_108px_40px] gap-2.5 items-center px-3 py-1.5 border-t border-blue-200/40 dark:border-blue-800/30 hover:bg-blue-50/60 dark:hover:bg-blue-900/20 transition">
                       <div class="flex items-center gap-1.5 pl-4 text-gray-500 text-xs">└</div>
                       <div class="text-sm font-medium text-blue-700 dark:text-blue-300 whitespace-nowrap">+{{ topUp.kwhAtVehicle ?? topUp.kwhCharged ?? '-' }} kWh</div>
                       <div class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap truncate">
