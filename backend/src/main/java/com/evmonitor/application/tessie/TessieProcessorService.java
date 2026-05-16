@@ -3,6 +3,7 @@ package com.evmonitor.application.tessie;
 import ch.hsr.geohash.GeoHash;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarRepository;
+import com.evmonitor.domain.EvTrip;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
@@ -39,11 +40,6 @@ public class TessieProcessorService {
 
     /** AC charging strictly above this kW level is treated as public charging. */
     static final BigDecimal AC_PUBLIC_THRESHOLD_KW = new BigDecimal("11.0");
-
-    /** Plausibility cap fuer aggregierte Trip-Geschwindigkeiten (km/h). Werte ausserhalb
-     *  werden auf null gesetzt - der DB-CHECK in V118 wuerde den Insert sonst killen. */
-    static final BigDecimal SPEED_MIN_KMH = BigDecimal.ZERO;
-    static final BigDecimal SPEED_MAX_KMH = new BigDecimal("300");
 
     private final NamedParameterJdbcTemplate jdbc;
     private final CarRepository carRepository;
@@ -272,15 +268,17 @@ public class TessieProcessorService {
     }
 
     /**
-     * Cappt aggregierte Trip-Geschwindigkeiten auf den DB-Range [0, 300] km/h und stellt
-     * die avg <= max Invariante des DB-CHECK aus V118 sicher. Verletzungen werden defensiv
-     * mit null beantwortet - lieber kein Wert als ein Insert-Fail.
+     * Cappt aggregierte Trip-Geschwindigkeiten via {@link EvTrip#clampSpeedKmh} und
+     * stellt zusaetzlich die avg <= max Invariante des V118-DB-CHECK sicher.
+     * Verletzungen werden defensiv mit null beantwortet - lieber kein Wert als ein
+     * Insert-Fail. Pair-Invariante lebt hier (Trip-Aggregat-Concern), das einzelne
+     * Range-Clamp in der Domain.
      *
      * @return zweistelliges Array [avgKmh, maxKmh], jeweils ggf. null
      */
     static BigDecimal[] sanitizeSpeedPair(BigDecimal avgKmh, BigDecimal maxKmh) {
-        BigDecimal avg = capRange(avgKmh);
-        BigDecimal max = capRange(maxKmh);
+        BigDecimal avg = EvTrip.clampSpeedKmh(avgKmh);
+        BigDecimal max = EvTrip.clampSpeedKmh(maxKmh);
         if (avg != null && max != null && avg.compareTo(max) > 0) {
             // Inkonsistente Quelldaten - kein Insert mit kaputter Invariante.
             return new BigDecimal[]{null, null};
@@ -289,13 +287,6 @@ public class TessieProcessorService {
                 avg != null ? avg.setScale(2, RoundingMode.HALF_UP) : null,
                 max != null ? max.setScale(2, RoundingMode.HALF_UP) : null
         };
-    }
-
-    private static BigDecimal capRange(BigDecimal v) {
-        if (v == null) return null;
-        if (v.compareTo(SPEED_MIN_KMH) < 0) return null;
-        if (v.compareTo(SPEED_MAX_KMH) > 0) return null;
-        return v;
     }
 
     static String classifyRouteType(BigDecimal weightedAvgSpeedKmh) {

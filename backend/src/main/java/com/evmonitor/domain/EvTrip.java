@@ -34,6 +34,28 @@ public class EvTrip {
         return dataSource != null && LIVE_TRIP_SOURCES.contains(dataSource);
     }
 
+    /**
+     * Obergrenze fuer aggregierte und pro-Sample Trip-Geschwindigkeiten. Muss
+     * mit dem V118 DB-CHECK (avg_speed_kmh/max_speed_kmh BETWEEN 0 AND 300)
+     * uebereinstimmen - die DB ist die Wahrheit, hier nur der spiegelnde Wert
+     * fuer Write-Time-Validation.
+     */
+    public static final BigDecimal SPEED_KMH_MAX = new BigDecimal("300");
+
+    /**
+     * Kappt einen Geschwindigkeitswert auf den V118-Range [0, 300] km/h. Werte
+     * ausserhalb (Sensor-Sentinels, negative Glitches) werden zu null - lieber
+     * kein Wert als verseuchte Aggregation oder Insert-Fail. Zentrale Stelle
+     * fuer Speed-Quality-Checks, von Tessie (Trip-Aggregat) und XPeng
+     * (per-row Sample) gleichermassen genutzt.
+     */
+    public static BigDecimal clampSpeedKmh(BigDecimal v) {
+        if (v == null) return null;
+        if (v.signum() < 0) return null;
+        if (v.compareTo(SPEED_KMH_MAX) > 0) return null;
+        return v;
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;

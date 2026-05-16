@@ -1,5 +1,7 @@
 package com.evmonitor.domain.xpeng;
 
+import com.evmonitor.domain.EvTrip;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -33,19 +35,12 @@ public record XpengTelematicsRow(
     // entschaerft, damit Detectoren es als "kein Ladevorgang" behandeln.
     private static final BigDecimal MAX_PLAUSIBLE_CHARGE_POWER_KW = new BigDecimal("400");
 
-    // Selber Glitch-Mechanismus auch fuer esp_vehspd. 300 km/h deckt jedes
-    // strassentaugliche EV ab; alles darueber ist Sensor-Quatsch und wuerde
-    // sonst den Max-Speed verseuchen.
-    private static final BigDecimal MAX_PLAUSIBLE_SPEED_KMH = new BigDecimal("300");
-
     public XpengTelematicsRow {
         if (chargePowerKw != null && chargePowerKw.compareTo(MAX_PLAUSIBLE_CHARGE_POWER_KW) > 0) {
             chargePowerKw = null;
         }
-        if (vehSpeedKmh != null
-                && (vehSpeedKmh.signum() < 0 || vehSpeedKmh.compareTo(MAX_PLAUSIBLE_SPEED_KMH) > 0)) {
-            vehSpeedKmh = null;
-        }
+        // Speed-Glitches (Sensor-Sentinels) zentral in EvTrip.clampSpeedKmh.
+        vehSpeedKmh = EvTrip.clampSpeedKmh(vehSpeedKmh);
         if (extras == null) extras = Map.of();
     }
 
