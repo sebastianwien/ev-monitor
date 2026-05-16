@@ -280,23 +280,19 @@ async function retryConnect() {
          the OAuth-flavoured info-box, and the Kaffee-Disclaimer with one cohesive intro. -->
     <div v-if="props.embedded && !status.connected"
          class="border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-sm shadow-[4px_4px_0_0_#d1d5db] dark:shadow-[4px_4px_0_0_#374151] p-4 md:p-5">
-      <p class="text-red-600 dark:text-red-500 text-[11px] font-bold uppercase tracking-[0.14em] mb-2 flex items-center gap-2">
-        <span class="inline-flex w-5 h-5 bg-red-600 text-white rounded-sm items-center justify-center text-[11px] font-extrabold">T</span>
-        Tesla Fleet Telemetry
-      </p>
       <h3 class="text-lg md:text-xl font-bold text-gray-900 dark:text-white tracking-tight mb-1">{{ t('imports.autosync_tesla_section_title') }}</h3>
       <p class="text-sm text-gray-600 dark:text-gray-300 font-medium mb-4">{{ t('imports.autosync_tesla_section_desc') }}</p>
       <ul class="space-y-2">
         <li class="flex items-start gap-2.5 text-sm text-gray-700 dark:text-gray-300">
-          <span class="shrink-0 w-5 h-5 bg-emerald-500 text-white rounded-sm flex items-center justify-center text-[10px] font-extrabold mt-0.5">✓</span>
+          <span class="shrink-0 w-5 h-5 bg-green-600 text-white rounded-sm flex items-center justify-center text-[10px] font-extrabold mt-0.5">✓</span>
           <span class="font-medium">{{ t('imports.autosync_tesla_feat1') }}</span>
         </li>
         <li class="flex items-start gap-2.5 text-sm text-gray-700 dark:text-gray-300">
-          <span class="shrink-0 w-5 h-5 bg-emerald-500 text-white rounded-sm flex items-center justify-center text-[10px] font-extrabold mt-0.5">✓</span>
+          <span class="shrink-0 w-5 h-5 bg-green-600 text-white rounded-sm flex items-center justify-center text-[10px] font-extrabold mt-0.5">✓</span>
           <span class="font-medium">{{ t('imports.autosync_tesla_feat2') }}</span>
         </li>
         <li class="flex items-start gap-2.5 text-sm text-gray-700 dark:text-gray-300">
-          <span class="shrink-0 w-5 h-5 bg-emerald-500 text-white rounded-sm flex items-center justify-center text-[10px] font-extrabold mt-0.5">✓</span>
+          <span class="shrink-0 w-5 h-5 bg-green-600 text-white rounded-sm flex items-center justify-center text-[10px] font-extrabold mt-0.5">✓</span>
           <span class="font-medium">{{ t('imports.autosync_tesla_feat3') }}</span>
         </li>
       </ul>
@@ -313,10 +309,6 @@ async function retryConnect() {
       <!-- Standalone-Tab info-box. Hidden in embedded mode (the AutoSync hero already
            explains what the user gets - this OAuth/polling-flavoured list would conflict). -->
       <div v-if="!props.embedded" class="border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-sm shadow-[4px_4px_0_0_#d1d5db] dark:shadow-[4px_4px_0_0_#374151] p-4 md:p-5">
-        <p class="text-red-600 dark:text-red-500 text-[11px] font-bold uppercase tracking-[0.14em] mb-2 flex items-center gap-2">
-          <span class="inline-flex w-5 h-5 bg-red-600 text-white rounded-sm items-center justify-center text-[11px] font-extrabold">T</span>
-          Tesla Fleet Telemetry
-        </p>
         <h3 class="text-base md:text-lg font-bold text-gray-900 dark:text-white tracking-tight mb-3">{{ t('tesla.sync_info_title') }}</h3>
         <ul class="space-y-2 mb-3">
           <li v-for="i in 5" :key="i" class="flex items-start gap-2.5 text-sm text-gray-700 dark:text-gray-300">
@@ -337,7 +329,7 @@ async function retryConnect() {
       <button
         @click="handleConnect"
         :disabled="isLoading || !fleetApiConfigured || cars.length === 0"
-        class="w-full inline-flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-gray-950 font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-sm border-2 border-amber-500 disabled:border-gray-300 dark:disabled:border-gray-700 shadow-[3px_3px_0_0_#030712] disabled:shadow-none active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75"
+        class="w-full inline-flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-sm border-2 border-green-600 disabled:border-gray-300 dark:disabled:border-gray-700 shadow-[3px_3px_0_0_rgba(0,0,0,0.3)] disabled:shadow-none active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75"
       >
         <ArrowTopRightOnSquareIcon class="h-4 w-4" />
         {{ isLoading ? t('tesla.connect_btn_loading') : t('tesla.connect_btn') }}

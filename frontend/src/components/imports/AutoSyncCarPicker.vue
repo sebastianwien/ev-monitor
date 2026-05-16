@@ -143,7 +143,7 @@ function brandTagClasses(car: Car): string {
     if (state === 'active') return 'bg-gray-950 dark:bg-white text-white dark:text-gray-950'
     if (state === 'unavailable') return 'bg-yellow-400 text-gray-950'
     if (state === 'locked') return 'bg-gray-300 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-    return 'bg-blue-700 text-white'
+    return 'bg-indigo-600 text-white'
 }
 
 watch(activeCar, (car) => {
@@ -226,7 +226,7 @@ function toggleExpand(carId: string) {
                             <!-- State badge -->
                             <span
                                 v-if="tileStateFor(car) === 'active'"
-                                class="shrink-0 text-[10px] font-bold uppercase tracking-wider bg-emerald-500 text-white px-2 py-1 rounded-sm whitespace-nowrap"
+                                class="shrink-0 text-[10px] font-bold uppercase tracking-wider bg-green-600 text-white px-2 py-1 rounded-sm whitespace-nowrap"
                             >● {{ t('imports.autosync_state_active') }}</span>
                             <span
                                 v-else-if="tileStateFor(car) === 'locked'"

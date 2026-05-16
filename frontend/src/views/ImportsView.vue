@@ -233,14 +233,14 @@ const teslaConnectedLabel = ref<string | null>(null)
             @click="toggle('smartcar'); analytics.trackImportTabClicked('smartcar')"
             class="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
           >
-            <div class="shrink-0 rounded-sm border-2 border-gray-900 dark:border-white p-2 w-10 h-10 flex items-center justify-center bg-amber-500">
-              <ArrowPathIcon class="h-5 w-5 text-gray-950" />
+            <div class="shrink-0 rounded-sm border-2 border-gray-900 dark:border-white p-2 w-10 h-10 flex items-center justify-center bg-gradient-to-b from-yellow-200 via-amber-400 to-amber-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]">
+              <ArrowPathIcon class="h-5 w-5 text-white" />
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 flex-wrap">
                 <span class="font-medium text-gray-900 dark:text-gray-100 text-sm">{{ t('imports.tab_smartcar') }}</span>
               </div>
-              <p v-if="autoSyncActiveCarLabel" class="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">
+              <p v-if="autoSyncActiveCarLabel" class="text-xs text-green-600 dark:text-green-400 mt-0.5">
                 {{ t('imports.autosync_header_active', { car: autoSyncActiveCarLabel }) }}
               </p>
             </div>
@@ -250,40 +250,33 @@ const teslaConnectedLabel = ref<string | null>(null)
             <div v-if="activeTab === 'smartcar'" class="px-1 py-3 md:p-6 space-y-3">
               <!-- Live-Promo: AutoSync subscriber with at least one Tesla in garage.
                    Neo-Brutalist Style passend zum Rest des AutoSync-Tabs. -->
-              <div v-if="showLivePromo" class="mx-3 border-2 border-indigo-600 dark:border-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 rounded-sm shadow-[4px_4px_0_0_#4f46e5] p-4">
-                <div class="flex items-start justify-between gap-3 mb-3">
-                  <div class="min-w-0">
-                    <p class="text-indigo-700 dark:text-indigo-400 text-[11px] font-bold uppercase tracking-[0.14em] mb-1 flex items-center gap-2">
-                      <span class="inline-flex w-5 h-5 bg-indigo-600 text-white rounded-sm items-center justify-center text-[11px] font-extrabold">+</span>
-                      AutoSync Live
-                    </p>
-                    <h3 class="text-base md:text-lg font-bold text-gray-900 dark:text-white tracking-tight">{{ t('imports.live_promo_title') }}</h3>
+              <div v-if="showLivePromo" class="border-2 border-indigo-600 dark:border-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 rounded-sm shadow-[4px_4px_0_0_#4f46e5] overflow-hidden">
+                <div class="h-1 bg-gradient-to-r from-indigo-400 via-indigo-600 to-indigo-400"></div>
+                <div class="px-3 py-2.5 flex items-center gap-3 flex-wrap sm:flex-nowrap">
+                  <div class="flex items-center gap-2 shrink-0">
+                    <span class="inline-flex w-5 h-5 bg-indigo-600 text-white rounded-sm items-center justify-center text-[11px] font-extrabold shrink-0">+</span>
+                    <p class="text-indigo-700 dark:text-indigo-400 text-xs font-bold uppercase tracking-[0.14em]">AutoSync Live</p>
                   </div>
-                </div>
-
-                <ul class="space-y-1.5 mb-3">
-                  <li class="flex items-start gap-2 text-xs md:text-sm text-gray-700 dark:text-gray-200">
-                    <span class="text-indigo-700 dark:text-indigo-400 font-extrabold mt-0.5">→</span>
-                    <span class="font-medium" v-html="t('imports.live_promo_feature_trip')"></span>
-                  </li>
-                  <li class="flex items-start gap-2 text-xs md:text-sm text-gray-700 dark:text-gray-200">
-                    <span class="text-indigo-700 dark:text-indigo-400 font-extrabold mt-0.5">→</span>
-                    <span class="font-medium" v-html="t('imports.live_promo_feature_drain')"></span>
-                  </li>
-                </ul>
-
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <p class="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 text-center sm:text-left order-2 sm:order-1">{{ t('imports.live_promo_proration_hint') }}</p>
+                  <div class="flex items-center gap-3 flex-wrap flex-1 min-w-0">
+                    <span class="flex items-center gap-1 text-xs text-gray-700 dark:text-gray-300">
+                      <span class="text-indigo-600 dark:text-indigo-400 font-bold">→</span>
+                      <span class="font-medium" v-html="t('imports.live_promo_feature_trip')"></span>
+                    </span>
+                    <span class="flex items-center gap-1 text-xs text-gray-700 dark:text-gray-300">
+                      <span class="text-indigo-600 dark:text-indigo-400 font-bold">→</span>
+                      <span class="font-medium" v-html="t('imports.live_promo_feature_drain')"></span>
+                    </span>
+                  </div>
                   <button
                     @click="handleLiveUpgrade"
                     :disabled="liveUpgradeLoading"
-                    class="w-full sm:w-auto inline-flex items-center justify-center bg-amber-500 hover:bg-amber-400 text-gray-950 font-bold uppercase tracking-wider text-[11px] px-4 py-2.5 rounded-sm border-2 border-amber-500 shadow-[3px_3px_0_0_#030712] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75 disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap order-1 sm:order-2"
+                    class="shrink-0 inline-flex items-center justify-center bg-green-600 hover:bg-green-700 text-white font-bold uppercase tracking-wider text-[11px] px-3 py-1.5 rounded-sm border-2 border-green-600 shadow-[3px_3px_0_0_rgba(0,0,0,0.3)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75 disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
                   >
                     <span v-if="liveUpgradeLoading">…</span>
                     <span v-else>{{ t('imports.live_promo_cta') }}</span>
                   </button>
                 </div>
-                <p v-if="liveUpgradeError" class="text-xs text-amber-700 dark:text-amber-400 text-center mt-2 font-medium">{{ liveUpgradeError }}</p>
+                <p v-if="liveUpgradeError" class="text-xs text-red-600 dark:text-red-400 px-3 pb-2 font-medium">{{ liveUpgradeError }}</p>
               </div>
 
               <!-- Tile-based picker per car. Tesla cars route to Tesla Fleet
