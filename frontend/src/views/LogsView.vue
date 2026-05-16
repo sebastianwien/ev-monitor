@@ -951,6 +951,9 @@ function toggleAllCharges() {
                         <span v-if="trip.socStart != null && trip.socEnd != null" class="inline-flex items-center gap-1 whitespace-nowrap text-[13px] text-gray-500 dark:text-gray-400">
                           <Battery0Icon class="w-3 h-3" />{{ trip.socStart }}% → {{ trip.socEnd }}%
                         </span>
+                        <span v-if="trip.maxSpeedKmh != null" class="inline-flex items-center whitespace-nowrap text-[13px] text-gray-500 dark:text-gray-400">
+                          {{ t('dashboard.trip_speed_summary', { avg: Math.round(Number(trip.avgSpeedKmh)), max: Math.round(Number(trip.maxSpeedKmh)) }) }}
+                        </span>
                         <span v-if="trip.routeType"
                           class="inline-flex items-center px-2 py-0.5 bg-gray-50 dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded-full text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
                           {{ t('dashboard.trip_route_' + trip.routeType.toLowerCase()) }}

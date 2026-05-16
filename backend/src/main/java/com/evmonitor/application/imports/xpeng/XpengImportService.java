@@ -335,6 +335,8 @@ public class XpengImportService {
                 .odometerEndKm(t.odometerEndKm())
                 .distanceKm(t.distanceKm())
                 .estimatedConsumedKwh(t.consumedKwh())
+                .avgSpeedKmh(t.avgSpeedKmh())
+                .maxSpeedKmh(t.maxSpeedKmh())
                 .status("COMPLETED")
                 .telemetryExtras(serializeExtras(t.telemetryExtras()))
                 // XPeng Phase 1: no GPS, no outside temp, no energy-remaining snapshots

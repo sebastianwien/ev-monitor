@@ -61,6 +61,8 @@ public class TripService {
                 .energyRemainingStartKwh(req.energyRemainingStartKwh())
                 .energyRemainingEndKwh(req.energyRemainingEndKwh())
                 .estimatedConsumedKwh(req.estimatedConsumedKwh())
+                .avgSpeedKmh(req.avgSpeedKmh())
+                .maxSpeedKmh(req.maxSpeedKmh())
                 .status(req.status() != null ? req.status() : "COMPLETED")
                 .rawPayload(req.rawPayload())
                 .telemetryExtras(req.telemetryExtras())

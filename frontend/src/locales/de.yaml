@@ -683,6 +683,7 @@ dashboard:
   trip_route_highway: "Autobahn"
   trip_route_combined: "Gemischt"
   trip_manual: "manuell"
+  trip_speed_summary: "Ø {avg} · max {max} km/h"
   trip_err_times_required: "Start- und Endzeit sind Pflichtfelder"
   trip_err_end_before_start: "Endzeit muss nach der Startzeit liegen"
   trip_merge_button: "Mit vorheriger Fahrt zusammenführen"

@@ -683,6 +683,7 @@ dashboard:
   trip_route_highway: "Highway"
   trip_route_combined: "Mixed"
   trip_manual: "manual"
+  trip_speed_summary: "avg {avg} · max {max} km/h"
   trip_err_times_required: "Start and end time are required"
   trip_err_end_before_start: "End time must be after start time"
   trip_merge_button: "Merge with previous trip"

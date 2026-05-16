@@ -25,6 +25,8 @@ public record InternalTripRequest(
         BigDecimal energyRemainingStartKwh,
         BigDecimal energyRemainingEndKwh,
         BigDecimal estimatedConsumedKwh,
+        BigDecimal avgSpeedKmh,
+        BigDecimal maxSpeedKmh,
         String status,
         String rawPayload,
         String telemetryExtras

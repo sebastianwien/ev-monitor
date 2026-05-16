@@ -86,6 +86,12 @@ public class EvTrip {
     @Column(name = "estimated_consumed_kwh", precision = 6, scale = 2)
     private BigDecimal estimatedConsumedKwh;
 
+    @Column(name = "avg_speed_kmh", precision = 5, scale = 2)
+    private BigDecimal avgSpeedKmh;
+
+    @Column(name = "max_speed_kmh", precision = 5, scale = 2)
+    private BigDecimal maxSpeedKmh;
+
     @Column(name = "status", nullable = false, length = 20)
     private String status;
 

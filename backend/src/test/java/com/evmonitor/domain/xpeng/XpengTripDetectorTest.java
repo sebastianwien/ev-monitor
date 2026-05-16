@@ -42,6 +42,35 @@ class XpengTripDetectorTest {
                 "odometer-derived distance");
         assertEquals(0, new BigDecimal("80").compareTo(trip.socStart()));
         assertEquals(0, new BigDecimal("78").compareTo(trip.socEnd()));
+        // Speed aggregation over the three driving samples 50/60/40 (parked row excluded)
+        assertEquals(0, new BigDecimal("50.00").compareTo(trip.avgSpeedKmh()));
+        assertEquals(0, new BigDecimal("60").compareTo(trip.maxSpeedKmh()));
+    }
+
+    @Test
+    void emitsNullSpeedWhenNoSamplesAvailable() {
+        // Trip with valid odometer-distance but vehSpeedKmh always null - parser
+        // could not resolve esp_vehspd column. Expected: null, not 0, so the boundary
+        // doesn't confuse "no data" with "stood still".
+        XpengTripDetector detector = new XpengTripDetector();
+        List<XpengTelematicsRow> rows = sequence(
+                parked(0, 0, "100.0", "80"),
+                drivingNoSpeed(5, "100.5", "80"),
+                drivingNoSpeed(10, "101.0", "79"),
+                parked(15, 0, "101.5", "79"));
+        List<DetectedTrip> trips = detect(detector, rows);
+        assertEquals(1, trips.size());
+        DetectedTrip trip = trips.get(0);
+        assertNull(trip.avgSpeedKmh());
+        assertNull(trip.maxSpeedKmh());
+    }
+
+    private XpengTelematicsRow drivingNoSpeed(int sec, String odo, String soc) {
+        return new XpengTelematicsRow(
+                T0.plusSeconds(sec),
+                null, 1,
+                new BigDecimal(odo), new BigDecimal(soc),
+                null, null, null, null, null, java.util.Map.of());
     }
 
     @Test

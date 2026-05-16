@@ -154,9 +154,13 @@ public class XpengTripDetector {
             return null;
         }
 
+        // Speed: null (statt 0) wenn der Parser esp_vehspd nicht aufloesen konnte -
+        // sonst wuerden wir "kein Datum" mit "Auto stand still" verwechseln.
         BigDecimal avgSpeed = speedSamples > 0
                 ? speedSum.divide(BigDecimal.valueOf(speedSamples), 2, RoundingMode.HALF_UP)
-                : BigDecimal.ZERO;
+                : null;
+        BigDecimal emittedMaxSpeed = speedSamples > 0 ? maxSpeed : null;
+
         // Discharge is conventionally positive current; positive battery current = drain.
         // We treat the absolute accumulated discharge as consumed energy.
         BigDecimal consumedKwh = energyAccumWh.abs()
@@ -168,7 +172,7 @@ public class XpengTripDetector {
                 odometerStart, endOdo, distance,
                 socStart, endSoc,
                 consumedKwh.signum() == 0 ? null : consumedKwh,
-                avgSpeed, maxSpeed,
+                avgSpeed, emittedMaxSpeed,
                 extras);
         resetState();
         return trip;

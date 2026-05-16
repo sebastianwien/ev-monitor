@@ -677,6 +677,7 @@ dashboard:
   trip_route_highway: Motorväg
   trip_route_combined: Blandat
   trip_manual: manuell
+  trip_speed_summary: "snitt {avg} · max {max} km/h"
   trip_err_times_required: "Start- och sluttid är obligatoriska"
   trip_err_end_before_start: "Sluttid måste vara efter starttid"
   trip_merge_button: "Slå ihop med föregående resa"
