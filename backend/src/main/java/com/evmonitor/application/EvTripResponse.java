@@ -1,11 +1,13 @@
 package com.evmonitor.application;
 
 import com.evmonitor.domain.EvTrip;
+import lombok.Builder;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
+@Builder
 public record EvTripResponse(
         UUID id,
         String type,
@@ -29,27 +31,27 @@ public record EvTripResponse(
         String feedback
 ) {
     public static EvTripResponse fromDomain(EvTrip trip) {
-        return new EvTripResponse(
-                trip.getId(),
-                "TRIP",
-                trip.getCarId(),
-                trip.getTripStartedAt(),
-                trip.getTripEndedAt(),
-                trip.getDistanceKm(),
-                trip.getOdometerStartKm(),
-                trip.getOdometerEndKm(),
-                trip.getSocStart(),
-                trip.getSocEnd(),
-                trip.getEnergyRemainingStartKwh(),
-                trip.getEnergyRemainingEndKwh(),
-                trip.getOutsideTempCelsius(),
-                trip.getEstimatedConsumedKwh(),
-                trip.getAvgSpeedKmh(),
-                trip.getMaxSpeedKmh(),
-                trip.getRouteType(),
-                trip.getStatus(),
-                trip.getDataSource(),
-                trip.getFeedback()
-        );
+        return EvTripResponse.builder()
+                .id(trip.getId())
+                .type("TRIP")
+                .carId(trip.getCarId())
+                .tripStartedAt(trip.getTripStartedAt())
+                .tripEndedAt(trip.getTripEndedAt())
+                .distanceKm(trip.getDistanceKm())
+                .odometerStartKm(trip.getOdometerStartKm())
+                .odometerEndKm(trip.getOdometerEndKm())
+                .socStart(trip.getSocStart())
+                .socEnd(trip.getSocEnd())
+                .energyRemainingStartKwh(trip.getEnergyRemainingStartKwh())
+                .energyRemainingEndKwh(trip.getEnergyRemainingEndKwh())
+                .outsideTempCelsius(trip.getOutsideTempCelsius())
+                .estimatedConsumedKwh(trip.getEstimatedConsumedKwh())
+                .avgSpeedKmh(trip.getAvgSpeedKmh())
+                .maxSpeedKmh(trip.getMaxSpeedKmh())
+                .routeType(trip.getRouteType())
+                .status(trip.getStatus())
+                .dataSource(trip.getDataSource())
+                .feedback(trip.getFeedback())
+                .build();
     }
 }

@@ -1134,7 +1134,7 @@ function toggleAllCharges() {
                       <template v-if="tripGroupSocBoundaries(item)">{{ tripGroupSocBoundaries(item)!.start }}→{{ tripGroupSocBoundaries(item)!.end }}%</template>
                       <span v-else class="text-gray-400 dark:text-gray-600">-</span>
                     </div>
-                    <div class="text-gray-400 dark:text-gray-600 text-sm">-</div>
+                    <div class="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500 text-center">{{ t('dashboard.trip_speed_header') }}</div>
                     <div>
                       <span v-if="item.totalKm" class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-full text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">
                         +{{ formatDistance(item.totalKm) }}
