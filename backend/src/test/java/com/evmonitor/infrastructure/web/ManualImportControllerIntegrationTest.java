@@ -328,6 +328,132 @@ class ManualImportControllerIntegrationTest extends AbstractIntegrationTest {
         assertNull(log.getRawImportData());
     }
 
+    // ── kwh_at_vehicle (netto, Vehicle-Side) ──────────────────────────────────
+
+    @Test
+    void csvImport_kwhAtVehicleColumn_persistedBoth() {
+        String csv = """
+                date,kwh,kwh_at_vehicle
+                2025-08-20T10:00:00,10.0,9.5
+                """;
+
+        ResponseEntity<ImportApiResult> response = post(csv, "csv");
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(1, response.getBody().imported());
+
+        EvLog log = evLogRepository.findAllByCarId(car.getId()).getFirst();
+        assertEquals(0, new java.math.BigDecimal("10.00").compareTo(log.getKwhCharged()));
+        assertEquals(0, new java.math.BigDecimal("9.50").compareTo(log.getKwhAtVehicle()));
+    }
+
+    @Test
+    void csvImport_onlyKwhAtVehicleColumn_imported() {
+        String csv = """
+                date,kwh_at_vehicle
+                2025-08-20T10:00:00,9.5
+                """;
+
+        ResponseEntity<ImportApiResult> response = post(csv, "csv");
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(1, response.getBody().imported());
+
+        EvLog log = evLogRepository.findAllByCarId(car.getId()).getFirst();
+        assertNull(log.getKwhCharged());
+        assertEquals(0, new java.math.BigDecimal("9.50").compareTo(log.getKwhAtVehicle()));
+        assertEquals(EnergyMeasurementType.AT_VEHICLE, log.getMeasurementType());
+    }
+
+    @Test
+    void csvImport_onlyKwh_kwhAtVehicleIsNull() {
+        String csv = """
+                date,kwh,kwh_at_vehicle
+                2025-08-20T10:00:00,10.0,
+                """;
+
+        ResponseEntity<ImportApiResult> response = post(csv, "csv");
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(1, response.getBody().imported());
+
+        EvLog log = evLogRepository.findAllByCarId(car.getId()).getFirst();
+        assertEquals(0, new java.math.BigDecimal("10.00").compareTo(log.getKwhCharged()));
+        assertNull(log.getKwhAtVehicle());
+        assertEquals(EnergyMeasurementType.AT_CHARGER, log.getMeasurementType());
+    }
+
+    @Test
+    void jsonImport_onlyKwh_kwhAtVehicleIsNull() {
+        String json = """
+                [
+                  {"date":"2025-08-20T10:00:00","kwh":10.0}
+                ]
+                """;
+
+        ResponseEntity<ImportApiResult> response = post(json, "json");
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(1, response.getBody().imported());
+
+        EvLog log = evLogRepository.findAllByCarId(car.getId()).getFirst();
+        assertEquals(0, new java.math.BigDecimal("10.00").compareTo(log.getKwhCharged()));
+        assertNull(log.getKwhAtVehicle());
+        assertEquals(EnergyMeasurementType.AT_CHARGER, log.getMeasurementType());
+    }
+
+    @Test
+    void jsonImport_kwhAtVehicleField_persistedBoth() {
+        String json = """
+                [
+                  {"date":"2025-08-20T10:00:00","kwh":10.0,"kwh_at_vehicle":9.5}
+                ]
+                """;
+
+        ResponseEntity<ImportApiResult> response = post(json, "json");
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(1, response.getBody().imported());
+
+        EvLog log = evLogRepository.findAllByCarId(car.getId()).getFirst();
+        assertEquals(0, new java.math.BigDecimal("10.00").compareTo(log.getKwhCharged()));
+        assertEquals(0, new java.math.BigDecimal("9.50").compareTo(log.getKwhAtVehicle()));
+    }
+
+    @Test
+    void jsonImport_onlyKwhAtVehicleField_imported() {
+        String json = """
+                [
+                  {"date":"2025-08-20T10:00:00","kwh_at_vehicle":9.5}
+                ]
+                """;
+
+        ResponseEntity<ImportApiResult> response = post(json, "json");
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(1, response.getBody().imported());
+
+        EvLog log = evLogRepository.findAllByCarId(car.getId()).getFirst();
+        assertNull(log.getKwhCharged());
+        assertEquals(0, new java.math.BigDecimal("9.50").compareTo(log.getKwhAtVehicle()));
+        assertEquals(EnergyMeasurementType.AT_VEHICLE, log.getMeasurementType());
+    }
+
+    @Test
+    void csvImport_neitherKwhNorKwhAtVehicle_countedAsError() {
+        String csv = """
+                date,kwh,kwh_at_vehicle
+                2025-08-20T10:00:00,,
+                2025-09-01T10:00:00,18.2,
+                """;
+
+        ResponseEntity<ImportApiResult> response = post(csv, "csv");
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(1, response.getBody().imported());
+        assertEquals(1, response.getBody().errors());
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private ResponseEntity<ImportApiResult> post(String data, String format) {

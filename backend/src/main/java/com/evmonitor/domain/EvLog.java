@@ -221,7 +221,7 @@ public class EvLog {
                 .build();
     }
 
-    public static EvLog createFromPublicApi(UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
+    public static EvLog createFromPublicApi(UUID carId, BigDecimal kwhCharged, BigDecimal kwhAtVehicle, BigDecimal costEur,
             Integer chargeDurationMinutes, String geohash, Integer odometerKm,
             BigDecimal maxChargingPowerKw, BigDecimal socAfterChargePercent, BigDecimal socBeforeChargePercent,
             LocalDateTime loggedAt, ChargingType chargingType, RouteType routeType, TireType tireType,
@@ -232,6 +232,7 @@ public class EvLog {
                 .id(UUID.randomUUID())
                 .carId(carId)
                 .kwhCharged(kwhCharged)
+                .kwhAtVehicle(kwhAtVehicle)
                 .costEur(costEur)
                 .chargeDurationMinutes(chargeDurationMinutes)
                 .geohash(geohash)

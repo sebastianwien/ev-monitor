@@ -79,14 +79,13 @@ public class ManualImportService {
         String date = get(row, "date");
         if (date == null) return null;
 
-        String kwhRaw = get(row, "kwh");
-        if (kwhRaw == null) return null;
-        Double kwh;
-        try {
-            kwh = Double.parseDouble(kwhRaw.replace(",", "."));
-        } catch (NumberFormatException e) {
-            return null;
-        }
+        Double kwh = parseDouble(get(row, "kwh"));
+        Double kwhAtVehicle = parseDouble(get(row, "kwh_at_vehicle"));
+        // At least one of the two energy fields must be present and > 0 - otherwise
+        // the row is rejected as an error (same rule as @AssertTrue on SessionEntry).
+        boolean hasKwh = kwh != null && kwh > 0;
+        boolean hasKwhAtVehicle = kwhAtVehicle != null && kwhAtVehicle > 0;
+        if (!hasKwh && !hasKwhAtVehicle) return null;
 
         Integer odometerKm = parseInteger(get(row, "odometer_km"));
         BigDecimal socBefore = parseBigDecimal(get(row, "soc_before"));
@@ -104,7 +103,7 @@ public class ManualImportService {
         String measurementType = get(row, "measurement_type");
 
         return new PublicApiSessionRequest.SessionEntry(
-                date, kwh, odometerKm, socBefore, socAfter,
+                date, kwh, kwhAtVehicle, odometerKm, socBefore, socAfter,
                 costEur, durationMin, location, chargingType,
                 maxChargingPowerKw, routeType, tireType, rawImportData,
                 isPublicCharging, cpoName, measurementType

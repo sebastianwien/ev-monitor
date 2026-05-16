@@ -356,6 +356,97 @@ class PublicApiImportIntegrationTest extends AbstractIntegrationTest {
         assertEquals("My Local Charger", log.getCpoName());
     }
 
+    // ── kwh_at_vehicle (netto, Vehicle-Side) ──────────────────────────────────
+
+    @Test
+    void onlyKwh_kwhAtVehicleIsNull_measurementTypeAtCharger() {
+        String body = """
+                {
+                  "car_id": "%s",
+                  "sessions": [
+                    { "date": "2024-11-15T14:30:00", "kwh": 10.0 }
+                  ]
+                }
+                """.formatted(car.getId());
+
+        ResponseEntity<Map> response = post(body, plaintextKey);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(1, response.getBody().get("imported"));
+
+        EvLog log = evLogRepository.findAllByCarId(car.getId()).getFirst();
+        assertEquals(0, new java.math.BigDecimal("10.00").compareTo(log.getKwhCharged()));
+        assertNull(log.getKwhAtVehicle());
+        assertEquals(EnergyMeasurementType.AT_CHARGER, log.getMeasurementType());
+    }
+
+    @Test
+    void kwhAtVehicle_alongsideKwh_persistsBothFields() {
+        String body = """
+                {
+                  "car_id": "%s",
+                  "sessions": [
+                    {
+                      "date": "2024-11-15T14:30:00",
+                      "kwh": 10.0,
+                      "kwh_at_vehicle": 9.5
+                    }
+                  ]
+                }
+                """.formatted(car.getId());
+
+        ResponseEntity<Map> response = post(body, plaintextKey);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(1, response.getBody().get("imported"));
+
+        EvLog log = evLogRepository.findAllByCarId(car.getId()).getFirst();
+        assertEquals(0, new java.math.BigDecimal("10.00").compareTo(log.getKwhCharged()));
+        assertEquals(0, new java.math.BigDecimal("9.50").compareTo(log.getKwhAtVehicle()));
+        assertEquals(EnergyMeasurementType.AT_CHARGER, log.getMeasurementType());
+    }
+
+    @Test
+    void onlyKwhAtVehicle_withoutKwh_isAcceptedAndMarkedAtVehicle() {
+        String body = """
+                {
+                  "car_id": "%s",
+                  "sessions": [
+                    {
+                      "date": "2024-11-15T14:30:00",
+                      "kwh_at_vehicle": 9.5
+                    }
+                  ]
+                }
+                """.formatted(car.getId());
+
+        ResponseEntity<Map> response = post(body, plaintextKey);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(1, response.getBody().get("imported"));
+
+        EvLog log = evLogRepository.findAllByCarId(car.getId()).getFirst();
+        assertNull(log.getKwhCharged());
+        assertEquals(0, new java.math.BigDecimal("9.50").compareTo(log.getKwhAtVehicle()));
+        assertEquals(EnergyMeasurementType.AT_VEHICLE, log.getMeasurementType());
+    }
+
+    @Test
+    void neitherKwhNorKwhAtVehicle_returns400() {
+        String body = """
+                {
+                  "car_id": "%s",
+                  "sessions": [
+                    { "date": "2024-11-15T14:30:00" }
+                  ]
+                }
+                """.formatted(car.getId());
+
+        ResponseEntity<Map> response = post(body, plaintextKey);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+    }
+
     // ── Error handling ────────────────────────────────────────────────────────
 
     @Test

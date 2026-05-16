@@ -1501,7 +1501,8 @@ manual_import:
   template_label: Mal (påkrevd format)
   copy_btn: Kopier
   copied: Kopiert!
-  required_fields: <strong>Obligatoriske felt:</strong> dato, kWh
+  required_fields: "<strong>Obligatoriske felt:</strong> <code>date</code> pluss minst én av <code>kwh</code> eller <code>kwh_at_vehicle</code>"
+  kwh_hint: "<strong>kwh:</strong> Brutto-kWh ved ladeboksen/laderen (strømregningen). <strong>kwh_at_vehicle:</strong> Netto-kWh ifølge kjøretøyets display. Begge sammen gir oss ladeeffektiviteten."
   date_formats: <strong>dato:</strong> ISO 8601, DD.MM.ÅÅÅÅ, MM/DD/ÅÅÅÅ eller Unix-tidsstempel
   location_hint: <strong>sted:</strong> Breddegrad/Lengdegrad (f.eks. <code>48.2082,16.3738</code>) – stedsnavnet lagres uten kartmarkør
   cpo_hint: "<strong>cpo_name:</strong> Ladenettverk (f.eks. IONITY, EnBW, Tesla Supercharger) – valgfritt, brukes sammen med <code>is_public_charging: true</code>"
@@ -1512,7 +1513,7 @@ manual_import:
   result_errors: "{errors}-feil"
   result_warnings: ", {warnings} rader med færre kolonner enn overskriften"
   hint_column_mismatch: Noen rader har færre verdier enn overskriftskolonnene. Dette kan føre til at feltene tilordnes feil – for eksempel kan «is_public_charging» havne i feil kolonne. Sørg for at hver rad har like mange kommaer som overskriftsraden.
-  hint_all_errors: Kontroller at datoformatet er riktig (f.eks. 2025-08-31 eller 01.11.2023) og at alle rader inneholder en gyldig kWh-verdi.
+  hint_all_errors: "Kontroller at datoformatet er riktig (f.eks. 2025-08-31 eller 01.11.2023) og at alle rader inneholder et gyldig tall i <code>kwh</code> eller <code>kwh_at_vehicle</code>."
   err_import: Importen mislyktes
   close_btn: Lukk
   import_btn: Importer

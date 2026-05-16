@@ -47,6 +47,7 @@
 
           <p class="text-xs text-gray-500 dark:text-gray-400">
             <span v-html="t('manual_import.required_fields')" /><br>
+            <span v-html="t('manual_import.kwh_hint')" /><br>
             <span v-html="t('manual_import.date_formats')" /><br>
             <span v-html="t('manual_import.location_hint')" /><br>
             <span v-html="t('manual_import.cpo_hint')" />
@@ -148,13 +149,14 @@ const errorMsg = ref('')
 const fileInput = ref<HTMLInputElement>()
 const copied = ref(false)
 
-const csvTemplate = `date,kwh,odometer_km,soc_before,soc_after,cost_eur,duration_min,location,charging_type,max_charging_power_kw,route_type,tire_type,is_public_charging,cpo_name
-2025-08-31T15:07:14+02:00,32.09,7893,42,80,0,26,48.2082 16.3738,DC,150.0,,,true,IONITY`
+const csvTemplate = `date,kwh,kwh_at_vehicle,odometer_km,soc_before,soc_after,cost_eur,duration_min,location,charging_type,max_charging_power_kw,route_type,tire_type,is_public_charging,cpo_name
+2025-08-31T15:07:14+02:00,32.09,30.10,7893,42,80,0,26,48.2082 16.3738,DC,150.0,,,true,IONITY`
 
 const jsonTemplate = `[
   {
     "date": "2025-08-31T15:07:14+02:00",
     "kwh": 32.09,
+    "kwh_at_vehicle": 30.10,
     "odometer_km": 7893,
     "soc_before": 42,
     "soc_after": 80,

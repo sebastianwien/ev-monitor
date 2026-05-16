@@ -344,7 +344,8 @@ public class XpengImportService {
     private PublicApiSessionRequest.SessionEntry toSessionEntry(DetectedChargingSession s) {
         return new PublicApiSessionRequest.SessionEntry(
                 s.startedAt().atOffset(ZoneOffset.UTC).toString(),
-                s.kwhCharged().doubleValue(),
+                null,                              // kwh (grid-side) unknown - XPeng EU-Data-Act delivers vehicle-side
+                s.kwhCharged().doubleValue(),      // kwhAtVehicle: matched net energy from DC session sheet
                 s.odometerKm() == null ? null : s.odometerKm().intValue(),
                 s.socStart(), s.socEnd(),
                 null,                              // costEur unknown

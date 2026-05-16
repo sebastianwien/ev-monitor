@@ -196,7 +196,7 @@ class PublicApiPatchIntegrationTest extends AbstractIntegrationTest {
     private EvLog createApiUploadLog(UUID carId) {
         EvLog log = EvLog.createFromPublicApi(
                 carId,
-                BigDecimal.valueOf(30.0), BigDecimal.valueOf(8.50),
+                BigDecimal.valueOf(30.0), null, BigDecimal.valueOf(8.50),
                 40, null, 50000,
                 BigDecimal.valueOf(11.0), new BigDecimal("85"), new BigDecimal("20"),
                 LocalDateTime.now().minusHours(1),

@@ -119,10 +119,16 @@ public class PublicApiImportService {
                 RouteType routeType = parseEnum(RouteType.class, entry.routeType(), null);
                 TireType tireType = parseEnum(TireType.class, entry.tireType(), null);
                 EnergyMeasurementType measurementType = parseEnum(EnergyMeasurementType.class, entry.measurementType(), null);
+                // If only kwh_at_vehicle is provided, infer AT_VEHICLE so the EvLog
+                // constructor doesn't fall back to the data-source default (AT_CHARGER for API_UPLOAD).
+                if (measurementType == null && entry.kwhAtVehicle() != null && entry.kwh() == null) {
+                    measurementType = EnergyMeasurementType.AT_VEHICLE;
+                }
 
                 EvLog evLog = EvLog.createFromPublicApi(
                         request.carId(),
                         entry.kwh() != null ? BigDecimal.valueOf(entry.kwh()) : null,
+                        entry.kwhAtVehicle() != null ? BigDecimal.valueOf(entry.kwhAtVehicle()) : null,
                         entry.costEur() != null ? BigDecimal.valueOf(entry.costEur()) : null,
                         entry.durationMin(),
                         geohash,

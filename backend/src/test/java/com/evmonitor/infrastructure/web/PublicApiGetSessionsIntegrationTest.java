@@ -97,7 +97,7 @@ class PublicApiGetSessionsIntegrationTest extends AbstractIntegrationTest {
     private EvLog apiUploadLog(UUID carId) {
         return EvLog.createFromPublicApi(
                 carId,
-                BigDecimal.valueOf(25.0), BigDecimal.valueOf(7.50),
+                BigDecimal.valueOf(25.0), null, BigDecimal.valueOf(7.50),
                 35, null, 45000,
                 BigDecimal.valueOf(11.0), new java.math.BigDecimal("80"), new java.math.BigDecimal("15"),
                 LocalDateTime.now().minusHours(1),
