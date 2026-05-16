@@ -43,19 +43,28 @@ public class TripTemperatureBackfillJob {
                 continue;
             }
             try {
-                WGS84Point center = GeoHash.fromGeohashString(trip.getLocationStartGeohash()).getBoundingBoxCenter();
                 LocalDateTime startedAt = trip.getTripStartedAt().toLocalDateTime();
-                Optional<Double> temp = temperatureService.getTemperature(
-                        center.getLatitude(), center.getLongitude(), startedAt);
+                LocalDateTime endedAt = trip.getTripEndedAt() != null ? trip.getTripEndedAt().toLocalDateTime() : null;
 
-                temp.ifPresentOrElse(
-                        t -> {
-                            BigDecimal tempBd = BigDecimal.valueOf(t).setScale(1, RoundingMode.HALF_UP);
-                            evTripRepository.updateTemperature(trip.getId(), tempBd);
-                            enriched.incrementAndGet();
-                        },
-                        failed::incrementAndGet
-                );
+                Optional<Double> startTemp = lookup(trip.getLocationStartGeohash(), startedAt);
+                Optional<Double> endTemp = lookup(trip.getLocationEndGeohash(), endedAt);
+
+                Double mean;
+                if (startTemp.isPresent() && endTemp.isPresent()) {
+                    mean = (startTemp.get() + endTemp.get()) / 2.0;
+                } else if (startTemp.isPresent()) {
+                    mean = startTemp.get();
+                } else if (endTemp.isPresent()) {
+                    mean = endTemp.get();
+                } else {
+                    failed.incrementAndGet();
+                    Thread.sleep(SLEEP_MS_BETWEEN_REQUESTS);
+                    continue;
+                }
+
+                BigDecimal tempBd = BigDecimal.valueOf(mean).setScale(1, RoundingMode.HALF_UP);
+                evTripRepository.updateTemperature(trip.getId(), tempBd);
+                enriched.incrementAndGet();
 
                 Thread.sleep(SLEEP_MS_BETWEEN_REQUESTS);
             } catch (InterruptedException e) {
@@ -72,5 +81,13 @@ public class TripTemperatureBackfillJob {
                 enriched.get(), failed.get(), candidates.size());
         log.info(summary);
         return summary;
+    }
+
+    private Optional<Double> lookup(String geohash, LocalDateTime at) {
+        if (geohash == null || geohash.isBlank() || at == null) {
+            return Optional.empty();
+        }
+        WGS84Point center = GeoHash.fromGeohashString(geohash).getBoundingBoxCenter();
+        return temperatureService.getTemperature(center.getLatitude(), center.getLongitude(), at);
     }
 }

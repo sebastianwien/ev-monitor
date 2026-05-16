@@ -25,7 +25,11 @@ public interface TemperatureEnricher {
 
     /**
      * Reichert den angegebenen Trip asynchron mit Temperaturdaten an.
-     * Wird aufgerufen wenn der Trip ohne Temperatur gespeichert wurde (z.B. SmartCar-Trips).
+     * Persistiert den Mittelwert aus Start- und End-Temperatur, sofern beide Standorte/Zeiten
+     * verfügbar sind. Fehlt einer der beiden Punkte (oder liefert die Wetter-API kein Ergebnis),
+     * wird die jeweils andere Temperatur verwendet. Liefern beide nichts, bleibt der Trip leer.
      */
-    default void enrichTrip(UUID tripId, String geohash, LocalDateTime startedAt) {}
+    default void enrichTrip(UUID tripId,
+                            String startGeohash, String endGeohash,
+                            LocalDateTime startedAt, LocalDateTime endedAt) {}
 }

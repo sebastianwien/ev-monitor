@@ -57,23 +57,45 @@ public class TemperatureEnrichmentService implements TemperatureEnricher {
 
     @Async
     @Override
-    public void enrichTrip(UUID tripId, String geohash, LocalDateTime startedAt) {
-        if (geohash == null || geohash.isBlank()) {
+    public void enrichTrip(UUID tripId,
+                           String startGeohash, String endGeohash,
+                           LocalDateTime startedAt, LocalDateTime endedAt) {
+        boolean hasStart = isUsable(startGeohash) && startedAt != null;
+        boolean hasEnd = isUsable(endGeohash) && endedAt != null;
+        if (!hasStart && !hasEnd) {
             return;
         }
         try {
-            WGS84Point center = GeoHash.fromGeohashString(geohash).getBoundingBoxCenter();
-            Optional<Double> temp = temperatureService.getTemperature(center.getLatitude(), center.getLongitude(), startedAt);
-            temp.ifPresentOrElse(
-                    t -> {
-                        BigDecimal tempBd = BigDecimal.valueOf(t).setScale(1, RoundingMode.HALF_UP);
-                        evTripRepository.updateTemperature(tripId, tempBd);
-                        log.debug("Temperature enriched for trip {}: {}°C", tripId, tempBd);
-                    },
-                    () -> log.debug("No temperature available for trip {} (geohash={})", tripId, geohash)
-            );
+            Optional<Double> startTemp = hasStart ? lookup(startGeohash, startedAt) : Optional.empty();
+            Optional<Double> endTemp = hasEnd ? lookup(endGeohash, endedAt) : Optional.empty();
+
+            Double mean;
+            if (startTemp.isPresent() && endTemp.isPresent()) {
+                mean = (startTemp.get() + endTemp.get()) / 2.0;
+            } else if (startTemp.isPresent()) {
+                mean = startTemp.get();
+            } else if (endTemp.isPresent()) {
+                mean = endTemp.get();
+            } else {
+                log.debug("No temperature available for trip {} (startGeohash={}, endGeohash={})",
+                        tripId, startGeohash, endGeohash);
+                return;
+            }
+
+            BigDecimal tempBd = BigDecimal.valueOf(mean).setScale(1, RoundingMode.HALF_UP);
+            evTripRepository.updateTemperature(tripId, tempBd);
+            log.debug("Temperature enriched for trip {}: {}°C", tripId, tempBd);
         } catch (Exception e) {
             log.warn("Temperature enrichment failed for trip {}: {}", tripId, e.getMessage());
         }
+    }
+
+    private Optional<Double> lookup(String geohash, LocalDateTime at) {
+        WGS84Point center = GeoHash.fromGeohashString(geohash).getBoundingBoxCenter();
+        return temperatureService.getTemperature(center.getLatitude(), center.getLongitude(), at);
+    }
+
+    private static boolean isUsable(String geohash) {
+        return geohash != null && !geohash.isBlank();
     }
 }

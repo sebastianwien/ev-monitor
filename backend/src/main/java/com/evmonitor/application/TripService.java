@@ -78,14 +78,18 @@ public class TripService {
         log.info("Trip saved: id={} externalId={} car={} distance={} km",
                 saved.getId(), req.externalId(), req.carId(), req.distanceKm());
 
-        if (req.outsideTempCelsius() == null && req.locationStartGeohash() != null && req.tripStartedAt() != null) {
+        if (req.outsideTempCelsius() == null
+                && req.tripStartedAt() != null
+                && (req.locationStartGeohash() != null || req.locationEndGeohash() != null)) {
             final UUID tripId = saved.getId();
-            final String geohash = req.locationStartGeohash();
+            final String startGeohash = req.locationStartGeohash();
+            final String endGeohash = req.locationEndGeohash();
             final LocalDateTime startedAt = req.tripStartedAt().toLocalDateTime();
+            final LocalDateTime endedAt = req.tripEndedAt() != null ? req.tripEndedAt().toLocalDateTime() : null;
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
-                    temperatureEnricher.enrichTrip(tripId, geohash, startedAt);
+                    temperatureEnricher.enrichTrip(tripId, startGeohash, endGeohash, startedAt, endedAt);
                 }
             });
         }

@@ -15,6 +15,15 @@ import java.util.Optional;
 /**
  * Fetches ambient temperature from Open-Meteo (https://open-meteo.com).
  * Free, no API key, GDPR-compliant (only anonymous coordinates sent).
+ *
+ * <p>Strategie:
+ * <ul>
+ *   <li>Trips älter als 5 Tage: Archive-Endpoint (ERA5-Reanalyse, akkurat)</li>
+ *   <li>Trips jünger als 5 Tage: Forecast-Endpoint mit hourly + start_date/end_date
+ *       (Modell-Output, deckt past_days + Zukunft ab)</li>
+ * </ul>
+ * Beide Endpoints liefern dasselbe JSON-Format ({@code hourly.temperature_2m[]}),
+ * so dass die Auswertung gemeinsam erfolgt.
  */
 @Service
 @RequiredArgsConstructor
@@ -31,18 +40,14 @@ public class TemperatureService {
 
     /**
      * Returns temperature in °C at the given coordinates and datetime.
-     * Uses forecast API for recent/current times, archive API for historical data.
      */
     public Optional<Double> getTemperature(double latitude, double longitude, LocalDateTime at) {
         LocalDate date = at.toLocalDate();
         LocalDate cutoff = LocalDate.now().minusDays(ARCHIVE_THRESHOLD_DAYS);
+        String baseUrl = date.isBefore(cutoff) ? ARCHIVE_URL : FORECAST_URL;
 
         try {
-            if (date.isBefore(cutoff)) {
-                return fetchHistorical(latitude, longitude, date, at.getHour());
-            } else {
-                return fetchCurrent(latitude, longitude);
-            }
+            return fetchHourly(baseUrl, latitude, longitude, date, at.getHour());
         } catch (Exception e) {
             log.warn("Failed to fetch temperature for ({}, {}) at {}: {}", latitude, longitude, at, e.getMessage());
             return Optional.empty();
@@ -50,27 +55,9 @@ public class TemperatureService {
     }
 
     @SuppressWarnings("unchecked")
-    private Optional<Double> fetchCurrent(double latitude, double longitude) {
-        String url = UriComponentsBuilder.fromHttpUrl(FORECAST_URL)
-                .queryParam("latitude", latitude)
-                .queryParam("longitude", longitude)
-                .queryParam("current", "temperature_2m")
-                .toUriString();
-
-        Map<String, Object> response = restTemplate.getForObject(url, Map.class);
-        if (response == null) return Optional.empty();
-
-        Map<String, Object> current = (Map<String, Object>) response.get("current");
-        if (current == null) return Optional.empty();
-
-        Object temp = current.get("temperature_2m");
-        return temp != null ? Optional.of(((Number) temp).doubleValue()) : Optional.empty();
-    }
-
-    @SuppressWarnings("unchecked")
-    private Optional<Double> fetchHistorical(double latitude, double longitude, LocalDate date, int hour) {
+    private Optional<Double> fetchHourly(String baseUrl, double latitude, double longitude, LocalDate date, int hour) {
         String dateStr = date.toString(); // yyyy-MM-dd
-        String url = UriComponentsBuilder.fromHttpUrl(ARCHIVE_URL)
+        String url = UriComponentsBuilder.fromHttpUrl(baseUrl)
                 .queryParam("latitude", latitude)
                 .queryParam("longitude", longitude)
                 .queryParam("start_date", dateStr)
