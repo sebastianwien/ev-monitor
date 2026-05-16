@@ -195,7 +195,7 @@ class TessieProcessorServiceIT {
                  "starting_odometer":40000,"ending_odometer":40031,"odometer_distance":31.069,
                  "starting_latitude":52.50,"starting_longitude":13.40,
                  "ending_latitude":52.85,"ending_longitude":13.95,
-                 "average_outside_temperature":15.5,"average_speed":100}
+                 "average_outside_temperature":15.5,"average_speed":100,"max_speed":135}
                 """.formatted(t1, t1 + 1800));
 
         insertDrive(21L, """
@@ -225,12 +225,27 @@ class TessieProcessorServiceIT {
         assertEquals(List.of("HIGHWAY", "CITY"), routeTypes);
 
         Map<String, Object> firstTrip = jdbc.queryForMap(
-                "SELECT location_start_geohash, location_end_geohash, data_source, status FROM ev_trip WHERE car_id = ? ORDER BY trip_started_at LIMIT 1",
+                "SELECT location_start_geohash, location_end_geohash, data_source, status, " +
+                        "avg_speed_kmh, max_speed_kmh FROM ev_trip WHERE car_id = ? " +
+                        "ORDER BY trip_started_at LIMIT 1",
                 carId);
         assertEquals(6, ((String) firstTrip.get("location_start_geohash")).length());
         assertEquals(6, ((String) firstTrip.get("location_end_geohash")).length());
         assertEquals("TESSIE", firstTrip.get("data_source"));
         assertEquals("COMPLETED", firstTrip.get("status"));
+        // Drive 20 lieferte average_speed=100 und max_speed=135 - beides muss persistiert sein.
+        assertEquals(0, ((BigDecimal) firstTrip.get("avg_speed_kmh"))
+                .compareTo(new BigDecimal("100.00")));
+        assertEquals(0, ((BigDecimal) firstTrip.get("max_speed_kmh"))
+                .compareTo(new BigDecimal("135.00")));
+
+        // Drive 21 hat kein max_speed-Feld - bleibt null, avg_speed_kmh wird gesetzt.
+        Map<String, Object> secondTrip = jdbc.queryForMap(
+                "SELECT avg_speed_kmh, max_speed_kmh FROM ev_trip WHERE car_id = ? " +
+                        "ORDER BY trip_started_at OFFSET 1 LIMIT 1",
+                carId);
+        assertNotNull(secondTrip.get("avg_speed_kmh"));
+        assertNull(secondTrip.get("max_speed_kmh"));
     }
 
     @Test

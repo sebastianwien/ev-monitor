@@ -20,7 +20,8 @@ WITH raw AS (
     (t.raw->>'ending_latitude')::numeric              AS lat_end,
     (t.raw->>'ending_longitude')::numeric             AS lon_end,
     (t.raw->>'average_outside_temperature')::numeric  AS temp_celsius,
-    (t.raw->>'average_speed')::numeric                AS average_speed
+    (t.raw->>'average_speed')::numeric                AS average_speed,
+    (t.raw->>'max_speed')::numeric                    AS max_speed
   FROM tessie_raw_imports t
   WHERE t.user_id = :userId
     AND t.vin = :vin
@@ -54,7 +55,8 @@ SELECT
   AVG(temp_celsius)                                              AS temp_celsius,
   CASE WHEN SUM(distance_km) > 0
        THEN SUM(average_speed * distance_km) / SUM(distance_km)
-  END                                                            AS weighted_avg_speed
+  END                                                            AS weighted_avg_speed,
+  MAX(max_speed)                                                 AS max_speed
 FROM chained
 GROUP BY chain_id
 HAVING SUM(distance_km) >= 0.5

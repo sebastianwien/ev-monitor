@@ -77,4 +77,74 @@ class TessieProcessorServiceLogicTest {
         // backend classification must stay in sync at 11 kW.
         assertEquals(0, TessieProcessorService.AC_PUBLIC_THRESHOLD_KW.compareTo(new BigDecimal("11.0")));
     }
+
+    // ---- sanitizeSpeedPair --------------------------------------------------
+
+    @Test
+    void sanitizeSpeedPair_passesPlausibleValues() {
+        BigDecimal[] out = TessieProcessorService.sanitizeSpeedPair(
+                new BigDecimal("72"), new BigDecimal("120"));
+        assertEquals(0, out[0].compareTo(new BigDecimal("72.00")));
+        assertEquals(0, out[1].compareTo(new BigDecimal("120.00")));
+    }
+
+    @Test
+    void sanitizeSpeedPair_returnsNullsForNullInputs() {
+        BigDecimal[] out = TessieProcessorService.sanitizeSpeedPair(null, null);
+        assertNull(out[0]);
+        assertNull(out[1]);
+    }
+
+    @Test
+    void sanitizeSpeedPair_nullsOutOfRangeValues() {
+        // > 300 km/h -> implausibel, null statt Insert-Fail durch DB-CHECK
+        BigDecimal[] out = TessieProcessorService.sanitizeSpeedPair(
+                new BigDecimal("400"), new BigDecimal("500"));
+        assertNull(out[0]);
+        assertNull(out[1]);
+    }
+
+    @Test
+    void sanitizeSpeedPair_nullsNegativeValues() {
+        BigDecimal[] out = TessieProcessorService.sanitizeSpeedPair(
+                new BigDecimal("-5"), new BigDecimal("80"));
+        assertNull(out[0]);
+        assertEquals(0, out[1].compareTo(new BigDecimal("80.00")));
+    }
+
+    @Test
+    void sanitizeSpeedPair_nullsBothWhenAvgExceedsMax() {
+        // Inkonsistente Quelldaten - DB-CHECK avg<=max wuerde Insert killen.
+        BigDecimal[] out = TessieProcessorService.sanitizeSpeedPair(
+                new BigDecimal("150"), new BigDecimal("100"));
+        assertNull(out[0]);
+        assertNull(out[1]);
+    }
+
+    @Test
+    void sanitizeSpeedPair_allowsAvgEqualsMax() {
+        // Sehr kurzer Trip oder Konstantfahrt - avg == max ist legal.
+        BigDecimal[] out = TessieProcessorService.sanitizeSpeedPair(
+                new BigDecimal("80"), new BigDecimal("80"));
+        assertEquals(0, out[0].compareTo(new BigDecimal("80.00")));
+        assertEquals(0, out[1].compareTo(new BigDecimal("80.00")));
+    }
+
+    @Test
+    void sanitizeSpeedPair_independentNullsAreFine() {
+        // Nur avg vorhanden (alte Drives ohne max_speed-Feld)
+        BigDecimal[] out = TessieProcessorService.sanitizeSpeedPair(
+                new BigDecimal("60"), null);
+        assertEquals(0, out[0].compareTo(new BigDecimal("60.00")));
+        assertNull(out[1]);
+    }
+
+    @Test
+    void sanitizeSpeedPair_acceptsBoundary300() {
+        // 300 km/h ist die Obergrenze laut V118-CHECK - exklusiv -gt 300, also inklusiv 300.
+        BigDecimal[] out = TessieProcessorService.sanitizeSpeedPair(
+                new BigDecimal("300"), new BigDecimal("300"));
+        assertEquals(0, out[0].compareTo(new BigDecimal("300.00")));
+        assertEquals(0, out[1].compareTo(new BigDecimal("300.00")));
+    }
 }

@@ -40,6 +40,11 @@ public class TessieProcessorService {
     /** AC charging strictly above this kW level is treated as public charging. */
     static final BigDecimal AC_PUBLIC_THRESHOLD_KW = new BigDecimal("11.0");
 
+    /** Plausibility cap fuer aggregierte Trip-Geschwindigkeiten (km/h). Werte ausserhalb
+     *  werden auf null gesetzt - der DB-CHECK in V118 wuerde den Insert sonst killen. */
+    static final BigDecimal SPEED_MIN_KMH = BigDecimal.ZERO;
+    static final BigDecimal SPEED_MAX_KMH = new BigDecimal("300");
+
     private final NamedParameterJdbcTemplate jdbc;
     private final CarRepository carRepository;
     private final String chargesMergeSql;
@@ -177,7 +182,8 @@ public class TessieProcessorService {
                 rs.getBigDecimal("lat_end"),
                 rs.getBigDecimal("lon_end"),
                 rs.getBigDecimal("temp_celsius"),
-                rs.getBigDecimal("weighted_avg_speed")
+                rs.getBigDecimal("weighted_avg_speed"),
+                rs.getBigDecimal("max_speed")
         ));
 
         if (merged.isEmpty()) return 0;
@@ -191,6 +197,7 @@ public class TessieProcessorService {
                     estimated_consumed_kwh,
                     location_start_geohash, location_end_geohash,
                     outside_temp_celsius, route_type,
+                    avg_speed_kmh, max_speed_kmh,
                     status, created_at, user_created
                 ) VALUES (
                     ?::uuid, ?::uuid, ?::uuid, 'TESSIE',
@@ -198,6 +205,7 @@ public class TessieProcessorService {
                     ?, ?,
                     ?, ?, ?,
                     ?,
+                    ?, ?,
                     ?, ?,
                     ?, ?,
                     'COMPLETED', NOW(), false
@@ -209,6 +217,7 @@ public class TessieProcessorService {
             String startGeohash = geohash(d.latStart(), d.lonStart(), 6);
             String endGeohash = geohash(d.latEnd(), d.lonEnd(), 6);
             String routeType = classifyRouteType(d.weightedAvgSpeed());
+            BigDecimal[] speeds = sanitizeSpeedPair(d.weightedAvgSpeed(), d.maxSpeed());
 
             batch.add(new Object[]{
                     UUID.randomUUID().toString(),
@@ -225,7 +234,9 @@ public class TessieProcessorService {
                     startGeohash,
                     endGeohash,
                     scale1(d.tempCelsius()),
-                    routeType
+                    routeType,
+                    speeds[0],
+                    speeds[1]
             });
         }
 
@@ -258,6 +269,33 @@ public class TessieProcessorService {
         if (tessiePower == null) return derived;
         if (derived == null) return tessiePower;
         return tessiePower.compareTo(derived) >= 0 ? tessiePower : derived;
+    }
+
+    /**
+     * Cappt aggregierte Trip-Geschwindigkeiten auf den DB-Range [0, 300] km/h und stellt
+     * die avg <= max Invariante des DB-CHECK aus V118 sicher. Verletzungen werden defensiv
+     * mit null beantwortet - lieber kein Wert als ein Insert-Fail.
+     *
+     * @return zweistelliges Array [avgKmh, maxKmh], jeweils ggf. null
+     */
+    static BigDecimal[] sanitizeSpeedPair(BigDecimal avgKmh, BigDecimal maxKmh) {
+        BigDecimal avg = capRange(avgKmh);
+        BigDecimal max = capRange(maxKmh);
+        if (avg != null && max != null && avg.compareTo(max) > 0) {
+            // Inkonsistente Quelldaten - kein Insert mit kaputter Invariante.
+            return new BigDecimal[]{null, null};
+        }
+        return new BigDecimal[]{
+                avg != null ? avg.setScale(2, RoundingMode.HALF_UP) : null,
+                max != null ? max.setScale(2, RoundingMode.HALF_UP) : null
+        };
+    }
+
+    private static BigDecimal capRange(BigDecimal v) {
+        if (v == null) return null;
+        if (v.compareTo(SPEED_MIN_KMH) < 0) return null;
+        if (v.compareTo(SPEED_MAX_KMH) > 0) return null;
+        return v;
     }
 
     static String classifyRouteType(BigDecimal weightedAvgSpeedKmh) {
@@ -308,7 +346,8 @@ public class TessieProcessorService {
             BigDecimal distanceKm, BigDecimal energyKwh,
             BigDecimal latStart, BigDecimal lonStart,
             BigDecimal latEnd, BigDecimal lonEnd,
-            BigDecimal tempCelsius, BigDecimal weightedAvgSpeed
+            BigDecimal tempCelsius, BigDecimal weightedAvgSpeed,
+            BigDecimal maxSpeed
     ) {}
 
     /** Side-effect counts of one processForCar run. */
