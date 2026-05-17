@@ -202,23 +202,23 @@ const teslaConnectedLabel = ref<string | null>(null)
 
         <!-- AutoSync Pro Teaser — nur wenn Premium-Kauf möglich und User noch kein Abonnent -->
         <div v-if="premiumEnabled && !authStore.isPremium"
-             class="mb-4 border-2 border-amber-500 bg-amber-50 dark:bg-amber-950/30 rounded-sm shadow-[2px_2px_0_0_#030712] dark:shadow-[2px_2px_0_0_#ffffff] p-4 text-center md:text-left">
-          <div class="flex flex-col items-center md:flex-row md:items-start gap-3">
-            <div class="shrink-0 rounded-sm border-2 border-gray-900 dark:border-white bg-amber-500 p-2 w-10 h-10 flex items-center justify-center">
-              <BoltIcon class="h-5 w-5 text-gray-950" />
+             class="mb-3 border border-amber-500/60 bg-amber-50 dark:bg-amber-950/20 rounded-sm shadow-[2px_2px_0_0_#030712] dark:shadow-none p-3 text-center md:text-left">
+          <div class="flex flex-col items-center md:flex-row md:items-start gap-2.5">
+            <div class="shrink-0 rounded-sm bg-amber-500/15 dark:bg-amber-500/10 p-1.5 w-8 h-8 flex items-center justify-center">
+              <BoltIcon class="h-4 w-4 text-amber-600 dark:text-amber-400" />
             </div>
             <div class="flex-1 min-w-0">
-              <p class="text-amber-600 dark:text-amber-500 text-[11px] font-bold uppercase tracking-[0.14em] mb-1">EV Monitor AutoSync</p>
-              <p class="font-bold text-gray-900 dark:text-white text-base md:text-lg mb-1 tracking-tight">{{ t('imports.autosync_teaser_title') }}</p>
-              <p class="text-sm text-gray-600 dark:text-gray-300 mb-3 font-medium">{{ t('imports.autosync_teaser_desc') }}</p>
+              <p class="text-amber-600 dark:text-amber-500 text-[10px] font-bold uppercase tracking-[0.14em] mb-0.5">EV Monitor AutoSync</p>
+              <p class="font-bold text-gray-900 dark:text-white text-sm md:text-base mb-1 tracking-tight">{{ t('imports.autosync_teaser_title') }}</p>
+              <p class="text-xs text-gray-600 dark:text-gray-400 mb-2 leading-relaxed">{{ t('imports.autosync_teaser_desc') }}</p>
               <div class="flex flex-col items-center sm:flex-row sm:items-center gap-2">
                 <router-link
                   to="/upgrade"
-                  class="flex w-full sm:w-auto sm:inline-flex items-center justify-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-gray-950 font-bold uppercase tracking-wider text-[11px] px-4 py-2.5 rounded-sm border-2 border-amber-500 shadow-[2px_2px_0_0_#030712] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75"
+                  class="flex w-full sm:w-auto sm:inline-flex items-center justify-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-gray-950 font-bold uppercase tracking-wider text-[10px] px-3 py-1.5 rounded-sm border border-amber-500 active:translate-y-[1px] transition-transform duration-75"
                 >
                   {{ t('imports.autosync_teaser_cta') }}
                 </router-link>
-                <span class="text-[11px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400">{{ t('imports.autosync_teaser_price', { priceMonthly: t('upgrade.price_monthly') }) }}</span>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-500">{{ t('imports.autosync_teaser_price', { priceMonthly: t('upgrade.price_monthly') }) }}</span>
               </div>
             </div>
           </div>
