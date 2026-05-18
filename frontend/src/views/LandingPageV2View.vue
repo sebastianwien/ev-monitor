@@ -369,6 +369,9 @@ onMounted(async () => {
         <span>{{ t('landing.footer.made_with') }}</span>
         <nav class="flex flex-wrap gap-4 justify-center">
           <a :href="modelsUrl" class="hover:text-gray-600 dark:hover:text-gray-300 transition">{{ t('landing.footer.models') }}</a>
+          <a href="/ladekosten-rechner" class="hover:text-gray-600 dark:hover:text-gray-300 transition">Ladekosten-Rechner</a>
+          <a href="/ladetagebuch" class="hover:text-gray-600 dark:hover:text-gray-300 transition">Ladetagebuch</a>
+          <a href="/echte-reichweite" class="hover:text-gray-600 dark:hover:text-gray-300 transition">Echte Reichweite</a>
           <router-link to="/datenschutz" class="hover:text-gray-600 dark:hover:text-gray-300 transition">{{ t('landing.footer.privacy') }}</router-link>
           <router-link to="/impressum" class="hover:text-gray-600 dark:hover:text-gray-300 transition">{{ t('landing.footer.imprint') }}</router-link>
           <a href="https://github.com/sebastianwien/ev-monitor" target="_blank" rel="noopener noreferrer" class="hover:text-gray-600 dark:hover:text-gray-300 transition">{{ t('landing.footer.github') }}</a>

@@ -405,6 +405,36 @@ const router = createRouter({
             component: () => import('../views/ConsumptionMethodologyView.vue')
         },
         {
+            path: '/ladekosten-rechner',
+            name: 'ladekosten-rechner',
+            component: () => import('../views/LadekostenRechnerView.vue')
+            // no auth guard - public SEO page
+        },
+        {
+            path: '/ladetagebuch',
+            name: 'ladetagebuch',
+            component: () => import('../views/LadetagebuchView.vue')
+            // no auth guard - public SEO page
+        },
+        {
+            path: '/echte-reichweite',
+            name: 'echte-reichweite',
+            component: () => import('../views/EchteReichweiteView.vue')
+            // no auth guard - public SEO page
+        },
+        {
+            path: '/verbrauch-verstehen',
+            name: 'verbrauch-verstehen',
+            component: () => import('../views/VerbrauchVerstehenView.vue')
+            // no auth guard - public SEO page
+        },
+        {
+            path: '/elektroauto-kosten-pro-km',
+            name: 'elektroauto-kosten-pro-km',
+            component: () => import('../views/ElektroautoKostenView.vue')
+            // no auth guard - public SEO page
+        },
+        {
             path: '/terms',
             name: 'terms',
             component: TermsView
