@@ -466,6 +466,18 @@ dashboard:
   import_banner: Importer ladingsøkter
   import_banner_sources: "- Sprit-Monitor, go-eCharger Cloud, OCPP Wallbox"
   active: Aktiv
+  car_card_battery_effective: "Batteri (effektiv)"
+  car_card_battery_soh_hint: "Netto ved {soh}% SoH"
+  car_card_battery_soh_short: "SoH {soh}%"
+  car_card_wltp_range: "WLTP-rekkevidde"
+  car_card_wltp_range_hint: "Produsentens WLTP-tall"
+  car_card_power: "Effekt"
+  car_card_year: "Årsmodell"
+  car_card_heat_pump: "Varmepumpe"
+  car_card_business_car: "Firmabil"
+  car_card_odometer: "Kilometerstand"
+  car_card_show_more: "Flere detaljer"
+  car_card_show_less: "Færre detaljer"
   tesla_charging: Lading
   tesla_online: På nettet
   tesla_sleeping: Søvn

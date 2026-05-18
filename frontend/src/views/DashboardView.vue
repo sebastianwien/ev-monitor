@@ -21,6 +21,7 @@ import {
   ArrowDownTrayIcon,
   ChevronRightIcon,
   ChevronDownIcon,
+  ChevronUpIcon,
   ListBulletIcon,
   InformationCircleIcon,
   XMarkIcon,
@@ -41,6 +42,7 @@ import RangeCard from '../components/dashboard/RangeCard.vue'
 import LiveChargingCard from '../components/dashboard/LiveChargingCard.vue'
 import DashboardEmptyState from '../components/dashboard/DashboardEmptyState.vue'
 import DashboardInsights from '../components/dashboard/DashboardInsights.vue'
+import CarCardDetails from '../components/dashboard/CarCardDetails.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useDashboardStats } from '../composables/useDashboardStats'
 import { useDashboardCharts } from '../composables/useDashboardCharts'
@@ -92,8 +94,17 @@ const {
 // -- Log List (used by DashboardInsights via mergedLogFeed) --
 const logsSection = ref<HTMLElement | null>(null)
 const {
-  hasAnyLogs, mergedLogFeed, fetchLogs,
+  hasAnyLogs, mergedLogFeed, fetchLogs, logs,
 } = useLogList(selectedCarId, cars, logsSection)
+
+const currentOdometerKm = computed<number | null>(() => {
+  let max: number | null = null
+  for (const l of logs.value) {
+    const o = l.odometerKm
+    if (typeof o === 'number' && (max == null || o > max)) max = o
+  }
+  return max
+})
 
 
 // -- Implausible logs modal --
@@ -172,6 +183,28 @@ function togglePeerPlaceholder() {
   peerPlaceholderCollapsed.value = !peerPlaceholderCollapsed.value
   localStorage.setItem(LS_PEER_PLACEHOLDER, String(peerPlaceholderCollapsed.value))
 }
+
+// -- Car card expanded details on mobile (single-car mode) --
+const LS_CAR_CARD_EXPANDED = 'ev_dashboard_car_card_expanded'
+const carCardExpanded = ref(localStorage.getItem(LS_CAR_CARD_EXPANDED) === 'true')
+function toggleCarCardExpanded() {
+  carCardExpanded.value = !carCardExpanded.value
+  localStorage.setItem(LS_CAR_CARD_EXPANDED, String(carCardExpanded.value))
+}
+// True if there is at least one extra detail worth showing
+const hasCarCardDetails = computed(() => {
+  const c = selectedCar.value
+  if (!c) return false
+  return !!(
+    (c.effectiveBatteryCapacityKwh ?? c.batteryCapacityKwh) ||
+    wltp.value?.officialRangeKm ||
+    c.powerKw ||
+    c.year ||
+    c.hasHeatPump ||
+    c.isBusinessCar ||
+    currentOdometerKm.value != null
+  )
+})
 
 // -- Mobile sticky filter bar: lift FAB so they don't collide --
 // viewActive: KeepAlive-Cached Views verstecken ihren Teleport-Footer waehrend sie inaktiv sind
@@ -380,7 +413,37 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
                     </div>
                   </div>
                 </div>
+                <!-- Desktop horizontal extension (single-car only, lg+): chips column -->
+                <div
+                  v-if="cars.length === 1 && car.id === selectedCarId"
+                  class="hidden lg:flex flex-shrink-0 self-stretch items-center border-l border-gray-200 dark:border-gray-600 pl-4 pr-4 py-3"
+                >
+                  <CarCardDetails :car="car" :wltp="wltp" :current-odometer-km="currentOdometerKm" orientation="horizontal" />
+                </div>
               </button>
+            </div>
+            <!-- Mobile/tablet expandable details (single-car only, <lg). Desktop (lg+) shows chips inline inside the card. -->
+            <div v-if="cars.length === 1 && selectedCar && hasCarCardDetails" class="lg:hidden mt-1.5">
+              <button
+                type="button"
+                @click="toggleCarCardExpanded"
+                :aria-expanded="carCardExpanded"
+                aria-controls="car-card-details-panel"
+                class="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 px-2 py-1 rounded-sm transition"
+              >
+                <component
+                  :is="carCardExpanded ? ChevronUpIcon : ChevronDownIcon"
+                  class="w-4 h-4"
+                />
+                <span>{{ carCardExpanded ? t('dashboard.car_card_show_less') : t('dashboard.car_card_show_more') }}</span>
+              </button>
+              <div
+                v-show="carCardExpanded"
+                id="car-card-details-panel"
+                class="mt-2 px-3 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-sm"
+              >
+                <CarCardDetails :car="selectedCar" :wltp="wltp" :current-odometer-km="currentOdometerKm" orientation="stacked" />
+              </div>
             </div>
           </div>
 
