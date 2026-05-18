@@ -51,7 +51,7 @@ public class EvLogStatisticsService {
                 .sorted(Comparator.comparing(EvLog::getLoggedAt))
                 .toList();
 
-        if (car.getBatteryCapacityKwh() == null) return List.of();
+        if (car.getNominalNetCapacityKwh() == null) return List.of();
 
         Map<UUID, ConsumptionResult> consumptionByLog =
                 calculationService.calculateConsumptionPerLog(allLogs, calculationService.buildCapacityLookup(car), calculationService.lookupWltp(car));
@@ -119,7 +119,7 @@ public class EvLogStatisticsService {
         }
 
         // Compute per-log consumption once — used for both chart data and overall average
-        Map<UUID, ConsumptionResult> consumptionByLog = new LinkedHashMap<>(car.getBatteryCapacityKwh() != null
+        Map<UUID, ConsumptionResult> consumptionByLog = new LinkedHashMap<>(car.getNominalNetCapacityKwh() != null
                 ? calculationService.calculateConsumptionPerLog(allLogsForCar, calculationService.buildCapacityLookup(car), calculationService.lookupWltp(car))
                 : Map.of());
 

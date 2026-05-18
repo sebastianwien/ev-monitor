@@ -251,7 +251,7 @@ class EvLogServiceSocVerificationTest extends AbstractIntegrationTest {
         // User discovers battery is actually 78 kWh
         Car car = carRepository.findById(carId).orElseThrow();
         Car updatedCar = car.toBuilder()
-            .batteryCapacityKwh(new BigDecimal("78.0"))
+            .customNetCapacityKwh(new BigDecimal("78.0"))
             .updatedAt(LocalDateTime.now())
             .build();
         carRepository.save(updatedCar);

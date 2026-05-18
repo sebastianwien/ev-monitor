@@ -148,11 +148,13 @@ public class BatterySohService {
     @Transactional
     public void persistBmsDerived(UUID carId, BigDecimal derivedCapacityKwh) {
         Car car = carRepository.findById(carId).orElse(null);
-        if (car == null || car.getBatteryCapacityKwh() == null) return;
+        if (car == null) return;
+        BigDecimal nominalNet = car.getNominalNetCapacityKwh();
+        if (nominalNet == null) return;
 
         BigDecimal sohPercent = derivedCapacityKwh
                 .multiply(new BigDecimal("100"))
-                .divide(car.getBatteryCapacityKwh(), 2, java.math.RoundingMode.HALF_UP);
+                .divide(nominalNet, 2, java.math.RoundingMode.HALF_UP);
 
         if (sohPercent.compareTo(BMS_SOH_MIN) < 0 || sohPercent.compareTo(BMS_SOH_MAX) > 0) return;
 
@@ -182,7 +184,8 @@ public class BatterySohService {
      * Triggered via SohAutoDetectEvent after each EV log save.
      */
     public void autoDetectAndPersist(Car car) {
-        if (car.getBatteryCapacityKwh() == null) return;
+        BigDecimal nominalNet = car.getNominalNetCapacityKwh();
+        if (nominalNet == null) return;
 
         List<BatterySohEntry> history = sohRepository.findByCarId(car.getId());
         LocalDate today = LocalDate.now();
@@ -190,7 +193,7 @@ public class BatterySohService {
 
         Optional<BigDecimal> detected = BatterySohAutoDetector.detectSohPercent(
                 evLogRepository.findRecentAtVehicleLogsWithSoc(car.getId(), BatterySohAutoDetector.ROLLING_WINDOW_SIZE * 3),
-                car.getBatteryCapacityKwh());
+                nominalNet);
 
         if (detected.isEmpty()) return;
 

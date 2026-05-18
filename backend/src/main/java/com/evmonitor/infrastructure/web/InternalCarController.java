@@ -33,7 +33,7 @@ public class InternalCarController {
     @GetMapping("/{carId}/battery-capacity")
     public ResponseEntity<Map<String, BigDecimal>> getBatteryCapacity(@PathVariable UUID carId) {
         Car car = carRepository.findById(carId).orElse(null);
-        if (car == null || car.getBatteryCapacityKwh() == null) {
+        if (car == null || car.getNominalNetCapacityKwh() == null) {
             return ResponseEntity.notFound().build();
         }
         BigDecimal effective = car.getEffectiveBatteryCapacityKwhAt(

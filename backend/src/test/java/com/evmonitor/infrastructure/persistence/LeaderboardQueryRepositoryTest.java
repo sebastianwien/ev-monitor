@@ -150,7 +150,7 @@ class LeaderboardQueryRepositoryTest {
         c.setYear(2023);
         c.setLicensePlate("T-" + id.toString().substring(0, 4));
         c.setTrim("Standard");
-        c.setBatteryCapacityKwh(new BigDecimal("75.0"));
+        c.setCustomNetCapacityKwh(new BigDecimal("75.0"));
         c.setPowerKw(new BigDecimal("150.0"));
         c.setStatus(CarStatus.ACTIVE);
         c.setCreatedAt(LocalDateTime.now());

@@ -44,14 +44,14 @@ public class TestDataBuilder {
     /**
      * Create a test car for a user.
      */
-    public static Car createTestCar(UUID userId, CarBrand.CarModel model, BigDecimal batteryCapacityKwh) {
+    public static Car createTestCar(UUID userId, CarBrand.CarModel model, BigDecimal customNetCapacityKwh) {
         return Car.createNew(
                 userId,
                 model,
                 2024,
                 "TEST-123",
                 "Standard",
-                batteryCapacityKwh,
+                customNetCapacityKwh,
                 new BigDecimal("150.0"),
                 null
         );
@@ -64,7 +64,7 @@ public class TestDataBuilder {
         return Car.builder()
                 .id(carId).userId(userId).model(model).year(2024)
                 .licensePlate("TEST-456").trim("Performance")
-                .batteryCapacityKwh(new BigDecimal("75.0")).powerKw(new BigDecimal("200.0"))
+                .customNetCapacityKwh(new BigDecimal("75.0")).powerKw(new BigDecimal("200.0"))
                 .registrationDate(LocalDate.now()).status(CarStatus.ACTIVE)
                 .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
                 .build();

@@ -23,7 +23,7 @@ public record CarRequest(
 
         @NotNull(message = "Battery capacity is required")
         @Positive(message = "Battery capacity must be positive")
-        BigDecimal batteryCapacityKwh,
+        BigDecimal customNetCapacityKwh,
 
         @Positive(message = "Power must be positive")
         BigDecimal powerKw,

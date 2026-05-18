@@ -38,8 +38,8 @@ public class CarEntity {
     @Column(name = "trim")
     private String trim;
 
-    @Column(name = "battery_capacity_kwh")
-    private BigDecimal batteryCapacityKwh;
+    @Column(name = "custom_net_capacity_kwh")
+    private BigDecimal customNetCapacityKwh;
 
     @Column(name = "power_kw")
     private BigDecimal powerKw;

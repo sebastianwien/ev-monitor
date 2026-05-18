@@ -68,7 +68,7 @@ public class PostgresCarRepositoryImpl implements CarRepository {
         entity.setYear(domain.getYear());
         entity.setLicensePlate(domain.getLicensePlate());
         entity.setTrim(domain.getTrim());
-        entity.setBatteryCapacityKwh(domain.getBatteryCapacityKwh());
+        entity.setCustomNetCapacityKwh(domain.getCustomNetCapacityKwh());
         entity.setPowerKw(domain.getPowerKw());
         entity.setRegistrationDate(domain.getRegistrationDate());
         entity.setDeregistrationDate(domain.getDeregistrationDate());
@@ -124,7 +124,7 @@ public class PostgresCarRepositoryImpl implements CarRepository {
                 .year(entity.getYear())
                 .licensePlate(entity.getLicensePlate())
                 .trim(entity.getTrim())
-                .batteryCapacityKwh(entity.getBatteryCapacityKwh())
+                .customNetCapacityKwh(entity.getCustomNetCapacityKwh())
                 .powerKw(entity.getPowerKw())
                 .registrationDate(entity.getRegistrationDate())
                 .deregistrationDate(entity.getDeregistrationDate())

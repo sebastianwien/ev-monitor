@@ -452,8 +452,8 @@ public class PublicModelService {
                     List<BigDecimal> variantConsumptions = wltpSpecs.stream()
                             .map(spec -> {
                                 List<Car> carsForVariant = cars.stream()
-                                        .filter(c -> c.getBatteryCapacityKwh() != null
-                                                && c.getBatteryCapacityKwh().compareTo(spec.getBatteryCapacityKwh()) == 0)
+                                        .filter(c -> c.getCustomNetCapacityKwh() != null
+                                                && c.getCustomNetCapacityKwh().compareTo(spec.getBatteryCapacityKwh()) == 0)
                                         .toList();
                                 if (carsForVariant.isEmpty()) return null;
                                 CommunityConsumptionResult r = evLogStatisticsService.calculateCommunityAvgConsumption(carsForVariant, isSeedUser);
@@ -585,7 +585,7 @@ public class PublicModelService {
                     .filter(c -> {
                         if (c.getVehicleSpecificationId() != null)
                             return groupSpecIds.contains(c.getVehicleSpecificationId());
-                        return c.getBatteryCapacityKwh() != null && groupKwh.contains(c.getBatteryCapacityKwh());
+                        return c.getCustomNetCapacityKwh() != null && groupKwh.contains(c.getCustomNetCapacityKwh());
                     })
                     .toList();
 

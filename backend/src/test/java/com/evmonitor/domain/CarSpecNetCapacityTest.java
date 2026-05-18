@@ -27,7 +27,7 @@ class CarSpecNetCapacityTest {
                 .id(UUID.randomUUID()).userId(UUID.randomUUID())
                 .model(CarBrand.CarModel.ENYAQ).year(2025)
                 .licensePlate("TEST").trim("85 Sportline")
-                .batteryCapacityKwh(nominal).powerKw(new BigDecimal("210"))
+                .customNetCapacityKwh(nominal).powerKw(new BigDecimal("210"))
                 .registrationDate(LocalDate.of(2025, 1, 1))
                 .status(CarStatus.ACTIVE)
                 .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())

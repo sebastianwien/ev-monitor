@@ -86,7 +86,7 @@ class ConsumptionFormulaComparisonTest {
                 System.out.printf("%nAuto: %s %s | Kapazität: %s kWh | WLTP: %s kWh/100km | Logs: %d%n",
                         car.getModel() != null ? car.getModel().getBrand() : "?",
                         car.getModel() != null ? car.getModel() : "?",
-                        car.getBatteryCapacityKwh(),
+                        car.getNominalNetCapacityKwh(),
                         wltp != null ? wltp : "n/a",
                         allLogs.size());
 

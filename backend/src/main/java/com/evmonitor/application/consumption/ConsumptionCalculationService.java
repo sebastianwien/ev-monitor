@@ -310,12 +310,13 @@ public class ConsumptionCalculationService {
                     .map(VehicleSpecification::getOfficialConsumptionKwhPer100km)
                     .orElse(null);
         }
-        if (car.getBatteryCapacityKwh() == null) return null;
+        BigDecimal nominalNet = car.getNominalNetCapacityKwh();
+        if (nominalNet == null) return null;
         return vehicleSpecificationRepository
                 .findByCarBrandAndModelAndCapacityAndType(
                         car.getModel().getBrand().name(),
                         car.getModel().name(),
-                        car.getBatteryCapacityKwh(),
+                        nominalNet,
                         VehicleSpecification.WltpType.COMBINED)
                 .map(VehicleSpecification::getOfficialConsumptionKwhPer100km)
                 .orElse(null);
@@ -359,7 +360,7 @@ public class ConsumptionCalculationService {
      * Nutzt SoH-History wenn vorhanden, sonst Fallback auf batteryDegradationPercent.
      */
     public Function<LocalDate, BigDecimal> buildCapacityLookup(Car car) {
-        if (car.getBatteryCapacityKwh() == null) return date -> null;
+        if (car.getNominalNetCapacityKwh() == null) return date -> null;
         List<BatterySohEntry> history = batterySohRepository.findByCarId(car.getId());
         return date -> car.getEffectiveBatteryCapacityKwhAt(date, history);
     }

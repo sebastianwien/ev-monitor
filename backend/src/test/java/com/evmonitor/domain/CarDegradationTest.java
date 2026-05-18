@@ -15,7 +15,7 @@ class CarDegradationTest {
         return Car.builder()
                 .id(UUID.randomUUID()).userId(UUID.randomUUID()).model(CarBrand.CarModel.MODEL_3)
                 .year(2024).licensePlate("TEST").trim("Std")
-                .batteryCapacityKwh(batteryCapacityKwh).powerKw(new BigDecimal("200"))
+                .customNetCapacityKwh(batteryCapacityKwh).powerKw(new BigDecimal("200"))
                 .registrationDate(LocalDate.now()).status(CarStatus.ACTIVE)
                 .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
                 .batteryDegradationPercent(degradationPercent)

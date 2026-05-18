@@ -197,7 +197,7 @@ class EvLogServiceLookupWltpTest extends AbstractIntegrationTest {
         return Car.builder()
                 .id(UUID.randomUUID()).userId(UUID.randomUUID()).model(model).year(2023)
                 .licensePlate("TEST-1").trim("Long Range")
-                .batteryCapacityKwh(batteryCapacityKwh).powerKw(new BigDecimal("280.0"))
+                .customNetCapacityKwh(batteryCapacityKwh).powerKw(new BigDecimal("280.0"))
                 .status(CarStatus.ACTIVE).createdAt(now).updatedAt(now)
                 .vehicleSpecificationId(vehicleSpecificationId)
                 .build();

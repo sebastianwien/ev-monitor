@@ -23,7 +23,11 @@ public class Car {
     private final Integer year;
     private final String licensePlate;
     private final String trim;
-    private final BigDecimal batteryCapacityKwh;
+    /**
+     * User-supplied net (usable) battery capacity. Only used when no
+     * vehicleSpecification is linked, otherwise specNetBatteryCapacityKwh wins.
+     */
+    private final BigDecimal customNetCapacityKwh;
     private final UUID vehicleSpecificationId;
     private final BigDecimal specNetBatteryCapacityKwh;
     private final BigDecimal powerKw;
@@ -40,7 +44,7 @@ public class Car {
     private final boolean heatPump;
 
     public static Car createNew(UUID userId, CarBrand.CarModel model, Integer year, String licensePlate,
-            String trim, BigDecimal batteryCapacityKwh, BigDecimal powerKw,
+            String trim, BigDecimal customNetCapacityKwh, BigDecimal powerKw,
             BigDecimal batteryDegradationPercent) {
         LocalDateTime now = LocalDateTime.now();
         return Car.builder()
@@ -50,7 +54,7 @@ public class Car {
                 .year(year)
                 .licensePlate(licensePlate)
                 .trim(trim)
-                .batteryCapacityKwh(batteryCapacityKwh)
+                .customNetCapacityKwh(customNetCapacityKwh)
                 .powerKw(powerKw)
                 .registrationDate(LocalDate.of(year, 1, 1))
                 .status(CarStatus.ACTIVE)
@@ -85,8 +89,16 @@ public class Car {
         return toBuilder().heatPump(heatPump).updatedAt(LocalDateTime.now()).build();
     }
 
+    /**
+     * Nominale Netto-Kapazitaet (vor SoH-Adjustierung). Single Source of Truth fuer
+     * "wieviel kWh netto hat dieses Auto laut Stammdaten". Vorrang: specNet, sonst customNet.
+     */
+    public BigDecimal getNominalNetCapacityKwh() {
+        return specNetBatteryCapacityKwh != null ? specNetBatteryCapacityKwh : customNetCapacityKwh;
+    }
+
     public BigDecimal getEffectiveBatteryCapacityKwh() {
-        BigDecimal base = baseCapacity();
+        BigDecimal base = getNominalNetCapacityKwh();
         if (base == null) return null;
         if (batteryDegradationPercent == null || batteryDegradationPercent.compareTo(BigDecimal.ZERO) == 0) {
             return base;
@@ -100,12 +112,9 @@ public class Car {
      * Gibt die effektive Batteriekapazität zum angegebenen Datum zurück, basierend auf dem
      * SoH-Verlauf. Logs vor dem ersten SoH-Eintrag werden mit 100% SoH berechnet.
      * Wenn keine History vorhanden: Fallback auf aktuellen batteryDegradationPercent-Wert.
-     *
-     * Basis: specNetBatteryCapacityKwh wenn gesetzt (verifizierter Netto-Wert),
-     * sonst batteryCapacityKwh (User-Eingabe, oft nominal/brutto).
      */
     public BigDecimal getEffectiveBatteryCapacityKwhAt(LocalDate date, List<BatterySohEntry> sohHistory) {
-        BigDecimal base = baseCapacity();
+        BigDecimal base = getNominalNetCapacityKwh();
         if (base == null) return null;
         if (sohHistory == null || sohHistory.isEmpty()) {
             return getEffectiveBatteryCapacityKwh();
@@ -122,9 +131,5 @@ public class Car {
         return base
                 .multiply(entry.get().getSohPercent().divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP))
                 .setScale(2, RoundingMode.HALF_UP);
-    }
-
-    private BigDecimal baseCapacity() {
-        return specNetBatteryCapacityKwh != null ? specNetBatteryCapacityKwh : batteryCapacityKwh;
     }
 }

@@ -517,7 +517,7 @@ public class EvLogService {
                 .toList();
 
         // Compute per-log consumption + plausibility on the full dataset (SoC-based)
-        Map<UUID, ConsumptionResult> consumptionByLog = new LinkedHashMap<>(car.getBatteryCapacityKwh() != null
+        Map<UUID, ConsumptionResult> consumptionByLog = new LinkedHashMap<>(car.getNominalNetCapacityKwh() != null
                 ? calculationService.calculateConsumptionPerLog(allLogsSorted, calculationService.buildCapacityLookup(car), calculationService.lookupWltp(car))
                 : Map.of());
 

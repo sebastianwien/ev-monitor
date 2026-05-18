@@ -26,7 +26,7 @@ public class CarService {
     @Transactional
     public CarCreateResponse createCar(UUID userId, CarRequest request) {
         Car newCar = Car.createNew(userId, request.model(), request.year(), request.licensePlate(),
-                        request.trim(), request.batteryCapacityKwh(), request.powerKw(),
+                        request.trim(), request.customNetCapacityKwh(), request.powerKw(),
                         request.batteryDegradationPercent())
                 .toBuilder()
                 .heatPump(request.hasHeatPump())
@@ -66,7 +66,7 @@ public class CarService {
                 .year(request.year())
                 .licensePlate(request.licensePlate())
                 .trim(request.trim())
-                .batteryCapacityKwh(request.batteryCapacityKwh())
+                .customNetCapacityKwh(request.customNetCapacityKwh())
                 .powerKw(request.powerKw())
                 .batteryDegradationPercent(request.batteryDegradationPercent())
                 .heatPump(request.hasHeatPump())

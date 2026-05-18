@@ -100,7 +100,7 @@ class UserDeletionCascadeTest {
         car.setYear(2023);
         car.setLicensePlate("TEST-123");
         car.setTrim("Long Range");
-        car.setBatteryCapacityKwh(new BigDecimal("75.0"));
+        car.setCustomNetCapacityKwh(new BigDecimal("75.0"));
         car.setPowerKw(new BigDecimal("283"));
         car.setStatus(CarStatus.ACTIVE);
         car.setCreatedAt(LocalDateTime.now());
@@ -148,7 +148,7 @@ class UserDeletionCascadeTest {
         car2.setYear(2023);
         car2.setLicensePlate("TEST-456");
         car2.setTrim("Pro");
-        car2.setBatteryCapacityKwh(new BigDecimal("58.0"));
+        car2.setCustomNetCapacityKwh(new BigDecimal("58.0"));
         car2.setPowerKw(new BigDecimal("204"));
         car2.setStatus(CarStatus.ACTIVE);
         car2.setCreatedAt(LocalDateTime.now());
@@ -207,7 +207,7 @@ class UserDeletionCascadeTest {
         otherCar.setYear(2024);
         otherCar.setLicensePlate("OTHER-789");
         otherCar.setTrim("AWD");
-        otherCar.setBatteryCapacityKwh(new BigDecimal("75.0"));
+        otherCar.setCustomNetCapacityKwh(new BigDecimal("75.0"));
         otherCar.setPowerKw(new BigDecimal("384"));
         otherCar.setStatus(CarStatus.ACTIVE);
         otherCar.setCreatedAt(LocalDateTime.now());
