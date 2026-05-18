@@ -152,6 +152,18 @@ public class EvLogService {
             try { chargingType = ChargingType.valueOf(request.chargingType()); } catch (IllegalArgumentException ignored) {}
         }
 
+        // Provenance of kwhCharged - decides whether SoH auto-detection trusts this row.
+        // Unknown strings fall back to null (= legacy behaviour, trusted) instead of failing
+        // the whole request, mirroring the dataSource handling above. The CHECK constraint on
+        // ev_log.energy_source would otherwise reject anything outside the enum.
+        EnergySource energySource = null;
+        if (request.energySource() != null) {
+            try { energySource = EnergySource.valueOf(request.energySource()); }
+            catch (IllegalArgumentException ignored) {
+                log.warn("Unknown energySource '{}' from internal client - storing as NULL", request.energySource());
+            }
+        }
+
         EvLog newLog = EvLog.createFromInternal(
                 request.carId(),
                 request.kwhCharged(),
@@ -170,7 +182,8 @@ public class EvLogService {
                 request.rawImportData(),
                 request.isPublicCharging(),
                 request.cpoName(),
-                request.maxChargingPowerKw());
+                request.maxChargingPowerKw(),
+                energySource);
 
         // Inherit tireType/routeType from the most recent prior log so auto-created logs
         // (Tesla/Wallbox/SmartCar) don't reset the user's last known setting to NULL/SUMMER.

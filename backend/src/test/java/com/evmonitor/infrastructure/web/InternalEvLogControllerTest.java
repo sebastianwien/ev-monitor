@@ -572,6 +572,85 @@ class InternalEvLogControllerTest extends AbstractIntegrationTest {
         assertEquals("HIGHWAY", response.getBody().get("routeType"));
     }
 
+    // --- energySource (provenance of kwhCharged) ---
+    // SoH auto-detection excludes SOC_INFERRED rows to avoid a brutto/netto feedback loop on
+    // brands without an OEM energyAdded reading (Smartcar EU, VW Group SoC fallback).
+    // The internal endpoint must accept the marker from connectors and persist it verbatim.
+
+    @Test
+    void createInternalLog_withEnergySourceSocInferred_persistsMarker() {
+        LocalDateTime loggedAt = LocalDateTime.now().minusHours(2).withSecond(0).withNano(0);
+        Map<String, Object> request = logRequest(testCar.getId(), testUser.getId(),
+                "25.0", 90, loggedAt, "u33dbe", "SMARTCAR_LIVE", null);
+        request.put("energySource", "SOC_INFERRED");
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                "/api/internal/logs", HttpMethod.POST,
+                new HttpEntity<>(request, internalHeaders(VALID_TOKEN)), Map.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        EvLog persisted = evLogRepository.findAllByCarId(testCar.getId()).stream()
+                .findFirst().orElseThrow(() -> new AssertionError("Log not persisted"));
+        assertEquals(EnergySource.SOC_INFERRED, persisted.getEnergySource());
+    }
+
+    @Test
+    void createInternalLog_withEnergySourceOemMeasured_persistsMarker() {
+        LocalDateTime loggedAt = LocalDateTime.now().minusHours(3).withSecond(0).withNano(0);
+        Map<String, Object> request = logRequest(testCar.getId(), testUser.getId(),
+                "30.0", 90, loggedAt, "u33dbe", "SMARTCAR_LIVE", null);
+        request.put("energySource", "OEM_MEASURED");
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                "/api/internal/logs", HttpMethod.POST,
+                new HttpEntity<>(request, internalHeaders(VALID_TOKEN)), Map.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        EvLog persisted = evLogRepository.findAllByCarId(testCar.getId()).stream()
+                .findFirst().orElseThrow(() -> new AssertionError("Log not persisted"));
+        assertEquals(EnergySource.OEM_MEASURED, persisted.getEnergySource());
+    }
+
+    @Test
+    void createInternalLog_withoutEnergySource_persistsNullMarker() {
+        // Backwards-compat: legacy connectors that haven't been upgraded yet do not send the
+        // field. NULL means "unknown provenance, treat as trusted" (same as pre-V119 rows).
+        LocalDateTime loggedAt = LocalDateTime.now().minusHours(4).withSecond(0).withNano(0);
+        Map<String, Object> request = logRequest(testCar.getId(), testUser.getId(),
+                "30.0", 90, loggedAt, null, "TESLA_LIVE", null);
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                "/api/internal/logs", HttpMethod.POST,
+                new HttpEntity<>(request, internalHeaders(VALID_TOKEN)), Map.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        EvLog persisted = evLogRepository.findAllByCarId(testCar.getId()).stream()
+                .findFirst().orElseThrow(() -> new AssertionError("Log not persisted"));
+        assertNull(persisted.getEnergySource(),
+                "Missing energySource must persist as NULL, not throw");
+    }
+
+    @Test
+    void createInternalLog_withInvalidEnergySource_persistsNullMarker() {
+        // Defensive: an unknown enum value must NOT crash the request (CHECK constraint would
+        // explode at DB write). Mirrors the existing dataSource handling - unknown values fall
+        // back silently rather than rejecting the log entirely.
+        LocalDateTime loggedAt = LocalDateTime.now().minusHours(5).withSecond(0).withNano(0);
+        Map<String, Object> request = logRequest(testCar.getId(), testUser.getId(),
+                "30.0", 90, loggedAt, null, "TESLA_LIVE", null);
+        request.put("energySource", "TOTALLY_BOGUS_VALUE");
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                "/api/internal/logs", HttpMethod.POST,
+                new HttpEntity<>(request, internalHeaders(VALID_TOKEN)), Map.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        EvLog persisted = evLogRepository.findAllByCarId(testCar.getId()).stream()
+                .findFirst().orElseThrow(() -> new AssertionError("Log not persisted"));
+        assertNull(persisted.getEnergySource(),
+                "Unknown energySource string must persist as NULL (no DB CHECK violation)");
+    }
+
     // --- Helpers ---
 
     private HttpHeaders internalHeaders(String token) {

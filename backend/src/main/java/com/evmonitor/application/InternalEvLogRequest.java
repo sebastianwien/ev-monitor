@@ -31,5 +31,10 @@ public record InternalEvLogRequest(
         Boolean isPublicCharging,  // optional: true for public DC sessions (Supercharger, IONITY, etc.) - drives geohash precision
         String cpoName,            // optional: charging-point-operator name, e.g. "Tesla Supercharger" - eligible for billing-API enrichment
         String powerCurvePointsJson, // optional: downsampled charging-curve snapshot, JSON array [{"ts":<epochMs>,"kw":<num>}]
-        BigDecimal maxChargingPowerKw) { // optional: peak power during the session (from DCChargingPower-max or similar)
+        BigDecimal maxChargingPowerKw, // optional: peak power during the session (from DCChargingPower-max or similar)
+        // Optional: provenance of kwhCharged. Connectors send this as the name() of
+        // com.evmonitor.domain.EnergySource (OEM_MEASURED / SOC_INFERRED / USER_INPUT / WALLBOX).
+        // Unknown / missing values are stored as NULL ("unknown provenance, treat as trusted"),
+        // mirroring the silent-fallback contract already in place for dataSource.
+        String energySource) {
 }
