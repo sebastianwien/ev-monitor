@@ -119,7 +119,7 @@ const createCarInWizard = async () => {
       year: selectedCarYear.value,
       licensePlate: '',
       trim: null,
-      batteryCapacityKwh: selectedCarSpec.value.kWh,
+      customNetCapacityKwh: selectedCarSpec.value.kWh,
       powerKw: null,
       batteryDegradationPercent: null,
       hasHeatPump: false,

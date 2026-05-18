@@ -55,7 +55,7 @@ export function useSohHistory(
         sohHistory.value = [created, ...sohHistory.value]
           .sort((a, b) => b.recordedAt.localeCompare(a.recordedAt))
         cars.value = cars.value.map(c => c.id === editingCar.value!.id
-          ? { ...c, batteryDegradationPercent: 100 - sohPercent.value!, effectiveBatteryCapacityKwh: c.batteryCapacityKwh * sohPercent.value! / 100 }
+          ? { ...c, batteryDegradationPercent: 100 - sohPercent.value!, effectiveBatteryCapacityKwh: c.customNetCapacityKwh * sohPercent.value! / 100 }
           : c)
       }
       cancelSohForm()

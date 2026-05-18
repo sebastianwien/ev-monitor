@@ -31,7 +31,7 @@ const orientation = computed(() => props.orientation ?? 'horizontal')
 // Effective battery (SoH-adjusted). Fallback to nominal if null.
 const effectiveBatteryKwh = computed<number | null>(() => {
   if (props.car.effectiveBatteryCapacityKwh != null) return props.car.effectiveBatteryCapacityKwh
-  if (props.car.batteryCapacityKwh != null) return props.car.batteryCapacityKwh
+  if (props.car.customNetCapacityKwh != null) return props.car.customNetCapacityKwh
   return null
 })
 

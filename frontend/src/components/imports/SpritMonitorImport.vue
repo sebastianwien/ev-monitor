@@ -166,7 +166,7 @@ const startImport = async () => {
         const created = await carService.createCar({
           model: newCar.model,
           year: newCar.year,
-          batteryCapacityKwh: 50, // Default placeholder (user can edit later)
+          customNetCapacityKwh: 50, // Default placeholder (user can edit later)
           powerKw: null,
           batteryDegradationPercent: null,
           hasHeatPump: false,

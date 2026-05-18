@@ -545,7 +545,7 @@ const filteredCapacities = computed(() => {
               <div class="text-gray-600 dark:text-gray-400">
                 <span class="text-gray-400 dark:text-gray-500 text-xs uppercase tracking-wide">{{ t('cars.battery') }}</span>
                 <div class="font-medium text-gray-800 dark:text-gray-200">
-                  {{ car.batteryCapacityKwh }} kWh
+                  {{ car.customNetCapacityKwh }} kWh
                   <span v-if="car.batteryDegradationPercent" class="text-amber-500 text-xs font-normal ml-1">
                     - effektiv {{ car.effectiveBatteryCapacityKwh }} kWh
                   </span>
@@ -700,7 +700,7 @@ const filteredCapacities = computed(() => {
                 </button>
               </div>
               <p v-if="capacityWasCorrected" class="mt-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded px-3 py-2">
-                {{ t('cars.capacity_corrected_hint', { old: editingCar?.batteryCapacityKwh, new: selectedCapacity }) }}
+                {{ t('cars.capacity_corrected_hint', { old: editingCar?.customNetCapacityKwh, new: selectedCapacity }) }}
               </p>
             </div>
 

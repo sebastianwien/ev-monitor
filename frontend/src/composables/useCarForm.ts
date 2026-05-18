@@ -19,13 +19,13 @@ export function resolveCapacityForCar(
       selectedTrimLevel: specMatch.trimLevel ?? null,
       useCustom: false,
       customCapacity: null,
-      kwhCorrected: specMatch.kWh !== car.batteryCapacityKwh,
+      kwhCorrected: specMatch.kWh !== car.customNetCapacityKwh,
     }
   }
-  if (capacities.some(c => c.kWh === car.batteryCapacityKwh)) {
-    return { selectedCapacity: car.batteryCapacityKwh, selectedSpecId: null, selectedTrimLevel: null, useCustom: false, customCapacity: null, kwhCorrected: false }
+  if (capacities.some(c => c.kWh === car.customNetCapacityKwh)) {
+    return { selectedCapacity: car.customNetCapacityKwh, selectedSpecId: null, selectedTrimLevel: null, useCustom: false, customCapacity: null, kwhCorrected: false }
   }
-  return { selectedCapacity: null, selectedSpecId: null, selectedTrimLevel: null, useCustom: true, customCapacity: car.batteryCapacityKwh, kwhCorrected: false }
+  return { selectedCapacity: null, selectedSpecId: null, selectedTrimLevel: null, useCustom: true, customCapacity: car.customNetCapacityKwh, kwhCorrected: false }
 }
 
 export interface TrimGroup { trimLevel: string; options: CapacityOption[] }
@@ -277,7 +277,7 @@ export function useCarForm() {
         year: year.value,
         licensePlate: licensePlate.value,
         trim: trim.value || null,
-        batteryCapacityKwh: finalCapacity.value,
+        customNetCapacityKwh: finalCapacity.value,
         powerKw: powerKw.value,
         batteryDegradationPercent: batteryDegradationPercent.value,
         hasHeatPump: hasHeatPump.value,

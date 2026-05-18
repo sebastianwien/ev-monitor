@@ -51,7 +51,7 @@ export interface CarInfo {
   id: string
   brand: string
   model: string
-  batteryCapacityKwh: number
+  customNetCapacityKwh: number
 }
 
 export function calcCostPer100km(
@@ -170,11 +170,11 @@ export function useDashboardStats() {
         id: car.id,
         brand: car.brand,
         model: car.model,
-        batteryCapacityKwh: car.batteryCapacityKwh
+        customNetCapacityKwh: car.customNetCapacityKwh
       }
       wltp.value = car.vehicleSpecificationId
         ? await vehicleSpecificationService.lookupById(car.vehicleSpecificationId)
-        : await vehicleSpecificationService.lookup(car.brand, car.model, car.batteryCapacityKwh)
+        : await vehicleSpecificationService.lookup(car.brand, car.model, car.customNetCapacityKwh)
     } catch {
       wltp.value = null
     }

@@ -196,7 +196,7 @@ const hasCarCardDetails = computed(() => {
   const c = selectedCar.value
   if (!c) return false
   return !!(
-    (c.effectiveBatteryCapacityKwh ?? c.batteryCapacityKwh) ||
+    (c.effectiveBatteryCapacityKwh ?? c.customNetCapacityKwh) ||
     wltp.value?.officialRangeKm ||
     c.powerKw ||
     c.year ||
@@ -754,9 +754,9 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
 
         <!-- Echte Reichweite -->
         <RangeCard
-          v-if="carInfo?.batteryCapacityKwh && stats?.avgConsumptionKwhPer100km"
+          v-if="carInfo?.customNetCapacityKwh && stats?.avgConsumptionKwhPer100km"
           class="md:w-80 shrink-0"
-          :battery-capacity-kwh="carInfo.batteryCapacityKwh"
+          :battery-capacity-kwh="carInfo.customNetCapacityKwh"
           :summer-consumption="stats.summerConsumptionKwhPer100km ?? null"
           :winter-consumption="stats.winterConsumptionKwhPer100km ?? null"
           :avg-consumption="stats.avgConsumptionKwhPer100km"
@@ -785,7 +785,7 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
 
         <!-- Peer Benchmark Placeholder (nur wenn auch keine WLTP-Daten) -->
         <div
-          v-else-if="stats && carInfo?.batteryCapacityKwh && stats?.avgConsumptionKwhPer100km"
+          v-else-if="stats && carInfo?.customNetCapacityKwh && stats?.avgConsumptionKwhPer100km"
           class="flex-1 min-w-0 bg-white dark:bg-gray-800 rounded-sm border-2 border-gray-300 dark:border-gray-700 overflow-hidden shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]"
         >
           <button

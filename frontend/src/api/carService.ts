@@ -8,7 +8,7 @@ export interface Car {
     year: number;
     licensePlate: string;
     trim: string | null; // Trim level (e.g., "GTX", "Pro Performance")
-    batteryCapacityKwh: number; // Selected capacity
+    customNetCapacityKwh: number; // User-supplied net capacity (overrides spec only when no specId)
     powerKw: number | null; // Power in kW (optional)
     registrationDate: string; // ISO date (YYYY-MM-DD)
     deregistrationDate: string | null; // ISO date or null if still active
@@ -30,7 +30,7 @@ export interface CarRequest {
     year: number;
     licensePlate: string;
     trim: string | null; // Trim level (optional)
-    batteryCapacityKwh: number; // Selected or custom capacity
+    customNetCapacityKwh: number; // User-supplied net capacity
     powerKw: number | null; // Power in kW (optional)
     batteryDegradationPercent: number | null;
     hasHeatPump: boolean;

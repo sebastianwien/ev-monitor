@@ -9,7 +9,7 @@ const cap = (kWh: number, specId: string | null = null, trimLevel: string | null
 const car = (batteryKwh: number, specId: string | null = null): Car => ({
   id: 'car-1', userId: 'u-1', brand: 'SKODA', model: 'ENYAQ',
   year: 2022, licensePlate: 'S-EV-1', trim: null,
-  batteryCapacityKwh: batteryKwh, powerKw: null,
+  customNetCapacityKwh: batteryKwh, powerKw: null,
   registrationDate: '2022-01-01', deregistrationDate: null,
   status: 'ACTIVE', createdAt: '', updatedAt: '',
   imageUrl: null, imagePublic: false, isPrimary: true,
