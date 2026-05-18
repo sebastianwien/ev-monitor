@@ -1880,9 +1880,6 @@ demo:
   settings_notice: I demoläget kan du bläddra igenom alla inställningar, men du kan inte göra några ändringar.
   settings_cta: Okej
 announcements:
-  blog_launch_v1_title: "Nytt: EV Monitor-blogg"
-  blog_launch_v1_body: "Jag delar nu berättelser och bakgrund från utvecklingen av EV Monitor - felsökning, tekniska beslut och små detektivuppdrag. Första inlägget: hur vi spårade upp en laddsession som saknade halva energin."
-  blog_launch_v1_cta: "Till bloggen"
   consumption_methodology_v1_title: "Varför är min förbrukning högre än trippdatorn?"
   consumption_methodology_v1_body: "Vi har förklarat detta i detalj - med riktiga siffror och hela energikedjan från elnätet till motorn."
   consumption_methodology_v1_cta: "Läs mer"

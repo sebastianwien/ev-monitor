@@ -1914,9 +1914,6 @@ demo:
   settings_cta: "Got it"
 
 announcements:
-  blog_launch_v1_title: "New: EV Monitor Blog"
-  blog_launch_v1_body: "I am sharing stories and background from building EV Monitor - debugging sessions, technical decisions and small detective work. First post: how we tracked down a charging session that was missing half its energy."
-  blog_launch_v1_cta: "Open the blog"
   consumption_methodology_v1_title: "Why is my consumption higher than my trip computer?"
   consumption_methodology_v1_body: "We have explained this in detail - with real numbers, the full energy chain from the grid to the motor, and the reason why both values are correct."
   consumption_methodology_v1_cta: "Learn more"

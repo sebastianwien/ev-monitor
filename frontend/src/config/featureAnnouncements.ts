@@ -19,15 +19,6 @@ export interface FeatureAnnouncement {
 
 export const featureAnnouncements: FeatureAnnouncement[] = [
   {
-    key: 'blog-launch-v1',
-    expiresAt: '2026-06-18',
-    releasedAt: '2026-05-18',
-    titleKey: 'announcements.blog_launch_v1_title',
-    bodyKey: 'announcements.blog_launch_v1_body',
-    ctaLabelKey: 'announcements.blog_launch_v1_cta',
-    ctaRoute: '/blog',
-  },
-  {
     key: 'autosync-live-launch-v1',
     expiresAt: '2026-06-15',
     releasedAt: '2026-05-12',
