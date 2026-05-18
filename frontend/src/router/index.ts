@@ -405,6 +405,18 @@ const router = createRouter({
             component: () => import('../views/ConsumptionMethodologyView.vue')
         },
         {
+            path: '/blog',
+            name: 'blog-list',
+            component: () => import('../views/BlogListView.vue')
+            // public, German-only for Phase 1
+        },
+        {
+            path: '/blog/:slug',
+            name: 'blog-post',
+            component: () => import('../views/BlogPostView.vue')
+            // public, German-only for Phase 1
+        },
+        {
             path: '/terms',
             name: 'terms',
             component: TermsView

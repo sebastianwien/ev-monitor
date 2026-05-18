@@ -104,6 +104,7 @@ landing:
     privacy: "Privacy Policy"
     imprint: "Imprint"
     terms: "Terms"
+    blog: "Blog"
     github: "GitHub"
     feedback: "Feedback"
 
@@ -1799,7 +1800,20 @@ footer:
   imprint: "Imprint"
   terms: "Terms"
   consumption_methodology: "How consumption is calculated"
+  blog: "Blog"
   github: "GitHub"
+
+blog:
+  meta_title: "Blog - EV Monitor"
+  meta_description: "Stories, background and notes from building EV Monitor."
+  list_title: "Blog"
+  list_subtitle: "Stories, background and notes from building EV Monitor."
+  no_posts: "No posts yet."
+  read_more: "Read more"
+  breadcrumb: "Blog"
+  back_to_list: "Back to overview"
+  not_found_title: "Post not found"
+  not_found_text: "This blog post does not (or no longer) exist."
 
 tronity:
   title: "Tronity Import"
@@ -1900,6 +1914,9 @@ demo:
   settings_cta: "Got it"
 
 announcements:
+  blog_launch_v1_title: "New: EV Monitor Blog"
+  blog_launch_v1_body: "I am sharing stories and background from building EV Monitor - debugging sessions, technical decisions and small detective work. First post: how we tracked down a charging session that was missing half its energy."
+  blog_launch_v1_cta: "Open the blog"
   consumption_methodology_v1_title: "Why is my consumption higher than my trip computer?"
   consumption_methodology_v1_body: "We have explained this in detail - with real numbers, the full energy chain from the grid to the motor, and the reason why both values are correct."
   consumption_methodology_v1_cta: "Learn more"

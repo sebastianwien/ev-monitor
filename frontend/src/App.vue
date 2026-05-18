@@ -520,6 +520,7 @@ const closeMobileMenu = () => {
             <router-link to="/impressum" class="hover:text-green-600 underline">{{ t('footer.imprint') }}</router-link> ·
             <router-link to="/agb" class="hover:text-green-600 underline">{{ t('footer.terms') }}</router-link> ·
             <router-link to="/consumption-methodology" class="hover:text-green-600 underline">{{ t('footer.consumption_methodology') }}</router-link> ·
+            <router-link to="/blog" class="hover:text-green-600 underline">{{ t('footer.blog') }}</router-link> ·
             <a href="https://github.com/sebastianwien/ev-monitor" target="_blank" rel="noopener noreferrer" class="hover:text-green-600 underline">{{ t('footer.github') }}</a>
           </p>
           <p>

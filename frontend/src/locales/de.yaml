@@ -104,6 +104,7 @@ landing:
     privacy: "Datenschutz"
     imprint: "Impressum"
     terms: "AGB"
+    blog: "Blog"
     github: "GitHub"
     feedback: "Feedback"
 
@@ -1799,7 +1800,20 @@ footer:
   imprint: "Impressum"
   terms: "AGB"
   consumption_methodology: "Verbrauchsmethodik"
+  blog: "Blog"
   github: "GitHub"
+
+blog:
+  meta_title: "Blog - EV Monitor"
+  meta_description: "Geschichten, Hintergründe und Notizen aus der Entwicklung von EV Monitor."
+  list_title: "Blog"
+  list_subtitle: "Geschichten, Hintergründe und Notizen aus der Entwicklung von EV Monitor."
+  no_posts: "Noch keine Posts."
+  read_more: "Weiterlesen"
+  breadcrumb: "Blog"
+  back_to_list: "Zurück zur Übersicht"
+  not_found_title: "Post nicht gefunden"
+  not_found_text: "Dieser Blog-Post existiert nicht (mehr)."
 
 tronity:
   title: "Tronity Import"
@@ -1900,6 +1914,9 @@ demo:
   settings_cta: "Alles klar"
 
 announcements:
+  blog_launch_v1_title: "Neu: EV Monitor Blog"
+  blog_launch_v1_body: "Ich teile ab jetzt Geschichten und Hintergründe aus der Entwicklung von EV Monitor - Debugging-Sessions, technische Entscheidungen und kleine Detektivarbeiten. Erster Post: wie wir einen halbierten Ladevorgang aufgespürt haben."
+  blog_launch_v1_cta: "Zum Blog"
   consumption_methodology_v1_title: "Warum liegt mein Verbrauch über dem Bordcomputer?"
   consumption_methodology_v1_body: "Das haben wir jetzt ausführlich erklärt - mit echten Zahlen, der vollen Energiekette vom Stromnetz bis zum Motor, und dem Grund warum beide Werte korrekt sind."
   consumption_methodology_v1_cta: "Mehr erfahren"

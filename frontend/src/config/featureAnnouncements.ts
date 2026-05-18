@@ -19,6 +19,15 @@ export interface FeatureAnnouncement {
 
 export const featureAnnouncements: FeatureAnnouncement[] = [
   {
+    key: 'blog-launch-v1',
+    expiresAt: '2026-06-18',
+    releasedAt: '2026-05-18',
+    titleKey: 'announcements.blog_launch_v1_title',
+    bodyKey: 'announcements.blog_launch_v1_body',
+    ctaLabelKey: 'announcements.blog_launch_v1_cta',
+    ctaRoute: '/blog',
+  },
+  {
     key: 'autosync-live-launch-v1',
     expiresAt: '2026-06-15',
     releasedAt: '2026-05-12',
@@ -51,13 +60,6 @@ export const featureAnnouncements: FeatureAnnouncement[] = [
     releasedAt: '2026-04-28',
     titleKey: 'announcements.brutto_netto_v1_title',
     bodyKey: 'announcements.brutto_netto_v1_body',
-  },
-  {
-    key: 'net-capacity-v1',
-    expiresAt: '2026-05-12',
-    releasedAt: '2026-04-21',
-    titleKey: 'announcements.net_capacity_v1_title',
-    bodyKey: 'announcements.net_capacity_v1_body',
   },
   {
     key: 'car-reassignment-v1',

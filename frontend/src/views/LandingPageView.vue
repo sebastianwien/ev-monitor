@@ -627,6 +627,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
           </div>
           <div class="flex flex-wrap justify-center gap-6 text-sm text-gray-600 dark:text-gray-400">
             <router-link :to="modelsUrl" class="hover:text-gray-900 dark:hover:text-gray-100 font-medium">{{ t('landing.footer.models') }}</router-link>
+            <router-link to="/blog" class="hover:text-gray-900 dark:hover:text-gray-100">{{ t('landing.footer.blog') }}</router-link>
             <router-link to="/datenschutz" class="hover:text-gray-900 dark:hover:text-gray-100">{{ t('landing.footer.privacy') }}</router-link>
             <router-link to="/impressum" class="hover:text-gray-900 dark:hover:text-gray-100">{{ t('landing.footer.imprint') }}</router-link>
             <router-link to="/agb" class="hover:text-gray-900 dark:hover:text-gray-100">{{ t('landing.footer.terms') }}</router-link>

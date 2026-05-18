@@ -102,6 +102,7 @@ landing:
     privacy: Integritetspolicy
     imprint: Impressum
     terms: Villkor
+    blog: Blogg
     github: GitHub
     feedback: Synpunkter
 landing_v2:
@@ -1768,7 +1769,19 @@ footer:
   imprint: Impressum
   terms: Villkor
   consumption_methodology: Förbrukningsmetodik
+  blog: Blogg
   github: GitHub
+blog:
+  meta_title: "Blogg - EV Monitor"
+  meta_description: "Berättelser, bakgrund och anteckningar från utvecklingen av EV Monitor."
+  list_title: "Blogg"
+  list_subtitle: "Berättelser, bakgrund och anteckningar från utvecklingen av EV Monitor."
+  no_posts: "Inga inlägg ännu."
+  read_more: "Läs mer"
+  breadcrumb: "Blogg"
+  back_to_list: "Tillbaka till översikten"
+  not_found_title: "Inlägget hittades inte"
+  not_found_text: "Det här blogginlägget finns inte (längre)."
 tronity:
   title: Tronity Import
   desc: Importera din laddningshistorik direkt från Tronitys XLSX-export. I Tronity-appen under <strong>Resor &amp; laddning – Laddning – Exportera</strong> skapar du en XLSX-fil och laddar upp den här.
@@ -1867,6 +1880,9 @@ demo:
   settings_notice: I demoläget kan du bläddra igenom alla inställningar, men du kan inte göra några ändringar.
   settings_cta: Okej
 announcements:
+  blog_launch_v1_title: "Nytt: EV Monitor-blogg"
+  blog_launch_v1_body: "Jag delar nu berättelser och bakgrund från utvecklingen av EV Monitor - felsökning, tekniska beslut och små detektivuppdrag. Första inlägget: hur vi spårade upp en laddsession som saknade halva energin."
+  blog_launch_v1_cta: "Till bloggen"
   consumption_methodology_v1_title: "Varför är min förbrukning högre än trippdatorn?"
   consumption_methodology_v1_body: "Vi har förklarat detta i detalj - med riktiga siffror och hela energikedjan från elnätet till motorn."
   consumption_methodology_v1_cta: "Läs mer"
