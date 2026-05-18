@@ -57,8 +57,9 @@ const carDisplayName = (brand: string | null | undefined, model: string | null |
   return m.toLowerCase().startsWith(b.toLowerCase()) ? m : `${b} ${m}`.trim()
 }
 
-const carLabel = (car: { brand: string; model: string; licensePlate: string }): string => {
-  const name = carDisplayName(car.brand, car.model)
+const carLabel = (car: { brand: string; model: string; licensePlate: string; trim?: string | null }): string => {
+  const base = carDisplayName(car.brand, car.model)
+  const name = car.trim ? `${base} ${car.trim}` : base
   return car.licensePlate ? `${name} · ${car.licensePlate}` : name
 }
 
