@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-950">
+  <div :class="isAuthenticated ? '' : 'min-h-screen bg-gray-50 dark:bg-gray-950'">
     <PublicNav />
 
     <main class="max-w-3xl mx-auto md:px-4 py-6 md:py-10">
@@ -53,9 +53,12 @@ import { useI18n } from 'vue-i18n'
 import PublicNav from '../components/shared/PublicNav.vue'
 import BlogComments from '../components/blog/BlogComments.vue'
 import { findPostBySlug } from '../utils/markdownLoader'
+import { useAuthStore } from '../stores/auth'
 
 const { t } = useI18n()
 const route = useRoute()
+const authStore = useAuthStore()
+const isAuthenticated = computed(() => authStore.isAuthenticated())
 
 const post = computed(() => {
   const slug = String(route.params.slug ?? '')
