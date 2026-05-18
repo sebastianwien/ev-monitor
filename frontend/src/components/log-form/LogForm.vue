@@ -13,13 +13,34 @@ import { useHaptic } from '../../composables/useHaptic'
 import { analytics } from '../../services/analytics'
 import { useCarStore } from '../../stores/car'
 import { tempBadgeClass } from '../../utils/temperatureColor'
+import { consumptionTextClass } from '../../utils/consumptionColor'
+import { costBadgeClass } from '../../utils/costColor'
+import { isShortTrip } from '../../utils/shortTrip'
 import { datetimeLocalToUtcIso } from '../../utils/datetime'
 import ConsumptionInfoBox from '../dashboard/ConsumptionInfoBox.vue'
 import EditLogModal from '../dashboard/EditLogModal.vue'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const { haptic } = useHaptic()
-const { formatDistance } = useLocaleFormat()
+const { formatDistance, formatConsumption, formatCurrency, formatCostPerKwh } = useLocaleFormat()
+
+// ── Format helpers (kept lean - mirror LogsView card design) ──────────────────
+function formatLogDate(loggedAt: string): string {
+  const d = new Date(loggedAt)
+  const isCurrentYear = d.getFullYear() === new Date().getFullYear()
+  const loc = locale.value === 'en' ? 'en-GB' : 'de-DE'
+  const date = d.toLocaleDateString(loc, { day: 'numeric', month: 'numeric', ...(isCurrentYear ? {} : { year: 'numeric' }) })
+  const time = d.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' })
+  return `${date}, ${time}`
+}
+
+function chargingEfficiency(kwhCharged: number | null, kwhAtVehicle: number | null): number | null {
+  if (!kwhCharged || !kwhAtVehicle || kwhCharged <= 0) return null
+  return Math.round((kwhAtVehicle / kwhCharged) * 1000) / 10
+}
+
+// Toggle all log cards between absolute cost and cost-per-kWh display.
+const showCostAbsolute = ref(false)
 const coinStore = useCoinStore()
 const carStore = useCarStore()
 const logsRefreshStore = useLogsRefreshStore()
@@ -352,54 +373,99 @@ onMounted(async () => {
           <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">{{ t('logform.last_5_title') }}</h2>
           <div v-if="!selectedCarId" class="text-gray-500 dark:text-gray-400 text-center">{{ t('logform.no_car_selected') }}</div>
           <div v-else-if="logs.length === 0" class="text-gray-500 dark:text-gray-400 text-center">{{ t('logform.no_logs_yet') }}</div>
-          <ul v-else class="space-y-3">
-            <li v-for="log in logs" :key="log.id" class="p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-sm shadow-sm hover:shadow transition space-y-2">
+          <ul v-else class="space-y-2">
+            <li v-for="log in logs" :key="log.id"
+              class="p-3 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] space-y-2">
+              <!-- Header row: Bolt + AC/DC, energy, date, cost-pill, edit, delete -->
               <div class="flex items-center justify-between gap-2">
-                <div class="flex items-center gap-2 min-w-0">
-                  <BoltIcon class="w-4 h-4 text-indigo-600 flex-shrink-0" />
-                  <span class="font-semibold text-indigo-700 whitespace-nowrap">{{ (log.kwhCharged ?? '-') + '/' + (log.kwhAtVehicle ?? '-') }} kWh</span>
-                  <span class="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{{ new Date(log.loggedAt).toLocaleDateString() }}</span>
+                <div class="flex items-center gap-2 min-w-0 overflow-hidden flex-1">
+                  <BoltIcon class="w-4 h-4 text-green-500 dark:text-green-400 flex-shrink-0" />
+                  <span v-if="log.chargingType === 'AC'"
+                    class="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 font-medium flex-shrink-0">AC</span>
+                  <span v-else-if="log.chargingType === 'DC'"
+                    class="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-medium flex-shrink-0">DC</span>
+                  <span class="font-semibold text-indigo-700 dark:text-indigo-300 whitespace-nowrap">
+                    {{ log.kwhAtVehicle ?? log.kwhCharged ?? '-' }} kWh
+                  </span>
+                  <span class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap truncate">{{ formatLogDate(log.loggedAt) }}</span>
                 </div>
                 <div class="flex items-center gap-1.5 flex-shrink-0">
-                  <span v-if="log.temperatureCelsius != null"
-                    :class="['inline-flex items-center gap-0.5 px-2 py-0.5 border rounded-full text-xs whitespace-nowrap', tempBadgeClass(log.temperatureCelsius)]">
-                    <SunIcon class="w-3 h-3" />{{ log.temperatureCelsius.toFixed(1) }}°C
-                  </span>
-                  <span class="hidden min-[475px]:inline-block px-2 py-0.5 bg-indigo-50 border border-indigo-200 text-xs rounded-full text-indigo-700 font-medium whitespace-nowrap">
-                    €{{ (log.costEur / (log.kwhCharged ?? log.kwhAtVehicle)).toFixed(2) }}/kWh
+                  <span v-if="log.costEur != null && (log.kwhCharged ?? log.kwhAtVehicle)"
+                    :class="['inline-flex items-center px-2 py-0.5 text-xs border rounded-full font-medium whitespace-nowrap cursor-pointer transition-all duration-75',
+                             showCostAbsolute
+                               ? 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'
+                               : [(costBadgeClass(log.costEur, log.kwhCharged ?? log.kwhAtVehicle) ?? 'bg-green-50 border-green-200 text-green-700'), 'shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'].join(' ')]"
+                    @click.stop="showCostAbsolute = !showCostAbsolute">
+                    <template v-if="showCostAbsolute">{{ formatCurrency(log.costEur) }}</template>
+                    <template v-else>{{ formatCostPerKwh(log.costEur / (log.kwhCharged ?? log.kwhAtVehicle)) }}</template>
                   </span>
                   <button type="button" @click="editingLog = log"
-                    class="p-1 text-gray-400 dark:text-gray-500 hover:text-blue-500 hover:bg-blue-50 rounded transition" :title="t('logform.edit_title')">
+                    class="p-1 text-gray-400 dark:text-gray-500 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition"
+                    :title="t('logform.edit_title')"
+                    :aria-label="t('logform.edit_title')">
                     <PencilSquareIcon class="w-4 h-4" />
                   </button>
                   <button type="button" @click="deleteLog(log.id)"
                     class="p-1 rounded transition"
-                    :class="pendingDeleteId === log.id ? 'text-red-600 bg-red-50 ring-1 ring-red-300' : 'text-gray-400 dark:text-gray-500 hover:text-red-500 hover:bg-red-50'"
-                    :title="pendingDeleteId === log.id ? t('logform.confirm_delete') : t('logform.delete_title')">
+                    :class="pendingDeleteId === log.id ? 'text-red-600 bg-red-50 dark:bg-red-900/30 ring-1 ring-red-300' : 'text-gray-400 dark:text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30'"
+                    :title="pendingDeleteId === log.id ? t('logform.confirm_delete') : t('logform.delete_title')"
+                    :aria-label="pendingDeleteId === log.id ? t('logform.confirm_delete') : t('logform.delete_title')">
                     <TrashIcon class="w-4 h-4" />
                   </button>
                 </div>
               </div>
-              <div class="flex flex-wrap gap-1.5">
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">€{{ log.costEur }}</span>
-                <span class="inline-flex min-[475px]:hidden items-center gap-1 px-2 py-0.5 bg-indigo-50 border border-indigo-200 rounded-full text-xs text-indigo-700 font-medium whitespace-nowrap">
-                  €{{ (log.costEur / (log.kwhCharged ?? log.kwhAtVehicle)).toFixed(2) }}/kWh
+              <!-- Stats row: consumption, duration, SoC, power -->
+              <div v-if="log.consumptionKwhPer100km != null || isShortTrip(log) || log.chargeDurationMinutes || log.socAfterChargePercent != null || log.maxChargingPowerKw"
+                class="flex flex-wrap gap-x-3 gap-y-0.5 items-center">
+                <span v-if="log.consumptionKwhPer100km == null && isShortTrip(log)"
+                  class="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
+                  {{ t('dashboard.short_trip_hint') }}
                 </span>
-                <span v-if="log.chargeDurationMinutes" class="hidden min-[475px]:inline-flex items-center gap-1 px-2 py-0.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                  <ClockIcon class="w-3 h-3" />{{ log.chargeDurationMinutes }}min
+                <span v-else-if="log.consumptionKwhPer100km != null"
+                  :class="['inline-flex items-center gap-1 text-xs font-medium whitespace-nowrap',
+                           log.consumptionImplausible
+                             ? 'text-red-600 dark:text-red-400'
+                             : log.consumptionIsEstimated
+                               ? 'text-gray-500 dark:text-gray-400'
+                               : consumptionTextClass(log.consumptionKwhPer100km, null)]">
+                  {{ log.consumptionIsEstimated ? '~' : '' }}{{ formatConsumption(log.consumptionKwhPer100km) }}
                 </span>
-                <span v-if="log.odometerKm" class="hidden min-[475px]:inline-flex items-center gap-1 px-2 py-0.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                  <TruckIcon class="w-3 h-3" />{{ formatDistance(log.odometerKm) }}
+                <span v-if="log.chargeDurationMinutes"
+                  class="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                  <ClockIcon class="w-3 h-3" />{{ log.chargeDurationMinutes }} min
                 </span>
-                <span v-if="log.socAfterChargePercent !== null" class="inline-flex items-center gap-1 px-2 py-0.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                <span v-if="log.socBeforeChargePercent != null && log.socAfterChargePercent != null"
+                  class="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                  <Battery0Icon class="w-3 h-3" />{{ log.socBeforeChargePercent }} -> {{ log.socAfterChargePercent }}%
+                </span>
+                <span v-else-if="log.socAfterChargePercent != null"
+                  class="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
                   <Battery0Icon class="w-3 h-3" />{{ log.socAfterChargePercent }}%
                 </span>
-                <span v-if="log.maxChargingPowerKw" class="inline-flex items-center gap-1 px-2 py-0.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                <span v-if="log.maxChargingPowerKw"
+                  class="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
                   <BoltIcon class="w-3 h-3" />{{ log.maxChargingPowerKw }} kW
                 </span>
-                <span v-if="log.chargingType && log.chargingType !== 'UNKNOWN'"
-                  :class="['inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap', log.chargingType === 'DC' ? 'bg-orange-50 border border-orange-200 text-orange-700' : 'bg-blue-50 border border-blue-200 text-blue-700']">
-                  {{ log.chargingType }}
+              </div>
+              <!-- Chips row: temperature, distance/odometer -->
+              <div v-if="log.temperatureCelsius != null || log.odometerKm != null"
+                class="flex flex-wrap gap-1.5 items-center">
+                <span v-if="log.temperatureCelsius != null"
+                  :class="['inline-flex items-center gap-0.5 px-2 py-0.5 border rounded text-xs whitespace-nowrap', tempBadgeClass(log.temperatureCelsius)]">
+                  <SunIcon class="w-3 h-3" />{{ log.temperatureCelsius.toFixed(1) }}°C
+                </span>
+                <span v-if="log.odometerKm != null"
+                  class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-full text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                  <TruckIcon class="w-3 h-3" />{{ formatDistance(log.odometerKm) }}
+                </span>
+              </div>
+              <!-- Brutto / Ladeeffizienz: nur wenn beide Werte gemessen -->
+              <div v-if="log.kwhCharged != null && log.kwhAtVehicle != null"
+                class="flex flex-wrap gap-x-4 gap-y-0.5 items-center text-xs text-gray-500 dark:text-gray-400">
+                <span class="whitespace-nowrap">{{ log.kwhCharged }} kWh brutto</span>
+                <span
+                  :class="['font-medium whitespace-nowrap', (chargingEfficiency(log.kwhCharged, log.kwhAtVehicle) ?? 0) >= 90 ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400']">
+                  {{ chargingEfficiency(log.kwhCharged, log.kwhAtVehicle) }}% {{ t('logform.efficiency_label') }}
                 </span>
               </div>
             </li>

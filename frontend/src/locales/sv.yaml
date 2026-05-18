@@ -740,6 +740,7 @@ logform:
   confirm_delete: Klicka igen för att bekräfta
   delete_title: Ta bort laddningssession
   edit_title: Redigera laddningssession
+  efficiency_label: Effektivitet
 logfields:
   energy: Energi (kWh)
   cost_eur: Kostnad
@@ -770,6 +771,9 @@ logfields:
   max_power_full: Max. laddningseffekt (kW)
   timestamp: Laddningstid
   timestamp_hint: Lämna tomt för aktuell tid
+  timestamp_chip_now: Nu
+  timestamp_chip_1h_ago: 1h sedan
+  timestamp_chip_yesterday_evening: I går kväll
   optional: valfritt
   kwh_placeholder: t.ex. 42,5
   kwh_hint: "Värde för väggladdare eller laddstation (brutto). Laddningsförluster dras automatiskt av vid beräkningen av förbrukningen (växelström: 10 %, likström: 5 %)."

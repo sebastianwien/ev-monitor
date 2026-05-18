@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { ref, watch, computed, onMounted } from 'vue'
+import { ref, watch, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { GlobeAltIcon } from '@heroicons/vue/24/outline'
+import { GlobeAltIcon, CalendarDaysIcon, ClockIcon, MoonIcon } from '@heroicons/vue/24/outline'
+import { VueDatePicker } from '@vuepic/vue-datepicker'
+import '@vuepic/vue-datepicker/dist/main.css'
 import api from '../../api/axios'
 import { useCountryStore } from '../../stores/country'
 import { EUR_EXCHANGE_RATES } from '../../config/exchangeRates'
@@ -153,10 +155,62 @@ const toggleLocation = () => {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-const getCurrentDateTimeLocal = () => {
-  const now = new Date()
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`
+// Pure datetime formatter (kept in sync with __tests__/LogFormFields.test.ts).
+const padTwo = (n: number) => String(n).padStart(2, '0')
+const formatDateTimeLocal = (d: Date): string =>
+  `${d.getFullYear()}-${padTwo(d.getMonth() + 1)}-${padTwo(d.getDate())}T${padTwo(d.getHours())}:${padTwo(d.getMinutes())}`
+
+const getCurrentDateTimeLocal = (): string => formatDateTimeLocal(new Date())
+
+const chipValueNow = (): string => formatDateTimeLocal(new Date())
+const chipValue1hAgo = (): string => {
+  const d = new Date()
+  d.setHours(d.getHours() - 1)
+  return formatDateTimeLocal(d)
+}
+const chipValueYesterdayEvening = (): string => {
+  const d = new Date()
+  d.setDate(d.getDate() - 1)
+  d.setHours(20, 0, 0, 0)
+  return formatDateTimeLocal(d)
+}
+
+// ── VueDatePicker bridge (Desktop) ────────────────────────────────────────────
+// VueDatePicker arbeitet mit Date-Objekten, das Form-Model mit
+// datetime-local-Strings. Wir bruecken bidirektional und respektieren das
+// "keine Zukunft"-Constraint.
+const datePickerValue = computed<Date | null>({
+  get(): Date | null {
+    if (!form.value.loggedAt) return null
+    const parsed = new Date(form.value.loggedAt)
+    return isNaN(parsed.getTime()) ? null : parsed
+  },
+  set(val: Date | null) {
+    form.value.loggedAt = val ? formatDateTimeLocal(val) : null
+  },
+})
+
+const datePickerMaxDate = computed(() => new Date())
+
+// Dark-Mode-Erkennung anhand der .dark-Klasse am <html>-Element.
+const isDark = ref(false)
+let darkObserver: MutationObserver | null = null
+const updateDarkFlag = () => {
+  isDark.value = typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
+}
+onMounted(() => {
+  updateDarkFlag()
+  if (typeof MutationObserver === 'undefined' || typeof document === 'undefined') return
+  darkObserver = new MutationObserver(updateDarkFlag)
+  darkObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+})
+onBeforeUnmount(() => {
+  darkObserver?.disconnect()
+  darkObserver = null
+})
+
+const setLoggedAt = (value: string) => {
+  form.value.loggedAt = value
 }
 
 const inputClass = (field: string) =>
@@ -681,11 +735,60 @@ function cardSubTextColor(id: string): string {
   <!-- Datum/Uhrzeit -->
   <div v-if="!hideDatetime">
     <label class="block text-sm font-medium text-gray-600 dark:text-gray-400">{{ t('logfields.timestamp') }}</label>
+
+    <!-- Quick-Chips: Jetzt, Vor 1h, Gestern Abend -->
+    <div class="mt-1 flex flex-wrap gap-2">
+      <button
+        type="button"
+        @click="setLoggedAt(chipValueNow())"
+        class="chip-3d inline-flex items-center gap-1 rounded-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 px-3 py-1 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        :aria-label="t('logfields.timestamp_chip_now')">
+        <ClockIcon class="h-3.5 w-3.5" />
+        {{ t('logfields.timestamp_chip_now') }}
+      </button>
+      <button
+        type="button"
+        @click="setLoggedAt(chipValue1hAgo())"
+        class="chip-3d inline-flex items-center gap-1 rounded-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 px-3 py-1 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        :aria-label="t('logfields.timestamp_chip_1h_ago')">
+        <CalendarDaysIcon class="h-3.5 w-3.5" />
+        {{ t('logfields.timestamp_chip_1h_ago') }}
+      </button>
+      <button
+        type="button"
+        @click="setLoggedAt(chipValueYesterdayEvening())"
+        class="chip-3d inline-flex items-center gap-1 rounded-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 px-3 py-1 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        :aria-label="t('logfields.timestamp_chip_yesterday_evening')">
+        <MoonIcon class="h-3.5 w-3.5" />
+        {{ t('logfields.timestamp_chip_yesterday_evening') }}
+      </button>
+    </div>
+
+    <!-- Mobile: nativer datetime-local Picker (<768px) -->
     <input
       v-model="form.loggedAt"
       type="datetime-local"
       :max="getCurrentDateTimeLocal()"
-      class="mt-1 block w-full rounded-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
+      class="mt-2 block w-full rounded-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border md:hidden" />
+
+    <!-- Desktop: VueDatePicker (>=768px) -->
+    <div class="hidden md:block mt-2">
+      <VueDatePicker
+        v-model="datePickerValue"
+        :max-date="datePickerMaxDate"
+        :dark="isDark"
+        :enable-time-picker="true"
+        time-picker-inline
+        :minutes-increment="1"
+        :is-24="true"
+        text-input
+        auto-apply
+        :clearable="true"
+        :format="'yyyy-MM-dd HH:mm'"
+        :teleport="true"
+        :placeholder="t('logfields.timestamp')" />
+    </div>
+
     <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ t('logfields.timestamp_hint') }}</p>
   </div>
 </template>

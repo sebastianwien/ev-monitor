@@ -748,6 +748,7 @@ logform:
   confirm_delete: "Nochmal klicken zum Bestätigen"
   delete_title: "Ladevorgang löschen"
   edit_title: "Ladevorgang bearbeiten"
+  efficiency_label: "Effizienz"
 
 logfields:
   energy: "Energie (kWh)"
@@ -779,6 +780,9 @@ logfields:
   max_power_full: "Max. Ladeleistung (kW)"
   timestamp: "Ladezeitpunkt"
   timestamp_hint: "Leer lassen für aktuelle Zeit"
+  timestamp_chip_now: "Jetzt"
+  timestamp_chip_1h_ago: "Vor 1h"
+  timestamp_chip_yesterday_evening: "Gestern Abend"
   optional: "optional"
   kwh_placeholder: "z.B. 42.5"
   kwh_hint: "Wallbox- oder Ladesäulenwert (Bruttowert). Ladeverluste werden für die Verbrauchsberechnung automatisch herausgerechnet (AC: 10%, DC: 5%)."

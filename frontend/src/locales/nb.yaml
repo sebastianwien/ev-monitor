@@ -740,6 +740,7 @@ logform:
   confirm_delete: Klikk igjen for å bekrefte
   delete_title: Slett ladesesjon
   edit_title: Rediger ladesesjon
+  efficiency_label: Effektivitet
 logfields:
   energy: Energi (kWh)
   cost_eur: Kostnad
@@ -770,6 +771,9 @@ logfields:
   max_power_full: Maks. ladeeffekt (kW)
   timestamp: Ladetid
   timestamp_hint: La feltet stå tomt for gjeldende klokkeslett
+  timestamp_chip_now: Nå
+  timestamp_chip_1h_ago: 1t siden
+  timestamp_chip_yesterday_evening: I går kveld
   optional: valgfritt
   kwh_placeholder: f.eks. 42,5
   kwh_hint: "Verdien for veggmontert ladeboks eller ladestasjon (brutto). Ladetap trekkes automatisk fra ved beregning av forbruk (vekselstrøm: 10 %, likestrøm: 5 %)."

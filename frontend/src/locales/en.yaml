@@ -748,6 +748,7 @@ logform:
   confirm_delete: "Click again to confirm"
   delete_title: "Delete charging session"
   edit_title: "Edit charging session"
+  efficiency_label: "Efficiency"
 
 logfields:
   energy: "Energy (kWh)"
@@ -779,6 +780,9 @@ logfields:
   max_power_full: "Max. charging power (kW)"
   timestamp: "Charge time"
   timestamp_hint: "Leave empty for current time"
+  timestamp_chip_now: "Now"
+  timestamp_chip_1h_ago: "1h ago"
+  timestamp_chip_yesterday_evening: "Yesterday evening"
   optional: "optional"
   kwh_placeholder: "e.g. 42.5"
   kwh_hint: "Wallbox or charging station value (gross). Charging losses are automatically removed for consumption calculation (AC: 10%, DC: 5%)."
