@@ -68,5 +68,8 @@ cache.json
 
 tesla_explorer.py
 
+# Local research/reference data (manual download from third parties, not source of truth)
+data/
+
 docs
 CLAUDE.md
