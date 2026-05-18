@@ -1,5 +1,6 @@
 package com.evmonitor.application;
 
+import com.evmonitor.domain.EnergySource;
 import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.EnergyMeasurementType;
 
@@ -62,6 +63,11 @@ public class BatterySohAutoDetector {
 
     static boolean isQualifying(EvLog log) {
         if (!log.isIncludeInStatistics()) return false;
+        // SOC_INFERRED logs would create a self-referential loop: their kwh value was
+        // computed from SoC-delta x effective_capacity, so feeding it back into SoH
+        // detection yields the very capacity that was assumed (drifting by brutto/netto
+        // ratio per run). NULL stays trusted for backwards-compat with pre-V119 rows.
+        if (log.getEnergySource() == EnergySource.SOC_INFERRED) return false;
         boolean hasVehicleKwh = log.getMeasurementType() == EnergyMeasurementType.AT_VEHICLE
                 || log.getKwhAtVehicle() != null;
         if (!hasVehicleKwh) return false;

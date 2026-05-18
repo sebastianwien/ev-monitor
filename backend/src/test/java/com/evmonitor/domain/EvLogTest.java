@@ -246,4 +246,29 @@ class EvLogTest {
                 .loggedAt(LocalDateTime.now()).build();
         assertNull(log.costBasisKwh());
     }
+
+    // --- energySource (V119 prep) ------------------------------------------
+
+    @Test
+    void energySource_defaultsToNull_forBackwardsCompat() {
+        EvLog log = EvLog.builder()
+                .id(UUID.randomUUID()).carId(UUID.randomUUID())
+                .dataSource(DataSource.USER_LOGGED)
+                .loggedAt(LocalDateTime.now())
+                .build();
+
+        assertNull(log.getEnergySource(), "energySource must default to NULL (legacy rows)");
+    }
+
+    @Test
+    void energySource_isPropagatedFromBuilder() {
+        EvLog log = EvLog.builder()
+                .id(UUID.randomUUID()).carId(UUID.randomUUID())
+                .dataSource(DataSource.SMARTCAR_LIVE)
+                .energySource(EnergySource.SOC_INFERRED)
+                .loggedAt(LocalDateTime.now())
+                .build();
+
+        assertEquals(EnergySource.SOC_INFERRED, log.getEnergySource());
+    }
 }

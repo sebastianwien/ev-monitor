@@ -41,6 +41,10 @@ public class EvLog {
     private final boolean publicCharging;    // Whether this was at a public charger (CPO)
     private final String cpoName;            // Optional: CPO name (e.g. IONITY, EnBW) - only when isPublicCharging
     private final EnergyMeasurementType measurementType; // At which point energy is measured (derived from dataSource)
+    /** Provenance of the kWh value (OEM_MEASURED, SOC_INFERRED, USER_INPUT, WALLBOX).
+     *  NULL for legacy rows before V119 - treated as trusted (backwards-compatible).
+     *  Read-only marker; write side will be wired up in a later step. */
+    private final EnergySource energySource;
     private final BigDecimal costExchangeRate; // EUR->local rate used at entry time (null = EUR direct)
     private final String costCurrency;         // ISO 4217 currency code (null = EUR)
     private final UUID chargingProviderId;   // Optional: FK to user_charging_providers (which tariff was used)
@@ -63,6 +67,7 @@ public class EvLog {
             LocalDateTime createdAt, LocalDateTime updatedAt,
             RouteType routeType, TireType tireType, UUID sessionGroupId,
             boolean publicCharging, String cpoName, EnergyMeasurementType measurementType,
+            EnergySource energySource,
             BigDecimal costExchangeRate, String costCurrency, UUID chargingProviderId,
             boolean hasPowerCurve) {
         this.id = id;
@@ -101,6 +106,7 @@ public class EvLog {
         this.sessionGroupId = sessionGroupId;
         this.publicCharging = publicCharging;
         this.cpoName = cpoName;
+        this.energySource = energySource;
         this.costExchangeRate = costExchangeRate;
         this.costCurrency = costCurrency;
         this.chargingProviderId = chargingProviderId;

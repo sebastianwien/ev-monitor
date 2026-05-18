@@ -1,6 +1,7 @@
 package com.evmonitor.application;
 
 import com.evmonitor.domain.DataSource;
+import com.evmonitor.domain.EnergySource;
 import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.EnergyMeasurementType;
 import org.junit.jupiter.api.Test;
@@ -19,6 +20,11 @@ class BatterySohAutoDetectorTest {
     private static final BigDecimal BATTERY_75 = new BigDecimal("75.00");
 
     private EvLog atVehicleLog(double kwh, int socBefore, int socAfter, LocalDateTime loggedAt) {
+        return atVehicleLog(kwh, socBefore, socAfter, loggedAt, null);
+    }
+
+    private EvLog atVehicleLog(double kwh, int socBefore, int socAfter, LocalDateTime loggedAt,
+            EnergySource energySource) {
         return EvLog.builder()
                 .id(UUID.randomUUID())
                 .carId(UUID.randomUUID())
@@ -29,6 +35,7 @@ class BatterySohAutoDetectorTest {
                 .measurementType(EnergyMeasurementType.AT_VEHICLE)
                 .dataSource(DataSource.SMARTCAR_LIVE)
                 .includeInStatistics(true)
+                .energySource(energySource)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
@@ -193,6 +200,79 @@ class BatterySohAutoDetectorTest {
 
         assertTrue(soh.isPresent());
         assertEquals(new BigDecimal("92.02"), soh.get(), "Must use kwhAtVehicle, not kwhCharged");
+    }
+
+    // --- energySource marker (V119 prep) -----------------------------------
+
+    @Test
+    void isQualifying_returnsFalse_whenEnergySourceIsSocInferred() {
+        // SOC_INFERRED logs are the trigger of the SoH-AutoDetect loop:
+        // kwh was computed from SoC-delta x effective_capacity, so feeding it back
+        // into SoH detection produces tautological output and drift.
+        EvLog log = atVehicleLog(44.17, 26, 90, LocalDateTime.now(), EnergySource.SOC_INFERRED);
+
+        assertFalse(BatterySohAutoDetector.isQualifying(log),
+                "SOC_INFERRED logs must be excluded from SoH detection");
+    }
+
+    @Test
+    void isQualifying_returnsTrue_whenEnergySourceIsNull() {
+        // Backwards-compat: legacy rows before V119 have NULL and must stay qualifying.
+        EvLog log = atVehicleLog(44.17, 26, 90, LocalDateTime.now(), null);
+
+        assertTrue(BatterySohAutoDetector.isQualifying(log),
+                "NULL energySource must remain qualifying (backwards-compat)");
+    }
+
+    @Test
+    void isQualifying_returnsTrue_whenEnergySourceIsOemMeasured() {
+        EvLog log = atVehicleLog(44.17, 26, 90, LocalDateTime.now(), EnergySource.OEM_MEASURED);
+
+        assertTrue(BatterySohAutoDetector.isQualifying(log));
+    }
+
+    @Test
+    void isQualifying_returnsTrue_whenEnergySourceIsUserInput() {
+        EvLog log = atVehicleLog(44.17, 26, 90, LocalDateTime.now(), EnergySource.USER_INPUT);
+
+        assertTrue(BatterySohAutoDetector.isQualifying(log));
+    }
+
+    @Test
+    void isQualifying_returnsTrue_whenEnergySourceIsWallbox() {
+        EvLog log = atVehicleLog(44.17, 26, 90, LocalDateTime.now(), EnergySource.WALLBOX);
+
+        assertTrue(BatterySohAutoDetector.isQualifying(log));
+    }
+
+    @Test
+    void detectSohPercent_excludesSocInferredLogs_fromMedianWindow() {
+        // 5 OEM_MEASURED logs estimate capacity ~69 kWh (SoH 92.00%).
+        // 5 SOC_INFERRED logs would each estimate a clean 75 kWh (SoH 100%) - if
+        // they leak into the window the median jumps. They MUST be filtered out.
+        List<EvLog> logs = new ArrayList<>();
+        // 5 SOC_INFERRED logs (kwh = 48.0 -> capacity 75.00 kWh) - older
+        for (int i = 10; i >= 6; i--) {
+            logs.add(atVehicleLog(48.00, 26, 90, LocalDateTime.now().minusDays(i),
+                    EnergySource.SOC_INFERRED));
+        }
+        // 5 OEM_MEASURED logs - newer, must form the window
+        logs.add(atVehicleLog(44.80, 26, 90, LocalDateTime.now().minusDays(5),
+                EnergySource.OEM_MEASURED)); // 70.00 kWh
+        logs.add(atVehicleLog(43.52, 26, 90, LocalDateTime.now().minusDays(4),
+                EnergySource.OEM_MEASURED)); // 68.00 kWh
+        logs.add(atVehicleLog(44.16, 26, 90, LocalDateTime.now().minusDays(3),
+                EnergySource.OEM_MEASURED)); // 69.00 kWh
+        logs.add(atVehicleLog(45.44, 26, 90, LocalDateTime.now().minusDays(2),
+                EnergySource.OEM_MEASURED)); // 71.00 kWh
+        logs.add(atVehicleLog(42.88, 26, 90, LocalDateTime.now().minusDays(1),
+                EnergySource.OEM_MEASURED)); // 67.00 kWh
+
+        Optional<BigDecimal> soh = BatterySohAutoDetector.detectSohPercent(logs, BATTERY_75);
+
+        assertTrue(soh.isPresent());
+        assertEquals(new BigDecimal("92.00"), soh.get(),
+                "SOC_INFERRED logs must not contribute to the median window");
     }
 
     @Test

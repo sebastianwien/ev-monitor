@@ -102,6 +102,11 @@ public class EvLogEntity {
     @Column(name = "measurement_type", length = 20, nullable = false)
     private String measurementType = "AT_CHARGER";
 
+    /** Provenance marker (V119). Stored as VARCHAR via the same manual mapping pattern
+     *  as {@link #dataSource} / {@link #measurementType}. NULL on legacy rows. */
+    @Column(name = "energy_source", length = 20)
+    private String energySource;
+
     @Column(name = "cost_exchange_rate", precision = 10, scale = 6)
     private BigDecimal costExchangeRate;
 

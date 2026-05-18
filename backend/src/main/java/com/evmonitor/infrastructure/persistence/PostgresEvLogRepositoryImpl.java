@@ -3,6 +3,7 @@ package com.evmonitor.infrastructure.persistence;
 import com.evmonitor.domain.ChargingType;
 import com.evmonitor.domain.DataSource;
 import com.evmonitor.domain.EnergyMeasurementType;
+import com.evmonitor.domain.EnergySource;
 import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.EvLogRepository;
 import com.evmonitor.domain.RouteType;
@@ -317,6 +318,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
         entity.setPublicCharging(domain.isPublicCharging());
         entity.setCpoName(domain.getCpoName());
         entity.setMeasurementType(domain.getMeasurementType().name());
+        entity.setEnergySource(domain.getEnergySource() != null ? domain.getEnergySource().name() : null);
         entity.setCostExchangeRate(domain.getCostExchangeRate());
         entity.setCostCurrency(domain.getCostCurrency());
         entity.setChargingProviderId(domain.getChargingProviderId());
@@ -352,6 +354,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 .publicCharging(entity.isPublicCharging())
                 .cpoName(entity.getCpoName())
                 .measurementType(entity.getMeasurementType() != null ? EnergyMeasurementType.valueOf(entity.getMeasurementType()) : null)
+                .energySource(entity.getEnergySource() != null ? EnergySource.valueOf(entity.getEnergySource()) : null)
                 .costExchangeRate(entity.getCostExchangeRate())
                 .costCurrency(entity.getCostCurrency())
                 .chargingProviderId(entity.getChargingProviderId())
