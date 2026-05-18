@@ -632,6 +632,7 @@ dashboard:
   reassign_success: "Ladevorgang wurde {car} zugeordnet"
   prev: "Zurück"
   next: "Weiter"
+  page_size_label: "Pro Seite"
   free_text: "EV Monitor ist kostenlos."
   coins_total: "Gesamt"
   coins_this_month: "Diesen Monat"

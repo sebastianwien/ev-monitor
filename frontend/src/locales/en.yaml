@@ -632,6 +632,7 @@ dashboard:
   reassign_success: "Charging session assigned to {car}"
   prev: "Previous"
   next: "Next"
+  page_size_label: "Per page"
   free_text: "EV Monitor is free."
   coins_total: "Total"
   coins_this_month: "This month"

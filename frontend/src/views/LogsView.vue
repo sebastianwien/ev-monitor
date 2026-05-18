@@ -13,6 +13,7 @@ import {
   ChevronRightIcon,
   ChevronDownIcon,
   ChevronUpIcon,
+  ChevronUpDownIcon,
   TrashIcon,
   ExclamationTriangleIcon,
   InformationCircleIcon,
@@ -46,7 +47,7 @@ import { useAuthStore } from '../stores/auth'
 import ImplausibleLogsModal from '../components/dashboard/ImplausibleLogsModal.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useDashboardStats } from '../composables/useDashboardStats'
-import { useLogList } from '../composables/useLogList'
+import { useLogList, PAGE_SIZE_OPTIONS, type PageSize } from '../composables/useLogList'
 import { useStickyCarHeader } from '../composables/useStickyCarHeader'
 import { useBulkBarOffset } from '../composables/useBulkBarOffset'
 import { useWallboxStore } from '../stores/wallbox'
@@ -75,7 +76,7 @@ const {
 // -- Log List --
 const logsSection = ref<HTMLElement | null>(null)
 const {
-  logs, logsPage, logsLoading, hasMoreLogs, editingLog,
+  logs, logsPage, logsLoading, hasMoreLogs, editingLog, pageSize, setPageSize,
   expandedGroups, toggleLadegruppe, hasAnyLogs, showOdometer, showCostAbsolute,
   openTooltipLogId, reassignModalEntry, reassignSelectedCarId, reassignSaving,
   reassignError, reassignSuccessMessage, otherCars, openReassignModal, saveReassign,
@@ -2053,13 +2054,26 @@ function toggleAllCharges() {
             </template>
           </div>
           <!-- Pagination -->
-          <div class="flex items-center justify-between mt-4">
+          <div class="flex items-center justify-between gap-2 mt-4">
             <button
               @click="fetchLogsAndScroll(logsPage - 1)"
               :disabled="logsPage === 0"
               class="flex items-center gap-1 px-3 py-2 text-sm rounded-sm border border-gray-200 dark:border-gray-600 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition">
               <ChevronLeftIcon class="w-4 h-4" />{{ t('dashboard.prev') }}
             </button>
+            <label class="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400">
+              <span class="hidden sm:inline">{{ t('dashboard.page_size_label') }}</span>
+              <div class="relative">
+                <select
+                  :value="pageSize"
+                  @change="setPageSize(Number(($event.target as HTMLSelectElement).value) as PageSize)"
+                  :aria-label="t('dashboard.page_size_label')"
+                  class="appearance-none pl-2 pr-7 py-1.5 text-sm rounded-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                  <option v-for="size in PAGE_SIZE_OPTIONS" :key="size" :value="size">{{ size }}</option>
+                </select>
+                <ChevronUpDownIcon class="absolute right-1.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
+              </div>
+            </label>
             <button
               @click="fetchLogsAndScroll(logsPage + 1)"
               :disabled="!hasMoreLogs"

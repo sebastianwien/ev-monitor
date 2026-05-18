@@ -626,6 +626,7 @@ dashboard:
   reassign_success: Laddningssession tilldelad {car}
   prev: Föregående
   next: Nästa
+  page_size_label: Per sida
   free_text: EV Monitor är gratis.
   coins_total: Totalt
   coins_this_month: Den här månaden

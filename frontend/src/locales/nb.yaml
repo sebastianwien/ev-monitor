@@ -626,6 +626,7 @@ dashboard:
   reassign_success: Ladingsøkt tilordnet {car}
   prev: Forrige
   next: Neste
+  page_size_label: Per side
   free_text: EV Monitor er gratis.
   coins_total: Totalt
   coins_this_month: Denne måneden

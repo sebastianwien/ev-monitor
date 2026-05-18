@@ -9,7 +9,34 @@ import {
 } from '@heroicons/vue/24/outline'
 import { carDisplayName } from '../utils/enumLabel'
 
-const PAGE_SIZE = 20
+export const PAGE_SIZE_OPTIONS = [10, 25, 50] as const
+export type PageSize = typeof PAGE_SIZE_OPTIONS[number]
+export const DEFAULT_PAGE_SIZE: PageSize = 25
+export const PAGE_SIZE_STORAGE_KEY = 'ev_logs_page_size'
+
+function isValidPageSize(value: unknown): value is PageSize {
+  return typeof value === 'number' && (PAGE_SIZE_OPTIONS as readonly number[]).includes(value)
+}
+
+export function readStoredPageSize(): PageSize {
+  try {
+    const raw = localStorage.getItem(PAGE_SIZE_STORAGE_KEY)
+    if (raw == null) return DEFAULT_PAGE_SIZE
+    const parsed = Number(raw)
+    return isValidPageSize(parsed) ? parsed : DEFAULT_PAGE_SIZE
+  } catch {
+    return DEFAULT_PAGE_SIZE
+  }
+}
+
+export function writeStoredPageSize(size: PageSize): void {
+  if (!isValidPageSize(size)) return
+  try {
+    localStorage.setItem(PAGE_SIZE_STORAGE_KEY, String(size))
+  } catch {
+    // Ignore (Safari private mode, quota, etc.)
+  }
+}
 
 // Backend stores LocalDateTime without timezone - treat as UTC for consistent comparison
 function toEpochMs(isoString: string | null | undefined): number {
@@ -45,6 +72,7 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
   const logsLoading = ref(false)
   const hasMoreLogs = ref(false)
   const editingLog = ref<any | null>(null)
+  const pageSize = ref<PageSize>(readStoredPageSize())
 
   // Ladegruppen expand/collapse
   const expandedGroups = ref<Set<string>>(new Set())
@@ -240,13 +268,14 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
     if (!selectedCarId.value) return
     logsLoading.value = true
     try {
+      const limit = pageSize.value
       const [logsRes, tripsRes] = await Promise.all([
-        api.get(`/logs?carId=${selectedCarId.value}&limit=${PAGE_SIZE}&page=${page}`),
+        api.get(`/logs?carId=${selectedCarId.value}&limit=${limit}&page=${page}`),
         api.get(`/trips?carId=${selectedCarId.value}`),
       ])
       logs.value = logsRes.data
       logsPage.value = page
-      hasMoreLogs.value = logsRes.data.length === PAGE_SIZE
+      hasMoreLogs.value = logsRes.data.length === limit
       if (tripsRes) {
         trips.value = tripsRes.data
       }
@@ -255,6 +284,14 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
     } finally {
       logsLoading.value = false
     }
+  }
+
+  const setPageSize = (size: PageSize) => {
+    if (size === pageSize.value) return
+    pageSize.value = size
+    writeStoredPageSize(size)
+    // Reset to page 0 to avoid out-of-bounds when shrinking page size
+    fetchLogs(0)
   }
 
   const scrollToLogs = async () => {
@@ -599,6 +636,8 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
     logsLoading,
     hasMoreLogs,
     editingLog,
+    pageSize,
+    setPageSize,
     expandedGroups,
     toggleLadegruppe,
     hasAnyLogs,
