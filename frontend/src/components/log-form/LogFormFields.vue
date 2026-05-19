@@ -766,9 +766,10 @@ function cardSubTextColor(id: string): string {
 
     <!-- Mobile: nativer datetime-local Picker (<768px) -->
     <input
-      v-model="form.loggedAt"
       type="datetime-local"
+      :value="form.loggedAt ?? ''"
       :max="getCurrentDateTimeLocal()"
+      @change="(e) => { form.loggedAt = (e.target as HTMLInputElement).value || null }"
       class="mt-2 block w-full rounded-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border md:hidden" />
 
     <!-- Desktop: VueDatePicker (>=768px) -->
