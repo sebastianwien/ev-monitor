@@ -136,8 +136,6 @@ const isVwGroupCharging = (car: any) =>
 
 const isVehicleCharging = (car: any) => isSmartcarCharging(car) || isVwGroupCharging(car) || isWallboxCharging()
 
-const anyVehicleCharging = computed(() => cars.value.some(car => isVehicleCharging(car)))
-
 // -- Lifecycle --
 watch(selectedCarId, async (newId) => {
   if (newId) {
@@ -290,7 +288,6 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
               cars.length > 1
                 ? 'sticky top-16 z-10 bg-white dark:bg-gray-800 -mx-4 px-4 md:-mx-6 md:px-6 py-1.5 md:py-3 mb-3 border-b border-gray-100 dark:border-gray-700 shadow-sm'
                 : 'mb-6 md:w-fit',
-              cars.length === 1 && anyVehicleCharging ? 'vehicle-charging-glow' : '',
               isCarHeaderSticky ? 'car-header-compact' : ''
             ]"
           >
@@ -1104,32 +1101,6 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
 </template>
 
 <style scoped>
-@keyframes vehicle-charging-glow {
-  0%, 100% {
-    box-shadow: 0 0 14px 4px rgba(74, 222, 128, 0.4), 0 0 32px 10px rgba(74, 222, 128, 0.15);
-  }
-  50% {
-    box-shadow: 0 0 24px 10px rgba(34, 197, 94, 0.6), 0 0 56px 20px rgba(34, 197, 94, 0.25);
-  }
-}
-
-@keyframes vehicle-charging-glow-dark {
-  0%, 100% {
-    box-shadow: 0 0 18px 6px rgba(74, 222, 128, 0.55), 0 0 40px 14px rgba(74, 222, 128, 0.2);
-  }
-  50% {
-    box-shadow: 0 0 32px 14px rgba(134, 239, 172, 0.75), 0 0 64px 24px rgba(74, 222, 128, 0.35);
-  }
-}
-
-.vehicle-charging-glow {
-  animation: vehicle-charging-glow 1.8s ease-in-out infinite;
-}
-
-:global(.dark) .vehicle-charging-glow {
-  animation: vehicle-charging-glow-dark 1.8s ease-in-out infinite;
-}
-
 .fade-enter-active {
   transition: opacity 0.2s ease;
 }
