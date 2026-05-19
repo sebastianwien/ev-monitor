@@ -610,7 +610,7 @@ public class PublicModelService {
 
             // Representative net capacity for range math
             BigDecimal representativeKwh = group.specs().stream()
-                    .map(e -> e.getNetBatteryCapacityKwh() != null ? e.getNetBatteryCapacityKwh() : e.getBatteryCapacityKwh())
+                    .map(VehicleSpecificationEntity::getNominalNetCapacityKwh)
                     .filter(Objects::nonNull).max(BigDecimal::compareTo)
                     .orElse(group.specs().get(0).getBatteryCapacityKwh());
 

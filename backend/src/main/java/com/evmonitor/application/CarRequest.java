@@ -1,6 +1,7 @@
 package com.evmonitor.application;
 
 import com.evmonitor.domain.CarBrand;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
@@ -21,7 +22,12 @@ public record CarRequest(
 
         String trim,
 
-        @NotNull(message = "Battery capacity is required")
+        /**
+         * Nullable: nur gesetzt, wenn der User keine Spec gewaehlt hat oder explizit
+         * einen abweichenden Wert eintraegt. JsonAlias bewahrt API-Kompatibilitaet
+         * fuer Clients die noch den alten Feldnamen senden (vor V120).
+         */
+        @JsonAlias("batteryCapacityKwh")
         @Positive(message = "Battery capacity must be positive")
         BigDecimal customNetCapacityKwh,
 

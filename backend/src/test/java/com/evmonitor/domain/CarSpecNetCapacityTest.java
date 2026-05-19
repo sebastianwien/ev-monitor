@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
  * Testet das Verhalten von getEffectiveBatteryCapacityKwhAt() wenn ein Car
  * mit einer verifizierten Spec verknüpft ist (specNetBatteryCapacityKwh gesetzt).
  *
- * Kernregel: specNetBatteryCapacityKwh hat Vorrang vor batteryCapacityKwh
+ * Kernregel: specNetBatteryCapacityKwh hat Vorrang vor customNetCapacityKwh
  * als Basis für alle Kapazitäts-/SoH-Berechnungen.
  */
 class CarSpecNetCapacityTest {
@@ -76,7 +76,7 @@ class CarSpecNetCapacityTest {
     }
 
     // -------------------------------------------------------------------------
-    // specNetBatteryCapacityKwh null → Fallback auf batteryCapacityKwh
+    // specNetBatteryCapacityKwh null → Fallback auf customNetCapacityKwh
     // -------------------------------------------------------------------------
 
     @Test

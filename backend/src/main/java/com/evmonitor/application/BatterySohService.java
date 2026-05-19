@@ -150,7 +150,7 @@ public class BatterySohService {
         Car car = carRepository.findById(carId).orElse(null);
         if (car == null) return;
         BigDecimal nominalNet = car.getNominalNetCapacityKwh();
-        if (nominalNet == null) return;
+        if (nominalNet == null || nominalNet.compareTo(BigDecimal.ZERO) <= 0) return;
 
         BigDecimal sohPercent = derivedCapacityKwh
                 .multiply(new BigDecimal("100"))
@@ -185,7 +185,7 @@ public class BatterySohService {
      */
     public void autoDetectAndPersist(Car car) {
         BigDecimal nominalNet = car.getNominalNetCapacityKwh();
-        if (nominalNet == null) return;
+        if (nominalNet == null || nominalNet.compareTo(BigDecimal.ZERO) <= 0) return;
 
         List<BatterySohEntry> history = sohRepository.findByCarId(car.getId());
         LocalDate today = LocalDate.now();

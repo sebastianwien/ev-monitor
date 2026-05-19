@@ -66,4 +66,13 @@ public class VehicleSpecificationEntity {
 
     @Column(name = "trim_level")
     private String trimLevel;
+
+    /**
+     * Nominal-Netto-Kapazitaet der Spec: net_battery_capacity_kwh bevorzugt,
+     * sonst Fallback auf battery_capacity_kwh (Brutto-Lookup-Key, fuer Specs
+     * ohne verifizierten Netto-Wert wie Bucket-D SONSTIGE_CUSTOM-Eintraege).
+     */
+    public BigDecimal getNominalNetCapacityKwh() {
+        return netBatteryCapacityKwh != null ? netBatteryCapacityKwh : batteryCapacityKwh;
+    }
 }

@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * that lookupWltp() derives from a Car object:
  *   - carBrand  = car.getModel().getBrand().name()   e.g. "TESLA"
  *   - carModel  = car.getModel().name()              e.g. "MODEL_3"
- *   - capacity  = car.getBatteryCapacityKwh()        BigDecimal scale sensitivity
+ *   - capacity  = car.getNominalNetCapacityKwh()     BigDecimal scale sensitivity
  *   - wltpType  = WltpType.COMBINED
  *
  * Each test uses a unique battery capacity to avoid unique-constraint conflicts
@@ -142,7 +142,7 @@ class EvLogServiceLookupWltpTest extends AbstractIntegrationTest {
         BigDecimal specCapacity = uniqueCapacity();
         VehicleSpecification savedSpec = saveSpecAndReturn("SKODA", "ENYAQ", specCapacity, WLTP_CONSUMPTION);
 
-        // Car hat einen komplett anderen batteryCapacityKwh-Wert der NICHT matched,
+        // Car hat einen komplett anderen customNetCapacityKwh-Wert der NICHT matched,
         // aber vehicleSpecificationId zeigt direkt auf die Spec
         BigDecimal unmatchableCapacity = specCapacity.add(new BigDecimal("999.00"));
         Car car = carWithCapacityAndSpecId(CarBrand.CarModel.ENYAQ, unmatchableCapacity, savedSpec.getId());
