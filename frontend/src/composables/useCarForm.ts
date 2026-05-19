@@ -277,7 +277,9 @@ export function useCarForm() {
         year: year.value,
         licensePlate: licensePlate.value,
         trim: trim.value || null,
-        customNetCapacityKwh: finalCapacity.value,
+        // Nur fuellen wenn keine Spec verknuepft ist - sonst ist die Spec autoritativ
+        // und ein Wert hier wuerde einen verwirrenden Doppel-State erzeugen.
+        customNetCapacityKwh: finalVehicleSpecificationId.value ? null : finalCapacity.value,
         powerKw: powerKw.value,
         batteryDegradationPercent: batteryDegradationPercent.value,
         hasHeatPump: hasHeatPump.value,

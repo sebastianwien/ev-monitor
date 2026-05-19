@@ -545,9 +545,12 @@ const filteredCapacities = computed(() => {
               <div class="text-gray-600 dark:text-gray-400">
                 <span class="text-gray-400 dark:text-gray-500 text-xs uppercase tracking-wide">{{ t('cars.battery') }}</span>
                 <div class="font-medium text-gray-800 dark:text-gray-200">
-                  {{ car.customNetCapacityKwh }} kWh
+                  <!-- effectiveBatteryCapacityKwh kommt vom Backend (spec-net bevorzugt, customNet
+                       Fallback, SoH-adjustiert wenn vorhanden). Zeigt also den korrekten Wert
+                       fuer beide Faelle: Spec verknuepft (customNet null) und Custom-Eingabe. -->
+                  {{ car.effectiveBatteryCapacityKwh ?? car.customNetCapacityKwh ?? '?' }} kWh
                   <span v-if="car.batteryDegradationPercent" class="text-amber-500 text-xs font-normal ml-1">
-                    - effektiv {{ car.effectiveBatteryCapacityKwh }} kWh
+                    ({{ Math.round(100 - Number(car.batteryDegradationPercent)) }}% SoH)
                   </span>
                 </div>
               </div>

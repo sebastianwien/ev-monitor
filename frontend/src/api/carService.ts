@@ -8,7 +8,7 @@ export interface Car {
     year: number;
     licensePlate: string;
     trim: string | null; // Trim level (e.g., "GTX", "Pro Performance")
-    customNetCapacityKwh: number; // User-supplied net capacity (overrides spec only when no specId)
+    customNetCapacityKwh: number | null; // User-supplied net capacity, only set when no specId
     powerKw: number | null; // Power in kW (optional)
     registrationDate: string; // ISO date (YYYY-MM-DD)
     deregistrationDate: string | null; // ISO date or null if still active
@@ -30,7 +30,7 @@ export interface CarRequest {
     year: number;
     licensePlate: string;
     trim: string | null; // Trim level (optional)
-    customNetCapacityKwh: number; // User-supplied net capacity
+    customNetCapacityKwh: number | null; // Null if a spec is linked (spec is authoritative)
     powerKw: number | null; // Power in kW (optional)
     batteryDegradationPercent: number | null;
     hasHeatPump: boolean;

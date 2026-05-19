@@ -54,8 +54,12 @@ export function useSohHistory(
         })
         sohHistory.value = [created, ...sohHistory.value]
           .sort((a, b) => b.recordedAt.localeCompare(a.recordedAt))
+        // Optimistic update: nur batteryDegradationPercent setzen. effectiveBatteryCapacityKwh
+        // berechnet das Backend gegen den korrekten Nominal-Netto (spec bevorzugt) - lokales
+        // Rechnen gegen customNet wuerde bei Spec-Link daneben liegen, und nach invalidateCars
+        // refetched der Store ohnehin die echten Werte.
         cars.value = cars.value.map(c => c.id === editingCar.value!.id
-          ? { ...c, batteryDegradationPercent: 100 - sohPercent.value!, effectiveBatteryCapacityKwh: c.customNetCapacityKwh * sohPercent.value! / 100 }
+          ? { ...c, batteryDegradationPercent: 100 - sohPercent.value! }
           : c)
       }
       cancelSohForm()
