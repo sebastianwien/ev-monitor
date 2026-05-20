@@ -5,6 +5,7 @@ import com.evmonitor.application.AdminUserGrowthRow;
 import com.evmonitor.application.AdminUserRow;
 import com.evmonitor.application.BatterySohService;
 import com.evmonitor.application.PlausibleTrafficRow;
+import com.evmonitor.application.SpecChargingEfficiencyJob;
 import com.evmonitor.infrastructure.external.PlausibleService;
 import com.evmonitor.infrastructure.persistence.AdminQueryRepository;
 import com.evmonitor.infrastructure.weather.TemperatureBackfillJob;
@@ -30,6 +31,7 @@ public class AdminController {
     private final AdminQueryRepository adminQueryRepository;
     private final PlausibleService plausibleService;
     private final BatterySohService batterySohService;
+    private final SpecChargingEfficiencyJob specChargingEfficiencyJob;
 
     /**
      * Triggers one-time temperature backfill for all logs with geohash but no temperature.
@@ -57,6 +59,13 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> backfillTripTemperature() {
         String summary = tripTemperatureBackfillJob.run();
+        return ResponseEntity.ok(summary);
+    }
+
+    @PostMapping("/spec-efficiency/recalculate")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<String> recalculateSpecChargingEfficiency() {
+        String summary = specChargingEfficiencyJob.run();
         return ResponseEntity.ok(summary);
     }
 
