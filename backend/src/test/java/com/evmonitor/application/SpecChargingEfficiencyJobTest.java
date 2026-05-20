@@ -25,7 +25,7 @@ import static org.assertj.core.api.Assertions.within;
  * Efficiency formula per log:
  *   (soc_after - soc_start) / 100 * net_battery_capacity_kwh / kwh_charged
  *
- * Minimum 5 qualifying logs required; SoC delta >= 60%; only DC/AC (not UNKNOWN).
+ * Minimum 5 qualifying logs required; SoC delta >= 75%; only DC/AC (not UNKNOWN).
  */
 class SpecChargingEfficiencyJobTest extends AbstractIntegrationTest {
 
@@ -123,12 +123,10 @@ class SpecChargingEfficiencyJobTest extends AbstractIntegrationTest {
         VehicleSpecificationEntity spec = createSpec(new BigDecimal("75.0"));
         Car car = createCarForSpec(spec.getId());
 
-        // Efficiency = (socAfter - socStart) / 100 * netKwh / kwhCharged
-        // e.g. (90-20)/100 * 75 / 52.5 = 0.70/100 * 75 / 52.5 = 0.70 * 75 / 52.5 = 1.0
-        // Use 6 logs with uniform efficiency = 1.0 → median = 1.0
+        // delta = 80-5 = 75% (≥ threshold); battery_used = 75/100 * 75 = 56.25 kWh
+        // efficiency = 56.25 / 56.25 = 1.0 → median = 1.0
         for (int i = 0; i < 6; i++) {
-            // (90-20)/100 * 75 = 52.5 kWh from battery; if kwh_charged = 52.5 → efficiency = 1.0
-            createLog(car.getId(), 20, 90, new BigDecimal("52.5"), ChargingType.DC);
+            createLog(car.getId(), 5, 80, new BigDecimal("56.25"), ChargingType.DC);
         }
 
         String summary = job.run();
@@ -169,13 +167,14 @@ class SpecChargingEfficiencyJobTest extends AbstractIntegrationTest {
         VehicleSpecificationEntity spec = createSpec(new BigDecimal("75.0"));
         Car car = createCarForSpec(spec.getId());
 
-        // DC: efficiency = (80-10)/100 * 75 / 52.5 = 70/100 * 75 / 52.5 = 1.0
+        // delta = 80-5 = 75% (≥ threshold); battery_used = 75/100 * 75 = 56.25 kWh
+        // DC: efficiency = 56.25 / 56.25 = 1.0
         for (int i = 0; i < 6; i++) {
-            createLog(car.getId(), 10, 80, new BigDecimal("52.5"), ChargingType.DC);
+            createLog(car.getId(), 5, 80, new BigDecimal("56.25"), ChargingType.DC);
         }
-        // AC: efficiency = (80-10)/100 * 75 / 60.0 = 52.5 / 60.0 = 0.875
+        // AC: efficiency = 56.25 / 60.0 = 0.9375
         for (int i = 0; i < 6; i++) {
-            createLog(car.getId(), 10, 80, new BigDecimal("60.0"), ChargingType.AC);
+            createLog(car.getId(), 5, 80, new BigDecimal("60.0"), ChargingType.AC);
         }
 
         job.run();
@@ -186,21 +185,21 @@ class SpecChargingEfficiencyJobTest extends AbstractIntegrationTest {
                 .isEqualByComparingTo(new BigDecimal("1.0000"));
         assertThat(updated.getChargingEfficiencyAc())
                 .isNotNull()
-                .isEqualByComparingTo(new BigDecimal("0.8750"));
+                .isEqualByComparingTo(new BigDecimal("0.9375"));
     }
 
     // ------------------------------------------------------------------
-    // Test 4: SoC delta < 60% → logs ignored
+    // Test 4: SoC delta < 75% → logs ignored
     // ------------------------------------------------------------------
 
     @Test
-    void socDeltaBelow60_logsIgnored() {
+    void socDeltaBelow75_logsIgnored() {
         VehicleSpecificationEntity spec = createSpec(new BigDecimal("75.0"));
         Car car = createCarForSpec(spec.getId());
 
-        // SoC delta = 59 (below threshold of 60)
+        // SoC delta = 74 (below threshold of 75)
         for (int i = 0; i < 6; i++) {
-            createLog(car.getId(), 20, 79, new BigDecimal("44.25"), ChargingType.DC);
+            createLog(car.getId(), 20, 94, new BigDecimal("44.25"), ChargingType.DC);
         }
 
         job.run();
@@ -310,9 +309,9 @@ class SpecChargingEfficiencyJobTest extends AbstractIntegrationTest {
         jpaSpecRepo.save(spec);
 
         Car car = createCarForSpec(spec.getId());
-        // Only AC logs, enough to update AC
+        // Only AC logs, enough to update AC (delta = 80-5 = 75%)
         for (int i = 0; i < 6; i++) {
-            createLog(car.getId(), 10, 80, new BigDecimal("60.0"), ChargingType.AC);
+            createLog(car.getId(), 5, 80, new BigDecimal("60.0"), ChargingType.AC);
         }
 
         job.run();
@@ -328,20 +327,22 @@ class SpecChargingEfficiencyJobTest extends AbstractIntegrationTest {
     // ------------------------------------------------------------------
     // Test 9: verify median value with concrete numbers
     //
-    // 6 DC logs with varying kwhCharged, netBattery = 100 kWh
-    // soc_start = 10%, soc_after = 80%  → delta = 70 → battery_used = 70 kWh
-    // efficiencies: 70/60=1.1667, 70/65=1.0769, 70/70=1.0000, 70/75=0.9333, 70/80=0.8750, 70/85=0.8235
-    // sorted: 0.8235, 0.8750, 0.9333, 1.0000, 1.0769, 1.1667
-    // median (6 elements, PERCENTILE_CONT(0.5)): avg of 3rd and 4th = (0.9333 + 1.0000) / 2 = 0.9667
+    // 6 DC logs with varying kwhCharged, netBattery = 75 kWh
+    // soc_start = 10%, soc_after = 90%  → delta = 80% → battery_used = 60 kWh
+    // efficiencies: 60/60=1.000, 60/65=0.9231, 60/70=0.8571, 60/75=0.8000, 60/80=0.7500, 60/85=0.7059
+    // All in [0.5, 1.0] ✓
+    // sorted: 0.7059, 0.7500, 0.8000, 0.8571, 0.9231, 1.0000
+    // median (6 elements, PERCENTILE_CONT(0.5)): avg of 3rd and 4th = (0.8000 + 0.8571) / 2 = 0.8286
     // ------------------------------------------------------------------
 
     @Test
     void medianCalculatedCorrectlyWithConcreteValues() {
-        VehicleSpecificationEntity spec = createSpec(new BigDecimal("100.0"));
+        VehicleSpecificationEntity spec = createSpec(new BigDecimal("75.0"));
         Car car = createCarForSpec(spec.getId());
 
+        // delta = 90-10 = 80% (≥ threshold); battery_used = 80/100 * 75 = 60 kWh
         int socStart = 10;
-        int socAfter = 80;
+        int socAfter = 90;
         BigDecimal[] kwhValues = {
             new BigDecimal("60.0"),
             new BigDecimal("65.0"),
@@ -358,17 +359,16 @@ class SpecChargingEfficiencyJobTest extends AbstractIntegrationTest {
 
         VehicleSpecificationEntity updated = jpaSpecRepo.findById(spec.getId()).orElseThrow();
         assertThat(updated.getChargingEfficiencyDc()).isNotNull();
-        // Expected: (0.9333... + 1.0000) / 2 = 0.9667 (rounded to 4 decimal places)
-        // 70/75 = 0.93333... and 70/70 = 1.00000 → avg = 0.96667
+        // 60/70 = 0.85714... and 60/75 = 0.80000 → avg = 0.82857
         assertThat(updated.getChargingEfficiencyDc().doubleValue())
-                .isCloseTo(0.9667, within(0.0002));
+                .isCloseTo(0.8286, within(0.0002));
     }
 
     // ------------------------------------------------------------------
     // Test 10: implausible efficiency > 1.0 → field stays null (not persisted)
     //
-    // net_battery_capacity_kwh = 75 kWh, soc delta = 70% → battery_used = 52.5 kWh
-    // kwh_charged = 40.0 → efficiency = 52.5 / 40.0 = 1.3125 (> 1.0)
+    // net_battery_capacity_kwh = 75 kWh, soc delta = 80% → battery_used = 60 kWh
+    // kwh_charged = 40.0 → efficiency = 60 / 40.0 = 1.5 (> 1.0)
     // → value must be rejected, charging_efficiency_dc stays null
     // ------------------------------------------------------------------
 
@@ -377,9 +377,10 @@ class SpecChargingEfficiencyJobTest extends AbstractIntegrationTest {
         VehicleSpecificationEntity spec = createSpec(new BigDecimal("75.0"));
         Car car = createCarForSpec(spec.getId());
 
-        // efficiency = (90-20)/100 * 75 / 40.0 = 52.5 / 40.0 = 1.3125 → implausible
+        // delta = 90-10 = 80% (≥ threshold); battery_used = 60 kWh
+        // efficiency = 60 / 40.0 = 1.5 → implausible, rejected
         for (int i = 0; i < 6; i++) {
-            createLog(car.getId(), 20, 90, new BigDecimal("40.0"), ChargingType.DC);
+            createLog(car.getId(), 10, 90, new BigDecimal("40.0"), ChargingType.DC);
         }
 
         job.run();
