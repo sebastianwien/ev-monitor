@@ -363,4 +363,28 @@ class SpecChargingEfficiencyJobTest extends AbstractIntegrationTest {
         assertThat(updated.getChargingEfficiencyDc().doubleValue())
                 .isCloseTo(0.9667, within(0.0002));
     }
+
+    // ------------------------------------------------------------------
+    // Test 10: implausible efficiency > 1.0 → field stays null (not persisted)
+    //
+    // net_battery_capacity_kwh = 75 kWh, soc delta = 70% → battery_used = 52.5 kWh
+    // kwh_charged = 40.0 → efficiency = 52.5 / 40.0 = 1.3125 (> 1.0)
+    // → value must be rejected, charging_efficiency_dc stays null
+    // ------------------------------------------------------------------
+
+    @Test
+    void implausibleEfficiencyAboveOne_fieldRemainsNull() {
+        VehicleSpecificationEntity spec = createSpec(new BigDecimal("75.0"));
+        Car car = createCarForSpec(spec.getId());
+
+        // efficiency = (90-20)/100 * 75 / 40.0 = 52.5 / 40.0 = 1.3125 → implausible
+        for (int i = 0; i < 6; i++) {
+            createLog(car.getId(), 20, 90, new BigDecimal("40.0"), ChargingType.DC);
+        }
+
+        job.run();
+
+        VehicleSpecificationEntity updated = jpaSpecRepo.findById(spec.getId()).orElseThrow();
+        assertThat(updated.getChargingEfficiencyDc()).isNull();
+    }
 }

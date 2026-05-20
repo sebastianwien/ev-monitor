@@ -9,10 +9,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -98,40 +99,56 @@ public class SpecChargingEfficiencyJob {
             updates.computeIfAbsent(id, k -> new BigDecimal[2])[1] = acBySpec.get(id);
         }
 
+        // Load all affected specs in one query (avoid N+1)
+        Map<UUID, VehicleSpecificationEntity> specById = new HashMap<>();
+        jpaRepository.findAllById(updates.keySet())
+                .forEach(e -> specById.put(e.getId(), e));
+
         int updatedSpecs = 0;
         int dcCount = 0;
         int acCount = 0;
+        List<VehicleSpecificationEntity> entitiesToSave = new ArrayList<>();
 
         for (Map.Entry<UUID, BigDecimal[]> entry : updates.entrySet()) {
             UUID specId = entry.getKey();
             BigDecimal dcValue = entry.getValue()[0];
             BigDecimal acValue = entry.getValue()[1];
 
-            Optional<VehicleSpecificationEntity> entityOpt = jpaRepository.findById(specId);
-            if (entityOpt.isEmpty()) {
+            VehicleSpecificationEntity entity = specById.get(specId);
+            if (entity == null) {
                 log.warn("SpecChargingEfficiencyJob: spec {} not found, skipping", specId);
                 continue;
             }
 
-            VehicleSpecificationEntity entity = entityOpt.get();
             boolean changed = false;
 
             if (dcValue != null) {
-                entity.setChargingEfficiencyDc(dcValue);
-                dcCount++;
-                changed = true;
+                if (dcValue.compareTo(BigDecimal.valueOf(0.5)) < 0 || dcValue.compareTo(BigDecimal.ONE) > 0) {
+                    log.warn("Skipping implausible efficiency {} for spec {} charging_type DC", dcValue, specId);
+                } else {
+                    entity.setChargingEfficiencyDc(dcValue);
+                    dcCount++;
+                    changed = true;
+                }
             }
             if (acValue != null) {
-                entity.setChargingEfficiencyAc(acValue);
-                acCount++;
-                changed = true;
+                if (acValue.compareTo(BigDecimal.valueOf(0.5)) < 0 || acValue.compareTo(BigDecimal.ONE) > 0) {
+                    log.warn("Skipping implausible efficiency {} for spec {} charging_type AC", acValue, specId);
+                } else {
+                    entity.setChargingEfficiencyAc(acValue);
+                    acCount++;
+                    changed = true;
+                }
             }
 
             if (changed) {
-                jpaRepository.save(entity);
+                entity.setUpdatedAt(LocalDateTime.now());
+                entitiesToSave.add(entity);
                 updatedSpecs++;
             }
         }
+
+        jpaRepository.saveAll(entitiesToSave);
 
         String summary = "Updated %d specs (DC: %d, AC: %d)".formatted(updatedSpecs, dcCount, acCount);
         log.info("SpecChargingEfficiencyJob completed: {}", summary);
