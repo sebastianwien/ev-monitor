@@ -102,6 +102,8 @@ public class PostgresVehicleSpecificationRepositoryImpl implements VehicleSpecif
         entity.setNetBatteryCapacityKwh(domain.getNetBatteryCapacityKwh());
         entity.setAvailableFrom(domain.getAvailableFrom());
         entity.setAvailableTo(domain.getAvailableTo());
+        entity.setChargingEfficiencyDc(domain.getChargingEfficiencyDc());
+        entity.setChargingEfficiencyAc(domain.getChargingEfficiencyAc());
         return entity;
     }
 
@@ -123,7 +125,9 @@ public class PostgresVehicleSpecificationRepositoryImpl implements VehicleSpecif
                 entity.getVariantName(),
                 entity.getNetBatteryCapacityKwh(),
                 entity.getAvailableFrom(),
-                entity.getAvailableTo()
+                entity.getAvailableTo(),
+                entity.getChargingEfficiencyDc(),
+                entity.getChargingEfficiencyAc()
         );
     }
 }

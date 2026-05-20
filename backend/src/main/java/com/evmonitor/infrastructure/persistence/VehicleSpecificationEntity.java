@@ -67,6 +67,12 @@ public class VehicleSpecificationEntity {
     @Column(name = "trim_level")
     private String trimLevel;
 
+    @Column(name = "charging_efficiency_dc", precision = 5, scale = 4)
+    private BigDecimal chargingEfficiencyDc;
+
+    @Column(name = "charging_efficiency_ac", precision = 5, scale = 4)
+    private BigDecimal chargingEfficiencyAc;
+
     /**
      * Nominal-Netto-Kapazitaet der Spec: net_battery_capacity_kwh bevorzugt,
      * sonst Fallback auf battery_capacity_kwh (Brutto-Lookup-Key, fuer Specs
