@@ -1,6 +1,7 @@
 package com.evmonitor.infrastructure.scheduling;
 
 import com.evmonitor.application.LeaderboardService;
+import com.evmonitor.application.SpecChargingEfficiencyJob;
 import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.EvLogRepository;
 import com.evmonitor.domain.User;
@@ -30,12 +31,14 @@ public class AppScheduler {
     private final GitHubIssueService gitHubIssueService;
     private final TemperatureBackfillJob temperatureBackfillJob;
     private final LeaderboardService leaderboardService;
+    private final SpecChargingEfficiencyJob specChargingEfficiencyJob;
 
     public AppScheduler(UserRepository userRepository, CarRepository carRepository,
                         EvLogRepository evLogRepository, EmailService emailService,
                         GitHubIssueService gitHubIssueService,
                         TemperatureBackfillJob temperatureBackfillJob,
-                        LeaderboardService leaderboardService) {
+                        LeaderboardService leaderboardService,
+                        SpecChargingEfficiencyJob specChargingEfficiencyJob) {
         this.userRepository = userRepository;
         this.carRepository = carRepository;
         this.evLogRepository = evLogRepository;
@@ -43,6 +46,7 @@ public class AppScheduler {
         this.gitHubIssueService = gitHubIssueService;
         this.temperatureBackfillJob = temperatureBackfillJob;
         this.leaderboardService = leaderboardService;
+        this.specChargingEfficiencyJob = specChargingEfficiencyJob;
     }
 
     @Scheduled(cron = "0 0 6 * * *")
@@ -145,6 +149,17 @@ public class AppScheduler {
             log.info("Daily temperature backfill finished: {}", summary);
         } catch (Exception e) {
             log.error("Daily temperature backfill failed", e);
+        }
+    }
+
+    @Scheduled(cron = "0 0 3 * * MON")
+    public void updateSpecChargingEfficiencies() {
+        log.info("SpecChargingEfficiencyJob started");
+        try {
+            String summary = specChargingEfficiencyJob.run();
+            log.info("SpecChargingEfficiencyJob finished: {}", summary);
+        } catch (Exception e) {
+            log.error("SpecChargingEfficiencyJob failed", e);
         }
     }
 }
