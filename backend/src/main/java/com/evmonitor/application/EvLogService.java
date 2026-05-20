@@ -28,6 +28,7 @@ public class EvLogService {
 
     private final EvLogRepository evLogRepository;
     private final CarRepository carRepository;
+    private final VehicleSpecificationRepository vehicleSpecificationRepository;
     private final CoinLogService coinLogService;
     private final TemperatureEnricher temperatureEnricher;
     private final PlausibilityProperties plausibility;
@@ -516,9 +517,14 @@ public class EvLogService {
                 .sorted(Comparator.comparing(EvLog::getLoggedAt))
                 .toList();
 
+        // Load vehicle spec for spec-level charging efficiency override (nullable — car may not have a spec)
+        VehicleSpecification spec = car.getVehicleSpecificationId() != null
+                ? vehicleSpecificationRepository.findById(car.getVehicleSpecificationId()).orElse(null)
+                : null;
+
         // Compute per-log consumption + plausibility on the full dataset (SoC-based)
         Map<UUID, ConsumptionResult> consumptionByLog = new LinkedHashMap<>(car.getNominalNetCapacityKwh() != null
-                ? calculationService.calculateConsumptionPerLog(allLogsSorted, calculationService.buildCapacityLookup(car), calculationService.lookupWltp(car))
+                ? calculationService.calculateConsumptionPerLog(allLogsSorted, calculationService.buildCapacityLookup(car), calculationService.lookupWltp(car), spec)
                 : Map.of());
 
         // Distance since last charge — covers logs with odometer regardless of SoC availability
@@ -532,7 +538,7 @@ public class EvLogService {
             Integer dist = distanceByLogId.get(log.getId());
             if (dist == null || dist < plausibility.getMinTripDistanceKm()) continue;
             if (!log.hasEnergyData()) continue;
-            double c = calculationService.effectiveKwhForConsumption(log).doubleValue() / dist * 100.0;
+            double c = calculationService.effectiveKwhForConsumption(log, spec).doubleValue() / dist * 100.0;
             boolean plausible = c >= plausibility.getAbsoluteMinKwhPer100km() && c <= plausibility.getAbsoluteMaxKwhPer100km();
             consumptionByLog.put(log.getId(), new ConsumptionResult(
                     BigDecimal.valueOf(c).setScale(2, RoundingMode.HALF_UP), plausible, dist, CalculationQuality.KWH_ESTIMATED));

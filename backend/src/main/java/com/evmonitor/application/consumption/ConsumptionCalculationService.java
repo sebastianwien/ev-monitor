@@ -44,11 +44,22 @@ public class ConsumptionCalculationService {
      *   2. kwhCharged — AT_CHARGER measurement, losses are removed here.
      */
     public BigDecimal effectiveKwhForConsumption(EvLog log) {
+        return effectiveKwhForConsumption(log, null);
+    }
+
+    /**
+     * Returns the vehicle-side kWh for consumption calculations, using spec-level efficiency when available.
+     *
+     * Priority:
+     *   1. kwhAtVehicle when present — exact battery measurement, no correction needed.
+     *   2. kwhCharged — AT_CHARGER measurement, losses are removed using spec or global efficiency.
+     */
+    public BigDecimal effectiveKwhForConsumption(EvLog log, VehicleSpecification spec) {
         if (log.getKwhAtVehicle() != null && log.getKwhAtVehicle().compareTo(BigDecimal.ZERO) > 0) {
             return log.getKwhAtVehicle();
         }
         if (log.getKwhCharged() == null) return null;
-        return log.getKwhCharged().multiply(BigDecimal.valueOf(chargingEfficiency(log)));
+        return log.getKwhCharged().multiply(BigDecimal.valueOf(chargingEfficiency(log, spec)));
     }
 
 
@@ -66,11 +77,16 @@ public class ConsumptionCalculationService {
      * AC-loss pauschale is the right approximation.
      */
     public BigDecimal gridSideKwhEstimate(EvLog log) {
+        return gridSideKwhEstimate(log, null);
+    }
+
+    /** Overload with spec-level efficiency override. */
+    public BigDecimal gridSideKwhEstimate(EvLog log, VehicleSpecification spec) {
         if (log.getKwhCharged() != null && log.getKwhCharged().compareTo(BigDecimal.ZERO) > 0) {
             return log.getKwhCharged();
         }
         if (log.getKwhAtVehicle() != null && log.getKwhAtVehicle().compareTo(BigDecimal.ZERO) > 0) {
-            return log.getKwhAtVehicle().divide(BigDecimal.valueOf(chargingEfficiency(log)), 4, RoundingMode.HALF_UP);
+            return log.getKwhAtVehicle().divide(BigDecimal.valueOf(chargingEfficiency(log, spec)), 4, RoundingMode.HALF_UP);
         }
         return null;
     }
@@ -84,6 +100,31 @@ public class ConsumptionCalculationService {
         if (log.getChargingType() == ChargingType.DC) return plausibility.getDcChargingEfficiency();
         if (log.getChargingType() == ChargingType.AC) return plausibility.getAcChargingEfficiency();
         return log.isPublicCharging() ? plausibility.getDcChargingEfficiency() : plausibility.getAcChargingEfficiency();
+    }
+
+    /**
+     * Returns the charging efficiency factor, preferring spec-level values over global defaults.
+     *
+     * Priority:
+     *   1. spec.chargingEfficiencyDc / chargingEfficiencyAc when spec is non-null and field is non-null.
+     *   2. is_public_charging proxy when charging_type is UNKNOWN (same spec-vs-global priority).
+     *   3. Global PlausibilityProperties defaults.
+     */
+    public double chargingEfficiency(EvLog log, VehicleSpecification spec) {
+        if (spec != null) {
+            if (log.getChargingType() == ChargingType.DC && spec.getChargingEfficiencyDc() != null)
+                return spec.getChargingEfficiencyDc().doubleValue();
+            if (log.getChargingType() == ChargingType.AC && spec.getChargingEfficiencyAc() != null)
+                return spec.getChargingEfficiencyAc().doubleValue();
+            // is_public_charging as proxy when charging_type is UNKNOWN
+            if (log.getChargingType() != ChargingType.DC && log.getChargingType() != ChargingType.AC) {
+                if (log.isPublicCharging() && spec.getChargingEfficiencyDc() != null)
+                    return spec.getChargingEfficiencyDc().doubleValue();
+                if (!log.isPublicCharging() && spec.getChargingEfficiencyAc() != null)
+                    return spec.getChargingEfficiencyAc().doubleValue();
+            }
+        }
+        return chargingEfficiency(log); // global fallback
     }
 
     // -------------------------------------------------------------------------
@@ -123,6 +164,12 @@ public class ConsumptionCalculationService {
      */
     public Optional<BigDecimal> calculateConsumption(EvLog logX, EvLog logY, BigDecimal batteryCapacityKwh,
             BigDecimal intermediateKwh) {
+        return calculateConsumption(logX, logY, batteryCapacityKwh, intermediateKwh, null);
+    }
+
+    /** Overload with spec-level efficiency override. */
+    public Optional<BigDecimal> calculateConsumption(EvLog logX, EvLog logY, BigDecimal batteryCapacityKwh,
+            BigDecimal intermediateKwh, VehicleSpecification spec) {
         if (!logX.canBeUsedAsLogX() || !logY.isComplete()) return Optional.empty();
         if (batteryCapacityKwh == null || batteryCapacityKwh.compareTo(BigDecimal.ZERO) <= 0) return Optional.empty();
 
@@ -141,7 +188,7 @@ public class ConsumptionCalculationService {
                     .subtract(logY.getSocAfterChargePercent())
                     .multiply(batteryCapacityKwh)
                     .divide(HUNDRED, 4, RoundingMode.HALF_UP);
-            energyConsumedKwh = effectiveKwhForConsumption(logY)
+            energyConsumedKwh = effectiveKwhForConsumption(logY, spec)
                     .add(socDeltaCorrection)
                     .add(intermediateKwh);
         } else {
@@ -175,10 +222,18 @@ public class ConsumptionCalculationService {
      * @return map of logId (logY) → ConsumptionResult(value, plausible, distanceKm)
      */
     public Map<UUID, ConsumptionResult> calculateConsumptionPerLog(List<EvLog> allLogs, BigDecimal batteryCapacityKwh, BigDecimal wltpKwh) {
-        return calculateConsumptionPerLog(allLogs, date -> batteryCapacityKwh, wltpKwh);
+        return calculateConsumptionPerLog(allLogs, date -> batteryCapacityKwh, wltpKwh, null);
+    }
+
+    public Map<UUID, ConsumptionResult> calculateConsumptionPerLog(List<EvLog> allLogs, BigDecimal batteryCapacityKwh, BigDecimal wltpKwh, VehicleSpecification spec) {
+        return calculateConsumptionPerLog(allLogs, date -> batteryCapacityKwh, wltpKwh, spec);
     }
 
     public Map<UUID, ConsumptionResult> calculateConsumptionPerLog(List<EvLog> allLogs, Function<LocalDate, BigDecimal> capacityForDate, BigDecimal wltpKwh) {
+        return calculateConsumptionPerLog(allLogs, capacityForDate, wltpKwh, null);
+    }
+
+    public Map<UUID, ConsumptionResult> calculateConsumptionPerLog(List<EvLog> allLogs, Function<LocalDate, BigDecimal> capacityForDate, BigDecimal wltpKwh, VehicleSpecification spec) {
         // Always sort — correctness must not depend on caller discipline
         List<EvLog> sorted = allLogs.stream()
                 .sorted(Comparator.comparing(EvLog::getLoggedAt))
@@ -198,7 +253,7 @@ public class ConsumptionCalculationService {
                     if (dist < plausibility.getMinTripDistanceKm()) return;
                     BigDecimal capacity = capacityForDate.apply(logY.getLoggedAt().toLocalDate());
                     if (capacity == null) return;
-                    calculateConsumption(prev.logX(), logY, capacity, prev.intermediateKwh()).ifPresent(c -> {
+                    calculateConsumption(prev.logX(), logY, capacity, prev.intermediateKwh(), spec).ifPresent(c -> {
                         ids.add(logY.getId());
                         values.add(c);
                         distances.add(dist);
