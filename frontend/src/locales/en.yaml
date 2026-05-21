@@ -1959,6 +1959,9 @@ announcements:
   tesla_telemetry_rollout_v1_cta: "Set up connection"
   negative_prices_v1_title: "Negative electricity prices now supported"
   negative_prices_v1_body: "With dynamic electricity tariffs, the price per kWh can drop below zero. You can now enter negative prices when logging a charging session - both in the app and via API."
+  spec_charging_efficiency_v1_title: "More accurate consumption thanks to model-specific charging losses"
+  spec_charging_efficiency_v1_body: "Charging losses are now calculated per vehicle model - derived from real charging sessions in the community. Instead of flat 5% (DC) or 10% (AC), measured values per vehicle model are now used in your consumption statistics. The more data the community provides, the more precise the calculation."
+  spec_charging_efficiency_v1_cta: "Learn more"
 
 tax_export:
   title: "Tax report home charging"

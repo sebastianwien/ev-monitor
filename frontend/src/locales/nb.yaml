@@ -1925,6 +1925,9 @@ announcements:
   tesla_telemetry_rollout_v1_cta: "Sett opp tilkobling"
   negative_prices_v1_title: "Negative strømpriser støttes nå"
   negative_prices_v1_body: "Med dynamiske strømtariffer kan kWh-prisen falle under null. Du kan nå angi negative priser ved logging av en ladeøkt - både i appen og via API."
+  spec_charging_efficiency_v1_title: "Mer nøyaktig forbruk takket være modellspesifikke ladetap"
+  spec_charging_efficiency_v1_body: "Ladetap beregnes nå per kjøretøymodell - utledet fra ekte ladeøkter i fellesskapet. I stedet for faste 5% (DC) eller 10% (AC) brukes nå målte verdier per kjøretøymodell i forbruksstatistikken din. Jo mer data fellesskapet gir, desto mer presis blir beregningen."
+  spec_charging_efficiency_v1_cta: "Les mer"
 tax_export:
   title: Skatterapport for hjemmelading
   subtitle: Eksporter dine hjemmeladinger som dokumentasjon til regnskapsføreren din (brev fra BMF av 11.11.2025)

@@ -19,6 +19,15 @@ export interface FeatureAnnouncement {
 
 export const featureAnnouncements: FeatureAnnouncement[] = [
   {
+    key: 'spec-charging-efficiency-v1',
+    expiresAt: '2026-06-21',
+    releasedAt: '2026-05-21',
+    titleKey: 'announcements.spec_charging_efficiency_v1_title',
+    bodyKey: 'announcements.spec_charging_efficiency_v1_body',
+    ctaLabelKey: 'announcements.spec_charging_efficiency_v1_cta',
+    ctaRoute: '/blog/modellspezifische-ladeverluste',
+  },
+  {
     key: 'autosync-live-launch-v1',
     expiresAt: '2026-06-15',
     releasedAt: '2026-05-12',
