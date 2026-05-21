@@ -132,19 +132,21 @@ useHead(computed(() => {
 }))
 </script>
 
-<style scoped>
+<style>
 /* Minimal prose styling - we don't ship @tailwindcss/typography so we keep
-   this lightweight and reading-friendly. Mobile-first, ~65ch on desktop. */
+   this lightweight and reading-friendly. Mobile-first, ~65ch on desktop.
+   Note: not scoped because :global(.dark) + :deep() combos behave inconsistently
+   in Vue scoped CSS. All rules are namespaced under .blog-prose anyway. */
 .blog-prose {
   color: rgb(55 65 81);
   font-size: 1rem;
   line-height: 1.75;
   max-width: 65ch;
 }
-:global(.dark) .blog-prose {
+.dark .blog-prose {
   color: rgb(243 244 246);
 }
-.blog-prose :deep(h2) {
+.blog-prose h2 {
   font-size: 1.5rem;
   font-weight: 700;
   margin-top: 2rem;
@@ -152,49 +154,49 @@ useHead(computed(() => {
   color: rgb(17 24 39);
   line-height: 1.3;
 }
-:global(.dark) .blog-prose :deep(h2) { color: rgb(243 244 246); }
-.blog-prose :deep(h3) {
+.dark .blog-prose h2 { color: rgb(243 244 246); }
+.blog-prose h3 {
   font-size: 1.25rem;
   font-weight: 600;
   margin-top: 1.5rem;
   margin-bottom: 0.5rem;
   color: rgb(17 24 39);
 }
-:global(.dark) .blog-prose :deep(h3) { color: rgb(243 244 246); }
-.blog-prose :deep(h4) {
+.dark .blog-prose h3 { color: rgb(243 244 246); }
+.blog-prose h4 {
   font-size: 1.1rem;
   font-weight: 600;
   margin-top: 1.25rem;
   margin-bottom: 0.5rem;
   color: rgb(17 24 39);
 }
-:global(.dark) .blog-prose :deep(h4) { color: rgb(243 244 246); }
-.blog-prose :deep(p) { margin: 1rem 0; }
-.blog-prose :deep(ul),
-.blog-prose :deep(ol) {
+.dark .blog-prose h4 { color: rgb(243 244 246); }
+.blog-prose p { margin: 1rem 0; }
+.blog-prose ul,
+.blog-prose ol {
   margin: 1rem 0;
   padding-left: 1.5rem;
 }
-.blog-prose :deep(ul) { list-style: disc; }
-.blog-prose :deep(ol) { list-style: decimal; }
-.blog-prose :deep(li) { margin: 0.25rem 0; }
-.blog-prose :deep(a) {
+.blog-prose ul { list-style: disc; }
+.blog-prose ol { list-style: decimal; }
+.blog-prose li { margin: 0.25rem 0; }
+.blog-prose a {
   color: rgb(21 128 61);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
-:global(.dark) .blog-prose :deep(a) { color: rgb(74 222 128); }
-.blog-prose :deep(strong) { font-weight: 600; color: rgb(17 24 39); }
-:global(.dark) .blog-prose :deep(strong) { color: rgb(243 244 246); }
-.blog-prose :deep(code) {
+.dark .blog-prose a { color: rgb(74 222 128); }
+.blog-prose strong { font-weight: 600; color: rgb(17 24 39); }
+.dark .blog-prose strong { color: rgb(243 244 246); }
+.blog-prose code {
   background: rgb(243 244 246);
   padding: 0.125rem 0.375rem;
   border-radius: 0.25rem;
   font-size: 0.9em;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
-:global(.dark) .blog-prose :deep(code) { background: rgb(31 41 55); }
-.blog-prose :deep(pre) {
+.dark .blog-prose code { background: rgb(31 41 55); }
+.blog-prose pre {
   background: rgb(17 24 39);
   color: rgb(243 244 246);
   padding: 1rem;
@@ -202,29 +204,29 @@ useHead(computed(() => {
   overflow-x: auto;
   margin: 1rem 0;
 }
-.blog-prose :deep(pre code) {
+.blog-prose pre code {
   background: transparent;
   padding: 0;
   color: inherit;
 }
-.blog-prose :deep(blockquote) {
+.blog-prose blockquote {
   border-left: 4px solid rgb(34 197 94);
   padding-left: 1rem;
   margin: 1rem 0;
   color: rgb(75 85 99);
   font-style: italic;
 }
-:global(.dark) .blog-prose :deep(blockquote) { color: rgb(156 163 175); }
-.blog-prose :deep(img) {
+.dark .blog-prose blockquote { color: rgb(156 163 175); }
+.blog-prose img {
   max-width: 100%;
   height: auto;
   border-radius: 0.5rem;
   margin: 1rem 0;
 }
-.blog-prose :deep(hr) {
+.blog-prose hr {
   border: 0;
   border-top: 1px solid rgb(229 231 235);
   margin: 2rem 0;
 }
-:global(.dark) .blog-prose :deep(hr) { border-top-color: rgb(55 65 81); }
+.dark .blog-prose hr { border-top-color: rgb(55 65 81); }
 </style>
