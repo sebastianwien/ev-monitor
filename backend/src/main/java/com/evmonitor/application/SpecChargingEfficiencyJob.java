@@ -123,7 +123,7 @@ public class SpecChargingEfficiencyJob {
             boolean changed = false;
 
             if (dcValue != null) {
-                if (dcValue.compareTo(BigDecimal.valueOf(0.5)) < 0 || dcValue.compareTo(BigDecimal.ONE) > 0) {
+                if (dcValue.compareTo(BigDecimal.valueOf(0.5)) < 0 || dcValue.compareTo(BigDecimal.ONE) >= 0) {
                     log.warn("Skipping implausible efficiency {} for spec {} charging_type DC", dcValue, specId);
                 } else {
                     entity.setChargingEfficiencyDc(dcValue);
@@ -132,7 +132,7 @@ public class SpecChargingEfficiencyJob {
                 }
             }
             if (acValue != null) {
-                if (acValue.compareTo(BigDecimal.valueOf(0.5)) < 0 || acValue.compareTo(BigDecimal.ONE) > 0) {
+                if (acValue.compareTo(BigDecimal.valueOf(0.5)) < 0 || acValue.compareTo(BigDecimal.ONE) >= 0) {
                     log.warn("Skipping implausible efficiency {} for spec {} charging_type AC", acValue, specId);
                 } else {
                     entity.setChargingEfficiencyAc(acValue);
