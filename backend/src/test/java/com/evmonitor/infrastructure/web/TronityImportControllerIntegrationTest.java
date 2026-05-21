@@ -165,6 +165,37 @@ class TronityImportControllerIntegrationTest extends AbstractIntegrationTest {
         assertEquals(1, coins.stream().filter(c -> "Ladevorgang importiert (API)".equals(c.getActionDescription())).count());
     }
 
+    // ── kWh Measurement Type ──────────────────────────────────────────────────
+
+    @Test
+    void tronityKwh_storedAsKwhAtVehicle_notKwhCharged() {
+        String json = """
+                [{"date":"2026-03-15 20:10","kwh":50.69,"charging_type":"AC"}]
+                """;
+
+        post(json);
+
+        EvLog log = evLogRepository.findAllByCarId(car.getId()).getFirst();
+        assertNull(log.getKwhCharged(), "kwh_charged must be null for Tronity (vehicle-side data)");
+        assertNotNull(log.getKwhAtVehicle(), "kwh_at_vehicle must be set");
+        assertEquals(0, new java.math.BigDecimal("50.69").compareTo(log.getKwhAtVehicle()));
+        assertEquals(EnergyMeasurementType.AT_VEHICLE, log.getMeasurementType());
+    }
+
+    @Test
+    void tronityKwh_dcLog_storedAsKwhAtVehicle() {
+        String json = """
+                [{"date":"2026-03-15 14:34","kwh":38.02,"charging_type":"DC"}]
+                """;
+
+        post(json);
+
+        EvLog log = evLogRepository.findAllByCarId(car.getId()).getFirst();
+        assertNull(log.getKwhCharged());
+        assertNotNull(log.getKwhAtVehicle());
+        assertEquals(EnergyMeasurementType.AT_VEHICLE, log.getMeasurementType());
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private ResponseEntity<ImportApiResult> post(String data) {

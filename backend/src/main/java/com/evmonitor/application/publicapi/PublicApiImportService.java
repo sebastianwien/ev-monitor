@@ -125,10 +125,24 @@ public class PublicApiImportService {
                     measurementType = EnergyMeasurementType.AT_VEHICLE;
                 }
 
+                // Tronity reports vehicle-side kWh in the "kwh" field (not grid-side).
+                // Remap to kwh_at_vehicle so the consumption formula uses effectiveKwh directly
+                // instead of applying a charging efficiency factor to a value that already excludes losses.
+                BigDecimal kwhCharged;
+                BigDecimal kwhAtVehicle;
+                if (dataSource == DataSource.TRONITY_IMPORT && entry.kwh() != null && entry.kwhAtVehicle() == null) {
+                    kwhCharged = null;
+                    kwhAtVehicle = BigDecimal.valueOf(entry.kwh());
+                    measurementType = EnergyMeasurementType.AT_VEHICLE;
+                } else {
+                    kwhCharged = entry.kwh() != null ? BigDecimal.valueOf(entry.kwh()) : null;
+                    kwhAtVehicle = entry.kwhAtVehicle() != null ? BigDecimal.valueOf(entry.kwhAtVehicle()) : null;
+                }
+
                 EvLog evLog = EvLog.createFromPublicApi(
                         request.carId(),
-                        entry.kwh() != null ? BigDecimal.valueOf(entry.kwh()) : null,
-                        entry.kwhAtVehicle() != null ? BigDecimal.valueOf(entry.kwhAtVehicle()) : null,
+                        kwhCharged,
+                        kwhAtVehicle,
                         entry.costEur() != null ? BigDecimal.valueOf(entry.costEur()) : null,
                         entry.durationMin(),
                         geohash,
