@@ -25,7 +25,7 @@ import static org.assertj.core.api.Assertions.within;
  * Efficiency formula per log:
  *   (soc_after - soc_start) / 100 * net_battery_capacity_kwh / kwh_charged
  *
- * Minimum 5 qualifying logs required; SoC delta >= 75%; only DC/AC (not UNKNOWN).
+ * Minimum 3 qualifying logs required; SoC delta >= 70%; only DC/AC (not UNKNOWN).
  */
 class SpecChargingEfficiencyJobTest extends AbstractIntegrationTest {
 
@@ -115,7 +115,7 @@ class SpecChargingEfficiencyJobTest extends AbstractIntegrationTest {
     }
 
     // ------------------------------------------------------------------
-    // Test 1: 6 DC logs with SoC delta >= 60% → efficiency_dc is set
+    // Test 1: 6 DC logs with SoC delta >= 70% → efficiency_dc is set
     // ------------------------------------------------------------------
 
     @Test
@@ -140,15 +140,15 @@ class SpecChargingEfficiencyJobTest extends AbstractIntegrationTest {
     }
 
     // ------------------------------------------------------------------
-    // Test 2: Only 4 logs → below minimum → efficiency stays null
+    // Test 2: Only 2 logs → below minimum of 3 → efficiency stays null
     // ------------------------------------------------------------------
 
     @Test
-    void fourDcLogs_belowMinimum_efficiencyRemainsNull() {
+    void twoDcLogs_belowMinimum_efficiencyRemainsNull() {
         VehicleSpecificationEntity spec = createSpec(new BigDecimal("75.0"));
         Car car = createCarForSpec(spec.getId());
 
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 2; i++) {
             createLog(car.getId(), 20, 90, new BigDecimal("52.5"), ChargingType.DC);
         }
 
@@ -189,17 +189,17 @@ class SpecChargingEfficiencyJobTest extends AbstractIntegrationTest {
     }
 
     // ------------------------------------------------------------------
-    // Test 4: SoC delta < 75% → logs ignored
+    // Test 4: SoC delta < 70% → logs ignored
     // ------------------------------------------------------------------
 
     @Test
-    void socDeltaBelow75_logsIgnored() {
+    void socDeltaBelow70_logsIgnored() {
         VehicleSpecificationEntity spec = createSpec(new BigDecimal("75.0"));
         Car car = createCarForSpec(spec.getId());
 
-        // SoC delta = 74 (below threshold of 75)
+        // SoC delta = 69 (below threshold of 70)
         for (int i = 0; i < 6; i++) {
-            createLog(car.getId(), 20, 94, new BigDecimal("44.25"), ChargingType.DC);
+            createLog(car.getId(), 20, 89, new BigDecimal("44.25"), ChargingType.DC);
         }
 
         job.run();

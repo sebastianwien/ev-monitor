@@ -12,7 +12,7 @@ Bisher hat EV Monitor pauschal 5% Verlust bei DC und 10% bei AC angenommen. Das 
 
 ## Wie es jetzt funktioniert
 
-Ab sofort berechnet EV Monitor den Ladeverlust pro Fahrzeugmodell aus echten Ladevorgängen der Community. Konkret: Ladevorgänge mit einem SoC-Hub von mindestens 75% - also von fast leer auf fast voll - werden ausgewertet. Dabei wird die tatsächlich geladene Energie (Netzseite) mit dem SoC-Delta mal Netto-Batteriekapazität verglichen. Der Median dieser Verhältnisse ergibt den modellspezifischen Ladeverlust, getrennt für AC und DC.
+Ab sofort berechnet EV Monitor den Ladeverlust pro Fahrzeugmodell aus echten Ladevorgängen der Community. Konkret: Ladevorgänge mit einem SoC-Hub von mindestens 70% - also von fast leer auf fast voll - werden ausgewertet. Dabei wird die tatsächlich geladene Energie (Netzseite) mit dem SoC-Delta mal Netto-Batteriekapazität verglichen. Der Median dieser Verhältnisse ergibt den modellspezifischen Ladeverlust, getrennt für AC und DC.
 
 Die berechneten Werte gelten pro Fahrzeugkonfiguration - also für alle Autos mit derselben Modell- und Akkuvariante. Ein VW ID.3 Pro Performance profitiert von den Ladevorgängen aller anderen ID.3 Pro Performance in der Community, nicht nur vom eigenen.
 
@@ -21,3 +21,5 @@ Sobald mindestens 5 qualifizierte Ladevorgänge pro Modell und Ladetyp vorliegen
 ## Was das bedeutet
 
 Dein berechneter Verbrauch spiegelt jetzt besser wider, was dein Fahrzeug wirklich verbraucht - und wird mit jedem neuen Ladelog der Community ein Stück genauer.
+
+Ladevorgänge mit grossem SoC-Hub und netzseits gemessener Energie helfen uns dabei enorm: Je mehr solcher Ladevorgänge in der Community vorhanden sind, desto saubere Ladeverlust-Koeffizienten können wir für alle berechnen.

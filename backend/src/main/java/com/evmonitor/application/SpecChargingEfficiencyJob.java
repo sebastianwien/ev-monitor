@@ -25,7 +25,7 @@ import java.util.UUID;
  * - soc_start_percent, soc_after_charge_percent, kwh_charged are all non-null
  * - kwh_charged > 0
  * - include_in_statistics = true
- * - (soc_after_charge_percent - soc_start_percent) >= 75
+ * - (soc_after_charge_percent - soc_start_percent) >= 70
  * - charging_type IN ('DC', 'AC')
  * - the spec has a net_battery_capacity_kwh
  *
@@ -54,11 +54,11 @@ public class SpecChargingEfficiencyJob {
               AND e.kwh_charged IS NOT NULL
               AND e.kwh_charged > 0
               AND e.include_in_statistics = true
-              AND (e.soc_after_charge_percent - e.soc_start_percent) >= 75
+              AND (e.soc_after_charge_percent - e.soc_start_percent) >= 70
               AND e.charging_type IN ('DC', 'AC')
               AND vs.net_battery_capacity_kwh IS NOT NULL
             GROUP BY c.vehicle_specification_id, e.charging_type
-            HAVING COUNT(*) >= 5
+            HAVING COUNT(*) >= 3
             """;
 
     private final EntityManager entityManager;
