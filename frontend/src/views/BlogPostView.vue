@@ -142,7 +142,7 @@ useHead(computed(() => {
   max-width: 65ch;
 }
 :global(.dark) .blog-prose {
-  color: rgb(209 213 219);
+  color: rgb(243 244 246);
 }
 .blog-prose :deep(h2) {
   font-size: 1.5rem;
