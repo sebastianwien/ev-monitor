@@ -599,6 +599,14 @@ const visibleChargeEntries = computed(() => groupedFeed.value.filter(i => i.kind
 const totalTripCount = computed(() => visibleTripGroups.value.reduce((s, g) => s + (g.groupSize ?? 0), 0))
 const chargeCount = computed(() => visibleChargeEntries.value.length)
 
+function feedItemDateStr(item: any): string {
+  if (item.kind === 'tripGroup') {
+    const firstTrip = item.trips[0]
+    return firstTrip ? new Date(firstTrip.tripStartedAt).toDateString() : ''
+  }
+  return item.entry?.loggedAt ? new Date(item.entry.loggedAt).toDateString() : ''
+}
+
 const allTripsExpanded = computed(() =>
   visibleTripGroups.value.length > 0
   && visibleTripGroups.value.every(g => !collapsedTripGroups.value.has(g.groupId)),
@@ -875,7 +883,11 @@ function toggleAllCharges() {
               <div v-if="openMenuTopUpId" class="fixed inset-0 z-40" @click="openMenuTopUpId = null" />
               <!-- Backdrop nur fuer Desktop-Popover (mobile Tooltip ist Teil der Expanded-Card). -->
               <div v-if="openRealCostTooltipId?.endsWith('__d')" class="fixed inset-0 z-40" @click="openRealCostTooltipId = null" />
-              <template v-for="item in groupedFeed" :key="item.id">
+              <template v-for="(item, itemIdx) in groupedFeed" :key="item.id">
+
+              <!-- Day-boundary separator between feed items -->
+              <div v-if="itemIdx !== 0 && feedItemDateStr(groupedFeed[itemIdx - 1]) !== feedItemDateStr(item)"
+                   class="border-t-4 border-gray-300 dark:border-gray-500 my-1" />
 
               <!-- ===== TRIP GROUP CONTAINER ===== -->
               <template v-if="item.kind === 'tripGroup'">
