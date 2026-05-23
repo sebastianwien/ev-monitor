@@ -102,6 +102,17 @@ evmonitor:
       ac-charging-efficiency: 0.90
       dc-charging-efficiency: 0.95
 
+xpeng:
+  # IMAP-Poller fuer automatischen Empfang von XPeng-Antwortmails.
+  # Wenn xpeng.imap.host nicht gesetzt ist, wird der Poller via @ConditionalOnProperty deaktiviert.
+  imap:
+    host: ${XPENG_IMAP_HOST:}
+    port: ${XPENG_IMAP_PORT:993}
+    user: ${XPENG_IMAP_USER:}
+    password: ${XPENG_IMAP_PASSWORD:}
+    poll-interval-ms: ${XPENG_IMAP_POLL_INTERVAL_MS:1800000}  # default 30 Minuten
+  reply-to-inbox: ${XPENG_REPLY_TO_INBOX:xpeng-inbox@ev-monitor.net}
+
 app:
   base-url: ${APP_BASE_URL:http://localhost:5173}
   mail:

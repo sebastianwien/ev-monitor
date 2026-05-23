@@ -86,15 +86,13 @@ function formatDate(iso: string | Date | null): string {
 
       <dl class="text-sm space-y-1.5">
         <div v-if="connection?.lastRequestSentAt" class="flex gap-2">
-          <dt class="text-gray-500 dark:text-gray-400 shrink-0">{{ t('xpeng.autosync_last_request', { date: '' }).replace(': ', '') }}:</dt>
-          <dd class="text-gray-800 dark:text-gray-200 font-mono">{{ formatDate(connection.lastRequestSentAt) }}</dd>
+          <dt class="text-gray-500 dark:text-gray-400 shrink-0">{{ t('xpeng.autosync_last_request', { date: formatDate(connection.lastRequestSentAt) }) }}</dt>
         </div>
         <div v-else class="text-gray-500 dark:text-gray-400 italic">
           {{ t('xpeng.autosync_no_request_yet') }}
         </div>
-        <div v-if="nextRequestDate" class="flex gap-2">
-          <dt class="text-gray-500 dark:text-gray-400 shrink-0">{{ t('xpeng.autosync_next_request', { date: '' }).replace('ca. ', '').replace('{date}', '').trim() }}:</dt>
-          <dd class="text-gray-800 dark:text-gray-200 font-mono">~{{ formatDate(nextRequestDate) }}</dd>
+        <div v-if="nextRequestDate" class="text-gray-500 dark:text-gray-400">
+          {{ t('xpeng.autosync_next_request', { date: formatDate(nextRequestDate) }) }}
         </div>
         <div v-if="connection?.xpengEmailMasked" class="flex gap-2">
           <dt class="text-gray-500 dark:text-gray-400 shrink-0">CC:</dt>
