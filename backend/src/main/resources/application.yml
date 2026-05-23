@@ -112,6 +112,11 @@ xpeng:
     password: ${XPENG_IMAP_PASSWORD:}
     poll-interval-ms: ${XPENG_IMAP_POLL_INTERVAL_MS:1800000}  # default 30 Minuten
   reply-to-inbox: ${XPENG_REPLY_TO_INBOX:xpeng-inbox@ev-monitor.net}
+  import:
+    # Tempdir for in-flight XLSX uploads. Files are deleted immediately after parsing
+    # (or on crash recovery). On Hetzner prod: persistent disk path with enough space.
+    # Local dev: defaults to /tmp.
+    tempdir: ${XPENG_IMPORT_TEMPDIR:/tmp/ev-monitor-xpeng-imports}
 
 app:
   base-url: ${APP_BASE_URL:http://localhost:5173}
@@ -191,10 +196,3 @@ logging:
       max-file-size: 50MB
       max-history: 30
       total-size-cap: 500MB
-
-xpeng:
-  import:
-    # Tempdir for in-flight XLSX uploads. Files are deleted immediately after parsing
-    # (or on crash recovery). On Hetzner prod: persistent disk path with enough space.
-    # Local dev: defaults to /tmp.
-    tempdir: ${XPENG_IMPORT_TEMPDIR:/tmp/ev-monitor-xpeng-imports}
