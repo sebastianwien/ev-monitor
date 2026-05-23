@@ -2149,6 +2149,23 @@ xpeng:
   err_consent_required: "Du måste ge samtycket för att fortsätta."
   err_vin_length: "Chassinumret måste vara exakt 17 tecken."
   err_upload_missing: "Välj fordon och Excel-fil."
+  autosync_toggle: "EV Monitor skickar förfrågan automatiskt var 14:e dag (kräver AutoSync Live)"
+  autosync_email_label: "Din XPeng-e-post (valfritt)"
+  autosync_email_hint: "Om din XPeng-e-post skiljer sig från app-e-posten. Standard: app-e-posten."
+  autosync_active_badge: "AutoSync aktiv"
+  autosync_next_request: "Nästa förfrågan ca. {date}"
+  autosync_last_request: "Senaste förfrågan skickad: {date}"
+  autosync_no_request_yet: "Första förfrågan skickas snart automatiskt."
+  autosync_status_title: "Automatisk dataförfrågan aktiv"
+  autosync_status_body: "EV Monitor skickar en EU Data Act-förfrågan till XPeng var 14:e dag i ditt namn. Du inkluderas som kopia och får uppgifterna direkt från XPeng i din inkorg."
+  consent_full_text_v2: |
+    Jag bemyndigar Sebastian Wien, Berlin, Tyskland (operatör av tjänsten «EV Monitor», https://ev-monitor.net) som auktoriserad datamottagare enligt art. 5 i förordning (EU) 2023/2854 (EU Data Act):
+
+    1. Att automatiskt skicka en dataförfrågan enligt art. 4 EU Data Act till XPeng (data-privacy@xiaopeng.com) var 14:e dag å mina vägnar, med mig inkluderad som kopia.
+    2. Att ta emot och behandla svar-e-post från XPeng med mina telematikdata (Excel-bilaga).
+    3. Att använda mottagna data i enlighet med befintligt samtycke. Excel-filen raderas efter behandling; en kopia sparas i 30 dagar.
+
+    Jag kan återkalla detta bemyndigande när som helst genom att inaktivera eller ta bort AutoSync-anslutningen i EV Monitor.
   mail_body: |
     Dear XPENG Data Protection Team,
 

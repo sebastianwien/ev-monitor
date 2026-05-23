@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { TrashIcon } from '@heroicons/vue/24/outline'
+import { TrashIcon, BoltIcon } from '@heroicons/vue/24/outline'
 import xpengService, { type XpengConnectionDto, type XpengJobDto } from '../../api/xpengService'
 
 const { t } = useI18n()
@@ -55,10 +55,22 @@ async function revoke(connectionId: string) {
         <div v-for="c in connections" :key="c.id"
              class="flex items-center justify-between py-3 first:pt-0 last:pb-0">
           <div class="min-w-0">
-            <div class="font-mono text-sm font-semibold text-gray-900 dark:text-white">{{ c.vinMasked }}</div>
-            <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              {{ t('xpeng.imports_count', c.totalImportsCount, { named: { count: c.totalImportsCount } }) }}
-              <span v-if="c.lastSuccessfulImportAt"> · {{ t('xpeng.last_import') }}: {{ formatDate(c.lastSuccessfulImportAt) }}</span>
+            <div class="flex items-center gap-2">
+              <span class="font-mono text-sm font-semibold text-gray-900 dark:text-white">{{ c.vinMasked }}</span>
+              <span v-if="c.autoSyncEnabled"
+                    class="inline-flex items-center gap-0.5 bg-green-100 dark:bg-green-950/60 text-green-700 dark:text-green-300 text-[10px] font-extrabold uppercase tracking-[0.08em] px-1.5 py-0.5 rounded-sm">
+                <BoltIcon class="w-3 h-3" />
+                {{ t('xpeng.autosync_active_badge') }}
+              </span>
+            </div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 space-y-0.5">
+              <div>
+                {{ t('xpeng.imports_count', c.totalImportsCount, { named: { count: c.totalImportsCount } }) }}
+                <span v-if="c.lastSuccessfulImportAt"> · {{ t('xpeng.last_import') }}: {{ formatDate(c.lastSuccessfulImportAt) }}</span>
+              </div>
+              <div v-if="c.autoSyncEnabled && c.lastRequestSentAt" class="font-mono">
+                {{ t('xpeng.autosync_last_request', { date: formatDate(c.lastRequestSentAt) }) }}
+              </div>
             </div>
           </div>
           <button @click="revoke(c.id)"

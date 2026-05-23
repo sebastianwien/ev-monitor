@@ -131,7 +131,7 @@ async function onDeleteAllData() {
       />
 
       <template v-if="carsReadyForUpload.length > 0">
-        <XpengRequestMailStep :vin="selectedVin" />
+        <XpengRequestMailStep :vin="selectedVin" :connection="selectedConnection" />
         <XpengUploadStep
           v-model:car-id="uploadCarId"
           :cars-ready-for-upload="carsReadyForUpload"

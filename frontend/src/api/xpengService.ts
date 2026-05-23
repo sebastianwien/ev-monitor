@@ -9,6 +9,9 @@ export interface XpengConnectionDto {
   consentVersion: string
   lastSuccessfulImportAt: string | null
   totalImportsCount: number
+  autoSyncEnabled: boolean
+  lastRequestSentAt: string | null
+  xpengEmailMasked: string | null
 }
 
 export interface XpengJobDto {
@@ -32,9 +35,13 @@ export const xpengService = {
     return resp.data
   },
 
-  async grantConsent(carId: string, vin: string): Promise<XpengConnectionDto> {
+  async grantConsent(carId: string, vin: string, autoSync = false, xpengEmail?: string): Promise<XpengConnectionDto> {
     const resp = await api.post('/imports/xpeng/connections', {
-      carId, vin, consentAccepted: true,
+      carId,
+      vin,
+      consentAccepted: true,
+      autoSync: autoSync || undefined,
+      xpengEmail: xpengEmail || undefined,
     })
     return resp.data
   },

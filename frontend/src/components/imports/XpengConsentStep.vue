@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ShieldCheckIcon } from '@heroicons/vue/24/outline'
+import { ShieldCheckIcon, BoltIcon } from '@heroicons/vue/24/outline'
 import CarSelectDropdown from '../car/CarSelectDropdown.vue'
 import xpengService from '../../api/xpengService'
+import { useAuthStore } from '../../stores/auth'
 import type { Car } from '../../api/carService'
 
 const { t } = useI18n()
+const auth = useAuthStore()
 
 const props = defineProps<{
   carsNeedingConsent: Car[]
@@ -20,11 +22,21 @@ const emit = defineEmits<{
 const carId = ref<string | null>(null)
 const vin = ref('')
 const accepted = ref(false)
+const autoSync = ref(false)
+const xpengEmail = ref('')
 const busy = ref(false)
 
 watch(() => props.carsNeedingConsent, (cars) => {
   if (cars.length === 1 && !carId.value) carId.value = cars[0].id
 }, { immediate: true })
+
+watch(auth.canActivateTelemetry, (can) => {
+  if (!can) autoSync.value = false
+})
+
+const consentText = computed(() =>
+  autoSync.value ? t('xpeng.consent_full_text_v2') : t('xpeng.consent_full_text'),
+)
 
 const canSubmit = computed(() =>
   !!carId.value && accepted.value && vin.value.trim().length === 17 && !busy.value,
@@ -43,9 +55,12 @@ async function submit() {
   }
   busy.value = true
   try {
-    await xpengService.grantConsent(carId.value, normalized)
+    const email = autoSync.value && xpengEmail.value.trim() ? xpengEmail.value.trim() : undefined
+    await xpengService.grantConsent(carId.value, normalized, autoSync.value, email)
     vin.value = ''
     accepted.value = false
+    autoSync.value = false
+    xpengEmail.value = ''
     emit('granted')
   } catch (e: unknown) {
     const err = e as { response?: { data?: { error?: string } }; message?: string }
@@ -80,10 +95,35 @@ async function submit() {
       <p class="text-xs text-gray-500 mt-1">{{ t('xpeng.vin_hint') }}</p>
     </div>
 
+    <!-- AutoSync-Toggle: nur fuer berechtigte User -->
+    <div v-if="auth.canActivateTelemetry"
+         class="rounded-md border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30 p-3">
+      <label class="flex items-start gap-3 cursor-pointer">
+        <input v-model="autoSync" type="checkbox" class="mt-0.5 accent-amber-500" />
+        <span class="text-sm text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
+          <BoltIcon class="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
+          {{ t('xpeng.autosync_toggle') }}
+        </span>
+      </label>
+      <div v-if="autoSync" class="mt-3">
+        <label class="block text-sm text-amber-800 dark:text-amber-300 mb-1">
+          {{ t('xpeng.autosync_email_label') }}
+        </label>
+        <input
+          v-model="xpengEmail"
+          type="email"
+          maxlength="255"
+          class="w-full px-3 py-2 border border-amber-300 dark:border-amber-700 rounded-md bg-white dark:bg-gray-800 text-sm dark:text-white"
+          :placeholder="t('xpeng.autosync_email_label')"
+        />
+        <p class="text-xs text-amber-700 dark:text-amber-400 mt-1">{{ t('xpeng.autosync_email_hint') }}</p>
+      </div>
+    </div>
+
     <details class="text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
       <summary class="font-medium">{{ t('xpeng.consent_show_full') }}</summary>
       <p class="mt-2 text-xs leading-relaxed whitespace-pre-line border-l-2 border-gray-300 dark:border-gray-600 pl-3">
-        {{ t('xpeng.consent_full_text') }}
+        {{ consentText }}
       </p>
     </details>
 
