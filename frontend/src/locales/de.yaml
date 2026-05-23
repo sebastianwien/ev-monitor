@@ -2241,7 +2241,7 @@ xpeng:
   consent_full_text_v2: |
     Ich beauftrage Sebastian Wien, Berlin, Deutschland (Betreiber des Dienstes "EV Monitor", https://ev-monitor.net - vollständige Anschrift im Impressum), gemäß Art. 5 der Verordnung (EU) 2023/2854 (EU Data Act) als bevollmächtigten Datenempfänger:
 
-    1. In meinem Namen automatisch alle 14 Tage eine Datenanforderung nach Art. 4 EU Data Act per E-Mail an XPeng (data-privacy@xiaopeng.com) zu senden, wobei ich per CC eingebunden werde.
+    1. In meinem Namen automatisch alle 14 Tage eine Datenanforderung nach Art. 4 EU Data Act per E-Mail an XPeng (data-privacy{'@'}xiaopeng.com) zu senden, wobei ich per CC eingebunden werde.
     2. Eingehende Antwort-E-Mails von XPeng mit meinen Telematik-Daten (Excel-Anhang) zu empfangen und zu verarbeiten.
     3. Die empfangenen Daten gemäß der bestehenden Einwilligung (Verarbeitung, Aggregation, Speicherung) zu nutzen. Die empfangene Excel-Datei wird nach der Verarbeitung gelöscht; eine Kopie wird 30 Tage für eine mögliche Wiederholung vorgehalten.
 

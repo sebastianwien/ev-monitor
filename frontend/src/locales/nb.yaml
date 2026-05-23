@@ -2161,7 +2161,7 @@ xpeng:
   consent_full_text_v2: |
     Jeg gir Sebastian Wien, Berlin, Tyskland (driver av «EV Monitor»-tjenesten, https://ev-monitor.net) fullmakt som autorisert datamottaker i henhold til art. 5 i forordning (EU) 2023/2854 (EU Data Act):
 
-    1. Å automatisk sende en dataforespørsel etter art. 4 EU Data Act til XPeng (data-privacy@xiaopeng.com) hver 14. dag på mine vegne, med meg inkludert som kopi.
+    1. Å automatisk sende en dataforespørsel etter art. 4 EU Data Act til XPeng (data-privacy{'@'}xiaopeng.com) hver 14. dag på mine vegne, med meg inkludert som kopi.
     2. Å motta og behandle svar-e-poster fra XPeng med mine telematikkdata (Excel-vedlegg).
     3. Å bruke de mottatte dataene i henhold til eksisterende samtykke. Excel-filen slettes etter behandling; en kopi beholdes i 30 dager.
 

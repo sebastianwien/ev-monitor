@@ -2241,7 +2241,7 @@ xpeng:
   consent_full_text_v2: |
     I authorize Sebastian Wien, Berlin, Germany (operator of the "EV Monitor" service, https://ev-monitor.net - full address in the imprint), pursuant to Art. 5 of Regulation (EU) 2023/2854 (EU Data Act), as authorized data recipient:
 
-    1. To automatically send a data request pursuant to Art. 4 EU Data Act by email to XPeng (data-privacy@xiaopeng.com) every 14 days on my behalf, with me included as CC.
+    1. To automatically send a data request pursuant to Art. 4 EU Data Act by email to XPeng (data-privacy{'@'}xiaopeng.com) every 14 days on my behalf, with me included as CC.
     2. To receive and process incoming reply emails from XPeng containing my telematics data (Excel attachment).
     3. To use the received data in accordance with the existing consent (processing, aggregation, storage). The received Excel file is deleted after processing; a copy is retained for 30 days for a possible retry.
 
