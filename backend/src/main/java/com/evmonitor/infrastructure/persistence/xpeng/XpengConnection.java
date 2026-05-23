@@ -16,6 +16,7 @@ import java.util.UUID;
 public class XpengConnection {
 
     public static final String CURRENT_CONSENT_VERSION = "v1.0";
+    public static final String AUTOSYNC_CONSENT_VERSION = "v2.0";
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -45,6 +46,15 @@ public class XpengConnection {
     @Column(name = "consent_version", nullable = false, length = 10)
     private String consentVersion;
 
+    @Column(name = "routing_token", nullable = false, unique = true)
+    private UUID routingToken;
+
+    @Column(name = "auto_sync_enabled", nullable = false)
+    private boolean autoSyncEnabled;
+
+    @Column(name = "xpeng_email", length = 255)
+    private String xpengEmail;
+
     @Column(name = "last_request_sent_at")
     private LocalDateTime lastRequestSentAt;
 
@@ -66,6 +76,7 @@ public class XpengConnection {
         if (createdAt == null) createdAt = now;
         if (updatedAt == null) updatedAt = now;
         if (consentVersion == null) consentVersion = CURRENT_CONSENT_VERSION;
+        if (routingToken == null) routingToken = UUID.randomUUID();
     }
 
     @PreUpdate

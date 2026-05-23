@@ -106,6 +106,14 @@ public class User {
     }
 
     /**
+     * Gate for XPeng AutoSync Phase 2 (automatic EU-Data-Act mail requests + IMAP import).
+     * Same set as canActivateTelemetry(): any paying subscriber or privileged role.
+     */
+    public boolean canUseXpengAutoSync() {
+        return canActivateTelemetry();
+    }
+
+    /**
      * Centralised gate for viewing live-detected trips (SMARTCAR_LIVE, TESLA_LIVE,
      * TESLA_INFERRED) in the dashboard. Same gate as {@link #canUseTripPush()}: the
      * Tier-2 entitlement covers both the streaming/push and the display side.

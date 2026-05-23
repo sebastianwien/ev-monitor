@@ -2,6 +2,8 @@ package com.evmonitor.application.imports.xpeng;
 
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarRepository;
+import com.evmonitor.domain.User;
+import com.evmonitor.domain.UserRepository;
 import com.evmonitor.domain.xpeng.VinUtils;
 import com.evmonitor.infrastructure.persistence.xpeng.XpengConnection;
 import com.evmonitor.infrastructure.persistence.xpeng.XpengConnectionRepository;
@@ -14,39 +16,69 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class XpengConnectionService {
 
+    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
+
     private final XpengConnectionRepository connectionRepo;
     private final CarRepository carRepository;
+    private final UserRepository userRepository;
 
     @Transactional
     public XpengConnection grantConsent(UUID userId, UUID carId, String vin,
-                                          String clientIp, String userAgent) {
+                                        String clientIp, String userAgent,
+                                        boolean autoSync, String xpengEmail) {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new IllegalArgumentException("Fahrzeug nicht gefunden"));
         if (!car.getUserId().equals(userId)) {
             throw new SecurityException("Dieses Fahrzeug gehört dir nicht");
         }
-        // Light VIN check - the strict one happens during import against the actual file.
         if (vin == null || vin.length() != 17) {
             throw new IllegalArgumentException("VIN muss 17 Zeichen lang sein");
         }
+        if (autoSync) {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new IllegalArgumentException("User nicht gefunden"));
+            if (!user.canUseXpengAutoSync()) {
+                throw new SecurityException("AutoSync erfordert ein AutoSync-Abo oder eine privilegierte Rolle");
+            }
+        }
+        if (xpengEmail != null && !xpengEmail.isBlank()) {
+            if (xpengEmail.length() > 255 || !EMAIL_PATTERN.matcher(xpengEmail).matches()) {
+                throw new IllegalArgumentException("Ungültige XPeng-E-Mail-Adresse");
+            }
+        }
+
+        String normalizedXpengEmail = (xpengEmail != null && !xpengEmail.isBlank()) ? xpengEmail.strip() : null;
+        String consentVersion = autoSync
+                ? XpengConnection.AUTOSYNC_CONSENT_VERSION
+                : XpengConnection.CURRENT_CONSENT_VERSION;
 
         Optional<XpengConnection> existing = connectionRepo.findByCarId(carId);
         if (existing.isPresent()) {
             XpengConnection conn = existing.get();
-            if (conn.isActive()) return conn;
-            // Was revoked previously - re-grant.
+            if (conn.isActive()) {
+                // Update autoSync-Felder auch bei aktiver Connection (User kann AutoSync nachtraglich aktivieren)
+                conn.setAutoSyncEnabled(autoSync);
+                if (autoSync) conn.setConsentVersion(consentVersion);
+                conn.setXpengEmail(normalizedXpengEmail);
+                return connectionRepo.save(conn);
+            }
+            // War widerrufen - neu erteilen
             conn.setConsentGrantedAt(LocalDateTime.now());
             conn.setConsentRevokedAt(null);
             conn.setConsentIp(clientIp);
             conn.setConsentUserAgent(userAgent);
-            conn.setConsentVersion(XpengConnection.CURRENT_CONSENT_VERSION);
+            conn.setConsentVersion(consentVersion);
             conn.setVin(vin);
+            conn.setAutoSyncEnabled(autoSync);
+            conn.setXpengEmail(normalizedXpengEmail);
+            // routing_token bleibt unverandert (stabiler Identifier fur bestehende Reply-Mails)
             return connectionRepo.save(conn);
         }
 
@@ -57,12 +89,14 @@ public class XpengConnectionService {
                 .consentGrantedAt(LocalDateTime.now())
                 .consentIp(clientIp)
                 .consentUserAgent(userAgent)
-                .consentVersion(XpengConnection.CURRENT_CONSENT_VERSION)
+                .consentVersion(consentVersion)
+                .autoSyncEnabled(autoSync)
+                .xpengEmail(normalizedXpengEmail)
                 .totalImportsCount(0)
                 .build();
         XpengConnection saved = connectionRepo.save(conn);
-        log.info("XpengConnection: consent granted user={} car={} vin={}",
-                userId, carId, VinUtils.mask(vin));
+        log.info("XpengConnection: consent granted user={} car={} vin={} autoSync={}",
+                userId, carId, VinUtils.mask(vin), autoSync);
         return saved;
     }
 
@@ -84,5 +118,10 @@ public class XpengConnectionService {
 
     public Optional<XpengConnection> getConnectionForCar(UUID carId) {
         return connectionRepo.findByCarId(carId);
+    }
+
+    public List<XpengConnection> getConnectionsDueForAutoRequest() {
+        LocalDateTime threshold = LocalDateTime.now().minusDays(14);
+        return connectionRepo.findDueForAutoRequest(threshold);
     }
 }
