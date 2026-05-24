@@ -2232,7 +2232,7 @@ xpeng:
   mode_autosync: "Set up AutoSync"
   mode_manual: "Set up manually"
   autosync_email_label: "Your XPeng email (optional)"
-  autosync_email_placeholder: "your@xpeng-email.com"
+  autosync_email_placeholder: "your{'@'}xpeng-email.com"
   autosync_email_hint: "If your XPeng email differs from your app email. Default: your app email."
   autosync_upgrade_title: "Activate AutoSync"
   autosync_upgrade_body: "EV Monitor will automatically send the request every 14 days on your behalf."
