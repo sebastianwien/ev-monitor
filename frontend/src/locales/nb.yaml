@@ -2149,7 +2149,7 @@ xpeng:
   err_consent_required: "Du må gi samtykket for å fortsette."
   err_vin_length: "VIN-en må være nøyaktig 17 tegn."
   err_upload_missing: "Velg kjøretøy og Excel-fil."
-  autosync_toggle: "EV Monitor sender forespørselen automatisk hvert 14. dag (krever AutoSync Live)"
+  autosync_toggle: "EV Monitor sender forespørselen automatisk hvert 14. dag (krever AutoSync)"
   autosync_email_label: "Din XPeng-e-post (valgfritt)"
   autosync_email_hint: "Hvis din XPeng-e-post er annerledes enn app-e-posten din. Standard: app-e-posten din."
   autosync_active_badge: "AutoSync aktiv"

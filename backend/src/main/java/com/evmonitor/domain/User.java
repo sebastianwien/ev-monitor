@@ -107,10 +107,11 @@ public class User {
 
     /**
      * Gate for XPeng AutoSync Phase 2 (automatic EU-Data-Act mail requests + IMAP import).
-     * Same set as canActivateTelemetry(): any paying subscriber or privileged role.
+     * AUTOSYNC tier suffices; AUTOSYNC_LIVE is not required (but also permitted as a superset).
+     * Privileged roles (ADMIN, BETA_TESTER, TESLA_FOUNDER) are included via canActivateTelemetry().
      */
     public boolean canUseXpengAutoSync() {
-        return canActivateTelemetry();
+        return premium || TELEMETRY_PRIVILEGED_ROLES.contains(role);
     }
 
     /**
