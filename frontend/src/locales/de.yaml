@@ -2229,9 +2229,16 @@ xpeng:
   err_consent_required: "Du musst die Einwilligung erteilen, um fortzufahren."
   err_vin_length: "Die VIN muss exakt 17 Zeichen lang sein."
   err_upload_missing: "Bitte Fahrzeug auswählen und Excel-Datei wählen."
-  autosync_toggle: "EV Monitor schickt die Anfrage automatisch alle 14 Tage (AutoSync erforderlich)"
+  mode_autosync: "AutoSync einrichten"
+  mode_manual: "Manuell einrichten"
   autosync_email_label: "Deine E-Mail bei XPeng (optional)"
+  autosync_email_placeholder: "deine@xpeng-email.de"
   autosync_email_hint: "Falls deine XPeng-E-Mail von deiner App-E-Mail abweicht. Standard: deine App-E-Mail."
+  autosync_upgrade_title: "AutoSync aktivieren"
+  autosync_upgrade_body: "EV Monitor sendet die Anfrage künftig automatisch alle 14 Tage für dich."
+  autosync_upgrade_accept: "Ich erteile die Vollmacht und willige in die automatische Datenverarbeitung wie oben beschrieben ein."
+  autosync_upgrade_btn: "AutoSync aktivieren"
+  consent_accept_label_v2: "Ich erteile die Vollmacht und willige in die Datenverarbeitung wie oben beschrieben ein."
   autosync_active_badge: "AutoSync aktiv"
   autosync_next_request: "Nächste Anfrage ca. am {date}"
   autosync_last_request: "Letzte Anfrage gesendet: {date}"
@@ -2242,10 +2249,11 @@ xpeng:
     Ich beauftrage Sebastian Wien, Berlin, Deutschland (Betreiber des Dienstes "EV Monitor", https://ev-monitor.net - vollständige Anschrift im Impressum), gemäß Art. 5 der Verordnung (EU) 2023/2854 (EU Data Act) als bevollmächtigten Datenempfänger:
 
     1. In meinem Namen automatisch alle 14 Tage eine Datenanforderung nach Art. 4 EU Data Act per E-Mail an XPeng (data-privacy{'@'}xiaopeng.com) zu senden, wobei ich per CC eingebunden werde.
-    2. Eingehende Antwort-E-Mails von XPeng mit meinen Telematik-Daten (Excel-Anhang) zu empfangen und zu verarbeiten.
-    3. Die empfangenen Daten gemäß der bestehenden Einwilligung (Verarbeitung, Aggregation, Speicherung) zu nutzen. Die empfangene Excel-Datei wird nach der Verarbeitung gelöscht; eine Kopie wird 30 Tage für eine mögliche Wiederholung vorgehalten.
+    2. Eingehende Antwort-E-Mails von XPeng mit meinen Telematik-Daten (Excel-Anhang) zu empfangen, zu entschlüsseln und zu verarbeiten (Aggregation zu Fahrten und Ladevorgängen, Speicherung in meinem Account). Die Excel-Datei wird nach der Verarbeitung gelöscht.
 
-    Ich kann diese Vollmacht jederzeit ohne Angabe von Gründen widerrufen, indem ich die AutoSync-Verbindung in EV Monitor deaktiviere oder lösche. Bereits importierte Daten bleiben bis zu manueller Löschung erhalten.
+    Eine Weitergabe der Daten an Dritte findet nicht statt.
+
+    Ich kann diese Vollmacht jederzeit ohne Angabe von Gründen widerrufen, indem ich die AutoSync-Verbindung in EV Monitor lösche. Bereits importierte Daten bleiben bis zu manueller Löschung erhalten. Der Widerruf berührt nicht die Rechtmäßigkeit der bis dahin erfolgten Verarbeitung.
   mail_body: |
     Dear XPENG Data Protection Team,
 

@@ -2229,9 +2229,16 @@ xpeng:
   err_consent_required: "You must give consent to continue."
   err_vin_length: "The VIN must be exactly 17 characters."
   err_upload_missing: "Please select a vehicle and Excel file."
-  autosync_toggle: "EV Monitor sends the request automatically every 14 days (AutoSync required)"
+  mode_autosync: "Set up AutoSync"
+  mode_manual: "Set up manually"
   autosync_email_label: "Your XPeng email (optional)"
+  autosync_email_placeholder: "your@xpeng-email.com"
   autosync_email_hint: "If your XPeng email differs from your app email. Default: your app email."
+  autosync_upgrade_title: "Activate AutoSync"
+  autosync_upgrade_body: "EV Monitor will automatically send the request every 14 days on your behalf."
+  autosync_upgrade_accept: "I grant the authorization and consent to the automated data processing as described above."
+  autosync_upgrade_btn: "Activate AutoSync"
+  consent_accept_label_v2: "I grant the authorization and consent to the data processing as described above."
   autosync_active_badge: "AutoSync active"
   autosync_next_request: "Next request approx. {date}"
   autosync_last_request: "Last request sent: {date}"
@@ -2242,10 +2249,11 @@ xpeng:
     I authorize Sebastian Wien, Berlin, Germany (operator of the "EV Monitor" service, https://ev-monitor.net - full address in the imprint), pursuant to Art. 5 of Regulation (EU) 2023/2854 (EU Data Act), as authorized data recipient:
 
     1. To automatically send a data request pursuant to Art. 4 EU Data Act by email to XPeng (data-privacy{'@'}xiaopeng.com) every 14 days on my behalf, with me included as CC.
-    2. To receive and process incoming reply emails from XPeng containing my telematics data (Excel attachment).
-    3. To use the received data in accordance with the existing consent (processing, aggregation, storage). The received Excel file is deleted after processing; a copy is retained for 30 days for a possible retry.
+    2. To receive, decrypt, and process incoming reply emails from XPeng containing my telematics data (Excel attachment), including aggregation into trips and charging sessions and storage in my account. The Excel file is deleted after processing.
 
-    I may revoke this authorization at any time without giving reasons by disabling or deleting the AutoSync connection in EV Monitor. Already imported data remains until manually deleted.
+    Data will not be shared with third parties.
+
+    I may revoke this authorization at any time without giving reasons by deleting the AutoSync connection in EV Monitor. Already imported data remains until manually deleted. Revocation does not affect the lawfulness of processing carried out prior to revocation.
   mail_body: |
     Dear XPENG Data Protection Team,
 

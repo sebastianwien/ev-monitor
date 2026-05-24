@@ -59,6 +59,27 @@ public class XpengConnectionController {
         }
     }
 
+    @PatchMapping("/{connectionId}/autosync")
+    public ResponseEntity<?> activateAutoSync(@AuthenticationPrincipal UserPrincipal principal,
+                                              @PathVariable UUID connectionId,
+                                              @RequestBody AutoSyncRequest req,
+                                              HttpServletRequest http) {
+        if (req.consentAccepted() == null || !req.consentAccepted()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "consentAccepted muss true sein"));
+        }
+        try {
+            UUID userId = principal.getUser().getId();
+            XpengConnection conn = service.activateAutoSync(
+                    userId, connectionId, req.xpengEmail(),
+                    WebUtils.clientIp(http), truncate(http.getHeader("User-Agent"), 500));
+            return ResponseEntity.ok(toDto(conn));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @DeleteMapping("/{connectionId}")
     public ResponseEntity<?> revoke(@AuthenticationPrincipal UserPrincipal principal,
                                     @PathVariable UUID connectionId) {
@@ -80,6 +101,10 @@ public class XpengConnectionController {
                 c.isAutoSyncEnabled(), c.getLastRequestSentAt(),
                 maskEmail(c.getXpengEmail()));
     }
+
+    public record AutoSyncRequest(
+            @NotNull Boolean consentAccepted,
+            @Email @Size(max = 255) String xpengEmail) {}
 
     public record GrantRequest(
             @NotNull UUID carId,

@@ -100,6 +100,42 @@ public class XpengConnectionService {
         return saved;
     }
 
+    /**
+     * Upgrades an existing active v1.0 connection to AutoSync (v2.0) without requiring VIN re-entry.
+     * The caller must have explicitly accepted the v2.0 consent text (enforced by controller).
+     */
+    @Transactional
+    public XpengConnection activateAutoSync(UUID userId, UUID connectionId, String xpengEmail,
+                                            String clientIp, String userAgent) {
+        XpengConnection conn = connectionRepo.findById(connectionId)
+                .orElseThrow(() -> new IllegalArgumentException("Verbindung nicht gefunden"));
+        if (!conn.getUserId().equals(userId)) {
+            throw new SecurityException("Diese Verbindung gehört dir nicht");
+        }
+        if (!conn.isActive()) {
+            throw new IllegalArgumentException("Verbindung ist nicht aktiv");
+        }
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User nicht gefunden"));
+        if (!user.canUseXpengAutoSync()) {
+            throw new SecurityException("AutoSync erfordert ein AutoSync-Abo oder eine privilegierte Rolle");
+        }
+        if (xpengEmail != null && !xpengEmail.isBlank()) {
+            if (xpengEmail.length() > 255 || !EMAIL_PATTERN.matcher(xpengEmail).matches()) {
+                throw new IllegalArgumentException("Ungültige XPeng-E-Mail-Adresse");
+            }
+        }
+        conn.setAutoSyncEnabled(true);
+        conn.setConsentVersion(XpengConnection.AUTOSYNC_CONSENT_VERSION);
+        conn.setConsentGrantedAt(LocalDateTime.now());
+        conn.setConsentIp(clientIp);
+        conn.setConsentUserAgent(userAgent);
+        conn.setXpengEmail((xpengEmail != null && !xpengEmail.isBlank()) ? xpengEmail.strip() : null);
+        XpengConnection saved = connectionRepo.save(conn);
+        log.info("XpengConnection: AutoSync activated user={} connection={}", userId, connectionId);
+        return saved;
+    }
+
     @Transactional
     public void revokeConsent(UUID userId, UUID connectionId) {
         XpengConnection conn = connectionRepo.findById(connectionId)

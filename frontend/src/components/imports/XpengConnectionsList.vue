@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { TrashIcon, BoltIcon } from '@heroicons/vue/24/outline'
+import { TrashIcon, BoltIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
 import xpengService, { type XpengConnectionDto, type XpengJobDto } from '../../api/xpengService'
+import { useAuthStore } from '../../stores/auth'
 
 const { t } = useI18n()
+const auth = useAuthStore()
 
 const props = defineProps<{
   connections: XpengConnectionDto[]
@@ -41,6 +44,38 @@ async function revoke(connectionId: string) {
     emit('error', err.response?.data?.error ?? err.message ?? 'Unknown error')
   }
 }
+
+// AutoSync upgrade state (max. eine Verbindung gleichzeitig offen)
+const upgradingId = ref<string | null>(null)
+const upgradeEmail = ref('')
+const upgradeAccepted = ref(false)
+const upgradeBusy = ref(false)
+
+function openUpgrade(connectionId: string) {
+  upgradingId.value = connectionId
+  upgradeEmail.value = ''
+  upgradeAccepted.value = false
+}
+
+function closeUpgrade() {
+  upgradingId.value = null
+}
+
+async function submitUpgrade(connectionId: string) {
+  if (!upgradeAccepted.value) return
+  upgradeBusy.value = true
+  try {
+    const email = upgradeEmail.value.trim() || undefined
+    await xpengService.activateAutoSync(connectionId, email)
+    closeUpgrade()
+    emit('refresh')
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { error?: string } }; message?: string }
+    emit('error', err.response?.data?.error ?? err.message ?? 'Unknown error')
+  } finally {
+    upgradeBusy.value = false
+  }
+}
 </script>
 
 <template>
@@ -52,32 +87,83 @@ async function revoke(connectionId: string) {
         {{ t('xpeng.connections_title') }}
       </p>
       <div class="divide-y divide-gray-200 dark:divide-gray-700">
-        <div v-for="c in connections" :key="c.id"
-             class="flex items-center justify-between py-3 first:pt-0 last:pb-0">
-          <div class="min-w-0">
-            <div class="flex items-center gap-2">
-              <span class="font-mono text-sm font-semibold text-gray-900 dark:text-white">{{ c.vinMasked }}</span>
-              <span v-if="c.autoSyncEnabled"
-                    class="inline-flex items-center gap-0.5 bg-green-100 dark:bg-green-950/60 text-green-700 dark:text-green-300 text-[10px] font-extrabold uppercase tracking-[0.08em] px-1.5 py-0.5 rounded-sm">
-                <BoltIcon class="w-3 h-3" />
-                {{ t('xpeng.autosync_active_badge') }}
-              </span>
+        <div v-for="c in connections" :key="c.id">
+          <!-- Connection row -->
+          <div class="flex items-center justify-between py-3 first:pt-0">
+            <div class="min-w-0">
+              <div class="flex items-center gap-2">
+                <span class="font-mono text-sm font-semibold text-gray-900 dark:text-white">{{ c.vinMasked }}</span>
+                <span v-if="c.autoSyncEnabled"
+                      class="inline-flex items-center gap-0.5 bg-green-100 dark:bg-green-950/60 text-green-700 dark:text-green-300 text-[10px] font-extrabold uppercase tracking-[0.08em] px-1.5 py-0.5 rounded-sm">
+                  <BoltIcon class="w-3 h-3" />
+                  {{ t('xpeng.autosync_active_badge') }}
+                </span>
+              </div>
+              <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 space-y-0.5">
+                <div>
+                  {{ t('xpeng.imports_count', c.totalImportsCount, { named: { count: c.totalImportsCount } }) }}
+                  <span v-if="c.lastSuccessfulImportAt"> · {{ t('xpeng.last_import') }}: {{ formatDate(c.lastSuccessfulImportAt) }}</span>
+                </div>
+                <div v-if="c.autoSyncEnabled && c.lastRequestSentAt" class="font-mono">
+                  {{ t('xpeng.autosync_last_request', { date: formatDate(c.lastRequestSentAt) }) }}
+                </div>
+              </div>
             </div>
-            <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 space-y-0.5">
-              <div>
-                {{ t('xpeng.imports_count', c.totalImportsCount, { named: { count: c.totalImportsCount } }) }}
-                <span v-if="c.lastSuccessfulImportAt"> · {{ t('xpeng.last_import') }}: {{ formatDate(c.lastSuccessfulImportAt) }}</span>
-              </div>
-              <div v-if="c.autoSyncEnabled && c.lastRequestSentAt" class="font-mono">
-                {{ t('xpeng.autosync_last_request', { date: formatDate(c.lastRequestSentAt) }) }}
-              </div>
+            <div class="flex items-center gap-2 ml-3">
+              <!-- AutoSync aktivieren: nur fuer berechtigte User mit manueller Verbindung -->
+              <button v-if="!c.autoSyncEnabled && auth.canActivateTelemetry"
+                      @click="upgradingId === c.id ? closeUpgrade() : openUpgrade(c.id)"
+                      class="inline-flex items-center gap-1 border-2 border-amber-400 dark:border-amber-600 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/30 text-[11px] font-bold uppercase tracking-wide px-2 py-1 rounded-sm transition-colors">
+                <BoltIcon class="w-3 h-3" />
+                {{ t('xpeng.autosync_upgrade_btn') }}
+                <ChevronDownIcon class="w-3 h-3 transition-transform" :class="upgradingId === c.id ? 'rotate-180' : ''" />
+              </button>
+              <button @click="revoke(c.id)"
+                      class="inline-flex items-center justify-center w-8 h-8 border-2 border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-sm shadow-[2px_2px_0_0_#fca5a5] dark:shadow-[2px_2px_0_0_#7f1d1d] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-[transform,box-shadow] duration-75"
+                      :title="t('xpeng.btn_revoke')">
+                <TrashIcon class="w-4 h-4" />
+              </button>
             </div>
           </div>
-          <button @click="revoke(c.id)"
-                  class="inline-flex items-center justify-center w-8 h-8 border-2 border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-sm shadow-[2px_2px_0_0_#fca5a5] dark:shadow-[2px_2px_0_0_#7f1d1d] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-[transform,box-shadow] duration-75"
-                  :title="t('xpeng.btn_revoke')">
-            <TrashIcon class="w-4 h-4" />
-          </button>
+
+          <!-- Inline AutoSync upgrade form -->
+          <div v-if="upgradingId === c.id"
+               class="pb-4 space-y-3 border-t border-amber-200 dark:border-amber-900 pt-3 mt-0">
+            <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
+              {{ t('xpeng.autosync_upgrade_body') }}
+            </p>
+            <div>
+              <label class="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                {{ t('xpeng.autosync_email_label') }}
+              </label>
+              <input
+                v-model="upgradeEmail"
+                type="email"
+                maxlength="255"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-sm dark:text-white"
+                :placeholder="t('xpeng.autosync_email_placeholder')"
+              />
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ t('xpeng.autosync_email_hint') }}</p>
+            </div>
+            <label class="flex items-start gap-2 cursor-pointer">
+              <input v-model="upgradeAccepted" type="checkbox" class="mt-0.5" />
+              <span class="text-xs text-gray-700 dark:text-gray-300">{{ t('xpeng.autosync_upgrade_accept') }}</span>
+            </label>
+            <div class="flex gap-2">
+              <button
+                @click="submitUpgrade(c.id)"
+                :disabled="!upgradeAccepted || upgradeBusy"
+                class="inline-flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed text-gray-950 font-bold uppercase tracking-wide text-xs px-4 py-2 rounded-sm border-2 border-amber-500 shadow-[2px_2px_0_0_#030712] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-[transform,box-shadow] duration-75">
+                <BoltIcon class="w-3.5 h-3.5" />
+                {{ upgradeBusy ? t('common.loading') : t('xpeng.autosync_upgrade_btn') }}
+              </button>
+              <button
+                @click="closeUpgrade"
+                class="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 px-3 py-2">
+                {{ t('common.cancel') }}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </section>

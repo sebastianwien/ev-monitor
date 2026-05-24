@@ -2149,9 +2149,16 @@ xpeng:
   err_consent_required: "Du må gi samtykket for å fortsette."
   err_vin_length: "VIN-en må være nøyaktig 17 tegn."
   err_upload_missing: "Velg kjøretøy og Excel-fil."
-  autosync_toggle: "EV Monitor sender forespørselen automatisk hvert 14. dag (krever AutoSync)"
+  mode_autosync: "Sett opp AutoSync"
+  mode_manual: "Sett opp manuelt"
   autosync_email_label: "Din XPeng-e-post (valgfritt)"
+  autosync_email_placeholder: "din@xpeng-epost.no"
   autosync_email_hint: "Hvis din XPeng-e-post er annerledes enn app-e-posten din. Standard: app-e-posten din."
+  autosync_upgrade_title: "Aktiver AutoSync"
+  autosync_upgrade_body: "EV Monitor sender forespørselen automatisk hvert 14. dag på dine vegne."
+  autosync_upgrade_accept: "Jeg gir fullmakt og samtykker til automatisk databehandling som beskrevet ovenfor."
+  autosync_upgrade_btn: "Aktiver AutoSync"
+  consent_accept_label_v2: "Jeg gir fullmakt og samtykker til databehandling som beskrevet ovenfor."
   autosync_active_badge: "AutoSync aktiv"
   autosync_next_request: "Neste forespørsel ca. {date}"
   autosync_last_request: "Siste forespørsel sendt: {date}"
@@ -2162,10 +2169,11 @@ xpeng:
     Jeg gir Sebastian Wien, Berlin, Tyskland (driver av «EV Monitor»-tjenesten, https://ev-monitor.net) fullmakt som autorisert datamottaker i henhold til art. 5 i forordning (EU) 2023/2854 (EU Data Act):
 
     1. Å automatisk sende en dataforespørsel etter art. 4 EU Data Act til XPeng (data-privacy{'@'}xiaopeng.com) hver 14. dag på mine vegne, med meg inkludert som kopi.
-    2. Å motta og behandle svar-e-poster fra XPeng med mine telematikkdata (Excel-vedlegg).
-    3. Å bruke de mottatte dataene i henhold til eksisterende samtykke. Excel-filen slettes etter behandling; en kopi beholdes i 30 dager.
+    2. Å motta, dekryptere og behandle svar-e-poster fra XPeng med mine telematikkdata (Excel-vedlegg), inkludert aggregering til turer og ladeøkter og lagring i kontoen min. Excel-filen slettes etter behandling.
 
-    Jeg kan tilbakekalle denne fullmakten når som helst ved å deaktivere eller slette AutoSync-tilkoblingen i EV Monitor.
+    Data vil ikke deles med tredjeparter.
+
+    Jeg kan tilbakekalle denne fullmakten når som helst ved å slette AutoSync-tilkoblingen i EV Monitor. Allerede importerte data beholdes til manuell sletting.
   mail_body: |
     Dear XPENG Data Protection Team,
 
