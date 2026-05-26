@@ -237,7 +237,7 @@ function fmtShortDate(d: Date | null): string {
 }
 
 function cellBgClass(d: DayData | null): string {
-  if (!d || d.km === 0) return 'bg-gray-100 dark:bg-gray-700/30'
+  if (!d || d.km === 0) return 'bg-gray-100 dark:bg-gray-800/60'
   const ratio = Math.max(0.15, d.km / maxCellKm.value)
   if (ratio < 0.35) return 'bg-emerald-500/30'
   if (ratio < 0.6) return 'bg-emerald-500/55'
@@ -322,7 +322,7 @@ function drainBarWidth(ev: { kwh: number }): string {
                 </div>
                 <span class="text-xs font-semibold text-gray-800 dark:text-gray-200 mono tabular-nums">{{ fmt1(allChargedKwh - allPhantomKwh - allLossKwh) }} kWh</span>
               </div>
-              <div class="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div class="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                 <div class="h-full bg-emerald-500 rounded-full" :style="{ width: drivenBarWidth, transition: 'width 0.7s cubic-bezier(0.4,0,0.2,1)' }"></div>
               </div>
             </div>
@@ -335,7 +335,7 @@ function drainBarWidth(ev: { kwh: number }): string {
                 </div>
                 <span class="text-xs font-semibold text-amber-600 dark:text-amber-400 mono tabular-nums">{{ fmt1(allPhantomKwh) }} kWh</span>
               </div>
-              <div class="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div class="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                 <div class="h-full bg-amber-400 rounded-full" :style="{ width: phantomBarWidth, transition: 'width 0.7s cubic-bezier(0.4,0,0.2,1) 0.05s' }"></div>
               </div>
             </div>
@@ -348,7 +348,7 @@ function drainBarWidth(ev: { kwh: number }): string {
                 </div>
                 <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 mono tabular-nums">{{ fmt1(allLossKwh) }} kWh</span>
               </div>
-              <div class="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div class="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                 <div class="h-full bg-indigo-400 rounded-full" :style="{ width: lossBarWidth, transition: 'width 0.7s cubic-bezier(0.4,0,0.2,1) 0.1s' }"></div>
               </div>
             </div>
@@ -374,7 +374,7 @@ function drainBarWidth(ev: { kwh: number }): string {
               <span class="text-[11px] text-gray-500 dark:text-gray-400 w-12 text-right flex-shrink-0 mono tabular-nums">
                 {{ fmtShortDate(ev.date) }}
               </span>
-              <div class="flex-1 h-5 bg-gray-100 dark:bg-gray-700/50 rounded overflow-hidden">
+              <div class="flex-1 h-5 bg-gray-100 dark:bg-gray-800/70 rounded overflow-hidden">
                 <div
                   class="h-full rounded"
                   :style="{
