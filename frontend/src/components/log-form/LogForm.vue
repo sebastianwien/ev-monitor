@@ -88,6 +88,33 @@ const formData = ref<LogFormData>({
   chargingProviderId: null,
 })
 
+// ── Location search ────────────────────────────────────────────────────────────
+const locationSearchQuery = ref('')
+const locationSuggestions = ref<any[]>([])
+const showLocationSuggestions = ref(false)
+const locationDisplayName = ref('')
+
+let locationSearchTimer: ReturnType<typeof setTimeout> | null = null
+watch(locationSearchQuery, (q) => {
+  if (locationSearchTimer) clearTimeout(locationSearchTimer)
+  if (!q || q.length < 3) { locationSuggestions.value = []; return }
+  locationSearchTimer = setTimeout(async () => {
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5`)
+      locationSuggestions.value = await res.json()
+      showLocationSuggestions.value = locationSuggestions.value.length > 0
+    } catch { /* ignore */ }
+  }, 300)
+})
+
+function selectLocation(s: any) {
+  formData.value.latitude = parseFloat(s.lat)
+  formData.value.longitude = parseFloat(s.lon)
+  locationDisplayName.value = s.display_name
+  locationSearchQuery.value = s.display_name
+  showLocationSuggestions.value = false
+}
+
 const isFormValid = computed(() => {
   const f = formData.value
   const hasValue = (v: any) => v !== null && v !== undefined && v !== ''
@@ -238,6 +265,9 @@ const submitLog = async () => {
     ocrUsed.value = false
     odometerPlaceholderOverride.value = null
     logFormFieldsRef.value?.clearLocation()
+    locationSearchQuery.value = ''
+    locationDisplayName.value = ''
+    locationSuggestions.value = []
 
     await fetchLogs()
     logsRefreshStore.notifyLogSaved()
@@ -343,20 +373,40 @@ onMounted(async () => {
             </template>
           </LogFormFields>
 
-          <!-- Ladezeitpunkt: optional, daher unter dem Submit -->
-          <div>
-            <label class="block text-sm font-medium text-gray-600 dark:text-gray-400">{{ t('logfields.timestamp') }}</label>
-            <input
-              v-model="formData.loggedAt"
-              type="datetime-local"
-              :max="logFormFieldsRef?.getCurrentDateTimeLocal()"
-              class="mt-1 block w-full rounded-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
-            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ t('logfields.timestamp_hint') }}</p>
+          <!-- Ladezeitpunkt + Ladeort: auf Mobile gestapelt (Ort oben), auf Desktop nebeneinander -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="order-2 md:order-1">
+              <label class="block text-sm font-medium text-gray-600 dark:text-gray-400">{{ t('logfields.timestamp') }}</label>
+              <input
+                v-model="formData.loggedAt"
+                type="datetime-local"
+                :max="logFormFieldsRef?.getCurrentDateTimeLocal()"
+                class="mt-1 block w-full rounded-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" />
+              <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ t('logfields.timestamp_hint') }}</p>
+            </div>
+            <div class="order-1 md:order-2">
+              <label class="block text-sm font-medium text-gray-600 dark:text-gray-400">{{ t('logfields.location_create_label') }}</label>
+              <div class="relative">
+                <input
+                  v-model="locationSearchQuery"
+                  type="text"
+                  :placeholder="t('logfields.location_create_placeholder')"
+                  class="mt-1 block w-full rounded-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
+                  @focus="showLocationSuggestions = locationSuggestions.length > 0"
+                />
+                <ul v-if="showLocationSuggestions && locationSuggestions.length > 0"
+                  class="absolute z-10 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)] max-h-48 overflow-y-auto">
+                  <li v-for="s in locationSuggestions" :key="s.place_id"
+                    class="px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
+                    @mousedown.prevent="selectLocation(s)">
+                    {{ s.display_name }}
+                  </li>
+                </ul>
+              </div>
+              <p v-if="locationDisplayName" class="text-xs text-green-600 mt-1">{{ t('logfields.new_location') }} {{ locationDisplayName }}</p>
+              <p v-else class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ t('logform.location_hint') }}</p>
+            </div>
           </div>
-
-          <p class="text-xs text-gray-400 dark:text-gray-500 text-center mt-2">
-            {{ t('logform.location_hint') }}
-          </p>
           <ConsumptionInfoBox :min-trips="5" class="mt-4" />
         </form>
 

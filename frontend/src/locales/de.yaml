@@ -821,6 +821,8 @@ logfields:
   tariff_chip_label: "Ladekarte"
   update_location: "Standort aktualisieren"
   location_search_placeholder: "Ort suchen (ersetzt bestehenden Standort)..."
+  location_create_label: "Ladeort"
+  location_create_placeholder: "Ort suchen..."
   new_location: "Neuer Standort:"
   current_location: "Aktueller Standort gespeichert (Geohash: {geohash})"
   save: "Speichern"

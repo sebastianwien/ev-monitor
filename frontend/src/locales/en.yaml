@@ -821,6 +821,8 @@ logfields:
   tariff_chip_label: "Charging card"
   update_location: "Update location"
   location_search_placeholder: "Search location (replaces existing)..."
+  location_create_label: "Charging location"
+  location_create_placeholder: "Search location..."
   new_location: "New location:"
   current_location: "Current location saved (Geohash: {geohash})"
   save: "Save"

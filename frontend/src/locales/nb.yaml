@@ -812,6 +812,8 @@ logfields:
   tariff_chip_label: Ladekort
   update_location: Oppdater sted
   location_search_placeholder: Søk etter sted (erstatter eksisterende)...
+  location_create_label: Ladested
+  location_create_placeholder: Søk sted...
   new_location: "Ny adresse:"
   current_location: "Nåværende posisjon lagret (Geohash: {geohash})"
   save: Lagre

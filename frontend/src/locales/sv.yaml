@@ -812,6 +812,8 @@ logfields:
   tariff_chip_label: Laddningskort
   update_location: Uppdatera plats
   location_search_placeholder: Sökplats (ersätter befintlig)...
+  location_create_label: Laddningsplats
+  location_create_placeholder: Sök plats...
   new_location: "Ny plats:"
   current_location: "Aktuell position sparad (Geohash: {geohash})"
   save: Spara
