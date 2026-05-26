@@ -8,4 +8,5 @@ import java.util.UUID;
 public interface XpengReceivedMailRepository extends JpaRepository<XpengReceivedMail, UUID> {
     boolean existsByMessageId(String messageId);
     List<XpengReceivedMail> findByConnectionIdOrderByReceivedAtDesc(UUID connectionId);
+    java.util.Optional<XpengReceivedMail> findFirstByConnectionIdAndExtractedPasswordIsNotNullOrderByReceivedAtDesc(UUID connectionId);
 }

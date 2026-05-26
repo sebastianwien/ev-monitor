@@ -39,6 +39,10 @@ public class XpengImapPoller {
             Pattern.compile("\\[token:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\\]",
                     Pattern.CASE_INSENSITIVE);
 
+    private static final Pattern PASSWORD_PATTERN =
+            Pattern.compile("(?:password|passwort|pw)[:\\s]+([\\S]{4,30})",
+                    Pattern.CASE_INSENSITIVE);
+
     private final XpengConnectionRepository connectionRepo;
     private final XpengReceivedMailRepository receivedMailRepo;
     private final XpengImportService importService;
@@ -123,11 +127,24 @@ public class XpengImapPoller {
 
         List<AttachmentPart> xlsxParts = extractXlsxAttachments(msg);
         if (xlsxParts.isEmpty()) {
-            log.info("XPeng IMAP: Mail {} hat keinen XLSX-Anhang, ueberspringe Import", messageId);
-            // Trotzdem als verarbeitet merken damit wir sie nicht jedes Mal pruefen
-            saveReceivedMailRecord(conn.getId(), messageId, null, null);
+            String password = extractPassword(getPlainTextBody(msg));
+            if (password != null) {
+                log.warn("XPeng IMAP: Passwort-Mail fuer connection={} erkannt, extrahiertes Passwort: '{}'",
+                        conn.getId(), password);
+            } else {
+                log.info("XPeng IMAP: Mail {} hat keinen XLSX-Anhang und kein erkennbares Passwort", messageId);
+            }
+            saveReceivedMailRecord(conn.getId(), messageId, null, null, password);
             msg.setFlag(Flags.Flag.SEEN, true);
             return;
+        }
+
+        String password = receivedMailRepo
+                .findFirstByConnectionIdAndExtractedPasswordIsNotNullOrderByReceivedAtDesc(conn.getId())
+                .map(XpengReceivedMail::getExtractedPassword)
+                .orElse(null);
+        if (password != null) {
+            log.info("XPeng IMAP: Verwende gespeichertes Passwort fuer connection={}", conn.getId());
         }
 
         for (AttachmentPart part : xlsxParts) {
@@ -139,8 +156,8 @@ public class XpengImapPoller {
                 try (InputStream uploadStream = Files.newInputStream(tmp)) {
                     XpengImportJob job = importService.uploadXlsx(
                             conn.getUserId(), conn.getCarId(), uploadStream,
-                            null, null, "xpeng-imap-poller");
-                    saveReceivedMailRecord(conn.getId(), messageId, part.filename(), job.getId());
+                            password, null, "xpeng-imap-poller");
+                    saveReceivedMailRecord(conn.getId(), messageId, part.filename(), job.getId(), null);
                     log.info("XPeng IMAP: Import-Job {} fuer connection={} gestartet (Datei: {})",
                             job.getId(), conn.getId(), part.filename());
                 }
@@ -188,15 +205,46 @@ public class XpengImapPoller {
     }
 
     private void saveReceivedMailRecord(UUID connectionId, String messageId,
-                                        String attachmentName, UUID jobId) {
+                                        String attachmentName, UUID jobId, String extractedPassword) {
         XpengReceivedMail record = XpengReceivedMail.builder()
                 .connectionId(connectionId)
                 .messageId(messageId != null ? messageId : "unknown-" + UUID.randomUUID())
                 .receivedAt(LocalDateTime.now())
                 .attachmentName(attachmentName)
                 .jobId(jobId)
+                .extractedPassword(extractedPassword)
                 .build();
         receivedMailRepo.save(record);
+    }
+
+    static String extractPassword(String body) {
+        if (body == null) return null;
+        String trimmed = body.strip();
+        Matcher m = PASSWORD_PATTERN.matcher(trimmed);
+        if (m.find()) return m.group(1);
+        return trimmed.length() < 200 && !trimmed.isEmpty() ? trimmed : null;
+    }
+
+    private static String getPlainTextBody(Message msg) {
+        try {
+            if (msg.isMimeType("text/plain")) {
+                Object content = msg.getContent();
+                return content instanceof String s ? s : null;
+            }
+            if (msg.isMimeType("multipart/*")) {
+                Multipart mp = (Multipart) msg.getContent();
+                for (int i = 0; i < mp.getCount(); i++) {
+                    Part part = mp.getBodyPart(i);
+                    if (part.isMimeType("text/plain")) {
+                        Object content = part.getContent();
+                        if (content instanceof String s) return s;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.debug("XPeng IMAP: Konnte Mail-Body nicht lesen", e);
+        }
+        return null;
     }
 
     private record AttachmentPart(String filename, Part part) {

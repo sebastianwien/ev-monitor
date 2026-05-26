@@ -34,6 +34,9 @@ public class XpengReceivedMail {
     @Column(name = "job_id")
     private UUID jobId;
 
+    @Column(name = "extracted_password", length = 255)
+    private String extractedPassword;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

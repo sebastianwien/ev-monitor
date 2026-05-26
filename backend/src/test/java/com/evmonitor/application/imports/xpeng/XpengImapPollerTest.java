@@ -144,6 +144,108 @@ class XpengImapPollerTest {
         verify(importService, never()).uploadXlsx(any(), any(), any(), any(), any(), any());
     }
 
+    // --- extractPassword ---
+
+    @Test
+    void extractsPasswordViaPasswordKeyword() {
+        assertEquals("abc123", XpengImapPoller.extractPassword("Please find your password: abc123 for the file."));
+    }
+
+    @Test
+    void extractsPasswordViaPwKeyword() {
+        assertEquals("Xp3ng!9", XpengImapPoller.extractPassword("PW: Xp3ng!9"));
+    }
+
+    @Test
+    void extractsPasswordViaPasswortKeyword() {
+        assertEquals("geheim99", XpengImapPoller.extractPassword("Das Passwort: geheim99 fuer die Datei."));
+    }
+
+    @Test
+    void returnsBodyAsFallbackWhenShortAndNoKeyword() {
+        String body = "Hunter42!";
+        assertEquals(body, XpengImapPoller.extractPassword(body));
+    }
+
+    @Test
+    void returnsNullForLongBodyWithNoMatch() {
+        String longBody = "a".repeat(201);
+        assertNull(XpengImapPoller.extractPassword(longBody));
+    }
+
+    @Test
+    void returnsNullForNullBody() {
+        assertNull(XpengImapPoller.extractPassword(null));
+    }
+
+    // --- processMessage: no-XLSX saves extracted password ---
+
+    @Test
+    void savesExtractedPasswordWhenNoXlsxAttachment() throws Exception {
+        UUID token = UUID.randomUUID();
+        Message msg = mockMessage("<pw@test.com>", "Re: XPeng [token:" + token + "]");
+        lenient().when(msg.isMimeType("text/plain")).thenReturn(true);
+        lenient().when(msg.getContent()).thenReturn("Password: secret99");
+        XpengConnection conn = buildConn(token, false);
+        when(receivedMailRepo.existsByMessageId(any())).thenReturn(false);
+        when(connectionRepo.findByRoutingToken(token)).thenReturn(Optional.of(conn));
+        when(receivedMailRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        invokeProcessMessage(msg);
+
+        ArgumentCaptor<XpengReceivedMail> captor = ArgumentCaptor.forClass(XpengReceivedMail.class);
+        verify(receivedMailRepo).save(captor.capture());
+        assertEquals("secret99", captor.getValue().getExtractedPassword());
+        verify(importService, never()).uploadXlsx(any(), any(), any(), any(), any(), any());
+    }
+
+    // --- processMessage: XLSX uses password from DB ---
+
+    @Test
+    void passesStoredPasswordToUploadWhenXlsxPresent() throws Exception {
+        UUID token = UUID.randomUUID();
+        UUID connId = UUID.randomUUID();
+
+        // Build a message with an XLSX multipart attachment
+        jakarta.mail.internet.MimeBodyPart xlsxPart = mock(jakarta.mail.internet.MimeBodyPart.class);
+        when(xlsxPart.isMimeType("multipart/*")).thenReturn(false);
+        when(xlsxPart.getFileName()).thenReturn("data.xlsx");
+        when(xlsxPart.getInputStream()).thenReturn(new java.io.ByteArrayInputStream(new byte[0]));
+
+        jakarta.mail.Multipart mp = mock(jakarta.mail.Multipart.class);
+        when(mp.getCount()).thenReturn(1);
+        when(mp.getBodyPart(0)).thenReturn(xlsxPart);
+
+        Message msg = mockMessage("<xlsx@test.com>", "Re: XPeng [token:" + token + "]");
+        when(msg.isMimeType("multipart/*")).thenReturn(true);
+        when(msg.getContent()).thenReturn(mp);
+
+        XpengConnection conn = XpengConnection.builder()
+                .id(connId).userId(UUID.randomUUID()).carId(UUID.randomUUID())
+                .vin("L1NN12345678ABCDE").routingToken(token).autoSyncEnabled(true)
+                .consentGrantedAt(LocalDateTime.now()).totalImportsCount(0)
+                .consentVersion(XpengConnection.AUTOSYNC_CONSENT_VERSION).build();
+
+        XpengReceivedMail pwRecord = XpengReceivedMail.builder()
+                .connectionId(connId).messageId("<pw@prev.com>")
+                .receivedAt(LocalDateTime.now().minusMinutes(5))
+                .extractedPassword("topSecret1").build();
+
+        when(receivedMailRepo.existsByMessageId(any())).thenReturn(false);
+        when(connectionRepo.findByRoutingToken(token)).thenReturn(Optional.of(conn));
+        when(receivedMailRepo.findFirstByConnectionIdAndExtractedPasswordIsNotNullOrderByReceivedAtDesc(connId))
+                .thenReturn(Optional.of(pwRecord));
+        when(importService.uploadXlsx(any(), any(), any(), any(), any(), any()))
+                .thenReturn(new com.evmonitor.infrastructure.persistence.xpeng.XpengImportJob());
+        when(receivedMailRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        invokeProcessMessage(msg);
+
+        ArgumentCaptor<String> passwordCaptor = ArgumentCaptor.forClass(String.class);
+        verify(importService).uploadXlsx(any(), any(), any(), passwordCaptor.capture(), any(), any());
+        assertEquals("topSecret1", passwordCaptor.getValue());
+    }
+
     // --- helpers ---
 
     private static Message mockMessage(String messageId, String subject) throws Exception {
