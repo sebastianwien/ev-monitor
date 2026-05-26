@@ -514,7 +514,7 @@ dashboard:
   charging_location_public: "Offentlig"
   charging_location_private: "Hemma / Privat"
   wltp_comparison_subtitle: WLTP tillverkaruppgift
-  wltp_comparison_note: Båda räckvidderna beräknade med 90→10% laddningsfönster - inte officiell prospekträckvidd
+  wltp_comparison_note: Båda räckvidderna beräknade med 90→10% laddningsfönster
   peer_footer: "{trips} resor analyserade"
   peer_range_window: 90→10% laddningsfönster
   peer_cost_country_note: "kostnad endast {country}"
@@ -2158,8 +2158,8 @@ xpeng:
   err_upload_missing: "Välj fordon och Excel-fil."
   mode_autosync: "Konfigurera AutoSync"
   mode_manual: "Konfigurera manuellt"
-  autosync_email_label: "Din XPeng-e-post (valfritt)"
-  autosync_email_placeholder: "din{'@'}xpeng-epost.se"
+  autosync_email_label: "Vill du att XPengs svar skickas till en annan adress?"
+  autosync_email_placeholder: "john.doe{'@'}email.com"
   autosync_email_hint: "Om din XPeng-e-post skiljer sig från app-e-posten. Standard: app-e-posten."
   autosync_upgrade_title: "Aktivera AutoSync"
   autosync_upgrade_body: "EV Monitor skickar förfrågan automatiskt var 14:e dag å dina vägnar."

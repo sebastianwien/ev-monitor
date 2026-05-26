@@ -126,6 +126,7 @@ async function onDeleteAllData() {
       <XpengConsentStep
         v-if="carsNeedingConsent.length > 0"
         :cars-needing-consent="carsNeedingConsent"
+        mode="manual"
         @granted="onConsentGranted"
         @error="onError"
       />
@@ -147,6 +148,7 @@ async function onDeleteAllData() {
       <XpengConnectionsList
         :connections="connections"
         :jobs="jobs"
+        filter="manual"
         @refresh="refresh"
         @error="onError"
       />

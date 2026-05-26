@@ -11,6 +11,7 @@ import ManualImportModal from '../components/imports/ManualImportModal.vue'
 const TronityImport = defineAsyncComponent(() => import('../components/imports/TronityImport.vue'))
 import TessieImport from '../components/imports/TessieImport.vue'
 const XpengImport = defineAsyncComponent(() => import('../components/imports/XpengImport.vue'))
+const XpengAutoSyncImport = defineAsyncComponent(() => import('../components/imports/XpengAutoSyncImport.vue'))
 import CarSelectDropdown from '../components/car/CarSelectDropdown.vue'
 import type { Car } from '../api/carService'
 import { useCarStore } from '../stores/car'
@@ -284,13 +285,17 @@ const teslaConnectedLabel = ref<string | null>(null)
                    Premium=1-active-connection limit is surfaced in tile-locking.
                    Non-premium users see the Smartcar upgrade pitch inside the picker. -->
               <AutoSyncCarPicker
-                :cars="activeCars"
+                :cars="activeCars.filter(c => c.brand !== 'XPENG')"
                 :premium-enabled="premiumEnabled"
                 :is-premium="subscriptionIsPremium"
                 :has-auto-sync-access="authStore.isPremium"
                 :tier="subscriptionTier"
                 @active-car-label="autoSyncActiveCarLabel = $event"
                 @live-upgrade-requested="handleLiveUpgrade"
+              />
+              <XpengAutoSyncImport
+                v-if="hasXpeng && authStore.canActivateTelemetry"
+                :cars="activeCars"
               />
             </div>
           </Transition>
@@ -499,7 +504,7 @@ const teslaConnectedLabel = ref<string | null>(null)
               <span class="text-gray-950 font-extrabold text-sm leading-none tracking-tight">XP</span>
             </div>
             <div class="flex-1 min-w-0">
-              <span class="font-medium text-gray-900 dark:text-gray-100 text-sm">XPeng</span>
+              <span class="font-medium text-gray-900 dark:text-gray-100 text-sm">{{ t('imports.tab_xpeng') }}</span>
             </div>
             <ChevronDownIcon :class="['h-5 w-5 text-gray-400 shrink-0 transition-transform duration-200', activeTab === 'xpeng' ? 'rotate-180' : '']" />
           </button>
@@ -509,6 +514,7 @@ const teslaConnectedLabel = ref<string | null>(null)
             </div>
           </Transition>
         </div>
+
 
         <!-- 7. MANUELL -->
         <div>
