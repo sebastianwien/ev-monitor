@@ -75,7 +75,20 @@ onMounted(refresh)
 </script>
 
 <template>
-  <div class="space-y-5">
+  <div class="rounded-sm overflow-hidden border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]">
+    <!-- Header: identisch zur Tesla-Tile -->
+    <div class="flex items-stretch border-b-2 border-gray-300 dark:border-gray-700">
+      <div class="px-3 py-4 flex flex-col justify-center items-center min-w-[80px] md:min-w-[88px] shrink-0 border-r-2 border-gray-300 dark:border-gray-700 bg-gray-950 dark:bg-gray-700 text-white">
+        <p class="text-xl md:text-2xl font-extrabold tracking-tight">XP</p>
+        <p class="text-[9px] font-bold uppercase tracking-wider mt-0.5 opacity-75">XPENG</p>
+      </div>
+      <div class="flex-1 flex items-center px-4 py-3.5">
+        <h3 class="text-base font-bold text-gray-900 dark:text-white">XPeng AutoSync</h3>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="p-4 md:p-5 space-y-5">
     <div v-if="topError || localError"
          class="rounded-sm border-2 border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-950/40 p-3 text-sm text-red-900 dark:text-red-200 flex gap-2 shadow-[2px_2px_0_0_#fca5a5] dark:shadow-[2px_2px_0_0_#b91c1c]">
       <ExclamationCircleIcon class="w-5 h-5 flex-shrink-0" />
@@ -90,6 +103,7 @@ onMounted(refresh)
         v-if="carsNeedingConsent.length > 0"
         :cars-needing-consent="carsNeedingConsent"
         mode="autosync"
+        :card="false"
         @granted="onConsentGranted"
         @error="localError = $event"
       />
@@ -168,5 +182,6 @@ onMounted(refresh)
         {{ t('xpeng.no_xpeng_cars') }}
       </div>
     </template>
+    </div>
   </div>
 </template>

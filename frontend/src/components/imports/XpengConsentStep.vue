@@ -11,6 +11,7 @@ const { t } = useI18n()
 const props = defineProps<{
   carsNeedingConsent: Car[]
   mode: 'manual' | 'autosync'
+  card?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -67,7 +68,7 @@ async function submit() {
 </script>
 
 <template>
-  <section class="rounded-sm border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 space-y-4 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]">
+  <section :class="props.card !== false ? 'rounded-sm border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]' : ''" class="space-y-4">
     <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
       <ShieldCheckIcon class="w-4 h-4" />
       {{ t('xpeng.step_consent_title') }}
