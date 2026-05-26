@@ -10,7 +10,7 @@ import {
 } from '@heroicons/vue/24/outline'
 import type { XpengConnectionDto } from '../../api/xpengService'
 
-const { t, d } = useI18n()
+const { t } = useI18n()
 
 const props = defineProps<{
   vin: string
