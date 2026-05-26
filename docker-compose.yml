@@ -47,6 +47,11 @@ services:
       GITHUB_ISSUE_TOKEN: ${GITHUB_ISSUE_TOKEN:-}
       GITHUB_REPO: ${GITHUB_REPO:-}
       GITHUB_ISSUES_ENABLED: ${GITHUB_ISSUES_ENABLED:-false}
+      XPENG_IMAP_HOST: ${XPENG_IMAP_HOST:-}
+      XPENG_IMAP_PORT: ${XPENG_IMAP_PORT:-993}
+      XPENG_IMAP_USER: ${XPENG_IMAP_USER:-}
+      XPENG_IMAP_PASSWORD: ${XPENG_IMAP_PASSWORD:-}
+      XPENG_REPLY_TO_INBOX: ${XPENG_REPLY_TO_INBOX:-xpeng-inbox@ev-monitor.net}
     volumes:
       - car_images:/app/car-images
     logging:
