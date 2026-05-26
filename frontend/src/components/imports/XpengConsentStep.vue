@@ -74,7 +74,7 @@ async function submit() {
       {{ t('xpeng.step_consent_title') }}
     </h3>
 
-    <div>
+    <div v-if="carsNeedingConsent.length > 1">
       <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5">{{ t('xpeng.car_label') }}</label>
       <CarSelectDropdown v-model="carId" :cars="carsNeedingConsent" />
     </div>

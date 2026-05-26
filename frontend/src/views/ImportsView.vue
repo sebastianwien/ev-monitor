@@ -259,11 +259,11 @@ const autoSyncHasActiveTesla = ref(false)
                   </div>
                   <div class="flex items-center gap-3 flex-wrap flex-1 min-w-0">
                     <span class="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
-                      <span class="text-gray-400 dark:text-gray-500 font-bold">→</span>
+                      <span class="text-indigo-500 dark:text-indigo-400 font-bold">→</span>
                       <span class="font-medium" v-html="t('imports.live_promo_feature_trip')"></span>
                     </span>
                     <span class="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
-                      <span class="text-gray-400 dark:text-gray-500 font-bold">→</span>
+                      <span class="text-indigo-500 dark:text-indigo-400 font-bold">→</span>
                       <span class="font-medium" v-html="t('imports.live_promo_feature_drain')"></span>
                     </span>
                   </div>
