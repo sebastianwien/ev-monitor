@@ -127,10 +127,11 @@ public class XpengImapPoller {
 
         List<AttachmentPart> xlsxParts = extractXlsxAttachments(msg);
         if (xlsxParts.isEmpty()) {
-            String password = extractPassword(getPlainTextBody(msg));
+            String vinSuffix = vinSuffix(conn.getVin());
+            String password = extractPassword(getPlainTextBody(msg), vinSuffix);
             if (password != null) {
-                log.warn("XPeng IMAP: Passwort-Mail fuer connection={} erkannt, extrahiertes Passwort: '{}'",
-                        conn.getId(), password);
+                log.warn("XPeng IMAP: Passwort-Mail fuer connection={} erkannt (Laenge: {})",
+                        conn.getId(), password.length());
             } else {
                 log.info("XPeng IMAP: Mail {} hat keinen XLSX-Anhang und kein erkennbares Passwort", messageId);
             }
@@ -217,34 +218,47 @@ public class XpengImapPoller {
         receivedMailRepo.save(record);
     }
 
-    static String extractPassword(String body) {
+    static String extractPassword(String body, String vinSuffix) {
         if (body == null) return null;
         String trimmed = body.strip();
         Matcher m = PASSWORD_PATTERN.matcher(trimmed);
         if (m.find()) return m.group(1);
+        if (vinSuffix != null && !vinSuffix.isEmpty()) {
+            Pattern vinPattern = Pattern.compile("(\\d{8}" + Pattern.quote(vinSuffix) + ")",
+                    Pattern.CASE_INSENSITIVE);
+            Matcher vm = vinPattern.matcher(trimmed);
+            if (vm.find()) return vm.group(1);
+        }
         return trimmed.length() < 200 && !trimmed.isEmpty() ? trimmed : null;
     }
 
     private static String getPlainTextBody(Message msg) {
         try {
-            if (msg.isMimeType("text/plain")) {
-                Object content = msg.getContent();
-                return content instanceof String s ? s : null;
-            }
-            if (msg.isMimeType("multipart/*")) {
-                Multipart mp = (Multipart) msg.getContent();
-                for (int i = 0; i < mp.getCount(); i++) {
-                    Part part = mp.getBodyPart(i);
-                    if (part.isMimeType("text/plain")) {
-                        Object content = part.getContent();
-                        if (content instanceof String s) return s;
-                    }
-                }
-            }
+            return extractPlainText(msg);
         } catch (Exception e) {
             log.debug("XPeng IMAP: Konnte Mail-Body nicht lesen", e);
         }
         return null;
+    }
+
+    private static String extractPlainText(Part part) throws MessagingException, IOException {
+        if (part.isMimeType("text/plain")) {
+            Object content = part.getContent();
+            return content instanceof String s ? s : null;
+        }
+        if (part.isMimeType("multipart/*")) {
+            Multipart mp = (Multipart) part.getContent();
+            for (int i = 0; i < mp.getCount(); i++) {
+                String result = extractPlainText(mp.getBodyPart(i));
+                if (result != null) return result;
+            }
+        }
+        return null;
+    }
+
+    private static String vinSuffix(String vin) {
+        if (vin == null || vin.length() < 4) return null;
+        return vin.substring(vin.length() - 4);
     }
 
     private record AttachmentPart(String filename, Part part) {

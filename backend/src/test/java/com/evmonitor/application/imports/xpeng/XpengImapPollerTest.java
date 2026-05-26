@@ -148,34 +148,103 @@ class XpengImapPollerTest {
 
     @Test
     void extractsPasswordViaPasswordKeyword() {
-        assertEquals("abc123", XpengImapPoller.extractPassword("Please find your password: abc123 for the file."));
+        assertEquals("abc123", XpengImapPoller.extractPassword("Please find your password: abc123 for the file.", null));
     }
 
     @Test
     void extractsPasswordViaPwKeyword() {
-        assertEquals("Xp3ng!9", XpengImapPoller.extractPassword("PW: Xp3ng!9"));
+        assertEquals("Xp3ng!9", XpengImapPoller.extractPassword("PW: Xp3ng!9", null));
     }
 
     @Test
     void extractsPasswordViaPasswortKeyword() {
-        assertEquals("geheim99", XpengImapPoller.extractPassword("Das Passwort: geheim99 fuer die Datei."));
+        assertEquals("geheim99", XpengImapPoller.extractPassword("Das Passwort: geheim99 fuer die Datei.", null));
     }
 
     @Test
     void returnsBodyAsFallbackWhenShortAndNoKeyword() {
         String body = "Hunter42!";
-        assertEquals(body, XpengImapPoller.extractPassword(body));
+        assertEquals(body, XpengImapPoller.extractPassword(body, null));
     }
 
     @Test
     void returnsNullForLongBodyWithNoMatch() {
         String longBody = "a".repeat(201);
-        assertNull(XpengImapPoller.extractPassword(longBody));
+        assertNull(XpengImapPoller.extractPassword(longBody, null));
     }
 
     @Test
     void returnsNullForNullBody() {
-        assertNull(XpengImapPoller.extractPassword(null));
+        assertNull(XpengImapPoller.extractPassword(null, null));
+    }
+
+    @Test
+    void extractsPasswordViaVinSuffixWithoutKeyword() {
+        // XPeng pattern: YYYYMMDD + last 4 VIN chars, no keyword prefix
+        assertEquals("202512237070", XpengImapPoller.extractPassword(
+                "Bitte verwenden Sie 202512237070 zum Oeffnen der Datei.", "7070"));
+    }
+
+    @Test
+    void vinSuffixNotMatchedWhenVinSuffixIsNull() {
+        // Body must be long enough that the short-body fallback doesn't apply
+        String body = "Bitte verwenden Sie 202512237070 zum Oeffnen der Datei. " + "x".repeat(160);
+        assertNull(XpengImapPoller.extractPassword(body, null));
+    }
+
+    @Test
+    void keywordMatchTakesPriorityOverVinSuffix() {
+        // keyword match returns "MyPass", not the date+vin string
+        assertEquals("MyPass", XpengImapPoller.extractPassword(
+                "Password: MyPass - also 202512237070 here", "7070"));
+    }
+
+    // --- processMessage: password extracted from nested multipart ---
+
+    @Test
+    void savesExtractedPasswordFromNestedMultipart() throws Exception {
+        UUID token = UUID.randomUUID();
+        UUID connId = UUID.randomUUID();
+
+        // multipart/mixed containing multipart/alternative containing text/plain
+        jakarta.mail.internet.MimeBodyPart textPart = mock(jakarta.mail.internet.MimeBodyPart.class);
+        lenient().when(textPart.isMimeType("text/plain")).thenReturn(true);
+        lenient().when(textPart.isMimeType("multipart/*")).thenReturn(false);
+        lenient().when(textPart.getContent()).thenReturn("PW: nested99");
+
+        jakarta.mail.Multipart innerMp = mock(jakarta.mail.Multipart.class);
+        when(innerMp.getCount()).thenReturn(1);
+        when(innerMp.getBodyPart(0)).thenReturn(textPart);
+
+        jakarta.mail.internet.MimeBodyPart altPart = mock(jakarta.mail.internet.MimeBodyPart.class);
+        lenient().when(altPart.isMimeType("text/plain")).thenReturn(false);
+        lenient().when(altPart.isMimeType("multipart/*")).thenReturn(true);
+        lenient().when(altPart.getContent()).thenReturn(innerMp);
+
+        jakarta.mail.Multipart outerMp = mock(jakarta.mail.Multipart.class);
+        when(outerMp.getCount()).thenReturn(1);
+        when(outerMp.getBodyPart(0)).thenReturn(altPart);
+
+        Message msg = mockMessage("<nested@test.com>", "Re: XPeng [token:" + token + "]");
+        lenient().when(msg.isMimeType("multipart/*")).thenReturn(true);
+        lenient().when(msg.isMimeType("text/plain")).thenReturn(false);
+        lenient().when(msg.getContent()).thenReturn(outerMp);
+
+        XpengConnection conn = XpengConnection.builder()
+                .id(connId).userId(UUID.randomUUID()).carId(UUID.randomUUID())
+                .vin("L1NN12345678ABCDE").routingToken(token).autoSyncEnabled(true)
+                .consentGrantedAt(LocalDateTime.now()).totalImportsCount(0)
+                .consentVersion(XpengConnection.AUTOSYNC_CONSENT_VERSION).build();
+
+        when(receivedMailRepo.existsByMessageId(any())).thenReturn(false);
+        when(connectionRepo.findByRoutingToken(token)).thenReturn(Optional.of(conn));
+        when(receivedMailRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        invokeProcessMessage(msg);
+
+        ArgumentCaptor<XpengReceivedMail> captor = ArgumentCaptor.forClass(XpengReceivedMail.class);
+        verify(receivedMailRepo).save(captor.capture());
+        assertEquals("nested99", captor.getValue().getExtractedPassword());
     }
 
     // --- processMessage: no-XLSX saves extracted password ---
