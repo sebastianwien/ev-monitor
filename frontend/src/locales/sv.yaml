@@ -507,6 +507,12 @@ dashboard:
   peer_insufficient_data: Bara {n} förare med samma spec - trend synlig, ännu inte statistiskt robust
   peer_no_data_title: Ingen jämförelse tillgänglig
   peer_no_data_body: När fler förare med samma modell registrerar data visas din jämförelse här.
+  charging_type_split_title: Laddningsfordelning
+  charging_type_ac: AC
+  charging_type_dc: DC
+  charging_type_unknown: Okand
+  charging_location_public: "Offentlig"
+  charging_location_private: "Hemma / Privat"
   wltp_comparison_subtitle: WLTP tillverkaruppgift
   wltp_comparison_note: Båda räckvidderna beräknade med 90→10% laddningsfönster - inte officiell prospekträckvidd
   peer_footer: "{trips} resor analyserade"
@@ -1391,6 +1397,7 @@ imports:
   autosync_unavailable_alternatives: Du kan importera laddningssessioner manuellt eller via Public API.
   autosync_tesla_teaser_title: Registrera din Teslas laddningar automatiskt
   autosync_tesla_teaser_desc: Anslut din Tesla till EV Monitor via Fleet Telemetry. Varje session registreras automatiskt - exakta kWh direkt från bilen, ingen manuell inmatning.
+  tab_xpeng: XPeng
   tab_spritmonitor: Sprit-Monitor
   tab_goe: go-eCharger
   tab_wallbox: OCPP-laddbox

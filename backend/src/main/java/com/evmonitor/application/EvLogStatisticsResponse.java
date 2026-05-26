@@ -24,6 +24,12 @@ public record EvLogStatisticsResponse(
         // Charge Over Time (for chart)
         List<ChargeDataPoint> chargesOverTime,
 
+        // Charging type split (AC/DC/UNKNOWN kWh)
+        ChargingTypeSplit chargingTypeSplit,
+
+        // Location split (public/private kWh)
+        LocationSplit locationSplit,
+
         // Peer benchmark — null if no vehicle spec linked or zero peer cars
         PeerBenchmark peerBenchmark
 ) {
@@ -49,6 +55,17 @@ public record EvLogStatisticsResponse(
      * @param userCountry                         ISO country code of current user (for UI label)
      * @param sufficientData                      true if >= 3 unique peers and >= 10 trips
      */
+    public record ChargingTypeSplit(
+            BigDecimal acKwh,
+            BigDecimal dcKwh,
+            BigDecimal unknownKwh
+    ) {}
+
+    public record LocationSplit(
+            BigDecimal publicKwh,
+            BigDecimal privateKwh
+    ) {}
+
     public record PeerBenchmark(
             BigDecimal userLifetimeConsumptionKwhPer100km,
             BigDecimal peerAvgConsumptionKwhPer100km,

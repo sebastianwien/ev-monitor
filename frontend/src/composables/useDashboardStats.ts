@@ -30,6 +30,17 @@ export interface PeerBenchmark {
   sufficientData: boolean
 }
 
+export interface ChargingTypeSplit {
+  acKwh: number
+  dcKwh: number
+  unknownKwh: number
+}
+
+export interface LocationSplit {
+  publicKwh: number
+  privateKwh: number
+}
+
 export interface StatisticsData {
   totalKwhCharged: number
   totalCostEur: number
@@ -44,6 +55,8 @@ export interface StatisticsData {
   summerConsumptionKwhPer100km: number | null
   winterConsumptionKwhPer100km: number | null
   chargesOverTime: ChargeDataPoint[]
+  chargingTypeSplit: ChargingTypeSplit | null
+  locationSplit: LocationSplit | null
   peerBenchmark: PeerBenchmark | null
 }
 

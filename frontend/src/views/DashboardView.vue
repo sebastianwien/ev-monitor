@@ -42,6 +42,7 @@ import RangeCard from '../components/dashboard/RangeCard.vue'
 import LiveChargingCard from '../components/dashboard/LiveChargingCard.vue'
 import DashboardEmptyState from '../components/dashboard/DashboardEmptyState.vue'
 import DashboardInsights from '../components/dashboard/DashboardInsights.vue'
+import ChargingTypeSplitCard from '../components/dashboard/ChargingTypeSplitCard.vue'
 import CarCardDetails from '../components/dashboard/CarCardDetails.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useDashboardStats } from '../composables/useDashboardStats'
@@ -735,16 +736,24 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
           </div>
         </div>
 
-        <!-- Insights: Energie-Split · Standverluste · Fahrten-Kalender (AutoSync Live only) -->
-        <DashboardInsights
-          v-if="authStore.canViewLiveTrips && mergedLogFeed.length > 0"
-          :entries="mergedLogFeed"
-          :selected-car="cars.find((c: any) => c.id === selectedCarId)"
-          :selected-time-range="selectedTimeRange"
-          :custom-start-date="customStartDate"
-          :custom-end-date="customEndDate"
-          class="mb-3"
-        />
+        <!-- Insights: Energie-Split · Standverluste · Fahrten-Kalender + Ladetypen nebeneinander -->
+        <div class="mb-3 flex flex-col lg:flex-row lg:items-stretch gap-4">
+          <DashboardInsights
+            v-if="authStore.canViewLiveTrips && mergedLogFeed.length > 0"
+            :entries="mergedLogFeed"
+            :selected-car="cars.find((c: any) => c.id === selectedCarId)"
+            :selected-time-range="selectedTimeRange"
+            :custom-start-date="customStartDate"
+            :custom-end-date="customEndDate"
+            class="flex-1 min-w-0"
+          />
+          <ChargingTypeSplitCard
+            v-if="stats.chargingTypeSplit && stats.locationSplit"
+            :charging-type-split="stats.chargingTypeSplit"
+            :location-split="stats.locationSplit"
+            class="lg:w-80 shrink-0"
+          />
+        </div>
 
         <!-- Echte Reichweite + Peer Benchmark: mobile gestackt, desktop nebeneinander -->
         <div class="mb-6 flex flex-col md:flex-row md:items-stretch gap-4">
@@ -757,6 +766,14 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
           :summer-consumption="stats.summerConsumptionKwhPer100km ?? null"
           :winter-consumption="stats.winterConsumptionKwhPer100km ?? null"
           :avg-consumption="stats.avgConsumptionKwhPer100km"
+        />
+
+        <!-- Ladetypen (Position 2: links von Community-Vergleich, nur wenn kein DashboardInsights aktiv) -->
+        <ChargingTypeSplitCard
+          v-if="stats.chargingTypeSplit && stats.locationSplit && !(authStore.canViewLiveTrips && mergedLogFeed.length > 0)"
+          :charging-type-split="stats.chargingTypeSplit"
+          :location-split="stats.locationSplit"
+          class="md:w-80 shrink-0"
         />
 
         <!-- Peer Benchmark -->

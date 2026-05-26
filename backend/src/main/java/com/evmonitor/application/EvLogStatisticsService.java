@@ -227,6 +227,12 @@ public class EvLogStatisticsService {
             peerBenchmark = buildPeerBenchmark(car, user, allLogsForCar, isSeedUser);
         }
 
+        // Charging type split
+        EvLogStatisticsResponse.ChargingTypeSplit chargingTypeSplit = buildChargingTypeSplit(logs);
+
+        // Location split
+        EvLogStatisticsResponse.LocationSplit locationSplit = buildLocationSplit(logs);
+
         return new EvLogStatisticsResponse(
                 totalKwhCharged,
                 totalCostEur,
@@ -241,15 +247,19 @@ public class EvLogStatisticsService {
                 seasonal.summerConsumptionKwhPer100km(),
                 seasonal.winterConsumptionKwhPer100km(),
                 chargesOverTime,
+                chargingTypeSplit,
+                locationSplit,
                 peerBenchmark
         );
     }
 
     private EvLogStatisticsResponse createEmptyStatistics() {
+        var emptyTypeSplit = new EvLogStatisticsResponse.ChargingTypeSplit(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+        var emptyLocSplit = new EvLogStatisticsResponse.LocationSplit(BigDecimal.ZERO, BigDecimal.ZERO);
         return new EvLogStatisticsResponse(
                 BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
                 BigDecimal.ZERO, BigDecimal.ZERO, 0, 0,
-                null, null, 0, null, null, List.of(), null
+                null, null, 0, null, null, List.of(), emptyTypeSplit, emptyLocSplit, null
         );
     }
 
@@ -649,5 +659,37 @@ public class EvLogStatisticsService {
                             log.getCostEur().divide(kwh, 4, RoundingMode.HALF_UP),
                             log.getChargingProviderId()));
                 });
+    }
+
+    private EvLogStatisticsResponse.ChargingTypeSplit buildChargingTypeSplit(List<EvLog> logs) {
+        BigDecimal ac = BigDecimal.ZERO;
+        BigDecimal dc = BigDecimal.ZERO;
+        BigDecimal unknown = BigDecimal.ZERO;
+        for (EvLog log : logs) {
+            BigDecimal kwh = log.getKwhCharged() != null ? log.getKwhCharged() : log.getKwhAtVehicle();
+            if (kwh == null) continue;
+            ChargingType type = log.getChargingType() != null ? log.getChargingType() : ChargingType.UNKNOWN;
+            switch (type) {
+                case AC -> ac = ac.add(kwh);
+                case DC -> dc = dc.add(kwh);
+                default -> unknown = unknown.add(kwh);
+            }
+        }
+        return new EvLogStatisticsResponse.ChargingTypeSplit(ac, dc, unknown);
+    }
+
+    private EvLogStatisticsResponse.LocationSplit buildLocationSplit(List<EvLog> logs) {
+        BigDecimal publicKwh = BigDecimal.ZERO;
+        BigDecimal privateKwh = BigDecimal.ZERO;
+        for (EvLog log : logs) {
+            BigDecimal kwh = log.getKwhCharged() != null ? log.getKwhCharged() : log.getKwhAtVehicle();
+            if (kwh == null) continue;
+            if (log.isPublicCharging()) {
+                publicKwh = publicKwh.add(kwh);
+            } else {
+                privateKwh = privateKwh.add(kwh);
+            }
+        }
+        return new EvLogStatisticsResponse.LocationSplit(publicKwh, privateKwh);
     }
 }

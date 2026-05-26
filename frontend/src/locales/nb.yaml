@@ -507,6 +507,12 @@ dashboard:
   peer_insufficient_data: Kun {n} sjåfører med samme spec - tendens synlig, ikke statistisk robust ennå
   peer_no_data_title: Ingen sammenligning tilgjengelig
   peer_no_data_body: Når flere sjåfører med samme modell registrerer data, vil sammenligningen din vises her.
+  charging_type_split_title: Ladefordeling
+  charging_type_ac: AC
+  charging_type_dc: DC
+  charging_type_unknown: Ukjent
+  charging_location_public: "Offentlig"
+  charging_location_private: "Hjemme / Privat"
   wltp_comparison_subtitle: WLTP produsentverdi
   wltp_comparison_note: Begge rekkevidder beregnet med 90→10% ladevindu - ikke offisiell prospektrekkevidde
   peer_footer: "{trips} turer analysert"
@@ -1391,6 +1397,7 @@ imports:
   autosync_unavailable_alternatives: Du kan importere ladeøkter manuelt eller via Public API.
   autosync_tesla_teaser_title: Registrer Teslaens ladeøkter automatisk
   autosync_tesla_teaser_desc: Koble Teslaen din til EV Monitor via Fleet Telemetry. Hver økt registreres automatisk - presise kWh-tall direkte fra bilen, ingen manuell registrering.
+  tab_xpeng: XPeng
   tab_spritmonitor: Sprit-Monitor
   tab_goe: go-eCharger
   tab_wallbox: OCPP-vegglader
