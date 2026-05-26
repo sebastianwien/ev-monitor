@@ -13,6 +13,8 @@ import com.evmonitor.infrastructure.persistence.xpeng.XpengConnection;
 import com.evmonitor.infrastructure.persistence.xpeng.XpengConnectionRepository;
 import com.evmonitor.infrastructure.persistence.xpeng.XpengImportJob;
 import com.evmonitor.infrastructure.persistence.xpeng.XpengImportJobRepository;
+import com.evmonitor.application.AdminAlertService;
+import com.evmonitor.domain.xpeng.XpengParseException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -49,6 +51,7 @@ class XpengImportServiceTest {
     @Mock ApplicationContext applicationContext;
     @Mock EvLogRepository evLogRepository;
     @Mock EvTripRepository evTripRepository;
+    @Mock AdminAlertService adminAlertService;
 
     @InjectMocks XpengImportService service;
 
@@ -215,5 +218,81 @@ class XpengImportServiceTest {
         XpengConnection c = activeConnection();
         c.setConsentRevokedAt(LocalDateTime.now());
         return c;
+    }
+
+    // --- isEncryptionRelated ---
+
+    @Test
+    void detectsWrongPasswordException() {
+        assertTrue(XpengImportService.isEncryptionRelated(
+                new XpengParseException("Wrong password for encrypted xlsx")));
+    }
+
+    @Test
+    void detectsNoPasswordAvailableException() {
+        assertTrue(XpengImportService.isEncryptionRelated(
+                new XpengParseException("Encrypted XLSX - no password available")));
+    }
+
+    @Test
+    void detectsWrappedEncryptionException() {
+        RuntimeException wrapped = new RuntimeException("import failed",
+                new XpengParseException("Wrong password for encrypted xlsx"));
+        assertTrue(XpengImportService.isEncryptionRelated(wrapped));
+    }
+
+    @Test
+    void doesNotFlagUnrelatedFailures() {
+        assertFalse(XpengImportService.isEncryptionRelated(
+                new RuntimeException("VIN mismatch")));
+    }
+
+    // --- processJobAsync: encryption alert ---
+
+    @Test
+    void sendsAlertWhenOleXlsxHasNoPassword() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        UUID connectionId = UUID.randomUUID();
+
+        // Write a file with OLE magic bytes
+        Path oleTempFile = Files.createTempFile(tempDir, "test-ole-", ".xlsx");
+        Files.write(oleTempFile, new byte[]{
+                (byte) 0xD0, (byte) 0xCF, 0x11, (byte) 0xE0,
+                (byte) 0xA1, (byte) 0xB1, 0x1A, (byte) 0xE1, 0, 0, 0, 0
+        });
+
+        XpengImportJob job = XpengImportJob.builder()
+                .id(jobId).userId(USER).carId(CAR)
+                .status(XpengImportJob.Status.QUEUED).build();
+        XpengConnection conn = activeConnection();
+
+        when(jobRepo.findById(jobId)).thenReturn(Optional.of(job));
+        when(jobRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(connectionRepo.findByCarId(CAR)).thenReturn(Optional.of(conn));
+        when(connectionRepo.findById(connectionId)).thenReturn(Optional.of(conn));
+
+        service.processJobAsync(jobId, oleTempFile.toString(), null, connectionId);
+
+        verify(adminAlertService).sendXpengEncryptionAlert(eq(connectionId), anyString(), anyString());
+        assertEquals(XpengImportJob.Status.FAILED, job.getStatus());
+    }
+
+    @Test
+    void doesNotSendAlertForNonEncryptionFailures() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        UUID connectionId = UUID.randomUUID();
+
+        // Non-existent file → IOException, not encryption-related
+        XpengImportJob job = XpengImportJob.builder()
+                .id(jobId).userId(USER).carId(CAR)
+                .status(XpengImportJob.Status.QUEUED).build();
+
+        when(jobRepo.findById(jobId)).thenReturn(Optional.of(job));
+        when(jobRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.processJobAsync(jobId, "/nonexistent/path.xlsx", null, connectionId);
+
+        verify(adminAlertService, never()).sendXpengEncryptionAlert(any(), any(), any());
+        assertEquals(XpengImportJob.Status.FAILED, job.getStatus());
     }
 }

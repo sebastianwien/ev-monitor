@@ -1,5 +1,6 @@
 package com.evmonitor.application.imports.xpeng;
 
+import com.evmonitor.application.AdminAlertService;
 import com.evmonitor.application.InternalTripRequest;
 import com.evmonitor.application.TripService;
 import com.evmonitor.application.publicapi.PublicApiImportService;
@@ -91,6 +92,7 @@ public class XpengImportService {
     private final ApplicationContext applicationContext;
     private final com.evmonitor.domain.EvLogRepository evLogRepository;
     private final com.evmonitor.domain.EvTripRepository evTripRepository;
+    private final AdminAlertService adminAlertService;
 
     @Value("${xpeng.import.tempdir}")
     private String tempDir;
@@ -219,6 +221,11 @@ public class XpengImportService {
                 j.setCompletedAt(LocalDateTime.now());
                 jobRepo.save(j);
             });
+            if (isEncryptionRelated(e)) {
+                connectionRepo.findById(connectionId).ifPresent(conn ->
+                        adminAlertService.sendXpengEncryptionAlert(
+                                connectionId, VinUtils.mask(conn.getVin()), e.getMessage()));
+            }
         } finally {
             try { Files.deleteIfExists(tempfile); } catch (Exception ignored) {}
         }
@@ -230,6 +237,10 @@ public class XpengImportService {
         UUID carId = job.getCarId();
 
         XpengConnection connection = connectionRepo.findByCarId(carId).orElseThrow();
+
+        if (password == null && isOleFile(tempfile)) {
+            throw new XpengParseException("Encrypted XLSX (OLE format) - no password available");
+        }
         String expectedVin = connection.getVin();
 
         XpengExcelStreamingParser parser = new XpengExcelStreamingParser();
@@ -488,6 +499,26 @@ public class XpengImportService {
     }
 
     public record DeleteSummary(int chargingLogs, int trips, long importJobs) {}
+
+    static boolean isEncryptionRelated(Throwable e) {
+        for (Throwable t = e; t != null; t = t.getCause()) {
+            String name = t.getClass().getSimpleName().toLowerCase();
+            String msg = t.getMessage() != null ? t.getMessage().toLowerCase() : "";
+            if (name.contains("encrypt") || msg.contains("password") || msg.contains("encrypt")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isOleFile(Path file) {
+        try (InputStream in = Files.newInputStream(file)) {
+            byte[] header = in.readNBytes(8);
+            return matches(header, OLE_CFB_MAGIC);
+        } catch (IOException e) {
+            return false;
+        }
+    }
 
     private static String truncate(String s, int max) {
         if (s == null) return null;
