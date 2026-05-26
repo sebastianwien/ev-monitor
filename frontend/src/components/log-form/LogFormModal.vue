@@ -29,10 +29,7 @@ onUnmounted(() => {
     @click.self="emit('close')"
   >
     <div class="relative bg-white dark:bg-gray-800 w-full h-full sm:h-auto sm:rounded-sm sm:shadow-2xl sm:max-w-4xl sm:max-h-[90vh] overflow-y-auto">
-      <!-- LogForm -->
-      <div class="p-6">
-        <LogForm @success="emit('close')" @cancel="emit('close')" />
-      </div>
+      <LogForm @success="emit('close')" @cancel="emit('close')" />
     </div>
   </div>
 </template>

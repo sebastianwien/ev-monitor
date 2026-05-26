@@ -14,7 +14,7 @@ const handleCancel = () => {
 </script>
 
 <template>
-  <div class="md:max-w-4xl md:mx-auto">
+  <div class="md:max-w-2xl md:mx-auto md:mt-8 bg-white dark:bg-gray-800 md:rounded-sm md:shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:md:shadow-[4px_4px_0_rgba(255,255,255,0.30)]">
     <LogForm @success="router.push('/dashboard')" @cancel="handleCancel" />
   </div>
 </template>

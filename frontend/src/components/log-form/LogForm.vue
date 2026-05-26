@@ -273,7 +273,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="md:max-w-2xl md:mx-auto p-4 md:p-6 bg-white dark:bg-gray-800 md:rounded-sm md:shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:md:shadow-[4px_4px_0_rgba(255,255,255,0.30)] md:mt-8">
+  <div class="p-4 md:p-6">
     <div class="flex items-center justify-between mb-4 md:mb-6">
       <div class="w-8" />
       <h1 class="text-xl md:text-3xl font-bold text-gray-800 dark:text-gray-200 text-center">{{ t('logform.title') }}</h1>
