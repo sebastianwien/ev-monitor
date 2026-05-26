@@ -122,10 +122,10 @@ function formatCostPer100km(val: number | null | undefined): string {
 </script>
 
 <template>
-  <div class="bg-white dark:bg-gray-800 rounded-sm border-2 border-gray-300 dark:border-gray-700 overflow-hidden shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] flex flex-col">
+  <div class="bg-white dark:bg-gray-700 rounded-sm border-2 border-gray-300 dark:border-gray-600 overflow-hidden shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#4b5563] flex flex-col">
 
     <!-- Header: mobile gestackt + einklappbar, sm+ absolut zentriert -->
-    <div class="border-b border-gray-100 dark:border-gray-700">
+    <div class="border-b border-gray-100 dark:border-gray-600">
       <!-- Mobile: klickbarer Header -->
       <button @click="toggleCollapsed"
         class="sm:hidden w-full px-4 py-3 flex items-center justify-between">
@@ -161,7 +161,7 @@ function formatCostPer100km(val: number | null | undefined): string {
     <div class="grid grid-cols-2">
 
       <!-- Verbrauch (oben links) -->
-      <div class="p-4 text-center border-r border-gray-100 dark:border-gray-700">
+      <div class="p-4 text-center border-r border-gray-100 dark:border-gray-600">
         <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">{{ t('dashboard.peer_consumption') }}</p>
         <div class="flex items-center justify-center gap-1.5 text-sm flex-wrap">
           <span class="font-bold text-gray-900 dark:text-gray-100">{{ formatConsumption(benchmark.userLifetimeConsumptionKwhPer100km) }} kWh</span>
@@ -183,7 +183,7 @@ function formatCostPer100km(val: number | null | undefined): string {
       </div>
 
       <!-- Kosten €/kWh (unten links) — nur wenn Daten da -->
-      <div v-if="showCost" class="p-4 text-center border-t border-r border-gray-100 dark:border-gray-700">
+      <div v-if="showCost" class="p-4 text-center border-t border-r border-gray-100 dark:border-gray-600">
         <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
           {{ t('dashboard.peer_cost_label') }}
         </p>
@@ -197,7 +197,7 @@ function formatCostPer100km(val: number | null | undefined): string {
 
       <!-- €/100km (unten rechts) -->
       <div v-if="showCost && userCostPer100km !== null && peerCostPer100km !== null"
-        class="p-4 text-center border-t border-gray-100 dark:border-gray-700">
+        class="p-4 text-center border-t border-gray-100 dark:border-gray-600">
         <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">{{ t('dashboard.peer_cost_per_distance') }}</p>
         <div class="flex items-center justify-center gap-1.5 text-sm flex-wrap">
           <span class="font-bold text-gray-900 dark:text-gray-100">{{ formatCostPer100km(userCostPer100km) }}/100km</span>
@@ -210,7 +210,7 @@ function formatCostPer100km(val: number | null | undefined): string {
 
     <!-- Footer: nur bei insufficient data -->
     <div v-if="!benchmark.sufficientData"
-      class="px-4 py-2.5 border-t border-gray-100 dark:border-gray-700 flex items-center gap-2 mt-auto">
+      class="px-4 py-2.5 border-t border-gray-100 dark:border-gray-600 flex items-center gap-2 mt-auto">
       <ExclamationTriangleIcon class="w-3.5 h-3.5 text-amber-500 shrink-0" />
       <p class="text-xs text-gray-400 dark:text-gray-500">
         {{ t('dashboard.peer_insufficient_data', { n: benchmark.uniquePeerUsers }) }}

@@ -251,10 +251,10 @@ function drainBarWidth(ev: { kwh: number }): string {
 </script>
 
 <template>
-  <div class="bg-white dark:bg-gray-800 -mx-4 md:mx-0 md:rounded-sm md:border-2 md:border-gray-300 md:dark:border-gray-700 md:shadow-[2px_2px_0_0_#d1d5db] dark:md:shadow-[2px_2px_0_0_#374151] overflow-hidden">
+  <div class="bg-white dark:bg-gray-700 -mx-4 md:mx-0 md:rounded-sm md:border-2 md:border-gray-300 md:dark:border-gray-600 md:shadow-[2px_2px_0_0_#d1d5db] dark:md:shadow-[2px_2px_0_0_#4b5563] overflow-hidden">
 
     <!-- Tab bar -->
-    <div class="flex items-center gap-5 px-4 md:px-5 border-b border-gray-200 dark:border-gray-700">
+    <div class="flex items-center gap-5 px-4 md:px-5 border-b border-gray-200 dark:border-gray-600">
       <button
         v-for="tab in (['donut', 'nights', 'calendar'] as Tab[])"
         :key="tab"
@@ -353,7 +353,7 @@ function drainBarWidth(ev: { kwh: number }): string {
               </div>
             </div>
             <!-- Footer -->
-            <div class="pt-1.5 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
+            <div class="pt-1.5 border-t border-gray-100 dark:border-gray-600 flex items-center justify-between">
               <span class="text-[11px] text-gray-500 dark:text-gray-400">{{ fmt1(allChargedKwh) }} kWh {{ t('dashboard.insights_loaded') }}</span>
               <span class="text-[11px] text-amber-500 dark:text-amber-400">{{ t('dashboard.insights_phantom_eur', { eur: fmt1(phantomEur) }) }}</span>
             </div>
@@ -392,7 +392,7 @@ function drainBarWidth(ev: { kwh: number }): string {
               </span>
             </div>
           </div>
-          <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-4 pt-3 border-t border-gray-100 dark:border-gray-700">
+          <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-4 pt-3 border-t border-gray-100 dark:border-gray-600">
             {{ t('dashboard.insights_sentry_hint') }}
           </p>
         </div>
@@ -439,12 +439,12 @@ function drainBarWidth(ev: { kwh: number }): string {
               </div>
             </div>
           </div>
-          <div class="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700 grid grid-cols-3 gap-3 text-center">
+          <div class="mt-4 pt-3 border-t border-gray-100 dark:border-gray-600 grid grid-cols-3 gap-3 text-center">
             <div>
               <p class="text-sm font-bold text-emerald-500 mono tabular-nums">{{ tripCount }}</p>
               <p class="text-[10px] text-gray-500 dark:text-gray-400">{{ t('dashboard.insights_trips_count') }}</p>
             </div>
-            <div class="border-x border-gray-100 dark:border-gray-700">
+            <div class="border-x border-gray-100 dark:border-gray-600">
               <p class="text-sm font-bold text-gray-800 dark:text-gray-200 mono tabular-nums">{{ fmt1(avgTripKm) }} km</p>
               <p class="text-[10px] text-gray-500 dark:text-gray-400">{{ t('dashboard.insights_avg_trip') }}</p>
             </div>

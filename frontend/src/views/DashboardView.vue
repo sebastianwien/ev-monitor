@@ -614,7 +614,7 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
 
         <!-- Key Metrics: Desktop Grid (mobile uses Data Strip below) -->
         <div :class="['hidden md:grid md:grid-cols-3 gap-4 pb-6 mb-0', showThgBanner && isGerman ? 'lg:grid-cols-6' : 'lg:grid-cols-5']">
-          <div class="bg-white dark:bg-gray-800 rounded-sm border-2 border-amber-200 dark:border-amber-800/60 overflow-hidden shadow-[2px_2px_0_0_#fde68a] dark:shadow-[2px_2px_0_0_#78350f]">
+          <div class="bg-white dark:bg-gray-700 rounded-sm border-2 border-amber-200 dark:border-amber-700/60 overflow-hidden shadow-[2px_2px_0_0_#fde68a] dark:shadow-[2px_2px_0_0_#92400e]">
             <div class="h-1 bg-amber-500"></div>
             <div class="p-3">
               <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">{{ t('dashboard.metric_total_energy') }}</p>
@@ -622,7 +622,7 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
               <p class="text-sm font-medium text-gray-400 dark:text-gray-500 mt-0.5">{{ stats.totalCharges }} {{ t('dashboard.metric_charges') }}</p>
             </div>
           </div>
-          <div class="bg-white dark:bg-gray-800 rounded-sm border-2 border-indigo-200 dark:border-indigo-800/60 overflow-hidden shadow-[2px_2px_0_0_#c7d2fe] dark:shadow-[2px_2px_0_0_#312e81]">
+          <div class="bg-white dark:bg-gray-700 rounded-sm border-2 border-indigo-200 dark:border-indigo-700/60 overflow-hidden shadow-[2px_2px_0_0_#c7d2fe] dark:shadow-[2px_2px_0_0_#3730a3]">
             <div class="h-1 bg-indigo-500"></div>
             <div class="p-3">
               <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">{{ t('dashboard.metric_total_cost') }}</p>
@@ -631,7 +631,7 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
             </div>
           </div>
           <div v-if="stats.totalDistanceKm != null"
-            class="bg-white dark:bg-gray-800 rounded-sm border-2 border-green-200 dark:border-green-800/60 overflow-hidden shadow-[2px_2px_0_0_#bbf7d0] dark:shadow-[2px_2px_0_0_#14532d]">
+            class="bg-white dark:bg-gray-700 rounded-sm border-2 border-green-200 dark:border-green-700/60 overflow-hidden shadow-[2px_2px_0_0_#bbf7d0] dark:shadow-[2px_2px_0_0_#15803d]">
             <div class="h-1 bg-green-500"></div>
             <div class="p-3">
               <div class="flex items-center gap-1 mb-1">
@@ -657,7 +657,7 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
             </div>
           </div>
           <div v-if="stats.avgConsumptionKwhPer100km != null"
-            class="bg-white dark:bg-gray-800 rounded-sm border-2 border-red-200 dark:border-red-800/60 overflow-hidden shadow-[2px_2px_0_0_#fecaca] dark:shadow-[2px_2px_0_0_#7f1d1d]">
+            class="bg-white dark:bg-gray-700 rounded-sm border-2 border-red-200 dark:border-red-700/60 overflow-hidden shadow-[2px_2px_0_0_#fecaca] dark:shadow-[2px_2px_0_0_#b91c1c]">
             <div class="h-1 bg-red-500"></div>
             <div class="p-3">
               <div class="flex items-center gap-1 mb-1">
@@ -684,7 +684,7 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
             </div>
           </div>
           <div v-if="avgCostPer100km != null"
-            class="bg-white dark:bg-gray-800 rounded-sm border-2 border-pink-200 dark:border-pink-800/60 overflow-hidden shadow-[2px_2px_0_0_#fbcfe8] dark:shadow-[2px_2px_0_0_#831843]">
+            class="bg-white dark:bg-gray-700 rounded-sm border-2 border-pink-200 dark:border-pink-700/60 overflow-hidden shadow-[2px_2px_0_0_#fbcfe8] dark:shadow-[2px_2px_0_0_#be185d]">
             <div class="h-1 bg-pink-500"></div>
             <div class="p-3">
               <div class="flex items-center gap-1 mb-1">
@@ -736,41 +736,33 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
           </div>
         </div>
 
-        <!-- Insights: Energie-Split · Standverluste · Fahrten-Kalender + Ladetypen nebeneinander -->
-        <div class="mb-3 flex flex-col lg:flex-row lg:items-stretch gap-4">
-          <DashboardInsights
-            v-if="authStore.canViewLiveTrips && mergedLogFeed.length > 0"
-            :entries="mergedLogFeed"
-            :selected-car="cars.find((c: any) => c.id === selectedCarId)"
-            :selected-time-range="selectedTimeRange"
-            :custom-start-date="customStartDate"
-            :custom-end-date="customEndDate"
-            class="flex-1 min-w-0"
-          />
-          <ChargingTypeSplitCard
-            v-if="stats.chargingTypeSplit && stats.locationSplit"
-            :charging-type-split="stats.chargingTypeSplit"
-            :location-split="stats.locationSplit"
-            class="lg:w-80 shrink-0"
-          />
-        </div>
+        <!-- Insights: Energie-Split · Standverluste · Fahrten-Kalender (AutoSync Live only) -->
+        <DashboardInsights
+          v-if="authStore.canViewLiveTrips && mergedLogFeed.length > 0"
+          :entries="mergedLogFeed"
+          :selected-car="cars.find((c: any) => c.id === selectedCarId)"
+          :selected-time-range="selectedTimeRange"
+          :custom-start-date="customStartDate"
+          :custom-end-date="customEndDate"
+          class="mb-3"
+        />
 
         <!-- Echte Reichweite + Peer Benchmark: mobile gestackt, desktop nebeneinander -->
-        <div class="mb-6 flex flex-col md:flex-row md:items-stretch gap-4">
+        <div class="mb-6 flex flex-col md:flex-row md:items-start gap-4">
 
         <!-- Echte Reichweite -->
         <RangeCard
-          v-if="carInfo?.customNetCapacityKwh && stats?.avgConsumptionKwhPer100km"
+          v-if="selectedCar?.effectiveBatteryCapacityKwh && stats?.avgConsumptionKwhPer100km"
           class="md:w-80 shrink-0"
-          :battery-capacity-kwh="carInfo.customNetCapacityKwh"
+          :battery-capacity-kwh="selectedCar.effectiveBatteryCapacityKwh"
           :summer-consumption="stats.summerConsumptionKwhPer100km ?? null"
           :winter-consumption="stats.winterConsumptionKwhPer100km ?? null"
           :avg-consumption="stats.avgConsumptionKwhPer100km"
         />
 
-        <!-- Ladetypen (Position 2: links von Community-Vergleich, nur wenn kein DashboardInsights aktiv) -->
+        <!-- Ladeverteilung: immer links vom Community-Vergleich -->
         <ChargingTypeSplitCard
-          v-if="stats.chargingTypeSplit && stats.locationSplit && !(authStore.canViewLiveTrips && mergedLogFeed.length > 0)"
+          v-if="stats.chargingTypeSplit && stats.locationSplit"
           :charging-type-split="stats.chargingTypeSplit"
           :location-split="stats.locationSplit"
           class="md:w-80 shrink-0"

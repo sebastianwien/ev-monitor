@@ -1,18 +1,8 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { SunIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
+import { SunIcon } from '@heroicons/vue/24/outline'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
-import { useSlideTransition } from '../../composables/useSlideTransition'
-
-const { onEnter, onAfterEnter, onLeave, onAfterLeave } = useSlideTransition()
-
-const LS_KEY = 'range_card_collapsed'
-const collapsed = ref(localStorage.getItem(LS_KEY) === 'true')
-function toggleCollapsed() {
-  collapsed.value = !collapsed.value
-  localStorage.setItem(LS_KEY, String(collapsed.value))
-}
 
 const props = defineProps<{
   batteryCapacityKwh: number
@@ -61,18 +51,11 @@ const tabColor = computed(() => {
   <div class="bg-white dark:bg-gray-700 rounded-sm border-2 border-gray-300 dark:border-gray-600 overflow-hidden shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]">
 
     <!-- Titel -->
-    <button @click="toggleCollapsed"
-      class="w-full px-4 py-3 flex items-center justify-between sm:justify-center border-b border-gray-100 dark:border-gray-600 sm:cursor-default">
-      <span class="sm:hidden w-5"></span>
+    <div class="w-full px-4 py-3 flex items-center justify-center border-b border-gray-100 dark:border-gray-600">
       <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('dashboard.real_range_title') }}</h3>
-      <ChevronDownIcon
-        class="w-4 h-4 text-gray-400 transition-transform duration-200 sm:hidden"
-        :class="{ 'rotate-180': !collapsed }" />
-    </button>
+    </div>
 
-    <!-- Content: auf Mobile einklappbar, auf Desktop immer sichtbar -->
-    <Transition @enter="onEnter" @after-enter="onAfterEnter" @leave="onLeave" @after-leave="onAfterLeave">
-    <div v-show="!collapsed" class="sm:!block">
+    <div>
 
     <!-- Tabs (nur wenn saisonale Daten) -->
     <div v-if="hasSeasonal" class="flex border-b border-gray-100 dark:border-gray-600">
@@ -121,7 +104,6 @@ const tabColor = computed(() => {
     </div>
 
     </div>
-    </Transition>
   </div>
 </template>
 

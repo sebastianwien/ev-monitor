@@ -39,6 +39,7 @@ const props = defineProps<{
 const emit = defineEmits<{
     (e: 'active-car-label', label: string | null): void
     (e: 'live-upgrade-requested'): void
+    (e: 'has-active-tesla', value: boolean): void
 }>()
 
 const teslaStatus = ref<TeslaConnectionStatus | null>(null)
@@ -140,7 +141,7 @@ function brandInitials(car: Car): string {
  *  bestehenden State-Farben (emerald aktiv, neutral verfuegbar etc.). */
 function brandTagClasses(car: Car): string {
     const state = tileStateFor(car)
-    if (state === 'active') return 'bg-gray-950 dark:bg-white text-white dark:text-gray-950'
+    if (state === 'active') return 'bg-gray-950 dark:bg-gray-700 text-white dark:text-white'
     if (state === 'unavailable') return 'bg-yellow-400 text-gray-950'
     if (state === 'locked') return 'bg-gray-300 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
     return 'bg-indigo-600 text-white'
@@ -148,6 +149,7 @@ function brandTagClasses(car: Car): string {
 
 watch(activeCar, (car) => {
     emit('active-car-label', car ? enumToLabel(car.model) : null)
+    emit('has-active-tesla', car?.brand === 'TESLA')
 }, { immediate: true })
 
 function toggleExpand(carId: string) {
@@ -191,7 +193,7 @@ function toggleExpand(carId: string) {
                     :key="car.id"
                     class="rounded-sm overflow-hidden transition-[box-shadow] duration-150"
                     :class="tileStateFor(car) === 'active'
-                        ? 'border-2 border-gray-900 dark:border-white bg-white dark:bg-gray-900 shadow-[2px_2px_0_0_#0a0a0a] dark:shadow-[2px_2px_0_0_#ffffff]'
+                        ? 'border-2 border-gray-900 dark:border-gray-500 bg-white dark:bg-gray-900 shadow-[2px_2px_0_0_#0a0a0a] dark:shadow-[2px_2px_0_0_#4b5563]'
                         : tileStateFor(car) === 'unavailable'
                             ? 'border-2 border-dashed border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 opacity-75'
                             : 'border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]'"
@@ -207,7 +209,7 @@ function toggleExpand(carId: string) {
                             class="px-3 py-4 flex flex-col justify-center items-center min-w-[80px] md:min-w-[88px] shrink-0 border-r-2"
                             :class="[
                                 brandTagClasses(car),
-                                tileStateFor(car) === 'active' ? 'border-gray-900 dark:border-white'
+                                tileStateFor(car) === 'active' ? 'border-gray-900 dark:border-gray-500'
                                   : tileStateFor(car) === 'unavailable' ? 'border-dashed border-gray-300 dark:border-gray-700'
                                   : 'border-gray-300 dark:border-gray-700'
                             ]"
@@ -301,19 +303,19 @@ function toggleExpand(carId: string) {
                         v-if="autoSyncProviderFor(car) === 'TESLA'
                               && tileStateFor(car) === 'active'
                               && props.tier === 'AUTOSYNC'"
-                        class="border-t-2 border-gray-900 dark:border-white bg-indigo-50 dark:bg-indigo-950/40 px-4 md:px-5 py-3 flex items-center justify-between gap-3 flex-wrap"
+                        class="border-t border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 md:px-5 py-3 flex items-center justify-between gap-3 flex-wrap"
                     >
                         <div class="flex items-center gap-3 flex-1 min-w-0">
                             <span class="inline-flex w-7 h-7 bg-indigo-600 text-white rounded-sm items-center justify-center text-sm font-extrabold shrink-0">+</span>
                             <div class="flex-1 min-w-0">
                                 <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-indigo-700 dark:text-indigo-400">{{ t('imports.tile_live_upsell') }}</p>
-                                <p class="text-xs text-gray-700 dark:text-gray-300 font-medium font-mono">{{ t('imports.tile_live_upsell_price') }}</p>
+                                <p class="text-xs text-gray-600 dark:text-gray-400 font-medium font-mono">{{ t('imports.tile_live_upsell_price') }}</p>
                             </div>
                         </div>
                         <button
                             type="button"
                             @click="emit('live-upgrade-requested')"
-                            class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold uppercase tracking-wider text-[11px] px-3 py-2 rounded-sm border-2 border-indigo-600 shadow-[2px_2px_0_0_#030712] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75 whitespace-nowrap"
+                            class="btn-3d bg-indigo-600 hover:bg-indigo-700 text-white font-bold uppercase tracking-wider text-[11px] px-3 py-2 rounded-sm whitespace-nowrap"
                         >
                             {{ t('imports.tile_live_upsell_cta') }} →
                         </button>

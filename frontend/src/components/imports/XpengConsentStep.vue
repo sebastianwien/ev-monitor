@@ -67,7 +67,7 @@ async function submit() {
 </script>
 
 <template>
-  <section class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 space-y-4">
+  <section class="rounded-sm border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 space-y-4 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]">
     <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
       <ShieldCheckIcon class="w-4 h-4" />
       {{ t('xpeng.step_consent_title') }}

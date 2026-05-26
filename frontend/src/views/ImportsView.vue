@@ -42,7 +42,7 @@ const liveUpgradeError = ref('')
 // least one Tesla in their garage. Once on Live, no further upsell needed.
 const hasTesla = computed(() => cars.value.some(c => c.brand === 'TESLA'))
 const hasXpeng = computed(() => cars.value.some(c => c.brand === 'XPENG'))
-const showLivePromo = computed(() => subscriptionTier.value === 'AUTOSYNC' && hasTesla.value)
+const showLivePromo = computed(() => subscriptionTier.value === 'AUTOSYNC' && hasTesla.value && !autoSyncHasActiveTesla.value)
 
 async function handleLiveUpgrade() {
   liveUpgradeLoading.value = true
@@ -183,6 +183,7 @@ const activeCars = computed(() =>
 
 const autoSyncActiveCarLabel = ref<string | null>(null)
 const teslaConnectedLabel = ref<string | null>(null)
+const autoSyncHasActiveTesla = ref(false)
 </script>
 
 <template>
@@ -251,33 +252,30 @@ const teslaConnectedLabel = ref<string | null>(null)
             <div v-if="activeTab === 'smartcar'" class="px-1 py-3 md:p-6 space-y-3">
               <!-- Live-Promo: AutoSync subscriber with at least one Tesla in garage.
                    Neo-Brutalist Style passend zum Rest des AutoSync-Tabs. -->
-              <div v-if="showLivePromo" class="border-2 border-indigo-600 dark:border-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 rounded-sm shadow-[2px_2px_0_0_#4f46e5] overflow-hidden">
-                <div class="h-1 bg-gradient-to-r from-indigo-400 via-indigo-600 to-indigo-400"></div>
-                <div class="px-3 py-2.5 flex items-center gap-3 flex-wrap sm:flex-nowrap">
+              <div v-if="showLivePromo" class="border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] px-3 py-2.5 flex items-center gap-3 flex-wrap sm:flex-nowrap">
                   <div class="flex items-center gap-2 shrink-0">
                     <span class="inline-flex w-5 h-5 bg-indigo-600 text-white rounded-sm items-center justify-center text-[11px] font-extrabold shrink-0">+</span>
                     <p class="text-indigo-700 dark:text-indigo-400 text-xs font-bold uppercase tracking-[0.14em]">AutoSync Live</p>
                   </div>
                   <div class="flex items-center gap-3 flex-wrap flex-1 min-w-0">
-                    <span class="flex items-center gap-1 text-xs text-gray-700 dark:text-gray-300">
-                      <span class="text-indigo-600 dark:text-indigo-400 font-bold">→</span>
+                    <span class="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
+                      <span class="text-gray-400 dark:text-gray-500 font-bold">→</span>
                       <span class="font-medium" v-html="t('imports.live_promo_feature_trip')"></span>
                     </span>
-                    <span class="flex items-center gap-1 text-xs text-gray-700 dark:text-gray-300">
-                      <span class="text-indigo-600 dark:text-indigo-400 font-bold">→</span>
+                    <span class="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
+                      <span class="text-gray-400 dark:text-gray-500 font-bold">→</span>
                       <span class="font-medium" v-html="t('imports.live_promo_feature_drain')"></span>
                     </span>
                   </div>
                   <button
                     @click="handleLiveUpgrade"
                     :disabled="liveUpgradeLoading"
-                    class="shrink-0 inline-flex items-center justify-center bg-green-600 hover:bg-green-700 text-white font-bold uppercase tracking-wider text-[11px] px-3 py-1.5 rounded-sm border-2 border-green-600 shadow-[2px_2px_0_0_rgba(0,0,0,0.3)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75 disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
+                    class="btn-3d shrink-0 inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold uppercase tracking-wider text-[11px] px-3 py-1.5 rounded-sm disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
                   >
                     <span v-if="liveUpgradeLoading">…</span>
                     <span v-else>{{ t('imports.live_promo_cta') }}</span>
                   </button>
-                </div>
-                <p v-if="liveUpgradeError" class="text-xs text-red-600 dark:text-red-400 px-3 pb-2 font-medium">{{ liveUpgradeError }}</p>
+                  <p v-if="liveUpgradeError" class="w-full text-xs text-red-600 dark:text-red-400 font-medium">{{ liveUpgradeError }}</p>
               </div>
 
               <!-- Tile-based picker per car. Tesla cars route to Tesla Fleet
@@ -291,6 +289,7 @@ const teslaConnectedLabel = ref<string | null>(null)
                 :has-auto-sync-access="authStore.isPremium"
                 :tier="subscriptionTier"
                 @active-car-label="autoSyncActiveCarLabel = $event"
+                @has-active-tesla="autoSyncHasActiveTesla = $event"
                 @live-upgrade-requested="handleLiveUpgrade"
               />
               <XpengAutoSyncImport

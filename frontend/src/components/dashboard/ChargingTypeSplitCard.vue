@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { BoltIcon, MapPinIcon } from '@heroicons/vue/24/outline'
+import { MapPinIcon } from '@heroicons/vue/24/outline'
 import type { ChargingTypeSplit, LocationSplit } from '../../composables/useDashboardStats'
 
 const props = defineProps<{
@@ -77,22 +77,17 @@ function fmtKwh(kwh: number): string {
 </script>
 
 <template>
-  <div class="bg-white dark:bg-gray-800 rounded-sm border-2 border-gray-300 dark:border-gray-700 overflow-hidden shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] flex flex-col">
+  <div class="bg-white dark:bg-gray-700 rounded-sm border-2 border-gray-300 dark:border-gray-600 overflow-hidden shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#4b5563] flex flex-col">
 
     <!-- Header -->
-    <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-700 text-sm font-semibold text-gray-800 dark:text-gray-200 text-center">
+    <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-600 text-sm font-semibold text-gray-800 dark:text-gray-200 text-center">
       {{ t('dashboard.charging_type_split_title') }}
     </div>
 
-    <div class="flex-1 flex flex-col divide-y divide-gray-100 dark:divide-gray-700">
+    <div class="flex-1 flex flex-col divide-y divide-gray-100 dark:divide-gray-600">
 
       <!-- AC / DC -->
       <div class="p-4">
-        <div class="flex items-center justify-center gap-1.5 mb-3">
-          <BoltIcon class="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
-          <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">AC / DC</span>
-        </div>
-
         <template v-if="acDcSegments.length > 0">
           <!-- Legend: first segment left, rest right-aligned -->
           <div class="flex justify-between mb-2.5">
