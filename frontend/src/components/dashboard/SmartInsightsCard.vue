@@ -92,7 +92,7 @@ function barClass(bar: ChartBar, sentiment: InsightSentiment): string {
           <div :class="['w-1 self-stretch rounded-full flex-shrink-0', accentClass(insight.sentiment)]" />
           <div class="flex-1 min-w-0">
             <p class="text-sm font-semibold text-gray-800 dark:text-gray-200 leading-snug">{{ insight.headline }}</p>
-            <p class="text-xs text-gray-600 dark:text-gray-300 mt-1 leading-snug">{{ insight.body }}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-300 mt-1 leading-snug">{{ insight.body }}</p>
           </div>
           <div v-if="insight.delta" class="flex-shrink-0 text-right tabular-nums ml-1">
             <div :class="['text-sm font-bold leading-snug', deltaClass(insight.sentiment)]">{{ insight.delta }}</div>
@@ -108,7 +108,7 @@ function barClass(bar: ChartBar, sentiment: InsightSentiment): string {
             :key="i"
             class="flex items-center gap-2"
           >
-            <span class="text-[10px] font-medium text-gray-400 dark:text-gray-500 w-7 flex-shrink-0 text-right">{{ bar.label }}</span>
+            <span class="text-xs font-medium text-gray-400 dark:text-gray-500 w-8 flex-shrink-0 text-right">{{ bar.label }}</span>
             <div class="flex-1 h-2 bg-gray-100 dark:bg-gray-700/60 rounded-full overflow-hidden">
               <!-- Split bar: solid (actual) + striped (projection) -->
               <div
@@ -126,7 +126,7 @@ function barClass(bar: ChartBar, sentiment: InsightSentiment): string {
                 :class="['h-full rounded-full transition-all duration-500', barClass(bar, insight.sentiment)]"
               />
             </div>
-            <span class="text-[10px] tabular-nums text-gray-400 dark:text-gray-500 w-14 flex-shrink-0 text-right">{{ bar.formattedValue }}</span>
+            <span class="text-xs tabular-nums text-gray-400 dark:text-gray-500 w-16 flex-shrink-0 text-right">{{ bar.formattedValue }}</span>
           </div>
         </div>
       </div>

@@ -873,7 +873,7 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
         />
 
         <!-- Echte Reichweite + Peer Benchmark: mobile gestackt, desktop nebeneinander -->
-        <div class="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="mb-0 grid grid-cols-1 md:grid-cols-3 gap-4">
 
         <!-- Echte Reichweite -->
         <RangeCard
@@ -940,7 +940,7 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
         <!-- Ladeeffizienz + CO2-Bilanz -->
         <div
           v-if="stats && ((stats.chargingEfficiencySplit?.coveredLogCount ?? 0) > 0 || (stats.avgConsumptionKwhPer100km && stats.totalDistanceKm))"
-          class="mb-6 flex flex-col md:flex-row md:items-start gap-4"
+          class="mb-6 mt-4 flex flex-col md:flex-row md:items-start gap-4"
         >
           <ChargingEfficiencyCard
             v-if="stats?.chargingEfficiencySplit && stats.chargingEfficiencySplit.coveredLogCount > 0"
