@@ -52,7 +52,7 @@ function fmt(kwh: number): string {
 
         <div class="flex flex-col items-center flex-1">
           <span class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{{ t('dashboard.efficiency_battery') }}</span>
-          <span class="text-base font-bold text-green-600 dark:text-green-400 tabular-nums">{{ fmt(efficiencySplit.vehicleKwh) }}</span>
+          <span class="text-base font-bold text-indigo-600 dark:text-indigo-400 tabular-nums">{{ fmt(efficiencySplit.vehicleKwh) }}</span>
           <span class="text-sm text-gray-400 dark:text-gray-500">kWh</span>
         </div>
       </div>
@@ -61,12 +61,12 @@ function fmt(kwh: number): string {
       <div>
         <div class="h-3 w-full flex rounded-full overflow-hidden bg-amber-400">
           <div
-            class="h-full bg-green-500 transition-all duration-500"
+            class="h-full bg-indigo-500 transition-all duration-500"
             :style="{ width: vehiclePercent + '%' }"
           />
         </div>
         <div class="flex justify-between mt-1">
-          <span class="text-sm text-green-600 dark:text-green-400 font-medium">{{ vehiclePercent }}% {{ t('dashboard.efficiency_in_battery') }}</span>
+          <span class="text-sm text-indigo-600 dark:text-indigo-400 font-medium">{{ vehiclePercent }}% {{ t('dashboard.efficiency_in_battery') }}</span>
           <span class="text-sm text-amber-500 dark:text-amber-400 font-medium">{{ lossPercent }}% {{ t('dashboard.efficiency_loss') }}</span>
         </div>
       </div>

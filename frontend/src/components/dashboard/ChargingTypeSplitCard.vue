@@ -27,15 +27,15 @@ const acDcSegments = computed<Segment[]>(() => {
       label: t('dashboard.charging_type_ac'),
       kwh: props.chargingTypeSplit.acKwh,
       pct: Math.round((props.chargingTypeSplit.acKwh / total) * 100),
-      textColorClass: 'text-blue-500 dark:text-blue-400',
-      bgClass: 'bg-blue-500',
+      textColorClass: 'text-slate-700 dark:text-slate-200',
+      bgClass: 'bg-slate-600 dark:bg-slate-300',
     },
     {
       label: t('dashboard.charging_type_dc'),
       kwh: props.chargingTypeSplit.dcKwh,
       pct: Math.round((props.chargingTypeSplit.dcKwh / total) * 100),
-      textColorClass: 'text-orange-500 dark:text-orange-400',
-      bgClass: 'bg-orange-500',
+      textColorClass: 'text-slate-500 dark:text-slate-400',
+      bgClass: 'bg-slate-400 dark:bg-slate-500',
     },
   ]
   if (props.chargingTypeSplit.unknownKwh > 0) {
@@ -58,15 +58,15 @@ const locationSegments = computed<Segment[]>(() => {
       label: t('dashboard.charging_location_public'),
       kwh: props.locationSplit.publicKwh,
       pct: Math.round((props.locationSplit.publicKwh / total) * 100),
-      textColorClass: 'text-purple-500 dark:text-purple-400',
-      bgClass: 'bg-purple-500',
+      textColorClass: 'text-slate-500 dark:text-slate-400',
+      bgClass: 'bg-slate-400 dark:bg-slate-500',
     },
     {
       label: t('dashboard.charging_location_private'),
       kwh: props.locationSplit.privateKwh,
       pct: Math.round((props.locationSplit.privateKwh / total) * 100),
-      textColorClass: 'text-green-500 dark:text-green-400',
-      bgClass: 'bg-green-500',
+      textColorClass: 'text-slate-700 dark:text-slate-200',
+      bgClass: 'bg-slate-600 dark:bg-slate-300',
     },
   ]
 })

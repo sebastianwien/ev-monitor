@@ -58,7 +58,7 @@ function fmtKg(kg: number): string {
       <!-- Savings highlight -->
       <div class="flex items-baseline justify-center gap-1.5 flex-wrap">
         <span class="text-sm text-gray-500 dark:text-gray-400">{{ t('dashboard.co2_saved_prefix', { km: Math.round(totalDistanceKm).toLocaleString() }) }}</span>
-        <span class="text-2xl font-bold text-green-600 dark:text-green-400 tabular-nums">{{ fmtKg(savedKg) }} CO2</span>
+        <span class="text-2xl font-bold text-indigo-600 dark:text-indigo-400 tabular-nums">{{ fmtKg(savedKg) }} CO2</span>
         <span class="text-sm text-gray-500 dark:text-gray-400">{{ t('dashboard.co2_saved_vs_verbrenner') }}</span>
       </div>
 
@@ -78,11 +78,11 @@ function fmtKg(kg: number): string {
         <div>
           <div class="flex justify-between mb-1">
             <span class="text-sm text-gray-500 dark:text-gray-400">{{ t('dashboard.co2_strommix') }} <span class="text-xs text-gray-400 dark:text-gray-500">{{ t('dashboard.co2_strommix_detail') }}</span></span>
-            <span class="text-sm font-semibold text-yellow-600 dark:text-yellow-400 tabular-nums whitespace-nowrap">{{ fmtGPerKm(evStrommixGPerKm) }}</span>
+            <span class="text-sm font-semibold text-amber-500 dark:text-amber-400 tabular-nums whitespace-nowrap">{{ fmtGPerKm(evStrommixGPerKm) }}</span>
           </div>
           <div class="h-2 w-full rounded-full bg-gray-200 dark:bg-gray-600">
             <div
-              class="h-full rounded-full bg-yellow-400 transition-all duration-500"
+              class="h-full rounded-full bg-amber-400 transition-all duration-500"
               :style="{ width: strommixPct + '%' }"
             />
           </div>
