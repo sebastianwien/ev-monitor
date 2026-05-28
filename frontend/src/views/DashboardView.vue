@@ -940,18 +940,16 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
         <!-- Ladeeffizienz + CO2-Bilanz -->
         <div
           v-if="stats && ((stats.chargingEfficiencySplit?.coveredLogCount ?? 0) > 0 || (stats.avgConsumptionKwhPer100km && stats.totalDistanceKm))"
-          class="mb-6 mt-4 flex flex-col md:flex-row md:items-start gap-4"
+          class="mb-6 mt-4 grid grid-cols-1 md:grid-cols-2 gap-4"
         >
           <ChargingEfficiencyCard
             v-if="stats?.chargingEfficiencySplit && stats.chargingEfficiencySplit.coveredLogCount > 0"
             :efficiency-split="stats.chargingEfficiencySplit"
-            class="md:flex-1"
           />
           <CO2Card
             v-if="stats?.avgConsumptionKwhPer100km && stats?.totalDistanceKm"
             :avg-consumption-kwh-per100km="stats.avgConsumptionKwhPer100km"
             :total-distance-km="stats.totalDistanceKm"
-            class="md:flex-1"
           />
         </div>
 

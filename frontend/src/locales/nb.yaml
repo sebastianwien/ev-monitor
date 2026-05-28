@@ -524,12 +524,16 @@ dashboard:
   efficiency_loss: Tap
   efficiency_in_battery: til batteri
   efficiency_partial_hint: "Bare {covered} av {total} ladelogg har brutto- og nettoverdier - kun disse inkluderes."
-  co2_title: CO2-balanse
-  co2_saved_vs_verbrenner: Spart vs. forbrenningsmotor
+  co2_title: Baerekraft
+  co2_saved_prefix: "over {km} km"
+  co2_saved_vs_verbrenner: spart vs. forbrenningsmotor
   co2_saved_basis: "Grunnlag: {km} km, tysk stromblanding"
-  co2_combustion: "Forbrenningsmotor (snitt 7,5 L/100km)"
-  co2_strommix: "Din EV (tysk stromblanding)"
-  co2_oeko: "Din EV (100% fornybar)"
+  co2_combustion: Forbrenningsmotor
+  co2_combustion_detail: "(snitt 7,5 L/100km) ved 178 g/km"
+  co2_strommix: Din EV
+  co2_strommix_detail: "(tysk stromblanding) ved 380 g/kWh (UBA 2024)"
+  co2_oeko: Din EV
+  co2_oeko_detail: "(100% fornybar) 30 g/kWh livslop"
   co2_footnote: "Forbrenning: 178 g/km (7,5 L x 2,37 kg CO2). EV stromblanding: 380 g/kWh (UBA 2024). EV fornybar: 30 g/kWh livslopet."
   range_window: Ladevindu
   range_summer: Sommer
