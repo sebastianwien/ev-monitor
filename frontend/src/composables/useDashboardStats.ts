@@ -97,6 +97,7 @@ export function useDashboardStats() {
   const selectedCarId = ref<string | null>(null)
   const stats = ref<StatisticsData | null>(null)
   const lastMonthStats = ref<StatisticsData | null>(null)
+  const insightStats = ref<StatisticsData | null>(null)
   const carInfo = ref<CarInfo | null>(null)
   const wltp = ref<VehicleSpecification | null>(null)
   const loading = ref(true)
@@ -232,28 +233,16 @@ export function useDashboardStats() {
       } else {
         params.set('timeRange', selectedTimeRange.value)
       }
-      // When viewing LAST_MONTH (April), compare to the month before it (March).
-      // For all other ranges, compare to LAST_MONTH as usual.
-      let comparisonFetch: Promise<any>
-      if (selectedTimeRange.value === 'LAST_MONTH') {
-        const now = new Date()
-        const fmt = (d: Date) => d.toISOString().split('T')[0]
-        const start = fmt(new Date(now.getFullYear(), now.getMonth() - 2, 1))
-        const end = fmt(new Date(now.getFullYear(), now.getMonth() - 1, 0))
-        comparisonFetch = api.get(
-          `/logs/statistics?carId=${selectedCarId.value}&startDate=${start}&endDate=${end}&groupBy=MONTH`
-        ).catch(() => null)
-      } else {
-        comparisonFetch = api.get(
-          `/logs/statistics?carId=${selectedCarId.value}&timeRange=LAST_MONTH&groupBy=MONTH`
-        ).catch(() => null)
-      }
-      const [response, lastMonthResponse] = await Promise.all([
+      const [response, lastMonthResponse, thisMonthResponse] = await Promise.all([
         api.get(`/logs/statistics?${params}`),
-        comparisonFetch,
+        api.get(`/logs/statistics?carId=${selectedCarId.value}&timeRange=LAST_MONTH&groupBy=MONTH`).catch(() => null),
+        selectedTimeRange.value !== 'THIS_MONTH'
+          ? api.get(`/logs/statistics?carId=${selectedCarId.value}&timeRange=THIS_MONTH&groupBy=MONTH`).catch(() => null)
+          : Promise.resolve(null),
       ])
       stats.value = response.data
       lastMonthStats.value = lastMonthResponse?.data ?? null
+      insightStats.value = selectedTimeRange.value === 'THIS_MONTH' ? stats.value : (thisMonthResponse?.data ?? null)
     } catch (err: any) {
       error.value = err.response?.data?.message || t('dashboard.err_load')
     } finally {
@@ -321,6 +310,7 @@ export function useDashboardStats() {
     selectedCarId,
     stats,
     lastMonthStats,
+    insightStats,
     carInfo,
     wltp,
     loading,

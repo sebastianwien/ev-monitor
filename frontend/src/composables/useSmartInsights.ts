@@ -95,8 +95,8 @@ export function computeInsights(
   // ── trend_consumption ─────────────────────────────────────────────────────
   if (
     lastMonthStats != null &&
-    stats.totalCharges >= 3 &&
-    lastMonthStats.totalCharges >= 3 &&
+    stats.totalCharges >= 1 &&
+    lastMonthStats.totalCharges >= 1 &&
     stats.avgConsumptionKwhPer100km != null &&
     lastMonthStats.avgConsumptionKwhPer100km != null
   ) {
@@ -152,8 +152,8 @@ export function computeInsights(
   const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate()
   if (
     lastMonthStats != null &&
-    stats.totalCharges >= 3 &&
-    lastMonthStats.totalCharges >= 3 &&
+    stats.totalCharges >= 1 &&
+    lastMonthStats.totalCharges >= 1 &&
     stats.totalCostEur > 0 &&
     lastMonthStats.totalCostEur > 0 &&
     daysElapsed >= 7
@@ -202,8 +202,8 @@ export function computeInsights(
   // ── trend_distance ────────────────────────────────────────────────────────
   if (
     lastMonthStats != null &&
-    stats.totalCharges >= 3 &&
-    lastMonthStats.totalCharges >= 3 &&
+    stats.totalCharges >= 1 &&
+    lastMonthStats.totalCharges >= 1 &&
     stats.totalDistanceKm != null &&
     lastMonthStats.totalDistanceKm != null &&
     lastMonthStats.totalDistanceKm > 0 &&
@@ -231,7 +231,7 @@ export function computeInsights(
 
   // ── charge_efficiency ─────────────────────────────────────────────────────
   const eff = stats.chargingEfficiencySplit
-  if (eff != null && eff.coveredLogCount >= 3 && eff.gridKwh > 0) {
+  if (eff != null && eff.coveredLogCount >= 1 && eff.gridKwh > 0) {
     const lossRatio = (eff.gridKwh - eff.vehicleKwh) / eff.gridKwh
     if (lossRatio > 0.10) {
       const lossKwh = eff.gridKwh - eff.vehicleKwh

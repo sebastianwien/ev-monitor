@@ -180,8 +180,8 @@ describe('trend_consumption insight', () => {
     expect(insight.sentiment).toBe('positive')
   })
 
-  it('guard: does not fire when current month < 3 charges', () => {
-    const stats = makeStats({ totalCharges: 2, avgConsumptionKwhPer100km: 22 })
+  it('guard: does not fire when current month has 0 charges', () => {
+    const stats = makeStats({ totalCharges: 0, avgConsumptionKwhPer100km: 22 })
     const lastMonth = makeStats({ totalCharges: 5, avgConsumptionKwhPer100km: 26 })
     expect(computeInsights(stats, lastMonth).some(i => i.id === 'trend_consumption')).toBe(false)
   })
@@ -290,15 +290,15 @@ describe('trend_cost insight', () => {
     expect(computeInsights(stats, null, DAY15).some(i => i.id === 'trend_cost')).toBe(false)
   })
 
-  it('guard: does not fire when current charges < 3', () => {
-    const stats = makeStats({ totalCharges: 2, totalCostEur: 40 })
+  it('guard: does not fire when current charges = 0', () => {
+    const stats = makeStats({ totalCharges: 0, totalCostEur: 40 })
     const lastMonth = makeStats({ totalCharges: 5, totalCostEur: 100 })
     expect(computeInsights(stats, lastMonth, DAY15).some(i => i.id === 'trend_cost')).toBe(false)
   })
 
-  it('guard: does not fire when lastMonth charges < 3', () => {
+  it('guard: does not fire when lastMonth charges = 0', () => {
     const stats = makeStats({ totalCharges: 5, totalCostEur: 40 })
-    const lastMonth = makeStats({ totalCharges: 2, totalCostEur: 100 })
+    const lastMonth = makeStats({ totalCharges: 0, totalCostEur: 100 })
     expect(computeInsights(stats, lastMonth, DAY15).some(i => i.id === 'trend_cost')).toBe(false)
   })
 })
@@ -358,8 +358,8 @@ describe('trend_distance insight', () => {
     expect(computeInsights(stats, null, DAY15).some(i => i.id === 'trend_distance')).toBe(false)
   })
 
-  it('guard: does not fire when current charges < 3', () => {
-    const stats = makeStats({ totalCharges: 2, totalDistanceKm: 500 })
+  it('guard: does not fire when current charges = 0', () => {
+    const stats = makeStats({ totalCharges: 0, totalDistanceKm: 500 })
     const lastMonth = makeStats({ totalCharges: 5, totalDistanceKm: 300 })
     expect(computeInsights(stats, lastMonth, DAY15).some(i => i.id === 'trend_distance')).toBe(false)
   })
@@ -368,7 +368,7 @@ describe('trend_distance insight', () => {
 // ── charge_efficiency ─────────────────────────────────────────────────────────
 
 describe('charge_efficiency insight', () => {
-  it('fires warning when charging loss > 10% with >= 3 covered logs', () => {
+  it('fires warning when charging loss > 10% with >= 1 covered log', () => {
     const stats = makeStats({
       chargingEfficiencySplit: { gridKwh: 100, vehicleKwh: 85, coveredLogCount: 5, totalLogCount: 10 },
     })
@@ -384,9 +384,9 @@ describe('charge_efficiency insight', () => {
     expect(computeInsights(stats, null).some(i => i.id === 'charge_efficiency')).toBe(false)
   })
 
-  it('guard: does not fire when coveredLogCount < 3', () => {
+  it('guard: does not fire when coveredLogCount = 0', () => {
     const stats = makeStats({
-      chargingEfficiencySplit: { gridKwh: 100, vehicleKwh: 80, coveredLogCount: 2, totalLogCount: 10 },
+      chargingEfficiencySplit: { gridKwh: 100, vehicleKwh: 80, coveredLogCount: 0, totalLogCount: 10 },
     })
     expect(computeInsights(stats, null).some(i => i.id === 'charge_efficiency')).toBe(false)
   })
