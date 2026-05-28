@@ -97,6 +97,7 @@ export function useDashboardStats() {
   const selectedCarId = ref<string | null>(null)
   const stats = ref<StatisticsData | null>(null)
   const lastMonthStats = ref<StatisticsData | null>(null)
+  const insightStats = ref<StatisticsData | null>(null)
   const carInfo = ref<CarInfo | null>(null)
   const wltp = ref<VehicleSpecification | null>(null)
   const loading = ref(true)
@@ -232,14 +233,21 @@ export function useDashboardStats() {
       } else {
         params.set('timeRange', selectedTimeRange.value)
       }
-      const [response, lastMonthResponse] = await Promise.all([
+      const [response, lastMonthResponse, thisMonthResponse] = await Promise.all([
         api.get(`/logs/statistics?${params}`),
-        selectedTimeRange.value !== 'LAST_MONTH' && selectedCarId.value
+        // LAST_MONTH: always fetch unless viewing LAST_MONTH (then reuse stats below)
+        selectedTimeRange.value !== 'LAST_MONTH'
           ? api.get(`/logs/statistics?carId=${selectedCarId.value}&timeRange=LAST_MONTH&groupBy=MONTH`).catch(() => null)
+          : Promise.resolve(null),
+        // THIS_MONTH: always fetch unless viewing THIS_MONTH (then reuse stats below)
+        selectedTimeRange.value !== 'THIS_MONTH'
+          ? api.get(`/logs/statistics?carId=${selectedCarId.value}&timeRange=THIS_MONTH&groupBy=MONTH`).catch(() => null)
           : Promise.resolve(null),
       ])
       stats.value = response.data
-      lastMonthStats.value = lastMonthResponse?.data ?? null
+      // Insights always compare THIS_MONTH vs LAST_MONTH, independent of dashboard time range
+      lastMonthStats.value = selectedTimeRange.value === 'LAST_MONTH' ? stats.value : (lastMonthResponse?.data ?? null)
+      insightStats.value = selectedTimeRange.value === 'THIS_MONTH' ? stats.value : (thisMonthResponse?.data ?? null)
     } catch (err: any) {
       error.value = err.response?.data?.message || t('dashboard.err_load')
     } finally {
@@ -307,6 +315,7 @@ export function useDashboardStats() {
     selectedCarId,
     stats,
     lastMonthStats,
+    insightStats,
     carInfo,
     wltp,
     loading,
