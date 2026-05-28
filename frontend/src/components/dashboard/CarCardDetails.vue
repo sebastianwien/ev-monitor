@@ -3,7 +3,6 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   BoltIcon,
-  GlobeAltIcon,
   CalendarIcon,
   FireIcon,
   BriefcaseIcon,
@@ -59,11 +58,6 @@ const batteryTooltip = computed<string | null>(() => {
   return t('dashboard.car_card_battery_soh_hint', { soh: sohPercent.value })
 })
 
-const rangeLabel = computed<string | null>(() => {
-  if (!props.wltp?.officialRangeKm) return null
-  return formatDistance(props.wltp.officialRangeKm)
-})
-
 const powerLabel = computed<string | null>(() => {
   if (props.car.powerKw == null) return null
   const ps = Math.round(props.car.powerKw * 1.35962)
@@ -90,7 +84,7 @@ const isHorizontal = computed(() => orientation.value === 'horizontal')
   <div
     :class="[
       isHorizontal
-        ? 'flex flex-wrap items-center gap-x-3 gap-y-2'
+        ? 'grid grid-cols-2 gap-x-3 gap-y-1'
         : 'flex flex-col gap-2'
     ]"
   >
@@ -114,17 +108,6 @@ const isHorizontal = computed(() => orientation.value === 'horizontal')
         ({{ t('dashboard.car_card_battery_soh_short', { soh: sohPercent }) }})
       </span>
       <span v-if="!isHorizontal" class="sr-only">{{ t('dashboard.car_card_battery_effective') }}</span>
-    </div>
-
-    <!-- WLTP range -->
-    <div
-      v-if="rangeLabel"
-      class="inline-flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-200"
-      :title="t('dashboard.car_card_wltp_range_hint')"
-    >
-      <GlobeAltIcon class="w-4 h-4 text-indigo-500 flex-shrink-0" />
-      <span class="font-medium">{{ rangeLabel }}</span>
-      <span class="text-[11px] text-gray-500 dark:text-gray-400">WLTP</span>
     </div>
 
     <!-- Odometer (highest from logs) -->

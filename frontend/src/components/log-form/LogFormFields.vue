@@ -101,7 +101,7 @@ const fetchPriceSuggestion = async (lat: number, lon: number, isPublic: boolean)
       costMode.value = 'per_kwh'
       // Price suggestion comes in EUR - convert to local
       const eurPrice = Number(res.data.costPerKwh)
-      costLocalPerKwh.value = isEurCountry.value ? eurPrice : Math.round(eurToLocal(eurPrice) * 100) / 100
+      costLocalPerKwh.value = isEurCountry.value ? eurPrice : Math.round(eurToLocal(eurPrice) * 1000) / 1000
       // Auto-select tariff if suggestion includes one
       if (res.data.chargingProviderId && !form.value.chargingProviderId) {
         form.value.chargingProviderId = res.data.chargingProviderId
@@ -310,7 +310,7 @@ const calculatedLocalTotal = computed(() => {
 const calculatedLocalPerKwh = computed(() => {
   const kwh = effectiveKwhForDisplay.value
   const total = costLocalTotal.value
-  if (kwh != null && kwh > 0 && total != null) return Math.round(total / kwh * 100) / 100
+  if (kwh != null && kwh > 0 && total != null) return Math.round(total / kwh * 1000) / 1000
   return null
 })
 
@@ -322,7 +322,7 @@ const toggleCostMode = (mode: 'total' | 'per_kwh') => {
     const kwh = effectiveKwhForDisplay.value
     const total = costLocalTotal.value
     if (kwh && total) {
-      costLocalPerKwh.value = Math.round((total / kwh) * 100) / 100
+      costLocalPerKwh.value = Math.round((total / kwh) * 1000) / 1000
     }
     // else: bestehenden costLocalPerKwh behalten (z.B. Preisvorschlag)
   } else {
@@ -345,7 +345,7 @@ const initLocalCostFromEur = () => {
     costLocalTotal.value = Math.round(localAmount * 100) / 100
   } else {
     const kwh = effectiveKwhForDisplay.value
-    costLocalPerKwh.value = kwh ? Math.round((localAmount / kwh) * 100) / 100 : null
+    costLocalPerKwh.value = kwh ? Math.round((localAmount / kwh) * 1000) / 1000 : null
   }
 }
 
@@ -399,7 +399,7 @@ watch(() => form.value.chargingProviderId, (providerId) => {
   const price = form.value.chargingType === 'DC' ? provider.dcPricePerKwh : provider.acPricePerKwh
   if (price == null) return
   costMode.value = 'per_kwh'
-  costLocalPerKwh.value = isEurCountry.value ? price : Math.round(eurToLocal(price) * 100) / 100
+  costLocalPerKwh.value = isEurCountry.value ? price : Math.round(eurToLocal(price) * 1000) / 1000
 })
 
 watch(() => form.value.isPublicCharging, (isPublic) => {
@@ -511,7 +511,7 @@ function cardSubTextColor(id: string): string {
       <div class="relative">
         <input v-if="costMode === 'total'" v-model="costLocalTotal" type="number" step="0.01" :placeholder="t('logfields.cost_eur_placeholder')"
           :class="[inputClass('cost'), 'pr-24']" />
-        <input v-else v-model="costLocalPerKwh" type="number" step="0.01"
+        <input v-else v-model="costLocalPerKwh" type="number" step="0.001"
           :placeholder="t('logfields.cost_per_kwh_placeholder')"
           :class="[inputClass('cost'), 'pr-24']" />
         <div class="absolute right-1.5 top-1/2 -translate-y-1/2 flex rounded-full border border-gray-300 dark:border-gray-500 bg-gray-200 dark:bg-gray-600 p-0.5 text-xs">

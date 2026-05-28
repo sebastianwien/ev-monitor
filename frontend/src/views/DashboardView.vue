@@ -619,12 +619,19 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
 
           <div v-else-if="stats" class="space-y-0">
 
+        <!-- Smart Insights (unter Auto-Karte, über KPI-Kacheln) -->
+        <SmartInsightsCard
+          :stats="stats"
+          :last-month-stats="lastMonthStats"
+          class="mb-5"
+        />
+
         <!-- Key Metrics: Mobile Data Strip -->
         <div class="md:hidden mb-6">
           <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-800">
             <!-- Gesamtenergie -->
             <div class="relative flex items-center px-4 min-h-[3.75rem] border-b border-gray-100 dark:border-gray-700"
-              style="background: linear-gradient(90deg, rgba(239,68,68,0.22) 0%, transparent 65%);">
+>
               <div class="text-xs font-medium text-gray-500 dark:text-gray-400 flex-1 truncate">{{ t('dashboard.metric_total_energy') }}</div>
               <div class="flex flex-col items-end leading-tight">
                 <div class="flex items-baseline gap-1">
@@ -638,7 +645,7 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
             </div>
             <!-- Gesamtkosten -->
             <div class="relative flex items-center px-4 min-h-[3.75rem] border-b border-gray-100 dark:border-gray-700"
-              style="background: linear-gradient(90deg, rgba(99,102,241,0.22) 0%, transparent 65%);">
+>
               <div class="text-xs font-medium text-gray-500 dark:text-gray-400 flex-1 truncate">{{ t('dashboard.metric_total_cost') }}</div>
               <div class="flex flex-col items-end leading-tight">
                 <div class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ stats.totalCostEur != null ? formatCurrency(stats.totalCostEur) : '–' }}</div>
@@ -651,7 +658,6 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
             <template v-if="stats.totalDistanceKm != null">
               <button type="button"
                 class="w-full relative flex items-center px-4 min-h-[3.75rem] border-b border-gray-100 dark:border-gray-700 text-left"
-                style="background: linear-gradient(90deg, rgba(34,197,94,0.22) 0%, transparent 65%);"
                 @click.stop="openMetricTooltip = openMetricTooltip === 'distance' ? null : 'distance'">
                 <div class="text-xs font-medium text-gray-500 dark:text-gray-400 flex-1 flex items-center gap-1.5 truncate">
                   {{ t('dashboard.metric_total_distance') }}
@@ -673,7 +679,6 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
             <template v-if="stats.avgConsumptionKwhPer100km != null">
               <button type="button"
                 class="w-full relative flex items-center px-4 min-h-[3.75rem] border-b border-gray-100 dark:border-gray-700 text-left"
-                style="background: linear-gradient(90deg, rgba(234,179,8,0.22) 0%, transparent 65%);"
                 @click.stop="openMetricTooltip = openMetricTooltip === 'consumption' ? null : 'consumption'">
                 <div class="text-xs font-medium text-gray-500 dark:text-gray-400 flex-1 flex items-center gap-1.5 truncate">
                   {{ t('dashboard.metric_avg_consumption') }}
@@ -698,7 +703,6 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
             <template v-if="avgCostPer100km != null">
               <button type="button"
                 class="w-full relative flex items-center px-4 min-h-[3.75rem] text-left"
-                style="background: linear-gradient(90deg, rgba(236,72,153,0.22) 0%, transparent 65%);"
                 @click.stop="openMetricTooltip = openMetricTooltip === 'costPer100km' ? null : 'costPer100km'">
                 <div class="text-xs font-medium text-gray-500 dark:text-gray-400 flex-1 flex items-center gap-1.5 truncate">
                   {{ t('dashboard.metric_avg_cost') }}
@@ -740,16 +744,14 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
 
         <!-- Key Metrics: Desktop Grid (mobile uses Data Strip below) -->
         <div :class="['hidden md:grid md:grid-cols-3 gap-4 pb-6 mb-0', showThgBanner && isGerman ? 'lg:grid-cols-6' : 'lg:grid-cols-5']">
-          <div class="bg-white dark:bg-gray-700 rounded-sm border-2 border-amber-200 dark:border-amber-700/60 overflow-hidden shadow-[2px_2px_0_0_#fde68a] dark:shadow-[2px_2px_0_0_#92400e]">
-            <div class="h-1 bg-amber-500"></div>
+          <div class="bg-white dark:bg-gray-700 rounded-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="p-3">
               <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">{{ t('dashboard.metric_total_energy') }}</p>
               <p class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ stats.totalKwhCharged?.toFixed(1) ?? '–' }} kWh</p>
               <p class="text-sm font-medium text-gray-400 dark:text-gray-500 mt-0.5">{{ stats.totalCharges }} {{ t('dashboard.metric_charges') }}</p>
             </div>
           </div>
-          <div class="bg-white dark:bg-gray-700 rounded-sm border-2 border-indigo-200 dark:border-indigo-700/60 overflow-hidden shadow-[2px_2px_0_0_#c7d2fe] dark:shadow-[2px_2px_0_0_#3730a3]">
-            <div class="h-1 bg-indigo-500"></div>
+          <div class="bg-white dark:bg-gray-700 rounded-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="p-3">
               <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">{{ t('dashboard.metric_total_cost') }}</p>
               <p class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ stats.totalCostEur != null ? formatCurrency(stats.totalCostEur) : '–' }}</p>
@@ -757,8 +759,7 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
             </div>
           </div>
           <div v-if="stats.totalDistanceKm != null"
-            class="bg-white dark:bg-gray-700 rounded-sm border-2 border-green-200 dark:border-green-700/60 overflow-hidden shadow-[2px_2px_0_0_#bbf7d0] dark:shadow-[2px_2px_0_0_#15803d]">
-            <div class="h-1 bg-green-500"></div>
+            class="bg-white dark:bg-gray-700 rounded-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="p-3">
               <div class="flex items-center gap-1 mb-1">
                 <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">{{ t('dashboard.metric_total_distance') }}</p>
@@ -783,8 +784,7 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
             </div>
           </div>
           <div v-if="stats.avgConsumptionKwhPer100km != null"
-            class="bg-white dark:bg-gray-700 rounded-sm border-2 border-red-200 dark:border-red-700/60 overflow-hidden shadow-[2px_2px_0_0_#fecaca] dark:shadow-[2px_2px_0_0_#b91c1c]">
-            <div class="h-1 bg-red-500"></div>
+            class="bg-white dark:bg-gray-700 rounded-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="p-3">
               <div class="flex items-center gap-1 mb-1">
                 <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">{{ t('dashboard.metric_avg_consumption') }}</p>
@@ -810,8 +810,7 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
             </div>
           </div>
           <div v-if="avgCostPer100km != null"
-            class="bg-white dark:bg-gray-700 rounded-sm border-2 border-pink-200 dark:border-pink-700/60 overflow-hidden shadow-[2px_2px_0_0_#fbcfe8] dark:shadow-[2px_2px_0_0_#be185d]">
-            <div class="h-1 bg-pink-500"></div>
+            class="bg-white dark:bg-gray-700 rounded-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="p-3">
               <div class="flex items-center gap-1 mb-1">
                 <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">{{ t('dashboard.metric_avg_cost') }}</p>
@@ -960,12 +959,6 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
           />
         </div>
 
-        <!-- Smart Insights -->
-        <SmartInsightsCard
-          :stats="stats"
-          :last-month-stats="lastMonthStats"
-          class="mb-6"
-        />
 
         <!-- Chart 1: Charging & Costs -->
         <div class="border-t border-gray-100 dark:border-gray-700 pt-6">
