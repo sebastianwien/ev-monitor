@@ -31,7 +31,10 @@ public record EvLogStatisticsResponse(
         LocationSplit locationSplit,
 
         // Peer benchmark — null if no vehicle spec linked or zero peer cars
-        PeerBenchmark peerBenchmark
+        PeerBenchmark peerBenchmark,
+
+        // Charging efficiency — only for logs with both kwhCharged and kwhAtVehicle
+        ChargingEfficiencySplit chargingEfficiencySplit
 ) {
     public record ChargeDataPoint(
             LocalDateTime timestamp,
@@ -64,6 +67,13 @@ public record EvLogStatisticsResponse(
     public record LocationSplit(
             BigDecimal publicKwh,
             BigDecimal privateKwh
+    ) {}
+
+    public record ChargingEfficiencySplit(
+            BigDecimal gridKwh,
+            BigDecimal vehicleKwh,
+            int coveredLogCount,
+            int totalLogCount
     ) {}
 
     public record PeerBenchmark(

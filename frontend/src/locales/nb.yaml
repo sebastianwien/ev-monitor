@@ -518,6 +518,19 @@ dashboard:
   peer_footer: "{trips} turer analysert"
   peer_range_window: 90→10% ladevindu
   peer_cost_country_note: "kun kostnad {country}"
+  efficiency_title: Ladeeffektivitet
+  efficiency_grid: Nett
+  efficiency_battery: Batteri
+  efficiency_loss: Tap
+  efficiency_in_battery: til batteri
+  efficiency_partial_hint: "Bare {covered} av {total} ladelogg har brutto- og nettoverdier - kun disse inkluderes."
+  co2_title: CO2-balanse
+  co2_saved_vs_verbrenner: Spart vs. forbrenningsmotor
+  co2_saved_basis: "Grunnlag: {km} km, tysk stromblanding"
+  co2_combustion: "Forbrenningsmotor (snitt 7,5 L/100km)"
+  co2_strommix: "Din EV (tysk stromblanding)"
+  co2_oeko: "Din EV (100% fornybar)"
+  co2_footnote: "Forbrenning: 178 g/km (7,5 L x 2,37 kg CO2). EV stromblanding: 380 g/kWh (UBA 2024). EV fornybar: 30 g/kWh livslopet."
   range_window: Ladevindu
   range_summer: Sommer
   range_winter: Vinter
@@ -2225,3 +2238,57 @@ live:
   seconds_ago: "{n} sek siden"
   loading_data: "Laster data..."
   live: "LIVE"
+insights:
+  page_title: Innsikt
+  no_data_title: For lite data enn
+  no_data_body: "Logg flere ladeokter - da viser vi deg personlige innsikter om kjorevanene dine."
+  summary_kwh: ladet
+  summary_cost: kostnader
+  summary_km: kjort
+  summary_consumption: forbruk
+  energy_flow_title: Energifordeling
+  energy_ac: AC
+  energy_dc: DC
+  energy_public: Offentlig
+  energy_private: Hjemme
+  seasonal_title: Sesongforbruk
+  seasonal_summer: Sommer
+  seasonal_winter: Vinter
+  peer_title: Sammenligning med fellesskapet
+  peer_cost_cheaper: Du lader billigere enn sammenlignbare sjaforer
+  peer_cost_expensive: Du lader dyrere enn sammenlignbare sjaforer
+  peer_cost_body: Sammenlignet med sjaforer av samme modell i ditt land.
+  peer_consumption_better: Forbruket ditt er under modellsnittet
+  peer_consumption_worse: Forbruket ditt er over modellsnittet
+  peer_consumption_body: Sammenlignet med sjaforer av samme modell globalt.
+  trend_consumption_down: Forbruket ditt gikk ned denne maneden
+  trend_consumption_up: Forbruket ditt gikk opp denne maneden
+  trend_consumption_body: Sammenlignet med forrige maned.
+  seasonal_delta_headline: Vinterforbruket ditt er hoyere enn om sommeren
+  seasonal_delta_body: Kulde, oppvarming og dekkfriksjon oker forbruket - dette er normalt for alle EVer.
+  home_charging_headline: Du lader hovedsakelig hjemme
+  home_charging_body: Hjemmelading er nesten alltid billigere enn offentlig ladeinfrastruktur.
+  dc_ratio_headline: Hoy andel hurtiglading
+  dc_ratio_body: DC-hurtigladere er praktiske pa veien, men vanligvis dyrere enn AC-lading hjemme.
+  trend_cost_down: Ladekostnadene dine ser ut til a bli lavere denne maneden
+  trend_cost_up: Ladekostnadene dine ser ut til a bli hoyere denne maneden
+  trend_cost_body_up_price_up: Du betaler ogsa mer per kWh - bade pris og volum driver kostnadene opp.
+  trend_cost_body_up_volume: Prisen per kWh er omtrent den samme - du lader rett og slett mer denne maneden.
+  trend_cost_body_up_price_down: Selv om du betaler mindre per kWh, kjorer du sa mye mer at regningen stiger.
+  trend_cost_body_down_price_down: Du betaler ogsa mindre per kWh - billigere strom og mindre lading tilsammen.
+  trend_cost_body_down_volume: Prisen per kWh er omtrent den samme - du lader rett og slett mindre denne maneden.
+  trend_cost_body_down_price_up: Selv om prisen per kWh har steget, lader du sa mye mindre at regningen synker.
+  trend_distance_up: Du er pa sporet for flere km enn forrige maned
+  trend_distance_down: Du kjorer mindre enn forrige maned
+  trend_distance_body: Prognose basert pa turene dine sa langt denne maneden.
+  charge_efficiency_headline: Ladetapene dine er uvanlig hoye
+  charge_efficiency_body: Malt som forholdet mellom nettenergi og batterienergi ved ladeokter.
+  chart_prev: "For."
+  chart_current: "Na"
+  chart_projection: "~"
+  chart_you: "Du"
+  chart_avg: "Sn."
+  chart_summer: "So."
+  chart_winter: "Vi."
+  chart_battery: "Batt."
+  chart_grid: "Nett"

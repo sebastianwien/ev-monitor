@@ -233,6 +233,9 @@ public class EvLogStatisticsService {
         // Location split
         EvLogStatisticsResponse.LocationSplit locationSplit = buildLocationSplit(logs);
 
+        // Charging efficiency split — only logs with both kwhCharged and kwhAtVehicle
+        EvLogStatisticsResponse.ChargingEfficiencySplit efficiencySplit = buildChargingEfficiencySplit(logs);
+
         return new EvLogStatisticsResponse(
                 totalKwhCharged,
                 totalCostEur,
@@ -249,17 +252,19 @@ public class EvLogStatisticsService {
                 chargesOverTime,
                 chargingTypeSplit,
                 locationSplit,
-                peerBenchmark
+                peerBenchmark,
+                efficiencySplit
         );
     }
 
     private EvLogStatisticsResponse createEmptyStatistics() {
         var emptyTypeSplit = new EvLogStatisticsResponse.ChargingTypeSplit(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
         var emptyLocSplit = new EvLogStatisticsResponse.LocationSplit(BigDecimal.ZERO, BigDecimal.ZERO);
+        var emptyEffSplit = new EvLogStatisticsResponse.ChargingEfficiencySplit(BigDecimal.ZERO, BigDecimal.ZERO, 0, 0);
         return new EvLogStatisticsResponse(
                 BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
                 BigDecimal.ZERO, BigDecimal.ZERO, 0, 0,
-                null, null, 0, null, null, List.of(), emptyTypeSplit, emptyLocSplit, null
+                null, null, 0, null, null, List.of(), emptyTypeSplit, emptyLocSplit, null, emptyEffSplit
         );
     }
 
@@ -691,5 +696,19 @@ public class EvLogStatisticsService {
             }
         }
         return new EvLogStatisticsResponse.LocationSplit(publicKwh, privateKwh);
+    }
+
+    private EvLogStatisticsResponse.ChargingEfficiencySplit buildChargingEfficiencySplit(List<EvLog> logs) {
+        BigDecimal gridKwh = BigDecimal.ZERO;
+        BigDecimal vehicleKwh = BigDecimal.ZERO;
+        int covered = 0;
+        for (EvLog log : logs) {
+            if (log.getKwhCharged() != null && log.getKwhAtVehicle() != null) {
+                gridKwh = gridKwh.add(log.getKwhCharged());
+                vehicleKwh = vehicleKwh.add(log.getKwhAtVehicle());
+                covered++;
+            }
+        }
+        return new EvLogStatisticsResponse.ChargingEfficiencySplit(gridKwh, vehicleKwh, covered, logs.size());
     }
 }

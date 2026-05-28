@@ -518,6 +518,19 @@ dashboard:
   peer_footer: "{trips} resor analyserade"
   peer_range_window: 90→10% laddningsfönster
   peer_cost_country_note: "kostnad endast {country}"
+  efficiency_title: Laddningseffektivitet
+  efficiency_grid: Nat
+  efficiency_battery: Batteri
+  efficiency_loss: Forlust
+  efficiency_in_battery: till batteri
+  efficiency_partial_hint: "Bara {covered} av {total} laddningslogg har brutto- och nettovarden - bara dessa inkluderas."
+  co2_title: CO2-balans
+  co2_saved_vs_verbrenner: Sparat vs. forbranningsmotor
+  co2_saved_basis: "Basis: {km} km, tysk elnatsmix"
+  co2_combustion: "Forbranningsmotor (snitt 7,5 L/100km)"
+  co2_strommix: "Din EV (tysk elnatsmix)"
+  co2_oeko: "Din EV (100% fonybar)"
+  co2_footnote: "Forbranningsmotor: 178 g/km (7,5 L x 2,37 kg CO2). EV elnatsmix: 380 g/kWh (UBA 2024). EV fonybar: 30 g/kWh livscykel."
   range_window: Laddningsfönster
   range_summer: Sommar
   range_winter: Vinter
@@ -2225,3 +2238,57 @@ live:
   seconds_ago: "{n} sek sedan"
   loading_data: "Laddar data..."
   live: "LIVE"
+insights:
+  page_title: Insikter
+  no_data_title: For lite data an nu
+  no_data_body: "Logga fler laddningssessioner - da visar vi dig personliga insikter om dina korvanor."
+  summary_kwh: laddat
+  summary_cost: kostnader
+  summary_km: kort
+  summary_consumption: forbrukning
+  energy_flow_title: Energifordelning
+  energy_ac: AC
+  energy_dc: DC
+  energy_public: Offentlig
+  energy_private: Hemma
+  seasonal_title: Sasongforbrukning
+  seasonal_summer: Sommar
+  seasonal_winter: Vinter
+  peer_title: Gemenskapsjamforelse
+  peer_cost_cheaper: Du laddar billigare an jamborbara forare
+  peer_cost_expensive: Du laddar dyrare an jamborbara forare
+  peer_cost_body: Jamfort med forare av samma modell i ditt land.
+  peer_consumption_better: Din forbrukning ar under modellsnittet
+  peer_consumption_worse: Din forbrukning ar over modellsnittet
+  peer_consumption_body: Jamfort med forare av samma modell globalt.
+  trend_consumption_down: Din forbrukning minskade denna manad
+  trend_consumption_up: Din forbrukning okade denna manad
+  trend_consumption_body: Jamfort med forra manaden.
+  seasonal_delta_headline: Din vinterforbrukning ar hogre an pa sommaren
+  seasonal_delta_body: Kyla, uppvarmning och dackfriktion okar forbrukningen - detta ar normalt for alla elbilar.
+  home_charging_headline: Du laddar mestadels hemma
+  home_charging_body: Hemladdning ar nastan alltid billigare an offentlig laddinfrastruktur.
+  dc_ratio_headline: Hog andel snabbladdning
+  dc_ratio_body: DC-snabbladdare ar praktiska pa vagen men vanligtvis dyrare an AC-laddning hemma.
+  trend_cost_down: Dina laddkostnader beraknas bli lagre denna manad
+  trend_cost_up: Dina laddkostnader beraknas bli hogre denna manad
+  trend_cost_body_up_price_up: Du betalar ocksa mer per kWh - bade pris och volym driver upp kostnaderna.
+  trend_cost_body_up_volume: Priset per kWh ar ungefar detsamma - du laddar helt enkelt mer denna manad.
+  trend_cost_body_up_price_down: Aven om du betalar mindre per kWh kor du sa mycket mer att rakningen stiger.
+  trend_cost_body_down_price_down: Du betalar ocksa mindre per kWh - billigare el och mindre laddning tillsammans.
+  trend_cost_body_down_volume: Priset per kWh ar ungefar detsamma - du laddar helt enkelt mindre denna manad.
+  trend_cost_body_down_price_up: Aven om priset per kWh har stigit laddar du sa mycket mindre att rakningen sjunker.
+  trend_distance_up: Du ar pa vag att kora fler km an forra manaden
+  trend_distance_down: Du kor mindre an forra manaden
+  trend_distance_body: Prognos baserad pa dina resor hittills denna manad.
+  charge_efficiency_headline: Dina laddningsforluster ar ovanligt hoga
+  charge_efficiency_body: Mats som forhallandet mellan nateenergi och batterienergi vid laddningssessioner.
+  chart_prev: "For."
+  chart_current: "Nu"
+  chart_projection: "~"
+  chart_you: "Du"
+  chart_avg: "Sn."
+  chart_summer: "Som."
+  chart_winter: "Vin."
+  chart_battery: "Batt."
+  chart_grid: "Nat"

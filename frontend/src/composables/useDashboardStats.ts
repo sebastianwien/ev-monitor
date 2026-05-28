@@ -41,6 +41,13 @@ export interface LocationSplit {
   privateKwh: number
 }
 
+export interface ChargingEfficiencySplit {
+  gridKwh: number
+  vehicleKwh: number
+  coveredLogCount: number
+  totalLogCount: number
+}
+
 export interface StatisticsData {
   totalKwhCharged: number
   totalCostEur: number
@@ -58,6 +65,7 @@ export interface StatisticsData {
   chargingTypeSplit: ChargingTypeSplit | null
   locationSplit: LocationSplit | null
   peerBenchmark: PeerBenchmark | null
+  chargingEfficiencySplit: ChargingEfficiencySplit | null
 }
 
 export interface CarInfo {
@@ -88,6 +96,7 @@ export function useDashboardStats() {
 
   const selectedCarId = ref<string | null>(null)
   const stats = ref<StatisticsData | null>(null)
+  const lastMonthStats = ref<StatisticsData | null>(null)
   const carInfo = ref<CarInfo | null>(null)
   const wltp = ref<VehicleSpecification | null>(null)
   const loading = ref(true)
@@ -223,8 +232,14 @@ export function useDashboardStats() {
       } else {
         params.set('timeRange', selectedTimeRange.value)
       }
-      const response = await api.get(`/logs/statistics?${params}`)
+      const [response, lastMonthResponse] = await Promise.all([
+        api.get(`/logs/statistics?${params}`),
+        selectedTimeRange.value !== 'LAST_MONTH' && selectedCarId.value
+          ? api.get(`/logs/statistics?carId=${selectedCarId.value}&timeRange=LAST_MONTH&groupBy=MONTH`).catch(() => null)
+          : Promise.resolve(null),
+      ])
       stats.value = response.data
+      lastMonthStats.value = lastMonthResponse?.data ?? null
     } catch (err: any) {
       error.value = err.response?.data?.message || t('dashboard.err_load')
     } finally {
@@ -291,6 +306,7 @@ export function useDashboardStats() {
   return {
     selectedCarId,
     stats,
+    lastMonthStats,
     carInfo,
     wltp,
     loading,
