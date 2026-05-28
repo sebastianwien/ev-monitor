@@ -2278,8 +2278,8 @@ insights:
   trend_cost_body_down_price_down: Du betaler ogsa mindre per kWh - billigere strom og mindre lading tilsammen.
   trend_cost_body_down_volume: Prisen per kWh er omtrent den samme - du lader rett og slett mindre denne maneden.
   trend_cost_body_down_price_up: Selv om prisen per kWh har steget, lader du sa mye mindre at regningen synker.
-  trend_distance_up: Du er pa sporet for flere km enn forrige maned
-  trend_distance_down: Du kjorer mindre enn forrige maned
+  trend_distance_up: Du kjorer mer denne maneden enn forrige maned
+  trend_distance_down: Du kjorer mindre denne maneden enn forrige maned
   trend_distance_body: Prognose basert pa turene dine sa langt denne maneden.
   charge_efficiency_headline: Ladetapene dine er uvanlig hoye
   charge_efficiency_body: Malt som forholdet mellom nettenergi og batterienergi ved ladeokter.
