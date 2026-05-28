@@ -361,7 +361,7 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
             :class="[
               cars.length > 1
                 ? 'sticky top-16 z-10 bg-white dark:bg-gray-800 -mx-4 px-4 md:-mx-6 md:px-6 py-1.5 md:py-3 mb-3 border-b border-gray-100 dark:border-gray-700 shadow-sm'
-                : 'mb-6 md:w-fit',
+                : 'mb-6 md:w-fit md:mx-auto',
               isCarHeaderSticky ? 'car-header-compact' : ''
             ]"
           >
