@@ -531,7 +531,7 @@ dashboard:
   co2_combustion: Forbrenningsmotor
   co2_combustion_detail: "(snitt 7,5 L/100km) ved 178 g/km"
   co2_strommix: Din EV
-  co2_strommix_detail: "(tysk stromblanding) ved 380 g/kWh (UBA 2024)"
+  co2_strommix_detail: "(strømmiks ~ 380 g/kWh iht. UBA 2024)"
   co2_oeko: Din EV
   co2_oeko_detail: "(100% fornybar) 30 g/kWh livslop"
   co2_footnote: "Forbrenning: 178 g/km (7,5 L x 2,37 kg CO2). EV stromblanding: 380 g/kWh (UBA 2024). EV fornybar: 30 g/kWh livslopet."

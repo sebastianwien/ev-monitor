@@ -78,7 +78,7 @@ function fmtKg(kg: number): string {
         <div>
           <div class="flex justify-between mb-1">
             <span class="text-sm text-gray-500 dark:text-gray-400">{{ t('dashboard.co2_strommix') }} <span class="text-xs text-gray-400 dark:text-gray-500">{{ t('dashboard.co2_strommix_detail') }}</span></span>
-            <span class="text-sm font-semibold text-yellow-600 dark:text-yellow-400 tabular-nums">{{ fmtGPerKm(evStrommixGPerKm) }}</span>
+            <span class="text-sm font-semibold text-yellow-600 dark:text-yellow-400 tabular-nums whitespace-nowrap">{{ fmtGPerKm(evStrommixGPerKm) }}</span>
           </div>
           <div class="h-2 w-full rounded-full bg-gray-200 dark:bg-gray-600">
             <div

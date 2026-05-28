@@ -537,7 +537,7 @@ dashboard:
   co2_combustion: "Combustion engine"
   co2_combustion_detail: "(avg. 7.5 L/100km) at 178 g/km"
   co2_strommix: "Your EV"
-  co2_strommix_detail: "(German grid mix) at 380 g/kWh (UBA 2024)"
+  co2_strommix_detail: "(grid mix ~ 380 g/kWh acc. UBA 2024)"
   co2_oeko: "Your EV"
   co2_oeko_detail: "(100% renewable) 30 g/kWh lifecycle"
   co2_footnote: "Combustion: 178 g/km (7.5 L x 2.37 kg CO2). EV grid mix: 380 g/kWh (UBA 2024). EV renewable: 30 g/kWh lifecycle."

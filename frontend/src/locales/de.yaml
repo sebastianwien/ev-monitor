@@ -537,7 +537,7 @@ dashboard:
   co2_combustion: "Verbrenner"
   co2_combustion_detail: "(Ø 7,5 L/100km) bei 178 g/km"
   co2_strommix: "Dein EV"
-  co2_strommix_detail: "(dt. Strommix) bei 380 g/kWh (UBA 2024)"
+  co2_strommix_detail: "(Strommix ~ 380 g/kWh lt. UBA 2024)"
   co2_oeko: "Dein EV"
   co2_oeko_detail: "(100% Erneuerbar) 30 g/kWh Lifecycle"
   co2_footnote: "Verbrenner: 178 g/km (7,5 L × 2,37 kg CO2). EV Strommix: 380 g/kWh (UBA 2024). EV Oeko: 30 g/kWh Lifecycle."
