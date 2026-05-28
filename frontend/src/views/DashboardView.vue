@@ -64,7 +64,7 @@ const { formatConsumption, consumptionUnitLabel, formatDistance, distanceUnitLab
 
 // -- Dashboard Stats --
 const {
-  selectedCarId, stats, lastMonthStats, insightStats, carInfo, wltp, loading, chartsReady, isInitialLoad, error,
+  selectedCarId, stats, lastMonthStats, carInfo, wltp, loading, chartsReady, isInitialLoad, error,
   cars, carImageUrls, selectedTimeRange, selectedGroupBy, customStartDate, customEndDate,
   importBannerDismissed, teslaStatus, smartcarStatus, vwGroupStatus, implausibleCount, hasDistanceData, avgCostPer100km,
   timeRangeOptions, groupByOptions, dismissImportBanner, fetchImplausibleCount,
@@ -621,7 +621,7 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
 
         <!-- Smart Insights (unter Auto-Karte, über KPI-Kacheln) -->
         <SmartInsightsCard
-          :stats="insightStats"
+          :stats="stats"
           :last-month-stats="lastMonthStats"
           class="mb-5"
         />
