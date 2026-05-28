@@ -873,12 +873,11 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
         />
 
         <!-- Echte Reichweite + Peer Benchmark: mobile gestackt, desktop nebeneinander -->
-        <div class="mb-6 flex flex-col md:flex-row md:items-start gap-4">
+        <div class="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
 
         <!-- Echte Reichweite -->
         <RangeCard
           v-if="selectedCar?.effectiveBatteryCapacityKwh && stats?.avgConsumptionKwhPer100km"
-          class="md:w-80 shrink-0"
           :battery-capacity-kwh="selectedCar.effectiveBatteryCapacityKwh"
           :summer-consumption="stats.summerConsumptionKwhPer100km ?? null"
           :winter-consumption="stats.winterConsumptionKwhPer100km ?? null"
@@ -890,13 +889,11 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
           v-if="stats.chargingTypeSplit && stats.locationSplit"
           :charging-type-split="stats.chargingTypeSplit"
           :location-split="stats.locationSplit"
-          class="md:w-80 shrink-0"
         />
 
         <!-- Peer Benchmark -->
         <PeerBenchmarkCard
           v-if="stats?.peerBenchmark && stats.peerBenchmark.peerAvgConsumptionKwhPer100km != null"
-          class="flex-1 min-w-0"
           :benchmark="stats.peerBenchmark"
           :effective-battery-kwh="selectedCar?.effectiveBatteryCapacityKwh ?? null"
           :car-display-name="selectedCar ? [carDisplayName(selectedCar.brand, selectedCar.model), selectedCar.trim].filter(Boolean).join(' ') : ''"
@@ -905,7 +902,6 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
         <!-- WLTP-Vergleich (Fallback wenn keine Peer-Daten aber WLTP vorhanden) -->
         <WltpComparisonCard
           v-else-if="wltp && stats?.avgConsumptionKwhPer100km && selectedCar?.effectiveBatteryCapacityKwh"
-          class="flex-1 min-w-0"
           :official-range-km="wltp.officialRangeKm"
           :official-consumption-kwh-per100km="wltp.officialConsumptionKwhPer100km"
           :user-avg-consumption-kwh-per100km="stats.avgConsumptionKwhPer100km"
