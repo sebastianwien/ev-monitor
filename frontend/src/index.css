@@ -116,3 +116,13 @@ body {
 .dark .app-wallpaper {
     background-image: url('/wallpaper-dark.avif');
 }
+/* Back-to-entry-point button transition (teleported, needs global scope) */
+.back-btn-enter-active,
+.back-btn-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.back-btn-enter-from,
+.back-btn-leave-to {
+  opacity: 0;
+  transform: translateY(8px);
+}
