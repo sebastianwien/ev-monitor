@@ -87,18 +87,18 @@ function barClass(bar: ChartBar, sentiment: InsightSentiment): string {
         :key="insight.id"
         :class="['flex-shrink-0 w-[85vw] min-w-[260px] md:w-auto md:min-w-0 bg-white dark:bg-gray-800 border-2 rounded-sm overflow-hidden flex flex-col', borderClass(insight.sentiment)]"
       >
-        <!-- Top: accent bar + text + delta -->
-        <div class="flex items-start gap-2.5 px-3 pt-3 pb-2.5">
-          <div :class="['w-1 self-stretch rounded-full flex-shrink-0', accentClass(insight.sentiment)]" />
-          <div class="flex-1 min-w-0">
-            <p class="text-sm font-semibold text-gray-800 dark:text-gray-200 leading-snug">{{ insight.headline }}</p>
-            <p class="text-sm text-gray-600 dark:text-gray-300 mt-1 leading-snug">{{ insight.body }}</p>
+        <!-- Top: accent bar + headline + delta, body full-width below -->
+        <div class="px-3 pt-3 pb-2.5">
+          <div class="flex items-start gap-2.5">
+            <div :class="['w-1 self-stretch rounded-full flex-shrink-0', accentClass(insight.sentiment)]" />
+            <p class="flex-1 min-w-0 text-sm font-semibold text-gray-800 dark:text-gray-200 leading-snug">{{ insight.headline }}</p>
+            <div v-if="insight.delta" class="flex-shrink-0 text-right tabular-nums ml-1">
+              <div :class="['text-sm font-bold leading-snug', deltaClass(insight.sentiment)]">{{ insight.delta }}</div>
+              <div v-if="insight.deltaSecondary" :class="['text-xs leading-snug', deltaClass(insight.sentiment)]">{{ insight.deltaSecondary }}</div>
+              <div v-if="insight.deltaTertiary" class="text-xs leading-snug text-gray-400 dark:text-gray-500">{{ insight.deltaTertiary }}</div>
+            </div>
           </div>
-          <div v-if="insight.delta" class="flex-shrink-0 text-right tabular-nums ml-1">
-            <div :class="['text-sm font-bold leading-snug', deltaClass(insight.sentiment)]">{{ insight.delta }}</div>
-            <div v-if="insight.deltaSecondary" :class="['text-xs leading-snug', deltaClass(insight.sentiment)]">{{ insight.deltaSecondary }}</div>
-            <div v-if="insight.deltaTertiary" class="text-xs leading-snug text-gray-400 dark:text-gray-500">{{ insight.deltaTertiary }}</div>
-          </div>
+          <p class="text-sm text-gray-600 dark:text-gray-300 mt-1 leading-snug pl-3.5">{{ insight.body }}</p>
         </div>
 
         <!-- Horizontal bar chart -->

@@ -52,7 +52,6 @@ export function computeInsights(
         body: 'peer_cost_body',
         delta: `${diffPct > 0 ? '+' : ''}${diffPct}%`,
         deltaSecondary: `${diffPct > 0 ? '+' : '-'}${absCt.toFixed(1)} ct/kWh`,
-        deltaTertiary: `${(pb.userLifetimeCostPerKwh * 100).toFixed(1)} ct/kWh`,
         chartBars: [
           { value: pb.userLifetimeCostPerKwh, formattedValue: `${(pb.userLifetimeCostPerKwh * 100).toFixed(1)} ct`, style: 'solid', label: 'chart_you' },
           { value: pb.peerAvgCostPerKwh, formattedValue: `${(pb.peerAvgCostPerKwh * 100).toFixed(1)} ct`, style: 'solid', muted: true, label: 'chart_avg' },
@@ -83,7 +82,6 @@ export function computeInsights(
         body: 'peer_consumption_body',
         delta: `${diffPct > 0 ? '+' : ''}${diffPct}%`,
         deltaSecondary: `${diffPct > 0 ? '+' : '-'}${absKwh.toFixed(1)} kWh/100km`,
-        deltaTertiary: `${pb.userLifetimeConsumptionKwhPer100km.toFixed(1)} kWh/100km`,
         chartBars: [
           { value: pb.userLifetimeConsumptionKwhPer100km, formattedValue: `${pb.userLifetimeConsumptionKwhPer100km.toFixed(1)}`, style: 'solid', label: 'chart_you' },
           { value: pb.peerAvgConsumptionKwhPer100km, formattedValue: `${pb.peerAvgConsumptionKwhPer100km.toFixed(1)}`, style: 'solid', muted: true, label: 'chart_avg' },
@@ -116,7 +114,6 @@ export function computeInsights(
         body: 'trend_consumption_body',
         delta: `${diffPct > 0 ? '+' : ''}${diffPct}%`,
         deltaSecondary: `${diffPct > 0 ? '+' : '-'}${absKwh.toFixed(1)} kWh/100km`,
-        deltaTertiary: `${stats.avgConsumptionKwhPer100km.toFixed(1)} kWh/100km`,
         chartBars: [
           { value: lastMonthStats.avgConsumptionKwhPer100km, formattedValue: `${lastMonthStats.avgConsumptionKwhPer100km.toFixed(1)}`, style: 'solid', muted: true, label: 'chart_prev' },
           { value: stats.avgConsumptionKwhPer100km, formattedValue: `${stats.avgConsumptionKwhPer100km.toFixed(1)}`, style: 'solid', label: 'chart_current' },
@@ -139,7 +136,6 @@ export function computeInsights(
       body: 'seasonal_delta_body',
       delta: `+${diffPct}%`,
       deltaSecondary: `+${absKwh.toFixed(1)} kWh/100km`,
-      deltaTertiary: `${stats.summerConsumptionKwhPer100km.toFixed(1)} → ${stats.winterConsumptionKwhPer100km.toFixed(1)} kWh/100km`,
       chartBars: [
         { value: stats.summerConsumptionKwhPer100km, formattedValue: `${stats.summerConsumptionKwhPer100km.toFixed(1)}`, style: 'solid', muted: true, label: 'chart_summer' },
         { value: stats.winterConsumptionKwhPer100km, formattedValue: `${stats.winterConsumptionKwhPer100km.toFixed(1)}`, style: 'solid', label: 'chart_winter' },
@@ -190,7 +186,12 @@ export function computeInsights(
         body: bodyKey,
         delta: `${totalUp ? '+' : ''}${totalDiffPct}%`,
         deltaSecondary: `${totalUp ? '+' : '-'}${Math.round(absEur)} €`,
-        deltaTertiary: `~${Math.round(projectedCostEur)} €`,
+        deltaTertiary: (() => {
+          const ctNow = stats.avgCostPerKwh * 100
+          const ctDiff = (stats.avgCostPerKwh - lastMonthStats!.avgCostPerKwh) * 100
+          const sign = ctDiff >= 0 ? '+' : ''
+          return `Ø ${ctNow.toFixed(1)} ct (${sign}${ctDiff.toFixed(1)})`
+        })(),
         chartBars: [
           { value: lastMonthStats.totalCostEur, formattedValue: `${Math.round(lastMonthStats.totalCostEur)} €`, style: 'solid', muted: true, label: 'chart_prev' },
           { value: stats.totalCostEur, projectedValue: projectedCostEur, formattedValue: `~${Math.round(projectedCostEur)} €`, style: 'solid', label: 'chart_current' },
@@ -220,7 +221,6 @@ export function computeInsights(
         body: 'trend_distance_body',
         delta: `~${diffKm > 0 ? '+' : ''}${diffKm} km`,
         deltaSecondary: `${diffPct > 0 ? '+' : ''}${diffPct}%`,
-        deltaTertiary: `~${projectedKm} km`,
         chartBars: [
           { value: lastMonthStats.totalDistanceKm!, formattedValue: `${Math.round(lastMonthStats.totalDistanceKm!)} km`, style: 'solid', muted: true, label: 'chart_prev' },
           { value: stats.totalDistanceKm!, projectedValue: projectedKm, formattedValue: `~${projectedKm} km`, style: 'solid', label: 'chart_current' },
@@ -242,7 +242,6 @@ export function computeInsights(
         body: 'charge_efficiency_body',
         delta: `${Math.round(lossRatio * 100)}%`,
         deltaSecondary: `${lossKwh.toFixed(1)} kWh`,
-        deltaTertiary: `${eff.gridKwh.toFixed(1)} kWh`,
         chartBars: [
           { value: eff.vehicleKwh, projectedValue: eff.gridKwh, formattedValue: `${eff.vehicleKwh.toFixed(1)} kWh`, style: 'solid', label: 'chart_battery' },
         ],
@@ -261,20 +260,27 @@ export function useSmartInsights(
   stats: () => StatisticsData | null,
   lastMonthStats: () => StatisticsData | null,
 ) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
 
   const insights = computed<SmartInsight[]>(() => {
     const s = stats()
     if (!s) return []
     const raw = computeInsights(s, lastMonthStats())
-    // Resolve i18n keys now that we're in Vue context
+
+    const now = new Date()
+    const fmt = new Intl.DateTimeFormat(locale.value, { month: 'short' })
+    const prevMonthLabel = fmt.format(new Date(now.getFullYear(), now.getMonth() - 1, 1))
+    const currentMonthLabel = fmt.format(now)
+
     return raw.map(insight => ({
       ...insight,
       headline: t(`insights.${insight.headline}`),
       body: t(`insights.${insight.body}`),
       chartBars: insight.chartBars?.map(bar => ({
         ...bar,
-        label: t(`insights.${bar.label}`),
+        label: bar.label === 'chart_prev' ? prevMonthLabel
+          : bar.label === 'chart_current' ? currentMonthLabel
+          : t(`insights.${bar.label}`),
       })),
     }))
   })
