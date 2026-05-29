@@ -121,6 +121,10 @@ function convertRow(row: Record<string, unknown>): object | null {
   const maxKw = row['Max (kW)']
   if (typeof maxKw === 'number') entry.max_charging_power_kw = maxKw
 
+  const isDc = typeof isAc === 'boolean' && !isAc
+  const isHighPower = typeof maxKw === 'number' && maxKw > 22
+  if (isDc || isHighPower) entry.is_public_charging = true
+
   return entry
 }
 
