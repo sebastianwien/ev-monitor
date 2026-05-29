@@ -75,7 +75,7 @@ export default defineConfig({
         }),
         VitePWA({
             registerType: 'autoUpdate',
-            includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+            includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png', 'pwa-maskable-512.png'],
             workbox: {
                 navigateFallbackDenylist: [/^\/sitemap\.xml$/, /^\/robots\.txt$/, /^\/api\//, /^\/oauth2\//, /^\/login\/oauth2\//, /^\/swagger-ui/, /^\/v3\/api-docs/],
                 maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
@@ -83,8 +83,14 @@ export default defineConfig({
             manifest: {
                 name: 'EV Monitor',
                 short_name: 'EV Monitor',
-                description: 'Track your Electric Vehicle logs',
-                theme_color: '#ffffff',
+                description: 'Dein Elektroauto-Ladetagebuch - Verbrauch, Kosten und Reichweite tracken',
+                theme_color: '#4f46e5',
+                background_color: '#4f46e5',
+                display: 'standalone',
+                display_override: ['window-controls-overlay', 'standalone'],
+                start_url: '/?source=pwa',
+                id: '/',
+                lang: 'de',
                 icons: [
                     {
                         src: 'pwa-192x192.png',
@@ -95,6 +101,20 @@ export default defineConfig({
                         src: 'pwa-512x512.png',
                         sizes: '512x512',
                         type: 'image/png'
+                    },
+                    {
+                        src: 'pwa-maskable-512.png',
+                        sizes: '512x512',
+                        type: 'image/png',
+                        purpose: 'maskable'
+                    }
+                ],
+                shortcuts: [
+                    {
+                        name: 'Ladevorgang erfassen',
+                        short_name: 'Erfassen',
+                        url: '/erfassen?source=pwa',
+                        icons: [{ src: 'pwa-192x192.png', sizes: '192x192' }]
                     }
                 ]
             }

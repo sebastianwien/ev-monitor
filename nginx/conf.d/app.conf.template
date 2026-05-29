@@ -72,6 +72,13 @@ server {
         add_header Content-Type text/plain;
     }
 
+    # Android TWA verification (Digital Asset Links)
+    location = /.well-known/assetlinks.json {
+        root /usr/share/nginx/html;
+        add_header Content-Type application/json;
+        add_header Access-Control-Allow-Origin "*";
+    }
+
     # Prerender for bots on public SEO pages (all markets)
     location ~* ^/(modelle|en|gb|us|no|se) {
         resolver 127.0.0.11 valid=10s;
