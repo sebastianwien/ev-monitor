@@ -116,7 +116,7 @@ const goToRegister = (source: string = 'unknown') => {
 }
 
 const demoLoading = ref(false)
-const demoLogin = async (source: 'hero' | 'models_section' = 'hero') => {
+const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview' | 'logfeed_preview' | 'map_gallery' | 'charts_gallery' = 'hero') => {
   demoLoading.value = true
   analytics.trackDemoLoginClicked(source)
   try {
