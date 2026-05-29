@@ -280,7 +280,7 @@ function drainBarWidth(ev: { kwh: number }): string {
             <svg width="128" height="128" viewBox="0 0 128 128" style="transform:rotate(-90deg)">
               <circle cx="64" cy="64" r="52" fill="none" class="stroke-gray-100 dark:stroke-gray-700" stroke-width="20"/>
               <!-- Driven: strokeDasharray as CSS property so transition fires -->
-              <circle cx="64" cy="64" r="52" fill="none" stroke="#475569" stroke-width="20"
+              <circle cx="64" cy="64" r="52" fill="none" stroke="#6366f1" stroke-width="20"
                 stroke-linecap="butt"
                 :style="{
                   strokeDasharray: `${animDrivenArc} ${C - animDrivenArc}`,
@@ -317,13 +317,13 @@ function drainBarWidth(ev: { kwh: number }): string {
             <div>
               <div class="flex items-center justify-between mb-1">
                 <div class="flex items-center gap-1.5">
-                  <span class="w-2 h-2 rounded-sm bg-slate-500 flex-shrink-0"></span>
+                  <span class="w-2 h-2 rounded-sm bg-indigo-500 flex-shrink-0"></span>
                   <span class="text-xs text-gray-600 dark:text-gray-300">{{ t('dashboard.insights_driven') }}</span>
                 </div>
                 <span class="text-xs font-semibold text-gray-800 dark:text-gray-200 mono tabular-nums">{{ fmt1(allChargedKwh - allPhantomKwh - allLossKwh) }} kWh</span>
               </div>
               <div class="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                <div class="h-full bg-slate-600 dark:bg-slate-400 rounded-full" :style="{ width: drivenBarWidth, transition: 'width 0.7s cubic-bezier(0.4,0,0.2,1)' }"></div>
+                <div class="h-full bg-indigo-500 rounded-full" :style="{ width: drivenBarWidth, transition: 'width 0.7s cubic-bezier(0.4,0,0.2,1)' }"></div>
               </div>
             </div>
             <!-- Phantom -->
