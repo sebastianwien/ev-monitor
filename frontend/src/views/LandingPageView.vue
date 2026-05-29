@@ -370,6 +370,176 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
       </div>
     </section>
 
+    <!-- App Preview Section -->
+    <section class="py-12 sm:py-20 border-t border-gray-100 dark:border-gray-800">
+
+      <!-- Dashboard preview -->
+      <div class="max-w-7xl mx-auto px-4 sm:px-8 lg:px-12">
+        <div class="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
+
+          <!-- Text -->
+          <div class="flex-1 text-center lg:text-left">
+            <span class="text-xs font-semibold text-green-600 uppercase tracking-wider">{{ t('landing.app_preview.dashboard_label') }}</span>
+            <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mt-2 mb-3">
+              {{ t('landing.app_preview.dashboard_title') }}
+            </h2>
+            <p class="text-gray-600 dark:text-gray-400 mb-5 max-w-md mx-auto lg:mx-0">
+              {{ t('landing.app_preview.dashboard_desc') }}
+            </p>
+            <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-2 mb-6 text-left inline-block">
+              <li class="flex items-start gap-2"><span class="text-green-500 font-bold mt-0.5">-</span>{{ t('landing.app_preview.dashboard_bullet1') }}</li>
+              <li class="flex items-start gap-2"><span class="text-green-500 font-bold mt-0.5">-</span>{{ t('landing.app_preview.dashboard_bullet2') }}</li>
+              <li class="flex items-start gap-2"><span class="text-green-500 font-bold mt-0.5">-</span>{{ t('landing.app_preview.dashboard_bullet3') }}</li>
+            </ul>
+            <button
+              @click="demoLogin('dashboard_preview')"
+              :disabled="demoLoading"
+              class="inline-flex items-center gap-2 text-green-600 hover:text-green-700 font-medium text-sm transition disabled:opacity-50"
+            >
+              {{ t('landing.app_preview.dashboard_cta') }}
+              <ArrowRightIcon class="h-4 w-4" />
+            </button>
+          </div>
+
+          <!-- Dashboard screenshot -->
+          <div class="flex-1 w-full max-w-xl lg:max-w-none relative">
+            <div class="rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden relative">
+              <img
+                src="/screenshots/dashboard-light.png"
+                alt="EV Monitor Dashboard"
+                class="w-full block h-auto"
+                loading="lazy"
+                width="885"
+                height="900"
+              />
+              <div class="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-b from-transparent to-white dark:to-gray-900 pointer-events-none"></div>
+            </div>
+            <!-- Floating chips -->
+            <div class="absolute -top-3 -right-3 bg-green-500 text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg hidden sm:block">
+              {{ t('landing.app_preview.chip_co2') }}
+            </div>
+            <div class="absolute -bottom-3 -left-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg hidden sm:block">
+              {{ t('landing.app_preview.chip_costs') }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Logfeed preview -->
+      <div class="max-w-7xl mx-auto px-4 sm:px-8 lg:px-12 mt-16 sm:mt-24">
+        <div class="flex flex-col lg:flex-row-reverse items-center gap-10 lg:gap-16">
+
+          <!-- Text -->
+          <div class="flex-1 text-center lg:text-left">
+            <span class="text-xs font-semibold text-green-600 uppercase tracking-wider">{{ t('landing.app_preview.logfeed_label') }}</span>
+            <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mt-2 mb-3">
+              {{ t('landing.app_preview.logfeed_title') }}
+            </h2>
+            <p class="text-gray-600 dark:text-gray-400 mb-5 max-w-md mx-auto lg:mx-0">
+              {{ t('landing.app_preview.logfeed_desc') }}
+            </p>
+            <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-2 mb-6 text-left inline-block">
+              <li class="flex items-start gap-2"><span class="text-green-500 font-bold mt-0.5">-</span>{{ t('landing.app_preview.logfeed_bullet1') }}</li>
+              <li class="flex items-start gap-2"><span class="text-green-500 font-bold mt-0.5">-</span>{{ t('landing.app_preview.logfeed_bullet2') }}</li>
+              <li class="flex items-start gap-2"><span class="text-green-500 font-bold mt-0.5">-</span>{{ t('landing.app_preview.logfeed_bullet3') }}</li>
+            </ul>
+            <button
+              @click="demoLogin('logfeed_preview')"
+              :disabled="demoLoading"
+              class="inline-flex items-center gap-2 text-green-600 hover:text-green-700 font-medium text-sm transition disabled:opacity-50"
+            >
+              {{ t('landing.app_preview.logfeed_cta') }}
+              <ArrowRightIcon class="h-4 w-4" />
+            </button>
+          </div>
+
+          <!-- Logfeed screenshot -->
+          <div class="flex-1 w-full max-w-xl lg:max-w-none relative">
+            <div class="rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden relative">
+              <img
+                src="/screenshots/logfeed-light.png"
+                alt="EV Monitor Ladehistorie"
+                class="w-full block h-auto"
+                loading="lazy"
+                width="885"
+                height="799"
+              />
+              <div class="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-b from-transparent to-white dark:to-gray-900 pointer-events-none"></div>
+            </div>
+            <!-- Floating chips -->
+            <div class="absolute -top-3 -right-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg hidden sm:block">
+              {{ t('landing.app_preview.chip_efficiency') }}
+            </div>
+            <div class="absolute -bottom-3 -left-3 bg-green-500 text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg hidden sm:block">
+              {{ t('landing.app_preview.chip_range') }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Gallery Section -->
+    <section class="py-12 sm:py-20 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800">
+      <div class="max-w-7xl mx-auto px-4 sm:px-8 lg:px-12">
+        <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 text-center mb-10 sm:mb-14">
+          {{ t('landing.app_preview.gallery_title') }}
+        </h2>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+
+          <!-- Map -->
+          <div class="flex flex-col gap-5">
+            <div class="rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <img
+                src="/screenshots/map-light.png"
+                alt="EV Monitor Lade-Standorte Karte"
+                class="w-full block"
+                loading="lazy"
+                width="640"
+                height="390"
+              />
+            </div>
+            <div>
+              <span class="text-xs font-semibold text-green-600 uppercase tracking-wider">{{ t('landing.app_preview.map_label') }}</span>
+              <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1 mb-2">{{ t('landing.app_preview.map_title') }}</h3>
+              <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-1.5 mb-3">
+                <li class="flex items-start gap-2"><span class="text-green-500 font-bold shrink-0 mt-0.5">-</span>{{ t('landing.app_preview.map_bullet1') }}</li>
+                <li class="flex items-start gap-2"><span class="text-green-500 font-bold shrink-0 mt-0.5">-</span>{{ t('landing.app_preview.map_bullet2') }}</li>
+              </ul>
+              <button @click="demoLogin('map_gallery')" :disabled="demoLoading" class="inline-flex items-center gap-2 text-green-600 hover:text-green-700 font-medium text-sm transition disabled:opacity-50">
+                {{ t('landing.app_preview.map_cta') }}<ArrowRightIcon class="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+
+          <!-- Charts -->
+          <div class="flex flex-col gap-5">
+            <div class="rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <img
+                src="/screenshots/charts-light.png"
+                alt="EV Monitor Analysen Kosten und Verbrauch"
+                class="w-full block h-auto"
+                loading="lazy"
+                width="640"
+                height="519"
+              />
+            </div>
+            <div>
+              <span class="text-xs font-semibold text-green-600 uppercase tracking-wider">{{ t('landing.app_preview.charts_label') }}</span>
+              <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1 mb-2">{{ t('landing.app_preview.charts_title') }}</h3>
+              <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-1.5 mb-3">
+                <li class="flex items-start gap-2"><span class="text-green-500 font-bold shrink-0 mt-0.5">-</span>{{ t('landing.app_preview.charts_bullet1') }}</li>
+                <li class="flex items-start gap-2"><span class="text-green-500 font-bold shrink-0 mt-0.5">-</span>{{ t('landing.app_preview.charts_bullet2') }}</li>
+              </ul>
+              <button @click="demoLogin('charts_gallery')" :disabled="demoLoading" class="inline-flex items-center gap-2 text-green-600 hover:text-green-700 font-medium text-sm transition disabled:opacity-50">
+                {{ t('landing.app_preview.charts_cta') }}<ArrowRightIcon class="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
     <!-- Model Preview Section -->
     <section class="py-8 sm:py-16 px-4 sm:px-6 lg:px-8">
       <div class="max-w-7xl mx-auto">
