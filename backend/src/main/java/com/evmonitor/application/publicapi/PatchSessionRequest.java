@@ -7,8 +7,11 @@ import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 
 public record PatchSessionRequest(
-        @Schema(description = "Energy charged in kWh.")
+        @Schema(description = "Gross energy charged in kWh (wallbox/charger side).")
         @DecimalMin("0.0") @DecimalMax("10000.0") @JsonProperty("kwh") Double kwh,
+
+        @Schema(description = "Net energy entering the battery in kWh (vehicle-side measurement).")
+        @DecimalMin("0.0") @DecimalMax("200.0") @JsonProperty("kwh_at_vehicle") Double kwhAtVehicle,
 
         @Schema(description = "Odometer reading in km at the time of charging.")
         @Min(0) @Max(2_000_000) @JsonProperty("odometer_km") Integer odometerKm,

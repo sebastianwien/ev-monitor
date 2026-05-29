@@ -235,7 +235,7 @@ public class PublicApiImportService {
                 patch.odometerKm(),
                 patch.socBefore(),
                 patch.socAfter(),
-                null, // kwhAtVehicle not patchable via Public API
+                patch.kwhAtVehicle() != null ? BigDecimal.valueOf(patch.kwhAtVehicle()) : null,
                 patch.maxChargingPowerKw() != null ? BigDecimal.valueOf(patch.maxChargingPowerKw()) : null,
                 chargingType, routeType, tireType,
                 isPublic, cpoName, measurementType,

@@ -178,6 +178,22 @@ class PublicApiPatchIntegrationTest extends AbstractIntegrationTest {
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     @Test
+    void patch_kwhAtVehicle_updatesField() {
+        EvLog log = createApiUploadLog(car.getId());
+
+        ResponseEntity<Void> response = patch(log.getId(), """
+                { "kwh_at_vehicle": 27.5 }
+                """, plaintextKey);
+
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+
+        EvLog updated = evLogRepository.findById(log.getId()).orElseThrow();
+        assertNotNull(updated.getKwhAtVehicle());
+        assertEquals(0, BigDecimal.valueOf(27.5).compareTo(updated.getKwhAtVehicle()));
+        assertEquals(0, BigDecimal.valueOf(30.0).compareTo(updated.getKwhCharged())); // kwh_charged unchanged
+    }
+
+    @Test
     void negativeCostEur_patch_isAccepted() {
         EvLog log = createApiUploadLog(car.getId());
 
