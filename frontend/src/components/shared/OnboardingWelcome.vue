@@ -473,6 +473,7 @@ const complete = () => {
                         <div v-for="item in [
                           { key: 'spritmonitor', color: 'bg-green-500' },
                           { key: 'tesla', color: 'bg-red-500' },
+                          { key: 'tessie', color: 'bg-red-400' },
                           { key: 'tronity', color: 'bg-purple-500' },
                           { key: 'csv', color: 'bg-gray-400' },
                           { key: 'api', color: 'bg-teal-500' },

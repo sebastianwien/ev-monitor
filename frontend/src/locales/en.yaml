@@ -1242,6 +1242,8 @@ onboarding:
   step4_goe_desc: "Directly from your wallbox"
   step4_tesla: "Tesla / TeslaLogger"
   step4_tesla_desc: "Charging history from the Tesla app"
+  step4_tessie: "Tessie"
+  step4_tessie_desc: "Import charging history & drives"
   step4_ocpp: "OCPP Wallbox"
   step4_ocpp_desc: "Compatible with many wallbox models"
   step4_tronity: "Tronity"

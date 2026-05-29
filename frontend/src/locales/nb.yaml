@@ -1191,6 +1191,8 @@ onboarding:
   step4_goe_desc: Direkte fra din wallbox
   step4_tesla: Tesla / TeslaLogger
   step4_tesla_desc: Ladehistorikk fra Tesla-appen
+  step4_tessie: Tessie
+  step4_tessie_desc: Importer ladehistorikk og kjøreturer
   step4_ocpp: OCPP Wallbox
   step4_ocpp_desc: Kompatibel med mange wallbox-modeller
   step4_tronity: Tronity
