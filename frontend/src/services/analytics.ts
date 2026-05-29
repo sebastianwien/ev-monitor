@@ -80,7 +80,7 @@ class AnalyticsService {
     this.track('feature_used', { feature })
   }
 
-  trackDemoLoginClicked(source: 'hero' | 'models_section' | 'lp_v2_weiche' | 'lp_v2_owner') {
+  trackDemoLoginClicked(source: 'hero' | 'models_section' | 'lp_v2_weiche' | 'lp_v2_owner' | 'dashboard_preview' | 'logfeed_preview' | 'map_gallery' | 'charts_gallery') {
     this.track('demo_login_clicked', { source })
   }
 
