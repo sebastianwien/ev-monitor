@@ -69,8 +69,8 @@ public class PublicApiTripService {
             }
         }
 
-        OffsetDateTime fromDt = from != null ? LocalDate.parse(from).atStartOfDay().atOffset(ZoneOffset.UTC) : null;
-        OffsetDateTime toDt = to != null ? LocalDate.parse(to).atTime(23, 59, 59).atOffset(ZoneOffset.UTC) : null;
+        OffsetDateTime fromDt = parseDate(from, false);
+        OffsetDateTime toDt = parseDate(to, true);
 
         Page<EvTrip> result = tripRepository.findByUserIdAndFilters(
                 userId, carId, fromDt, toDt, PageRequest.of(page, size));
@@ -119,6 +119,14 @@ public class PublicApiTripService {
         if (patch.routeType() != null) trip.setRouteType(patch.routeType());
         trip.setUserEditedAt(OffsetDateTime.now());
 
+        if (patch.socStart() != null || patch.socEnd() != null) {
+            Car car = carRepository.findById(trip.getCarId()).orElse(null);
+            if (car != null) {
+                trip.setEstimatedConsumedKwh(calculateEstimatedConsumedKwh(
+                        trip.getSocStart(), trip.getSocEnd(), car));
+            }
+        }
+
         return ApiTripResponse.fromDomain(tripRepository.save(trip));
     }
 
@@ -132,6 +140,18 @@ public class PublicApiTripService {
         }
         trip.setDeletedAt(OffsetDateTime.now());
         tripRepository.save(trip);
+    }
+
+    private OffsetDateTime parseDate(String raw, boolean endOfDay) {
+        if (raw == null) return null;
+        try {
+            LocalDate date = LocalDate.parse(raw);
+            return endOfDay
+                    ? date.atTime(23, 59, 59).atOffset(ZoneOffset.UTC)
+                    : date.atStartOfDay().atOffset(ZoneOffset.UTC);
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException("Ungültiges Datumsformat. Erwartet: yyyy-MM-dd");
+        }
     }
 
     private OffsetDateTime parseTimestamp(String value, String fieldName) {

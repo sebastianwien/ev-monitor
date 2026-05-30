@@ -5,6 +5,7 @@ import com.evmonitor.application.publicapi.ApiTripsPageResponse;
 import com.evmonitor.application.publicapi.PatchPublicTripRequest;
 import com.evmonitor.application.publicapi.PublicApiTripRequest;
 import com.evmonitor.application.publicapi.PublicApiTripService;
+import com.evmonitor.infrastructure.security.RateLimitService;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -28,6 +29,7 @@ import java.util.UUID;
 public class PublicApiTripController {
 
     private final PublicApiTripService tripService;
+    private final RateLimitService rateLimitService;
 
     @GetMapping
     @Operation(
@@ -102,6 +104,10 @@ public class PublicApiTripController {
         if (keyId == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", "Dieser Endpoint erfordert einen API Key (evm_...)."));
+        }
+        if (!rateLimitService.tryConsumeApiUpload(keyId)) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body(Map.of("error", "Rate limit überschritten. Max. 60 Requests pro Stunde."));
         }
 
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
