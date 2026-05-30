@@ -118,6 +118,14 @@ class PublicApiTripIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void listTrips_invalidDateFormat_returns400() {
+        ResponseEntity<Map> response = apiGet("/api/v1/trips?car_id=" + car.getId() + "&from=01.06.2025");
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertNotNull(response.getBody().get("error"));
+    }
+
+    @Test
     void listTrips_foreignCar_returns403() {
         User other = createAndSaveUser("other-list-" + System.nanoTime() + "@ev-monitor.net");
         Car otherCar = createAndSaveCar(other.getId(), CarBrand.CarModel.MODEL_3);
