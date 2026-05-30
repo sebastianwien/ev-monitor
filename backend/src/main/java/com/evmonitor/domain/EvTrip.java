@@ -21,6 +21,7 @@ public class EvTrip {
     public static final String DATA_SOURCE_TESLA_LIVE     = "TESLA_LIVE";
     public static final String DATA_SOURCE_SMARTCAR_LIVE  = "SMARTCAR_LIVE";
     public static final String DATA_SOURCE_TESLA_INFERRED = "TESLA_INFERRED";
+    public static final String DATA_SOURCE_API_UPLOAD     = "API_UPLOAD";
 
     /**
      * Live-detected data sources that require AutoSync-Live entitlement to view or edit.

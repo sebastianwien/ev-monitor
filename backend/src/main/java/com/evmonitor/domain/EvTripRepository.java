@@ -1,5 +1,6 @@
 package com.evmonitor.domain;
 
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -41,6 +42,22 @@ public interface EvTripRepository extends JpaRepository<EvTrip, UUID> {
 
     @Query("SELECT t FROM EvTrip t WHERE t.locationStartGeohash IS NOT NULL AND t.outsideTempCelsius IS NULL AND t.deletedAt IS NULL")
     List<EvTrip> findAllWithGeohashAndNoTemperature();
+
+    @Query("""
+            SELECT t FROM EvTrip t
+            WHERE t.userId = :userId
+              AND t.deletedAt IS NULL
+              AND (:carId IS NULL OR t.carId = :carId)
+              AND (:from IS NULL OR t.tripStartedAt >= :from)
+              AND (:to IS NULL OR t.tripStartedAt <= :to)
+            ORDER BY t.tripStartedAt DESC
+            """)
+    Page<EvTrip> findByUserIdAndFilters(
+            @Param("userId") UUID userId,
+            @Param("carId") UUID carId,
+            @Param("from") OffsetDateTime from,
+            @Param("to") OffsetDateTime to,
+            Pageable pageable);
 
     /**
      * Hard-delete aller Trips eines Users mit gegebener data_source. Liefert die geloeschte
