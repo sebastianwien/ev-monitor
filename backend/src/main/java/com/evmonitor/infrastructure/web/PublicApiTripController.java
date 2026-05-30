@@ -87,8 +87,7 @@ public class PublicApiTripController {
 
                     **Authentication:** `Authorization: Bearer evm_<your-api-key>`
 
-                    The trip is stored with `data_source = API_UPLOAD`. Only API_UPLOAD trips can be
-                    updated or deleted via this endpoint later.
+                    The trip is stored with `data_source = API_UPLOAD`.
 
                     **Rate limit:** 60 requests/hour per API key.
                     """,
