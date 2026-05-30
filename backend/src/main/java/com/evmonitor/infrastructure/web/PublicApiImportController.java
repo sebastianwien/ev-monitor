@@ -251,4 +251,36 @@ public class PublicApiImportController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
+
+    @DeleteMapping("/sessions/{id}")
+    @Operation(
+            summary = "Delete a charging session",
+            description = """
+                    Deletes a charging session owned by the authenticated user.
+
+                    **Authentication:** `Authorization: Bearer evm_<your-api-key>`
+                    """,
+            security = @SecurityRequirement(name = "ApiKey")
+    )
+    public ResponseEntity<?> deleteSession(
+            @PathVariable UUID id,
+            Authentication authentication,
+            HttpServletRequest httpRequest) {
+
+        String keyId = (String) httpRequest.getAttribute("apiKeyId");
+        if (keyId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Dieser Endpoint erfordert einen API Key (evm_...)."));
+        }
+
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        try {
+            importService.deleteApiSession(principal.getUser().getId(), id);
+            return ResponseEntity.noContent().build();
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
+        }
+    }
 }

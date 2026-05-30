@@ -52,6 +52,7 @@ public class PublicApiImportService {
     private final CarRepository carRepository;
     private final CoinLogService coinLogService;
     private final CpoNameNormalizer cpoNameNormalizer;
+    private final com.evmonitor.application.EvLogService evLogService;
 
     @Transactional
     public ImportApiResult importSessions(UUID userId, PublicApiSessionRequest request, ApiKey apiKey) {
@@ -243,6 +244,21 @@ public class PublicApiImportService {
         );
 
         evLogRepository.save(patched);
+    }
+
+    @Transactional
+    public void deleteApiSession(UUID userId, UUID logId) {
+        EvLog existing = evLogRepository.findById(logId)
+                .orElseThrow(() -> new NoSuchElementException("Log nicht gefunden"));
+
+        Car car = carRepository.findById(existing.getCarId())
+                .orElseThrow(() -> new IllegalArgumentException("Fahrzeug nicht gefunden"));
+        if (!car.getUserId().equals(userId)) {
+            throw new SecurityException("Kein Zugriff auf diesen Log");
+        }
+
+        // Delegates to EvLogService to handle coin deduction on delete
+        evLogService.deleteLog(logId, userId);
     }
 
     public ApiSessionsPageResponse getSessions(UUID userId, UUID carId, LocalDateTime from, LocalDateTime to, int page, int size) {
