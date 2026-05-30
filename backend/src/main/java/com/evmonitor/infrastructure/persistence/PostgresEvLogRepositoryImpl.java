@@ -189,7 +189,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
 
     @Override
     public List<EvLog> findPagedByCarId(UUID carId, LocalDateTime from, LocalDateTime to, int size, int offset) {
-        return jpaRepository.findPagedByCarId(carId, from, to, PageRequest.of(offset / size, size))
+        return jpaRepository.findPagedByCarId(carId, effectiveFrom(from), effectiveTo(to), PageRequest.of(offset / size, size))
                 .stream()
                 .map(this::toDomain)
                 .toList();
@@ -197,13 +197,13 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
 
     @Override
     public long countByCarIdAndDateRange(UUID carId, LocalDateTime from, LocalDateTime to) {
-        return jpaRepository.countByCarIdAndDateRange(carId, from, to);
+        return jpaRepository.countByCarIdAndDateRange(carId, effectiveFrom(from), effectiveTo(to));
     }
 
     @Override
     public List<EvLog> findPagedByCarIds(List<UUID> carIds, LocalDateTime from, LocalDateTime to, int size, int offset) {
         if (carIds.isEmpty()) return List.of();
-        return jpaRepository.findPagedByCarIds(carIds, from, to, PageRequest.of(offset / size, size))
+        return jpaRepository.findPagedByCarIds(carIds, effectiveFrom(from), effectiveTo(to), PageRequest.of(offset / size, size))
                 .stream()
                 .map(this::toDomain)
                 .toList();
@@ -212,7 +212,15 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     @Override
     public long countByCarIdsAndDateRange(List<UUID> carIds, LocalDateTime from, LocalDateTime to) {
         if (carIds.isEmpty()) return 0L;
-        return jpaRepository.countByCarIdsAndDateRange(carIds, from, to);
+        return jpaRepository.countByCarIdsAndDateRange(carIds, effectiveFrom(from), effectiveTo(to));
+    }
+
+    private static LocalDateTime effectiveFrom(LocalDateTime from) {
+        return from != null ? from : LocalDateTime.MIN;
+    }
+
+    private static LocalDateTime effectiveTo(LocalDateTime to) {
+        return to != null ? to : LocalDateTime.MAX;
     }
 
     @Override
