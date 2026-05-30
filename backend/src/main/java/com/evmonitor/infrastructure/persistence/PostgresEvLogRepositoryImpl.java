@@ -188,6 +188,34 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
+    public List<EvLog> findPagedByCarId(UUID carId, LocalDateTime from, LocalDateTime to, int size, int offset) {
+        return jpaRepository.findPagedByCarId(carId, from, to, PageRequest.of(offset / size, size))
+                .stream()
+                .map(this::toDomain)
+                .toList();
+    }
+
+    @Override
+    public long countByCarIdAndDateRange(UUID carId, LocalDateTime from, LocalDateTime to) {
+        return jpaRepository.countByCarIdAndDateRange(carId, from, to);
+    }
+
+    @Override
+    public List<EvLog> findPagedByCarIds(List<UUID> carIds, LocalDateTime from, LocalDateTime to, int size, int offset) {
+        if (carIds.isEmpty()) return List.of();
+        return jpaRepository.findPagedByCarIds(carIds, from, to, PageRequest.of(offset / size, size))
+                .stream()
+                .map(this::toDomain)
+                .toList();
+    }
+
+    @Override
+    public long countByCarIdsAndDateRange(List<UUID> carIds, LocalDateTime from, LocalDateTime to) {
+        if (carIds.isEmpty()) return 0L;
+        return jpaRepository.countByCarIdsAndDateRange(carIds, from, to);
+    }
+
+    @Override
     public List<EvLog> findAllWithGeohashAndNoTemperature() {
         return jpaRepository.findAllWithGeohashAndNoTemperature().stream()
                 .map(this::toDomain)

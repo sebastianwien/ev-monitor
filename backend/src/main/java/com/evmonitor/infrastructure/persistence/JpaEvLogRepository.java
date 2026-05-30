@@ -42,6 +42,54 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     List<EvLogEntity> findAllByCarIdOrderByLoggedAtDesc(@Param("carId") UUID carId, org.springframework.data.domain.Pageable pageable);
 
     @Query("""
+        SELECT e FROM EvLogEntity e
+        WHERE e.carId = :carId
+          AND (:from IS NULL OR e.loggedAt >= :from)
+          AND (:to IS NULL OR e.loggedAt <= :to)
+        ORDER BY e.loggedAt DESC
+        """)
+    List<EvLogEntity> findPagedByCarId(
+            @Param("carId") UUID carId,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to,
+            org.springframework.data.domain.Pageable pageable);
+
+    @Query("""
+        SELECT COUNT(e) FROM EvLogEntity e
+        WHERE e.carId = :carId
+          AND (:from IS NULL OR e.loggedAt >= :from)
+          AND (:to IS NULL OR e.loggedAt <= :to)
+        """)
+    long countByCarIdAndDateRange(
+            @Param("carId") UUID carId,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to);
+
+    @Query("""
+        SELECT e FROM EvLogEntity e
+        WHERE e.carId IN :carIds
+          AND (:from IS NULL OR e.loggedAt >= :from)
+          AND (:to IS NULL OR e.loggedAt <= :to)
+        ORDER BY e.loggedAt DESC
+        """)
+    List<EvLogEntity> findPagedByCarIds(
+            @Param("carIds") List<UUID> carIds,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to,
+            org.springframework.data.domain.Pageable pageable);
+
+    @Query("""
+        SELECT COUNT(e) FROM EvLogEntity e
+        WHERE e.carId IN :carIds
+          AND (:from IS NULL OR e.loggedAt >= :from)
+          AND (:to IS NULL OR e.loggedAt <= :to)
+        """)
+    long countByCarIdsAndDateRange(
+            @Param("carIds") List<UUID> carIds,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to);
+
+    @Query("""
         SELECT e.tireType FROM EvLogEntity e
         WHERE e.carId = :carId
           AND e.tireType IS NOT NULL

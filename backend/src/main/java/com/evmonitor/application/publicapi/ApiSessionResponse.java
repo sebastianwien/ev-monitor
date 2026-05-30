@@ -11,6 +11,8 @@ import java.util.UUID;
 @Schema(description = "A charging session imported via the Public API")
 public record ApiSessionResponse(
         @JsonProperty("id") UUID id,
+        @JsonProperty("car_id") UUID carId,
+        @JsonProperty("data_source") String dataSource,
         @JsonProperty("date") String date,
         @JsonProperty("kwh") Double kwh,
         @JsonProperty("cost_eur") Double costEur,
@@ -29,6 +31,8 @@ public record ApiSessionResponse(
     public static ApiSessionResponse fromEvLog(EvLog log) {
         return new ApiSessionResponse(
                 log.getId(),
+                log.getCarId(),
+                log.getDataSource() != null ? log.getDataSource().name() : null,
                 log.getLoggedAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
                 log.getKwhCharged() != null ? log.getKwhCharged().doubleValue() : null,
                 log.getCostEur() != null ? log.getCostEur().doubleValue() : null,

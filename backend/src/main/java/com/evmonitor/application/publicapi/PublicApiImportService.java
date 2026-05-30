@@ -245,6 +245,34 @@ public class PublicApiImportService {
         evLogRepository.save(patched);
     }
 
+    public ApiSessionsPageResponse getSessions(UUID userId, UUID carId, LocalDateTime from, LocalDateTime to, int page, int size) {
+        int offset = page * size;
+        List<EvLog> sessions;
+        long total;
+
+        if (carId != null) {
+            Car car = carRepository.findById(carId)
+                    .orElseThrow(() -> new SecurityException("Dieses Fahrzeug gehört dir nicht"));
+            if (!car.getUserId().equals(userId)) {
+                throw new SecurityException("Dieses Fahrzeug gehört dir nicht");
+            }
+            sessions = evLogRepository.findPagedByCarId(carId, from, to, size, offset);
+            total = evLogRepository.countByCarIdAndDateRange(carId, from, to);
+        } else {
+            List<UUID> carIds = carRepository.findAllByUserId(userId).stream()
+                    .map(Car::getId)
+                    .toList();
+            sessions = evLogRepository.findPagedByCarIds(carIds, from, to, size, offset);
+            total = evLogRepository.countByCarIdsAndDateRange(carIds, from, to);
+        }
+
+        List<ApiSessionResponse> responses = sessions.stream()
+                .map(ApiSessionResponse::fromEvLog)
+                .toList();
+        boolean hasMore = (long) offset + size < total;
+        return new ApiSessionsPageResponse(responses, total, page, size, hasMore);
+    }
+
     public ApiSessionResponse getSession(UUID userId, UUID logId) {
         EvLog existing = evLogRepository.findById(logId)
                 .orElseThrow(() -> new NoSuchElementException("Log nicht gefunden"));

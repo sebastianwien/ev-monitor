@@ -1,6 +1,7 @@
 package com.evmonitor.infrastructure.web;
 
 import com.evmonitor.application.publicapi.ApiSessionResponse;
+import com.evmonitor.application.publicapi.ApiSessionsPageResponse;
 import com.evmonitor.application.publicapi.ImportApiResult;
 import com.evmonitor.application.publicapi.PatchSessionRequest;
 import com.evmonitor.application.publicapi.PublicApiImportService;
@@ -20,6 +21,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
@@ -34,6 +38,75 @@ public class PublicApiImportController {
 
     private final PublicApiImportService importService;
     private final RateLimitService rateLimitService;
+
+    @GetMapping("/sessions")
+    @Operation(
+            summary = "List charging sessions",
+            description = """
+                    Returns a paginated list of charging sessions for the authenticated user.
+
+                    **Authentication:** `Authorization: Bearer evm_<your-api-key>`
+
+                    **Filtering:** Optionally filter by `car_id`, `from` date and `to` date (ISO format: `yyyy-MM-dd`).
+                    If `car_id` is omitted, sessions across all of the user's cars are returned.
+
+                    **Pagination:** Use `page` (0-based, default 0) and `size` (default 20, max 100).
+
+                    **Sorting:** Newest sessions first.
+                    """,
+            security = @SecurityRequirement(name = "ApiKey")
+    )
+    public ResponseEntity<?> listSessions(
+            @RequestParam(name = "car_id", required = false) UUID carId,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            Authentication authentication,
+            HttpServletRequest httpRequest) {
+
+        String keyId = (String) httpRequest.getAttribute("apiKeyId");
+        if (keyId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Dieser Endpoint erfordert einen API Key (evm_...)."));
+        }
+        if (size > 100) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Maximale Seitengröße ist 100."));
+        }
+        if (page < 0 || size < 1) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Ungültige Paginierungsparameter."));
+        }
+
+        LocalDateTime fromDt = parseDate(from, false);
+        LocalDateTime toDt = parseDate(to, true);
+
+        if ((from != null && fromDt == null) || (to != null && toDt == null)) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Ungültiges Datumsformat. Erwartet: yyyy-MM-dd"));
+        }
+
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        try {
+            ApiSessionsPageResponse result = importService.getSessions(
+                    principal.getUser().getId(), carId, fromDt, toDt, page, size);
+            return ResponseEntity.ok(result);
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    private LocalDateTime parseDate(String raw, boolean endOfDay) {
+        if (raw == null) return null;
+        try {
+            LocalDate date = LocalDate.parse(raw);
+            return endOfDay ? date.atTime(LocalTime.MAX) : date.atStartOfDay();
+        } catch (Exception e) {
+            return null;
+        }
+    }
 
     @PostMapping("/sessions")
     @Operation(

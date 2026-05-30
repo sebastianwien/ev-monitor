@@ -24,6 +24,14 @@ public interface EvLogRepository {
 
     List<EvLog> findLatestByCarId(UUID carId, int limit, int page);
 
+    List<EvLog> findPagedByCarId(UUID carId, LocalDateTime from, LocalDateTime to, int size, int offset);
+
+    long countByCarIdAndDateRange(UUID carId, LocalDateTime from, LocalDateTime to);
+
+    List<EvLog> findPagedByCarIds(List<UUID> carIds, LocalDateTime from, LocalDateTime to, int size, int offset);
+
+    long countByCarIdsAndDateRange(List<UUID> carIds, LocalDateTime from, LocalDateTime to);
+
     List<EvLog> findAllByUserId(UUID userId);
 
     boolean existsByCarIdAndLoggedAtBetween(UUID carId, LocalDateTime start, LocalDateTime end);
