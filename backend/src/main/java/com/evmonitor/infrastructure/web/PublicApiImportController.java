@@ -30,7 +30,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1")
-@Tag(name = "Public API", description = "External upload API for charging sessions (Wallboxen, Skripte, Home-Automation)")
+@Tag(name = "Charging Sessions", description = "Upload and manage charging sessions (Wallboxen, Skripte, Home-Automation)")
 @RequiredArgsConstructor
 public class PublicApiImportController {
 

@@ -24,7 +24,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/trips")
-@Tag(name = "Public API", description = "External upload API for charging sessions (Wallboxen, Skripte, Home-Automation)")
+@Tag(name = "Trips", description = "Upload and manage driving trips")
 @RequiredArgsConstructor
 public class PublicApiTripController {
 

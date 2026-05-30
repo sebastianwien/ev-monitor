@@ -13,7 +13,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1")
-@Tag(name = "Public API", description = "External upload API for charging sessions (Wallboxen, Skripte, Home-Automation)")
+@Tag(name = "Reference Data", description = "Static reference data (charging providers, etc.)")
 @RequiredArgsConstructor
 public class ChargingProviderController {
 

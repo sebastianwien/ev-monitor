@@ -4,9 +4,12 @@ import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import io.swagger.v3.oas.models.tags.Tag;
 import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.List;
 
 @Configuration
 public class OpenApiConfig {
@@ -29,7 +32,11 @@ public class OpenApiConfig {
                                 .type(SecurityScheme.Type.HTTP)
                                 .scheme("bearer")
                                 .bearerFormat("evm_<key>")
-                                .description("EV Monitor API Key (evm_...)")));
+                                .description("EV Monitor API Key (evm_...)")))
+                .tags(List.of(
+                        new Tag().name("Charging Sessions").description("Upload and manage charging sessions (Wallboxen, Skripte, Home-Automation)"),
+                        new Tag().name("Trips").description("Upload and manage driving trips"),
+                        new Tag().name("Reference Data").description("Static reference data (charging providers, etc.)")));
     }
 
     /**
