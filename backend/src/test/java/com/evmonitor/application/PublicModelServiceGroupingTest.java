@@ -21,13 +21,14 @@ class PublicModelServiceGroupingTest {
     @Mock private com.evmonitor.infrastructure.persistence.JpaVehicleSpecificationRepository vehicleSpecificationRepository;
     @Mock private com.evmonitor.infrastructure.persistence.JpaUserRepository userRepository;
     @Mock private com.evmonitor.domain.CarRepository carRepository;
+    @Mock private com.evmonitor.domain.EvTripRepository evTripRepository;
     @Mock private EvLogStatisticsService evLogStatisticsService;
 
     private PublicModelService service;
 
     @BeforeEach
     void setUp() {
-        service = new PublicModelService(evLogRepository, vehicleSpecificationRepository, userRepository, carRepository, evLogStatisticsService);
+        service = new PublicModelService(evLogRepository, vehicleSpecificationRepository, userRepository, carRepository, evTripRepository, evLogStatisticsService);
     }
 
     @Test
