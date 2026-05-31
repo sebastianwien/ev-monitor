@@ -216,14 +216,11 @@ const renderCharges = async () => {
 
   // Fit map to show all markers
   if (bounds.length > 0) {
+    await nextTick()
     map.invalidateSize()
-    try {
-      const leafletBounds = L.latLngBounds(bounds)
-      if (leafletBounds.isValid()) {
-        map.fitBounds(leafletBounds, { padding: [50, 50] })
-      }
-    } catch (err) {
-      console.warn('fitBounds failed (container may have zero size):', err)
+    const leafletBounds = L.latLngBounds(bounds)
+    if (leafletBounds.isValid()) {
+      map.fitBounds(leafletBounds, { padding: [50, 50] })
     }
   }
 }

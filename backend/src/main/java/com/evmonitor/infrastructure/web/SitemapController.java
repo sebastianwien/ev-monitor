@@ -24,7 +24,7 @@ public class SitemapController {
 
     private final PublicModelService publicModelService;
 
-    @GetMapping("/sitemap.xml")
+    @GetMapping(value = "/sitemap.xml", produces = MediaType.APPLICATION_XML_VALUE)
     public ResponseEntity<String> getSitemap() {
         String today = LocalDate.now().toString();
         Set<String> qualifiedModels = publicModelService.getModelEnumNamesForSitemap(false);
