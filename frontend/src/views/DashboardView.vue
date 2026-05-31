@@ -626,100 +626,81 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
           class="mb-5"
         />
 
-        <!-- Key Metrics: Mobile Data Strip -->
-        <div class="md:hidden mb-6">
-          <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-800">
+        <!-- Key Metrics: Mobile Grid -->
+        <div class="md:hidden mb-6 pb-20">
+          <div class="grid grid-cols-2 gap-px bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
             <!-- Gesamtenergie -->
-            <div class="relative flex items-center px-4 min-h-[3.75rem] border-b border-gray-100 dark:border-gray-700"
->
-              <div class="text-xs font-medium text-gray-500 dark:text-gray-400 flex-1 truncate">{{ t('dashboard.metric_total_energy') }}</div>
-              <div class="flex flex-col items-end leading-tight">
-                <div class="flex items-baseline gap-1">
-                  <span class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ stats.totalKwhCharged?.toFixed(1) ?? '–' }}</span>
-                  <span class="text-[10px] text-gray-400 dark:text-gray-500 font-medium">kWh</span>
-                </div>
-                <div class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
-                  {{ stats.totalCharges }} {{ t('dashboard.metric_charges') }}
-                </div>
+            <div class="bg-white dark:bg-gray-800 px-4 py-3">
+              <div class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{{ t('dashboard.metric_total_energy') }}</div>
+              <div class="flex items-baseline gap-1 leading-tight">
+                <span class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ stats.totalKwhCharged?.toFixed(1) ?? '–' }}</span>
+                <span class="text-[10px] text-gray-400 dark:text-gray-500 font-medium">kWh</span>
               </div>
+              <div class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">{{ stats.totalCharges }} {{ t('dashboard.metric_charges') }}</div>
             </div>
             <!-- Gesamtkosten -->
-            <div class="relative flex items-center px-4 min-h-[3.75rem] border-b border-gray-100 dark:border-gray-700"
->
-              <div class="text-xs font-medium text-gray-500 dark:text-gray-400 flex-1 truncate">{{ t('dashboard.metric_total_cost') }}</div>
-              <div class="flex flex-col items-end leading-tight">
-                <div class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ stats.totalCostEur != null ? formatCurrency(stats.totalCostEur) : '–' }}</div>
-                <div class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
-                  Ø {{ stats.avgCostPerKwh != null ? formatCostPerKwh(stats.avgCostPerKwh) : '–' }}
-                </div>
-              </div>
+            <div class="bg-white dark:bg-gray-800 px-4 py-3">
+              <div class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{{ t('dashboard.metric_total_cost') }}</div>
+              <div class="text-xl font-bold text-gray-900 dark:text-gray-100 leading-tight">{{ stats.totalCostEur != null ? formatCurrency(stats.totalCostEur) : '–' }}</div>
+              <div class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">Ø {{ stats.avgCostPerKwh != null ? formatCostPerKwh(stats.avgCostPerKwh) : '–' }}</div>
             </div>
             <!-- Gesamtstrecke -->
-            <template v-if="stats.totalDistanceKm != null">
-              <button type="button"
-                class="w-full relative flex items-center px-4 min-h-[3.75rem] border-b border-gray-100 dark:border-gray-700 text-left"
-                @click.stop="openMetricTooltip = openMetricTooltip === 'distance' ? null : 'distance'">
-                <div class="text-xs font-medium text-gray-500 dark:text-gray-400 flex-1 flex items-center gap-1.5 truncate">
-                  {{ t('dashboard.metric_total_distance') }}
-                  <InformationCircleIcon class="w-3 h-3 text-gray-400 dark:text-gray-500 flex-shrink-0" />
-                </div>
-                <div class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ formatDistance(stats.totalDistanceKm) }}</div>
-              </button>
-              <div v-if="openMetricTooltip === 'distance'"
-                class="px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-700 text-xs text-gray-700 dark:text-gray-300 leading-relaxed space-y-1.5">
-                <p>{{ t('dashboard.metric_total_distance_tooltip') }}</p>
-                <p class="italic text-gray-500 dark:text-gray-400">{{ t('dashboard.metric_complete_definition') }}</p>
-                <router-link to="/consumption-methodology" class="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400 underline underline-offset-2">
-                  {{ t('dashboard.metric_consumption_methodology_link') }}
-                  <ChevronRightIcon class="w-3 h-3" />
-                </router-link>
+            <button v-if="stats.totalDistanceKm != null"
+              type="button"
+              class="w-full px-4 py-3 text-left"
+              :class="openMetricTooltip === 'distance' ? 'bg-gray-50 dark:bg-gray-900/50' : 'bg-white dark:bg-gray-800'"
+              @click.stop="openMetricTooltip = openMetricTooltip === 'distance' ? null : 'distance'">
+              <div class="flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                {{ t('dashboard.metric_total_distance') }}
+                <InformationCircleIcon class="w-3 h-3 flex-shrink-0" />
               </div>
-            </template>
+              <div class="text-xl font-bold text-gray-900 dark:text-gray-100 leading-tight">{{ formatDistance(stats.totalDistanceKm) }}</div>
+            </button>
             <!-- Ø Verbrauch -->
-            <template v-if="stats.avgConsumptionKwhPer100km != null">
-              <button type="button"
-                class="w-full relative flex items-center px-4 min-h-[3.75rem] border-b border-gray-100 dark:border-gray-700 text-left"
-                @click.stop="openMetricTooltip = openMetricTooltip === 'consumption' ? null : 'consumption'">
-                <div class="text-xs font-medium text-gray-500 dark:text-gray-400 flex-1 flex items-center gap-1.5 truncate">
-                  {{ t('dashboard.metric_avg_consumption') }}
-                  <InformationCircleIcon class="w-3 h-3 text-gray-400 dark:text-gray-500 flex-shrink-0" />
-                </div>
-                <div class="flex items-baseline gap-1">
-                  <span class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ formatConsumption(stats.avgConsumptionKwhPer100km, { showUnit: false }) }}</span>
-                  <span class="text-[10px] text-gray-400 dark:text-gray-500 font-medium">{{ consumptionUnitLabel() }}</span>
-                </div>
-              </button>
-              <div v-if="openMetricTooltip === 'consumption'"
-                class="px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-700 text-xs text-gray-700 dark:text-gray-300 leading-relaxed space-y-1.5">
-                <p>{{ t('dashboard.metric_avg_consumption_tooltip') }}</p>
-                <p class="italic text-gray-500 dark:text-gray-400">{{ t('dashboard.metric_complete_definition') }}</p>
-                <router-link to="/consumption-methodology" class="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400 underline underline-offset-2">
-                  {{ t('dashboard.metric_consumption_methodology_link') }}
-                  <ChevronRightIcon class="w-3 h-3" />
-                </router-link>
+            <button v-if="stats.avgConsumptionKwhPer100km != null"
+              type="button"
+              class="w-full px-4 py-3 text-left"
+              :class="openMetricTooltip === 'consumption' ? 'bg-gray-50 dark:bg-gray-900/50' : 'bg-white dark:bg-gray-800'"
+              @click.stop="openMetricTooltip = openMetricTooltip === 'consumption' ? null : 'consumption'">
+              <div class="flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                {{ t('dashboard.metric_avg_consumption') }}
+                <InformationCircleIcon class="w-3 h-3 flex-shrink-0" />
               </div>
-            </template>
+              <div class="flex items-baseline gap-1 leading-tight">
+                <span class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ formatConsumption(stats.avgConsumptionKwhPer100km, { showUnit: false }) }}</span>
+                <span class="text-[10px] text-gray-400 dark:text-gray-500 font-medium">{{ consumptionUnitLabel() }}</span>
+              </div>
+            </button>
             <!-- Ø Kosten -->
-            <template v-if="avgCostPer100km != null">
-              <button type="button"
-                class="w-full relative flex items-center px-4 min-h-[3.75rem] text-left"
-                @click.stop="openMetricTooltip = openMetricTooltip === 'costPer100km' ? null : 'costPer100km'">
-                <div class="text-xs font-medium text-gray-500 dark:text-gray-400 flex-1 flex items-center gap-1.5 truncate">
-                  {{ t('dashboard.metric_avg_cost') }}
-                  <InformationCircleIcon class="w-3 h-3 text-gray-400 dark:text-gray-500 flex-shrink-0" />
-                </div>
-                <div class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ formatCostPerDistance(avgCostPer100km) }}</div>
-              </button>
-              <div v-if="openMetricTooltip === 'costPer100km'"
-                class="px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-100 dark:border-gray-700 text-xs text-gray-700 dark:text-gray-300 leading-relaxed space-y-1.5">
-                <p>{{ t('dashboard.metric_avg_cost_tooltip') }}</p>
-                <p class="italic text-gray-500 dark:text-gray-400">{{ t('dashboard.metric_complete_definition') }}</p>
-                <router-link to="/consumption-methodology" class="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400 underline underline-offset-2">
-                  {{ t('dashboard.metric_consumption_methodology_link') }}
-                  <ChevronRightIcon class="w-3 h-3" />
-                </router-link>
+            <button v-if="avgCostPer100km != null"
+              type="button"
+              class="w-full px-4 py-3 text-left"
+              :class="openMetricTooltip === 'costPer100km' ? 'bg-gray-50 dark:bg-gray-900/50' : 'bg-white dark:bg-gray-800'"
+              @click.stop="openMetricTooltip = openMetricTooltip === 'costPer100km' ? null : 'costPer100km'">
+              <div class="flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                {{ t('dashboard.metric_avg_cost') }}
+                <InformationCircleIcon class="w-3 h-3 flex-shrink-0" />
               </div>
+              <div class="text-xl font-bold text-gray-900 dark:text-gray-100 leading-tight">{{ formatCostPerDistance(avgCostPer100km) }}</div>
+            </button>
+          </div>
+          <!-- Tooltip panel below grid - shared for all three info metrics -->
+          <div v-if="openMetricTooltip && ['distance','consumption','costPer100km'].includes(openMetricTooltip)"
+            class="mt-1 px-4 py-3 rounded-lg bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 text-xs text-gray-700 dark:text-gray-300 leading-relaxed space-y-1.5">
+            <template v-if="openMetricTooltip === 'distance'">
+              <p>{{ t('dashboard.metric_total_distance_tooltip') }}</p>
             </template>
+            <template v-else-if="openMetricTooltip === 'consumption'">
+              <p>{{ t('dashboard.metric_avg_consumption_tooltip') }}</p>
+            </template>
+            <template v-else-if="openMetricTooltip === 'costPer100km'">
+              <p>{{ t('dashboard.metric_avg_cost_tooltip') }}</p>
+            </template>
+            <p class="italic text-gray-500 dark:text-gray-400">{{ t('dashboard.metric_complete_definition') }}</p>
+            <router-link to="/consumption-methodology" class="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400 underline underline-offset-2">
+              {{ t('dashboard.metric_consumption_methodology_link') }}
+              <ChevronRightIcon class="w-3 h-3" />
+            </router-link>
           </div>
           <!-- THG Card Mobile -->
           <div v-if="showThgBanner && isGerman"
