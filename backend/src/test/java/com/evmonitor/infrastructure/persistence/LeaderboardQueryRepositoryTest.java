@@ -228,7 +228,7 @@ class LeaderboardQueryRepositoryTest {
     void distanceRanking_excludesCarWithDeltaAbove10000km() {
         UUID userId = createUser("cheat@test.com", "cheat", false, true);
         UUID carId = createCar(userId);
-        createLogWithOdometer(carId, "100000.0", true);
+        createLogWithOdometer(carId, 100000, true);
         createLogWithOdometer(carId, 110001, true);
 
         List<LeaderboardRankRow> rows = repo.getDistanceRanking(START, END);
