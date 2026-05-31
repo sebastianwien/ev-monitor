@@ -215,8 +215,8 @@ class LeaderboardQueryRepositoryTest {
     void distanceRanking_includesCarWithDeltaExactlyAt10000km() {
         UUID userId = createUser("vielfahrer@test.com", "vielfahrer", false, true);
         UUID carId = createCar(userId);
-        createLogWithOdometer(carId, "100000.0", true);
-        createLogWithOdometer(carId, "110000.0", true);
+        createLogWithOdometer(carId, 100000, true);
+        createLogWithOdometer(carId, 110000, true);
 
         List<LeaderboardRankRow> rows = repo.getDistanceRanking(START, END);
 
@@ -229,7 +229,7 @@ class LeaderboardQueryRepositoryTest {
         UUID userId = createUser("cheat@test.com", "cheat", false, true);
         UUID carId = createCar(userId);
         createLogWithOdometer(carId, "100000.0", true);
-        createLogWithOdometer(carId, "110001.0", true);
+        createLogWithOdometer(carId, 110001, true);
 
         List<LeaderboardRankRow> rows = repo.getDistanceRanking(START, END);
 
@@ -258,12 +258,12 @@ class LeaderboardQueryRepositoryTest {
         evLogRepository.save(e);
     }
 
-    private void createLogWithOdometer(UUID carId, String odometerKm, boolean includeInStatistics) {
+    private void createLogWithOdometer(UUID carId, Integer odometerKm, boolean includeInStatistics) {
         EvLogEntity e = new EvLogEntity();
         e.setId(UUID.randomUUID());
         e.setCarId(carId);
         e.setKwhCharged(new BigDecimal("30.0"));
-        e.setOdometerKm(new BigDecimal(odometerKm));
+        e.setOdometerKm(odometerKm);
         e.setChargeDurationMinutes(60);
         e.setLoggedAt(LocalDateTime.now());
         e.setDataSource("USER_LOGGED");
