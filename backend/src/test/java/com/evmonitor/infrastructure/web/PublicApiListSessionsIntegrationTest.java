@@ -172,7 +172,7 @@ class PublicApiListSessionsIntegrationTest extends AbstractIntegrationTest {
                 at,
                 ChargingType.AC, null, null,
                 DataSource.API_UPLOAD, null,
-                false, null, null);
+                false, null, null, null);
     }
 
     private ResponseEntity<Map> list(String queryParams) {

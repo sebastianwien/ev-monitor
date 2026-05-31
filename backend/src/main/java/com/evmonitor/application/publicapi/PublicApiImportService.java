@@ -159,7 +159,8 @@ public class PublicApiImportService {
                         entry.rawImportData(),
                         isPublic,
                         cpoName,
-                        measurementType
+                        measurementType,
+                        entry.temperatureCelsius()
                 );
 
                 if (geohash != null) {
@@ -240,7 +241,8 @@ public class PublicApiImportService {
                 patch.maxChargingPowerKw() != null ? BigDecimal.valueOf(patch.maxChargingPowerKw()) : null,
                 chargingType, routeType, tireType,
                 isPublic, cpoName, measurementType,
-                null, null, null // costExchangeRate, costCurrency, chargingProviderId (public API always EUR, no tariff)
+                null, null, null, // costExchangeRate, costCurrency, chargingProviderId (public API always EUR, no tariff)
+                patch.temperatureCelsius()
         );
 
         evLogRepository.save(patched);

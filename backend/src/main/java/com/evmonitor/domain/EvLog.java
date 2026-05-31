@@ -246,7 +246,7 @@ public class EvLog {
             BigDecimal maxChargingPowerKw, BigDecimal socAfterChargePercent, BigDecimal socBeforeChargePercent,
             LocalDateTime loggedAt, ChargingType chargingType, RouteType routeType, TireType tireType,
             DataSource dataSource, String rawImportData, boolean publicCharging, String cpoName,
-            EnergyMeasurementType measurementType) {
+            EnergyMeasurementType measurementType, Double temperatureCelsius) {
         LocalDateTime now = LocalDateTime.now();
         return EvLog.builder()
                 .id(UUID.randomUUID())
@@ -270,6 +270,7 @@ public class EvLog {
                 .publicCharging(publicCharging)
                 .cpoName(cpoName)
                 .measurementType(measurementType)
+                .temperatureCelsius(temperatureCelsius)
                 .createdAt(now)
                 .updatedAt(now)
                 .build();
@@ -293,7 +294,8 @@ public class EvLog {
             BigDecimal kwhAtVehicle, BigDecimal maxChargingPowerKw, ChargingType chargingType,
             RouteType routeType, TireType tireType, Boolean publicCharging, String cpoName,
             EnergyMeasurementType measurementType,
-            BigDecimal costExchangeRate, String costCurrency, UUID chargingProviderId) {
+            BigDecimal costExchangeRate, String costCurrency, UUID chargingProviderId,
+            Double temperatureCelsius) {
         return toBuilder()
                 .kwhCharged(kwh != null ? kwh : this.kwhCharged)
                 .kwhAtVehicle(kwhAtVehicle != null ? kwhAtVehicle : this.kwhAtVehicle)
@@ -313,6 +315,7 @@ public class EvLog {
                 .cpoName(cpoName != null ? cpoName : this.cpoName)
                 .measurementType(measurementType != null ? measurementType : this.measurementType)
                 .chargingProviderId(chargingProviderId != null ? chargingProviderId : this.chargingProviderId)
+                .temperatureCelsius(temperatureCelsius != null ? temperatureCelsius : this.temperatureCelsius)
                 .updatedAt(LocalDateTime.now())
                 .build();
     }

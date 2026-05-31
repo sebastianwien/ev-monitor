@@ -218,7 +218,7 @@ class PublicApiPatchIntegrationTest extends AbstractIntegrationTest {
                 LocalDateTime.now().minusHours(1),
                 ChargingType.AC, RouteType.COMBINED, TireType.SUMMER,
                 DataSource.API_UPLOAD, null,
-                false, null, null);
+                false, null, null, null);
         return evLogRepository.save(log);
     }
 

@@ -378,7 +378,8 @@ public class XpengImportService {
                 s.maxPowerKw() == null ? null : s.maxPowerKw().doubleValue(),
                 null, null, null,                  // routeType, tireType, rawImportData
                 null, null,                        // isPublic, cpoName (user editiert nach)
-                "AT_CHARGER");
+                "AT_CHARGER",
+                null);                             // temperatureCelsius unknown
     }
 
     static Integer durationMinutes(DetectedChargingSession s) {

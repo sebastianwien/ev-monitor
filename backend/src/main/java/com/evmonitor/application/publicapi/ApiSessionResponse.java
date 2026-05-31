@@ -24,6 +24,8 @@ public record ApiSessionResponse(
         @JsonProperty("charging_type") String chargingType,
         @JsonProperty("route_type") String routeType,
         @JsonProperty("tire_type") String tireType,
+        @JsonProperty("kwh_at_vehicle") Double kwhAtVehicle,
+        @JsonProperty("temperature_celsius") Double temperatureCelsius,
         @JsonProperty("is_public_charging") boolean isPublicCharging,
         @JsonProperty("cpo_name") String cpoName,
         @JsonProperty("measurement_type") String measurementType
@@ -44,6 +46,8 @@ public record ApiSessionResponse(
                 log.getChargingType() != null ? log.getChargingType().name() : null,
                 log.getRouteType() != null ? log.getRouteType().name() : null,
                 log.getTireType() != null ? log.getTireType().name() : null,
+                log.getKwhAtVehicle() != null ? log.getKwhAtVehicle().doubleValue() : null,
+                log.getTemperatureCelsius(),
                 log.isPublicCharging(),
                 log.getCpoName(),
                 log.getMeasurementType() != null ? log.getMeasurementType().name() : null

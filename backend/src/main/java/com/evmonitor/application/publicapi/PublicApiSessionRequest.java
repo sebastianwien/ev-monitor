@@ -64,7 +64,10 @@ public record PublicApiSessionRequest(
             @Size(max = 100) @JsonProperty("cpo_name") String cpoName,
 
             @Schema(description = "At which point energy is measured. `AT_CHARGER` (default): gross energy at the wallbox/charger, ~7% higher than battery entry. `AT_VEHICLE`: net energy entering the battery (e.g. from vehicle APIs). `DRIVING_ONLY`: drive consumption only, excludes standby/preconditioning. If omitted, `AT_CHARGER` is assumed - unless only `kwh_at_vehicle` is provided, in which case `AT_VEHICLE` is inferred.", allowableValues = {"AT_CHARGER", "AT_VEHICLE", "DRIVING_ONLY"})
-            @Size(max = 20) @JsonProperty("measurement_type") String measurementType
+            @Size(max = 20) @JsonProperty("measurement_type") String measurementType,
+
+            @Schema(description = "Ambient temperature in Celsius at the time of charging.")
+            @DecimalMin("-100.0") @DecimalMax("100.0") @JsonProperty("temperature_celsius") Double temperatureCelsius
     ) {
         @AssertTrue(message = "Either kwh or kwh_at_vehicle must be provided")
         @JsonIgnore

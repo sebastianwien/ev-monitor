@@ -93,7 +93,7 @@ class PublicApiDeleteSessionIntegrationTest extends AbstractIntegrationTest {
                 LocalDateTime.now().minusHours(1),
                 ChargingType.AC, null, null,
                 DataSource.API_UPLOAD, null,
-                false, null, null);
+                false, null, null, null);
     }
 
     private HttpHeaders apiHeaders() {

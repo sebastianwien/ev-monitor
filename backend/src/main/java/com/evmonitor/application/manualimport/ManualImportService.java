@@ -106,7 +106,8 @@ public class ManualImportService {
                 date, kwh, kwhAtVehicle, odometerKm, socBefore, socAfter,
                 costEur, durationMin, location, chargingType,
                 maxChargingPowerKw, routeType, tireType, rawImportData,
-                isPublicCharging, cpoName, measurementType
+                isPublicCharging, cpoName, measurementType,
+                null  // temperatureCelsius not available via manual import
         );
     }
 
