@@ -6,6 +6,7 @@ import { useAuthStore } from '../stores/auth'
 import { analytics } from '../services/analytics'
 import LocaleSwitcher from '../components/shared/LocaleSwitcher.vue'
 import { getTopModels, getPlatformStats, type TopModelPreview } from '../api/publicModelService'
+import { formatKm } from '../utils/formatKm'
 import {
   BoltIcon,
   ArrowRightIcon,
@@ -50,7 +51,9 @@ const demoLoading = ref(false)
 const displayTrips = ref(0)
 const displayModels = ref(0)
 const displayUsers = ref(0)
+const displayTotalKm = ref(0)
 const displayTripsRounded = computed(() => Math.floor(displayTrips.value / 10) * 10)
+const displayTotalKmRounded = computed(() => formatKm(displayTotalKm.value))
 
 const filteredModels = computed(() => {
   const q = searchQuery.value.toLowerCase().trim()
@@ -61,7 +64,8 @@ const filteredModels = computed(() => {
   ).slice(0, 6)
 })
 
-function animateCount(target: number, setter: (v: number) => void, duration = 1400) {
+function animateCount(target: number | undefined | null, setter: (v: number) => void, duration = 1400) {
+  if (target == null || isNaN(target)) return
   const start = Date.now()
   const tick = () => {
     const progress = Math.min((Date.now() - start) / duration, 1)
@@ -136,7 +140,8 @@ onMounted(async () => {
     const stats = await getPlatformStats()
     animateCount(stats.modelCount, v => displayModels.value = v)
     animateCount(stats.userCount, v => displayUsers.value = v)
-    animateCount(stats.validTripCount, v => displayTrips.value = v)
+    animateCount(stats.tripCount, v => displayTrips.value = v)
+    animateCount(stats.totalKm, v => displayTotalKm.value = v)
   } catch { /* ignore */ }
 
   try {
@@ -257,10 +262,14 @@ onMounted(async () => {
           <ArrowRightIcon class="h-5 w-5 text-green-600 shrink-0 group-hover:translate-x-1 transition-transform" /></button>
 
         <!-- Social proof bar -->
-        <div class="mt-5 pt-5 border-t border-gray-100 dark:border-gray-800 flex flex-wrap justify-center gap-6 sm:gap-10 text-center">
+        <div class="mt-5 pt-5 border-t border-gray-100 dark:border-gray-800 grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
           <div>
             <p class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 tabular-nums">{{ displayTripsRounded }}+</p>
             <p class="text-xs text-gray-400 mt-0.5">{{ t('landing_v2.stats.trips') }}</p>
+          </div>
+          <div>
+            <p class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 tabular-nums">{{ displayTotalKmRounded }}</p>
+            <p class="text-xs text-gray-400 mt-0.5">{{ t('landing_v2.stats.total_km') }}</p>
           </div>
           <div>
             <p class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 tabular-nums">{{ displayModels }}</p>

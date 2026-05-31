@@ -3,6 +3,7 @@ package com.evmonitor.application;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.CarRepository;
+import com.evmonitor.domain.EvTripRepository;
 import com.evmonitor.domain.VehicleCategory;
 import com.evmonitor.infrastructure.persistence.JpaEvLogRepository;
 import com.evmonitor.infrastructure.persistence.JpaUserRepository;
@@ -40,6 +41,7 @@ public class PublicModelService {
     private final JpaVehicleSpecificationRepository vehicleSpecificationRepository;
     private final JpaUserRepository userRepository;
     private final CarRepository carRepository;
+    private final EvTripRepository evTripRepository;
     private final EvLogStatisticsService evLogStatisticsService;
 
     private static boolean isValidCarModelEnumName(String name) {
@@ -56,8 +58,9 @@ public class PublicModelService {
     public PlatformStatsResponse getPlatformStats() {
         int modelCount = CarBrand.CarModel.values().length;
         long userCount = userRepository.countBySeedDataFalseAndEmailVerifiedTrue();
-        long validTripCount = evLogRepository.countValidTrips();
-        return new PlatformStatsResponse(modelCount, userCount, validTripCount);
+        long tripCount = evTripRepository.countPublicTrips();
+        long totalKm = (long) evTripRepository.sumPublicDistanceKm();
+        return new PlatformStatsResponse(modelCount, userCount, tripCount, totalKm);
     }
 
     /**

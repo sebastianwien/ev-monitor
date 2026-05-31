@@ -9,6 +9,7 @@ import SupportPopover from '../components/settings/SupportPopover.vue'
 import LocaleSwitcher from '../components/shared/LocaleSwitcher.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { getTopModels, getPlatformStats, type TopModelPreview } from '../api/publicModelService'
+import { formatKm } from '../utils/formatKm'
 import {
   LockClosedIcon,
   UsersIcon,
@@ -35,11 +36,14 @@ const loading = ref(true)
 const displayModels = ref(0)
 const displayUsers = ref(0)
 const displayTrips = ref(0)
+const displayTotalKm = ref(0)
 
 // Round trips to nearest 10 for cleaner display with "+"
 const displayTripsRounded = computed(() => Math.floor(displayTrips.value / 10) * 10)
+const displayTotalKmRounded = computed(() => formatKm(displayTotalKm.value))
 
-function animateCount(target: number, setter: (v: number) => void, duration = 1400) {
+function animateCount(target: number | undefined | null, setter: (v: number) => void, duration = 1400) {
+  if (target == null || isNaN(target)) return
   const start = Date.now()
   const tick = () => {
     const progress = Math.min((Date.now() - start) / duration, 1)
@@ -94,7 +98,8 @@ onMounted(async () => {
     const stats = await getPlatformStats()
     animateCount(stats.modelCount, v => displayModels.value = v)
     animateCount(stats.userCount, v => displayUsers.value = v)
-    animateCount(stats.validTripCount, v => displayTrips.value = v)
+    animateCount(stats.tripCount, v => displayTrips.value = v)
+    animateCount(stats.totalKm, v => displayTotalKm.value = v)
   } catch {
     // fallback: leave at 0
   }
@@ -329,13 +334,24 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
           {{ t('landing.hero.track_data') }}
         </p>
 
-        <p class="mt-4 text-sm font-semibold text-gray-500 dark:text-gray-400 tabular-nums">
-          <span>{{ displayTripsRounded }}+ {{ t('landing.hero.trips_label') }}</span>
-          <span class="mx-2">•</span>
-          <span>{{ displayModels }} {{ t('landing.hero.models_label') }}</span>
-          <span class="mx-2">•</span>
-          <span>{{ displayUsers }} {{ t('landing.hero.drivers_label') }}</span>
-        </p>
+        <div class="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center max-w-lg mx-auto sm:max-w-none">
+          <div>
+            <p class="text-xl font-bold text-gray-700 dark:text-gray-300 tabular-nums">{{ displayTripsRounded }}+</p>
+            <p class="text-xs text-gray-400 mt-0.5">{{ t('landing.hero.trips_label') }}</p>
+          </div>
+          <div>
+            <p class="text-xl font-bold text-gray-700 dark:text-gray-300 tabular-nums">{{ displayTotalKmRounded }}</p>
+            <p class="text-xs text-gray-400 mt-0.5">{{ t('landing.hero.total_km_label') }}</p>
+          </div>
+          <div>
+            <p class="text-xl font-bold text-gray-700 dark:text-gray-300 tabular-nums">{{ displayModels }}</p>
+            <p class="text-xs text-gray-400 mt-0.5">{{ t('landing.hero.models_label') }}</p>
+          </div>
+          <div>
+            <p class="text-xl font-bold text-gray-700 dark:text-gray-300 tabular-nums">{{ displayUsers }}</p>
+            <p class="text-xs text-gray-400 mt-0.5">{{ t('landing.hero.drivers_label') }}</p>
+          </div>
+        </div>
       </div>
     </section>
 

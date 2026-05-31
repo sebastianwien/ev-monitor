@@ -46,6 +46,7 @@ landing:
     register_link: registrera dig gratis
     track_data: och följa upp dina egna uppgifter
     trips_label: Resor
+    total_km_label: körda km
     models_label: Modeller
     drivers_label: Förare
   features:
@@ -138,6 +139,7 @@ landing_v2:
     charging_sessions: laddningssessioner
   stats:
     trips: registrerade resor
+    total_km: körda km
     models: modeller
     drivers: förare
 models_list:

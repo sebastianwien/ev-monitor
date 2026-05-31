@@ -48,6 +48,7 @@ landing:
     register_link: "kostenlos registrieren"
     track_data: "und eigene Daten tracken"
     trips_label: "Fahrten"
+    total_km_label: "gefahrene km"
     models_label: "Modelle"
     drivers_label: "Fahrer"
   features:
@@ -173,6 +174,7 @@ landing_v2:
     charging_sessions: "Ladevorgänge"
   stats:
     trips: "erfasste Fahrten"
+    total_km: "gefahrene km"
     models: "Modelle"
     drivers: "Fahrer"
 

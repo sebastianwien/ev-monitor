@@ -69,4 +69,23 @@ public interface EvTripRepository extends JpaRepository<EvTrip, UUID> {
     @Transactional
     @Query("DELETE FROM EvTrip t WHERE t.userId = :userId AND t.dataSource = :dataSource")
     int deleteAllByUserIdAndDataSource(@Param("userId") UUID userId, @Param("dataSource") String dataSource);
+
+    @Query(value = """
+            SELECT COUNT(t.id)
+            FROM ev_trip t
+            JOIN app_user u ON u.id = t.user_id
+            WHERE t.deleted_at IS NULL
+              AND u.is_seed_data = false
+            """, nativeQuery = true)
+    long countPublicTrips();
+
+    @Query(value = """
+            SELECT COALESCE(SUM(t.distance_km), 0)
+            FROM ev_trip t
+            JOIN app_user u ON u.id = t.user_id
+            WHERE t.deleted_at IS NULL
+              AND t.distance_km IS NOT NULL
+              AND u.is_seed_data = false
+            """, nativeQuery = true)
+    double sumPublicDistanceKm();
 }

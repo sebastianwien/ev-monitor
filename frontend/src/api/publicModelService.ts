@@ -143,7 +143,8 @@ export async function getTopModels(limit: number = 12): Promise<TopModelPreview[
 export interface PlatformStats {
     modelCount: number
     userCount: number
-    validTripCount: number
+    tripCount: number
+    totalKm: number
 }
 
 export interface BrandWltpVariant {
