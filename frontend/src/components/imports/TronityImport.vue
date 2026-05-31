@@ -78,8 +78,6 @@ function isTronityFormat(row: Record<string, unknown> | undefined): boolean {
   return 'Start Datum' in row && 'Geladen (kWh)' in row
 }
 
-}
-
 // ── File input handlers ───────────────────────────────────────────────────────
 
 function onFileChange(event: Event) {
