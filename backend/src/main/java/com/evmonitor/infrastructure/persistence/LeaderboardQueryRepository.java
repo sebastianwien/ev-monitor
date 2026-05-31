@@ -74,7 +74,7 @@ public class LeaderboardQueryRepository {
     }
 
     // ---- MONTHLY_DISTANCE (per-car max-min odometer) ----
-    // Plausibility: delta must be between 0 and 5000 km per car per month.
+    // Plausibility: delta must be between 0 and 10000 km per car per month.
 
     @SuppressWarnings("unchecked")
     public List<LeaderboardRankRow> getDistanceRanking(LocalDateTime start, LocalDateTime endExclusive) {
@@ -92,7 +92,7 @@ public class LeaderboardQueryRepository {
                       AND e.logged_at < :end
                     GROUP BY c.id, c.user_id, c.model
                     HAVING COUNT(e.id) >= 2
-                       AND MAX(e.odometer_km) - MIN(e.odometer_km) BETWEEN 1 AND 5000
+                       AND MAX(e.odometer_km) - MIN(e.odometer_km) BETWEEN 1 AND 10000
                 ) car_dist
                 JOIN app_user u ON car_dist.user_id = u.id
                 WHERE u.is_seed_data = false

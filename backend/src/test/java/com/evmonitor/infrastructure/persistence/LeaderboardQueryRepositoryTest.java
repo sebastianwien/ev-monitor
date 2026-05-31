@@ -209,6 +209,33 @@ class LeaderboardQueryRepositoryTest {
                 .containsExactly("anna", "bob");
     }
 
+    // ---- MONTHLY_DISTANCE: plausibility cap ----
+
+    @Test
+    void distanceRanking_includesCarWithDeltaExactlyAt10000km() {
+        UUID userId = createUser("vielfahrer@test.com", "vielfahrer", false, true);
+        UUID carId = createCar(userId);
+        createLogWithOdometer(carId, "100000.0", true);
+        createLogWithOdometer(carId, "110000.0", true);
+
+        List<LeaderboardRankRow> rows = repo.getDistanceRanking(START, END);
+
+        assertThat(rows).extracting(LeaderboardRankRow::username).contains("vielfahrer");
+        assertThat(rows.get(0).value()).isEqualByComparingTo("10000");
+    }
+
+    @Test
+    void distanceRanking_excludesCarWithDeltaAbove10000km() {
+        UUID userId = createUser("cheat@test.com", "cheat", false, true);
+        UUID carId = createCar(userId);
+        createLogWithOdometer(carId, "100000.0", true);
+        createLogWithOdometer(carId, "110001.0", true);
+
+        List<LeaderboardRankRow> rows = repo.getDistanceRanking(START, END);
+
+        assertThat(rows).extracting(LeaderboardRankRow::username).doesNotContain("cheat");
+    }
+
     // ---- Helpers ----
 
     private void createLog(UUID carId, String kwh, boolean includeInStatistics) {
@@ -221,6 +248,22 @@ class LeaderboardQueryRepositoryTest {
         e.setCarId(carId);
         e.setKwhCharged(new BigDecimal(kwh));
         e.setCostEur(new BigDecimal(costEur));
+        e.setChargeDurationMinutes(60);
+        e.setLoggedAt(LocalDateTime.now());
+        e.setDataSource("USER_LOGGED");
+        e.setIncludeInStatistics(includeInStatistics);
+        e.setChargingType("AC");
+        e.setCreatedAt(LocalDateTime.now());
+        e.setUpdatedAt(LocalDateTime.now());
+        evLogRepository.save(e);
+    }
+
+    private void createLogWithOdometer(UUID carId, String odometerKm, boolean includeInStatistics) {
+        EvLogEntity e = new EvLogEntity();
+        e.setId(UUID.randomUUID());
+        e.setCarId(carId);
+        e.setKwhCharged(new BigDecimal("30.0"));
+        e.setOdometerKm(new BigDecimal(odometerKm));
         e.setChargeDurationMinutes(60);
         e.setLoggedAt(LocalDateTime.now());
         e.setDataSource("USER_LOGGED");
