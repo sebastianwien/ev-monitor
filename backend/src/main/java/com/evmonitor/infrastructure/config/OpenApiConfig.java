@@ -3,6 +3,7 @@ package com.evmonitor.infrastructure.config;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.tags.Tag;
 import org.springdoc.core.models.GroupedOpenApi;
@@ -27,6 +28,7 @@ public class OpenApiConfig {
                                 **Authentifizierung:** `Authorization: Bearer evm_<your-key>`
                                 """)
                         .version("v1"))
+                .addSecurityItem(new SecurityRequirement().addList("ApiKey"))
                 .components(new Components()
                         .addSecuritySchemes("ApiKey", new SecurityScheme()
                                 .type(SecurityScheme.Type.HTTP)
