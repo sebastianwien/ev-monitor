@@ -24,7 +24,7 @@
             </span>
             <span v-if="platformStats" class="inline-flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-xs font-medium px-3 py-1.5 rounded-full">
               <ArrowTrendingUpIcon class="h-3.5 w-3.5 text-green-500" />
-              {{ platformStats.validTripCount.toLocaleString() }} {{ t('models_list.hero.trips_count') }}
+              {{ platformStats.tripCount.toLocaleString() }} {{ t('models_list.hero.trips_count') }}
             </span>
             <span v-if="platformStats" class="inline-flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-xs font-medium px-3 py-1.5 rounded-full">
               <CheckIcon class="h-3.5 w-3.5 text-green-500" />
@@ -52,7 +52,7 @@
               </span>
               <span v-if="platformStats" class="inline-flex items-center gap-1.5 bg-white/10 text-white text-sm font-medium px-3.5 py-1.5 rounded-full">
                 <ArrowTrendingUpIcon class="h-4 w-4 text-green-400" />
-                {{ platformStats.validTripCount.toLocaleString() }} {{ t('models_list.reddit.trips') }}
+                {{ platformStats.tripCount.toLocaleString() }} {{ t('models_list.reddit.trips') }}
               </span>
             </div>
             <div class="flex flex-wrap gap-3">
