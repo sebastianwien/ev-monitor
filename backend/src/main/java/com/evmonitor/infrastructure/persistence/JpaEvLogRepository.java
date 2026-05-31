@@ -44,8 +44,8 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     @Query("""
         SELECT e FROM EvLogEntity e
         WHERE e.carId = :carId
-          AND (cast(:from as LocalDateTime) IS NULL OR e.loggedAt >= :from)
-          AND (cast(:to as LocalDateTime) IS NULL OR e.loggedAt <= :to)
+          AND (cast(:from as timestamp) IS NULL OR e.loggedAt >= :from)
+          AND (cast(:to as timestamp) IS NULL OR e.loggedAt <= :to)
         ORDER BY e.loggedAt DESC
         """)
     List<EvLogEntity> findPagedByCarId(
@@ -57,8 +57,8 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     @Query("""
         SELECT COUNT(e) FROM EvLogEntity e
         WHERE e.carId = :carId
-          AND (cast(:from as LocalDateTime) IS NULL OR e.loggedAt >= :from)
-          AND (cast(:to as LocalDateTime) IS NULL OR e.loggedAt <= :to)
+          AND (cast(:from as timestamp) IS NULL OR e.loggedAt >= :from)
+          AND (cast(:to as timestamp) IS NULL OR e.loggedAt <= :to)
         """)
     long countByCarIdAndDateRange(
             @Param("carId") UUID carId,
@@ -68,8 +68,8 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     @Query("""
         SELECT e FROM EvLogEntity e
         WHERE e.carId IN :carIds
-          AND (cast(:from as LocalDateTime) IS NULL OR e.loggedAt >= :from)
-          AND (cast(:to as LocalDateTime) IS NULL OR e.loggedAt <= :to)
+          AND (cast(:from as timestamp) IS NULL OR e.loggedAt >= :from)
+          AND (cast(:to as timestamp) IS NULL OR e.loggedAt <= :to)
         ORDER BY e.loggedAt DESC
         """)
     List<EvLogEntity> findPagedByCarIds(
@@ -81,8 +81,8 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     @Query("""
         SELECT COUNT(e) FROM EvLogEntity e
         WHERE e.carId IN :carIds
-          AND (cast(:from as LocalDateTime) IS NULL OR e.loggedAt >= :from)
-          AND (cast(:to as LocalDateTime) IS NULL OR e.loggedAt <= :to)
+          AND (cast(:from as timestamp) IS NULL OR e.loggedAt >= :from)
+          AND (cast(:to as timestamp) IS NULL OR e.loggedAt <= :to)
         """)
     long countByCarIdsAndDateRange(
             @Param("carIds") List<UUID> carIds,
