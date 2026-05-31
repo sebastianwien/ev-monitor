@@ -48,8 +48,8 @@ public interface EvTripRepository extends JpaRepository<EvTrip, UUID> {
             WHERE t.userId = :userId
               AND t.deletedAt IS NULL
               AND (cast(:carId as uuid) IS NULL OR t.carId = :carId)
-              AND (cast(:from as timestamp with time zone) IS NULL OR t.tripStartedAt >= :from)
-              AND (cast(:to as timestamp with time zone) IS NULL OR t.tripStartedAt <= :to)
+              AND (cast(:from as timestamp) IS NULL OR t.tripStartedAt >= :from)
+              AND (cast(:to as timestamp) IS NULL OR t.tripStartedAt <= :to)
             ORDER BY t.tripStartedAt DESC
             """)
     Page<EvTrip> findByUserIdAndFilters(
