@@ -12,7 +12,11 @@ const handleCta = () => {
   const route = announcement.value?.ctaRoute
   dismiss()
   if (route) {
-    router.push(route)
+    if (route.startsWith('http')) {
+      window.open(route, '_blank', 'noopener,noreferrer')
+    } else {
+      router.push(route)
+    }
   }
 }
 </script>
