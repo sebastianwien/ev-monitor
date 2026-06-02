@@ -644,7 +644,7 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
         />
 
         <!-- Key Metrics: Mobile Grid -->
-        <div class="md:hidden mb-6 pb-20">
+        <div class="md:hidden mb-4">
           <div class="grid grid-cols-2 gap-px bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
             <!-- Gesamtenergie -->
             <div class="bg-white dark:bg-gray-800 px-4 py-3">
@@ -659,19 +659,18 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
             <div class="bg-white dark:bg-gray-800 px-4 py-3">
               <div class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">{{ t('dashboard.metric_total_cost') }}</div>
               <div class="space-y-1">
-                <div class="flex items-center justify-between">
-                  <span class="text-[10px] text-gray-500 dark:text-gray-400">{{ t('fixed_costs.dashboard_energy') }}</span>
-                  <span class="text-sm font-semibold text-gray-800 dark:text-gray-200">{{ stats.energyCostEur != null ? formatCurrency(stats.energyCostEur) : '–' }}</span>
+                <div>
+                  <div class="text-[10px] text-gray-500 dark:text-gray-400">{{ t('fixed_costs.dashboard_energy') }}</div>
+                  <div class="text-sm font-semibold text-gray-800 dark:text-gray-200 tabular-nums">{{ stats.energyCostEur != null ? formatCurrency(stats.energyCostEur) : '–' }}</div>
                 </div>
-                <div v-if="stats.fixedCostEur != null && stats.fixedCostEur > 0" class="flex items-center justify-between">
-                  <span class="text-[10px] text-gray-500 dark:text-gray-400">{{ t('fixed_costs.dashboard_fixed') }}</span>
-                  <span class="text-sm font-semibold text-gray-800 dark:text-gray-200">{{ formatCurrency(stats.fixedCostEur) }}</span>
+                <div v-if="stats.fixedCostEur != null && stats.fixedCostEur > 0">
+                  <div class="text-[10px] text-gray-500 dark:text-gray-400">{{ t('fixed_costs.dashboard_fixed') }}</div>
+                  <div class="text-sm font-semibold text-gray-800 dark:text-gray-200 tabular-nums">{{ formatCurrency(stats.fixedCostEur) }}</div>
                 </div>
-                <div v-if="stats.fixedCostEur != null && stats.fixedCostEur > 0" class="flex items-center justify-between border-t border-gray-100 dark:border-gray-600 pt-1">
-                  <span class="text-[10px] font-medium text-gray-600 dark:text-gray-300">{{ t('fixed_costs.dashboard_total') }}</span>
-                  <span class="text-base font-bold text-gray-900 dark:text-gray-100">{{ formatCurrency(stats.totalCostEur) }}</span>
+                <div v-if="stats.fixedCostEur != null && stats.fixedCostEur > 0" class="border-t border-gray-100 dark:border-gray-600 pt-1 mt-1">
+                  <div class="text-[10px] font-medium text-gray-600 dark:text-gray-300">{{ t('fixed_costs.dashboard_total') }}</div>
+                  <div class="text-base font-bold text-gray-900 dark:text-gray-100 tabular-nums">{{ formatCurrency(stats.totalCostEur) }}</div>
                 </div>
-                <div class="text-[10px] text-gray-400 dark:text-gray-500">Ø {{ stats.avgCostPerKwh != null ? formatCostPerKwh(stats.avgCostPerKwh) : '–' }}</div>
               </div>
             </div>
             <!-- Gesamtstrecke -->
@@ -704,14 +703,17 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
             <!-- Ø Kosten -->
             <button v-if="avgCostPer100km != null"
               type="button"
-              class="w-full px-4 py-3 text-left"
+              class="col-span-2 w-full px-4 py-3 text-left"
               :class="openMetricTooltip === 'costPer100km' ? 'bg-gray-50 dark:bg-gray-900/50' : 'bg-white dark:bg-gray-800'"
               @click.stop="openMetricTooltip = openMetricTooltip === 'costPer100km' ? null : 'costPer100km'">
               <div class="flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
                 {{ t('dashboard.metric_avg_cost') }}
                 <InformationCircleIcon class="w-3 h-3 flex-shrink-0" />
               </div>
-              <div class="text-xl font-bold text-gray-900 dark:text-gray-100 leading-tight">{{ formatCostPerDistance(avgCostPer100km) }}</div>
+              <div class="flex items-baseline gap-6">
+                <div class="text-xl font-bold text-gray-900 dark:text-gray-100 leading-tight">{{ formatCostPerDistance(avgCostPer100km) }}</div>
+                <div v-if="stats.avgCostPerKwh != null" class="text-xl font-bold text-gray-900 dark:text-gray-100 leading-tight">{{ formatCostPerKwh(stats.avgCostPerKwh) }}</div>
+              </div>
             </button>
           </div>
           <!-- Tooltip panel below grid - shared for all three info metrics -->
@@ -762,6 +764,31 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
               <p class="text-sm font-medium text-gray-400 dark:text-gray-500 mt-0.5">{{ stats.totalCharges }} {{ t('dashboard.metric_charges') }}</p>
             </div>
           </div>
+          <div v-if="stats.avgConsumptionKwhPer100km != null"
+            class="bg-white dark:bg-gray-700 rounded-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="p-3">
+              <div class="flex items-center gap-1 mb-1">
+                <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">{{ t('dashboard.metric_avg_consumption') }}</p>
+                <button type="button"
+                  class="flex-shrink-0 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 rounded"
+                  :aria-label="t('dashboard.metric_info_aria')"
+                  @click.stop="openMetricTooltip = openMetricTooltip === 'consumption' ? null : 'consumption'">
+                  <InformationCircleIcon class="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <p class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ formatConsumption(stats.avgConsumptionKwhPer100km, { showUnit: false }) }}</p>
+              <p class="text-sm font-medium text-gray-400 dark:text-gray-500 mt-0.5">{{ consumptionUnitLabel() }}</p>
+              <div v-if="openMetricTooltip === 'consumption'"
+                class="mt-2 p-2.5 rounded-sm bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 text-xs text-gray-700 dark:text-gray-300 leading-relaxed space-y-1.5">
+                <p>{{ t('dashboard.metric_avg_consumption_tooltip') }}</p>
+                <p class="italic text-gray-500 dark:text-gray-400">{{ t('dashboard.metric_complete_definition') }}</p>
+                <router-link to="/consumption-methodology" class="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400 underline underline-offset-2 hover:text-indigo-800 dark:hover:text-indigo-300 transition-colors">
+                  {{ t('dashboard.metric_consumption_methodology_link') }}
+                  <ChevronRightIcon class="w-3 h-3 flex-shrink-0" />
+                </router-link>
+              </div>
+            </div>
+          </div>
           <div class="bg-white dark:bg-gray-700 rounded-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="p-3">
               <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-2">{{ t('dashboard.metric_total_cost') }}</p>
@@ -778,7 +805,6 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
                   <span class="text-xs font-medium text-gray-600 dark:text-gray-300">{{ t('fixed_costs.dashboard_total') }}</span>
                   <span class="text-base font-bold text-gray-900 dark:text-gray-100">{{ formatCurrency(stats.totalCostEur) }}</span>
                 </div>
-                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Ø {{ stats.avgCostPerKwh != null ? formatCostPerKwh(stats.avgCostPerKwh) : '–' }}</p>
               </div>
             </div>
           </div>
@@ -807,32 +833,6 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
               </div>
             </div>
           </div>
-          <div v-if="stats.avgConsumptionKwhPer100km != null"
-            class="bg-white dark:bg-gray-700 rounded-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <div class="p-3">
-              <div class="flex items-center gap-1 mb-1">
-                <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">{{ t('dashboard.metric_avg_consumption') }}</p>
-                <button
-                  type="button"
-                  class="flex-shrink-0 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 rounded"
-                  :aria-label="t('dashboard.metric_info_aria')"
-                  @click.stop="openMetricTooltip = openMetricTooltip === 'consumption' ? null : 'consumption'">
-                  <InformationCircleIcon class="w-3.5 h-3.5" />
-                </button>
-              </div>
-              <p class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ formatConsumption(stats.avgConsumptionKwhPer100km, { showUnit: false }) }}</p>
-              <p class="text-sm font-medium text-gray-400 dark:text-gray-500 mt-0.5">{{ consumptionUnitLabel() }}</p>
-              <div v-if="openMetricTooltip === 'consumption'"
-                class="mt-2 p-2.5 rounded-sm bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 text-xs text-gray-700 dark:text-gray-300 leading-relaxed space-y-1.5">
-                <p>{{ t('dashboard.metric_avg_consumption_tooltip') }}</p>
-                <p class="italic text-gray-500 dark:text-gray-400">{{ t('dashboard.metric_complete_definition') }}</p>
-                <router-link to="/consumption-methodology" class="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400 underline underline-offset-2 hover:text-indigo-800 dark:hover:text-indigo-300 transition-colors">
-                  {{ t('dashboard.metric_consumption_methodology_link') }}
-                  <ChevronRightIcon class="w-3 h-3 flex-shrink-0" />
-                </router-link>
-              </div>
-            </div>
-          </div>
           <div v-if="avgCostPer100km != null"
             class="bg-white dark:bg-gray-700 rounded-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="p-3">
@@ -847,6 +847,9 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
                 </button>
               </div>
               <p class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ formatCostPerDistance(avgCostPer100km) }}</p>
+              <div v-if="stats.avgCostPerKwh != null" class="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+                <p class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ formatCostPerKwh(stats.avgCostPerKwh) }}</p>
+              </div>
               <div v-if="openMetricTooltip === 'costPer100km'"
                 class="mt-2 p-2.5 rounded-sm bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 text-xs text-gray-700 dark:text-gray-300 leading-relaxed space-y-1.5">
                 <p>{{ t('dashboard.metric_avg_cost_tooltip') }}</p>

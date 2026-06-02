@@ -13,6 +13,14 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+// Helper to compare BigDecimal values ignoring scale (e.g. 0 == 0.00)
+class BigDecimalAssert {
+    static void assertEq(BigDecimal expected, BigDecimal actual) {
+        assertEquals(0, expected.compareTo(actual),
+                () -> "expected: <" + expected + "> but was: <" + actual + ">");
+    }
+}
+
 class FixedCostServiceTest extends AbstractIntegrationTest {
 
     @Autowired
@@ -59,7 +67,7 @@ class FixedCostServiceTest extends AbstractIntegrationTest {
         BigDecimal result = fixedCostService.calculateForPeriod(carId,
                 LocalDate.of(2024, 6, 1), LocalDate.of(2024, 6, 30));
 
-        assertEquals(BigDecimal.ZERO, result);
+        BigDecimalAssert.assertEq(BigDecimal.ZERO, result);
     }
 
     // --- calculateForPeriod: MONTHLY ---
@@ -126,7 +134,7 @@ class FixedCostServiceTest extends AbstractIntegrationTest {
 
     @Test
     void calculateForPeriod_yearly_fullYear_returnsFull() {
-        FixedCost fc = FixedCost.createNew(carId, userId, "Jahressteuer", new BigDecimal("1200.00"),
+        FixedCost fc = FixedCost.createNew(carId, userId, "Jahressteuer", new BigDecimal("500.00"),
                 FixedCostCategory.TAX, FixedCostRecurrence.YEARLY,
                 null, LocalDate.of(2024, 1, 1), null);
         fixedCostRepository.save(fc);
@@ -134,28 +142,28 @@ class FixedCostServiceTest extends AbstractIntegrationTest {
         BigDecimal result = fixedCostService.calculateForPeriod(carId,
                 LocalDate.of(2024, 1, 1), LocalDate.of(2024, 12, 31));
 
-        // 1200 / 12 * 12 = 1200
-        assertEquals(new BigDecimal("1200.00"), result);
+        // Jahrestag 2024-01-01 liegt im Zeitraum → 1 Treffer = 500
+        assertEquals(new BigDecimal("500.00"), result);
     }
 
     @Test
-    void calculateForPeriod_yearly_halfYear_returnsHalf() {
-        // THIS_YEAR: 1600 EUR Jahresversicherung, Jan-Jun = 6 Monate → 1600/12*6 = 800
+    void calculateForPeriod_yearly_halfYear_returnsZero() {
+        // Jahrestag 2026-01-01, Zeitraum Feb-Jun → kein Treffer
         FixedCost fc = FixedCost.createNew(carId, userId, "Versicherung", new BigDecimal("1600.00"),
                 FixedCostCategory.INSURANCE, FixedCostRecurrence.YEARLY,
                 null, LocalDate.of(2026, 1, 1), null);
         fixedCostRepository.save(fc);
 
         BigDecimal result = fixedCostService.calculateForPeriod(carId,
-                LocalDate.of(2026, 1, 1), LocalDate.of(2026, 6, 30));
+                LocalDate.of(2026, 2, 1), LocalDate.of(2026, 6, 30));
 
-        assertEquals(new BigDecimal("800.00"), result);
+        BigDecimalAssert.assertEq(BigDecimal.ZERO, result);
     }
 
     @Test
-    void calculateForPeriod_yearly_startBeforePeriod_proratesFromPeriodStart() {
-        // startDate liegt vor dem Zeitraum → effektiver Start = Zeitraum-Start
-        FixedCost fc = FixedCost.createNew(carId, userId, "Jahressteuer", new BigDecimal("1200.00"),
+    void calculateForPeriod_yearly_startBeforePeriod_hitsInPeriod() {
+        // startDate 2023-01-01, Zeitraum 2024-01-01 bis 2024-12-31 → Jahrestag 2024-01-01 trifft
+        FixedCost fc = FixedCost.createNew(carId, userId, "Jahressteuer", new BigDecimal("500.00"),
                 FixedCostCategory.TAX, FixedCostRecurrence.YEARLY,
                 null, LocalDate.of(2023, 1, 1), null);
         fixedCostRepository.save(fc);
@@ -163,23 +171,21 @@ class FixedCostServiceTest extends AbstractIntegrationTest {
         BigDecimal result = fixedCostService.calculateForPeriod(carId,
                 LocalDate.of(2024, 1, 1), LocalDate.of(2024, 12, 31));
 
-        // 1200 / 12 * 12 = 1200
-        assertEquals(new BigDecimal("1200.00"), result);
+        assertEquals(new BigDecimal("500.00"), result);
     }
 
     @Test
-    void calculateForPeriod_yearly_endDateCutsShort_prorated() {
-        // Versicherung läuft bis 30.09 → nur 9 Monate im Jahres-Zeitraum
+    void calculateForPeriod_yearly_endDateCutsShort_noHit() {
+        // Versicherung läuft bis 30.09, Jahrestag wäre 01.01 nächstes Jahr → kein Treffer
         FixedCost fc = FixedCost.createNew(carId, userId, "Versicherung", new BigDecimal("1200.00"),
                 FixedCostCategory.INSURANCE, FixedCostRecurrence.YEARLY,
                 null, LocalDate.of(2024, 1, 1), LocalDate.of(2024, 9, 30));
         fixedCostRepository.save(fc);
 
         BigDecimal result = fixedCostService.calculateForPeriod(carId,
-                LocalDate.of(2024, 1, 1), LocalDate.of(2024, 12, 31));
+                LocalDate.of(2025, 1, 1), LocalDate.of(2025, 12, 31));
 
-        // 1200 / 12 * 9 = 900
-        assertEquals(new BigDecimal("900.00"), result);
+        BigDecimalAssert.assertEq(BigDecimal.ZERO, result);
     }
 
     // --- CRUD ---

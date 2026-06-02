@@ -104,8 +104,7 @@ public class FixedCostService {
     }
 
     /**
-     * Pro-rate recurring cost over [from, to] by counting calendar months in the effective period.
-     * monthlyRate = amount / intervalMonths; result = monthlyRate × overlapping months.
+     * Count how many recurrence intervals land within [from, to], respecting start_date / end_date.
      * intervalMonths: 1=monthly, 3=quarterly, 12=yearly.
      */
     private BigDecimal recurringAmount(FixedCost fc, LocalDate from, LocalDate to, int intervalMonths) {
@@ -115,18 +114,23 @@ public class FixedCostService {
 
         if (effectiveFrom.isAfter(effectiveTo)) return BigDecimal.ZERO;
 
-        long months = countCalendarMonths(effectiveFrom, effectiveTo);
-        BigDecimal monthlyRate = fc.getAmount().divide(BigDecimal.valueOf(intervalMonths), 10, java.math.RoundingMode.HALF_UP);
-        return monthlyRate.multiply(BigDecimal.valueOf(months)).setScale(2, java.math.RoundingMode.HALF_UP);
+        long count = countIntervalHits(fc.getStartDate(), effectiveFrom, effectiveTo, intervalMonths);
+        return fc.getAmount().multiply(BigDecimal.valueOf(count));
     }
 
     /**
-     * Count distinct calendar months that overlap [from, to] (inclusive on both ends).
-     * E.g. 2026-01-01 to 2026-06-30 = 6 months.
+     * Count how many multiples of intervalMonths from the anchor date land in [from, to].
      */
-    private long countCalendarMonths(LocalDate from, LocalDate to) {
-        java.time.YearMonth start = java.time.YearMonth.from(from);
-        java.time.YearMonth end = java.time.YearMonth.from(to);
-        return start.until(end, java.time.temporal.ChronoUnit.MONTHS) + 1;
+    private long countIntervalHits(LocalDate anchor, LocalDate from, LocalDate to, int intervalMonths) {
+        long count = 0;
+        LocalDate cursor = anchor;
+        while (cursor.isBefore(from)) {
+            cursor = cursor.plusMonths(intervalMonths);
+        }
+        while (!cursor.isAfter(to)) {
+            count++;
+            cursor = cursor.plusMonths(intervalMonths);
+        }
+        return count;
     }
 }
