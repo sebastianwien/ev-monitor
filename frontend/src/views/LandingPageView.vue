@@ -16,7 +16,12 @@ import {
   ArrowRightIcon,
   BoltIcon,
   ArrowDownTrayIcon,
-  InformationCircleIcon
+  InformationCircleIcon,
+  ShieldCheckIcon,
+  ServerStackIcon,
+  MapPinIcon,
+  DocumentCheckIcon,
+  ArrowTopRightOnSquareIcon,
 } from '@heroicons/vue/24/outline'
 import CommunityPulseSection from '../components/shared/CommunityPulseSection.vue'
 
@@ -121,6 +126,10 @@ const returnScrollY = ref<number | null>(null)
 const scrollToImportHub = () => {
   returnScrollY.value = window.scrollY
   document.getElementById('import-hub')?.scrollIntoView({ behavior: 'smooth' })
+}
+
+const scrollToPrivacy = () => {
+  document.getElementById('privacy-section')?.scrollIntoView({ behavior: 'smooth' })
 }
 
 const scrollBack = () => {
@@ -355,60 +364,59 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
       </div>
     </section>
 
-    <!-- Feature Highlights -->
-    <section class="py-4 sm:py-6 bg-gray-50 dark:bg-gray-900">
-      <div class="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
-          <!-- Feature 1: Open Source -->
-          <div class="bg-white dark:bg-gray-800 border border-green-200 rounded-sm p-3 sm:p-4 hover:border-green-500 transition flex items-start gap-3">
-            <svg class="h-5 w-5 shrink-0 text-green-600 mt-0.5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+    <!-- Trust Badge Strip -->
+    <section class="py-3 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+      <div class="max-w-7xl mx-auto px-4 sm:px-8 lg:px-12">
+        <div class="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+
+          <!-- Open Source Badge -->
+          <a
+            href="https://github.com/sebastianwien/ev-monitor"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="no-press inline-flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-xs font-medium text-gray-700 dark:text-gray-300 hover:border-green-500 hover:text-green-700 dark:hover:text-green-400 transition-colors"
+          >
+            <svg class="h-3.5 w-3.5 shrink-0" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" />
             </svg>
-            <div class="min-w-0">
-              <h3 class="text-xs sm:text-sm font-semibold text-gray-900 dark:text-gray-100 mb-0.5">{{ t('landing.features.open_source_title') }}</h3>
-              <p class="text-xs text-gray-500 dark:text-gray-400 leading-snug hidden sm:block">{{ t('landing.features.open_source_desc') }}</p>
-            </div>
-          </div>
-
-          <!-- Feature 2: Auto-Import -->
-          <a href="#import-hub" @click.prevent="scrollToImportHub" class="no-press bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm p-3 sm:p-4 hover:border-green-500 transition flex items-start gap-3">
-            <ArrowDownTrayIcon class="h-5 w-5 shrink-0 text-gray-400 mt-0.5" />
-            <div class="min-w-0">
-              <h3 class="text-xs sm:text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1.5">{{ t('landing.features.auto_import_title') }}</h3>
-              <div class="hidden sm:flex flex-wrap gap-1 mb-2">
-                <span class="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded">Tesla</span>
-                <span class="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded">Tessie</span>
-                <span class="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded">Tronity</span>
-                <span class="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded">go-eCharger</span>
-                <span class="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded">OCPP</span>
-                <span class="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded">Sprit-Monitor</span>
-                <span class="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded">CSV/JSON</span>
-                <span class="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded">REST API</span>
-              </div>
-              <span class="inline-flex items-center gap-1 text-xs text-green-600 font-medium">
-                {{ t('landing.features.auto_import_link') }}
-                <ArrowRightIcon class="h-3 w-3" />
-              </span>
-            </div>
+            {{ t('landing.features.open_source_title') }}
+            <ArrowTopRightOnSquareIcon class="h-3 w-3 opacity-50" />
           </a>
 
-          <!-- Feature 3: Privacy First -->
-          <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm p-3 sm:p-4 hover:border-green-500 transition flex items-start gap-3">
-            <LockClosedIcon class="h-5 w-5 shrink-0 text-gray-400 mt-0.5" />
-            <div class="min-w-0">
-              <h3 class="text-xs sm:text-sm font-semibold text-gray-900 dark:text-gray-100 mb-0.5">{{ t('landing.features.privacy_title') }}</h3>
-              <p class="text-xs text-gray-500 dark:text-gray-400 leading-snug hidden sm:block">{{ t('landing.features.privacy_desc') }}</p>
-            </div>
+          <span class="hidden sm:block w-px h-4 bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
+
+          <!-- Auto-Import Badge -->
+          <a
+            href="#import-hub"
+            @click.prevent="scrollToImportHub"
+            class="no-press inline-flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-xs font-medium text-gray-700 dark:text-gray-300 hover:border-green-500 hover:text-green-700 dark:hover:text-green-400 transition-colors"
+          >
+            <ArrowDownTrayIcon class="h-3.5 w-3.5 shrink-0" />
+            {{ t('landing.features.auto_import_badge') }}
+            <ArrowRightIcon class="h-3 w-3 opacity-50" />
+          </a>
+
+          <span class="hidden sm:block w-px h-4 bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
+
+          <!-- Privacy Badge -->
+          <a
+            href="#privacy-section"
+            @click.prevent="scrollToPrivacy"
+            class="no-press inline-flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-xs font-medium text-gray-700 dark:text-gray-300 hover:border-green-500 hover:text-green-700 dark:hover:text-green-400 transition-colors"
+          >
+            <ShieldCheckIcon class="h-3.5 w-3.5 shrink-0" />
+            {{ t('landing.features.privacy_badge') }}
+            <ArrowRightIcon class="h-3 w-3 opacity-50" />
+          </a>
+
+          <span class="hidden sm:block w-px h-4 bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
+
+          <!-- Community Badge -->
+          <div class="inline-flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-xs font-medium text-gray-700 dark:text-gray-300">
+            <UsersIcon class="h-3.5 w-3.5 shrink-0" />
+            {{ t('landing.features.community_badge') }}
           </div>
 
-          <!-- Feature 4: Community -->
-          <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm p-3 sm:p-4 hover:border-green-500 transition flex items-start gap-3">
-            <UsersIcon class="h-5 w-5 shrink-0 text-gray-400 mt-0.5" />
-            <div class="min-w-0">
-              <h3 class="text-xs sm:text-sm font-semibold text-gray-900 dark:text-gray-100 mb-0.5">{{ t('landing.features.community_title') }}</h3>
-              <p class="text-xs text-gray-500 dark:text-gray-400 leading-snug hidden sm:block">{{ t('landing.features.community_desc') }}</p>
-            </div>
-          </div>
         </div>
       </div>
     </section>
@@ -853,7 +861,73 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
                   <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 leading-snug">{{ t('landing.import.api_desc') }}</p>
                 </div>
               </div>
+              <div class="flex items-start gap-2.5">
+                <span class="mt-1.5 h-2 w-2 rounded-full bg-red-400 shrink-0"></span>
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center justify-between gap-1 flex-wrap">
+                    <span class="text-sm font-medium text-gray-800 dark:text-gray-200">XPeng</span>
+                    <div class="flex gap-1 shrink-0">
+                      <span class="text-xs bg-green-100 text-green-700 font-medium px-1.5 py-0.5 rounded-full">{{ t('landing.import.available') }}</span>
+                      <span class="text-xs bg-blue-100 text-blue-800 font-medium px-1.5 py-0.5 rounded-full">{{ t('landing.import.beta') }}</span>
+                    </div>
+                  </div>
+                  <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 leading-snug">{{ t('landing.import.xpeng_desc') }}</p>
+                </div>
+              </div>
             </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- Privacy Section -->
+    <section id="privacy-section" class="py-10 sm:py-16 px-4 sm:px-6 lg:px-8 border-t border-gray-100 dark:border-gray-800">
+      <div class="max-w-4xl mx-auto">
+        <div class="text-center mb-8">
+          <div class="inline-flex items-center gap-2 mb-3">
+            <ShieldCheckIcon class="h-5 w-5 text-green-600" />
+            <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">{{ t('landing.privacy.title') }}</h2>
+          </div>
+          <p class="text-sm text-gray-500 dark:text-gray-400 max-w-xl mx-auto">{{ t('landing.privacy.subtitle') }}</p>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+
+          <!-- Encryption -->
+          <div class="flex flex-col items-center text-center gap-2 p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm">
+            <div class="h-10 w-10 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center">
+              <LockClosedIcon class="h-5 w-5 text-green-600 dark:text-green-400" />
+            </div>
+            <p class="text-xs font-semibold text-gray-800 dark:text-gray-200 leading-snug">{{ t('landing.privacy.encryption_title') }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 leading-snug">{{ t('landing.privacy.encryption_desc') }}</p>
+          </div>
+
+          <!-- DSGVO -->
+          <div class="flex flex-col items-center text-center gap-2 p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm">
+            <div class="h-10 w-10 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center">
+              <DocumentCheckIcon class="h-5 w-5 text-green-600 dark:text-green-400" />
+            </div>
+            <p class="text-xs font-semibold text-gray-800 dark:text-gray-200 leading-snug">{{ t('landing.privacy.gdpr_title') }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 leading-snug">{{ t('landing.privacy.gdpr_desc') }}</p>
+          </div>
+
+          <!-- Geohashing -->
+          <div class="flex flex-col items-center text-center gap-2 p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm">
+            <div class="h-10 w-10 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center">
+              <MapPinIcon class="h-5 w-5 text-green-600 dark:text-green-400" />
+            </div>
+            <p class="text-xs font-semibold text-gray-800 dark:text-gray-200 leading-snug">{{ t('landing.privacy.geohash_title') }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 leading-snug">{{ t('landing.privacy.geohash_desc') }}</p>
+          </div>
+
+          <!-- German Servers -->
+          <div class="flex flex-col items-center text-center gap-2 p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm">
+            <div class="h-10 w-10 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center">
+              <ServerStackIcon class="h-5 w-5 text-green-600 dark:text-green-400" />
+            </div>
+            <p class="text-xs font-semibold text-gray-800 dark:text-gray-200 leading-snug">{{ t('landing.privacy.servers_title') }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 leading-snug">{{ t('landing.privacy.servers_desc') }}</p>
           </div>
 
         </div>

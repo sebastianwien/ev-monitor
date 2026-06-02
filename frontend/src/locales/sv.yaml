@@ -56,10 +56,24 @@ landing:
     auto_import_title: Automatisk import
     auto_import_desc: Tesla, Sprit-Monitor, go-eCharger och OCPP-laddstationer.
     auto_import_beta: BETA
+    auto_import_badge: "Import från 9 källor"
     privacy_title: Sekretess först
     privacy_desc: Geohashing istället för spårning. Dina uppgifter tillhör dig.
+    privacy_badge: Sekretess först
     community_title: Gemenskapsdata
     community_desc: WLTP kontra verkligheten – enligt riktiga förare. Bidra och tjäna mynt.
+    community_badge: "Gemenskapsjämförelse, statistik & topplistor"
+  privacy:
+    title: Dina uppgifter. Din kontroll.
+    subtitle: Ingen spårning, inget US-moln. Byggt enligt europeiska dataskyddsstandarder.
+    encryption_title: Ende-till-ende-kryptering
+    encryption_desc: Alla anslutningar via HTTPS/TLS. Lösenord hashade med bcrypt.
+    gdpr_title: GDPR-kompatibel
+    gdpr_desc: Ingen spårning, ingen dataförsäljning. Full radering på begäran.
+    geohash_title: Geohashing
+    geohash_desc: Platser lagras aldrig exakt - bara ca 600 m noggrannhet.
+    servers_title: Tyska servrar
+    servers_desc: Driftas på Hetzner Cloud i Nürnberg. Inga uppgifter utanför EU.
   models_section:
     title: Vad kostar laddningen egentligen?
     subtitle: Verkliga uppgifter från användargemenskapen
@@ -77,7 +91,7 @@ landing:
     import_data: Importera data
   import:
     title: Du behöver aldrig mer skriva manuellt
-    subtitle: Anslut dina datakällor – laddningssessionerna hämtas automatiskt.
+    subtitle: "9 datakällor - laddningssessioner synkroniseras automatiskt eller via import."
     tesla_title: Tesla Fleet API
     tesla_status: Finns tillgängligt
     tesla_desc: Importera faktureringshistoriken automatiskt – utan att behöva skriva eller kopiera.
@@ -92,6 +106,7 @@ landing:
     ocpp_status: Finns tillgängligt
     ocpp_beta: BETA
     ocpp_desc: Ett universellt protokoll för alla OCPP-kompatibla laddboxar för hemmabruk.
+    xpeng_desc: "Begär dataexport via EU Data Act och ladda upp - manuellt eller halvautomatiserat."
   cta:
     title: Är du redo för transparenta avgifter?
     subtitle: Registrera dig gratis och kom igång.

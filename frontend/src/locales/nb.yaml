@@ -56,10 +56,24 @@ landing:
     auto_import_title: Automatisk import
     auto_import_desc: Tesla, Sprit-Monitor, go-eCharger og OCPP-ladestasjoner.
     auto_import_beta: BETA
+    auto_import_badge: "Import fra 9 kilder"
     privacy_title: Personvern først
     privacy_desc: Geohashing i stedet for sporing. Dataene dine tilhører deg.
+    privacy_badge: Personvern først
     community_title: Samfunnsdata
     community_desc: WLTP kontra virkeligheten, sett med bilistenes øyne. Bidra og tjen mynter.
+    community_badge: "Samfunnssammenligning, statistikk & ledertavler"
+  privacy:
+    title: Dine data. Din kontroll.
+    subtitle: Ingen sporing, ingen US-sky. Bygget etter europeiske personvernstandarder.
+    encryption_title: Ende-til-ende-kryptering
+    encryption_desc: Alle forbindelser via HTTPS/TLS. Passord kryptert med bcrypt.
+    gdpr_title: GDPR-samsvar
+    gdpr_desc: Ingen sporing, intet datasalg. Full sletting på forespørsel.
+    geohash_title: Geohashing
+    geohash_desc: Steder lagres aldri eksakt - bare ca. 600 m nøyaktighet.
+    servers_title: Tyske servere
+    servers_desc: Driftet på Hetzner Cloud i Nürnberg. Ingen data utenfor EU.
   models_section:
     title: Hva koster det egentlig å lade?
     subtitle: Ekte data fra brukerfellesskapet
@@ -77,7 +91,7 @@ landing:
     import_data: Importer data
   import:
     title: Du trenger aldri å skrive manuelt igjen
-    subtitle: Koble til datakildene dine – ladesesjonene hentes inn automatisk.
+    subtitle: "9 datakilder - ladesesjoner synkroniseres automatisk eller via import."
     tesla_title: Tesla Fleet API
     tesla_status: Tilgjengelig
     tesla_desc: Importer betalingshistorikken automatisk – uten å skrive eller kopiere.
@@ -92,6 +106,7 @@ landing:
     ocpp_status: Tilgjengelig
     ocpp_beta: BETA
     ocpp_desc: Universell protokoll for alle OCPP-kompatible ladestasjoner for hjemmet.
+    xpeng_desc: "Be om dataeksport via EU Data Act og last opp - manuelt eller halvautomatisk."
   cta:
     title: Er du klar for gjennomsiktige ladekostnader?
     subtitle: Registrer deg gratis og kom i gang.
