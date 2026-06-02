@@ -1265,6 +1265,7 @@ fixed_costs:
   category_OTHER: "Sonstiges"
   save: "Speichern"
   cancel: "Abbrechen"
+  err_required: "Pflichtfeld"
   err_load: "Fixkosten konnten nicht geladen werden."
   err_save: "Fixkosten konnten nicht gespeichert werden."
   err_delete: "Fixkosten konnten nicht gelöscht werden."

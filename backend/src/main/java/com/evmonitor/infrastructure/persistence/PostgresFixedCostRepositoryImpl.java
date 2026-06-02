@@ -3,6 +3,7 @@ package com.evmonitor.infrastructure.persistence;
 import com.evmonitor.domain.FixedCost;
 import com.evmonitor.domain.FixedCostRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -27,7 +28,7 @@ public class PostgresFixedCostRepositoryImpl implements FixedCostRepository {
 
     @Override
     public List<FixedCost> findAllByCarId(UUID carId) {
-        return jpaFixedCostRepository.findAllByCarId(carId).stream()
+        return jpaFixedCostRepository.findAllByCarId(carId, Sort.by(Sort.Direction.DESC, "createdAt")).stream()
                 .map(this::toDomain)
                 .toList();
     }

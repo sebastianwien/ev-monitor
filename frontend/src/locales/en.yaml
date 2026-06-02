@@ -1265,6 +1265,7 @@ fixed_costs:
   category_OTHER: "Other"
   save: "Save"
   cancel: "Cancel"
+  err_required: "Required"
   err_load: "Could not load fixed costs."
   err_save: "Could not save fixed costs."
   err_delete: "Could not delete fixed cost."

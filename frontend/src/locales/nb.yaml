@@ -1215,6 +1215,7 @@ fixed_costs:
   category_OTHER: Annet
   save: Lagre
   cancel: Avbryt
+  err_required: Obligatorisk felt
   err_load: Kunne ikke laste faste kostnader.
   err_save: Kunne ikke lagre faste kostnader.
   err_delete: Kunne ikke slette fast kostnad.

@@ -1215,6 +1215,7 @@ fixed_costs:
   category_OTHER: Övrigt
   save: Spara
   cancel: Avbryt
+  err_required: Obligatoriskt fält
   err_load: Kunde inte ladda fasta kostnader.
   err_save: Kunde inte spara fasta kostnader.
   err_delete: Kunde inte ta bort fast kostnad.

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { PlusIcon, PencilIcon, TrashIcon, XMarkIcon, CheckIcon } from '@heroicons/vue/24/outline'
+import { PlusIcon, PencilIcon, TrashIcon, XMarkIcon, CheckIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 import {
   fixedCostService,
   type FixedCost,
@@ -22,6 +22,8 @@ const error = ref<string | null>(null)
 const showForm = ref(false)
 const editingId = ref<string | null>(null)
 const saving = ref(false)
+const confirmDeleteId = ref<string | null>(null)
+const submitted = ref(false)
 
 const form = ref<FixedCostRequest>({
   description: '',
@@ -34,6 +36,17 @@ const form = ref<FixedCostRequest>({
 })
 
 const isOneTime = computed(() => form.value.recurrence === 'ONE_TIME')
+
+const descriptionInvalid = computed(() => submitted.value && !form.value.description.trim())
+const dateInvalid = computed(() => submitted.value && isOneTime.value && !form.value.date)
+const startDateInvalid = computed(() => submitted.value && !isOneTime.value && !form.value.startDate)
+
+const formValid = computed(() => {
+  if (!form.value.description.trim()) return false
+  if (isOneTime.value && !form.value.date) return false
+  if (!isOneTime.value && !form.value.startDate) return false
+  return true
+})
 
 async function load() {
   loading.value = true
@@ -49,12 +62,14 @@ async function load() {
 
 function openCreate() {
   editingId.value = null
+  submitted.value = false
   form.value = { description: '', amount: 0, category: 'OTHER', recurrence: 'ONE_TIME', date: null, startDate: null, endDate: null }
   showForm.value = true
 }
 
 function openEdit(item: FixedCost) {
   editingId.value = item.id
+  submitted.value = false
   form.value = {
     description: item.description,
     amount: item.amount,
@@ -70,9 +85,12 @@ function openEdit(item: FixedCost) {
 function cancelForm() {
   showForm.value = false
   editingId.value = null
+  submitted.value = false
 }
 
 async function save() {
+  submitted.value = true
+  if (!formValid.value) return
   saving.value = true
   error.value = null
   try {
@@ -89,6 +107,7 @@ async function save() {
     }
     showForm.value = false
     editingId.value = null
+    submitted.value = false
     await load()
   } catch {
     error.value = t('fixed_costs.err_save')
@@ -97,9 +116,19 @@ async function save() {
   }
 }
 
-async function remove(id: string) {
-  if (!confirm(t('fixed_costs.delete_confirm'))) return
+function requestDelete(id: string) {
+  confirmDeleteId.value = id
+}
+
+function cancelDelete() {
+  confirmDeleteId.value = null
+}
+
+async function confirmDelete() {
+  if (!confirmDeleteId.value) return
   error.value = null
+  const id = confirmDeleteId.value
+  confirmDeleteId.value = null
   try {
     await fixedCostService.remove(id)
     await load()
@@ -111,6 +140,10 @@ async function remove(id: string) {
 function formatAmount(amount: number) {
   return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(amount)
 }
+
+const inputBase = 'w-full text-sm border rounded-sm px-2.5 py-1.5 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1'
+const inputNormal = `${inputBase} border-gray-300 dark:border-gray-600 focus:ring-indigo-400`
+const inputError = `${inputBase} border-red-400 dark:border-red-500 focus:ring-red-400`
 
 onMounted(load)
 </script>
@@ -131,17 +164,45 @@ onMounted(load)
 
     <p v-if="error" class="text-xs text-red-600 dark:text-red-400 mb-2">{{ error }}</p>
 
+    <!-- Inline Delete Confirm -->
+    <div v-if="confirmDeleteId" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-sm px-3 py-2.5 mb-3 flex items-center justify-between gap-3">
+      <div class="flex items-center gap-2 text-xs text-red-700 dark:text-red-300">
+        <ExclamationTriangleIcon class="h-4 w-4 shrink-0" />
+        {{ t('fixed_costs.delete_confirm') }}
+      </div>
+      <div class="flex gap-2 shrink-0">
+        <button
+          v-haptic
+          @click="confirmDelete"
+          class="text-xs bg-red-600 text-white px-2.5 py-1 rounded-sm font-medium hover:bg-red-700 transition btn-3d"
+        >
+          {{ t('fixed_costs.delete') }}
+        </button>
+        <button
+          v-haptic
+          @click="cancelDelete"
+          class="text-xs bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200 px-2.5 py-1 rounded-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-500 transition btn-3d"
+        >
+          {{ t('fixed_costs.cancel') }}
+        </button>
+      </div>
+    </div>
+
     <!-- Form -->
     <div v-if="showForm" class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-sm p-4 mb-3 shadow-sm">
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div class="sm:col-span-2">
-          <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ t('fixed_costs.label_description') }}</label>
+          <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+            {{ t('fixed_costs.label_description') }} <span class="text-red-500">*</span>
+          </label>
           <input
             v-model="form.description"
             type="text"
             maxlength="255"
-            class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-sm px-2.5 py-1.5 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+            required
+            :class="descriptionInvalid ? inputError : inputNormal"
           />
+          <p v-if="descriptionInvalid" class="text-xs text-red-500 mt-0.5">{{ t('fixed_costs.err_required') }}</p>
         </div>
 
         <div>
@@ -151,16 +212,13 @@ onMounted(load)
             type="number"
             min="0"
             step="0.01"
-            class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-sm px-2.5 py-1.5 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+            :class="inputNormal"
           />
         </div>
 
         <div>
           <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ t('fixed_costs.label_category') }}</label>
-          <select
-            v-model="form.category"
-            class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-sm px-2.5 py-1.5 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-400"
-          >
+          <select v-model="form.category" :class="inputNormal">
             <option v-for="cat in CATEGORIES" :key="cat" :value="cat">
               {{ t(`fixed_costs.category_${cat}`) }}
             </option>
@@ -169,10 +227,7 @@ onMounted(load)
 
         <div>
           <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ t('fixed_costs.label_recurrence') }}</label>
-          <select
-            v-model="form.recurrence"
-            class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-sm px-2.5 py-1.5 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-400"
-          >
+          <select v-model="form.recurrence" :class="inputNormal">
             <option v-for="rec in RECURRENCES" :key="rec" :value="rec">
               {{ t(`fixed_costs.recurrence_${rec}`) }}
             </option>
@@ -181,30 +236,38 @@ onMounted(load)
 
         <!-- ONE_TIME: single date -->
         <div v-if="isOneTime">
-          <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ t('fixed_costs.label_date') }}</label>
+          <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+            {{ t('fixed_costs.label_date') }} <span class="text-red-500">*</span>
+          </label>
           <input
             v-model="form.date"
             type="date"
-            class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-sm px-2.5 py-1.5 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+            required
+            :class="dateInvalid ? inputError : inputNormal"
           />
+          <p v-if="dateInvalid" class="text-xs text-red-500 mt-0.5">{{ t('fixed_costs.err_required') }}</p>
         </div>
 
         <!-- Recurring: start + end date -->
         <template v-else>
           <div>
-            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ t('fixed_costs.label_start_date') }}</label>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+              {{ t('fixed_costs.label_start_date') }} <span class="text-red-500">*</span>
+            </label>
             <input
               v-model="form.startDate"
               type="date"
-              class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-sm px-2.5 py-1.5 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+              required
+              :class="startDateInvalid ? inputError : inputNormal"
             />
+            <p v-if="startDateInvalid" class="text-xs text-red-500 mt-0.5">{{ t('fixed_costs.err_required') }}</p>
           </div>
           <div>
             <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ t('fixed_costs.label_end_date') }}</label>
             <input
               v-model="form.endDate"
               type="date"
-              class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-sm px-2.5 py-1.5 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+              :class="inputNormal"
             />
           </div>
         </template>
@@ -265,7 +328,7 @@ onMounted(load)
           </button>
           <button
             v-haptic
-            @click="remove(item.id)"
+            @click="requestDelete(item.id)"
             class="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition"
             :aria-label="t('fixed_costs.delete')"
           >
