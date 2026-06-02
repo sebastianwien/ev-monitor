@@ -807,6 +807,16 @@ leaderboard:
   cat_ice_charger: "Ice Charger"
   cat_heat_charger: "Sahara Session"
   cat_power_charger: "Fastest Charger"
+  desc_kwh: "Who charged the most kWh this month?"
+  desc_charges: "Who completed the most charging sessions?"
+  desc_distance: "Who covered the longest distance?"
+  desc_cheapest: "Who paid the least per kWh?"
+  desc_night_owl: "Who charges most often at night (10pm-6am)?"
+  desc_ice_charger: "Who charges most often in freezing temperatures?"
+  desc_heat_charger: "Who charges most often above 30°C?"
+  desc_power_charger: "Who reaches the highest charging power in kW?"
+  prev_category: "Previous category"
+  next_category: "Next category"
 
 logform:
   title: "Record charging session"

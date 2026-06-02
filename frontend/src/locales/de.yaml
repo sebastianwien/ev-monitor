@@ -807,6 +807,16 @@ leaderboard:
   cat_ice_charger: "Eisbär"
   cat_heat_charger: "Sahara Session"
   cat_power_charger: "Schnellster Lader"
+  desc_kwh: "Wer hat diesen Monat die meisten kWh geladen?"
+  desc_charges: "Wer hat die meisten Ladevorgänge durchgeführt?"
+  desc_distance: "Wer hat die weiteste Strecke zurückgelegt?"
+  desc_cheapest: "Wer hat am günstigsten pro kWh geladen?"
+  desc_night_owl: "Wer lädt am häufigsten nachts (22-6 Uhr)?"
+  desc_ice_charger: "Wer lädt bei den niedrigsten Temperaturen?"
+  desc_heat_charger: "Wer lädt am häufigsten bei über 30°C?"
+  desc_power_charger: "Wer erreicht die höchste Ladeleistung in kW?"
+  prev_category: "Vorherige Kategorie"
+  next_category: "Nächste Kategorie"
 
 logform:
   title: "Ladevorgang erfassen"

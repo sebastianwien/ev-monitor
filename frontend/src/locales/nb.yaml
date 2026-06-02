@@ -766,6 +766,16 @@ leaderboard:
   cat_ice_charger: Islader
   cat_heat_charger: Sahara Session
   cat_power_charger: Den raskeste laderen
+  desc_kwh: Hvem ladet flest kWh denne måneden?
+  desc_charges: Hvem fullførte flest ladeøkter?
+  desc_distance: Hvem kjørte lengst?
+  desc_cheapest: Hvem betalte minst per kWh?
+  desc_night_owl: Hvem lader oftest om natten (22-06)?
+  desc_ice_charger: Hvem lader oftest ved minusgrader?
+  desc_heat_charger: Hvem lader oftest over 30°C?
+  desc_power_charger: Hvem oppnår høyest ladeeffekt i kW?
+  prev_category: Forrige kategori
+  next_category: Neste kategori
 logform:
   title: Registrer ladeøkt
   no_car_title: Det er ikke lagt til noen biler ennå

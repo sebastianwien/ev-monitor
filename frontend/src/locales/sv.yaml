@@ -766,6 +766,16 @@ leaderboard:
   cat_ice_charger: Isladdare
   cat_heat_charger: Sahara Session
   cat_power_charger: Den snabbaste laddaren
+  desc_kwh: Vem laddade flest kWh den här månaden?
+  desc_charges: Vem slutförde flest laddningssessioner?
+  desc_distance: Vem körde längst sträcka?
+  desc_cheapest: Vem betalade minst per kWh?
+  desc_night_owl: Vem laddar oftast på natten (22-06)?
+  desc_ice_charger: Vem laddar oftast vid minusgrader?
+  desc_heat_charger: Vem laddar oftast över 30°C?
+  desc_power_charger: Vem når högst laddeffekt i kW?
+  prev_category: Föregående kategori
+  next_category: Nästa kategori
 logform:
   title: Registrera laddningssession
   no_car_title: Inget fordon har lagts till ännu
