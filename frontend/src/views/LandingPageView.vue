@@ -22,6 +22,13 @@ import {
   MapPinIcon,
   DocumentCheckIcon,
   ArrowTopRightOnSquareIcon,
+  TrophyIcon,
+  SparklesIcon,
+  ArrowPathIcon,
+  FireIcon,
+  StarIcon,
+  MoonIcon,
+  SunIcon,
 } from '@heroicons/vue/24/outline'
 import CommunityPulseSection from '../components/shared/CommunityPulseSection.vue'
 
@@ -46,6 +53,17 @@ const displayTotalKm = ref(0)
 // Round trips to nearest 10 for cleaner display with "+"
 const displayTripsRounded = computed(() => Math.floor(displayTrips.value / 10) * 10)
 const displayTotalKmRounded = computed(() => formatKm(displayTotalKm.value))
+
+const leaderboardCategories = computed(() => [
+  { key: 'kwh', label: t('leaderboard.cat_kwh'), icon: BoltIcon, color: 'text-yellow-500' },
+  { key: 'charges', label: t('leaderboard.cat_charges'), icon: ArrowPathIcon, color: 'text-blue-500' },
+  { key: 'distance', label: t('leaderboard.cat_distance'), icon: FireIcon, color: 'text-orange-500' },
+  { key: 'cheapest', label: t('leaderboard.cat_cheapest'), icon: StarIcon, color: 'text-green-500' },
+  { key: 'night_owl', label: t('leaderboard.cat_night_owl'), icon: MoonIcon, color: 'text-indigo-400' },
+  { key: 'ice', label: t('leaderboard.cat_ice_charger'), icon: SparklesIcon, color: 'text-cyan-400' },
+  { key: 'heat', label: t('leaderboard.cat_heat_charger'), icon: SunIcon, color: 'text-orange-400' },
+  { key: 'power', label: t('leaderboard.cat_power_charger'), icon: BoltIcon, color: 'text-red-500' },
+])
 
 function animateCount(target: number | undefined | null, setter: (v: number) => void, duration = 1400) {
   if (target == null || isNaN(target)) return
@@ -459,7 +477,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
           <div class="flex-1 w-full max-w-xl lg:max-w-none relative">
             <div class="rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden relative">
               <img
-                src="/screenshots/dashboard-light.png"
+                src="/screenshots/dashboard-light.jpg"
                 alt="EV Monitor Dashboard"
                 class="w-full block h-auto"
                 loading="lazy"
@@ -511,7 +529,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
           <div class="flex-1 w-full max-w-xl lg:max-w-none relative">
             <div class="rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden relative">
               <img
-                src="/screenshots/logfeed-light.png"
+                src="/screenshots/logfeed-light.jpg"
                 alt="EV Monitor Ladehistorie"
                 class="w-full block h-auto"
                 loading="lazy"
@@ -544,7 +562,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
           <div class="flex flex-col gap-5">
             <div class="rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
               <img
-                src="/screenshots/map-light.png"
+                src="/screenshots/map-light.jpg"
                 alt="EV Monitor Lade-Standorte Karte"
                 class="w-full block"
                 loading="lazy"
@@ -569,7 +587,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
           <div class="flex flex-col gap-5">
             <div class="rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
               <img
-                src="/screenshots/charts-light.png"
+                src="/screenshots/charts-light.jpg"
                 alt="EV Monitor Analysen Kosten und Verbrauch"
                 class="w-full block h-auto"
                 loading="lazy"
@@ -593,6 +611,78 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
         </div>
       </div>
     </section>
+
+    <!-- Leaderboard Preview Section -->
+    <section class="py-12 sm:py-20 border-t border-gray-100 dark:border-gray-800">
+      <div class="max-w-7xl mx-auto px-4 sm:px-8 lg:px-12">
+        <div class="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
+
+          <!-- Screenshot -->
+          <div class="flex-1 w-full max-w-xs sm:max-w-sm lg:max-w-none relative">
+            <div class="rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden relative">
+              <img
+                src="/screenshots/leaderboard-light.jpg"
+                alt="EV Monitor Bestenliste"
+                class="w-full block h-auto"
+                loading="lazy"
+                width="420"
+                height="900"
+              />
+              <div class="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-b from-transparent to-white dark:to-gray-900 pointer-events-none"></div>
+            </div>
+            <div class="absolute -top-3 -left-3 bg-yellow-400 text-yellow-900 text-xs font-bold px-3 py-1.5 rounded-full shadow-lg hidden sm:flex items-center gap-1.5">
+              <TrophyIcon class="h-3.5 w-3.5" />
+              {{ t('landing.leaderboard.chip_monthly') }}
+            </div>
+          </div>
+
+          <!-- Text -->
+          <div class="flex-1 text-center lg:text-left">
+            <span class="text-xs font-semibold text-green-600 uppercase tracking-wider">{{ t('landing.leaderboard.label') }}</span>
+            <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mt-2 mb-3">
+              {{ t('landing.leaderboard.title') }}
+            </h2>
+            <p class="text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto lg:mx-0">
+              {{ t('landing.leaderboard.desc') }}
+            </p>
+
+            <!-- Category grid -->
+            <div class="grid grid-cols-2 gap-2 mb-7 max-w-md mx-auto lg:mx-0">
+              <div v-for="cat in leaderboardCategories" :key="cat.key"
+                class="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg text-sm text-gray-700 dark:text-gray-300"
+              >
+                <component :is="cat.icon" :class="['h-4 w-4 shrink-0', cat.color]" />
+                <span class="font-medium truncate">{{ cat.label }}</span>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- Dark Mode Teaser -->
+    <div class="py-12 sm:py-16 border-t border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-center">
+      <MoonIcon class="h-8 w-8 text-indigo-400 mx-auto mb-3" />
+      <p class="text-xl sm:text-2xl font-semibold text-gray-800 dark:text-gray-100 mb-10">
+        {{ t('landing.darkmode_teaser') }}
+      </p>
+      <!-- Dark mode gallery -->
+      <div class="max-w-7xl mx-auto px-4 sm:px-8 lg:px-12">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+          <div class="rounded-xl overflow-hidden shadow-xl border border-gray-700/50 aspect-[900/1087]">
+            <img src="/screenshots/dashboard-dark.jpg" alt="EV Monitor Dashboard Dark Mode" class="w-full h-full object-cover object-top" loading="lazy" width="900" height="1087" />
+          </div>
+          <div class="rounded-xl overflow-hidden shadow-xl border border-gray-700/50 aspect-[900/1087]">
+            <img src="/screenshots/charts-dark.jpg" alt="EV Monitor Charts Dark Mode" class="w-full h-full object-cover object-top" loading="lazy" width="900" height="1165" />
+          </div>
+          <div class="rounded-xl overflow-hidden shadow-xl border border-gray-700/50 aspect-[900/1087]">
+            <img src="/screenshots/map-dark.jpg" alt="EV Monitor Karte Dark Mode" class="w-full h-full object-cover object-top" loading="lazy" width="900" height="1156" />
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Model Preview Section -->
     <section class="py-8 sm:py-16 px-4 sm:px-6 lg:px-8">

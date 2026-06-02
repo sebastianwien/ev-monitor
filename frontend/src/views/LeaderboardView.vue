@@ -158,8 +158,8 @@ const periodLabel = computed(() => {
     <div class="bg-white dark:bg-gray-800 md:rounded-sm md:shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:md:shadow-[4px_4px_0_rgba(255,255,255,0.30)] overflow-hidden">
 
       <!-- Header -->
-      <div class="p-4 md:p-6 border-b border-gray-100 dark:border-gray-700">
-        <div class="flex items-center gap-3 mb-1">
+      <div class="p-4 md:p-6 border-b border-gray-100 dark:border-gray-700 text-center">
+        <div class="flex items-center justify-center gap-3 mb-1">
           <TrophyIcon class="h-7 w-7 text-yellow-500" />
           <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ t('leaderboard.title') }}</h1>
         </div>

@@ -77,6 +77,13 @@ landing:
     geohash_desc: "Standorte werden niemals exakt gespeichert - nur ca. 600m Genauigkeit."
     servers_title: "Deutsche Server"
     servers_desc: "Hosting auf Hetzner Cloud in Nürnberg. Keine Daten außerhalb der EU."
+  leaderboard:
+    label: "Community-Wettbewerb"
+    title: "Wer ist der aktivste Lader diesen Monat?"
+    desc: "Monatliche Bestenliste der EV-Monitor-Community - 8 Kategorien, faire Regeln, echte Watt."
+    chip_monthly: "Monatlich neu"
+    cta: "Zur Bestenliste"
+  darkmode_teaser: "Natürlich gibt's auch einen Dark Mode."
   models_section:
     title: "Was kostet das Laden wirklich?"
     subtitle: "Echte Daten von der Community"

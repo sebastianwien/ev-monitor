@@ -74,6 +74,13 @@ landing:
     geohash_desc: Platser lagras aldrig exakt - bara ca 600 m noggrannhet.
     servers_title: Tyska servrar
     servers_desc: Driftas på Hetzner Cloud i Nürnberg. Inga uppgifter utanför EU.
+  leaderboard:
+    label: Gemenskapens tävling
+    title: Vem är den mest aktiva laddaren den här månaden?
+    desc: Månadsvis topplista för EV Monitor-gemenskapen - 8 kategorier, rättvisa regler, riktiga watt.
+    chip_monthly: Återställs månadsvis
+    cta: Se topplistan
+  darkmode_teaser: Mörkt läge finns självklart med.
   models_section:
     title: Vad kostar laddningen egentligen?
     subtitle: Verkliga uppgifter från användargemenskapen

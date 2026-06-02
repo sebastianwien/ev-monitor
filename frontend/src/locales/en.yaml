@@ -77,6 +77,13 @@ landing:
     geohash_desc: "Locations are never stored exactly - only ~600m accuracy."
     servers_title: "German servers"
     servers_desc: "Hosted on Hetzner Cloud in Nuremberg. No data outside the EU."
+  leaderboard:
+    label: "Community Competition"
+    title: "Who is the most active charger this month?"
+    desc: "Monthly leaderboard of the EV Monitor community - 8 categories, fair rules, real watts."
+    chip_monthly: "Resets monthly"
+    cta: "View Leaderboard"
+  darkmode_teaser: "Dark mode included, of course."
   models_section:
     title: "What does charging really cost?"
     subtitle: "Real data from the community"
