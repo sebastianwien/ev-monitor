@@ -144,15 +144,31 @@ const isVwGroupCharging = (car: any) =>
 const isVehicleCharging = (car: any) => isSmartcarCharging(car) || isVwGroupCharging(car) || isWallboxCharging()
 
 // -- Lifecycle --
+const LS_ACTIVATION_KEY = 'ev_activation_reached'
+
 watch(selectedCarId, async (newId) => {
   if (newId) {
     await fetchCarAndWltp(newId)
     await Promise.all([fetchStatistics(), fetchLogs(0), fetchImplausibleCount()])
+
+    if (!stats.value || stats.value.totalCharges === 0) {
+      if (!hasAnyLogs.value) {
+        analytics.trackEmptyDashboardViewed('no_logs_ever')
+      } else {
+        analytics.trackEmptyDashboardViewed('no_logs_in_period')
+      }
+    } else if (!localStorage.getItem(LS_ACTIVATION_KEY)) {
+      localStorage.setItem(LS_ACTIVATION_KEY, '1')
+      analytics.trackActivationReached()
+    }
   } else {
     stats.value = null
     carInfo.value = null
     wltp.value = null
     implausibleCount.value = 0
+    if (cars.value.length === 0) {
+      analytics.trackEmptyDashboardViewed('no_car')
+    }
   }
 })
 

@@ -112,6 +112,14 @@ onMounted(() => {
 
   if (authStore.isAuthenticated() && !authStore.isDemoAccount) {
     subscriptionService.getStatus().then(s => authStore.setPremium(s.isPremium)).catch(() => {})
+
+    const LS_LAST_VISIT = 'ev_last_visit'
+    const now = Date.now()
+    const lastVisit = localStorage.getItem(LS_LAST_VISIT)
+    if (lastVisit && now - parseInt(lastVisit) > 24 * 60 * 60 * 1000) {
+      analytics.trackReturnVisit(Math.floor((now - parseInt(lastVisit)) / 86400000))
+    }
+    localStorage.setItem(LS_LAST_VISIT, String(now))
   }
 
   // Auto-haptic for all btn-3d elements

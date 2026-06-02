@@ -156,6 +156,32 @@ class AnalyticsService {
     this.track('log_created', { source, first_log: isFirst })
   }
 
+  // Retention Events
+  trackEmptyDashboardViewed(reason: 'no_car' | 'no_logs_ever' | 'no_logs_in_period') {
+    this.track('empty_dashboard_viewed', { reason })
+  }
+
+  trackActivationReached() {
+    this.track('activation_reached')
+  }
+
+  trackReturnVisit(daysSinceLast: number) {
+    this.track('return_visit', { days_since_last: daysSinceLast })
+  }
+
+  // Import Completion Events
+  trackImportCompleted(source: string, count: number) {
+    this.track('import_completed', { source, count })
+  }
+
+  trackConnectorActivated(type: string, brand?: string) {
+    this.track('connector_activated', { type, ...(brand ? { brand } : {}) })
+  }
+
+  trackConnectorFailed(type: string, reason: 'auth' | 'technical') {
+    this.track('connector_failed', { type, reason })
+  }
+
   // Premium Events
   trackUpgradePageViewed() {
     this.track('upgrade_page_viewed')

@@ -662,7 +662,7 @@ const autoSyncHasActiveTesla = ref(false)
     v-if="showManualImportModal && manualImportCarId"
     :car-id="manualImportCarId"
     @close="showManualImportModal = false"
-    @imported="showManualImportModal = false"
+    @imported="(count) => { showManualImportModal = false; analytics.trackImportCompleted('manual', count) }"
   />
   <DemoImportsModal v-if="authStore.isDemoAccount" />
 </div>

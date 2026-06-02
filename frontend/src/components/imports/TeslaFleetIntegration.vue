@@ -8,6 +8,7 @@ import type { Car } from '@/api/carService'
 import { useCarStore } from '@/stores/car'
 import { useAuthStore } from '@/stores/auth'
 import { shouldAutoEnableTelemetry } from '@/utils/teslaTelemetryAutoEnable'
+import { analytics } from '@/services/analytics'
 import CarSelectDropdown from '../car/CarSelectDropdown.vue'
 
 // Embedded mode = rendered inside the AutoSync car-tile picker. Suppresses the
@@ -69,6 +70,7 @@ onMounted(async () => {
   if (route.query['tesla-connected']) {
     success.value = t('tesla.success_connected')
     await loadStatus()
+    analytics.trackConnectorActivated('tesla')
   }
   if (route.query['tesla-error']) {
     callbackErrorCode.value = String(route.query['tesla-error'])

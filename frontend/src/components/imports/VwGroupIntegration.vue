@@ -5,6 +5,7 @@ import { BoltIcon, CheckCircleIcon, XCircleIcon, ArrowTopRightOnSquareIcon, Arro
 import { useCarStore } from '../../stores/car'
 import vwGroupService, { type VwGroupConnectionStatus, isCredentialBrand } from '../../api/vwGroupService'
 import type { Car } from '../../api/carService'
+import { analytics } from '../../services/analytics'
 
 const { t } = useI18n()
 
@@ -110,6 +111,7 @@ const startPolling = () => {
       const res = await vwGroupService.pollAuthStatus(activeBrand.value)
       if (res.status === 'connected') {
         status.value = await vwGroupService.getStatus(activeBrand.value)
+        analytics.trackConnectorActivated('vwgroup', activeBrand.value ?? undefined)
         authPending.value = false
         stopPolling()
         return
@@ -173,6 +175,7 @@ const connectWithCredentials = async () => {
       credPassword.value = ''
     } else {
       status.value = await vwGroupService.getStatus(brandKey.value)
+      analytics.trackConnectorActivated('vwgroup', brandKey.value)
       credPassword.value = ''
     }
   } catch (e: any) {
@@ -190,6 +193,7 @@ const submitMfaCode = async () => {
   try {
     await vwGroupService.submitMfaCode(mfaPendingAuthId.value, mfaCode.value.trim())
     status.value = await vwGroupService.getStatus(brandKey.value)
+    analytics.trackConnectorActivated('vwgroup', brandKey.value)
     exitMfaState()
   } catch (e: any) {
     const reason = e.response?.data?.reason as string | undefined
