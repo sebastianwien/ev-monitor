@@ -151,6 +151,20 @@ class FixedCostServiceTest extends AbstractIntegrationTest {
         assertEquals(new BigDecimal("500.00"), result);
     }
 
+    @Test
+    void calculateForPeriod_yearly_partialYearFromJan_includesCost() {
+        // Bug reproduction: YEARLY starting 2026-01-01, period 2026-01-01 to 2026-06-02 (THIS_YEAR partial)
+        FixedCost fc = FixedCost.createNew(carId, userId, "Versicherung", new BigDecimal("1600.00"),
+                FixedCostCategory.INSURANCE, FixedCostRecurrence.YEARLY,
+                null, LocalDate.of(2026, 1, 1), null);
+        fixedCostRepository.save(fc);
+
+        BigDecimal result = fixedCostService.calculateForPeriod(carId,
+                LocalDate.of(2026, 1, 1), LocalDate.of(2026, 6, 2));
+
+        assertEquals(new BigDecimal("1600.00"), result);
+    }
+
     // --- CRUD ---
 
     @Test

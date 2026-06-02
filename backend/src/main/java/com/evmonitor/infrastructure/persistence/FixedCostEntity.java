@@ -35,13 +35,11 @@ public class FixedCostEntity {
     private BigDecimal amount;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false,
-            columnDefinition = "fixed_cost_category")
+    @Column(nullable = false)
     private FixedCostCategory category;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false,
-            columnDefinition = "fixed_cost_recurrence")
+    @Column(nullable = false)
     private FixedCostRecurrence recurrence;
 
     @Column(name = "date")

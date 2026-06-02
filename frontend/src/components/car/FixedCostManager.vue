@@ -16,6 +16,10 @@ const { t } = useI18n()
 const CATEGORIES: FixedCostCategory[] = ['INSURANCE', 'TAX', 'TOLL', 'CLEANING', 'MAINTENANCE', 'OTHER']
 const RECURRENCES: FixedCostRecurrence[] = ['ONE_TIME', 'MONTHLY', 'QUARTERLY', 'YEARLY']
 
+function today(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
 const items = ref<FixedCost[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
@@ -63,7 +67,7 @@ async function load() {
 function openCreate() {
   editingId.value = null
   submitted.value = false
-  form.value = { description: '', amount: 0, category: 'OTHER', recurrence: 'ONE_TIME', date: null, startDate: null, endDate: null }
+  form.value = { description: '', amount: 0, category: 'OTHER', recurrence: 'ONE_TIME', date: today(), startDate: today(), endDate: null }
   showForm.value = true
 }
 
