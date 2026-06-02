@@ -1188,6 +1188,40 @@ settings:
   implausible_banner_hint: Visar en avisering på instrumentpanelen när poster med osannolig förbrukning upptäcks.
   country_title: Land / Region
   country_desc: Bestämmer vilka enheter och vilken valuta som visas.
+
+fixed_costs:
+  title: Fasta kostnader
+  add: Lägg till
+  edit: Redigera
+  delete: Ta bort
+  delete_confirm: Vill du verkligen ta bort denna fasta kostnad?
+  empty: Inga fasta kostnader registrerade ännu.
+  label_description: Beskrivning
+  label_amount: Belopp (EUR)
+  label_category: Kategori
+  label_recurrence: Upprepning
+  label_date: Datum
+  label_start_date: Startdatum
+  label_end_date: Slutdatum (tomt = fortfarande aktiv)
+  recurrence_ONE_TIME: Engångs
+  recurrence_MONTHLY: Månadsvis
+  recurrence_QUARTERLY: Kvartalsvis
+  recurrence_YEARLY: Årligen
+  category_INSURANCE: Försäkring
+  category_TAX: Skatt
+  category_TOLL: Vägtull
+  category_CLEANING: Biltvätt
+  category_MAINTENANCE: Underhåll
+  category_OTHER: Övrigt
+  save: Spara
+  cancel: Avbryt
+  err_load: Kunde inte ladda fasta kostnader.
+  err_save: Kunde inte spara fasta kostnader.
+  err_delete: Kunde inte ta bort fast kostnad.
+  dashboard_energy: Energikostnader
+  dashboard_fixed: Fasta kostnader
+  dashboard_total: Totala kostnader
+
 onboarding:
   skip_title: Hoppa över
   badge: Inledning

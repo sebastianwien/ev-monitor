@@ -5,6 +5,8 @@ import type { StatisticsData } from './useDashboardStats'
 function makeStats(overrides: Partial<StatisticsData> = {}): StatisticsData {
   return {
     totalKwhCharged: 300,
+    energyCostEur: 90,
+    fixedCostEur: 0,
     totalCostEur: 90,
     avgCostPerKwh: 0.30,
     cheapestChargeEur: 5,

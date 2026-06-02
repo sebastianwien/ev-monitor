@@ -50,6 +50,8 @@ export interface ChargingEfficiencySplit {
 
 export interface StatisticsData {
   totalKwhCharged: number
+  energyCostEur: number
+  fixedCostEur: number
   totalCostEur: number
   avgCostPerKwh: number
   cheapestChargeEur: number

@@ -1188,6 +1188,40 @@ settings:
   implausible_banner_hint: Viser et varsel på dashbordet når oppføringer med usannsynlig forbruk oppdages.
   country_title: Land / Region
   country_desc: Bestemmer hvilke enheter og hvilken valuta som vises.
+
+fixed_costs:
+  title: Faste kostnader
+  add: Legg til
+  edit: Rediger
+  delete: Slett
+  delete_confirm: Vil du virkelig slette denne faste kostnaden?
+  empty: Ingen faste kostnader registrert ennå.
+  label_description: Beskrivelse
+  label_amount: Beløp (EUR)
+  label_category: Kategori
+  label_recurrence: Gjentagelse
+  label_date: Dato
+  label_start_date: Startdato
+  label_end_date: Sluttdato (tom = fortsatt aktiv)
+  recurrence_ONE_TIME: Engangs
+  recurrence_MONTHLY: Månedlig
+  recurrence_QUARTERLY: Kvartalsvis
+  recurrence_YEARLY: Årlig
+  category_INSURANCE: Forsikring
+  category_TAX: Skatt
+  category_TOLL: Bompenger
+  category_CLEANING: Bilvask
+  category_MAINTENANCE: Vedlikehold
+  category_OTHER: Annet
+  save: Lagre
+  cancel: Avbryt
+  err_load: Kunne ikke laste faste kostnader.
+  err_save: Kunne ikke lagre faste kostnader.
+  err_delete: Kunne ikke slette fast kostnad.
+  dashboard_energy: Energikostnader
+  dashboard_fixed: Faste kostnader
+  dashboard_total: Totale kostnader
+
 onboarding:
   skip_title: Hopp over
   badge: Innledning

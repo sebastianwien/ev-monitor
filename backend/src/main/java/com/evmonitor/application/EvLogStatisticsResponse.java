@@ -7,6 +7,8 @@ import java.util.List;
 public record EvLogStatisticsResponse(
         // Key Metrics
         BigDecimal totalKwhCharged,
+        BigDecimal energyCostEur,
+        BigDecimal fixedCostEur,
         BigDecimal totalCostEur,
         BigDecimal avgCostPerKwh,
         BigDecimal cheapestChargeEur,

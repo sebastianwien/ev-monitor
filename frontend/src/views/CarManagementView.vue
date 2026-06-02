@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { ChartBarIcon, TruckIcon, ArrowDownTrayIcon, ClipboardDocumentIcon, CheckIcon } from '@heroicons/vue/24/outline'
 import LicensePlate from '../components/car/LicensePlate.vue'
 import ConsumptionInfoBox from '../components/dashboard/ConsumptionInfoBox.vue'
+import FixedCostManager from '../components/car/FixedCostManager.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useCarForm } from '../composables/useCarForm'
 import { useCarImages } from '../composables/useCarImages'
@@ -596,6 +597,8 @@ const filteredCapacities = computed(() => {
                 {{ t('cars.delete_btn') }}
               </button>
             </div>
+
+            <FixedCostManager :car-id="car.id" />
           </div>
         </div>
       </div>

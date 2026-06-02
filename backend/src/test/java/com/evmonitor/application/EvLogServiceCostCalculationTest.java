@@ -59,10 +59,10 @@ class EvLogServiceCostCalculationTest extends AbstractIntegrationTest {
 
         EvLogStatisticsResponse stats = evLogService.getStatistics(carId, userId, null, null, null);
 
-        // totalCostEur = 9.00 (0€ log excluded from cost sum)
+        // energyCostEur = 9.00 (0€ log excluded from cost sum)
         // avgCostPerKwh = 9.00 / 50 kWh total = 0.18 (totalKwhCharged includes all logs)
-        assertEquals(0, new BigDecimal("9.00").compareTo(stats.totalCostEur()),
-                "totalCostEur should only count logs with cost > 0");
+        assertEquals(0, new BigDecimal("9.00").compareTo(stats.energyCostEur()),
+                "energyCostEur should only count logs with cost > 0");
         assertNotNull(stats.avgCostPerKwh());
         assertEquals(0, new BigDecimal("0.18").compareTo(stats.avgCostPerKwh()),
                 "avgCostPerKwh should be 9.00 / 50 kWh = 0.18 (0€ log excluded from cost, but kWh counted)");
@@ -82,7 +82,7 @@ class EvLogServiceCostCalculationTest extends AbstractIntegrationTest {
 
         EvLogStatisticsResponse stats = evLogService.getStatistics(carId, userId, null, null, null);
 
-        assertEquals(0, BigDecimal.ZERO.compareTo(stats.totalCostEur()));
+        assertEquals(0, BigDecimal.ZERO.compareTo(stats.energyCostEur()));
         assertEquals(0, BigDecimal.ZERO.compareTo(stats.avgCostPerKwh()));
     }
 
@@ -102,7 +102,7 @@ class EvLogServiceCostCalculationTest extends AbstractIntegrationTest {
 
         EvLogStatisticsResponse stats = evLogService.getStatistics(carId, userId, null, null, null);
 
-        assertEquals(0, new BigDecimal("12.00").compareTo(stats.totalCostEur()),
+        assertEquals(0, new BigDecimal("12.00").compareTo(stats.energyCostEur()),
                 "null-cost logs should not affect totalCostEur");
     }
 }

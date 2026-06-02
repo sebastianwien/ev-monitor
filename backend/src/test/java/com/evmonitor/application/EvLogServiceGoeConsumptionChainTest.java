@@ -106,7 +106,7 @@ class EvLogServiceGoeConsumptionChainTest extends AbstractIntegrationTest {
                 "40.0 (A) + 8.5 + 5.2 (go-e) + 52.5 (B) = 106.2 kWh");
         BigDecimal expectedCost = new BigDecimal("11.00").add(new BigDecimal("2.38"))
                 .add(new BigDecimal("1.46")).add(LOG_B_COST);
-        assertEquals(0, expectedCost.compareTo(stats.totalCostEur()));
+        assertEquals(0, expectedCost.compareTo(stats.energyCostEur()));
     }
 
     // ── Szenario 2: _isLadegruppe (gleicher Odometer) — Kette NICHT unterbrochen ─

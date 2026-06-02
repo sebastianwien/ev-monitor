@@ -276,7 +276,7 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
         assertEquals(3, response.getBody().totalCharges());
         // Use compareTo for BigDecimal to ignore scale differences (100.0 vs 100.00)
         assertEquals(0, new BigDecimal("100.0").compareTo(response.getBody().totalKwhCharged()));
-        assertEquals(0, new BigDecimal("26.50").compareTo(response.getBody().totalCostEur()));
+        assertEquals(0, new BigDecimal("26.50").compareTo(response.getBody().energyCostEur()));
         assertFalse(response.getBody().chargesOverTime().isEmpty());
     }
 

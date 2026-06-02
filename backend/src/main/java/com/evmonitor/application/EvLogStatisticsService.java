@@ -35,6 +35,7 @@ public class EvLogStatisticsService {
     private final UserRepository userRepository;
     private final ConsumptionCalculationService calculationService;
     private final PlausibilityProperties plausibility;
+    private final FixedCostService fixedCostService;
 
     /**
      * Returns all logs for a car where the calculated consumption is implausible.
@@ -143,10 +144,16 @@ public class EvLogStatisticsService {
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal totalCostEur = logs.stream()
+        BigDecimal energyCostEur = logs.stream()
                 .map(EvLog::getCostEur)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal fixedCostEur = (startDate != null && endDate != null)
+                ? fixedCostService.calculateForPeriod(carId, startDate, endDate)
+                : BigDecimal.ZERO;
+
+        BigDecimal totalCostEur = energyCostEur.add(fixedCostEur);
 
         // For avgCostPerKwh: normalize AT_VEHICLE logs to AT_CHARGER equivalent — because cost_eur
         // reflects what was billed at the charger, not what entered the battery.
@@ -157,7 +164,7 @@ public class EvLogStatisticsService {
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal avgCostPerKwh = totalKwhForCost.compareTo(BigDecimal.ZERO) > 0
-                ? totalCostEur.divide(totalKwhForCost, 2, RoundingMode.HALF_UP)
+                ? energyCostEur.divide(totalKwhForCost, 2, RoundingMode.HALF_UP)
                 : BigDecimal.ZERO;
 
         BigDecimal cheapestCharge = logs.stream()
@@ -238,6 +245,8 @@ public class EvLogStatisticsService {
 
         return new EvLogStatisticsResponse(
                 totalKwhCharged,
+                energyCostEur,
+                fixedCostEur,
                 totalCostEur,
                 avgCostPerKwh,
                 cheapestCharge,
@@ -262,7 +271,7 @@ public class EvLogStatisticsService {
         var emptyLocSplit = new EvLogStatisticsResponse.LocationSplit(BigDecimal.ZERO, BigDecimal.ZERO);
         var emptyEffSplit = new EvLogStatisticsResponse.ChargingEfficiencySplit(BigDecimal.ZERO, BigDecimal.ZERO, 0, 0);
         return new EvLogStatisticsResponse(
-                BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+                BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
                 BigDecimal.ZERO, BigDecimal.ZERO, 0, 0,
                 null, null, 0, null, null, List.of(), emptyTypeSplit, emptyLocSplit, null, emptyEffSplit
         );

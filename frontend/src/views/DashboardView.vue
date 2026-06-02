@@ -656,9 +656,22 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
             </div>
             <!-- Gesamtkosten -->
             <div class="bg-white dark:bg-gray-800 px-4 py-3">
-              <div class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{{ t('dashboard.metric_total_cost') }}</div>
-              <div class="text-xl font-bold text-gray-900 dark:text-gray-100 leading-tight">{{ stats.totalCostEur != null ? formatCurrency(stats.totalCostEur) : '–' }}</div>
-              <div class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">Ø {{ stats.avgCostPerKwh != null ? formatCostPerKwh(stats.avgCostPerKwh) : '–' }}</div>
+              <div class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">{{ t('dashboard.metric_total_cost') }}</div>
+              <div class="space-y-1">
+                <div class="flex items-center justify-between">
+                  <span class="text-[10px] text-gray-500 dark:text-gray-400">{{ t('fixed_costs.dashboard_energy') }}</span>
+                  <span class="text-sm font-semibold text-gray-800 dark:text-gray-200">{{ stats.energyCostEur != null ? formatCurrency(stats.energyCostEur) : '–' }}</span>
+                </div>
+                <div v-if="stats.fixedCostEur != null && stats.fixedCostEur > 0" class="flex items-center justify-between">
+                  <span class="text-[10px] text-gray-500 dark:text-gray-400">{{ t('fixed_costs.dashboard_fixed') }}</span>
+                  <span class="text-sm font-semibold text-gray-800 dark:text-gray-200">{{ formatCurrency(stats.fixedCostEur) }}</span>
+                </div>
+                <div v-if="stats.fixedCostEur != null && stats.fixedCostEur > 0" class="flex items-center justify-between border-t border-gray-100 dark:border-gray-600 pt-1">
+                  <span class="text-[10px] font-medium text-gray-600 dark:text-gray-300">{{ t('fixed_costs.dashboard_total') }}</span>
+                  <span class="text-base font-bold text-gray-900 dark:text-gray-100">{{ formatCurrency(stats.totalCostEur) }}</span>
+                </div>
+                <div class="text-[10px] text-gray-400 dark:text-gray-500">Ø {{ stats.avgCostPerKwh != null ? formatCostPerKwh(stats.avgCostPerKwh) : '–' }}</div>
+              </div>
             </div>
             <!-- Gesamtstrecke -->
             <button v-if="stats.totalDistanceKm != null"
@@ -750,9 +763,22 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
           </div>
           <div class="bg-white dark:bg-gray-700 rounded-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="p-3">
-              <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">{{ t('dashboard.metric_total_cost') }}</p>
-              <p class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ stats.totalCostEur != null ? formatCurrency(stats.totalCostEur) : '–' }}</p>
-              <p class="text-sm font-medium text-gray-400 dark:text-gray-500 mt-0.5">Ø {{ stats.avgCostPerKwh != null ? formatCostPerKwh(stats.avgCostPerKwh) : '–' }}</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-2">{{ t('dashboard.metric_total_cost') }}</p>
+              <div class="space-y-1">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('fixed_costs.dashboard_energy') }}</span>
+                  <span class="text-sm font-semibold text-gray-800 dark:text-gray-200">{{ stats.energyCostEur != null ? formatCurrency(stats.energyCostEur) : '–' }}</span>
+                </div>
+                <div v-if="stats.fixedCostEur != null && stats.fixedCostEur > 0" class="flex items-center justify-between">
+                  <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('fixed_costs.dashboard_fixed') }}</span>
+                  <span class="text-sm font-semibold text-gray-800 dark:text-gray-200">{{ formatCurrency(stats.fixedCostEur) }}</span>
+                </div>
+                <div v-if="stats.fixedCostEur != null && stats.fixedCostEur > 0" class="flex items-center justify-between border-t border-gray-100 dark:border-gray-600 pt-1 mt-1">
+                  <span class="text-xs font-medium text-gray-600 dark:text-gray-300">{{ t('fixed_costs.dashboard_total') }}</span>
+                  <span class="text-base font-bold text-gray-900 dark:text-gray-100">{{ formatCurrency(stats.totalCostEur) }}</span>
+                </div>
+                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Ø {{ stats.avgCostPerKwh != null ? formatCostPerKwh(stats.avgCostPerKwh) : '–' }}</p>
+              </div>
             </div>
           </div>
           <div v-if="stats.totalDistanceKm != null"
