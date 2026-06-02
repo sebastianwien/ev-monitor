@@ -115,11 +115,11 @@ describe('loadAllPosts (real content)', () => {
     it('loads the skeleton smartcar post from src/content/blog', () => {
         const posts = loadAllPosts()
         const slugs = posts.map(p => p.slug)
-        expect(slugs).toContain('smartcar-energyadded-skoda-19kwh')
+        expect(slugs).toContain('smartcar-energyadded-compatibility-matrix')
     })
 
     it('findPostBySlug returns the post for a known slug and null otherwise', () => {
-        const post = findPostBySlug('smartcar-energyadded-skoda-19kwh')
+        const post = findPostBySlug('smartcar-energyadded-compatibility-matrix')
         expect(post).not.toBeNull()
         expect(post?.author).toBe('Sebastian')
         expect(findPostBySlug('does-not-exist')).toBeNull()

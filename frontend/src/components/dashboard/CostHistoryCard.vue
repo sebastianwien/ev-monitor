@@ -139,7 +139,7 @@ const chartOptions = computed((): ChartOptions<'bar'> => ({
     tooltip: {
       callbacks: {
         label: (ctx: any) => {
-          if (ctx.dataset.label === '_total') return null
+          if (ctx.dataset.label === '_total') return
           return ` ${ctx.dataset.label}: ${formatCurrency(ctx.parsed.y)}`
         },
       },

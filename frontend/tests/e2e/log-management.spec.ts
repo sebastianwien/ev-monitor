@@ -6,6 +6,13 @@ const API_URL = process.env.API_URL || 'http://localhost:8080';
 
 test.describe.configure({ mode: 'serial' });
 
+async function openFirstLogEditModal(page: any) {
+  const menuButton = page.locator('[aria-label="Aktionen"]').first();
+  await expect(menuButton).toBeVisible({ timeout: 10_000 });
+  await menuButton.click();
+  await page.locator('button[role="menuitem"]:has-text("Bearbeiten")').first().click();
+}
+
 async function login(page: any) {
   await page.goto('/login');
   await page.locator('input[type="text"]').fill(TEST_USER.email);
@@ -101,9 +108,7 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
     await page.goto('/logs');
     await page.waitForLoadState('networkidle');
 
-    const editButton = page.locator('[title="Ladevorgang bearbeiten"]').first();
-    await expect(editButton).toBeVisible({ timeout: 10_000 });
-    await editButton.click();
+    await openFirstLogEditModal(page);
 
     // Modal offen warten
     await expect(page.locator('h2:has-text("Ladevorgang bearbeiten")')).toBeVisible({ timeout: 5_000 });
@@ -126,9 +131,7 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
     await page.waitForLoadState('networkidle');
 
     // Test 3 hat Vehicle-Wert (36) gesetzt, kwhCharged (35.5) bleibt erhalten - beide Felder gesetzt
-    const editButton = page.locator('[title="Ladevorgang bearbeiten"]').first();
-    await expect(editButton).toBeVisible({ timeout: 10_000 });
-    await editButton.click();
+    await openFirstLogEditModal(page);
 
     await expect(page.locator('h2:has-text("Ladevorgang bearbeiten")')).toBeVisible({ timeout: 5_000 });
 
@@ -154,9 +157,7 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
     await page.waitForLoadState('networkidle');
 
     // Log hat kwhCharged=35.5 und kwhAtVehicle=36 - Charger-Modus ist Default
-    const editButton = page.locator('[title="Ladevorgang bearbeiten"]').first();
-    await expect(editButton).toBeVisible({ timeout: 10_000 });
-    await editButton.click();
+    await openFirstLogEditModal(page);
 
     await expect(page.locator('h2:has-text("Ladevorgang bearbeiten")')).toBeVisible({ timeout: 5_000 });
 
@@ -171,7 +172,7 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
     await expect(page.locator('h2:has-text("Ladevorgang bearbeiten")')).not.toBeVisible({ timeout: 5_000 });
 
     // Nochmal oeffnen: Charger=38, Vehicle=36 (beide erhalten)
-    await editButton.click();
+    await openFirstLogEditModal(page);
     await expect(page.locator('h2:has-text("Ladevorgang bearbeiten")')).toBeVisible({ timeout: 5_000 });
 
     await expect(page.locator('text=Netto-kWh die dein Akku aufgenommen hat')).not.toBeVisible();
@@ -271,9 +272,7 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
     await page.waitForLoadState('networkidle');
 
     // Nach Test 5 hat der erste Log kwhCharged=38 UND kwhAtVehicle=36
-    const editButton = page.locator('[title="Ladevorgang bearbeiten"]').first();
-    await expect(editButton).toBeVisible({ timeout: 10_000 });
-    await editButton.click();
+    await openFirstLogEditModal(page);
 
     await expect(page.locator('h2:has-text("Ladevorgang bearbeiten")')).toBeVisible({ timeout: 5_000 });
 
