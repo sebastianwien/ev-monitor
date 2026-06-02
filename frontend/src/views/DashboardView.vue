@@ -47,6 +47,7 @@ import ChargingEfficiencyCard from '../components/dashboard/ChargingEfficiencyCa
 import CO2Card from '../components/dashboard/CO2Card.vue'
 import SmartInsightsCard from '../components/dashboard/SmartInsightsCard.vue'
 import CarCardDetails from '../components/dashboard/CarCardDetails.vue'
+import CostHistoryCard from '../components/dashboard/CostHistoryCard.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useDashboardStats } from '../composables/useDashboardStats'
 import { useDashboardCharts } from '../composables/useDashboardCharts'
@@ -883,6 +884,9 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
             <span class="absolute bottom-1 right-3 text-[10px] text-gray-300 dark:text-gray-600">Affiliate-Link</span>
           </div>
         </div>
+
+        <!-- Kostenverlauf -->
+        <CostHistoryCard :car-id="selectedCarId" class="mb-6" />
 
         <!-- Insights: Energie-Split · Standverluste · Fahrten-Kalender (AutoSync Live only) -->
         <DashboardInsights

@@ -605,6 +605,8 @@ dashboard:
   metric_total_energy: Total energi
   metric_charges: laddningar
   metric_total_cost: Total kostnad
+  cost_this_month: Denna månaden
+  cost_last_month: Förra månaden
   metric_total_distance: Total sträcka
   metric_total_distance_tooltip: "Endast sträckor mellan fullständigt registrerade laddningar räknas."
   metric_km_driven: körda kilometer
@@ -2367,3 +2369,16 @@ insights:
   chart_winter: "Vin."
   chart_battery: "Batt."
   chart_grid: "Nat"
+
+cost_history:
+  title: Kostnadshistorik
+  subtitle: Senaste 12 månaderna
+  energy: Energikostnader
+  fixed: Fasta kostnader
+  total: Totalt
+  empty: Inga kostnader registrerade ännu.
+  mode_pro_rata: Proportionellt (månadsvis)
+  mode_due_month: På förfallomånaden
+  fixed_base: Fast bas
+  trend: Trend
+  month: månad

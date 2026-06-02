@@ -125,8 +125,8 @@ class FixedCostServiceTest extends AbstractIntegrationTest {
     // --- calculateForPeriod: YEARLY ---
 
     @Test
-    void calculateForPeriod_yearly_oneYearInPeriod() {
-        FixedCost fc = FixedCost.createNew(carId, userId, "Jahressteuer", new BigDecimal("500.00"),
+    void calculateForPeriod_yearly_fullYear_returnsFull() {
+        FixedCost fc = FixedCost.createNew(carId, userId, "Jahressteuer", new BigDecimal("1200.00"),
                 FixedCostCategory.TAX, FixedCostRecurrence.YEARLY,
                 null, LocalDate.of(2024, 1, 1), null);
         fixedCostRepository.save(fc);
@@ -134,12 +134,28 @@ class FixedCostServiceTest extends AbstractIntegrationTest {
         BigDecimal result = fixedCostService.calculateForPeriod(carId,
                 LocalDate.of(2024, 1, 1), LocalDate.of(2024, 12, 31));
 
-        assertEquals(new BigDecimal("500.00"), result);
+        // 1200 / 12 * 12 = 1200
+        assertEquals(new BigDecimal("1200.00"), result);
     }
 
     @Test
-    void calculateForPeriod_yearly_notInPeriod_returnsZero() {
-        FixedCost fc = FixedCost.createNew(carId, userId, "Jahressteuer", new BigDecimal("500.00"),
+    void calculateForPeriod_yearly_halfYear_returnsHalf() {
+        // THIS_YEAR: 1600 EUR Jahresversicherung, Jan-Jun = 6 Monate → 1600/12*6 = 800
+        FixedCost fc = FixedCost.createNew(carId, userId, "Versicherung", new BigDecimal("1600.00"),
+                FixedCostCategory.INSURANCE, FixedCostRecurrence.YEARLY,
+                null, LocalDate.of(2026, 1, 1), null);
+        fixedCostRepository.save(fc);
+
+        BigDecimal result = fixedCostService.calculateForPeriod(carId,
+                LocalDate.of(2026, 1, 1), LocalDate.of(2026, 6, 30));
+
+        assertEquals(new BigDecimal("800.00"), result);
+    }
+
+    @Test
+    void calculateForPeriod_yearly_startBeforePeriod_proratesFromPeriodStart() {
+        // startDate liegt vor dem Zeitraum → effektiver Start = Zeitraum-Start
+        FixedCost fc = FixedCost.createNew(carId, userId, "Jahressteuer", new BigDecimal("1200.00"),
                 FixedCostCategory.TAX, FixedCostRecurrence.YEARLY,
                 null, LocalDate.of(2023, 1, 1), null);
         fixedCostRepository.save(fc);
@@ -147,22 +163,23 @@ class FixedCostServiceTest extends AbstractIntegrationTest {
         BigDecimal result = fixedCostService.calculateForPeriod(carId,
                 LocalDate.of(2024, 1, 1), LocalDate.of(2024, 12, 31));
 
-        // Jahrestag 2024-01-01 liegt im Zeitraum - wird gezählt
-        assertEquals(new BigDecimal("500.00"), result);
+        // 1200 / 12 * 12 = 1200
+        assertEquals(new BigDecimal("1200.00"), result);
     }
 
     @Test
-    void calculateForPeriod_yearly_partialYearFromJan_includesCost() {
-        // Bug reproduction: YEARLY starting 2026-01-01, period 2026-01-01 to 2026-06-02 (THIS_YEAR partial)
-        FixedCost fc = FixedCost.createNew(carId, userId, "Versicherung", new BigDecimal("1600.00"),
+    void calculateForPeriod_yearly_endDateCutsShort_prorated() {
+        // Versicherung läuft bis 30.09 → nur 9 Monate im Jahres-Zeitraum
+        FixedCost fc = FixedCost.createNew(carId, userId, "Versicherung", new BigDecimal("1200.00"),
                 FixedCostCategory.INSURANCE, FixedCostRecurrence.YEARLY,
-                null, LocalDate.of(2026, 1, 1), null);
+                null, LocalDate.of(2024, 1, 1), LocalDate.of(2024, 9, 30));
         fixedCostRepository.save(fc);
 
         BigDecimal result = fixedCostService.calculateForPeriod(carId,
-                LocalDate.of(2026, 1, 1), LocalDate.of(2026, 6, 2));
+                LocalDate.of(2024, 1, 1), LocalDate.of(2024, 12, 31));
 
-        assertEquals(new BigDecimal("1600.00"), result);
+        // 1200 / 12 * 9 = 900
+        assertEquals(new BigDecimal("900.00"), result);
     }
 
     // --- CRUD ---

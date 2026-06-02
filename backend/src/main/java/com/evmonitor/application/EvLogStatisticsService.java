@@ -116,7 +116,10 @@ public class EvLogStatisticsService {
                 .toList();
 
         if (logs.isEmpty()) {
-            return createEmptyStatistics();
+            BigDecimal fixedCostEur = (startDate != null && endDate != null)
+                    ? fixedCostService.calculateForPeriod(carId, startDate, endDate)
+                    : BigDecimal.ZERO;
+            return createEmptyStatisticsWithFixedCost(fixedCostEur);
         }
 
         // Compute per-log consumption once — used for both chart data and overall average
@@ -266,12 +269,12 @@ public class EvLogStatisticsService {
         );
     }
 
-    private EvLogStatisticsResponse createEmptyStatistics() {
+    private EvLogStatisticsResponse createEmptyStatisticsWithFixedCost(BigDecimal fixedCostEur) {
         var emptyTypeSplit = new EvLogStatisticsResponse.ChargingTypeSplit(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
         var emptyLocSplit = new EvLogStatisticsResponse.LocationSplit(BigDecimal.ZERO, BigDecimal.ZERO);
         var emptyEffSplit = new EvLogStatisticsResponse.ChargingEfficiencySplit(BigDecimal.ZERO, BigDecimal.ZERO, 0, 0);
         return new EvLogStatisticsResponse(
-                BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+                BigDecimal.ZERO, BigDecimal.ZERO, fixedCostEur, fixedCostEur, BigDecimal.ZERO,
                 BigDecimal.ZERO, BigDecimal.ZERO, 0, 0,
                 null, null, 0, null, null, List.of(), emptyTypeSplit, emptyLocSplit, null, emptyEffSplit
         );

@@ -605,6 +605,8 @@ dashboard:
   metric_total_energy: Total energi
   metric_charges: ladinger
   metric_total_cost: Totalkostnad
+  cost_this_month: Denne måneden
+  cost_last_month: Forrige måned
   metric_total_distance: Total distanse
   metric_total_distance_tooltip: "Bare strekninger mellom fullstendig registrerte ladinger telles."
   metric_km_driven: kjørte kilometer
@@ -2367,3 +2369,16 @@ insights:
   chart_winter: "Vi."
   chart_battery: "Batt."
   chart_grid: "Nett"
+
+cost_history:
+  title: Kostnadshistorikk
+  subtitle: Siste 12 måneder
+  energy: Energikostnader
+  fixed: Faste kostnader
+  total: Totalt
+  empty: Ingen kostnader registrert ennå.
+  mode_pro_rata: Forholdsmessig (månedlig)
+  mode_due_month: Forfallsmåneden
+  fixed_base: Fastbaseline
+  trend: Trend
+  month: måned

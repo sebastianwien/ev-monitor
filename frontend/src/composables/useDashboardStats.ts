@@ -99,6 +99,7 @@ export function useDashboardStats() {
   const selectedCarId = ref<string | null>(null)
   const stats = ref<StatisticsData | null>(null)
   const lastMonthStats = ref<StatisticsData | null>(null)
+  const thisMonthStats = ref<StatisticsData | null>(null)
   const insightStats = ref<StatisticsData | null>(null)
   const carInfo = ref<CarInfo | null>(null)
   const wltp = ref<VehicleSpecification | null>(null)
@@ -244,7 +245,8 @@ export function useDashboardStats() {
       ])
       stats.value = response.data
       lastMonthStats.value = lastMonthResponse?.data ?? null
-      insightStats.value = selectedTimeRange.value === 'THIS_MONTH' ? stats.value : (thisMonthResponse?.data ?? null)
+      thisMonthStats.value = selectedTimeRange.value === 'THIS_MONTH' ? stats.value : (thisMonthResponse?.data ?? null)
+      insightStats.value = thisMonthStats.value
     } catch (err: any) {
       error.value = err.response?.data?.message || t('dashboard.err_load')
     } finally {
@@ -312,6 +314,7 @@ export function useDashboardStats() {
     selectedCarId,
     stats,
     lastMonthStats,
+    thisMonthStats,
     insightStats,
     carInfo,
     wltp,
