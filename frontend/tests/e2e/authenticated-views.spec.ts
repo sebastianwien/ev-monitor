@@ -1,5 +1,13 @@
 import { test, expect } from '@playwright/test';
 import { TEST_USER } from './global-setup';
+import { featureAnnouncements } from '../../src/config/featureAnnouncements';
+
+async function dismissAnnouncements(page: any) {
+  const keys = featureAnnouncements.map(a => a.key);
+  await page.addInitScript((seenKeys: string[]) => {
+    localStorage.setItem('seen-announcements', JSON.stringify(seenKeys));
+  }, keys);
+}
 
 async function login(page: any) {
   await page.goto('/login');
@@ -11,6 +19,7 @@ async function login(page: any) {
 
 test.describe('Dashboard', () => {
   test.beforeEach(async ({ page }) => {
+    await dismissAnnouncements(page);
     await login(page);
   });
 
@@ -29,17 +38,20 @@ test.describe('Dashboard', () => {
     await expect(page.locator('a[href="/cars"]')).toBeVisible({ timeout: 10_000 });
   });
 
-  test.skip('Zeitraum-Filter ohne Crash', async ({ page }) => {
+  test('Zeitraum-Filter ohne Crash', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', (err) => errors.push(err.message));
 
     await page.waitForLoadState('networkidle');
 
-    const timeSelect = page.locator('select').first();
-    if (await timeSelect.isVisible()) {
-      await timeSelect.selectOption('ALL_TIME');
-      await page.waitForTimeout(1000);
-    }
+    // Filter-Dropdown oeffnen (Desktop-Toolbar hat CalendarIcon + Zeitraum-Span)
+    const filterToggle = page.locator('[ref="filterDropdownDesktop"] button, .hidden.sm\\:flex button').filter({ hasText: /·/ }).first();
+    await expect(filterToggle).toBeVisible({ timeout: 10_000 });
+    await filterToggle.click();
+
+    // "Alle" (ALL_TIME) auswaehlen
+    await page.locator('button[class*="rounded-sm"]:has-text("Alle")').first().click();
+    await page.waitForTimeout(500);
 
     expect(errors).toEqual([]);
   });
