@@ -2024,6 +2024,9 @@ announcements:
   tesla_telemetry_rollout_v1_cta: "Sätt upp anslutning"
   negative_prices_v1_title: "Negativa elpriser stöds nu"
   negative_prices_v1_body: "Med dynamiska eltariffer kan priset per kWh sjunka under noll. Du kan nu ange negativa priser vid registrering av en laddning - både i appen och via API."
+  fixed_costs_dashboard_v1_title: Fasta kostnader nu i dashboarden
+  fixed_costs_dashboard_v1_body: "Försäkring, skatt, underhåll och mer kan nu registreras under fasta kostnader. Dashboarden visar dina totala bilkostnader - uppdelat på energi och fasta kostnader."
+  fixed_costs_dashboard_v1_cta: "Lägg till fasta kostnader"
   spec_charging_efficiency_v1_title: "Mer exakt förbrukning tack vare modellspecifika laddningsförluster"
   spec_charging_efficiency_v1_body: "Laddningsförluster beräknas nu per fordonsmodell - härledd från verkliga laddningar i gemenskapen. Istället för schablonmässiga 5% (DC) eller 10% (AC) används nu uppmätta värden per fordonsmodell i din förbrukningsstatistik. Ju mer data gemenskapen bidrar med, desto mer precis blir beräkningen."
   spec_charging_efficiency_v1_cta: "Läs mer"
@@ -2382,3 +2385,4 @@ cost_history:
   fixed_base: Fast bas
   trend: Trend
   month: månad
+

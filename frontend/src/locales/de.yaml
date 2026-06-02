@@ -2091,6 +2091,9 @@ announcements:
   tesla_telemetry_rollout_v1_cta: "Verbindung einrichten"
   negative_prices_v1_title: "Negative Strompreise werden jetzt unterstützt"
   negative_prices_v1_body: "Bei dynamischen Stromtarifen kann der kWh-Preis unter null fallen. Ab sofort kannst du negative Preise beim Erfassen eingeben - sowohl in der App als auch per API."
+  fixed_costs_dashboard_v1_title: "Fixkosten jetzt im Dashboard"
+  fixed_costs_dashboard_v1_body: "Versicherung, Steuer, Wartung &amp; Co. lassen sich jetzt unter Fixkosten erfassen. Im Dashboard siehst du die Gesamtkosten deines Autos - aufgeteilt nach Energie und Fixkosten. Der neue Kostenverlauf-Chart zeigt die letzten 12 Monate auf einen Blick."
+  fixed_costs_dashboard_v1_cta: "Fixkosten erfassen"
   feature_survey_v1_title: "Welche Features wünschst du dir?"
   feature_survey_v1_body: "Hilf mir, EV Monitor weiterzuentwickeln! In dieser kurzen Umfrage kannst du abstimmen, welche Features als nächstes kommen sollen, und gern auch etwas vorschlagen."
   feature_survey_v1_cta: "Zur Umfrage"
@@ -2499,3 +2502,4 @@ cost_history:
   fixed_base: "Fixkosten-Basis"
   trend: "Trend"
   month: "Monat"
+
