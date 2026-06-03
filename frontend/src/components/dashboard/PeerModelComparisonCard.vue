@@ -135,11 +135,11 @@ function formatValue(value: number | null, decimals: number = 1): string {
       <p>Keine Vergleichsdaten verfügbar</p>
     </div>
 
-    <!-- 3 Categories, jede mit Bar Chart (Verbrauch, Stromkosten, Fahrtkosten) -->
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+    <!-- 3 Categories, vertikal gestackt (Verbrauch, Stromkosten, Fahrtkosten) -->
+    <div v-else class="p-4 space-y-8">
 
       <!-- Verbrauch (kWh/100km) -->
-      <div class="flex flex-col gap-3">
+      <div class="flex flex-col gap-2">
         <div class="flex items-center justify-between">
           <p class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('dashboard.peer_consumption') }}</p>
           <p class="text-xs text-gray-400 dark:text-gray-500">kWh/100km</p>
@@ -171,7 +171,7 @@ function formatValue(value: number | null, decimals: number = 1): string {
       </div>
 
       <!-- Stromkosten (€/kWh) -->
-      <div class="flex flex-col gap-3">
+      <div class="flex flex-col gap-2">
         <div class="flex items-center justify-between">
           <p class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('dashboard.peer_cost_label') }}</p>
           <p class="text-xs text-gray-400 dark:text-gray-500">€/kWh</p>
@@ -203,7 +203,7 @@ function formatValue(value: number | null, decimals: number = 1): string {
       </div>
 
       <!-- Fahrtkosten (€/100km) -->
-      <div class="flex flex-col gap-3">
+      <div class="flex flex-col gap-2">
         <div class="flex items-center justify-between">
           <p class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('dashboard.peer_cost_per_distance') }}</p>
           <p class="text-xs text-gray-400 dark:text-gray-500">€/100km</p>
