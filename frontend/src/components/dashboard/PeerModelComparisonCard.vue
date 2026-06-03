@@ -112,24 +112,42 @@ function formatValue(value: number | null, decimals: number = 1): string {
 <template>
   <div class="bg-white dark:bg-gray-700 rounded-sm border-2 border-gray-300 dark:border-gray-600 overflow-hidden shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#4b5563] flex flex-col">
 
-    <!-- Header -->
+    <!-- Header + Category Navigation (Combined) -->
     <div class="border-b border-gray-100 dark:border-gray-600">
       <!-- Mobile: klickbarer Header -->
       <button @click="toggleCollapsed"
-        class="sm:hidden w-full px-4 py-3 flex items-center justify-between">
+        class="sm:hidden w-full px-3 py-2.5 flex items-center justify-between">
         <div class="w-6 shrink-0"></div>
         <div class="flex-1 flex flex-col items-center text-center min-w-0">
-          <p class="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">{{ carDisplayName }} Modell-Vergleich</p>
-          <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ comparisons.length }} Modellvariante{{ comparisons.length !== 1 ? 'n' : '' }}</p>
+          <p class="text-xs font-semibold text-gray-800 dark:text-gray-200">{{ carDisplayName }} ({{ comparisons.length }})</p>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ currentCategory.label }}</p>
         </div>
         <ChevronDownIcon
           class="w-4 h-4 text-gray-400 shrink-0 ml-2 transition-transform duration-200"
           :class="{ 'rotate-180': !collapsed }" />
       </button>
+
       <!-- sm+ -->
-      <div class="hidden sm:flex flex-col items-center px-4 py-3 gap-0.5">
-        <p class="text-sm font-semibold text-gray-800 dark:text-gray-200 text-center">{{ carDisplayName }} Modell-Vergleich</p>
-        <p class="text-xs text-gray-400 dark:text-gray-500">{{ comparisons.length }} Modellvariante{{ comparisons.length !== 1 ? 'n' : '' }}</p>
+      <div class="hidden sm:flex items-center justify-between px-4 py-2.5">
+        <button @click="prevCategory" class="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600 rounded">
+          <ChevronLeftIcon class="w-4 h-4 text-gray-600 dark:text-gray-300" />
+        </button>
+
+        <div class="flex-1 text-center">
+          <p class="text-sm font-semibold text-gray-800 dark:text-gray-200">{{ carDisplayName }}</p>
+          <p class="text-xs text-gray-400 dark:text-gray-500">{{ comparisons.length }} Varianten</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <div class="text-center">
+            <p class="text-sm font-semibold text-gray-800 dark:text-gray-200">{{ currentCategory.label }}</p>
+            <p class="text-xs text-gray-400 dark:text-gray-500">{{ currentCategory.unit }}</p>
+          </div>
+          <p class="text-xs text-gray-400 dark:text-gray-500 tabular-nums min-w-max">{{ currentCategoryIndex + 1 }}/{{ categories.length }}</p>
+          <button @click="nextCategory" class="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600 rounded">
+            <ChevronRightIcon class="w-4 h-4 text-gray-600 dark:text-gray-300" />
+          </button>
+        </div>
       </div>
     </div>
 
@@ -154,27 +172,6 @@ function formatValue(value: number | null, decimals: number = 1): string {
 
     <!-- Category Carousel -->
     <div v-else class="flex flex-col">
-
-      <!-- Category Header + Navigation -->
-      <div class="px-4 py-3 flex items-center justify-between border-b border-gray-100 dark:border-gray-600">
-        <button @click="prevCategory" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded">
-          <ChevronLeftIcon class="w-4 h-4 text-gray-600 dark:text-gray-300" />
-        </button>
-
-        <div class="flex-1 text-center">
-          <p class="text-sm font-semibold text-gray-800 dark:text-gray-200">{{ currentCategory.label }}</p>
-          <p class="text-xs text-gray-400 dark:text-gray-500">{{ currentCategory.unit }}</p>
-        </div>
-
-        <div class="flex items-center gap-2">
-          <p class="text-xs text-gray-400 dark:text-gray-500 tabular-nums">
-            {{ currentCategoryIndex + 1 }}/{{ categories.length }}
-          </p>
-          <button @click="nextCategory" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded">
-            <ChevronRightIcon class="w-4 h-4 text-gray-600 dark:text-gray-300" />
-          </button>
-        </div>
-      </div>
 
       <!-- Vertical Bars Chart -->
       <div class="p-6 overflow-x-auto">
