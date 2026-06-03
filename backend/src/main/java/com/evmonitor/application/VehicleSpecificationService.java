@@ -98,10 +98,18 @@ public class VehicleSpecificationService {
             throw new IllegalArgumentException(ratingSource.name() + " data already exists for this vehicle configuration");
         }
 
+        // Range and consumption must either both be present or both absent
+        boolean hasRange = request.officialRangeKm() != null;
+        boolean hasConsumption = request.officialConsumptionKwhPer100km() != null;
+        if (hasRange != hasConsumption) {
+            throw new IllegalArgumentException("officialRangeKm and officialConsumptionKwhPer100km must both be provided or both be omitted");
+        }
+
         VehicleSpecification newSpec = VehicleSpecification.createNew(
                 sanitizedBrand,
                 sanitizedModel,
                 request.batteryCapacityKwh(),
+                request.netBatteryCapacityKwh(),
                 request.officialRangeKm(),
                 request.officialConsumptionKwhPer100km(),
                 VehicleSpecification.WltpType.COMBINED,

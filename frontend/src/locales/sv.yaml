@@ -979,6 +979,7 @@ cars:
   error_activate: Fel vid aktivering av fordonet
   error_business_car: Fel vid uppdatering av tjänstebilens status
   error_wltp: Fyll i alla WLTP-fält
+  error_wltp_partial: Räckvidd och förbrukning måste båda anges eller båda lämnas tomma
   error_wltp_save: Fel vid sparande av WLTP-data
   error_visibility: Fel vid uppdatering av synlighet
   error_upload: Fel vid uppladdning av bild
@@ -992,7 +993,10 @@ cars:
   toast_upload: Foto uppladdat! + {n}-poäng intjänade!
   trim_placeholder: t.ex. GTX, Pro Performance, Long Range
   trim_placeholder_sonstige: t.ex. C10 ProMax, BX3, Elroq 50
-  capacity_custom_placeholder: t.ex. 82,5
+  capacity_custom_placeholder: t.ex. 77
+  capacity_net_label: "Batterikapacitet netto (användbar) *"
+  capacity_gross_label: "Batterikapacitet brutto *"
+  capacity_gross_placeholder: t.ex. 82
   plate_placeholder: t.ex. AB-123 CD
   power_placeholder: t.ex. 150
   degradation_placeholder: t.ex. 8

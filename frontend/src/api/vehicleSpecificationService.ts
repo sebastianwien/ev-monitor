@@ -21,8 +21,9 @@ export interface VehicleSpecificationRequest {
     carBrand: string;
     carModel: string;
     batteryCapacityKwh: number;
-    officialRangeKm: number;
-    officialConsumptionKwhPer100km: number;
+    netBatteryCapacityKwh?: number | null;
+    officialRangeKm?: number | null;
+    officialConsumptionKwhPer100km?: number | null;
     ratingSource?: 'WLTP' | 'EPA';
 }
 

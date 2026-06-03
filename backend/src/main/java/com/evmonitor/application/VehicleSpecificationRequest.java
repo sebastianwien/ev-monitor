@@ -18,12 +18,17 @@ public record VehicleSpecificationRequest(
         @DecimalMax(value = "500.0", message = "Battery capacity unrealistic (max 500 kWh)")
         BigDecimal batteryCapacityKwh,
 
-        @NotNull(message = "Official range is required")
+        /** Optional: verified net (usable) capacity in kWh */
+        @Positive(message = "Net battery capacity must be positive")
+        @DecimalMax(value = "500.0", message = "Net battery capacity unrealistic (max 500 kWh)")
+        BigDecimal netBatteryCapacityKwh,
+
+        /** Optional: WLTP/EPA range in km */
         @Positive(message = "Official range must be positive")
         @DecimalMax(value = "2000.0", message = "Official range unrealistic (max 2000 km)")
         BigDecimal officialRangeKm,
 
-        @NotNull(message = "Official consumption is required")
+        /** Optional: WLTP/EPA consumption in kWh/100km */
         @Positive(message = "Official consumption must be positive")
         @DecimalMax(value = "100.0", message = "Official consumption unrealistic (max 100 kWh/100km)")
         BigDecimal officialConsumptionKwhPer100km,

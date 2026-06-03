@@ -979,6 +979,7 @@ cars:
   error_activate: Feil ved aktivering av kjøretøy
   error_business_car: Feil ved oppdatering av status for firmabil
   error_wltp: Vennligst fyll ut alle WLTP-feltene
+  error_wltp_partial: Rekkevidde og forbruk må begge oppgis eller begge stå tomme
   error_wltp_save: Feil ved lagring av WLTP-data
   error_visibility: Feil ved oppdatering av synlighet
   error_upload: Feil ved opplasting av bilde
@@ -992,7 +993,10 @@ cars:
   toast_upload: Bildet er lastet opp! + {n}-poeng opptjent!
   trim_placeholder: f.eks. GTX, Pro Performance, Long Range
   trim_placeholder_sonstige: f.eks. C10 ProMax, BX3, Elroq 50
-  capacity_custom_placeholder: f.eks. 82,5
+  capacity_custom_placeholder: f.eks. 77
+  capacity_net_label: "Batterikapasitet netto (brukbar) *"
+  capacity_gross_label: "Batterikapasitet brutto *"
+  capacity_gross_placeholder: f.eks. 82
   plate_placeholder: f.eks. AB-123 CD
   power_placeholder: f.eks. 150
   degradation_placeholder: f.eks. 8

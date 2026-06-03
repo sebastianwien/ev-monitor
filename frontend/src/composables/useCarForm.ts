@@ -6,6 +6,7 @@ import { useCarStore } from '../stores/car'
 import { useCoinStore } from '../stores/coins'
 import { analytics } from '../services/analytics'
 import { useTeslaStatus } from './useTeslaStatus'
+import { useWltpLookup } from './useWltpLookup'
 
 export function resolveCapacityForCar(
   car: Car,
@@ -81,6 +82,8 @@ export function useCarForm() {
   const isBusinessCar = ref(false)
   const capacityWasCorrected = ref(false)
 
+  const wltpLookup = useWltpLookup(selectedBrand, selectedModel, selectedSpecId, useCustomCapacity)
+
   // SoH History (kept here because resetForm touches it)
   const sohHistory = ref<BatterySohEntry[]>([])
   const showSohAddForm = ref(false)
@@ -124,7 +127,7 @@ export function useCarForm() {
   }
 
   const finalCapacity = computed(() => {
-    if (useCustomCapacity.value) return customCapacity.value
+    if (useCustomCapacity.value) return wltpLookup.customNetCapacityKwh.value
     return selectedCapacity.value
   })
 
@@ -215,6 +218,7 @@ export function useCarForm() {
     selectedSpecId.value = null
     selectedTrimLevel.value = null
     customCapacity.value = null
+    wltpLookup.resetCustomFields()
     useCustomCapacity.value = false
     powerKw.value = null
     batteryDegradationPercent.value = null
@@ -250,6 +254,7 @@ export function useCarForm() {
     selectedTrimLevel.value = resolved.selectedTrimLevel
     useCustomCapacity.value = resolved.useCustom
     customCapacity.value = resolved.customCapacity
+    wltpLookup.customNetCapacityKwh.value = resolved.customCapacity
     capacityWasCorrected.value = resolved.kwhCorrected
 
     year.value = car.year
@@ -272,13 +277,25 @@ export function useCarForm() {
       error.value = null
       if (!finalCapacity.value) { error.value = t('cars.error_capacity'); return }
 
+      // Bei Custom-Eingabe: zuerst Spec anlegen (setzt selectedSpecId + useCustomCapacity=false)
+      if (useCustomCapacity.value) {
+        const result = await wltpLookup.submitCustomSpec()
+        if (!result.ok) {
+          error.value = result.error ? t(result.error) : t('cars.error_wltp_save')
+          return
+        }
+        if (result.coinsAwarded) {
+          toastMessage.value = t('cars.toast_wltp', { n: result.coinsAwarded })
+          showToast.value = true
+          setTimeout(() => { showToast.value = false }, 5000)
+        }
+      }
+
       const carData: CarRequest = {
         model: selectedModel.value,
         year: year.value,
         licensePlate: licensePlate.value,
         trim: trim.value || null,
-        // Nur fuellen wenn keine Spec verknuepft ist - sonst ist die Spec autoritativ
-        // und ein Wert hier wuerde einen verwirrenden Doppel-State erzeugen.
         customNetCapacityKwh: finalVehicleSpecificationId.value ? null : finalCapacity.value,
         powerKw: powerKw.value,
         batteryDegradationPercent: batteryDegradationPercent.value,
@@ -347,6 +364,7 @@ export function useCarForm() {
     // Form fields
     selectedBrand, selectedModel, year, licensePlate, trim,
     selectedCapacity, selectedSpecId, selectedTrimLevel, customCapacity, useCustomCapacity,
+    ...wltpLookup,
     powerKw, batteryDegradationPercent, hasHeatPump, isBusinessCar,
     // SoH (form state only - CRUD in useSohHistory)
     sohHistory, showSohAddForm, sohEditingEntry, sohPercent, sohDate,

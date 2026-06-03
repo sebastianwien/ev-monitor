@@ -1,99 +1,67 @@
-import { ref, computed, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { ref, computed } from 'vue'
 import { vehicleSpecificationService, type VehicleSpecification } from '../api/vehicleSpecificationService'
 import { useCountryStore } from '../stores/country'
-import type { Ref, ComputedRef } from 'vue'
+import type { Ref } from 'vue'
 
 export function useWltpLookup(
   selectedBrand: Ref<string>,
   selectedModel: Ref<string>,
-  finalCapacity: ComputedRef<number | null>,
-  editingCar: Ref<any>,
-  error: Ref<string | null>,
-  showToast: Ref<boolean>,
-  toastMessage: Ref<string>,
+  selectedSpecId: Ref<string | null>,
+  useCustomCapacity: Ref<boolean>,
 ) {
-  const { t } = useI18n()
   const countryStore = useCountryStore()
 
   const wltpData = ref<VehicleSpecification | null>(null)
-  const showWltpQuestion = ref(false)
-  const showWltpForm = ref(false)
+  const customNetCapacityKwh = ref<number | null>(null)
+  const customGrossCapacityKwh = ref<number | null>(null)
   const officialRangeKm = ref<number | null>(null)
   const officialConsumptionKwhPer100km = ref<number | null>(null)
 
-  /** US users contribute EPA data; everyone else contributes WLTP */
   const ratingSource = computed<'WLTP' | 'EPA'>(() =>
     countryStore.country === 'US' ? 'EPA' : 'WLTP'
   )
 
-  const lookupWltpData = async () => {
-    if (!selectedBrand.value || !selectedModel.value || !finalCapacity.value) return
-    try {
-      const data = await vehicleSpecificationService.lookup(
-        selectedBrand.value, selectedModel.value, finalCapacity.value, ratingSource.value
-      )
-      if (data) { wltpData.value = data } else { showWltpQuestion.value = true }
-    } catch {
-      // Lookup failed silently
-    }
-  }
-
-  const closeWltpQuestion = () => { showWltpQuestion.value = false }
-
-  const openWltpForm = () => {
-    showWltpQuestion.value = false
-    showWltpForm.value = true
+  const resetCustomFields = () => {
+    customNetCapacityKwh.value = null
+    customGrossCapacityKwh.value = null
     officialRangeKm.value = null
     officialConsumptionKwhPer100km.value = null
+    wltpData.value = null
   }
 
-  const closeWltpForm = () => {
-    showWltpForm.value = false
-    officialRangeKm.value = null
-    officialConsumptionKwhPer100km.value = null
-  }
-
-  const submitWltpData = async () => {
-    if (!officialRangeKm.value || !officialConsumptionKwhPer100km.value) {
-      error.value = t('cars.error_wltp')
-      return
+  /**
+   * Wird von submitForm aufgerufen wenn useCustomCapacity aktiv.
+   * Legt eine neue Spec an und verknuepft sie mit dem Car.
+   * Gibt true zurueck wenn erfolgreich, false bei Fehler.
+   */
+  const submitCustomSpec = async (): Promise<{ ok: boolean; error?: string; coinsAwarded?: number }> => {
+    if (!customNetCapacityKwh.value || !customGrossCapacityKwh.value || !officialRangeKm.value || !officialConsumptionKwhPer100km.value) {
+      return { ok: false, error: 'cars.error_capacity' }
     }
     try {
-      error.value = null
       const response = await vehicleSpecificationService.create({
         carBrand: selectedBrand.value,
         carModel: selectedModel.value,
-        batteryCapacityKwh: finalCapacity.value!,
+        batteryCapacityKwh: customGrossCapacityKwh.value,
+        netBatteryCapacityKwh: customNetCapacityKwh.value,
         officialRangeKm: officialRangeKm.value,
         officialConsumptionKwhPer100km: officialConsumptionKwhPer100km.value,
         ratingSource: ratingSource.value,
       })
-      closeWltpForm()
-      toastMessage.value = t('cars.toast_wltp', { n: response.coinsAwarded })
-      showToast.value = true
-      setTimeout(() => { showToast.value = false }, 5000)
       wltpData.value = response.specification
+      selectedSpecId.value = response.specification.id
+      useCustomCapacity.value = false
+      return { ok: true, coinsAwarded: response.coinsAwarded }
     } catch (err: any) {
-      error.value = err.response?.data?.message || t('cars.error_wltp_save')
+      return { ok: false, error: err.response?.data?.message ?? 'cars.error_wltp_save' }
     }
   }
 
-  // Reset when model changes
-  watch(selectedModel, () => { wltpData.value = null })
-
-  // Lookup on brand/model/capacity change
-  watch([selectedBrand, selectedModel, finalCapacity], async () => {
-    wltpData.value = null
-    showWltpQuestion.value = false
-    if (!selectedBrand.value || !selectedModel.value || !finalCapacity.value || editingCar.value) return
-    await lookupWltpData()
-  })
-
   return {
-    wltpData, showWltpQuestion, showWltpForm,
+    wltpData,
+    customNetCapacityKwh, customGrossCapacityKwh,
     officialRangeKm, officialConsumptionKwhPer100km,
     ratingSource,
-    lookupWltpData, closeWltpQuestion, openWltpForm, closeWltpForm, submitWltpData,
+    resetCustomFields, submitCustomSpec,
   }
 }

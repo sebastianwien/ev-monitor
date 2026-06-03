@@ -114,7 +114,8 @@ INSERT INTO vehicle_specification (
 
 -- GTX Performance (seit 08/2024), 86 brutto / 79 netto
 (gen_random_uuid(), 'VW', 'ID_3', 86.00, 79.00, 601, 14.7, 'COMBINED', 'WLTP',
- 'ID.3 GTX Performance (2024-)', 'GTX Performance', '2024-08-01', NULL, NOW(), NOW());
+ 'ID.3 GTX Performance (2024-)', 'GTX Performance', '2024-08-01', NULL, NOW(), NOW())
+ON CONFLICT (car_brand, car_model, battery_capacity_kwh, variant_name, wltp_type, rating_source) DO NOTHING;
 
 -- ============================================================
 -- 3 Cars ohne vehicle_specification_id auf korrekte Spec verknuepfen
