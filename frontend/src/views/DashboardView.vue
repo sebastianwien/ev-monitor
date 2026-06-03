@@ -928,6 +928,14 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
           class="mb-3"
         />
 
+        <!-- Peer Model Comparison: Volle Breite -->
+        <PeerModelComparisonCard
+          v-if="selectedCarId && stats?.peerBenchmark && stats.peerBenchmark.peerAvgConsumptionKwhPer100km != null"
+          :car-id="selectedCarId"
+          :car-display-name="selectedCar ? [carDisplayName(selectedCar.brand, selectedCar.model), selectedCar.trim].filter(Boolean).join(' ') : ''"
+          class="mb-4"
+        />
+
         <!-- Echte Reichweite + Peer Benchmark: mobile gestackt, desktop nebeneinander -->
         <div class="mb-0 grid grid-cols-1 md:grid-cols-3 gap-4">
 
@@ -945,13 +953,6 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
           v-if="stats.chargingTypeSplit && stats.locationSplit"
           :charging-type-split="stats.chargingTypeSplit"
           :location-split="stats.locationSplit"
-        />
-
-        <!-- Peer Model Comparison -->
-        <PeerModelComparisonCard
-          v-if="selectedCarId && stats?.peerBenchmark && stats.peerBenchmark.peerAvgConsumptionKwhPer100km != null"
-          :car-id="selectedCarId"
-          :car-display-name="selectedCar ? [carDisplayName(selectedCar.brand, selectedCar.model), selectedCar.trim].filter(Boolean).join(' ') : ''"
         />
 
         <!-- Peer Benchmark (old) — können wir später löschen -->
