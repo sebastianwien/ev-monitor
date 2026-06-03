@@ -760,7 +760,7 @@ public class EvLogStatisticsService {
                     .filter(c -> !c.getUserId().equals(user.getId()))
                     .toList();
 
-            // Peer-Metriken (auch wenn leer)
+            // Peer-Metriken
             BigDecimal peerConsumption = null;
             BigDecimal peerCostPerKwh = null;
             int peerCarCount = 0;
@@ -772,6 +772,12 @@ public class EvLogStatisticsService {
                 // Cost-Berechnung (analog zu buildPeerBenchmark)
                 peerCostPerKwh = calculateAvgCostPerKwhForCars(peerCars);
                 peerCarCount = peerCars.size();
+            }
+
+            // Skip specs with no peer consumption data (unless it's the user's spec)
+            boolean isUserSpec = spec.getId().equals(userSpec.getId());
+            if (!isUserSpec && peerConsumption == null) {
+                continue;
             }
 
             // User-Metriken (nur wenn es die user spec ist)
@@ -814,17 +820,14 @@ public class EvLogStatisticsService {
                 userMetrics = new UserMetrics(userConsumption, userCostPerKwh);
             }
 
-            // Only include if it's the user's spec or has peer data
-            boolean isUserSpec = spec.getId().equals(userSpec.getId());
-            if (isUserSpec || peerCarCount > 0) {
-                items.add(new PeerModelComparisonItem(
-                        spec.getId(),
-                        spec.getVariantName() + " (" + spec.getBatteryCapacityKwh() + "kWh)",
-                        isUserSpec,
-                        userMetrics,
-                        new PeerMetrics(peerConsumption, peerCostPerKwh, peerCarCount)
-                ));
-            }
+            // Add to results (already filtered for empty specs above)
+            items.add(new PeerModelComparisonItem(
+                    spec.getId(),
+                    spec.getVariantName() + " (" + spec.getBatteryCapacityKwh() + "kWh)",
+                    isUserSpec,
+                    userMetrics,
+                    new PeerMetrics(peerConsumption, peerCostPerKwh, peerCarCount)
+            ));
         }
 
         return new PeerModelComparisonResponse(items);
