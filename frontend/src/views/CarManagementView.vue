@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ChartBarIcon, TruckIcon, ArrowDownTrayIcon, ClipboardDocumentIcon, CheckIcon } from '@heroicons/vue/24/outline'
+import { TruckIcon, ArrowDownTrayIcon, ClipboardDocumentIcon, CheckIcon } from '@heroicons/vue/24/outline'
 import LicensePlate from '../components/car/LicensePlate.vue'
 import ConsumptionInfoBox from '../components/dashboard/ConsumptionInfoBox.vue'
 import FixedCostManager from '../components/car/FixedCostManager.vue'
@@ -18,15 +18,14 @@ const {
   cars, availableModels, loading, error, showForm, editingCar,
   showToast, toastMessage, teslaStatus,
   selectedBrand, selectedModel, year, licensePlate, trim,
-  selectedCapacity, selectedSpecId, selectedTrimLevel, customCapacity, useCustomCapacity,
+  selectedCapacity, selectedSpecId, selectedTrimLevel, useCustomCapacity,
   powerKw, batteryDegradationPercent, hasHeatPump, isBusinessCar,
   sohHistory, showSohAddForm, sohEditingEntry, sohPercent, sohDate,
   sortedBrands, isSonstige, selectedModelCapacities, finalCapacity, powerPs,
   isGroupedByTrim, trimGroups, visibleOptionsForTrim, formatPeriod,
   selectTrimGroup,
   capacityWasCorrected,
-  // wltpLookup (via ...wltpLookup spread im return)
-  customNetCapacityKwh, customGrossCapacityKwh, officialRangeKm, officialConsumptionKwhPer100km,
+  wltpData, customNetCapacityKwh, customGrossCapacityKwh, officialRangeKm, officialConsumptionKwhPer100km,
   ratingSource, resetCustomFields,
   fetchCars, fetchBrands, resetForm,
   openAddForm, openEditForm, submitForm, deleteCar, setActiveCar, getModelLabel,

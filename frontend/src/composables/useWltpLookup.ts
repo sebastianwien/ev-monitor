@@ -6,8 +6,6 @@ import type { Ref } from 'vue'
 export function useWltpLookup(
   selectedBrand: Ref<string>,
   selectedModel: Ref<string>,
-  selectedSpecId: Ref<string | null>,
-  useCustomCapacity: Ref<boolean>,
 ) {
   const countryStore = useCountryStore()
 

@@ -82,7 +82,7 @@ export function useCarForm() {
   const isBusinessCar = ref(false)
   const capacityWasCorrected = ref(false)
 
-  const wltpLookup = useWltpLookup(selectedBrand, selectedModel, selectedSpecId, useCustomCapacity)
+  const wltpLookup = useWltpLookup(selectedBrand, selectedModel)
 
   // SoH History (kept here because resetForm touches it)
   const sohHistory = ref<BatterySohEntry[]>([])
