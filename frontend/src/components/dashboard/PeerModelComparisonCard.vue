@@ -30,10 +30,10 @@ const slideDirection = ref('slide-next')
 const hoveredSpecId = ref<string | null>(null)
 
 const categories = [
-  { id: 'consumption', label: t('dashboard.peer_consumption'), unit: 'kWh/100km', color: 'blue', sortAsc: true },
-  { id: 'costPerKwh', label: t('dashboard.peer_cost_label'), unit: '€/kWh', color: 'purple', sortAsc: true },
-  { id: 'costPer100km', label: t('dashboard.peer_cost_per_distance'), unit: '€/100km', color: 'orange', sortAsc: true },
-  { id: 'range', label: t('dashboard.peer_range'), unit: 'km (Nettokapazität)', color: 'green', sortAsc: false },
+  { id: 'consumption', label: t('dashboard.peer_consumption'), unit: 'kWh/100km', shortUnit: 'kWh/100km', color: 'blue', sortAsc: true },
+  { id: 'costPerKwh', label: t('dashboard.peer_cost_label'), unit: '€/kWh', shortUnit: '€/kWh', color: 'purple', sortAsc: true },
+  { id: 'costPer100km', label: t('dashboard.peer_cost_per_distance'), unit: '€/100km', shortUnit: '€/100km', color: 'orange', sortAsc: true },
+  { id: 'range', label: t('dashboard.peer_range'), unit: 'km (Nettokapazität)', shortUnit: 'km', color: 'green', sortAsc: false },
 ]
 
 const currentCategory = computed(() => categories[currentCategoryIndex.value])
@@ -252,7 +252,7 @@ function getDisplayBarWidth(item: PeerModelComparisonItem): number {
           <div class="flex-1 h-7 bg-gray-100 dark:bg-gray-600 rounded relative flex items-center">
 
             <!-- Balken-Bereich: reduziert so dass Zahlen rechts immer Platz haben -->
-            <div class="h-full relative" style="width: calc(100% - 2.5rem)">
+            <div class="h-full relative w-[calc(100%-2.5rem)] sm:w-[calc(100%-5rem)]">
               <!-- Split-Bar für user spec -->
               <div v-if="item.isUserVehicleSpec && getUserMetricValue(item, currentCategory.id) !== null"
                 class="h-full rounded absolute inset-y-0 left-0 transition-opacity duration-150"
@@ -294,12 +294,13 @@ function getDisplayBarWidth(item: PeerModelComparisonItem): number {
                 ? formatValue(getUserMetricValue(item, currentCategory.id))
                 : formatValue(getPeerMetricValue(item, currentCategory.id)) }}
             </span>
-            <!-- Desktop: Wert direkt nach Balkenende (left relativ zum inner wrapper) -->
+            <!-- Desktop: Wert + Einheit direkt nach Balkenende -->
             <span class="hidden sm:block absolute top-1/2 -translate-y-1/2 pl-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 tabular-nums"
-              :style="{ left: `calc(${getDisplayBarWidth(item) / 100} * (100% - 2.5rem))` }">
+              :style="{ left: `calc(${getDisplayBarWidth(item) / 100} * (100% - 5rem))` }">
               {{ item.isUserVehicleSpec
                 ? formatValue(getUserMetricValue(item, currentCategory.id))
                 : formatValue(getPeerMetricValue(item, currentCategory.id)) }}
+              <span class="font-normal text-gray-400 dark:text-gray-500">{{ currentCategory.shortUnit }}</span>
             </span>
           </div>
 
