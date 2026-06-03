@@ -50,10 +50,10 @@ class VehicleSpecificationControllerIntegrationTest extends AbstractIntegrationT
         VehicleSpecificationRequest request = new VehicleSpecificationRequest(
                 "TESTBRAND_" + userId.toString().substring(0, 8),
                 "TESTMODEL_A",
-                uniqueCapacity,
+                uniqueCapacity, null,
                 new BigDecimal("450.0"),
                 new BigDecimal("16.5"),
-                null  // defaults to WLTP
+                null, null  // defaults to WLTP
         );
 
         HttpEntity<VehicleSpecificationRequest> requestWithAuth = createAuthRequest(request, userId, testUser.getEmail());
@@ -138,10 +138,10 @@ class VehicleSpecificationControllerIntegrationTest extends AbstractIntegrationT
         VehicleSpecificationRequest request = new VehicleSpecificationRequest(
                 "HYUNDAI",
                 "IONIQ_5",
-                uniqueCapacity,
+                uniqueCapacity, null,
                 new BigDecimal("450.0"),
                 new BigDecimal("16.5"),
-                null  // defaults to WLTP
+                null, null  // defaults to WLTP
         );
 
         HttpEntity<VehicleSpecificationRequest> requestWithAuth = createAuthRequest(request, userId, testUser.getEmail());
@@ -174,10 +174,10 @@ class VehicleSpecificationControllerIntegrationTest extends AbstractIntegrationT
         VehicleSpecificationRequest request = new VehicleSpecificationRequest(
                 "TESTBRAND_XSS_" + userId.toString().substring(0, 8) + "<script>alert('XSS')</script>",
                 "TESTMODEL_XSS<img src=x onerror=alert(1)>",
-                uniqueCapacity,
+                uniqueCapacity, null,
                 new BigDecimal("450.0"),
                 new BigDecimal("16.5"),
-                null  // defaults to WLTP
+                null, null  // defaults to WLTP
         );
 
         HttpEntity<VehicleSpecificationRequest> requestWithAuth = createAuthRequest(request, userId, testUser.getEmail());
@@ -211,10 +211,10 @@ class VehicleSpecificationControllerIntegrationTest extends AbstractIntegrationT
         VehicleSpecificationRequest request = new VehicleSpecificationRequest(
                 "  TESLA  ",
                 "  MODEL_3  ",
-                uniqueCapacity,
+                uniqueCapacity, null,
                 new BigDecimal("450.0"),
                 new BigDecimal("16.5"),
-                null  // defaults to WLTP
+                null, null  // defaults to WLTP
         );
 
         HttpEntity<VehicleSpecificationRequest> requestWithAuth = createAuthRequest(request, userId, testUser.getEmail());
@@ -245,10 +245,10 @@ class VehicleSpecificationControllerIntegrationTest extends AbstractIntegrationT
         VehicleSpecificationRequest request = new VehicleSpecificationRequest(
                 "TESLA",
                 "MODEL_3",
-                new BigDecimal("75.0"),
+                new BigDecimal("75.0"), null,
                 new BigDecimal("450.0"),
                 new BigDecimal("16.5"),
-                null  // defaults to WLTP
+                null, null  // defaults to WLTP
         );
 
         // When: Try to create WLTP data without auth
@@ -358,10 +358,10 @@ class VehicleSpecificationControllerIntegrationTest extends AbstractIntegrationT
         // Given: EPA contribution request for a model not yet in DB
         VehicleSpecificationRequest request = new VehicleSpecificationRequest(
                 "RIVIAN", "R2",
-                new BigDecimal("60.0"),
+                new BigDecimal("60.0"), null,
                 new BigDecimal("350"),
                 new BigDecimal("17.1"),
-                "EPA"
+                "EPA", null
         );
         HttpEntity<VehicleSpecificationRequest> requestWithAuth = createAuthRequest(request, userId, testUser.getEmail());
 

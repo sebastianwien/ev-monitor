@@ -369,6 +369,7 @@ export function useCarForm() {
     // Form fields
     selectedBrand, selectedModel, year, licensePlate, trim,
     selectedCapacity, selectedSpecId, selectedTrimLevel, customCapacity, useCustomCapacity,
+    wltpData: wltpLookup.wltpData,
     customNetCapacityKwh: wltpLookup.customNetCapacityKwh,
     customGrossCapacityKwh: wltpLookup.customGrossCapacityKwh,
     officialRangeKm: wltpLookup.officialRangeKm,

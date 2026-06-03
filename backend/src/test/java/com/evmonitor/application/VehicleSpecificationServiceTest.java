@@ -58,14 +58,14 @@ class VehicleSpecificationServiceTest {
         BigDecimal capacity = new BigDecimal("75.0");
 
         VehicleSpecificationRequest request = new VehicleSpecificationRequest(
-                brand, model, capacity,
+                brand, model, capacity, null,
                 new BigDecimal("450.0"),
                 new BigDecimal("16.5"),
-                null  // ratingSource null → defaults to WLTP
+                null, null  // ratingSource null → defaults to WLTP
         );
 
-        when(vehicleSpecificationRepository.existsByCarBrandAndModelAndCapacityAndTypeAndSource(
-                brand, model, capacity, VehicleSpecification.WltpType.COMBINED, VehicleSpecification.RatingSource.WLTP
+        when(vehicleSpecificationRepository.existsByCarBrandAndModelAndCapacityAndVariantNameAndTypeAndSource(
+                eq(brand), eq(model), eq(capacity), any(), eq(VehicleSpecification.WltpType.COMBINED), eq(VehicleSpecification.RatingSource.WLTP)
         )).thenReturn(false);
         when(vehicleSpecificationRepository.save(any(VehicleSpecification.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
@@ -102,14 +102,14 @@ class VehicleSpecificationServiceTest {
         BigDecimal capacity = new BigDecimal("75.0");
 
         VehicleSpecificationRequest request = new VehicleSpecificationRequest(
-                brand, model, capacity,
+                brand, model, capacity, null,
                 new BigDecimal("450.0"),
                 new BigDecimal("16.5"),
-                null  // defaults to WLTP
+                null, null  // defaults to WLTP
         );
 
-        when(vehicleSpecificationRepository.existsByCarBrandAndModelAndCapacityAndTypeAndSource(
-                brand, model, capacity, VehicleSpecification.WltpType.COMBINED, VehicleSpecification.RatingSource.WLTP
+        when(vehicleSpecificationRepository.existsByCarBrandAndModelAndCapacityAndVariantNameAndTypeAndSource(
+                eq(brand), eq(model), eq(capacity), any(), eq(VehicleSpecification.WltpType.COMBINED), eq(VehicleSpecification.RatingSource.WLTP)
         )).thenReturn(true); // Already exists!
 
         // When & Then
@@ -129,13 +129,13 @@ class VehicleSpecificationServiceTest {
         // Given: Two concurrent requests try to create same WLTP data
         // First check says "doesn't exist", but save fails due to unique constraint
         VehicleSpecificationRequest request = new VehicleSpecificationRequest(
-                "TESLA", "MODEL_3", new BigDecimal("75.0"),
+                "TESLA", "MODEL_3", new BigDecimal("75.0"), null,
                 new BigDecimal("450.0"), new BigDecimal("16.5"),
-                null  // defaults to WLTP
+                null, null  // defaults to WLTP
         );
 
-        when(vehicleSpecificationRepository.existsByCarBrandAndModelAndCapacityAndTypeAndSource(
-                any(), any(), any(), any(), any()
+        when(vehicleSpecificationRepository.existsByCarBrandAndModelAndCapacityAndVariantNameAndTypeAndSource(
+                any(), any(), any(), any(), any(), any()
         )).thenReturn(false); // Check says "doesn't exist"
 
         when(vehicleSpecificationRepository.save(any(VehicleSpecification.class)))
@@ -160,13 +160,13 @@ class VehicleSpecificationServiceTest {
         BigDecimal capacity = new BigDecimal("75.0");
 
         VehicleSpecificationRequest request = new VehicleSpecificationRequest(
-                maliciousBrand, maliciousModel, capacity,
+                maliciousBrand, maliciousModel, capacity, null,
                 new BigDecimal("450.0"), new BigDecimal("16.5"),
-                null
+                null, null
         );
 
-        when(vehicleSpecificationRepository.existsByCarBrandAndModelAndCapacityAndTypeAndSource(
-                any(), any(), any(), any(), any()
+        when(vehicleSpecificationRepository.existsByCarBrandAndModelAndCapacityAndVariantNameAndTypeAndSource(
+                any(), any(), any(), any(), any(), any()
         )).thenReturn(false);
         when(vehicleSpecificationRepository.save(any(VehicleSpecification.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
@@ -202,13 +202,13 @@ class VehicleSpecificationServiceTest {
         String model = "  MODEL_3  ";
 
         VehicleSpecificationRequest request = new VehicleSpecificationRequest(
-                brand, model, new BigDecimal("75.0"),
+                brand, model, new BigDecimal("75.0"), null,
                 new BigDecimal("450.0"), new BigDecimal("16.5"),
-                null
+                null, null
         );
 
-        when(vehicleSpecificationRepository.existsByCarBrandAndModelAndCapacityAndTypeAndSource(
-                any(), any(), any(), any(), any()
+        when(vehicleSpecificationRepository.existsByCarBrandAndModelAndCapacityAndVariantNameAndTypeAndSource(
+                any(), any(), any(), any(), any(), any()
         )).thenReturn(false);
         when(vehicleSpecificationRepository.save(any(VehicleSpecification.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
@@ -275,14 +275,14 @@ class VehicleSpecificationServiceTest {
         BigDecimal capacity = new BigDecimal("75.0");
 
         VehicleSpecificationRequest request = new VehicleSpecificationRequest(
-                brand, model, capacity,
+                brand, model, capacity, null,
                 new BigDecimal("531.1"),  // EPA range in km
                 new BigDecimal("15.54"),  // EPA consumption kWh/100km
-                "EPA"
+                "EPA", null
         );
 
-        when(vehicleSpecificationRepository.existsByCarBrandAndModelAndCapacityAndTypeAndSource(
-                brand, model, capacity, VehicleSpecification.WltpType.COMBINED, VehicleSpecification.RatingSource.EPA
+        when(vehicleSpecificationRepository.existsByCarBrandAndModelAndCapacityAndVariantNameAndTypeAndSource(
+                eq(brand), eq(model), eq(capacity), any(), eq(VehicleSpecification.WltpType.COMBINED), eq(VehicleSpecification.RatingSource.EPA)
         )).thenReturn(false);
         when(vehicleSpecificationRepository.save(any(VehicleSpecification.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
@@ -308,15 +308,15 @@ class VehicleSpecificationServiceTest {
         BigDecimal capacity = new BigDecimal("75.0");
 
         VehicleSpecificationRequest request = new VehicleSpecificationRequest(
-                brand, model, capacity,
+                brand, model, capacity, null,
                 new BigDecimal("531.1"),
                 new BigDecimal("15.54"),
-                "EPA"
+                "EPA", null
         );
 
         // EPA does NOT exist (WLTP does, but we don't check for it)
-        when(vehicleSpecificationRepository.existsByCarBrandAndModelAndCapacityAndTypeAndSource(
-                brand, model, capacity, VehicleSpecification.WltpType.COMBINED, VehicleSpecification.RatingSource.EPA
+        when(vehicleSpecificationRepository.existsByCarBrandAndModelAndCapacityAndVariantNameAndTypeAndSource(
+                eq(brand), eq(model), eq(capacity), any(), eq(VehicleSpecification.WltpType.COMBINED), eq(VehicleSpecification.RatingSource.EPA)
         )).thenReturn(false);
         when(vehicleSpecificationRepository.save(any(VehicleSpecification.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
@@ -329,13 +329,13 @@ class VehicleSpecificationServiceTest {
     void shouldDefaultToWltp_WhenRatingSourceMissing() {
         // Given: request without ratingSource (backward compat - old frontend)
         VehicleSpecificationRequest request = new VehicleSpecificationRequest(
-                "TESLA", "MODEL_3", new BigDecimal("75.0"),
+                "TESLA", "MODEL_3", new BigDecimal("75.0"), null,
                 new BigDecimal("450.0"), new BigDecimal("16.5"),
-                null  // no ratingSource
+                null, null  // no ratingSource
         );
 
-        when(vehicleSpecificationRepository.existsByCarBrandAndModelAndCapacityAndTypeAndSource(
-                any(), any(), any(), any(), eq(VehicleSpecification.RatingSource.WLTP)
+        when(vehicleSpecificationRepository.existsByCarBrandAndModelAndCapacityAndVariantNameAndTypeAndSource(
+                any(), any(), any(), any(), any(), eq(VehicleSpecification.RatingSource.WLTP)
         )).thenReturn(false);
         when(vehicleSpecificationRepository.save(any(VehicleSpecification.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
@@ -353,13 +353,13 @@ class VehicleSpecificationServiceTest {
     void shouldRejectDuplicateEpaData() {
         // Given: EPA entry already exists
         VehicleSpecificationRequest request = new VehicleSpecificationRequest(
-                "TESLA", "MODEL_3", new BigDecimal("75.0"),
+                "TESLA", "MODEL_3", new BigDecimal("75.0"), null,
                 new BigDecimal("531.1"), new BigDecimal("15.54"),
-                "EPA"
+                "EPA", null
         );
 
-        when(vehicleSpecificationRepository.existsByCarBrandAndModelAndCapacityAndTypeAndSource(
-                any(), any(), any(), any(), eq(VehicleSpecification.RatingSource.EPA)
+        when(vehicleSpecificationRepository.existsByCarBrandAndModelAndCapacityAndVariantNameAndTypeAndSource(
+                any(), any(), any(), any(), any(), eq(VehicleSpecification.RatingSource.EPA)
         )).thenReturn(true);
 
         // When & Then
@@ -373,9 +373,9 @@ class VehicleSpecificationServiceTest {
     void shouldRejectInvalidRatingSource() {
         // Given: unknown rating source
         VehicleSpecificationRequest request = new VehicleSpecificationRequest(
-                "TESLA", "MODEL_3", new BigDecimal("75.0"),
+                "TESLA", "MODEL_3", new BigDecimal("75.0"), null,
                 new BigDecimal("450.0"), new BigDecimal("16.5"),
-                "CLTC"  // not yet supported
+                "CLTC", null  // not yet supported
         );
 
         // When & Then
