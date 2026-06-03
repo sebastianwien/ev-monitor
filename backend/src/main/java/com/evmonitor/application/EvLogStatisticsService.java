@@ -33,6 +33,7 @@ public class EvLogStatisticsService {
     private final EvLogRepository evLogRepository;
     private final CarRepository carRepository;
     private final UserRepository userRepository;
+    private final VehicleSpecificationRepository vehicleSpecificationRepository;
     private final ConsumptionCalculationService calculationService;
     private final PlausibilityProperties plausibility;
     private final FixedCostService fixedCostService;
@@ -736,5 +737,115 @@ public class EvLogStatisticsService {
             }
         }
         return new EvLogStatisticsResponse.ChargingEfficiencySplit(gridKwh, vehicleKwh, covered, logs.size());
+    }
+
+    public PeerModelComparisonResponse getPeerModelComparison(Car userCar, User user) {
+        if (userCar.getVehicleSpecificationId() == null) {
+            return new PeerModelComparisonResponse(List.of());
+        }
+
+        VehicleSpecification userSpec = vehicleSpecificationRepository.findById(userCar.getVehicleSpecificationId())
+                .orElseThrow(() -> new IllegalArgumentException("Vehicle spec not found"));
+
+        // 1. Hol alle specs mit dem gleichen car_model
+        List<VehicleSpecification> allSpecsOfModel = vehicleSpecificationRepository
+                .findByCarModelOrderByBatteryCapacityKwhAsc(userSpec.getCarModel());
+
+        List<PeerModelComparisonItem> items = new ArrayList<>();
+
+        // 2. Für jede spec: aggregiere logs
+        for (VehicleSpecification spec : allSpecsOfModel) {
+            // Alle cars mit dieser spec (außer des Users)
+            List<Car> peerCars = carRepository.findAllByVehicleSpecificationId(spec.getId()).stream()
+                    .filter(c -> !c.getUserId().equals(user.getId()))
+                    .toList();
+
+            // Peer-Metriken (auch wenn leer)
+            BigDecimal peerConsumption = null;
+            BigDecimal peerCostPerKwh = null;
+            int peerCarCount = 0;
+
+            if (!peerCars.isEmpty()) {
+                CommunityConsumptionResult consumption = calculateCommunityAvgConsumption(peerCars, false);
+                peerConsumption = consumption.value();
+
+                // Cost-Berechnung (analog zu buildPeerBenchmark)
+                peerCostPerKwh = calculateAvgCostPerKwhForCars(peerCars);
+                peerCarCount = peerCars.size();
+            }
+
+            // User-Metriken (nur wenn es die user spec ist)
+            UserMetrics userMetrics = null;
+            if (spec.getId().equals(userSpec.getId())) {
+                // Hol alle logs des users für dieses auto
+                List<EvLog> userLogs = evLogRepository.findAllByCarId(userCar.getId());
+                List<EvLog> statsLogs = userLogs.stream()
+                        .filter(l -> l.isIncludeInStatistics())
+                        .toList();
+
+                BigDecimal userConsumption = null;
+                if (!statsLogs.isEmpty()) {
+                    List<PlausibleEntry> entries = getPlausibleEntriesForCar(userCar, userLogs, statsLogs);
+                    if (!entries.isEmpty()) {
+                        BigDecimal weighted = BigDecimal.ZERO;
+                        int totalDist = 0;
+                        for (PlausibleEntry e : entries) {
+                            weighted = weighted.add(e.consumptionKwhPer100km().multiply(BigDecimal.valueOf(e.distanceKm())));
+                            totalDist += e.distanceKm();
+                        }
+                        userConsumption = ConsumptionMath.weightedAverage(weighted, totalDist);
+                    }
+                }
+
+                BigDecimal userCostPerKwh = null;
+                BigDecimal totalCost = BigDecimal.ZERO;
+                BigDecimal totalKwh = BigDecimal.ZERO;
+                for (EvLog log : statsLogs) {
+                    if (log.getCostEur() == null) continue;
+                    BigDecimal kwh = calculationService.gridSideKwhEstimate(log);
+                    if (kwh == null || kwh.compareTo(BigDecimal.ZERO) <= 0) continue;
+                    totalCost = totalCost.add(log.getCostEur());
+                    totalKwh = totalKwh.add(kwh);
+                }
+                if (totalKwh.compareTo(BigDecimal.ZERO) > 0) {
+                    userCostPerKwh = totalCost.divide(totalKwh, 4, RoundingMode.HALF_UP);
+                }
+
+                userMetrics = new UserMetrics(userConsumption, userCostPerKwh);
+            }
+
+            items.add(new PeerModelComparisonItem(
+                    spec.getId(),
+                    spec.getVariantName() + " (" + spec.getBatteryCapacityKwh() + "kWh)",
+                    spec.getId().equals(userSpec.getId()),
+                    userMetrics,
+                    new PeerMetrics(peerConsumption, peerCostPerKwh, peerCarCount)
+            ));
+        }
+
+        return new PeerModelComparisonResponse(items);
+    }
+
+    private BigDecimal calculateAvgCostPerKwhForCars(List<Car> cars) {
+        List<UUID> carIds = cars.stream().map(Car::getId).toList();
+        List<EvLog> allLogs = evLogRepository.findAllByCarIds(carIds);
+
+        BigDecimal totalCost = BigDecimal.ZERO;
+        BigDecimal totalKwh = BigDecimal.ZERO;
+
+        for (EvLog log : allLogs) {
+            if (!log.isIncludeInStatistics()) continue;
+            if (log.getCostEur() == null) continue;
+            BigDecimal kwh = calculationService.gridSideKwhEstimate(log);
+            if (kwh == null || kwh.compareTo(BigDecimal.ZERO) <= 0) continue;
+            totalCost = totalCost.add(log.getCostEur());
+            totalKwh = totalKwh.add(kwh);
+        }
+
+        if (totalKwh.compareTo(BigDecimal.ZERO) > 0) {
+            return totalCost.divide(totalKwh, 4, RoundingMode.HALF_UP);
+        }
+
+        return null;
     }
 }

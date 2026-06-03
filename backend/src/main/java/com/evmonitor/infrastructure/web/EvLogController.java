@@ -8,6 +8,10 @@ import com.evmonitor.application.EvLogStatisticsService;
 import com.evmonitor.application.EvLogUpdateRequest;
 import com.evmonitor.application.EvLogService;
 import com.evmonitor.application.GeohashResponse;
+import com.evmonitor.application.PeerModelComparisonResponse;
+import com.evmonitor.domain.CarRepository;
+import com.evmonitor.domain.User;
+import com.evmonitor.domain.Car;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +32,7 @@ public class EvLogController {
 
     private final EvLogService evLogService;
     private final EvLogStatisticsService evLogStatisticsService;
+    private final CarRepository carRepository;
 
 
     @PostMapping
@@ -272,5 +277,28 @@ public class EvLogController {
                 groupBy
         );
         return ResponseEntity.ok(stats);
+    }
+
+    /**
+     * GET /api/logs/{carId}/peer-model-comparison
+     * Returns peer comparison grouped by vehicle specification for the same car model.
+     * User must own the car.
+     */
+    @GetMapping("/{carId}/peer-model-comparison")
+    public ResponseEntity<PeerModelComparisonResponse> getPeerModelComparison(
+            @PathVariable UUID carId,
+            Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        User user = principal.getUser();
+
+        // Fetch car and validate ownership
+        Car car = carRepository.findById(carId)
+                .orElseThrow(() -> new IllegalArgumentException("Car not found"));
+        if (!car.getUserId().equals(user.getId())) {
+            throw new IllegalArgumentException("Car does not belong to user");
+        }
+
+        PeerModelComparisonResponse response = evLogStatisticsService.getPeerModelComparison(car, user);
+        return ResponseEntity.ok(response);
     }
 }

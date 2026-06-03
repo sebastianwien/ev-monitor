@@ -148,4 +148,11 @@ public class PostgresVehicleSpecificationRepositoryImpl implements VehicleSpecif
                 entity.getChargingEfficiencyAc()
         );
     }
+
+    @Override
+    public List<VehicleSpecification> findByCarModelOrderByBatteryCapacityKwhAsc(String carModel) {
+        return jpaRepository.findByCarModelOrderByBatteryCapacityKwhAsc(carModel).stream()
+                .map(this::toDomain)
+                .toList();
+    }
 }

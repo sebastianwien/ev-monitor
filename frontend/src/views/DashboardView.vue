@@ -37,6 +37,7 @@ import { useAuthStore } from '../stores/auth'
 import { analytics } from '../services/analytics'
 import ImplausibleLogsModal from '../components/dashboard/ImplausibleLogsModal.vue'
 import PeerBenchmarkCard from '../components/dashboard/PeerBenchmarkCard.vue'
+import PeerModelComparisonCard from '../components/dashboard/PeerModelComparisonCard.vue'
 import WltpComparisonCard from '../components/dashboard/WltpComparisonCard.vue'
 import RangeCard from '../components/dashboard/RangeCard.vue'
 import LiveChargingCard from '../components/dashboard/LiveChargingCard.vue'
@@ -946,7 +947,13 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
           :location-split="stats.locationSplit"
         />
 
-        <!-- Peer Benchmark -->
+        <!-- TEMP: Peer Model Comparison (Prototype) -->
+        <PeerModelComparisonCard
+          v-if="stats?.peerBenchmark && stats.peerBenchmark.peerAvgConsumptionKwhPer100km != null"
+          :car-display-name="selectedCar ? [carDisplayName(selectedCar.brand, selectedCar.model), selectedCar.trim].filter(Boolean).join(' ') : ''"
+        />
+
+        <!-- Peer Benchmark (old) — können wir später löschen -->
         <PeerBenchmarkCard
           v-if="stats?.peerBenchmark && stats.peerBenchmark.peerAvgConsumptionKwhPer100km != null"
           :benchmark="stats.peerBenchmark"

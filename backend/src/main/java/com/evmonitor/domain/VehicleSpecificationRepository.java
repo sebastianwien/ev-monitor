@@ -1,6 +1,7 @@
 package com.evmonitor.domain;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -8,6 +9,8 @@ public interface VehicleSpecificationRepository {
     VehicleSpecification save(VehicleSpecification vehicleSpecification);
 
     Optional<VehicleSpecification> findById(UUID id);
+
+    List<VehicleSpecification> findByCarModelOrderByBatteryCapacityKwhAsc(String carModel);
 
     Optional<VehicleSpecification> findByCarBrandAndModelAndCapacityAndType(
         String carBrand,
