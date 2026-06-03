@@ -512,6 +512,7 @@ dashboard:
   vwgroup_connected: Ansluten
   real_range_title: Din verkliga räckvidd
   peer_benchmark_title: i jämförelse
+  peer_compact_title: "Snabbjämförelse: Du vs. Community"
   peer_you: "Du"
   peer_community: "Community snitt"
   peer_trips: resor

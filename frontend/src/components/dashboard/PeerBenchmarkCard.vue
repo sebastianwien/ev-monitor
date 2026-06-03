@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { UsersIcon, InformationCircleIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
+import { InformationCircleIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
 import { useSlideTransition } from '../../composables/useSlideTransition'
 
 const { onEnter, onAfterEnter, onLeave, onAfterLeave } = useSlideTransition()
@@ -17,7 +17,7 @@ import type { PeerBenchmark } from '../../composables/useDashboardStats'
 const props = defineProps<{
   benchmark: PeerBenchmark
   effectiveBatteryKwh: number | null
-  carDisplayName: string
+  carModel: string
 }>()
 
 const { t } = useI18n()
@@ -131,25 +131,17 @@ function formatCostPer100km(val: number | null | undefined): string {
         class="sm:hidden w-full px-4 py-3 flex items-center justify-between">
         <div class="w-6 shrink-0"></div>
         <div class="flex-1 flex flex-col items-center text-center min-w-0">
-          <p class="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">{{ carDisplayName }} {{ t('dashboard.peer_benchmark_title') }}</p>
-          <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 flex items-center gap-1">
-            <UsersIcon class="w-3.5 h-3.5 shrink-0" />
-            {{ benchmark.uniquePeerUsers }} {{ t('dashboard.peer_drivers') }} · {{ benchmark.peerTripCount }} {{ t('dashboard.peer_trips') }}
-          </p>
+          <p class="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">{{ t('dashboard.peer_compact_title') }}</p>
+          <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ benchmark.uniquePeerUsers }} {{ carModel }} {{ t('dashboard.peer_drivers') }}</p>
         </div>
         <ChevronDownIcon
           class="w-4 h-4 text-gray-400 shrink-0 ml-2 transition-transform duration-200"
           :class="{ 'rotate-180': !collapsed }" />
       </button>
       <!-- sm+ -->
-      <div class="hidden sm:flex relative items-center px-4 py-3">
-        <p class="absolute inset-0 flex items-center justify-center text-sm font-semibold text-gray-800 dark:text-gray-200 pointer-events-none">
-          {{ carDisplayName }} {{ t('dashboard.peer_benchmark_title') }}
-        </p>
-        <div class="ml-auto flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 shrink-0 relative">
-          <UsersIcon class="w-3.5 h-3.5" />
-          <span>{{ benchmark.uniquePeerUsers }} {{ t('dashboard.peer_drivers') }} · {{ benchmark.peerTripCount }} {{ t('dashboard.peer_trips') }}</span>
-        </div>
+      <div class="hidden sm:flex flex-col items-center justify-center px-4 py-3">
+        <p class="text-sm font-semibold text-gray-800 dark:text-gray-200 text-center">{{ t('dashboard.peer_compact_title') }}</p>
+        <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ benchmark.uniquePeerUsers }} {{ carModel }} {{ t('dashboard.peer_drivers') }}</p>
       </div>
     </div>
 

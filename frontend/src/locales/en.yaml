@@ -552,6 +552,7 @@ dashboard:
   vwgroup_connected: "Connected"
   real_range_title: "Your real range"
   peer_benchmark_title: "in comparison"
+  peer_compact_title: "Quick comparison: You vs. Community"
   peer_you: "You"
   peer_community: "Community avg"
   peer_trips: "trips"

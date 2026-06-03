@@ -55,7 +55,7 @@ import { useDashboardCharts } from '../composables/useDashboardCharts'
 import { useLogList } from '../composables/useLogList'
 import { useStickyCarHeader } from '../composables/useStickyCarHeader'
 import { useWallboxStore } from '../stores/wallbox'
-import { carDisplayName } from '../utils/enumLabel'
+import { carDisplayName, enumToLabel } from '../utils/enumLabel'
 import { isVwGroupBrand } from '../api/vwGroupService'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend, Filler, ChartDataLabels)
@@ -928,15 +928,6 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
           class="mb-3"
         />
 
-        <!-- Peer Model Comparison: Volle Breite -->
-        <PeerModelComparisonCard
-          v-if="selectedCarId && stats?.peerBenchmark && stats.peerBenchmark.peerAvgConsumptionKwhPer100km != null"
-          :car-id="selectedCarId"
-          :car-display-name="selectedCar ? [carDisplayName(selectedCar.brand, selectedCar.model), selectedCar.trim].filter(Boolean).join(' ') : ''"
-          :car-brand-model="selectedCar ? carDisplayName(selectedCar.brand, selectedCar.model) : ''"
-          class="mb-4"
-        />
-
         <!-- Echte Reichweite + Peer Benchmark: mobile gestackt, desktop nebeneinander -->
         <div class="mb-0 grid grid-cols-1 md:grid-cols-3 gap-4">
 
@@ -961,7 +952,7 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
           v-if="stats?.peerBenchmark && stats.peerBenchmark.peerAvgConsumptionKwhPer100km != null"
           :benchmark="stats.peerBenchmark"
           :effective-battery-kwh="selectedCar?.effectiveBatteryCapacityKwh ?? null"
-          :car-display-name="selectedCar ? [carDisplayName(selectedCar.brand, selectedCar.model), selectedCar.trim].filter(Boolean).join(' ') : ''"
+          :car-model="enumToLabel(selectedCar?.model)"
         />
 
         <!-- WLTP-Vergleich (Fallback wenn keine Peer-Daten aber WLTP vorhanden) -->
@@ -1018,6 +1009,14 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
           />
         </div>
 
+        <!-- Peer Model Comparison: Volle Breite -->
+        <PeerModelComparisonCard
+          v-if="selectedCarId && stats?.peerBenchmark && stats.peerBenchmark.peerAvgConsumptionKwhPer100km != null"
+          :car-id="selectedCarId"
+          :car-display-name="selectedCar ? [carDisplayName(selectedCar.brand, selectedCar.model), selectedCar.trim].filter(Boolean).join(' ') : ''"
+          :car-brand-model="selectedCar ? carDisplayName(selectedCar.brand, selectedCar.model) : ''"
+          class="mb-4"
+        />
 
         <!-- Chart 1: Charging & Costs -->
         <div class="border-t border-gray-100 dark:border-gray-700 pt-6">

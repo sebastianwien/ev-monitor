@@ -552,6 +552,7 @@ dashboard:
   vwgroup_connected: "Verbunden"
   real_range_title: "Deine echte Reichweite"
   peer_benchmark_title: "im Vergleich"
+  peer_compact_title: "Kompaktvergleich: Du vs. Community"
   peer_you: "Du"
   peer_community: "Community Ø"
   peer_trips: "Fahrten"
