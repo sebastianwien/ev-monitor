@@ -12,6 +12,7 @@ record PeerModelComparisonItem(
         UUID vehicleSpecificationId,
         String displayName,
         boolean isUserVehicleSpec,
+        BigDecimal netBatteryCapacityKwh,
         UserMetrics userMetrics,  // null wenn nicht die user spec
         PeerMetrics peerMetrics
 ) {}

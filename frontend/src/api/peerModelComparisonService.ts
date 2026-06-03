@@ -4,6 +4,7 @@ export interface PeerModelComparisonItem {
   vehicleSpecificationId: string
   displayName: string
   isUserVehicleSpec: boolean
+  netBatteryCapacityKwh: number | null
   userMetrics: UserMetrics | null
   peerMetrics: PeerMetrics
 }

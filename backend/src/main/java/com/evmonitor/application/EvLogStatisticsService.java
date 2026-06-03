@@ -825,6 +825,7 @@ public class EvLogStatisticsService {
                     spec.getId(),
                     spec.getVariantName() + " (" + spec.getBatteryCapacityKwh() + "kWh)",
                     isUserSpec,
+                    spec.getNetBatteryCapacityKwh(),
                     userMetrics,
                     new PeerMetrics(peerConsumption, peerCostPerKwh, peerCarCount)
             ));

@@ -933,6 +933,7 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
           v-if="selectedCarId && stats?.peerBenchmark && stats.peerBenchmark.peerAvgConsumptionKwhPer100km != null"
           :car-id="selectedCarId"
           :car-display-name="selectedCar ? [carDisplayName(selectedCar.brand, selectedCar.model), selectedCar.trim].filter(Boolean).join(' ') : ''"
+          :car-brand-model="selectedCar ? carDisplayName(selectedCar.brand, selectedCar.model) : ''"
           class="mb-4"
         />
 

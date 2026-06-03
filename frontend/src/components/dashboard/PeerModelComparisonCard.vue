@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, InformationCircleIcon } from '@heroicons/vue/24/outline'
+import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, UserIcon } from '@heroicons/vue/24/outline'
 import { useSlideTransition } from '../../composables/useSlideTransition'
 import { peerModelComparisonService, type PeerModelComparisonItem } from '../../api/peerModelComparisonService'
 
@@ -19,26 +19,47 @@ const { t } = useI18n()
 const props = defineProps<{
   carId: string
   carDisplayName: string
+  carBrandModel: string
 }>()
 
 const comparisons = ref<PeerModelComparisonItem[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
 const currentCategoryIndex = ref(0)
+const slideDirection = ref('slide-next')
+const hoveredSpecId = ref<string | null>(null)
 
 const categories = [
-  { id: 'consumption', label: t('dashboard.peer_consumption'), unit: 'kWh/100km', color: 'blue' },
-  { id: 'costPerKwh', label: t('dashboard.peer_cost_label'), unit: '€/kWh', color: 'purple' },
-  { id: 'costPer100km', label: t('dashboard.peer_cost_per_distance'), unit: '€/100km', color: 'orange' },
+  { id: 'consumption', label: t('dashboard.peer_consumption'), unit: 'kWh/100km', color: 'blue', sortAsc: true },
+  { id: 'costPerKwh', label: t('dashboard.peer_cost_label'), unit: '€/kWh', color: 'purple', sortAsc: true },
+  { id: 'costPer100km', label: t('dashboard.peer_cost_per_distance'), unit: '€/100km', color: 'orange', sortAsc: true },
+  { id: 'range', label: t('dashboard.peer_range'), unit: 'km (Nettokapazität)', color: 'green', sortAsc: false },
 ]
 
 const currentCategory = computed(() => categories[currentCategoryIndex.value])
 
+const visibleComparisons = computed(() =>
+  comparisons.value
+    .filter(item => {
+      if (item.isUserVehicleSpec) return true
+      return getPeerMetricValue(item, currentCategory.value.id) !== null
+    })
+    .sort((a, b) => {
+      const aVal = a.isUserVehicleSpec ? getUserMetricValue(a, currentCategory.value.id) : getPeerMetricValue(a, currentCategory.value.id)
+      const bVal = b.isUserVehicleSpec ? getUserMetricValue(b, currentCategory.value.id) : getPeerMetricValue(b, currentCategory.value.id)
+      if (aVal === null) return 1
+      if (bVal === null) return -1
+      return currentCategory.value.sortAsc ? aVal - bVal : bVal - aVal
+    })
+)
+
 function nextCategory() {
+  slideDirection.value = 'slide-next'
   currentCategoryIndex.value = (currentCategoryIndex.value + 1) % categories.length
 }
 
 function prevCategory() {
+  slideDirection.value = 'slide-prev'
   currentCategoryIndex.value = (currentCategoryIndex.value - 1 + categories.length) % categories.length
 }
 
@@ -63,8 +84,12 @@ function getPeerMetricValue(item: PeerModelComparisonItem, category: string): nu
     case 'costPerKwh':
       return item.peerMetrics.avgCostPerKwh
     case 'costPer100km':
-      return item.userMetrics?.costPerKwh && item.peerMetrics.avgCostPerKwh
-        ? item.peerMetrics.avgCostPerKwh * (item.peerMetrics.avgConsumptionKwhPer100km || 0)
+      return item.peerMetrics.avgCostPerKwh != null && item.peerMetrics.avgConsumptionKwhPer100km != null
+        ? item.peerMetrics.avgCostPerKwh * item.peerMetrics.avgConsumptionKwhPer100km
+        : null
+    case 'range':
+      return item.netBatteryCapacityKwh != null && item.peerMetrics.avgConsumptionKwhPer100km != null && item.peerMetrics.avgConsumptionKwhPer100km > 0
+        ? (item.netBatteryCapacityKwh * 0.8 / item.peerMetrics.avgConsumptionKwhPer100km) * 100
         : null
     default:
       return null
@@ -79,8 +104,12 @@ function getUserMetricValue(item: PeerModelComparisonItem, category: string): nu
     case 'costPerKwh':
       return item.userMetrics.costPerKwh
     case 'costPer100km':
-      return item.userMetrics.costPerKwh && item.userMetrics.consumptionKwhPer100km
+      return item.userMetrics.costPerKwh != null && item.userMetrics.consumptionKwhPer100km != null
         ? item.userMetrics.costPerKwh * item.userMetrics.consumptionKwhPer100km
+        : null
+    case 'range':
+      return item.netBatteryCapacityKwh != null && item.userMetrics.consumptionKwhPer100km != null && item.userMetrics.consumptionKwhPer100km > 0
+        ? (item.netBatteryCapacityKwh * 0.8 / item.userMetrics.consumptionKwhPer100km) * 100
         : null
     default:
       return null
@@ -103,9 +132,27 @@ function getBarWidth(value: number | null, maxValue: number): number {
   return Math.min((value / maxValue) * 100, 100)
 }
 
-function formatValue(value: number | null, decimals: number = 1): string {
+function getItemValue(item: PeerModelComparisonItem, categoryId: string): number | null {
+  return item.isUserVehicleSpec
+    ? getUserMetricValue(item, categoryId)
+    : getPeerMetricValue(item, categoryId)
+}
+
+function getRelativePercent(item: PeerModelComparisonItem): string | null {
+  if (!hoveredSpecId.value) return null
+  const hoveredItem = visibleComparisons.value.find(i => i.vehicleSpecificationId === hoveredSpecId.value)
+  if (!hoveredItem) return null
+  const refVal = getItemValue(hoveredItem, currentCategory.value.id)
+  const ownVal = getItemValue(item, currentCategory.value.id)
+  if (refVal === null || ownVal === null || refVal === 0) return null
+  if (item.vehicleSpecificationId === hoveredSpecId.value) return 'Referenz'
+  const diff = Math.round((ownVal - refVal) / refVal * 100)
+  return diff > 0 ? `+${diff}%` : `${diff}%`
+}
+
+function formatValue(value: number | null): string {
   if (value === null) return '—'
-  return value.toFixed(decimals)
+  return (Math.trunc(value * 100) / 100).toString()
 }
 </script>
 
@@ -119,8 +166,8 @@ function formatValue(value: number | null, decimals: number = 1): string {
         class="sm:hidden w-full px-3 py-2.5 flex items-center justify-between">
         <div class="w-6 shrink-0"></div>
         <div class="flex-1 flex flex-col items-center text-center min-w-0">
-          <p class="text-xs font-semibold text-gray-800 dark:text-gray-200">{{ carDisplayName }} ({{ comparisons.length }})</p>
-          <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ currentCategory.label }}</p>
+          <p class="text-xs font-semibold text-gray-800 dark:text-gray-200">Dein {{ carBrandModel }} im Vergleich</p>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ visibleComparisons.length }} Varianten · gesamter Zeitraum · {{ currentCategory.label }}</p>
         </div>
         <ChevronDownIcon
           class="w-4 h-4 text-gray-400 shrink-0 ml-2 transition-transform duration-200"
@@ -134,8 +181,8 @@ function formatValue(value: number | null, decimals: number = 1): string {
         </button>
 
         <div class="flex-1 text-center">
-          <p class="text-sm font-semibold text-gray-800 dark:text-gray-200">{{ carDisplayName }}</p>
-          <p class="text-xs text-gray-400 dark:text-gray-500">{{ comparisons.length }} Varianten</p>
+          <p class="text-sm font-semibold text-gray-800 dark:text-gray-200">Dein {{ carBrandModel }} im Vergleich</p>
+          <p class="text-xs text-gray-400 dark:text-gray-500">{{ visibleComparisons.length }} Varianten · gesamter Zeitraum</p>
         </div>
 
         <div class="flex items-center gap-3">
@@ -166,70 +213,96 @@ function formatValue(value: number | null, decimals: number = 1): string {
     </div>
 
     <!-- Empty state -->
-    <div v-else-if="comparisons.length === 0" class="p-4 text-center text-xs text-gray-500 dark:text-gray-400">
+    <div v-else-if="visibleComparisons.length === 0" class="p-4 text-center text-xs text-gray-500 dark:text-gray-400">
       <p>Keine Vergleichsdaten verfügbar</p>
     </div>
 
     <!-- Category Carousel -->
-    <div v-else class="flex flex-col">
+    <div v-else-if="comparisons.length > 0" class="flex flex-col">
 
-      <!-- Vertical Bars Chart -->
-      <div class="p-6 overflow-x-auto">
-        <div class="flex items-end gap-4 h-72" style="min-width: min-content;">
-          <div v-for="item in comparisons" :key="item.vehicleSpecificationId" class="flex flex-col items-center gap-2 flex-shrink-0">
-            <!-- Bar Container -->
-            <div class="relative flex flex-col items-center justify-end h-full">
-              <!-- Y-Axis Guide Lines (light) -->
-              <div class="absolute inset-0 flex flex-col-reverse pointer-events-none opacity-20">
-                <div v-for="i in 5" :key="i" class="flex-1 border-t border-gray-300 dark:border-gray-500"></div>
-              </div>
+      <!-- Horizontal Bars Chart -->
+      <Transition :name="slideDirection" mode="out-in">
+      <div :key="currentCategoryIndex" class="p-6 space-y-3">
+        <div v-for="item in visibleComparisons" :key="item.vehicleSpecificationId"
+          class="flex items-center gap-2"
+          @mouseenter="hoveredSpecId = item.vehicleSpecificationId"
+          @mouseleave="hoveredSpecId = null">
+          <!-- Bar Container -->
+          <div class="flex-1 flex items-center gap-2">
+            <!-- Horizontal Bar Track -->
+            <div class="flex-1 h-7 bg-gray-100 dark:bg-gray-600 rounded relative flex items-center">
+              <!-- Balken-Bereich: reduziert, Zahlen haben rechts immer Platz -->
+              <div class="h-full relative" style="width: calc(100% - 3rem)">
+                <!-- Split-Bar für user spec -->
+                <div v-if="item.isUserVehicleSpec && getUserMetricValue(item, currentCategory.id) !== null"
+                  class="h-full rounded absolute inset-y-0 left-0 transition-opacity duration-150"
+                  :class="{ 'opacity-50': hoveredSpecId && item.vehicleSpecificationId !== hoveredSpecId }"
+                  :style="{
+                    width: getBarWidth(Math.max(getUserMetricValue(item, currentCategory.id)!, getPeerMetricValue(item, currentCategory.id) || 0), getMaxValue(currentCategory.id)) + '%',
+                    background: `linear-gradient(90deg, rgb(59, 130, 246) 0%, rgb(59, 130, 246) ${getUserMetricValue(item, currentCategory.id)! / Math.max((getUserMetricValue(item, currentCategory.id) || 0), (getPeerMetricValue(item, currentCategory.id) || 0)) * 100}%, rgb(156, 163, 175) ${getUserMetricValue(item, currentCategory.id)! / Math.max((getUserMetricValue(item, currentCategory.id) || 0), (getPeerMetricValue(item, currentCategory.id) || 0)) * 100}%, rgb(156, 163, 175) 100%)`
+                  }">
+                </div>
 
-              <!-- Split-Bar für user spec -->
-              <div v-if="item.isUserVehicleSpec && getUserMetricValue(item, currentCategory.id) !== null"
-                class="relative rounded-t"
-                :style="{
-                  width: '32px',
-                  height: getBarWidth(getUserMetricValue(item, currentCategory.id)!, getMaxValue(currentCategory.id)) * 2.5 + 'px',
-                  background: `linear-gradient(180deg, rgb(59, 130, 246) 0%, rgb(59, 130, 246) ${getUserMetricValue(item, currentCategory.id)! / ((getUserMetricValue(item, currentCategory.id) || 0) + (getPeerMetricValue(item, currentCategory.id) || 0)) * 100}%, rgb(156, 163, 175) ${getUserMetricValue(item, currentCategory.id)! / ((getUserMetricValue(item, currentCategory.id) || 0) + (getPeerMetricValue(item, currentCategory.id) || 0)) * 100}%, rgb(156, 163, 175) 100%)`
-                }">
-              </div>
-              <!-- Regular bar für peers -->
-              <div v-else
-                class="rounded-t bg-gray-400 dark:bg-gray-500"
-                :style="{
-                  width: '32px',
-                  height: getBarWidth(getPeerMetricValue(item, currentCategory.id), getMaxValue(currentCategory.id)) * 2.5 + 'px'
-                }">
-              </div>
-            </div>
+                <!-- Regular bar für peers -->
+                <div v-else
+                  class="h-full rounded absolute inset-y-0 left-0 bg-gray-400 dark:bg-gray-500 transition-opacity duration-150"
+                  :class="{ 'opacity-50': hoveredSpecId && item.vehicleSpecificationId !== hoveredSpecId }"
+                  :style="{ width: getBarWidth(getPeerMetricValue(item, currentCategory.id), getMaxValue(currentCategory.id)) + '%' }">
+                </div>
 
-            <!-- Value + Model Name -->
-            <div class="text-center">
-              <p class="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                {{ formatValue(getPeerMetricValue(item, currentCategory.id), 1) }}
-              </p>
-              <p class="text-xs font-medium text-gray-600 dark:text-gray-400 mt-1 w-32 truncate">
-                {{ item.displayName }}
-              </p>
-              <p class="text-xs text-gray-400 dark:text-gray-500">
-                {{ item.peerMetrics.uniqueCars }} F.
-              </p>
+                <!-- Prozent-Badge (außerhalb der Balken, nicht gedimmt) -->
+                <span v-if="hoveredSpecId"
+                  class="hidden sm:flex items-center absolute top-1/2 -translate-y-1/2 -translate-x-full text-xs font-bold tabular-nums text-gray-900 dark:text-white z-10"
+                  :style="{ left: `calc(${getBarWidth(item.isUserVehicleSpec && getUserMetricValue(item, currentCategory.id) !== null ? Math.max(getUserMetricValue(item, currentCategory.id)!, getPeerMetricValue(item, currentCategory.id) || 0) : (getPeerMetricValue(item, currentCategory.id) ?? 0), getMaxValue(currentCategory.id))}% - 0.5rem)` }">
+                  {{ getRelativePercent(item) }}
+                </span>
+
+                <!-- Zahl am Ende des Balkens -->
+                <span
+                  class="absolute top-1/2 -translate-y-1/2 pl-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 tabular-nums"
+                  :style="{ left: getBarWidth(item.isUserVehicleSpec && getUserMetricValue(item, currentCategory.id) !== null ? Math.max(getUserMetricValue(item, currentCategory.id)!, getPeerMetricValue(item, currentCategory.id) || 0) : (getPeerMetricValue(item, currentCategory.id) ?? 0), getMaxValue(currentCategory.id)) + '%' }">
+                  {{ item.isUserVehicleSpec
+                    ? formatValue(getUserMetricValue(item, currentCategory.id))
+                    : formatValue(getPeerMetricValue(item, currentCategory.id)) }}
+                </span>
+
+                <!-- Model name + icon (absolute overlay) -->
+                <div class="absolute inset-0 flex items-center px-2 pointer-events-none">
+                  <p class="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">{{ item.displayName }}</p>
+                  <div class="flex items-center gap-0.5 flex-shrink-0 ml-1">
+                    <UserIcon class="w-3 h-3 text-gray-600 dark:text-gray-400" />
+                    <span class="text-xs font-medium text-gray-700 dark:text-gray-300">{{ item.peerMetrics.uniqueCars }}</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
+      </Transition>
     </div>
 
     </div>
     </Transition>
 
-    <!-- Footer: Erklärung -->
-    <div class="px-4 py-2.5 border-t border-gray-100 dark:border-gray-600 flex items-center gap-2">
-      <InformationCircleIcon class="w-3.5 h-3.5 text-blue-400 shrink-0" />
-      <p class="text-xs text-gray-400 dark:text-gray-500">
-        Farbig: deine Performance · Grau: Durchschnitt anderer Fahrer
-      </p>
-    </div>
 
   </div>
 </template>
+
+<style scoped>
+.slide-next-enter-active,
+.slide-next-leave-active,
+.slide-prev-enter-active,
+.slide-prev-leave-active {
+  transition: transform 240ms cubic-bezier(0.4, 0, 0.2, 1), opacity 240ms ease;
+}
+
+.slide-next-enter-from { transform: translateX(40px); opacity: 0; }
+.slide-next-leave-to  { transform: translateX(-40px); opacity: 0; }
+
+.slide-prev-enter-from { transform: translateX(-40px); opacity: 0; }
+.slide-prev-leave-to  { transform: translateX(40px); opacity: 0; }
+
+.fade-enter-active, .fade-leave-active { transition: opacity 120ms ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+</style>
