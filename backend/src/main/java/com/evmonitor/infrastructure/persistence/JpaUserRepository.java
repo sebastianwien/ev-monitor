@@ -39,11 +39,19 @@ public interface JpaUserRepository extends JpaRepository<UserEntity, UUID> {
             WHERE u.email_verified = true
               AND u.email_notifications_enabled = true
               AND u.is_seed_data = false
-              AND (
-                SELECT MAX(e.logged_at)::date
-                FROM ev_log e
-                JOIN car c ON c.id = e.car_id
-                WHERE c.user_id = u.id
+              AND GREATEST(
+                (
+                  SELECT MAX(e.logged_at)::date
+                  FROM ev_log e
+                  JOIN car c ON c.id = e.car_id
+                  WHERE c.user_id = u.id
+                ),
+                (
+                  SELECT MAX(t.trip_ended_at)::date
+                  FROM ev_trip t
+                  WHERE t.user_id = u.id
+                    AND t.deleted_at IS NULL
+                )
               ) = :day
             """, nativeQuery = true)
     List<UserEntity> findUsersWithLastLogOnDay(@Param("day") LocalDate day);
