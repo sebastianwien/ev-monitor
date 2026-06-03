@@ -99,7 +99,8 @@ function fmtKwh(kwh: number): string {
     </div>
 
     <Transition @enter="onEnter" @after-enter="onAfterEnter" @leave="onLeave" @after-leave="onAfterLeave">
-    <div v-show="!collapsed" class="sm:!block flex-1 flex flex-col divide-y divide-gray-100 dark:divide-gray-600">
+    <div v-show="!collapsed" class="sm:!block">
+    <div class="flex-1 flex flex-col divide-y divide-gray-100 dark:divide-gray-600">
 
       <!-- AC / DC -->
       <div class="p-4">
@@ -172,6 +173,7 @@ function fmtKwh(kwh: number): string {
         <div v-else class="text-xs text-gray-400 dark:text-gray-500 text-center py-3">-</div>
       </div>
 
+    </div>
     </div>
     </Transition>
   </div>

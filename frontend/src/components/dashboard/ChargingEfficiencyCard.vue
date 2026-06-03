@@ -51,7 +51,8 @@ function fmt(kwh: number): string {
     </div>
 
     <Transition @enter="onEnter" @after-enter="onAfterEnter" @leave="onLeave" @after-leave="onAfterLeave">
-    <div v-show="!collapsed" class="sm:!block flex-1 p-4 flex flex-col gap-4">
+    <div v-show="!collapsed" class="sm:!block">
+    <div class="flex-1 p-4 flex flex-col gap-4">
 
       <!-- Flow: Netz → Verlust → Batterie -->
       <div class="flex items-center justify-between gap-2">
@@ -92,6 +93,7 @@ function fmt(kwh: number): string {
         {{ t('dashboard.efficiency_partial_hint', { covered: efficiencySplit.coveredLogCount, total: efficiencySplit.totalLogCount }) }}
       </p>
 
+    </div>
     </div>
     </Transition>
   </div>

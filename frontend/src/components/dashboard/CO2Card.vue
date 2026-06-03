@@ -69,7 +69,8 @@ function fmtKg(kg: number): string {
     </div>
 
     <Transition @enter="onEnter" @after-enter="onAfterEnter" @leave="onLeave" @after-leave="onAfterLeave">
-    <div v-show="!collapsed" class="sm:!block flex-1 p-4 flex flex-col gap-3">
+    <div v-show="!collapsed" class="sm:!block">
+    <div class="flex-1 p-4 flex flex-col gap-3">
 
       <!-- Savings highlight -->
       <div class="flex items-baseline justify-center gap-1.5 flex-wrap">
@@ -120,6 +121,7 @@ function fmtKg(kg: number): string {
 
       </div>
 
+    </div>
     </div>
     </Transition>
   </div>
