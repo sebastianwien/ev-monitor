@@ -774,9 +774,9 @@ public class EvLogStatisticsService {
                 peerCarCount = peerCars.size();
             }
 
-            // Skip specs with no peer consumption data (unless it's the user's spec)
+            // Skip specs with no peer data at all (unless it's the user's spec)
             boolean isUserSpec = spec.getId().equals(userSpec.getId());
-            if (!isUserSpec && peerConsumption == null) {
+            if (!isUserSpec && peerConsumption == null && peerCostPerKwh == null) {
                 continue;
             }
 
