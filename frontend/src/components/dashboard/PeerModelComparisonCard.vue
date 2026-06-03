@@ -176,37 +176,48 @@ function formatValue(value: number | null, decimals: number = 1): string {
         </div>
       </div>
 
-      <!-- Bars -->
-      <div class="p-4 space-y-2.5 max-h-96 overflow-y-auto">
-        <div v-for="item in comparisons" :key="item.vehicleSpecificationId" class="flex items-center gap-2">
-          <!-- Model name + peer count -->
-          <div class="w-40 text-xs flex-shrink-0">
-            <p class="font-medium text-gray-700 dark:text-gray-300 truncate">{{ item.displayName }}</p>
-            <p class="text-xs text-gray-400 dark:text-gray-500">{{ item.peerMetrics.uniqueCars }} Fahrer</p>
-          </div>
+      <!-- Vertical Bars Chart -->
+      <div class="p-6 overflow-x-auto">
+        <div class="flex items-end gap-4 h-72" style="min-width: min-content;">
+          <div v-for="item in comparisons" :key="item.vehicleSpecificationId" class="flex flex-col items-center gap-2 flex-shrink-0">
+            <!-- Bar Container -->
+            <div class="relative flex flex-col items-center justify-end h-full">
+              <!-- Y-Axis Guide Lines (light) -->
+              <div class="absolute inset-0 flex flex-col-reverse pointer-events-none opacity-20">
+                <div v-for="i in 5" :key="i" class="flex-1 border-t border-gray-300 dark:border-gray-500"></div>
+              </div>
 
-          <!-- Bar -->
-          <div class="flex-1 flex items-center gap-2 min-w-0">
-            <div class="flex-1 flex items-center gap-1">
-              <!-- Split-bar für user spec -->
+              <!-- Split-Bar für user spec -->
               <div v-if="item.isUserVehicleSpec && getUserMetricValue(item, currentCategory.id) !== null"
-                class="relative h-6 rounded"
+                class="relative rounded-t"
                 :style="{
-                  width: getBarWidth(getUserMetricValue(item, currentCategory.id)!, getMaxValue(currentCategory.id)) + '%',
-                  background: `linear-gradient(90deg, rgb(59, 130, 246) 0%, rgb(59, 130, 246) ${getUserMetricValue(item, currentCategory.id)! / ((getUserMetricValue(item, currentCategory.id) || 0) + (getPeerMetricValue(item, currentCategory.id) || 0)) * 100}%, rgb(156, 163, 175) ${getUserMetricValue(item, currentCategory.id)! / ((getUserMetricValue(item, currentCategory.id) || 0) + (getPeerMetricValue(item, currentCategory.id) || 0)) * 100}%, rgb(156, 163, 175) 100%)`
+                  width: '32px',
+                  height: getBarWidth(getUserMetricValue(item, currentCategory.id)!, getMaxValue(currentCategory.id)) * 2.5 + 'px',
+                  background: `linear-gradient(180deg, rgb(59, 130, 246) 0%, rgb(59, 130, 246) ${getUserMetricValue(item, currentCategory.id)! / ((getUserMetricValue(item, currentCategory.id) || 0) + (getPeerMetricValue(item, currentCategory.id) || 0)) * 100}%, rgb(156, 163, 175) ${getUserMetricValue(item, currentCategory.id)! / ((getUserMetricValue(item, currentCategory.id) || 0) + (getPeerMetricValue(item, currentCategory.id) || 0)) * 100}%, rgb(156, 163, 175) 100%)`
                 }">
               </div>
               <!-- Regular bar für peers -->
               <div v-else
-                class="h-6 bg-gray-300 dark:bg-gray-600 rounded"
-                :style="{ width: getBarWidth(getPeerMetricValue(item, currentCategory.id), getMaxValue(currentCategory.id)) + '%' }">
+                class="rounded-t bg-gray-400 dark:bg-gray-500"
+                :style="{
+                  width: '32px',
+                  height: getBarWidth(getPeerMetricValue(item, currentCategory.id), getMaxValue(currentCategory.id)) * 2.5 + 'px'
+                }">
               </div>
             </div>
 
-            <!-- Value -->
-            <span class="text-xs font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap min-w-max">
-              {{ formatValue(getPeerMetricValue(item, currentCategory.id), 2) }}
-            </span>
+            <!-- Value + Model Name -->
+            <div class="text-center">
+              <p class="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                {{ formatValue(getPeerMetricValue(item, currentCategory.id), 1) }}
+              </p>
+              <p class="text-xs font-medium text-gray-600 dark:text-gray-400 mt-1 w-32 truncate">
+                {{ item.displayName }}
+              </p>
+              <p class="text-xs text-gray-400 dark:text-gray-500">
+                {{ item.peerMetrics.uniqueCars }} F.
+              </p>
+            </div>
           </div>
         </div>
       </div>
