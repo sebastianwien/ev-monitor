@@ -154,6 +154,21 @@ function formatValue(value: number | null): string {
   if (value === null) return '—'
   return (Math.trunc(value * 100) / 100).toString()
 }
+
+function stripKwh(name: string): string {
+  return name.replace(/\s*\(\d+(?:\.\d+)?kWh\)/g, '')
+}
+
+function getDisplayBarWidth(item: PeerModelComparisonItem): number {
+  const catId = currentCategory.value.id
+  if (item.isUserVehicleSpec && getUserMetricValue(item, catId) !== null) {
+    return getBarWidth(
+      Math.max(getUserMetricValue(item, catId)!, getPeerMetricValue(item, catId) || 0),
+      getMaxValue(catId)
+    )
+  }
+  return getBarWidth(getPeerMetricValue(item, catId), getMaxValue(catId))
+}
 </script>
 
 <template>
@@ -161,18 +176,24 @@ function formatValue(value: number | null): string {
 
     <!-- Header + Category Navigation (Combined) -->
     <div class="border-b border-gray-100 dark:border-gray-600">
-      <!-- Mobile: klickbarer Header -->
-      <button @click="toggleCollapsed"
-        class="sm:hidden w-full px-3 py-2.5 flex items-center justify-between">
-        <div class="w-6 shrink-0"></div>
-        <div class="flex-1 flex flex-col items-center text-center min-w-0">
+      <!-- Mobile: Carousel-Navigation + Collapse -->
+      <div class="sm:hidden flex items-center px-2 py-2.5 gap-1">
+        <button @click="prevCategory" class="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600 rounded shrink-0">
+          <ChevronLeftIcon class="w-4 h-4 text-gray-600 dark:text-gray-300" />
+        </button>
+        <button @click="toggleCollapsed" class="flex-1 flex flex-col items-center text-center min-w-0">
           <p class="text-xs font-semibold text-gray-800 dark:text-gray-200">Dein {{ carBrandModel }} im Vergleich</p>
-          <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ visibleComparisons.length }} Varianten · gesamter Zeitraum · {{ currentCategory.label }}</p>
-        </div>
-        <ChevronDownIcon
-          class="w-4 h-4 text-gray-400 shrink-0 ml-2 transition-transform duration-200"
-          :class="{ 'rotate-180': !collapsed }" />
-      </button>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ currentCategory.label }} · {{ currentCategory.unit }} · {{ currentCategoryIndex + 1 }}/{{ categories.length }}</p>
+        </button>
+        <button @click="nextCategory" class="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600 rounded shrink-0">
+          <ChevronRightIcon class="w-4 h-4 text-gray-600 dark:text-gray-300" />
+        </button>
+        <button @click="toggleCollapsed" class="p-1.5 shrink-0">
+          <ChevronDownIcon
+            class="w-4 h-4 text-gray-400 transition-transform duration-200"
+            :class="{ 'rotate-180': !collapsed }" />
+        </button>
+      </div>
 
       <!-- sm+ -->
       <div class="hidden sm:flex items-center justify-between px-4 py-2.5">
@@ -222,61 +243,66 @@ function formatValue(value: number | null): string {
 
       <!-- Horizontal Bars Chart -->
       <Transition :name="slideDirection" mode="out-in">
-      <div :key="currentCategoryIndex" class="p-6 space-y-3">
+      <div :key="currentCategoryIndex" class="px-3 py-4 sm:px-5 space-y-3">
         <div v-for="item in visibleComparisons" :key="item.vehicleSpecificationId"
-          class="flex items-center gap-2"
+          class="flex items-center"
           @mouseenter="hoveredSpecId = item.vehicleSpecificationId"
           @mouseleave="hoveredSpecId = null">
-          <!-- Bar Container -->
-          <div class="flex-1 flex items-center gap-2">
-            <!-- Horizontal Bar Track -->
-            <div class="flex-1 h-7 bg-gray-100 dark:bg-gray-600 rounded relative flex items-center">
-              <!-- Balken-Bereich: reduziert, Zahlen haben rechts immer Platz -->
-              <div class="h-full relative" style="width: calc(100% - 3rem)">
-                <!-- Split-Bar für user spec -->
-                <div v-if="item.isUserVehicleSpec && getUserMetricValue(item, currentCategory.id) !== null"
-                  class="h-full rounded absolute inset-y-0 left-0 transition-opacity duration-150"
-                  :class="{ 'opacity-50': hoveredSpecId && item.vehicleSpecificationId !== hoveredSpecId }"
-                  :style="{
-                    width: getBarWidth(Math.max(getUserMetricValue(item, currentCategory.id)!, getPeerMetricValue(item, currentCategory.id) || 0), getMaxValue(currentCategory.id)) + '%',
-                    background: `linear-gradient(90deg, rgb(59, 130, 246) 0%, rgb(59, 130, 246) ${getUserMetricValue(item, currentCategory.id)! / Math.max((getUserMetricValue(item, currentCategory.id) || 0), (getPeerMetricValue(item, currentCategory.id) || 0)) * 100}%, rgb(156, 163, 175) ${getUserMetricValue(item, currentCategory.id)! / Math.max((getUserMetricValue(item, currentCategory.id) || 0), (getPeerMetricValue(item, currentCategory.id) || 0)) * 100}%, rgb(156, 163, 175) 100%)`
-                  }">
-                </div>
+          <!-- Horizontal Bar Track -->
+          <div class="flex-1 h-7 bg-gray-100 dark:bg-gray-600 rounded relative flex items-center">
 
-                <!-- Regular bar für peers -->
-                <div v-else
-                  class="h-full rounded absolute inset-y-0 left-0 bg-gray-400 dark:bg-gray-500 transition-opacity duration-150"
-                  :class="{ 'opacity-50': hoveredSpecId && item.vehicleSpecificationId !== hoveredSpecId }"
-                  :style="{ width: getBarWidth(getPeerMetricValue(item, currentCategory.id), getMaxValue(currentCategory.id)) + '%' }">
-                </div>
+            <!-- Balken-Bereich: reduziert so dass Zahlen rechts immer Platz haben -->
+            <div class="h-full relative" style="width: calc(100% - 2.5rem)">
+              <!-- Split-Bar für user spec -->
+              <div v-if="item.isUserVehicleSpec && getUserMetricValue(item, currentCategory.id) !== null"
+                class="h-full rounded absolute inset-y-0 left-0 transition-opacity duration-150"
+                :class="{ 'opacity-50': hoveredSpecId && item.vehicleSpecificationId !== hoveredSpecId }"
+                :style="{
+                  width: getBarWidth(Math.max(getUserMetricValue(item, currentCategory.id)!, getPeerMetricValue(item, currentCategory.id) || 0), getMaxValue(currentCategory.id)) + '%',
+                  background: `linear-gradient(90deg, rgb(59, 130, 246) 0%, rgb(59, 130, 246) ${getUserMetricValue(item, currentCategory.id)! / Math.max((getUserMetricValue(item, currentCategory.id) || 0), (getPeerMetricValue(item, currentCategory.id) || 0)) * 100}%, rgb(156, 163, 175) ${getUserMetricValue(item, currentCategory.id)! / Math.max((getUserMetricValue(item, currentCategory.id) || 0), (getPeerMetricValue(item, currentCategory.id) || 0)) * 100}%, rgb(156, 163, 175) 100%)`
+                }">
+              </div>
 
-                <!-- Prozent-Badge (außerhalb der Balken, nicht gedimmt) -->
-                <span v-if="hoveredSpecId"
-                  class="hidden sm:flex items-center absolute top-1/2 -translate-y-1/2 -translate-x-full text-xs font-bold tabular-nums text-gray-900 dark:text-white z-10"
-                  :style="{ left: `calc(${getBarWidth(item.isUserVehicleSpec && getUserMetricValue(item, currentCategory.id) !== null ? Math.max(getUserMetricValue(item, currentCategory.id)!, getPeerMetricValue(item, currentCategory.id) || 0) : (getPeerMetricValue(item, currentCategory.id) ?? 0), getMaxValue(currentCategory.id))}% - 0.5rem)` }">
-                  {{ getRelativePercent(item) }}
-                </span>
+              <!-- Regular bar für peers -->
+              <div v-else
+                class="h-full rounded absolute inset-y-0 left-0 bg-gray-400 dark:bg-gray-500 transition-opacity duration-150"
+                :class="{ 'opacity-50': hoveredSpecId && item.vehicleSpecificationId !== hoveredSpecId }"
+                :style="{ width: getBarWidth(getPeerMetricValue(item, currentCategory.id), getMaxValue(currentCategory.id)) + '%' }">
+              </div>
 
-                <!-- Zahl am Ende des Balkens -->
-                <span
-                  class="absolute top-1/2 -translate-y-1/2 pl-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 tabular-nums"
-                  :style="{ left: getBarWidth(item.isUserVehicleSpec && getUserMetricValue(item, currentCategory.id) !== null ? Math.max(getUserMetricValue(item, currentCategory.id)!, getPeerMetricValue(item, currentCategory.id) || 0) : (getPeerMetricValue(item, currentCategory.id) ?? 0), getMaxValue(currentCategory.id)) + '%' }">
-                  {{ item.isUserVehicleSpec
-                    ? formatValue(getUserMetricValue(item, currentCategory.id))
-                    : formatValue(getPeerMetricValue(item, currentCategory.id)) }}
-                </span>
+              <!-- Prozent-Badge (nicht gedimmt) -->
+              <span v-if="hoveredSpecId"
+                class="hidden sm:flex items-center absolute top-1/2 -translate-y-1/2 -translate-x-full text-xs font-bold tabular-nums text-gray-900 dark:text-white z-10"
+                :style="{ left: `calc(${getBarWidth(item.isUserVehicleSpec && getUserMetricValue(item, currentCategory.id) !== null ? Math.max(getUserMetricValue(item, currentCategory.id)!, getPeerMetricValue(item, currentCategory.id) || 0) : (getPeerMetricValue(item, currentCategory.id) ?? 0), getMaxValue(currentCategory.id))}% - 0.5rem)` }">
+                {{ getRelativePercent(item) }}
+              </span>
 
-                <!-- Model name + icon (absolute overlay) -->
-                <div class="absolute inset-0 flex items-center px-2 pointer-events-none">
-                  <p class="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">{{ item.displayName }}</p>
-                  <div class="flex items-center gap-0.5 flex-shrink-0 ml-1">
-                    <UserIcon class="w-3 h-3 text-gray-600 dark:text-gray-400" />
-                    <span class="text-xs font-medium text-gray-700 dark:text-gray-300">{{ item.peerMetrics.uniqueCars }}</span>
-                  </div>
+              <!-- Model name + icon (absolute overlay, begrenzt auf Balkenbreite) -->
+              <div class="absolute inset-y-0 left-0 flex items-center px-2 pointer-events-none overflow-hidden"
+                :style="{ width: getDisplayBarWidth(item) + '%' }">
+                <p class="text-xs font-medium text-gray-700 dark:text-gray-300 truncate min-w-0">{{ stripKwh(item.displayName) }}</p>
+                <div class="flex items-center gap-0.5 flex-shrink-0 ml-1">
+                  <UserIcon class="w-3 h-3 text-gray-600 dark:text-gray-400" />
+                  <span class="text-xs font-medium text-gray-700 dark:text-gray-300">{{ item.peerMetrics.uniqueCars }}</span>
                 </div>
               </div>
             </div>
+
+            <!-- Mobile: Wert am rechten Track-Rand -->
+            <span class="sm:hidden absolute top-1/2 -translate-y-1/2 right-1 text-xs font-semibold text-gray-700 dark:text-gray-300 tabular-nums">
+              {{ item.isUserVehicleSpec
+                ? formatValue(getUserMetricValue(item, currentCategory.id))
+                : formatValue(getPeerMetricValue(item, currentCategory.id)) }}
+            </span>
+            <!-- Desktop: Wert direkt nach Balkenende (left relativ zum inner wrapper) -->
+            <span class="hidden sm:block absolute top-1/2 -translate-y-1/2 pl-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 tabular-nums"
+              :style="{ left: `calc(${getDisplayBarWidth(item) / 100} * (100% - 2.5rem))` }">
+              {{ item.isUserVehicleSpec
+                ? formatValue(getUserMetricValue(item, currentCategory.id))
+                : formatValue(getPeerMetricValue(item, currentCategory.id)) }}
+            </span>
           </div>
+
         </div>
       </div>
       </Transition>

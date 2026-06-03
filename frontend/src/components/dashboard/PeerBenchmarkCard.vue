@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { InformationCircleIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
+import { ChevronDownIcon } from '@heroicons/vue/24/outline'
 import { useSlideTransition } from '../../composables/useSlideTransition'
 
 const { onEnter, onAfterEnter, onLeave, onAfterLeave } = useSlideTransition()
@@ -200,14 +200,6 @@ function formatCostPer100km(val: number | null | undefined): string {
       </div>
     </div>
 
-    <!-- Footer: MODEL-Fallback-Hinweis -->
-    <div v-if="benchmark.matchType === 'MODEL'"
-      class="px-4 py-2.5 border-t border-gray-100 dark:border-gray-600 flex items-center gap-2 mt-auto">
-      <InformationCircleIcon class="w-3.5 h-3.5 text-blue-400 shrink-0" />
-      <p class="text-xs text-gray-400 dark:text-gray-500">
-        {{ t('dashboard.peer_model_fallback', { n: benchmark.uniquePeerUsers }) }}
-      </p>
-    </div>
 
     </div>
     </Transition>
