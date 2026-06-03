@@ -528,6 +528,7 @@ dashboard:
   peer_delta_pricier: dyrare
   peer_delta_more: mer räckvidd
   peer_delta_less: mindre
+  peer_model_fallback: Jämför med {n} förare av samma modell (alla varianter)
   peer_insufficient_data: Bara {n} förare med samma spec - trend synlig, ännu inte statistiskt robust
   peer_no_data_title: Ingen jämförelse tillgänglig
   peer_no_data_body: När fler förare med samma modell registrerar data visas din jämförelse här.

@@ -47,18 +47,19 @@ public record EvLogStatisticsResponse(
     ) {}
 
     /**
-     * Peer comparison for the user's own lifetime stats vs. anonymized community avg
-     * for cars with the same vehicle_specification_id.
+     * Peer comparison for the user's own lifetime stats vs. anonymized community avg.
+     * Match is first attempted by vehicleSpecificationId (exact variant), with fallback to
+     * car model (all variants) when no spec-level peers exist.
      *
      * @param userLifetimeConsumptionKwhPer100km  distance-weighted lifetime avg for this user (no time filter)
-     * @param peerAvgConsumptionKwhPer100km       community avg across all non-seed peer cars with same spec
+     * @param peerAvgConsumptionKwhPer100km       community avg across all non-seed peer cars
      * @param userLifetimeCostPerKwh              user's own lifetime avg cost/kWh (null if no cost data)
-     * @param peerAvgCostPerKwh                   community avg cost/kWh — same-country peers only (null if < 3 same-country peers)
+     * @param peerAvgCostPerKwh                   community avg cost/kWh - same-country peers only (null if no same-country peers with cost data)
      * @param uniquePeerUsers                     distinct user count among peer cars
      * @param peerTripCount                       plausible trip count used for consumption avg
      * @param sameCountryPeerUsers                distinct user count with same country (for cost comparison)
      * @param userCountry                         ISO country code of current user (for UI label)
-     * @param sufficientData                      true if >= 3 unique peers and >= 10 trips
+     * @param matchType                           SPEC = same vehicleSpecificationId, MODEL = fallback to same car model (all variants)
      */
     public record ChargingTypeSplit(
             BigDecimal acKwh,
@@ -87,6 +88,8 @@ public record EvLogStatisticsResponse(
             int peerTripCount,
             int sameCountryPeerUsers,
             String userCountry,
-            boolean sufficientData
-    ) {}
+            MatchType matchType
+    ) {
+        public enum MatchType { SPEC, MODEL }
+    }
 }

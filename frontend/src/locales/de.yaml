@@ -568,6 +568,7 @@ dashboard:
   peer_delta_pricier: "teurer"
   peer_delta_more: "weiter"
   peer_delta_less: "weniger"
+  peer_model_fallback: "Vergleich mit {n} Fahrern des gleichen Modells (alle Varianten)"
   peer_insufficient_data: "Nur {n} Fahrer mit gleicher Spec - Tendenz sichtbar, noch keine belastbare Aussage"
   peer_no_data_title: "Kein Vergleich verfügbar"
   peer_no_data_body: "Sobald mehr Fahrer mit gleichem Modell Daten erfassen, erscheint hier dein Community-Vergleich."

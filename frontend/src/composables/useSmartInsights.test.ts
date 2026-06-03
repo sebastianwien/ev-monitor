@@ -41,7 +41,7 @@ describe('peer_cost insight', () => {
         peerTripCount: 100,
         sameCountryPeerUsers: 5,
         userCountry: 'DE',
-        sufficientData: true,
+        matchType: 'SPEC',
       },
     })
     const insights = computeInsights(stats, null)
@@ -61,7 +61,7 @@ describe('peer_cost insight', () => {
         peerTripCount: 100,
         sameCountryPeerUsers: 5,
         userCountry: 'DE',
-        sufficientData: true,
+        matchType: 'SPEC',
       },
     })
     const insights = computeInsights(stats, null)
@@ -69,22 +69,22 @@ describe('peer_cost insight', () => {
     expect(insight.sentiment).toBe('warning')
   })
 
-  it('guard: does not fire when sufficientData=false', () => {
+  it('fires with a single same-country peer (no minimum threshold)', () => {
     const stats = makeStats({
       peerBenchmark: {
         userLifetimeConsumptionKwhPer100km: 22,
         peerAvgConsumptionKwhPer100km: 20,
         userLifetimeCostPerKwh: 0.25,
         peerAvgCostPerKwh: 0.35,
-        uniquePeerUsers: 2,
-        peerTripCount: 5,
+        uniquePeerUsers: 1,
+        peerTripCount: 3,
         sameCountryPeerUsers: 1,
         userCountry: 'DE',
-        sufficientData: false,
+        matchType: 'SPEC',
       },
     })
     const insights = computeInsights(stats, null)
-    expect(insights.some(i => i.id === 'peer_cost')).toBe(false)
+    expect(insights.some(i => i.id === 'peer_cost')).toBe(true)
   })
 
   it('guard: does not fire when peerAvgCostPerKwh is null', () => {
@@ -98,7 +98,7 @@ describe('peer_cost insight', () => {
         peerTripCount: 100,
         sameCountryPeerUsers: 5,
         userCountry: 'DE',
-        sufficientData: true,
+        matchType: 'SPEC',
       },
     })
     const insights = computeInsights(stats, null)
@@ -120,7 +120,7 @@ describe('peer_consumption insight', () => {
         peerTripCount: 100,
         sameCountryPeerUsers: 0,
         userCountry: 'DE',
-        sufficientData: true,
+        matchType: 'SPEC',
       },
     })
     const insights = computeInsights(stats, null)
@@ -128,7 +128,7 @@ describe('peer_consumption insight', () => {
     expect(insights.find(i => i.id === 'peer_consumption')!.sentiment).toBe('positive')
   })
 
-  it('guard: does not fire when sufficientData=false', () => {
+  it('fires with a single peer (no minimum threshold)', () => {
     const stats = makeStats({
       peerBenchmark: {
         userLifetimeConsumptionKwhPer100km: 18,
@@ -136,13 +136,13 @@ describe('peer_consumption insight', () => {
         userLifetimeCostPerKwh: null,
         peerAvgCostPerKwh: null,
         uniquePeerUsers: 1,
-        peerTripCount: 5,
+        peerTripCount: 3,
         sameCountryPeerUsers: 0,
         userCountry: 'DE',
-        sufficientData: false,
+        matchType: 'SPEC',
       },
     })
-    expect(computeInsights(stats, null).some(i => i.id === 'peer_consumption')).toBe(false)
+    expect(computeInsights(stats, null).some(i => i.id === 'peer_consumption')).toBe(true)
   })
 })
 
@@ -456,7 +456,7 @@ describe('prioritization', () => {
         peerTripCount: 100,
         sameCountryPeerUsers: 5,
         userCountry: 'DE',
-        sufficientData: true,
+        matchType: 'SPEC',
       },
     })
     const lastMonth = makeStats({ totalCharges: 4, avgConsumptionKwhPer100km: 26 })
@@ -477,7 +477,7 @@ describe('prioritization', () => {
         peerTripCount: 100,
         sameCountryPeerUsers: 5,
         userCountry: 'DE',
-        sufficientData: true,
+        matchType: 'SPEC',
       },
     })
     const insights = computeInsights(stats, null)

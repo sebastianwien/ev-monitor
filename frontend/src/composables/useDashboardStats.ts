@@ -27,7 +27,7 @@ export interface PeerBenchmark {
   peerTripCount: number
   sameCountryPeerUsers: number
   userCountry: string | null
-  sufficientData: boolean
+  matchType: 'SPEC' | 'MODEL'
 }
 
 export interface ChargingTypeSplit {

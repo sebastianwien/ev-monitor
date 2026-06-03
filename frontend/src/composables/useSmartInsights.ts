@@ -35,10 +35,10 @@ export function computeInsights(
   // ── peer_cost ────────────────────────────────────────────────────────────
   const pb = stats.peerBenchmark
   if (
-    pb?.sufficientData &&
+    pb != null &&
     pb.peerAvgCostPerKwh != null &&
     pb.userLifetimeCostPerKwh != null &&
-    pb.sameCountryPeerUsers >= 3
+    pb.sameCountryPeerUsers >= 1
   ) {
     const diffPct = Math.round(
       ((pb.userLifetimeCostPerKwh - pb.peerAvgCostPerKwh) / pb.peerAvgCostPerKwh) * 100,
@@ -62,7 +62,7 @@ export function computeInsights(
 
   // ── peer_consumption ──────────────────────────────────────────────────────
   if (
-    pb?.sufficientData &&
+    pb != null &&
     pb.peerAvgConsumptionKwhPer100km != null &&
     pb.userLifetimeConsumptionKwhPer100km != null
   ) {
