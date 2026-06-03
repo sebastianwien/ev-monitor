@@ -569,7 +569,6 @@ dashboard:
   peer_delta_more: "more range"
   peer_delta_less: "less"
   peer_model_fallback: "Comparing with {n} drivers of the same model (all variants)"
-  peer_insufficient_data: "Only {n} drivers with same spec - trend visible, not yet statistically robust"
   peer_no_data_title: "No comparison available"
   peer_no_data_body: "Once more drivers with the same model track their data, your community comparison will appear here."
   charging_type_split_title: "Charging Distribution"
