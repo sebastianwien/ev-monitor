@@ -1214,6 +1214,10 @@ fixed_costs:
   category_TOLL: Bompenger
   category_CLEANING: Bilvask
   category_MAINTENANCE: Vedlikehold
+  category_LEASING: Leasing
+  category_FINANCING: Finansiering
+  category_TIRES: Dekk
+  category_TUNING: Tuning
   category_OTHER: Annet
   save: Lagre
   cancel: Avbryt

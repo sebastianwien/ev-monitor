@@ -6,5 +6,9 @@ public enum FixedCostCategory {
     TOLL,
     CLEANING,
     MAINTENANCE,
+    LEASING,
+    FINANCING,
+    TIRES,
+    TUNING,
     OTHER
 }

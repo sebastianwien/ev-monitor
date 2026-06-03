@@ -1214,6 +1214,10 @@ fixed_costs:
   category_TOLL: Vägtull
   category_CLEANING: Biltvätt
   category_MAINTENANCE: Underhåll
+  category_LEASING: Leasing
+  category_FINANCING: Finansiering
+  category_TIRES: Däck
+  category_TUNING: Tuning
   category_OTHER: Övrigt
   save: Spara
   cancel: Avbryt
