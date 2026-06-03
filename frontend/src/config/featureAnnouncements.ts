@@ -24,7 +24,7 @@ export const featureAnnouncements: FeatureAnnouncement[] = [
     titleKey: 'announcements.fixed_costs_dashboard_v1_title',
     bodyKey: 'announcements.fixed_costs_dashboard_v1_body',
     ctaLabelKey: 'announcements.fixed_costs_dashboard_v1_cta',
-    ctaRoute: '/fixed-costs',
+    ctaRoute: '/cars',
   },
   {
     key: 'feature-survey-v1',
