@@ -50,7 +50,11 @@ const doFetchCars = async () => {
   initVisibility(cars.value)
 }
 
-const doSubmitForm = () => submitForm(doFetchCars)
+const submitting = ref(false)
+const doSubmitForm = async () => {
+  submitting.value = true
+  try { await submitForm(doFetchCars) } finally { submitting.value = false }
+}
 const doDeleteCar = (id: string) => deleteCar(id, doFetchCars)
 
 onMounted(async () => {
@@ -196,41 +200,41 @@ const filteredCapacities = computed(() => {
               <div v-else class="space-y-3">
                 <div class="flex gap-2">
                   <div class="flex-1">
-                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('cars.capacity_net_label') }}</label>
+                    <label for="cap-net" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('cars.capacity_net_label') }}</label>
                     <div class="relative">
-                      <input v-model.number="customNetCapacityKwh" type="number" step="0.1" min="0" required
+                      <input id="cap-net" v-model.number="customNetCapacityKwh" type="text" inputmode="decimal" required
                         :placeholder="t('cars.capacity_custom_placeholder')"
-                        class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100 pr-10" />
-                      <span class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">kWh</span>
+                        class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100 pr-12" />
+                      <span class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">kWh</span>
                     </div>
                   </div>
                   <div class="flex-1">
-                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('cars.capacity_gross_label') }}</label>
+                    <label for="cap-gross" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('cars.capacity_gross_label') }}</label>
                     <div class="relative">
-                      <input v-model.number="customGrossCapacityKwh" type="number" step="0.1" min="0" required
+                      <input id="cap-gross" v-model.number="customGrossCapacityKwh" type="text" inputmode="decimal" required
                         :placeholder="t('cars.capacity_gross_placeholder')"
-                        class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100 pr-10" />
-                      <span class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">kWh</span>
+                        class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100 pr-12" />
+                      <span class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">kWh</span>
                     </div>
                   </div>
                 </div>
                 <div class="flex gap-2">
                   <div class="flex-1">
-                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ ratingSource === 'EPA' ? t('cars.epa_range_label') : t('cars.wltp_range_label') }}</label>
+                    <label for="cap-range" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ ratingSource === 'EPA' ? t('cars.epa_range_label') : t('cars.wltp_range_label') }}</label>
                     <div class="relative">
-                      <input v-model.number="officialRangeKm" type="number" step="1" min="0" max="2000" required
+                      <input id="cap-range" v-model.number="officialRangeKm" type="text" inputmode="decimal" required
                         :placeholder="t('cars.wltp_range_placeholder')"
-                        class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100 pr-8" />
-                      <span class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">km</span>
+                        class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100 pr-10" />
+                      <span class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">km</span>
                     </div>
                   </div>
                   <div class="flex-1">
-                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ ratingSource === 'EPA' ? t('cars.epa_consumption_label') : t('cars.wltp_consumption_label') }}</label>
+                    <label for="cap-consumption" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ ratingSource === 'EPA' ? t('cars.epa_consumption_label') : t('cars.wltp_consumption_label') }}</label>
                     <div class="relative">
-                      <input v-model.number="officialConsumptionKwhPer100km" type="number" step="0.1" min="0" max="100" required
+                      <input id="cap-consumption" v-model.number="officialConsumptionKwhPer100km" type="text" inputmode="decimal" required
                         :placeholder="t('cars.wltp_consumption_placeholder')"
-                        class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100 pr-16" />
-                      <span class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">kWh</span>
+                        class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100 pr-12" />
+                      <span class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">kWh</span>
                     </div>
                   </div>
                 </div>
@@ -405,8 +409,9 @@ const filteredCapacities = computed(() => {
           <div class="flex gap-3 pt-2">
             <button type="submit"
               v-haptic
-              class="btn-3d bg-indigo-600 text-white px-6 py-2 rounded-sm hover:bg-indigo-700 transition">
-              {{ editingCar ? t('cars.update_btn') : t('cars.add_submit_btn') }}
+              :disabled="submitting"
+              class="btn-3d bg-indigo-600 text-white px-6 py-2 rounded-sm hover:bg-indigo-700 transition disabled:opacity-60 disabled:cursor-not-allowed">
+              {{ submitting ? t('cars.saving') : (editingCar ? t('cars.update_btn') : t('cars.add_submit_btn')) }}
             </button>
             <button type="button" @click="resetForm"
               v-haptic
@@ -722,41 +727,41 @@ const filteredCapacities = computed(() => {
               <div v-else class="space-y-3">
                 <div class="flex gap-2">
                   <div class="flex-1">
-                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('cars.capacity_net_label') }}</label>
+                    <label for="cap-net" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('cars.capacity_net_label') }}</label>
                     <div class="relative">
-                      <input v-model.number="customNetCapacityKwh" type="number" step="0.1" min="0" required
+                      <input id="cap-net" v-model.number="customNetCapacityKwh" type="text" inputmode="decimal" required
                         :placeholder="t('cars.capacity_custom_placeholder')"
-                        class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100 pr-10" />
-                      <span class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">kWh</span>
+                        class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100 pr-12" />
+                      <span class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">kWh</span>
                     </div>
                   </div>
                   <div class="flex-1">
-                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('cars.capacity_gross_label') }}</label>
+                    <label for="cap-gross" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('cars.capacity_gross_label') }}</label>
                     <div class="relative">
-                      <input v-model.number="customGrossCapacityKwh" type="number" step="0.1" min="0" required
+                      <input id="cap-gross" v-model.number="customGrossCapacityKwh" type="text" inputmode="decimal" required
                         :placeholder="t('cars.capacity_gross_placeholder')"
-                        class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100 pr-10" />
-                      <span class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">kWh</span>
+                        class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100 pr-12" />
+                      <span class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">kWh</span>
                     </div>
                   </div>
                 </div>
                 <div class="flex gap-2">
                   <div class="flex-1">
-                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ ratingSource === 'EPA' ? t('cars.epa_range_label') : t('cars.wltp_range_label') }}</label>
+                    <label for="cap-range" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ ratingSource === 'EPA' ? t('cars.epa_range_label') : t('cars.wltp_range_label') }}</label>
                     <div class="relative">
-                      <input v-model.number="officialRangeKm" type="number" step="1" min="0" max="2000" required
+                      <input id="cap-range" v-model.number="officialRangeKm" type="text" inputmode="decimal" required
                         :placeholder="t('cars.wltp_range_placeholder')"
-                        class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100 pr-8" />
-                      <span class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">km</span>
+                        class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100 pr-10" />
+                      <span class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">km</span>
                     </div>
                   </div>
                   <div class="flex-1">
-                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ ratingSource === 'EPA' ? t('cars.epa_consumption_label') : t('cars.wltp_consumption_label') }}</label>
+                    <label for="cap-consumption" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ ratingSource === 'EPA' ? t('cars.epa_consumption_label') : t('cars.wltp_consumption_label') }}</label>
                     <div class="relative">
-                      <input v-model.number="officialConsumptionKwhPer100km" type="number" step="0.1" min="0" max="100" required
+                      <input id="cap-consumption" v-model.number="officialConsumptionKwhPer100km" type="text" inputmode="decimal" required
                         :placeholder="t('cars.wltp_consumption_placeholder')"
-                        class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100 pr-16" />
-                      <span class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">kWh</span>
+                        class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100 pr-12" />
+                      <span class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">kWh</span>
                     </div>
                   </div>
                 </div>

@@ -31,24 +31,33 @@ public class VehicleSpecification {
     public static VehicleSpecification createNew(String carBrand, String carModel, BigDecimal batteryCapacityKwh,
                                                   BigDecimal netBatteryCapacityKwh,
                                                   BigDecimal rangeKm, BigDecimal consumptionKwhPer100km,
-                                                  WltpType cycleType, RatingSource ratingSource) {
+                                                  WltpType cycleType, RatingSource ratingSource, String variantName) {
         LocalDateTime now = LocalDateTime.now();
         return new VehicleSpecification(UUID.randomUUID(), carBrand, carModel, batteryCapacityKwh,
-                rangeKm, consumptionKwhPer100km, cycleType, ratingSource, now, now, "", netBatteryCapacityKwh, null, null, null, null);
+                rangeKm, consumptionKwhPer100km, cycleType, ratingSource, now, now,
+                variantName != null ? variantName : "", netBatteryCapacityKwh, null, null, null, null);
+    }
+
+    /** Backward-compat factory without variantName (defaults to empty string). */
+    public static VehicleSpecification createNew(String carBrand, String carModel, BigDecimal batteryCapacityKwh,
+                                                  BigDecimal netBatteryCapacityKwh,
+                                                  BigDecimal rangeKm, BigDecimal consumptionKwhPer100km,
+                                                  WltpType cycleType, RatingSource ratingSource) {
+        return createNew(carBrand, carModel, batteryCapacityKwh, netBatteryCapacityKwh, rangeKm, consumptionKwhPer100km, cycleType, ratingSource, "");
     }
 
     /** Backward-compat factory without net capacity. */
     public static VehicleSpecification createNew(String carBrand, String carModel, BigDecimal batteryCapacityKwh,
                                                   BigDecimal rangeKm, BigDecimal consumptionKwhPer100km,
                                                   WltpType cycleType, RatingSource ratingSource) {
-        return createNew(carBrand, carModel, batteryCapacityKwh, null, rangeKm, consumptionKwhPer100km, cycleType, ratingSource);
+        return createNew(carBrand, carModel, batteryCapacityKwh, null, rangeKm, consumptionKwhPer100km, cycleType, ratingSource, "");
     }
 
     /** Backward-compat factory that defaults to WLTP. */
     public static VehicleSpecification createNew(String carBrand, String carModel, BigDecimal batteryCapacityKwh,
                                                   BigDecimal rangeKm, BigDecimal consumptionKwhPer100km,
                                                   WltpType cycleType) {
-        return createNew(carBrand, carModel, batteryCapacityKwh, null, rangeKm, consumptionKwhPer100km, cycleType, RatingSource.WLTP);
+        return createNew(carBrand, carModel, batteryCapacityKwh, null, rangeKm, consumptionKwhPer100km, cycleType, RatingSource.WLTP, "");
     }
 
     public enum WltpType {

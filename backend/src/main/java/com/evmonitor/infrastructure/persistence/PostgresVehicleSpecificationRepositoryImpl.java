@@ -86,6 +86,24 @@ public class PostgresVehicleSpecificationRepositoryImpl implements VehicleSpecif
         );
     }
 
+    @Override
+    public boolean existsByCarBrandAndModelAndCapacityAndVariantNameAndTypeAndSource(
+            String carBrand,
+            String carModel,
+            BigDecimal batteryCapacityKwh,
+            String variantName,
+            VehicleSpecification.WltpType wltpType,
+            VehicleSpecification.RatingSource ratingSource) {
+        return jpaRepository.existsByCarBrandAndCarModelAndBatteryCapacityKwhAndVariantNameAndWltpTypeAndRatingSource(
+                carBrand,
+                carModel,
+                batteryCapacityKwh,
+                variantName,
+                wltpType.name(),
+                ratingSource.name()
+        );
+    }
+
     private VehicleSpecificationEntity toEntity(VehicleSpecification domain) {
         VehicleSpecificationEntity entity = new VehicleSpecificationEntity();
         entity.setId(domain.getId());

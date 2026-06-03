@@ -25,6 +25,7 @@ export interface VehicleSpecificationRequest {
     officialRangeKm?: number | null;
     officialConsumptionKwhPer100km?: number | null;
     ratingSource?: 'WLTP' | 'EPA';
+    variantName?: string;
 }
 
 export interface VehicleSpecificationCreateResponse {

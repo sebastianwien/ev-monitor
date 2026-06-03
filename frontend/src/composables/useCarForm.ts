@@ -277,13 +277,18 @@ export function useCarForm() {
       error.value = null
       if (!finalCapacity.value) { error.value = t('cars.error_capacity'); return }
 
-      // Bei Custom-Eingabe: zuerst Spec anlegen (setzt selectedSpecId + useCustomCapacity=false)
+      // Bei Custom-Eingabe: Spec anlegen und specId direkt aus dem Result verwenden
+      // (nicht reaktiv via finalVehicleSpecificationId, um Race-Condition zu vermeiden)
+      let resolvedSpecId: string | null = finalVehicleSpecificationId.value
       if (useCustomCapacity.value) {
         const result = await wltpLookup.submitCustomSpec()
         if (!result.ok) {
           error.value = result.error ? t(result.error) : t('cars.error_wltp_save')
           return
         }
+        resolvedSpecId = result.specId!
+        selectedSpecId.value = resolvedSpecId
+        useCustomCapacity.value = false
         if (result.coinsAwarded) {
           toastMessage.value = t('cars.toast_wltp', { n: result.coinsAwarded })
           showToast.value = true
@@ -296,11 +301,11 @@ export function useCarForm() {
         year: year.value,
         licensePlate: licensePlate.value,
         trim: trim.value || null,
-        customNetCapacityKwh: finalVehicleSpecificationId.value ? null : finalCapacity.value,
+        customNetCapacityKwh: resolvedSpecId ? null : finalCapacity.value,
         powerKw: powerKw.value,
         batteryDegradationPercent: batteryDegradationPercent.value,
         hasHeatPump: hasHeatPump.value,
-        vehicleSpecificationId: finalVehicleSpecificationId.value
+        vehicleSpecificationId: resolvedSpecId
       }
 
       if (editingCar.value) {
@@ -364,7 +369,12 @@ export function useCarForm() {
     // Form fields
     selectedBrand, selectedModel, year, licensePlate, trim,
     selectedCapacity, selectedSpecId, selectedTrimLevel, customCapacity, useCustomCapacity,
-    ...wltpLookup,
+    customNetCapacityKwh: wltpLookup.customNetCapacityKwh,
+    customGrossCapacityKwh: wltpLookup.customGrossCapacityKwh,
+    officialRangeKm: wltpLookup.officialRangeKm,
+    officialConsumptionKwhPer100km: wltpLookup.officialConsumptionKwhPer100km,
+    ratingSource: wltpLookup.ratingSource,
+    resetCustomFields: wltpLookup.resetCustomFields,
     powerKw, batteryDegradationPercent, hasHeatPump, isBusinessCar,
     // SoH (form state only - CRUD in useSohHistory)
     sohHistory, showSohAddForm, sohEditingEntry, sohPercent, sohDate,

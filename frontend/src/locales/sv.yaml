@@ -876,6 +876,7 @@ cars:
   add_btn: + Lägg till fordon
   add_title: Lägg till nytt fordon
   add_submit_btn: Lägg till
+  saving: Sparar...
   add_first_btn: Lägg till första fordonet
   update_btn: Uppdatering
   cancel: Avbryt
@@ -994,8 +995,8 @@ cars:
   trim_placeholder: t.ex. GTX, Pro Performance, Long Range
   trim_placeholder_sonstige: t.ex. C10 ProMax, BX3, Elroq 50
   capacity_custom_placeholder: t.ex. 77
-  capacity_net_label: "Batterikapacitet netto (användbar) *"
-  capacity_gross_label: "Batterikapacitet brutto *"
+  capacity_net_label: "Netto (användbar) *"
+  capacity_gross_label: "Brutto *"
   capacity_gross_placeholder: t.ex. 82
   plate_placeholder: t.ex. AB-123 CD
   power_placeholder: t.ex. 150

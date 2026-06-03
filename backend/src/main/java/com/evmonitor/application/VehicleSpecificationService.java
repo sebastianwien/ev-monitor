@@ -85,11 +85,14 @@ public class VehicleSpecificationService {
             throw new IllegalArgumentException("Invalid ratingSource: " + request.ratingSource() + ". Allowed: WLTP, EPA");
         }
 
-        // Duplicate check is per (brand, model, capacity, type, ratingSource)
-        boolean exists = vehicleSpecificationRepository.existsByCarBrandAndModelAndCapacityAndTypeAndSource(
+        String variantName = request.variantName() != null ? request.variantName().trim() : "";
+
+        // Duplicate check uses full unique key including variantName
+        boolean exists = vehicleSpecificationRepository.existsByCarBrandAndModelAndCapacityAndVariantNameAndTypeAndSource(
                 sanitizedBrand,
                 sanitizedModel,
                 request.batteryCapacityKwh(),
+                variantName,
                 VehicleSpecification.WltpType.COMBINED,
                 ratingSource
         );
@@ -113,7 +116,8 @@ public class VehicleSpecificationService {
                 request.officialRangeKm(),
                 request.officialConsumptionKwhPer100km(),
                 VehicleSpecification.WltpType.COMBINED,
-                ratingSource
+                ratingSource,
+                variantName
         );
 
         VehicleSpecification saved;

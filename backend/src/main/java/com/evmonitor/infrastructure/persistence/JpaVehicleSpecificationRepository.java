@@ -27,6 +27,15 @@ public interface JpaVehicleSpecificationRepository extends JpaRepository<Vehicle
         String ratingSource
     );
 
+    boolean existsByCarBrandAndCarModelAndBatteryCapacityKwhAndVariantNameAndWltpTypeAndRatingSource(
+        String carBrand,
+        String carModel,
+        BigDecimal batteryCapacityKwh,
+        String variantName,
+        String wltpType,
+        String ratingSource
+    );
+
     List<VehicleSpecificationEntity> findByCarModelOrderByBatteryCapacityKwhAsc(String carModel);
 
     List<VehicleSpecificationEntity> findByCarModelAndRatingSourceOrderByBatteryCapacityKwhAsc(
