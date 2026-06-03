@@ -1,7 +1,17 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { ChevronDownIcon } from '@heroicons/vue/24/outline'
 import type { ChargingEfficiencySplit } from '../../composables/useDashboardStats'
+import { useSlideTransition } from '../../composables/useSlideTransition'
+
+const { onEnter, onAfterEnter, onLeave, onAfterLeave } = useSlideTransition()
+const LS_KEY = 'charging_efficiency_collapsed'
+const collapsed = ref(localStorage.getItem(LS_KEY) === 'true')
+function toggleCollapsed() {
+  collapsed.value = !collapsed.value
+  localStorage.setItem(LS_KEY, String(collapsed.value))
+}
 
 const props = defineProps<{
   efficiencySplit: ChargingEfficiencySplit
@@ -31,11 +41,17 @@ function fmt(kwh: number): string {
   <div class="bg-white dark:bg-gray-700 rounded-sm border-2 border-gray-300 dark:border-gray-600 overflow-hidden shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#4b5563] flex flex-col">
 
     <!-- Header -->
-    <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-600 text-sm font-semibold text-gray-800 dark:text-gray-200 text-center">
+    <button @click="toggleCollapsed" class="sm:hidden w-full px-4 py-3 flex items-center justify-between border-b border-gray-100 dark:border-gray-600">
+      <div class="w-4 shrink-0"></div>
+      <span class="flex-1 text-center text-sm font-semibold text-gray-800 dark:text-gray-200">{{ t('dashboard.efficiency_title') }}</span>
+      <ChevronDownIcon class="w-4 h-4 text-gray-400 shrink-0 transition-transform duration-200" :class="{ 'rotate-180': !collapsed }" />
+    </button>
+    <div class="hidden sm:block px-4 py-3 border-b border-gray-100 dark:border-gray-600 text-sm font-semibold text-gray-800 dark:text-gray-200 text-center">
       {{ t('dashboard.efficiency_title') }}
     </div>
 
-    <div class="flex-1 p-4 flex flex-col gap-4">
+    <Transition @enter="onEnter" @after-enter="onAfterEnter" @leave="onLeave" @after-leave="onAfterLeave">
+    <div v-show="!collapsed" class="sm:!block flex-1 p-4 flex flex-col gap-4">
 
       <!-- Flow: Netz → Verlust → Batterie -->
       <div class="flex items-center justify-between gap-2">
@@ -77,5 +93,6 @@ function fmt(kwh: number): string {
       </p>
 
     </div>
+    </Transition>
   </div>
 </template>
