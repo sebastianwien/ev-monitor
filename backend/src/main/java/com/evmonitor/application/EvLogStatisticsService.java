@@ -814,13 +814,17 @@ public class EvLogStatisticsService {
                 userMetrics = new UserMetrics(userConsumption, userCostPerKwh);
             }
 
-            items.add(new PeerModelComparisonItem(
-                    spec.getId(),
-                    spec.getVariantName() + " (" + spec.getBatteryCapacityKwh() + "kWh)",
-                    spec.getId().equals(userSpec.getId()),
-                    userMetrics,
-                    new PeerMetrics(peerConsumption, peerCostPerKwh, peerCarCount)
-            ));
+            // Only include if it's the user's spec or has peer data
+            boolean isUserSpec = spec.getId().equals(userSpec.getId());
+            if (isUserSpec || peerCarCount > 0) {
+                items.add(new PeerModelComparisonItem(
+                        spec.getId(),
+                        spec.getVariantName() + " (" + spec.getBatteryCapacityKwh() + "kWh)",
+                        isUserSpec,
+                        userMetrics,
+                        new PeerMetrics(peerConsumption, peerCostPerKwh, peerCarCount)
+                ));
+            }
         }
 
         return new PeerModelComparisonResponse(items);
