@@ -1,6 +1,16 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { ChevronDownIcon } from '@heroicons/vue/24/outline'
+import { useSlideTransition } from '../../composables/useSlideTransition'
+
+const { onEnter, onAfterEnter, onLeave, onAfterLeave } = useSlideTransition()
+const LS_KEY = 'dashboard_insights_collapsed'
+const collapsed = ref(localStorage.getItem(LS_KEY) === 'true')
+function toggleCollapsed() {
+  collapsed.value = !collapsed.value
+  localStorage.setItem(LS_KEY, String(collapsed.value))
+}
 
 const props = defineProps<{
   entries: any[]
@@ -268,9 +278,14 @@ function drainBarWidth(ev: { kwh: number }): string {
       >
         {{ t(`dashboard.insights_tab_${tab}`) }}
       </button>
+      <button @click="toggleCollapsed" class="sm:hidden ml-auto p-1.5">
+        <ChevronDownIcon class="w-4 h-4 text-gray-400 transition-transform duration-200" :class="{ 'rotate-180': !collapsed }" />
+      </button>
     </div>
 
     <!-- Panels with horizontal slide-fade -->
+    <Transition @enter="onEnter" @after-enter="onAfterEnter" @leave="onLeave" @after-leave="onAfterLeave">
+    <div v-show="!collapsed" class="sm:!block">
     <Transition name="tab-slide" mode="out-in">
       <div :key="activeTab">
 
@@ -456,6 +471,8 @@ function drainBarWidth(ev: { kwh: number }): string {
         </div>
 
       </div>
+    </Transition>
+    </div>
     </Transition>
 
   </div>
