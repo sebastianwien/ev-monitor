@@ -1019,7 +1019,7 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
         />
 
         <!-- Chart 1: Charging & Costs -->
-        <div class="border-t border-gray-100 dark:border-gray-700 pt-6">
+        <div class="border-t border-gray-200 dark:border-gray-600 pt-6 mt-2 -mx-4 px-4 bg-gray-50 dark:bg-gray-800/50">
           <div class="md:bg-gray-50 md:dark:bg-gray-700 py-4 md:p-6 -mx-4 md:mx-0 md:rounded-sm md:border-2 md:border-gray-300 md:dark:border-gray-600 md:shadow-[2px_2px_0_0_#d1d5db] dark:md:shadow-[2px_2px_0_0_#374151]">
             <div v-if="!chartsReady && isInitialLoad" class="h-64 sm:h-72 bg-gray-100 dark:bg-gray-700 animate-pulse rounded mx-4 md:mx-0"></div>
             <template v-else>
@@ -1059,7 +1059,7 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
         </div>
 
         <!-- Chart 2: Range & Efficiency (only if distance data exists) -->
-        <div v-if="hasDistanceData" class="border-t border-gray-100 dark:border-gray-700 pt-6">
+        <div v-if="hasDistanceData" class="border-t border-gray-200 dark:border-gray-600 pt-6 mt-2 -mx-4 px-4 bg-gray-50 dark:bg-gray-800/50">
           <div class="md:bg-gray-50 md:dark:bg-gray-700 py-4 md:p-6 -mx-4 md:mx-0 md:rounded-sm md:border-2 md:border-gray-300 md:dark:border-gray-600 md:shadow-[2px_2px_0_0_#d1d5db] dark:md:shadow-[2px_2px_0_0_#374151]">
             <div v-if="!chartsReady && isInitialLoad" class="h-64 sm:h-72 bg-gray-100 dark:bg-gray-700 animate-pulse rounded mx-4 md:mx-0"></div>
             <template v-else>
@@ -1099,7 +1099,7 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
         </div>
 
         <!-- WLTP Delta Bar Chart -->
-        <div v-if="wltp && hasDistanceData && wltpChartData" class="border-t border-gray-100 dark:border-gray-700 pt-6">
+        <div v-if="wltp && hasDistanceData && wltpChartData" class="border-t border-gray-200 dark:border-gray-600 pt-6 mt-2 -mx-4 px-4 bg-gray-50 dark:bg-gray-800/50">
           <div class="md:bg-gray-50 md:dark:bg-gray-700 py-4 md:p-6 -mx-4 md:mx-0 md:rounded-sm md:border-2 md:border-gray-300 md:dark:border-gray-600 md:shadow-[2px_2px_0_0_#d1d5db] dark:md:shadow-[2px_2px_0_0_#374151]">
           <div v-if="!chartsReady && isInitialLoad" :style="{ height: wltpChartHeight }" class="bg-gray-100 dark:bg-gray-700 animate-pulse rounded mx-4 md:mx-0"></div>
           <template v-else>
@@ -1173,7 +1173,7 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
         </div>
 
         <!-- Charging Heat Map -->
-        <div class="border-t border-gray-100 dark:border-gray-700 pt-6">
+        <div class="border-t border-gray-200 dark:border-gray-600 pt-6 mt-2 -mx-4 px-4 bg-gray-50 dark:bg-gray-800/50">
           <div class="md:bg-gray-50 md:dark:bg-gray-700 py-4 md:p-6 -mx-4 md:mx-0 md:rounded-sm md:border-2 md:border-gray-300 md:dark:border-gray-600 md:shadow-[2px_2px_0_0_#d1d5db] dark:md:shadow-[2px_2px_0_0_#374151] mb-4 md:mb-0">
             <div v-if="!chartsReady && isInitialLoad" class="h-96 bg-gray-100 dark:bg-gray-700 animate-pulse rounded mx-4 md:mx-0"></div>
             <template v-else>
