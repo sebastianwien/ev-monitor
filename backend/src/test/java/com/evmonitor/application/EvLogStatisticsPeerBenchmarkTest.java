@@ -1,9 +1,10 @@
 package com.evmonitor.application;
 
 import com.evmonitor.domain.*;
-import com.evmonitor.testutil.AbstractIntegrationTest;
+import com.evmonitor.testutil.AbstractServiceTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -11,7 +12,8 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class EvLogStatisticsPeerBenchmarkTest extends AbstractIntegrationTest {
+@Transactional
+class EvLogStatisticsPeerBenchmarkTest extends AbstractServiceTest {
 
     @Autowired
     private EvLogStatisticsService evLogStatisticsService;

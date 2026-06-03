@@ -1,9 +1,10 @@
 package com.evmonitor.application;
 
 import com.evmonitor.domain.*;
-import com.evmonitor.testutil.AbstractIntegrationTest;
+import com.evmonitor.testutil.AbstractServiceTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -11,7 +12,8 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class EvLogStatisticsPeerModelComparisonTest extends AbstractIntegrationTest {
+@Transactional
+class EvLogStatisticsPeerModelComparisonTest extends AbstractServiceTest {
 
     @Autowired
     private EvLogStatisticsService evLogStatisticsService;
@@ -37,6 +39,13 @@ class EvLogStatisticsPeerModelComparisonTest extends AbstractIntegrationTest {
     }
 
     private void addLog(UUID carId, double kwh, double distanceKm, double costEur) {
+        // Anchor log at km=0 (needed so the second log has a valid distance delta)
+        EvLog anchor = EvLog.createNew(carId, new BigDecimal("0.1"), null,
+                1, null, 0, null, null,
+                LocalDateTime.now().minusDays(2), null, null, null, false, null);
+        anchor = anchor.toBuilder().includeInStatistics(true).build();
+        evLogRepository.save(anchor);
+
         EvLog log = EvLog.createNew(carId, new BigDecimal(kwh), new BigDecimal(costEur),
                 60, null, (int) distanceKm, null, null,
                 LocalDateTime.now().minusDays(1), null, null, null, false, null);
