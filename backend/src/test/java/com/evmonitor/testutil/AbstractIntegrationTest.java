@@ -81,6 +81,11 @@ public abstract class AbstractIntegrationTest {
         return userRepository.save(user);
     }
 
+    protected User createUser(String email, String country) {
+        User user = TestDataBuilder.createTestUser(email).toBuilder().country(country).build();
+        return userRepository.save(user);
+    }
+
     protected User createAndSavePremiumUser(String email) {
         User user = TestDataBuilder.createTestUser(email).toBuilder().premium(true).build();
         return userRepository.save(user);
