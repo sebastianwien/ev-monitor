@@ -947,9 +947,10 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
           :location-split="stats.locationSplit"
         />
 
-        <!-- TEMP: Peer Model Comparison (Prototype) -->
+        <!-- Peer Model Comparison -->
         <PeerModelComparisonCard
-          v-if="stats?.peerBenchmark && stats.peerBenchmark.peerAvgConsumptionKwhPer100km != null"
+          v-if="selectedCarId && stats?.peerBenchmark && stats.peerBenchmark.peerAvgConsumptionKwhPer100km != null"
+          :car-id="selectedCarId"
           :car-display-name="selectedCar ? [carDisplayName(selectedCar.brand, selectedCar.model), selectedCar.trim].filter(Boolean).join(' ') : ''"
         />
 
