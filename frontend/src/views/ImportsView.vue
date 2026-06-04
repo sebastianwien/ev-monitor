@@ -12,6 +12,7 @@ const TronityImport = defineAsyncComponent(() => import('../components/imports/T
 import TessieImport from '../components/imports/TessieImport.vue'
 const XpengImport = defineAsyncComponent(() => import('../components/imports/XpengImport.vue'))
 const XpengAutoSyncImport = defineAsyncComponent(() => import('../components/imports/XpengAutoSyncImport.vue'))
+const EUDataActImport = defineAsyncComponent(() => import('../components/imports/EUDataActImport.vue'))
 import CarSelectDropdown from '../components/car/CarSelectDropdown.vue'
 import type { Car } from '../api/carService'
 import { useCarStore } from '../stores/car'
@@ -515,7 +516,32 @@ const autoSyncHasActiveTesla = ref(false)
         </div>
 
 
-        <!-- 7. MANUELL -->
+        <!-- 7. EU DATA ACT (VW Group) -->
+        <div>
+          <button
+            @click="toggle('eu_data_act'); analytics.trackImportTabClicked('eu_data_act')"
+            class="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+          >
+            <div class="shrink-0 rounded-sm border-2 border-gray-900 dark:border-white bg-blue-600 p-2 w-10 h-10 flex items-center justify-center">
+              <span class="text-white font-extrabold text-[11px] leading-none tracking-tight">VW</span>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-medium text-gray-900 dark:text-gray-100 text-sm">{{ t('imports.tab_eu_data_act') }}</span>
+                <span class="text-[10px] font-bold uppercase tracking-wider bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded">Beta</span>
+              </div>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('imports.tab_eu_data_act_desc') }}</p>
+            </div>
+            <ChevronDownIcon :class="['h-5 w-5 text-gray-400 shrink-0 transition-transform duration-200', activeTab === 'eu_data_act' ? 'rotate-180' : '']" />
+          </button>
+          <Transition name="accordion">
+            <div v-if="activeTab === 'eu_data_act'" class="border-t border-gray-100 dark:border-gray-700 p-4">
+              <EUDataActImport :cars="activeCars" @close="toggle('eu_data_act')" />
+            </div>
+          </Transition>
+        </div>
+
+        <!-- 8. MANUELL -->
         <div>
           <button
             @click="toggle('manuell'); analytics.trackImportTabClicked('manuell')"

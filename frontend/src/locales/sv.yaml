@@ -1500,6 +1500,8 @@ imports:
   autosync_tesla_teaser_title: Registrera din Teslas laddningar automatiskt
   autosync_tesla_teaser_desc: Anslut din Tesla till EV Monitor via Fleet Telemetry. Varje session registreras automatiskt - exakta kWh direkt från bilen, ingen manuell inmatning.
   tab_xpeng: XPeng
+  tab_eu_data_act: "VW Group (EU Data Act)"
+  tab_eu_data_act_desc: "VW, Audi, Skoda, SEAT, CUPRA, Porsche"
   tab_spritmonitor: Sprit-Monitor
   tab_goe: go-eCharger
   tab_wallbox: OCPP-laddbox
@@ -2396,3 +2398,24 @@ cost_history:
   trend: Trend
   month: månad
 
+
+eu_data_act:
+  desc: "Ladda upp din dataexport från VW EU Data Act-portalen (VW, Audi, Skoda, SEAT, CUPRA, Porsche). Laddningssessioner identifieras och importeras automatiskt."
+  label_file: "Exportfil (.json eller .zip)"
+  file_placeholder: "Välj fil eller dra hit"
+  label_car: "Välj fordon"
+  btn_preview: "Ladda förhandsgranskning"
+  btn_back: "Tillbaka"
+  btn_import: "Importera"
+  btn_close: "Stäng"
+  preview_vin: "Fordons-ID (VIN)"
+  preview_sessions_found: "{count} laddningssession hittad | {count} laddningssessioner hittade"
+  col_date: "Datum"
+  col_duration: "Varaktighet"
+  col_type: "Typ"
+  done_title: "Import klar"
+  done_imported: "{count} session importerad | {count} sessioner importerade"
+  done_skipped: "{count} finns redan"
+  done_nothing_new: "Inga nya laddningssessioner hittades."
+  err_no_sessions: "Inga laddningssessioner hittades i filen."
+  err_generic: "Kunde inte bearbeta filen. Kontrollera formatet."
