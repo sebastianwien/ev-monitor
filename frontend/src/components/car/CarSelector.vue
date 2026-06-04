@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import type { Car } from '../../api/carService'
 import { useCarStore } from '../../stores/car'
 import { useRouter } from 'vue-router'
+import { carLabel } from '@/composables/useCarLabel'
 
 const props = defineProps<{
   modelValue: string | null
@@ -42,25 +43,6 @@ const fetchCars = async () => {
   } finally {
     loading.value = false
   }
-}
-
-const enumToLabel = (value: string | null | undefined): string => {
-  if (!value) return ''
-  return value.replace(/_/g, ' ').toLowerCase()
-    .split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ')
-}
-
-const carDisplayName = (brand: string | null | undefined, model: string | null | undefined): string => {
-  const b = enumToLabel(brand); const m = enumToLabel(model)
-  return m.toLowerCase().startsWith(b.toLowerCase()) ? m : `${b} ${m}`.trim()
-}
-
-const carLabel = (car: { brand: string; model: string; licensePlate: string; trim?: string | null }): string => {
-  const base = carDisplayName(car.brand, car.model)
-  const name = car.trim ? `${base} ${car.trim}` : base
-  return car.licensePlate ? `${name} · ${car.licensePlate}` : name
 }
 
 const goToCarManagement = () => {

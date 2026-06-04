@@ -1918,6 +1918,7 @@ goe:
   merge_sessions_title: "Sessions zusammenfassen"
   merge_sessions_desc: "Kleine Überschuss-Sessions desselben Tages gruppieren"
   car_status_label: "Fahrzeug:"
+  car_not_set: "nicht gesetzt - Logs deaktiviert"
   car_change: "Ändern"
   car_save_loading: "Speichern..."
   car_save: "Speichern"

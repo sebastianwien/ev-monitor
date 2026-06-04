@@ -1918,6 +1918,7 @@ goe:
   merge_sessions_title: "Merge sessions"
   merge_sessions_desc: "Group small surplus sessions from the same day"
   car_status_label: "Vehicle:"
+  car_not_set: "not set - logs disabled"
   car_change: "Change"
   car_save_loading: "Saving..."
   car_save: "Save"

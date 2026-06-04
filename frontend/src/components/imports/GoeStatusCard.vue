@@ -7,6 +7,7 @@ import { useWallboxStore } from '@/stores/wallbox'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { useCarStore } from '@/stores/car'
 import type { Car } from '@/api/carService'
+import { carLabel } from '@/composables/useCarLabel'
 
 const { t } = useI18n()
 const { formatCostPerKwh } = useLocaleFormat()
@@ -237,21 +238,6 @@ const editingCar = ref(false)
 const selectedCarId = ref<string | null>(null)
 const savingCar = ref(false)
 
-function enumToLabel(value: string | null | undefined): string {
-  if (!value) return ''
-  return value.replace(/_/g, ' ').toLowerCase()
-    .split(' ')
-    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(' ')
-}
-
-function carLabel(car: Car): string {
-  const b = enumToLabel(car.brand)
-  const m = enumToLabel(car.model)
-  const base = m.toLowerCase().startsWith(b.toLowerCase()) ? m : `${b} ${m}`.trim()
-  return car.trim ? `${base} ${car.trim}` : base
-}
-
 const currentCarLabel = computed(() => {
   if (!conn.value?.carId) return null
   const found = cars.value.find(c => c.id === conn.value!.carId)
@@ -467,8 +453,8 @@ async function saveCar() {
       <div v-if="!editingCar" class="flex items-center justify-between">
         <span class="text-xs text-gray-500 dark:text-gray-400">
           {{ t('goe.car_status_label') }}
-          <span class="font-medium text-gray-700 dark:text-gray-300">
-            {{ currentCarLabel ?? '?' }}
+          <span :class="currentCarLabel ? 'font-medium text-gray-700 dark:text-gray-300' : 'text-amber-600 font-medium'">
+            {{ currentCarLabel ?? t('goe.car_not_set') }}
           </span>
         </span>
         <button @click="startEditCar"
@@ -481,6 +467,7 @@ async function saveCar() {
         <select
           v-model="selectedCarId"
           class="flex-1 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-2 py-1 text-sm"
+          @keydown.escape="editingCar = false"
         >
           <option v-for="car in cars" :key="car.id" :value="car.id">{{ carLabel(car) }}</option>
         </select>
