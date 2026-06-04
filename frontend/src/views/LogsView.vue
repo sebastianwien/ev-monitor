@@ -502,6 +502,15 @@ function dismissLiveBanner() {
   liveBannerDismissed.value = true
   localStorage.setItem(LS_LIVE_BANNER_DISMISSED, 'true')
 }
+
+const LS_COST_TIP_DISMISSED = 'logfeed_cost_reuse_tip_dismissed'
+const costTipDismissed = ref(localStorage.getItem(LS_COST_TIP_DISMISSED) === 'true')
+const showCostTip = computed(() => !costTipDismissed.value)
+function dismissCostTip() {
+  costTipDismissed.value = true
+  localStorage.setItem(LS_COST_TIP_DISMISSED, 'true')
+}
+
 onMounted(async () => {
   try {
     const status = await subscriptionService.getStatus()
@@ -837,6 +846,28 @@ function toggleAllCharges() {
             <button type="button" @click="dismissLiveBanner"
               class="flex-shrink-0 p-0.5 rounded hover:bg-indigo-500/20 dark:hover:bg-indigo-500/30 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
               :aria-label="t('dashboard.live_banner_dismiss')">
+              <XMarkIcon class="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" aria-hidden="true" />
+            </button>
+          </div>
+
+          <!-- Cost-reuse tip (shown once, dismissible via localStorage) -->
+          <div v-if="showCostTip"
+            class="w-full flex items-center justify-between gap-2 px-3 py-2 mb-4 rounded-sm border-l-2 border-blue-400 bg-blue-500/10">
+            <div class="flex items-start gap-2 min-w-0">
+              <InformationCircleIcon class="w-3.5 h-3.5 text-blue-500 dark:text-blue-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
+              <p class="text-xs text-gray-700 dark:text-gray-300 leading-snug">
+                <i18n-t keypath="dashboard.cost_reuse_tip_text" tag="span">
+                  <template #settings>
+                    <router-link to="/settings" class="underline text-blue-700 dark:text-blue-300 hover:text-blue-500">
+                      {{ t('dashboard.cost_reuse_tip_settings') }}
+                    </router-link>
+                  </template>
+                </i18n-t>
+              </p>
+            </div>
+            <button type="button" @click="dismissCostTip"
+              class="flex-shrink-0 p-0.5 rounded hover:bg-blue-500/20 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+              :aria-label="t('dashboard.cost_reuse_tip_dismiss')">
               <XMarkIcon class="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" aria-hidden="true" />
             </button>
           </div>

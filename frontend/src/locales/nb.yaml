@@ -668,6 +668,9 @@ dashboard:
   live_banner_price: "- 49 kr/måned"
   live_banner_cta: "les mer →"
   live_banner_dismiss: "Skjul tipset"
+  cost_reuse_tip_text: "Ladepriser gjenbrukes automatisk på kjente steder. Du kan også legge til dine tariffer i {settings}."
+  cost_reuse_tip_settings: "Innstillinger"
+  cost_reuse_tip_dismiss: "Skjul tipset"
   estimated_tooltip: "Anslått verdi: beregnet ut fra ladet energi ÷ avstand; ingen SoC-verdi tilgjengelig."
   week_abbr: W
   top_up: Påfyll

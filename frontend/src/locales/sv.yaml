@@ -668,6 +668,9 @@ dashboard:
   live_banner_price: "- 49 kr/månad"
   live_banner_cta: "läs mer →"
   live_banner_dismiss: "Dölj tipset"
+  cost_reuse_tip_text: "Laddkostnader återanvänds automatiskt på kända platser. Du kan också lägga till dina tariffer i {settings}."
+  cost_reuse_tip_settings: "Inställningar"
+  cost_reuse_tip_dismiss: "Dölj tipset"
   estimated_tooltip: "Beräknat värde: beräknat utifrån laddad energi dividerat med sträcka; inget SoC-värde tillgängligt."
   week_abbr: W
   top_up: Ladda på
