@@ -1856,6 +1856,11 @@ goe:
   location_cancel: Avbryt
   merge_sessions_title: Slå sammen økter
   merge_sessions_desc: Grupper sammen små overskuddsøkter fra samme dag
+  car_status_label: Kjøretøy:
+  car_change: Endre
+  car_save_loading: Lagrer...
+  car_save: Lagre
+  car_cancel: Avbryt
   updated_every: Oppdateres hvert {n} minutt
 heatmap:
   loading: Laster kart...

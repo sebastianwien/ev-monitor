@@ -11,6 +11,7 @@ export interface GoeConnection {
   tariffCentsPerKwh: number
   geohash: string | null
   mergeSessions: boolean
+  carId: string | null
 }
 
 export const CAR_STATE_LABELS: Record<number, string> = {
@@ -51,6 +52,11 @@ export default {
 
   async updateGeohash(id: string, geohash: string | null): Promise<GoeConnection> {
     const resp = await api.patch(`/goe/connections/${id}/geohash`, { geohash })
+    return { ...resp.data, carStateLabel: CAR_STATE_LABELS[resp.data.carState] ?? 'Unbekannt' }
+  },
+
+  async updateCar(id: string, carId: string): Promise<GoeConnection> {
+    const resp = await api.patch(`/goe/connections/${id}/car`, { carId })
     return { ...resp.data, carStateLabel: CAR_STATE_LABELS[resp.data.carState] ?? 'Unbekannt' }
   },
 }

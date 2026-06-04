@@ -1917,6 +1917,11 @@ goe:
   location_cancel: "Abbrechen"
   merge_sessions_title: "Sessions zusammenfassen"
   merge_sessions_desc: "Kleine Überschuss-Sessions desselben Tages gruppieren"
+  car_status_label: "Fahrzeug:"
+  car_change: "Ändern"
+  car_save_loading: "Speichern..."
+  car_save: "Speichern"
+  car_cancel: "Abbrechen"
   updated_every: "Aktualisiert alle {n} Min"
 
 heatmap:

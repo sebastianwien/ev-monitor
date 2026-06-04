@@ -1917,6 +1917,11 @@ goe:
   location_cancel: "Cancel"
   merge_sessions_title: "Merge sessions"
   merge_sessions_desc: "Group small surplus sessions from the same day"
+  car_status_label: "Vehicle:"
+  car_change: "Change"
+  car_save_loading: "Saving..."
+  car_save: "Save"
+  car_cancel: "Cancel"
   updated_every: "Updates every {n} min"
 
 heatmap:
