@@ -12,7 +12,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -31,6 +34,7 @@ public class EvLogStatisticsService {
     private static final int MIN_TRIPS_FOR_CAR_RANGE = 5;
 
     private final EvLogRepository evLogRepository;
+    private final EvTripRepository evTripRepository;
     private final CarRepository carRepository;
     private final UserRepository userRepository;
     private final VehicleSpecificationRepository vehicleSpecificationRepository;
@@ -120,7 +124,10 @@ public class EvLogStatisticsService {
             BigDecimal fixedCostEur = (startDate != null && endDate != null)
                     ? fixedCostService.calculateForPeriod(carId, startDate, endDate)
                     : BigDecimal.ZERO;
-            return createEmptyStatisticsWithFixedCost(fixedCostEur);
+            BigDecimal distanceFromTrips = (startDate != null || endDate != null)
+                    ? computeOdometerDeltaDistance(carId, startDate, endDate)
+                    : null;
+            return createEmptyStatisticsWithFixedCostAndDistance(fixedCostEur, distanceFromTrips);
         }
 
         // Compute per-log consumption once — used for both chart data and overall average
@@ -213,7 +220,13 @@ public class EvLogStatisticsService {
             totalWeighted = totalWeighted.add(cr.value().multiply(BigDecimal.valueOf(cr.distanceKm())));
             totalDist += cr.distanceKm();
         }
-        BigDecimal totalDistanceKm = totalDistAll > 0 ? BigDecimal.valueOf(totalDistAll) : null;
+        // For time-filtered views: odometer-delta approach (trip-aware, boundary interpolation).
+        // For all-time views: legacy chain-based approach via totalDistAll (conservative, avoids
+        // counting odometer gaps from broken chains like TESLA_FLEET_IMPORT without odometer).
+        BigDecimal totalDistanceKm = (startDate != null || endDate != null)
+                ? computeOdometerDeltaDistance(carId, startDate, endDate)
+                : (totalDistAll > 0 ? BigDecimal.valueOf(totalDistAll) : null);
+
         BigDecimal avgConsumptionKwhPer100km = ConsumptionMath.weightedAverage(totalWeighted, totalDist);
 
         // Fallback: if no SoC data available, use kWh/distance (distanceByLogId already computed above)
@@ -223,9 +236,9 @@ public class EvLogStatisticsService {
                     .toList();
             if (!logsWithDistance.isEmpty()) {
                 int totalDistInt = logsWithDistance.stream().mapToInt(l -> distanceByLogId.get(l.getId())).sum();
-                totalDistanceKm = BigDecimal.valueOf(totalDistInt);
+                if (totalDistanceKm == null) totalDistanceKm = BigDecimal.valueOf(totalDistInt);
                 avgConsumptionKwhPer100km = calculationService.calculateConsumptionFallback(logsWithDistance, totalDistanceKm);
-                estimatedCount = logsWithDistance.size(); // all are estimated in pure fallback mode
+                estimatedCount = logsWithDistance.size();
             }
         }
 
@@ -271,13 +284,17 @@ public class EvLogStatisticsService {
     }
 
     private EvLogStatisticsResponse createEmptyStatisticsWithFixedCost(BigDecimal fixedCostEur) {
+        return createEmptyStatisticsWithFixedCostAndDistance(fixedCostEur, null);
+    }
+
+    private EvLogStatisticsResponse createEmptyStatisticsWithFixedCostAndDistance(BigDecimal fixedCostEur, BigDecimal distanceKm) {
         var emptyTypeSplit = new EvLogStatisticsResponse.ChargingTypeSplit(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
         var emptyLocSplit = new EvLogStatisticsResponse.LocationSplit(BigDecimal.ZERO, BigDecimal.ZERO);
         var emptyEffSplit = new EvLogStatisticsResponse.ChargingEfficiencySplit(BigDecimal.ZERO, BigDecimal.ZERO, 0, 0);
         return new EvLogStatisticsResponse(
                 BigDecimal.ZERO, BigDecimal.ZERO, fixedCostEur, fixedCostEur, BigDecimal.ZERO,
                 BigDecimal.ZERO, BigDecimal.ZERO, 0, 0,
-                null, null, 0, null, null, List.of(), emptyTypeSplit, emptyLocSplit, null, emptyEffSplit
+                distanceKm, null, 0, null, null, List.of(), emptyTypeSplit, emptyLocSplit, null, emptyEffSplit
         );
     }
 
@@ -855,5 +872,106 @@ public class EvLogStatisticsService {
         }
 
         return null;
+    }
+
+    /**
+     * Odometer-delta based distance for a time period.
+     *
+     * Strategy:
+     *   1. Collect all odometer-bearing datapoints from ev_log and ev_trip for the car,
+     *      sorted by timestamp.
+     *   2. Kern: delta between oldest and newest datapoint inside [from, to].
+     *   3. Lower boundary interpolation: if a predecessor exists before `from`, interpolate
+     *      the fraction of the predecessor→oldest-in-period delta that falls within the period.
+     *   4. Upper boundary interpolation: same logic for the period end.
+     *
+     * Returns null if no odometer-bearing datapoint exists inside the period.
+     * If from/to is null (all-time view), returns the raw delta across all datapoints.
+     */
+    BigDecimal computeOdometerDeltaDistance(UUID carId, LocalDate from, LocalDate to) {
+        // Build unified list of (timestamp, odometerKm) from ev_log + ev_trip
+        record OdoPoint(OffsetDateTime ts, BigDecimal odo) {}
+
+        List<OdoPoint> points = new ArrayList<>();
+
+        evLogRepository.findAllByCarId(carId).stream()
+                .filter(l -> l.getOdometerKm() != null)
+                .forEach(l -> points.add(new OdoPoint(
+                        l.getLoggedAt().atOffset(ZoneOffset.UTC), BigDecimal.valueOf(l.getOdometerKm()))));
+
+        evTripRepository.findAllByCarIdAndDeletedAtIsNull(carId)
+                .forEach(t -> {
+                    if (t.getOdometerEndKm() != null && t.getTripEndedAt() != null) {
+                        points.add(new OdoPoint(t.getTripEndedAt(), t.getOdometerEndKm()));
+                    } else if (t.getOdometerStartKm() != null) {
+                        points.add(new OdoPoint(t.getTripStartedAt(), t.getOdometerStartKm()));
+                    }
+                });
+
+        points.sort(Comparator.comparing(OdoPoint::ts));
+
+        if (points.isEmpty()) return null;
+
+        OffsetDateTime periodStart = from != null ? from.atStartOfDay().atOffset(ZoneOffset.UTC) : null;
+        OffsetDateTime periodEnd   = to   != null ? to.plusDays(1).atStartOfDay().atOffset(ZoneOffset.UTC) : null;
+
+        // No period filter → simple all-time delta
+        if (periodStart == null && periodEnd == null) {
+            return points.getLast().odo().subtract(points.getFirst().odo()).max(BigDecimal.ZERO);
+        }
+
+        List<OdoPoint> inPeriod = points.stream()
+                .filter(p -> (periodStart == null || !p.ts().isBefore(periodStart))
+                          && (periodEnd   == null || p.ts().isBefore(periodEnd)))
+                .toList();
+
+        if (inPeriod.isEmpty()) return null;
+
+        // Kern: delta between oldest and newest inside the period
+        BigDecimal kern = inPeriod.getLast().odo().subtract(inPeriod.getFirst().odo()).max(BigDecimal.ZERO);
+
+        // Lower boundary interpolation
+        BigDecimal lowerInterp = BigDecimal.ZERO;
+        if (periodStart != null) {
+            OdoPoint oldest = inPeriod.getFirst();
+            // Find the latest point strictly before periodStart
+            OdoPoint predecessor = null;
+            for (int i = points.size() - 1; i >= 0; i--) {
+                if (points.get(i).ts().isBefore(periodStart)) { predecessor = points.get(i); break; }
+            }
+            if (predecessor != null && oldest.odo().compareTo(predecessor.odo()) != 0) {
+                long totalDays = java.time.temporal.ChronoUnit.DAYS.between(predecessor.ts(), oldest.ts());
+                long gapDays   = java.time.temporal.ChronoUnit.DAYS.between(periodStart, oldest.ts());
+                if (totalDays > 0 && gapDays > 0) {
+                    BigDecimal segDelta = oldest.odo().subtract(predecessor.odo()).max(BigDecimal.ZERO);
+                    lowerInterp = segDelta
+                            .multiply(BigDecimal.valueOf(gapDays))
+                            .divide(BigDecimal.valueOf(totalDays), 3, RoundingMode.HALF_UP);
+                }
+            }
+        }
+
+        // Upper boundary interpolation
+        BigDecimal upperInterp = BigDecimal.ZERO;
+        if (periodEnd != null) {
+            OdoPoint newest = inPeriod.getLast();
+            // Find the earliest point strictly after periodEnd
+            OdoPoint successor = null;
+            for (OdoPoint p : points) {
+                if (!p.ts().isBefore(periodEnd)) { successor = p; break; }
+            }
+            if (successor != null && successor.odo().compareTo(newest.odo()) != 0) {
+                long totalDays = java.time.temporal.ChronoUnit.DAYS.between(newest.ts(), successor.ts());
+                long gapDays   = java.time.temporal.ChronoUnit.DAYS.between(newest.ts(), periodEnd);
+                if (totalDays > 0 && gapDays > 0) {
+                    BigDecimal segDelta = successor.odo().subtract(newest.odo()).max(BigDecimal.ZERO);
+                    upperInterp = segDelta
+                            .multiply(BigDecimal.valueOf(gapDays))
+                            .divide(BigDecimal.valueOf(totalDays), 3, RoundingMode.HALF_UP);
+                }
+            }
+        }
+
+        return kern.add(lowerInterp).add(upperInterp).setScale(1, RoundingMode.HALF_UP);
     }
 }

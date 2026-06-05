@@ -13,6 +13,12 @@ function toggleCollapsed() {
   localStorage.setItem(LS_KEY, String(collapsed.value))
 }
 
+function selectTab(tab: Tab, e: MouseEvent) {
+  activeTab.value = tab
+  const el = e.currentTarget as HTMLElement | null
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
+}
+
 const props = defineProps<{
   entries: any[]
   selectedCar: any
@@ -314,21 +320,23 @@ function drainBarWidth(ev: { kwh: number }): string {
   <div class="bg-white dark:bg-gray-700 rounded-sm border-2 border-gray-300 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#4b5563] overflow-hidden">
 
     <!-- Tab bar -->
-    <div class="flex items-center gap-5 px-4 md:px-5 border-b border-gray-200 dark:border-gray-600">
-      <button
-        v-for="tab in (['donut', 'nights', 'calendar', 'routes'] as Tab[])"
-        :key="tab"
-        @click="activeTab = tab"
-        :class="[
-          'py-3 text-xs font-semibold border-b-2 transition-colors -mb-px',
-          activeTab === tab
-            ? 'border-indigo-500 text-indigo-500 dark:text-indigo-400'
-            : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-        ]"
-      >
-        {{ t(`dashboard.insights_tab_${tab}`) }}
-      </button>
-      <button @click="toggleCollapsed" class="sm:hidden ml-auto p-1.5">
+    <div class="flex items-center border-b border-gray-200 dark:border-gray-600">
+      <div class="flex items-center gap-5 px-4 md:px-5 overflow-x-auto flex-1 min-w-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <button
+          v-for="tab in (['donut', 'nights', 'calendar', 'routes'] as Tab[])"
+          :key="tab"
+          @click="selectTab(tab, $event)"
+          :class="[
+            'py-3 text-xs font-semibold border-b-2 transition-colors -mb-px whitespace-nowrap flex-shrink-0',
+            activeTab === tab
+              ? 'border-indigo-500 text-indigo-500 dark:text-indigo-400'
+              : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+          ]"
+        >
+          {{ t(`dashboard.insights_tab_${tab}`) }}
+        </button>
+      </div>
+      <button @click="toggleCollapsed" class="sm:hidden flex-shrink-0 p-1.5 pr-3">
         <ChevronDownIcon class="w-4 h-4 text-gray-400 transition-transform duration-200" :class="{ 'rotate-180': !collapsed }" />
       </button>
     </div>
@@ -545,8 +553,16 @@ function drainBarWidth(ev: { kwh: number }): string {
             <div class="hidden md:block w-px self-stretch bg-gray-200 dark:bg-gray-600 mx-5"></div>
             <div class="block md:hidden h-px bg-gray-100 dark:bg-gray-600 my-3"></div>
             <!-- bars -->
-            <div class="space-y-2 flex-1 min-w-0">
-              <div class="flex items-center gap-2">
+            <div class="flex items-center gap-3 flex-1 min-w-0">
+              <div class="space-y-2 flex-1 min-w-0">
+                <!-- totals header - mobile only -->
+                <div class="flex md:hidden items-center justify-center gap-1.5 text-[11px] tabular-nums mono text-gray-500 dark:text-gray-400">
+                  <span>{{ Math.round(routeStats.totalKm) }} km</span>
+                  <template v-if="routeStats.hasEnergyData">
+                    <span class="text-gray-300 dark:text-gray-600">·</span>
+                    <span>{{ fmt1(routeStats.totalEnergy) }} kWh</span>
+                  </template>
+                </div>
                 <div class="flex flex-1 h-6 overflow-hidden rounded bg-gray-100 dark:bg-gray-800/70">
                   <div
                     v-for="cat in routeStats.categories"
@@ -563,9 +579,6 @@ function drainBarWidth(ev: { kwh: number }): string {
                     </span>
                   </div>
                 </div>
-                <span class="text-[11px] text-gray-500 dark:text-gray-400 flex-shrink-0 tabular-nums mono w-10 text-left whitespace-nowrap">{{ Math.round(routeStats.totalKm) }} km</span>
-              </div>
-              <div class="flex items-center gap-2">
                 <div class="flex flex-1 h-6 overflow-hidden rounded bg-gray-100 dark:bg-gray-800/70">
                   <div
                     v-for="cat in routeStats.categories"
@@ -583,9 +596,11 @@ function drainBarWidth(ev: { kwh: number }): string {
                     </span>
                   </div>
                 </div>
-                <span class="text-[11px] text-gray-500 dark:text-gray-400 flex-shrink-0 tabular-nums mono w-10 text-left whitespace-nowrap">
-                  <template v-if="routeStats.hasEnergyData">{{ fmt1(routeStats.totalEnergy) }} kWh</template>
-                </span>
+              </div>
+              <!-- totals right - desktop only -->
+              <div class="hidden md:flex flex-col items-end justify-center gap-2 flex-shrink-0 text-[11px] tabular-nums mono text-gray-500 dark:text-gray-400">
+                <span>{{ Math.round(routeStats.totalKm) }} km</span>
+                <span v-if="routeStats.hasEnergyData">{{ fmt1(routeStats.totalEnergy) }} kWh</span>
               </div>
             </div>
           </div>

@@ -18,6 +18,9 @@ public interface EvTripRepository extends JpaRepository<EvTrip, UUID> {
 
     Optional<EvTrip> findByExternalIdAndDeletedAtIsNull(UUID externalId);
 
+    @Query("SELECT t FROM EvTrip t WHERE t.carId = :carId AND t.deletedAt IS NULL ORDER BY t.tripStartedAt ASC")
+    List<EvTrip> findAllByCarIdAndDeletedAtIsNull(@Param("carId") UUID carId);
+
     @Query("SELECT t FROM EvTrip t WHERE t.carId = :carId AND t.tripStartedAt BETWEEN :from AND :to AND t.deletedAt IS NULL ORDER BY t.tripStartedAt ASC")
     List<EvTrip> findByCarIdAndTripStartedAtBetweenOrderByTripStartedAtAsc(
             @Param("carId") UUID carId,
