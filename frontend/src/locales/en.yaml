@@ -518,6 +518,11 @@ auth:
 
 dashboard:
   title: "Dashboard"
+  ac_gross_label_brutto: "Gross"
+  ac_gross_label_netto: "Netto"
+  ac_gross_efficiency: "Efficiency"
+  ac_gross_add_brutto: "Add gross value"
+  ac_gross_add_netto: "Add netto value"
   cost_pill_netto_title: "Price per netto kWh. Wallbox brutto unknown - your actual electricity bill can be slightly higher."
   real_cost_label: "Real"
   real_cost_inline_suffix: "real"

@@ -478,6 +478,11 @@ auth:
     error_generic: Det oppstod en feil. Prøv på nytt.
 dashboard:
   title: Dashbord
+  ac_gross_label_brutto: "Brutto"
+  ac_gross_label_netto: "Netto"
+  ac_gross_efficiency: "Effektivitet"
+  ac_gross_add_brutto: "Legg til bruttoverdi"
+  ac_gross_add_netto: "Legg til nettoverdi"
   cost_pill_netto_title: "Pris per netto kWh. Wallbox-brutto ukjent - faktisk strømregning kan være litt høyere."
   real_cost_label: "Reell"
   real_cost_inline_suffix: "reell"

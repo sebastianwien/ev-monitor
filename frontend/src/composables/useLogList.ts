@@ -397,6 +397,22 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
       const dateRangeLabel = spansMultipleDays ? `${fmtDate(firstDate)} - ${fmtDate(lastDate)}` : fmtDate(firstDate)
       const newestConsumption = allSubs[0].consumptionKwhPer100km ?? null
       const ds = commonDataSource ?? (new Set(allSubs.map((l: any) => l.dataSource)).size === 1 ? allSubs[0].dataSource : null)
+      const allHaveNetto = allSubs.every((s: any) => s.kwhAtVehicle != null)
+      const noneHaveNetto = allSubs.every((s: any) => s.kwhAtVehicle == null)
+      const bruttoSum = allSubs.every((s: any) => s.kwhCharged != null)
+        ? allSubs.reduce((s: number, l: any) => s + parseFloat(l.kwhCharged), 0)
+        : null
+      const nettoSum = allSubs.every((s: any) => s.kwhAtVehicle != null)
+        ? allSubs.reduce((s: number, l: any) => s + parseFloat(l.kwhAtVehicle), 0)
+        : null
+      const efficiency = (bruttoSum && nettoSum && bruttoSum > 0)
+        ? Math.round(nettoSum / bruttoSum * 1000) / 10
+        : null
+      const fieldForWeights: 'kwhAtVehicle' | 'kwhCharged' = allHaveNetto ? 'kwhAtVehicle' : 'kwhCharged'
+      const fieldToSet: 'kwhCharged' | 'kwhAtVehicle' = allHaveNetto ? 'kwhCharged' : 'kwhAtVehicle'
+      const totalMissingKwh = allHaveNetto
+        ? (bruttoSum != null ? Math.round(bruttoSum * 100) / 100 : null)
+        : (nettoSum != null ? Math.round(nettoSum * 100) / 100 : null)
       return {
         ...allSubs[0],
         id: allSubs[0].id,
@@ -413,6 +429,11 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
         _dateRangeLabel: dateRangeLabel,
         _totalConsumption: newestConsumption,
         _commonDataSource: ds,
+        _canEditMissing: allHaveNetto || noneHaveNetto,
+        _fieldForWeights: fieldForWeights,
+        _fieldToSet: fieldToSet,
+        _totalMissingKwh: totalMissingKwh,
+        _efficiency: efficiency,
       }
     }
 
