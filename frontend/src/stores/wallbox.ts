@@ -11,6 +11,7 @@ const DEMO_CONNECTION: GoeConnection = {
   lastPollError: null,
   carStateLabel: 'Lädt',
   tariffCentsPerKwh: 28,
+  carId: null,
   geohash: null,
   mergeSessions: false,
 }

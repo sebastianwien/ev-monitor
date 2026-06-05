@@ -1870,7 +1870,7 @@ goe:
   location_cancel: Avbryt
   merge_sessions_title: Slå ihop sessioner
   merge_sessions_desc: Samla ihop korta överskottspass från samma dag
-  car_status_label: Fordon:
+  car_status_label: "Fordon:"
   car_not_set: inte inställt - loggar inaktiverade
   car_change: Ändra
   car_save_loading: Sparar...

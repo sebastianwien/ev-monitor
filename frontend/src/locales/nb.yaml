@@ -1870,7 +1870,7 @@ goe:
   location_cancel: Avbryt
   merge_sessions_title: Slå sammen økter
   merge_sessions_desc: Grupper sammen små overskuddsøkter fra samme dag
-  car_status_label: Kjøretøy:
+  car_status_label: "Kjøretøy:"
   car_not_set: ikke satt - logger deaktivert
   car_change: Endre
   car_save_loading: Lagrer...
