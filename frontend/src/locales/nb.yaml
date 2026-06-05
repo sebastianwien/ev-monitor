@@ -483,6 +483,7 @@ dashboard:
   ac_gross_efficiency: "Effektivitet"
   ac_gross_add_brutto: "Legg til bruttoverdi"
   ac_gross_add_netto: "Legg til nettoverdi"
+  ac_gross_error: "Kunne ikke lagre"
   cost_pill_netto_title: "Pris per netto kWh. Wallbox-brutto ukjent - faktisk strømregning kan være litt høyere."
   real_cost_label: "Reell"
   real_cost_inline_suffix: "reell"

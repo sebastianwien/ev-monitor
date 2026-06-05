@@ -483,6 +483,7 @@ dashboard:
   ac_gross_efficiency: "Effektivitet"
   ac_gross_add_brutto: "Lägg till bruttovärde"
   ac_gross_add_netto: "Lägg till nettovärde"
+  ac_gross_error: "Det gick inte att spara"
   cost_pill_netto_title: "Pris per netto-kWh. Wallbox-brutto okänd - din faktiska elräkning kan vara något högre."
   real_cost_label: "Verklig"
   real_cost_inline_suffix: "verklig"

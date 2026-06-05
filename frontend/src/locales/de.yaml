@@ -523,6 +523,7 @@ dashboard:
   ac_gross_efficiency: "Effizienz"
   ac_gross_add_brutto: "Brutto nachtragen"
   ac_gross_add_netto: "Netto nachtragen"
+  ac_gross_error: "Fehler beim Speichern"
   cost_pill_netto_title: "Preis pro netto-kWh. Wallbox-Brutto unbekannt - echte Stromrechnung kann etwas höher liegen."
   real_cost_label: "Real"
   real_cost_inline_suffix: "real"

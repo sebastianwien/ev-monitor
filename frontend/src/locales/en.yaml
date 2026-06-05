@@ -523,6 +523,7 @@ dashboard:
   ac_gross_efficiency: "Efficiency"
   ac_gross_add_brutto: "Add gross value"
   ac_gross_add_netto: "Add netto value"
+  ac_gross_error: "Failed to save"
   cost_pill_netto_title: "Price per netto kWh. Wallbox brutto unknown - your actual electricity bill can be slightly higher."
   real_cost_label: "Real"
   real_cost_inline_suffix: "real"

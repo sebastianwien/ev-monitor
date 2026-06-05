@@ -37,6 +37,7 @@ import {
   buildTripCostPerKwhMap,
 } from '../utils/tripCalculations'
 import api from '../api/axios'
+import { distributeProportionally } from '../utils/distributeProportionally'
 import PowerCurveChart from '../components/charging/PowerCurveChart.vue'
 import ConsumptionInfoBox from '../components/dashboard/ConsumptionInfoBox.vue'
 import EditLogModal from '../components/dashboard/EditLogModal.vue'
@@ -95,9 +96,12 @@ onUnmounted(() => { if (_deleteTimer) clearTimeout(_deleteTimer) })
 
 const grossEditState = ref<Record<string, string>>({})
 const grossSaving = ref<Set<string>>(new Set())
+const grossError = ref<Record<string, string>>({})
 
 function startGrossEdit(entry: any, event: Event) {
   event.stopPropagation()
+  const { [entry.id]: _, ...restErrors } = grossError.value
+  grossError.value = restErrors
   grossEditState.value = {
     ...grossEditState.value,
     [entry.id]: entry._totalMissingKwh != null ? String(entry._totalMissingKwh) : '',
@@ -106,9 +110,10 @@ function startGrossEdit(entry: any, event: Event) {
 
 function cancelGrossEdit(entryId: string, event?: Event) {
   event?.stopPropagation()
-  const s = { ...grossEditState.value }
-  delete s[entryId]
-  grossEditState.value = s
+  const { [entryId]: _e, ...restErrors } = grossError.value
+  grossError.value = restErrors
+  const { [entryId]: _s, ...rest } = grossEditState.value
+  grossEditState.value = rest
 }
 
 async function applyGrossTotal(entry: any, event?: Event) {
@@ -117,28 +122,21 @@ async function applyGrossTotal(entry: any, event?: Event) {
   if (isNaN(total) || total <= 0) return
   const weightField: 'kwhAtVehicle' | 'kwhCharged' = entry._fieldForWeights
   const setField: 'kwhCharged' | 'kwhAtVehicle' = entry._fieldToSet
-  const weightSum = entry._topUps.reduce((s: number, t: any) => s + (parseFloat(t[weightField]) || 0), 0)
-  if (!weightSum) return
+  const weights = entry._topUps.map((t: any) => parseFloat(t[weightField]) || 0)
 
   grossSaving.value = new Set([...grossSaving.value, entry.id])
+  const { [entry.id]: _e, ...restErrors } = grossError.value
+  grossError.value = restErrors
   try {
-    let remaining = total
+    const values = distributeProportionally(total, weights)
     for (let i = 0; i < entry._topUps.length; i++) {
-      const topUp = entry._topUps[i]
-      let value: number
-      if (i === entry._topUps.length - 1) {
-        value = Math.round(remaining * 100) / 100
-      } else {
-        const share = (parseFloat(topUp[weightField]) || 0) / weightSum
-        value = Math.round(total * share * 100) / 100
-        remaining -= value
-      }
-      await api.patch(`/logs/${topUp.id}`, { [setField]: value })
+      await api.patch(`/logs/${entry._topUps[i].id}`, { [setField]: values[i] })
     }
-    const s = { ...grossEditState.value }
-    delete s[entry.id]
-    grossEditState.value = s
+    const { [entry.id]: _s, ...rest } = grossEditState.value
+    grossEditState.value = rest
     await refreshLogsAndGroups()
+  } catch {
+    grossError.value = { ...grossError.value, [entry.id]: t('dashboard.ac_gross_error') }
   } finally {
     const ns = new Set(grossSaving.value)
     ns.delete(entry.id)
@@ -1740,30 +1738,36 @@ function toggleAllCharges() {
                     <input
                       type="number" step="0.01" min="0"
                       v-model="grossEditState[item.entry.id]"
+                      :aria-label="t(item.entry._missingLabel)"
                       class="w-24 text-xs border border-blue-300 dark:border-blue-700 rounded px-2 py-0.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-400"
                       @click.stop @mousedown.stop @keydown.stop
                       @keydown.enter.stop.prevent="applyGrossTotal(item.entry)"
                       @keydown.escape.stop.prevent="cancelGrossEdit(item.entry.id)"
                     />
-                    <span class="text-xs text-gray-500 dark:text-gray-400">
-                      kWh {{ item.entry._fieldToSet === 'kwhCharged' ? t('dashboard.ac_gross_label_brutto') : t('dashboard.ac_gross_label_netto') }}
-                    </span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">kWh {{ t(item.entry._missingLabel) }}</span>
                     <button type="button"
                       class="text-blue-500 hover:text-blue-700 dark:hover:text-blue-300 disabled:opacity-40 transition"
                       :disabled="grossSaving.has(item.entry.id)"
                       @click.stop="applyGrossTotal(item.entry, $event)">
-                      <CheckIcon class="w-3.5 h-3.5" />
+                      <svg v-if="grossSaving.has(item.entry.id)" class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                      </svg>
+                      <CheckIcon v-else class="w-3.5 h-3.5" />
                     </button>
                     <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition"
                       @click.stop="cancelGrossEdit(item.entry.id)">
                       <XMarkIcon class="w-3.5 h-3.5" />
                     </button>
+                    <span v-if="grossError[item.entry.id]" class="text-xs text-red-500 dark:text-red-400">
+                      {{ grossError[item.entry.id] }}
+                    </span>
                   </template>
                   <template v-else-if="item.entry._totalMissingKwh != null">
                     <button type="button"
                       class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-blue-500 transition"
                       @click.stop="startGrossEdit(item.entry, $event)">
-                      <span class="tabular-nums font-medium">{{ item.entry._totalMissingKwh }} kWh {{ item.entry._fieldToSet === 'kwhCharged' ? t('dashboard.ac_gross_label_brutto') : t('dashboard.ac_gross_label_netto') }}</span>
+                      <span class="tabular-nums font-medium">{{ item.entry._totalMissingKwh }} kWh {{ t(item.entry._missingLabel) }}</span>
                       <span v-if="item.entry._efficiency != null" class="text-gray-400 dark:text-gray-500">· {{ item.entry._efficiency }}% {{ t('dashboard.ac_gross_efficiency') }}</span>
                       <PencilSquareIcon class="w-3 h-3 text-gray-400" />
                     </button>
@@ -1773,7 +1777,7 @@ function toggleAllCharges() {
                       class="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 hover:text-blue-500 transition"
                       @click.stop="startGrossEdit(item.entry, $event)">
                       <PlusIcon class="w-3.5 h-3.5" />
-                      {{ item.entry._fieldToSet === 'kwhCharged' ? t('dashboard.ac_gross_add_brutto') : t('dashboard.ac_gross_add_netto') }}
+                      {{ t(item.entry._addMissingLabel) }}
                     </button>
                   </template>
                 </div>
@@ -1881,40 +1885,46 @@ function toggleAllCharges() {
                       <input
                         type="number" step="0.01" min="0"
                         v-model="grossEditState[item.entry.id]"
+                        :aria-label="t(item.entry._missingLabel)"
                         class="w-24 text-xs border border-blue-300 dark:border-blue-700 rounded px-2 py-0.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-400"
                         @click.stop @mousedown.stop @keydown.stop
                         @keydown.enter.stop.prevent="applyGrossTotal(item.entry)"
                         @keydown.escape.stop.prevent="cancelGrossEdit(item.entry.id)"
                       />
-                      <span class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                        kWh {{ item.entry._fieldToSet === 'kwhCharged' ? t('dashboard.ac_gross_label_brutto') : t('dashboard.ac_gross_label_netto') }}
-                      </span>
+                      <span class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">kWh {{ t(item.entry._missingLabel) }}</span>
                       <button type="button"
                         class="text-blue-500 hover:text-blue-700 dark:hover:text-blue-300 disabled:opacity-40 transition"
                         :disabled="grossSaving.has(item.entry.id)"
                         @click.stop="applyGrossTotal(item.entry, $event)">
-                        <CheckIcon class="w-4 h-4" />
+                        <svg v-if="grossSaving.has(item.entry.id)" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                        </svg>
+                        <CheckIcon v-else class="w-4 h-4" />
                       </button>
                       <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition"
                         @click.stop="cancelGrossEdit(item.entry.id)">
                         <XMarkIcon class="w-4 h-4" />
                       </button>
+                      <span v-if="grossError[item.entry.id]" class="text-xs text-red-500 dark:text-red-400">
+                        {{ grossError[item.entry.id] }}
+                      </span>
                     </template>
                     <template v-else-if="item.entry._totalMissingKwh != null">
                       <button type="button"
                         class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-blue-500 transition"
                         @click.stop="startGrossEdit(item.entry, $event)">
-                        <span class="tabular-nums font-medium">{{ item.entry._totalMissingKwh }} kWh {{ item.entry._fieldToSet === 'kwhCharged' ? t('dashboard.ac_gross_label_brutto') : t('dashboard.ac_gross_label_netto') }}</span>
+                        <span class="tabular-nums font-medium">{{ item.entry._totalMissingKwh }} kWh {{ t(item.entry._missingLabel) }}</span>
                         <span v-if="item.entry._efficiency != null" class="text-gray-400 dark:text-gray-500">· {{ item.entry._efficiency }}% {{ t('dashboard.ac_gross_efficiency') }}</span>
                         <PencilSquareIcon class="w-3.5 h-3.5 text-gray-400" />
                       </button>
                     </template>
                     <template v-else>
                       <button type="button"
-                        class="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 hover:text-blue-500 transition"
+                        class="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 hover:text-blue-500 py-2 transition"
                         @click.stop="startGrossEdit(item.entry, $event)">
                         <PlusIcon class="w-3.5 h-3.5" />
-                        {{ item.entry._fieldToSet === 'kwhCharged' ? t('dashboard.ac_gross_add_brutto') : t('dashboard.ac_gross_add_netto') }}
+                        {{ t(item.entry._addMissingLabel) }}
                       </button>
                     </template>
                   </div>

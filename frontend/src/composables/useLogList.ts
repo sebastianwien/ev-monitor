@@ -432,6 +432,8 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
         _canEditMissing: allHaveNetto || noneHaveNetto,
         _fieldForWeights: fieldForWeights,
         _fieldToSet: fieldToSet,
+        _missingLabel: fieldToSet === 'kwhCharged' ? 'dashboard.ac_gross_label_brutto' : 'dashboard.ac_gross_label_netto',
+        _addMissingLabel: fieldToSet === 'kwhCharged' ? 'dashboard.ac_gross_add_brutto' : 'dashboard.ac_gross_add_netto',
         _totalMissingKwh: totalMissingKwh,
         _efficiency: efficiency,
       }
