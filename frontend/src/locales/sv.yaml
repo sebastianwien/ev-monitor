@@ -711,6 +711,7 @@ dashboard:
   insights_tab_donut: Energifördelning
   insights_tab_nights: Parkeringsförluster
   insights_tab_calendar: Resor
+  insights_tab_routes: Distansfördelning
   insights_alltime: Alltid
   insights_driven: Kört
   insights_phantom: Parkeringsförluster
@@ -726,6 +727,10 @@ dashboard:
   insights_trips_count: Resor
   insights_avg_trip: Snitt / resa
   insights_total_km: Totalt
+  insights_routes_short: "Kort < 5 km"
+  insights_routes_mid: Medelsträcka 5-10 km
+  insights_routes_long: "Lång > 10 km"
+  insights_routes_no_data: Inga resor med distansdata under vald period.
   trip_edit: Redigera resa
   trip_save: Spara
   trip_cancel: Avbryt

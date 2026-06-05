@@ -6,6 +6,7 @@ import { useSlideTransition } from '../../composables/useSlideTransition'
 
 const { onEnter, onAfterEnter, onLeave, onAfterLeave } = useSlideTransition()
 const LS_KEY = 'dashboard_insights_collapsed'
+const LS_TAB_KEY = 'dashboard_insights_tab'
 const collapsed = ref(localStorage.getItem(LS_KEY) === 'true')
 function toggleCollapsed() {
   collapsed.value = !collapsed.value
@@ -22,13 +23,16 @@ const props = defineProps<{
 
 const { t } = useI18n()
 
-type Tab = 'donut' | 'nights' | 'calendar'
-const activeTab = ref<Tab>('donut')
+type Tab = 'donut' | 'nights' | 'calendar' | 'routes'
+const VALID_TABS: Tab[] = ['donut', 'nights', 'calendar', 'routes']
+const storedTab = localStorage.getItem(LS_TAB_KEY) as Tab | null
+const activeTab = ref<Tab>(storedTab && VALID_TABS.includes(storedTab) ? storedTab : 'donut')
 
 // ── Animation ────────────────────────────────────────────────────────────────
 
 const animateDonut = ref(false)
 const animateBars = ref(false)
+const animateRoutes = ref(false)
 
 // nextTick ensures Vue has flushed the DOM with the "off" state,
 // rAF ensures the browser has actually painted it before we flip to "on".
@@ -37,15 +41,22 @@ function scheduleAnim(fn: () => void) {
 }
 
 watch(activeTab, (tab) => {
+  localStorage.setItem(LS_TAB_KEY, tab)
   animateDonut.value = false
   animateBars.value = false
+  animateRoutes.value = false
   scheduleAnim(() => {
     if (tab === 'donut') animateDonut.value = true
     if (tab === 'nights') animateBars.value = true
+    if (tab === 'routes') animateRoutes.value = true
   })
 })
 
-onMounted(() => scheduleAnim(() => { animateDonut.value = true }))
+onMounted(() => scheduleAnim(() => {
+  if (activeTab.value === 'donut') animateDonut.value = true
+  else if (activeTab.value === 'nights') animateBars.value = true
+  else if (activeTab.value === 'routes') animateRoutes.value = true
+}))
 
 // ── Date range ───────────────────────────────────────────────────────────────
 
@@ -199,6 +210,45 @@ const totalTripKm = computed(() =>
 )
 const avgTripKm = computed(() => tripCount.value > 0 ? totalTripKm.value / tripCount.value : 0)
 
+// ── ROUTES: trip distribution by distance category ───────────────────────────
+
+const ROUTE_COLORS: Record<string, string> = { short: '#f59e0b', mid: '#3b82f6', long: '#6366f1' }
+function routeBarBg(key: string): string { return ROUTE_COLORS[key] ?? '#6366f1' }
+
+const routeStats = computed(() => {
+  const trips = filteredEntries.value.filter((e: any) => e._isTrip && e.distanceKm != null)
+  if (trips.length === 0) return null
+  const totalKm = trips.reduce((s: number, e: any) => s + Number(e.distanceKm), 0)
+  const tripsWithEnergy = trips.filter((e: any) => e.energyRemainingStartKwh != null && e.energyRemainingEndKwh != null)
+  const hasEnergyData = tripsWithEnergy.length > 0
+  const totalEnergy = tripsWithEnergy.reduce((s: number, e: any) =>
+    s + Math.max(0, Number(e.energyRemainingStartKwh) - Number(e.energyRemainingEndKwh)), 0)
+  const categories = [
+    { key: 'short', min: 0, max: 5 },
+    { key: 'mid',   min: 5, max: 10 },
+    { key: 'long',  min: 10, max: Infinity },
+  ].map((cat, i) => {
+    const catTrips = trips.filter((e: any) => {
+      const km = Number(e.distanceKm)
+      return km >= cat.min && km < cat.max
+    })
+    const catKm = catTrips.reduce((s: number, e: any) => s + Number(e.distanceKm), 0)
+    const catWithE = catTrips.filter((e: any) => e.energyRemainingStartKwh != null && e.energyRemainingEndKwh != null)
+    const catEnergy = catWithE.reduce((s: number, e: any) =>
+      s + Math.max(0, Number(e.energyRemainingStartKwh) - Number(e.energyRemainingEndKwh)), 0)
+    return {
+      key: cat.key,
+      idx: i,
+      count: catTrips.length,
+      km: catKm,
+      kmPct: totalKm > 0 ? catKm / totalKm * 100 : 0,
+      energy: catEnergy,
+      energyPct: hasEnergyData && totalEnergy > 0 ? catEnergy / totalEnergy * 100 : 0,
+    }
+  })
+  return { categories, totalKm, totalEnergy, hasEnergyData, tripCount: trips.length }
+})
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function mondayOf(d: Date): Date {
@@ -266,7 +316,7 @@ function drainBarWidth(ev: { kwh: number }): string {
     <!-- Tab bar -->
     <div class="flex items-center gap-5 px-4 md:px-5 border-b border-gray-200 dark:border-gray-600">
       <button
-        v-for="tab in (['donut', 'nights', 'calendar'] as Tab[])"
+        v-for="tab in (['donut', 'nights', 'calendar', 'routes'] as Tab[])"
         :key="tab"
         @click="activeTab = tab"
         :class="[
@@ -466,6 +516,77 @@ function drainBarWidth(ev: { kwh: number }): string {
             <div>
               <p class="text-sm font-bold text-gray-800 dark:text-gray-200 mono tabular-nums">{{ Math.round(totalTripKm) }} km</p>
               <p class="text-[10px] text-gray-500 dark:text-gray-400">{{ t('dashboard.insights_total_km') }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── ROUTES ── -->
+        <div v-else-if="activeTab === 'routes'" class="p-4 md:p-5">
+          <div v-if="!routeStats" class="text-center py-6 text-sm text-gray-500 dark:text-gray-400">
+            {{ t('dashboard.insights_routes_no_data') }}
+          </div>
+          <div v-else class="flex flex-col md:flex-row md:items-center md:gap-0">
+            <!-- legend -->
+            <div class="md:flex-shrink-0 space-y-2">
+              <div v-for="cat in routeStats.categories" :key="cat.key" class="flex items-center gap-2">
+                <div class="w-3 h-3 rounded-sm flex-shrink-0" :style="{ background: routeBarBg(cat.key) }"></div>
+                <span class="text-xs text-gray-600 dark:text-gray-400 flex-1 min-w-0 truncate">
+                  {{ t(`dashboard.insights_routes_${cat.key}`) }}
+                </span>
+                <span class="text-xs mono tabular-nums text-gray-600 dark:text-gray-400 flex-shrink-0">
+                  {{ Math.round(cat.kmPct) }}% km
+                </span>
+                <span v-if="routeStats.hasEnergyData" class="text-xs mono tabular-nums text-gray-500 dark:text-gray-500 flex-shrink-0 w-14 text-right">
+                  {{ Math.round(cat.energyPct) }}% kWh
+                </span>
+              </div>
+            </div>
+            <!-- divider: vertical on desktop, horizontal on mobile -->
+            <div class="hidden md:block w-px self-stretch bg-gray-200 dark:bg-gray-600 mx-5"></div>
+            <div class="block md:hidden h-px bg-gray-100 dark:bg-gray-600 my-3"></div>
+            <!-- bars -->
+            <div class="space-y-2 flex-1 min-w-0">
+              <div class="flex items-center gap-2">
+                <div class="flex flex-1 h-6 overflow-hidden rounded bg-gray-100 dark:bg-gray-800/70">
+                  <div
+                    v-for="cat in routeStats.categories"
+                    :key="cat.key"
+                    class="flex items-center justify-center overflow-hidden"
+                    :style="{
+                      width: animateRoutes ? `${cat.kmPct}%` : '0%',
+                      background: routeBarBg(cat.key),
+                      transition: `width 0.65s cubic-bezier(0.4,0,0.2,1) ${cat.idx * 0.1}s`
+                    }"
+                  >
+                    <span v-if="cat.kmPct >= 5" class="text-[11px] font-medium text-white/90 tabular-nums truncate px-1.5">
+                      {{ Math.round(cat.km) }}<template v-if="cat.kmPct >= 15"> km</template>
+                    </span>
+                  </div>
+                </div>
+                <span class="text-[11px] text-gray-500 dark:text-gray-400 flex-shrink-0 tabular-nums mono w-10 text-left whitespace-nowrap">{{ Math.round(routeStats.totalKm) }} km</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="flex flex-1 h-6 overflow-hidden rounded bg-gray-100 dark:bg-gray-800/70">
+                  <div
+                    v-for="cat in routeStats.categories"
+                    :key="cat.key"
+                    class="flex items-center justify-center overflow-hidden"
+                    :style="{
+                      width: animateRoutes ? `${cat.energyPct}%` : '0%',
+                      background: routeBarBg(cat.key),
+                      opacity: routeStats.hasEnergyData ? '0.7' : '0',
+                      transition: `width 0.65s cubic-bezier(0.4,0,0.2,1) ${cat.idx * 0.1 + 0.05}s`
+                    }"
+                  >
+                    <span v-if="routeStats.hasEnergyData && cat.energyPct >= 5" class="text-[11px] font-medium text-white tabular-nums truncate px-1.5">
+                      {{ fmt1(cat.energy) }}<template v-if="cat.energyPct >= 15"> kWh</template>
+                    </span>
+                  </div>
+                </div>
+                <span class="text-[11px] text-gray-500 dark:text-gray-400 flex-shrink-0 tabular-nums mono w-10 text-left whitespace-nowrap">
+                  <template v-if="routeStats.hasEnergyData">{{ fmt1(routeStats.totalEnergy) }} kWh</template>
+                </span>
+              </div>
             </div>
           </div>
         </div>
