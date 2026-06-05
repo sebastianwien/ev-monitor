@@ -794,4 +794,117 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertEquals(new BigDecimal("-1.38"), response.getBody().log().costEur());
     }
+
+    // --- PATCH field-preservation tests ---
+    // These guard against accidental nulling: the backend has special clearing semantics
+    // for kwhCharged/kwhAtVehicle, and null means "keep existing" for all other fields.
+
+    private EvLog saveFullLog() {
+        EvLog log = EvLog.createNew(
+                carId, new BigDecimal("30.0"), new BigDecimal("9.00"),
+                60, "u33d1b", 12000, new BigDecimal("11.0"), new BigDecimal("80"),
+                LocalDateTime.parse("2025-08-20T10:00:00"),
+                ChargingType.AC, RouteType.COMBINED, TireType.SUMMER, false, null)
+                .toBuilder()
+                .kwhAtVehicle(new BigDecimal("27.5"))
+                .socBeforeChargePercent(new BigDecimal("20"))
+                .build();
+        return evLogRepository.save(log);
+    }
+
+    // Full record constructor: (kwhCharged, costEur, chargeDurationMinutes, latitude, longitude,
+    //   odometerKm, maxChargingPowerKw, socAfterChargePercent, socBeforeChargePercent,
+    //   kwhAtVehicle, loggedAt, chargingType, routeType, tireType,
+    //   isPublicCharging, cpoName, costExchangeRate, costCurrency, chargingProviderId)
+    private static EvLogUpdateRequest patchKwh(BigDecimal kwhCharged, BigDecimal kwhAtVehicle) {
+        return new EvLogUpdateRequest(kwhCharged, null, null, null, null, null, null, null, null,
+                kwhAtVehicle, null, null, null, null, null, null, null, null, null);
+    }
+
+    @Test
+    void patch_onlyKwhCharged_clearsKwhAtVehicle() {
+        EvLog existing = saveFullLog();
+
+        ResponseEntity<EvLogResponse> response = restTemplate.exchange(
+                "/api/logs/" + existing.getId(), HttpMethod.PATCH,
+                createAuthRequest(patchKwh(new BigDecimal("33.0"), null), userId, testUser.getEmail()),
+                EvLogResponse.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        EvLogResponse body = response.getBody();
+        assertEquals(0, new BigDecimal("33.0").compareTo(body.kwhCharged()));
+        assertNull(body.kwhAtVehicle(), "sending only kwhCharged must clear kwhAtVehicle (clearing semantics)");
+    }
+
+    @Test
+    void patch_bothKwhFields_preservesBoth() {
+        EvLog existing = saveFullLog();
+
+        ResponseEntity<EvLogResponse> response = restTemplate.exchange(
+                "/api/logs/" + existing.getId(), HttpMethod.PATCH,
+                createAuthRequest(patchKwh(new BigDecimal("33.0"), new BigDecimal("30.0")), userId, testUser.getEmail()),
+                EvLogResponse.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        EvLogResponse body = response.getBody();
+        assertEquals(0, new BigDecimal("33.0").compareTo(body.kwhCharged()));
+        assertEquals(0, new BigDecimal("30.0").compareTo(body.kwhAtVehicle()));
+    }
+
+    @Test
+    void patch_onlyKwhAtVehicle_clearsKwhCharged() {
+        EvLog existing = saveFullLog();
+
+        ResponseEntity<EvLogResponse> response = restTemplate.exchange(
+                "/api/logs/" + existing.getId(), HttpMethod.PATCH,
+                createAuthRequest(patchKwh(null, new BigDecimal("28.0")), userId, testUser.getEmail()),
+                EvLogResponse.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        EvLogResponse body = response.getBody();
+        assertNull(body.kwhCharged(), "sending only kwhAtVehicle must clear kwhCharged (clearing semantics)");
+        assertEquals(0, new BigDecimal("28.0").compareTo(body.kwhAtVehicle()));
+    }
+
+    @Test
+    void patch_nullFields_preservesAllExistingValues() {
+        EvLog existing = saveFullLog();
+
+        EvLogUpdateRequest update = new EvLogUpdateRequest(
+                new BigDecimal("33.0"), null, null, null, null, null, null, null, null,
+                new BigDecimal("30.0"), null, null, null, null, null, null, null, null, null);
+
+        ResponseEntity<EvLogResponse> response = restTemplate.exchange(
+                "/api/logs/" + existing.getId(), HttpMethod.PATCH,
+                createAuthRequest(update, userId, testUser.getEmail()), EvLogResponse.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        EvLogResponse body = response.getBody();
+        assertEquals(0, new BigDecimal("9.00").compareTo(body.costEur()), "costEur must be preserved");
+        assertEquals(60, body.chargeDurationMinutes(), "chargeDurationMinutes must be preserved");
+        assertEquals(12000, body.odometerKm(), "odometerKm must be preserved");
+        assertEquals(0, new BigDecimal("11.0").compareTo(body.maxChargingPowerKw()), "maxChargingPowerKw must be preserved");
+        assertEquals(0, new BigDecimal("80").compareTo(body.socAfterChargePercent()), "socAfterChargePercent must be preserved");
+        assertEquals(0, new BigDecimal("20").compareTo(body.socBeforeChargePercent()), "socBeforeChargePercent must be preserved");
+        assertEquals(ChargingType.AC, body.chargingType(), "chargingType must be preserved");
+        assertEquals(RouteType.COMBINED, body.routeType(), "routeType must be preserved");
+        assertEquals(TireType.SUMMER, body.tireType(), "tireType must be preserved");
+        assertFalse(body.isPublicCharging(), "isPublicCharging must be preserved");
+    }
+
+    @Test
+    void patch_withoutLatLon_preservesGeohash() {
+        EvLog existing = saveFullLog();
+
+        EvLogUpdateRequest update = new EvLogUpdateRequest(
+                new BigDecimal("33.0"), new BigDecimal("9.00"), null, null, null, null, null, null, null,
+                new BigDecimal("30.0"), null, null, null, null, null, null, null, null, null);
+
+        ResponseEntity<EvLogResponse> response = restTemplate.exchange(
+                "/api/logs/" + existing.getId(), HttpMethod.PATCH,
+                createAuthRequest(update, userId, testUser.getEmail()), EvLogResponse.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("u33d1b", response.getBody().geohash(), "geohash must be preserved when no lat/lon sent");
+    }
 }
