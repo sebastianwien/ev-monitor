@@ -116,6 +116,18 @@ function cancelGrossEdit(entryId: string, event?: Event) {
   grossEditState.value = rest
 }
 
+// For all fields except kwhCharged/kwhAtVehicle, the backend applies null = keep existing.
+// The kWh pair is the only exception: sending one field with the other null actively clears the other.
+// This function always sends both kWh values so that quick-edit patches never accidentally clear one.
+// Fields omitted entirely (loggedAt, latitude, longitude, etc.) are safe to leave out — null keeps existing.
+function patchLog(id: string, existing: any, update: Record<string, unknown>): Promise<any> {
+  return api.patch(`/logs/${id}`, {
+    kwhCharged:   existing.kwhCharged,
+    kwhAtVehicle: existing.kwhAtVehicle,
+    ...update,
+  })
+}
+
 async function applyGrossTotal(entry: any, event?: Event) {
   event?.stopPropagation()
   const total = parseFloat(grossEditState.value[entry.id])
@@ -129,18 +141,18 @@ async function applyGrossTotal(entry: any, event?: Event) {
   grossError.value = restErrors
   try {
     const values = distributeProportionally(total, weights)
-    for (let i = 0; i < entry._topUps.length; i++) {
-      await api.patch(`/logs/${entry._topUps[i].id}`, { [setField]: values[i] })
-    }
+    await Promise.all(entry._topUps.map((topUp: any, i: number) =>
+      patchLog(topUp.id, topUp, { [setField]: values[i] })
+    ))
     const { [entry.id]: _s, ...rest } = grossEditState.value
     grossEditState.value = rest
-    await refreshLogsAndGroups()
   } catch {
     grossError.value = { ...grossError.value, [entry.id]: t('dashboard.ac_gross_error') }
   } finally {
     const ns = new Set(grossSaving.value)
     ns.delete(entry.id)
     grossSaving.value = ns
+    await refreshLogsAndGroups()
   }
 }
 
@@ -177,7 +189,7 @@ async function applyLogValue(log: any, event?: Event) {
   const { [log.id]: _e, ...re } = logError.value
   logError.value = re
   try {
-    await api.patch(`/logs/${log.id}`, { [field]: value })
+    await patchLog(log.id, log, { [field]: value })
     const { [log.id]: _s, ...rs } = logEditState.value
     logEditState.value = rs
     await refreshLogsAndGroups()
@@ -1843,12 +1855,20 @@ function toggleAllCharges() {
                       {{ grossError[item.entry.id] }}
                     </span>
                   </template>
+                  <template v-else-if="item.entry._efficiency != null">
+                    <button type="button"
+                      class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-blue-500 transition"
+                      @click.stop="startGrossEdit(item.entry, $event)">
+                      <span class="tabular-nums font-medium">{{ item.entry._bruttoSum }} kWh {{ t('dashboard.ac_gross_label_brutto') }}</span>
+                      <span :class="['font-medium', item.entry._efficiency >= 90 ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400']">· {{ item.entry._efficiency }}% {{ t('dashboard.ac_gross_efficiency') }}</span>
+                      <PencilSquareIcon class="w-3 h-3 text-gray-400" />
+                    </button>
+                  </template>
                   <template v-else-if="item.entry._totalMissingKwh != null">
                     <button type="button"
                       class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-blue-500 transition"
                       @click.stop="startGrossEdit(item.entry, $event)">
                       <span class="tabular-nums font-medium">{{ item.entry._totalMissingKwh }} kWh {{ t(item.entry._missingLabel) }}</span>
-                      <span v-if="item.entry._efficiency != null" class="text-gray-400 dark:text-gray-500">· {{ item.entry._efficiency }}% {{ t('dashboard.ac_gross_efficiency') }}</span>
                       <PencilSquareIcon class="w-3 h-3 text-gray-400" />
                     </button>
                   </template>
@@ -1866,34 +1886,40 @@ function toggleAllCharges() {
                 <Transition name="slide-down">
                   <div v-if="expandedGroups.has(item.entry.id)" class="bg-blue-50/30 dark:bg-blue-950/20">
                     <div v-for="topUp in item.entry._topUps" :key="topUp.id + '__d'"
-                      class="grid grid-cols-[52px_90px_minmax(110px,1fr)_125px_80px_130px_88px_76px_108px_40px] gap-1.5 items-center px-3 py-1.5 border-t border-blue-200/40 dark:border-blue-800/30 hover:bg-blue-50/60 dark:hover:bg-blue-900/20 transition">
-                      <div class="flex items-center gap-1.5 pl-4 text-gray-500 text-xs">└</div>
-                      <div class="text-sm font-medium text-blue-700 dark:text-blue-300 whitespace-nowrap">+{{ topUp.kwhAtVehicle ?? topUp.kwhCharged ?? '-' }} kWh</div>
-                      <div class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap truncate">
+                      class="grid grid-cols-[52px_90px_minmax(110px,1fr)_125px_80px_130px_88px_76px_108px_40px] gap-1.5 items-start px-3 py-1.5 border-t border-blue-200/40 dark:border-blue-800/30 hover:bg-blue-50/60 dark:hover:bg-blue-900/20 transition">
+                      <div class="flex items-center gap-1.5 pl-4 text-gray-500 text-xs pt-0.5">└</div>
+                      <div class="whitespace-nowrap">
+                        <div class="text-sm font-medium text-blue-700 dark:text-blue-300">+{{ topUp.kwhAtVehicle ?? topUp.kwhCharged ?? '-' }} kWh</div>
+                        <div v-if="topUp.kwhCharged != null && topUp.kwhAtVehicle != null"
+                          class="text-xs text-gray-400 dark:text-gray-500">
+                          {{ topUp.kwhCharged }} kWh {{ t('dashboard.ac_gross_label_brutto') }} · <span :class="chargingEfficiency(topUp.kwhCharged, topUp.kwhAtVehicle)! >= 90 ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'">{{ chargingEfficiency(topUp.kwhCharged, topUp.kwhAtVehicle) }}%</span>
+                        </div>
+                      </div>
+                      <div class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap truncate pt-0.5">
                         <template v-if="item.entry._spansMultipleDays">{{ formatLogDate(topUp.loggedAt) }}</template>
                         <template v-else><ClockIcon class="w-3 h-3 inline-block mr-0.5 -mt-0.5" />{{ new Date(topUp.loggedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}</template>
                       </div>
-                      <div class="text-gray-400 dark:text-gray-600 text-xs">-</div>
-                      <div class="text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                      <div class="text-gray-400 dark:text-gray-600 text-xs pt-0.5">-</div>
+                      <div class="text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap pt-0.5">
                         <template v-if="topUp.socAfterChargePercent != null">{{ topUp.socAfterChargePercent }}%</template>
                         <span v-else class="text-gray-400 dark:text-gray-600">-</span>
                       </div>
-                      <div class="text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                      <div class="text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap pt-0.5">
                         <template v-if="topUp.maxChargingPowerKw">{{ topUp.maxChargingPowerKw }} kW</template>
                         <span v-else class="text-gray-400 dark:text-gray-600">-</span>
                       </div>
-                      <div class="text-xs text-gray-500 dark:text-gray-400">
+                      <div class="text-xs text-gray-500 dark:text-gray-400 pt-0.5">
                         <template v-if="topUp.chargeDurationMinutes">{{ topUp.chargeDurationMinutes }}min</template>
                         <span v-else class="text-gray-400 dark:text-gray-600">-</span>
                       </div>
-                      <div>
+                      <div class="pt-0.5">
                         <span v-if="topUp.temperatureCelsius != null"
                           :class="['inline-flex items-center gap-0.5 px-2 py-0.5 border rounded text-xs whitespace-nowrap', tempBadgeClass(topUp.temperatureCelsius)]">
                           <SunIcon class="w-3 h-3" />{{ topUp.temperatureCelsius.toFixed(1) }}°C
                         </span>
                         <span v-else class="text-gray-400 dark:text-gray-600 text-xs">-</span>
                       </div>
-                      <div class="text-gray-400 dark:text-gray-600 text-xs">-</div>
+                      <div class="text-gray-400 dark:text-gray-600 text-xs pt-0.5">-</div>
                       <div class="flex justify-end relative">
                         <button type="button"
                           @click.stop="openMenuTopUpId = openMenuTopUpId === topUp.id + '__d' ? null : topUp.id + '__d'"
@@ -1990,18 +2016,26 @@ function toggleAllCharges() {
                         {{ grossError[item.entry.id] }}
                       </span>
                     </template>
+                    <template v-else-if="item.entry._efficiency != null">
+                      <button type="button"
+                        class="flex flex-wrap items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-blue-500 transition"
+                        @click.stop="startGrossEdit(item.entry, $event)">
+                        <span class="tabular-nums font-medium whitespace-nowrap">{{ item.entry._bruttoSum }} kWh {{ t('dashboard.ac_gross_label_brutto') }}</span>
+                        <span :class="['font-medium whitespace-nowrap', item.entry._efficiency >= 90 ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400']">· {{ item.entry._efficiency }}% {{ t('dashboard.ac_gross_efficiency') }}</span>
+                        <PencilSquareIcon class="w-3.5 h-3.5 text-gray-400" />
+                      </button>
+                    </template>
                     <template v-else-if="item.entry._totalMissingKwh != null">
                       <button type="button"
                         class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-blue-500 transition"
                         @click.stop="startGrossEdit(item.entry, $event)">
                         <span class="tabular-nums font-medium">{{ item.entry._totalMissingKwh }} kWh {{ t(item.entry._missingLabel) }}</span>
-                        <span v-if="item.entry._efficiency != null" class="text-gray-400 dark:text-gray-500">· {{ item.entry._efficiency }}% {{ t('dashboard.ac_gross_efficiency') }}</span>
                         <PencilSquareIcon class="w-3.5 h-3.5 text-gray-400" />
                       </button>
                     </template>
                     <template v-else>
                       <button type="button"
-                        class="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 hover:text-blue-500 py-2 transition"
+                        class="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 hover:text-blue-500 py-1 transition"
                         @click.stop="startGrossEdit(item.entry, $event)">
                         <PlusIcon class="w-3.5 h-3.5" />
                         {{ t(item.entry._addMissingLabel) }}
@@ -2080,48 +2114,62 @@ function toggleAllCharges() {
                   </div>
                 </button>
                 </template>
+                <!-- Brutto/Netto sub-line - always visible for normal logs -->
+                <div v-if="!item.entry._isLadegruppe"
+                  class="flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-400"
+                  @click.stop @mousedown.stop>
+                  <template v-if="logEditState[item.entry.id] !== undefined">
+                    <input type="number" step="0.01" min="0"
+                      v-model="logEditState[item.entry.id]"
+                      :aria-label="t(logFieldToSet(item.entry) === 'kwhCharged' ? 'dashboard.ac_gross_label_brutto' : 'dashboard.ac_gross_label_netto')"
+                      class="w-20 text-xs border border-blue-300 dark:border-blue-700 rounded px-2 py-0.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                      @click.stop @mousedown.stop @keydown.stop
+                      @keydown.enter.stop.prevent="applyLogValue(item.entry)"
+                      @keydown.escape.stop.prevent="cancelLogEdit(item.entry.id)"
+                    />
+                    <span class="whitespace-nowrap">kWh {{ t(logFieldToSet(item.entry) === 'kwhCharged' ? 'dashboard.ac_gross_label_brutto' : 'dashboard.ac_gross_label_netto') }}</span>
+                    <button type="button" class="text-blue-500 hover:text-blue-700 dark:hover:text-blue-300 disabled:opacity-40 transition" :disabled="logSaving.has(item.entry.id)" @click.stop="applyLogValue(item.entry, $event)">
+                      <svg v-if="logSaving.has(item.entry.id)" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                      </svg>
+                      <CheckIcon v-else class="w-4 h-4" />
+                    </button>
+                    <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition" @click.stop="cancelLogEdit(item.entry.id)">
+                      <XMarkIcon class="w-4 h-4" />
+                    </button>
+                    <span v-if="logError[item.entry.id]" class="text-red-500 dark:text-red-400">{{ logError[item.entry.id] }}</span>
+                  </template>
+                  <template v-else-if="item.entry.kwhCharged != null && item.entry.kwhAtVehicle != null">
+                    <button type="button" class="flex flex-wrap items-center gap-x-3 gap-y-0.5 hover:text-blue-500 transition" @click.stop="startLogEdit(item.entry, $event)">
+                      <span class="whitespace-nowrap">{{ item.entry.kwhCharged }} kWh {{ t('dashboard.ac_gross_label_brutto') }}</span>
+                      <span :class="['font-medium whitespace-nowrap', chargingEfficiency(item.entry.kwhCharged, item.entry.kwhAtVehicle)! >= 90 ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400']">
+                        {{ chargingEfficiency(item.entry.kwhCharged, item.entry.kwhAtVehicle) }}% {{ t('dashboard.ac_gross_efficiency') }}
+                      </span>
+                    </button>
+                  </template>
+                  <template v-else>
+                    <button type="button" class="flex items-center gap-1 py-1 hover:text-blue-500 transition" @click.stop="startLogEdit(item.entry, $event)">
+                      <PlusIcon class="w-3.5 h-3.5" />
+                      {{ t(logFieldToSet(item.entry) === 'kwhCharged' ? 'dashboard.ac_gross_add_brutto' : 'dashboard.ac_gross_add_netto') }}
+                    </button>
+                    <button v-if="realCostHintFor(item.entry.id)" type="button"
+                      class="ml-auto inline-flex items-center gap-1 text-xs text-amber-700 dark:text-amber-300 hover:text-amber-800 dark:hover:text-amber-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 rounded-full px-1.5 py-0.5 whitespace-nowrap"
+                      :aria-expanded="openRealCostTooltipId === item.entry.id"
+                      :aria-label="t('dashboard.real_cost_tooltip_title')"
+                      @click.stop="toggleRealCostTooltip(item.entry.id)">
+                      <span class="font-medium">
+                        {{ t('dashboard.real_cost_label') }} ≈
+                        <template v-if="showCostAbsolute">{{ formatCurrency(realCostHintFor(item.entry.id)!.bruttoCostEur) }}</template>
+                        <template v-else>{{ formatCostPerKwh(realCostHintFor(item.entry.id)!.bruttoRatePerNettoKwhEur) }}</template>
+                      </span>
+                      <InformationCircleIcon class="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+                    </button>
+                  </template>
+                </div>
                 <!-- Expanded content (normal log only) -->
                 <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
                 <div v-if="!item.entry._isLadegruppe && expandedLogs.has(item.entry.id)" class="space-y-2">
-                  <!-- Brutto/Netto sub-line (quick-edit shortcut) -->
-                  <div v-if="item.entry.kwhCharged != null || item.entry.kwhAtVehicle != null"
-                    class="flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                    <template v-if="logEditState[item.entry.id] !== undefined">
-                      <input type="number" step="0.01" min="0"
-                        v-model="logEditState[item.entry.id]"
-                        :aria-label="t(logFieldToSet(item.entry) === 'kwhCharged' ? 'dashboard.ac_gross_label_brutto' : 'dashboard.ac_gross_label_netto')"
-                        class="w-20 text-xs border border-blue-300 dark:border-blue-700 rounded px-2 py-0.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-400"
-                        @keydown.enter.prevent="applyLogValue(item.entry)"
-                        @keydown.escape.prevent="cancelLogEdit(item.entry.id)"
-                      />
-                      <span class="whitespace-nowrap">kWh {{ t(logFieldToSet(item.entry) === 'kwhCharged' ? 'dashboard.ac_gross_label_brutto' : 'dashboard.ac_gross_label_netto') }}</span>
-                      <button type="button" class="text-blue-500 hover:text-blue-700 dark:hover:text-blue-300 disabled:opacity-40 transition" :disabled="logSaving.has(item.entry.id)" @click="applyLogValue(item.entry, $event)">
-                        <svg v-if="logSaving.has(item.entry.id)" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                        </svg>
-                        <CheckIcon v-else class="w-4 h-4" />
-                      </button>
-                      <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition" @click="cancelLogEdit(item.entry.id)">
-                        <XMarkIcon class="w-4 h-4" />
-                      </button>
-                      <span v-if="logError[item.entry.id]" class="text-red-500 dark:text-red-400">{{ logError[item.entry.id] }}</span>
-                    </template>
-                    <template v-else-if="item.entry.kwhCharged != null && item.entry.kwhAtVehicle != null">
-                      <button type="button" class="flex flex-wrap items-center gap-x-3 gap-y-0.5 hover:text-blue-500 transition" @click="startLogEdit(item.entry, $event)">
-                        <span class="whitespace-nowrap">{{ item.entry.kwhCharged }} kWh {{ t('dashboard.ac_gross_label_brutto') }}</span>
-                        <span :class="['font-medium whitespace-nowrap', chargingEfficiency(item.entry.kwhCharged, item.entry.kwhAtVehicle)! >= 90 ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400']">
-                          {{ chargingEfficiency(item.entry.kwhCharged, item.entry.kwhAtVehicle) }}% {{ t('dashboard.ac_gross_efficiency') }}
-                        </span>
-                      </button>
-                    </template>
-                    <template v-else>
-                      <button type="button" class="flex items-center gap-1 py-1 hover:text-blue-500 transition" @click="startLogEdit(item.entry, $event)">
-                        <PlusIcon class="w-3.5 h-3.5" />
-                        {{ t(logFieldToSet(item.entry) === 'kwhCharged' ? 'dashboard.ac_gross_add_brutto' : 'dashboard.ac_gross_add_netto') }}
-                      </button>
-                    </template>
-                  </div>
                   <!-- Plain text stats - Zeile 2 (Real-Cost-Hint rechtsbündig via ml-auto) -->
                   <div v-if="item.entry.consumptionKwhPer100km != null || isShortTrip(item.entry) || item.entry.chargeDurationMinutes || item.entry.socAfterChargePercent != null || (item.entry.costEur != null && !item.entry.kwhCharged && !item.entry.kwhAtVehicle) || realCostHintFor(item.entry.id)"
                     class="flex flex-wrap gap-x-3 gap-y-0.5 items-center">
@@ -2170,7 +2218,7 @@ function toggleAllCharges() {
                     </span>
                     <!-- Real-Cost-Hint rechtsbündig, Info-Icon öffnet erklärendes Panel.
                          Einheit synchron zur Pill: € im Absolut-Modus, ct/kWh im pro-kWh-Modus. -->
-                    <button v-if="realCostHintFor(item.entry.id)" type="button"
+                    <button v-if="realCostHintFor(item.entry.id) && item.entry.kwhCharged != null && item.entry.kwhAtVehicle != null" type="button"
                       class="ml-auto inline-flex items-center gap-1 text-xs text-amber-700 dark:text-amber-300 hover:text-amber-800 dark:hover:text-amber-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 rounded-full px-1.5 py-0.5 whitespace-nowrap"
                       :aria-expanded="openRealCostTooltipId === item.entry.id"
                       :aria-label="t('dashboard.real_cost_tooltip_title')"
@@ -2310,7 +2358,7 @@ function toggleAllCharges() {
                         <span class="text-gray-400 text-xs leading-none flex-shrink-0">└</span>
                         <span class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ t('dashboard.top_up') }}</span>
                         <BoltIcon class="w-3.5 h-3.5 text-gray-500 dark:text-gray-400 flex-shrink-0" />
-                        <span class="text-xs font-semibold text-gray-600 dark:text-gray-300 whitespace-nowrap">{{ topUp.kwhCharged }} kWh</span>
+                        <span class="text-xs font-semibold text-gray-600 dark:text-gray-300 whitespace-nowrap">{{ topUp.kwhAtVehicle ?? topUp.kwhCharged ?? '-' }} kWh</span>
                         <span class="text-xs text-gray-500 whitespace-nowrap">
                           <template v-if="item.entry._spansMultipleDays">{{ formatLogDate(topUp.loggedAt) }}</template>
                           <template v-else>{{ new Date(topUp.loggedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}</template>
@@ -2347,6 +2395,14 @@ function toggleAllCharges() {
                         </span>
                         <span v-if="topUp.socAfterChargePercent != null" class="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
                           <Battery0Icon class="w-3 h-3" />{{ topUp.socAfterChargePercent }}%
+                        </span>
+                      </div>
+                      <div v-if="topUp.kwhCharged != null && topUp.kwhAtVehicle != null"
+                        class="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500 pl-5">
+                        <span class="tabular-nums">{{ topUp.kwhCharged }} kWh {{ t('dashboard.ac_gross_label_brutto') }}</span>
+                        <span class="text-gray-300 dark:text-gray-600">·</span>
+                        <span :class="['tabular-nums font-medium', chargingEfficiency(topUp.kwhCharged, topUp.kwhAtVehicle)! >= 90 ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400']">
+                          {{ chargingEfficiency(topUp.kwhCharged, topUp.kwhAtVehicle) }}% {{ t('dashboard.ac_gross_efficiency') }}
                         </span>
                       </div>
                     </div>

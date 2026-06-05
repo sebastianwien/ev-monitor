@@ -380,12 +380,12 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
 
     const makeLadegruppe = (subs: any[], commonDataSource?: string): any => {
       const allSubs = [...subs].sort((a, b) => new Date(a.loggedAt).getTime() - new Date(b.loggedAt).getTime())
-      const totalKwh = allSubs.reduce((s: number, l: any) => s + (l.kwhCharged ?? l.kwhAtVehicle ?? 0), 0)
+      const totalKwh = allSubs.reduce((s: number, l: any) => s + (l.kwhAtVehicle ?? l.kwhCharged ?? 0), 0)
       const subsWithCost = allSubs.filter((l: any) => l.costEur != null)
       const totalCostEur = subsWithCost.length > 0
         ? subsWithCost.reduce((s: number, l: any) => s + l.costEur, 0)
         : null
-      const costKwh = subsWithCost.reduce((s: number, l: any) => s + (l.kwhCharged ?? l.kwhAtVehicle ?? 0), 0)
+      const costKwh = subsWithCost.reduce((s: number, l: any) => s + (l.kwhAtVehicle ?? l.kwhCharged ?? 0), 0)
       const maxSoc = allSubs.reduce((m: number | null, l: any) =>
         l.socAfterChargePercent != null ? Math.max(m ?? 0, l.socAfterChargePercent) : m, null)
       const maxPower = allSubs.reduce((m: number | null, l: any) =>
@@ -436,6 +436,7 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
         _addMissingLabel: fieldToSet === 'kwhCharged' ? 'dashboard.ac_gross_add_brutto' : 'dashboard.ac_gross_add_netto',
         _totalMissingKwh: totalMissingKwh,
         _efficiency: efficiency,
+        _bruttoSum: bruttoSum != null ? Math.round(bruttoSum * 100) / 100 : null,
       }
     }
 
