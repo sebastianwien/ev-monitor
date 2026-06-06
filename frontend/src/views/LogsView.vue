@@ -801,7 +801,9 @@ function toggleAllCharges() {
             ]"
           >
             <div class="flex gap-2 items-stretch">
+              <!-- Back button: only shown in multi-car sticky bar -->
               <router-link
+                v-if="cars.length > 1"
                 to="/dashboard"
                 :aria-label="t('dashboard.title')"
                 class="flex-shrink-0 self-stretch flex items-center gap-1 px-2 rounded-sm border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-medium shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] hover:border-indigo-300">
@@ -809,7 +811,8 @@ function toggleAllCharges() {
                 <span class="hidden sm:inline">{{ t('dashboard.title') }}</span>
               </router-link>
               <div class="flex gap-3 overflow-x-auto car-scroll-hide flex-1 pb-1 lg:flex-wrap lg:overflow-x-visible">
-              <button
+              <component
+                :is="cars.length === 1 ? 'div' : 'button'"
                 v-for="car in cars"
                 :key="car.id"
                 @click="selectedCarId = car.id"
@@ -834,7 +837,18 @@ function toggleAllCharges() {
                     class="w-full h-full object-cover" />
                   <TruckIcon v-else class="w-6 h-6 md:w-8 md:h-8 text-gray-400" />
                 </div>
-                <div class="min-w-0 flex-1 px-3 py-1.5 md:px-4 md:py-3 compact-shrink-pad">
+                <div class="min-w-0 flex-1 px-3 py-1.5 md:px-4 md:py-3 compact-shrink-pad flex flex-col justify-center">
+                  <!-- Single-car: back nav + title, integrated in card, hidden when sticky/compact -->
+                  <router-link
+                    v-if="cars.length === 1"
+                    to="/dashboard"
+                    class="compact-hide flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors mb-1 md:hidden"
+                    @click.stop>
+                    <ChevronLeftIcon class="w-3 h-3 flex-shrink-0" />
+                    <span>{{ t('dashboard.title') }}</span>
+                    <span class="mx-0.5 text-gray-300 dark:text-gray-600">·</span>
+                    <span class="font-medium text-gray-600 dark:text-gray-300">{{ t('logs_title_short') }}</span>
+                  </router-link>
                   <!-- Mobile compact (alle Autos): eine Zeile -->
                   <div class="flex items-center gap-1.5 flex-wrap md:hidden compact-nowrap">
                     <span class="font-semibold text-sm text-gray-800 dark:text-gray-200 whitespace-nowrap">{{ carDisplayName(car.brand, car.model) }}</span>
@@ -927,7 +941,7 @@ function toggleAllCharges() {
                     </div>
                   </div>
                 </div>
-              </button>
+              </component>
               </div>
             </div>
           </div>
