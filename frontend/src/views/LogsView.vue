@@ -847,7 +847,7 @@ function toggleAllCharges() {
                     v-if="cars.length === 1"
                     to="/dashboard"
                     class="compact-hide flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors mb-1 md:hidden"
-                    @click.stop>
+                    @click.stop="haptic()">
                     <ChevronLeftIcon class="w-3 h-3 flex-shrink-0" />
                     <span>{{ t('dashboard.title') }}</span>
                     <span class="mx-0.5 text-gray-300 dark:text-gray-600">·</span>
