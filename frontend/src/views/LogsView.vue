@@ -52,6 +52,7 @@ import { useDashboardStats } from '../composables/useDashboardStats'
 import { useLogList, PAGE_SIZE_OPTIONS, type PageSize } from '../composables/useLogList'
 import { useStickyCarHeader } from '../composables/useStickyCarHeader'
 import { useBulkBarOffset } from '../composables/useBulkBarOffset'
+import { useHaptic } from '../composables/useHaptic'
 import { useWallboxStore } from '../stores/wallbox'
 import { carDisplayName } from '../utils/enumLabel'
 import { isVwGroupBrand } from '../api/vwGroupService'
@@ -65,6 +66,7 @@ import {
 
 const { t } = useI18n()
 const { formatConsumption, formatDistance, distanceUnitLabel, formatCurrency, formatCostPerKwh } = useLocaleFormat()
+const { haptic } = useHaptic()
 
 // -- Dashboard Stats --
 const {
@@ -246,6 +248,7 @@ const page1GroupIds = computed<Set<string>>(() => {
 })
 
 function toggleTripGroup(groupId: string) {
+  haptic()
   const next = new Set(collapsedTripGroups.value)
   if (next.has(groupId)) next.delete(groupId)
   else next.add(groupId)
@@ -354,6 +357,7 @@ onActivated(() => window.addEventListener('keydown', onMenuKeyEsc))
 onDeactivated(() => window.removeEventListener('keydown', onMenuKeyEsc))
 
 function toggleLogExpanded(id: string) {
+  haptic()
   if (expandedLogs.value.has(id)) expandedLogs.value.delete(id)
   else expandedLogs.value.add(id)
 }
