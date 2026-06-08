@@ -722,13 +722,6 @@ const visibleChargeEntries = computed(() => groupedFeed.value.filter(i => i.kind
 const totalTripCount = computed(() => visibleTripGroups.value.reduce((s, g) => s + (g.groupSize ?? 0), 0))
 const chargeCount = computed(() => visibleChargeEntries.value.length)
 
-function feedItemDateStr(item: any): string {
-  if (item.kind === 'tripGroup') {
-    const firstTrip = item.trips[0]
-    return firstTrip ? new Date(firstTrip.tripStartedAt).toDateString() : ''
-  }
-  return item.entry?.loggedAt ? new Date(item.entry.loggedAt).toDateString() : ''
-}
 
 const allTripsExpanded = computed(() =>
   visibleTripGroups.value.length > 0
@@ -1046,11 +1039,7 @@ function toggleAllCharges() {
               <div v-if="openMenuTopUpId" class="fixed inset-0 z-40" @click="openMenuTopUpId = null" />
               <!-- Backdrop nur fuer Desktop-Popover (mobile Tooltip ist Teil der Expanded-Card). -->
               <div v-if="openRealCostTooltipId?.endsWith('__d')" class="fixed inset-0 z-40" @click="openRealCostTooltipId = null" />
-              <template v-for="(item, itemIdx) in groupedFeed" :key="item.id">
-
-              <!-- Day-boundary separator between feed items -->
-              <div v-if="itemIdx !== 0 && feedItemDateStr(groupedFeed[itemIdx - 1]) !== feedItemDateStr(item)"
-                   class="border-t-4 border-gray-300 dark:border-gray-500 my-1" />
+              <template v-for="item in groupedFeed" :key="item.id">
 
               <!-- ===== TRIP GROUP CONTAINER ===== -->
               <template v-if="item.kind === 'tripGroup'">
@@ -1080,7 +1069,13 @@ function toggleAllCharges() {
 
                       <!-- Day-boundary separator between trips -->
                       <div v-if="tripIdx !== 0 && new Date(item.trips[(tripIdx as number) - 1].tripEndedAt).toDateString() !== new Date(trip.tripStartedAt).toDateString()"
-                           class="border-t-2 border-gray-200 dark:border-gray-500" />
+                           class="flex items-center gap-2 px-3 py-1.5 bg-emerald-50/60 dark:bg-emerald-900/10 border-t border-emerald-200 dark:border-emerald-700/40">
+                        <div class="h-px flex-1 bg-emerald-200 dark:bg-emerald-700/50" />
+                        <span class="text-[10px] font-medium text-emerald-600/80 dark:text-emerald-400/80 whitespace-nowrap">
+                          {{ new Date(trip.tripStartedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) }}
+                        </span>
+                        <div class="h-px flex-1 bg-emerald-200 dark:bg-emerald-700/50" />
+                      </div>
 
                       <!-- Phantom drain separator between trips -->
                       <div v-if="trip._phantomDrain && authStore.canViewLiveTrips && tripIdx !== 0"
