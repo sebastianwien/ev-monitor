@@ -248,6 +248,7 @@ const page1GroupIds = computed<Set<string>>(() => {
 })
 
 function toggleTripGroup(groupId: string) {
+  haptic()
   const next = new Set(collapsedTripGroups.value)
   if (next.has(groupId)) next.delete(groupId)
   else next.add(groupId)
@@ -356,6 +357,7 @@ onActivated(() => window.addEventListener('keydown', onMenuKeyEsc))
 onDeactivated(() => window.removeEventListener('keydown', onMenuKeyEsc))
 
 function toggleLogExpanded(id: string) {
+  haptic()
   if (expandedLogs.value.has(id)) expandedLogs.value.delete(id)
   else expandedLogs.value.add(id)
 }
@@ -1051,7 +1053,7 @@ function toggleAllCharges() {
                 <div class="gridfeed:hidden rounded-sm overflow-hidden border-2 border-emerald-200 dark:border-emerald-800/60 border-l-4 border-r-4 border-l-emerald-400 dark:border-l-emerald-500 border-r-emerald-400 dark:border-r-emerald-500 shadow-[2px_2px_0_0_#a7f3d0] dark:shadow-[2px_2px_0_0_#064e3b]">
 
                   <!-- Group header -->
-                  <div v-haptic @click="toggleTripGroup(item.groupId)"
+                  <div @click="toggleTripGroup(item.groupId)"
                        class="flex flex-col px-3 py-2.5 bg-white dark:bg-gray-700 cursor-pointer select-none hover:bg-gray-50 dark:hover:bg-gray-600/60 transition-colors border-b border-gray-100 dark:border-gray-600">
                     <!-- Header row -->
                     <div class="flex items-center gap-2">

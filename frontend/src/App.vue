@@ -122,7 +122,11 @@ onMounted(() => {
     localStorage.setItem(LS_LAST_VISIT, String(now))
   }
 
-  // btn-3d haptic is handled globally in main.ts (with scroll debounce)
+  // Auto-haptic for all btn-3d elements
+  const { haptic: triggerHaptic } = useHaptic()
+  document.addEventListener('pointerdown', (e) => {
+    if ((e.target as Element)?.closest('.btn-3d')) triggerHaptic()
+  })
 
   // Auto-delay clicks on btn-3d-delay so the press animation is visible before navigation
   document.addEventListener('click', (e) => {

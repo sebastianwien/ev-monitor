@@ -9,17 +9,7 @@ import { i18n, getSavedLocale, loadLocaleMessages } from './i18n'
 const app = createApp(App)
 
 // Global haptic feedback for all buttons (vibration on Android, soft click sound on iOS)
-// isScrolling flag suppresses haptic during scroll without adding any delay to taps.
-let isScrolling = false
-let scrollResetTimer = 0
-window.addEventListener('scroll', () => {
-  isScrolling = true
-  clearTimeout(scrollResetTimer)
-  scrollResetTimer = window.setTimeout(() => { isScrolling = false }, 150)
-}, { passive: true, capture: true })
-
 function triggerHaptic() {
-  if (isScrolling) return
   if (navigator.vibrate?.(10)) return
   try {
     const ctx = new AudioContext()
@@ -36,8 +26,7 @@ function triggerHaptic() {
 }
 
 document.addEventListener('pointerdown', (e) => {
-  const target = e.target as Element
-  if (target.closest('button') || target.closest('.btn-3d')) triggerHaptic()
+  if ((e.target as Element).closest('button')) triggerHaptic()
 }, { passive: true })
 
 // Keep v-haptic directive for explicit use on non-button elements

@@ -57,13 +57,11 @@ import { useStickyCarHeader } from '../composables/useStickyCarHeader'
 import { useWallboxStore } from '../stores/wallbox'
 import { carDisplayName, enumToLabel } from '../utils/enumLabel'
 import { isVwGroupBrand } from '../api/vwGroupService'
-import { useHaptic } from '../composables/useHaptic'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend, Filler, ChartDataLabels)
 
 const { t } = useI18n()
 const router = useRouter()
-const { haptic } = useHaptic()
 const { formatConsumption, consumptionUnitLabel, formatDistance, distanceUnitLabel, formatCurrency, formatCostPerKwh, formatCostPerDistance, currencySymbol } = useLocaleFormat()
 
 // -- Dashboard Stats --
@@ -279,8 +277,7 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
             <div v-if="stats && stats.totalCharges > 0" class="sm:hidden ml-auto">
               <router-link
                 to="/logs"
-                class="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-indigo-600 text-white text-sm font-medium shadow-[0_4px_0_0_#3730a3] hover:shadow-[0_2px_0_0_#3730a3] hover:translate-y-0.5 active:shadow-none active:translate-y-1 transition-all duration-75"
-                @click="haptic()">
+                class="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-indigo-600 text-white text-sm font-medium shadow-[0_4px_0_0_#3730a3] hover:shadow-[0_2px_0_0_#3730a3] hover:translate-y-0.5 active:shadow-none active:translate-y-1 transition-all duration-75">
                 Logs & Trips
                 <ChevronRightIcon class="w-3 h-3 opacity-75" />
               </router-link>
