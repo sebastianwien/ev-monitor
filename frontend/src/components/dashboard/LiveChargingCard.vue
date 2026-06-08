@@ -35,8 +35,8 @@ const effectiveConsumption = computed(() =>
     ? props.avgConsumptionKwhPer100km
     : 16)
 
-// Sichtbarkeit: nur wenn entitled + aktiver Ladevorgang
-const visible = computed(() => authStore.canViewLiveCharging && !!data.value?.isActive)
+// Sichtbarkeit: nur wenn entitled + aktiver DC-Ladevorgang (AC hat keine sinnvolle Leistungskurve)
+const visible = computed(() => authStore.canViewLiveCharging && !!data.value?.isActive && data.value?.chargingType === 'DC')
 
 // Collapse-State: persistiert pro (carId, sessionStartedAt) - jede neue Session
 // startet expanded. localStorage-Key wechselt mit Session-Start.

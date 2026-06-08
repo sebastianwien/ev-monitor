@@ -1,4 +1,4 @@
-import { ref, watch, watchEffect, onMounted, onUnmounted } from 'vue'
+import { ref, watchEffect, onMounted, onUnmounted } from 'vue'
 import type { Ref } from 'vue'
 // IMPORTANT: 'api' aus '../api/axios' importieren (nicht raw axios!) - sonst
 // fehlt der Authorization-Header und das Backend antwortet mit 401, obwohl der
@@ -42,6 +42,9 @@ export function useChargingLive(carId: Ref<string | null>) {
   const error = ref<string | null>(null)
   let timeoutId: ReturnType<typeof setTimeout> | undefined
   let activeController: AbortController | undefined
+  // Tracks which sessionStartedAt we've already fetched history for,
+  // so fetchHistory runs exactly once per session and never on empty-history re-polls.
+  let lastFetchedSessionStart: string | null = null
 
   function isPageVisible(): boolean {
     return typeof document === 'undefined' || document.visibilityState !== 'hidden'
@@ -95,12 +98,14 @@ export function useChargingLive(carId: Ref<string | null>) {
       if (res.data.isActive) {
         appendPowerPoint(res.data.powerKw, res.data.lastUpdatedAt)
       }
-      if (hasSession && powerHistory.value.length <= 1 && res.data.sessionStartedAt) {
-        // Erstes Tick einer aktiven oder grace-Session - History direkt ziehen.
+      if (hasSession && res.data.sessionStartedAt && res.data.sessionStartedAt !== lastFetchedSessionStart) {
+        // New session detected - fetch full history exactly once per session.
+        lastFetchedSessionStart = res.data.sessionStartedAt
         fetchHistory(id, res.data.sessionStartedAt, signal)
       }
       if (!hasSession) {
         powerHistory.value = []
+        lastFetchedSessionStart = null
       }
       error.value = null
     } catch (e) {
@@ -152,6 +157,7 @@ export function useChargingLive(carId: Ref<string | null>) {
     clearTimeout(timeoutId)
     powerHistory.value = []
     data.value = null
+    lastFetchedSessionStart = null
 
     const id = carId.value
     if (!id) return
@@ -159,22 +165,10 @@ export function useChargingLive(carId: Ref<string | null>) {
     const controller = new AbortController()
     activeController = controller
 
-    // Erst pollLive: liefert isActive + sessionStartedAt. History wird dann durch
-    // den watch unten ausgeloest, sobald sessionStartedAt bekannt ist.
     pollLive(id, controller.signal)
       .then(() => {
         if (!controller.signal.aborted) scheduleNext(id, controller)
       })
-  })
-
-  // Sobald wir eine neue Session sehen (auch ohne carId-Wechsel - z.B. User
-  // steckt das Auto neu an waehrend Dashboard offen ist), die volle Kurve
-  // ab Session-Start vom Backend ziehen.
-  watch(() => data.value?.sessionStartedAt ?? null, (sessionStart) => {
-    const id = carId.value
-    const controller = activeController
-    if (!id || !controller || !sessionStart) return
-    fetchHistory(id, sessionStart, controller.signal)
   })
 
   onUnmounted(() => {
