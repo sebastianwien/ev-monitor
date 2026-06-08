@@ -800,23 +800,28 @@ function toggleAllCharges() {
             :class="[
               cars.length > 1
                 ? 'sticky top-16 z-10 bg-white dark:bg-gray-800 -mx-4 px-4 md:-mx-6 md:px-6 py-1.5 md:py-3 mb-3 border-b border-gray-100 dark:border-gray-700 shadow-sm'
-                : 'mb-6 md:w-fit',
+                : 'mb-6',
               isCarHeaderSticky ? 'car-header-compact' : ''
             ]"
           >
-            <div class="flex gap-2 items-stretch">
-              <!-- Back button: only shown in multi-car sticky bar -->
+            <!-- Back navigation row -->
+            <div class="flex items-center gap-2 mb-2 md:mb-3">
               <router-link
                 v-if="cars.length > 1"
                 to="/dashboard"
                 :aria-label="t('dashboard.title')"
-                class="flex-shrink-0 self-stretch flex items-center gap-1 px-2 rounded-sm border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-medium shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] hover:border-indigo-300">
-                <ChevronLeftIcon class="w-4 h-4 flex-shrink-0" />
-                <span class="hidden sm:inline">{{ t('dashboard.title') }}</span>
+                class="inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors min-h-[44px] md:min-h-0 py-1 px-1 -ml-1 rounded-sm">
+                <ChevronLeftIcon class="w-5 h-5 flex-shrink-0" />
+                <span>{{ t('dashboard.title') }}</span>
               </router-link>
-              <div class="flex gap-3 overflow-x-auto car-scroll-hide flex-1 pb-1 lg:flex-wrap lg:overflow-x-visible">
-              <component
-                :is="cars.length === 1 ? 'div' : 'button'"
+              <template v-if="selectedCar">
+                <span class="hidden md:block text-gray-400 dark:text-gray-500 compact-hide">/</span>
+                <span class="hidden md:block text-sm text-gray-500 dark:text-gray-400 compact-hide truncate">{{ carDisplayName(selectedCar.brand, selectedCar.model) }}</span>
+              </template>
+            </div>
+            <!-- Car cards -->
+            <div class="flex gap-3 overflow-x-auto car-scroll-hide flex-1 pb-1 lg:flex-wrap lg:overflow-x-visible">
+              <button
                 v-for="car in cars"
                 :key="car.id"
                 @click="selectedCarId = car.id"
@@ -947,7 +952,6 @@ function toggleAllCharges() {
                 </div>
               </component>
               </div>
-            </div>
           </div>
 
         <!-- Log List -->
