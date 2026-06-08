@@ -2,6 +2,7 @@ package com.evmonitor.application.spritmonitor;
 
 import ch.hsr.geohash.GeoHash;
 import com.evmonitor.application.CoinLogService;
+import com.evmonitor.application.EvLogService;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.ChargingType;
@@ -38,6 +39,7 @@ public class SpritMonitorImportService {
     private final EvLogRepository evLogRepository;
     private final CarRepository carRepository;
     private final CoinLogService coinLogService;
+    private final EvLogService evLogService;
 
     public List<SpritMonitorVehicleDTO> fetchVehicles(String token) {
         return client.getVehicles(token);
@@ -109,7 +111,7 @@ public class SpritMonitorImportService {
                     if (evLog.getGeohash() == null && fueling.stationname() != null && !fueling.stationname().isBlank()) {
                         result.incrementWithoutLocation();
                     }
-                    EvLog savedLog = evLogRepository.save(evLog);
+                    EvLog savedLog = evLogService.save(evLog);
                     savedLogs.add(savedLog);
                     result.incrementImported();
 

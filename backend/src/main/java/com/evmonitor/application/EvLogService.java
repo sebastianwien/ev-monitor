@@ -3,7 +3,7 @@ package com.evmonitor.application;
 import ch.hsr.geohash.GeoHash;
 import com.evmonitor.application.consumption.ConsumptionCalculationService;
 import com.evmonitor.domain.*;
-import com.evmonitor.domain.weather.TemperatureEnricher;
+
 import com.evmonitor.infrastructure.persistence.JpaUserChargingProviderRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +30,6 @@ public class EvLogService {
     private final CarRepository carRepository;
     private final VehicleSpecificationRepository vehicleSpecificationRepository;
     private final CoinLogService coinLogService;
-    private final TemperatureEnricher temperatureEnricher;
     private final PlausibilityProperties plausibility;
     private final ConsumptionCalculationService calculationService;
     private final JpaUserChargingProviderRepository chargingProviderRepository;
@@ -93,8 +92,7 @@ public class EvLogService {
 
         EvLog savedLog = evLogRepository.save(newLog);
 
-        // Async: enrich with temperature from Open-Meteo (fire-and-forget, nullable result)
-        temperatureEnricher.enrichLog(savedLog.getId(), savedLog.getGeohash(), savedLog.getLoggedAt());
+        eventPublisher.publishEvent(new EvLogSavedEvent(savedLog.getId(), savedLog.getGeohash(), savedLog.getLoggedAt(), savedLog.getTemperatureCelsius()));
 
         // Award coins for this log entry. CoinEvent determines first vs. subsequent, with optional OCR bonus.
         // First-time detection is via coin history (immutable), not log count — prevents delete-and-recreate farming.
@@ -204,9 +202,7 @@ public class EvLogService {
             evLogRepository.updatePowerCurvePoints(savedLog.getId(), request.powerCurvePointsJson());
         }
 
-        if (savedLog.getTemperatureCelsius() == null) {
-            temperatureEnricher.enrichLog(savedLog.getId(), savedLog.getGeohash(), savedLog.getLoggedAt());
-        }
+        eventPublisher.publishEvent(new EvLogSavedEvent(savedLog.getId(), savedLog.getGeohash(), savedLog.getLoggedAt(), savedLog.getTemperatureCelsius()));
 
         // Award per-log coins for Tesla imports.
         // go-eCharger and plain OCPP wallbox coins are TBD and intentionally not awarded here yet.
@@ -336,6 +332,13 @@ public class EvLogService {
         }).orElse(log);
     }
 
+    @Transactional
+    public EvLog save(EvLog evLog) {
+        EvLog saved = evLogRepository.save(evLog);
+        eventPublisher.publishEvent(new EvLogSavedEvent(saved.getId(), saved.getGeohash(), saved.getLoggedAt(), saved.getTemperatureCelsius()));
+        return saved;
+    }
+
     public List<EvLogResponse> getStandaloneLogsForUser(UUID userId) {
         return evLogRepository.findAllByUserId(userId).stream()
                 .map(EvLogResponse::fromDomain)
@@ -455,15 +458,13 @@ public class EvLogService {
                 .costExchangeRate(request.costExchangeRate() != null ? request.costExchangeRate()     : existing.getCostExchangeRate())
                 .costCurrency(request.costCurrency()         != null ? request.costCurrency()          : existing.getCostCurrency())
                 .chargingProviderId(updatedChargingProviderId)
+                .temperatureCelsius(geohashChanged ? null : existing.getTemperatureCelsius())
                 .updatedAt(LocalDateTime.now())
                 .build();
 
         EvLog savedLog = evLogRepository.save(updated);
 
-        // Async: re-enrich temperature if location was added/changed
-        if (geohashChanged || (savedLog.getGeohash() != null && savedLog.getTemperatureCelsius() == null)) {
-            temperatureEnricher.enrichLog(savedLog.getId(), savedLog.getGeohash(), savedLog.getLoggedAt());
-        }
+        eventPublisher.publishEvent(new EvLogSavedEvent(savedLog.getId(), savedLog.getGeohash(), savedLog.getLoggedAt(), savedLog.getTemperatureCelsius()));
 
         if (savedLog.getKwhAtVehicle() != null) {
             eventPublisher.publishEvent(new SohAutoDetectEvent(car));

@@ -172,7 +172,7 @@ public class PublicApiImportService {
 
                 EvLog saved;
                 try {
-                    saved = evLogRepository.save(evLog);
+                    saved = evLogService.save(evLog);
                 } catch (DataIntegrityViolationException e) {
                     log.debug("API Upload: Duplikat beim Speichern erkannt (race condition) — übersprungen");
                     skipped++;
@@ -245,7 +245,7 @@ public class PublicApiImportService {
                 patch.temperatureCelsius()
         );
 
-        evLogRepository.save(patched);
+        evLogService.save(patched);
     }
 
     @Transactional

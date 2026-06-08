@@ -1,5 +1,6 @@
 package com.evmonitor.application.imports.xpeng;
 
+import com.evmonitor.application.EvLogService;
 import com.evmonitor.domain.ChargingType;
 import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.EvLogRepository;
@@ -49,6 +50,7 @@ public class XpengChargeMatcher {
     private static final ObjectMapper EXTRAS_MAPPER = new ObjectMapper();
 
     private final EvLogRepository evLogRepository;
+    private final EvLogService evLogService;
 
     public record MatchResult(int enriched, List<DetectedChargingSession> unmatched) {}
 
@@ -150,7 +152,7 @@ public class XpengChargeMatcher {
                         : inferredType)
                 .updatedAt(LocalDateTime.now())
                 .build();
-        evLogRepository.save(patched);
+        evLogService.save(patched);
 
         // telemetry_extras: erste Session mit nicht-leerem extras-Map gewinnt (per-row-Aggregation
         // ueber mehrere Sub-Sessions ist nicht trivial - vereinfacht).

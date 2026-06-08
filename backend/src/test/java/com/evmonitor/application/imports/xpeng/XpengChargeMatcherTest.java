@@ -3,6 +3,7 @@ package com.evmonitor.application.imports.xpeng;
 import com.evmonitor.domain.ChargingType;
 import com.evmonitor.domain.DataSource;
 import com.evmonitor.domain.EvLog;
+import com.evmonitor.application.EvLogService;
 import com.evmonitor.domain.EvLogRepository;
 import com.evmonitor.domain.xpeng.DetectedChargingSession;
 import org.junit.jupiter.api.Test;
@@ -37,6 +38,7 @@ import static org.mockito.Mockito.*;
 class XpengChargeMatcherTest {
 
     @Mock EvLogRepository evLogRepository;
+    @Mock EvLogService evLogService;
     @InjectMocks XpengChargeMatcher matcher;
 
     private static final UUID CAR = UUID.randomUUID();
@@ -91,7 +93,7 @@ class XpengChargeMatcherTest {
         assertEquals(1, result.enriched(), "beide Sessions auf 1 Log -> 1 enriched");
         assertTrue(result.unmatched().isEmpty(), "beide Sessions matchten");
         ArgumentCaptor<EvLog> captor = ArgumentCaptor.forClass(EvLog.class);
-        verify(evLogRepository).save(captor.capture());
+        verify(evLogService).save(captor.capture());
         EvLog saved = captor.getValue();
         // Summe der zwei Session-kWh in kwh_at_vehicle
         assertEquals(0, saved.getKwhAtVehicle().compareTo(new BigDecimal("30.317")));
@@ -123,7 +125,7 @@ class XpengChargeMatcherTest {
 
         assertEquals(2, result.enriched());
         assertTrue(result.unmatched().isEmpty());
-        verify(evLogRepository, times(2)).save(any());
+        verify(evLogService, times(2)).save(any());
     }
 
     // -- Szenario C: n User-Logs + m XPeng-Sessions am gleichen Odo -> Tie-Breaker
@@ -143,7 +145,7 @@ class XpengChargeMatcherTest {
         matcher.matchAndEnrich(CAR, List.of(s));
 
         ArgumentCaptor<EvLog> captor = ArgumentCaptor.forClass(EvLog.class);
-        verify(evLogRepository).save(captor.capture());
+        verify(evLogService).save(captor.capture());
         assertEquals(closeLog.getId(), captor.getValue().getId(),
                 "der zeitlich naechste zur Session sollte gewinnen");
     }
@@ -166,7 +168,7 @@ class XpengChargeMatcherTest {
         XpengChargeMatcher.MatchResult result = matcher.matchAndEnrich(CAR, List.of(s));
 
         assertEquals(1, result.enriched());
-        verify(evLogRepository).save(any());
+        verify(evLogService).save(any());
     }
 
     // -- Szenario H: kein Match -> Session bleibt unmatched
@@ -227,7 +229,7 @@ class XpengChargeMatcherTest {
         assertEquals(1, result.enriched());
         assertTrue(result.unmatched().isEmpty());
         ArgumentCaptor<EvLog> captor = ArgumentCaptor.forClass(EvLog.class);
-        verify(evLogRepository).save(captor.capture());
+        verify(evLogService).save(captor.capture());
         assertEquals(0, captor.getValue().getKwhAtVehicle().compareTo(new BigDecimal("25.0")),
                 "Summe der Sub-Sessions: 10+15");
     }
@@ -254,7 +256,7 @@ class XpengChargeMatcherTest {
         matcher.matchAndEnrich(CAR, List.of(s));
 
         ArgumentCaptor<EvLog> captor = ArgumentCaptor.forClass(EvLog.class);
-        verify(evLogRepository).save(captor.capture());
+        verify(evLogService).save(captor.capture());
         EvLog saved = captor.getValue();
         assertEquals(0, saved.getMaxChargingPowerKw().compareTo(new BigDecimal("125.0")));
         assertEquals(ChargingType.DC, saved.getChargingType());
@@ -275,7 +277,7 @@ class XpengChargeMatcherTest {
         matcher.matchAndEnrich(CAR, List.of(s));
 
         ArgumentCaptor<EvLog> captor = ArgumentCaptor.forClass(EvLog.class);
-        verify(evLogRepository).save(captor.capture());
+        verify(evLogService).save(captor.capture());
         EvLog saved = captor.getValue();
         assertEquals(0, saved.getMaxChargingPowerKw().compareTo(new BigDecimal("22.0")));
         assertEquals(ChargingType.AC, saved.getChargingType());
