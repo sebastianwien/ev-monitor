@@ -4,7 +4,6 @@ import { useI18n } from 'vue-i18n'
 import { ChevronDownIcon } from '@heroicons/vue/24/outline'
 import { useSmartInsights, type InsightSentiment, type ChartBar } from '../../composables/useSmartInsights'
 import type { StatisticsData } from '../../composables/useDashboardStats'
-import { useHaptic } from '../../composables/useHaptic'
 
 const props = defineProps<{
   stats: StatisticsData | null
@@ -12,7 +11,6 @@ const props = defineProps<{
 }>()
 
 const { t } = useI18n()
-const { haptic } = useHaptic()
 
 const { insights } = useSmartInsights(
   () => props.stats,
@@ -46,7 +44,7 @@ function isOpen(id: string): boolean {
 }
 
 function toggle(id: string) {
-  haptic()
+  // haptic via global pointerdown on <button> in main.ts
   const period = new Date().toISOString().slice(0, 7)
   if (period !== activePeriod) {
     activePeriod = period
