@@ -90,9 +90,7 @@ public class EvLogService {
         }
         newLog = builder.build();
 
-        EvLog savedLog = evLogRepository.save(newLog);
-
-        eventPublisher.publishEvent(new EvLogSavedEvent(savedLog.getId(), savedLog.getGeohash(), savedLog.getLoggedAt(), savedLog.getTemperatureCelsius()));
+        EvLog savedLog = save(newLog);
 
         // Award coins for this log entry. CoinEvent determines first vs. subsequent, with optional OCR bonus.
         // First-time detection is via coin history (immutable), not log count — prevents delete-and-recreate farming.
@@ -113,10 +111,6 @@ public class EvLogService {
                     : CoinLogService.CoinEvent.MANUAL_LOG_SUBSEQUENT;
         }
         int coinsAwarded = coinLogService.awardCoinsForEvent(userId, coinEvent, savedLog.getId());
-
-        if (savedLog.getKwhAtVehicle() != null) {
-            eventPublisher.publishEvent(new SohAutoDetectEvent(car));
-        }
 
         return new EvLogCreateResponse(EvLogResponse.fromDomain(savedLog), coinsAwarded);
     }
@@ -193,7 +187,7 @@ public class EvLogService {
             newLog = applyPriceSuggestion(newLog, request.userId(), request.costEur() != null);
         }
 
-        EvLog savedLog = evLogRepository.save(newLog);
+        EvLog savedLog = save(newLog);
 
         // Power-curve-Snapshot (~30 Punkte) als JSONB neben den Log persistieren -
         // ueberlebt das 28-Tage-Retention-Limit auf vehicle_signal_events. Nur Tesla
@@ -202,16 +196,17 @@ public class EvLogService {
             evLogRepository.updatePowerCurvePoints(savedLog.getId(), request.powerCurvePointsJson());
         }
 
-        eventPublisher.publishEvent(new EvLogSavedEvent(savedLog.getId(), savedLog.getGeohash(), savedLog.getLoggedAt(), savedLog.getTemperatureCelsius()));
-
         // Award per-log coins for Tesla imports.
         // go-eCharger and plain OCPP wallbox coins are TBD and intentionally not awarded here yet.
         if (source == DataSource.TESLA_FLEET_IMPORT || source == DataSource.TESLA_LIVE) {
             coinLogService.awardCoinsForEvent(request.userId(), CoinLogService.CoinEvent.TESLA_DAILY_LOG, savedLog.getId());
         }
 
-        // Auto-detect SoH after the outer transaction commits so the new log is visible.
-        eventPublisher.publishEvent(new SohAutoDetectEvent(car));
+        // Internal logs trigger SoH even when only kwhCharged is present (no kwhAtVehicle).
+        // save() already fires SohAutoDetectEvent when kwhAtVehicle != null.
+        if (savedLog.getKwhAtVehicle() == null) {
+            eventPublisher.publishEvent(new SohAutoDetectEvent(car));
+        }
 
         return EvLogResponse.fromDomain(savedLog);
     }
@@ -336,6 +331,10 @@ public class EvLogService {
     public EvLog save(EvLog evLog) {
         EvLog saved = evLogRepository.save(evLog);
         eventPublisher.publishEvent(new EvLogSavedEvent(saved.getId(), saved.getGeohash(), saved.getLoggedAt(), saved.getTemperatureCelsius()));
+        if (saved.getKwhAtVehicle() != null) {
+            carRepository.findById(saved.getCarId()).ifPresent(car ->
+                    eventPublisher.publishEvent(new SohAutoDetectEvent(car)));
+        }
         return saved;
     }
 
@@ -462,13 +461,7 @@ public class EvLogService {
                 .updatedAt(LocalDateTime.now())
                 .build();
 
-        EvLog savedLog = evLogRepository.save(updated);
-
-        eventPublisher.publishEvent(new EvLogSavedEvent(savedLog.getId(), savedLog.getGeohash(), savedLog.getLoggedAt(), savedLog.getTemperatureCelsius()));
-
-        if (savedLog.getKwhAtVehicle() != null) {
-            eventPublisher.publishEvent(new SohAutoDetectEvent(car));
-        }
+        EvLog savedLog = save(updated);
 
         return EvLogResponse.fromDomain(savedLog);
     }
