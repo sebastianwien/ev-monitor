@@ -178,7 +178,7 @@ const hasAnyData = computed(() =>
     <div class="flex items-center justify-between mb-2">
       <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('cost_history.title') }}</h3>
       <div class="flex items-center gap-2">
-        <span class="text-[11px] text-gray-400 dark:text-gray-500 leading-none">{{ t('cost_history.mode_spread_label') }}</span>
+        <span class="text-[11px] text-gray-400 dark:text-gray-500 leading-none select-none cursor-default">{{ t('cost_history.mode_spread_label') }}</span>
         <button
           type="button"
           role="switch"
