@@ -205,6 +205,25 @@ public class EvLogController {
         }
     }
 
+    record MergeLogRequest(UUID sourceLogId, boolean preferSource) {}
+
+    @PatchMapping("/{logId}/merge")
+    public ResponseEntity<Void> mergeLog(
+            @PathVariable UUID logId,
+            @RequestBody MergeLogRequest body,
+            Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        if (body.sourceLogId() == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        try {
+            evLogService.mergeLog(logId, body.sourceLogId(), principal.getUser().getId(), body.preferSource());
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     /**
      * Weist einen einzelnen Log einem anderen Fahrzeug desselben Users zu.
      */

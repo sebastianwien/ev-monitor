@@ -707,6 +707,17 @@ dashboard:
   action_delete: Slett
   action_add_trip: Legg til tur
   action_reassign: Flytt
+  action_merge: Slå sammen
+  merge_title: Slå sammen ladinger
+  merge_info: "Slå denne ladingen sammen med en annen - f.eks. kombinere wallbox-måling (brutto) med kjøretøymåling (netto). Den valgte oppføringen slettes og verdiene overføres."
+  merge_select_hint: "Velg den andre ladingen:"
+  merge_no_candidates: Ingen andre ladinger funnet innen 12 timer.
+  merge_confirm: Slå sammen
+  merge_preview_label: Forhåndsvisning av sammenslått oppføring
+  merge_kwh_charged: "Brutto (wallbox)"
+  merge_kwh_vehicle: "Netto (kjøretøy)"
+  merge_prefer_source: Overskrive med verdier fra valgt oppføring
+  merge_prefer_source_hint: Eksisterende verdier i denne oppføringen erstattes av verdiene fra den valgte.
   action_menu_label: Handlinger
   phantom_drain_word: Standtap
   insights_tab_donut: Energifordeling

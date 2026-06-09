@@ -707,6 +707,17 @@ dashboard:
   action_delete: Ta bort
   action_add_trip: Lägg till resa
   action_reassign: Flytta
+  action_merge: Slå ihop
+  merge_title: Slå ihop laddningar
+  merge_info: "Slå ihop den här laddningen med en annan - t.ex. kombinera wallbox-mätning (brutto) med fordonsmätning (netto). Den valda posten raderas och dess värden överförs."
+  merge_select_hint: "Välj den andra laddningen:"
+  merge_no_candidates: Inga andra laddningar hittades inom 12 timmar.
+  merge_confirm: Slå ihop
+  merge_preview_label: Förhandsvisning av sammanslagen post
+  merge_kwh_charged: "Brutto (wallbox)"
+  merge_kwh_vehicle: "Netto (fordon)"
+  merge_prefer_source: Skriv över med värden från vald post
+  merge_prefer_source_hint: Befintliga värden i den här posten ersätts av värdena från den valda.
   action_menu_label: Åtgärder
   phantom_drain_word: Standby-förlust
   insights_tab_donut: Energifördelning

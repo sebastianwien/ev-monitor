@@ -137,6 +137,48 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
     }
   }
 
+  // Zusammenführen Modal
+  const mergeModalEntry = ref<any | null>(null)
+  const mergeSaving = ref(false)
+  const mergeError = ref<string | null>(null)
+
+  const openMergeModal = (entry: any) => {
+    mergeModalEntry.value = entry
+    mergeError.value = null
+  }
+
+  const mergeCandidates = computed(() => {
+    if (!mergeModalEntry.value) return []
+    const entry = mergeModalEntry.value
+    const entryTime = new Date(entry.loggedAt).getTime()
+    const twelveHours = 12 * 60 * 60 * 1000
+    return logs.value.filter((l: any) => {
+      if (l.id === entry.id) return false
+      const diff = Math.abs(new Date(l.loggedAt).getTime() - entryTime)
+      return diff <= twelveHours
+    })
+  })
+
+  const saveMerge = async (sourceLogId: string, preferSource: boolean, fetchStatistics: () => Promise<void>) => {
+    if (!mergeModalEntry.value) return
+    const targetLogId = mergeModalEntry.value.id
+    mergeSaving.value = true
+    mergeError.value = null
+    try {
+      await api.patch(`/logs/${targetLogId}/merge`, { sourceLogId, preferSource })
+      logs.value = logs.value.filter((l: any) => l.id !== sourceLogId)
+      const updatedRes = await api.get(`/logs/${targetLogId}`)
+      const idx = logs.value.findIndex((l: any) => l.id === targetLogId)
+      if (idx >= 0) logs.value[idx] = updatedRes.data
+      mergeModalEntry.value = null
+      fetchStatistics()
+    } catch {
+      mergeError.value = t('dashboard.err_load')
+    } finally {
+      mergeSaving.value = false
+    }
+  }
+
   // --- Trip editing state ---
   const editingTripId = ref<string | null>(null)
   const addingTripAfterId = ref<string | null>(null)  // ID of feed entry after which to insert
@@ -688,6 +730,13 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
     otherCars,
     openReassignModal,
     saveReassign,
+    // Merge
+    mergeModalEntry,
+    mergeSaving,
+    mergeError,
+    openMergeModal,
+    mergeCandidates,
+    saveMerge,
     // Fetching
     fetchLogs,
     fetchTrips,

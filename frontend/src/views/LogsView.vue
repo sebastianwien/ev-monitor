@@ -25,6 +25,7 @@ import {
   EllipsisVerticalIcon,
   ChartBarSquareIcon,
   CheckIcon,
+  LinkIcon,
 } from '@heroicons/vue/24/outline'
 import { tempBadgeClass } from '../utils/temperatureColor'
 import { consumptionTextClass } from '../utils/consumptionColor'
@@ -47,6 +48,7 @@ import LicensePlate from '../components/car/LicensePlate.vue'
 import RewardSystemUpdateBanner from '../components/shared/RewardSystemUpdateBanner.vue'
 import { useAuthStore } from '../stores/auth'
 import ImplausibleLogsModal from '../components/dashboard/ImplausibleLogsModal.vue'
+import MergeLogModal from '../components/dashboard/MergeLogModal.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useDashboardStats } from '../composables/useDashboardStats'
 import { useLogList, PAGE_SIZE_OPTIONS, type PageSize } from '../composables/useLogList'
@@ -84,6 +86,7 @@ const {
   expandedGroups, toggleLadegruppe, hasAnyLogs, showOdometer, showCostAbsolute,
   openTooltipLogId, reassignModalEntry, reassignSelectedCarId, reassignSaving,
   reassignError, reassignSuccessMessage, otherCars, openReassignModal, saveReassign,
+  mergeModalEntry, mergeSaving, mergeError, openMergeModal, mergeCandidates, saveMerge,
   fetchLogs, fetchLogsAndScroll, refreshLogsAndGroups, deleteLog,
   formatLogDate, formatTripTimeRange, toggleOdometerDisplay, sourceInfo, mergedLogFeed,
   editingTripId, addingTripAfterId, tripForm, tripSaving, tripError,
@@ -336,6 +339,8 @@ async function doMergeTrip(survivingId: string, previousId: string) {
 
 // saveReassign needs fetchStatistics, so wrap it
 const doSaveReassign = () => saveReassign(fetchStatistics)
+const doSaveMerge = ({ sourceLogId, preferSource }: { sourceLogId: string; preferSource: boolean }) =>
+  saveMerge(sourceLogId, preferSource, fetchStatistics)
 
 // -- Trip feedback --
 const FEEDBACK_TAGS = ['distance_wrong', 'time_wrong', 'duplicate', 'other'] as const
@@ -1673,6 +1678,10 @@ function toggleAllCharges() {
                         class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:bg-gray-100 dark:focus-visible:bg-gray-600">
                         <MapIcon class="w-4 h-4 flex-shrink-0" aria-hidden="true" />{{ t('dashboard.action_add_trip') }}
                       </button>
+                      <button role="menuitem" type="button" @click.stop="openMergeModal(item.entry); openMenuLogId = null"
+                        class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:bg-gray-100 dark:focus-visible:bg-gray-600">
+                        <LinkIcon class="w-4 h-4 flex-shrink-0" aria-hidden="true" />{{ t('dashboard.action_merge') }}
+                      </button>
                       <button v-if="otherCars.length > 0" role="menuitem" type="button" @click.stop="openReassignModal(item.entry); openMenuLogId = null"
                         class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:bg-gray-100 dark:focus-visible:bg-gray-600">
                         <ArrowsRightLeftIcon class="w-4 h-4 flex-shrink-0" aria-hidden="true" />{{ t('dashboard.action_reassign') }}
@@ -1974,6 +1983,10 @@ function toggleAllCharges() {
                           <button role="menuitem" type="button" @click.stop="editingLog = topUp; openMenuTopUpId = null"
                             class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:bg-gray-100 dark:focus-visible:bg-gray-600">
                             <PencilSquareIcon class="w-4 h-4 flex-shrink-0" aria-hidden="true" />{{ t('dashboard.action_edit') }}
+                          </button>
+                          <button role="menuitem" type="button" @click.stop="openMergeModal(topUp); openMenuTopUpId = null"
+                            class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:bg-gray-100 dark:focus-visible:bg-gray-600">
+                            <LinkIcon class="w-4 h-4 flex-shrink-0" aria-hidden="true" />{{ t('dashboard.action_merge') }}
                           </button>
                           <button v-if="otherCars.length > 0" role="menuitem" type="button" @click.stop="openReassignModal(topUp); openMenuTopUpId = null"
                             class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:bg-gray-100 dark:focus-visible:bg-gray-600">
@@ -2331,6 +2344,10 @@ function toggleAllCharges() {
                           class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
                           <MapIcon class="w-4 h-4 flex-shrink-0" />{{ t('dashboard.action_add_trip') }}
                         </button>
+                        <button @click.stop="openMergeModal(item.entry); openMenuLogId = null"
+                          class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
+                          <LinkIcon class="w-4 h-4 flex-shrink-0" />{{ t('dashboard.action_merge') }}
+                        </button>
                         <button v-if="otherCars.length > 0" @click.stop="openReassignModal(item.entry); openMenuLogId = null"
                           class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
                           <ArrowsRightLeftIcon class="w-4 h-4 flex-shrink-0" />{{ t('dashboard.action_reassign') }}
@@ -2441,6 +2458,10 @@ function toggleAllCharges() {
                             <button @click.stop="editingLog = topUp; openMenuTopUpId = null"
                               class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
                               <PencilSquareIcon class="w-4 h-4 flex-shrink-0" />{{ t('dashboard.action_edit') }}
+                            </button>
+                            <button @click.stop="openMergeModal(topUp); openMenuTopUpId = null"
+                              class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
+                              <LinkIcon class="w-4 h-4 flex-shrink-0" />{{ t('dashboard.action_merge') }}
                             </button>
                             <button v-if="otherCars.length > 0" @click.stop="openReassignModal(topUp); openMenuTopUpId = null"
                               class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
@@ -2580,6 +2601,16 @@ function toggleAllCharges() {
       </div>
     </Transition>
   </Teleport>
+
+  <MergeLogModal
+    v-if="mergeModalEntry"
+    :entry="mergeModalEntry"
+    :candidates="mergeCandidates"
+    :saving="mergeSaving"
+    :error="mergeError"
+    @merge="doSaveMerge"
+    @close="mergeModalEntry = null"
+  />
 
   <!-- Mobile sticky bottom bar: bulk expand/collapse with toggle switches -->
   <Teleport to="body">

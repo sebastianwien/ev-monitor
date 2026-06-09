@@ -589,4 +589,70 @@ public class EvLogService {
         evLogRepository.updateCarIdForLog(logId, targetCarId);
     }
 
+    /**
+     * Führt zwei Ladevorgänge desselben Autos zu einem vollständigen Eintrag zusammen.
+     * Typischer Use-Case: Wallbox-Log (kwhCharged) + Fahrzeug-Log (kwhAtVehicle + SoC).
+     * Der Ziel-Log wird mit den fehlenden Werten des Quell-Logs ergänzt, der Quell-Log wird gelöscht.
+     */
+    @Transactional
+    public void mergeLog(UUID targetLogId, UUID sourceLogId, UUID userId, boolean preferSource) {
+        if (targetLogId.equals(sourceLogId)) {
+            throw new IllegalArgumentException("Cannot merge a log with itself");
+        }
+        EvLog target = evLogRepository.findById(targetLogId)
+                .orElseThrow(() -> new IllegalArgumentException("Target log not found"));
+        EvLog source = evLogRepository.findById(sourceLogId)
+                .orElseThrow(() -> new IllegalArgumentException("Source log not found"));
+
+        Car targetCar = carRepository.findById(target.getCarId())
+                .orElseThrow(() -> new IllegalArgumentException("Target car not found"));
+        if (!targetCar.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("User does not own the target log");
+        }
+        Car sourceCar = carRepository.findById(source.getCarId())
+                .orElseThrow(() -> new IllegalArgumentException("Source car not found"));
+        if (!sourceCar.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("User does not own the source log");
+        }
+        if (!target.getCarId().equals(source.getCarId())) {
+            throw new IllegalArgumentException("Both logs must belong to the same car");
+        }
+
+        EvLog primary = preferSource ? source : target;
+        EvLog fallback = preferSource ? target : source;
+
+        BigDecimal mergedKwhCharged = primary.getKwhCharged() != null ? primary.getKwhCharged() : fallback.getKwhCharged();
+        BigDecimal mergedKwhAtVehicle = primary.getKwhAtVehicle() != null ? primary.getKwhAtVehicle() : fallback.getKwhAtVehicle();
+        BigDecimal mergedSocStart = primary.getSocBeforeChargePercent() != null ? primary.getSocBeforeChargePercent() : fallback.getSocBeforeChargePercent();
+        BigDecimal mergedSocEnd = primary.getSocAfterChargePercent() != null ? primary.getSocAfterChargePercent() : fallback.getSocAfterChargePercent();
+        Integer mergedOdometer = primary.getOdometerKm() != null ? primary.getOdometerKm() : fallback.getOdometerKm();
+        Integer mergedDuration = primary.getChargeDurationMinutes() != null ? primary.getChargeDurationMinutes() : fallback.getChargeDurationMinutes();
+        BigDecimal mergedCost = primary.getCostEur() != null ? primary.getCostEur() : fallback.getCostEur();
+        String mergedGeohash = primary.getGeohash() != null ? primary.getGeohash() : fallback.getGeohash();
+
+        // Wenn beide Felder nach dem Merge gesetzt sind: AT_CHARGER (kwhCharged ist leitend)
+        EnergyMeasurementType mergedMeasurementType = (mergedKwhCharged != null && mergedKwhAtVehicle != null)
+                ? EnergyMeasurementType.AT_CHARGER
+                : (mergedKwhCharged != null ? EnergyMeasurementType.AT_CHARGER : EnergyMeasurementType.AT_VEHICLE);
+
+        EvLog merged = target.toBuilder()
+                .kwhCharged(mergedKwhCharged)
+                .kwhAtVehicle(mergedKwhAtVehicle)
+                .socBeforeChargePercent(mergedSocStart)
+                .socAfterChargePercent(mergedSocEnd)
+                .odometerKm(mergedOdometer)
+                .chargeDurationMinutes(mergedDuration)
+                .costEur(mergedCost)
+                .geohash(mergedGeohash)
+                .measurementType(mergedMeasurementType)
+                .build();
+
+        evLogRepository.save(merged);
+        evLogRepository.deleteById(sourceLogId);
+
+        if (mergedKwhAtVehicle != null) {
+            eventPublisher.publishEvent(new SohAutoDetectEvent(targetCar));
+        }
+    }
+
 }
