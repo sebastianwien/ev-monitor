@@ -13,7 +13,6 @@ import {
   ChevronRightIcon,
   ChevronDownIcon,
   ChevronUpIcon,
-  ChevronUpDownIcon,
   TrashIcon,
   ExclamationTriangleIcon,
   InformationCircleIcon,
@@ -51,9 +50,10 @@ import { useAuthStore } from '../stores/auth'
 import ImplausibleLogsModal from '../components/dashboard/ImplausibleLogsModal.vue'
 import MergeLogModal from '../components/dashboard/MergeLogModal.vue'
 import CarCardDetails from '../components/dashboard/CarCardDetails.vue'
+import LogsPaginationBar from '../components/dashboard/LogsPaginationBar.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useDashboardStats } from '../composables/useDashboardStats'
-import { useLogList, PAGE_SIZE_OPTIONS, type PageSize } from '../composables/useLogList'
+import { useLogList } from '../composables/useLogList'
 import { useStickyCarHeader } from '../composables/useStickyCarHeader'
 import { useBulkBarOffset } from '../composables/useBulkBarOffset'
 import { useHaptic } from '../composables/useHaptic'
@@ -537,6 +537,23 @@ const currentOdometerKm = computed<number | null>(() => {
   return max
 })
 
+const pageDateRange = computed<string | undefined>(() => {
+  const feed = mergedLogFeed.value
+  if (!feed.length) return undefined
+  const dateOf = (e: any): string | null => e._isTrip ? e.tripStartedAt : e.loggedAt
+  const first = dateOf(feed[0])
+  const last = dateOf(feed[feed.length - 1])
+  if (!first || !last) return undefined
+  const fmt = (iso: string) => {
+    const d = new Date(iso)
+    const sameYear = d.getFullYear() === new Date().getFullYear()
+    return d.toLocaleDateString('de-DE', { day: 'numeric', month: 'numeric', ...(!sameYear && { year: '2-digit' }) })
+  }
+  const a = fmt(first)
+  const b = fmt(last)
+  return a === b ? a : `${a} - ${b}`
+})
+
 const wallboxStore = useWallboxStore()
 
 const isSmartcarCharging = (car: any) =>
@@ -822,7 +839,7 @@ function toggleAllCharges() {
             <div class="flex justify-end">
               <router-link
                 to="/cars"
-                class="btn-3d flex items-center gap-2 px-4 py-2 rounded-sm border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium">
+                class="flex items-center gap-2 px-4 py-1.5 rounded-sm border-2 border-gray-300 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium transition hover:brightness-95">
                 <TruckIcon class="w-4 h-4" />
                 {{ t('dashboard.vehicles_btn') }}
               </router-link>
@@ -1068,7 +1085,18 @@ function toggleAllCharges() {
             </button>
           </div>
 
-          <div v-if="!logsLoading && logsPage > 0" class="text-sm text-gray-400 mb-2 text-right">{{ t('dashboard.logs_page', { n: logsPage + 1 }) }}</div>
+          <!-- Pagination top -->
+          <LogsPaginationBar
+            v-if="hasAnyLogs"
+            :page="logsPage"
+            :has-more="hasMoreLogs"
+            :page-size="pageSize"
+            class="mb-4"
+            :date-range="pageDateRange"
+            @prev="fetchLogsAndScroll(logsPage - 1)"
+            @next="fetchLogsAndScroll(logsPage + 1)"
+            @page-size-change="setPageSize"
+          />
 
           <Transition enter-active-class="transition duration-200 ease-out" enter-from-class="opacity-0 -translate-y-1" enter-to-class="opacity-100 translate-y-0" leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100" leave-to-class="opacity-0">
             <div v-if="reassignSuccessMessage" class="mb-2 px-3 py-2 rounded-sm bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
@@ -2544,34 +2572,17 @@ function toggleAllCharges() {
               </template><!-- end v-for groupedFeed -->
             </template>
           </div>
-          <!-- Pagination -->
-          <div class="flex items-center justify-between gap-2 mt-4">
-            <button
-              @click="fetchLogsAndScroll(logsPage - 1)"
-              :disabled="logsPage === 0"
-              class="flex items-center gap-1 px-3 py-2 text-sm rounded-sm border border-gray-200 dark:border-gray-600 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition">
-              <ChevronLeftIcon class="w-4 h-4" />{{ t('dashboard.prev') }}
-            </button>
-            <label class="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400">
-              <span class="hidden sm:inline">{{ t('dashboard.page_size_label') }}</span>
-              <div class="relative">
-                <select
-                  :value="pageSize"
-                  @change="setPageSize(Number(($event.target as HTMLSelectElement).value) as PageSize)"
-                  :aria-label="t('dashboard.page_size_label')"
-                  class="appearance-none pl-2 pr-7 py-1.5 text-sm rounded-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                  <option v-for="size in PAGE_SIZE_OPTIONS" :key="size" :value="size">{{ size }}</option>
-                </select>
-                <ChevronUpDownIcon class="absolute right-1.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
-              </div>
-            </label>
-            <button
-              @click="fetchLogsAndScroll(logsPage + 1)"
-              :disabled="!hasMoreLogs"
-              class="flex items-center gap-1 px-3 py-2 text-sm rounded-sm border border-gray-200 dark:border-gray-600 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition">
-              {{ t('dashboard.next') }}<ChevronRightIcon class="w-4 h-4" />
-            </button>
-          </div>
+          <!-- Pagination bottom -->
+          <LogsPaginationBar
+            :page="logsPage"
+            :has-more="hasMoreLogs"
+            :page-size="pageSize"
+            class="mt-4"
+            :date-range="pageDateRange"
+            @prev="fetchLogsAndScroll(logsPage - 1)"
+            @next="fetchLogsAndScroll(logsPage + 1)"
+            @page-size-change="setPageSize"
+          />
 
           <!-- Consumption info accordion (positioned below the list as user reference material) -->
           <ConsumptionInfoBox :min-trips="5" class="mt-6" />
