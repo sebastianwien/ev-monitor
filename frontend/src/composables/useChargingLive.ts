@@ -174,6 +174,7 @@ export function useChargingLive(carId: Ref<string | null>) {
   onUnmounted(() => {
     activeController?.abort()
     clearTimeout(timeoutId)
+    lastFetchedSessionStart = null
     if (typeof document !== 'undefined') {
       document.removeEventListener('visibilitychange', onVisibilityChange)
     }

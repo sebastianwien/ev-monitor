@@ -106,8 +106,7 @@ function formatNumber(val: number | null, decimals = 1): string {
         <template v-if="data?.powerKw != null">{{ formatNumber(data.powerKw) }} kW</template>
         <template v-else>-</template>
       </span>
-      <span v-if="data?.chargingType" class="text-[10px] font-semibold tracking-[0.12em] uppercase shrink-0"
-            :class="data.chargingType === 'DC' ? 'text-amber-600 dark:text-amber-400' : 'text-sky-600 dark:text-sky-400'">
+      <span v-if="data?.chargingType" class="text-[10px] font-semibold tracking-[0.12em] uppercase shrink-0 text-amber-600 dark:text-amber-400">
         {{ data.chargingType }}
       </span>
       <div class="flex-1 h-1.5 bg-gray-200 dark:bg-gray-700/60 rounded-full overflow-hidden min-w-[60px]">
