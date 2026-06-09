@@ -683,6 +683,7 @@ dashboard:
   edit_title: Redigera laddningssession
   reassign_car: Tilldela till fordon
   reassign_car_hint: Vilket fordon ska denna laddningssession kopplas till?
+  reassign_car_hint_group: Alla {count} laddningar i denna grupp tilldelas det nya fordonet.
   reassign_success: Laddningssession tilldelad {car}
   prev: Föregående
   next: Nästa

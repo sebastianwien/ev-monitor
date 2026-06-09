@@ -723,6 +723,7 @@ dashboard:
   edit_title: "Edit charging session"
   reassign_car: "Assign to vehicle"
   reassign_car_hint: "Which vehicle should this charging session be assigned to?"
+  reassign_car_hint_group: "All {count} sessions in this group will be assigned to the new vehicle."
   reassign_success: "Charging session assigned to {car}"
   prev: "Previous"
   next: "Next"

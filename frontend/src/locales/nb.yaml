@@ -683,6 +683,7 @@ dashboard:
   edit_title: Rediger ladesesjon
   reassign_car: Tilordne til kjøretøy
   reassign_car_hint: Hvilket kjøretøy skal denne ladingen tilordnes?
+  reassign_car_hint_group: Alle {count} ladeøkter i denne gruppen vil bli tilordnet det nye kjøretøyet.
   reassign_success: Ladingsøkt tilordnet {car}
   prev: Forrige
   next: Neste

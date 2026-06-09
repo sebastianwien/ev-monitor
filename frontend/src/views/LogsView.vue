@@ -342,15 +342,17 @@ const FEEDBACK_TAGS = ['distance_wrong', 'time_wrong', 'duplicate', 'other'] as 
 const openMenuLogId     = ref<string | null>(null)
 const openMenuTripId    = ref<string | null>(null)
 const openMenuTopUpId   = ref<string | null>(null)
+const openMenuGroupId   = ref<string | null>(null)
 const expandedLogs      = ref(new Set<string>())
 
 // ESC closes any open action menu - keeps keyboard parity with the click-outside dimmer.
 function onMenuKeyEsc(event: KeyboardEvent) {
   if (event.key !== 'Escape') return
-  if (openMenuLogId.value || openMenuTripId.value || openMenuTopUpId.value) {
+  if (openMenuLogId.value || openMenuTripId.value || openMenuTopUpId.value || openMenuGroupId.value) {
     openMenuLogId.value = null
     openMenuTripId.value = null
     openMenuTopUpId.value = null
+    openMenuGroupId.value = null
   }
 }
 onActivated(() => window.addEventListener('keydown', onMenuKeyEsc))
@@ -1037,6 +1039,7 @@ function toggleAllCharges() {
               <div v-if="openMenuLogId" class="fixed inset-0 z-40" @click="openMenuLogId = null" />
               <div v-if="openMenuTripId" class="fixed inset-0 z-40" @click="openMenuTripId = null" />
               <div v-if="openMenuTopUpId" class="fixed inset-0 z-40" @click="openMenuTopUpId = null" />
+              <div v-if="openMenuGroupId" class="fixed inset-0 z-40" @click="openMenuGroupId = null" />
               <!-- Backdrop nur fuer Desktop-Popover (mobile Tooltip ist Teil der Expanded-Card). -->
               <div v-if="openRealCostTooltipId?.endsWith('__d')" class="fixed inset-0 z-40" @click="openRealCostTooltipId = null" />
               <template v-for="item in groupedFeed" :key="item.id">
@@ -1833,9 +1836,28 @@ function toggleAllCharges() {
                     </button>
                     <span v-else class="text-gray-400 dark:text-gray-600 text-xs">-</span>
                   </div>
-                  <div class="flex justify-end">
+                  <div class="flex items-center justify-end gap-0.5 relative">
+                    <button v-if="otherCars.length > 0" type="button"
+                      @click.stop="openMenuGroupId = openMenuGroupId === item.entry.id + '__d' ? null : item.entry.id + '__d'"
+                      @mousedown.stop
+                      class="p-0.5 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:ring-1 focus-visible:ring-blue-400"
+                      :aria-label="t('dashboard.action_menu_label') || 'Aktionen'"
+                      aria-haspopup="menu"
+                      :aria-expanded="openMenuGroupId === item.entry.id + '__d'">
+                      <EllipsisVerticalIcon class="w-4 h-4" aria-hidden="true" />
+                    </button>
                     <ChevronUpIcon v-if="expandedGroups.has(item.entry.id)" class="w-4 h-4 text-blue-400 dark:text-blue-500 flex-shrink-0" />
                     <ChevronDownIcon v-else class="w-4 h-4 text-blue-400 dark:text-blue-500 flex-shrink-0" />
+                    <div v-if="openMenuGroupId === item.entry.id + '__d'"
+                      role="menu"
+                      class="absolute right-0 top-full mt-1 w-44 bg-white dark:bg-gray-700 rounded-sm shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)] border border-gray-200 dark:border-gray-600 z-50 py-1 overflow-hidden">
+                      <button role="menuitem" type="button"
+                        @click.stop="openReassignModal(item.entry); openMenuGroupId = null"
+                        @mousedown.stop
+                        class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:bg-gray-100 dark:focus-visible:bg-gray-600">
+                        <ArrowsRightLeftIcon class="w-4 h-4 flex-shrink-0" aria-hidden="true" />{{ t('dashboard.action_reassign') }}
+                      </button>
+                    </div>
                   </div>
                 </button>
 
@@ -1953,6 +1975,10 @@ function toggleAllCharges() {
                             class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:bg-gray-100 dark:focus-visible:bg-gray-600">
                             <PencilSquareIcon class="w-4 h-4 flex-shrink-0" aria-hidden="true" />{{ t('dashboard.action_edit') }}
                           </button>
+                          <button v-if="otherCars.length > 0" role="menuitem" type="button" @click.stop="openReassignModal(topUp); openMenuTopUpId = null"
+                            class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:bg-gray-100 dark:focus-visible:bg-gray-600">
+                            <ArrowsRightLeftIcon class="w-4 h-4 flex-shrink-0" aria-hidden="true" />{{ t('dashboard.action_reassign') }}
+                          </button>
                           <div class="border-t border-gray-100 dark:border-gray-600 mt-1 pt-1">
                             <button role="menuitem" type="button" @click.stop="deleteLog(topUp.id); openMenuTopUpId = null"
                               class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition focus:outline-none focus-visible:bg-red-50 dark:focus-visible:bg-red-900/30">
@@ -1996,6 +2022,25 @@ function toggleAllCharges() {
                         <template v-if="showCostAbsolute">{{ formatCurrency(item.entry._totalCostEur) }}</template>
                         <template v-else>{{ formatCostPerKwh(item.entry._totalCostEur / item.entry._costKwh) }}</template>
                       </span>
+                      <div v-if="otherCars.length > 0" class="relative" @mousedown.stop>
+                        <button type="button"
+                          @click.stop="openMenuGroupId = openMenuGroupId === item.entry.id ? null : item.entry.id"
+                          class="p-1 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:ring-1 focus-visible:ring-blue-400"
+                          :aria-label="t('dashboard.action_menu_label') || 'Aktionen'"
+                          aria-haspopup="menu"
+                          :aria-expanded="openMenuGroupId === item.entry.id">
+                          <EllipsisVerticalIcon class="w-4 h-4" />
+                        </button>
+                        <div v-if="openMenuGroupId === item.entry.id"
+                          role="menu"
+                          class="absolute right-0 bottom-full mb-1 w-44 bg-white dark:bg-gray-700 rounded-sm shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)] border border-gray-200 dark:border-gray-600 z-50 py-1 overflow-hidden">
+                          <button role="menuitem" type="button"
+                            @click.stop="openReassignModal(item.entry); openMenuGroupId = null"
+                            class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
+                            <ArrowsRightLeftIcon class="w-4 h-4 flex-shrink-0" />{{ t('dashboard.action_reassign') }}
+                          </button>
+                        </div>
+                      </div>
                       <ChevronDownIcon v-if="!expandedGroups.has(item.entry.id)" class="w-4 h-4 text-blue-400 dark:text-blue-500 flex-shrink-0" />
                       <ChevronUpIcon v-else class="w-4 h-4 text-blue-400 dark:text-blue-500 flex-shrink-0" />
                     </div>
@@ -2397,6 +2442,10 @@ function toggleAllCharges() {
                               class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
                               <PencilSquareIcon class="w-4 h-4 flex-shrink-0" />{{ t('dashboard.action_edit') }}
                             </button>
+                            <button v-if="otherCars.length > 0" @click.stop="openReassignModal(topUp); openMenuTopUpId = null"
+                              class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
+                              <ArrowsRightLeftIcon class="w-4 h-4 flex-shrink-0" />{{ t('dashboard.action_reassign') }}
+                            </button>
                             <div class="border-t border-gray-100 dark:border-gray-600 mt-1 pt-1">
                               <button @click.stop="deleteLog(topUp.id); openMenuTopUpId = null"
                                 class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition">
@@ -2492,7 +2541,10 @@ function toggleAllCharges() {
         <div class="relative w-full sm:max-w-sm bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-sm shadow-[6px_6px_0_rgba(0,0,0,0.40)] dark:shadow-[6px_6px_0_rgba(255,255,255,0.40)] p-6 space-y-5">
           <div>
             <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100">{{ t('dashboard.reassign_car') }}</h3>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ t('dashboard.reassign_car_hint') }}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              <template v-if="reassignModalEntry?._isLadegruppe">{{ t('dashboard.reassign_car_hint_group', { count: reassignModalEntry._topUps?.length ?? 0 }) }}</template>
+              <template v-else>{{ t('dashboard.reassign_car_hint') }}</template>
+            </p>
           </div>
 
           <div class="space-y-2">

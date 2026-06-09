@@ -723,6 +723,7 @@ dashboard:
   edit_title: "Ladevorgang bearbeiten"
   reassign_car: "Fahrzeug zuordnen"
   reassign_car_hint: "Welchem Fahrzeug soll dieser Ladevorgang zugeordnet werden?"
+  reassign_car_hint_group: "Alle {count} Ladungen dieser Gruppe werden dem neuen Fahrzeug zugeordnet."
   reassign_success: "Ladevorgang wurde {car} zugeordnet"
   prev: "Zurück"
   next: "Weiter"

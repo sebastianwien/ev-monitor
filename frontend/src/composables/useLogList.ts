@@ -112,8 +112,14 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
     const targetCar = cars.value.find((c: any) => c.id === reassignSelectedCarId.value)
     reassignSaving.value = true
     try {
-      await api.patch(`/logs/${entry.id}/car`, { targetCarId: reassignSelectedCarId.value })
-      logs.value = logs.value.filter((l: any) => l.id !== entry.id)
+      if (entry._isLadegruppe) {
+        const ids: string[] = (entry._topUps ?? []).map((t: any) => t.id)
+        await Promise.all(ids.map((id) => api.patch(`/logs/${id}/car`, { targetCarId: reassignSelectedCarId.value })))
+        logs.value = logs.value.filter((l: any) => !ids.includes(l.id))
+      } else {
+        await api.patch(`/logs/${entry.id}/car`, { targetCarId: reassignSelectedCarId.value })
+        logs.value = logs.value.filter((l: any) => l.id !== entry.id)
+      }
       const carLabel = targetCar ? carDisplayName(targetCar.brand, targetCar.model) : ''
       reassignSuccessMessage.value = t('dashboard.reassign_success', { car: carLabel })
       setTimeout(() => { reassignSuccessMessage.value = null }, 3000)
