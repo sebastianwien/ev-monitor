@@ -458,9 +458,7 @@ const SLIDE_PAIRS: Record<string, string[]> = {
 };
 router.beforeEach((to, from) => {
     const dest = SLIDE_PAIRS[to.path];
-    const isMobile = typeof window !== 'undefined'
-        && window.matchMedia('(max-width: 767px)').matches;
-    if (isMobile && dest && dest.includes(from.path)) {
+    if (dest && dest.includes(from.path)) {
         // Forward direction = dashboard -> logs (new slides in from right)
         to.meta.transition = (from.path === '/dashboard' && to.path === '/logs')
             ? 'slide-left'
