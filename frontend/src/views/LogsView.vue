@@ -10,7 +10,6 @@ import {
   Battery0Icon,
   SunIcon,
   ChevronLeftIcon,
-  ChevronRightIcon,
   ChevronDownIcon,
   ChevronUpIcon,
   TrashIcon,
@@ -819,7 +818,29 @@ function toggleAllCharges() {
   <div class="md:max-w-6xl md:mx-auto md:p-6">
     <RewardSystemUpdateBanner class="mb-4" />
     <Transition name="fade" mode="out-in">
-      <div v-if="!loading || !isInitialLoad">
+      <div v-if="loading && isInitialLoad" key="skeleton-view">
+        <div class="bg-gray-100 dark:bg-gray-800 md:rounded-sm md:shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:md:shadow-[4px_4px_0_rgba(255,255,255,0.30)] p-2 md:p-6 pb-6 animate-pulse">
+          <div class="h-16 rounded-sm bg-gray-200 dark:bg-gray-700 mb-6" />
+          <div class="space-y-2">
+            <div v-for="n in 6" :key="n" class="relative p-3 border-2 rounded-sm bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]">
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                  <div class="w-4 h-4 rounded bg-gray-200 dark:bg-gray-600" />
+                  <div class="w-16 h-4 rounded bg-gray-200 dark:bg-gray-600" />
+                  <div class="w-24 h-3 rounded bg-gray-200 dark:bg-gray-600" />
+                </div>
+                <div class="w-16 h-5 rounded-full bg-gray-200 dark:bg-gray-600" />
+              </div>
+              <div class="flex gap-2 mt-1.5">
+                <div class="w-20 h-3 rounded bg-gray-200 dark:bg-gray-600" />
+                <div class="w-16 h-3 rounded bg-gray-200 dark:bg-gray-600" />
+                <div class="w-12 h-3 rounded bg-gray-200 dark:bg-gray-600" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div v-else key="content-view">
         <div class="bg-gray-100 dark:bg-gray-800 md:rounded-sm md:shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:md:shadow-[4px_4px_0_rgba(255,255,255,0.30)] p-2 md:p-6 pb-6">
           <!-- Desktop header row -->
           <div class="hidden md:grid grid-cols-3 items-center mb-6">
@@ -1105,8 +1126,24 @@ function toggleAllCharges() {
             </div>
           </Transition>
 
-          <div class="space-y-2">
-            <div v-if="logsLoading && !hasAnyLogs" class="py-8 text-center text-gray-400 text-sm">{{ t('dashboard.loading') }}</div>
+          <div :class="['space-y-2', { 'opacity-50 pointer-events-none transition-opacity duration-150': logsLoading && hasAnyLogs }]">
+            <template v-if="logsLoading && !hasAnyLogs">
+              <div v-for="n in 5" :key="n" class="relative p-3 border-2 rounded-sm bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] animate-pulse">
+                <div class="flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-2">
+                    <div class="w-4 h-4 rounded bg-gray-200 dark:bg-gray-600" />
+                    <div class="w-16 h-4 rounded bg-gray-200 dark:bg-gray-600" />
+                    <div class="w-24 h-3 rounded bg-gray-200 dark:bg-gray-600" />
+                  </div>
+                  <div class="w-16 h-5 rounded-full bg-gray-200 dark:bg-gray-600" />
+                </div>
+                <div class="flex gap-2 mt-1.5">
+                  <div class="w-20 h-3 rounded bg-gray-200 dark:bg-gray-600" />
+                  <div class="w-16 h-3 rounded bg-gray-200 dark:bg-gray-600" />
+                  <div class="w-12 h-3 rounded bg-gray-200 dark:bg-gray-600" />
+                </div>
+              </div>
+            </template>
             <template v-else-if="!hasAnyLogs">
               <p class="py-8 text-center text-gray-400 text-sm">{{ t('dashboard.no_logs_empty') }}</p>
             </template>
