@@ -516,6 +516,9 @@ auth:
     error_invalid: "Invalid reset link. Please request a new one."
     error_generic: "An error occurred. Please try again."
 
+logs:
+  title: "Charging Sessions / Trips"
+
 dashboard:
   title: "Dashboard"
   ac_gross_label_brutto: "Gross"

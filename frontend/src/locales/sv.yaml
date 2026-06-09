@@ -476,6 +476,9 @@ auth:
     error_expired: Återställningslänken har gått ut. Begär en ny.
     error_invalid: Ogiltig återställningslänk. Begär en ny.
     error_generic: Ett fel har uppstått. Försök igen.
+logs:
+  title: Laddtillfällen / Resor
+
 dashboard:
   title: Dashboard
   ac_gross_label_brutto: "Brutto"

@@ -516,6 +516,9 @@ auth:
     error_invalid: "Ungültiger Reset-Link. Bitte fordere einen neuen an."
     error_generic: "Ein Fehler ist aufgetreten. Bitte versuche es erneut."
 
+logs:
+  title: "Ladesessions / Fahrten"
+
 dashboard:
   title: "Dashboard"
   ac_gross_label_brutto: "Brutto"

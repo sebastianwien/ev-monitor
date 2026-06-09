@@ -476,6 +476,9 @@ auth:
     error_expired: Tilbakestillingslenken har utløpt. Be om en ny.
     error_invalid: Ugyldig tilbakestillingslenke. Be om en ny.
     error_generic: Det oppstod en feil. Prøv på nytt.
+logs:
+  title: Ladeøkter / Turer
+
 dashboard:
   title: Dashbord
   ac_gross_label_brutto: "Brutto"

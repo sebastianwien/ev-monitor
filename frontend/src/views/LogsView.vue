@@ -26,6 +26,7 @@ import {
   ChartBarSquareIcon,
   CheckIcon,
   LinkIcon,
+  ListBulletIcon,
 } from '@heroicons/vue/24/outline'
 import { tempBadgeClass } from '../utils/temperatureColor'
 import { consumptionTextClass } from '../utils/consumptionColor'
@@ -49,6 +50,7 @@ import RewardSystemUpdateBanner from '../components/shared/RewardSystemUpdateBan
 import { useAuthStore } from '../stores/auth'
 import ImplausibleLogsModal from '../components/dashboard/ImplausibleLogsModal.vue'
 import MergeLogModal from '../components/dashboard/MergeLogModal.vue'
+import CarCardDetails from '../components/dashboard/CarCardDetails.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useDashboardStats } from '../composables/useDashboardStats'
 import { useLogList, PAGE_SIZE_OPTIONS, type PageSize } from '../composables/useLogList'
@@ -73,7 +75,7 @@ const { haptic } = useHaptic()
 // -- Dashboard Stats --
 const {
   selectedCarId, stats, loading, isInitialLoad,
-  cars, carImageUrls,
+  cars, carImageUrls, wltp,
   implausibleBannerDismissed, teslaStatus, smartcarStatus, vwGroupStatus, implausibleCount,
   dismissImplausibleBanner, fetchImplausibleCount,
   fetchCarAndWltp, fetchStatistics, initCars,
@@ -526,6 +528,15 @@ const selectedCar = computed(() =>
   cars.value.find(c => c.id === selectedCarId.value) ?? cars.value[0] ?? null
 )
 
+const currentOdometerKm = computed<number | null>(() => {
+  let max: number | null = null
+  for (const l of logs.value) {
+    const o = l.odometerKm
+    if (typeof o === 'number' && (max == null || o > max)) max = o
+  }
+  return max
+})
+
 const wallboxStore = useWallboxStore()
 
 const isSmartcarCharging = (car: any) =>
@@ -792,7 +803,31 @@ function toggleAllCharges() {
     <RewardSystemUpdateBanner class="mb-4" />
     <Transition name="fade" mode="out-in">
       <div v-if="!loading || !isInitialLoad">
-        <div class="bg-gray-100 dark:bg-gray-800 md:rounded-sm md:shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:md:shadow-[4px_4px_0_rgba(255,255,255,0.30)] p-2 md:p-6">
+        <div class="bg-gray-100 dark:bg-gray-800 md:rounded-sm md:shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:md:shadow-[4px_4px_0_rgba(255,255,255,0.30)] p-2 md:p-6 pb-6">
+          <!-- Desktop header row -->
+          <div class="hidden md:grid grid-cols-3 items-center mb-6">
+            <div>
+              <router-link
+                to="/dashboard"
+                class="btn-3d inline-flex items-center gap-2 px-4 py-2 rounded-sm bg-indigo-600 text-white text-sm font-medium"
+                style="--btn-shadow-color: #3730a3">
+                <ChevronLeftIcon class="w-3.5 h-3.5 opacity-75" />
+                Dashboard
+              </router-link>
+            </div>
+            <div class="flex items-center justify-center gap-3">
+              <ListBulletIcon class="h-8 w-8 text-gray-700 dark:text-gray-300" />
+              <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-200 whitespace-nowrap">{{ t('logs.title') }}</h1>
+            </div>
+            <div class="flex justify-end">
+              <router-link
+                to="/cars"
+                class="btn-3d flex items-center gap-2 px-4 py-2 rounded-sm border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium">
+                <TruckIcon class="w-4 h-4" />
+                {{ t('dashboard.vehicles_btn') }}
+              </router-link>
+            </div>
+          </div>
           <!-- Car card selector (all breakpoints) -->
           <div
             v-if="cars.length > 0"
@@ -800,12 +835,12 @@ function toggleAllCharges() {
             :class="[
               cars.length > 1
                 ? 'sticky top-16 z-10 bg-white dark:bg-gray-800 -mx-4 px-4 md:-mx-6 md:px-6 py-1.5 md:py-3 mb-3 border-b border-gray-100 dark:border-gray-700 shadow-sm'
-                : 'mb-6',
+                : 'mb-6 md:w-fit md:mx-auto',
               isCarHeaderSticky ? 'car-header-compact' : ''
             ]"
           >
-            <!-- Back navigation row -->
-            <div class="flex items-center gap-2 mb-2 md:mb-3">
+            <!-- Back navigation row (mobile only) -->
+            <div class="flex items-center gap-2 mb-2 md:hidden">
               <router-link
                 v-if="cars.length > 1"
                 to="/dashboard"
@@ -950,7 +985,14 @@ function toggleAllCharges() {
                     </div>
                   </div>
                 </div>
-              </component>
+                <!-- Desktop horizontal extension (single-car only, lg+) -->
+                <div
+                  v-if="cars.length === 1 && car.id === selectedCarId"
+                  class="hidden lg:flex flex-shrink-0 self-stretch items-center border-l border-gray-200 dark:border-gray-600 pl-3 pr-3 py-2"
+                >
+                  <CarCardDetails :car="car" :wltp="wltp" :current-odometer-km="currentOdometerKm" orientation="horizontal" />
+                </div>
+              </button>
               </div>
           </div>
 
