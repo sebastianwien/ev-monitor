@@ -1840,7 +1840,7 @@ function toggleAllCharges() {
                     <button v-if="otherCars.length > 0" type="button"
                       @click.stop="openMenuGroupId = openMenuGroupId === item.entry.id + '__d' ? null : item.entry.id + '__d'"
                       @mousedown.stop
-                      class="p-0.5 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:ring-1 focus-visible:ring-blue-400"
+                      class="p-0.5 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
                       :aria-label="t('dashboard.action_menu_label') || 'Aktionen'"
                       aria-haspopup="menu"
                       :aria-expanded="openMenuGroupId === item.entry.id + '__d'">
@@ -2025,7 +2025,7 @@ function toggleAllCharges() {
                       <div v-if="otherCars.length > 0" class="relative" @mousedown.stop>
                         <button type="button"
                           @click.stop="openMenuGroupId = openMenuGroupId === item.entry.id ? null : item.entry.id"
-                          class="p-1 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:ring-1 focus-visible:ring-blue-400"
+                          class="p-1 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
                           :aria-label="t('dashboard.action_menu_label') || 'Aktionen'"
                           aria-haspopup="menu"
                           :aria-expanded="openMenuGroupId === item.entry.id">

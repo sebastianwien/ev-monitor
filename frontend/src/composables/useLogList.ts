@@ -114,8 +114,13 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
     try {
       if (entry._isLadegruppe) {
         const ids: string[] = (entry._topUps ?? []).map((t: any) => t.id)
-        await Promise.all(ids.map((id) => api.patch(`/logs/${id}/car`, { targetCarId: reassignSelectedCarId.value })))
-        logs.value = logs.value.filter((l: any) => !ids.includes(l.id))
+        const results = await Promise.allSettled(ids.map((id) => api.patch(`/logs/${id}/car`, { targetCarId: reassignSelectedCarId.value })))
+        const succeeded = ids.filter((_, i) => results[i].status === 'fulfilled')
+        if (succeeded.length === 0) throw new Error('all failed')
+        logs.value = logs.value.filter((l: any) => !succeeded.includes(l.id))
+        if (succeeded.length < ids.length) {
+          reassignError.value = t('dashboard.err_load')
+        }
       } else {
         await api.patch(`/logs/${entry.id}/car`, { targetCarId: reassignSelectedCarId.value })
         logs.value = logs.value.filter((l: any) => l.id !== entry.id)
