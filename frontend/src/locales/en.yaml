@@ -2542,6 +2542,7 @@ cost_history:
   empty: "No costs recorded yet."
   mode_pro_rata: "Pro-rated (monthly)"
   mode_due_month: "On due month"
+  mode_spread_label: "Spread fixed costs across months"
   fixed_base: "Fixed base"
   trend: "Trend"
   month: "month"

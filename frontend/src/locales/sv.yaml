@@ -2426,6 +2426,7 @@ cost_history:
   empty: Inga kostnader registrerade ännu.
   mode_pro_rata: Proportionellt (månadsvis)
   mode_due_month: På förfallomånaden
+  mode_spread_label: Fördela fasta kostnader per månad
   fixed_base: Fast bas
   trend: Trend
   month: månad

@@ -225,10 +225,9 @@ const routeStats = computed(() => {
   const trips = filteredEntries.value.filter((e: any) => e._isTrip && e.distanceKm != null)
   if (trips.length === 0) return null
   const totalKm = trips.reduce((s: number, e: any) => s + Number(e.distanceKm), 0)
-  const tripsWithEnergy = trips.filter((e: any) => e.energyRemainingStartKwh != null && e.energyRemainingEndKwh != null)
-  const hasEnergyData = tripsWithEnergy.length > 0
-  const totalEnergy = tripsWithEnergy.reduce((s: number, e: any) =>
-    s + Math.max(0, Number(e.energyRemainingStartKwh) - Number(e.energyRemainingEndKwh)), 0)
+  const hasEnergyData = trips.some((e: any) => e.estimatedConsumedKwh != null)
+  const totalEnergy = trips.reduce((s: number, e: any) =>
+    s + (e.estimatedConsumedKwh != null ? Number(e.estimatedConsumedKwh) : 0), 0)
   const categories = [
     { key: 'short', min: 0, max: 5 },
     { key: 'mid',   min: 5, max: 10 },
@@ -239,9 +238,8 @@ const routeStats = computed(() => {
       return km >= cat.min && km < cat.max
     })
     const catKm = catTrips.reduce((s: number, e: any) => s + Number(e.distanceKm), 0)
-    const catWithE = catTrips.filter((e: any) => e.energyRemainingStartKwh != null && e.energyRemainingEndKwh != null)
-    const catEnergy = catWithE.reduce((s: number, e: any) =>
-      s + Math.max(0, Number(e.energyRemainingStartKwh) - Number(e.energyRemainingEndKwh)), 0)
+    const catEnergy = catTrips.reduce((s: number, e: any) =>
+      s + (e.estimatedConsumedKwh != null ? Number(e.estimatedConsumedKwh) : 0), 0)
     return {
       key: cat.key,
       idx: i,
@@ -604,6 +602,9 @@ function drainBarWidth(ev: { kwh: number }): string {
               </div>
             </div>
           </div>
+          <p v-if="routeStats?.hasEnergyData" class="mt-3 text-[10px] text-gray-400 dark:text-gray-500 text-center">
+            Es fliessen nur vollständig erfasste Fahrten mit Energiewerten in die Statistik ein.
+          </p>
         </div>
 
       </div>

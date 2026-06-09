@@ -2426,6 +2426,7 @@ cost_history:
   empty: Ingen kostnader registrert ennå.
   mode_pro_rata: Forholdsmessig (månedlig)
   mode_due_month: Forfallsmåneden
+  mode_spread_label: Fordel faste kostnader per måned
   fixed_base: Fastbaseline
   trend: Trend
   month: måned

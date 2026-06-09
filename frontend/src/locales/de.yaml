@@ -2543,6 +2543,7 @@ cost_history:
   empty: "Noch keine Kosten erfasst."
   mode_pro_rata: "Anteilig (monatlich)"
   mode_due_month: "Im Fälligkeitsmonat"
+  mode_spread_label: "Fixkosten auf Monate umlegen"
   fixed_base: "Fixkosten-Basis"
   trend: "Trend"
   month: "Monat"

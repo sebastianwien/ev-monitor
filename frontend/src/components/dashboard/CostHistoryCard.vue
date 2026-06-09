@@ -177,16 +177,23 @@ const hasAnyData = computed(() =>
     <!-- Row 1: title + mode selector -->
     <div class="flex items-center justify-between mb-2">
       <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('cost_history.title') }}</h3>
-      <div class="flex items-center gap-1.5">
-        <span class="text-[11px] text-gray-400 dark:text-gray-500">{{ t('cost_history.fixed') }}:</span>
-        <select
-          :value="fixedCostMode"
-          @change="setMode(($event.target as HTMLSelectElement).value as FixedCostMode)"
-          class="text-[11px] text-gray-500 dark:text-gray-400 bg-transparent border border-gray-200 dark:border-gray-600 rounded px-1.5 py-0.5 cursor-pointer focus:outline-none"
+      <div class="flex items-center gap-2">
+        <span class="text-[11px] text-gray-400 dark:text-gray-500 leading-none">{{ t('cost_history.mode_spread_label') }}</span>
+        <button
+          type="button"
+          role="switch"
+          :aria-checked="fixedCostMode === 'pro_rata'"
+          :aria-label="t('cost_history.mode_spread_label')"
+          @click="setMode(fixedCostMode === 'pro_rata' ? 'due_month' : 'pro_rata')"
+          class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-700"
+          :class="fixedCostMode === 'pro_rata' ? 'bg-indigo-500' : 'bg-gray-300 dark:bg-gray-600'"
         >
-          <option value="pro_rata">{{ t('cost_history.mode_pro_rata') }}</option>
-          <option value="due_month">{{ t('cost_history.mode_due_month') }}</option>
-        </select>
+          <span
+            aria-hidden="true"
+            class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+            :class="fixedCostMode === 'pro_rata' ? 'translate-x-4' : 'translate-x-0'"
+          />
+        </button>
       </div>
     </div>
     <!-- Row 2: legend -->
