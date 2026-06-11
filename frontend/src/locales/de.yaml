@@ -1482,6 +1482,7 @@ imports:
   smartcar_error_vin_linked_body: "Dieses Fahrzeug ist bereits mit einem anderen EV-Monitor-Konto verbunden. Falls du mehrere Konten hast, melde dich mit dem richtigen an. Wenn du kein zweites Konto hast, wende dich bitte an den Support."
   smartcar_error_unknown_title: "Verbindung fehlgeschlagen"
   smartcar_error_unknown_body: "Die Verbindung mit deinem Fahrzeug konnte nicht hergestellt werden. Bitte versuche es erneut oder wende dich an den Support."
+  smartcar_error_no_vehicles_body: "In deinem Smartcar-Konto wurden keine Fahrzeuge gefunden. Prüfe, ob du dein Fahrzeug bei der Verknüpfung freigegeben hast, und versuche es erneut."
   smartcar_state_charging: "Lädt gerade"
   smartcar_state_idle: "Nicht angeschlossen"
   smartcar_state_full: "Voll geladen"

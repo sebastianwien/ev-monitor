@@ -59,9 +59,13 @@ onMounted(async () => {
     }
     if (params.get('smartcar-error')) {
       const code = params.get('smartcar-error')!
-      error.value = code === 'VIN_ALREADY_LINKED'
-        ? t('imports.smartcar_error_vin_linked_title') + ' - ' + t('imports.smartcar_error_vin_linked_body')
-        : t('imports.smartcar_error_unknown_body')
+      if (code === 'VIN_ALREADY_LINKED') {
+        error.value = t('imports.smartcar_error_vin_linked_title') + ' - ' + t('imports.smartcar_error_vin_linked_body')
+      } else if (code === 'NO_VEHICLES_FOUND') {
+        error.value = t('imports.smartcar_error_no_vehicles_body')
+      } else {
+        error.value = t('imports.smartcar_error_unknown_body')
+      }
       window.history.replaceState({}, '', window.location.pathname)
     }
   } catch (e: any) {

@@ -1427,6 +1427,7 @@ imports:
   smartcar_error_vin_linked_body: Det här fordonet är redan kopplat till ett annat EV Monitor-konto. Om du har flera konton, logga in med det rätta. Om du inte har ett annat konto, kontakta support.
   smartcar_error_unknown_title: Anslutning misslyckades
   smartcar_error_unknown_body: Det gick inte att ansluta ditt fordon. Försök igen eller kontakta support.
+  smartcar_error_no_vehicles_body: Inga fordon hittades i ditt Smartcar-konto. Kontrollera att du gav åtkomst till ditt fordon vid kopplingen och försök igen.
   smartcar_state_charging: Laddning
   smartcar_state_idle: Inte ansluten
   smartcar_state_full: Fulladdad
