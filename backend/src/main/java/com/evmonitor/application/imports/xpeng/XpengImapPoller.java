@@ -44,6 +44,9 @@ public class XpengImapPoller {
             Pattern.compile("\\[token:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\\]",
                     Pattern.CASE_INSENSITIVE);
 
+    private static final Pattern VIN_PATTERN =
+            Pattern.compile("\\bVIN\\s+([A-HJ-NPR-Z0-9]{17})\\b", Pattern.CASE_INSENSITIVE);
+
     private static final Pattern PASSWORD_PATTERN =
             Pattern.compile("(?:password|passwort|pw|code)\\s*:\\s*([\\S]{4,30})",
                     Pattern.CASE_INSENSITIVE);
@@ -137,17 +140,28 @@ public class XpengImapPoller {
         }
 
         UUID routingToken = extractRoutingTokenFromSubject(subject);
-        if (routingToken == null) {
-            log.warn("XPeng IMAP: kein Routing-Token in Subject '{}' von '{}' - ignoriere Mail", subject, from);
-            msg.setFlag(Flags.Flag.SEEN, true);
-            return;
-        }
-
-        Optional<XpengConnection> connOpt = connectionRepo.findByRoutingToken(routingToken);
-        if (connOpt.isEmpty()) {
-            log.warn("XPeng IMAP: unbekannter Routing-Token {} in Mail '{}'", routingToken, subject);
-            msg.setFlag(Flags.Flag.SEEN, true);
-            return;
+        Optional<XpengConnection> connOpt;
+        if (routingToken != null) {
+            connOpt = connectionRepo.findByRoutingToken(routingToken);
+            if (connOpt.isEmpty()) {
+                log.warn("XPeng IMAP: unbekannter Routing-Token {} in Mail '{}'", routingToken, subject);
+                msg.setFlag(Flags.Flag.SEEN, true);
+                return;
+            }
+        } else {
+            String vin = extractVinFromSubject(subject);
+            if (vin == null) {
+                log.warn("XPeng IMAP: kein Routing-Token und keine VIN in Subject '{}' von '{}' - ignoriere Mail", subject, from);
+                msg.setFlag(Flags.Flag.SEEN, true);
+                return;
+            }
+            connOpt = connectionRepo.findByVin(vin);
+            if (connOpt.isEmpty()) {
+                log.warn("XPeng IMAP: VIN-Fallback - keine Connection fuer VIN {} in Mail '{}'", vin, subject);
+                msg.setFlag(Flags.Flag.SEEN, true);
+                return;
+            }
+            log.info("XPeng IMAP: Routing-Token nicht gefunden, VIN-Fallback fuer VIN {} (connection={})", vin, connOpt.get().getId());
         }
         XpengConnection conn = connOpt.get();
         if (!conn.isActive()) {
@@ -305,6 +319,13 @@ public class XpengImapPoller {
         } catch (IllegalArgumentException e) {
             return null;
         }
+    }
+
+    static String extractVinFromSubject(String subject) {
+        if (subject == null) return null;
+        Matcher m = VIN_PATTERN.matcher(subject);
+        if (!m.find()) return null;
+        return m.group(1).toUpperCase();
     }
 
     static List<String> extractXpengDownloadLinks(String html) {

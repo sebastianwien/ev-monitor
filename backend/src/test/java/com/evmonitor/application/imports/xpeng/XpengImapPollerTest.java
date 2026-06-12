@@ -79,10 +79,10 @@ class XpengImapPollerTest {
         verify(importService, never()).uploadXlsx(any(), any(), any(), any(), any(), any());
     }
 
-    // --- processMessage: token not found ---
+    // --- processMessage: token not found, no VIN fallback either ---
 
     @Test
-    void skipsMailWithNoRoutingToken() throws Exception {
+    void skipsMailWithNoRoutingTokenAndNoVin() throws Exception {
         Message msg = mockMessage("<id@test.com>", "Re: Normal mail without token");
         when(receivedMailRepo.existsByMessageId(any())).thenReturn(false);
 
@@ -90,6 +90,7 @@ class XpengImapPollerTest {
 
         verify(msg).setFlag(Flags.Flag.SEEN, true);
         verify(connectionRepo, never()).findByRoutingToken(any());
+        verify(connectionRepo, never()).findByVin(any());
     }
 
     // --- processMessage: unknown token ---
@@ -478,6 +479,104 @@ class XpengImapPollerTest {
         verify(msg, never()).setFlag(Flags.Flag.SEEN, true);
     }
 
+    // --- extractVinFromSubject ---
+
+    @Test
+    void extractsVinFromSubjectWithVinPrefix() {
+        String subject = "Re: Daten-Anfrage VIN LSVAU2180N2190941 (EU Data Act)";
+        assertEquals("LSVAU2180N2190941", XpengImapPoller.extractVinFromSubject(subject));
+    }
+
+    @Test
+    void extractsVinFromSubjectCaseInsensitive() {
+        String subject = "Re: vin lsvau2180n2190941 test";
+        assertEquals("LSVAU2180N2190941", XpengImapPoller.extractVinFromSubject(subject));
+    }
+
+    @Test
+    void extractsVinWithMultipleSpacesBetweenPrefixAndVin() {
+        String subject = "Re: VIN  LSVAU2180N2190941 (request)";
+        assertEquals("LSVAU2180N2190941", XpengImapPoller.extractVinFromSubject(subject));
+    }
+
+    @Test
+    void returnsNullWhenNoVinInSubject() {
+        assertNull(XpengImapPoller.extractVinFromSubject("Re: Normal reply without VIN"));
+    }
+
+    @Test
+    void returnsNullForNullSubjectInVinExtraction() {
+        assertNull(XpengImapPoller.extractVinFromSubject(null));
+    }
+
+    @Test
+    void doesNotMatchVinWithForbiddenCharsIoQ() {
+        // VINs duerfen kein I, O, Q enthalten
+        assertNull(XpengImapPoller.extractVinFromSubject("Re: VIN LSVAU2I80N2190941"));
+        assertNull(XpengImapPoller.extractVinFromSubject("Re: VIN LSVAU2O80N2190941"));
+        assertNull(XpengImapPoller.extractVinFromSubject("Re: VIN LSVAU2Q80N2190941"));
+    }
+
+    // --- processMessage: VIN Fallback ---
+
+    @Test
+    void usesVinFallbackWhenNoRoutingToken() throws Exception {
+        String vin = "LSVAU2180N2190941";
+        Message msg = mockMessage("<vin-fallback@test.com>",
+                "Re: Daten-Anfrage VIN " + vin + " (EU Data Act)");
+        XpengConnection conn = buildConnWithVin(vin);
+        when(receivedMailRepo.existsByMessageId(any())).thenReturn(false);
+        when(connectionRepo.findByVin(vin)).thenReturn(Optional.of(conn));
+        when(receivedMailRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        invokeProcessMessage(msg);
+
+        verify(connectionRepo).findByVin(vin);
+        verify(connectionRepo, never()).findByRoutingToken(any());
+        verify(msg).setFlag(Flags.Flag.SEEN, true);
+    }
+
+    @Test
+    void vinFallbackSkipsInactiveConnection() throws Exception {
+        String vin = "LSVAU2180N2190941";
+        Message msg = mockMessage("<vin-revoked@test.com>",
+                "Re: VIN " + vin + " Antwort");
+        XpengConnection revokedConn = buildConnWithVin(vin, true);
+        when(receivedMailRepo.existsByMessageId(any())).thenReturn(false);
+        when(connectionRepo.findByVin(vin)).thenReturn(Optional.of(revokedConn));
+
+        invokeProcessMessage(msg);
+
+        verify(msg).setFlag(Flags.Flag.SEEN, true);
+        verify(importService, never()).uploadXlsx(any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void vinFallbackSkipsWhenNoConnectionFound() throws Exception {
+        String vin = "LSVAU2180N2190941";
+        Message msg = mockMessage("<vin-unknown@test.com>",
+                "Re: VIN " + vin + " Antwort");
+        when(receivedMailRepo.existsByMessageId(any())).thenReturn(false);
+        when(connectionRepo.findByVin(vin)).thenReturn(Optional.empty());
+
+        invokeProcessMessage(msg);
+
+        verify(msg).setFlag(Flags.Flag.SEEN, true);
+        verify(importService, never()).uploadXlsx(any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void skipsMailWithNeitherTokenNorVin() throws Exception {
+        Message msg = mockMessage("<no-token-no-vin@test.com>", "Re: Normal mail without token or VIN");
+        when(receivedMailRepo.existsByMessageId(any())).thenReturn(false);
+
+        invokeProcessMessage(msg);
+
+        verify(msg).setFlag(Flags.Flag.SEEN, true);
+        verify(connectionRepo, never()).findByRoutingToken(any());
+        verify(connectionRepo, never()).findByVin(any());
+    }
+
     // --- helpers ---
 
     private static Message mockMessage(String messageId, String subject) throws Exception {
@@ -485,6 +584,25 @@ class XpengImapPollerTest {
         when(msg.getHeader("Message-ID")).thenReturn(new String[]{messageId});
         when(msg.getSubject()).thenReturn(subject);
         return msg;
+    }
+
+    private static XpengConnection buildConnWithVin(String vin) {
+        return buildConnWithVin(vin, false);
+    }
+
+    private static XpengConnection buildConnWithVin(String vin, boolean revoked) {
+        XpengConnection.XpengConnectionBuilder b = XpengConnection.builder()
+                .id(UUID.randomUUID())
+                .userId(UUID.randomUUID())
+                .carId(UUID.randomUUID())
+                .vin(vin)
+                .routingToken(UUID.randomUUID())
+                .autoSyncEnabled(true)
+                .consentGrantedAt(LocalDateTime.now())
+                .totalImportsCount(0)
+                .consentVersion(XpengConnection.AUTOSYNC_CONSENT_VERSION);
+        if (revoked) b.consentRevokedAt(LocalDateTime.now());
+        return b.build();
     }
 
     private static XpengConnection buildConn(UUID routingToken, boolean revoked) {
