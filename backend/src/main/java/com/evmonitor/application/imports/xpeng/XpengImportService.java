@@ -20,11 +20,12 @@ import com.evmonitor.infrastructure.persistence.xpeng.XpengConnection;
 import com.evmonitor.infrastructure.persistence.xpeng.XpengConnectionRepository;
 import com.evmonitor.infrastructure.persistence.xpeng.XpengImportJob;
 import com.evmonitor.infrastructure.persistence.xpeng.XpengImportJobRepository;
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -102,7 +103,7 @@ public class XpengImportService {
         return applicationContext.getBean(XpengImportService.class);
     }
 
-    @PostConstruct
+    @EventListener(ApplicationReadyEvent.class)
     void initOnStartup() {
         try {
             Path dir = Paths.get(tempDir);

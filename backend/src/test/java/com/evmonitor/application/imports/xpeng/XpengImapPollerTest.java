@@ -16,6 +16,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.lang.reflect.Method;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -313,6 +314,106 @@ class XpengImapPollerTest {
         ArgumentCaptor<String> passwordCaptor = ArgumentCaptor.forClass(String.class);
         verify(importService).uploadXlsx(any(), any(), any(), passwordCaptor.capture(), any(), any());
         assertEquals("topSecret1", passwordCaptor.getValue());
+    }
+
+    // --- extractXpengDownloadLinks ---
+
+    @Test
+    void extractsDownloadLinkFromHtml() {
+        String html = "<html><body>"
+                + "超大附件列表  igor_DA-Request_5.21-6.3.xlsx  [27.3MB]<br/>"
+                + "进入下载页面  <a href=\"https://mail.xiaopeng.com/alimail/openLinks/downloadMimeMetaDiskBigAttach?id=netdiskid%3Av001%3Afile%3Aabc123\">点击下载</a>"
+                + "</body></html>";
+
+        List<String> links = XpengImapPoller.extractXpengDownloadLinks(html);
+
+        assertEquals(1, links.size());
+        assertTrue(links.get(0).contains("downloadMimeMetaDiskBigAttach"));
+    }
+
+    @Test
+    void extractsDownloadLinkWithSingleQuotes() {
+        String html = "<a href='https://mail.xiaopeng.com/alimail/openLinks/downloadMimeMetaDiskBigAttach?id=xyz'>下载</a>";
+
+        List<String> links = XpengImapPoller.extractXpengDownloadLinks(html);
+
+        assertEquals(1, links.size());
+        assertTrue(links.get(0).contains("downloadMimeMetaDiskBigAttach"));
+    }
+
+    @Test
+    void returnsEmptyListWhenNoDownloadLink() {
+        String html = "<html><body>Normal mail content without any download links.</body></html>";
+
+        List<String> links = XpengImapPoller.extractXpengDownloadLinks(html);
+
+        assertTrue(links.isEmpty());
+    }
+
+    @Test
+    void returnsEmptyListForNullHtml() {
+        List<String> links = XpengImapPoller.extractXpengDownloadLinks(null);
+
+        assertTrue(links.isEmpty());
+    }
+
+    @Test
+    void extractsMultipleDownloadLinks() {
+        String html = "<html><body>"
+                + "<a href=\"https://mail.xiaopeng.com/alimail/openLinks/downloadMimeMetaDiskBigAttach?id=file1\">file1</a>"
+                + "<a href=\"https://mail.xiaopeng.com/alimail/openLinks/downloadMimeMetaDiskBigAttach?id=file2\">file2</a>"
+                + "</body></html>";
+
+        List<String> links = XpengImapPoller.extractXpengDownloadLinks(html);
+
+        assertEquals(2, links.size());
+    }
+
+    // --- extractFilenameFromLinkContext ---
+
+    @Test
+    void extractsFilenameFromHtmlContextBeforeLink() {
+        String html = "igor_DA-Request_5.21-6.3.xlsx  [27.3MB]<br/>"
+                + "<a href=\"https://mail.xiaopeng.com/alimail/openLinks/downloadMimeMetaDiskBigAttach?id=abc\">下载</a>";
+
+        String filename = XpengImapPoller.extractFilenameFromLinkContext(html,
+                "https://mail.xiaopeng.com/alimail/openLinks/downloadMimeMetaDiskBigAttach?id=abc");
+
+        assertEquals("igor_DA-Request_5.21-6.3.xlsx", filename);
+    }
+
+    @Test
+    void fallsBackToDefaultFilenameWhenNoXlsxInContext() {
+        String html = "<a href=\"https://mail.xiaopeng.com/alimail/openLinks/downloadMimeMetaDiskBigAttach?id=abc\">下载</a>";
+
+        String filename = XpengImapPoller.extractFilenameFromLinkContext(html,
+                "https://mail.xiaopeng.com/alimail/openLinks/downloadMimeMetaDiskBigAttach?id=abc");
+
+        assertEquals("xpeng-download.xlsx", filename);
+    }
+
+    // --- imap.folders config ---
+
+    @Test
+    void folderListDefaultContainsBothFolders() {
+        ReflectionTestUtils.setField(poller, "imapFolders", List.of("INBOX", "INBOX.spambucket"));
+        List<String> folders = getImapFolders();
+        assertEquals(2, folders.size());
+        assertTrue(folders.contains("INBOX"));
+        assertTrue(folders.contains("INBOX.spambucket"));
+    }
+
+    @Test
+    void folderListCanBeConfiguredToSingleFolder() {
+        ReflectionTestUtils.setField(poller, "imapFolders", List.of("INBOX"));
+        List<String> folders = getImapFolders();
+        assertEquals(1, folders.size());
+        assertEquals("INBOX", folders.get(0));
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<String> getImapFolders() {
+        return (List<String>) ReflectionTestUtils.getField(poller, "imapFolders");
     }
 
     // --- helpers ---
