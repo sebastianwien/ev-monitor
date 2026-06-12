@@ -21,6 +21,7 @@ import DemoBanner from './components/demo/DemoBanner.vue'
 import DemoWelcomeModal from './components/demo/DemoWelcomeModal.vue'
 import RedditConsentBanner from './components/shared/RedditConsentBanner.vue'
 import FeedbackToast from './components/shared/FeedbackToast.vue'
+import BoltLogo from './components/shared/BoltLogo.vue'
 import { Bars3Icon, XMarkIcon, HomeIcon, ArrowDownTrayIcon, UserIcon, BoltIcon, ChatBubbleLeftEllipsisIcon, ArrowsRightLeftIcon, TruckIcon } from '@heroicons/vue/24/outline'
 // Note: showImportOverlay kept for backward compat but SpritMonitor moved to /imports
 import { captureUtmParams, captureReferrer } from './utils/reddit-pixel'
@@ -187,7 +188,7 @@ const closeMobileMenu = () => {
           <!-- Left: Logo + Nav Buttons (Desktop) -->
           <div class="flex items-center space-x-4">
             <router-link to="/dashboard" class="flex items-center gap-1.5 text-2xl font-bold tracking-wide hover:opacity-80 transition whitespace-nowrap">
-              <BoltIcon class="h-7 w-7" />
+              <BoltLogo light class="h-7 w-7" />
               <span class="hidden sm:inline">EV Monitor</span>
             </router-link>
 

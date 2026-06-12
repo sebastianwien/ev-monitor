@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "net.ev_monitor.app",
+      "sha256_cert_fingerprints": [
+        "A2:DA:11:3D:B3:35:10:3C:DF:D6:77:0D:53:1E:23:A7:A1:AE:4D:9B:91:19:83:4F:B7:E9:65:DF:67:1F:1A:4F",
+        "GOOGLE_PLAY_SIGNING_FINGERPRINT_PLACEHOLDER"
+      ]
+    }
+  }
+]

@@ -58,6 +58,11 @@ jobs:
           SPRING_MAIL_HOST: localhost
           SPRING_MAIL_PORT: 1025
           FRONTEND_BASE_URL: http://localhost:5173
+          # E2E-Tests loggen sich pro Test per UI ein - IP-Rate-Limit (10/5min) würde greifen
+          RATE_LIMITING_ENABLED: "false"
+          # Cache-Warmup beim Start würde leere topModels-Liste 4h cachen,
+          # bevor das Test-Setup Daten anlegt
+          SPRING_CACHE_TYPE: none
         run: |
           ./gradlew bootRun &
           echo "Waiting for backend to start..."
