@@ -45,7 +45,7 @@ public class XpengImapPoller {
                     Pattern.CASE_INSENSITIVE);
 
     private static final Pattern PASSWORD_PATTERN =
-            Pattern.compile("(?:password|passwort|pw)[:\\s]+([\\S]{4,30})",
+            Pattern.compile("(?:password|passwort|pw|code)\\s*:\\s*([\\S]{4,30})",
                     Pattern.CASE_INSENSITIVE);
 
     private static final Pattern DOWNLOAD_LINK_PATTERN =
@@ -220,6 +220,7 @@ public class XpengImapPoller {
         log.info("XPeng IMAP: {} Download-Link(s) in Mail von '{}' gefunden", downloadLinks.size(), from);
 
         String password = lookupStoredPassword(conn.getId());
+        boolean allSucceeded = true;
 
         for (String url : downloadLinks) {
             String filename = extractFilenameFromLinkContext(htmlBody, url);
@@ -238,8 +239,8 @@ public class XpengImapPoller {
                             job.getId(), conn.getId(), filename);
                 }
             } catch (Exception e) {
-                log.error("XPeng IMAP: Download-Fehler fuer URL '{}': {}", url, e.getMessage(), e);
-                saveReceivedMailRecord(conn.getId(), messageId, filename, null, null);
+                log.error("XPeng IMAP: Download-Fehler fuer URL '{}' - Mail bleibt ungelesen fuer Retry: {}", url, e.getMessage(), e);
+                allSucceeded = false;
             } finally {
                 if (tmp != null) {
                     try { Files.deleteIfExists(tmp); } catch (Exception ignored) {}
@@ -247,7 +248,11 @@ public class XpengImapPoller {
             }
         }
 
-        msg.setFlag(Flags.Flag.SEEN, true);
+        if (allSucceeded) {
+            msg.setFlag(Flags.Flag.SEEN, true);
+        } else {
+            log.warn("XPeng IMAP: Mindestens ein Download fehlgeschlagen - Mail bleibt UNSEEN, naechster Poll versucht es erneut");
+        }
     }
 
     private String lookupStoredPassword(UUID connectionId) {
@@ -265,15 +270,27 @@ public class XpengImapPoller {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
                 .timeout(Duration.ofSeconds(60))
+                .header("User-Agent", "EV-Monitor-XPeng-Importer/1.0")
                 .GET()
                 .build();
         Path tmp = Files.createTempFile("xpeng-download-", ".xlsx");
         HttpResponse<InputStream> response = client.send(request, HttpResponse.BodyHandlers.ofInputStream());
-        try (InputStream body = response.body()) {
-            long copied = Files.copy(body, tmp, StandardCopyOption.REPLACE_EXISTING);
-            if (copied > MAX_DOWNLOAD_BYTES) {
-                Files.deleteIfExists(tmp);
-                throw new IllegalStateException("Download zu gross: " + copied + " Bytes (max " + MAX_DOWNLOAD_BYTES + ")");
+        if (response.statusCode() != 200) {
+            Files.deleteIfExists(tmp);
+            throw new IllegalStateException("Download fehlgeschlagen: HTTP " + response.statusCode() + " fuer " + url);
+        }
+        try (InputStream body = response.body();
+             var out = Files.newOutputStream(tmp)) {
+            byte[] buf = new byte[65536];
+            long total = 0;
+            int n;
+            while ((n = body.read(buf)) > 0) {
+                total += n;
+                if (total > MAX_DOWNLOAD_BYTES) {
+                    Files.deleteIfExists(tmp);
+                    throw new IllegalStateException("Download zu gross: >" + MAX_DOWNLOAD_BYTES + " Bytes");
+                }
+                out.write(buf, 0, n);
             }
         }
         return tmp;
@@ -295,7 +312,7 @@ public class XpengImapPoller {
         List<String> links = new ArrayList<>();
         Matcher m = DOWNLOAD_LINK_PATTERN.matcher(html);
         while (m.find()) {
-            links.add(m.group(1));
+            links.add(m.group(1).replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">"));
         }
         return links;
     }
@@ -365,7 +382,8 @@ public class XpengImapPoller {
             Matcher vm = vinPattern.matcher(trimmed);
             if (vm.find()) return vm.group(1);
         }
-        return trimmed.length() < 200 && !trimmed.isEmpty() ? trimmed : null;
+        // Fallback: kurzer Body ohne Leerzeichen = wahrscheinlich reines Passwort-Token
+        return trimmed.length() >= 4 && trimmed.length() <= 60 && !trimmed.contains(" ") ? trimmed : null;
     }
 
     private static String getPlainTextBody(Message msg) {

@@ -200,6 +200,32 @@ class XpengImapPollerTest {
                 "Password: MyPass - also 202512237070 here", "7070"));
     }
 
+    // Blocker 3a: "Code:" Keyword (echtes XPeng-Format)
+    @Test
+    void extractsCodeKeywordAsPassword() {
+        assertEquals("202605287070", XpengImapPoller.extractPassword("Code: 202605287070", null));
+    }
+
+    // Blocker 3b: "password will be sent" darf NICHT matchen
+    @Test
+    void doesNotExtractPasswordFromPasswordWillPhrase() {
+        String body = "The password will be sent to you in a separate email.";
+        assertNull(XpengImapPoller.extractPassword(body, null));
+    }
+
+    // Blocker 3c: Body-Fallback darf nicht bei Sätzen (Leerzeichen) triggern
+    @Test
+    void bodyFallbackIgnoresTextWithSpaces() {
+        String body = "Dear customer";
+        assertNull(XpengImapPoller.extractPassword(body, null));
+    }
+
+    // Blocker 3d: Body-Fallback greift bei tokenartigem Kurztext ohne Leerzeichen
+    @Test
+    void bodyFallbackWorksForTokenWithoutSpaces() {
+        assertEquals("Abc12345", XpengImapPoller.extractPassword("Abc12345", null));
+    }
+
     // --- processMessage: password extracted from nested multipart ---
 
     @Test
@@ -357,6 +383,19 @@ class XpengImapPollerTest {
         assertTrue(links.isEmpty());
     }
 
+    // Blocker 5: &amp; in href-Attributen wird zu & unescaped
+    @Test
+    void unescapesHtmlEntitiesInDownloadLink() {
+        String url = "https://mail.xiaopeng.com/alimail/openLinks/downloadMimeMetaDiskBigAttach?id=abc&amp;foo=bar";
+        String html = "<a href=\"" + url + "\">下载</a>";
+
+        List<String> links = XpengImapPoller.extractXpengDownloadLinks(html);
+
+        assertEquals(1, links.size());
+        assertEquals("https://mail.xiaopeng.com/alimail/openLinks/downloadMimeMetaDiskBigAttach?id=abc&foo=bar",
+                links.get(0));
+    }
+
     @Test
     void extractsMultipleDownloadLinks() {
         String html = "<html><body>"
@@ -414,6 +453,29 @@ class XpengImapPollerTest {
     @SuppressWarnings("unchecked")
     private List<String> getImapFolders() {
         return (List<String>) ReflectionTestUtils.getField(poller, "imapFolders");
+    }
+
+    // --- Fix 4: Download-Fehler = kein Record + kein SEEN (Retry) ---
+
+    @Test
+    void doesNotSaveRecordOrMarkSeenWhenDownloadFails() throws Exception {
+        UUID token = UUID.randomUUID();
+        String html = "<a href=\"https://mail.xiaopeng.com/alimail/openLinks/downloadMimeMetaDiskBigAttach?id=unreachable\">下载</a>";
+        Message msg = mockMessage("<dl-fail@test.com>", "Re: XPeng [token:" + token + "]");
+        // No XLSX attachment (isMimeType multipart/* false), HTML body with download link
+        lenient().when(msg.isMimeType("multipart/*")).thenReturn(false);
+        lenient().when(msg.isMimeType("text/html")).thenReturn(true);
+        lenient().when(msg.getContent()).thenReturn(html);
+        when(msg.getFrom()).thenReturn(new jakarta.mail.Address[]{});
+        XpengConnection conn = buildConn(token, false);
+        when(receivedMailRepo.existsByMessageId(any())).thenReturn(false);
+        when(connectionRepo.findByRoutingToken(token)).thenReturn(Optional.of(conn));
+
+        // downloadToTempFile will throw (unreachable host) → allSucceeded = false
+        invokeProcessMessage(msg);
+
+        verify(receivedMailRepo, never()).save(any());
+        verify(msg, never()).setFlag(Flags.Flag.SEEN, true);
     }
 
     // --- helpers ---
