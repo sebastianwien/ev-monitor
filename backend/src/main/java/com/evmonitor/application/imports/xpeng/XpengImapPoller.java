@@ -17,9 +17,14 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,9 +44,21 @@ public class XpengImapPoller {
             Pattern.compile("\\[token:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\\]",
                     Pattern.CASE_INSENSITIVE);
 
+    private static final Pattern VIN_PATTERN =
+            Pattern.compile("\\bVIN\\s+([A-HJ-NPR-Z0-9]{17})\\b", Pattern.CASE_INSENSITIVE);
+
     private static final Pattern PASSWORD_PATTERN =
-            Pattern.compile("(?:password|passwort|pw)[:\\s]+([\\S]{4,30})",
+            Pattern.compile("(?:password|passwort|pw|code)\\s*:\\s*([\\S]{4,30})",
                     Pattern.CASE_INSENSITIVE);
+
+    private static final Pattern DOWNLOAD_LINK_PATTERN =
+            Pattern.compile("href=[\"']([^\"']*mail\\.xiaopeng\\.com/alimail/openLinks/downloadMimeMetaDiskBigAttach[^\"']*)[\"']",
+                    Pattern.CASE_INSENSITIVE);
+
+    private static final Pattern XLSX_FILENAME_PATTERN =
+            Pattern.compile("([\\w\\-. ]+\\.xlsx)", Pattern.CASE_INSENSITIVE);
+
+    private static final long MAX_DOWNLOAD_BYTES = 110L * 1024 * 1024; // 110 MB
 
     private final XpengConnectionRepository connectionRepo;
     private final XpengReceivedMailRepository receivedMailRepo;
@@ -59,6 +76,9 @@ public class XpengImapPoller {
     @Value("${xpeng.imap.password}")
     private String imapPassword;
 
+    @Value("${xpeng.imap.folders:INBOX,INBOX.spambucket}")
+    private List<String> imapFolders;
+
     @Scheduled(fixedDelayString = "${xpeng.imap.poll-interval-ms:1800000}") // default 30 Minuten
     public void poll() {
         Properties props = new Properties();
@@ -71,24 +91,34 @@ public class XpengImapPoller {
         Session session = Session.getInstance(props);
         try (Store store = session.getStore("imap")) {
             store.connect(host, imapUser, imapPassword);
-            try (Folder inbox = store.getFolder("INBOX")) {
-                inbox.open(Folder.READ_WRITE);
-                Message[] unseen = inbox.search(new FlagTerm(new Flags(Flags.Flag.SEEN), false));
-                log.debug("XPeng IMAP: {} ungelesene Nachrichten gefunden", unseen.length);
-                for (Message msg : unseen) {
-                    safeProcess(msg);
-                }
+            for (String folderName : imapFolders) {
+                pollFolder(store, folderName.trim());
             }
         } catch (Exception e) {
             log.error("XPeng IMAP-Poll fehlgeschlagen", e);
         }
     }
 
+    private void pollFolder(Store store, String folderName) {
+        try (Folder folder = store.getFolder(folderName)) {
+            folder.open(Folder.READ_WRITE);
+            Message[] unseen = folder.search(new FlagTerm(new Flags(Flags.Flag.SEEN), false));
+            log.info("XPeng IMAP: Ordner '{}' - {} ungelesene Nachricht(en)", folderName, unseen.length);
+            for (Message msg : unseen) {
+                safeProcess(msg);
+            }
+        } catch (Exception e) {
+            log.error("XPeng IMAP: Fehler beim Scannen von Ordner '{}'", folderName, e);
+        }
+    }
+
     private void safeProcess(Message msg) {
+        String subject = "<unbekannt>";
         try {
+            subject = msg.getSubject();
             processMessage(msg);
         } catch (Exception e) {
-            log.error("XPeng IMAP: Fehler bei Nachrichtenverarbeitung", e);
+            log.error("XPeng IMAP: Fehler bei Verarbeitung von Mail '{}': {}", subject, e.getMessage(), e);
             // Mail als gelesen markieren um Endlosschleife zu verhindern
             try { msg.setFlag(Flags.Flag.SEEN, true); } catch (Exception ignored) {}
         }
@@ -97,26 +127,41 @@ public class XpengImapPoller {
     private void processMessage(Message msg) throws Exception {
         String messageId = getHeader(msg, "Message-ID");
         String subject = msg.getSubject();
+        String from = msg.getFrom() != null && msg.getFrom().length > 0
+                ? msg.getFrom()[0].toString() : "<unbekannt>";
+
+        log.info("XPeng IMAP: Verarbeite Mail von '{}' - Subject: '{}'", from, subject);
 
         // Dedup: bereits verarbeitete Mail ueberspringen
         if (messageId != null && receivedMailRepo.existsByMessageId(messageId)) {
-            log.debug("XPeng IMAP: Mail {} bereits verarbeitet, ueberspringe", messageId);
+            log.info("XPeng IMAP: Mail {} bereits verarbeitet (messageId bekannt), ueberspringe", messageId);
             msg.setFlag(Flags.Flag.SEEN, true);
             return;
         }
 
         UUID routingToken = extractRoutingTokenFromSubject(subject);
-        if (routingToken == null) {
-            log.debug("XPeng IMAP: kein Routing-Token in Subject '{}', ignoriere", subject);
-            msg.setFlag(Flags.Flag.SEEN, true);
-            return;
-        }
-
-        Optional<XpengConnection> connOpt = connectionRepo.findByRoutingToken(routingToken);
-        if (connOpt.isEmpty()) {
-            log.warn("XPeng IMAP: unbekannter Routing-Token {} in Mail '{}'", routingToken, subject);
-            msg.setFlag(Flags.Flag.SEEN, true);
-            return;
+        Optional<XpengConnection> connOpt;
+        if (routingToken != null) {
+            connOpt = connectionRepo.findByRoutingToken(routingToken);
+            if (connOpt.isEmpty()) {
+                log.warn("XPeng IMAP: unbekannter Routing-Token {} in Mail '{}'", routingToken, subject);
+                msg.setFlag(Flags.Flag.SEEN, true);
+                return;
+            }
+        } else {
+            String vin = extractVinFromSubject(subject);
+            if (vin == null) {
+                log.warn("XPeng IMAP: kein Routing-Token und keine VIN in Subject '{}' von '{}' - ignoriere Mail", subject, from);
+                msg.setFlag(Flags.Flag.SEEN, true);
+                return;
+            }
+            connOpt = connectionRepo.findByVin(vin);
+            if (connOpt.isEmpty()) {
+                log.warn("XPeng IMAP: VIN-Fallback - keine Connection fuer VIN {} in Mail '{}'", vin, subject);
+                msg.setFlag(Flags.Flag.SEEN, true);
+                return;
+            }
+            log.info("XPeng IMAP: Routing-Token nicht gefunden, VIN-Fallback fuer VIN {} (connection={})", vin, connOpt.get().getId());
         }
         XpengConnection conn = connOpt.get();
         if (!conn.isActive()) {
@@ -126,27 +171,41 @@ public class XpengImapPoller {
         }
 
         List<AttachmentPart> xlsxParts = extractXlsxAttachments(msg);
-        if (xlsxParts.isEmpty()) {
-            String vinSuffix = vinSuffix(conn.getVin());
-            String password = extractPassword(getPlainTextBody(msg), vinSuffix);
-            if (password != null) {
-                log.warn("XPeng IMAP: Passwort-Mail fuer connection={} erkannt (Laenge: {})",
-                        conn.getId(), password.length());
-            } else {
-                log.info("XPeng IMAP: Mail {} hat keinen XLSX-Anhang und kein erkennbares Passwort", messageId);
-            }
-            saveReceivedMailRecord(conn.getId(), messageId, null, null, password);
-            msg.setFlag(Flags.Flag.SEEN, true);
+        if (!xlsxParts.isEmpty()) {
+            processXlsxAttachments(msg, conn, messageId, from, xlsxParts);
             return;
         }
 
-        String password = receivedMailRepo
-                .findFirstByConnectionIdAndExtractedPasswordIsNotNullOrderByReceivedAtDesc(conn.getId())
-                .map(XpengReceivedMail::getExtractedPassword)
-                .orElse(null);
-        if (password != null) {
-            log.info("XPeng IMAP: Verwende gespeichertes Passwort fuer connection={}", conn.getId());
+        // Kein MIME-Anhang: Download-Links im HTML-Body suchen
+        String htmlBody = extractHtmlBody(msg);
+        if (htmlBody != null) {
+            List<String> downloadLinks = extractXpengDownloadLinks(htmlBody);
+            if (!downloadLinks.isEmpty()) {
+                processDownloadLinks(msg, conn, messageId, from, htmlBody, downloadLinks);
+                return;
+            }
         }
+
+        // Weder Anhang noch Download-Link: Passwort-Mail oder unbekannter Inhalt
+        String vinSuffix = vinSuffix(conn.getVin());
+        String body = getPlainTextBody(msg);
+        String password = extractPassword(body, vinSuffix);
+        if (password != null) {
+            log.warn("XPeng IMAP: Passwort-Mail fuer connection={} VIN={} erkannt und gespeichert (Passwort-Laenge: {})",
+                    conn.getId(), com.evmonitor.domain.xpeng.VinUtils.mask(conn.getVin()), password.length());
+        } else {
+            log.warn("XPeng IMAP: Mail von '{}' hat keinen XLSX-Anhang und kein erkennbares Passwort - Body-Laenge: {}",
+                    from, body != null ? body.length() : 0);
+        }
+        saveReceivedMailRecord(conn.getId(), messageId, null, null, password);
+        msg.setFlag(Flags.Flag.SEEN, true);
+    }
+
+    private void processXlsxAttachments(Message msg, XpengConnection conn, String messageId,
+                                         String from, List<AttachmentPart> xlsxParts) throws Exception {
+        log.info("XPeng IMAP: {} XLSX-Anhang/Anhaenge gefunden in Mail von '{}'", xlsxParts.size(), from);
+
+        String password = lookupStoredPassword(conn.getId());
 
         for (AttachmentPart part : xlsxParts) {
             Path tmp = Files.createTempFile("xpeng-imap-", ".xlsx");
@@ -170,6 +229,87 @@ public class XpengImapPoller {
         msg.setFlag(Flags.Flag.SEEN, true);
     }
 
+    private void processDownloadLinks(Message msg, XpengConnection conn, String messageId,
+                                      String from, String htmlBody, List<String> downloadLinks) throws MessagingException {
+        log.info("XPeng IMAP: {} Download-Link(s) in Mail von '{}' gefunden", downloadLinks.size(), from);
+
+        String password = lookupStoredPassword(conn.getId());
+        boolean allSucceeded = true;
+
+        for (String url : downloadLinks) {
+            String filename = extractFilenameFromLinkContext(htmlBody, url);
+            log.info("XPeng IMAP: Starte Download von '{}' (Datei: {})", url, filename);
+            Path tmp = null;
+            try {
+                tmp = downloadToTempFile(url);
+                long fileSize = Files.size(tmp);
+                log.info("XPeng IMAP: Download abgeschlossen - {} Bytes (Datei: {})", fileSize, filename);
+                try (InputStream uploadStream = Files.newInputStream(tmp)) {
+                    XpengImportJob job = importService.uploadXlsx(
+                            conn.getUserId(), conn.getCarId(), uploadStream,
+                            password, null, "xpeng-imap-poller");
+                    saveReceivedMailRecord(conn.getId(), messageId, filename, job.getId(), null);
+                    log.info("XPeng IMAP: Import-Job {} fuer connection={} gestartet (Download: {})",
+                            job.getId(), conn.getId(), filename);
+                }
+            } catch (Exception e) {
+                log.error("XPeng IMAP: Download-Fehler fuer URL '{}' - Mail bleibt ungelesen fuer Retry: {}", url, e.getMessage(), e);
+                allSucceeded = false;
+            } finally {
+                if (tmp != null) {
+                    try { Files.deleteIfExists(tmp); } catch (Exception ignored) {}
+                }
+            }
+        }
+
+        if (allSucceeded) {
+            msg.setFlag(Flags.Flag.SEEN, true);
+        } else {
+            log.warn("XPeng IMAP: Mindestens ein Download fehlgeschlagen - Mail bleibt UNSEEN, naechster Poll versucht es erneut");
+        }
+    }
+
+    private String lookupStoredPassword(UUID connectionId) {
+        return receivedMailRepo
+                .findFirstByConnectionIdAndExtractedPasswordIsNotNullOrderByReceivedAtDesc(connectionId)
+                .map(XpengReceivedMail::getExtractedPassword)
+                .orElse(null);
+    }
+
+    private Path downloadToTempFile(String url) throws Exception {
+        HttpClient client = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(30))
+                .followRedirects(HttpClient.Redirect.NORMAL)
+                .build();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .timeout(Duration.ofSeconds(60))
+                .header("User-Agent", "EV-Monitor-XPeng-Importer/1.0")
+                .GET()
+                .build();
+        Path tmp = Files.createTempFile("xpeng-download-", ".xlsx");
+        HttpResponse<InputStream> response = client.send(request, HttpResponse.BodyHandlers.ofInputStream());
+        if (response.statusCode() != 200) {
+            Files.deleteIfExists(tmp);
+            throw new IllegalStateException("Download fehlgeschlagen: HTTP " + response.statusCode() + " fuer " + url);
+        }
+        try (InputStream body = response.body();
+             var out = Files.newOutputStream(tmp)) {
+            byte[] buf = new byte[65536];
+            long total = 0;
+            int n;
+            while ((n = body.read(buf)) > 0) {
+                total += n;
+                if (total > MAX_DOWNLOAD_BYTES) {
+                    Files.deleteIfExists(tmp);
+                    throw new IllegalStateException("Download zu gross: >" + MAX_DOWNLOAD_BYTES + " Bytes");
+                }
+                out.write(buf, 0, n);
+            }
+        }
+        return tmp;
+    }
+
     static UUID extractRoutingTokenFromSubject(String subject) {
         if (subject == null) return null;
         Matcher m = TOKEN_PATTERN.matcher(subject);
@@ -179,6 +319,40 @@ public class XpengImapPoller {
         } catch (IllegalArgumentException e) {
             return null;
         }
+    }
+
+    static String extractVinFromSubject(String subject) {
+        if (subject == null) return null;
+        Matcher m = VIN_PATTERN.matcher(subject);
+        if (!m.find()) return null;
+        return m.group(1).toUpperCase();
+    }
+
+    static List<String> extractXpengDownloadLinks(String html) {
+        if (html == null) return List.of();
+        List<String> links = new ArrayList<>();
+        Matcher m = DOWNLOAD_LINK_PATTERN.matcher(html);
+        while (m.find()) {
+            links.add(m.group(1).replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">"));
+        }
+        return links;
+    }
+
+    static String extractFilenameFromLinkContext(String html, String linkUrl) {
+        if (html == null || linkUrl == null) return "xpeng-download.xlsx";
+        // Suche nach dem XLSX-Dateinamen im HTML-Bereich vor dem Link (max. 300 Zeichen)
+        int linkIndex = html.indexOf(linkUrl);
+        if (linkIndex > 0) {
+            int start = Math.max(0, linkIndex - 300);
+            String context = html.substring(start, linkIndex);
+            Matcher m = XLSX_FILENAME_PATTERN.matcher(context);
+            String lastMatch = null;
+            while (m.find()) {
+                lastMatch = m.group(1).trim();
+            }
+            if (lastMatch != null) return lastMatch;
+        }
+        return "xpeng-download.xlsx";
     }
 
     private static String getHeader(Message msg, String name) throws MessagingException {
@@ -229,7 +403,8 @@ public class XpengImapPoller {
             Matcher vm = vinPattern.matcher(trimmed);
             if (vm.find()) return vm.group(1);
         }
-        return trimmed.length() < 200 && !trimmed.isEmpty() ? trimmed : null;
+        // Fallback: kurzer Body ohne Leerzeichen = wahrscheinlich reines Passwort-Token
+        return trimmed.length() >= 4 && trimmed.length() <= 60 && !trimmed.contains(" ") ? trimmed : null;
     }
 
     private static String getPlainTextBody(Message msg) {
@@ -250,6 +425,30 @@ public class XpengImapPoller {
             Multipart mp = (Multipart) part.getContent();
             for (int i = 0; i < mp.getCount(); i++) {
                 String result = extractPlainText(mp.getBodyPart(i));
+                if (result != null) return result;
+            }
+        }
+        return null;
+    }
+
+    private static String extractHtmlBody(Part part) {
+        try {
+            return extractHtml(part);
+        } catch (Exception e) {
+            log.debug("XPeng IMAP: Konnte HTML-Body nicht lesen", e);
+        }
+        return null;
+    }
+
+    private static String extractHtml(Part part) throws MessagingException, IOException {
+        if (part.isMimeType("text/html")) {
+            Object content = part.getContent();
+            return content instanceof String s ? s : null;
+        }
+        if (part.isMimeType("multipart/*")) {
+            Multipart mp = (Multipart) part.getContent();
+            for (int i = 0; i < mp.getCount(); i++) {
+                String result = extractHtml(mp.getBodyPart(i));
                 if (result != null) return result;
             }
         }

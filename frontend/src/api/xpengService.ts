@@ -54,6 +54,11 @@ export const xpengService = {
     return resp.data
   },
 
+  async updateEmail(connectionId: string, xpengEmail: string): Promise<XpengConnectionDto> {
+    const resp = await api.patch(`/imports/xpeng/connections/${connectionId}/email`, { xpengEmail })
+    return resp.data
+  },
+
   async revoke(connectionId: string): Promise<void> {
     await api.delete(`/imports/xpeng/connections/${connectionId}`)
   },

@@ -11,6 +11,7 @@ import java.util.UUID;
 public interface XpengConnectionRepository extends JpaRepository<XpengConnection, UUID> {
     Optional<XpengConnection> findByCarId(UUID carId);
     Optional<XpengConnection> findByRoutingToken(UUID routingToken);
+    Optional<XpengConnection> findByVin(String vin);
     List<XpengConnection> findAllByUserIdAndConsentRevokedAtIsNull(UUID userId);
 
     @Query("""

@@ -51,7 +51,7 @@ public class XpengOutboundMailService {
             helper.setReplyTo(replyToInbox);
             helper.setCc(ccAddress);
             helper.setSubject(subject);
-            helper.setText(buildBody(conn.getVin()), false);
+            helper.setText(buildBody(conn.getVin(), ccAddress), false);
             mailSender.send(msg);
         } catch (Exception e) {
             throw new RuntimeException("XPeng DA-Anfrage konnte nicht gesendet werden: " + e.getMessage(), e);
@@ -68,7 +68,7 @@ public class XpengOutboundMailService {
                 + " (EU Data Act) " + TOKEN_PREFIX + conn.getRoutingToken() + TOKEN_SUFFIX;
     }
 
-    private static String buildBody(String vin) {
+    static String buildBody(String vin, String xpengAppEmail) {
         return """
                 Dear XPENG Data Protection Team,
 
@@ -77,6 +77,7 @@ public class XpengOutboundMailService {
                 for the most recent 30-day period available.
 
                 VIN: %s
+                XPeng App account email: %s
 
                 Please provide the data in the Excel format used for similar requests. \
                 If the file is encrypted, kindly send the password in a separate email \
@@ -87,6 +88,6 @@ public class XpengOutboundMailService {
                 Art. 5 EU Data Act, based on explicit user consent.
 
                 Thank you and best regards,
-                EV Monitor - https://ev-monitor.net""".formatted(vin);
+                EV Monitor - https://ev-monitor.net""".formatted(vin, xpengAppEmail);
     }
 }

@@ -80,6 +80,21 @@ public class XpengConnectionController {
         }
     }
 
+    @PatchMapping("/{connectionId}/email")
+    public ResponseEntity<?> updateEmail(@AuthenticationPrincipal UserPrincipal principal,
+                                         @PathVariable UUID connectionId,
+                                         @RequestBody EmailRequest req) {
+        try {
+            XpengConnection conn = service.updateXpengEmail(
+                    principal.getUser().getId(), connectionId, req.xpengEmail());
+            return ResponseEntity.ok(toDto(conn));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @DeleteMapping("/{connectionId}")
     public ResponseEntity<?> revoke(@AuthenticationPrincipal UserPrincipal principal,
                                     @PathVariable UUID connectionId) {
@@ -101,6 +116,9 @@ public class XpengConnectionController {
                 c.isAutoSyncEnabled(), c.getLastRequestSentAt(),
                 maskEmail(c.getXpengEmail()));
     }
+
+    public record EmailRequest(
+            @NotNull @Email @Size(max = 255) String xpengEmail) {}
 
     public record AutoSyncRequest(
             @NotNull Boolean consentAccepted,

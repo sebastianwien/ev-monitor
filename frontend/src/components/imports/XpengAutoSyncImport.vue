@@ -70,11 +70,14 @@ function closeUpgrade() {
 
 async function submitUpgrade(connectionId: string) {
   if (!upgradeAccepted.value) return
+  if (!upgradeEmail.value.trim()) {
+    localError.value = t('xpeng.autosync_email_required')
+    return
+  }
   upgradeBusy.value = true
   localError.value = ''
   try {
-    const email = upgradeEmail.value.trim() || undefined
-    await xpengService.activateAutoSync(connectionId, email)
+    await xpengService.activateAutoSync(connectionId, upgradeEmail.value.trim())
     closeUpgrade()
     await refresh()
   } catch (e: unknown) {
@@ -187,7 +190,7 @@ onMounted(refresh)
                     <div class="flex gap-2">
                       <button
                         @click="submitUpgrade(c.id)"
-                        :disabled="!upgradeAccepted || upgradeBusy"
+                        :disabled="!upgradeAccepted || !upgradeEmail.trim() || upgradeBusy"
                         class="btn-3d inline-flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed text-gray-950 font-bold uppercase tracking-wide text-xs px-4 py-2 rounded-sm">
                         <BoltIcon class="w-3.5 h-3.5" />
                         {{ upgradeBusy ? t('common.loading') : t('xpeng.autosync_upgrade_btn') }}

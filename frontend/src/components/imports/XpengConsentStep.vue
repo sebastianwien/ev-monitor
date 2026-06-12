@@ -50,9 +50,13 @@ async function submit() {
     emit('error', t('xpeng.err_vin_length'))
     return
   }
+  if (isAutoSync.value && !xpengEmail.value.trim()) {
+    emit('error', t('xpeng.autosync_email_required'))
+    return
+  }
   busy.value = true
   try {
-    const email = isAutoSync.value && xpengEmail.value.trim() ? xpengEmail.value.trim() : undefined
+    const email = isAutoSync.value ? xpengEmail.value.trim() : undefined
     await xpengService.grantConsent(carId.value, normalized, isAutoSync.value, email)
     vin.value = ''
     accepted.value = false

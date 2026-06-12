@@ -2,8 +2,6 @@ package com.evmonitor.application.imports.xpeng;
 
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarRepository;
-import com.evmonitor.domain.User;
-import com.evmonitor.domain.UserRepository;
 import com.evmonitor.domain.xpeng.VinUtils;
 import com.evmonitor.infrastructure.persistence.xpeng.XpengConnection;
 import com.evmonitor.infrastructure.persistence.xpeng.XpengConnectionRepository;
@@ -27,7 +25,6 @@ public class XpengConnectionService {
 
     private final XpengConnectionRepository connectionRepo;
     private final CarRepository carRepository;
-    private final UserRepository userRepository;
 
     @Transactional
     public XpengConnection grantConsent(UUID userId, UUID carId, String vin,
@@ -40,13 +37,6 @@ public class XpengConnectionService {
         }
         if (vin == null || vin.length() != 17) {
             throw new IllegalArgumentException("VIN muss 17 Zeichen lang sein");
-        }
-        if (autoSync) {
-            User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new IllegalArgumentException("User nicht gefunden"));
-            if (!user.canUseXpengAutoSync()) {
-                throw new SecurityException("AutoSync erfordert ein AutoSync-Abo oder eine privilegierte Rolle");
-            }
         }
         if (xpengEmail != null && !xpengEmail.isBlank()) {
             if (xpengEmail.length() > 255 || !EMAIL_PATTERN.matcher(xpengEmail).matches()) {
@@ -115,11 +105,6 @@ public class XpengConnectionService {
         if (!conn.isActive()) {
             throw new IllegalArgumentException("Verbindung ist nicht aktiv");
         }
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User nicht gefunden"));
-        if (!user.canUseXpengAutoSync()) {
-            throw new SecurityException("AutoSync erfordert ein AutoSync-Abo oder eine privilegierte Rolle");
-        }
         if (xpengEmail != null && !xpengEmail.isBlank()) {
             if (xpengEmail.length() > 255 || !EMAIL_PATTERN.matcher(xpengEmail).matches()) {
                 throw new IllegalArgumentException("Ungültige XPeng-E-Mail-Adresse");
@@ -134,6 +119,21 @@ public class XpengConnectionService {
         XpengConnection saved = connectionRepo.save(conn);
         log.info("XpengConnection: AutoSync activated user={} connection={}", userId, connectionId);
         return saved;
+    }
+
+    @Transactional
+    public XpengConnection updateXpengEmail(UUID userId, UUID connectionId, String email) {
+        XpengConnection conn = connectionRepo.findById(connectionId)
+                .orElseThrow(() -> new IllegalArgumentException("Verbindung nicht gefunden"));
+        if (!conn.getUserId().equals(userId)) {
+            throw new SecurityException("Diese Verbindung gehört dir nicht");
+        }
+        if (email == null || email.isBlank() || email.length() > 255 || !EMAIL_PATTERN.matcher(email.strip()).matches()) {
+            throw new IllegalArgumentException("Ungültige XPeng-E-Mail-Adresse");
+        }
+        conn.setXpengEmail(email.strip());
+        log.info("XpengConnection: xpengEmail updated user={} connection={}", userId, connectionId);
+        return connectionRepo.save(conn);
     }
 
     @Transactional

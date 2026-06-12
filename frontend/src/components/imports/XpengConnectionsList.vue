@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { TrashIcon, BoltIcon } from '@heroicons/vue/24/outline'
+import { TrashIcon, BoltIcon, PencilIcon, CheckIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import xpengService, { type XpengConnectionDto, type XpengJobDto } from '../../api/xpengService'
 
 const { t } = useI18n()
@@ -22,6 +22,35 @@ const visibleConnections = computed(() => {
   if (props.filter === 'autosync') return props.connections.filter(c => c.autoSyncEnabled)
   return props.connections
 })
+
+const editingEmailId = ref<string | null>(null)
+const editEmailDraft = ref('')
+const emailBusy = ref(false)
+
+function openEmailEdit(c: XpengConnectionDto) {
+  editingEmailId.value = c.id
+  editEmailDraft.value = ''
+}
+
+function closeEmailEdit() {
+  editingEmailId.value = null
+  editEmailDraft.value = ''
+}
+
+async function saveEmail(connectionId: string) {
+  if (!editEmailDraft.value.trim()) return
+  emailBusy.value = true
+  try {
+    await xpengService.updateEmail(connectionId, editEmailDraft.value.trim())
+    closeEmailEdit()
+    emit('refresh')
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { error?: string } }; message?: string }
+    emit('error', err.response?.data?.error ?? err.message ?? 'Unknown error')
+  } finally {
+    emailBusy.value = false
+  }
+}
 
 function statusLabel(status: string): string {
   return t(`xpeng.status_${status.toLowerCase()}`)
@@ -78,6 +107,35 @@ async function revoke(connectionId: string) {
               </div>
               <div v-if="c.autoSyncEnabled && c.lastRequestSentAt" class="font-mono">
                 {{ t('xpeng.autosync_last_request', { date: formatDate(c.lastRequestSentAt) }) }}
+              </div>
+              <!-- Email Zeile -->
+              <div v-if="editingEmailId !== c.id" class="flex items-center gap-1.5 pt-0.5">
+                <span :class="c.xpengEmailMasked ? 'text-gray-500 dark:text-gray-400' : 'text-amber-600 dark:text-amber-400 font-medium'">
+                  {{ c.xpengEmailMasked ?? t('xpeng.email_missing') }}
+                </span>
+                <button @click="openEmailEdit(c)"
+                        class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                        :title="t('xpeng.email_edit_btn')">
+                  <PencilIcon class="w-3 h-3" />
+                </button>
+              </div>
+              <div v-else class="flex items-center gap-1.5 pt-1">
+                <input
+                  v-model="editEmailDraft"
+                  type="email"
+                  autofocus
+                  :placeholder="t('xpeng.autosync_email_placeholder')"
+                  class="flex-1 px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  @keyup.enter="saveEmail(c.id)"
+                  @keyup.escape="closeEmailEdit"
+                />
+                <button @click="saveEmail(c.id)" :disabled="emailBusy || !editEmailDraft.trim()"
+                        class="text-green-600 hover:text-green-700 disabled:opacity-40">
+                  <CheckIcon class="w-4 h-4" />
+                </button>
+                <button @click="closeEmailEdit" class="text-gray-400 hover:text-gray-600">
+                  <XMarkIcon class="w-4 h-4" />
+                </button>
               </div>
             </div>
           </div>
