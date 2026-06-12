@@ -4,7 +4,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/auth'
 import { analytics } from '../services/analytics'
-import LocaleSwitcher from '../components/shared/LocaleSwitcher.vue'
+import PublicNav from '../components/shared/PublicNav.vue'
 import { getTopModels, getPlatformStats, type TopModelPreview } from '../api/publicModelService'
 import { formatKm } from '../utils/formatKm'
 import {
@@ -155,36 +155,8 @@ onMounted(async () => {
 <template>
   <div :class="['min-h-screen bg-white dark:bg-gray-950 overflow-x-hidden transition-opacity duration-150', { 'slide-back': slidingBack, 'opacity-0': navigatingAway }]">
 
-    <!-- Green accent strip -->
-    <div class="h-1 bg-gradient-to-r from-green-400 via-emerald-500 to-green-600"></div>
-
-    <!-- Navbar -->
-    <nav class="sticky top-0 z-50 bg-white/85 dark:bg-gray-950/85 backdrop-blur-md border-b border-gray-200/60 dark:border-gray-700/60 shadow-sm">
-      <div class="max-w-7xl mx-auto px-4 sm:px-8">
-        <div class="flex justify-between items-center h-16">
-          <div class="flex items-center gap-2">
-            <BoltIcon class="h-7 w-7 text-green-600" />
-            <span class="text-xl font-bold text-gray-900 dark:text-gray-100">EV Monitor</span>
-          </div>
-          <div class="flex items-center gap-2 sm:gap-3">
-            <LocaleSwitcher />
-            <template v-if="authStore.isAuthenticated()">
-              <router-link to="/dashboard" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 px-2 sm:px-3 py-2 text-sm font-medium">
-                {{ t('nav.dashboard') }}
-              </router-link>
-            </template>
-            <template v-else>
-              <router-link :to="loginPath" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 px-2 sm:px-3 py-2 text-sm font-medium">
-                {{ t('nav.login') }}
-              </router-link>
-              <router-link :to="registerPath" class="hidden sm:inline-flex bg-green-600 text-white px-3 sm:px-4 py-2 rounded-sm text-sm font-medium hover:bg-green-700 transition">
-                {{ t('nav.register') }}
-              </router-link>
-            </template>
-          </div>
-        </div>
-      </div>
-    </nav>
+    <!-- Navbar (inkl. grünem Accent-Strip) -->
+    <PublicNav />
 
     <!-- MAIN CONTENT -->
     <main class="max-w-4xl mx-auto px-4 sm:px-8 pt-6 pb-8 sm:py-16 overflow-hidden">
