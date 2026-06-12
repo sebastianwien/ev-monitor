@@ -18,7 +18,9 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
+import java.nio.charset.StandardCharsets;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
@@ -50,6 +52,10 @@ public class XpengImapPoller {
     private static final Pattern PASSWORD_PATTERN =
             Pattern.compile("(?:password|passwort|pw|code)\\s*:\\s*([\\S]{4,30})",
                     Pattern.CASE_INSENSITIVE);
+
+    private static final Pattern ALIBABA_GDOWN_PATTERN = Pattern.compile(
+            "var downloadUrl\\s*=\\s*\"([^\"]+)\"\\s*\\+\\s*encodeURIComponent\\(\"([^\"]+)\"\\)",
+            Pattern.DOTALL);
 
     private static final Pattern DOWNLOAD_LINK_PATTERN =
             Pattern.compile("href=[\"']([^\"']*mail\\.xiaopeng\\.com/alimail/openLinks/downloadMimeMetaDiskBigAttach[^\"']*)[\"']",
@@ -281,19 +287,37 @@ public class XpengImapPoller {
                 .connectTimeout(Duration.ofSeconds(30))
                 .followRedirects(HttpClient.Redirect.NORMAL)
                 .build();
-        HttpRequest request = HttpRequest.newBuilder()
+        // Schritt 1: Landing Page holen (klein, als String) - Alibaba sendet HTML mit JS-Download-Button
+        HttpRequest probe = HttpRequest.newBuilder()
                 .uri(URI.create(url))
-                .timeout(Duration.ofSeconds(60))
+                .timeout(Duration.ofSeconds(30))
                 .header("User-Agent", "EV-Monitor-XPeng-Importer/1.0")
                 .GET()
                 .build();
-        Path tmp = Files.createTempFile("xpeng-download-", ".xlsx");
-        HttpResponse<InputStream> response = client.send(request, HttpResponse.BodyHandlers.ofInputStream());
-        if (response.statusCode() != 200) {
-            Files.deleteIfExists(tmp);
-            throw new IllegalStateException("Download fehlgeschlagen: HTTP " + response.statusCode() + " fuer " + url);
+        HttpResponse<String> probe_resp = client.send(probe, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+        if (probe_resp.statusCode() != 200) {
+            throw new IllegalStateException("HTTP " + probe_resp.statusCode() + " fuer " + url);
         }
-        try (InputStream body = response.body();
+        String contentType = probe_resp.headers().firstValue("Content-Type").orElse("");
+        String actualUrl = contentType.contains("text/html")
+                ? extractAlibabaGdownUrl(probe_resp.body(), url)
+                : url;
+        if (!actualUrl.equals(url)) {
+            log.info("XPeng IMAP: Alibaba Landing Page erkannt - echter Download: {}", actualUrl);
+        }
+        // Schritt 2: Echte Datei streamen mit Groessenlimit
+        HttpRequest download = HttpRequest.newBuilder()
+                .uri(URI.create(actualUrl))
+                .timeout(Duration.ofSeconds(120))
+                .header("User-Agent", "EV-Monitor-XPeng-Importer/1.0")
+                .GET()
+                .build();
+        HttpResponse<InputStream> resp = client.send(download, HttpResponse.BodyHandlers.ofInputStream());
+        if (resp.statusCode() != 200) {
+            throw new IllegalStateException("HTTP " + resp.statusCode() + " beim Direktdownload");
+        }
+        Path tmp = Files.createTempFile("xpeng-download-", ".xlsx");
+        try (InputStream body = resp.body();
              var out = Files.newOutputStream(tmp)) {
             byte[] buf = new byte[65536];
             long total = 0;
@@ -308,6 +332,18 @@ public class XpengImapPoller {
             }
         }
         return tmp;
+    }
+
+    static String extractAlibabaGdownUrl(String html, String originalUrl) {
+        Matcher m = ALIBABA_GDOWN_PATTERN.matcher(html);
+        if (!m.find()) {
+            throw new IllegalStateException("Alibaba Landing Page ohne Download-URL - originalUrl: " + originalUrl);
+        }
+        String path = m.group(1).replace("\\/", "/");
+        String rawItemId = m.group(2).replace("\\/", "/");
+        String encodedItemId = URLEncoder.encode(rawItemId, StandardCharsets.UTF_8);
+        URI uri = URI.create(originalUrl);
+        return uri.getScheme() + "://" + uri.getHost() + path + encodedItemId;
     }
 
     static UUID extractRoutingTokenFromSubject(String subject) {

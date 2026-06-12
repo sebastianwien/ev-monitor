@@ -479,6 +479,40 @@ class XpengImapPollerTest {
         verify(msg, never()).setFlag(Flags.Flag.SEEN, true);
     }
 
+    // --- extractAlibabaGdownUrl ---
+
+    @Test
+    void extractsGdownUrlFromAlibabaLandingPage() {
+        String html = "<script>var downloadUrl = \"\\/attachment\\/gdown\\/Olafto_DA.xlsx?itemid=\" + encodeURIComponent(\"netdiskid:v001:file:abc;def/ghi\");</script>";
+        String result = XpengImapPoller.extractAlibabaGdownUrl(html, "https://mail.xiaopeng.com/alimail/openLinks/downloadMimeMetaDiskBigAttach?id=xxx");
+        assertTrue(result.startsWith("https://mail.xiaopeng.com/attachment/gdown/Olafto_DA.xlsx?itemid="));
+        assertTrue(result.contains("netdiskid"));
+        assertTrue(result.contains("%3A")); // colon encoded
+        assertTrue(result.contains("%3B")); // semicolon encoded
+    }
+
+    @Test
+    void extractsGdownUrlFromRealXpengHtml() {
+        String html = """
+                <script type="text/javascript" nonce="">
+                    function downloadFile() {
+                        var downloadUrl = "\\/attachment\\/gdown\\/Olafto_DA-Request_5.12-6.12.xlsx?itemid=" + encodeURIComponent("netdiskid:v001:file:DzzzzzzNqZq;abc123\\/def\\/ghi");
+                        location.href = downloadUrl;
+                    }
+                </script>
+                """;
+        String result = XpengImapPoller.extractAlibabaGdownUrl(html, "https://mail.xiaopeng.com/alimail/openLinks/downloadMimeMetaDiskBigAttach?id=old");
+        assertEquals("https://mail.xiaopeng.com/attachment/gdown/Olafto_DA-Request_5.12-6.12.xlsx?itemid="
+                + "netdiskid%3Av001%3Afile%3ADzzzzzzNqZq%3Babc123%2Fdef%2Fghi", result);
+    }
+
+    @Test
+    void throwsWhenNoDownloadUrlInLandingPage() {
+        String html = "<html><body><p>Login required</p></body></html>";
+        assertThrows(IllegalStateException.class, () ->
+                XpengImapPoller.extractAlibabaGdownUrl(html, "https://mail.xiaopeng.com/alimail/openLinks/downloadMimeMetaDiskBigAttach?id=x"));
+    }
+
     // --- extractVinFromSubject ---
 
     @Test
