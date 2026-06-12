@@ -713,6 +713,7 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
           <div class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
           <div class="relative" ref="filterDropdownDesktop">
             <button
+              data-testid="dashboard-filter-toggle"
               @click.stop="showFilterDropdown = !showFilterDropdown"
               class="flex items-center gap-2 px-4 py-1.5 rounded-sm border-2 border-gray-300 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium">
               <CalendarIcon class="w-4 h-4 opacity-60" />
@@ -723,6 +724,7 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
             </button>
             <Transition name="dropdown">
               <div v-if="showFilterDropdown"
+                data-testid="dashboard-filter-dropdown"
                 class="absolute left-1/2 -translate-x-1/2 top-full mt-1.5 z-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] p-3 w-72"
                 @click.stop>
                 <p class="text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">{{ t('dashboard.time_range_label') }}</p>

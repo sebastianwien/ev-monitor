@@ -44,13 +44,14 @@ test.describe('Dashboard', () => {
 
     await page.waitForLoadState('networkidle');
 
-    // Filter-Dropdown oeffnen (Desktop-Toolbar hat CalendarIcon + Zeitraum-Span)
-    const filterToggle = page.locator('[ref="filterDropdownDesktop"] button, .hidden.sm\\:flex button').filter({ hasText: /·/ }).first();
+    // Filter-Dropdown oeffnen (Desktop-Toolbar, sichtbar sobald Logs existieren)
+    const filterToggle = page.getByTestId('dashboard-filter-toggle');
     await expect(filterToggle).toBeVisible({ timeout: 10_000 });
     await filterToggle.click();
 
     // "Alle" (ALL_TIME) auswaehlen
-    await page.locator('button[class*="rounded-sm"]:has-text("Alle")').first().click();
+    await page.getByTestId('dashboard-filter-dropdown')
+      .getByRole('button', { name: 'Alle', exact: true }).click();
     await page.waitForTimeout(500);
 
     expect(errors).toEqual([]);

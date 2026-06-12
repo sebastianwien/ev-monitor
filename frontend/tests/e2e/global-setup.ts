@@ -94,4 +94,33 @@ export default async function globalSetup() {
     });
     console.log('[E2E Setup] Test car (Model 3) created.');
   }
+
+  // Mindestens ein Ladevorgang muss existieren: Dashboard-Filterleiste und
+  // Landing-Page-Model-Preview brauchen Logs (CI startet mit leerer DB)
+  const logsResp = await api.get('/api/logs?limit=1', {
+    headers: { Authorization: `Bearer ${jwt}` },
+  });
+  const logs = await logsResp.json();
+
+  if (!Array.isArray(logs) || logs.length === 0) {
+    const carsAfter = await (await api.get('/api/cars', {
+      headers: { Authorization: `Bearer ${jwt}` },
+    })).json();
+    const logResp = await api.post('/api/logs', {
+      headers: { Authorization: `Bearer ${jwt}` },
+      data: {
+        carId: carsAfter[0].id,
+        kwhCharged: 45.5,
+        costEur: 18.2,
+        odometerKm: 12000,
+        socAfterChargePercent: 80,
+        socBeforeChargePercent: 20,
+        chargingType: 'AC',
+      },
+    });
+    if (!logResp.ok()) {
+      throw new Error(`[E2E Setup] Log creation failed: ${logResp.status()} ${await logResp.text()}`);
+    }
+    console.log('[E2E Setup] Test charging log created.');
+  }
 }
