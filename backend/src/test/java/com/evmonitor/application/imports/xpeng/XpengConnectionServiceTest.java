@@ -4,10 +4,6 @@ import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.CarStatus;
-import com.evmonitor.domain.AuthProvider;
-import com.evmonitor.domain.SubscriptionTier;
-import com.evmonitor.domain.User;
-import com.evmonitor.domain.UserRepository;
 import com.evmonitor.infrastructure.persistence.xpeng.XpengConnection;
 import com.evmonitor.infrastructure.persistence.xpeng.XpengConnectionRepository;
 import org.junit.jupiter.api.Test;
@@ -30,7 +26,6 @@ class XpengConnectionServiceTest {
 
     @Mock CarRepository carRepository;
     @Mock XpengConnectionRepository connectionRepo;
-    @Mock UserRepository userRepository;
     @InjectMocks XpengConnectionService service;
 
     private static final UUID USER = UUID.randomUUID();
@@ -124,7 +119,6 @@ class XpengConnectionServiceTest {
     @Test
     void autoSyncGrantSetsConsentV2AndEmail() {
         when(carRepository.findById(CAR)).thenReturn(Optional.of(ownedBy(USER)));
-        when(userRepository.findById(USER)).thenReturn(Optional.of(userWithTier(SubscriptionTier.AUTOSYNC)));
         when(connectionRepo.findByCarId(CAR)).thenReturn(Optional.empty());
         when(connectionRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -137,22 +131,51 @@ class XpengConnectionServiceTest {
     }
 
     @Test
-    void autoSyncGrantFailsForFreeUser() {
+    void autoSyncGrantSucceedsForFreeUser() {
         when(carRepository.findById(CAR)).thenReturn(Optional.of(ownedBy(USER)));
-        when(userRepository.findById(USER)).thenReturn(Optional.of(userWithTier(SubscriptionTier.NONE)));
+        when(connectionRepo.findByCarId(CAR)).thenReturn(Optional.empty());
+        when(connectionRepo.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        assertThrows(SecurityException.class,
-                () -> service.grantConsent(USER, CAR, VALID_VIN, "1.1.1.1", "ua", true, null));
-        verify(connectionRepo, never()).save(any());
+        XpengConnection conn = service.grantConsent(USER, CAR, VALID_VIN, "1.1.1.1", "ua", true, "user@xpeng.com");
+
+        assertTrue(conn.isAutoSyncEnabled());
+        verify(connectionRepo).save(any());
     }
 
     @Test
     void rejectsInvalidXpengEmail() {
         when(carRepository.findById(CAR)).thenReturn(Optional.of(ownedBy(USER)));
-        when(userRepository.findById(USER)).thenReturn(Optional.of(userWithTier(SubscriptionTier.AUTOSYNC)));
 
         assertThrows(IllegalArgumentException.class,
                 () -> service.grantConsent(USER, CAR, VALID_VIN, "1.1.1.1", "ua", true, "not-an-email"));
+    }
+
+    @Test
+    void updateXpengEmailSavesEmailForOwner() {
+        UUID connId = UUID.randomUUID();
+        XpengConnection conn = activeConnection(connId, USER);
+        when(connectionRepo.findById(connId)).thenReturn(Optional.of(conn));
+        when(connectionRepo.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        XpengConnection result = service.updateXpengEmail(USER, connId, "new@xpeng.com");
+
+        assertEquals("new@xpeng.com", result.getXpengEmail());
+    }
+
+    @Test
+    void updateXpengEmailRejectsNonOwner() {
+        UUID connId = UUID.randomUUID();
+        when(connectionRepo.findById(connId)).thenReturn(Optional.of(activeConnection(connId, OTHER_USER)));
+
+        assertThrows(SecurityException.class, () -> service.updateXpengEmail(USER, connId, "x@xpeng.com"));
+    }
+
+    @Test
+    void updateXpengEmailRejectsInvalidFormat() {
+        UUID connId = UUID.randomUUID();
+        when(connectionRepo.findById(connId)).thenReturn(Optional.of(activeConnection(connId, USER)));
+
+        assertThrows(IllegalArgumentException.class, () -> service.updateXpengEmail(USER, connId, "not-an-email"));
     }
 
     @Test
@@ -169,6 +192,13 @@ class XpengConnectionServiceTest {
         verify(connectionRepo).findDueForAutoRequest(any());
     }
 
+    private XpengConnection activeConnection(UUID connId, UUID owner) {
+        return XpengConnection.builder()
+                .id(connId).userId(owner).carId(CAR).vin(VALID_VIN)
+                .autoSyncEnabled(true).consentVersion(XpengConnection.AUTOSYNC_CONSENT_VERSION)
+                .consentGrantedAt(LocalDateTime.now()).build();
+    }
+
     private Car ownedBy(UUID owner) {
         return Car.builder()
                 .id(CAR).userId(owner)
@@ -178,12 +208,4 @@ class XpengConnectionServiceTest {
                 .build();
     }
 
-    private User userWithTier(SubscriptionTier tier) {
-        return User.builder()
-                .id(USER).email("user@test.com").username("testuser")
-                .authProvider(AuthProvider.LOCAL)
-                .role("USER").premium(tier.isPaid()).subscriptionTier(tier)
-                .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
-                .build();
-    }
 }

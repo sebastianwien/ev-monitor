@@ -294,7 +294,7 @@ const autoSyncHasActiveTesla = ref(false)
                 @live-upgrade-requested="handleLiveUpgrade"
               />
               <XpengAutoSyncImport
-                v-if="hasXpeng && authStore.canActivateTelemetry"
+                v-if="hasXpeng"
                 :cars="activeCars"
               />
             </div>
