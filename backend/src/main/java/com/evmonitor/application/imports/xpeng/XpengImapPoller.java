@@ -97,32 +97,38 @@ public class XpengImapPoller {
         Session session = Session.getInstance(props);
         try (Store store = session.getStore("imap")) {
             store.connect(host, imapUser, imapPassword);
+            // Pass 1: alle Ordner nach Passwörtern absuchen und speichern
             for (String folderName : imapFolders) {
-                pollFolder(store, folderName.trim());
+                pollFolder(store, folderName.trim(), true);
+            }
+            // Pass 2: XLSX und Download-Links mit jetzt verfügbaren Passwörtern verarbeiten
+            for (String folderName : imapFolders) {
+                pollFolder(store, folderName.trim(), false);
             }
         } catch (Exception e) {
             log.error("XPeng IMAP-Poll fehlgeschlagen", e);
         }
     }
 
-    private void pollFolder(Store store, String folderName) {
+    private void pollFolder(Store store, String folderName, boolean passwordsOnly) {
         try (Folder folder = store.getFolder(folderName)) {
             folder.open(Folder.READ_WRITE);
             Message[] unseen = folder.search(new FlagTerm(new Flags(Flags.Flag.SEEN), false));
-            log.info("XPeng IMAP: Ordner '{}' - {} ungelesene Nachricht(en)", folderName, unseen.length);
+            log.info("XPeng IMAP: Ordner '{}' - {} ungelesene Nachricht(en) [{}]",
+                    folderName, unseen.length, passwordsOnly ? "Pass 1: Passwort-Scan" : "Pass 2: Daten-Import");
             for (Message msg : unseen) {
-                safeProcess(msg);
+                safeProcess(msg, passwordsOnly);
             }
         } catch (Exception e) {
             log.error("XPeng IMAP: Fehler beim Scannen von Ordner '{}'", folderName, e);
         }
     }
 
-    private void safeProcess(Message msg) {
+    private void safeProcess(Message msg, boolean passwordsOnly) {
         String subject = "<unbekannt>";
         try {
             subject = msg.getSubject();
-            processMessage(msg);
+            processMessage(msg, passwordsOnly);
         } catch (Exception e) {
             log.error("XPeng IMAP: Fehler bei Verarbeitung von Mail '{}': {}", subject, e.getMessage(), e);
             // Mail als gelesen markieren um Endlosschleife zu verhindern
@@ -130,7 +136,7 @@ public class XpengImapPoller {
         }
     }
 
-    private void processMessage(Message msg) throws Exception {
+    private void processMessage(Message msg, boolean passwordsOnly) throws Exception {
         String messageId = getHeader(msg, "Message-ID");
         String subject = msg.getSubject();
         String from = msg.getFrom() != null && msg.getFrom().length > 0
@@ -178,6 +184,7 @@ public class XpengImapPoller {
 
         List<AttachmentPart> xlsxParts = extractXlsxAttachments(msg);
         if (!xlsxParts.isEmpty()) {
+            if (passwordsOnly) return; // Pass 2 verarbeitet XLSX
             processXlsxAttachments(msg, conn, messageId, from, xlsxParts);
             return;
         }
@@ -187,6 +194,7 @@ public class XpengImapPoller {
         if (htmlBody != null) {
             List<String> downloadLinks = extractXpengDownloadLinks(htmlBody);
             if (!downloadLinks.isEmpty()) {
+                if (passwordsOnly) return; // Pass 2 verarbeitet Download-Links
                 processDownloadLinks(msg, conn, messageId, from, htmlBody, downloadLinks);
                 return;
             }

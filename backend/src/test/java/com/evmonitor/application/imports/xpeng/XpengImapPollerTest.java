@@ -611,6 +611,66 @@ class XpengImapPollerTest {
         verify(connectionRepo, never()).findByVin(any());
     }
 
+    // --- Two-Pass: Passwort-Scan vor Daten-Import ---
+
+    @Test
+    void passwordPassSkipsXlsxMail() throws Exception {
+        UUID token = UUID.randomUUID();
+        jakarta.mail.internet.MimeBodyPart xlsxPart = mock(jakarta.mail.internet.MimeBodyPart.class);
+        when(xlsxPart.isMimeType("multipart/*")).thenReturn(false);
+        when(xlsxPart.getFileName()).thenReturn("data.xlsx");
+        jakarta.mail.Multipart mp = mock(jakarta.mail.Multipart.class);
+        when(mp.getCount()).thenReturn(1);
+        when(mp.getBodyPart(0)).thenReturn(xlsxPart);
+        Message msg = mockMessage("<xlsx-pw-pass@test.com>", "Re: XPeng [token:" + token + "]");
+        when(msg.isMimeType("multipart/*")).thenReturn(true);
+        when(msg.getContent()).thenReturn(mp);
+        when(receivedMailRepo.existsByMessageId(any())).thenReturn(false);
+        when(connectionRepo.findByRoutingToken(token)).thenReturn(Optional.of(buildConn(token, false)));
+
+        invokeProcessMessage(msg, true);
+
+        verify(msg, never()).setFlag(Flags.Flag.SEEN, true);
+        verify(importService, never()).uploadXlsx(any(), any(), any(), any(), any(), any());
+        verify(receivedMailRepo, never()).save(any());
+    }
+
+    @Test
+    void passwordPassSkipsDownloadLinkMail() throws Exception {
+        UUID token = UUID.randomUUID();
+        String html = "<a href=\"https://mail.xiaopeng.com/alimail/openLinks/downloadMimeMetaDiskBigAttach?id=abc\">下载</a>";
+        Message msg = mockMessage("<dl-pw-pass@test.com>", "Re: XPeng [token:" + token + "]");
+        lenient().when(msg.isMimeType("multipart/*")).thenReturn(false);
+        lenient().when(msg.isMimeType("text/html")).thenReturn(true);
+        lenient().when(msg.getContent()).thenReturn(html);
+        when(msg.getFrom()).thenReturn(new jakarta.mail.Address[]{});
+        when(receivedMailRepo.existsByMessageId(any())).thenReturn(false);
+        when(connectionRepo.findByRoutingToken(token)).thenReturn(Optional.of(buildConn(token, false)));
+
+        invokeProcessMessage(msg, true);
+
+        verify(msg, never()).setFlag(Flags.Flag.SEEN, true);
+        verify(receivedMailRepo, never()).save(any());
+    }
+
+    @Test
+    void passwordPassProcessesPasswordMail() throws Exception {
+        UUID token = UUID.randomUUID();
+        Message msg = mockMessage("<pw-pass@test.com>", "Re: XPeng [token:" + token + "]");
+        lenient().when(msg.isMimeType("text/plain")).thenReturn(true);
+        lenient().when(msg.getContent()).thenReturn("Password: secret99");
+        when(receivedMailRepo.existsByMessageId(any())).thenReturn(false);
+        when(connectionRepo.findByRoutingToken(token)).thenReturn(Optional.of(buildConn(token, false)));
+        when(receivedMailRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        invokeProcessMessage(msg, true);
+
+        ArgumentCaptor<XpengReceivedMail> captor = ArgumentCaptor.forClass(XpengReceivedMail.class);
+        verify(receivedMailRepo).save(captor.capture());
+        assertEquals("secret99", captor.getValue().getExtractedPassword());
+        verify(msg).setFlag(Flags.Flag.SEEN, true);
+    }
+
     // --- helpers ---
 
     private static Message mockMessage(String messageId, String subject) throws Exception {
@@ -655,10 +715,14 @@ class XpengImapPollerTest {
     }
 
     private void invokeProcessMessage(Message msg) throws Exception {
-        Method m = XpengImapPoller.class.getDeclaredMethod("processMessage", Message.class);
+        invokeProcessMessage(msg, false);
+    }
+
+    private void invokeProcessMessage(Message msg, boolean passwordsOnly) throws Exception {
+        Method m = XpengImapPoller.class.getDeclaredMethod("processMessage", Message.class, boolean.class);
         m.setAccessible(true);
         try {
-            m.invoke(poller, msg);
+            m.invoke(poller, msg, passwordsOnly);
         } catch (java.lang.reflect.InvocationTargetException e) {
             if (e.getCause() instanceof Exception cause) throw cause;
             throw e;
