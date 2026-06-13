@@ -9,12 +9,17 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "build:app": "vue-tsc && vite build --mode app",
+    "cap:sync": "npm run build:app && cap sync",
+    "cap:ios": "npm run cap:sync && cap open ios"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@capacitor/core": "^8.4.0",
+    "@capacitor/ios": "^8.4.0",
     "@e965/xlsx": "^0.20.3",
     "@heroicons/vue": "^2.2.0",
     "@intlify/unplugin-vue-i18n": "^11.0.7",
@@ -40,6 +45,7 @@
     "vue-router": "^5.0.3"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.4.0",
     "@playwright/test": "^1.59.0",
     "@tailwindcss/postcss": "^4.2.0",
     "@types/leaflet.heat": "^0.2.5",
