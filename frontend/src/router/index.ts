@@ -405,6 +405,24 @@ const router = createRouter({
             component: () => import('../views/ConsumptionMethodologyView.vue')
         },
         {
+            path: '/stories',
+            name: 'stories-list',
+            component: () => import('../views/StoriesListView.vue')
+            // public - published user trip stories + own story management when logged in
+        },
+        {
+            path: '/stories/edit/:id',
+            name: 'story-editor',
+            component: () => import('../views/StoryEditorView.vue'),
+            meta: { requiresAuth: true }
+        },
+        {
+            path: '/stories/:slug',
+            name: 'story-public',
+            component: () => import('../views/PublicStoryView.vue')
+            // public SEO page for a single published story
+        },
+        {
             path: '/blog',
             name: 'blog-list',
             component: () => import('../views/BlogListView.vue')

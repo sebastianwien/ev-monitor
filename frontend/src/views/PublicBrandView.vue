@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-950">
+  <div :class="isAuthenticated ? '' : 'min-h-screen bg-gray-50 dark:bg-gray-950'">
     <PublicNav />
 
     <main class="max-w-4xl mx-auto md:px-4 py-6 md:py-8">
@@ -182,8 +182,11 @@ import { ArrowTrendingUpIcon, ChevronRightIcon } from '@heroicons/vue/24/outline
 import PublicNav from '../components/shared/PublicNav.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useMarketRoute, getMarketBasePath, OG_LOCALE, MARKET_HTML_LANG } from '../composables/useMarketRoute'
+import { useAuthStore } from '../stores/auth'
 
 const { t } = useI18n()
+const authStore = useAuthStore()
+const isAuthenticated = computed(() => authStore.isAuthenticated())
 const { formatNumber } = useLocaleFormat()
 const { currentMarket, isDE, isEN, isGB, isUS, marketUrl, hreflangLinks } = useMarketRoute()
 

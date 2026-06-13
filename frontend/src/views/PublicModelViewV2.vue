@@ -1,5 +1,5 @@
 <template>
-  <div class="model-page min-h-screen bg-gray-50 dark:bg-gray-950">
+  <div :class="['model-page', isAuthenticated ? '' : 'min-h-screen bg-gray-50 dark:bg-gray-950']">
     <PublicNav />
     <main class="max-w-4xl mx-auto md:px-4 py-2 md:py-8">
 

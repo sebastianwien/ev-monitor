@@ -309,7 +309,7 @@ public class TripService {
      * Performs a Car lookup only when steps 1+2 already passed and the car-model
      * gate matters. Tessie / USER_CREATED edits skip the DB hit entirely.
      */
-    private boolean userCanSeeTrip(EvTrip trip, User user) {
+    public boolean userCanSeeTrip(EvTrip trip, User user) {
         if (!trip.isLiveSource()) return true;
         if (!user.canViewLiveTrips()) return false;
         if (user.canBypassEligibilityGate()) return true;
