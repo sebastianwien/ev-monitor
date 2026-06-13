@@ -1404,7 +1404,7 @@ function toggleAllCharges() {
                       <template v-if="tripGroupConsumedKwh(item) != null">−{{ tripGroupConsumedKwh(item)!.toFixed(2) }} kWh</template>
                       <span v-else class="text-gray-400 dark:text-gray-600">-</span>
                     </div>
-                    <div class="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap truncate flex items-center gap-2">
+                    <div class="text-sm text-slate-600 dark:text-gray-300 whitespace-nowrap truncate flex items-center gap-2">
                       <span v-if="item.dateRange">{{ item.dateRange }}</span>
                       <span v-if="item.totalPhantomKwh && authStore.canViewLiveTrips"
                         class="inline-flex items-center gap-0.5 text-amber-600 dark:text-amber-500 text-xs whitespace-nowrap"
@@ -1419,7 +1419,7 @@ function toggleAllCharges() {
                     </div>
                     <div class="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500 text-center">{{ t('dashboard.trip_speed_header') }}</div>
                     <div>
-                      <span v-if="item.totalKm" class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-full text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                      <span v-if="item.totalKm" class="inline-flex items-center gap-1 px-2 py-0.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-full text-xs text-slate-700 dark:text-gray-200 whitespace-nowrap">
                         +{{ formatDistance(item.totalKm) }}
                       </span>
                       <span v-else class="text-gray-400 dark:text-gray-600 text-sm">-</span>
@@ -1444,9 +1444,9 @@ function toggleAllCharges() {
                     <template v-for="(trip, tripIdx) in item.trips" :key="trip.id + '__d'">
                       <!-- Phantom drain separator between trips (AutoSync Live feature) -->
                       <div v-if="trip._phantomDrain && authStore.canViewLiveTrips && tripIdx !== 0"
-                        class="flex items-center justify-center gap-1 py-1 border-t border-amber-300/30 dark:border-amber-700/30 bg-amber-50/30 dark:bg-amber-900/10">
-                        <BoltIcon class="w-3 h-3 text-amber-600 dark:text-amber-500" />
-                        <span class="text-[11px] text-amber-700 dark:text-amber-500">
+                        class="flex items-center justify-center gap-1 py-1 border-t border-amber-200 dark:border-amber-700/40 bg-amber-100/70 dark:bg-amber-900/20">
+                        <BoltIcon class="w-3 h-3 text-amber-700 dark:text-amber-500" />
+                        <span class="text-[11px] font-medium text-amber-800 dark:text-amber-400">
                           {{ trip._phantomDrain.kwh.toFixed(2) }} kWh
                           <template v-if="selectedCar?.effectiveBatteryCapacityKwh">({{ (trip._phantomDrain.kwh / selectedCar.effectiveBatteryCapacityKwh * 100).toFixed(1) }}%)</template>
                           {{ t('dashboard.phantom_drain_word') }}
@@ -1464,32 +1464,32 @@ function toggleAllCharges() {
                       <!-- Display row -->
                       <div v-if="editingTripId !== trip.id && deletingTripId !== trip.id"
                         class="grid grid-cols-[52px_90px_minmax(110px,1fr)_125px_80px_130px_88px_76px_108px_40px] gap-1.5 items-center px-3 py-1.5 border-t border-emerald-200/40 dark:border-emerald-800/30 hover:bg-emerald-50/60 dark:hover:bg-emerald-900/20 transition">
-                        <div class="flex items-center gap-1.5 pl-4 text-gray-500 text-xs">└</div>
-                        <div class="text-sm font-medium text-rose-500 dark:text-rose-300 whitespace-nowrap">
+                        <div class="flex items-center gap-1.5 pl-4 text-emerald-600/60 dark:text-emerald-400/50 text-xs">└</div>
+                        <div class="text-sm font-medium text-rose-600 dark:text-rose-300 whitespace-nowrap">
                           <template v-if="tripConsumption(trip) && trip.distanceKm">−{{ (tripConsumption(trip)!.kwhPer100km * trip.distanceKm / 100).toFixed(2) }} kWh</template>
                           <span v-else class="text-gray-400 dark:text-gray-600">-</span>
                         </div>
-                        <div class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap truncate">
+                        <div class="text-xs text-slate-600 dark:text-gray-300 whitespace-nowrap truncate">
                           <ClockIcon class="w-3 h-3 inline-block mr-0.5 -mt-0.5" />{{ formatTripTimeRange(trip.tripStartedAt, trip.tripEndedAt) }}
                         </div>
                         <div class="text-xs whitespace-nowrap">
-                          <span v-if="tripConsumption(trip)" class="text-gray-600 dark:text-gray-300">
+                          <span v-if="tripConsumption(trip)" class="text-slate-700 dark:text-gray-200">
                             {{ tripConsumption(trip)!.estimated ? '~' : '' }}{{ formatConsumption(tripConsumption(trip)!.kwhPer100km) }}
                           </span>
                           <span v-else class="text-gray-400 dark:text-gray-600">-</span>
                         </div>
-                        <div class="text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                        <div class="text-xs text-slate-700 dark:text-gray-200 whitespace-nowrap">
                           <template v-if="trip.socStart != null && trip.socEnd != null">{{ trip.socStart }}→{{ trip.socEnd }}%</template>
                           <span v-else class="text-gray-400 dark:text-gray-600">-</span>
                         </div>
-                        <div class="text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap text-center">
+                        <div class="text-xs text-slate-700 dark:text-gray-200 whitespace-nowrap text-center">
                           <template v-if="trip.maxSpeedKmh != null">
                             {{ t('dashboard.trip_speed_summary', { avg: Math.round(Number(trip.avgSpeedKmh)), max: Math.round(Number(trip.maxSpeedKmh)) }) }}
                           </template>
                           <span v-else class="text-gray-400 dark:text-gray-600">-</span>
                         </div>
                         <div>
-                          <span v-if="trip.distanceKm != null" class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-full text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                          <span v-if="trip.distanceKm != null" class="inline-flex items-center gap-1 px-2 py-0.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-full text-xs text-slate-700 dark:text-gray-200 whitespace-nowrap">
                             +{{ formatDistance(trip.distanceKm, { round: false }) }}
                           </span>
                           <span v-else class="text-gray-400 dark:text-gray-600 text-xs">-</span>
@@ -1502,7 +1502,7 @@ function toggleAllCharges() {
                           <span v-else class="text-gray-400 dark:text-gray-600 text-xs">-</span>
                         </div>
                         <div class="flex justify-end text-xs whitespace-nowrap">
-                          <span v-if="tripCostPer100km(trip) != null" class="text-emerald-600 dark:text-emerald-300/80">
+                          <span v-if="tripCostPer100km(trip) != null" class="text-emerald-700 dark:text-emerald-300/90">
                             {{ formatCurrency(tripCostPer100km(trip)!) }}/100km
                           </span>
                           <span v-else class="text-gray-400 dark:text-gray-600">-</span>
