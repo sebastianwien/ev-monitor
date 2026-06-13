@@ -14,6 +14,14 @@ const config: CapacitorConfig = {
     // Verhindert, dass Inhalt unter Notch/Statusbar rutscht.
     contentInset: 'always',
   },
+  plugins: {
+    // API-Calls laufen ueber die native HTTP-Schicht statt durch den WebView.
+    // Damit entfaellt CORS komplett (eine reine Browser-Regel) - die App
+    // erreicht Prod- wie lokales Backend ohne allowed-origins-Anpassung.
+    CapacitorHttp: {
+      enabled: true,
+    },
+  },
 };
 
 export default config;
