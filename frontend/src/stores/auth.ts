@@ -129,28 +129,32 @@ export const useAuthStore = defineStore('auth', () => {
     const isTeslaFounder = computed(() => user.value?.role === 'TESLA_FOUNDER');
     const isAutoSyncLive = computed(() => user.value?.subscriptionTier === 'AUTOSYNC_LIVE');
 
-    // Mirrors backend User.canActivateTelemetry(): premium OR ADMIN/BETA_TESTER/TESLA_FOUNDER.
-    // Used to decide whether the Tesla-Pairing UI is shown. Server-side gate in
+    // Tesla brand helper: data collection, the live-charging card and trip detection are
+    // free for Tesla drivers; other brands stay on the paid AutoSync model.
+    const isTeslaBrand = (brand?: string | null) => (brand ?? '').toLowerCase() === 'tesla';
+
+    // Mirrors backend User.canActivateTelemetry(): the paid path (Smartcar). Tesla activation
+    // is free and is decided per-brand in the pairing UI, not here. Server-side gate in
     // TeslaPairingService is the security boundary - this computed is purely UX.
     const canActivateTelemetry = computed(() =>
         isPremium.value || isAdmin.value || isBetaTester.value || isTeslaFounder.value);
 
-    // Mirrors backend User.canViewLiveTrips(): AUTOSYNC_LIVE tier OR ADMIN/BETA_TESTER.
-    // Drives the LogFeed trip rendering for live-detected trips and Phantom Drain display.
-    // Server-side gate in TripService is the security boundary - this is UX only.
-    const canViewLiveTrips = computed(() =>
+    // Mirrors backend User.canViewLiveAnalytics(): the paid analytics layer - historical
+    // power curves, phantom drain, energy split. No Tesla-free path. Server-side gate in
+    // EvLogService (power curves); phantom/energy-split are frontend-derived. UX only.
+    const canViewLiveAnalytics = computed(() =>
         isAutoSyncLive.value || isAdmin.value || isBetaTester.value);
 
-    // Mirrors backend User.canViewLiveCharging(): strict Tier-2/ADMIN-only gate for the
-    // dashboard Live-Charging card. BETA_TESTERs are intentionally excluded so the card
-    // stays a paid-feature preview. Server-side gate in LiveController.
-    const canViewLiveCharging = computed(() =>
-        isAutoSyncLive.value || isAdmin.value);
+    // Mirrors backend User.canViewLiveCharging(CarBrand): the dashboard Live-Charging card
+    // is free for Tesla, otherwise AUTOSYNC_LIVE or ADMIN (BETA_TESTER excluded for other
+    // brands so the card stays a paid-feature preview). Server-side gate in LiveController.
+    const canViewLiveCharging = (brand?: string | null) =>
+        isTeslaBrand(brand) || isAutoSyncLive.value || isAdmin.value;
 
     return {
         token, user, isDemoAccount, isPremium, isAdmin, isBetaTester, isTeslaFounder,
         isAutoSyncLive,
-        canActivateTelemetry, canViewLiveTrips, canViewLiveCharging,
+        canActivateTelemetry, canViewLiveAnalytics, canViewLiveCharging,
         setToken, setPremium, logout, login, register,
         refreshToken, refreshPremiumStatus,
         isAuthenticated: () => !!token.value,

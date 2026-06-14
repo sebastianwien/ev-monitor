@@ -10,6 +10,8 @@ const props = defineProps<{
   carId: string | null
   carDisplayName: string
   licensePlate: string | null
+  /** Car brand - drives the marken-aware live-charging gate (free for Tesla). */
+  brand: string | null
   /** User-Avg-Verbrauch (kWh/100km) zur Berechnung der nachgeladenen Reichweite. */
   avgConsumptionKwhPer100km?: number | null
 }>()
@@ -23,7 +25,7 @@ let clockInterval: ReturnType<typeof setInterval>
 onMounted(() => { clockInterval = setInterval(() => { now.value = Date.now() }, 1000) })
 onUnmounted(() => clearInterval(clockInterval))
 
-const carIdRef = computed(() => authStore.canViewLiveCharging ? props.carId : null)
+const carIdRef = computed(() => authStore.canViewLiveCharging(props.brand) ? props.carId : null)
 const { data, powerHistory, refresh } = useChargingLive(carIdRef)
 
 // Fallback wenn der User noch keinen Historie-Schnitt hat - sonst bliebe die
@@ -36,7 +38,7 @@ const effectiveConsumption = computed(() =>
     : 16)
 
 // Sichtbarkeit: nur wenn entitled + aktiver DC-Ladevorgang (AC hat keine sinnvolle Leistungskurve)
-const visible = computed(() => authStore.canViewLiveCharging && !!data.value?.isActive && data.value?.chargingType === 'DC')
+const visible = computed(() => authStore.canViewLiveCharging(props.brand) && !!data.value?.isActive && data.value?.chargingType === 'DC')
 
 // Collapse-State: persistiert pro (carId, sessionStartedAt) - jede neue Session
 // startet expanded. localStorage-Key wechselt mit Session-Start.

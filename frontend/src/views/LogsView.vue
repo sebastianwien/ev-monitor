@@ -1172,7 +1172,7 @@ function toggleAllCharges() {
                         {{ t('dashboard.trip_group_count', { count: item.groupSize }, item.groupSize) }}
                         <span v-if="item.totalKm" class="font-normal text-gray-500 dark:text-gray-400 whitespace-nowrap">&middot; {{ formatDistance(item.totalKm) }}</span>
                         <span v-if="item.dateRange" class="font-normal text-gray-500 dark:text-gray-400 whitespace-nowrap">&middot; {{ item.dateRange }}</span>
-                        <span v-if="item.totalPhantomKwh && authStore.canViewLiveTrips" class="font-normal text-amber-500 dark:text-amber-500 inline-flex items-center gap-0.5 whitespace-nowrap shrink-0">&middot; <BoltIcon class="w-2.5 h-2.5" />{{ item.totalPhantomKwh.toFixed(1) }} kWh<span class="hidden sm:inline">&nbsp;{{ t('dashboard.phantom_drain_word') }}</span></span>
+                        <span v-if="item.totalPhantomKwh && authStore.canViewLiveAnalytics" class="font-normal text-amber-500 dark:text-amber-500 inline-flex items-center gap-0.5 whitespace-nowrap shrink-0">&middot; <BoltIcon class="w-2.5 h-2.5" />{{ item.totalPhantomKwh.toFixed(1) }} kWh<span class="hidden sm:inline">&nbsp;{{ t('dashboard.phantom_drain_word') }}</span></span>
                       </div>
                       <ChevronUpIcon v-if="!collapsedTripGroups.has(item.groupId)" class="w-4 h-4 text-emerald-500 shrink-0" />
                       <ChevronDownIcon v-else class="w-4 h-4 text-emerald-500 shrink-0" />
@@ -1195,7 +1195,7 @@ function toggleAllCharges() {
                       </div>
 
                       <!-- Phantom drain separator between trips -->
-                      <div v-if="trip._phantomDrain && authStore.canViewLiveTrips && tripIdx !== 0"
+                      <div v-if="trip._phantomDrain && authStore.canViewLiveAnalytics && tripIdx !== 0"
                            class="flex items-center justify-center gap-1 py-1 border-t border-gray-600/50">
                         <BoltIcon class="w-2.5 h-2.5 text-amber-600 dark:text-amber-700" />
                         <span class="text-[11px] text-amber-600 dark:text-amber-700">
@@ -1408,7 +1408,7 @@ function toggleAllCharges() {
                     </div>
                     <div class="text-sm text-slate-600 dark:text-gray-300 whitespace-nowrap truncate flex items-center gap-2">
                       <span v-if="item.dateRange">{{ item.dateRange }}</span>
-                      <span v-if="item.totalPhantomKwh && authStore.canViewLiveTrips"
+                      <span v-if="item.totalPhantomKwh && authStore.canViewLiveAnalytics"
                         class="inline-flex items-center gap-0.5 text-amber-600 dark:text-amber-500 text-xs whitespace-nowrap"
                         :title="t('dashboard.phantom_drain_word')">
                         <BoltIcon class="w-3 h-3" />{{ item.totalPhantomKwh.toFixed(1) }} kWh
@@ -1445,7 +1445,7 @@ function toggleAllCharges() {
                   <div v-if="!collapsedTripGroups.has(item.groupId)" class="bg-emerald-50/30 dark:bg-emerald-950/20">
                     <template v-for="(trip, tripIdx) in item.trips" :key="trip.id + '__d'">
                       <!-- Phantom drain separator between trips (AutoSync Live feature) -->
-                      <div v-if="trip._phantomDrain && authStore.canViewLiveTrips && tripIdx !== 0"
+                      <div v-if="trip._phantomDrain && authStore.canViewLiveAnalytics && tripIdx !== 0"
                         class="flex items-center justify-center gap-1 py-1 border-t border-amber-200 dark:border-amber-700/40 bg-amber-100/70 dark:bg-amber-900/20">
                         <BoltIcon class="w-3 h-3 text-amber-700 dark:text-amber-500" />
                         <span class="text-[11px] font-medium text-amber-800 dark:text-amber-400">
@@ -1558,7 +1558,7 @@ function toggleAllCharges() {
               <!-- ===== REGULAR ENTRY (charge log / inaccessible trip) ===== -->
               <template v-else>
               <!-- Phantom drain -->
-              <div v-if="item.entry._phantomDrain && authStore.canViewLiveTrips" class="flex items-center gap-2 px-4 mt-0.5 mb-2">
+              <div v-if="item.entry._phantomDrain && authStore.canViewLiveAnalytics" class="flex items-center gap-2 px-4 mt-0.5 mb-2">
                 <div class="flex-1 h-px bg-gray-200 dark:bg-gray-600" />
                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-amber-300 dark:border-amber-600 bg-amber-50 dark:bg-amber-900/20 text-xs text-amber-600 dark:text-amber-400 whitespace-nowrap">
                   <BoltIcon class="w-3 h-3" />

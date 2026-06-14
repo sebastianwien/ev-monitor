@@ -543,10 +543,11 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
 
           <!-- Live-Ladevorgang: blendet sich automatisch ein wenn aktive Session und User AS Live -->
           <LiveChargingCard
-            v-if="selectedCarId && authStore.canViewLiveCharging"
+            v-if="selectedCarId && authStore.canViewLiveCharging(selectedCar?.brand ?? null)"
             :car-id="selectedCarId"
             :car-display-name="selectedCar ? [carDisplayName(selectedCar.brand, selectedCar.model), selectedCar.trim].filter(Boolean).join(' ') : ''"
             :license-plate="selectedCar?.licensePlate ?? null"
+            :brand="selectedCar?.brand ?? null"
             :avg-consumption-kwh-per100km="stats?.avgConsumptionKwhPer100km != null ? Number(stats.avgConsumptionKwhPer100km) : null"
             class="mb-6"
           />
@@ -910,7 +911,7 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
 
         <!-- Insights: Energie-Split · Standverluste · Fahrten-Kalender (AutoSync Live only) -->
         <DashboardInsights
-          v-if="authStore.canViewLiveTrips && mergedLogFeed.length > 0"
+          v-if="authStore.canViewLiveAnalytics && mergedLogFeed.length > 0"
           :entries="mergedLogFeed"
           :selected-car="cars.find((c: any) => c.id === selectedCarId)"
           :selected-time-range="selectedTimeRange"
