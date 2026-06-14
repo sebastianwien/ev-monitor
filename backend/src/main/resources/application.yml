@@ -126,6 +126,10 @@ app:
   # min-native-version: niedrigste unterstuetzte Native-Version, steuert den "Im Store aktualisieren"-Hinweis
   web-build-hash: ${APP_WEB_BUILD_HASH:dev}
   min-native-version: ${APP_MIN_NATIVE_VERSION:1}
+  # Capgo Live-Update Self-Hosting: Verzeichnis der Bundle-Zips + absolute Download-Basis-URL
+  # bundle-base-url leer = aus dem Request abgeleitet (lokal/dev); in Prod auf https://ev-monitor.net/api/app/bundle setzen
+  bundle-dir: ${APP_BUNDLE_DIR:/opt/ev-monitor/app-bundles}
+  bundle-base-url: ${APP_BUNDLE_BASE_URL:}
   mail:
     from: ${APP_MAIL_FROM:noreply@ev-monitor.net}
   github:

@@ -1,0 +1,80 @@
+package com.evmonitor.application;
+
+import com.evmonitor.domain.AppBundle;
+import com.evmonitor.domain.AppBundleRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Optional;
+
+/**
+ * Entscheidet, ob die native App ein neues Web-Bundle (Capgo Live-Update) ziehen soll.
+ *
+ * Es wird ausschliesslich roll-forward unterstuetzt: zurueckgegeben wird das neueste
+ * veroeffentlichte Bundle, und nur wenn seine Semver-Version groesser ist als die
+ * aktuell installierte. Ein Rollback erfolgt durch Veroeffentlichen einer hoeheren
+ * Version mit dem alten Code.
+ */
+@Service
+public class AppUpdateService {
+
+    private final AppBundleRepository repository;
+
+    public AppUpdateService(AppBundleRepository repository) {
+        this.repository = repository;
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<AppBundle> findUpdateFor(String currentVersion) {
+        return repository.findTopByOrderByCreatedAtDesc()
+                .filter(latest -> isNewer(latest.getVersion(), currentVersion));
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<AppBundle> findByVersion(String version) {
+        return repository.findByVersion(version);
+    }
+
+    /**
+     * True, wenn {@code candidate} eine hoehere Semver-Version ist als {@code current}.
+     * Ist {@code current} keine parsebare Semver-Version (z.B. "builtin" bei Fresh-Installs),
+     * gilt jedes echte Bundle als neuer.
+     */
+    static boolean isNewer(String candidate, String current) {
+        int[] c = parseSemver(candidate);
+        int[] cur = parseSemver(current);
+        if (c == null) {
+            return false;
+        }
+        if (cur == null) {
+            return true;
+        }
+        for (int i = 0; i < 3; i++) {
+            if (c[i] != cur[i]) {
+                return c[i] > cur[i];
+            }
+        }
+        return false;
+    }
+
+    /** Parst "major.minor.patch" zu drei Ints. Pre-Release-/Build-Suffixe werden ignoriert. */
+    private static int[] parseSemver(String version) {
+        if (version == null || version.isBlank()) {
+            return null;
+        }
+        String core = version.split("[-+]", 2)[0];
+        String[] parts = core.split("\\.");
+        if (parts.length != 3) {
+            return null;
+        }
+        int[] out = new int[3];
+        for (int i = 0; i < 3; i++) {
+            try {
+                out[i] = Integer.parseInt(parts[i].trim());
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return out;
+    }
+}
