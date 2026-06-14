@@ -90,6 +90,26 @@ class XpengConnectionServiceTest {
     }
 
     @Test
+    void reGrantingRevokedConsentResetsRequestCooldown() {
+        XpengConnection revoked = XpengConnection.builder()
+                .id(UUID.randomUUID()).userId(USER).carId(CAR).vin(VALID_VIN)
+                .consentGrantedAt(LocalDateTime.now().minusMonths(1))
+                .consentRevokedAt(LocalDateTime.now().minusDays(10))
+                .lastRequestSentAt(LocalDateTime.now().minusDays(11))
+                .autoSyncEnabled(true)
+                .consentVersion(XpengConnection.AUTOSYNC_CONSENT_VERSION)
+                .build();
+        when(carRepository.findById(CAR)).thenReturn(Optional.of(ownedBy(USER)));
+        when(connectionRepo.findByCarId(CAR)).thenReturn(Optional.of(revoked));
+        when(connectionRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        XpengConnection result = service.grantConsent(USER, CAR, VALID_VIN, "5.6.7.8", "ua2", true, "user@xpeng.com");
+
+        assertNull(result.getLastRequestSentAt(),
+                "Cooldown must be reset so the scheduler sends a fresh request next run");
+    }
+
+    @Test
     void revokeRefusesIfNotOwner() {
         UUID connectionId = UUID.randomUUID();
         XpengConnection conn = XpengConnection.builder()

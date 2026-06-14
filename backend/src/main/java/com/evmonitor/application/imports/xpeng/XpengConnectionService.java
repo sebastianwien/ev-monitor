@@ -68,6 +68,10 @@ public class XpengConnectionService {
             conn.setVin(vin);
             conn.setAutoSyncEnabled(autoSync);
             conn.setXpengEmail(normalizedXpengEmail);
+            // Cooldown zuruecksetzen: ein Widerruf beendet den Request-Zyklus, bei erneuter
+            // Zustimmung soll der Scheduler sofort wieder anfragen statt die alte 14-Tage-Frist
+            // aus der vorherigen Periode weiterlaufen zu lassen.
+            conn.setLastRequestSentAt(null);
             // routing_token bleibt unverandert (stabiler Identifier fur bestehende Reply-Mails)
             return connectionRepo.save(conn);
         }
