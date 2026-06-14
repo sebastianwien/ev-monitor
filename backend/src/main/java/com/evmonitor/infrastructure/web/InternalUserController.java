@@ -63,9 +63,10 @@ public class InternalUserController {
             String tier,
             String preferredProfile) {}
 
-    private TelemetryAccessResponse toResponse(com.evmonitor.domain.User user) {
+    private TelemetryAccessResponse toResponse(com.evmonitor.domain.User user,
+            com.evmonitor.domain.TelemetrySource source) {
         return new TelemetryAccessResponse(
-                user.canActivateTelemetry(),
+                user.canActivateTelemetry(source),
                 user.getRole(),
                 user.isPremium(),
                 user.getSubscriptionTier().name(),
@@ -78,18 +79,28 @@ public class InternalUserController {
      * that detects role/tier drift. Response now carries tier + preferredProfile so the
      * connectors-service can pick the correct Tesla telemetry profile (CHARGING_ONLY vs FULL)
      * without a second round-trip.
+     *
+     * <p>{@code source} selects the activation policy: {@code TESLA} activation is free,
+     * {@code SMARTCAR} stays paid. Absent/unknown source falls back to {@code SMARTCAR}
+     * (fail-closed - never accidentally frees a paid integration).
      */
     @GetMapping("/users/{userId}/telemetry-access")
-    public ResponseEntity<TelemetryAccessResponse> telemetryAccess(@PathVariable UUID userId) {
+    public ResponseEntity<TelemetryAccessResponse> telemetryAccess(
+            @PathVariable UUID userId,
+            @RequestParam(value = "source", required = false) com.evmonitor.domain.TelemetrySource source) {
+        com.evmonitor.domain.TelemetrySource resolved =
+                source != null ? source : com.evmonitor.domain.TelemetrySource.SMARTCAR;
         return userRepository.findById(userId)
-                .map(user -> ResponseEntity.ok(toResponse(user)))
+                .map(user -> ResponseEntity.ok(toResponse(user, resolved)))
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    public record EntitlementBatchRequest(java.util.List<UUID> userIds) {}
+    public record EntitlementBatchRequest(java.util.List<UUID> userIds,
+            com.evmonitor.domain.TelemetrySource source) {}
 
     /**
-     * Bulk variant of {@code /telemetry-access}: takes a list of userIds and returns a
+     * Bulk variant of {@code /telemetry-access}: takes a list of userIds (and an optional
+     * {@code source}, same semantics as the single endpoint) and returns a
      * {userId → entitlement} map. Designed for periodic reconciliation jobs that would
      * otherwise fan out to one HTTP call per user. Unknown ids are omitted from the response.
      */
@@ -99,9 +110,11 @@ public class InternalUserController {
         if (request == null || request.userIds() == null || request.userIds().isEmpty()) {
             return ResponseEntity.ok(Map.of());
         }
+        com.evmonitor.domain.TelemetrySource resolved =
+                request.source() != null ? request.source() : com.evmonitor.domain.TelemetrySource.SMARTCAR;
         Map<UUID, TelemetryAccessResponse> result = new java.util.HashMap<>();
         for (com.evmonitor.domain.User user : userRepository.findAllByIds(request.userIds())) {
-            result.put(user.getId(), toResponse(user));
+            result.put(user.getId(), toResponse(user, resolved));
         }
         return ResponseEntity.ok(result);
     }

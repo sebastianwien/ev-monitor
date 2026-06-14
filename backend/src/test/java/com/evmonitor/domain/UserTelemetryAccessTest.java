@@ -49,6 +49,20 @@ class UserTelemetryAccessTest {
         assertTrue(buildUser("ADMIN", false).canActivateTelemetry());
     }
 
+    // --- source-aware activation: Tesla is free, Smartcar stays paid ---
+
+    @Test
+    void teslaSource_isFree_evenForPlainUserWithoutPremium() {
+        assertTrue(buildUser("USER", false).canActivateTelemetry(TelemetrySource.TESLA));
+    }
+
+    @Test
+    void smartcarSource_staysPaid_matchesNoArgGate() {
+        assertFalse(buildUser("USER", false).canActivateTelemetry(TelemetrySource.SMARTCAR));
+        assertTrue(buildUser("USER", true).canActivateTelemetry(TelemetrySource.SMARTCAR));
+        assertTrue(buildUser("TESLA_FOUNDER", false).canActivateTelemetry(TelemetrySource.SMARTCAR));
+    }
+
     private User buildUser(String role, boolean premium) {
         LocalDateTime now = LocalDateTime.now();
         return User.builder()

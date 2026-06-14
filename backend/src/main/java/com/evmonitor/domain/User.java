@@ -99,10 +99,20 @@ public class User {
      * Centralised gate for Live-Sync activation. Returns true if the user is allowed to
      * push a Telemetry config to their vehicle - either via a privileged role
      * (TESLA_FOUNDER grandfathering, BETA_TESTER, ADMIN) or via an active AutoSync
-     * subscription.
+     * subscription. This is the paid path used by Smartcar (VW etc.).
      */
     public boolean canActivateTelemetry() {
         return premium || TELEMETRY_PRIVILEGED_ROLES.contains(role);
+    }
+
+    /**
+     * Source-aware Live-Sync activation gate. Tesla Fleet-Telemetry data collection is
+     * free for every Tesla driver, so {@link TelemetrySource#TESLA} activation is always
+     * permitted. All other integrations ({@link TelemetrySource#SMARTCAR}) stay on the
+     * paid {@link #canActivateTelemetry()} path.
+     */
+    public boolean canActivateTelemetry(TelemetrySource source) {
+        return source == TelemetrySource.TESLA || canActivateTelemetry();
     }
 
     /**

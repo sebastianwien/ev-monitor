@@ -181,4 +181,45 @@ class InternalUserControllerTest extends AbstractIntegrationTest {
         assertNotNull(response.getBody());
         assertTrue(response.getBody().isEmpty());
     }
+
+    // --- source-aware telemetry-access: Tesla activation is free ---
+
+    @Test
+    void telemetryAccess_sourceTesla_freeUser_canActivateWithFullProfile() {
+        // testUser is a free (NONE-tier) user: Tesla activation must be free, FULL profile.
+        ResponseEntity<Map<String, Object>> res = restTemplate.exchange(
+                "/api/internal/users/" + testUser.getId() + "/telemetry-access?source=TESLA",
+                HttpMethod.GET,
+                new HttpEntity<>(internalAuthHeaders(VALID_INTERNAL_TOKEN)),
+                new ParameterizedTypeReference<>() {});
+
+        assertEquals(HttpStatus.OK, res.getStatusCode());
+        assertNotNull(res.getBody());
+        assertEquals(true, res.getBody().get("canActivate"));
+        assertEquals("FULL", res.getBody().get("preferredProfile"));
+    }
+
+    @Test
+    void telemetryAccess_sourceSmartcar_freeUser_cannotActivate() {
+        ResponseEntity<Map<String, Object>> res = restTemplate.exchange(
+                "/api/internal/users/" + testUser.getId() + "/telemetry-access?source=SMARTCAR",
+                HttpMethod.GET,
+                new HttpEntity<>(internalAuthHeaders(VALID_INTERNAL_TOKEN)),
+                new ParameterizedTypeReference<>() {});
+
+        assertEquals(HttpStatus.OK, res.getStatusCode());
+        assertEquals(false, res.getBody().get("canActivate"));
+    }
+
+    @Test
+    void telemetryAccess_noSource_defaultsToPaid_failClosed() {
+        ResponseEntity<Map<String, Object>> res = restTemplate.exchange(
+                "/api/internal/users/" + testUser.getId() + "/telemetry-access",
+                HttpMethod.GET,
+                new HttpEntity<>(internalAuthHeaders(VALID_INTERNAL_TOKEN)),
+                new ParameterizedTypeReference<>() {});
+
+        assertEquals(HttpStatus.OK, res.getStatusCode());
+        assertEquals(false, res.getBody().get("canActivate"));
+    }
 }
