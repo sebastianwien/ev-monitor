@@ -121,6 +121,11 @@ xpeng:
 
 app:
   base-url: ${APP_BASE_URL:http://localhost:5173}
+  # Native App (Capacitor) - Versions-Metadaten fuer GET /api/app/version
+  # web-build-hash: Git-SHA des ausgelieferten Web-Builds (vom Deploy gesetzt), steuert Live-Updates
+  # min-native-version: niedrigste unterstuetzte Native-Version, steuert den "Im Store aktualisieren"-Hinweis
+  web-build-hash: ${APP_WEB_BUILD_HASH:dev}
+  min-native-version: ${APP_MIN_NATIVE_VERSION:1}
   mail:
     from: ${APP_MAIL_FROM:noreply@ev-monitor.net}
   github:
