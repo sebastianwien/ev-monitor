@@ -125,3 +125,85 @@ jobs:
             CRON_LINE="17 4 * * * /opt/ev-monitor/ev-monitor/scripts/warm-prerender-cache.sh >> /opt/ev-monitor/ev-monitor/logs/prerender-warm.log 2>&1"
             (crontab -l 2>/dev/null | grep -v "warm-prerender-cache"; echo "$CRON_LINE") | crontab -
             echo "✅ Cron job set: $(crontab -l | grep warm-prerender-cache)"
+
+  # Capgo Live-Update: baut das App-Mode-Bundle, laedt es auf den Server und
+  # registriert es am Backend. Laeuft NACH dem Deploy (Endpoint muss existieren).
+  # Wird uebersprungen, wenn APP_BUNDLE_PUBLISH_TOKEN nicht gesetzt ist.
+  publish-live-update:
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    env:
+      PUBLISH_TOKEN: ${{ secrets.APP_BUNDLE_PUBLISH_TOKEN }}
+
+    steps:
+      - name: Check publish token configured
+        id: guard
+        run: |
+          if [ -z "$PUBLISH_TOKEN" ]; then
+            echo "⚠️  APP_BUNDLE_PUBLISH_TOKEN not set - skipping live-update publish"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.guard.outputs.skip != 'true'
+
+      - name: Set up Node.js 20
+        if: steps.guard.outputs.skip != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build app-mode bundle and zip with Capgo CLI
+        id: zip
+        if: steps.guard.outputs.skip != 'true'
+        run: |
+          cd frontend
+          npm ci
+          npm run build:app
+          VERSION="1.0.${{ github.run_number }}"
+          # bundle zip schreibt die Zip-Datei nach ./$VERSION und gibt {checksum,...} als JSON aus
+          npx --yes @capgo/cli bundle zip --path dist --name "$VERSION" --json > capgo-out.json
+          CHECKSUM="$(jq -r '.checksum' capgo-out.json)"
+          mv "$VERSION" "$VERSION.zip"
+          if [ -z "$CHECKSUM" ] || [ "$CHECKSUM" = "null" ]; then
+            echo "❌ Capgo CLI lieferte keinen Checksum"; cat capgo-out.json; exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "checksum=$CHECKSUM" >> "$GITHUB_OUTPUT"
+          echo "✅ Bundle $VERSION gezippt (sha256 $CHECKSUM)"
+
+      - name: Upload bundle to server
+        if: steps.guard.outputs.skip != 'true'
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 2222
+          source: frontend/${{ steps.zip.outputs.version }}.zip
+          target: /opt/ev-monitor/app-bundles/
+          strip_components: 1
+
+      - name: Register bundle at backend
+        if: steps.guard.outputs.skip != 'true'
+        run: |
+          curl -fsS -X POST https://ev-monitor.net/api/app/bundles \
+            -H "X-App-Bundle-Token: $PUBLISH_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"version\":\"${{ steps.zip.outputs.version }}\",\"checksum\":\"${{ steps.zip.outputs.checksum }}\"}"
+          echo "✅ Bundle ${{ steps.zip.outputs.version }} registriert"
+
+      - name: Rotate old bundles (older than 30 days)
+        if: steps.guard.outputs.skip != 'true'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 2222
+          script: |
+            find /opt/ev-monitor/app-bundles -maxdepth 1 -name '*.zip' -mtime +30 -delete
+            echo "✅ Alte Bundles (>30 Tage) bereinigt"
