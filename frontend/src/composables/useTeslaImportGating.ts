@@ -2,35 +2,18 @@ import { computed, type ComputedRef, type Ref } from 'vue'
 import type { Car } from '../api/carService'
 
 /**
- * Visibility gating for Tesla-related sections in /imports.
+ * Visibility gating for the standalone "Tesla Telemetry" tab in /imports.
  *
- * - `hasAnyTesla`: user owns at least one Tesla, regardless of `status`. The
- *   AutoSync Tesla sub-section uses this to let users with not-yet-active
- *   Teslas still pair (selection happens via CarSelectDropdown filtered to
- *   brand=tesla).
- * - `showLegacyTeslaTab`: the standalone Tesla tab is reserved for the
- *   grandfathered audiences (ADMIN, BETA_TESTER, TESLA_FOUNDER). Premium-only
- *   users get the Tesla AutoSync sub-section in the AutoSync accordion instead
- *   - so the Smartcar-flavoured copy in the legacy tab no longer reaches them.
+ * Tesla Fleet-Telemetry is free for all Tesla drivers, so the tab is shown to
+ * anyone who owns a Tesla (regardless of `status` or subscription) - that is
+ * where Tesla pairing happens now. It is fully decoupled from the paid AutoSync
+ * section, which only covers Smartcar brands (VW etc.).
  */
-export interface TeslaImportRoles {
-    isAdmin: boolean
-    isBetaTester: boolean
-    isTeslaFounder: boolean
-}
-
 export function useTeslaImportGating(
     cars: Ref<Car[]>,
-    roles: Ref<TeslaImportRoles> | TeslaImportRoles,
-): { hasAnyTesla: ComputedRef<boolean>; showLegacyTeslaTab: ComputedRef<boolean> } {
+): { hasAnyTesla: ComputedRef<boolean>; showTeslaTab: ComputedRef<boolean> } {
     const hasAnyTesla = computed(() =>
         Array.isArray(cars.value) && cars.value.some(c => c.brand?.toLowerCase() === 'tesla'),
     )
-
-    const showLegacyTeslaTab = computed(() => {
-        const r = (roles as Ref<TeslaImportRoles>).value ?? (roles as TeslaImportRoles)
-        return hasAnyTesla.value && (r.isAdmin || r.isBetaTester || r.isTeslaFounder)
-    })
-
-    return { hasAnyTesla, showLegacyTeslaTab }
+    return { hasAnyTesla, showTeslaTab: hasAnyTesla }
 }

@@ -169,14 +169,7 @@ const formatDate = (dateStr: string | null) => {
   return new Date(dateStr).toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
-const { showLegacyTeslaTab } = useTeslaImportGating(
-  cars,
-  computed(() => ({
-    isAdmin: authStore.isAdmin,
-    isBetaTester: authStore.isBetaTester,
-    isTeslaFounder: authStore.isTeslaFounder,
-  })),
-)
+const { showTeslaTab } = useTeslaImportGating(cars)
 
 const activeCars = computed(() =>
   Array.isArray(cars.value) ? cars.value.filter(c => c.status === 'ACTIVE') : []
@@ -279,12 +272,12 @@ const autoSyncHasActiveTesla = ref(false)
                   <p v-if="liveUpgradeError" class="w-full text-xs text-red-600 dark:text-red-400 font-medium">{{ liveUpgradeError }}</p>
               </div>
 
-              <!-- Tile-based picker per car. Tesla cars route to Tesla Fleet
-                   Telemetry, all other supported brands route to Smartcar.
+              <!-- Tile-based picker per car. Smartcar brands only - Tesla is free and
+                   pairs in its own "Tesla Telemetry" tab, XPeng has its own section.
                    Premium=1-active-connection limit is surfaced in tile-locking.
                    Non-premium users see the Smartcar upgrade pitch inside the picker. -->
               <AutoSyncCarPicker
-                :cars="activeCars.filter(c => c.brand !== 'XPENG')"
+                :cars="activeCars.filter(c => c.brand !== 'XPENG' && c.brand?.toLowerCase() !== 'tesla')"
                 :premium-enabled="premiumEnabled"
                 :is-premium="subscriptionIsPremium"
                 :has-auto-sync-access="authStore.isPremium"
@@ -648,9 +641,10 @@ const autoSyncHasActiveTesla = ref(false)
           </Transition>
         </div>
 
-        <!-- 8. TESLA - legacy tab for ADMIN/BETA_TESTER/TESLA_FOUNDER only.
-             Premium-only Tesla owners now see the AutoSync sub-section above instead. -->
-        <div v-if="showLegacyTeslaTab">
+        <!-- 8. TESLA TELEMETRY - shown to every Tesla owner. Tesla Fleet-Telemetry is
+             free (no AutoSync subscription needed), so pairing lives here, decoupled
+             from the paid AutoSync section above (which is Smartcar brands only). -->
+        <div v-if="showTeslaTab">
           <button
             @click="toggle('tesla'); analytics.trackImportTabClicked('tesla')"
             class="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
