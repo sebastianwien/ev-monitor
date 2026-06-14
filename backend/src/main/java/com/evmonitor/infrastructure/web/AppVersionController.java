@@ -18,18 +18,15 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/app")
 public class AppVersionController {
 
-    private final String webBuildHash;
     private final int minNativeVersion;
 
     public AppVersionController(
-            @Value("${app.web-build-hash:dev}") String webBuildHash,
             @Value("${app.min-native-version:1}") int minNativeVersion) {
-        this.webBuildHash = webBuildHash;
         this.minNativeVersion = minNativeVersion;
     }
 
     @GetMapping("/version")
     public ResponseEntity<AppVersionResponse> getVersion() {
-        return ResponseEntity.ok(new AppVersionResponse(webBuildHash, minNativeVersion));
+        return ResponseEntity.ok(new AppVersionResponse(minNativeVersion));
     }
 }

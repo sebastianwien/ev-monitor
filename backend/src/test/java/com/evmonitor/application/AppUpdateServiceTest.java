@@ -4,12 +4,16 @@ import com.evmonitor.domain.AppBundle;
 import com.evmonitor.domain.AppBundleRepository;
 import org.junit.jupiter.api.Test;
 
+import java.time.OffsetDateTime;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -107,5 +111,28 @@ class AppUpdateServiceTest {
 
         assertThatThrownBy(() -> service.publish("1.0.42", "sum"))
                 .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void purge_deletesOldBundlesButKeepsLatest() {
+        AppBundle latest = bundle("1.0.50");
+        latest.setId(50L);
+        when(repository.findTopByOrderByCreatedAtDesc()).thenReturn(Optional.of(latest));
+        when(repository.deleteByCreatedAtBeforeAndIdNot(any(), eq(50L))).thenReturn(3);
+
+        int deleted = service.purgeBundlesOlderThan(30);
+
+        assertThat(deleted).isEqualTo(3);
+        verify(repository).deleteByCreatedAtBeforeAndIdNot(any(OffsetDateTime.class), eq(50L));
+    }
+
+    @Test
+    void purge_doesNothing_whenNoBundles() {
+        when(repository.findTopByOrderByCreatedAtDesc()).thenReturn(Optional.empty());
+
+        int deleted = service.purgeBundlesOlderThan(30);
+
+        assertThat(deleted).isZero();
+        verify(repository, never()).deleteByCreatedAtBeforeAndIdNot(any(), any());
     }
 }

@@ -2,9 +2,12 @@ package com.evmonitor.application;
 
 import com.evmonitor.domain.AppBundle;
 import com.evmonitor.domain.AppBundleRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
 import java.util.Optional;
 
 /**
@@ -24,6 +27,11 @@ public class AppUpdateService {
         this.repository = repository;
     }
 
+    /**
+     * Wird vom Capgo-Client bei jedem App-Start aufgerufen, daher gecacht: das neueste
+     * Bundle aendert sich nur beim Publish (dort wird der Cache geleert). Key = currentVersion.
+     */
+    @Cacheable("appUpdateCheck")
     @Transactional(readOnly = true)
     public Optional<AppBundle> findUpdateFor(String currentVersion) {
         return repository.findTopByOrderByCreatedAtDesc()
@@ -43,6 +51,7 @@ public class AppUpdateService {
      * @throws IllegalStateException    wenn die Version bereits existiert
      */
     @Transactional
+    @CacheEvict(value = "appUpdateCheck", allEntries = true)
     public AppBundle publish(String version, String checksum) {
         if (parseSemver(version) == null) {
             throw new IllegalArgumentException("version must be semver: " + version);
@@ -55,6 +64,23 @@ public class AppUpdateService {
                 .checksum(checksum)
                 .filename(version + ".zip")
                 .build());
+    }
+
+    /**
+     * Loescht Bundle-Zeilen aelter als {@code days} Tage, behaelt aber immer das neueste
+     * (auch wenn es aelter ist - sonst gaebe es nach langer Pause kein Update mehr).
+     * Die Zip-Dateien selbst rotiert die CI (Backend-Mount ist read-only).
+     *
+     * @return Anzahl geloeschter Zeilen
+     */
+    @Transactional
+    public int purgeBundlesOlderThan(int days) {
+        Optional<AppBundle> latest = repository.findTopByOrderByCreatedAtDesc();
+        if (latest.isEmpty()) {
+            return 0;
+        }
+        OffsetDateTime cutoff = OffsetDateTime.now().minusDays(days);
+        return repository.deleteByCreatedAtBeforeAndIdNot(cutoff, latest.get().getId());
     }
 
     /**

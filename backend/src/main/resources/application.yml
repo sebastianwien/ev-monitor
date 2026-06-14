@@ -121,10 +121,8 @@ xpeng:
 
 app:
   base-url: ${APP_BASE_URL:http://localhost:5173}
-  # Native App (Capacitor) - Versions-Metadaten fuer GET /api/app/version
-  # web-build-hash: Git-SHA des ausgelieferten Web-Builds (vom Deploy gesetzt), steuert Live-Updates
-  # min-native-version: niedrigste unterstuetzte Native-Version, steuert den "Im Store aktualisieren"-Hinweis
-  web-build-hash: ${APP_WEB_BUILD_HASH:dev}
+  # Native App (Capacitor) - min-native-version fuer GET /api/app/version,
+  # steuert den "Im Store aktualisieren"-Hinweis (Web-Updates laufen ueber Capgo)
   min-native-version: ${APP_MIN_NATIVE_VERSION:1}
   # Capgo Live-Update Self-Hosting: Verzeichnis der Bundle-Zips + absolute Download-Basis-URL
   # bundle-base-url leer = aus dem Request abgeleitet (lokal/dev); in Prod auf https://ev-monitor.net/api/app/bundle setzen

@@ -14,14 +14,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * Tests for AppVersionController.
  *
- * Der Endpoint liefert die Versions-Metadaten der nativen App (Capacitor):
- * den aktuellen Web-Build-Hash (steuert spaeter Live-Updates) und die minimal
- * erforderliche Native-Version (steuert den "Bitte im Store aktualisieren"-Hinweis).
- * Er muss oeffentlich erreichbar sein, weil die App die Version schon vor dem
- * Login prueft.
+ * Der Endpoint liefert die minimal erforderliche Native-Version (steuert den
+ * "Bitte im Store aktualisieren"-Hinweis). Web-Bundle-Updates laufen ueber Capgo,
+ * daher kein webBuildHash mehr. Oeffentlich erreichbar, weil die App die Version
+ * schon vor dem Login prueft.
  */
 @SpringBootTest(properties = {
-        "app.web-build-hash=abc1234",
         "app.min-native-version=42"
 })
 @AutoConfigureMockMvc
@@ -32,10 +30,9 @@ class AppVersionControllerTest {
     private MockMvc mockMvc;
 
     @Test
-    void getVersion_returnsConfiguredMetadata_withoutAuth() throws Exception {
+    void getVersion_returnsMinNativeVersion_withoutAuth() throws Exception {
         mockMvc.perform(get("/api/app/version"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.webBuildHash").value("abc1234"))
                 .andExpect(jsonPath("$.minNativeVersion").value(42));
     }
 }
