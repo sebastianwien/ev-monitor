@@ -7,6 +7,8 @@ import org.junit.jupiter.api.Test;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -79,5 +81,31 @@ class AppUpdateServiceTest {
         assertThat(service.findUpdateFor("1.0.9"))
                 .map(AppBundle::getVersion)
                 .contains("1.0.10");
+    }
+
+    @Test
+    void publish_savesBundle_withFilenameDerivedFromVersion() {
+        when(repository.findByVersion("1.0.42")).thenReturn(Optional.empty());
+        when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        AppBundle saved = service.publish("1.0.42", "sha256-deadbeef");
+
+        assertThat(saved.getVersion()).isEqualTo("1.0.42");
+        assertThat(saved.getChecksum()).isEqualTo("sha256-deadbeef");
+        assertThat(saved.getFilename()).isEqualTo("1.0.42.zip");
+    }
+
+    @Test
+    void publish_rejectsNonSemverVersion() {
+        assertThatThrownBy(() -> service.publish("not-semver", "sum"))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void publish_rejectsDuplicateVersion() {
+        when(repository.findByVersion("1.0.42")).thenReturn(Optional.of(bundle("1.0.42")));
+
+        assertThatThrownBy(() -> service.publish("1.0.42", "sum"))
+                .isInstanceOf(IllegalStateException.class);
     }
 }

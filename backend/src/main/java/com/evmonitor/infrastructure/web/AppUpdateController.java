@@ -3,19 +3,24 @@ package com.evmonitor.infrastructure.web;
 import com.evmonitor.application.AppUpdateService;
 import com.evmonitor.application.CapgoUpdateRequest;
 import com.evmonitor.application.CapgoUpdateResponse;
+import com.evmonitor.application.PublishBundleRequest;
 import com.evmonitor.domain.AppBundle;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.PathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
@@ -34,14 +39,17 @@ public class AppUpdateController {
     private final AppUpdateService updateService;
     private final Path bundleDir;
     private final String bundleBaseUrl;
+    private final String publishToken;
 
     public AppUpdateController(
             AppUpdateService updateService,
             @Value("${app.bundle-dir:/opt/ev-monitor/app-bundles}") String bundleDir,
-            @Value("${app.bundle-base-url:}") String bundleBaseUrl) {
+            @Value("${app.bundle-base-url:}") String bundleBaseUrl,
+            @Value("${app.bundle-publish-token:}") String publishToken) {
         this.updateService = updateService;
         this.bundleDir = Path.of(bundleDir).normalize();
         this.bundleBaseUrl = bundleBaseUrl;
+        this.publishToken = publishToken;
     }
 
     @PostMapping("/updates")
@@ -73,6 +81,40 @@ public class AppUpdateController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + bundle.getFilename() + "\"")
                 .contentLength(Files.size(file))
                 .body(new PathResource(file));
+    }
+
+    /**
+     * Registriert ein von der CI hochgeladenes Bundle. Geschuetzt per Shared-Secret-Token
+     * (Header X-App-Bundle-Token); ohne konfiguriertes Token ist der Endpoint deaktiviert
+     * (fail-closed).
+     */
+    @PostMapping("/bundles")
+    public ResponseEntity<?> publishBundle(
+            @RequestHeader(value = "X-App-Bundle-Token", required = false) String token,
+            @RequestBody(required = false) PublishBundleRequest request) {
+        if (!isAuthorizedToPublish(token)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        if (request == null
+                || request.version() == null || !SEMVER.matcher(request.version()).matches()
+                || request.checksum() == null || request.checksum().isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+        try {
+            AppBundle saved = updateService.publish(request.version(), request.checksum());
+            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("version", saved.getVersion()));
+        } catch (IllegalStateException duplicate) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).build();
+        }
+    }
+
+    private boolean isAuthorizedToPublish(String token) {
+        if (publishToken == null || publishToken.isBlank() || token == null) {
+            return false;
+        }
+        return MessageDigest.isEqual(
+                token.getBytes(StandardCharsets.UTF_8),
+                publishToken.getBytes(StandardCharsets.UTF_8));
     }
 
     private String bundleUrl(String version) {

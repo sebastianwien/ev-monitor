@@ -47,6 +47,7 @@ class AppUpdateControllerTest {
     static void props(DynamicPropertyRegistry registry) {
         registry.add("app.bundle-dir", () -> bundleDir.toString());
         registry.add("app.bundle-base-url", () -> "https://test.local/api/app/bundle");
+        registry.add("app.bundle-publish-token", () -> "test-secret");
     }
 
     @Autowired
@@ -111,5 +112,55 @@ class AppUpdateControllerTest {
     void downloadBundle_whenVersionMalformed_returns400() throws Exception {
         mockMvc.perform(get("/api/app/bundle/not-a-version.zip"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void publishBundle_withValidToken_returns201() throws Exception {
+        when(updateService.publish("1.0.42", "sha256-abc")).thenReturn(bundle("1.0.42"));
+
+        mockMvc.perform(post("/api/app/bundles")
+                        .header("X-App-Bundle-Token", "test-secret")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"version\":\"1.0.42\",\"checksum\":\"sha256-abc\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.version").value("1.0.42"));
+    }
+
+    @Test
+    void publishBundle_withWrongToken_returns403() throws Exception {
+        mockMvc.perform(post("/api/app/bundles")
+                        .header("X-App-Bundle-Token", "wrong")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"version\":\"1.0.42\",\"checksum\":\"sha256-abc\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void publishBundle_withoutToken_returns403() throws Exception {
+        mockMvc.perform(post("/api/app/bundles")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"version\":\"1.0.42\",\"checksum\":\"sha256-abc\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void publishBundle_withInvalidVersion_returns400() throws Exception {
+        mockMvc.perform(post("/api/app/bundles")
+                        .header("X-App-Bundle-Token", "test-secret")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"version\":\"not-semver\",\"checksum\":\"sha256-abc\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void publishBundle_whenVersionExists_returns409() throws Exception {
+        when(updateService.publish("1.0.42", "sha256-abc"))
+                .thenThrow(new IllegalStateException("bundle already exists: 1.0.42"));
+
+        mockMvc.perform(post("/api/app/bundles")
+                        .header("X-App-Bundle-Token", "test-secret")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"version\":\"1.0.42\",\"checksum\":\"sha256-abc\"}"))
+                .andExpect(status().isConflict());
     }
 }

@@ -130,6 +130,8 @@ app:
   # bundle-base-url leer = aus dem Request abgeleitet (lokal/dev); in Prod auf https://ev-monitor.net/api/app/bundle setzen
   bundle-dir: ${APP_BUNDLE_DIR:/opt/ev-monitor/app-bundles}
   bundle-base-url: ${APP_BUNDLE_BASE_URL:}
+  # Shared-Secret fuer POST /api/app/bundles (CI registriert ein Bundle). Leer = Endpoint deaktiviert.
+  bundle-publish-token: ${APP_BUNDLE_PUBLISH_TOKEN:}
   mail:
     from: ${APP_MAIL_FROM:noreply@ev-monitor.net}
   github:

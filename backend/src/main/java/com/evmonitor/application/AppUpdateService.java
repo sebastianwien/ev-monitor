@@ -36,6 +36,28 @@ public class AppUpdateService {
     }
 
     /**
+     * Registriert ein von der CI hochgeladenes Bundle. Der Dateiname wird serverseitig
+     * aus der Version abgeleitet (kein vom Aufrufer kontrollierter Pfad).
+     *
+     * @throws IllegalArgumentException wenn die Version keine Semver-Version ist
+     * @throws IllegalStateException    wenn die Version bereits existiert
+     */
+    @Transactional
+    public AppBundle publish(String version, String checksum) {
+        if (parseSemver(version) == null) {
+            throw new IllegalArgumentException("version must be semver: " + version);
+        }
+        if (repository.findByVersion(version).isPresent()) {
+            throw new IllegalStateException("bundle already exists: " + version);
+        }
+        return repository.save(AppBundle.builder()
+                .version(version)
+                .checksum(checksum)
+                .filename(version + ".zip")
+                .build());
+    }
+
+    /**
      * True, wenn {@code candidate} eine hoehere Semver-Version ist als {@code current}.
      * Ist {@code current} keine parsebare Semver-Version (z.B. "builtin" bei Fresh-Installs),
      * gilt jedes echte Bundle als neuer.
