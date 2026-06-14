@@ -70,19 +70,40 @@ class UserSubscriptionTierTest {
     }
 
     @Test
-    void canViewLiveTrips_onlyForLiveTierOrBetaOrAdmin() {
-        // Same gate as canUseTripPush: AutoSync-Live-tier OR privileged role.
-        // TESLA_FOUNDER without Live-tier is CHARGING_ONLY → must not see live trips.
-        // Tessie-imported trips are handled in TripService (whitelist by data_source),
-        // not here.
-        assertTrue(buildUser("USER", SubscriptionTier.AUTOSYNC_LIVE).canViewLiveTrips());
-        assertTrue(buildUser("BETA_TESTER", SubscriptionTier.NONE).canViewLiveTrips());
-        assertTrue(buildUser("ADMIN", SubscriptionTier.NONE).canViewLiveTrips());
-        assertTrue(buildUser("TESLA_FOUNDER", SubscriptionTier.AUTOSYNC_LIVE).canViewLiveTrips());
-        assertFalse(buildUser("USER", SubscriptionTier.AUTOSYNC).canViewLiveTrips());
-        assertFalse(buildUser("USER", SubscriptionTier.NONE).canViewLiveTrips());
-        assertFalse(buildUser("TESLA_FOUNDER", SubscriptionTier.NONE).canViewLiveTrips());
-        assertFalse(buildUser("TESLA_FOUNDER", SubscriptionTier.AUTOSYNC).canViewLiveTrips());
+    void canViewLiveTrips_teslaCar_freeForEveryone() {
+        // Trip detection is part of the free Tesla tier: any tier/role sees live trips
+        // for a Tesla car. (Car-model eligibility is enforced separately in TripService.)
+        assertTrue(buildUser("USER", SubscriptionTier.NONE).canViewLiveTrips(CarBrand.TESLA));
+        assertTrue(buildUser("USER", SubscriptionTier.AUTOSYNC).canViewLiveTrips(CarBrand.TESLA));
+        assertTrue(buildUser("TESLA_FOUNDER", SubscriptionTier.NONE).canViewLiveTrips(CarBrand.TESLA));
+    }
+
+    @Test
+    void canViewLiveTrips_nonTeslaCar_onlyForLiveTierOrBetaOrAdmin() {
+        // Other brands stay on the paid analytics gate. null brand (car not found) is
+        // treated as non-free and falls back to the same paid gate.
+        assertTrue(buildUser("USER", SubscriptionTier.AUTOSYNC_LIVE).canViewLiveTrips(CarBrand.VW));
+        assertTrue(buildUser("BETA_TESTER", SubscriptionTier.NONE).canViewLiveTrips(CarBrand.VW));
+        assertTrue(buildUser("ADMIN", SubscriptionTier.NONE).canViewLiveTrips(CarBrand.VW));
+        assertTrue(buildUser("TESLA_FOUNDER", SubscriptionTier.AUTOSYNC_LIVE).canViewLiveTrips(CarBrand.VW));
+        assertFalse(buildUser("USER", SubscriptionTier.AUTOSYNC).canViewLiveTrips(CarBrand.VW));
+        assertFalse(buildUser("USER", SubscriptionTier.NONE).canViewLiveTrips(CarBrand.VW));
+        assertFalse(buildUser("TESLA_FOUNDER", SubscriptionTier.NONE).canViewLiveTrips(CarBrand.VW));
+        assertFalse(buildUser("USER", SubscriptionTier.NONE).canViewLiveTrips(null));
+    }
+
+    @Test
+    void canViewLiveAnalytics_premiumGate_noTeslaFreePath() {
+        // Paid analytics layer (power curves, phantom drain, energy split): AUTOSYNC_LIVE
+        // or ADMIN/BETA_TESTER, for EVERY brand. There is no brand argument by design -
+        // this gate never goes free for Tesla.
+        assertTrue(buildUser("USER", SubscriptionTier.AUTOSYNC_LIVE).canViewLiveAnalytics());
+        assertTrue(buildUser("BETA_TESTER", SubscriptionTier.NONE).canViewLiveAnalytics());
+        assertTrue(buildUser("ADMIN", SubscriptionTier.NONE).canViewLiveAnalytics());
+        assertFalse(buildUser("USER", SubscriptionTier.AUTOSYNC).canViewLiveAnalytics());
+        assertFalse(buildUser("USER", SubscriptionTier.NONE).canViewLiveAnalytics());
+        assertFalse(buildUser("TESLA_FOUNDER", SubscriptionTier.NONE).canViewLiveAnalytics());
+        assertFalse(buildUser("TESLA_FOUNDER", SubscriptionTier.AUTOSYNC).canViewLiveAnalytics());
     }
 
     @Test

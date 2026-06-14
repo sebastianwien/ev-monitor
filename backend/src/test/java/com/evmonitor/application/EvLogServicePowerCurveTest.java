@@ -17,7 +17,8 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Integration test: EvLogService.getPowerCurveForUser - ownership gate + JSON round-trip.
+ * Integration test: EvLogService.getPowerCurveForUser - ownership gate, paid-analytics
+ * gate (historical curves stay premium for all brands) + JSON round-trip.
  */
 class EvLogServicePowerCurveTest extends AbstractIntegrationTest {
 
@@ -25,15 +26,15 @@ class EvLogServicePowerCurveTest extends AbstractIntegrationTest {
     @Autowired private EvLogRepository evLogRepository;
 
     @Test
-    void getPowerCurve_logWithCurve_returnsParsedPoints() {
-        User user = createAndSaveUser("pc-curve-" + System.nanoTime() + "@test.com");
+    void getPowerCurve_entitledOwner_logWithCurve_returnsParsedPoints() {
+        User user = createAndSaveAutoSyncLiveUser("pc-curve-" + System.nanoTime() + "@test.com");
         Car car = createAndSaveCar(user.getId(), CarBrand.CarModel.MODEL_3);
         EvLog log = saveLogWith(car.getId(), DataSource.TESLA_LIVE);
         // Mimic what the connectors-side push writes into the JSONB column.
         evLogRepository.updatePowerCurvePoints(log.getId(),
                 "[{\"ts\":1715515200000,\"kw\":42.5},{\"ts\":1715515260000,\"kw\":150.0}]");
 
-        PowerCurveResponse res = evLogService.getPowerCurveForUser(log.getId(), user.getId());
+        PowerCurveResponse res = evLogService.getPowerCurveForUser(log.getId(), user);
 
         assertEquals(2, res.points().size());
         assertEquals(1715515200000L, res.points().get(0).ts());
@@ -42,34 +43,51 @@ class EvLogServicePowerCurveTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void getPowerCurve_logWithoutCurve_returnsEmptyList() {
-        User user = createAndSaveUser("pc-empty-" + System.nanoTime() + "@test.com");
+    void getPowerCurve_nonEntitledOwner_logWithCurve_returnsEmpty() {
+        // Historical curves stay premium even for Tesla: a free owner with a persisted
+        // curve gets an empty response (the gate), not the points.
+        User user = createAndSaveUser("pc-free-" + System.nanoTime() + "@test.com");
+        Car car = createAndSaveCar(user.getId(), CarBrand.CarModel.MODEL_3);
+        EvLog log = saveLogWith(car.getId(), DataSource.TESLA_LIVE);
+        evLogRepository.updatePowerCurvePoints(log.getId(),
+                "[{\"ts\":1715515200000,\"kw\":42.5},{\"ts\":1715515260000,\"kw\":150.0}]");
+
+        PowerCurveResponse res = evLogService.getPowerCurveForUser(log.getId(), user);
+
+        assertTrue(res.points().isEmpty());
+    }
+
+    @Test
+    void getPowerCurve_entitledOwner_logWithoutCurve_returnsEmptyList() {
+        User user = createAndSaveAutoSyncLiveUser("pc-empty-" + System.nanoTime() + "@test.com");
         Car car = createAndSaveCar(user.getId(), CarBrand.CarModel.MODEL_3);
         EvLog log = saveLogWith(car.getId(), DataSource.WALLBOX_OCPP);
 
-        PowerCurveResponse res = evLogService.getPowerCurveForUser(log.getId(), user.getId());
+        PowerCurveResponse res = evLogService.getPowerCurveForUser(log.getId(), user);
 
         assertTrue(res.points().isEmpty());
     }
 
     @Test
     void getPowerCurve_nonOwner_throws() {
-        User owner = createAndSaveUser("pc-owner-" + System.nanoTime() + "@test.com");
-        User intruder = createAndSaveUser("pc-intruder-" + System.nanoTime() + "@test.com");
+        User owner = createAndSaveAutoSyncLiveUser("pc-owner-" + System.nanoTime() + "@test.com");
+        User intruder = createAndSaveAutoSyncLiveUser("pc-intruder-" + System.nanoTime() + "@test.com");
         Car car = createAndSaveCar(owner.getId(), CarBrand.CarModel.MODEL_3);
         EvLog log = saveLogWith(car.getId(), DataSource.TESLA_LIVE);
         evLogRepository.updatePowerCurvePoints(log.getId(),
                 "[{\"ts\":1715515200000,\"kw\":42.5}]");
 
+        // Ownership is checked before the analytics gate, so a non-owner gets 404 even
+        // though they hold the entitlement.
         assertThrows(IllegalArgumentException.class,
-                () -> evLogService.getPowerCurveForUser(log.getId(), intruder.getId()));
+                () -> evLogService.getPowerCurveForUser(log.getId(), intruder));
     }
 
     @Test
     void getPowerCurve_unknownLogId_throws() {
-        User user = createAndSaveUser("pc-unknown-" + System.nanoTime() + "@test.com");
+        User user = createAndSaveAutoSyncLiveUser("pc-unknown-" + System.nanoTime() + "@test.com");
         assertThrows(IllegalArgumentException.class,
-                () -> evLogService.getPowerCurveForUser(UUID.randomUUID(), user.getId()));
+                () -> evLogService.getPowerCurveForUser(UUID.randomUUID(), user));
     }
 
     private EvLog saveLogWith(UUID carId, DataSource source) {

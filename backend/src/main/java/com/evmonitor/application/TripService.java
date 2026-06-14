@@ -284,11 +284,12 @@ public class TripService {
         if (!car.getUserId().equals(user.getId())) {
             throw new IllegalArgumentException("Car not owned by user");
         }
-        // Live trips are visible only if (a) the user holds the AutoSync-Live entitlement
-        // AND (b) the car model is on the eligibility whitelist (Tesla + Polestar 2/4 today).
-        // ADMIN / BETA_TESTER bypass (b) so they can audit data quality of blocked models.
-        // Non-live sources (TESSIE, USER_CREATED, ...) are always returned to the owner.
-        boolean canSeeLiveForThisCar = user.canViewLiveTrips()
+        // Live trips are visible only if (a) the user may view live trips for this car's
+        // brand (free for Tesla, paid AutoSync-Live for other brands) AND (b) the car model
+        // is on the eligibility whitelist (Tesla + Polestar 2/4 today). ADMIN / BETA_TESTER
+        // bypass (b) so they can audit data quality of blocked models. Non-live sources
+        // (TESSIE, USER_CREATED, ...) are always returned to the owner.
+        boolean canSeeLiveForThisCar = user.canViewLiveTrips(car.getModel().getBrand())
                 && (user.canBypassEligibilityGate() || TripDetectionEligibility.isEligible(car));
         List<EvTrip> trips = canSeeLiveForThisCar
                 ? tripRepository.findByUserIdAndCarIdAndDeletedAtIsNullOrderByTripEndedAtDesc(
@@ -306,14 +307,15 @@ public class TripService {
      *   3. car-model eligibility - even Tier-2 customers see live trips only for
      *      whitelisted models (Tesla, Polestar 2/4) unless they hold ADMIN/BETA_TESTER.
      *
-     * Performs a Car lookup only when steps 1+2 already passed and the car-model
-     * gate matters. Tessie / USER_CREATED edits skip the DB hit entirely.
+     * Tessie / USER_CREATED edits skip the DB hit entirely. Live-source trips need the
+     * car anyway (brand gate + eligibility), so it is loaded up front for those.
      */
     public boolean userCanSeeTrip(EvTrip trip, User user) {
         if (!trip.isLiveSource()) return true;
-        if (!user.canViewLiveTrips()) return false;
-        if (user.canBypassEligibilityGate()) return true;
         Car car = carRepository.findById(trip.getCarId()).orElse(null);
+        CarBrand brand = car != null ? car.getModel().getBrand() : null;
+        if (!user.canViewLiveTrips(brand)) return false;
+        if (user.canBypassEligibilityGate()) return true;
         return TripDetectionEligibility.isEligible(car);
     }
 }

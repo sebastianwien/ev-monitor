@@ -115,13 +115,27 @@ public class User {
     }
 
     /**
-     * Centralised gate for viewing live-detected trips (SMARTCAR_LIVE, TESLA_LIVE,
-     * TESLA_INFERRED) in the dashboard. Same gate as {@link #canUseTripPush()}: the
-     * Tier-2 entitlement covers both the streaming/push and the display side.
-     * Tessie-imported trips bypass this gate (handled in TripService by data_source
-     * whitelist), because those are the user's own historical data.
+     * Marken-aware gate for viewing live-detected trips (SMARTCAR_LIVE, TESLA_LIVE,
+     * TESLA_INFERRED) in the dashboard. Trip detection is part of the free Tesla tier,
+     * so Tesla cars see their live trips regardless of subscription; other brands stay
+     * on the paid {@link #canViewLiveAnalytics()} gate. Tessie-imported trips bypass this
+     * entirely (handled in TripService by data_source whitelist).
+     *
+     * <p>Note: the live trips themselves are free for Tesla, but the derived
+     * <em>phantom-drain</em> and <em>energy-split</em> analytics stay premium - those are
+     * gated separately on the display side via {@link #canViewLiveAnalytics()}.
      */
-    public boolean canViewLiveTrips() {
+    public boolean canViewLiveTrips(CarBrand brand) {
+        return brand == CarBrand.TESLA || canViewLiveAnalytics();
+    }
+
+    /**
+     * Premium analytics gate (AUTOSYNC_LIVE subscription, ADMIN or BETA_TESTER). Unlike
+     * {@link #canViewLiveTrips(CarBrand)} this has NO Tesla-free path - it gates the paid
+     * analytics layer that stays premium for every brand: historical power curves,
+     * phantom drain, and the energy-split breakdown.
+     */
+    public boolean canViewLiveAnalytics() {
         return subscriptionTier == SubscriptionTier.AUTOSYNC_LIVE
                 || TRIP_PUSH_PRIVILEGED_ROLES.contains(role);
     }

@@ -30,7 +30,8 @@ public class TripController {
      *    und Echtzeit, nicht ueber Feature-Lockout).
      *  - R/U/M/D (GET/PATCH/POST-merge/DELETE): owner-only, plus data-source gate:
      *      * Live-detected trips (TESLA_LIVE, SMARTCAR_LIVE, TESLA_INFERRED) require
-     *        {@link com.evmonitor.domain.User#canViewLiveTrips()} - Tier-2/privileged gate.
+     *        {@link com.evmonitor.domain.User#canViewLiveTrips(com.evmonitor.domain.CarBrand)} -
+     *        free for Tesla cars, otherwise the paid AutoSync-Live gate.
      *      * Imported/manual trips (TESSIE, USER_CREATED, etc.) sind fuer den Owner immer
      *        zugaenglich, unabhaengig von Subscription - sind ja seine eigenen Daten.
      *    Trips that the user cannot see return 404 (not 403) to avoid leaking trip

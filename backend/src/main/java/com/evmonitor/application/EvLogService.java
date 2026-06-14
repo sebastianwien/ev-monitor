@@ -360,20 +360,29 @@ public class EvLogService {
 
     /**
      * Returns the persisted downsampled charging-power curve for the given log,
-     * gated by ownership. {@link PowerCurveResponse#empty()} when the log has no
-     * curve (most data sources). Throws {@link IllegalArgumentException} on
-     * log-not-found or ownership mismatch - mapped to 404 by the controller.
+     * gated by ownership AND the paid analytics entitlement. The raw Tesla data is
+     * free, but the historical power-curve view stays premium for every brand, so a
+     * non-entitled owner gets {@link PowerCurveResponse#empty()} - same as a log that
+     * simply has no curve (most data sources). Throws {@link IllegalArgumentException}
+     * on log-not-found or ownership mismatch - mapped to 404 by the controller.
      */
     @Transactional(readOnly = true)
-    public PowerCurveResponse getPowerCurveForUser(UUID logId, UUID userId) {
+    public PowerCurveResponse getPowerCurveForUser(UUID logId, User user) {
         // Single JOIN-Query: holt owner-userId + curve-JSON in einem DB-Roundtrip.
         // Spart zwei separate findById-Calls (Log + Car) gegenueber der vorherigen
         // Implementierung, ohne die Ownership-Garantie zu schwaechen.
         EvLogRepository.PowerCurveLookup lookup = evLogRepository.findOwnerIdAndPowerCurveJson(logId)
                 .orElseThrow(() -> new IllegalArgumentException("Log not found with ID: " + logId));
 
-        if (!lookup.ownerUserId().equals(userId)) {
+        if (!lookup.ownerUserId().equals(user.getId())) {
             throw new IllegalArgumentException("Log not found for current user (ownership mismatch).");
+        }
+
+        // Historical power curves are a paid AutoSync-Live analytics feature. Ownership is
+        // checked first so a non-owner still gets a 404 (no existence leak); a non-entitled
+        // owner just gets an empty curve.
+        if (!user.canViewLiveAnalytics()) {
+            return PowerCurveResponse.empty();
         }
 
         String json = lookup.powerCurvePointsJson();

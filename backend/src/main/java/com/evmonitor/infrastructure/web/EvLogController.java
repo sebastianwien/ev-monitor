@@ -114,7 +114,7 @@ public class EvLogController {
                 return ResponseEntity.status(org.springframework.http.HttpStatus.NOT_MODIFIED).eTag(etag).build();
             }
             com.evmonitor.application.PowerCurveResponse body =
-                    evLogService.getPowerCurveForUser(id, principal.getUser().getId());
+                    evLogService.getPowerCurveForUser(id, principal.getUser());
             return ResponseEntity.ok()
                     .eTag(etag)
                     .cacheControl(org.springframework.http.CacheControl.maxAge(java.time.Duration.ofDays(7)).cachePrivate())
