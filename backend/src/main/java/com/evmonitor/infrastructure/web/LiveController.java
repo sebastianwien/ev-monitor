@@ -27,8 +27,9 @@ import java.util.UUID;
  * <ol>
  *   <li>Caller must be authenticated (covered by SecurityConfig for all /api/**).</li>
  *   <li>Caller must own the car ({@code car.userId == user.id}).</li>
- *   <li>Caller must have Tier-2 entitlement ({@link User#canViewLiveCharging()}) -
- *       i.e. AUTOSYNC_LIVE subscription, ADMIN, or BETA_TESTER role.</li>
+ *   <li>Caller must have the live-charging entitlement
+ *       ({@link User#canViewLiveCharging(com.evmonitor.domain.CarBrand)}) - free for
+ *       Tesla cars, otherwise AUTOSYNC_LIVE subscription or ADMIN role.</li>
  * </ol>
  *
  * <p>Ownership is checked BEFORE the tier gate to avoid leaking car existence
@@ -63,7 +64,7 @@ public class LiveController {
             throw ForbiddenException.notOwner("Car", carId);
         }
 
-        if (!user.canViewLiveCharging()) {
+        if (!user.canViewLiveCharging(car.getModel().getBrand())) {
             throw new ForbiddenException("AutoSync Live entitlement required for live charging data");
         }
 
@@ -98,7 +99,7 @@ public class LiveController {
             throw ForbiddenException.notOwner("Car", carId);
         }
 
-        if (!user.canViewLiveCharging()) {
+        if (!user.canViewLiveCharging(car.getModel().getBrand())) {
             throw new ForbiddenException("AutoSync Live entitlement required for live charging data");
         }
 

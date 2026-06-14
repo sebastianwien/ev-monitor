@@ -90,6 +90,15 @@ public class Car {
     }
 
     /**
+     * True if this car is a Tesla. Drives the marken-aware entitlement gates:
+     * Tesla cars get free Fleet-Telemetry data plus the live-charging card, while
+     * other brands stay on the paid AutoSync model.
+     */
+    public boolean isTesla() {
+        return model != null && model.getBrand() == CarBrand.TESLA;
+    }
+
+    /**
      * Nominale Netto-Kapazitaet (vor SoH-Adjustierung). Single Source of Truth fuer
      * "wieviel kWh netto hat dieses Auto laut Stammdaten". Vorrang: specNet, sonst customNet.
      */

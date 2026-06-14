@@ -127,12 +127,18 @@ public class User {
     }
 
     /**
-     * Strict gate for the dashboard Live-Charging card (current power, SoC, ETA, history).
-     * Reserved for paying Tier-2 subscribers and ADMINs only - BETA_TESTERs explicitly
-     * excluded so the card stays a paid-feature preview.
+     * Gate for the dashboard Live-Charging card (current power, SoC, ETA, history).
+     * Marken-aware: free for Tesla drivers (data collection and the live card are part
+     * of the free Tesla tier), otherwise reserved for paying AUTOSYNC_LIVE subscribers
+     * and ADMINs. BETA_TESTERs without Live tier are excluded for non-Tesla cars so the
+     * card stays a paid-feature preview there.
+     *
+     * <p>Ownership ({@code car.userId == user.id}) is a separate concern enforced at the
+     * call site BEFORE this entitlement check.
      */
-    public boolean canViewLiveCharging() {
-        return subscriptionTier == SubscriptionTier.AUTOSYNC_LIVE
+    public boolean canViewLiveCharging(CarBrand brand) {
+        return brand == CarBrand.TESLA
+                || subscriptionTier == SubscriptionTier.AUTOSYNC_LIVE
                 || "ADMIN".equals(role);
     }
 
@@ -165,20 +171,15 @@ public class User {
      * Telemetry profile this user is entitled to. Drives the connectors-service
      * profile push. Caller MUST have already verified {@link #canActivateTelemetry()}.
      *
-     * <ul>
-     *   <li>Live-tier subscribers (AUTOSYNC_LIVE) → FULL</li>
-     *   <li>BETA_TESTER, ADMIN → FULL (privileged roles always get trip-streaming)</li>
-     *   <li>everyone else (AUTOSYNC, TESLA_FOUNDER, etc.) → CHARGING_ONLY</li>
-     * </ul>
+     * <p>Tesla Fleet-Telemetry data collection is free for all Tesla drivers, so every
+     * Tesla connection streams the {@link TelemetryProfile#FULL} field set regardless of
+     * tier or role. The paid AutoSync Live tier no longer gates <em>data ingestion</em> -
+     * it gates the <em>analytics views</em> (historical power curves, phantom drain,
+     * energy split), while the live-charging card is free for Tesla via
+     * {@link #canViewLiveCharging(CarBrand)}.
      */
     public TelemetryProfile preferredTelemetryProfile() {
-        if (subscriptionTier == SubscriptionTier.AUTOSYNC_LIVE) {
-            return TelemetryProfile.FULL;
-        }
-        if (FULL_PROFILE_PRIVILEGED_ROLES.contains(role)) {
-            return TelemetryProfile.FULL;
-        }
-        return TelemetryProfile.CHARGING_ONLY;
+        return TelemetryProfile.FULL;
     }
 
     /**

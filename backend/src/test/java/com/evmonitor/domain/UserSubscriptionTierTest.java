@@ -16,18 +16,21 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <pre>
  *   tier              role             preferredProfile   canUseTripPush
  *   ----              ----             ----------------   --------------
- *   NONE              USER             CHARGING_ONLY*     false
- *   AUTOSYNC          USER             CHARGING_ONLY      false
+ *   NONE              USER             FULL               false
+ *   AUTOSYNC          USER             FULL               false
  *   AUTOSYNC_LIVE     USER             FULL               true
- *   NONE              TESLA_FOUNDER    CHARGING_ONLY      false
- *   AUTOSYNC          TESLA_FOUNDER    CHARGING_ONLY      false
+ *   NONE              TESLA_FOUNDER    FULL               false
+ *   AUTOSYNC          TESLA_FOUNDER    FULL               false
  *   AUTOSYNC_LIVE     TESLA_FOUNDER    FULL               true   ← founder upgrades
  *   NONE              BETA_TESTER      FULL               true   ← grandfathered beta
  *   NONE              ADMIN            FULL               true
  * </pre>
  *
- * (*) {@code preferredProfile} for tier=NONE/role=USER is academic - the caller
- * MUST gate via {@link User#canActivateTelemetry()} before pushing any profile.
+ * {@code preferredProfile} is always FULL: Tesla Fleet-Telemetry data collection is
+ * free for every Tesla driver. The caller still MUST gate via
+ * {@link User#canActivateTelemetry()} before pushing any profile. {@code canUseTripPush}
+ * still tracks the paid AutoSync Live tier (the brand-aware free path for trips lands
+ * with {@code canViewLiveTrips(CarBrand)} in a later change).
  */
 class UserSubscriptionTierTest {
 
@@ -38,35 +41,19 @@ class UserSubscriptionTierTest {
     }
 
     @Test
-    void autoSyncTier_routesToChargingOnly() {
-        assertEquals(TelemetryProfile.CHARGING_ONLY,
+    void allTiersAndRoles_routeToFull_dataCollectionIsFreeForTesla() {
+        // Tesla data collection is free: every Tesla connection streams FULL regardless
+        // of tier or role. The paywall moved from data ingestion to the analytics views.
+        assertEquals(TelemetryProfile.FULL,
+                buildUser("USER", SubscriptionTier.NONE).preferredTelemetryProfile());
+        assertEquals(TelemetryProfile.FULL,
                 buildUser("USER", SubscriptionTier.AUTOSYNC).preferredTelemetryProfile());
-    }
-
-    @Test
-    void liveTier_routesToFull() {
         assertEquals(TelemetryProfile.FULL,
                 buildUser("USER", SubscriptionTier.AUTOSYNC_LIVE).preferredTelemetryProfile());
-    }
-
-    @Test
-    void betaTester_alwaysFull_evenWithoutTier() {
+        assertEquals(TelemetryProfile.FULL,
+                buildUser("TESLA_FOUNDER", SubscriptionTier.NONE).preferredTelemetryProfile());
         assertEquals(TelemetryProfile.FULL,
                 buildUser("BETA_TESTER", SubscriptionTier.NONE).preferredTelemetryProfile());
-    }
-
-    @Test
-    void teslaFounder_chargingOnly_unlessLiveTier() {
-        assertEquals(TelemetryProfile.CHARGING_ONLY,
-                buildUser("TESLA_FOUNDER", SubscriptionTier.NONE).preferredTelemetryProfile());
-        assertEquals(TelemetryProfile.CHARGING_ONLY,
-                buildUser("TESLA_FOUNDER", SubscriptionTier.AUTOSYNC).preferredTelemetryProfile());
-        assertEquals(TelemetryProfile.FULL,
-                buildUser("TESLA_FOUNDER", SubscriptionTier.AUTOSYNC_LIVE).preferredTelemetryProfile());
-    }
-
-    @Test
-    void admin_alwaysFull() {
         assertEquals(TelemetryProfile.FULL,
                 buildUser("ADMIN", SubscriptionTier.NONE).preferredTelemetryProfile());
     }
@@ -99,17 +86,26 @@ class UserSubscriptionTierTest {
     }
 
     @Test
-    void canViewLiveCharging_onlyForLiveTierOrAdmin_betaTesterExcluded() {
-        // Strict gate for the dashboard Live-Charging card: AUTOSYNC_LIVE or ADMIN only.
+    void canViewLiveCharging_teslaCar_freeForEveryone() {
+        // Live-charging card is part of the free Tesla tier: any owner of a Tesla car
+        // sees it regardless of subscription tier or role.
+        assertTrue(buildUser("USER", SubscriptionTier.NONE).canViewLiveCharging(CarBrand.TESLA));
+        assertTrue(buildUser("USER", SubscriptionTier.AUTOSYNC).canViewLiveCharging(CarBrand.TESLA));
+        assertTrue(buildUser("BETA_TESTER", SubscriptionTier.NONE).canViewLiveCharging(CarBrand.TESLA));
+    }
+
+    @Test
+    void canViewLiveCharging_nonTeslaCar_onlyForLiveTierOrAdmin_betaTesterExcluded() {
+        // For non-Tesla brands the card stays a paid feature: AUTOSYNC_LIVE or ADMIN only.
         // BETA_TESTER is intentionally excluded so the card remains a paid-feature preview.
-        assertTrue(buildUser("USER", SubscriptionTier.AUTOSYNC_LIVE).canViewLiveCharging());
-        assertTrue(buildUser("ADMIN", SubscriptionTier.NONE).canViewLiveCharging());
-        assertTrue(buildUser("TESLA_FOUNDER", SubscriptionTier.AUTOSYNC_LIVE).canViewLiveCharging());
-        assertFalse(buildUser("BETA_TESTER", SubscriptionTier.NONE).canViewLiveCharging());
-        assertFalse(buildUser("BETA_TESTER", SubscriptionTier.AUTOSYNC).canViewLiveCharging());
-        assertFalse(buildUser("USER", SubscriptionTier.AUTOSYNC).canViewLiveCharging());
-        assertFalse(buildUser("USER", SubscriptionTier.NONE).canViewLiveCharging());
-        assertFalse(buildUser("TESLA_FOUNDER", SubscriptionTier.NONE).canViewLiveCharging());
+        assertTrue(buildUser("USER", SubscriptionTier.AUTOSYNC_LIVE).canViewLiveCharging(CarBrand.VW));
+        assertTrue(buildUser("ADMIN", SubscriptionTier.NONE).canViewLiveCharging(CarBrand.VW));
+        assertTrue(buildUser("TESLA_FOUNDER", SubscriptionTier.AUTOSYNC_LIVE).canViewLiveCharging(CarBrand.VW));
+        assertFalse(buildUser("BETA_TESTER", SubscriptionTier.NONE).canViewLiveCharging(CarBrand.VW));
+        assertFalse(buildUser("BETA_TESTER", SubscriptionTier.AUTOSYNC).canViewLiveCharging(CarBrand.VW));
+        assertFalse(buildUser("USER", SubscriptionTier.AUTOSYNC).canViewLiveCharging(CarBrand.VW));
+        assertFalse(buildUser("USER", SubscriptionTier.NONE).canViewLiveCharging(CarBrand.VW));
+        assertFalse(buildUser("TESLA_FOUNDER", SubscriptionTier.NONE).canViewLiveCharging(CarBrand.VW));
     }
 
     @Test

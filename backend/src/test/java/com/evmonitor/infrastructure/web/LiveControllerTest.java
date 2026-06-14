@@ -142,11 +142,11 @@ class LiveControllerTest extends AbstractIntegrationTest {
         assertEquals(false, res.getBody().get("isActive"));
     }
 
-    // --- 403: AUTOSYNC (Tier 1) user ---
+    // --- 403: AUTOSYNC (Tier 1) user, NON-Tesla car (paywall stays for other brands) ---
 
     @Test
-    void getLiveCharging_tier1AutoSyncUser_returns403() {
-        Car tier1Car = createAndSaveCar(tier1User.getId(), CarBrand.CarModel.MODEL_3);
+    void getLiveCharging_tier1AutoSyncUser_nonTeslaCar_returns403() {
+        Car tier1Car = createAndSaveCar(tier1User.getId(), CarBrand.CarModel.ID_3);
 
         ResponseEntity<String> res = restTemplate.exchange(
                 "/api/cars/" + tier1Car.getId() + "/live/charging",
@@ -157,11 +157,11 @@ class LiveControllerTest extends AbstractIntegrationTest {
         assertEquals(HttpStatus.FORBIDDEN, res.getStatusCode());
     }
 
-    // --- 403: free user ---
+    // --- 403: free user, NON-Tesla car ---
 
     @Test
-    void getLiveCharging_freeUser_returns403() {
-        Car freeCar = createAndSaveCar(freeUser.getId(), CarBrand.CarModel.MODEL_3);
+    void getLiveCharging_freeUser_nonTeslaCar_returns403() {
+        Car freeCar = createAndSaveCar(freeUser.getId(), CarBrand.CarModel.ID_3);
 
         ResponseEntity<String> res = restTemplate.exchange(
                 "/api/cars/" + freeCar.getId() + "/live/charging",
@@ -170,6 +170,25 @@ class LiveControllerTest extends AbstractIntegrationTest {
                 String.class);
 
         assertEquals(HttpStatus.FORBIDDEN, res.getStatusCode());
+    }
+
+    // --- 200: free user, Tesla car (live card is free for Tesla) ---
+
+    @Test
+    void getLiveCharging_freeUser_teslaCar_returns200() {
+        Car freeTeslaCar = createAndSaveCar(freeUser.getId(), CarBrand.CarModel.MODEL_3);
+        when(liveChargingService.getLiveCharging(freeTeslaCar.getId()))
+                .thenReturn(LiveChargingResponse.inactive());
+
+        ResponseEntity<Map<String, Object>> res = restTemplate.exchange(
+                "/api/cars/" + freeTeslaCar.getId() + "/live/charging",
+                HttpMethod.GET,
+                new HttpEntity<>(createAuthHeaders(freeUser.getId(), freeUser.getEmail())),
+                new ParameterizedTypeReference<>() {});
+
+        assertEquals(HttpStatus.OK, res.getStatusCode());
+        assertNotNull(res.getBody());
+        assertEquals(false, res.getBody().get("isActive"));
     }
 
     // --- 403: user does not own the car ---
@@ -240,8 +259,8 @@ class LiveControllerTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void getLiveChargingHistory_tier1AutoSyncUser_returns403() {
-        Car tier1Car = createAndSaveCar(tier1User.getId(), CarBrand.CarModel.MODEL_3);
+    void getLiveChargingHistory_tier1AutoSyncUser_nonTeslaCar_returns403() {
+        Car tier1Car = createAndSaveCar(tier1User.getId(), CarBrand.CarModel.ID_3);
 
         ResponseEntity<String> res = restTemplate.exchange(
                 "/api/cars/" + tier1Car.getId() + "/live/charging/history?from=2026-05-12T08:00:00Z&to=2026-05-12T10:30:00Z",
@@ -250,6 +269,22 @@ class LiveControllerTest extends AbstractIntegrationTest {
                 String.class);
 
         assertEquals(HttpStatus.FORBIDDEN, res.getStatusCode());
+    }
+
+    @Test
+    void getLiveChargingHistory_freeUser_teslaCar_returns200() {
+        Car freeTeslaCar = createAndSaveCar(freeUser.getId(), CarBrand.CarModel.MODEL_3);
+        when(liveChargingService.getLiveChargingHistory(eq(freeTeslaCar.getId()), anyString(), anyString()))
+                .thenReturn(LiveChargingHistoryResponse.empty());
+
+        ResponseEntity<Map<String, Object>> res = restTemplate.exchange(
+                "/api/cars/" + freeTeslaCar.getId() + "/live/charging/history?from=2026-05-12T08:00:00Z&to=2026-05-12T10:30:00Z",
+                HttpMethod.GET,
+                new HttpEntity<>(createAuthHeaders(freeUser.getId(), freeUser.getEmail())),
+                new ParameterizedTypeReference<>() {});
+
+        assertEquals(HttpStatus.OK, res.getStatusCode());
+        assertNotNull(res.getBody());
     }
 
     @Test
