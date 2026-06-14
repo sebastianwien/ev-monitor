@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-const props = defineProps<{ plate: string }>()
+const props = withDefaults(defineProps<{ plate: string; size?: 'sm' | 'md' }>(), {
+  size: 'md',
+})
+
+const isSm = computed(() => props.size === 'sm')
 
 // FE-Engschrift ab 9 Zeichen (z.B. "M-EV 1234E")
 const isLong = computed(() => (props.plate ?? '').replace(/\s/g, '').length >= 9)
@@ -21,7 +25,7 @@ const euCountryCode = computed(() => style.value === 'AT' ? 'A' : 'D')
 
 <template>
   <!-- DE / AT: EU-Band links mit Sternen -->
-  <div v-if="style === 'DE' || style === 'AT'" class="plate-outer">
+  <div v-if="style === 'DE' || style === 'AT'" class="plate-outer" :class="{ 'plate-outer--sm': isSm }">
     <div class="eu-band">
       <div class="eu-stars">
         <span v-for="i in 12" :key="i" class="star" :style="{ transform: `rotate(${i * 30}deg) translateY(-5px)` }">★</span>
@@ -32,7 +36,7 @@ const euCountryCode = computed(() => style.value === 'AT' ? 'A' : 'D')
   </div>
 
   <!-- CH: roter Rand, rotes Band links mit weißem Kreuz -->
-  <div v-else-if="style === 'CH'" class="plate-outer plate-outer--ch">
+  <div v-else-if="style === 'CH'" class="plate-outer plate-outer--ch" :class="{ 'plate-outer--sm': isSm }">
     <div class="ch-band">
       <svg viewBox="0 0 20 20" class="ch-cross" aria-hidden="true">
         <rect x="8" y="3" width="4" height="14" fill="white" />
@@ -43,7 +47,7 @@ const euCountryCode = computed(() => style.value === 'AT' ? 'A' : 'D')
   </div>
 
   <!-- NEUTRAL: kein Band, schlichtes weißes Schild -->
-  <div v-else class="plate-outer plate-outer--neutral">
+  <div v-else class="plate-outer plate-outer--neutral" :class="{ 'plate-outer--sm': isSm }">
     <span class="plate-text" :class="{ 'plate-text--eng': isLong }">{{ (plate ?? '').toUpperCase() }}</span>
   </div>
 </template>
@@ -152,4 +156,19 @@ const euCountryCode = computed(() => style.value === 'AT' ? 'A' : 'D')
   font-family: 'FE-Schrift-Eng', 'Arial Narrow', Arial, sans-serif;
   font-size: 18px;
 }
+
+/* ── Kompakte Variante (size="sm"): passt in eine text-sm-Zeile ─────────── */
+.plate-outer--sm {
+  height: 21px;
+  border-width: 2px;
+  border-radius: 2px;
+}
+.plate-outer--sm .eu-band { width: 15px; padding: 1px 0; }
+.plate-outer--sm .eu-stars { width: 9px; height: 9px; }
+.plate-outer--sm .star { font-size: 2.5px; }
+.plate-outer--sm .eu-country { font-size: 6px; }
+.plate-outer--sm .ch-band { width: 15px; }
+.plate-outer--sm .ch-cross { width: 10px; height: 10px; }
+.plate-outer--sm .plate-text { font-size: 13px; padding: 0 6px; }
+.plate-outer--sm .plate-text--eng { font-size: 12px; }
 </style>

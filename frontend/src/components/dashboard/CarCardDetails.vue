@@ -18,8 +18,12 @@ const props = defineProps<{
   wltp: VehicleSpecification | null
   /** Highest odometer reading from ev_logs (current mileage). Null when user has no logged odometer. */
   currentOdometerKm?: number | null
-  /** 'horizontal' for desktop inline chips, 'stacked' for mobile expandable list */
-  orientation?: 'horizontal' | 'stacked'
+  /**
+   * 'horizontal' = desktop 2-col grid (inline in card)
+   * 'stacked'    = vertical full-row list (dashboard expandable panel)
+   * 'compact'    = mobile flowing spec strip, text-xs, wraps between items (logs card)
+   */
+  orientation?: 'horizontal' | 'stacked' | 'compact'
 }>()
 
 const { t, locale } = useI18n()
@@ -76,87 +80,95 @@ const odometerLabel = computed<string | null>(() => {
   return formatDistance(props.currentOdometerKm)
 })
 
-// In horizontal mode we render compact pills. In stacked we render full rows.
 const isHorizontal = computed(() => orientation.value === 'horizontal')
+const isCompact = computed(() => orientation.value === 'compact')
+
+// Container layout per orientation.
+const containerClass = computed(() => {
+  switch (orientation.value) {
+    case 'horizontal': return 'grid grid-cols-2 gap-x-3 gap-y-1 text-sm'
+    case 'compact': return 'flex flex-wrap items-center gap-x-3 gap-y-1 text-xs'
+    default: return 'flex flex-col gap-2 text-sm' // stacked
+  }
+})
+
+// Smaller icons only on the compact strip.
+const iconClass = computed(() => (isCompact.value ? 'w-3.5 h-3.5' : 'w-4 h-4'))
+
+// SoH: rounded to integer on the compact strip to save width, 1 decimal elsewhere.
+const sohDisplay = computed<number | null>(() => {
+  if (sohPercent.value == null) return null
+  return isCompact.value ? Math.round(sohPercent.value) : sohPercent.value
+})
 </script>
 
 <template>
-  <div
-    :class="[
-      isHorizontal
-        ? 'grid grid-cols-2 gap-x-3 gap-y-1'
-        : 'flex flex-col gap-2'
-    ]"
-  >
+  <div :class="containerClass">
     <!-- Battery (effective, SoH-aware) -->
     <div
       v-if="batteryLabel"
-      :class="[
-        'inline-flex items-center gap-1.5 text-sm',
-        isHorizontal
-          ? 'text-gray-700 dark:text-gray-200'
-          : 'text-gray-700 dark:text-gray-200'
-      ]"
+      class="inline-flex items-center gap-1.5 whitespace-nowrap text-gray-700 dark:text-gray-200"
       :title="batteryTooltip ?? undefined"
     >
-      <BoltIcon class="w-4 h-4 text-amber-500 flex-shrink-0" />
+      <BoltIcon :class="iconClass" class="text-amber-500 flex-shrink-0" />
       <span class="font-medium">{{ batteryLabel }}</span>
       <span
         v-if="sohPercent != null"
-        class="text-[11px] text-gray-500 dark:text-gray-400 whitespace-nowrap"
+        class="text-gray-500 dark:text-gray-400"
+        :class="isHorizontal ? 'text-[11px]' : 'text-[10px]'"
       >
-        ({{ t('dashboard.car_card_battery_soh_short', { soh: sohPercent }) }})
+        ({{ t('dashboard.car_card_battery_soh_short', { soh: sohDisplay }) }})
       </span>
-      <span v-if="!isHorizontal" class="sr-only">{{ t('dashboard.car_card_battery_effective') }}</span>
+      <span v-if="!isHorizontal && !isCompact" class="sr-only">{{ t('dashboard.car_card_battery_effective') }}</span>
     </div>
 
     <!-- Odometer (highest from logs) -->
     <div
       v-if="odometerLabel"
-      class="inline-flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-200"
+      class="inline-flex items-center gap-1.5 whitespace-nowrap text-gray-700 dark:text-gray-200"
       :title="t('dashboard.car_card_odometer')"
     >
-      <TruckIcon class="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+      <TruckIcon :class="iconClass" class="text-gray-500 dark:text-gray-400 flex-shrink-0" />
       <span class="font-medium">{{ odometerLabel }}</span>
     </div>
 
     <!-- Power -->
     <div
       v-if="powerLabel"
-      class="inline-flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-200"
+      class="inline-flex items-center gap-1.5 whitespace-nowrap text-gray-700 dark:text-gray-200"
       :title="t('dashboard.car_card_power')"
     >
-      <Cog6ToothIcon class="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+      <Cog6ToothIcon :class="iconClass" class="text-gray-500 dark:text-gray-400 flex-shrink-0" />
       <span class="font-medium">{{ powerLabel }}</span>
     </div>
 
     <!-- Year -->
     <div
       v-if="yearLabel"
-      class="inline-flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-200"
+      class="inline-flex items-center gap-1.5 whitespace-nowrap text-gray-700 dark:text-gray-200"
       :title="t('dashboard.car_card_year')"
     >
-      <CalendarIcon class="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+      <CalendarIcon :class="iconClass" class="text-gray-500 dark:text-gray-400 flex-shrink-0" />
       <span class="font-medium">{{ yearLabel }}</span>
     </div>
 
     <!-- Heat pump (only when true) -->
     <div
       v-if="hasHeatPump"
-      class="inline-flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-200"
+      class="inline-flex items-center gap-1.5 whitespace-nowrap text-gray-700 dark:text-gray-200"
       :title="t('dashboard.car_card_heat_pump')"
     >
-      <FireIcon class="w-4 h-4 text-orange-500 flex-shrink-0" />
+      <FireIcon :class="iconClass" class="text-orange-500 flex-shrink-0" />
       <span class="font-medium">{{ t('dashboard.car_card_heat_pump') }}</span>
     </div>
 
     <!-- Business car (only when true) -->
     <div
       v-if="isBusinessCar"
-      class="inline-flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-200"
+      class="inline-flex items-center gap-1.5 whitespace-nowrap text-gray-700 dark:text-gray-200"
       :title="t('dashboard.car_card_business_car')"
     >
-      <BriefcaseIcon class="w-4 h-4 text-blue-500 flex-shrink-0" />
+      <BriefcaseIcon :class="iconClass" class="text-blue-500 flex-shrink-0" />
       <span class="font-medium">{{ t('dashboard.car_card_business_car') }}</span>
     </div>
   </div>

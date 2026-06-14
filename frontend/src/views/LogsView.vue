@@ -880,9 +880,9 @@ function toggleAllCharges() {
             <!-- Back navigation row (mobile only) -->
             <div class="flex items-center gap-2 mb-2 md:hidden">
               <router-link
-                v-if="cars.length > 1"
                 to="/dashboard"
                 :aria-label="t('dashboard.title')"
+                @click="haptic()"
                 class="inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors min-h-[44px] md:min-h-0 py-1 px-1 -ml-1 rounded-sm">
                 <ChevronLeftIcon class="w-5 h-5 flex-shrink-0" />
                 <span>{{ t('dashboard.title') }}</span>
@@ -900,7 +900,7 @@ function toggleAllCharges() {
                 @click="selectedCarId = car.id"
                 :class="[
                   cars.length === 1
-                    ? 'flex items-center md:items-stretch rounded-sm border-2 text-left transition w-full md:w-auto overflow-hidden'
+                    ? 'flex items-start md:items-stretch rounded-sm border-2 text-left transition w-full md:w-auto overflow-hidden'
                     : 'flex items-center md:items-stretch rounded-sm border-2 text-left transition flex-shrink-0 min-w-[180px] max-w-[240px] lg:flex-shrink lg:min-w-0 lg:max-w-none overflow-hidden',
                   selectedCarId === car.id
                     ? isVehicleCharging(car)
@@ -911,7 +911,13 @@ function toggleAllCharges() {
                       : 'border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] hover:border-indigo-300',
                   cars.length > 1 && isVehicleCharging(car) ? 'ring-2 ring-green-400 dark:ring-green-500' : '',
                 ]" style="transition: transform 0.075s ease, box-shadow 0.075s ease;">
-                <div class="flex-shrink-0 h-12 aspect-[4/3] md:w-24 md:h-auto md:aspect-auto md:self-stretch bg-gray-100 dark:bg-gray-600 flex items-center justify-center overflow-hidden compact-shrink-thumb">
+                <div
+                  :class="[
+                    'flex-shrink-0 bg-gray-100 dark:bg-gray-600 flex items-center justify-center overflow-hidden compact-shrink-thumb',
+                    cars.length === 1
+                      ? 'w-16 self-stretch md:w-24'
+                      : 'h-12 aspect-[4/3] md:w-24 md:h-auto md:aspect-auto md:self-stretch'
+                  ]">
                   <img
                     v-if="carImageUrls[car.id]"
                     :src="carImageUrls[car.id]"
@@ -920,21 +926,11 @@ function toggleAllCharges() {
                   <TruckIcon v-else class="w-6 h-6 md:w-8 md:h-8 text-gray-400" />
                 </div>
                 <div class="min-w-0 flex-1 px-3 py-1.5 md:px-4 md:py-3 compact-shrink-pad flex flex-col justify-center">
-                  <!-- Single-car: back nav + title, integrated in card, hidden when sticky/compact -->
-                  <router-link
-                    v-if="cars.length === 1"
-                    to="/dashboard"
-                    class="compact-hide flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors mb-1 md:hidden"
-                    @click.stop="haptic()">
-                    <ChevronLeftIcon class="w-3 h-3 flex-shrink-0" />
-                    <span>{{ t('dashboard.title') }}</span>
-                    <span class="mx-0.5 text-gray-300 dark:text-gray-600">·</span>
-                    <span class="font-medium text-gray-600 dark:text-gray-300">{{ t('logs_title_short') }}</span>
-                  </router-link>
                   <!-- Mobile compact (alle Autos): eine Zeile -->
                   <div class="flex items-center gap-1.5 flex-wrap md:hidden compact-nowrap">
                     <span class="font-semibold text-sm text-gray-800 dark:text-gray-200 whitespace-nowrap">{{ carDisplayName(car.brand, car.model) }}</span>
                     <span v-if="car.trim" class="text-xs text-gray-500 dark:text-gray-400 compact-hide">{{ car.trim }}</span>
+                    <LicensePlate v-if="cars.length === 1 && car.licensePlate" :plate="car.licensePlate" size="sm" class="compact-hide flex-shrink-0" />
                     <template v-if="!isCarHeaderSticky">
                       <template v-if="car.brand?.toLowerCase() === 'tesla' && teslaStatus?.connected && (teslaStatus.carId === car.id || teslaStatus.carId === null)">
                         <span v-if="teslaStatus.vehicleState === 'charging'"
@@ -972,6 +968,12 @@ function toggleAllCharges() {
                         <span class="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 animate-pulse"></span>{{ t('dashboard.wallbox_charging') }}
                       </span>
                     </template>
+                  </div>
+                  <!-- Mobile/Tablet: zusätzliche Auto-Daten + Kennzeichen (single-car, spiegelt Desktop) -->
+                  <div
+                    v-if="cars.length === 1 && car.id === selectedCarId"
+                    class="lg:hidden mt-2 pt-2 border-t border-gray-200 dark:border-gray-600 compact-hide">
+                    <CarCardDetails :car="car" :wltp="wltp" :current-odometer-km="currentOdometerKm" orientation="compact" />
                   </div>
                   <!-- Desktop: zweizeiliges Layout -->
                   <div :class="cars.length === 1 ? 'hidden lg:block' : 'hidden md:block'">
