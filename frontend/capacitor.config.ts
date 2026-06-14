@@ -21,6 +21,13 @@ const config: CapacitorConfig = {
     CapacitorHttp: {
       enabled: true,
     },
+    // Capgo Live-Updates, self-hosted. Der Updater fragt beim Start unseren
+    // Endpoint nach einem neueren Web-Bundle. statsUrl leer = keine Geraete-Infos
+    // an die Capgo-Cloud (voll self-hosted, DSGVO).
+    CapacitorUpdater: {
+      updateUrl: 'https://ev-monitor.net/api/app/updates',
+      statsUrl: '',
+    },
   },
 };
 

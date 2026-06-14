@@ -5,6 +5,8 @@ import router from './router'
 import { createPinia } from 'pinia'
 import { createHead } from '@unhead/vue/client'
 import { i18n, getSavedLocale, loadLocaleMessages } from './i18n'
+import { Capacitor } from '@capacitor/core'
+import { CapacitorUpdater } from '@capgo/capacitor-updater'
 
 const app = createApp(App)
 
@@ -132,3 +134,10 @@ if (import.meta.env.PROD) {
 }
 
 app.mount('#app')
+
+// Capgo Live-Update: bestaetigt nach erfolgreichem Boot, dass das aktuelle Web-Bundle
+// lauffaehig ist. Bleibt das aus, rollt Capgo automatisch auf das vorherige Bundle
+// zurueck (Brick-Schutz). Nur auf nativer Plattform relevant.
+if (Capacitor.isNativePlatform()) {
+    CapacitorUpdater.notifyAppReady().catch(() => { /* nur nativ relevant */ })
+}
