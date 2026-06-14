@@ -43,7 +43,7 @@ const liveUpgradeError = ref('')
 // least one Tesla in their garage. Once on Live, no further upsell needed.
 const hasTesla = computed(() => cars.value.some(c => c.brand === 'TESLA'))
 const hasXpeng = computed(() => cars.value.some(c => c.brand === 'XPENG'))
-const showLivePromo = computed(() => subscriptionTier.value === 'AUTOSYNC' && hasTesla.value && !autoSyncHasActiveTesla.value)
+const showLivePromo = computed(() => subscriptionTier.value === 'AUTOSYNC' && hasTesla.value)
 
 async function handleLiveUpgrade() {
   liveUpgradeLoading.value = true
@@ -177,7 +177,6 @@ const activeCars = computed(() =>
 
 const autoSyncActiveCarLabel = ref<string | null>(null)
 const teslaConnectedLabel = ref<string | null>(null)
-const autoSyncHasActiveTesla = ref(false)
 </script>
 
 <template>
@@ -281,10 +280,7 @@ const autoSyncHasActiveTesla = ref(false)
                 :premium-enabled="premiumEnabled"
                 :is-premium="subscriptionIsPremium"
                 :has-auto-sync-access="authStore.isPremium"
-                :tier="subscriptionTier"
                 @active-car-label="autoSyncActiveCarLabel = $event"
-                @has-active-tesla="autoSyncHasActiveTesla = $event"
-                @live-upgrade-requested="handleLiveUpgrade"
               />
               <XpengAutoSyncImport
                 v-if="hasXpeng"

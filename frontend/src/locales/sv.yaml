@@ -1406,9 +1406,6 @@ imports:
   live_promo_feature_drain: "<strong>Phantom-Drain:</strong> upptäck dolda SoC-förluster"
   live_promo_cta: "Uppgradera till Live - 4,90 €/månad"
   live_promo_proration_hint: "Proportionell debitering, ingen ny provperiod"
-  tile_live_upsell: "+ Lås upp Trip-Tracking och Phantom-Drain"
-  tile_live_upsell_price: "1 €/mån extra"
-  tile_live_upsell_cta: Aktivera
   smartcar_teaser_title: Automatiska laddningssessioner – alla märken
   smartcar_coming_soon: Kommer snart
   smartcar_teaser_desc: Anslut din bil en gång så registrerar EV-Monitor automatiskt varje laddning – ingen manuell inmatning behövs.
@@ -1750,9 +1747,6 @@ tesla:
   pairing_desc_founder: Du är bland de första Tesla-användarna - din Live-synk förblir gratis för alltid. Telemetri istället för polling är snällare mot bilen och billigare i drift.
   pairing_desc_premium: Realtidstelemetri istället för polling - inga fler bilväckningar, snabbare uppdateringar, lägre belastning på Teslas API. Kräver virtuell nyckel-parning i Tesla-appen.
   pairing_founder_badge: Founder
-  upsell_title: Tesla Live-synk med AutoSync
-  upsell_desc: Realtidsdetektion av dina laddningar ingår i AutoSync (€3,90/månad eller €39/år, 7 dagars provperiod). Inga bilväckningar, ingen manuell import.
-  upsell_cta: Se AutoSync
   pairing_key_label: Virtuell nyckel parad
   pairing_key_ok: Ja
   pairing_key_missing: Nej - parning i appen krävs

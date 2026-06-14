@@ -15,11 +15,9 @@ import { useI18n } from 'vue-i18n'
 import { LockClosedIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
 import type { Car } from '../../api/carService'
 import smartcarService, { type SmartcarConnectionStatus } from '../../api/smartcarService'
-import teslaFleetService, { type TeslaConnectionStatus } from '../../api/teslaFleetService'
 import { autoSyncProviderFor, type AutoSyncProvider } from '../../composables/useCarAutoSyncProvider'
 import { enumToLabel, carDisplayName } from '../../utils/enumLabel'
 
-const TeslaFleetIntegration = defineAsyncComponent(() => import('./TeslaFleetIntegration.vue'))
 const SmartcarIntegration = defineAsyncComponent(() => import('./SmartcarIntegration.vue'))
 
 const { t } = useI18n()
@@ -31,18 +29,12 @@ const props = defineProps<{
     /** Premium OR privileged role (ADMIN/BETA_TESTER/TESLA_FOUNDER). Tiles render
      *  for anyone with access; pure-Premium pitch only for users without it. */
     hasAutoSyncAccess: boolean
-    /** Subscription tier - drives the Live-upgrade tile-banner under the Tesla tile.
-     *  Banner shows only when tier === 'AUTOSYNC' (i.e. paying user not yet on Live). */
-    tier?: 'NONE' | 'AUTOSYNC' | 'AUTOSYNC_LIVE'
 }>()
 
 const emit = defineEmits<{
     (e: 'active-car-label', label: string | null): void
-    (e: 'live-upgrade-requested'): void
-    (e: 'has-active-tesla', value: boolean): void
 }>()
 
-const teslaStatus = ref<TeslaConnectionStatus | null>(null)
 const smartcarStatus = ref<SmartcarConnectionStatus | null>(null)
 const statusesLoaded = ref(false)
 const expandedCarId = ref<string | null>(null)
@@ -54,12 +46,7 @@ onMounted(async () => {
         return
     }
     try {
-        const [tesla, smartcar] = await Promise.all([
-            teslaFleetService.getStatus().catch(() => null),
-            smartcarService.getStatus().catch(() => null),
-        ])
-        teslaStatus.value = tesla
-        smartcarStatus.value = smartcar
+        smartcarStatus.value = await smartcarService.getStatus().catch(() => null)
     } finally {
         statusesLoaded.value = true
         // Auto-expand: active connection takes priority, else single-car shortcut.
@@ -77,9 +64,6 @@ interface ActiveConnection {
 }
 
 const activeConnection = computed<ActiveConnection | null>(() => {
-    if (teslaStatus.value?.connected && teslaStatus.value.carId) {
-        return { provider: 'TESLA', carId: teslaStatus.value.carId }
-    }
     if (smartcarStatus.value?.connected && smartcarStatus.value.carId) {
         return { provider: 'SMARTCAR', carId: smartcarStatus.value.carId }
     }
@@ -123,7 +107,6 @@ function carDetails(car: Car): string {
 /** Provider-Label fuer den Brand-Tag links. */
 function providerLabel(car: Car): string {
     const p = autoSyncProviderFor(car)
-    if (p === 'TESLA') return 'Tesla'
     if (p === 'SMARTCAR') return 'Smartcar'
     return t('imports.autosync_state_unavailable')
 }
@@ -149,7 +132,6 @@ function brandTagClasses(car: Car): string {
 
 watch(activeCar, (car) => {
     emit('active-car-label', car ? enumToLabel(car.model) : null)
-    emit('has-active-tesla', car?.brand === 'TESLA')
 }, { immediate: true })
 
 function toggleExpand(carId: string) {
@@ -279,15 +261,12 @@ function toggleExpand(carId: string) {
                                 </p>
                             </div>
 
-                            <!-- Active or Available: show provider component -->
+                            <!-- Active or Available: show provider component. Tesla pairs
+                                 in its own free "Tesla Telemetry" tab, so the picker only
+                                 ever routes Smartcar brands here. -->
                             <div v-else class="p-4 md:p-5">
-                                <TeslaFleetIntegration
-                                    v-if="autoSyncProviderFor(car) === 'TESLA'"
-                                    :embedded="true"
-                                    :forced-car-id="car.id"
-                                />
                                 <SmartcarIntegration
-                                    v-else-if="autoSyncProviderFor(car) === 'SMARTCAR'"
+                                    v-if="autoSyncProviderFor(car) === 'SMARTCAR'"
                                     :premium-enabled="props.premiumEnabled"
                                     :is-premium="props.isPremium"
                                     :embedded="true"
@@ -296,30 +275,6 @@ function toggleExpand(carId: string) {
                             </div>
                         </div>
                     </Transition>
-
-                    <!-- Inline Live upsell strip on the active Tesla row only.
-                         Hidden once user is on Live or not paying yet. -->
-                    <div
-                        v-if="autoSyncProviderFor(car) === 'TESLA'
-                              && tileStateFor(car) === 'active'
-                              && props.tier === 'AUTOSYNC'"
-                        class="border-t border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 md:px-5 py-3 flex items-center justify-between gap-3 flex-wrap"
-                    >
-                        <div class="flex items-center gap-3 flex-1 min-w-0">
-                            <span class="inline-flex w-7 h-7 bg-indigo-600 text-white rounded-sm items-center justify-center text-sm font-extrabold shrink-0">+</span>
-                            <div class="flex-1 min-w-0">
-                                <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-indigo-700 dark:text-indigo-400">{{ t('imports.tile_live_upsell') }}</p>
-                                <p class="text-xs text-gray-600 dark:text-gray-400 font-medium font-mono">{{ t('imports.tile_live_upsell_price') }}</p>
-                            </div>
-                        </div>
-                        <button
-                            type="button"
-                            @click="emit('live-upgrade-requested')"
-                            class="btn-3d bg-indigo-600 hover:bg-indigo-700 text-white font-bold uppercase tracking-wider text-[11px] px-3 py-2 rounded-sm whitespace-nowrap"
-                        >
-                            {{ t('imports.tile_live_upsell_cta') }} →
-                        </button>
-                    </div>
                 </div>
             </div>
 
