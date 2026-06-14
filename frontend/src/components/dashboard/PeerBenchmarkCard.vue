@@ -154,48 +154,54 @@ function formatCostPer100km(val: number | null | undefined): string {
 
       <!-- Verbrauch (oben links) -->
       <div class="p-4 text-center border-r border-gray-100 dark:border-gray-600">
-        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">{{ t('dashboard.peer_consumption') }}</p>
+        <div class="flex items-center justify-center gap-1.5 mb-1.5">
+          <p class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('dashboard.peer_consumption') }}</p>
+          <span v-if="consumptionDelta" :class="['text-xs font-semibold', consumptionDelta.isGood ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400']">{{ consumptionDelta.label }}</span>
+        </div>
         <div class="flex items-center justify-center gap-1.5 text-sm flex-wrap">
           <span class="font-bold text-gray-900 dark:text-gray-100">{{ formatConsumption(benchmark.userLifetimeConsumptionKwhPer100km) }} kWh</span>
           <span class="text-xs text-gray-400 dark:text-gray-500">vs</span>
           <span class="text-gray-400 dark:text-gray-500">Ø {{ formatConsumption(benchmark.peerAvgConsumptionKwhPer100km) }} kWh</span>
-          <span v-if="consumptionDelta" :class="['font-semibold', consumptionDelta.isGood ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400']">· {{ consumptionDelta.label }}</span>
         </div>
       </div>
 
       <!-- Reichweite (oben rechts) -->
       <div class="p-4 text-center">
-        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">{{ t('dashboard.peer_range') }}</p>
+        <div class="flex items-center justify-center gap-1.5 mb-1.5">
+          <p class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('dashboard.peer_range') }}</p>
+          <span v-if="rangeDelta" :class="['text-xs font-semibold', rangeDelta.isGood ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400']">{{ rangeDelta.label }}</span>
+        </div>
         <div class="flex items-center justify-center gap-1.5 text-sm flex-wrap">
           <span class="font-bold text-gray-900 dark:text-gray-100">{{ userRange ?? '–' }} km</span>
           <span class="text-xs text-gray-400 dark:text-gray-500">vs</span>
           <span class="text-gray-400 dark:text-gray-500">Ø {{ peerRange ?? '–' }} km</span>
-          <span v-if="rangeDelta" :class="['font-semibold', rangeDelta.isGood ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400']">· {{ rangeDelta.label }}</span>
         </div>
       </div>
 
       <!-- Kosten €/kWh (unten links) — nur wenn Daten da -->
       <div v-if="showCost" class="p-4 text-center border-t border-r border-gray-100 dark:border-gray-600">
-        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
-          {{ t('dashboard.peer_cost_label') }}
-        </p>
+        <div class="flex items-center justify-center gap-1.5 mb-1.5">
+          <p class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('dashboard.peer_cost_label') }}</p>
+          <span v-if="costDelta" :class="['text-xs font-semibold', costDelta.isGood ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400']">{{ costDelta.label }}</span>
+        </div>
         <div class="flex items-center justify-center gap-1.5 text-sm flex-wrap">
           <span class="font-bold text-gray-900 dark:text-gray-100">{{ formatCost(benchmark.userLifetimeCostPerKwh) }}/kWh</span>
           <span class="text-xs text-gray-400 dark:text-gray-500">vs</span>
           <span class="text-gray-400 dark:text-gray-500">Ø {{ formatCost(benchmark.peerAvgCostPerKwh) }}/kWh</span>
-          <span v-if="costDelta" :class="['font-semibold', costDelta.isGood ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400']">· {{ costDelta.label }}</span>
         </div>
       </div>
 
       <!-- €/100km (unten rechts) -->
       <div v-if="showCost && userCostPer100km !== null && peerCostPer100km !== null"
         class="p-4 text-center border-t border-gray-100 dark:border-gray-600">
-        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">{{ t('dashboard.peer_cost_per_distance') }}</p>
+        <div class="flex items-center justify-center gap-1.5 mb-1.5">
+          <p class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('dashboard.peer_cost_per_distance') }}</p>
+          <span v-if="costPer100kmDelta" :class="['text-xs font-semibold', costPer100kmDelta.isGood ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400']">{{ costPer100kmDelta.label }}</span>
+        </div>
         <div class="flex items-center justify-center gap-1.5 text-sm flex-wrap">
           <span class="font-bold text-gray-900 dark:text-gray-100">{{ formatCostPer100km(userCostPer100km) }}/100km</span>
           <span class="text-xs text-gray-400 dark:text-gray-500">vs</span>
           <span class="text-gray-400 dark:text-gray-500">Ø {{ formatCostPer100km(peerCostPer100km) }}/100km</span>
-          <span v-if="costPer100kmDelta" :class="['font-semibold', costPer100kmDelta.isGood ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400']">· {{ costPer100kmDelta.label }}</span>
         </div>
       </div>
     </div>
