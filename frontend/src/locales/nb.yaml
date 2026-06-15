@@ -1723,11 +1723,6 @@ tesla:
   auto_import_hint: Daglig automatisk import er aktivert
   geocoding: Leter etter ladestasjoner…
   skipped: "{n} hoppet over"
-  realtime_title: Sanntidsdeteksjon
-  realtime_desc: Etter en tur sjekker vi i <span class="font-medium">{minutes} minutter</span> om du har koblet til laderen. Deretter setter vi Teslaen i hvilemodus.
-  settings_save: Lagre
-  settings_saved: Lagret
-  sleep_warning: Lengre tidsvinduer registrerer ladesesjoner mer pålitelig, men hindrer også Teslaen i å gå i hvilemodus. Kortere tidsvinduer sparer på batteriet, men kan føre til at sesjoner ikke blir registrert. <span class="font-medium">15 minutter</span> er et godt kompromiss.
   undo_btn: Angre siste import (sesjoner i {n})
   delete_all_btn: Slett alle Tesla-importene
   success_connected: Tesla er koblet til! Du kan nå importere ladingshistorikken din.
@@ -1737,7 +1732,6 @@ tesla:
   err_fleet_api: Tesla Fleet API er ikke konfigurert ennå. Ta kontakt med kundestøtte.
   err_connect: Tilkoblingen mislyktes
   err_sync: Synkroniseringen mislyktes
-  err_settings: Innstillingene kunne ikke lagres
   err_disconnect: Koblingen kunne ikke brytes
   err_undo: Angre mislyktes
   err_delete_all: Slettingen mislyktes
@@ -2199,8 +2193,10 @@ upgrade:
   tier_autosync_price_unit: "/ måned"
   tier_autosync_yearly_hint: "eller {yearly} / år - 2 måneder gratis"
   tier_autosync_feat_tesla: "Tesla Fleet Telemetry - alle modeller, Supercharger og hjemmelading"
-  tier_autosync_feat_smartcar: "Smartcar for BMW, Mercedes, Audi, VW, Porsche, Hyundai, Kia, Volvo, Polestar … over 40 støttede merker totalt."
+  tier_autosync_feat_smartcar: "Smartcar for BMW, VW, Mercedes og mange flere"
   tier_autosync_feat_connection: "1 aktiv biltilkobling om gangen (kan byttes)"
+  tier_autosync_brands_title: "Støttede merker"
+  tier_autosync_brands_note: "Merket ikke i listen? Da støtter ikke AutoSync bilen din ennå - Gratis er fortsatt gratis å bruke."
   tier_autosync_feat_inherits: "Alt fra Gratis"
   tier_autosync_cta_trial: "Prøv gratis i 7 dager"
   tier_autosync_cta_active: "Aktiv plan"

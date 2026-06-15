@@ -1723,11 +1723,6 @@ tesla:
   auto_import_hint: Automatisk daglig import aktiverad
   geocoding: Hämtar laddningsstationer…
   skipped: "{n} hoppades över"
-  realtime_title: Detektering i realtid
-  realtime_desc: Efter en resa kontrollerar vi i <span class="font-medium">{minutes} minuter</span> om du har anslutit bilen till laddaren. Därefter låter vi Tesla gå i viloläge.
-  settings_save: Spara
-  settings_saved: Sparat
-  sleep_warning: Längre tidsintervall upptäcker laddningssessioner mer tillförlitligt, men hindrar också Tesla från att gå i viloläge. Kortare tidsintervall sparar på batteriet men kan leda till att sessioner missas. <span class="font-medium">15 minuter</span> är en bra kompromiss.
   undo_btn: Ångra senaste importen (sessioner i {n})
   delete_all_btn: Ta bort alla Tesla-importer
   success_connected: Tesla har anslutits! Du kan nu importera din laddningshistorik.
@@ -1737,7 +1732,6 @@ tesla:
   err_fleet_api: Tesla Fleet API är ännu inte konfigurerat. Kontakta supporten.
   err_connect: Anslutningen misslyckades
   err_sync: Synkroniseringen misslyckades
-  err_settings: Inställningarna kunde inte sparas
   err_disconnect: Avkopplingen misslyckades
   err_undo: Ångra misslyckades
   err_delete_all: Raderingen misslyckades
@@ -2199,8 +2193,10 @@ upgrade:
   tier_autosync_price_unit: "/ månad"
   tier_autosync_yearly_hint: "eller {yearly} / år - 2 månader gratis"
   tier_autosync_feat_tesla: "Tesla Fleet Telemetry - alla modeller, Supercharger och hemmaladdning"
-  tier_autosync_feat_smartcar: "Smartcar för BMW, Mercedes, Audi, VW, Porsche, Hyundai, Kia, Volvo, Polestar … över 40 märken som stöds totalt."
+  tier_autosync_feat_smartcar: "Smartcar för BMW, VW, Mercedes och många fler"
   tier_autosync_feat_connection: "1 aktiv bilanslutning åt gången (kan bytas)"
+  tier_autosync_brands_title: "Märken som stöds"
+  tier_autosync_brands_note: "Märket saknas? Då stöder AutoSync inte din bil ännu - Gratis förblir gratis att använda."
   tier_autosync_feat_inherits: "Allt från Gratis"
   tier_autosync_cta_trial: "Prova gratis i 7 dagar"
   tier_autosync_cta_active: "Aktiv plan"

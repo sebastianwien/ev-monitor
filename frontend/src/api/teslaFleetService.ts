@@ -8,7 +8,6 @@ export interface TeslaConnectionStatus {
   autoImportEnabled: boolean
   geocodingInProgress: boolean
   vehicleState: 'asleep' | 'online' | 'charging' | null
-  suspendAfterIdleMinutes: number
 }
 
 export interface TeslaPairingStatus {
@@ -42,10 +41,6 @@ export default {
   async syncHistory(): Promise<TeslaFleetSyncResult> {
     const resp = await api.post('/tesla/fleet/sync-history')
     return resp.data
-  },
-
-  async updateSettings(suspendAfterIdleMinutes: number): Promise<void> {
-    await api.patch('/tesla/fleet/settings', { suspendAfterIdleMinutes })
   },
 
   async disconnect(): Promise<void> {

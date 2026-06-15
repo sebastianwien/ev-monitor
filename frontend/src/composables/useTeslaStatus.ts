@@ -19,7 +19,6 @@ const DEMO_STATUS: TeslaConnectionStatus = {
   autoImportEnabled: true,
   geocodingInProgress: false,
   vehicleState: 'charging',
-  suspendAfterIdleMinutes: 15,
 }
 
 export function useTeslaStatus() {

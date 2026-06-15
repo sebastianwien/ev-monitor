@@ -26,9 +26,7 @@ const router = useRouter()
 const { t } = useI18n()
 const callbackErrorCode = ref<string | null>(null)
 
-const status = ref<TeslaConnectionStatus>({ connected: false, vehicleName: null, carId: null, lastSyncAt: null, autoImportEnabled: false, geocodingInProgress: false, vehicleState: null, suspendAfterIdleMinutes: 15 })
-const suspendMinutesInput = ref(15)
-const settingsSaved = ref(false)
+const status = ref<TeslaConnectionStatus>({ connected: false, vehicleName: null, carId: null, lastSyncAt: null, autoImportEnabled: false, geocodingInProgress: false, vehicleState: null })
 const isLoading = ref(false)
 const syncResult = ref<TeslaFleetSyncResult | null>(null)
 const error = ref<string | null>(null)
@@ -81,7 +79,6 @@ onMounted(async () => {
 async function loadStatus() {
   try {
     status.value = await teslaFleetService.getStatus()
-    suspendMinutesInput.value = status.value.suspendAfterIdleMinutes ?? 15
   } catch { /* ignore */ }
 }
 
@@ -213,21 +210,12 @@ async function handleSyncHistory() {
   }
 }
 
-async function handleUpdateSettings() {
-  try {
-    await teslaFleetService.updateSettings(suspendMinutesInput.value)
-    status.value.suspendAfterIdleMinutes = suspendMinutesInput.value
-    settingsSaved.value = true
-    setTimeout(() => { settingsSaved.value = false }, 2000)
-  } catch { error.value = t('tesla.err_settings') }
-}
-
 async function handleDisconnect() {
   if (!confirmDisconnect.value) { confirmDisconnect.value = true; return }
   confirmDisconnect.value = false
   try {
     await teslaFleetService.disconnect()
-    status.value = { connected: false, vehicleName: null, carId: null, lastSyncAt: null, autoImportEnabled: false, geocodingInProgress: false, vehicleState: null, suspendAfterIdleMinutes: 15 }
+    status.value = { connected: false, vehicleName: null, carId: null, lastSyncAt: null, autoImportEnabled: false, geocodingInProgress: false, vehicleState: null }
     syncResult.value = null; success.value = null
   } catch { error.value = t('tesla.err_disconnect') }
 }
@@ -476,9 +464,8 @@ async function retryConnect() {
           </div>
         </div>
 
-        <!-- Legacy polling controls: Info-Box, History-Sync, Sleep-Window-Slider,
-             Undo, Delete-All. Im AutoSync-Tile (embedded) komplett ausgeblendet,
-             weil Telemetry der einzige Weg ist und Polling-UI nur verwirrt. -->
+        <!-- History-Sync controls: Info-Box, "Ladehistorie importieren", Undo, Delete-All.
+             Im AutoSync-Tile (embedded) ausgeblendet, weil Telemetry der einzige Weg ist. -->
         <template v-if="!props.embedded">
           <!-- Collapsible info box -->
           <details class="group border border-gray-200 dark:border-slate-700/60 rounded-xl overflow-hidden bg-white dark:bg-slate-800/50">
@@ -525,24 +512,6 @@ async function retryConnect() {
             </button>
           </div>
           <p class="text-xs text-slate-500 dark:text-slate-500 text-center">{{ t('tesla.auto_import_hint') }}</p>
-
-          <!-- Sleep-Window Setting -->
-          <div class="border-t border-gray-100 dark:border-slate-700/40 pt-4 space-y-2">
-            <p class="text-xs font-medium text-gray-700 dark:text-slate-300">{{ t('tesla.realtime_title') }}</p>
-            <p class="text-xs text-slate-500 dark:text-slate-400" v-html="t('tesla.realtime_desc', { minutes: status.suspendAfterIdleMinutes })" />
-            <div class="flex items-center gap-2">
-              <input v-model.number="suspendMinutesInput" type="range" min="5" max="60" step="5" class="flex-1 accent-gray-900 dark:accent-slate-400" />
-              <span class="text-sm font-medium text-gray-700 dark:text-slate-300 w-16 text-right">{{ suspendMinutesInput }} Min</span>
-              <button
-                @click="handleUpdateSettings"
-                :disabled="suspendMinutesInput === status.suspendAfterIdleMinutes"
-                class="text-xs px-2.5 py-1 rounded-lg bg-gray-900 dark:bg-slate-600 text-white disabled:opacity-40 transition"
-              >
-                {{ settingsSaved ? t('tesla.settings_saved') : t('tesla.settings_save') }}
-              </button>
-            </div>
-            <p class="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg p-2" v-html="t('tesla.sleep_warning')" />
-          </div>
 
           <!-- Undo last import -->
           <div v-if="lastImportedIds.length > 0" class="border-t border-gray-100 dark:border-slate-700/40 pt-4">
