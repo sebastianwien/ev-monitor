@@ -491,7 +491,8 @@ class TripControllerTest extends AbstractIntegrationTest {
     // --- Tessie-import policy: imported trips (data_source=TESSIE) stay editable for the owner ---
     // Background: Tessie import lets free users bring their own historical trip data into
     // ev-monitor. Owner CRUD on TESSIE trips works without any subscription. Live-detected
-    // trips (SMARTCAR_LIVE, TESLA_LIVE, TESLA_INFERRED) are gated behind AutoSync Live.
+    // trips are free for Tesla cars (part of the free Tesla tier); for other brands they
+    // are gated behind AutoSync Live (Tier-2).
 
     @Test
     void mergeTrip_nonPremiumUserOnTessieTrips_returns200() {
@@ -517,16 +518,16 @@ class TripControllerTest extends AbstractIntegrationTest {
 
     @Test
     void getTrips_nonPremiumUser_returnsOnlyTessieTrips() {
+        // Non-Tesla brand: live trips are gated behind AutoSync Live. A free user must not
+        // see live trips on a Polestar even if they exist (e.g. after a downgrade).
         User freeUser = createAndSaveUser("get-free-" + System.nanoTime() + "@example.com");
-        Car freeCar = createAndSaveCar(freeUser.getId(), CarBrand.CarModel.MODEL_3);
-        // free user shouldn't have live trips, but if they exist (e.g. user downgraded)
-        // they must NOT show up in the response.
+        Car freeCar = createAndSaveCar(freeUser.getId(), CarBrand.CarModel.POLESTAR_2);
         saveTripWithSource(freeUser.getId(), freeCar.getId(),
                 OffsetDateTime.now().minusHours(5), OffsetDateTime.now().minusHours(4),
                 null, null, new BigDecimal("10.0"), null, "TESSIE");
         saveTripWithSource(freeUser.getId(), freeCar.getId(),
                 OffsetDateTime.now().minusHours(3), OffsetDateTime.now().minusHours(2),
-                null, null, new BigDecimal("12.0"), null, "TESLA_LIVE");
+                null, null, new BigDecimal("12.0"), null, "SMARTCAR_LIVE");
 
         ResponseEntity<Object[]> res = restTemplate.exchange(
                 "/api/trips?carId=" + freeCar.getId(), HttpMethod.GET,
@@ -609,11 +610,13 @@ class TripControllerTest extends AbstractIntegrationTest {
 
     @Test
     void getTrips_tier1AutoSyncUser_hidesLiveTrips() {
+        // Tier-1 (AutoSync, not Live) on a non-Tesla brand: live trips stay hidden until
+        // the user upgrades to AutoSync Live.
         User tier1 = createAndSavePremiumUser("get-tier1-" + System.nanoTime() + "@example.com");
-        Car tier1Car = createAndSaveCar(tier1.getId(), CarBrand.CarModel.MODEL_3);
+        Car tier1Car = createAndSaveCar(tier1.getId(), CarBrand.CarModel.POLESTAR_2);
         saveTripWithSource(tier1.getId(), tier1Car.getId(),
                 OffsetDateTime.now().minusHours(5), OffsetDateTime.now().minusHours(4),
-                null, null, new BigDecimal("10.0"), null, "TESLA_LIVE");
+                null, null, new BigDecimal("10.0"), null, "SMARTCAR_LIVE");
         saveTripWithSource(tier1.getId(), tier1Car.getId(),
                 OffsetDateTime.now().minusHours(3), OffsetDateTime.now().minusHours(2),
                 null, null, new BigDecimal("12.0"), null, "TESSIE");
@@ -630,8 +633,9 @@ class TripControllerTest extends AbstractIntegrationTest {
 
     @Test
     void updateTrip_nonPremiumUserOnOwnLiveTrip_returns404() {
+        // Non-Tesla brand: editing a live trip requires AutoSync Live.
         User freeUser = createAndSaveUser("patch-live-free-" + System.nanoTime() + "@example.com");
-        Car freeCar = createAndSaveCar(freeUser.getId(), CarBrand.CarModel.MODEL_3);
+        Car freeCar = createAndSaveCar(freeUser.getId(), CarBrand.CarModel.POLESTAR_2);
         EvTrip liveTrip = saveTripWithSource(freeUser.getId(), freeCar.getId(),
                 OffsetDateTime.now().minusHours(3), OffsetDateTime.now().minusHours(2),
                 null, null, new BigDecimal("10.0"), null, "SMARTCAR_LIVE");
@@ -648,11 +652,12 @@ class TripControllerTest extends AbstractIntegrationTest {
 
     @Test
     void deleteTrip_nonPremiumUserOnOwnLiveTrip_returns404() {
+        // Non-Tesla brand: deleting a live trip requires AutoSync Live.
         User freeUser = createAndSaveUser("del-live-free-" + System.nanoTime() + "@example.com");
-        Car freeCar = createAndSaveCar(freeUser.getId(), CarBrand.CarModel.MODEL_3);
+        Car freeCar = createAndSaveCar(freeUser.getId(), CarBrand.CarModel.POLESTAR_2);
         EvTrip liveTrip = saveTripWithSource(freeUser.getId(), freeCar.getId(),
                 OffsetDateTime.now().minusHours(3), OffsetDateTime.now().minusHours(2),
-                null, null, new BigDecimal("10.0"), null, "TESLA_LIVE");
+                null, null, new BigDecimal("10.0"), null, "SMARTCAR_LIVE");
 
         ResponseEntity<String> res = restTemplate.exchange(
                 "/api/trips/" + liveTrip.getId(), HttpMethod.DELETE,
@@ -746,14 +751,15 @@ class TripControllerTest extends AbstractIntegrationTest {
 
     @Test
     void mergeTrip_tier1UserOnLiveTrips_returns404() {
+        // Non-Tesla brand: merging live trips requires AutoSync Live.
         User tier1 = createAndSavePremiumUser("merge-tier1-" + System.nanoTime() + "@example.com");
-        Car tier1Car = createAndSaveCar(tier1.getId(), CarBrand.CarModel.MODEL_3);
+        Car tier1Car = createAndSaveCar(tier1.getId(), CarBrand.CarModel.POLESTAR_2);
         EvTrip t1 = saveTripWithSource(tier1.getId(), tier1Car.getId(),
                 OffsetDateTime.now().minusHours(5), OffsetDateTime.now().minusHours(4),
-                null, null, new BigDecimal("10.0"), null, "TESLA_LIVE");
+                null, null, new BigDecimal("10.0"), null, "SMARTCAR_LIVE");
         EvTrip t2 = saveTripWithSource(tier1.getId(), tier1Car.getId(),
                 OffsetDateTime.now().minusHours(3), OffsetDateTime.now().minusHours(2),
-                null, null, new BigDecimal("10.0"), null, "TESLA_LIVE");
+                null, null, new BigDecimal("10.0"), null, "SMARTCAR_LIVE");
 
         ResponseEntity<String> res = restTemplate.exchange(
                 "/api/trips/" + t2.getId() + "/merge", HttpMethod.POST,
@@ -762,6 +768,50 @@ class TripControllerTest extends AbstractIntegrationTest {
                 String.class);
 
         assertEquals(HttpStatus.NOT_FOUND, res.getStatusCode());
+    }
+
+    // --- Tesla free tier: live trips are free for Tesla cars regardless of subscription ---
+
+    @Test
+    void getTrips_freeUserOnTesla_seesLiveTrips() {
+        // Tesla live trips are part of the free Tesla tier - a free user sees them.
+        User freeUser = createAndSaveUser("get-tesla-free-" + System.nanoTime() + "@example.com");
+        Car teslaCar = createAndSaveCar(freeUser.getId(), CarBrand.CarModel.MODEL_3);
+        saveTripWithSource(freeUser.getId(), teslaCar.getId(),
+                OffsetDateTime.now().minusHours(5), OffsetDateTime.now().minusHours(4),
+                null, null, new BigDecimal("10.0"), null, "TESLA_LIVE");
+        saveTripWithSource(freeUser.getId(), teslaCar.getId(),
+                OffsetDateTime.now().minusHours(3), OffsetDateTime.now().minusHours(2),
+                null, null, new BigDecimal("12.0"), null, "TESSIE");
+
+        ResponseEntity<Object[]> res = restTemplate.exchange(
+                "/api/trips?carId=" + teslaCar.getId(), HttpMethod.GET,
+                new HttpEntity<>(createAuthHeaders(freeUser.getId(), freeUser.getEmail())),
+                Object[].class);
+
+        assertEquals(HttpStatus.OK, res.getStatusCode());
+        assertNotNull(res.getBody());
+        assertEquals(2, res.getBody().length);
+    }
+
+    @Test
+    void updateTrip_freeUserOnOwnTeslaLiveTrip_returns200() {
+        // Tesla live trips are free, so a free user may also edit them.
+        User freeUser = createAndSaveUser("patch-tesla-free-" + System.nanoTime() + "@example.com");
+        Car teslaCar = createAndSaveCar(freeUser.getId(), CarBrand.CarModel.MODEL_3);
+        EvTrip liveTrip = saveTripWithSource(freeUser.getId(), teslaCar.getId(),
+                OffsetDateTime.now().minusHours(3), OffsetDateTime.now().minusHours(2),
+                null, null, new BigDecimal("10.0"), null, "TESLA_LIVE");
+
+        ResponseEntity<Map<String, Object>> res = restTemplate.exchange(
+                "/api/trips/" + liveTrip.getId(), HttpMethod.PATCH,
+                new HttpEntity<>(Map.of("distanceKm", 99.0),
+                        createAuthHeaders(freeUser.getId(), freeUser.getEmail())),
+                new ParameterizedTypeReference<>() {});
+
+        assertEquals(HttpStatus.OK, res.getStatusCode());
+        assertNotNull(res.getBody());
+        assertEquals(99.0, ((Number) res.getBody().get("distanceKm")).doubleValue(), 0.01);
     }
 
     // --- helpers ---
