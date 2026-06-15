@@ -6,6 +6,7 @@ import { useCarStore } from '../../stores/car'
 import CarSelectDropdown from '../car/CarSelectDropdown.vue'
 import smartcarService, { type SmartcarConnectionStatus } from '../../api/smartcarService'
 import type { Car } from '../../api/carService'
+import { AUTOSYNC_BRANDS } from '../../config/smartcarBrands'
 
 const { t } = useI18n()
 
@@ -20,12 +21,7 @@ const props = defineProps<{
     forcedCarId?: string
 }>()
 
-const brands = [
-    'BMW', 'MINI', 'VW', 'Mercedes', 'Audi', 'Porsche', 'Skoda', 'SEAT', 'CUPRA', 'Opel',
-    'Hyundai', 'Kia', 'Volvo', 'Polestar', 'Renault', 'Dacia', 'Nissan', 'Ford',
-    'Fiat', 'Alfa Romeo', 'Peugeot', 'Citroën', 'Mazda', 'MG', 'BYD',
-    'Jaguar', 'Land Rover', 'Tesla',
-]
+const brands = AUTOSYNC_BRANDS
 const carStore = useCarStore()
 
 const status = ref<SmartcarConnectionStatus | null>(null)

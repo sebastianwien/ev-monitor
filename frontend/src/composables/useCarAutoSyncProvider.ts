@@ -1,4 +1,5 @@
 import type { Car } from '../api/carService'
+import { SMARTCAR_BRANDS } from '../config/smartcarBrands'
 
 /**
  * Single source of truth for which AutoSync provider serves a given car.
@@ -15,20 +16,22 @@ import type { Car } from '../api/carService'
 export type AutoSyncProvider = 'TESLA' | 'SMARTCAR' | 'NONE'
 
 /**
- * Brands Smartcar can serve (EU, 2026). Mirrors the list rendered in
- * SmartcarIntegration.vue. Tesla is excluded here because it goes Telemetry.
+ * Lookup set derived from the shared SMARTCAR_BRANDS display list. We index by
+ * uppercase and additionally store an accent-stripped alias (e.g. CITROEN for
+ * "Citroën") so brand strings match regardless of diacritics.
  */
-const SMARTCAR_BRANDS = new Set<string>([
-    'BMW', 'MINI', 'VW', 'MERCEDES', 'AUDI', 'PORSCHE', 'SKODA', 'SEAT', 'CUPRA', 'OPEL',
-    'HYUNDAI', 'KIA', 'VOLVO', 'POLESTAR', 'RENAULT', 'DACIA', 'NISSAN', 'FORD',
-    'FIAT', 'ALFA ROMEO', 'PEUGEOT', 'CITROEN', 'CITROËN', 'MAZDA', 'MG', 'BYD',
-    'JAGUAR', 'LAND ROVER',
-])
+const SMARTCAR_BRAND_LOOKUP = new Set<string>(
+    SMARTCAR_BRANDS.flatMap((brand) => {
+        const upper = brand.toUpperCase()
+        const ascii = upper.normalize('NFD').replace(/[̀-ͯ]/g, '')
+        return ascii === upper ? [upper] : [upper, ascii]
+    }),
+)
 
 export function autoSyncProviderFor(car: Pick<Car, 'brand'>): AutoSyncProvider {
     const brand = (car.brand ?? '').toUpperCase().trim()
     if (brand === 'TESLA') return 'TESLA'
-    if (SMARTCAR_BRANDS.has(brand)) return 'SMARTCAR'
+    if (SMARTCAR_BRAND_LOOKUP.has(brand)) return 'SMARTCAR'
     return 'NONE'
 }
 

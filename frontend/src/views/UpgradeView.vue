@@ -109,12 +109,28 @@
                             </Transition>
                             <p v-if="!(selectedPlan === 'yearly' && tier === 'NONE')" class="text-xs text-green-600 dark:text-green-400 font-medium mt-0.5">{{ t('upgrade.tier_autosync_yearly_hint', { yearly: pricing.yearly }) }}</p>
                         </div>
-                        <ul class="space-y-2.5 text-sm text-gray-700 dark:text-gray-300 mb-6 flex-1">
+                        <ul class="space-y-2.5 text-sm text-gray-700 dark:text-gray-300 mb-4">
                             <li class="flex items-start gap-2"><CheckCircleIcon class="w-4 h-4 text-green-600 dark:text-green-400 shrink-0 mt-0.5" /><span>{{ t('upgrade.tier_autosync_feat_tesla') }}</span></li>
                             <li class="flex items-start gap-2"><CheckCircleIcon class="w-4 h-4 text-green-600 dark:text-green-400 shrink-0 mt-0.5" /><span>{{ t('upgrade.tier_autosync_feat_smartcar') }}</span></li>
                             <li class="flex items-start gap-2"><CheckCircleIcon class="w-4 h-4 text-green-600 dark:text-green-400 shrink-0 mt-0.5" /><span>{{ t('upgrade.tier_autosync_feat_connection') }}</span></li>
                             <li class="flex items-start gap-2 text-gray-500 dark:text-gray-400"><span class="mt-0.5">+</span><span><em>{{ t('upgrade.tier_autosync_feat_inherits') }}</em></span></li>
                         </ul>
+
+                        <!-- Explicit brand list: an owner of a brand we do NOT cover (e.g. XPeng,
+                             Lucid, Rivian) must be able to see at a glance that AutoSync won't work
+                             for their car before they buy. -->
+                        <div class="mb-5 rounded-sm border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40 p-3">
+                            <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-gray-500 dark:text-gray-400 mb-2">{{ t('upgrade.tier_autosync_brands_title') }}</p>
+                            <ul class="flex flex-wrap gap-1.5">
+                                <li
+                                    v-for="brand in AUTOSYNC_BRANDS" :key="brand"
+                                    class="text-[11px] font-semibold bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 px-1.5 py-0.5 rounded-sm"
+                                >{{ brand }}</li>
+                            </ul>
+                            <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-2 leading-snug">{{ t('upgrade.tier_autosync_brands_note') }}</p>
+                        </div>
+
+                        <div class="flex-1"></div>
                         <template v-if="tier === 'NONE'">
                             <button
                                 @click="handleCheckout"
@@ -305,6 +321,7 @@ import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/vue/24/outline';
 import { useCountryStore } from '../stores/country';
 import { useCarStore } from '../stores/car';
 import { getPricing } from '../config/pricingConfig';
+import { AUTOSYNC_BRANDS } from '../config/smartcarBrands';
 import { useUpgradeTierState, type SubscriptionTier } from '../composables/useUpgradeTierState';
 
 const { t } = useI18n();
