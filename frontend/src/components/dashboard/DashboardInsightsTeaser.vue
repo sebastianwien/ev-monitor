@@ -5,10 +5,8 @@ import { SparklesIcon, LockClosedIcon } from '@heroicons/vue/24/outline'
 import { sumPhantomKwh, phantomEur } from '../../utils/phantomDrain'
 
 // Locked-state teaser for the energy-split donut (DashboardInsights), shown to users
-// without the analytics entitlement. The phantom-cost figure is FE-derivable from data
-// the user already has, so we show it openly as the hook - the full breakdown and
-// visualisation behind the blur is the paid product. The blurred shape is static and
-// carries no real data, so there is nothing to bypass.
+// without the analytics entitlement. Deliberately crisp (not a blurred fake chart): a
+// clean representative donut with a lock, plus the real phantom-cost figure as the hook.
 const props = defineProps<{ entries: any[] }>()
 const { t } = useI18n()
 
@@ -17,40 +15,47 @@ const phantomCostEur = computed(() => phantomEur(sumPhantomKwh(props.entries)))
 function fmt1(n: number): string {
   return n.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 }
+
+// Static representative donut (circumference 326.7 for r=52). Driven / phantom / loss.
+const C = 326.7
+const driven = C * 0.62
+const phantom = C * 0.17
+const loss = C * 0.21
 </script>
 
 <template>
-  <div class="relative overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-    <!-- Blurred preview of the energy split (static shape, no real data) -->
-    <div class="pointer-events-none select-none blur-[5px] opacity-70 p-4 md:p-5" aria-hidden="true">
-      <div class="flex items-center gap-4 md:gap-6">
-        <div
-          class="w-32 h-32 flex-shrink-0 rounded-full"
-          style="background: conic-gradient(#10b981 0 62%, #f59e0b 62% 79%, #9ca3af 79% 100%); -webkit-mask: radial-gradient(transparent 53%, #000 54%); mask: radial-gradient(transparent 53%, #000 54%);"
-        ></div>
-        <div class="flex-1 space-y-4">
-          <div class="h-3 w-3/4 rounded-full bg-emerald-300 dark:bg-emerald-500/60"></div>
-          <div class="h-3 w-2/5 rounded-full bg-amber-300 dark:bg-amber-500/60"></div>
-          <div class="h-3 w-1/4 rounded-full bg-gray-300 dark:bg-gray-600"></div>
+  <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 md:p-5">
+    <div class="flex items-center gap-4 md:gap-6">
+      <!-- Crisp representative donut with a lock badge -->
+      <div class="relative flex-shrink-0">
+        <svg viewBox="0 0 128 128" class="w-24 h-24 md:w-28 md:h-28 -rotate-90" aria-hidden="true">
+          <circle cx="64" cy="64" r="52" fill="none" stroke="#10b981" stroke-width="20"
+            :stroke-dasharray="`${driven} ${C - driven}`" stroke-dashoffset="0" />
+          <circle cx="64" cy="64" r="52" fill="none" stroke="#f59e0b" stroke-width="20"
+            :stroke-dasharray="`${phantom} ${C - phantom}`" :stroke-dashoffset="-driven" />
+          <circle cx="64" cy="64" r="52" fill="none" stroke="#9ca3af" stroke-width="20"
+            :stroke-dasharray="`${loss} ${C - loss}`" :stroke-dashoffset="-(driven + phantom)" />
+        </svg>
+        <div class="absolute inset-0 flex items-center justify-center">
+          <span class="flex items-center justify-center w-9 h-9 rounded-full bg-white dark:bg-gray-800 shadow ring-1 ring-gray-200 dark:ring-gray-600">
+            <LockClosedIcon class="w-4 h-4 text-amber-500 dark:text-amber-400" />
+          </span>
         </div>
       </div>
-    </div>
 
-    <!-- Overlay: real hook number + single CTA -->
-    <div class="absolute inset-0 flex flex-col items-center justify-center text-center px-5 bg-white/55 dark:bg-gray-900/55">
-      <div class="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 mb-1">
-        <LockClosedIcon class="w-4 h-4" />
-        <span class="text-[11px] font-semibold uppercase tracking-wide">{{ t('dashboard.insights_teaser_badge') }}</span>
+      <!-- Hook + CTA -->
+      <div class="min-w-0 flex-1">
+        <p class="text-[11px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">{{ t('dashboard.insights_teaser_badge') }}</p>
+        <p v-if="phantomCostEur > 0.05" class="text-2xl font-bold text-gray-900 dark:text-white tabular-nums leading-tight">≈ {{ fmt1(phantomCostEur) }}&nbsp;€</p>
+        <p class="text-sm text-gray-600 dark:text-gray-300 mt-0.5">{{ t('dashboard.insights_teaser_body') }}</p>
+        <router-link
+          to="/upgrade"
+          class="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition-colors"
+        >
+          <SparklesIcon class="w-4 h-4" />
+          {{ t('dashboard.insights_teaser_cta') }}
+        </router-link>
       </div>
-      <p v-if="phantomCostEur > 0.05" class="text-3xl font-bold text-gray-900 dark:text-white tabular-nums">≈ {{ fmt1(phantomCostEur) }}&nbsp;€</p>
-      <p class="text-sm text-gray-600 dark:text-gray-300 mt-1 max-w-xs">{{ t('dashboard.insights_teaser_body') }}</p>
-      <router-link
-        to="/upgrade"
-        class="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition-colors"
-      >
-        <SparklesIcon class="w-4 h-4" />
-        {{ t('dashboard.insights_teaser_cta') }}
-      </router-link>
     </div>
   </div>
 </template>
