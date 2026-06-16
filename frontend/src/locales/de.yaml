@@ -59,7 +59,7 @@ landing:
     auto_import_desc: "8 Datenquellen"
     auto_import_link: "8 Datenquellen für Importe"
     auto_import_beta: "BETA"
-    auto_import_badge: "Datenimport aus 9 Quellen"
+    auto_import_badge: "Datenimport aus 10 Quellen"
     privacy_title: "Privacy First"
     privacy_desc: "Geohashing statt Tracking. Deine Daten gehören dir."
     privacy_badge: "Privacy First"
@@ -135,7 +135,7 @@ landing:
     import_data: "Daten importieren"
   import:
     title: "Nie wieder manuell eintippen"
-    subtitle: "9 Datenquellen - Ladevorgänge kommen automatisch oder per Import rein."
+    subtitle: "10 Datenquellen - Ladevorgänge kommen automatisch oder per Import rein."
     group_cars: "Telemetrie & App"
     group_wallbox: "Wallboxen"
     group_manual: "Import & API"
@@ -148,6 +148,7 @@ landing:
     csv_desc: "Ladehistorie als CSV- oder JSON-Datei hochladen."
     api_desc: "Eigene Integrationen per REST API - z.B. Home Assistant, ioBroker."
     xpeng_desc: "Datenexport per EU Data Act anfordern und hochladen - manuell oder teilautomatisiert."
+    vweuda_desc: "EU Data Act-Datenexport von VW, Audi, Skoda, SEAT, CUPRA & Porsche anfordern und hochladen."
     gocharger_desc: "Wallbox-Sessions automatisch nach jeder Ladung importieren."
     ocpp_desc: "Universelles Protokoll für alle OCPP-fähigen Heimwallboxen."
   cta:

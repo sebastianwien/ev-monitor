@@ -59,7 +59,7 @@ landing:
     auto_import_desc: "8 data sources"
     auto_import_link: "8 data sources for imports"
     auto_import_beta: "BETA"
-    auto_import_badge: "Import from 9 sources"
+    auto_import_badge: "Import from 10 sources"
     privacy_title: "Privacy First"
     privacy_desc: "Geohashing instead of tracking. Your data belongs to you."
     privacy_badge: "Privacy First"
@@ -135,7 +135,7 @@ landing:
     import_data: "Import data"
   import:
     title: "Never type manually again"
-    subtitle: "9 data sources - charging sessions sync automatically or via import."
+    subtitle: "10 data sources - charging sessions sync automatically or via import."
     group_cars: "Telemetry & App"
     group_wallbox: "Wallboxes"
     group_manual: "Import & API"
@@ -148,6 +148,7 @@ landing:
     csv_desc: "Upload your charging history as a CSV or JSON file."
     api_desc: "Custom integrations via REST API - e.g. Home Assistant, ioBroker."
     xpeng_desc: "Request data export via EU Data Act and upload - manual or semi-automated."
+    vweuda_desc: "Request the EU Data Act data export from VW, Audi, Skoda, SEAT, CUPRA & Porsche and upload it."
     gocharger_desc: "Automatically import wallbox sessions after each charge."
     ocpp_desc: "Universal protocol for all OCPP-capable home wallboxes."
   cta:

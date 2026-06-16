@@ -917,6 +917,19 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
                   <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 leading-snug">{{ t('landing.import.xpeng_desc') }}</p>
                 </div>
               </div>
+              <div class="flex items-start gap-2.5">
+                <span class="mt-1.5 h-2 w-2 rounded-full bg-blue-600 shrink-0"></span>
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center justify-between gap-1 flex-wrap">
+                    <span class="text-sm font-medium text-gray-800 dark:text-gray-200">VW Group</span>
+                    <div class="flex gap-1 shrink-0">
+                      <span class="text-xs bg-green-100 text-green-700 font-medium px-1.5 py-0.5 rounded-full">{{ t('landing.import.available') }}</span>
+                      <span class="text-xs bg-blue-100 text-blue-800 font-medium px-1.5 py-0.5 rounded-full">{{ t('landing.import.beta') }}</span>
+                    </div>
+                  </div>
+                  <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 leading-snug">{{ t('landing.import.vweuda_desc') }}</p>
+                </div>
+              </div>
             </div>
           </div>
 

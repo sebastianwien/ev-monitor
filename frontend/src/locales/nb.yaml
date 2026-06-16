@@ -56,7 +56,7 @@ landing:
     auto_import_title: Automatisk import
     auto_import_desc: Tesla, Sprit-Monitor, go-eCharger og OCPP-ladestasjoner.
     auto_import_beta: BETA
-    auto_import_badge: "Import fra 9 kilder"
+    auto_import_badge: "Import fra 10 kilder"
     privacy_title: Personvern først
     privacy_desc: Geohashing i stedet for sporing. Dataene dine tilhører deg.
     privacy_badge: Personvern først
@@ -98,7 +98,7 @@ landing:
     import_data: Importer data
   import:
     title: Du trenger aldri å skrive manuelt igjen
-    subtitle: "9 datakilder - ladesesjoner synkroniseres automatisk eller via import."
+    subtitle: "10 datakilder - ladesesjoner synkroniseres automatisk eller via import."
     tesla_title: Tesla Fleet API
     tesla_status: Tilgjengelig
     tesla_desc: Importer betalingshistorikken automatisk – uten å skrive eller kopiere.
@@ -114,6 +114,7 @@ landing:
     ocpp_beta: BETA
     ocpp_desc: Universell protokoll for alle OCPP-kompatible ladestasjoner for hjemmet.
     xpeng_desc: "Be om dataeksport via EU Data Act og last opp - manuelt eller halvautomatisk."
+    vweuda_desc: "Be om EU Data Act-dataeksporten fra VW, Audi, Skoda, SEAT, CUPRA og Porsche og last den opp."
   cta:
     title: Er du klar for gjennomsiktige ladekostnader?
     subtitle: Registrer deg gratis og kom i gang.
