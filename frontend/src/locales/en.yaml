@@ -1778,7 +1778,7 @@ tesla:
   connected_prefix: "Connected:"
   last_sync: "Last sync:"
   sync_btn_loading: "Importing..."
-  sync_btn: "Import charging history now"
+  sync_btn: "Import Supercharger charging history now"
   auto_import_hint: "Daily automatic import enabled"
   geocoding: "Resolving charging locations…"
   skipped: "{n} skipped"

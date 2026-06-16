@@ -1719,7 +1719,7 @@ tesla:
   connected_prefix: "Ansluten:"
   last_sync: "Senaste synkronisering:"
   sync_btn_loading: Importerar...
-  sync_btn: Importera betalningshistorik nu
+  sync_btn: Importera Supercharger-laddhistorik nu
   auto_import_hint: Automatisk daglig import aktiverad
   geocoding: Hämtar laddningsstationer…
   skipped: "{n} hoppades över"

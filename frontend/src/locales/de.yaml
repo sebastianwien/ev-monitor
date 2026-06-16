@@ -1778,7 +1778,7 @@ tesla:
   connected_prefix: "Verbunden:"
   last_sync: "Letzter Sync:"
   sync_btn_loading: "Importiere..."
-  sync_btn: "Ladehistorie jetzt importieren"
+  sync_btn: "Supercharger-Ladehistorie jetzt importieren"
   auto_import_hint: "Täglich automatischer Import aktiviert"
   geocoding: "Ladestandorte werden aufgelöst…"
   skipped: "{n} übersprungen"
