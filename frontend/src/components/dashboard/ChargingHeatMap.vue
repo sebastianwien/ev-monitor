@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, onMounted, onActivated, onDeactivated, onUnmounted, watch, nextTick } from 'vue'
 import L from 'leaflet'
 import 'leaflet.markercluster'
 import geohash from 'ngeohash'
@@ -262,6 +262,17 @@ const setViewMode = (mode: 'heatmap' | 'markers' | 'both') => {
   renderCharges()
 }
 
+// Fully tears down the Leaflet map and detaches all its listeners.
+const teardownMap = () => {
+  resizeObserver?.disconnect()
+  resizeObserver = null
+  pendingRender = false
+  map?.remove()
+  map = null
+  heatLayer = null
+  markerClusterGroup = null
+}
+
 // Watch for car or time range changes
 watch(() => [props.carId, props.timeRange], () => {
   if (props.carId) renderCharges()
@@ -274,14 +285,25 @@ onMounted(() => {
   if (props.carId) renderCharges()
 })
 
-onUnmounted(() => {
-  resizeObserver?.disconnect()
-  resizeObserver = null
-  map?.remove()
-  map = null
-  heatLayer = null
-  markerClusterGroup = null
+// DashboardView is cached by <KeepAlive>, so navigating away does NOT unmount
+// this component - it only deactivates it. The DOM gets detached (zero size)
+// while Leaflet's window resize listener stays bound, which would fire _redraw
+// on a zero-sized canvas and throw IndexSizeError. We therefore tear the map
+// down on deactivate and rebuild it on activate. onActivated also fires right
+// after the initial onMounted, which we skip to avoid a duplicate render.
+let activatedOnce = false
+onActivated(() => {
+  if (!activatedOnce) {
+    activatedOnce = true
+    return
+  }
+  if (props.carId) renderCharges()
 })
+
+onDeactivated(teardownMap)
+
+// Runs only on real destroy (KeepAlive cache eviction / app teardown).
+onUnmounted(teardownMap)
 </script>
 
 <template>
