@@ -773,6 +773,11 @@ dashboard:
   trip_manual: manuell
   trip_speed_summary: "Ø {avg} · max {max} km/h"
   trip_speed_header: "km/h"
+  trip_m_consumption: "Förbr."
+  trip_m_speed: "Fart"
+  trip_m_time: "Tid"
+  trip_m_soc: "SoC"
+  trip_m_route: "Rutt"
   trip_climate_load_comfort_heat: "Säte-/rattvärme"
   trip_climate_load_hvac_heating: "Värme"
   trip_climate_load_hvac_cooling: "Luftkonditionering"

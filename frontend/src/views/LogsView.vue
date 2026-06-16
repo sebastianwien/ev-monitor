@@ -1220,56 +1220,24 @@ function toggleAllCharges() {
                       <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
                       <div v-if="editingTripId !== trip.id && deletingTripId !== trip.id"
                            class="px-3 py-3 bg-white dark:bg-gray-700 border-t border-gray-100 dark:border-gray-600 space-y-2">
-                    <!-- Single row: distance, consumption, time, SoC, badges, temp, actions, menu -->
-                    <div class="flex items-start justify-between gap-2">
-                      <div class="flex items-center flex-wrap gap-x-2 gap-y-1 min-w-0">
+                    <!-- Top row: distance + temp + menu -->
+                    <div class="flex items-center justify-between gap-2">
+                      <span class="inline-flex items-center gap-1.5 min-w-0">
                         <MapIcon :class="['w-4 h-4 flex-shrink-0',
                           isAdmin && trip.dataSource === 'TESLA_LIVE'    ? 'text-red-500 dark:text-red-400' :
                           isAdmin && trip.dataSource === 'SMARTCAR_LIVE' ? 'text-blue-500 dark:text-blue-400' :
                           'text-emerald-600 dark:text-emerald-400']" />
                         <span v-if="trip.distanceKm != null" class="font-semibold text-emerald-700 dark:text-emerald-400 whitespace-nowrap">{{ formatDistance(trip.distanceKm, { round: false }) }}</span>
-                        <span v-if="tripConsumption(trip)" class="inline-flex items-center text-[13px] text-gray-600 dark:text-gray-300 whitespace-nowrap">
-                          {{ tripConsumption(trip)!.estimated ? '~' : '' }}{{ formatConsumption(tripConsumption(trip)!.kwhPer100km) }}
-                        </span>
-                        <span class="inline-flex items-center gap-1 whitespace-nowrap text-[13px] text-gray-500 dark:text-gray-400">
-                          <ClockIcon class="w-3 h-3" />{{ formatTripTimeRange(trip.tripStartedAt, trip.tripEndedAt) }}
-                        </span>
-                        <span v-if="trip.socStart != null && trip.socEnd != null" class="inline-flex items-center gap-1 whitespace-nowrap text-[13px] text-gray-500 dark:text-gray-400">
-                          <Battery0Icon class="w-3 h-3" />{{ trip.socStart }}% → {{ trip.socEnd }}%
-                        </span>
-                        <span v-if="trip.maxSpeedKmh != null" class="inline-flex items-center whitespace-nowrap text-[13px] text-gray-500 dark:text-gray-400">
-                          {{ t('dashboard.trip_speed_summary', { avg: Math.round(Number(trip.avgSpeedKmh)), max: Math.round(Number(trip.maxSpeedKmh)) }) }}
-                        </span>
-                        <span v-if="trip.routeType"
-                          class="inline-flex items-center px-2 py-0.5 bg-gray-50 dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded-full text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                          {{ t('dashboard.trip_route_' + trip.routeType.toLowerCase()) }}
-                        </span>
                         <span v-if="trip.dataSource === 'USER_CREATED'"
                           class="inline-flex items-center px-2 py-0.5 bg-gray-50 dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded-full text-xs text-gray-400 whitespace-nowrap">
                           {{ t('dashboard.trip_manual') }}
                         </span>
-                      </div>
+                      </span>
                       <div class="flex items-center gap-1.5 flex-shrink-0">
                         <span v-if="trip.outsideTempCelsius != null"
                           :class="['inline-flex items-center gap-0.5 px-2 py-0.5 border rounded text-xs whitespace-nowrap', tempBadgeClass(trip.outsideTempCelsius)]">
                           <SunIcon class="w-3 h-3" />{{ trip.outsideTempCelsius }}°C
                         </span>
-                        <div class="flex items-center gap-1 flex-shrink-0">
-                          <template v-if="trip.dataSource !== 'USER_CREATED'">
-                            <button @click="toggleRating(trip.id, 'positive', trip.feedback)"
-                              class="p-2 md:p-1 rounded transition"
-                              :class="effectiveRating(trip.id, trip.feedback) === 'positive' ? 'text-emerald-500' : 'text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30'"
-                              :title="t('dashboard.trip_feedback_positive')">
-                              <HandThumbUpIcon class="w-3.5 h-3.5" />
-                            </button>
-                            <button @click="toggleRating(trip.id, 'negative', trip.feedback)"
-                              class="p-2 md:p-1 rounded transition"
-                              :class="effectiveRating(trip.id, trip.feedback) === 'negative' ? 'text-red-500' : 'text-gray-400 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'"
-                              :title="t('dashboard.trip_feedback_negative')">
-                              <HandThumbDownIcon class="w-3.5 h-3.5" />
-                            </button>
-                          </template>
-                        </div>
                         <div class="relative flex-shrink-0">
                           <button @click.stop="openMenuTripId = openMenuTripId === trip.id ? null : trip.id"
                             class="p-1 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition">
@@ -1278,6 +1246,19 @@ function toggleAllCharges() {
                           <div v-if="openMenuTripId === trip.id"
                             :class="['absolute right-0 w-44 bg-white dark:bg-gray-700 rounded-sm shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)] border border-gray-200 dark:border-gray-600 z-50 py-1 overflow-hidden',
                                      tripIdx === 0 ? 'top-full mt-1' : 'bottom-full mb-1']">
+                            <template v-if="trip.dataSource !== 'USER_CREATED'">
+                              <button @click.stop="toggleRating(trip.id, 'positive', trip.feedback); openMenuTripId = null"
+                                class="w-full flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-600 transition"
+                                :class="effectiveRating(trip.id, trip.feedback) === 'positive' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-700 dark:text-gray-200'">
+                                <HandThumbUpIcon class="w-4 h-4 flex-shrink-0" />{{ t('dashboard.trip_feedback_positive') }}
+                              </button>
+                              <button @click.stop="toggleRating(trip.id, 'negative', trip.feedback); openMenuTripId = null"
+                                class="w-full flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-600 transition"
+                                :class="effectiveRating(trip.id, trip.feedback) === 'negative' ? 'text-red-600 dark:text-red-400' : 'text-gray-700 dark:text-gray-200'">
+                                <HandThumbDownIcon class="w-4 h-4 flex-shrink-0" />{{ t('dashboard.trip_feedback_negative') }}
+                              </button>
+                              <div class="border-t border-gray-100 dark:border-gray-600 my-1"></div>
+                            </template>
                             <button @click.stop="startAddTrip(trip.id, trip.tripStartedAt); openMenuTripId = null"
                               class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
                               <PlusIcon class="w-4 h-4 flex-shrink-0" />{{ t('dashboard.action_add_trip') }}
@@ -1295,6 +1276,24 @@ function toggleAllCharges() {
                           </div>
                         </div>
                       </div>
+                    </div>
+                    <!-- Metrics: 2-col grid, full width -->
+                    <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-[13px]">
+                      <span v-if="tripConsumption(trip)" class="inline-flex items-baseline gap-1 text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                        <span class="text-gray-400 text-[11px]">{{ t('dashboard.trip_m_consumption') }}</span>{{ tripConsumption(trip)!.estimated ? '~' : '' }}{{ formatConsumption(tripConsumption(trip)!.kwhPer100km) }}
+                      </span>
+                      <span v-if="trip.maxSpeedKmh != null" class="inline-flex items-baseline gap-1 text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                        <span class="text-gray-400 text-[11px]">{{ t('dashboard.trip_m_speed') }}</span>{{ t('dashboard.trip_speed_summary', { avg: Math.round(Number(trip.avgSpeedKmh)), max: Math.round(Number(trip.maxSpeedKmh)) }) }}
+                      </span>
+                      <span class="inline-flex items-baseline gap-1 text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                        <span class="text-gray-400 text-[11px]">{{ t('dashboard.trip_m_time') }}</span>{{ formatTripTimeRange(trip.tripStartedAt, trip.tripEndedAt) }}
+                      </span>
+                      <span v-if="trip.socStart != null && trip.socEnd != null" class="inline-flex items-baseline gap-1 text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                        <span class="text-gray-400 text-[11px]">{{ t('dashboard.trip_m_soc') }}</span>{{ trip.socStart }}% → {{ trip.socEnd }}%
+                      </span>
+                      <span v-if="trip.routeType" class="inline-flex items-baseline gap-1 text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                        <span class="text-gray-400 text-[11px]">{{ t('dashboard.trip_m_route') }}</span>{{ t('dashboard.trip_route_' + trip.routeType.toLowerCase()) }}
+                      </span>
                     </div>
                     <TripClimateMarkers :climate="trip.climate" />
                     <!-- Feedback panel -->
