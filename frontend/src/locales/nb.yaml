@@ -773,6 +773,12 @@ dashboard:
   trip_manual: manuell
   trip_speed_summary: "Ø {avg} · maks {max} km/t"
   trip_speed_header: "km/t"
+  trip_climate_load_comfort_heat: "Sete-/rattvarme"
+  trip_climate_load_hvac_heating: "Varme"
+  trip_climate_load_hvac_cooling: "Klimaanlegg"
+  trip_climate_load_battery_heater: "Batterivarme"
+  trip_climate_minutes: "{n} min"
+  trip_climate_minutes_lt1: "<1 min"
   trip_err_times_required: "Start- og sluttid er obligatoriske"
   trip_err_end_before_start: "Sluttid må være etter starttid"
   trip_merge_button: "Slå sammen med forrige tur"

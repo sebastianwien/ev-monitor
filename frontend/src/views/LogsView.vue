@@ -42,6 +42,7 @@ import PowerCurveChart from '../components/charging/PowerCurveChart.vue'
 import ConsumptionInfoBox from '../components/dashboard/ConsumptionInfoBox.vue'
 import EditLogModal from '../components/dashboard/EditLogModal.vue'
 import TripForm from '../components/dashboard/TripForm.vue'
+import TripClimateMarkers from '../components/TripClimateMarkers.vue'
 import { costBadgeClass } from '../utils/costColor'
 import LicensePlate from '../components/car/LicensePlate.vue'
 import RewardSystemUpdateBanner from '../components/shared/RewardSystemUpdateBanner.vue'
@@ -1295,6 +1296,7 @@ function toggleAllCharges() {
                         </div>
                       </div>
                     </div>
+                    <TripClimateMarkers :climate="trip.climate" />
                     <!-- Feedback panel -->
                     <div v-if="feedbackOpenId === trip.id" class="pt-1 space-y-2 border-t border-gray-100 dark:border-gray-600">
                       <div class="flex flex-wrap gap-1">
@@ -1539,6 +1541,7 @@ function toggleAllCharges() {
                           </div>
                         </div>
                       </div>
+                      <TripClimateMarkers :climate="trip.climate" class="px-3 pb-2.5" />
                       <!-- Inline edit form -->
                       <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
                       <div v-if="editingTripId === trip.id"

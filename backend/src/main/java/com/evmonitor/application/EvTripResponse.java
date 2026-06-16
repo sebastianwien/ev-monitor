@@ -28,8 +28,30 @@ public record EvTripResponse(
         String routeType,
         String status,
         String dataSource,
-        String feedback
+        String feedback,
+        ClimateSummary climate
 ) {
+    /**
+     * Climate/comfort loads active during the trip and for how long, parsed from
+     * {@code telemetry_extras}. Null for trips without Tesla-FULL climate data
+     * (the logfeed then renders no markers). {@code seconds} per load, plus the total
+     * {@code tripSeconds} so the UI can show the share of the drive.
+     */
+    public record ClimateSummary(
+            int tripSeconds,
+            Load comfortHeat,
+            Load hvacHeating,
+            Load hvacCooling,
+            Load batteryHeater
+    ) {
+        public boolean anyActive() {
+            return comfortHeat.active() || hvacHeating.active()
+                    || hvacCooling.active() || batteryHeater.active();
+        }
+    }
+
+    public record Load(boolean active, int seconds) {}
+
     public static EvTripResponse fromDomain(EvTrip trip) {
         return EvTripResponse.builder()
                 .id(trip.getId())
@@ -52,6 +74,7 @@ public record EvTripResponse(
                 .status(trip.getStatus())
                 .dataSource(trip.getDataSource())
                 .feedback(trip.getFeedback())
+                .climate(TripClimateExtras.parse(trip.getTelemetryExtras()))
                 .build();
     }
 }
