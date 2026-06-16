@@ -3,7 +3,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import api from '../api/axios'
-import { subscriptionService } from '../api/subscriptionService'
+import { subscriptionService, type SubscriptionTier } from '../api/subscriptionService'
 
 export function useAccountSettings(
   loading: Ref<boolean>,
@@ -31,7 +31,7 @@ export function useAccountSettings(
 
   // Subscription
   const subscriptionPeriodEnd = ref<string | null>(null)
-  const subscriptionTier = ref<'NONE' | 'AUTOSYNC' | 'AUTOSYNC_LIVE' | 'SUPPORTER'>('NONE')
+  const subscriptionTier = ref<SubscriptionTier>('NONE')
   const portalLoading = ref(false)
   const tierActionLoading = ref(false)
   const tierActionError = ref('')

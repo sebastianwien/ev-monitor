@@ -21,7 +21,7 @@ import { useTeslaImportGating } from '../composables/useTeslaImportGating'
 import { apiKeyService, type ApiKeyResponse, type ApiKeyCreatedResponse } from '../api/apiKeyService'
 import { analytics } from '../services/analytics'
 import DemoImportsModal from '../components/demo/DemoImportsModal.vue'
-import { subscriptionService } from '../api/subscriptionService'
+import { subscriptionService, type SubscriptionTier } from '../api/subscriptionService'
 
 const { t } = useI18n()
 const { activeTab, toggle } = useImportsTab()
@@ -35,7 +35,7 @@ const cars = ref<Car[]>([])
 const loading = ref(true)
 const premiumEnabled = ref(false)
 const subscriptionIsPremium = ref(authStore.isPremium)
-const subscriptionTier = ref<'NONE' | 'AUTOSYNC' | 'AUTOSYNC_LIVE' | 'SUPPORTER'>('NONE')
+const subscriptionTier = ref<SubscriptionTier>('NONE')
 const liveUpgradeLoading = ref(false)
 const liveUpgradeError = ref('')
 

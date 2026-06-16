@@ -67,7 +67,7 @@ import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { analytics } from '../services/analytics';
-import { subscriptionService } from '../api/subscriptionService';
+import { subscriptionService, type SubscriptionTier } from '../api/subscriptionService';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -75,7 +75,7 @@ const authStore = useAuthStore();
 
 const isPolling = ref(true);
 const pollTimedOut = ref(false);
-const tier = ref<'NONE' | 'AUTOSYNC' | 'AUTOSYNC_LIVE' | 'SUPPORTER'>('NONE');
+const tier = ref<SubscriptionTier>('NONE');
 
 // Target tier comes from the Stripe success_url query param (set server-side in
 // StripeService.appendTargetTier). Without it, an AUTOSYNC -> AUTOSYNC_LIVE upgrade

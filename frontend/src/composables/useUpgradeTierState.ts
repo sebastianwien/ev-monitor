@@ -1,6 +1,9 @@
 import { computed, type Ref } from 'vue'
+import type { SubscriptionTier } from '../api/subscriptionService'
 
-export type SubscriptionTier = 'NONE' | 'AUTOSYNC' | 'AUTOSYNC_LIVE' | 'SUPPORTER'
+// Re-exported so existing importers of this composable keep working; the single source
+// of truth is the API contract in subscriptionService.
+export type { SubscriptionTier }
 
 /**
  * Tier-abhaengige UI-States fuer die /upgrade-Seite.
