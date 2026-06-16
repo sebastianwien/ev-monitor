@@ -22,6 +22,7 @@ import {
   HandThumbDownIcon,
   EllipsisVerticalIcon,
   ChartBarSquareIcon,
+  LockClosedIcon,
   CheckIcon,
   LinkIcon,
   ListBulletIcon,
@@ -586,6 +587,24 @@ watch(selectedCarId, async (newId) => {
 
 const authStore = useAuthStore()
 const isAdmin   = computed(() => authStore.isAdmin)
+
+// Locked-state phantom teaser: shown to users without the analytics entitlement. Surfaces
+// the most-recent drain as a free sample plus an aggregate, instead of blurring every
+// in-feed marker. The figure is FE-derivable from data the user already has; the single
+// CTA upsells the full in-feed markers and the energy donut.
+const PHANTOM_TEASER_EUR_PER_KWH = 0.29
+const phantomTeaser = computed(() => {
+  if (authStore.canViewLiveAnalytics) return null
+  const withDrain = (mergedLogFeed.value ?? []).filter((e: any) => (e?._phantomDrain?.kwh ?? 0) > 0.05)
+  if (withDrain.length === 0) return null
+  const totalKwh = withDrain.reduce((s: number, e: any) => s + e._phantomDrain.kwh, 0)
+  // mergedLogFeed is sorted descending, so the first match is the most recent drain.
+  return {
+    count: withDrain.length,
+    latestKwh: withDrain[0]._phantomDrain.kwh as number,
+    totalEur: totalKwh * PHANTOM_TEASER_EUR_PER_KWH,
+  }
+})
 
 // All trips visible in the current feed - used to seed the cpk-map. We pull
 // them out of mergedLogFeed (which still flags each trip via `_isTrip`); the
@@ -1157,6 +1176,25 @@ function toggleAllCharges() {
               <div v-if="openMenuGroupId" class="fixed inset-0 z-40" @click="openMenuGroupId = null" />
               <!-- Backdrop nur fuer Desktop-Popover (mobile Tooltip ist Teil der Expanded-Card). -->
               <div v-if="openRealCostTooltipId?.endsWith('__d')" class="fixed inset-0 z-40" @click="openRealCostTooltipId = null" />
+
+              <!-- Locked-state phantom teaser: one real sample + aggregate + single CTA -->
+              <div v-if="phantomTeaser" class="mb-3 rounded-xl border border-amber-200 dark:border-amber-500/25 bg-amber-50 dark:bg-amber-500/10 px-4 py-3">
+                <div class="flex items-start gap-3">
+                  <BoltIcon class="w-5 h-5 text-amber-500 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                  <div class="min-w-0 flex-1">
+                    <p class="text-sm font-semibold text-amber-800 dark:text-amber-200">
+                      {{ t('dashboard.phantom_teaser_latest', { kwh: phantomTeaser.latestKwh.toFixed(1) }) }}
+                    </p>
+                    <p v-if="phantomTeaser.count > 1" class="text-xs text-amber-700/80 dark:text-amber-300/70 mt-0.5">
+                      {{ t('dashboard.phantom_teaser_total', { count: phantomTeaser.count, eur: phantomTeaser.totalEur.toFixed(1) }) }}
+                    </p>
+                  </div>
+                  <router-link to="/upgrade" class="flex-shrink-0 self-center inline-flex items-center gap-1 rounded-lg bg-amber-500 hover:bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors whitespace-nowrap">
+                    {{ t('dashboard.insights_teaser_cta') }}
+                  </router-link>
+                </div>
+              </div>
+
               <template v-for="item in groupedFeed" :key="item.id">
 
               <!-- ===== TRIP GROUP CONTAINER ===== -->
@@ -1646,7 +1684,7 @@ function toggleAllCharges() {
                   <div class="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap truncate flex items-center gap-1.5">
                     <span class="truncate">{{ formatLogDate(item.entry.loggedAt) }}</span>
                     <button
-                      v-if="item.entry.hasPowerCurve"
+                      v-if="item.entry.hasPowerCurve && authStore.canViewLiveAnalytics"
                       type="button"
                       @click.stop="togglePowerCurve(item.entry.id)"
                       :aria-label="t('dashboard.show_power_curve')"
@@ -1655,6 +1693,16 @@ function toggleAllCharges() {
                     >
                       <ChartBarSquareIcon class="w-4 h-4" />
                     </button>
+                    <router-link
+                      v-else-if="item.entry.hasPowerCurve"
+                      to="/upgrade"
+                      :aria-label="t('dashboard.power_curve_locked')"
+                      :title="t('dashboard.power_curve_locked')"
+                      class="p-0.5 rounded text-amber-500 dark:text-amber-400 hover:bg-amber-100/40 dark:hover:bg-amber-900/30 transition flex-shrink-0"
+                      @click.stop
+                    >
+                      <LockClosedIcon class="w-4 h-4" />
+                    </router-link>
                   </div>
                   <!-- 4. Consumption (or short-trip hint) -->
                   <div class="text-sm whitespace-nowrap">
@@ -2474,6 +2522,7 @@ function toggleAllCharges() {
                   </div>
                   <!-- Ladekurve (nur Tesla FULL-Profil) -->
                   <div v-if="item.entry.hasPowerCurve" class="pt-1">
+                    <template v-if="authStore.canViewLiveAnalytics">
                     <button
                       type="button"
                       class="inline-flex items-center gap-1 text-xs text-emerald-700 dark:text-emerald-300 hover:text-emerald-800 dark:hover:text-emerald-200 transition"
@@ -2505,6 +2554,15 @@ function toggleAllCharges() {
                       </div>
                     </div>
                     </Transition>
+                    </template>
+                    <router-link
+                      v-else
+                      to="/upgrade"
+                      class="inline-flex items-center gap-1 text-xs text-amber-700 dark:text-amber-300 hover:text-amber-800 dark:hover:text-amber-200 transition"
+                    >
+                      <LockClosedIcon class="w-3.5 h-3.5" />
+                      <span>{{ t('dashboard.power_curve_locked') }}</span>
+                    </router-link>
                   </div>
                 </div>
                 </Transition>

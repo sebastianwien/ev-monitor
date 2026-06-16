@@ -733,7 +733,13 @@ dashboard:
   insights_phantom: Parkeringstap
   insights_charging_loss: Ladetap
   insights_loaded: ladet
-  insights_phantom_eur: "≈ {eur} € i parkeringstap"
+  insights_phantom_cost_caption: "{kwh} kWh tapt til parkeringstap"
+  insights_teaser_badge: "Analyser"
+  insights_teaser_body: "Se hvor energien tar veien - kjøring, parkeringstap og ladetap i detalj."
+  insights_teaser_cta: "Lås opp analyser"
+  phantom_teaser_latest: "Sist registrert: {kwh} kWh parkeringstap"
+  phantom_teaser_total: "{count} parkeringstap totalt, ≈ {eur} €"
+  power_curve_locked: "Lås opp ladekurve"
   insights_alltime_hint: Inkluderer alle ladeøkter
   insights_worst_parks: Høyeste parkeringstap
   insights_sentry_hint: Sentry Mode og kalde netter øker tapene betydelig.

@@ -43,6 +43,7 @@ import RangeCard from '../components/dashboard/RangeCard.vue'
 import LiveChargingCard from '../components/dashboard/LiveChargingCard.vue'
 import DashboardEmptyState from '../components/dashboard/DashboardEmptyState.vue'
 import DashboardInsights from '../components/dashboard/DashboardInsights.vue'
+import DashboardInsightsTeaser from '../components/dashboard/DashboardInsightsTeaser.vue'
 import ChargingTypeSplitCard from '../components/dashboard/ChargingTypeSplitCard.vue'
 import ChargingEfficiencyCard from '../components/dashboard/ChargingEfficiencyCard.vue'
 import CO2Card from '../components/dashboard/CO2Card.vue'
@@ -917,6 +918,13 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
           :selected-time-range="selectedTimeRange"
           :custom-start-date="customStartDate"
           :custom-end-date="customEndDate"
+          class="mb-3"
+        />
+
+        <!-- Locked-state teaser: same slot, shown to users without the analytics entitlement -->
+        <DashboardInsightsTeaser
+          v-if="!authStore.canViewLiveAnalytics && mergedLogFeed.length > 0"
+          :entries="mergedLogFeed"
           class="mb-3"
         />
 
