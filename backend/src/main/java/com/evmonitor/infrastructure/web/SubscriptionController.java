@@ -98,6 +98,7 @@ public class SubscriptionController {
         if (raw == null || raw.isBlank()) return SubscriptionTier.AUTOSYNC;
         return switch (raw.toLowerCase(Locale.ROOT)) {
             case "autosync_live", "live" -> SubscriptionTier.AUTOSYNC_LIVE;
+            case "supporter" -> SubscriptionTier.SUPPORTER;
             default -> SubscriptionTier.AUTOSYNC;
         };
     }

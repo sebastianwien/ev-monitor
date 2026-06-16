@@ -35,7 +35,7 @@ const cars = ref<Car[]>([])
 const loading = ref(true)
 const premiumEnabled = ref(false)
 const subscriptionIsPremium = ref(authStore.isPremium)
-const subscriptionTier = ref<'NONE' | 'AUTOSYNC' | 'AUTOSYNC_LIVE'>('NONE')
+const subscriptionTier = ref<'NONE' | 'AUTOSYNC' | 'AUTOSYNC_LIVE' | 'SUPPORTER'>('NONE')
 const liveUpgradeLoading = ref(false)
 const liveUpgradeError = ref('')
 

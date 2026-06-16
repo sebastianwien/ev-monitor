@@ -1,6 +1,6 @@
 import api from './axios';
 
-export type SubscriptionTier = 'NONE' | 'AUTOSYNC' | 'AUTOSYNC_LIVE';
+export type SubscriptionTier = 'NONE' | 'AUTOSYNC' | 'AUTOSYNC_LIVE' | 'SUPPORTER';
 
 export interface SubscriptionStatus {
     isPremium: boolean;
@@ -21,7 +21,7 @@ export const subscriptionService = {
 
     async createCheckoutSession(
         plan: 'monthly' | 'yearly',
-        tier: 'autosync' | 'autosync_live' = 'autosync',
+        tier: 'autosync' | 'autosync_live' | 'supporter' = 'autosync',
     ): Promise<CheckoutResponse> {
         const response = await api.post('/subscription/checkout', { plan, tier });
         return response.data;

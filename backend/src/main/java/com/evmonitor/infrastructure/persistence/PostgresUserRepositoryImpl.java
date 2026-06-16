@@ -107,7 +107,9 @@ public class PostgresUserRepositoryImpl implements UserRepository {
     @Override
     @Transactional
     public void setSubscriptionTier(UUID userId, com.evmonitor.domain.SubscriptionTier tier) {
-        jpaUserRepository.setSubscriptionTier(userId, tier.name(), tier.isPaid());
+        // The persisted `premium` flag mirrors the telemetry entitlement, not "is paying" -
+        // SUPPORTER is paid but non-telemetry-premium. Keep consistent with User.premium.
+        jpaUserRepository.setSubscriptionTier(userId, tier.name(), tier.grantsTelemetry());
     }
 
     @Override

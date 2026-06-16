@@ -128,6 +128,9 @@ export const useAuthStore = defineStore('auth', () => {
     const isBetaTester = computed(() => user.value?.role === 'BETA_TESTER');
     const isTeslaFounder = computed(() => user.value?.role === 'TESLA_FOUNDER');
     const isAutoSyncLive = computed(() => user.value?.subscriptionTier === 'AUTOSYNC_LIVE');
+    // Analytics-only upsell: unlocks canViewLiveAnalytics but NOT telemetry (isPremium stays
+    // false server-side for SUPPORTER, so canActivateTelemetry excludes it automatically).
+    const isSupporter = computed(() => user.value?.subscriptionTier === 'SUPPORTER');
 
     // Tesla brand helper: data collection, the live-charging card and trip detection are
     // free for Tesla drivers; other brands stay on the paid AutoSync model.
@@ -143,7 +146,7 @@ export const useAuthStore = defineStore('auth', () => {
     // power curves, phantom drain, energy split. No Tesla-free path. Server-side gate in
     // EvLogService (power curves); phantom/energy-split are frontend-derived. UX only.
     const canViewLiveAnalytics = computed(() =>
-        isAutoSyncLive.value || isAdmin.value || isBetaTester.value);
+        isAutoSyncLive.value || isSupporter.value || isAdmin.value || isBetaTester.value);
 
     // Mirrors backend User.canViewLiveCharging(CarBrand): the dashboard Live-Charging card
     // is free for Tesla, otherwise AUTOSYNC_LIVE or ADMIN (BETA_TESTER excluded for other
@@ -153,7 +156,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     return {
         token, user, isDemoAccount, isPremium, isAdmin, isBetaTester, isTeslaFounder,
-        isAutoSyncLive,
+        isAutoSyncLive, isSupporter,
         canActivateTelemetry, canViewLiveAnalytics, canViewLiveCharging,
         setToken, setPremium, logout, login, register,
         refreshToken, refreshPremiumStatus,

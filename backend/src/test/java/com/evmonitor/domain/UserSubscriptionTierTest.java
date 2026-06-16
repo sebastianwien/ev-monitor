@@ -160,6 +160,32 @@ class UserSubscriptionTierTest {
         assertTrue(buildUser("ADMIN", SubscriptionTier.NONE).canActivateTelemetry());
     }
 
+    @Test
+    void supporter_unlocksAnalyticsOnly_notTelemetry() {
+        User supporter = buildUser("USER", SubscriptionTier.SUPPORTER);
+        // SUPPORTER pays for the premium analytics view...
+        assertTrue(supporter.canViewLiveAnalytics());
+        // ...but must NOT unlock the telemetry/AutoSync entitlement (the security boundary):
+        // a 2 EUR supporter may not activate Smartcar/AutoSync or push trips.
+        assertFalse(supporter.canActivateTelemetry());
+        assertFalse(supporter.isPremium());
+        assertFalse(supporter.canUseTripPush());
+        assertFalse(supporter.canViewLiveCharging(CarBrand.VW));
+        // canViewLiveTrips is coupled to canViewLiveAnalytics, so it is true for a supporter.
+        // Harmless: without telemetry activation a non-Tesla supporter has no trips to show.
+        assertTrue(supporter.canViewLiveTrips(CarBrand.VW));
+    }
+
+    @Test
+    void grantsTelemetry_excludesSupporter_butSupporterIsPaid() {
+        assertFalse(SubscriptionTier.NONE.grantsTelemetry());
+        assertTrue(SubscriptionTier.AUTOSYNC.grantsTelemetry());
+        assertTrue(SubscriptionTier.AUTOSYNC_LIVE.grantsTelemetry());
+        assertFalse(SubscriptionTier.SUPPORTER.grantsTelemetry());
+        // Billing-wise SUPPORTER is a paid subscription.
+        assertTrue(SubscriptionTier.SUPPORTER.isPaid());
+    }
+
     private User buildUser(String role, SubscriptionTier tier) {
         LocalDateTime now = LocalDateTime.now();
         return User.builder()

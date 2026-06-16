@@ -74,7 +74,9 @@ public class User {
         this.seedData = seedData;
         this.emailNotificationsEnabled = emailNotificationsEnabled;
         this.subscriptionTier = subscriptionTier;
-        this.premium = subscriptionTier.isPaid();
+        // `premium` is the telemetry/AutoSync entitlement, not "is paying": SUPPORTER pays
+        // for analytics only and must stay non-telemetry-premium (see canActivateTelemetry).
+        this.premium = subscriptionTier.grantsTelemetry();
         this.referralRewardGiven = referralRewardGiven;
         this.referralCode = referralCode;
         this.referredByUserId = referredByUserId;
@@ -147,6 +149,7 @@ public class User {
      */
     public boolean canViewLiveAnalytics() {
         return subscriptionTier == SubscriptionTier.AUTOSYNC_LIVE
+                || subscriptionTier == SubscriptionTier.SUPPORTER
                 || TRIP_PUSH_PRIVILEGED_ROLES.contains(role);
     }
 

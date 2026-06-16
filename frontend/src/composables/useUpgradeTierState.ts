@@ -1,6 +1,6 @@
 import { computed, type Ref } from 'vue'
 
-export type SubscriptionTier = 'NONE' | 'AUTOSYNC' | 'AUTOSYNC_LIVE'
+export type SubscriptionTier = 'NONE' | 'AUTOSYNC' | 'AUTOSYNC_LIVE' | 'SUPPORTER'
 
 /**
  * Tier-abhaengige UI-States fuer die /upgrade-Seite.
@@ -15,6 +15,7 @@ export function useUpgradeTierState(tier: Ref<SubscriptionTier>) {
     const activeBannerKey = computed(() =>
         tier.value === 'AUTOSYNC_LIVE' ? 'upgrade.tier_active_banner_live'
         : tier.value === 'AUTOSYNC' ? 'upgrade.tier_active_banner_autosync'
+        : tier.value === 'SUPPORTER' ? 'upgrade.tier_active_banner_supporter'
         : ''
     )
 

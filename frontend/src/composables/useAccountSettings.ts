@@ -31,7 +31,7 @@ export function useAccountSettings(
 
   // Subscription
   const subscriptionPeriodEnd = ref<string | null>(null)
-  const subscriptionTier = ref<'NONE' | 'AUTOSYNC' | 'AUTOSYNC_LIVE'>('NONE')
+  const subscriptionTier = ref<'NONE' | 'AUTOSYNC' | 'AUTOSYNC_LIVE' | 'SUPPORTER'>('NONE')
   const portalLoading = ref(false)
   const tierActionLoading = ref(false)
   const tierActionError = ref('')

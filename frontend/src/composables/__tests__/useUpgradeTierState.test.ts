@@ -60,6 +60,25 @@ describe('useUpgradeTierState', () => {
         })
     })
 
+    describe('Tier SUPPORTER (Analytics-Upsell, orthogonal)', () => {
+        const tier = ref<SubscriptionTier>('SUPPORTER')
+        const s = useUpgradeTierState(tier)
+
+        it('weder AutoSync- noch Live-State aktiv', () => {
+            expect(s.isAutoSyncActive.value).toBe(false)
+            expect(s.isLiveActive.value).toBe(false)
+        })
+        it('versteckt den Plan-Toggle (bestehendes Abo)', () => {
+            expect(s.showPlanToggle.value).toBe(false)
+        })
+        it('kein in-place Live-Upgrade', () => {
+            expect(s.isLiveUpgrade.value).toBe(false)
+        })
+        it('zeigt den Supporter-Banner', () => {
+            expect(s.activeBannerKey.value).toBe('upgrade.tier_active_banner_supporter')
+        })
+    })
+
     it('reagiert reaktiv auf Tier-Wechsel', () => {
         const tier = ref<SubscriptionTier>('NONE')
         const s = useUpgradeTierState(tier)

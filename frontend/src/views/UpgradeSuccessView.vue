@@ -75,7 +75,7 @@ const authStore = useAuthStore();
 
 const isPolling = ref(true);
 const pollTimedOut = ref(false);
-const tier = ref<'NONE' | 'AUTOSYNC' | 'AUTOSYNC_LIVE'>('NONE');
+const tier = ref<'NONE' | 'AUTOSYNC' | 'AUTOSYNC_LIVE' | 'SUPPORTER'>('NONE');
 
 // Target tier comes from the Stripe success_url query param (set server-side in
 // StripeService.appendTargetTier). Without it, an AUTOSYNC -> AUTOSYNC_LIVE upgrade

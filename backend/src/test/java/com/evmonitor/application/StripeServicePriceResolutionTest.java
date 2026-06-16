@@ -1,5 +1,6 @@
 package com.evmonitor.application;
 
+import com.evmonitor.domain.SubscriptionTier;
 import com.evmonitor.domain.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,6 +30,18 @@ class StripeServicePriceResolutionTest {
         ReflectionTestUtils.setField(stripeService, "priceIdYearlySek",   "price_yearly_sek");
         ReflectionTestUtils.setField(stripeService, "priceIdMonthlyDkk",  "price_monthly_dkk");
         ReflectionTestUtils.setField(stripeService, "priceIdYearlyDkk",   "price_yearly_dkk");
+        ReflectionTestUtils.setField(stripeService, "priceIdSupporterMonthly",    "price_sup_monthly_eur");
+        ReflectionTestUtils.setField(stripeService, "priceIdSupporterYearly",     "price_sup_yearly_eur");
+        ReflectionTestUtils.setField(stripeService, "priceIdSupporterMonthlyUsd", "price_sup_monthly_usd");
+        ReflectionTestUtils.setField(stripeService, "priceIdSupporterYearlyUsd",  "price_sup_yearly_usd");
+        ReflectionTestUtils.setField(stripeService, "priceIdSupporterMonthlyGbp", "price_sup_monthly_gbp");
+        ReflectionTestUtils.setField(stripeService, "priceIdSupporterYearlyGbp",  "price_sup_yearly_gbp");
+        ReflectionTestUtils.setField(stripeService, "priceIdSupporterMonthlyNok", "price_sup_monthly_nok");
+        ReflectionTestUtils.setField(stripeService, "priceIdSupporterYearlyNok",  "price_sup_yearly_nok");
+        ReflectionTestUtils.setField(stripeService, "priceIdSupporterMonthlySek", "price_sup_monthly_sek");
+        ReflectionTestUtils.setField(stripeService, "priceIdSupporterYearlySek",  "price_sup_yearly_sek");
+        ReflectionTestUtils.setField(stripeService, "priceIdSupporterMonthlyDkk", "price_sup_monthly_dkk");
+        ReflectionTestUtils.setField(stripeService, "priceIdSupporterYearlyDkk",  "price_sup_yearly_dkk");
     }
 
     @Test
@@ -94,5 +107,25 @@ class StripeServicePriceResolutionTest {
     void null_country_defaults_to_de_price() {
         assertThat(stripeService.resolvePriceId("monthly", null)).isEqualTo("price_monthly_eur_de");
         assertThat(stripeService.resolvePriceId("yearly",  null)).isEqualTo("price_yearly_eur_de");
+    }
+
+    @Test
+    void supporter_resolves_per_currency_with_eur_fallback() {
+        SubscriptionTier sup = SubscriptionTier.SUPPORTER;
+        assertThat(stripeService.resolvePriceId("monthly", "DE", sup)).isEqualTo("price_sup_monthly_eur");
+        assertThat(stripeService.resolvePriceId("yearly",  "DE", sup)).isEqualTo("price_sup_yearly_eur");
+        assertThat(stripeService.resolvePriceId("monthly", "US", sup)).isEqualTo("price_sup_monthly_usd");
+        assertThat(stripeService.resolvePriceId("monthly", "NO", sup)).isEqualTo("price_sup_monthly_nok");
+        assertThat(stripeService.resolvePriceId("monthly", "DK", sup)).isEqualTo("price_sup_monthly_dkk");
+        // unknown country falls back to the EUR base (not the AutoSync intl price)
+        assertThat(stripeService.resolvePriceId("monthly", "FR", sup)).isEqualTo("price_sup_monthly_eur");
+    }
+
+    @Test
+    void tierFromPriceId_maps_supporter_ids_to_supporter() {
+        assertThat(stripeService.tierFromPriceId("price_sup_monthly_eur")).isEqualTo(SubscriptionTier.SUPPORTER);
+        assertThat(stripeService.tierFromPriceId("price_sup_yearly_dkk")).isEqualTo(SubscriptionTier.SUPPORTER);
+        // an unknown/legacy id still defaults to AUTOSYNC defensively, never SUPPORTER
+        assertThat(stripeService.tierFromPriceId("price_unknown_legacy")).isEqualTo(SubscriptionTier.AUTOSYNC);
     }
 }

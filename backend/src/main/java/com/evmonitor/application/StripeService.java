@@ -88,6 +88,44 @@ public class StripeService {
     @Value("${stripe.price-id-yearly-dkk:}")
     private String priceIdYearlyDkk;
 
+    // Supporter tier (analytics-only upsell). Multi-currency like AutoSync; the EUR base
+    // (unsuffixed) doubles as the fallback for countries without a dedicated currency.
+    @Value("${stripe.price-id-supporter-monthly:}")
+    private String priceIdSupporterMonthly;
+
+    @Value("${stripe.price-id-supporter-yearly:}")
+    private String priceIdSupporterYearly;
+
+    @Value("${stripe.price-id-supporter-monthly-usd:}")
+    private String priceIdSupporterMonthlyUsd;
+
+    @Value("${stripe.price-id-supporter-yearly-usd:}")
+    private String priceIdSupporterYearlyUsd;
+
+    @Value("${stripe.price-id-supporter-monthly-gbp:}")
+    private String priceIdSupporterMonthlyGbp;
+
+    @Value("${stripe.price-id-supporter-yearly-gbp:}")
+    private String priceIdSupporterYearlyGbp;
+
+    @Value("${stripe.price-id-supporter-monthly-nok:}")
+    private String priceIdSupporterMonthlyNok;
+
+    @Value("${stripe.price-id-supporter-yearly-nok:}")
+    private String priceIdSupporterYearlyNok;
+
+    @Value("${stripe.price-id-supporter-monthly-sek:}")
+    private String priceIdSupporterMonthlySek;
+
+    @Value("${stripe.price-id-supporter-yearly-sek:}")
+    private String priceIdSupporterYearlySek;
+
+    @Value("${stripe.price-id-supporter-monthly-dkk:}")
+    private String priceIdSupporterMonthlyDkk;
+
+    @Value("${stripe.price-id-supporter-yearly-dkk:}")
+    private String priceIdSupporterYearlyDkk;
+
     @Value("${stripe.referral-coupon-id:}")
     private String referralCouponId;
 
@@ -449,6 +487,17 @@ public class StripeService {
         if (tier == SubscriptionTier.AUTOSYNC_LIVE) {
             return yearly ? priceIdLiveYearly : priceIdLiveMonthly;
         }
+        if (tier == SubscriptionTier.SUPPORTER) {
+            return switch (country) {
+                case "US" -> yearly ? priceIdSupporterYearlyUsd : priceIdSupporterMonthlyUsd;
+                case "GB" -> yearly ? priceIdSupporterYearlyGbp : priceIdSupporterMonthlyGbp;
+                case "NO" -> yearly ? priceIdSupporterYearlyNok : priceIdSupporterMonthlyNok;
+                case "SE" -> yearly ? priceIdSupporterYearlySek : priceIdSupporterMonthlySek;
+                case "DK" -> yearly ? priceIdSupporterYearlyDkk : priceIdSupporterMonthlyDkk;
+                // DE/AT/CH and any other country use the EUR base.
+                default   -> yearly ? priceIdSupporterYearly    : priceIdSupporterMonthly;
+            };
+        }
         return switch (country) {
             case "DE", "AT", "CH" -> yearly ? priceIdYearly      : priceIdMonthly;
             case "US"             -> yearly ? priceIdYearlyUsd    : priceIdMonthlyUsd;
@@ -462,39 +511,64 @@ public class StripeService {
 
     /**
      * Maps a Stripe price-id back to the tier it represents. Live ids → AUTOSYNC_LIVE,
-     * everything else → AUTOSYNC (defensive default - an unknown id from a legacy
-     * product still grants AutoSync rather than silently downgrading the user to NONE).
+     * supporter ids → SUPPORTER, everything else → AUTOSYNC (defensive default - an unknown
+     * id from a legacy product still grants AutoSync rather than silently downgrading to NONE).
      */
     SubscriptionTier tierFromPriceId(String priceId) {
         if (priceId == null) return SubscriptionTier.AUTOSYNC;
         if (priceId.equals(priceIdLiveMonthly) || priceId.equals(priceIdLiveYearly)) {
             return SubscriptionTier.AUTOSYNC_LIVE;
         }
+        if (isSupporterPrice(priceId)) {
+            return SubscriptionTier.SUPPORTER;
+        }
         return SubscriptionTier.AUTOSYNC;
+    }
+
+    private boolean isSupporterPrice(String priceId) {
+        return java.util.stream.Stream.of(
+                priceIdSupporterMonthly, priceIdSupporterYearly,
+                priceIdSupporterMonthlyUsd, priceIdSupporterYearlyUsd,
+                priceIdSupporterMonthlyGbp, priceIdSupporterYearlyGbp,
+                priceIdSupporterMonthlyNok, priceIdSupporterYearlyNok,
+                priceIdSupporterMonthlySek, priceIdSupporterYearlySek,
+                priceIdSupporterMonthlyDkk, priceIdSupporterYearlyDkk
+        ).anyMatch(id -> id != null && !id.isBlank() && id.equals(priceId));
+    }
+
+    /** Precedence for picking a single tier when a subscription has multiple items. */
+    private static int tierRank(SubscriptionTier tier) {
+        return switch (tier) {
+            case NONE -> 0;
+            case SUPPORTER -> 1;
+            case AUTOSYNC -> 2;
+            case AUTOSYNC_LIVE -> 3;
+        };
     }
 
     /**
      * Reads the tier off a Stripe subscription event payload. Stripe always sends
-     * the full current item set on subscription.created/updated; we pick the highest
-     * tier across items (in practice there is only one item, but be defensive).
+     * the full current item set on subscription.created/updated; we pick the highest-rank
+     * tier across items (in practice there is only one item, but be defensive). A
+     * supporter-only subscription must resolve to SUPPORTER, not the AUTOSYNC default.
      */
     private SubscriptionTier tierFromSubscriptionItems(JsonObject subscriptionData) {
         if (!subscriptionData.has("items")) return SubscriptionTier.AUTOSYNC;
         JsonObject items = subscriptionData.getAsJsonObject("items");
         if (!items.has("data")) return SubscriptionTier.AUTOSYNC;
         JsonArray data = items.getAsJsonArray("data");
-        SubscriptionTier highest = SubscriptionTier.AUTOSYNC;
+        SubscriptionTier highest = null;
         for (int i = 0; i < data.size(); i++) {
             JsonObject item = data.get(i).getAsJsonObject();
             if (!item.has("price")) continue;
             JsonObject price = item.getAsJsonObject("price");
             if (!price.has("id")) continue;
             SubscriptionTier itemTier = tierFromPriceId(price.get("id").getAsString());
-            if (itemTier == SubscriptionTier.AUTOSYNC_LIVE) {
-                highest = SubscriptionTier.AUTOSYNC_LIVE;
+            if (highest == null || tierRank(itemTier) > tierRank(highest)) {
+                highest = itemTier;
             }
         }
-        return highest;
+        return highest != null ? highest : SubscriptionTier.AUTOSYNC;
     }
 
     private String ensureCustomer(User user) throws StripeException {
