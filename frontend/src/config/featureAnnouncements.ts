@@ -43,14 +43,4 @@ export const featureAnnouncements: FeatureAnnouncement[] = [
     ctaLabelKey: 'announcements.spec_charging_efficiency_v1_cta',
     ctaRoute: '/blog/modellspezifische-ladeverluste',
   },
-  {
-    key: 'autosync-live-launch-v1',
-    expiresAt: '2026-06-15',
-    releasedAt: '2026-05-12',
-    titleKey: 'announcements.autosync_live_launch_v1_title',
-    bodyKey: 'announcements.autosync_live_launch_v1_body',
-    ctaLabelKey: 'announcements.autosync_live_launch_v1_cta',
-    ctaRoute: '/upgrade',
-    condition: ctx => ctx.isPremium && !ctx.isAutoSyncLive,
-  },
 ]
