@@ -43,6 +43,7 @@ import LeaderboardView from '../views/LeaderboardView.vue';
 import TaxExportView from '../views/TaxExportView.vue';
 import SurveyView from '../views/SurveyView.vue';
 import UpgradeView from '../views/UpgradeView.vue';
+import SupporterView from '../views/SupporterView.vue';
 import UpgradeSuccessView from '../views/UpgradeSuccessView.vue';
 import UpgradeCancelView from '../views/UpgradeCancelView.vue';
 
@@ -141,6 +142,12 @@ const router = createRouter({
             path: '/upgrade',
             name: 'upgrade',
             component: UpgradeView,
+            meta: { requiresAuth: true }
+        },
+        {
+            path: '/supporter',
+            name: 'supporter',
+            component: SupporterView,
             meta: { requiresAuth: true }
         },
         {

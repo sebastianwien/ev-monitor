@@ -289,34 +289,21 @@
 
                 </div>
 
-                <!-- Supporter: separate axis (analytics-only upsell + support the project) -->
-                <div v-if="tier === 'NONE'" class="mt-6 rounded-sm border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-4 md:p-5">
-                    <div class="flex flex-col sm:flex-row sm:items-center gap-4">
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-2 mb-1">
-                                <HeartIcon class="w-5 h-5 text-amber-500 dark:text-amber-400 shrink-0" />
-                                <p class="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">{{ t('upgrade.tier_supporter_label') }}</p>
-                            </div>
-                            <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ t('upgrade.tier_supporter_title') }}</h2>
-                            <p class="text-sm text-gray-600 dark:text-gray-300 mt-1 max-w-xl">{{ t('upgrade.tier_supporter_subtitle') }}</p>
-                        </div>
-                        <div class="shrink-0 sm:text-right">
-                            <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                                <template v-if="selectedPlan === 'yearly'">{{ pricing.supporterYearly }}<span class="text-sm font-normal text-gray-400 dark:text-gray-500"> {{ t('upgrade.tier_per_year') }}</span></template>
-                                <template v-else>{{ pricing.supporterMonthly }}<span class="text-sm font-normal text-gray-400 dark:text-gray-500"> {{ t('upgrade.tier_supporter_price_unit') }}</span></template>
-                            </p>
-                            <button
-                                type="button"
-                                @click="handleSupporterCheckout"
-                                :disabled="supporterLoading"
-                                class="mt-2 inline-flex items-center justify-center gap-1.5 rounded-sm bg-amber-500 hover:bg-amber-600 disabled:opacity-60 px-5 py-2.5 text-sm font-semibold text-white transition-colors w-full sm:w-auto"
-                            >
-                                <span v-if="supporterLoading">…</span>
-                                <template v-else><HeartIcon class="w-4 h-4" />{{ t('upgrade.tier_supporter_cta') }}</template>
-                            </button>
+                <!-- Supporter entry-point: the full pitch lives on the dedicated /supporter page -->
+                <router-link
+                    v-if="tier === 'NONE'"
+                    to="/supporter"
+                    class="group mt-6 flex items-center justify-between gap-3 rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-4 py-3 hover:bg-amber-100/70 dark:hover:bg-amber-500/15 transition-colors"
+                >
+                    <div class="flex items-center gap-3 min-w-0">
+                        <HeartIcon class="w-5 h-5 text-amber-500 dark:text-amber-400 shrink-0" />
+                        <div class="min-w-0">
+                            <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ t('upgrade.tier_supporter_title') }}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('upgrade.tier_supporter_subtitle') }}</p>
                         </div>
                     </div>
-                </div>
+                    <span class="shrink-0 text-sm font-semibold text-amber-600 dark:text-amber-400 whitespace-nowrap">{{ t('upgrade.tier_supporter_cta') }} <span class="group-hover:translate-x-0.5 inline-block transition-transform">→</span></span>
+                </router-link>
 
                 <!-- Trust + Payments -->
                 <div v-if="tier === 'NONE'" class="mt-8 text-center">
@@ -429,18 +416,6 @@ async function handleCheckout() {
     } catch {
         checkoutError.value = t('upgrade.error');
         checkoutLoading.value = false;
-    }
-}
-
-const supporterLoading = ref(false);
-
-async function handleSupporterCheckout() {
-    supporterLoading.value = true;
-    try {
-        const result = await subscriptionService.createCheckoutSession(selectedPlan.value, 'supporter');
-        window.location.href = result.checkoutUrl;
-    } catch {
-        supporterLoading.value = false;
     }
 }
 
