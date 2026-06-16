@@ -2,10 +2,8 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import {
-  HeartIcon, ChartPieIcon, BoltIcon, ArrowTrendingUpIcon,
-  SparklesIcon, CodeBracketIcon, ShieldCheckIcon, ArrowLeftIcon,
-} from '@heroicons/vue/24/outline'
+import { ChartPieIcon, BoltIcon, ArrowTrendingUpIcon, ArrowLeftIcon } from '@heroicons/vue/24/outline'
+import { HeartIcon } from '@heroicons/vue/24/solid'
 import { useCountryStore } from '../stores/country'
 import { getPricing } from '../config/pricingConfig'
 import { subscriptionService } from '../api/subscriptionService'
@@ -34,17 +32,10 @@ async function checkout() {
   }
 }
 
-const benefits = computed(() => [
-  { icon: ChartPieIcon, title: t('supporter.b_analytics_title'), desc: t('supporter.b_analytics_desc') },
-  { icon: BoltIcon, title: t('supporter.b_phantom_title'), desc: t('supporter.b_phantom_desc') },
-  { icon: ArrowTrendingUpIcon, title: t('supporter.b_curves_title'), desc: t('supporter.b_curves_desc') },
-  { icon: SparklesIcon, title: t('supporter.b_badge_title'), desc: t('supporter.b_badge_desc') },
-])
-
-const reasons = computed(() => [
-  { icon: CodeBracketIcon, title: t('supporter.why_oss_title'), desc: t('supporter.why_oss_desc') },
-  { icon: ShieldCheckIcon, title: t('supporter.why_independent_title'), desc: t('supporter.why_independent_desc') },
-  { icon: HeartIcon, title: t('supporter.why_solo_title'), desc: t('supporter.why_solo_desc') },
+const unlocks = computed(() => [
+  { icon: ChartPieIcon, text: t('supporter.u_analytics') },
+  { icon: BoltIcon, text: t('supporter.u_phantom') },
+  { icon: ArrowTrendingUpIcon, text: t('supporter.u_curves') },
 ])
 
 const payments = ['Visa', 'Mastercard', 'Apple Pay', 'Google Pay', 'PayPal', 'Klarna']
@@ -56,22 +47,38 @@ const payments = ['Visa', 'Mastercard', 'Apple Pay', 'Google Pay', 'PayPal', 'Kl
       <button
         type="button"
         @click="router.back()"
-        class="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors mb-4"
+        class="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors mb-6"
       >
         <ArrowLeftIcon class="w-4 h-4" />{{ t('supporter.back') }}
       </button>
 
-      <!-- Headline -->
+      <!-- Hero: warm, not salesy -->
       <div class="text-center mb-8">
-        <span class="inline-flex items-center gap-1 text-[11px] font-bold bg-amber-500 text-white px-3 py-1 rounded-full tracking-wide mb-3">
-          <HeartIcon class="w-3 h-3" /> SUPPORTER
-        </span>
-        <h1 class="text-2xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-2">{{ t('supporter.title') }}</h1>
-        <p class="text-gray-500 dark:text-gray-400 text-sm md:text-base max-w-xl mx-auto">{{ t('supporter.subtitle') }}</p>
+        <p class="text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-3">{{ t('supporter.hero_kicker') }}</p>
+        <h1 class="text-2xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-3">{{ t('supporter.title') }}</h1>
+        <p class="text-gray-600 dark:text-gray-300 text-base md:text-lg max-w-xl mx-auto">{{ t('supporter.lead') }}</p>
       </div>
 
-      <!-- Pricing card -->
-      <div class="max-w-md mx-auto bg-white dark:bg-gray-900 rounded-sm border border-gray-200 dark:border-gray-700 shadow-sm dark:shadow-none p-6">
+      <!-- Story: the personal, honest narrative -->
+      <div class="max-w-xl mx-auto space-y-4 text-[15px] leading-relaxed text-gray-700 dark:text-gray-300">
+        <p>{{ t('supporter.story_p1') }}</p>
+        <p>{{ t('supporter.story_p2') }}</p>
+        <p>{{ t('supporter.story_p3') }}</p>
+      </div>
+
+      <!-- What supporting unlocks (framed as a thank-you, light list) -->
+      <div class="max-w-xl mx-auto mt-8">
+        <p class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">{{ t('supporter.unlock_title') }}</p>
+        <ul class="space-y-2.5">
+          <li v-for="u in unlocks" :key="u.text" class="flex items-start gap-3">
+            <component :is="u.icon" class="w-5 h-5 text-amber-500 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+            <span class="text-[15px] text-gray-700 dark:text-gray-300 leading-relaxed">{{ u.text }}</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Price + CTA: the natural conclusion, at the bottom -->
+      <div class="max-w-md mx-auto mt-10 bg-white dark:bg-gray-900 rounded-sm border border-gray-200 dark:border-gray-700 shadow-sm dark:shadow-none p-6">
         <div class="flex justify-center mb-6">
           <div class="inline-flex bg-gray-100 dark:bg-gray-800 p-1 rounded-sm">
             <button
@@ -105,32 +112,8 @@ const payments = ['Visa', 'Mastercard', 'Apple Pay', 'Google Pay', 'PayPal', 'Kl
         <p v-if="error" class="text-xs text-red-600 dark:text-red-400 text-center mt-2">{{ error }}</p>
       </div>
 
-      <!-- What you get -->
-      <h2 class="mt-10 text-center text-lg font-bold text-gray-900 dark:text-gray-100">{{ t('supporter.get_title') }}</h2>
-      <div class="mt-4 grid gap-3 sm:grid-cols-2">
-        <div v-for="b in benefits" :key="b.title" class="flex items-start gap-3 bg-white dark:bg-gray-900 rounded-sm border border-gray-200 dark:border-gray-700 shadow-sm dark:shadow-none p-4">
-          <component :is="b.icon" class="w-5 h-5 text-amber-500 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-          <div class="min-w-0">
-            <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ b.title }}</p>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{{ b.desc }}</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Why support -->
-      <h2 class="mt-10 text-center text-lg font-bold text-gray-900 dark:text-gray-100">{{ t('supporter.why_title') }}</h2>
-      <div class="mt-4 max-w-xl mx-auto space-y-3">
-        <div v-for="r in reasons" :key="r.title" class="flex items-start gap-3">
-          <component :is="r.icon" class="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0 mt-0.5" />
-          <div class="min-w-0">
-            <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ r.title }}</p>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{{ r.desc }}</p>
-          </div>
-        </div>
-      </div>
-
       <!-- Trust + Payments -->
-      <div class="mt-10 text-center">
+      <div class="mt-8 text-center">
         <p class="text-xs text-gray-400 dark:text-gray-500 mb-3">{{ t('supporter.footer_note') }}</p>
         <div class="flex flex-wrap justify-center gap-1.5">
           <span v-for="m in payments" :key="m" class="text-[11px] text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded px-2 py-0.5">{{ m }}</span>
