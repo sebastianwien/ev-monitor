@@ -27,6 +27,7 @@ spring:
       - efficientModels
       - leaderboard
       - brandModels
+      - appUpdateCheck
 
   flyway:
     enabled: true
