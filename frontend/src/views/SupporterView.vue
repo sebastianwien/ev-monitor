@@ -41,13 +41,32 @@ const unlocks = computed(() => [
 
 const payments = ['Visa', 'Mastercard', 'Apple Pay', 'Google Pay', 'PayPal', 'Klarna']
 
-// Dummy data for the read-only widget preview: ~62% driving / 17% idle drain / 21% loss,
-// 330 kWh charged. The widget computes the split from these entries itself.
+// Dummy data so every widget tab renders plausibly: charges drive the energy-split donut
+// (~62% driving / 17% idle drain / 21% loss), the phantom drains feed "Standverluste", and
+// the trips (dated within the last 2 weeks) feed the calendar and routes tabs.
+const HOUR_MS = 3_600_000
+function daysAgo(days: number, hour = 10): string {
+  const dt = new Date()
+  dt.setDate(dt.getDate() - days)
+  dt.setHours(hour, 0, 0, 0)
+  return dt.toISOString()
+}
+
 const dummyCar = { effectiveBatteryCapacityKwh: 75 }
 const dummyEntries = [
-  { id: 'pv1', loggedAt: '2026-05-02T10:00:00Z', _isTrip: false, kwhCharged: 110, kwhAtVehicle: 87 },
-  { id: 'pv2', loggedAt: '2026-05-09T10:00:00Z', _isTrip: false, kwhCharged: 110, kwhAtVehicle: 87, _phantomDrain: { kwh: 28 } },
-  { id: 'pv3', loggedAt: '2026-05-16T10:00:00Z', _isTrip: false, kwhCharged: 110, kwhAtVehicle: 87, _phantomDrain: { kwh: 28 } },
+  // Charges -> donut (330 kWh charged, 69 kWh loss) + overnight idle drains
+  { id: 'pv-c1', loggedAt: daysAgo(12), _isTrip: false, kwhCharged: 110, kwhAtVehicle: 87 },
+  { id: 'pv-c2', loggedAt: daysAgo(7), _isTrip: false, kwhCharged: 110, kwhAtVehicle: 87, _phantomDrain: { kwh: 28, durationMs: 11 * HOUR_MS } },
+  { id: 'pv-c3', loggedAt: daysAgo(2), _isTrip: false, kwhCharged: 110, kwhAtVehicle: 87, _phantomDrain: { kwh: 28, durationMs: 9 * HOUR_MS } },
+  // Trips -> calendar / routes / distance (recent dates, varied distances)
+  { id: 'pv-t1', _isTrip: true, tripStartedAt: daysAgo(11, 8), distanceKm: 22, estimatedConsumedKwh: 4.0 },
+  { id: 'pv-t2', _isTrip: true, tripStartedAt: daysAgo(9, 18), distanceKm: 6, estimatedConsumedKwh: 1.1 },
+  { id: 'pv-t3', _isTrip: true, tripStartedAt: daysAgo(8, 9), distanceKm: 3, estimatedConsumedKwh: 0.6 },
+  { id: 'pv-t4', _isTrip: true, tripStartedAt: daysAgo(6, 17), distanceKm: 35, estimatedConsumedKwh: 6.2 },
+  { id: 'pv-t5', _isTrip: true, tripStartedAt: daysAgo(4, 8), distanceKm: 8, estimatedConsumedKwh: 1.5 },
+  { id: 'pv-t6', _isTrip: true, tripStartedAt: daysAgo(3, 12), distanceKm: 15, estimatedConsumedKwh: 2.7 },
+  { id: 'pv-t7', _isTrip: true, tripStartedAt: daysAgo(1, 19), distanceKm: 4, estimatedConsumedKwh: 0.8 },
+  { id: 'pv-t8', _isTrip: true, tripStartedAt: daysAgo(0, 8), distanceKm: 11, estimatedConsumedKwh: 2.0 },
 ]
 </script>
 
@@ -80,8 +99,8 @@ const dummyEntries = [
       <div class="max-w-xl mx-auto mt-8">
         <p class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">{{ t('supporter.unlock_title') }}</p>
 
-        <!-- Real dashboard widget, dummy data, read-only -->
-        <div class="pointer-events-none select-none mb-5" aria-hidden="true">
+        <!-- The real dashboard widget with dummy data - interactive, switch through the tabs -->
+        <div class="mb-5">
           <DashboardInsights
             :entries="dummyEntries"
             :selected-car="dummyCar"

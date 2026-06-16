@@ -26,7 +26,8 @@ const props = defineProps<{
   selectedTimeRange: string
   customStartDate: string | null
   customEndDate: string | null
-  // Read-only preview (e.g. the supporter page): lock the donut tab and hide the chrome.
+  // Preview (e.g. the supporter page): start on the donut tab, stay expanded, and don't
+  // persist the tab choice to localStorage. Tabs stay visible and interactive.
   previewMode?: boolean
 }>()
 
@@ -50,7 +51,7 @@ function scheduleAnim(fn: () => void) {
 }
 
 watch(activeTab, (tab) => {
-  localStorage.setItem(LS_TAB_KEY, tab)
+  if (!props.previewMode) localStorage.setItem(LS_TAB_KEY, tab)
   animateDonut.value = false
   animateBars.value = false
   animateRoutes.value = false
@@ -321,7 +322,7 @@ function drainBarWidth(ev: { kwh: number }): string {
   <div class="bg-white dark:bg-gray-700 rounded-sm border-2 border-gray-300 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#4b5563] overflow-hidden">
 
     <!-- Tab bar -->
-    <div v-if="!previewMode" class="flex items-center border-b border-gray-200 dark:border-gray-600">
+    <div class="flex items-center border-b border-gray-200 dark:border-gray-600">
       <div class="flex items-center gap-5 px-4 md:px-5 overflow-x-auto flex-1 min-w-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         <button
           v-for="tab in (['donut', 'nights', 'calendar', 'routes'] as Tab[])"
