@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ChevronDownIcon, BoltIcon } from '@heroicons/vue/24/outline'
+import { ChevronDownIcon } from '@heroicons/vue/24/outline'
+import { phantomEur } from '../../utils/phantomDrain'
 import { useSlideTransition } from '../../composables/useSlideTransition'
 
 const { onEnter, onAfterEnter, onLeave, onAfterLeave } = useSlideTransition()
@@ -141,7 +142,7 @@ const animLossArc = computed(() => animateDonut.value ? lossArcLen.value : 0)
 const phantomDashoffset = computed(() => -drivenArcLen.value)
 const lossDashoffset = computed(() => -(drivenArcLen.value + phantomArcLen.value))
 
-const phantomEur = computed(() => allPhantomKwh.value * 0.29)
+const phantomCostEur = computed(() => phantomEur(allPhantomKwh.value))
 
 // Bar widths (0% -> actual %) driven by animateDonut ref
 const drivenBarWidth = computed(() => animateDonut.value ? `${drivenPct.value}%` : '0%')
@@ -424,20 +425,12 @@ function drainBarWidth(ev: { kwh: number }): string {
                 <div class="h-full bg-slate-400 rounded-full" :style="{ width: lossBarWidth, transition: 'width 0.7s cubic-bezier(0.4,0,0.2,1) 0.1s' }"></div>
               </div>
             </div>
-            <!-- Footer -->
-            <div class="pt-1.5 border-t border-gray-100 dark:border-gray-600">
-              <span class="text-[11px] text-gray-500 dark:text-gray-400">{{ fmt1(allChargedKwh) }} kWh {{ t('dashboard.insights_loaded') }}</span>
+            <!-- Footer: centered, phantom cost as the prominent line -->
+            <div class="pt-2 border-t border-gray-100 dark:border-gray-600 text-center space-y-0.5">
+              <p v-if="allPhantomKwh > 0.05" class="text-sm font-semibold text-amber-600 dark:text-amber-400">{{ t('dashboard.insights_phantom_eur', { eur: fmt1(phantomCostEur) }) }}</p>
+              <p class="text-[11px] text-gray-500 dark:text-gray-400">{{ fmt1(allChargedKwh) }} kWh {{ t('dashboard.insights_loaded') }}</p>
             </div>
           </div>
-          </div>
-
-          <!-- Prominent phantom-cost hook: the conversion hook for the analytics upsell -->
-          <div v-if="allPhantomKwh > 0.05" class="mt-4 flex items-center gap-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 ring-1 ring-amber-200/70 dark:ring-amber-500/20 px-4 py-3">
-            <BoltIcon class="w-6 h-6 text-amber-500 dark:text-amber-400 flex-shrink-0" />
-            <div class="min-w-0">
-              <p class="text-2xl font-bold text-amber-600 dark:text-amber-400 tabular-nums leading-none">≈ {{ fmt1(phantomEur) }}&nbsp;€</p>
-              <p class="text-[11px] text-amber-700/80 dark:text-amber-300/70 mt-1">{{ t('dashboard.insights_phantom_cost_caption', { kwh: fmt1(allPhantomKwh) }) }}</p>
-            </div>
           </div>
         </div>
 

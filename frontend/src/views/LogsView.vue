@@ -30,6 +30,7 @@ import {
 import { tempBadgeClass } from '../utils/temperatureColor'
 import { consumptionTextClass } from '../utils/consumptionColor'
 import { isShortTrip } from '../utils/shortTrip'
+import { phantomTeaser as buildPhantomTeaser } from '../utils/phantomDrain'
 import {
   tripConsumption as tripConsumptionPure,
   tripGroupConsumedKwh as tripGroupConsumedKwhPure,
@@ -592,19 +593,9 @@ const isAdmin   = computed(() => authStore.isAdmin)
 // the most-recent drain as a free sample plus an aggregate, instead of blurring every
 // in-feed marker. The figure is FE-derivable from data the user already has; the single
 // CTA upsells the full in-feed markers and the energy donut.
-const PHANTOM_TEASER_EUR_PER_KWH = 0.29
-const phantomTeaser = computed(() => {
-  if (authStore.canViewLiveAnalytics) return null
-  const withDrain = (mergedLogFeed.value ?? []).filter((e: any) => (e?._phantomDrain?.kwh ?? 0) > 0.05)
-  if (withDrain.length === 0) return null
-  const totalKwh = withDrain.reduce((s: number, e: any) => s + e._phantomDrain.kwh, 0)
-  // mergedLogFeed is sorted descending, so the first match is the most recent drain.
-  return {
-    count: withDrain.length,
-    latestKwh: withDrain[0]._phantomDrain.kwh as number,
-    totalEur: totalKwh * PHANTOM_TEASER_EUR_PER_KWH,
-  }
-})
+const phantomTeaser = computed(() =>
+  authStore.canViewLiveAnalytics ? null : buildPhantomTeaser(mergedLogFeed.value),
+)
 
 // All trips visible in the current feed - used to seed the cpk-map. We pull
 // them out of mergedLogFeed (which still flags each trip via `_isTrip`); the

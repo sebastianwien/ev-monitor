@@ -733,7 +733,7 @@ dashboard:
   insights_phantom: Parkeringsförluster
   insights_charging_loss: Laddningsförluster
   insights_loaded: laddat
-  insights_phantom_cost_caption: "{kwh} kWh förlorat till parkeringsförluster"
+  insights_phantom_eur: "≈ {eur} € i parkeringsförluster"
   insights_teaser_badge: "Analyser"
   insights_teaser_body: "Se vart energin tar vägen - körning, parkeringsförluster och laddförluster i detalj."
   insights_teaser_cta: "Lås upp analyser"

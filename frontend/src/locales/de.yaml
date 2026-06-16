@@ -761,7 +761,7 @@ dashboard:
   insights_phantom: "Standverluste"
   insights_charging_loss: "Ladeverluste"
   insights_loaded: "geladen"
-  insights_phantom_cost_caption: "{kwh} kWh durch Standverluste verloren"
+  insights_phantom_eur: "≈ {eur} € in Standverlusten"
   insights_teaser_badge: "Auswertungen"
   insights_teaser_body: "Sieh, wohin deine Energie geht - Fahren, Standverluste und Ladeverluste im Detail."
   insights_teaser_cta: "Auswertungen freischalten"

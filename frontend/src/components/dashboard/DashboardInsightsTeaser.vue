@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { SparklesIcon, LockClosedIcon } from '@heroicons/vue/24/outline'
+import { sumPhantomKwh, phantomEur } from '../../utils/phantomDrain'
 
 // Locked-state teaser for the energy-split donut (DashboardInsights), shown to users
 // without the analytics entitlement. The phantom-cost figure is FE-derivable from data
@@ -11,11 +12,7 @@ import { SparklesIcon, LockClosedIcon } from '@heroicons/vue/24/outline'
 const props = defineProps<{ entries: any[] }>()
 const { t } = useI18n()
 
-const PHANTOM_EUR_PER_KWH = 0.29
-const allPhantomKwh = computed(() =>
-  (props.entries ?? []).reduce((s, e) => s + (e?._phantomDrain?.kwh ?? 0), 0),
-)
-const phantomEur = computed(() => allPhantomKwh.value * PHANTOM_EUR_PER_KWH)
+const phantomCostEur = computed(() => phantomEur(sumPhantomKwh(props.entries)))
 
 function fmt1(n: number): string {
   return n.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
@@ -45,7 +42,7 @@ function fmt1(n: number): string {
         <LockClosedIcon class="w-4 h-4" />
         <span class="text-[11px] font-semibold uppercase tracking-wide">{{ t('dashboard.insights_teaser_badge') }}</span>
       </div>
-      <p v-if="phantomEur > 0.05" class="text-3xl font-bold text-gray-900 dark:text-white tabular-nums">≈ {{ fmt1(phantomEur) }}&nbsp;€</p>
+      <p v-if="phantomCostEur > 0.05" class="text-3xl font-bold text-gray-900 dark:text-white tabular-nums">≈ {{ fmt1(phantomCostEur) }}&nbsp;€</p>
       <p class="text-sm text-gray-600 dark:text-gray-300 mt-1 max-w-xs">{{ t('dashboard.insights_teaser_body') }}</p>
       <router-link
         to="/upgrade"
