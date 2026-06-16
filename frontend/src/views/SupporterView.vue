@@ -59,6 +59,7 @@ const reasons = computed(() => [
         <ArrowLeftIcon class="w-4 h-4" />{{ t('supporter.back') }}
       </button>
 
+      <div class="bg-gray-50/85 dark:bg-gray-900/75 backdrop-blur-md rounded-sm p-5 md:p-8 shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:shadow-[5px_5px_0_rgba(255,255,255,0.35)] shadow-black/5 dark:shadow-black/40">
       <!-- Hero -->
       <div class="text-center">
         <span class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-amber-100 dark:bg-amber-500/15 mb-4">
@@ -131,6 +132,7 @@ const reasons = computed(() => [
 
       <div class="mt-10 flex items-center justify-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
         <CheckIcon class="w-3.5 h-3.5" />{{ t('supporter.footer_note') }}
+      </div>
       </div>
     </div>
   </div>

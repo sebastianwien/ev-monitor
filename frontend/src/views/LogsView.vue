@@ -30,7 +30,6 @@ import {
 import { tempBadgeClass } from '../utils/temperatureColor'
 import { consumptionTextClass } from '../utils/consumptionColor'
 import { isShortTrip } from '../utils/shortTrip'
-import { phantomTeaser as buildPhantomTeaser } from '../utils/phantomDrain'
 import {
   tripConsumption as tripConsumptionPure,
   tripGroupConsumedKwh as tripGroupConsumedKwhPure,
@@ -589,13 +588,14 @@ watch(selectedCarId, async (newId) => {
 const authStore = useAuthStore()
 const isAdmin   = computed(() => authStore.isAdmin)
 
-// Locked-state phantom teaser: shown to users without the analytics entitlement. Surfaces
-// the most-recent drain as a free sample plus an aggregate, instead of blurring every
-// in-feed marker. The figure is FE-derivable from data the user already has; the single
-// CTA upsells the full in-feed markers and the energy donut.
-const phantomTeaser = computed(() =>
-  authStore.canViewLiveAnalytics ? null : buildPhantomTeaser(mergedLogFeed.value),
-)
+// Locked-state: for users without the analytics entitlement, unlock only the most-recent
+// phantom marker inline (in its native style, with an upgrade link); all other markers stay
+// gated. The id matches either a trip or a standalone entry in the feed.
+const teaserPhantomId = computed<string | null>(() => {
+  if (authStore.canViewLiveAnalytics) return null
+  const first = (mergedLogFeed.value ?? []).find((e: any) => (e?._phantomDrain?.kwh ?? 0) > 0.05)
+  return first ? first.id : null
+})
 
 // All trips visible in the current feed - used to seed the cpk-map. We pull
 // them out of mergedLogFeed (which still flags each trip via `_isTrip`); the
@@ -1168,24 +1168,6 @@ function toggleAllCharges() {
               <!-- Backdrop nur fuer Desktop-Popover (mobile Tooltip ist Teil der Expanded-Card). -->
               <div v-if="openRealCostTooltipId?.endsWith('__d')" class="fixed inset-0 z-40" @click="openRealCostTooltipId = null" />
 
-              <!-- Locked-state phantom teaser: one real sample + aggregate + single CTA -->
-              <div v-if="phantomTeaser" class="mb-3 rounded-xl border border-amber-200 dark:border-amber-500/25 bg-amber-50 dark:bg-amber-500/10 px-4 py-3">
-                <div class="flex items-start gap-3">
-                  <BoltIcon class="w-5 h-5 text-amber-500 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-                  <div class="min-w-0 flex-1">
-                    <p class="text-sm font-semibold text-amber-800 dark:text-amber-200">
-                      {{ t('dashboard.phantom_teaser_latest', { kwh: phantomTeaser.latestKwh.toFixed(1) }) }}
-                    </p>
-                    <p v-if="phantomTeaser.count > 1" class="text-xs text-amber-700/80 dark:text-amber-300/70 mt-0.5">
-                      {{ t('dashboard.phantom_teaser_total', { count: phantomTeaser.count, eur: phantomTeaser.totalEur.toFixed(1) }) }}
-                    </p>
-                  </div>
-                  <router-link to="/upgrade" class="flex-shrink-0 self-center inline-flex items-center gap-1 rounded-lg bg-amber-500 hover:bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors whitespace-nowrap">
-                    {{ t('dashboard.insights_teaser_cta') }}
-                  </router-link>
-                </div>
-              </div>
-
               <template v-for="item in groupedFeed" :key="item.id">
 
               <!-- ===== TRIP GROUP CONTAINER ===== -->
@@ -1225,7 +1207,7 @@ function toggleAllCharges() {
                       </div>
 
                       <!-- Phantom drain separator between trips -->
-                      <div v-if="trip._phantomDrain && authStore.canViewLiveAnalytics && tripIdx !== 0"
+                      <div v-if="trip._phantomDrain && (authStore.canViewLiveAnalytics || trip.id === teaserPhantomId) && tripIdx !== 0"
                            class="flex items-center justify-center gap-1 py-1 border-t border-gray-600/50">
                         <BoltIcon class="w-2.5 h-2.5 text-amber-600 dark:text-amber-700" />
                         <span class="text-[11px] text-amber-600 dark:text-amber-700">
@@ -1233,6 +1215,7 @@ function toggleAllCharges() {
                           <template v-if="selectedCar?.effectiveBatteryCapacityKwh">({{ (trip._phantomDrain.kwh / selectedCar.effectiveBatteryCapacityKwh * 100).toFixed(1) }}%)</template>
                           {{ t('dashboard.phantom_drain_word') }}
                         </span>
+                        <router-link v-if="!authStore.canViewLiveAnalytics" to="/upgrade" class="text-[11px] font-semibold text-amber-600 dark:text-amber-400 underline decoration-dotted hover:decoration-solid">{{ t('dashboard.phantom_teaser_unlock') }}</router-link>
                       </div>
 
                       <!-- Add-trip form triggered from this trip -->
@@ -1475,7 +1458,7 @@ function toggleAllCharges() {
                   <div v-if="!collapsedTripGroups.has(item.groupId)" class="bg-emerald-50/30 dark:bg-emerald-950/20">
                     <template v-for="(trip, tripIdx) in item.trips" :key="trip.id + '__d'">
                       <!-- Phantom drain separator between trips (AutoSync Live feature) -->
-                      <div v-if="trip._phantomDrain && authStore.canViewLiveAnalytics && tripIdx !== 0"
+                      <div v-if="trip._phantomDrain && (authStore.canViewLiveAnalytics || trip.id === teaserPhantomId) && tripIdx !== 0"
                         class="flex items-center justify-center gap-1 py-1 border-t border-amber-200 dark:border-amber-700/40 bg-amber-100/70 dark:bg-amber-900/20">
                         <BoltIcon class="w-3 h-3 text-amber-700 dark:text-amber-500" />
                         <span class="text-[11px] font-medium text-amber-800 dark:text-amber-400">
@@ -1483,6 +1466,7 @@ function toggleAllCharges() {
                           <template v-if="selectedCar?.effectiveBatteryCapacityKwh">({{ (trip._phantomDrain.kwh / selectedCar.effectiveBatteryCapacityKwh * 100).toFixed(1) }}%)</template>
                           {{ t('dashboard.phantom_drain_word') }}
                         </span>
+                        <router-link v-if="!authStore.canViewLiveAnalytics" to="/upgrade" class="text-[11px] font-semibold text-amber-700 dark:text-amber-400 underline decoration-dotted hover:decoration-solid">{{ t('dashboard.phantom_teaser_unlock') }}</router-link>
                       </div>
                       <!-- Add-trip form (full width inside container) -->
                       <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
@@ -1589,7 +1573,7 @@ function toggleAllCharges() {
               <!-- ===== REGULAR ENTRY (charge log / inaccessible trip) ===== -->
               <template v-else>
               <!-- Phantom drain -->
-              <div v-if="item.entry._phantomDrain && authStore.canViewLiveAnalytics" class="flex items-center gap-2 px-4 mt-0.5 mb-2">
+              <div v-if="item.entry._phantomDrain && (authStore.canViewLiveAnalytics || item.entry.id === teaserPhantomId)" class="flex items-center gap-2 px-4 mt-0.5 mb-2">
                 <div class="flex-1 h-px bg-gray-200 dark:bg-gray-600" />
                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-amber-300 dark:border-amber-600 bg-amber-50 dark:bg-amber-900/20 text-xs text-amber-600 dark:text-amber-400 whitespace-nowrap">
                   <BoltIcon class="w-3 h-3" />
@@ -1599,6 +1583,7 @@ function toggleAllCharges() {
                   </template>
                   {{ t('dashboard.phantom_drain_word') }}
                 </span>
+                <router-link v-if="!authStore.canViewLiveAnalytics" to="/upgrade" class="text-xs font-semibold text-amber-600 dark:text-amber-400 underline decoration-dotted hover:decoration-solid whitespace-nowrap">{{ t('dashboard.phantom_teaser_unlock') }}</router-link>
                 <div class="flex-1 h-px bg-gray-200 dark:bg-gray-600" />
               </div>
               <!-- Add-trip form triggered from a charge entry -->

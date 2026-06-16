@@ -737,8 +737,7 @@ dashboard:
   insights_teaser_badge: "Analyser"
   insights_teaser_body: "Se vart energin tar vägen - körning, parkeringsförluster och laddförluster i detalj."
   insights_teaser_cta: "Lås upp analyser"
-  phantom_teaser_latest: "Senast upptäckt: {kwh} kWh parkeringsförlust"
-  phantom_teaser_total: "{count} parkeringsförluster totalt, ≈ {eur} €"
+  phantom_teaser_unlock: "lås upp alla"
   power_curve_locked: "Lås upp laddkurva"
   insights_alltime_hint: Inkluderar alla laddningssessioner
   insights_worst_parks: Högsta parkeringsförluster
