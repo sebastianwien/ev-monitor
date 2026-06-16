@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import L from 'leaflet'
 import 'leaflet.markercluster'
 import geohash from 'ngeohash'
@@ -39,6 +39,35 @@ const mapContainer = ref<HTMLDivElement | null>(null)
 let map: L.Map | null = null
 let heatLayer: L.HeatLayer | null = null
 let markerClusterGroup: L.MarkerClusterGroup | null = null
+let resizeObserver: ResizeObserver | null = null
+// A render was requested while the container had no size yet (e.g. hidden tab).
+let pendingRender = false
+
+// Leaflet - and the heat-layer canvas in particular - throws IndexSizeError
+// ("source width is 0") when it draws into a zero-sized container. That happens
+// whenever the map is mounted inside a hidden/collapsed section or before layout.
+// We therefore only init and draw once the container actually has dimensions.
+const containerHasSize = (): boolean => {
+  const el = mapContainer.value
+  return !!el && el.offsetWidth > 0 && el.offsetHeight > 0
+}
+
+// Waits (via ResizeObserver) until the container gains a non-zero size, then
+// resizes the existing map and renders any pending request.
+const observeContainerSize = () => {
+  if (resizeObserver || !mapContainer.value || typeof ResizeObserver === 'undefined') return
+  resizeObserver = new ResizeObserver(() => {
+    if (!containerHasSize()) return
+    resizeObserver?.disconnect()
+    resizeObserver = null
+    map?.invalidateSize()
+    if (pendingRender) {
+      pendingRender = false
+      renderCharges()
+    }
+  })
+  resizeObserver.observe(mapContainer.value)
+}
 
 const loading = ref(false)
 const error = ref<string | null>(null)
@@ -104,9 +133,18 @@ const initMap = () => {
 
 // Render charging locations on map
 const renderCharges = async () => {
-  // If map doesn't exist yet, try to initialize it now
+  await nextTick()
+
+  // Defer until the container has real dimensions - drawing into a zero-sized
+  // container throws IndexSizeError ("source width is 0"). The ResizeObserver
+  // re-triggers this render once the container becomes visible.
+  if (!containerHasSize()) {
+    pendingRender = true
+    observeContainerSize()
+    return
+  }
+
   if (!map) {
-    await nextTick()
     initMap()
     if (!map) return
   }
@@ -175,9 +213,6 @@ const renderCharges = async () => {
 
   // Add layers based on view mode
   if (viewMode.value === 'heatmap' || viewMode.value === 'both') {
-    console.log('🔥 Creating heatmap with', heatPoints.length, 'points')
-    console.log('Sample heatPoint:', heatPoints[0])
-
     try {
       // @ts-ignore - leaflet.heat types
       heatLayer = L.heatLayer(heatPoints, {
@@ -195,15 +230,11 @@ const renderCharges = async () => {
         }
       })
 
-      if (!heatLayer) {
-        console.error('❌ L.heatLayer returned null/undefined!')
-      } else {
-        console.log('✅ Heatmap layer created, adding to map')
+      if (heatLayer) {
         map.addLayer(heatLayer)
-        console.log('✅ Heatmap layer added to map')
       }
     } catch (err) {
-      console.error('❌ Error creating heatmap:', err)
+      console.error('Error creating heatmap layer:', err)
     }
   }
 
@@ -232,32 +263,24 @@ const setViewMode = (mode: 'heatmap' | 'markers' | 'both') => {
 }
 
 // Watch for car or time range changes
-watch(() => [props.carId, props.timeRange], async () => {
-  if (!props.carId) return
-
-  // Wait for DOM to update (in case the container just appeared)
-  await nextTick()
-  await nextTick() // Double nextTick to be extra safe
-
-  // Try to initialize map if it doesn't exist yet
-  if (!map && mapContainer.value) {
-    initMap()
-  }
-
-  if (props.carId && map) {
-    await renderCharges()
-  }
+watch(() => [props.carId, props.timeRange], () => {
+  if (props.carId) renderCharges()
 }, {
   immediate: false,
   flush: 'post' // Run after DOM updates
 })
 
-onMounted(async () => {
-  await nextTick()
-  initMap()
-  if (props.carId) {
-    await renderCharges()
-  }
+onMounted(() => {
+  if (props.carId) renderCharges()
+})
+
+onUnmounted(() => {
+  resizeObserver?.disconnect()
+  resizeObserver = null
+  map?.remove()
+  map = null
+  heatLayer = null
+  markerClusterGroup = null
 })
 </script>
 
