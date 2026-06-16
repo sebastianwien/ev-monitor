@@ -69,6 +69,9 @@ function isNetworkNoise(msg: string): boolean {
         || msg.includes('contentScriptData')
         || msg.includes('Failed to fetch')
         || msg.includes('ServiceWorker')
+        // Transient service-worker script load failures (network blip during SW update),
+        // reported by WebKit as "Script https://.../sw.js load failed" - not an app error.
+        || msg.includes('sw.js')
 }
 
 function reloadOnceAfterDeploy() {
