@@ -8,8 +8,15 @@ import com.evmonitor.domain.User;
 import com.evmonitor.testutil.AbstractIntegrationTest;
 import com.evmonitor.testutil.TestDataBuilder;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
+
+import java.net.URI;
+import java.util.List;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -85,5 +92,27 @@ class SitemapControllerTest extends AbstractIntegrationTest {
         assertTrue(response.getBody().startsWith("<?xml"), "Response should be valid XML");
         assertTrue(response.getBody().contains("<urlset"), "Response should contain urlset element");
         assertTrue(response.getBody().contains("/modelle"), "Static /modelle URL should always be in sitemap");
+    }
+
+    /**
+     * Crawlers and feed readers request the sitemap with varying Accept headers (e.g. text/xml).
+     * The endpoint must not reject these with 406 - a sitemap is a fixed XML resource without
+     * content negotiation. Regression for HttpMediaTypeNotAcceptableException on GET /sitemap.xml.
+     */
+    @Test
+    void sitemap_servedRegardlessOfAcceptHeader() {
+        for (String accept : List.of("text/xml", "text/html", "application/rss+xml")) {
+            HttpHeaders headers = new HttpHeaders();
+            headers.set(HttpHeaders.ACCEPT, accept);
+            RequestEntity<Void> request = new RequestEntity<>(headers, HttpMethod.GET, URI.create("/sitemap.xml"));
+
+            ResponseEntity<String> response = restTemplate.exchange(request, String.class);
+
+            assertEquals(HttpStatus.OK, response.getStatusCode(),
+                    "Sitemap must be served for Accept: " + accept + " (no 406)");
+            assertEquals(MediaType.APPLICATION_XML, response.getHeaders().getContentType(),
+                    "Sitemap must always respond as application/xml");
+            assertTrue(response.getBody().startsWith("<?xml"), "Response should be valid XML");
+        }
     }
 }

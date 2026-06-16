@@ -24,7 +24,10 @@ public class SitemapController {
 
     private final PublicModelService publicModelService;
 
-    @GetMapping(value = "/sitemap.xml", produces = MediaType.APPLICATION_XML_VALUE)
+    // No `produces` restriction: a sitemap is a fixed XML resource. Crawlers/feed readers send
+    // varying Accept headers (text/xml, application/rss+xml, ...) and content negotiation would
+    // reject those with 406. The content type is set explicitly on the response body below.
+    @GetMapping(value = "/sitemap.xml")
     public ResponseEntity<String> getSitemap() {
         String today = LocalDate.now().toString();
         Set<String> qualifiedModels = publicModelService.getModelEnumNamesForSitemap(false);
