@@ -290,20 +290,24 @@
                 </div>
 
                 <!-- Supporter entry-point: the full pitch lives on the dedicated /supporter page -->
-                <router-link
+                <div
                     v-if="tier === 'NONE'"
-                    to="/supporter"
-                    class="group mt-6 flex items-center justify-between gap-3 rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-4 py-3 hover:bg-amber-100/70 dark:hover:bg-amber-500/15 transition-colors"
+                    class="mt-6 bg-white dark:bg-gray-900 rounded-sm border border-amber-200 dark:border-amber-700/40 shadow-sm dark:shadow-none p-4 md:p-5 flex flex-col sm:flex-row sm:items-center gap-4"
                 >
-                    <div class="flex items-center gap-3 min-w-0">
-                        <HeartIcon class="w-5 h-5 text-amber-500 dark:text-amber-400 shrink-0" />
+                    <div class="flex items-start gap-3 flex-1 min-w-0">
+                        <HeartIcon class="w-5 h-5 text-amber-500 dark:text-amber-400 shrink-0 mt-0.5" />
                         <div class="min-w-0">
                             <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ t('upgrade.tier_supporter_title') }}</p>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('upgrade.tier_supporter_subtitle') }}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('upgrade.tier_supporter_subtitle') }}</p>
                         </div>
                     </div>
-                    <span class="shrink-0 text-sm font-semibold text-amber-600 dark:text-amber-400 whitespace-nowrap">{{ t('upgrade.tier_supporter_cta') }} <span class="group-hover:translate-x-0.5 inline-block transition-transform">→</span></span>
-                </router-link>
+                    <router-link
+                        to="/supporter"
+                        class="shrink-0 w-full sm:w-auto inline-flex items-center justify-center gap-1.5 bg-amber-500 hover:bg-amber-600 dark:bg-amber-500 dark:hover:bg-amber-400 text-white font-semibold px-5 py-2.5 rounded-sm text-sm shadow-[0_4px_0_0_#b45309] dark:shadow-[0_4px_0_0_#92400e] active:translate-y-1 active:shadow-none transition"
+                    >
+                        <HeartIcon class="w-4 h-4" />{{ t('upgrade.tier_supporter_cta') }}
+                    </router-link>
+                </div>
 
                 <!-- Trust + Payments -->
                 <div v-if="tier === 'NONE'" class="mt-8 text-center">
