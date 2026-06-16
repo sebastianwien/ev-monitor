@@ -400,34 +400,21 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
 
       <!-- Dashboard preview -->
       <div class="max-w-7xl mx-auto px-4 sm:px-8 lg:px-12">
-        <div class="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-y-5 lg:gap-x-16 lg:items-center">
 
-          <!-- Text -->
-          <div class="flex-1 text-center lg:text-left">
+          <!-- Heading (mobile pos 1+2) -->
+          <div class="order-1 lg:col-start-1 lg:row-start-1 lg:self-end text-center lg:text-left">
             <span class="text-xs font-semibold text-green-600 uppercase tracking-wider">{{ t('landing.app_preview.dashboard_label') }}</span>
             <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mt-2 mb-3">
               {{ t('landing.app_preview.dashboard_title') }}
             </h2>
-            <p class="text-gray-600 dark:text-gray-400 mb-5 max-w-md mx-auto lg:mx-0">
+            <p class="text-gray-600 dark:text-gray-400 max-w-md mx-auto lg:mx-0">
               {{ t('landing.app_preview.dashboard_desc') }}
             </p>
-            <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-2 mb-6 text-left inline-block">
-              <li class="flex items-start gap-2"><span class="text-green-500 font-bold mt-0.5">-</span>{{ t('landing.app_preview.dashboard_bullet1') }}</li>
-              <li class="flex items-start gap-2"><span class="text-green-500 font-bold mt-0.5">-</span>{{ t('landing.app_preview.dashboard_bullet2') }}</li>
-              <li class="flex items-start gap-2"><span class="text-green-500 font-bold mt-0.5">-</span>{{ t('landing.app_preview.dashboard_bullet3') }}</li>
-            </ul>
-            <button
-              @click="demoLogin('dashboard_preview')"
-              :disabled="demoLoading"
-              class="inline-flex items-center gap-2 text-green-600 hover:text-green-700 font-medium text-sm transition disabled:opacity-50"
-            >
-              {{ t('landing.app_preview.dashboard_cta') }}
-              <ArrowRightIcon class="h-4 w-4" />
-            </button>
           </div>
 
-          <!-- Dashboard screenshot -->
-          <div class="flex-1 w-full max-w-xl lg:max-w-none relative">
+          <!-- Dashboard screenshot (mobile pos 3) -->
+          <div class="order-2 lg:order-none lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:self-center w-full max-w-xl lg:max-w-none mx-auto relative">
             <div class="rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden relative">
               <img
                 src="/screenshots/dashboard-light.jpg"
@@ -447,39 +434,43 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
               {{ t('landing.app_preview.chip_costs') }}
             </div>
           </div>
+
+          <!-- Features + CTA (mobile pos 4) -->
+          <div class="order-3 lg:col-start-1 lg:row-start-2 lg:self-start text-center lg:text-left">
+            <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-2 mb-6 text-left inline-block">
+              <li class="flex items-start gap-2"><span class="text-green-500 font-bold mt-0.5">-</span>{{ t('landing.app_preview.dashboard_bullet1') }}</li>
+              <li class="flex items-start gap-2"><span class="text-green-500 font-bold mt-0.5">-</span>{{ t('landing.app_preview.dashboard_bullet2') }}</li>
+              <li class="flex items-start gap-2"><span class="text-green-500 font-bold mt-0.5">-</span>{{ t('landing.app_preview.dashboard_bullet3') }}</li>
+            </ul>
+            <button
+              @click="demoLogin('dashboard_preview')"
+              :disabled="demoLoading"
+              class="inline-flex items-center gap-2 text-green-600 hover:text-green-700 font-medium text-sm transition disabled:opacity-50"
+            >
+              {{ t('landing.app_preview.dashboard_cta') }}
+              <ArrowRightIcon class="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </div>
 
       <!-- Logfeed preview -->
       <div class="max-w-7xl mx-auto px-4 sm:px-8 lg:px-12 mt-16 sm:mt-24">
-        <div class="flex flex-col lg:flex-row-reverse items-center gap-10 lg:gap-16">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-y-5 lg:gap-x-16 lg:items-center">
 
-          <!-- Text -->
-          <div class="flex-1 text-center lg:text-left">
+          <!-- Heading (mobile pos 1+2) -->
+          <div class="order-1 lg:col-start-2 lg:row-start-1 lg:self-end text-center lg:text-left">
             <span class="text-xs font-semibold text-green-600 uppercase tracking-wider">{{ t('landing.app_preview.logfeed_label') }}</span>
             <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mt-2 mb-3">
               {{ t('landing.app_preview.logfeed_title') }}
             </h2>
-            <p class="text-gray-600 dark:text-gray-400 mb-5 max-w-md mx-auto lg:mx-0">
+            <p class="text-gray-600 dark:text-gray-400 max-w-md mx-auto lg:mx-0">
               {{ t('landing.app_preview.logfeed_desc') }}
             </p>
-            <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-2 mb-6 text-left inline-block">
-              <li class="flex items-start gap-2"><span class="text-green-500 font-bold mt-0.5">-</span>{{ t('landing.app_preview.logfeed_bullet1') }}</li>
-              <li class="flex items-start gap-2"><span class="text-green-500 font-bold mt-0.5">-</span>{{ t('landing.app_preview.logfeed_bullet2') }}</li>
-              <li class="flex items-start gap-2"><span class="text-green-500 font-bold mt-0.5">-</span>{{ t('landing.app_preview.logfeed_bullet3') }}</li>
-            </ul>
-            <button
-              @click="demoLogin('logfeed_preview')"
-              :disabled="demoLoading"
-              class="inline-flex items-center gap-2 text-green-600 hover:text-green-700 font-medium text-sm transition disabled:opacity-50"
-            >
-              {{ t('landing.app_preview.logfeed_cta') }}
-              <ArrowRightIcon class="h-4 w-4" />
-            </button>
           </div>
 
-          <!-- Logfeed screenshot -->
-          <div class="flex-1 w-full max-w-xl lg:max-w-none relative">
+          <!-- Logfeed screenshot (mobile pos 3) -->
+          <div class="order-2 lg:order-none lg:col-start-1 lg:row-start-1 lg:row-span-2 lg:self-center w-full max-w-xl lg:max-w-none mx-auto relative">
             <div class="rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden relative">
               <img
                 src="/screenshots/logfeed-light.jpg"
@@ -499,6 +490,23 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
               {{ t('landing.app_preview.chip_range') }}
             </div>
           </div>
+
+          <!-- Features + CTA (mobile pos 4) -->
+          <div class="order-3 lg:col-start-2 lg:row-start-2 lg:self-start text-center lg:text-left">
+            <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-2 mb-6 text-left inline-block">
+              <li class="flex items-start gap-2"><span class="text-green-500 font-bold mt-0.5">-</span>{{ t('landing.app_preview.logfeed_bullet1') }}</li>
+              <li class="flex items-start gap-2"><span class="text-green-500 font-bold mt-0.5">-</span>{{ t('landing.app_preview.logfeed_bullet2') }}</li>
+              <li class="flex items-start gap-2"><span class="text-green-500 font-bold mt-0.5">-</span>{{ t('landing.app_preview.logfeed_bullet3') }}</li>
+            </ul>
+            <button
+              @click="demoLogin('logfeed_preview')"
+              :disabled="demoLoading"
+              class="inline-flex items-center gap-2 text-green-600 hover:text-green-700 font-medium text-sm transition disabled:opacity-50"
+            >
+              {{ t('landing.app_preview.logfeed_cta') }}
+              <ArrowRightIcon class="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </div>
     </section>
@@ -512,8 +520,14 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
 
           <!-- Map -->
-          <div class="flex flex-col gap-5">
-            <div class="rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div class="flex flex-col">
+            <!-- Heading (mobile pos 1) -->
+            <div class="order-1 lg:order-2 lg:mt-5">
+              <span class="text-xs font-semibold text-green-600 uppercase tracking-wider">{{ t('landing.app_preview.map_label') }}</span>
+              <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1 mb-2">{{ t('landing.app_preview.map_title') }}</h3>
+            </div>
+            <!-- Screenshot (mobile pos 2) -->
+            <div class="order-2 lg:order-1 mt-3 lg:mt-0 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
               <img
                 src="/screenshots/map-light.jpg"
                 alt="EV Monitor Lade-Standorte Karte"
@@ -523,9 +537,8 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
                 height="390"
               />
             </div>
-            <div>
-              <span class="text-xs font-semibold text-green-600 uppercase tracking-wider">{{ t('landing.app_preview.map_label') }}</span>
-              <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1 mb-2">{{ t('landing.app_preview.map_title') }}</h3>
+            <!-- Features + CTA (mobile pos 3) -->
+            <div class="order-3 mt-3 lg:mt-0">
               <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-1.5 mb-3">
                 <li class="flex items-start gap-2"><span class="text-green-500 font-bold shrink-0 mt-0.5">-</span>{{ t('landing.app_preview.map_bullet1') }}</li>
                 <li class="flex items-start gap-2"><span class="text-green-500 font-bold shrink-0 mt-0.5">-</span>{{ t('landing.app_preview.map_bullet2') }}</li>
@@ -537,8 +550,14 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
           </div>
 
           <!-- Charts -->
-          <div class="flex flex-col gap-5">
-            <div class="rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div class="flex flex-col">
+            <!-- Heading (mobile pos 1) -->
+            <div class="order-1 lg:order-2 lg:mt-5">
+              <span class="text-xs font-semibold text-green-600 uppercase tracking-wider">{{ t('landing.app_preview.charts_label') }}</span>
+              <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1 mb-2">{{ t('landing.app_preview.charts_title') }}</h3>
+            </div>
+            <!-- Screenshot (mobile pos 2) -->
+            <div class="order-2 lg:order-1 mt-3 lg:mt-0 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
               <img
                 src="/screenshots/charts-light.jpg"
                 alt="EV Monitor Analysen Kosten und Verbrauch"
@@ -548,9 +567,8 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
                 height="519"
               />
             </div>
-            <div>
-              <span class="text-xs font-semibold text-green-600 uppercase tracking-wider">{{ t('landing.app_preview.charts_label') }}</span>
-              <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1 mb-2">{{ t('landing.app_preview.charts_title') }}</h3>
+            <!-- Features + CTA (mobile pos 3) -->
+            <div class="order-3 mt-3 lg:mt-0">
               <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-1.5 mb-3">
                 <li class="flex items-start gap-2"><span class="text-green-500 font-bold shrink-0 mt-0.5">-</span>{{ t('landing.app_preview.charts_bullet1') }}</li>
                 <li class="flex items-start gap-2"><span class="text-green-500 font-bold shrink-0 mt-0.5">-</span>{{ t('landing.app_preview.charts_bullet2') }}</li>
@@ -568,10 +586,21 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
     <!-- Leaderboard Preview Section -->
     <section class="py-12 sm:py-20 border-t border-gray-100 dark:border-gray-800">
       <div class="max-w-7xl mx-auto px-4 sm:px-8 lg:px-12">
-        <div class="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-y-5 lg:gap-x-16 lg:items-center">
 
-          <!-- Screenshot -->
-          <div class="flex-1 w-full max-w-xs sm:max-w-sm lg:max-w-none relative">
+          <!-- Heading (mobile pos 1+2) -->
+          <div class="order-1 lg:col-start-2 lg:row-start-1 lg:self-end text-center lg:text-left">
+            <span class="text-xs font-semibold text-green-600 uppercase tracking-wider">{{ t('landing.leaderboard.label') }}</span>
+            <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mt-2 mb-3">
+              {{ t('landing.leaderboard.title') }}
+            </h2>
+            <p class="text-gray-600 dark:text-gray-400 max-w-md mx-auto lg:mx-0">
+              {{ t('landing.leaderboard.desc') }}
+            </p>
+          </div>
+
+          <!-- Screenshot (mobile pos 3) -->
+          <div class="order-2 lg:order-none lg:col-start-1 lg:row-start-1 lg:row-span-2 lg:self-center w-full max-w-xs sm:max-w-sm lg:max-w-none mx-auto relative">
             <div class="rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden relative">
               <img
                 src="/screenshots/leaderboard-light.jpg"
@@ -589,18 +618,9 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
             </div>
           </div>
 
-          <!-- Text -->
-          <div class="flex-1 text-center lg:text-left">
-            <span class="text-xs font-semibold text-green-600 uppercase tracking-wider">{{ t('landing.leaderboard.label') }}</span>
-            <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mt-2 mb-3">
-              {{ t('landing.leaderboard.title') }}
-            </h2>
-            <p class="text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto lg:mx-0">
-              {{ t('landing.leaderboard.desc') }}
-            </p>
-
-            <!-- Category grid -->
-            <div class="grid grid-cols-2 gap-2 mb-7 max-w-md mx-auto lg:mx-0">
+          <!-- Category grid (mobile pos 4) -->
+          <div class="order-3 lg:col-start-2 lg:row-start-2 lg:self-start">
+            <div class="grid grid-cols-2 gap-2 max-w-md mx-auto lg:mx-0">
               <div v-for="cat in leaderboardCategories" :key="cat.key"
                 class="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg text-sm text-gray-700 dark:text-gray-300"
               >
@@ -608,7 +628,6 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
                 <span class="font-medium truncate">{{ cat.label }}</span>
               </div>
             </div>
-
           </div>
 
         </div>
