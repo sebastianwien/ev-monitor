@@ -26,6 +26,8 @@ const props = defineProps<{
   selectedTimeRange: string
   customStartDate: string | null
   customEndDate: string | null
+  // Read-only preview (e.g. the supporter page): lock the donut tab and hide the chrome.
+  previewMode?: boolean
 }>()
 
 const { t } = useI18n()
@@ -33,7 +35,7 @@ const { t } = useI18n()
 type Tab = 'donut' | 'nights' | 'calendar' | 'routes'
 const VALID_TABS: Tab[] = ['donut', 'nights', 'calendar', 'routes']
 const storedTab = localStorage.getItem(LS_TAB_KEY) as Tab | null
-const activeTab = ref<Tab>(storedTab && VALID_TABS.includes(storedTab) ? storedTab : 'donut')
+const activeTab = ref<Tab>(props.previewMode ? 'donut' : (storedTab && VALID_TABS.includes(storedTab) ? storedTab : 'donut'))
 
 // ── Animation ────────────────────────────────────────────────────────────────
 
@@ -319,7 +321,7 @@ function drainBarWidth(ev: { kwh: number }): string {
   <div class="bg-white dark:bg-gray-700 rounded-sm border-2 border-gray-300 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#4b5563] overflow-hidden">
 
     <!-- Tab bar -->
-    <div class="flex items-center border-b border-gray-200 dark:border-gray-600">
+    <div v-if="!previewMode" class="flex items-center border-b border-gray-200 dark:border-gray-600">
       <div class="flex items-center gap-5 px-4 md:px-5 overflow-x-auto flex-1 min-w-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         <button
           v-for="tab in (['donut', 'nights', 'calendar', 'routes'] as Tab[])"
@@ -342,7 +344,7 @@ function drainBarWidth(ev: { kwh: number }): string {
 
     <!-- Panels with horizontal slide-fade -->
     <Transition @enter="onEnter" @after-enter="onAfterEnter" @leave="onLeave" @after-leave="onAfterLeave">
-    <div v-show="!collapsed" class="sm:!block">
+    <div v-show="previewMode || !collapsed" class="sm:!block">
     <Transition name="tab-slide" mode="out-in">
       <div :key="activeTab">
 

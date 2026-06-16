@@ -7,6 +7,7 @@ import { HeartIcon } from '@heroicons/vue/24/solid'
 import { useCountryStore } from '../stores/country'
 import { getPricing } from '../config/pricingConfig'
 import { subscriptionService } from '../api/subscriptionService'
+import DashboardInsights from '../components/dashboard/DashboardInsights.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -39,6 +40,15 @@ const unlocks = computed(() => [
 ])
 
 const payments = ['Visa', 'Mastercard', 'Apple Pay', 'Google Pay', 'PayPal', 'Klarna']
+
+// Dummy data for the read-only widget preview: ~62% driving / 17% idle drain / 21% loss,
+// 330 kWh charged. The widget computes the split from these entries itself.
+const dummyCar = { effectiveBatteryCapacityKwh: 75 }
+const dummyEntries = [
+  { id: 'pv1', loggedAt: '2026-05-02T10:00:00Z', _isTrip: false, kwhCharged: 110, kwhAtVehicle: 87 },
+  { id: 'pv2', loggedAt: '2026-05-09T10:00:00Z', _isTrip: false, kwhCharged: 110, kwhAtVehicle: 87, _phantomDrain: { kwh: 28 } },
+  { id: 'pv3', loggedAt: '2026-05-16T10:00:00Z', _isTrip: false, kwhCharged: 110, kwhAtVehicle: 87, _phantomDrain: { kwh: 28 } },
+]
 </script>
 
 <template>
@@ -69,6 +79,19 @@ const payments = ['Visa', 'Mastercard', 'Apple Pay', 'Google Pay', 'PayPal', 'Kl
       <!-- What supporting unlocks (framed as a thank-you, light list) -->
       <div class="max-w-xl mx-auto mt-8">
         <p class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">{{ t('supporter.unlock_title') }}</p>
+
+        <!-- Real dashboard widget, dummy data, read-only -->
+        <div class="pointer-events-none select-none mb-5" aria-hidden="true">
+          <DashboardInsights
+            :entries="dummyEntries"
+            :selected-car="dummyCar"
+            selected-time-range="ALL"
+            :custom-start-date="null"
+            :custom-end-date="null"
+            preview-mode
+          />
+        </div>
+
         <ul class="space-y-2.5">
           <li v-for="u in unlocks" :key="u.text" class="flex items-start gap-3">
             <component :is="u.icon" class="w-5 h-5 text-amber-500 dark:text-amber-400 flex-shrink-0 mt-0.5" />

@@ -2194,7 +2194,7 @@ supporter:
   story_p2: "Der gesamte Code ist Open Source. Keine Werbung, kein Datenhandel, keine Investoren, die Wachstum um jeden Preis wollen. Das heisst aber auch: EV Monitor trägt sich nur durch die Menschen, die es freiwillig unterstützen."
   story_p3: "Dein Beitrag hält die Server am Laufen und gibt mir die Zeit, weiter daran zu bauen. Als Dankeschön schalte ich dir die Tiefen-Auswertungen frei."
   unlock_title: "Was du freischaltest"
-  u_analytics: "Energie-Aufteilung - sieh auf einen Blick, wie viel Strom aufs Fahren, auf Standverluste und auf Ladeverluste geht."
+  u_analytics: "Dashboard-Widget: eine detaillierte Aufschlüsselung deiner Energieverteilung, Standverluste und deren Kosten sowie eine Fahrstrecken-Analyse."
   u_phantom: "Standverluste im Detail - jeder Verlust zwischen den Fahrten, mit kWh und Kosten."
   u_curves: "Ladekurven - die vollständigen DC-Schnelllade-Kurven zu jeder Ladung."
   toggle_monthly: "Monatlich"

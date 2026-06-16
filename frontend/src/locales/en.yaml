@@ -2194,7 +2194,7 @@ supporter:
   story_p2: "The entire codebase is open source. No ads, no data trading, no investors demanding growth at any cost. But that also means: EV Monitor only sustains itself through the people who choose to support it."
   story_p3: "Your contribution keeps the servers running and gives me the time to keep building it. As a thank-you I unlock the deep analytics for you."
   unlock_title: "What you unlock"
-  u_analytics: "Energy split - see at a glance how much energy goes to driving, idle drain and charging losses."
+  u_analytics: "Dashboard widget: a detailed breakdown of your energy split, idle drain and its cost, plus a distance analysis."
   u_phantom: "Idle drain in detail - every loss between trips, with kWh and cost."
   u_curves: "Charging curves - the full DC fast-charging curves for every charge."
   toggle_monthly: "Monthly"

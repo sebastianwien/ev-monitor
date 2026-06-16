@@ -2122,7 +2122,7 @@ supporter:
   story_p2: "Hele kodebasen er åpen kildekode. Ingen reklame, ingen datahandel, ingen investorer som krever vekst for enhver pris. Men det betyr også: EV Monitor bæres kun av menneskene som frivillig støtter det."
   story_p3: "Bidraget ditt holder serverne i gang og gir meg tid til å bygge videre. Som takk låser jeg opp dybdeanalysene for deg."
   unlock_title: "Hva du låser opp"
-  u_analytics: "Energifordeling - se med ett blikk hvor mye strøm som går til kjøring, parkeringstap og ladetap."
+  u_analytics: "Dashboard-widget: en detaljert oversikt over energifordelingen din, parkeringstap og kostnaden, pluss en distanseanalyse."
   u_phantom: "Parkeringstap i detalj - hvert tap mellom turene, med kWh og kostnad."
   u_curves: "Ladekurver - de fullstendige DC-hurtigladekurvene for hver lading."
   toggle_monthly: "Månedlig"
