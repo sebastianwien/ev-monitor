@@ -228,8 +228,8 @@ const teslaConnectedLabel = ref<string | null>(null)
             @click="toggle('smartcar'); analytics.trackImportTabClicked('smartcar')"
             class="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
           >
-            <div class="shrink-0 rounded-sm border-2 border-gray-900 dark:border-white p-2 w-10 h-10 flex items-center justify-center bg-gradient-to-b from-yellow-200 via-amber-400 to-amber-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]">
-              <ArrowPathIcon class="h-5 w-5 text-white" />
+            <div class="shrink-0 rounded-sm border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 p-2 w-10 h-10 flex items-center justify-center">
+              <ArrowPathIcon class="h-5 w-5 text-gray-700 dark:text-gray-200" />
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 flex-wrap">
@@ -296,8 +296,8 @@ const teslaConnectedLabel = ref<string | null>(null)
             @click="toggle('api'); analytics.trackImportTabClicked('api')"
             class="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
           >
-            <div class="shrink-0 rounded-sm border-2 border-gray-900 dark:border-white bg-indigo-600 p-2 w-10 h-10 flex items-center justify-center">
-              <CodeBracketIcon class="h-5 w-5 text-white" />
+            <div class="shrink-0 rounded-sm border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 p-2 w-10 h-10 flex items-center justify-center">
+              <CodeBracketIcon class="h-5 w-5 text-gray-700 dark:text-gray-200" />
             </div>
             <div class="flex-1 min-w-0">
               <span class="font-medium text-gray-900 dark:text-gray-100 text-sm">{{ t('imports.tab_api') }}</span>
@@ -309,17 +309,17 @@ const teslaConnectedLabel = ref<string | null>(null)
               <p class="text-sm text-gray-700 dark:text-gray-300 font-medium leading-relaxed">{{ t('imports.api_desc') }}</p>
 
               <!-- Endpoint-Card -->
-              <div class="border-2 border-gray-900 dark:border-white bg-gray-900 dark:bg-gray-950 rounded-sm shadow-[2px_2px_0_0_#4f46e5] p-4">
-                <p class="text-indigo-400 text-[11px] font-bold uppercase tracking-[0.14em] mb-2">Endpoint</p>
-                <p class="font-mono text-xs bg-gray-950 text-gray-100 border border-gray-700 rounded-sm px-3 py-2 mb-3 break-all">
+              <div class="border-2 border-gray-300 dark:border-white bg-gray-50 dark:bg-gray-950 rounded-sm shadow-[2px_2px_0_0_#4f46e5] p-4">
+                <p class="text-indigo-600 dark:text-indigo-400 text-[11px] font-bold uppercase tracking-[0.14em] mb-2">Endpoint</p>
+                <p class="font-mono text-xs bg-gray-100 dark:bg-gray-950 text-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-700 rounded-sm px-3 py-2 mb-3 break-all">
                   POST https://ev-monitor.net/api/v1/sessions<br>
                   Authorization: Bearer evm_&lt;dein-key&gt;
                 </p>
-                <p class="text-xs text-gray-300 mb-1.5"><span class="text-indigo-400 font-bold uppercase tracking-wider text-[10px]">{{ t('imports.api_required') }}</span> <code class="bg-gray-800 text-amber-300 px-1.5 py-0.5 rounded-sm font-mono">date</code>, <code class="bg-gray-800 text-amber-300 px-1.5 py-0.5 rounded-sm font-mono">kwh</code></p>
-                <p class="text-xs text-gray-300 mb-1.5"><span class="text-indigo-400 font-bold uppercase tracking-wider text-[10px]">{{ t('imports.api_optional') }}</span> <code class="bg-gray-800 text-amber-300 px-1.5 py-0.5 rounded-sm font-mono">odometer_km</code>, <code class="bg-gray-800 text-amber-300 px-1.5 py-0.5 rounded-sm font-mono">soc_after</code>, <code class="bg-gray-800 text-amber-300 px-1.5 py-0.5 rounded-sm font-mono">cost_eur</code>, <code class="bg-gray-800 text-amber-300 px-1.5 py-0.5 rounded-sm font-mono">duration_min</code>, <code class="bg-gray-800 text-amber-300 px-1.5 py-0.5 rounded-sm font-mono">location</code>, <code class="bg-gray-800 text-amber-300 px-1.5 py-0.5 rounded-sm font-mono">charging_type</code> (AC/DC)</p>
-                <p class="text-xs text-gray-400 mt-2">{{ t('imports.api_dedup') }}</p>
-                <p class="text-xs text-gray-400 mt-1" v-html="t('imports.api_date_hint')" />
-                <a href="/swagger-ui/index.html" target="_blank" class="inline-block mt-3 text-indigo-400 hover:text-indigo-300 font-bold uppercase tracking-wider text-[11px] underline underline-offset-2">{{ t('imports.api_docs') }} →</a>
+                <p class="text-xs text-gray-600 dark:text-gray-300 mb-1.5"><span class="text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-wider text-[10px]">{{ t('imports.api_required') }}</span> <code class="bg-gray-200 dark:bg-gray-800 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded-sm font-mono">date</code>, <code class="bg-gray-200 dark:bg-gray-800 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded-sm font-mono">kwh</code></p>
+                <p class="text-xs text-gray-600 dark:text-gray-300 mb-1.5"><span class="text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-wider text-[10px]">{{ t('imports.api_optional') }}</span> <code class="bg-gray-200 dark:bg-gray-800 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded-sm font-mono">odometer_km</code>, <code class="bg-gray-200 dark:bg-gray-800 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded-sm font-mono">soc_after</code>, <code class="bg-gray-200 dark:bg-gray-800 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded-sm font-mono">cost_eur</code>, <code class="bg-gray-200 dark:bg-gray-800 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded-sm font-mono">duration_min</code>, <code class="bg-gray-200 dark:bg-gray-800 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded-sm font-mono">location</code>, <code class="bg-gray-200 dark:bg-gray-800 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded-sm font-mono">charging_type</code> (AC/DC)</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">{{ t('imports.api_dedup') }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1" v-html="t('imports.api_date_hint')" />
+                <a href="/swagger-ui/index.html" target="_blank" class="inline-block mt-3 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-bold uppercase tracking-wider text-[11px] underline underline-offset-2">{{ t('imports.api_docs') }} →</a>
               </div>
 
               <!-- Fahrzeug-IDs -->
@@ -404,8 +404,8 @@ const teslaConnectedLabel = ref<string | null>(null)
             @click="toggle('spritmonitor'); analytics.trackImportTabClicked('spritmonitor')"
             class="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
           >
-            <div class="shrink-0 rounded-sm border-2 border-gray-900 dark:border-white bg-sky-700 p-2 w-10 h-10 flex items-center justify-center">
-              <span class="text-white font-extrabold text-sm leading-none tracking-tight">SM</span>
+            <div class="shrink-0 rounded-sm border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 p-2 w-10 h-10 flex items-center justify-center">
+              <span class="text-gray-900 dark:text-gray-100 font-extrabold text-sm leading-none tracking-tight">SM</span>
             </div>
             <div class="flex-1 min-w-0">
               <span class="font-medium text-gray-900 dark:text-gray-100 text-sm">{{ t('imports.tab_spritmonitor') }}</span>
@@ -436,8 +436,8 @@ const teslaConnectedLabel = ref<string | null>(null)
             @click="toggle('tronity'); analytics.trackImportTabClicked('tronity')"
             class="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
           >
-            <div class="shrink-0 rounded-sm border-2 border-gray-900 dark:border-white bg-orange-500 p-2 w-10 h-10 flex items-center justify-center">
-              <span class="text-gray-950 font-extrabold text-sm leading-none tracking-tight">TR</span>
+            <div class="shrink-0 rounded-sm border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 p-2 w-10 h-10 flex items-center justify-center">
+              <span class="text-gray-900 dark:text-gray-100 font-extrabold text-sm leading-none tracking-tight">TR</span>
             </div>
             <div class="flex-1 min-w-0">
               <span class="font-medium text-gray-900 dark:text-gray-100 text-sm">{{ t('imports.tab_tronity') }}</span>
@@ -457,8 +457,8 @@ const teslaConnectedLabel = ref<string | null>(null)
             @click="toggle('tessie'); analytics.trackImportTabClicked('tessie')"
             class="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
           >
-            <div class="shrink-0 rounded-sm border-2 border-gray-900 dark:border-white bg-emerald-700 p-2 w-10 h-10 flex items-center justify-center">
-              <span class="text-white font-extrabold text-sm leading-none tracking-tight">TS</span>
+            <div class="shrink-0 rounded-sm border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 p-2 w-10 h-10 flex items-center justify-center">
+              <span class="text-gray-900 dark:text-gray-100 font-extrabold text-sm leading-none tracking-tight">TS</span>
             </div>
             <div class="flex-1 min-w-0">
               <span class="font-medium text-gray-900 dark:text-gray-100 text-sm">{{ t('imports.tab_tessie') }}</span>
@@ -489,8 +489,8 @@ const teslaConnectedLabel = ref<string | null>(null)
             @click="toggle('xpeng'); analytics.trackImportTabClicked('xpeng')"
             class="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
           >
-            <div class="shrink-0 rounded-sm border-2 border-gray-900 dark:border-white bg-cyan-500 p-2 w-10 h-10 flex items-center justify-center">
-              <span class="text-gray-950 font-extrabold text-sm leading-none tracking-tight">XP</span>
+            <div class="shrink-0 rounded-sm border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 p-2 w-10 h-10 flex items-center justify-center">
+              <span class="text-gray-900 dark:text-gray-100 font-extrabold text-sm leading-none tracking-tight">XP</span>
             </div>
             <div class="flex-1 min-w-0">
               <span class="font-medium text-gray-900 dark:text-gray-100 text-sm">{{ t('imports.tab_xpeng') }}</span>
@@ -511,8 +511,8 @@ const teslaConnectedLabel = ref<string | null>(null)
             @click="toggle('eu_data_act'); analytics.trackImportTabClicked('eu_data_act')"
             class="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
           >
-            <div class="shrink-0 rounded-sm border-2 border-gray-900 dark:border-white bg-blue-600 p-2 w-10 h-10 flex items-center justify-center">
-              <span class="text-white font-extrabold text-[11px] leading-none tracking-tight">VW</span>
+            <div class="shrink-0 rounded-sm border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 p-2 w-10 h-10 flex items-center justify-center">
+              <span class="text-gray-900 dark:text-gray-100 font-extrabold text-[11px] leading-none tracking-tight">VW</span>
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 flex-wrap">
@@ -536,8 +536,8 @@ const teslaConnectedLabel = ref<string | null>(null)
             @click="toggle('manuell'); analytics.trackImportTabClicked('manuell')"
             class="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
           >
-            <div class="shrink-0 rounded-sm border-2 border-gray-900 dark:border-white bg-green-700 p-2 w-10 h-10">
-              <ArrowDownTrayIcon class="h-5 w-5 text-white" />
+            <div class="shrink-0 rounded-sm border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 p-2 w-10 h-10 flex items-center justify-center">
+              <ArrowDownTrayIcon class="h-5 w-5 text-gray-700 dark:text-gray-200" />
             </div>
             <div class="flex-1 min-w-0">
               <span class="font-medium text-gray-900 dark:text-gray-100 text-sm">{{ t('imports.tab_manuell') }}</span>
@@ -579,8 +579,8 @@ const teslaConnectedLabel = ref<string | null>(null)
             @click="toggle('goe'); analytics.trackImportTabClicked('goe')"
             class="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
           >
-            <div class="shrink-0 rounded-sm border-2 border-gray-900 dark:border-white bg-yellow-400 p-2 w-10 h-10 flex items-center justify-center">
-              <span class="text-gray-950 font-extrabold text-sm leading-none tracking-tight">GE</span>
+            <div class="shrink-0 rounded-sm border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 p-2 w-10 h-10 flex items-center justify-center">
+              <span class="text-gray-900 dark:text-gray-100 font-extrabold text-sm leading-none tracking-tight">GE</span>
             </div>
             <div class="flex-1 min-w-0">
               <span class="font-medium text-gray-900 dark:text-gray-100 text-sm">{{ t('imports.tab_goe') }}</span>
@@ -605,8 +605,8 @@ const teslaConnectedLabel = ref<string | null>(null)
             @click="toggle('wallbox'); analytics.trackImportTabClicked('wallbox')"
             class="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
           >
-            <div class="shrink-0 rounded-sm border-2 border-gray-900 dark:border-white bg-slate-700 p-2 w-10 h-10 flex items-center justify-center">
-              <BoltIcon class="h-5 w-5 text-white" />
+            <div class="shrink-0 rounded-sm border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 p-2 w-10 h-10 flex items-center justify-center">
+              <BoltIcon class="h-5 w-5 text-gray-700 dark:text-gray-200" />
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 flex-wrap">
@@ -645,8 +645,8 @@ const teslaConnectedLabel = ref<string | null>(null)
             @click="toggle('tesla'); analytics.trackImportTabClicked('tesla')"
             class="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
           >
-            <div class="shrink-0 rounded-sm border-2 border-gray-900 dark:border-white bg-red-600 p-2 w-10 h-10 flex items-center justify-center">
-              <span class="text-white font-extrabold text-sm leading-none tracking-tight">T</span>
+            <div class="shrink-0 rounded-sm border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 p-2 w-10 h-10 flex items-center justify-center">
+              <span class="text-gray-900 dark:text-gray-100 font-extrabold text-sm leading-none tracking-tight">T</span>
             </div>
             <div class="flex-1 min-w-0">
               <span class="font-medium text-gray-900 dark:text-gray-100 text-sm">
