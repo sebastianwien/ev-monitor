@@ -26,6 +26,8 @@ interface PowerHistoryPoint {
   kw: number
 }
 
+// Defensiver Cap auf die Server-History (downsampled auf <=120 Bins). Server ist
+// Source of Truth; dieser slice schuetzt nur gegen eine unerwartet grosse Response.
 const HISTORY_MAX_POINTS = 120
 // Aktive Session: schnell, damit die Kurve fluessig waechst.
 // Idle (keine Session): seltener, weil >99% der Zeit nichts zu tun ist.
@@ -42,9 +44,6 @@ export function useChargingLive(carId: Ref<string | null>) {
   const error = ref<string | null>(null)
   let timeoutId: ReturnType<typeof setTimeout> | undefined
   let activeController: AbortController | undefined
-  // Tracks which sessionStartedAt we've already fetched history for,
-  // so fetchHistory runs exactly once per session and never on empty-history re-polls.
-  let lastFetchedSessionStart: string | null = null
 
   function isPageVisible(): boolean {
     return typeof document === 'undefined' || document.visibilityState !== 'hidden'
@@ -52,14 +51,6 @@ export function useChargingLive(carId: Ref<string | null>) {
 
   function nextDelay(): number {
     return data.value?.isActive ? POLL_INTERVAL_ACTIVE_MS : POLL_INTERVAL_IDLE_MS
-  }
-
-  function appendPowerPoint(kw: number | null, lastUpdatedAt: string | null) {
-    if (kw == null) return
-    const ts = lastUpdatedAt ? new Date(lastUpdatedAt).getTime() : Date.now()
-    const last = powerHistory.value[powerHistory.value.length - 1]
-    if (last && last.ts === ts) return
-    powerHistory.value = [...powerHistory.value, { ts, kw }].slice(-HISTORY_MAX_POINTS)
   }
 
   async function fetchHistory(id: string, sessionStartIso: string, signal: AbortSignal) {
@@ -92,20 +83,18 @@ export function useChargingLive(carId: Ref<string | null>) {
       if (signal.aborted) return
       data.value = res.data
       // Grace-Period: Backend liefert sessionStartedAt auch nach Session-Ende fuer
-      // 30 Min weiter (isActive=false, sessionEndedAt gesetzt). Wir behalten den
-      // History-Buffer in diesem Fenster und ziehen die fertige Kurve nach.
+      // 30 Min weiter (isActive=false, sessionEndedAt gesetzt) - in diesem Fenster
+      // ziehen wir die fertige Kurve weiter nach.
       const hasSession = !!res.data.sessionStartedAt
-      if (res.data.isActive) {
-        appendPowerPoint(res.data.powerKw, res.data.lastUpdatedAt)
-      }
-      if (hasSession && res.data.sessionStartedAt && res.data.sessionStartedAt !== lastFetchedSessionStart) {
-        // New session detected - fetch full history exactly once per session.
-        lastFetchedSessionStart = res.data.sessionStartedAt
+      if (hasSession && res.data.sessionStartedAt) {
+        // Die volle Session-Kurve wird bei JEDEM Poll frisch vom Connector geholt
+        // (server-seitig auf <=120 Bins downgesampled, Quelle: vehicle_signal_events).
+        // Bewusst KEIN clientseitiges Mitschreiben: ein lokaler Append-Buffer wuerde
+        // nach ~20 Min den Session-Start aus dem 120-Punkte-Fenster rotieren - bei DC
+        // genau die interessante Peak-Rampe. Server bleibt Source of Truth.
         fetchHistory(id, res.data.sessionStartedAt, signal)
-      }
-      if (!hasSession) {
+      } else {
         powerHistory.value = []
-        lastFetchedSessionStart = null
       }
       error.value = null
     } catch (e) {
@@ -157,7 +146,6 @@ export function useChargingLive(carId: Ref<string | null>) {
     clearTimeout(timeoutId)
     powerHistory.value = []
     data.value = null
-    lastFetchedSessionStart = null
 
     const id = carId.value
     if (!id) return
@@ -174,7 +162,6 @@ export function useChargingLive(carId: Ref<string | null>) {
   onUnmounted(() => {
     activeController?.abort()
     clearTimeout(timeoutId)
-    lastFetchedSessionStart = null
     if (typeof document !== 'undefined') {
       document.removeEventListener('visibilitychange', onVisibilityChange)
     }
