@@ -241,6 +241,59 @@ class LeaderboardQueryRepositoryTest {
         assertThat(rows).extracting(LeaderboardRankRow::username).doesNotContain("cheat");
     }
 
+    // ---- MONTHLY_CHARGES: consecutive same-odometer logs count as one charge ----
+
+    @Test
+    void chargesRanking_groupsConsecutiveSameOdometerAsOneCharge() {
+        UUID userId = createUser("vielparker@test.com", "vielparker", false, true);
+        UUID carId = createCar(userId);
+        // Mirrors the /logs feed grouping: consecutive logs with identical, non-null
+        // odometer collapse into one charge (e.g. unplug/replug at home, same km).
+        createLogWithOdometerAt(carId, 1000, START.plusHours(1));
+        createLogWithOdometerAt(carId, 1000, START.plusHours(2)); // grouped with previous
+        createLogWithOdometerAt(carId, 1050, START.plusHours(3));
+        createLogWithOdometerAt(carId, 1050, START.plusHours(4)); // grouped with previous
+        createLogWithOdometerAt(carId, null, START.plusHours(5));  // no odometer -> standalone
+
+        List<LeaderboardRankRow> rows = repo.getChargesRanking(START, END);
+
+        // 5 raw logs -> 2 odometer groups + 1 standalone = 3 charges
+        assertThat(rows).extracting(LeaderboardRankRow::username).contains("vielparker");
+        assertThat(rows.get(0).value()).isEqualByComparingTo("3");
+    }
+
+    @Test
+    void chargesRanking_nullOdometerBetweenEqualOdometersBreaksTheGroup() {
+        UUID userId = createUser("zwischenparker@test.com", "zwischenparker", false, true);
+        UUID carId = createCar(userId);
+        // A log without odometer between two equal-odometer logs breaks adjacency,
+        // exactly like the FE loop that stops grouping on a null odometer.
+        createLogWithOdometerAt(carId, 1000, START.plusHours(1));
+        createLogWithOdometerAt(carId, null, START.plusHours(2));
+        createLogWithOdometerAt(carId, 1000, START.plusHours(3));
+
+        List<LeaderboardRankRow> rows = repo.getChargesRanking(START, END);
+
+        // All three count separately: 2 odometer islands + 1 null = 3
+        assertThat(rows.get(0).value()).isEqualByComparingTo("3");
+    }
+
+    private void createLogWithOdometerAt(UUID carId, Integer odometerKm, LocalDateTime loggedAt) {
+        EvLogEntity e = new EvLogEntity();
+        e.setId(UUID.randomUUID());
+        e.setCarId(carId);
+        e.setKwhCharged(new BigDecimal("30.0"));
+        e.setOdometerKm(odometerKm);
+        e.setChargeDurationMinutes(60);
+        e.setLoggedAt(loggedAt);
+        e.setDataSource("USER_LOGGED");
+        e.setIncludeInStatistics(true);
+        e.setChargingType("AC");
+        e.setCreatedAt(LocalDateTime.now());
+        e.setUpdatedAt(LocalDateTime.now());
+        evLogRepository.save(e);
+    }
+
     // ---- Helpers ----
 
     // ---- Top public provider: charging card name with CPO fallback ----

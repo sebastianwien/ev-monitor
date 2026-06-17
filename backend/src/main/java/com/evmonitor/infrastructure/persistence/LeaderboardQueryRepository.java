@@ -50,21 +50,35 @@ public class LeaderboardQueryRepository {
     }
 
     // ---- MONTHLY_CHARGES ----
+    // Mirrors the /logs feed grouping: consecutive logs (per car, ordered by time) with an
+    // identical, non-null odometer reading count as a single charge ("Ladegruppe", e.g.
+    // unplug/replug at home with the same km). Gaps-and-islands: a charge is counted whenever
+    // the odometer differs from the immediately preceding log. Logs without an odometer always
+    // count individually and break a group, matching the frontend loop in useLogList.ts.
 
     @SuppressWarnings("unchecked")
     public List<LeaderboardRankRow> getChargesRanking(LocalDateTime start, LocalDateTime endExclusive) {
         List<Object[]> rows = em.createNativeQuery("""
-                SELECT CAST(c.id AS TEXT), CAST(u.id AS TEXT), u.username, c.model,
-                       CAST(COUNT(e.id) AS NUMERIC) AS value
-                FROM ev_log e
-                JOIN car c ON e.car_id = c.id
-                JOIN app_user u ON c.user_id = u.id
-                WHERE e.include_in_statistics = true
-                  AND u.is_seed_data = false
-                  AND u.leaderboard_visible = true
-                  AND e.logged_at >= :start
-                  AND e.logged_at < :end
-                GROUP BY c.id, c.model, u.id, u.username
+                SELECT CAST(car_id AS TEXT), CAST(user_id AS TEXT), username, model,
+                       CAST(
+                           COUNT(*) FILTER (WHERE odometer_km IS NULL)
+                           + COUNT(*) FILTER (WHERE odometer_km IS NOT NULL
+                                              AND prev_odometer_km IS DISTINCT FROM odometer_km)
+                       AS NUMERIC) AS value
+                FROM (
+                    SELECT e.car_id, c.user_id, u.username, c.model, e.odometer_km,
+                           LAG(e.odometer_km) OVER (PARTITION BY e.car_id ORDER BY e.logged_at, e.id)
+                               AS prev_odometer_km
+                    FROM ev_log e
+                    JOIN car c ON e.car_id = c.id
+                    JOIN app_user u ON c.user_id = u.id
+                    WHERE e.include_in_statistics = true
+                      AND u.is_seed_data = false
+                      AND u.leaderboard_visible = true
+                      AND e.logged_at >= :start
+                      AND e.logged_at < :end
+                ) ordered
+                GROUP BY car_id, user_id, username, model
                 ORDER BY value DESC
                 """)
                 .setParameter("start", start)
