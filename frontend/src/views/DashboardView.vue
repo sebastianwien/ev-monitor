@@ -107,6 +107,12 @@ const {
   hasAnyLogs, mergedLogFeed, fetchLogs, logs,
 } = useLogList(selectedCarId, cars, logsSection)
 
+// The analytics teaser only makes sense if the user has a data foundation, i.e. trips.
+// Backend already hides trips from non-entitled non-Tesla users (canViewLiveTrips), so this
+// naturally targets Tesla/imported/API-pushed feeds and spares confused free users who would
+// buy in but get no insights for lack of trip data.
+const feedHasTrips = computed(() => mergedLogFeed.value.some((e: any) => e._isTrip))
+
 const currentOdometerKm = computed<number | null>(() => {
   let max: number | null = null
   for (const l of logs.value) {
@@ -924,7 +930,7 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
 
         <!-- Locked-state teaser: same slot, shown to users without the analytics entitlement -->
         <DashboardInsightsTeaser
-          v-if="!authStore.canViewLiveAnalytics && mergedLogFeed.length > 0"
+          v-if="!authStore.canViewLiveAnalytics && feedHasTrips"
           :entries="mergedLogFeed"
           class="mb-3"
         />
