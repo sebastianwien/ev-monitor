@@ -8,6 +8,7 @@ import {
   HomeIcon,
 } from '@heroicons/vue/24/outline'
 import { carDisplayName } from '../utils/enumLabel'
+import { precedingChargePricePerKwh } from '../utils/phantomDrain'
 
 export const PAGE_SIZE_OPTIONS = [10, 25, 50] as const
 export type PageSize = typeof PAGE_SIZE_OPTIONS[number]
@@ -635,6 +636,8 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
         newer._phantomDrain = {
           kwh: Math.round(drainKwh * 100) / 100,
           durationMs: entryTs(newer) - entryTs(older),
+          // Value the lost energy at the price of the most recent charge before the gap.
+          pricePerKwh: precedingChargePricePerKwh(all, i),
         }
       }
     }

@@ -918,6 +918,7 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
           :selected-time-range="selectedTimeRange"
           :custom-start-date="customStartDate"
           :custom-end-date="customEndDate"
+          :avg-cost-per-kwh="stats.avgCostPerKwh"
           class="mb-3"
         />
 

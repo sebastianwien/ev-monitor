@@ -2,7 +2,7 @@
 import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ChevronDownIcon } from '@heroicons/vue/24/outline'
-import { phantomEur } from '../../utils/phantomDrain'
+import { phantomEurFor } from '../../utils/phantomDrain'
 import { useSlideTransition } from '../../composables/useSlideTransition'
 
 const { onEnter, onAfterEnter, onLeave, onAfterLeave } = useSlideTransition()
@@ -26,6 +26,9 @@ const props = defineProps<{
   selectedTimeRange: string
   customStartDate: string | null
   customEndDate: string | null
+  // User's blended average €/kWh, used to value idle drains when the preceding charge
+  // has no cost. Null when unknown - drains without a real price show no cost.
+  avgCostPerKwh?: number | null
   // Preview (e.g. the supporter page): start on the donut tab, stay expanded, and don't
   // persist the tab choice to localStorage. Tabs stay visible and interactive.
   previewMode?: boolean
@@ -145,7 +148,17 @@ const animLossArc = computed(() => animateDonut.value ? lossArcLen.value : 0)
 const phantomDashoffset = computed(() => -drivenArcLen.value)
 const lossDashoffset = computed(() => -(drivenArcLen.value + phantomArcLen.value))
 
-const phantomCostEur = computed(() => phantomEur(allPhantomKwh.value))
+// Value each idle drain at its own preceding-charge price (falling back to the user's
+// average), then sum. Null when no drain has a known price - then the cost line is hidden.
+const phantomCostEur = computed<number | null>(() => {
+  let sum = 0
+  let hasPrice = false
+  for (const e of filteredEntries.value) {
+    const eur = phantomEurFor(e._phantomDrain, props.avgCostPerKwh)
+    if (eur != null) { sum += eur; hasPrice = true }
+  }
+  return hasPrice ? sum : null
+})
 
 // Bar widths (0% -> actual %) driven by animateDonut ref
 const drivenBarWidth = computed(() => animateDonut.value ? `${drivenPct.value}%` : '0%')
@@ -430,7 +443,7 @@ function drainBarWidth(ev: { kwh: number }): string {
             </div>
             <!-- Footer: centered, phantom cost as the prominent line -->
             <div class="pt-2 border-t border-gray-100 dark:border-gray-600 text-center space-y-0.5">
-              <p v-if="allPhantomKwh > 0.05" class="text-sm font-semibold text-amber-600 dark:text-amber-400">{{ t('dashboard.insights_phantom_eur', { eur: fmt1(phantomCostEur) }) }}</p>
+              <p v-if="allPhantomKwh > 0.05 && phantomCostEur != null" class="text-sm font-semibold text-amber-600 dark:text-amber-400">{{ t('dashboard.insights_phantom_eur', { eur: fmt1(phantomCostEur!) }) }}</p>
               <p class="text-[11px] text-gray-500 dark:text-gray-400">{{ fmt1(allChargedKwh) }} kWh {{ t('dashboard.insights_loaded') }}</p>
             </div>
           </div>

@@ -30,6 +30,7 @@ import {
 import { tempBadgeClass } from '../utils/temperatureColor'
 import { consumptionTextClass } from '../utils/consumptionColor'
 import { isShortTrip } from '../utils/shortTrip'
+import { phantomEurFor } from '../utils/phantomDrain'
 import {
   tripConsumption as tripConsumptionPure,
   tripGroupConsumedKwh as tripGroupConsumedKwhPure,
@@ -619,6 +620,12 @@ function tripConsumption(entry: any): { kwhPer100km: number; estimated: boolean 
 
 function tripCostPerKwh(trip: any): number | null {
   return tripCpkMap.value.get(trip?.id) ?? (stats.value?.avgCostPerKwh ?? null)
+}
+
+// Cost of an idle (phantom) drain, valued at the preceding charge's price (falling
+// back to the user's average). Null when no real price is known - then we hide it.
+function phantomDrainEur(drain: any): number | null {
+  return phantomEurFor(drain, stats.value?.avgCostPerKwh ?? null)
 }
 
 function tripCostPer100km(trip: any): number | null {
@@ -1214,6 +1221,7 @@ function toggleAllCharges() {
                           {{ trip._phantomDrain.kwh.toFixed(2) }} kWh
                           <template v-if="selectedCar?.effectiveBatteryCapacityKwh">({{ (trip._phantomDrain.kwh / selectedCar.effectiveBatteryCapacityKwh * 100).toFixed(1) }}%)</template>
                           {{ t('dashboard.phantom_drain_word') }}
+                          <span v-if="phantomDrainEur(trip._phantomDrain) != null" class="opacity-80">· ≈ {{ formatCurrency(phantomDrainEur(trip._phantomDrain)!) }}</span>
                         </span>
                         <router-link v-if="!authStore.canViewLiveAnalytics" to="/upgrade" class="text-[11px] font-semibold text-amber-600 dark:text-amber-400 underline decoration-dotted hover:decoration-solid">{{ t('dashboard.phantom_teaser_unlock') }}</router-link>
                       </div>
@@ -1465,6 +1473,7 @@ function toggleAllCharges() {
                           {{ trip._phantomDrain.kwh.toFixed(2) }} kWh
                           <template v-if="selectedCar?.effectiveBatteryCapacityKwh">({{ (trip._phantomDrain.kwh / selectedCar.effectiveBatteryCapacityKwh * 100).toFixed(1) }}%)</template>
                           {{ t('dashboard.phantom_drain_word') }}
+                          <span v-if="phantomDrainEur(trip._phantomDrain) != null" class="opacity-80">· ≈ {{ formatCurrency(phantomDrainEur(trip._phantomDrain)!) }}</span>
                         </span>
                         <router-link v-if="!authStore.canViewLiveAnalytics" to="/upgrade" class="text-[11px] font-semibold text-amber-700 dark:text-amber-400 underline decoration-dotted hover:decoration-solid">{{ t('dashboard.phantom_teaser_unlock') }}</router-link>
                       </div>
@@ -1582,6 +1591,7 @@ function toggleAllCharges() {
                     ({{ (item.entry._phantomDrain.kwh / selectedCar.effectiveBatteryCapacityKwh * 100).toFixed(1) }}%)
                   </template>
                   {{ t('dashboard.phantom_drain_word') }}
+                  <span v-if="phantomDrainEur(item.entry._phantomDrain) != null" class="opacity-80">· ≈ {{ formatCurrency(phantomDrainEur(item.entry._phantomDrain)!) }}</span>
                 </span>
                 <router-link v-if="!authStore.canViewLiveAnalytics" to="/upgrade" class="text-xs font-semibold text-amber-600 dark:text-amber-400 underline decoration-dotted hover:decoration-solid whitespace-nowrap">{{ t('dashboard.phantom_teaser_unlock') }}</router-link>
                 <div class="flex-1 h-px bg-gray-200 dark:bg-gray-600" />
