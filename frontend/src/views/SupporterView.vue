@@ -109,6 +109,7 @@ const dummyEntries = [
               selected-time-range="ALL"
               :custom-start-date="null"
               :custom-end-date="null"
+              :avg-cost-per-kwh="0.30"
               preview-mode
             />
           </div>
