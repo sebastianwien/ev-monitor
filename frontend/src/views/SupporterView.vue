@@ -33,8 +33,9 @@ async function checkout() {
   }
 }
 
-// The phantom-feed screenshot is an optional asset; hide the image gracefully if missing.
+// Optional screenshot assets; hide the image gracefully if a file is missing.
 const phantomImgOk = ref(true)
+const curvesImgOk = ref(true)
 
 const payments = ['Visa', 'Mastercard', 'Apple Pay', 'Google Pay', 'PayPal', 'Klarna']
 
@@ -131,9 +132,19 @@ const dummyEntries = [
           </div>
 
           <!-- Charging curves -->
-          <div class="flex items-start gap-3">
-            <ArrowTrendingUpIcon class="w-5 h-5 text-amber-500 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-            <span class="text-[15px] text-gray-700 dark:text-gray-300 leading-relaxed">{{ t('supporter.u_curves') }}</span>
+          <div>
+            <div class="flex items-start gap-3 mb-3">
+              <ArrowTrendingUpIcon class="w-5 h-5 text-amber-500 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+              <span class="text-[15px] text-gray-700 dark:text-gray-300 leading-relaxed">{{ t('supporter.u_curves') }}</span>
+            </div>
+            <img
+              v-show="curvesImgOk"
+              :src="'/upgrade-previews/curves.png'"
+              :alt="t('supporter.u_curves')"
+              loading="lazy"
+              class="w-full rounded-sm border border-gray-200 dark:border-gray-700"
+              @error="curvesImgOk = false"
+            />
           </div>
         </div>
       </div>
