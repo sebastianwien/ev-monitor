@@ -1,7 +1,7 @@
 package com.evmonitor.application;
 
 import com.evmonitor.application.ChargeCountStats;
-import com.evmonitor.application.TopCpoResult;
+import com.evmonitor.application.TopProviderResult;
 import com.evmonitor.domain.LeaderboardCategory;
 import com.evmonitor.infrastructure.external.ExternalJokeService;
 import com.evmonitor.infrastructure.external.ExternalNewsService;
@@ -346,27 +346,27 @@ class LeaderboardServiceIntegrationTest {
     // ---- Ticker: Top CPO ----
 
     @Test
-    void getTicker_includesTopPublicCpoStat_whenAboveThreshold() {
+    void getTicker_includesTopPublicProviderStat_whenAboveThreshold() {
         stubAllRankingsEmpty();
         when(queryRepository.getTotalKwhThisMonth(any(), any())).thenReturn(BigDecimal.ZERO);
         when(queryRepository.getChargeCountStats(any(), any())).thenReturn(new ChargeCountStats(0, 0));
         when(queryRepository.getTotalChargeDurationMinutes(any(), any())).thenReturn(0L);
         when(queryRepository.getTotalCostEur(any(), any())).thenReturn(BigDecimal.ZERO);
-        when(queryRepository.getTopPublicCpo(any(), any())).thenReturn(new TopCpoResult("EnBW", 15L));
+        when(queryRepository.getTopPublicProvider(any(), any())).thenReturn(new TopProviderResult("EnBW mobility+", 15L));
 
         var items = leaderboardService.getTicker();
 
-        assertThat(items).anyMatch(i -> "STAT".equals(i.type()) && i.text().contains("EnBW") && i.text().contains("15"));
+        assertThat(items).anyMatch(i -> "STAT".equals(i.type()) && i.text().contains("EnBW mobility+") && i.text().contains("15"));
     }
 
     @Test
-    void getTicker_omitsTopPublicCpoStat_whenNull() {
+    void getTicker_omitsTopPublicProviderStat_whenNull() {
         stubAllRankingsEmpty();
         when(queryRepository.getTotalKwhThisMonth(any(), any())).thenReturn(BigDecimal.ZERO);
         when(queryRepository.getChargeCountStats(any(), any())).thenReturn(new ChargeCountStats(0, 0));
         when(queryRepository.getTotalChargeDurationMinutes(any(), any())).thenReturn(0L);
         when(queryRepository.getTotalCostEur(any(), any())).thenReturn(BigDecimal.ZERO);
-        when(queryRepository.getTopPublicCpo(any(), any())).thenReturn(null);
+        when(queryRepository.getTopPublicProvider(any(), any())).thenReturn(null);
 
         var items = leaderboardService.getTicker();
 

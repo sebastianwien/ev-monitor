@@ -1,6 +1,7 @@
                                                                                       package com.evmonitor.infrastructure.persistence;
 
 import com.evmonitor.application.LeaderboardRankRow;
+import com.evmonitor.application.TopProviderResult;
 import com.evmonitor.domain.AuthProvider;
 import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.CarStatus;
@@ -61,12 +62,16 @@ class LeaderboardQueryRepositoryTest {
     @Autowired
     private JpaEvLogRepository evLogRepository;
 
+    @Autowired
+    private JpaUserChargingProviderRepository chargingProviderRepository;
+
     private static final LocalDateTime START = LocalDateTime.now().withDayOfYear(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
     private static final LocalDateTime END = START.plusYears(1);
 
     @BeforeEach
     void clean() {
         evLogRepository.deleteAll();
+        chargingProviderRepository.deleteAll();
         carRepository.deleteAll();
         userRepository.deleteAll();
     }
@@ -237,6 +242,82 @@ class LeaderboardQueryRepositoryTest {
     }
 
     // ---- Helpers ----
+
+    // ---- Top public provider: charging card name with CPO fallback ----
+
+    @Test
+    void topPublicProvider_prefersChargingCardNameOverCpoName() {
+        UUID user = createUser("anna@test.com", "anna", false, true);
+        UUID car = createCar(user);
+        UUID card = createChargingProvider(user, "EnBW mobility+");
+        // Same physical CPO, but the user's card name must win and group together.
+        createPublicLog(car, "IONITY", card);
+        createPublicLog(car, "EnBW HyperNetz", card);
+        createPublicLog(car, null, card);
+
+        TopProviderResult top = repo.getTopPublicProvider(START, END);
+
+        assertThat(top).isNotNull();
+        assertThat(top.providerName()).isEqualTo("EnBW mobility+");
+        assertThat(top.count()).isEqualTo(3);
+    }
+
+    @Test
+    void topPublicProvider_fallsBackToCpoNameWhenNoCard() {
+        UUID user = createUser("bob@test.com", "bob", false, true);
+        UUID car = createCar(user);
+        createPublicLog(car, "Aldi Süd", null);
+        createPublicLog(car, "Aldi Süd", null);
+        createPublicLog(car, "Aldi Süd", null);
+
+        TopProviderResult top = repo.getTopPublicProvider(START, END);
+
+        assertThat(top).isNotNull();
+        assertThat(top.providerName()).isEqualTo("Aldi Süd");
+        assertThat(top.count()).isEqualTo(3);
+    }
+
+    @Test
+    void topPublicProvider_nullWhenBelowThreshold() {
+        UUID user = createUser("kurt@test.com", "kurt", false, true);
+        UUID car = createCar(user);
+        UUID card = createChargingProvider(user, "EWE Go");
+        createPublicLog(car, null, card);
+        createPublicLog(car, null, card);
+
+        assertThat(repo.getTopPublicProvider(START, END)).isNull();
+    }
+
+    private UUID createChargingProvider(UUID userId, String name) {
+        UUID id = UUID.randomUUID();
+        UserChargingProviderEntity p = new UserChargingProviderEntity();
+        p.setId(id);
+        p.setUserId(userId);
+        p.setProviderName(name);
+        p.setActiveFrom(START.toLocalDate());
+        p.setCreatedAt(LocalDateTime.now());
+        chargingProviderRepository.save(p);
+        return id;
+    }
+
+    private void createPublicLog(UUID carId, String cpoName, UUID chargingProviderId) {
+        EvLogEntity e = new EvLogEntity();
+        e.setId(UUID.randomUUID());
+        e.setCarId(carId);
+        e.setKwhCharged(new BigDecimal("30.0"));
+        e.setCostEur(new BigDecimal("12.00"));
+        e.setChargeDurationMinutes(60);
+        e.setLoggedAt(LocalDateTime.now());
+        e.setDataSource("USER_LOGGED");
+        e.setIncludeInStatistics(true);
+        e.setPublicCharging(true);
+        e.setCpoName(cpoName);
+        e.setChargingProviderId(chargingProviderId);
+        e.setChargingType("DC");
+        e.setCreatedAt(LocalDateTime.now());
+        e.setUpdatedAt(LocalDateTime.now());
+        evLogRepository.save(e);
+    }
 
     private void createLog(UUID carId, String kwh, boolean includeInStatistics) {
         createLogWithCost(carId, kwh, "10.00", includeInStatistics);

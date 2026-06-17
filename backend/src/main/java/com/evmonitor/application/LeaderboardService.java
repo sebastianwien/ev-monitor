@@ -170,7 +170,7 @@ public class LeaderboardService {
         long homeCharges = chargeCounts.home();
         long totalMinutes = queryRepository.getTotalChargeDurationMinutes(startOfMonth, endOfToday);
         BigDecimal totalCostEur = queryRepository.getTotalCostEur(startOfMonth, endOfToday);
-        TopCpoResult topCpo = queryRepository.getTopPublicCpo(startOfMonth, endOfToday);
+        TopProviderResult topProvider = queryRepository.getTopPublicProvider(startOfMonth, endOfToday);
         double kwhDouble = totalKwh.doubleValue();
 
         // Basis-Stat
@@ -258,11 +258,11 @@ public class LeaderboardService {
                     "bolt"));
         }
 
-        // Beliebtester öffentlicher Ladeanbieter
-        if (topCpo != null) {
+        // Beliebtester öffentlicher Ladeanbieter (Ladekarte des Users, sonst CPO-Name)
+        if (topProvider != null) {
             items.add(new TickerItemDTO("STAT",
-                    "Beliebtester öffentlicher Ladeanbieter im " + month + ": " + topCpo.cpoName()
-                            + " mit " + topCpo.count() + " Ladevorgängen",
+                    "Beliebtester öffentlicher Ladeanbieter im " + month + ": " + topProvider.providerName()
+                            + " mit " + topProvider.count() + " Ladevorgängen",
                     "bolt"));
         }
 

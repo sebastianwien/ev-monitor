@@ -2,7 +2,7 @@ package com.evmonitor.infrastructure.persistence;
 
 import com.evmonitor.application.ChargeCountStats;
 import com.evmonitor.application.LeaderboardRankRow;
-import com.evmonitor.application.TopCpoResult;
+import com.evmonitor.application.TopProviderResult;
 import com.evmonitor.domain.CarBrand;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -328,17 +328,23 @@ public class LeaderboardQueryRepository {
         return result instanceof BigDecimal bd ? bd : new BigDecimal(result.toString());
     }
 
-    public TopCpoResult getTopPublicCpo(LocalDateTime start, LocalDateTime endExclusive) {
+    /**
+     * Most-used public charging provider in the window. Groups by the user's charging
+     * card (EMP) name, falling back to the station operator (CPO) name when no card is
+     * linked - the cpo_name field is set on barely any logs in practice.
+     */
+    public TopProviderResult getTopPublicProvider(LocalDateTime start, LocalDateTime endExclusive) {
         @SuppressWarnings("unchecked")
         List<Object[]> rows = em.createNativeQuery("""
-                SELECT e.cpo_name, COUNT(e.id) AS cnt
+                SELECT COALESCE(ucp.provider_name, e.cpo_name) AS provider, COUNT(e.id) AS cnt
                 FROM ev_log e
+                LEFT JOIN user_charging_providers ucp ON ucp.id = e.charging_provider_id
                 WHERE e.include_in_statistics = true
                   AND e.is_public_charging = true
-                  AND e.cpo_name IS NOT NULL
+                  AND COALESCE(ucp.provider_name, e.cpo_name) IS NOT NULL
                   AND e.logged_at >= :start
                   AND e.logged_at < :end
-                GROUP BY e.cpo_name
+                GROUP BY COALESCE(ucp.provider_name, e.cpo_name)
                 HAVING COUNT(e.id) >= 3
                 ORDER BY cnt DESC
                 LIMIT 1
@@ -348,7 +354,7 @@ public class LeaderboardQueryRepository {
                 .getResultList();
         if (rows.isEmpty()) return null;
         Object[] row = rows.get(0);
-        return new TopCpoResult((String) row[0], ((Number) row[1]).longValue());
+        return new TopProviderResult((String) row[0], ((Number) row[1]).longValue());
     }
 
     // ---- Helpers ----
