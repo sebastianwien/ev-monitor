@@ -33,11 +33,8 @@ async function checkout() {
   }
 }
 
-const unlocks = computed(() => [
-  { icon: ChartPieIcon, text: t('supporter.u_analytics') },
-  { icon: BoltIcon, text: t('supporter.u_phantom') },
-  { icon: ArrowTrendingUpIcon, text: t('supporter.u_curves') },
-])
+// The phantom-feed screenshot is an optional asset; hide the image gracefully if missing.
+const phantomImgOk = ref(true)
 
 const payments = ['Visa', 'Mastercard', 'Apple Pay', 'Google Pay', 'PayPal', 'Klarna']
 
@@ -54,10 +51,10 @@ function daysAgo(days: number, hour = 10): string {
 
 const dummyCar = { effectiveBatteryCapacityKwh: 75 }
 const dummyEntries = [
-  // Charges -> donut (330 kWh charged, 69 kWh loss) + overnight idle drains
-  { id: 'pv-c1', loggedAt: daysAgo(12), _isTrip: false, kwhCharged: 110, kwhAtVehicle: 87 },
-  { id: 'pv-c2', loggedAt: daysAgo(7), _isTrip: false, kwhCharged: 110, kwhAtVehicle: 87, _phantomDrain: { kwh: 28, durationMs: 11 * HOUR_MS } },
-  { id: 'pv-c3', loggedAt: daysAgo(2), _isTrip: false, kwhCharged: 110, kwhAtVehicle: 87, _phantomDrain: { kwh: 28, durationMs: 9 * HOUR_MS } },
+  // Charges -> donut: 330 kWh charged, ~10% charging loss, ~2.4% idle drain (realistic)
+  { id: 'pv-c1', loggedAt: daysAgo(12), _isTrip: false, kwhCharged: 110, kwhAtVehicle: 99 },
+  { id: 'pv-c2', loggedAt: daysAgo(7), _isTrip: false, kwhCharged: 110, kwhAtVehicle: 99, _phantomDrain: { kwh: 4, durationMs: 11 * HOUR_MS } },
+  { id: 'pv-c3', loggedAt: daysAgo(2), _isTrip: false, kwhCharged: 110, kwhAtVehicle: 99, _phantomDrain: { kwh: 4, durationMs: 9 * HOUR_MS } },
   // Trips -> calendar / routes / distance (recent dates, varied distances)
   { id: 'pv-t1', _isTrip: true, tripStartedAt: daysAgo(11, 8), distanceKm: 22, estimatedConsumedKwh: 4.0 },
   { id: 'pv-t2', _isTrip: true, tripStartedAt: daysAgo(9, 18), distanceKm: 6, estimatedConsumedKwh: 1.1 },
@@ -95,28 +92,49 @@ const dummyEntries = [
         <p>{{ t('supporter.story_p3') }}</p>
       </div>
 
-      <!-- What supporting unlocks (framed as a thank-you, light list) -->
+      <!-- What supporting unlocks: each point above its visual -->
       <div class="max-w-xl mx-auto mt-8">
-        <p class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">{{ t('supporter.unlock_title') }}</p>
+        <p class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-5">{{ t('supporter.unlock_title') }}</p>
 
-        <!-- The real dashboard widget with dummy data - interactive, switch through the tabs -->
-        <div class="mb-5">
-          <DashboardInsights
-            :entries="dummyEntries"
-            :selected-car="dummyCar"
-            selected-time-range="ALL"
-            :custom-start-date="null"
-            :custom-end-date="null"
-            preview-mode
-          />
+        <div class="space-y-8">
+          <!-- Energy split: the real dashboard widget, interactive -->
+          <div>
+            <div class="flex items-start gap-3 mb-3">
+              <ChartPieIcon class="w-5 h-5 text-amber-500 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+              <span class="text-[15px] text-gray-700 dark:text-gray-300 leading-relaxed">{{ t('supporter.u_analytics') }}</span>
+            </div>
+            <DashboardInsights
+              :entries="dummyEntries"
+              :selected-car="dummyCar"
+              selected-time-range="ALL"
+              :custom-start-date="null"
+              :custom-end-date="null"
+              preview-mode
+            />
+          </div>
+
+          <!-- Idle drain: the in-feed view -->
+          <div>
+            <div class="flex items-start gap-3 mb-3">
+              <BoltIcon class="w-5 h-5 text-amber-500 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+              <span class="text-[15px] text-gray-700 dark:text-gray-300 leading-relaxed">{{ t('supporter.u_phantom') }}</span>
+            </div>
+            <img
+              v-show="phantomImgOk"
+              :src="'/upgrade-previews/phantom-feed.png'"
+              :alt="t('supporter.u_phantom')"
+              loading="lazy"
+              class="w-full rounded-sm border border-gray-200 dark:border-gray-700"
+              @error="phantomImgOk = false"
+            />
+          </div>
+
+          <!-- Charging curves -->
+          <div class="flex items-start gap-3">
+            <ArrowTrendingUpIcon class="w-5 h-5 text-amber-500 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+            <span class="text-[15px] text-gray-700 dark:text-gray-300 leading-relaxed">{{ t('supporter.u_curves') }}</span>
+          </div>
         </div>
-
-        <ul class="space-y-2.5">
-          <li v-for="u in unlocks" :key="u.text" class="flex items-start gap-3">
-            <component :is="u.icon" class="w-5 h-5 text-amber-500 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-            <span class="text-[15px] text-gray-700 dark:text-gray-300 leading-relaxed">{{ u.text }}</span>
-          </li>
-        </ul>
       </div>
 
       <!-- Price + CTA: the natural conclusion, at the bottom -->
