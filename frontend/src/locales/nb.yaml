@@ -2120,7 +2120,7 @@ supporter:
   lead: "EV Monitor tilhører ingen konsern - bare menneskene som bruker det. Liker du det, kan du hjelpe med å holde det slik."
   story_p1: "EV Monitor startet som et hobbyprosjekt: jeg ville lage en moderne ladelogg som hjelper meg å holde oversikt over kostnader og forbruk. Med hjelp fra fellesskapet skal det dessuten bygges et datagrunnlag som hjelper andre med å ta en kjøpsbeslutning."
   story_p2: "Hele kodebasen er åpen kildekode. Ingen reklame, ingen datahandel, ingen investorer som krever vekst for enhver pris. Men det betyr også: EV Monitor bæres kun av menneskene som frivillig støtter det."
-  story_p3: "Bidraget ditt holder serverne i gang og gir meg tid til å bygge videre. Som takk får du flere innsikter i dataene dine:"
+  story_p3: "Bidraget ditt holder serverne i gang og gir meg tid til å bygge videre. Som takk får du flere innsikter i dataene dine."
   unlock_title: "Hva du låser opp"
   u_analytics: "Dashboard-widget: en detaljert oversikt over energifordelingen din, parkeringstap og kostnaden, pluss en distanseanalyse."
   u_phantom: "Parkeringstap i detalj - hvert tap mellom turene, med kWh og kostnad."

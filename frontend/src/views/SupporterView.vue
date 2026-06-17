@@ -95,7 +95,7 @@ const dummyEntries = [
 
       <!-- What supporting unlocks: each point above its visual -->
       <div class="max-w-xl mx-auto mt-8">
-        <p class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-5">{{ t('supporter.unlock_title') }}</p>
+        <p class="text-center text-sm font-semibold text-gray-900 dark:text-gray-100 mb-5">{{ t('supporter.unlock_title') }}</p>
 
         <div class="space-y-8">
           <!-- Energy split: the real dashboard widget, interactive -->
