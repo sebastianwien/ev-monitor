@@ -653,7 +653,7 @@ function tripGroupSocBoundaries(group: any): { start: number; end: number } | nu
 
 onMounted(() => initCars())
 
-// AutoSync Live discoverability banner: shown to Tesla-users that don't have
+// AutoSync Live discoverability banner: shown to non-Tesla users that don't have
 // Live yet, and haven't dismissed the hint. Position: below ConsumptionInfoBox.
 const LS_LIVE_BANNER_DISMISSED = 'autosync_live_banner_dismissed'
 const subscriptionTier = ref<SubscriptionTier | null>(null)
@@ -661,7 +661,7 @@ const liveBannerDismissed = ref(localStorage.getItem(LS_LIVE_BANNER_DISMISSED) =
 const showLiveBanner = computed(() =>
   subscriptionTier.value != null
   && subscriptionTier.value !== 'AUTOSYNC_LIVE'
-  && selectedCar.value?.brand === 'TESLA'
+  && selectedCar.value?.brand !== 'TESLA'
   && !liveBannerDismissed.value
 )
 function dismissLiveBanner() {
