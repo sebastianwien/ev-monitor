@@ -22,7 +22,7 @@ import DemoWelcomeModal from './components/demo/DemoWelcomeModal.vue'
 import RedditConsentBanner from './components/shared/RedditConsentBanner.vue'
 import FeedbackToast from './components/shared/FeedbackToast.vue'
 import BoltLogo from './components/shared/BoltLogo.vue'
-import { Bars3Icon, XMarkIcon, HomeIcon, ArrowDownTrayIcon, UserIcon, BoltIcon, ChatBubbleLeftEllipsisIcon, ArrowsRightLeftIcon, TruckIcon } from '@heroicons/vue/24/outline'
+import { Bars3Icon, XMarkIcon, HomeIcon, ArrowDownTrayIcon, UserIcon, BoltIcon, ChatBubbleLeftEllipsisIcon, ArrowsRightLeftIcon, TruckIcon, ArrowPathIcon } from '@heroicons/vue/24/outline'
 // Note: showImportOverlay kept for backward compat but SpritMonitor moved to /imports
 import { captureUtmParams, captureReferrer } from './utils/reddit-pixel'
 import { detectCountry } from './composables/useCountryDetection'
@@ -31,6 +31,7 @@ import { useThemeStore } from './stores/theme'
 import ThemeToggle from './components/shared/ThemeToggle.vue'
 import LocaleSwitcher from './components/shared/LocaleSwitcher.vue'
 import { useTickerState } from './composables/useTickerState'
+import { usePullToRefresh } from './composables/usePullToRefresh'
 import { useCountryStore } from './stores/country'
 import { subscriptionService } from './api/subscriptionService'
 
@@ -40,10 +41,16 @@ const countryStore = useCountryStore()
 const themeStore = useThemeStore()
 const { tickerHasItems, tickerCollapsed } = useTickerState()
 
+// Pull-to-Refresh (nur nativ): am Seitenanfang nach unten ziehen => Reload.
+const { pull: ptrPull, refreshing: ptrRefreshing, armed: ptrArmed } = usePullToRefresh()
+
 const mainPaddingTop = computed(() => {
   if (!authStore.isAuthenticated()) return '0px'
-  if (tickerHasItems.value && !tickerCollapsed.value) return '90px' // 58 + 32
-  return '64px'
+  // + env(safe-area-inset-top): der fixed Header waechst nativ um die Notch-Hoehe,
+  // der Content-Offset muss mitwachsen (auf Web/PWA ohne Notch ist env() = 0).
+  const safe = 'env(safe-area-inset-top)'
+  if (tickerHasItems.value && !tickerCollapsed.value) return `calc(90px + ${safe})` // 58 + 32
+  return `calc(64px + ${safe})`
 })
 
 const router = useRouter()
@@ -181,8 +188,21 @@ const closeMobileMenu = () => {
 
 <template>
   <div :class="['min-h-screen flex flex-col', authStore.isAuthenticated() ? 'app-wallpaper' : 'bg-gray-100 dark:bg-gray-950']">
+    <!-- Pull-to-Refresh-Indikator (nur nativ, erscheint beim Ziehen am Seitenanfang) -->
+    <div
+      v-if="ptrPull > 0 || ptrRefreshing"
+      class="fixed left-1/2 -translate-x-1/2 z-[60] pointer-events-none flex items-center justify-center w-10 h-10 rounded-full bg-white/90 dark:bg-gray-800/90 shadow-md backdrop-blur-sm"
+      :style="{ top: `calc(env(safe-area-inset-top) + ${Math.min(ptrPull, 80)}px - 44px)` }"
+      role="status"
+      aria-live="polite">
+      <ArrowPathIcon
+        class="w-6 h-6 text-indigo-600 dark:text-indigo-400"
+        :class="ptrRefreshing ? 'animate-spin' : 'transition-transform duration-100'"
+        :style="ptrRefreshing ? {} : { transform: `rotate(${ptrArmed ? 180 : Math.min(ptrPull * 2.2, 180)}deg)` }" />
+    </div>
+
     <!-- Navigation -->
-    <nav class="bg-indigo-600 text-white fixed top-0 left-0 right-0 z-40" v-if="authStore.isAuthenticated()">
+    <nav class="bg-indigo-600 text-white fixed top-0 left-0 right-0 z-40 pt-[env(safe-area-inset-top)]" v-if="authStore.isAuthenticated()">
       <div class="px-4 py-3">
         <div class="flex justify-between items-center">
           <!-- Left: Logo + Nav Buttons (Desktop) -->
@@ -419,7 +439,7 @@ const closeMobileMenu = () => {
         <div class="absolute inset-0 bg-black bg-opacity-50" @click="closeMobileMenu"></div>
 
         <!-- Menu Panel (slides in from top) -->
-        <div class="absolute top-0 left-0 right-0 bg-indigo-700 shadow-[6px_6px_0_rgba(0,0,0,0.40)] dark:shadow-[6px_6px_0_rgba(255,255,255,0.40)] overflow-y-auto max-h-[70vh]">
+        <div class="absolute top-0 left-0 right-0 pt-[env(safe-area-inset-top)] bg-indigo-700 shadow-[6px_6px_0_rgba(0,0,0,0.40)] dark:shadow-[6px_6px_0_rgba(255,255,255,0.40)] overflow-y-auto max-h-[70vh]">
           <div class="px-4 py-4 space-y-2">
             <!-- Header -->
             <div class="flex items-center justify-between px-3 py-2">

@@ -1,6 +1,6 @@
 <template>
   <div v-if="!authStore.isAuthenticated()" class="h-1 bg-gradient-to-r from-green-400 via-emerald-500 to-green-600"></div>
-  <nav v-if="!authStore.isAuthenticated()" class="sticky top-0 z-50 bg-white/85 dark:bg-gray-950/85 backdrop-blur-md border-b border-gray-200/60 dark:border-gray-700/60 shadow-sm">
+  <nav v-if="!authStore.isAuthenticated()" class="sticky top-0 z-50 pt-[env(safe-area-inset-top)] bg-white/85 dark:bg-gray-950/85 backdrop-blur-md border-b border-gray-200/60 dark:border-gray-700/60 shadow-sm">
     <div class="max-w-7xl mx-auto px-4 sm:px-8">
       <div class="flex justify-between items-center h-16">
         <a href="/" class="flex items-center gap-2 shrink-0 whitespace-nowrap">

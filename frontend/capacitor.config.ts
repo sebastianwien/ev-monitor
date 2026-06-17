@@ -11,8 +11,11 @@ const config: CapacitorConfig = {
   appName: 'EV Monitor',
   webDir: 'dist',
   ios: {
-    // Verhindert, dass Inhalt unter Notch/Statusbar rutscht.
-    contentInset: 'always',
+    // WebView randlos (edge-to-edge): Inhalt darf unter Notch/Statusbar liegen.
+    // 'always' rueckt den Inhalt zwar ein, zeigt ihn beim Scrollen aber im
+    // eingerueckten Bereich oberhalb des Headers (Peek-through). Stattdessen volle
+    // Flaeche + CSS env(safe-area-inset-*): die Header fuellen den Notch blickdicht.
+    contentInset: 'never',
   },
   plugins: {
     // API-Calls laufen ueber die native HTTP-Schicht statt durch den WebView.

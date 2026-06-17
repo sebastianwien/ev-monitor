@@ -70,7 +70,9 @@ onUnmounted(() => {
 
 <template>
   <!-- Outer wrapper: relative + overflow-visible so the lasche can hang below -->
-  <div v-if="items.length > 0" class="fixed top-[58px] left-0 right-0 z-39">
+  <!-- top = Nav-Hoehe (58px) + Notch: nativ waechst die fixe Nav um env(safe-area-inset-top),
+       der Ticker muss exakt darunter andocken (auf Web/PWA ist env() = 0). -->
+  <div v-if="items.length > 0" class="fixed left-0 right-0 z-39" style="top: calc(58px + env(safe-area-inset-top))">
 
     <!-- Green band: collapses to a thin stripe -->
     <div
