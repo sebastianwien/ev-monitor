@@ -1,0 +1,1 @@
+elektroauto,verbrauch,reichweite,ladekosten,ladetagebuch,kwh,wallbox,emobilität,batterie,soh,tesla

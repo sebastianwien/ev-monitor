@@ -1,0 +1,1 @@
+elbil,kwh,lading,energi,effektivitet,ladestasjon,batteri,soh,tesla,strømforbruk,wallbox

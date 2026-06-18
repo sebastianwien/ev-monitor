@@ -1,0 +1,22 @@
+EV Monitor ist dein digitales Ladetagebuch für das Elektroauto. Trag deine Ladevorgänge ein - oder importiere sie automatisch - und sieh auf einen Blick, was dein Auto wirklich verbraucht, was dich das Laden kostet und wie weit du im Alltag tatsächlich kommst.
+
+Echte Daten statt WLTP-Prospektwerte: kWh pro 100 km, Kosten pro Ladung und realistische Reichweite - aus deinen eigenen Fahrten.
+
+DEINE FUNKTIONEN
+• Ladetagebuch: jeder Ladevorgang sauber dokumentiert, AC wie DC
+• Kosten im Griff: Ladekosten pro Monat, pro 100 km und pro Ladung
+• Echter Verbrauch: kWh/100 km aus realen Daten statt Herstellerangabe
+• Echte Reichweite: basierend auf deinem tatsächlichen Fahrprofil
+• Umfassendes Dashboard: Trends, saisonale Verläufe und spannende Auswertungen
+• Community-Vergleich: wie schlägt sich dein Auto gegenüber dem gleichen Modell?
+• Automatischer Import: u.a. SpritMonitor, Tronity, Tessie, Go-E Wallbox
+
+TRANSPARENT UND SICHER
+• Open Source - der Code ist offen einsehbar
+• DSGVO-konform, Hosting in Deutschland
+• Privacy-First: keine exakten GPS-Koordinaten, nur anonymisierte Geohashes
+• Deine Daten gehören dir - jederzeit exportier- und löschbar
+
+Egal ob Vielfahrer oder Gelegenheitslader: EV Monitor macht aus deinen Ladedaten echtes Wissen über dein E-Auto.
+
+ev-monitor.net

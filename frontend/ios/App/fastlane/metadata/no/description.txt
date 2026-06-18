@@ -1,0 +1,22 @@
+EV Monitor er den digitale ladeloggen for elbilen din. Legg inn ladingene dine - eller importer dem automatisk - og se med ett blikk hva bilen faktisk bruker, hva ladingen koster deg og hvor langt du egentlig kommer i hverdagen.
+
+Reelle data i stedet for WLTP-brosjyretall: kWh per 100 km, kostnad per lading og realistisk rekkevidde - fra dine egne turer.
+
+DINE FUNKSJONER
+• Ladelogg: hver lading ryddig dokumentert, AC og DC
+• Kontroll på kostnadene: ladekostnad per måned, per 100 km og per lading
+• Reelt forbruk: kWh/100 km fra reelle data i stedet for produsentens tall
+• Reell rekkevidde: basert på din faktiske kjøreprofil
+• Omfattende dashbord: trender, sesongvariasjoner og spennende analyser
+• Sammenligning mot fellesskapet: hvordan gjør bilen din det mot samme modell?
+• Automatisk import: bl.a. SpritMonitor, Tronity, Tessie, Go-E Wallbox
+
+ÅPEN OG TRYGG
+• Åpen kildekode - koden er offentlig tilgjengelig
+• GDPR-tilpasset, hosting i Tyskland
+• Personvern først: ingen nøyaktige GPS-koordinater, kun anonymiserte geohasher
+• Dataene dine er dine - eksporter eller slett når som helst
+
+Enten du kjører mye eller lader av og til: EV Monitor gjør ladedataene dine om til reell kunnskap om elbilen din.
+
+ev-monitor.net

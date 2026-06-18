@@ -6,3 +6,8 @@ DerivedData/
 *.cer
 *.certSigningRequest
 *.p12
+
+# Store-Screenshots (Binaries, regenerierbar, echte Prod-Daten) + deliver-Artefakte
+fastlane/screenshots/
+fastlane/preview.html
+*.itmsp

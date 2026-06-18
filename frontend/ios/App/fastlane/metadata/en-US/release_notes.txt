@@ -1,0 +1,1 @@
+First version of EV Monitor. Enjoy your digital charging log!

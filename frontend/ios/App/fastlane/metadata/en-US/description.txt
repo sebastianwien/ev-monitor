@@ -1,0 +1,22 @@
+EV Monitor is your digital charging log for your electric car. Add your charging sessions - or import them automatically - and see at a glance what your car really consumes, what charging costs you and how far you actually get in everyday driving.
+
+Real data instead of WLTP brochure figures: kWh per 100 km, cost per charge and realistic range - from your own trips.
+
+YOUR FEATURES
+• Charging log: every session cleanly documented, AC and DC
+• Costs under control: charging cost per month, per 100 km and per session
+• Real consumption: kWh/100 km from real data instead of manufacturer claims
+• Real range: based on your actual driving profile
+• Comprehensive dashboard: trends, seasonal patterns and rich insights
+• Community comparison: how does your car do against the same model?
+• Automatic import: incl. SpritMonitor, Tronity, Tessie, Go-E Wallbox
+
+TRANSPARENT AND SECURE
+• Open source - the code is publicly auditable
+• GDPR-compliant, hosted in Germany
+• Privacy-first: no exact GPS coordinates, only anonymized geohashes
+• Your data is yours - export or delete it anytime
+
+Whether you drive a lot or charge occasionally: EV Monitor turns your charging data into real knowledge about your EV.
+
+ev-monitor.net
