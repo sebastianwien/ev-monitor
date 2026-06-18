@@ -28,10 +28,10 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
 
       <div class="prose prose-lg text-gray-600 dark:text-gray-400 space-y-8">
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Angaben gemäß § 5 TMG</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Angaben gemäß § 5 DDG</h2>
           <p>
             Sebastian Wien<br />
-            Cotheniusstrasse 5<br />
+            Cotheniusstraße 5<br />
             10407 Berlin<br />
             Deutschland
           </p>
@@ -40,49 +40,32 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
         <section>
           <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Kontakt</h2>
           <p>
-            E-Mail: <a :href="`mailto:${email}`" class="text-green-600 hover:text-green-700">{{ email }}</a><br />
+            E-Mail: <a :href="`mailto:${email}`" class="text-green-600 hover:text-green-700">{{ email }}</a>
           </p>
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV</h2>
           <p>
             Sebastian Wien<br />
-            Cotheniusstrasse 5
+            Cotheniusstraße 5<br />
             10407 Berlin
           </p>
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">EU-Streitschlichtung</h2>
-          <p>
-            Die Europäische Kommission stellt eine Plattform zur Online-Streitbeilegung (OS) bereit:
-            <a
-              href="https://ec.europa.eu/consumers/odr/"
-              target="_blank"
-              class="text-green-600 hover:text-green-700"
-            >
-              https://ec.europa.eu/consumers/odr/
-            </a>
-          </p>
-          <p class="mt-4">
-            Unsere E-Mail-Adresse finden Sie oben im Impressum.
-          </p>
-        </section>
-
-        <section>
-          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Verbraucherstreitbeilegung / Universalschlichtungsstelle</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Verbraucherstreitbeilegung</h2>
           <p>
             Wir sind nicht bereit oder verpflichtet, an Streitbeilegungsverfahren vor einer
-            Verbraucherschlichtungsstelle teilzunehmen.
+            Verbraucherschlichtungsstelle teilzunehmen (§ 36 VSBG).
           </p>
         </section>
 
         <section>
           <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Haftung für Inhalte</h2>
           <p>
-            Als Diensteanbieter sind wir gemäß § 7 Abs.1 TMG für eigene Inhalte auf diesen Seiten nach den
-            allgemeinen Gesetzen verantwortlich. Nach §§ 8 bis 10 TMG sind wir als Diensteanbieter jedoch nicht
+            Als Diensteanbieter sind wir gemäß § 7 Abs. 1 DDG für eigene Inhalte auf diesen Seiten nach den
+            allgemeinen Gesetzen verantwortlich. Nach §§ 8 bis 10 DDG sind wir als Diensteanbieter jedoch nicht
             verpflichtet, übermittelte oder gespeicherte fremde Informationen zu überwachen oder nach Umständen
             zu forschen, die auf eine rechtswidrige Tätigkeit hinweisen.
           </p>

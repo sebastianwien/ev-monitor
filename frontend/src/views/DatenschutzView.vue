@@ -30,75 +30,115 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
         <section>
           <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">1. Verantwortlicher</h2>
           <p>
-            Verantwortlich für die Datenverarbeitung auf dieser Website ist:<br />
+            Verantwortlich für die Datenverarbeitung ist:<br />
             Sebastian Wien<br />
-            Cotheniusstrasse 5, 10407 Berlin<br />
+            Cotheniusstraße 5, 10407 Berlin<br />
             E-Mail: <a :href="`mailto:${email}`" class="text-green-600 hover:text-green-700">{{ email }}</a>
           </p>
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">2. Erhebung und Speicherung personenbezogener Daten</h2>
-
-          <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">2.1 Registrierung</h3>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">2. Geltungsbereich</h2>
           <p>
-            Zur Nutzung unseres Services ist eine Registrierung erforderlich. Dabei werden folgende Daten erhoben:
-          </p>
-          <ul class="list-disc list-inside space-y-2">
-            <li>E-Mail-Adresse (für Login und E-Mail-Verifizierung)</li>
-            <li>Benutzername (für die Anzeige im System)</li>
-            <li>Passwort (verschlüsselt mit BCrypt)</li>
-          </ul>
-          <p class="mt-4">
-            Die E-Mail-Verifizierung ist verpflichtend. Wir senden einen Verifizierungslink an die angegebene E-Mail-Adresse.
-            Der Token ist 24 Stunden gültig.
-          </p>
-
-          <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">2.2 Ladevorgänge</h3>
-          <p>
-            Beim Tracken von Ladevorgängen speichern wir:
-          </p>
-          <ul class="list-disc list-inside space-y-2">
-            <li>Geladene Energie (kWh)</li>
-            <li>Kosten (EUR)</li>
-            <li>Ladedauer (Minuten)</li>
-            <li>Odometer-Stand (optional)</li>
-            <li>Zeitstempel</li>
-          </ul>
-
-          <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">2.3 Standortdaten (Privacy-First)</h3>
-          <p>
-            <strong>WICHTIG:</strong> Wir speichern KEINE exakten GPS-Koordinaten!
-          </p>
-          <p>
-            Stattdessen verwenden wir <strong>Geohashing</strong>: private Ladevorgänge werden auf ~600m, öffentliche Ladesäulen auf ~150m anonymisiert.
-            Wenn Sie einen Standort eingeben, wird dieser in einen anonymisierten Geohash umgewandelt.
-            Ihre exakte Position kann daraus nicht rekonstruiert werden.
-          </p>
-          <p class="mt-4">
-            <strong>Beispiel:</strong> Standort "Berlin Mitte" wird zu Geohash "u33db1" (deckt ~600m Gebiet ab)
-          </p>
-
-          <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">2.4 Tesla Import (optional)</h3>
-          <p>
-            Wenn Sie die Tesla-Integration nutzen, speichern wir:
-          </p>
-          <ul class="list-disc list-inside space-y-2">
-            <li>Tesla Access Token (AES-verschlüsselt in Datenbank)</li>
-            <li>Tesla Refresh Token (AES-verschlüsselt)</li>
-            <li>Fahrzeug-ID</li>
-          </ul>
-          <p class="mt-4">
-            Die Token werden mit AES-256-GCM verschlüsselt und sind nur für Ihren Account zugänglich.
-            Sie können die Verbindung jederzeit trennen.
+            Diese Erklärung gilt für unsere Website (ev-monitor.net) <strong>und</strong> unsere native App
+            (iOS). Funktionsumfang und Datenverarbeitung sind in beiden weitgehend identisch; abweichende
+            App-Besonderheiten sind in Abschnitt 14 beschrieben.
           </p>
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">3. Zweck der Datenverarbeitung</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">3. Hosting</h2>
+          <p>
+            Unser Dienst wird in Deutschland bei der <strong>Hetzner Online GmbH</strong>
+            (Industriestr. 25, 91710 Gunzenhausen) gehostet. Hetzner verarbeitet Daten ausschließlich in unserem
+            Auftrag auf Basis eines Vertrags zur Auftragsverarbeitung (Art. 28 DSGVO). Die Server stehen in
+            Deutschland.
+          </p>
+          <p class="mt-4">
+            <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an einem
+            sicheren, performanten Betrieb).
+          </p>
+        </section>
+
+        <section>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">4. Registrierung &amp; Account</h2>
+          <p>Zur Nutzung ist eine Registrierung erforderlich. Dabei werden erhoben:</p>
+          <ul class="list-disc list-inside space-y-2">
+            <li>E-Mail-Adresse (Login und Verifizierung)</li>
+            <li>Benutzername (Anzeige im System)</li>
+            <li>Passwort (mit BCrypt gehasht, nicht im Klartext gespeichert)</li>
+          </ul>
+          <p class="mt-4">
+            Die E-Mail-Verifizierung ist verpflichtend; der Verifizierungslink ist 24 Stunden gültig.
+          </p>
+          <p class="mt-4">
+            <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO (Erfüllung des Nutzungsvertrags).
+          </p>
+        </section>
+
+        <section>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">5. Ladevorgänge &amp; Fahrten</h2>
+          <p>Beim Erfassen von Lade- und Fahrtdaten speichern wir u. a.:</p>
+          <ul class="list-disc list-inside space-y-2">
+            <li>Geladene Energie (kWh), Kosten (EUR), Ladedauer</li>
+            <li>Kilometerstand und Verbrauch (optional)</li>
+            <li>Zeitstempel</li>
+          </ul>
+          <p class="mt-4">
+            <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO (Kernfunktion des Dienstes).
+          </p>
+        </section>
+
+        <section>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">6. Standortdaten</h2>
+          <p>Wir speichern <strong>keine</strong> exakten GPS-Koordinaten.</p>
+          <p class="mt-4">
+            Stattdessen verwenden wir <strong>Geohashing</strong>: private Ladevorgänge werden auf ~600m,
+            öffentliche Ladesäulen auf ~150m anonymisiert. Aus dem gespeicherten Geohash lässt sich Ihre exakte
+            Position nicht rekonstruieren.
+          </p>
+        </section>
+
+        <section>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">7. Fahrzeug-Integrationen (optional)</h2>
+          <p>
+            Sie können optional Ihr Fahrzeug bzw. externe Datenquellen verbinden, um Lade- und Fahrtdaten
+            automatisch zu importieren. Diese Integrationen werden nur aktiv, wenn Sie sie selbst einrichten:
+          </p>
+          <ul class="list-disc list-inside space-y-2 mt-2">
+            <li><strong>Tesla</strong> (Tesla, Inc., USA): Zugriffs- und Refresh-Token werden AES-256-GCM-verschlüsselt gespeichert; Abruf von Fahrzeug-/Ladedaten über die Tesla-API.</li>
+            <li><strong>Smartcar</strong> (Smartcar, Inc., USA): Verbindung zu Ihrem Fahrzeugkonto zum Abruf von Fahrzeugdaten.</li>
+            <li><strong>Spritmonitor</strong> (fisch und fischl GmbH, Deutschland): Import Ihrer dort erfassten Verbrauchsdaten.</li>
+            <li><strong>XPeng-Datenexport</strong>: Import von Fahrzeugdaten, die Sie über den Hersteller anfordern.</li>
+          </ul>
+          <p class="mt-4">
+            Sie können jede Verbindung jederzeit in den Einstellungen trennen. Zur Übermittlung in Drittländer
+            (insb. USA) siehe Abschnitt 17.
+          </p>
+          <p class="mt-4">
+            <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO (von Ihnen angeforderte Funktion).
+          </p>
+        </section>
+
+        <section>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">8. Zahlungen (Stripe)</h2>
+          <p>
+            Für kostenpflichtige Funktionen nutzen wir den Zahlungsdienstleister <strong>Stripe</strong>
+            (Stripe Payments Europe, Ltd., Irland; ggf. Stripe, Inc., USA). Bei einem Kauf werden die zur
+            Zahlungsabwicklung nötigen Daten (z. B. Zahlungsmittel, Beträge, Transaktions-IDs) direkt von Stripe
+            verarbeitet. Vollständige Zahlungsdaten (z. B. Kartennummern) erhalten wir nicht.
+          </p>
+          <p class="mt-4">
+            <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO (Vertragsabwicklung). Datenschutz bei Stripe:
+            <a href="https://stripe.com/de/privacy" target="_blank" rel="noopener noreferrer" class="text-green-600 hover:text-green-700">stripe.com/de/privacy</a>.
+          </p>
+        </section>
+
+        <section>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">9. Zweck der Datenverarbeitung</h2>
           <p>Die erhobenen Daten werden verwendet für:</p>
           <ul class="list-disc list-inside space-y-2">
-            <li>Bereitstellung und Verbesserung des Services</li>
+            <li>Bereitstellung und Verbesserung des Dienstes</li>
             <li>Anzeige persönlicher Statistiken (nur für Sie sichtbar)</li>
             <li>Berechnung anonymisierter Community-Statistiken</li>
             <li>WLTP-Vergleiche (nur aggregierte Daten)</li>
@@ -106,180 +146,179 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">4. Community-Daten & Anonymisierung</h2>
-          <p>
-            Ihre Ladevorgänge können in <strong>anonymisierten</strong> Community-Statistiken einfließen:
-          </p>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">10. Community-Daten &amp; Anonymisierung</h2>
+          <p>Ihre Ladevorgänge können in <strong>anonymisierten</strong> Community-Statistiken einfließen:</p>
           <ul class="list-disc list-inside space-y-2">
             <li>Durchschnittliche Kosten pro kWh für ein Fahrzeugmodell</li>
-            <li>Durchschnittlicher Verbrauch pro 100km</li>
+            <li>Durchschnittlicher Verbrauch pro 100 km</li>
             <li>Anzahl der Ladevorgänge pro Modell</li>
           </ul>
           <p class="mt-4">
-            <strong>Wichtig:</strong> Es werden KEINE persönlichen Daten oder Nutzernamen in öffentlichen Statistiken angezeigt.
-            Alle Daten sind aggregiert und anonymisiert.
+            In öffentlichen Statistiken werden <strong>keine</strong> persönlichen Daten oder Nutzernamen
+            angezeigt; alle Werte sind aggregiert und anonymisiert.
           </p>
           <p class="mt-4">
-            Sie können Ihre Daten als "Seed Data" markieren lassen, um sie von öffentlichen Statistiken auszuschließen.
+            <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an
+            aussagekräftigen, anonymen Vergleichswerten).
           </p>
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">5. Cookies & Tracking</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">11. Cookies &amp; lokale Speicherung</h2>
           <p>
-            Unsere Website setzt beim Seitenaufruf <strong>keine Tracking-Cookies</strong> von Drittanbietern.
-          </p>
-          <p class="mt-4">
-            Unsere Website nutzt ausschließlich:
+            Beim Seitenaufruf setzen wir <strong>keine Tracking-Cookies</strong>. Technisch notwendig ist
+            lediglich:
           </p>
           <ul class="list-disc list-inside space-y-2">
-            <li><strong>Session-Token (JWT):</strong> Im localStorage gespeichert für Authentifizierung (7 Tage Gültigkeit)</li>
-            <li><strong>Keine Cookies von Drittanbietern beim Seitenaufruf</strong> — kein Google Analytics, kein Facebook Pixel</li>
+            <li><strong>Session-Token (JWT):</strong> im lokalen Speicher (localStorage) zur Authentifizierung, 7 Tage gültig.</li>
           </ul>
           <p class="mt-4">
-            Ausnahme: Wenn Sie auf einen Affiliate-Link klicken (siehe Abschnitt 10a), kann der jeweilige Anbieter ein Tracking-Cookie setzen.
-            Dies erfolgt erst durch Ihre aktive Interaktion, nicht automatisch beim Laden der Seite.
+            Diese Speicherung ist für den von Ihnen gewünschten Login unbedingt erforderlich (§ 25 Abs. 2 TTDSG)
+            und bedarf keiner Einwilligung. Tracking-Dienste, die eine Einwilligung erfordern (Reddit-Pixel,
+            siehe Abschnitt 13), werden erst nach Ihrer Zustimmung aktiv.
           </p>
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">5a. Webanalyse (Plausible Analytics)</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">12. Webanalyse (Plausible)</h2>
           <p>
-            Wir nutzen <strong>Plausible Analytics</strong>, einen datenschutzfreundlichen Webanalysedienst der Plausible Insights OÜ (Tartu, Estland — EU).
+            Wir nutzen <strong>Plausible Analytics</strong> (Plausible Insights OÜ, Tartu, Estland - EU), einen
+            datenschutzfreundlichen Webanalysedienst <strong>ohne Cookies</strong> und ohne Erhebung
+            personenbezogener Daten. Kein Fingerprinting, kein geräteübergreifendes Tracking.
           </p>
+          <p class="mt-4">Erfasst werden anonymisiert u. a.: aufgerufene Seiten, Herkunft des Besuchs, Land (aus der IP abgeleitet, die IP selbst wird nicht gespeichert), Gerätetyp und anonyme Nutzungsaktionen.</p>
           <p class="mt-4">
-            Plausible verwendet <strong>keine Cookies</strong> und erhebt <strong>keine personenbezogenen Daten</strong>.
-            Es wird kein Fingerprinting eingesetzt und kein geräteübergreifendes Tracking durchgeführt.
-          </p>
-          <p class="mt-4">Folgende anonymisierte Daten werden erfasst:</p>
-          <ul class="list-disc list-inside space-y-2 mt-2">
-            <li>Aufgerufene Seiten (aggregiert)</li>
-            <li>Herkunft des Besuchs (z.B. Suchmaschine, direkter Aufruf)</li>
-            <li>Land (wird aus der IP-Adresse abgeleitet; die IP-Adresse selbst wird nicht gespeichert)</li>
-            <li>Gerätetyp (Desktop / Mobil)</li>
-            <li>Anonymisierte Nutzungsaktionen (z.B. Registrierung abgeschlossen, Ladevorgang erfasst)</li>
-          </ul>
-          <p class="mt-4">
-            <strong>Rechtsgrundlage:</strong> Berechtigtes Interesse gemäß Art. 6 Abs. 1 lit. f DSGVO.
-            Da keine personenbezogenen Daten erhoben werden, ist kein Cookie-Banner erforderlich.
-          </p>
-          <p class="mt-4">
-            Weitere Informationen: <a href="https://plausible.io/data-policy" class="text-indigo-600 hover:underline" target="_blank" rel="noopener">plausible.io/data-policy</a>
+            <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. f DSGVO. Da keine personenbezogenen Daten
+            erhoben werden, ist kein Einwilligungsbanner erforderlich. Infos:
+            <a href="https://plausible.io/data-policy" target="_blank" rel="noopener" class="text-green-600 hover:text-green-700">plausible.io/data-policy</a>.
           </p>
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">6. Weitergabe von Daten</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">13. Reddit-Pixel (nur mit Einwilligung)</h2>
           <p>
-            Wir geben Ihre Daten <strong>nicht</strong> an Dritte weiter, außer:
+            Wenn Sie über eine Reddit-Anzeige zu uns gelangen, fragen wir Ihre Einwilligung für den
+            <strong>Reddit-Pixel</strong> (Reddit, Inc., USA) ab. Der Pixel wird <strong>nur</strong> geladen,
+            wenn Sie aktiv zustimmen, und misst dann den Erfolg unserer Werbung (z. B. ob eine Registrierung auf
+            eine Anzeige zurückgeht). Ohne Zustimmung wird kein Reddit-Code geladen.
           </p>
-          <ul class="list-disc list-inside space-y-2">
-            <li>Es besteht eine gesetzliche Verpflichtung</li>
-            <li>Sie haben explizit zugestimmt</li>
-          </ul>
+          <p class="mt-4">
+            <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. a DSGVO (Einwilligung), jederzeit mit Wirkung
+            für die Zukunft widerrufbar. Zur Übermittlung in die USA siehe Abschnitt 17. Datenschutz bei Reddit:
+            <a href="https://www.reddit.com/policies/privacy-policy" target="_blank" rel="noopener noreferrer" class="text-green-600 hover:text-green-700">reddit.com/policies/privacy-policy</a>.
+          </p>
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">7. Ihre Rechte (DSGVO)</h2>
-          <p>Sie haben das Recht auf:</p>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">14. Besonderheiten der App</h2>
+          <p>
+            Bei Installation und Nutzung der iOS-App verarbeitet <strong>Apple</strong> (Apple Inc., USA) im
+            Rahmen des App Store eigenverantwortlich Daten (z. B. Download, optionale Diagnose- und
+            Absturzberichte). Hierauf haben wir keinen Einfluss; es gilt die Datenschutzerklärung von Apple.
+          </p>
+          <p class="mt-4">
+            Die App lädt Funktions-Updates als Web-Pakete von <strong>unserem eigenen Server</strong> (kein
+            Drittanbieter-Dienst, keine Übermittlung von Gerätedaten an Dritte zu diesem Zweck).
+          </p>
+        </section>
+
+        <section>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">15. Affiliate-Links (Awin)</h2>
+          <p>
+            Wir nehmen am Affiliate-Programm von <strong>Awin</strong> (Awin AG, Eichhornstraße 3, 10785 Berlin)
+            teil. Als "Anzeige" gekennzeichnete Links leiten beim Klick über den Awin-Server weiter; dabei kann
+            Awin ein Cookie (Laufzeit bis 24 Stunden) setzen, um eine Vermittlung nachzuvollziehen. Es werden
+            keine personenbezogenen Daten von uns an Awin übertragen.
+          </p>
+          <p class="mt-4">
+            <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. f DSGVO (Finanzierung des kostenfreien
+            Angebots). Infos:
+            <a href="https://www.awin.com/de/rechtliches/datenschutzrichtlinie" target="_blank" rel="noopener noreferrer" class="text-green-600 hover:text-green-700">awin.com/de/rechtliches/datenschutzrichtlinie</a>.
+          </p>
+        </section>
+
+        <section>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">16. Unterstützung: Ko-fi &amp; PayPal</h2>
+          <p>
+            Wir verlinken auf Ko-fi (<a href="https://ko-fi.com" target="_blank" rel="noopener noreferrer" class="text-green-600 hover:text-green-700">ko-fi.com</a>)
+            und PayPal (<a href="https://www.paypal.com" target="_blank" rel="noopener noreferrer" class="text-green-600 hover:text-green-700">paypal.com</a>),
+            über die Sie die Entwicklung freiwillig unterstützen können. Wir betten keinen Code dieser Dienste
+            ein; erst beim Besuch der jeweiligen Seite gelten deren Datenschutzbestimmungen.
+          </p>
+        </section>
+
+        <section>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">17. Weitergabe &amp; Übermittlung in Drittländer</h2>
+          <p>Wir geben Ihre Daten <strong>nicht</strong> an Dritte weiter, außer:</p>
           <ul class="list-disc list-inside space-y-2">
-            <li><strong>Auskunft:</strong> Welche Daten wir über Sie speichern</li>
-            <li><strong>Berichtigung:</strong> Korrektur falscher Daten</li>
-            <li><strong>Löschung:</strong> Löschung Ihres Accounts und aller zugehörigen Daten</li>
-            <li><strong>Datenportabilität:</strong> Export Ihrer Daten im JSON-Format</li>
-            <li><strong>Widerspruch:</strong> Widerspruch gegen die Verarbeitung</li>
+            <li>an die in dieser Erklärung genannten Auftragsverarbeiter/Dienste im beschriebenen Umfang,</li>
+            <li>bei gesetzlicher Verpflichtung,</li>
+            <li>wenn Sie ausdrücklich eingewilligt haben.</li>
           </ul>
           <p class="mt-4">
-            Zur Ausübung Ihrer Rechte kontaktieren Sie uns unter:
-            <a :href="`mailto:${email}`" class="text-green-600 hover:text-green-700">{{ email }}</a>
+            Bei Nutzung bestimmter Dienste (Tesla, Smartcar, Stripe, Reddit, Apple) können Daten in die
+            <strong>USA</strong> übermittelt werden. Soweit kein Angemessenheitsbeschluss greift, stützt sich die
+            Übermittlung auf geeignete Garantien (EU-Standardvertragsklauseln gem. Art. 46 DSGVO) bzw. - bei
+            einwilligungsbasierten Diensten - auf Ihre Einwilligung (Art. 49 Abs. 1 lit. a DSGVO). In den USA
+            besteht ggf. kein mit der EU vergleichbares Datenschutzniveau (z. B. Zugriff durch Behörden).
           </p>
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">8. Datensicherheit</h2>
-          <p>Wir setzen folgende Sicherheitsmaßnahmen ein:</p>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">18. Ihre Rechte</h2>
+          <p>Nach der DSGVO haben Sie das Recht auf:</p>
+          <ul class="list-disc list-inside space-y-2">
+            <li><strong>Auskunft</strong> über die zu Ihnen gespeicherten Daten (Art. 15)</li>
+            <li><strong>Berichtigung</strong> unrichtiger Daten (Art. 16)</li>
+            <li><strong>Löschung</strong> Ihres Accounts und aller zugehörigen Daten (Art. 17)</li>
+            <li><strong>Einschränkung</strong> der Verarbeitung (Art. 18)</li>
+            <li><strong>Datenübertragbarkeit</strong> - Export Ihrer Daten im JSON-Format (Art. 20)</li>
+            <li><strong>Widerspruch</strong> gegen die Verarbeitung (Art. 21)</li>
+            <li><strong>Widerruf</strong> erteilter Einwilligungen mit Wirkung für die Zukunft (Art. 7 Abs. 3)</li>
+          </ul>
+          <p class="mt-4">
+            Zur Ausübung genügt eine Nachricht an
+            <a :href="`mailto:${email}`" class="text-green-600 hover:text-green-700">{{ email }}</a>.
+          </p>
+          <p class="mt-4">
+            <strong>Beschwerderecht:</strong> Sie können sich bei einer Datenschutz-Aufsichtsbehörde beschweren
+            (Art. 77 DSGVO), insbesondere in dem EU-Land Ihres Aufenthaltsorts. Für uns zuständig ist die
+            Berliner Beauftragte für Datenschutz und Informationsfreiheit.
+          </p>
+        </section>
+
+        <section>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">19. Datensicherheit</h2>
           <ul class="list-disc list-inside space-y-2">
             <li>HTTPS/TLS-Verschlüsselung für alle Verbindungen</li>
-            <li>BCrypt-Hashing für Passwörter (Strength 10)</li>
-            <li>AES-256-GCM Verschlüsselung für sensible Tokens</li>
+            <li>BCrypt-Hashing für Passwörter</li>
+            <li>AES-256-GCM-Verschlüsselung für sensible Tokens</li>
             <li>JWT mit Signatur-Validierung</li>
             <li>Regelmäßige Security-Updates</li>
           </ul>
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">9. Speicherdauer</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">20. Speicherdauer</h2>
           <p>
-            Ihre Daten werden gespeichert, solange Ihr Account aktiv ist.
-          </p>
-          <p class="mt-4">
-            Bei Account-Löschung werden alle personenbezogenen Daten unwiderruflich gelöscht.
-            Anonymisierte Statistiken bleiben bestehen.
+            Account- und Nutzungsdaten speichern wir, solange Ihr Account besteht. Bei Account-Löschung werden
+            alle personenbezogenen Daten unwiderruflich gelöscht; bereits anonymisierte, nicht mehr auf Sie
+            beziehbare Statistikwerte bleiben bestehen. Daten, für die gesetzliche Aufbewahrungsfristen gelten
+            (z. B. Rechnungsdaten bei Käufen), werden bis zum Ablauf dieser Fristen aufbewahrt und dann gelöscht.
           </p>
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">10. Externe Dienste: Ko-fi &amp; PayPal</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">21. Änderungen dieser Erklärung</h2>
           <p>
-            Auf unserer Website befinden sich Links zu Ko-fi
-            (<a href="https://ko-fi.com" target="_blank" rel="noopener noreferrer" class="text-green-600 hover:text-green-700">ko-fi.com</a>)
-            und PayPal
-            (<a href="https://www.paypal.com" target="_blank" rel="noopener noreferrer" class="text-green-600 hover:text-green-700">paypal.com</a>),
-            uber die Sie die Entwicklung von EV Monitor freiwillig unterstützen können.
+            Wir passen diese Datenschutzerklärung bei geänderter Rechtslage oder Änderungen des Dienstes an.
           </p>
-          <p class="mt-4">
-            Die Links öffnen die externen Websites der jeweiligen Anbieter. EV Monitor bettet keinen Code oder externe Scripts dieser Dienste ein.
-            Es werden durch den Klick auf die Links keine Daten von uns an die Anbieter übertragen.
-            Erst wenn Sie die jeweilige Website besuchen, gelten deren Datenschutzbestimmungen:
-            Ko-fi: <a href="https://more.ko-fi.com/privacy" target="_blank" rel="noopener noreferrer" class="text-green-600 hover:text-green-700">https://more.ko-fi.com/privacy</a>,
-            PayPal: <a href="https://www.paypal.com/de/webapps/mpp/ua/privacy-full" target="_blank" rel="noopener noreferrer" class="text-green-600 hover:text-green-700">https://www.paypal.com/de/webapps/mpp/ua/privacy-full</a>.
-          </p>
-          <p class="mt-4">
-            Die Nutzung dieser Dienste ist vollständig freiwillig und hat keinen Einfluss auf die Nutzung von EV Monitor.
-          </p>
-        </section>
-
-        <section>
-          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">10a. Affiliate-Links (Awin)</h2>
-          <p>
-            Diese Website nimmt am Affiliate-Programm des Netzwerks <strong>Awin</strong> (Awin AG, Eichhornstraße 3, 10785 Berlin) teil.
-            Auf unseren Seiten sind Werbelinks von Partnerprogrammen eingebunden, die als "Anzeige" gekennzeichnet sind.
-          </p>
-          <p class="mt-4">
-            Wenn Sie auf einen solchen Link klicken, werden Sie über den Awin-Tracking-Server weitergeleitet.
-            Dabei kann Awin ein Cookie mit einer Laufzeit von bis zu 24 Stunden in Ihrem Browser setzen,
-            um nachzuvollziehen, ob ein Vertragsabschluss auf unsere Vermittlung zurückgeht.
-          </p>
-          <p class="mt-4">
-            Es werden dabei keine personenbezogenen Daten von uns an Awin übertragen.
-            Das Cookie enthält lediglich eine anonyme Kennung zur Zuordnung des Klicks.
-          </p>
-          <p class="mt-4">
-            <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an der Finanzierung des kostenfreien Angebots).
-          </p>
-          <p class="mt-4">
-            Weitere Informationen zum Datenschutz bei Awin:
-            <a href="https://www.awin.com/de/rechtliches/datenschutzrichtlinie" target="_blank" rel="noopener noreferrer" class="text-green-600 hover:text-green-700">awin.com/de/rechtliches/datenschutzrichtlinie</a>
-          </p>
-        </section>
-
-        <section>
-          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">11. Änderungen dieser Datenschutzerklärung</h2>
-          <p>
-            Wir behalten uns vor, diese Datenschutzerklärung anzupassen, um sie an geänderte Rechtslagen
-            oder Änderungen des Services anzupassen.
-          </p>
-          <p class="mt-4">
-            Stand: {{ new Date().toLocaleDateString('de-DE', { year: 'numeric', month: 'long' }) }}
-          </p>
+          <p class="mt-4"><strong>Stand:</strong> Juni 2026</p>
         </section>
       </div>
 
       <div class="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700">
-        <router-link
-          to="/"
-          class="text-green-600 hover:text-green-700 font-medium"
-        >
+        <router-link to="/" class="text-green-600 hover:text-green-700 font-medium">
           ← Zurück zur Startseite
         </router-link>
       </div>
