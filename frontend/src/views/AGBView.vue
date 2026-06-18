@@ -43,11 +43,12 @@ import { BoltIcon } from '@heroicons/vue/24/outline'
             <li>Statistische Auswertungen Ihrer Daten</li>
             <li>Vergleich mit WLTP-Herstellerangaben</li>
             <li>Zugriff auf anonymisierte Community-Statistiken</li>
-            <li>Optional: Automatischer Import von Tesla-Ladevorgängen</li>
+            <li>Optional: automatischer Import von Ladevorgängen (z. B. Tesla, Smartcar, Spritmonitor)</li>
           </ul>
           <p class="mt-4">
-            Der Service ist derzeit <strong>kostenlos</strong>. Wir behalten uns vor, zukünftig kostenpflichtige
-            Premium-Features einzuführen.
+            Der Kernfunktionsumfang ist <strong>kostenlos</strong>. Einzelne Premium-Funktionen sind
+            kostenpflichtig; Preise und Leistungsumfang werden vor dem Kauf angezeigt. Die Zahlungsabwicklung
+            erfolgt über unseren Zahlungsdienstleister Stripe.
           </p>
         </section>
 
@@ -219,16 +220,15 @@ import { BoltIcon } from '@heroicons/vue/24/outline'
         <section>
           <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">11. Anwendbares Recht</h2>
           <p>
-            Für diese AGB gilt deutsches Recht unter Ausschluss des UN-Kaufrechts (CISG).
-          </p>
-          <p class="mt-4">
-            Gerichtsstand ist [Dein Ort], soweit gesetzlich zulässig.
+            Es gilt deutsches Recht unter Ausschluss des UN-Kaufrechts (CISG). Zwingende
+            Verbraucherschutzvorschriften des Staates, in dem der Nutzer seinen gewöhnlichen Aufenthalt hat,
+            bleiben hiervon unberührt.
           </p>
         </section>
 
         <section class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
           <p class="text-sm text-gray-500">
-            Stand: {{ new Date().toLocaleDateString('de-DE', { year: 'numeric', month: 'long' }) }}
+            Stand: Juni 2026
           </p>
         </section>
       </div>

@@ -31,7 +31,6 @@ import PublicModelsCompareView from '../views/PublicModelsCompareView.vue';
 import DatenschutzView from '../views/DatenschutzView.vue';
 import ImpressumView from '../views/ImpressumView.vue';
 import AGBView from '../views/AGBView.vue';
-import TermsView from '../views/TermsView.vue';
 import NotFoundView from '../views/NotFoundView.vue';
 import CoinHistoryView from '../views/CoinHistoryView.vue';
 import WallboxSetupView from '../views/WallboxSetupView.vue';
@@ -443,9 +442,8 @@ const router = createRouter({
         },
         {
             path: '/terms',
-            name: 'terms',
-            component: TermsView
-            // no auth guard - public page for legal info (legacy)
+            redirect: '/agb'
+            // Legacy-URL: AGB liegen kanonisch unter /agb (Footer-Link), /terms leitet dorthin um
         },
         {
             path: '/leaderboard',
