@@ -274,6 +274,21 @@ public class EvLogService {
     }
 
     /**
+     * Backfills measured ambient temperature on an existing log (matched by carId + loggedAt),
+     * only when it has none yet. Used by the connector to fill TESLA_LIVE logs from streamed
+     * OutsideTemp. Returns {@code true} when a log was updated.
+     */
+    @Transactional
+    public boolean backfillTemperature(UUID carId, UUID userId, LocalDateTime loggedAt, Double temperatureCelsius) {
+        Car car = carRepository.findById(carId)
+                .orElseThrow(() -> new IllegalArgumentException("Car not found"));
+        if (!car.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("Car does not belong to user");
+        }
+        return evLogRepository.updateTemperatureIfAbsent(carId, loggedAt, temperatureCelsius);
+    }
+
+    /**
      * Fills in tireType/routeType from the most recent prior log (per car, by loggedAt) when
      * the incoming log left them null. Auto-creation paths (Tesla telemetry, OCPP wallbox,
      * SmartCar) don't carry this metadata, so without inheritance every auto-log writes NULL

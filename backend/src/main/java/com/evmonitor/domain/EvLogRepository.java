@@ -93,6 +93,14 @@ public interface EvLogRepository {
 
     void updateTemperature(UUID id, Double temperatureCelsius);
 
+    /**
+     * Sets temperature on the log identified by (carId, loggedAt) only if it has none yet.
+     * Returns {@code true} when a log was updated, {@code false} when no match or already set.
+     * Used by the connector temperature-backfill to fill measured OutsideTemp without
+     * overwriting an existing value.
+     */
+    boolean updateTemperatureIfAbsent(UUID carId, LocalDateTime loggedAt, Double temperatureCelsius);
+
     List<GeohashPoint> findGeohashDataByCarId(UUID carId);
 
     Optional<EvLog> findMostRecentLogAtGeohash(UUID userId, String geohash);

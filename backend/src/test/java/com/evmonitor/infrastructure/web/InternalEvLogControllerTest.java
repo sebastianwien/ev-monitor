@@ -221,6 +221,61 @@ class InternalEvLogControllerTest extends AbstractIntegrationTest {
         assertTrue(geohashFound, "Geohash should be updated to u2edq");
     }
 
+    // --- PATCH /api/internal/logs/temperature ---
+
+    @Test
+    void updateTemperature_setsTemperatureOnLogWithoutOne() {
+        LocalDateTime loggedAt = LocalDateTime.now().minusHours(6).withNano(0).withSecond(0);
+        Map<String, Object> createRequest = logRequest(testCar.getId(), testUser.getId(),
+                "40.0", 70, loggedAt, null, "TESLA_LIVE", "12.00");
+        restTemplate.exchange("/api/internal/logs", HttpMethod.POST,
+                new HttpEntity<>(createRequest, internalHeaders(VALID_TOKEN)), Map.class);
+
+        Map<String, Object> patchRequest = Map.of(
+                "carId", testCar.getId().toString(),
+                "userId", testUser.getId().toString(),
+                "loggedAt", loggedAt.toString(),
+                "temperatureCelsius", 23.5
+        );
+
+        ResponseEntity<Void> patchResponse = restTemplate.exchange(
+                "/api/internal/logs/temperature", HttpMethod.PATCH,
+                new HttpEntity<>(patchRequest, internalHeaders(VALID_TOKEN)), Void.class);
+
+        assertEquals(HttpStatus.NO_CONTENT, patchResponse.getStatusCode());
+
+        String userToken = createAuthHeaders(testUser.getId(), testUser.getEmail())
+                .getFirst("Authorization").substring(7);
+        HttpHeaders userHeaders = new HttpHeaders();
+        userHeaders.set("Authorization", "Bearer " + userToken);
+        ResponseEntity<Map[]> logsResponse = restTemplate.exchange(
+                "/api/logs", HttpMethod.GET,
+                new HttpEntity<>(userHeaders), Map[].class);
+
+        Map[] logs = logsResponse.getBody();
+        assertNotNull(logs);
+        boolean tempFound = java.util.Arrays.stream(logs)
+                .anyMatch(log -> log.get("temperatureCelsius") != null
+                        && Math.abs(((Number) log.get("temperatureCelsius")).doubleValue() - 23.5) < 0.001);
+        assertTrue(tempFound, "Temperature should be backfilled to 23.5");
+    }
+
+    @Test
+    void updateTemperature_withoutInternalToken_returns403() {
+        Map<String, Object> request = Map.of(
+                "carId", testCar.getId().toString(),
+                "userId", testUser.getId().toString(),
+                "loggedAt", LocalDateTime.now().toString(),
+                "temperatureCelsius", 20.0
+        );
+
+        ResponseEntity<String> response = restTemplate.exchange(
+                "/api/internal/logs/temperature", HttpMethod.PATCH,
+                new HttpEntity<>(request), String.class);
+
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+    }
+
     @Test
     void updateGeohash_withoutInternalToken_returns403() {
         Map<String, Object> request = Map.of(

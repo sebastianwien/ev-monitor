@@ -48,6 +48,14 @@ public class InternalEvLogController {
         return ResponseEntity.noContent().build();
     }
 
+    public record TemperatureUpdateRequest(UUID carId, UUID userId, LocalDateTime loggedAt, Double temperatureCelsius) {}
+
+    @PatchMapping("/logs/temperature")
+    public ResponseEntity<Void> updateTemperature(@RequestBody TemperatureUpdateRequest request) {
+        evLogService.backfillTemperature(request.carId(), request.userId(), request.loggedAt(), request.temperatureCelsius());
+        return ResponseEntity.noContent().build();
+    }
+
     /**
      * Lists Tesla-Supercharger sessions submitted via Telemetry that still lack a Tesla-billed
      * cost, within the given recency window. Consumed by the daily enrichment job in

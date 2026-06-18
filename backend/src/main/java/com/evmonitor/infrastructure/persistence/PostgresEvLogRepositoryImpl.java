@@ -231,6 +231,18 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
+    public boolean updateTemperatureIfAbsent(UUID carId, LocalDateTime loggedAt, Double temperatureCelsius) {
+        return jpaRepository.findByCarIdAndLoggedAt(carId, loggedAt)
+                .filter(entity -> entity.getTemperatureCelsius() == null)
+                .map(entity -> {
+                    entity.setTemperatureCelsius(temperatureCelsius);
+                    jpaRepository.save(entity);
+                    return true;
+                })
+                .orElse(false);
+    }
+
+    @Override
     @Transactional
     public void updateCarIdForLog(UUID logId, UUID targetCarId) {
         jpaRepository.updateCarIdForLog(logId, targetCarId);
