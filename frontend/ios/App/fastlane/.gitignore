@@ -1,0 +1,6 @@
+.env
+report.xml
+*.mobileprovision
+*.p12
+*.cer
+README.md

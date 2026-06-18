@@ -1,0 +1,43 @@
+default_platform(:ios)
+
+APP_ID   = "net.ev-monitor.app"
+TEAM     = "6ZH342F44B"
+SIGN_DIR = File.expand_path("~/ev-monitor-ios-signing")
+
+platform :ios do
+  desc "Build und Upload zu TestFlight (App Store Connect API Key)"
+  lane :beta do
+    key = app_store_connect_api_key(
+      key_id: ENV["ASC_KEY_ID"],
+      issuer_id: ENV["ASC_ISSUER_ID"],
+      key_filepath: ENV["ASC_KEY_PATH"]
+    )
+
+    cert(api_key: key, output_path: SIGN_DIR)
+    sigh(api_key: key, app_identifier: APP_ID, platform: "ios", output_path: SIGN_DIR)
+
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: "App.xcodeproj",
+      team_id: TEAM,
+      code_sign_identity: "Apple Distribution",
+      profile_name: lane_context[SharedValues::SIGH_NAME],
+      targets: ["App"]
+    )
+
+    build_app(
+      project: "App.xcodeproj",
+      scheme: "App",
+      configuration: "Release",
+      export_method: "app-store",
+      output_directory: "build",
+      output_name: "App.ipa"
+    )
+
+    upload_to_testflight(
+      api_key: key,
+      app_identifier: APP_ID,
+      skip_waiting_for_build_processing: true
+    )
+  end
+end

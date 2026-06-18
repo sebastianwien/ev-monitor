@@ -1,0 +1,8 @@
+# Build-Output
+build/
+DerivedData/
+# Signing-Artefakte NIEMALS committen (oeffentliches Repo)
+*.mobileprovision
+*.cer
+*.certSigningRequest
+*.p12
