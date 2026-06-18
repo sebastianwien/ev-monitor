@@ -16,6 +16,7 @@ import {
   ExclamationTriangleIcon,
   InformationCircleIcon,
   XMarkIcon,
+  ArrowPathIcon,
   ArrowsRightLeftIcon,
   PlusIcon,
   HandThumbUpIcon,
@@ -60,6 +61,8 @@ import { useStickyCarHeader } from '../composables/useStickyCarHeader'
 import { useBulkBarOffset } from '../composables/useBulkBarOffset'
 import { useHaptic } from '../composables/useHaptic'
 import { useWallboxStore } from '../stores/wallbox'
+import { useCountryStore } from '../stores/country'
+import { getPricing } from '../config/pricingConfig'
 import { carDisplayName } from '../utils/enumLabel'
 import { isVwGroupBrand } from '../api/vwGroupService'
 import { subscriptionService, type SubscriptionTier } from '../api/subscriptionService'
@@ -653,13 +656,16 @@ function tripGroupSocBoundaries(group: any): { start: number; end: number } | nu
 
 onMounted(() => initCars())
 
-// AutoSync Live discoverability banner: shown to non-Tesla users that don't have
-// Live yet, and haven't dismissed the hint. Position: below ConsumptionInfoBox.
-const LS_LIVE_BANNER_DISMISSED = 'autosync_live_banner_dismissed'
 const subscriptionTier = ref<SubscriptionTier | null>(null)
+
+// AutoSync Live discoverability banner: temporarily disabled (flip flag to re-enable).
+// Shown to non-Tesla users without Live, dismissible. Position: below ConsumptionInfoBox.
+const LIVE_BANNER_ENABLED = false
+const LS_LIVE_BANNER_DISMISSED = 'autosync_live_banner_dismissed'
 const liveBannerDismissed = ref(localStorage.getItem(LS_LIVE_BANNER_DISMISSED) === 'true')
 const showLiveBanner = computed(() =>
-  subscriptionTier.value != null
+  LIVE_BANNER_ENABLED
+  && subscriptionTier.value != null
   && subscriptionTier.value !== 'AUTOSYNC_LIVE'
   && selectedCar.value?.brand !== 'TESLA'
   && !liveBannerDismissed.value
@@ -667,6 +673,22 @@ const showLiveBanner = computed(() =>
 function dismissLiveBanner() {
   liveBannerDismissed.value = true
   localStorage.setItem(LS_LIVE_BANNER_DISMISSED, 'true')
+}
+
+// AutoSync discoverability banner: shown to non-Tesla users without any subscription
+// (tier NONE), dismissible. Position: below ConsumptionInfoBox.
+const countryStore = useCountryStore()
+const autoSyncPrice = computed(() => getPricing(countryStore.country).monthly)
+const LS_AUTOSYNC_BANNER_DISMISSED = 'autosync_banner_dismissed'
+const autoSyncBannerDismissed = ref(localStorage.getItem(LS_AUTOSYNC_BANNER_DISMISSED) === 'true')
+const showAutoSyncBanner = computed(() =>
+  subscriptionTier.value === 'NONE'
+  && selectedCar.value?.brand !== 'TESLA'
+  && !autoSyncBannerDismissed.value
+)
+function dismissAutoSyncBanner() {
+  autoSyncBannerDismissed.value = true
+  localStorage.setItem(LS_AUTOSYNC_BANNER_DISMISSED, 'true')
 }
 
 const LS_COST_TIP_DISMISSED = 'logfeed_cost_reuse_tip_dismissed'
@@ -1080,6 +1102,32 @@ function toggleAllCharges() {
               :aria-label="t('dashboard.live_banner_dismiss')">
               <XMarkIcon class="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" aria-hidden="true" />
             </button>
+          </div>
+
+          <!-- AutoSync discoverability hint (free users without subscription, non-Tesla, dismissible) -->
+          <div v-if="showAutoSyncBanner"
+            class="w-full flex items-center justify-between gap-3 px-3 py-2.5 mb-4 rounded-sm border-2 border-indigo-300 dark:border-indigo-500/40 bg-indigo-50 dark:bg-indigo-900/20 shadow-[2px_2px_0_0_#c7d2fe] dark:shadow-[2px_2px_0_0_#312e81]">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-600 text-white font-semibold tracking-wide uppercase flex-shrink-0">{{ t('dashboard.autosync_banner_new_chip') }}</span>
+              <ArrowPathIcon class="w-4 h-4 text-indigo-600 dark:text-indigo-300 flex-shrink-0" aria-hidden="true" />
+              <p class="text-xs text-gray-700 dark:text-gray-200 leading-snug">
+                {{ t('dashboard.autosync_banner_text_prefix') }}
+                <span class="font-semibold text-indigo-700 dark:text-indigo-300">AutoSync</span>
+                {{ t('dashboard.autosync_banner_text_suffix') }}
+                <span class="font-semibold text-indigo-700 dark:text-indigo-300 whitespace-nowrap">{{ t('dashboard.autosync_banner_price', { price: autoSyncPrice }) }}</span>
+              </p>
+            </div>
+            <div class="flex items-center gap-1.5 flex-shrink-0">
+              <router-link to="/upgrade"
+                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-sm bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold whitespace-nowrap transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">
+                {{ t('dashboard.autosync_banner_cta') }}
+              </router-link>
+              <button type="button" @click="dismissAutoSyncBanner"
+                class="p-0.5 rounded hover:bg-indigo-500/20 dark:hover:bg-indigo-500/30 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                :aria-label="t('dashboard.autosync_banner_dismiss')">
+                <XMarkIcon class="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" aria-hidden="true" />
+              </button>
+            </div>
           </div>
 
           <!-- Cost-reuse tip (shown once, dismissible via localStorage) -->
