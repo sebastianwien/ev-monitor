@@ -4,15 +4,18 @@ APP_ID   = "net.ev-monitor.app"
 TEAM     = "6ZH342F44B"
 SIGN_DIR = File.expand_path("~/ev-monitor-ios-signing")
 
+def asc_key
+  app_store_connect_api_key(
+    key_id: ENV["ASC_KEY_ID"],
+    issuer_id: ENV["ASC_ISSUER_ID"],
+    key_filepath: ENV["ASC_KEY_PATH"]
+  )
+end
+
 platform :ios do
   desc "Build und Upload zu TestFlight (App Store Connect API Key)"
   lane :beta do
-    key = app_store_connect_api_key(
-      key_id: ENV["ASC_KEY_ID"],
-      issuer_id: ENV["ASC_ISSUER_ID"],
-      key_filepath: ENV["ASC_KEY_PATH"]
-    )
-
+    key = asc_key
     cert(api_key: key, output_path: SIGN_DIR)
     sigh(api_key: key, app_identifier: APP_ID, platform: "ios", output_path: SIGN_DIR)
 
@@ -38,6 +41,21 @@ platform :ios do
       api_key: key,
       app_identifier: APP_ID,
       skip_waiting_for_build_processing: true
+    )
+  end
+
+  desc "Store-Texte + Screenshots hochladen (ohne Binary, ohne Review-Einreichung)"
+  lane :metadata do
+    deliver(
+      api_key: asc_key,
+      app_identifier: APP_ID,
+      app_version: "1.0",
+      skip_binary_upload: true,
+      submit_for_review: false,
+      overwrite_screenshots: true,
+      run_precheck_before_submit: false,
+      precheck_include_in_app_purchases: false,
+      force: true
     )
   end
 end
