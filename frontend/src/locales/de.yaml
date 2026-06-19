@@ -1918,6 +1918,8 @@ goe:
   info_auto: "Nach einmaliger Einrichtung läuft alles <strong>vollautomatisch</strong>: EV Monitor fragt alle paar Minuten bei der go-e Cloud an, ob gerade geladen wird."
   info_session: "Sobald du das Kabel einsteckst, merkt sich das System Startzeitpunkt und Energiezählerstand. Wenn du fertig bist, wird daraus automatisch ein <strong>Ladeeintrag</strong> in deinem Dashboard angelegt - mit Datum, kWh und optional den Kosten."
   info_tariff: "Den <strong>Strompreis</strong> kannst du direkt bei der Wallbox-Verbindung hinterlegen - dann rechnet EV Monitor die Kosten für jede Session automatisch aus."
+  info_one_car_title: "Am besten mit einem Fahrzeug"
+  info_one_car: "Die automatische Ladevorgangs-Erkennung der aktuellen go-e Wallboxen funktioniert am zuverlässigsten, wenn an der Box <strong>nur ein Fahrzeug</strong> geladen wird. Die Box kann technisch nicht unterscheiden, welches Auto gerade angesteckt ist - sie ordnet jeden Ladevorgang automatisch dem hier gewählten Fahrzeug zu. Lädst du mehrere Autos an derselben Box, landen alle Ladevorgänge bei diesem einen Fahrzeug."
   connected_devices: "Verbundene Geräte"
   form_title: "go-eCharger verbinden"
   serial_label: "Serial-Nummer"

@@ -1857,6 +1857,8 @@ goe:
   info_auto: "Efter en engångskonfiguration sker allt <strong>helt automatiskt</strong>: EV Monitor kontrollerar go-e Cloud med några minuters mellanrum för att se om laddning pågår."
   info_session: Så fort du ansluter kabeln registrerar systemet starttid och mätarställning. När du är klar skapas automatiskt en <strong>laddningspost</strong> i din översikt – med datum, kWh och eventuellt kostnader.
   info_tariff: Du kan ange <strong>elpriset</strong> direkt vid anslutningen till laddboxen – då beräknar EV Monitor automatiskt kostnaden för varje laddning.
+  info_one_car_title: "Fungerar bäst med ett fordon"
+  info_one_car: "Den automatiska laddningsidentifieringen i dagens go-e-laddboxar fungerar mest tillförlitligt när <strong>endast ett fordon</strong> laddas vid boxen. Boxen kan tekniskt inte avgöra vilken bil som är ansluten - den kopplar varje laddning till fordonet du väljer här. Laddar du flera bilar vid samma box hamnar alla laddningar på detta enda fordon."
   connected_devices: Anslutna enheter
   form_title: Anslut go-eCharger
   serial_label: Serienummer

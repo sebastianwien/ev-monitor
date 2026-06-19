@@ -1918,6 +1918,8 @@ goe:
   info_auto: "After a one-time setup, everything runs <strong>fully automatically</strong>: EV Monitor checks the go-e Cloud every few minutes to see if charging is in progress."
   info_session: "As soon as you plug in the cable, the system records the start time and energy meter reading. When you're done, a <strong>charging entry</strong> is automatically created in your dashboard - with date, kWh and optionally the costs."
   info_tariff: "You can enter the <strong>electricity price</strong> directly on the wallbox connection - then EV Monitor will automatically calculate the costs for each session."
+  info_one_car_title: "Works best with one vehicle"
+  info_one_car: "The automatic charge detection of current go-e wallboxes works most reliably when <strong>only one vehicle</strong> charges at the box. The box technically cannot tell which car is currently plugged in - it assigns every charging session to the vehicle you select here. If you charge several cars at the same box, all sessions will be attributed to this one vehicle."
   connected_devices: "Connected devices"
   form_title: "Connect go-eCharger"
   serial_label: "Serial number"

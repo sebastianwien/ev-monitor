@@ -159,6 +159,13 @@ function carLabel(car: Car): string {
         <p v-html="t('goe.info_auto')" />
         <p v-html="t('goe.info_session')" />
         <p v-html="t('goe.info_tariff')" />
+        <div class="flex items-start gap-2 border-l-2 border-yellow-500 bg-yellow-50 dark:bg-yellow-950/30 px-3 py-2.5 rounded-r-sm">
+          <ExclamationTriangleIcon class="h-4 w-4 text-yellow-600 dark:text-yellow-400 mt-0.5 shrink-0" />
+          <div class="space-y-1">
+            <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-yellow-800 dark:text-yellow-300">{{ t('goe.info_one_car_title') }}</p>
+            <p v-html="t('goe.info_one_car')" />
+          </div>
+        </div>
       </div>
     </div>
 
