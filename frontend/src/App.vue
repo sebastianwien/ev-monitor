@@ -32,6 +32,7 @@ import ThemeToggle from './components/shared/ThemeToggle.vue'
 import LocaleSwitcher from './components/shared/LocaleSwitcher.vue'
 import { useTickerState } from './composables/useTickerState'
 import { usePullToRefresh } from './composables/usePullToRefresh'
+import { useSwipeBack } from './composables/useSwipeBack'
 import { useCountryStore } from './stores/country'
 import { subscriptionService } from './api/subscriptionService'
 
@@ -55,6 +56,9 @@ const mainPaddingTop = computed(() => {
 
 const router = useRouter()
 const route = useRoute()
+
+// Edge-Swipe-Back (nur nativ): vom linken Rand nach rechts wischen => zurueck.
+useSwipeBack(() => router.back())
 const { activeTab: importsActiveTab } = useImportsTab()
 const { isOnboardingVisible } = useOnboardingState()
 
