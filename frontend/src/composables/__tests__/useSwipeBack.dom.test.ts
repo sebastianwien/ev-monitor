@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest'
 import { createApp } from 'vue'
 import {
   useSwipeBack,
@@ -49,12 +49,12 @@ function mountSwipeBack(back: () => void) {
 }
 
 describe('useSwipeBack - DOM-/Integrationspfad', () => {
-  let back: ReturnType<typeof vi.fn>
+  let back: Mock<() => void>
   let harness: { unmount: () => void } | null
 
   beforeEach(() => {
     platform.native = true
-    back = vi.fn()
+    back = vi.fn<() => void>()
     harness = null
   })
 
