@@ -29,14 +29,14 @@ const currentCategoryIndex = ref(0)
 const slideDirection = ref('slide-next')
 const hoveredSpecId = ref<string | null>(null)
 
-const categories = [
+const categories = computed(() => [
   { id: 'consumption', label: t('dashboard.peer_consumption'), unit: 'kWh/100km', shortUnit: 'kWh/100km', color: 'blue', sortAsc: true },
   { id: 'costPerKwh', label: t('dashboard.peer_cost_label'), unit: '€/kWh', shortUnit: '€/kWh', color: 'purple', sortAsc: true },
   { id: 'costPer100km', label: t('dashboard.peer_cost_per_distance'), unit: '€/100km', shortUnit: '€/100km', color: 'orange', sortAsc: true },
-  { id: 'range', label: t('dashboard.peer_range'), unit: 'km (Nettokapazität)', shortUnit: 'km', color: 'green', sortAsc: false },
-]
+  { id: 'range', label: t('dashboard.peer_range'), unit: t('dashboard.peer_range_unit'), shortUnit: 'km', color: 'green', sortAsc: false },
+])
 
-const currentCategory = computed(() => categories[currentCategoryIndex.value])
+const currentCategory = computed(() => categories.value[currentCategoryIndex.value])
 
 const visibleComparisons = computed(() =>
   comparisons.value
@@ -55,12 +55,12 @@ const visibleComparisons = computed(() =>
 
 function nextCategory() {
   slideDirection.value = 'slide-next'
-  currentCategoryIndex.value = (currentCategoryIndex.value + 1) % categories.length
+  currentCategoryIndex.value = (currentCategoryIndex.value + 1) % categories.value.length
 }
 
 function prevCategory() {
   slideDirection.value = 'slide-prev'
-  currentCategoryIndex.value = (currentCategoryIndex.value - 1 + categories.length) % categories.length
+  currentCategoryIndex.value = (currentCategoryIndex.value - 1 + categories.value.length) % categories.value.length
 }
 
 onMounted(async () => {
@@ -70,7 +70,7 @@ onMounted(async () => {
     const response = await peerModelComparisonService.getPeerModelComparison(props.carId)
     comparisons.value = response.modelComparisons
   } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Failed to load peer data'
+    error.value = err instanceof Error ? err.message : t('dashboard.peer_load_error')
   } finally {
     loading.value = false
   }
@@ -145,7 +145,7 @@ function getRelativePercent(item: PeerModelComparisonItem): string | null {
   const refVal = getItemValue(hoveredItem, currentCategory.value.id)
   const ownVal = getItemValue(item, currentCategory.value.id)
   if (refVal === null || ownVal === null || refVal === 0) return null
-  if (item.vehicleSpecificationId === hoveredSpecId.value) return 'Referenz'
+  if (item.vehicleSpecificationId === hoveredSpecId.value) return t('dashboard.peer_reference')
   const diff = Math.round((ownVal - refVal) / refVal * 100)
   return diff > 0 ? `+${diff}%` : `${diff}%`
 }
@@ -182,7 +182,7 @@ function getDisplayBarWidth(item: PeerModelComparisonItem): number {
           <ChevronLeftIcon class="w-4 h-4 text-gray-600 dark:text-gray-300" />
         </button>
         <button @click="toggleCollapsed" class="flex-1 flex flex-col items-center text-center min-w-0">
-          <p class="text-xs font-semibold text-gray-800 dark:text-gray-200">Dein {{ carBrandModel }} im Vergleich</p>
+          <p class="text-xs font-semibold text-gray-800 dark:text-gray-200">{{ t('dashboard.peer_card_title', { model: carBrandModel }) }}</p>
           <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ currentCategory.label }} · {{ currentCategory.unit }} · {{ currentCategoryIndex + 1 }}/{{ categories.length }}</p>
         </button>
         <button @click="nextCategory" class="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600 rounded shrink-0">
@@ -202,8 +202,8 @@ function getDisplayBarWidth(item: PeerModelComparisonItem): number {
         </button>
 
         <div class="flex-1 text-center">
-          <p class="text-sm font-semibold text-gray-800 dark:text-gray-200">Dein {{ carBrandModel }} im Vergleich</p>
-          <p class="text-xs text-gray-400 dark:text-gray-500">{{ visibleComparisons.length }} Varianten · gesamter Zeitraum</p>
+          <p class="text-sm font-semibold text-gray-800 dark:text-gray-200">{{ t('dashboard.peer_card_title', { model: carBrandModel }) }}</p>
+          <p class="text-xs text-gray-400 dark:text-gray-500">{{ t('dashboard.peer_card_variants', { count: visibleComparisons.length }) }}</p>
         </div>
 
         <div class="flex items-center gap-3">
@@ -235,7 +235,7 @@ function getDisplayBarWidth(item: PeerModelComparisonItem): number {
 
     <!-- Empty state -->
     <div v-else-if="visibleComparisons.length === 0" class="p-4 text-center text-xs text-gray-500 dark:text-gray-400">
-      <p>Keine Vergleichsdaten verfügbar</p>
+      <p>{{ t('dashboard.peer_no_comparison_data') }}</p>
     </div>
 
     <!-- Category Carousel -->

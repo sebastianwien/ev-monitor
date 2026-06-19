@@ -542,6 +542,12 @@ dashboard:
   peer_model_fallback: Jämför med {n} förare av samma modell (alla varianter)
   peer_no_data_title: Ingen jämförelse tillgänglig
   peer_no_data_body: När fler förare med samma modell registrerar data visas din jämförelse här.
+  peer_card_title: "Din {model} i jämförelse"
+  peer_card_variants: "{count} varianter · hela perioden"
+  peer_range_unit: km (nettokapacitet)
+  peer_reference: Referens
+  peer_no_comparison_data: Inga jämförelsedata tillgängliga
+  peer_load_error: Kunde inte ladda jämförelsedata
   charging_type_split_title: Laddningsfordelning
   charging_type_ac: AC
   charging_type_dc: DC
