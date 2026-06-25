@@ -291,9 +291,9 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
 
         <!-- Community-Bestenliste: labelled superlatives replace the unexplained cards -->
         <div v-if="hasSuperlatives" class="sl-board text-left px-5 py-7 mb-8">
-          <div class="text-center mb-6">
-            <span class="block text-sm sm:text-base font-extrabold tracking-[0.18em] uppercase text-green-700 dark:text-green-400">{{ t('landing.superlatives.eyebrow') }}</span>
-            <i18n-t keypath="landing.superlatives.from_trips" tag="span" class="block mt-1.5 text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-semibold">
+          <div class="mb-6 flex flex-wrap items-baseline justify-center gap-x-2 gap-y-1">
+            <span class="text-sm sm:text-base font-extrabold tracking-[0.18em] uppercase text-green-700 dark:text-green-400">{{ t('landing.superlatives.eyebrow') }}</span>
+            <i18n-t keypath="landing.superlatives.from_trips" tag="span" class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-semibold">
               <template #n>
                 <span class="sl-num text-base sm:text-xl font-extrabold text-gray-900 dark:text-gray-100">{{ formatNumber(displayTripsRounded) }}</span>
               </template>
@@ -405,6 +405,82 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
 
     <!-- Community Pulse -->
     <CommunityPulseSection />
+
+    <!-- Model Preview Section -->
+    <section class="py-8 sm:py-16 px-4 sm:px-6 lg:px-8">
+      <div class="max-w-7xl mx-auto">
+        <div class="text-center mb-12">
+          <h2 class="text-3xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
+            {{ t('landing.models_section.title') }}
+          </h2>
+          <i18n-t keypath="landing.models_section.subtitle" tag="p" class="max-w-2xl mx-auto text-xl sm:text-2xl text-gray-600 dark:text-gray-400">
+            <template #emphasis>
+              <span class="font-bold text-gray-900 dark:text-gray-100">{{ t('landing.models_section.subtitle_emphasis') }}</span>
+            </template>
+          </i18n-t>
+        </div>
+
+        <div v-if="loading" class="text-center text-gray-500 dark:text-gray-400">
+          {{ t('landing.models_section.loading') }}
+        </div>
+
+        <div v-else-if="topModels.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <!-- Model Cards -->
+          <PublicModelCard
+            v-for="preview in topModels"
+            :key="`${preview.brand}-${preview.model}`"
+            :model="preview"
+            :to="`${modelsUrl}/${preview.brandDisplayName}/${preview.modelUrlSlug}`"
+          />
+
+          <!-- Next 4 models teaser + CTAs - span full grid width -->
+          <div class="col-span-full mt-2 space-y-4">
+            <div v-if="nextModels.length > 0">
+              <!-- Mobile: pills -->
+              <div class="flex flex-wrap gap-2 justify-center sm:hidden">
+                <a
+                  v-for="m in nextModels"
+                  :key="`${m.brand}-${m.model}`"
+                  :href="`${modelsUrl}/${m.brandDisplayName}/${m.modelUrlSlug}`"
+                  class="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs font-medium rounded-full transition"
+                >
+                  {{ m.modelDisplayName }}
+                </a>
+              </div>
+              <!-- sm+: cards (identical layout to the top row) -->
+              <div class="hidden sm:grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <PublicModelCard
+                  v-for="m in nextModels"
+                  :key="`${m.brand}-${m.model}`"
+                  :model="m"
+                  :to="`${modelsUrl}/${m.brandDisplayName}/${m.modelUrlSlug}`"
+                />
+              </div>
+            </div>
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-6 mt-4 sm:mt-6">
+              <router-link
+                :to="modelsUrl"
+                class="btn-3d cta-shadow bg-green-600 text-white border-2 border-gray-900 dark:border-gray-100 px-6 py-3 rounded-sm font-semibold hover:bg-green-700 transition inline-flex items-center justify-center space-x-2"
+              >
+                <span>{{ t('landing.models_section.compare_button') }}</span>
+                <ArrowRightIcon class="h-5 w-5" />
+              </router-link>
+              <button
+                @click="demoLogin('models_section')"
+                :disabled="demoLoading"
+                class="btn-3d cta-shadow bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 text-gray-800 dark:text-gray-100 px-6 py-3 rounded-sm font-semibold hover:text-green-700 dark:hover:text-green-400 transition disabled:opacity-50 inline-flex items-center justify-center space-x-2"
+              >
+                <span>{{ demoLoading ? t('landing.models_section.loading_button') : t('landing.models_section.demo_button') }}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div v-else class="text-center text-gray-500 dark:text-gray-400">
+          {{ t('landing.models_section.no_data') }}
+        </div>
+      </div>
+    </section>
 
     <!-- App Preview Section -->
     <section class="py-12 sm:py-20 border-t border-gray-100 dark:border-gray-800">
@@ -666,80 +742,6 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
         </div>
       </div>
     </div>
-
-    <!-- Model Preview Section -->
-    <section class="py-8 sm:py-16 px-4 sm:px-6 lg:px-8">
-      <div class="max-w-7xl mx-auto">
-        <div class="text-center mb-12">
-          <h2 class="text-3xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
-            {{ t('landing.models_section.title') }}
-          </h2>
-          <p class="text-lg text-gray-600 dark:text-gray-400">
-            {{ t('landing.models_section.subtitle') }}
-          </p>
-        </div>
-
-        <div v-if="loading" class="text-center text-gray-500 dark:text-gray-400">
-          {{ t('landing.models_section.loading') }}
-        </div>
-
-        <div v-else-if="topModels.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          <!-- Model Cards -->
-          <PublicModelCard
-            v-for="preview in topModels"
-            :key="`${preview.brand}-${preview.model}`"
-            :model="preview"
-            :to="`${modelsUrl}/${preview.brandDisplayName}/${preview.modelUrlSlug}`"
-          />
-
-          <!-- Next 4 models teaser + CTAs — span full grid width -->
-          <div class="col-span-full mt-2 space-y-4">
-            <div v-if="nextModels.length > 0">
-              <!-- Mobile: pills -->
-              <div class="flex flex-wrap gap-2 justify-center sm:hidden">
-                <a
-                  v-for="m in nextModels"
-                  :key="`${m.brand}-${m.model}`"
-                  :href="`${modelsUrl}/${m.brandDisplayName}/${m.modelUrlSlug}`"
-                  class="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs font-medium rounded-full transition"
-                >
-                  {{ m.modelDisplayName }}
-                </a>
-              </div>
-              <!-- sm+: cards (identical layout to the top row) -->
-              <div class="hidden sm:grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                <PublicModelCard
-                  v-for="m in nextModels"
-                  :key="`${m.brand}-${m.model}`"
-                  :model="m"
-                  :to="`${modelsUrl}/${m.brandDisplayName}/${m.modelUrlSlug}`"
-                />
-              </div>
-            </div>
-            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-6 mt-4 sm:mt-6">
-              <router-link
-                :to="modelsUrl"
-                class="btn-3d cta-shadow bg-green-600 text-white border-2 border-gray-900 dark:border-gray-100 px-6 py-3 rounded-sm font-semibold hover:bg-green-700 transition inline-flex items-center justify-center space-x-2"
-              >
-                <span>{{ t('landing.models_section.compare_button') }}</span>
-                <ArrowRightIcon class="h-5 w-5" />
-              </router-link>
-              <button
-                @click="demoLogin('models_section')"
-                :disabled="demoLoading"
-                class="btn-3d cta-shadow bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 text-gray-800 dark:text-gray-100 px-6 py-3 rounded-sm font-semibold hover:text-green-700 dark:hover:text-green-400 transition disabled:opacity-50 inline-flex items-center justify-center space-x-2"
-              >
-                <span>{{ demoLoading ? t('landing.models_section.loading_button') : t('landing.models_section.demo_button') }}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div v-else class="text-center text-gray-500 dark:text-gray-400">
-          {{ t('landing.models_section.no_data') }}
-        </div>
-      </div>
-    </section>
 
     <!-- Import Hub -->
     <section id="import-hub" class="py-8 sm:py-14 px-4 sm:px-6 lg:px-8 bg-gray-50 dark:bg-gray-900 border-t border-b border-gray-200 dark:border-gray-700">

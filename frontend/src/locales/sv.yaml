@@ -99,7 +99,8 @@ landing:
   darkmode_teaser: Mörkt läge finns självklart med.
   models_section:
     title: Vad kostar laddningen egentligen?
-    subtitle: Verkliga uppgifter från användargemenskapen
+    subtitle: "Här ser du de populäraste modellerna i communityn och vad de {emphasis} kostar per 100 km"
+    subtitle_emphasis: "egentligen"
     loading: Hämtar fordonsdata...
     view_details: Visa detaljer
     compare_button: Jämför alla modeller

@@ -99,7 +99,8 @@ landing:
   darkmode_teaser: Mørk modus er selvsagt inkludert.
   models_section:
     title: Hva koster det egentlig å lade?
-    subtitle: Ekte data fra brukerfellesskapet
+    subtitle: "Her ser du de mest populære modellene i brukerfellesskapet og hva de {emphasis} koster per 100 km"
+    subtitle_emphasis: "egentlig"
     loading: Laster inn kjøretøydata...
     view_details: Vis detaljer
     compare_button: Sammenlign alle modeller

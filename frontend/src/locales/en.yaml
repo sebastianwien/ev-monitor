@@ -102,7 +102,8 @@ landing:
   darkmode_teaser: "Dark mode included, of course."
   models_section:
     title: "What does charging really cost?"
-    subtitle: "Real data from the community"
+    subtitle: "Here you can see the community's most popular models and what they {emphasis} cost per 100 km"
+    subtitle_emphasis: "really"
     loading: "Loading vehicle data..."
     view_details: "View details"
     compare_button: "Compare all models"

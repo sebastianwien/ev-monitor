@@ -102,7 +102,8 @@ landing:
   darkmode_teaser: "Natürlich gibt's auch einen Dark Mode."
   models_section:
     title: "Was kostet das Laden wirklich?"
-    subtitle: "Echte Daten von der Community"
+    subtitle: "Hier siehst du die beliebtesten Modelle aus der Community und was sie {emphasis} auf 100 km kosten"
+    subtitle_emphasis: "wirklich"
     loading: "Lade Fahrzeugdaten..."
     view_details: "Details ansehen"
     compare_button: "Alle Modelle im Vergleich"
