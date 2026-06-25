@@ -31,6 +31,17 @@ nav:
   models_compare: "Modelle"
 
 landing:
+  superlatives:
+    eyebrow: "Community-Bestenliste"
+    from_trips: "aus {n} Fahrten"
+    efficiency_label: "Sparsamste"
+    efficiency_sub: "nach Real-Verbrauch"
+    range_label: "Reichweite"
+    range_sub: "real gefahren"
+    popular_label: "Beliebteste"
+    popular_sub: "meiste Ladevorgänge"
+    meta_datapoints: "{n} Datensätze"
+    unit_charges: "Ladungen"
   hero:
     title: "Wie weit kommst du wirklich - und was kostet es dich?"
     subtitle: "Echte Verbräuche und Ladekosten von der Community - WLTP-Verbrauch trifft Alltagsrealität. Mit Wallbox-Integration und API-Synchronisation."
@@ -41,16 +52,21 @@ landing:
     avg_prefix: "Ø"
     cost_tooltip: "Basiert auf dem Ø-Strompreis der Community-Beiträge. Günstigeres Heimladen vs. teure Schnelllader erklärt Preisunterschiede zwischen Modellen."
     view_details: "Details ansehen"
+    cost_headline: "Stromkosten"
+    cost_basis: "bei Ø {price} Ladepreis"
+    real_consumption: "Realer Verbrauch"
+    consumption_label: "Verbrauch"
+    real_short: "Real"
+    factory_short: "Werksangabe"
     demo_button: "App live testen →"
     loading_button: "Wird geladen..."
     models_button: "Alle Modelle ansehen"
     or: "oder"
     register_link: "kostenlos registrieren"
     track_data: "und eigene Daten tracken"
-    trips_label: "Fahrten"
-    total_km_label: "gefahrene km"
-    models_label: "Modelle"
-    drivers_label: "Fahrer"
+    total_km_label: "km von der Community gefahren"
+    models_label: "Modelle zur Auswahl"
+    drivers_label: "aktive Fahrer in der Community"
   features:
     open_source_title: "100% Open Source"
     open_source_desc: "Vollständig transparent auf GitHub. Keine Vendor Lock-ins."
@@ -127,12 +143,6 @@ landing:
   community_pulse:
     live_label: "Live"
     title: "Was gerade in der Community passiert"
-  gamification:
-    title: "Belohnungen für Community-Beiträge"
-    log_entry: "Ladevorgang erfassen"
-    add_vehicle: "Fahrzeug hinzufügen"
-    invite_friend: "Freund einladen"
-    import_data: "Daten importieren"
   import:
     title: "Nie wieder manuell eintippen"
     subtitle: "10 Datenquellen - Ladevorgänge kommen automatisch oder per Import rein."

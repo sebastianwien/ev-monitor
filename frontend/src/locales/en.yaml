@@ -31,6 +31,17 @@ nav:
   models_compare: "Models"
 
 landing:
+  superlatives:
+    eyebrow: "Community leaderboard"
+    from_trips: "from {n} trips"
+    efficiency_label: "Most efficient"
+    efficiency_sub: "by real consumption"
+    range_label: "Range"
+    range_sub: "real-world"
+    popular_label: "Most popular"
+    popular_sub: "most charging sessions"
+    meta_datapoints: "{n} data points"
+    unit_charges: "charges"
   hero:
     title: "How far do you really get - and what does it cost you?"
     subtitle: "Real consumption and charging costs from the community - WLTP meets everyday reality. With wallbox integration and API sync."
@@ -41,16 +52,21 @@ landing:
     avg_prefix: "avg."
     cost_tooltip: "Based on the average electricity price from community contributions. Cheaper home charging vs. expensive fast chargers explains price differences between models."
     view_details: "View details"
+    cost_headline: "Charging cost"
+    cost_basis: "at avg. {price} charging price"
+    real_consumption: "Real consumption"
+    consumption_label: "Consumption"
+    real_short: "Real"
+    factory_short: "Factory"
     demo_button: "Try the app live →"
     loading_button: "Loading..."
     models_button: "View all models"
     or: "or"
     register_link: "sign up for free"
     track_data: "and track your own data"
-    trips_label: "Trips"
-    total_km_label: "km driven"
-    models_label: "Models"
-    drivers_label: "Drivers"
+    total_km_label: "km driven by the community"
+    models_label: "models to compare"
+    drivers_label: "active drivers in the community"
   features:
     open_source_title: "100% Open Source"
     open_source_desc: "Fully transparent on GitHub. No vendor lock-ins."
@@ -127,12 +143,6 @@ landing:
   community_pulse:
     live_label: "Live"
     title: "What's happening in the community"
-  gamification:
-    title: "Rewards for community contributions"
-    log_entry: "Log a charging session"
-    add_vehicle: "Add a vehicle"
-    invite_friend: "Invite a friend"
-    import_data: "Import data"
   import:
     title: "Never type manually again"
     subtitle: "10 data sources - charging sessions sync automatically or via import."

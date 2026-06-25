@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, type Component } from 'vue'
 import { useHead } from '@unhead/vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -8,7 +8,8 @@ import { analytics } from '../services/analytics'
 import SupportPopover from '../components/settings/SupportPopover.vue'
 import PublicNav from '../components/shared/PublicNav.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
-import { getTopModels, getPlatformStats, type TopModelPreview } from '../api/publicModelService'
+import { getTopModels, getMostEfficientModels, getLongestRangeModels, getPlatformStats, type TopModelPreview } from '../api/publicModelService'
+import { selectSuperlatives } from '../composables/superlatives'
 import { formatKm } from '../utils/formatKm'
 import {
   LockClosedIcon,
@@ -16,7 +17,6 @@ import {
   ArrowRightIcon,
   BoltIcon,
   ArrowDownTrayIcon,
-  InformationCircleIcon,
   ShieldCheckIcon,
   ServerStackIcon,
   MapPinIcon,
@@ -29,19 +29,24 @@ import {
   StarIcon,
   MoonIcon,
   SunIcon,
+  ArrowLongRightIcon,
+  CodeBracketIcon,
 } from '@heroicons/vue/24/outline'
 import CommunityPulseSection from '../components/shared/CommunityPulseSection.vue'
+import PublicModelCard from '../components/shared/PublicModelCard.vue'
 
 const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
-const { formatConsumption, formatCostPerKwh, formatCostPerDistance } = useLocaleFormat()
+const { formatConsumption, formatNumber, consumptionUnitLabel, formatDistance, distanceUnitLabel } = useLocaleFormat()
 const isEn = computed(() => route.path.startsWith('/en'))
 const modelsUrl = computed(() => isEn.value ? '/en/models' : '/modelle')
 
 const topModels = ref<TopModelPreview[]>([])
 const nextModels = ref<TopModelPreview[]>([])
+const efficientModels = ref<TopModelPreview[]>([])
+const rangeModels = ref<TopModelPreview[]>([])
 const loading = ref(true)
 const displayModels = ref(0)
 const displayUsers = ref(0)
@@ -51,6 +56,93 @@ const displayTotalKm = ref(0)
 // Round trips to nearest 10 for cleaner display with "+"
 const displayTripsRounded = computed(() => Math.floor(displayTrips.value / 10) * 10)
 const displayTotalKmRounded = computed(() => formatKm(displayTotalKm.value))
+
+// Trust panel: community stats (with explanatory labels) + trust signals
+const trustStats = computed(() => [
+  { value: displayTotalKmRounded.value, label: t('landing.hero.total_km_label') },
+  { value: displayModels.value, label: t('landing.hero.models_label') },
+  { value: displayUsers.value, label: t('landing.hero.drivers_label') },
+])
+const trustSignals = [
+  { icon: CodeBracketIcon, key: 'landing.features.open_source_title', href: 'https://github.com/sebastianwien/ev-monitor', external: true, action: '' },
+  { icon: ArrowDownTrayIcon, key: 'landing.features.auto_import_badge', href: '', external: false, action: 'import' },
+  { icon: ShieldCheckIcon, key: 'landing.features.privacy_badge', href: '', external: false, action: 'privacy' },
+  { icon: UsersIcon, key: 'landing.features.community_badge', href: '', external: false, action: '' },
+]
+
+interface SuperlativeItem {
+  rank: number
+  name: string
+  href: string
+  value: string
+  unit: string
+  meta: string
+}
+interface SuperlativeCategory {
+  key: string
+  label: string
+  sub: string
+  icon: Component
+  items: SuperlativeItem[]
+}
+
+// The three labelled superlatives that replace the (unexplained) hero model cards.
+// Each card now answers "why is this model here?": most efficient, longest real
+// range, most tracked. Formatting/units done here so the template stays declarative.
+const superlativeCategories = computed<SuperlativeCategory[]>(() => {
+  const board = selectSuperlatives(efficientModels.value, rangeModels.value, topModels.value)
+  const href = (m: TopModelPreview) => `${modelsUrl.value}/${m.brandDisplayName}/${m.modelUrlSlug}`
+  const dataMeta = (m: TopModelPreview) => t('landing.superlatives.meta_datapoints', { n: formatNumber(m.logCount) })
+
+  return [
+    {
+      key: 'efficiency',
+      label: t('landing.superlatives.efficiency_label'),
+      sub: t('landing.superlatives.efficiency_sub'),
+      icon: BoltIcon,
+      items: board.efficiency.map((m, i) => ({
+        rank: i + 1,
+        name: m.modelDisplayName,
+        href: href(m),
+        value: formatConsumption(m.avgConsumptionKwhPer100km, { showUnit: false }),
+        unit: consumptionUnitLabel(),
+        meta: dataMeta(m),
+      })),
+    },
+    {
+      key: 'range',
+      label: t('landing.superlatives.range_label'),
+      sub: t('landing.superlatives.range_sub'),
+      icon: ArrowLongRightIcon,
+      items: board.range.map((m, i) => ({
+        rank: i + 1,
+        name: m.modelDisplayName,
+        href: href(m),
+        value: m.realRangeKm != null ? formatDistance(m.realRangeKm, { showUnit: false, round: true }) : '–',
+        unit: distanceUnitLabel(),
+        meta: dataMeta(m),
+      })),
+    },
+    {
+      key: 'popular',
+      label: t('landing.superlatives.popular_label'),
+      sub: t('landing.superlatives.popular_sub'),
+      icon: FireIcon,
+      items: board.popular.map((m, i) => ({
+        rank: i + 1,
+        name: m.modelDisplayName,
+        href: href(m),
+        value: formatNumber(m.logCount),
+        unit: t('landing.superlatives.unit_charges'),
+        meta: m.avgConsumptionKwhPer100km != null
+          ? formatConsumption(m.avgConsumptionKwhPer100km, { showUnit: true })
+          : dataMeta(m),
+      })),
+    },
+  ].filter(cat => cat.items.length > 0)
+})
+
+const hasSuperlatives = computed(() => superlativeCategories.value.length > 0)
 
 const leaderboardCategories = computed(() => [
   { key: 'kwh', label: t('leaderboard.cat_kwh'), icon: BoltIcon, color: 'text-yellow-500' },
@@ -127,9 +219,15 @@ onMounted(async () => {
 
   // Load top models with community data for SEO — single request instead of 12
   try {
-    const models = await getTopModels(8)
+    const [models, efficient, range] = await Promise.all([
+      getTopModels(8),
+      getMostEfficientModels(10),
+      getLongestRangeModels(3),
+    ])
     topModels.value = models.slice(0, 4)
     nextModels.value = models.slice(4, 8)
+    efficientModels.value = efficient
+    rangeModels.value = range
   } catch (error) {
     console.error('Failed to load model previews:', error)
   } finally {
@@ -174,22 +272,10 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
     demoLoading.value = false
   }
 }
-
-
-function formatWltpRange(min: number, max: number | null): string {
-  if (!max || Math.abs(max - min) < 0.05) return formatConsumption(min)
-  return `${formatConsumption(min, { showUnit: false })} - ${formatConsumption(max)}`
-}
-
-function formatRealConsumption(avg: number | null, min: number | null, max: number | null): string {
-  if (min !== null && max !== null) return formatWltpRange(min, max)
-  if (avg !== null) return formatConsumption(avg)
-  return '-'
-}
 </script>
 
 <template>
-  <div class="min-h-screen bg-white dark:bg-gray-950 overflow-x-clip">
+  <div class="sl-grid min-h-screen bg-white dark:bg-gray-950 overflow-x-clip">
     <!-- Navbar -->
     <PublicNav />
 
@@ -199,195 +285,120 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
         <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-gray-100 leading-tight mb-4">
           {{ t('landing.hero.title') }}
         </h1>
-        <p class="text-lg text-gray-600 dark:text-gray-400 mb-6 max-w-xl mx-auto break-words">
+        <p class="text-xl sm:text-2xl text-gray-700 dark:text-gray-300 mb-8 max-w-2xl mx-auto break-words leading-relaxed">
           {{ t('landing.hero.subtitle') }}
         </p>
 
-        <!-- Inline model preview — sofort Wert zeigen -->
-        <div v-if="topModels.length > 0" class="mb-6">
-          <!-- Mobile: horizontal scroll snap -->
-          <div class="lg:hidden flex gap-3 overflow-x-auto snap-x snap-mandatory px-4 pb-1 -mx-4 scrollbar-hide">
-            <a
-              v-for="preview in topModels.slice(0, 3)"
-              :key="`hero-mobile-${preview.brand}-${preview.model}`"
-              :href="`${modelsUrl}/${preview.brandDisplayName}/${preview.modelUrlSlug}`"
-              class="snap-start shrink-0 w-[75vw] max-w-[280px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm p-4 text-left hover:border-green-500 transition block"
-            >
-              <div class="mb-1 text-center">
-                <span class="font-semibold text-gray-900 dark:text-gray-100">{{ preview.modelDisplayName }}</span>
-                <span class="block text-xs text-gray-400 mt-0.5">{{ preview.logCount }} {{ t('landing.hero.charging_sessions') }}</span>
-              </div>
-              <div class="grid grid-cols-[auto_1fr] items-baseline gap-x-3 gap-y-0.5 mt-1 text-sm">
-                <template v-if="preview.minWltpConsumptionKwhPer100km">
-                  <span class="text-xs text-gray-400">{{ t('landing.hero.wltp_label') }}</span>
-                  <span class="text-gray-500 dark:text-gray-400">{{ formatWltpRange(preview.minWltpConsumptionKwhPer100km, preview.maxWltpConsumptionKwhPer100km) }}</span>
-                </template>
-                <template v-if="preview.avgConsumptionKwhPer100km || preview.minRealConsumptionKwhPer100km">
-                  <span class="text-xs text-gray-400">{{ t('landing.hero.real_label') }}</span>
-                  <span class="text-gray-700 dark:text-gray-300 font-semibold">{{ formatRealConsumption(preview.avgConsumptionKwhPer100km, preview.minRealConsumptionKwhPer100km, preview.maxRealConsumptionKwhPer100km) }}</span>
-                </template>
-                <template v-if="preview.avgCostPerKwh && preview.avgConsumptionKwhPer100km">
-                  <span class="text-xs text-gray-400">{{ t('landing.hero.costs_label') }}</span>
-                  <span class="flex flex-wrap items-center gap-x-1.5">
-                    <span class="text-blue-500 font-medium">~{{ formatCostPerDistance(preview.avgCostPerKwh * preview.avgConsumptionKwhPer100km) }}</span>
-                    <span class="relative group cursor-help inline-flex items-center gap-0.5 text-xs text-gray-400">
-                      <span>Ø {{ formatCostPerKwh(preview.avgCostPerKwh) }}</span>
-                      <InformationCircleIcon class="h-3 w-3 flex-shrink-0" />
-                      <span class="absolute bottom-full left-0 mb-1.5 px-2.5 py-2 bg-gray-800 text-white text-xs rounded-sm w-60 hidden group-hover:block z-20 pointer-events-none leading-snug shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)]">
-                        {{ t('landing.hero.cost_tooltip') }}
-                      </span>
-                    </span>
-                  </span>
-                </template>
-              </div>
-              <div class="mt-2 text-green-600 text-xs font-medium flex items-center justify-end gap-1">
-                <span>{{ t('landing.hero.view_details') }}</span>
-                <ArrowRightIcon class="h-3.5 w-3.5" />
-              </div>
-            </a>
+        <!-- Community-Bestenliste: labelled superlatives replace the unexplained cards -->
+        <div v-if="hasSuperlatives" class="sl-board text-left px-5 py-7 mb-8">
+          <div class="text-center mb-6">
+            <span class="block text-sm sm:text-base font-extrabold tracking-[0.18em] uppercase text-green-700 dark:text-green-400">{{ t('landing.superlatives.eyebrow') }}</span>
+            <i18n-t keypath="landing.superlatives.from_trips" tag="span" class="block mt-1.5 text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-semibold">
+              <template #n>
+                <span class="sl-num text-base sm:text-xl font-extrabold text-gray-900 dark:text-gray-100">{{ formatNumber(displayTripsRounded) }}</span>
+              </template>
+            </i18n-t>
           </div>
-          <!-- Desktop: 3 Modelle nebeneinander -->
-          <div class="hidden lg:grid grid-cols-3 gap-4 max-w-5xl mx-auto">
-            <a
-              v-for="preview in topModels.slice(0, 3)"
-              :key="`hero-${preview.brand}-${preview.model}`"
-              :href="`${modelsUrl}/${preview.brandDisplayName}/${preview.modelUrlSlug}`"
-              class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm p-4 text-left hover:border-green-500 transition block"
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div
+              v-for="cat in superlativeCategories"
+              :key="cat.key"
+              class="sl-panel bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-900 dark:border-gray-100 p-5"
             >
-              <div class="mb-1 text-center">
-                <span class="font-semibold text-gray-900 dark:text-gray-100">{{ preview.modelDisplayName }}</span>
-                <span class="block text-xs text-gray-400 mt-0.5">{{ preview.logCount }} {{ t('landing.hero.charging_sessions') }}</span>
+              <div class="flex items-center gap-2.5 text-green-700 dark:text-green-400">
+                <component :is="cat.icon" class="h-6 w-6" />
+                <span class="font-extrabold uppercase tracking-wide text-base">{{ cat.label }}</span>
               </div>
-              <div class="grid grid-cols-[auto_1fr] items-baseline gap-x-3 gap-y-0.5 mt-1 text-sm">
-                <template v-if="preview.minWltpConsumptionKwhPer100km">
-                  <span class="text-xs text-gray-400">{{ t('landing.hero.wltp_label') }}</span>
-                  <span class="text-gray-500 dark:text-gray-400">{{ formatWltpRange(preview.minWltpConsumptionKwhPer100km, preview.maxWltpConsumptionKwhPer100km) }}</span>
-                </template>
-                <template v-if="preview.avgConsumptionKwhPer100km || preview.minRealConsumptionKwhPer100km">
-                  <span class="text-xs text-gray-400">{{ t('landing.hero.real_label') }}</span>
-                  <span class="text-gray-700 dark:text-gray-300 font-semibold">{{ formatRealConsumption(preview.avgConsumptionKwhPer100km, preview.minRealConsumptionKwhPer100km, preview.maxRealConsumptionKwhPer100km) }}</span>
-                </template>
-                <template v-if="preview.avgCostPerKwh && preview.avgConsumptionKwhPer100km">
-                  <span class="text-xs text-gray-400">{{ t('landing.hero.costs_label') }}</span>
-                  <span class="flex flex-wrap items-center gap-x-1.5">
-                    <span class="text-blue-500 font-medium">~{{ formatCostPerDistance(preview.avgCostPerKwh * preview.avgConsumptionKwhPer100km) }}</span>
-                    <span class="relative group cursor-help inline-flex items-center gap-0.5 text-xs text-gray-400">
-                      <span>Ø {{ formatCostPerKwh(preview.avgCostPerKwh) }}</span>
-                      <InformationCircleIcon class="h-3 w-3 flex-shrink-0" />
-                      <span class="absolute bottom-full left-0 mb-1.5 px-2.5 py-2 bg-gray-800 text-white text-xs rounded-sm w-60 hidden group-hover:block z-20 pointer-events-none leading-snug shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)]">
-                        {{ t('landing.hero.cost_tooltip') }}
-                      </span>
-                    </span>
-                  </span>
-                </template>
-              </div>
-              <div class="mt-2 text-green-600 text-xs font-medium flex items-center justify-end gap-1">
-                <span>{{ t('landing.hero.view_details') }}</span>
-                <ArrowRightIcon class="h-3.5 w-3.5" />
-              </div>
-            </a>
+              <div class="text-xs text-gray-400 font-semibold mb-3 ml-[2.1rem] -mt-0.5">{{ cat.sub }}</div>
+              <div class="h-0.5 bg-green-600 rounded mb-1"></div>
+              <a
+                v-for="(item, i) in cat.items"
+                :key="`${cat.key}-${item.name}-${i}`"
+                :href="item.href"
+                class="sl-rise sl-row mt-3 flex items-center gap-3.5 p-3.5 rounded-lg border-2 border-gray-900/10 dark:border-white/10 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/40"
+                :style="{ animationDelay: `${i * 60}ms` }"
+              >
+                <span
+                  v-if="item.rank === 1"
+                  class="sl-gold-chip flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-xl font-extrabold"
+                >1</span>
+                <span
+                  v-else
+                  class="flex-shrink-0 w-10 h-10 rounded-lg border-2 border-gray-900/10 dark:border-white/15 flex items-center justify-center text-lg font-extrabold text-gray-400"
+                >{{ item.rank }}</span>
+                <div class="flex-1 min-w-0">
+                  <div
+                    class="font-bold text-base leading-snug line-clamp-2"
+                    :class="item.rank === 1 ? 'text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-300'"
+                  >{{ item.name }}</div>
+                  <div class="sl-num text-xs text-gray-400 font-semibold mt-0.5">{{ item.meta }}</div>
+                </div>
+                <div class="text-right leading-none flex-shrink-0">
+                  <span
+                    class="sl-num font-extrabold whitespace-nowrap"
+                    :class="item.rank === 1 ? 'sl-gold text-3xl' : 'text-2xl text-gray-900 dark:text-gray-100'"
+                  >{{ item.value }}</span>
+                  <div class="text-[11px] text-gray-400 font-semibold mt-1">{{ item.unit }}</div>
+                </div>
+              </a>
+            </div>
           </div>
         </div>
 
         <!-- Primary CTA: kein Account nötig -->
-        <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-8">
           <button
             @click="demoLogin('hero')"
             :disabled="demoLoading"
-            class="demo-shimmer w-full sm:w-auto cursor-pointer bg-green-600 text-white px-6 py-3 sm:px-8 sm:py-4 rounded-sm text-base sm:text-lg font-semibold hover:bg-green-700 disabled:opacity-50 inline-flex items-center justify-center gap-2 transition"
+            class="btn-3d cta-shadow w-full sm:w-auto cursor-pointer bg-green-600 text-white border-2 border-gray-900 dark:border-gray-100 px-6 py-3 sm:px-8 sm:py-4 rounded-sm text-base sm:text-lg font-semibold hover:bg-green-700 disabled:opacity-50 inline-flex items-center justify-center gap-2 transition"
           >
             {{ demoLoading ? t('landing.hero.loading_button') : t('landing.hero.demo_button') }}
           </button>
           <router-link
             :to="modelsUrl"
             @click="analytics.trackCtaModelsClicked('hero')"
-            class="w-full sm:w-auto border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-6 py-3 sm:px-8 sm:py-4 rounded-sm text-base sm:text-lg font-semibold hover:border-green-500 hover:text-green-700 transition inline-flex items-center justify-center space-x-2"
+            class="btn-3d cta-shadow w-full sm:w-auto bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 text-gray-800 dark:text-gray-100 px-6 py-3 sm:px-8 sm:py-4 rounded-sm text-base sm:text-lg font-semibold hover:text-green-700 dark:hover:text-green-400 transition inline-flex items-center justify-center space-x-2"
           >
             <span>{{ t('landing.hero.models_button') }}</span>
             <ArrowRightIcon class="h-5 w-5" />
           </router-link>
         </div>
 
-        <p class="mt-5 text-sm text-gray-400">
+        <p class="mt-6 text-base sm:text-lg text-gray-600 dark:text-gray-300">
           {{ t('landing.hero.or') }}
-          <button @click="goToRegister('hero_secondary')" class="text-green-600 hover:text-green-700 font-medium underline underline-offset-2">{{ t('landing.hero.register_link') }}</button>
+          <button @click="goToRegister('hero_secondary')" class="text-green-600 hover:text-green-700 font-bold underline underline-offset-2">{{ t('landing.hero.register_link') }}</button>
           {{ t('landing.hero.track_data') }}
         </p>
 
-        <div class="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center max-w-lg mx-auto sm:max-w-none">
-          <div>
-            <p class="text-xl font-bold text-gray-700 dark:text-gray-300 tabular-nums">{{ displayTripsRounded }}+</p>
-            <p class="text-xs text-gray-400 mt-0.5">{{ t('landing.hero.trips_label') }}</p>
-          </div>
-          <div>
-            <p class="text-xl font-bold text-gray-700 dark:text-gray-300 tabular-nums">{{ displayTotalKmRounded }}</p>
-            <p class="text-xs text-gray-400 mt-0.5">{{ t('landing.hero.total_km_label') }}</p>
-          </div>
-          <div>
-            <p class="text-xl font-bold text-gray-700 dark:text-gray-300 tabular-nums">{{ displayModels }}</p>
-            <p class="text-xs text-gray-400 mt-0.5">{{ t('landing.hero.models_label') }}</p>
-          </div>
-          <div>
-            <p class="text-xl font-bold text-gray-700 dark:text-gray-300 tabular-nums">{{ displayUsers }}</p>
-            <p class="text-xs text-gray-400 mt-0.5">{{ t('landing.hero.drivers_label') }}</p>
-          </div>
-        </div>
       </div>
     </section>
 
-    <!-- Trust Badge Strip -->
-    <section class="py-3 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
-      <div class="max-w-7xl mx-auto px-4 sm:px-8 lg:px-12">
-        <div class="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
-
-          <!-- Open Source Badge -->
-          <a
-            href="https://github.com/sebastianwien/ev-monitor"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="no-press inline-flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-xs font-medium text-gray-700 dark:text-gray-300 hover:border-green-500 hover:text-green-700 dark:hover:text-green-400 transition-colors"
-          >
-            <svg class="h-3.5 w-3.5 shrink-0" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" />
-            </svg>
-            {{ t('landing.features.open_source_title') }}
-            <ArrowTopRightOnSquareIcon class="h-3 w-3 opacity-50" />
-          </a>
-
-          <span class="hidden sm:block w-px h-4 bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
-
-          <!-- Auto-Import Badge -->
-          <a
-            href="#import-hub"
-            @click.prevent="scrollToImportHub"
-            class="no-press inline-flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-xs font-medium text-gray-700 dark:text-gray-300 hover:border-green-500 hover:text-green-700 dark:hover:text-green-400 transition-colors"
-          >
-            <ArrowDownTrayIcon class="h-3.5 w-3.5 shrink-0" />
-            {{ t('landing.features.auto_import_badge') }}
-            <ArrowRightIcon class="h-3 w-3 opacity-50" />
-          </a>
-
-          <span class="hidden sm:block w-px h-4 bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
-
-          <!-- Privacy Badge -->
-          <a
-            href="#privacy-section"
-            @click.prevent="scrollToPrivacy"
-            class="no-press inline-flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-xs font-medium text-gray-700 dark:text-gray-300 hover:border-green-500 hover:text-green-700 dark:hover:text-green-400 transition-colors"
-          >
-            <ShieldCheckIcon class="h-3.5 w-3.5 shrink-0" />
-            {{ t('landing.features.privacy_badge') }}
-            <ArrowRightIcon class="h-3 w-3 opacity-50" />
-          </a>
-
-          <span class="hidden sm:block w-px h-4 bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
-
-          <!-- Community Badge -->
-          <div class="inline-flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-xs font-medium text-gray-700 dark:text-gray-300">
-            <UsersIcon class="h-3.5 w-3.5 shrink-0" />
-            {{ t('landing.features.community_badge') }}
+    <!-- Trust / Credibility panel -->
+    <section class="py-10 sm:py-14">
+      <div class="max-w-3xl mx-auto px-6">
+        <div class="bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 rounded-xl p-6 shadow-[5px_5px_0_0_#15803d] dark:shadow-[5px_5px_0_0_#22c55e]">
+          <div class="grid grid-cols-3 divide-x divide-gray-900/10 dark:divide-white/10">
+            <div v-for="s in trustStats" :key="s.label" class="px-2 sm:px-4 text-center">
+              <p class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 tabular-nums">{{ s.value }}</p>
+              <p class="text-sm sm:text-base text-gray-600 dark:text-gray-300 mt-1.5 leading-snug">{{ s.label }}</p>
+            </div>
           </div>
-
+          <div class="h-px bg-gray-900/10 dark:bg-white/10 my-5"></div>
+          <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
+            <component
+              :is="sig.href ? 'a' : sig.action ? 'button' : 'span'"
+              v-for="sig in trustSignals" :key="sig.key"
+              :href="sig.href || undefined"
+              :target="sig.external ? '_blank' : undefined"
+              :rel="sig.external ? 'noopener noreferrer' : undefined"
+              @click="sig.action === 'import' ? scrollToImportHub() : sig.action === 'privacy' ? scrollToPrivacy() : undefined"
+              class="inline-flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-green-700 dark:hover:text-green-400 transition-colors"
+            >
+              <component :is="sig.icon" class="h-5 w-5 text-green-600 dark:text-green-400 shrink-0" />
+              {{ t(sig.key) }}
+              <ArrowTopRightOnSquareIcon v-if="sig.external" class="h-3.5 w-3.5 opacity-50" />
+            </component>
+          </div>
         </div>
       </div>
     </section>
@@ -404,18 +415,18 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
 
           <!-- Heading (mobile pos 1+2) -->
           <div class="order-1 lg:col-start-1 lg:row-start-1 lg:self-end text-center lg:text-left">
-            <span class="text-xs font-semibold text-green-600 uppercase tracking-wider">{{ t('landing.app_preview.dashboard_label') }}</span>
+            <span class="text-xs sm:text-sm font-extrabold text-green-700 dark:text-green-400 uppercase tracking-[0.18em]">{{ t('landing.app_preview.dashboard_label') }}</span>
             <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mt-2 mb-3">
               {{ t('landing.app_preview.dashboard_title') }}
             </h2>
-            <p class="text-gray-600 dark:text-gray-400 max-w-md mx-auto lg:mx-0">
+            <p class="text-lg font-medium text-gray-700 dark:text-gray-200 max-w-md mx-auto lg:mx-0">
               {{ t('landing.app_preview.dashboard_desc') }}
             </p>
           </div>
 
           <!-- Dashboard screenshot (mobile pos 3) -->
           <div class="order-2 lg:order-none lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:self-center w-full max-w-xl lg:max-w-none mx-auto relative">
-            <div class="rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden relative">
+            <div class="rounded-xl border-2 border-gray-900 dark:border-gray-100 shadow-[8px_8px_0_0_#15803d] dark:shadow-[8px_8px_0_0_#22c55e] overflow-hidden relative">
               <img
                 src="/screenshots/dashboard-light.jpg"
                 alt="EV Monitor Dashboard"
@@ -427,17 +438,17 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
               <div class="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-b from-transparent to-white dark:to-gray-900 pointer-events-none"></div>
             </div>
             <!-- Floating chips -->
-            <div class="absolute -top-3 -right-3 bg-green-500 text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg hidden sm:block">
+            <div class="absolute -top-3 -right-3 bg-green-500 text-white text-sm font-bold px-4 py-2 rounded-full shadow-[4px_4px_0_0_#111827] border-2 border-gray-900 hidden sm:block">
               {{ t('landing.app_preview.chip_co2') }}
             </div>
-            <div class="absolute -bottom-3 -left-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg hidden sm:block">
+            <div class="absolute -bottom-3 -left-3 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-sm font-bold px-4 py-2 rounded-full shadow-[4px_4px_0_0_#111827] border-2 border-gray-900 hidden sm:block">
               {{ t('landing.app_preview.chip_costs') }}
             </div>
           </div>
 
           <!-- Features + CTA (mobile pos 4) -->
           <div class="order-3 lg:col-start-1 lg:row-start-2 lg:self-start text-center lg:text-left">
-            <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-2 mb-6 text-left inline-block">
+            <ul class="text-base font-medium text-gray-700 dark:text-gray-200 space-y-2.5 mb-6 text-left inline-block">
               <li class="flex items-start gap-2"><span class="text-green-500 font-bold mt-0.5">-</span>{{ t('landing.app_preview.dashboard_bullet1') }}</li>
               <li class="flex items-start gap-2"><span class="text-green-500 font-bold mt-0.5">-</span>{{ t('landing.app_preview.dashboard_bullet2') }}</li>
               <li class="flex items-start gap-2"><span class="text-green-500 font-bold mt-0.5">-</span>{{ t('landing.app_preview.dashboard_bullet3') }}</li>
@@ -445,7 +456,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
             <button
               @click="demoLogin('dashboard_preview')"
               :disabled="demoLoading"
-              class="inline-flex items-center gap-2 text-green-600 hover:text-green-700 font-medium text-sm transition disabled:opacity-50"
+              class="inline-flex items-center gap-2 text-green-600 hover:text-green-700 font-semibold text-base transition disabled:opacity-50"
             >
               {{ t('landing.app_preview.dashboard_cta') }}
               <ArrowRightIcon class="h-4 w-4" />
@@ -460,18 +471,18 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
 
           <!-- Heading (mobile pos 1+2) -->
           <div class="order-1 lg:col-start-2 lg:row-start-1 lg:self-end text-center lg:text-left">
-            <span class="text-xs font-semibold text-green-600 uppercase tracking-wider">{{ t('landing.app_preview.logfeed_label') }}</span>
+            <span class="text-xs sm:text-sm font-extrabold text-green-700 dark:text-green-400 uppercase tracking-[0.18em]">{{ t('landing.app_preview.logfeed_label') }}</span>
             <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mt-2 mb-3">
               {{ t('landing.app_preview.logfeed_title') }}
             </h2>
-            <p class="text-gray-600 dark:text-gray-400 max-w-md mx-auto lg:mx-0">
+            <p class="text-lg font-medium text-gray-700 dark:text-gray-200 max-w-md mx-auto lg:mx-0">
               {{ t('landing.app_preview.logfeed_desc') }}
             </p>
           </div>
 
           <!-- Logfeed screenshot (mobile pos 3) -->
           <div class="order-2 lg:order-none lg:col-start-1 lg:row-start-1 lg:row-span-2 lg:self-center w-full max-w-xl lg:max-w-none mx-auto relative">
-            <div class="rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden relative">
+            <div class="rounded-xl border-2 border-gray-900 dark:border-gray-100 shadow-[8px_8px_0_0_#15803d] dark:shadow-[8px_8px_0_0_#22c55e] overflow-hidden relative">
               <img
                 src="/screenshots/logfeed-light.jpg"
                 alt="EV Monitor Ladehistorie"
@@ -483,17 +494,17 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
               <div class="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-b from-transparent to-white dark:to-gray-900 pointer-events-none"></div>
             </div>
             <!-- Floating chips -->
-            <div class="absolute -top-3 -right-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg hidden sm:block">
+            <div class="absolute -top-3 -right-3 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-sm font-bold px-4 py-2 rounded-full shadow-[4px_4px_0_0_#111827] border-2 border-gray-900 hidden sm:block">
               {{ t('landing.app_preview.chip_efficiency') }}
             </div>
-            <div class="absolute -bottom-3 -left-3 bg-green-500 text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg hidden sm:block">
+            <div class="absolute -bottom-3 -left-3 bg-green-500 text-white text-sm font-bold px-4 py-2 rounded-full shadow-[4px_4px_0_0_#111827] border-2 border-gray-900 hidden sm:block">
               {{ t('landing.app_preview.chip_range') }}
             </div>
           </div>
 
           <!-- Features + CTA (mobile pos 4) -->
           <div class="order-3 lg:col-start-2 lg:row-start-2 lg:self-start text-center lg:text-left">
-            <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-2 mb-6 text-left inline-block">
+            <ul class="text-base font-medium text-gray-700 dark:text-gray-200 space-y-2.5 mb-6 text-left inline-block">
               <li class="flex items-start gap-2"><span class="text-green-500 font-bold mt-0.5">-</span>{{ t('landing.app_preview.logfeed_bullet1') }}</li>
               <li class="flex items-start gap-2"><span class="text-green-500 font-bold mt-0.5">-</span>{{ t('landing.app_preview.logfeed_bullet2') }}</li>
               <li class="flex items-start gap-2"><span class="text-green-500 font-bold mt-0.5">-</span>{{ t('landing.app_preview.logfeed_bullet3') }}</li>
@@ -501,7 +512,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
             <button
               @click="demoLogin('logfeed_preview')"
               :disabled="demoLoading"
-              class="inline-flex items-center gap-2 text-green-600 hover:text-green-700 font-medium text-sm transition disabled:opacity-50"
+              class="inline-flex items-center gap-2 text-green-600 hover:text-green-700 font-semibold text-base transition disabled:opacity-50"
             >
               {{ t('landing.app_preview.logfeed_cta') }}
               <ArrowRightIcon class="h-4 w-4" />
@@ -523,11 +534,11 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
           <div class="flex flex-col">
             <!-- Heading (mobile pos 1) -->
             <div class="order-1 lg:order-2 lg:mt-5">
-              <span class="text-xs font-semibold text-green-600 uppercase tracking-wider">{{ t('landing.app_preview.map_label') }}</span>
-              <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1 mb-2">{{ t('landing.app_preview.map_title') }}</h3>
+              <span class="text-xs sm:text-sm font-extrabold text-green-700 dark:text-green-400 uppercase tracking-[0.18em]">{{ t('landing.app_preview.map_label') }}</span>
+              <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1 mb-2">{{ t('landing.app_preview.map_title') }}</h3>
             </div>
             <!-- Screenshot (mobile pos 2) -->
-            <div class="order-2 lg:order-1 mt-3 lg:mt-0 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="order-2 lg:order-1 mt-3 lg:mt-0 rounded-xl border-2 border-gray-900 dark:border-gray-100 shadow-[6px_6px_0_0_#15803d] dark:shadow-[6px_6px_0_0_#22c55e] overflow-hidden">
               <img
                 src="/screenshots/map-light.jpg"
                 alt="EV Monitor Lade-Standorte Karte"
@@ -539,11 +550,11 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
             </div>
             <!-- Features + CTA (mobile pos 3) -->
             <div class="order-3 mt-3 lg:mt-0">
-              <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-1.5 mb-3">
+              <ul class="text-base font-medium text-gray-700 dark:text-gray-200 space-y-2 mb-3">
                 <li class="flex items-start gap-2"><span class="text-green-500 font-bold shrink-0 mt-0.5">-</span>{{ t('landing.app_preview.map_bullet1') }}</li>
                 <li class="flex items-start gap-2"><span class="text-green-500 font-bold shrink-0 mt-0.5">-</span>{{ t('landing.app_preview.map_bullet2') }}</li>
               </ul>
-              <button @click="demoLogin('map_gallery')" :disabled="demoLoading" class="inline-flex items-center gap-2 text-green-600 hover:text-green-700 font-medium text-sm transition disabled:opacity-50">
+              <button @click="demoLogin('map_gallery')" :disabled="demoLoading" class="inline-flex items-center gap-2 text-green-600 hover:text-green-700 font-semibold text-base transition disabled:opacity-50">
                 {{ t('landing.app_preview.map_cta') }}<ArrowRightIcon class="h-4 w-4" />
               </button>
             </div>
@@ -553,11 +564,11 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
           <div class="flex flex-col">
             <!-- Heading (mobile pos 1) -->
             <div class="order-1 lg:order-2 lg:mt-5">
-              <span class="text-xs font-semibold text-green-600 uppercase tracking-wider">{{ t('landing.app_preview.charts_label') }}</span>
-              <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1 mb-2">{{ t('landing.app_preview.charts_title') }}</h3>
+              <span class="text-xs sm:text-sm font-extrabold text-green-700 dark:text-green-400 uppercase tracking-[0.18em]">{{ t('landing.app_preview.charts_label') }}</span>
+              <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1 mb-2">{{ t('landing.app_preview.charts_title') }}</h3>
             </div>
             <!-- Screenshot (mobile pos 2) -->
-            <div class="order-2 lg:order-1 mt-3 lg:mt-0 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="order-2 lg:order-1 mt-3 lg:mt-0 rounded-xl border-2 border-gray-900 dark:border-gray-100 shadow-[6px_6px_0_0_#15803d] dark:shadow-[6px_6px_0_0_#22c55e] overflow-hidden">
               <img
                 src="/screenshots/charts-light.jpg"
                 alt="EV Monitor Analysen Kosten und Verbrauch"
@@ -569,11 +580,11 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
             </div>
             <!-- Features + CTA (mobile pos 3) -->
             <div class="order-3 mt-3 lg:mt-0">
-              <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-1.5 mb-3">
+              <ul class="text-base font-medium text-gray-700 dark:text-gray-200 space-y-2 mb-3">
                 <li class="flex items-start gap-2"><span class="text-green-500 font-bold shrink-0 mt-0.5">-</span>{{ t('landing.app_preview.charts_bullet1') }}</li>
                 <li class="flex items-start gap-2"><span class="text-green-500 font-bold shrink-0 mt-0.5">-</span>{{ t('landing.app_preview.charts_bullet2') }}</li>
               </ul>
-              <button @click="demoLogin('charts_gallery')" :disabled="demoLoading" class="inline-flex items-center gap-2 text-green-600 hover:text-green-700 font-medium text-sm transition disabled:opacity-50">
+              <button @click="demoLogin('charts_gallery')" :disabled="demoLoading" class="inline-flex items-center gap-2 text-green-600 hover:text-green-700 font-semibold text-base transition disabled:opacity-50">
                 {{ t('landing.app_preview.charts_cta') }}<ArrowRightIcon class="h-4 w-4" />
               </button>
             </div>
@@ -590,18 +601,18 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
 
           <!-- Heading (mobile pos 1+2) -->
           <div class="order-1 lg:col-start-2 lg:row-start-1 lg:self-end text-center lg:text-left">
-            <span class="text-xs font-semibold text-green-600 uppercase tracking-wider">{{ t('landing.leaderboard.label') }}</span>
+            <span class="text-xs sm:text-sm font-extrabold text-green-700 dark:text-green-400 uppercase tracking-[0.18em]">{{ t('landing.leaderboard.label') }}</span>
             <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mt-2 mb-3">
               {{ t('landing.leaderboard.title') }}
             </h2>
-            <p class="text-gray-600 dark:text-gray-400 max-w-md mx-auto lg:mx-0">
+            <p class="text-lg font-medium text-gray-700 dark:text-gray-200 max-w-md mx-auto lg:mx-0">
               {{ t('landing.leaderboard.desc') }}
             </p>
           </div>
 
           <!-- Screenshot (mobile pos 3) -->
           <div class="order-2 lg:order-none lg:col-start-1 lg:row-start-1 lg:row-span-2 lg:self-center w-full max-w-xs sm:max-w-sm lg:max-w-none mx-auto relative">
-            <div class="rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden relative">
+            <div class="rounded-xl border-2 border-gray-900 dark:border-gray-100 shadow-[8px_8px_0_0_#15803d] dark:shadow-[8px_8px_0_0_#22c55e] overflow-hidden relative">
               <img
                 src="/screenshots/leaderboard-light.jpg"
                 alt="EV Monitor Bestenliste"
@@ -612,7 +623,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
               />
               <div class="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-b from-transparent to-white dark:to-gray-900 pointer-events-none"></div>
             </div>
-            <div class="absolute -top-3 -left-3 bg-yellow-400 text-yellow-900 text-xs font-bold px-3 py-1.5 rounded-full shadow-lg hidden sm:flex items-center gap-1.5">
+            <div class="absolute -top-3 -left-3 bg-yellow-400 text-yellow-900 text-sm font-bold px-4 py-2 rounded-full shadow-[4px_4px_0_0_#111827] border-2 border-gray-900 hidden sm:flex items-center gap-1.5">
               <TrophyIcon class="h-3.5 w-3.5" />
               {{ t('landing.leaderboard.chip_monthly') }}
             </div>
@@ -622,7 +633,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
           <div class="order-3 lg:col-start-2 lg:row-start-2 lg:self-start">
             <div class="grid grid-cols-2 gap-2 max-w-md mx-auto lg:mx-0">
               <div v-for="cat in leaderboardCategories" :key="cat.key"
-                class="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg text-sm text-gray-700 dark:text-gray-300"
+                class="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-800 border-2 border-gray-900/10 dark:border-white/10 rounded-lg text-sm text-gray-700 dark:text-gray-300"
               >
                 <component :is="cat.icon" :class="['h-4 w-4 shrink-0', cat.color]" />
                 <span class="font-medium truncate">{{ cat.label }}</span>
@@ -643,13 +654,13 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
       <!-- Dark mode gallery -->
       <div class="max-w-7xl mx-auto px-4 sm:px-8 lg:px-12">
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-          <div class="rounded-xl overflow-hidden shadow-xl border border-gray-700/50 aspect-[900/1087]">
+          <div class="rounded-xl overflow-hidden border-2 border-gray-900 dark:border-gray-100 shadow-[6px_6px_0_0_#15803d] dark:shadow-[6px_6px_0_0_#22c55e] aspect-[900/1087]">
             <img src="/screenshots/dashboard-dark.jpg" alt="EV Monitor Dashboard Dark Mode" class="w-full h-full object-cover object-top" loading="lazy" width="900" height="1087" />
           </div>
-          <div class="rounded-xl overflow-hidden shadow-xl border border-gray-700/50 aspect-[900/1087]">
+          <div class="rounded-xl overflow-hidden border-2 border-gray-900 dark:border-gray-100 shadow-[6px_6px_0_0_#15803d] dark:shadow-[6px_6px_0_0_#22c55e] aspect-[900/1087]">
             <img src="/screenshots/charts-dark.jpg" alt="EV Monitor Charts Dark Mode" class="w-full h-full object-cover object-top" loading="lazy" width="900" height="1165" />
           </div>
-          <div class="rounded-xl overflow-hidden shadow-xl border border-gray-700/50 aspect-[900/1087]">
+          <div class="rounded-xl overflow-hidden border-2 border-gray-900 dark:border-gray-100 shadow-[6px_6px_0_0_#15803d] dark:shadow-[6px_6px_0_0_#22c55e] aspect-[900/1087]">
             <img src="/screenshots/map-dark.jpg" alt="EV Monitor Karte Dark Mode" class="w-full h-full object-cover object-top" loading="lazy" width="900" height="1156" />
           </div>
         </div>
@@ -674,46 +685,12 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
 
         <div v-else-if="topModels.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           <!-- Model Cards -->
-          <a
+          <PublicModelCard
             v-for="preview in topModels"
             :key="`${preview.brand}-${preview.model}`"
-            :href="`/modelle/${preview.brandDisplayName}/${preview.modelUrlSlug}`"
-            class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm p-4 hover:border-green-500 transition block"
-          >
-            <div class="mb-2 text-center">
-              <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ preview.modelDisplayName }}</h3>
-              <span class="block text-xs text-gray-400 mt-0.5">{{ preview.logCount }} {{ t('landing.hero.charging_sessions') }}</span>
-            </div>
-
-            <div class="grid grid-cols-[auto_1fr] items-baseline gap-x-3 gap-y-0.5 mb-3 text-sm">
-              <template v-if="preview.minWltpConsumptionKwhPer100km">
-                <span class="text-xs text-gray-400">WLTP</span>
-                <span class="text-gray-500 dark:text-gray-400">{{ formatWltpRange(preview.minWltpConsumptionKwhPer100km, preview.maxWltpConsumptionKwhPer100km) }}</span>
-              </template>
-              <template v-if="preview.avgConsumptionKwhPer100km || preview.minRealConsumptionKwhPer100km">
-                <span class="text-xs text-gray-400">Real</span>
-                <span class="text-gray-700 dark:text-gray-300 font-medium">{{ formatRealConsumption(preview.avgConsumptionKwhPer100km, preview.minRealConsumptionKwhPer100km, preview.maxRealConsumptionKwhPer100km) }}</span>
-              </template>
-              <template v-if="preview.avgCostPerKwh && preview.avgConsumptionKwhPer100km">
-                <span class="text-xs text-gray-400">Kosten</span>
-                <span class="flex flex-wrap items-center gap-x-1.5">
-                  <span class="text-blue-500 font-medium">~{{ formatCostPerDistance(preview.avgCostPerKwh * preview.avgConsumptionKwhPer100km) }}</span>
-                  <span class="relative group cursor-help inline-flex items-center gap-0.5 text-xs text-gray-400">
-                    <span>Ø {{ formatCostPerKwh(preview.avgCostPerKwh) }}</span>
-                    <InformationCircleIcon class="h-3 w-3 flex-shrink-0" />
-                    <span class="absolute bottom-full left-0 mb-1.5 px-2.5 py-2 bg-gray-800 text-white text-xs rounded-sm w-60 hidden group-hover:block z-20 pointer-events-none leading-snug shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)]">
-                      {{ t('landing.hero.cost_tooltip') }}
-                    </span>
-                  </span>
-                </span>
-              </template>
-            </div>
-
-            <div class="text-green-600 font-medium flex justify-end items-center gap-1 text-sm">
-              <span>{{ t('landing.models_section.view_details') }}</span>
-              <ArrowRightIcon class="h-4 w-4" />
-            </div>
-          </a>
+            :model="preview"
+            :to="`${modelsUrl}/${preview.brandDisplayName}/${preview.modelUrlSlug}`"
+          />
 
           <!-- Next 4 models teaser + CTAs — span full grid width -->
           <div class="col-span-full mt-2 space-y-4">
@@ -729,48 +706,20 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
                   {{ m.modelDisplayName }}
                 </a>
               </div>
-              <!-- sm+: cards -->
+              <!-- sm+: cards (identical layout to the top row) -->
               <div class="hidden sm:grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                <a
+                <PublicModelCard
                   v-for="m in nextModels"
                   :key="`${m.brand}-${m.model}`"
-                  :href="`${modelsUrl}/${m.brandDisplayName}/${m.modelUrlSlug}`"
-                  class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm p-4 hover:border-green-500 transition"
-                >
-                  <div class="mb-2">
-                    <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ m.modelDisplayName }}</h3>
-                    <span class="block text-xs text-gray-400 mt-0.5">{{ m.logCount }} {{ t('landing.hero.charging_sessions') }}</span>
-                  </div>
-                  <div class="grid grid-cols-[auto_1fr] items-baseline gap-x-2 gap-y-0.5 text-xs">
-                    <template v-if="m.minWltpConsumptionKwhPer100km">
-                      <span class="text-gray-400">WLTP</span>
-                      <span class="text-gray-500 dark:text-gray-400">{{ formatWltpRange(m.minWltpConsumptionKwhPer100km, m.maxWltpConsumptionKwhPer100km) }}</span>
-                    </template>
-                    <template v-if="m.avgConsumptionKwhPer100km || m.minRealConsumptionKwhPer100km">
-                      <span class="text-gray-400">Real</span>
-                      <span class="text-gray-700 dark:text-gray-300 font-medium">{{ formatRealConsumption(m.avgConsumptionKwhPer100km, m.minRealConsumptionKwhPer100km, m.maxRealConsumptionKwhPer100km) }}</span>
-                    </template>
-                    <template v-if="m.avgCostPerKwh && m.avgConsumptionKwhPer100km">
-                      <span class="text-gray-400">Kosten</span>
-                      <span class="flex flex-wrap items-center gap-x-1">
-                        <span class="text-blue-500 font-medium">~{{ formatCostPerDistance(m.avgCostPerKwh * m.avgConsumptionKwhPer100km) }}</span>
-                        <span class="relative group cursor-help inline-flex items-center gap-0.5 text-gray-400">
-                          <span>Ø {{ formatCostPerKwh(m.avgCostPerKwh) }}</span>
-                          <InformationCircleIcon class="h-3 w-3 flex-shrink-0" />
-                          <span class="absolute bottom-full left-0 mb-1.5 px-2.5 py-2 bg-gray-800 text-white text-xs rounded-sm w-56 hidden group-hover:block z-20 pointer-events-none leading-snug shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)]">
-                            {{ t('landing.hero.cost_tooltip') }}
-                          </span>
-                        </span>
-                      </span>
-                    </template>
-                  </div>
-                </a>
+                  :model="m"
+                  :to="`${modelsUrl}/${m.brandDisplayName}/${m.modelUrlSlug}`"
+                />
               </div>
             </div>
-            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 mt-4 sm:mt-6">
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-6 mt-4 sm:mt-6">
               <router-link
                 :to="modelsUrl"
-                class="bg-green-600 text-white px-6 py-3 rounded-sm font-semibold hover:bg-green-700 transition inline-flex items-center justify-center space-x-2"
+                class="btn-3d cta-shadow bg-green-600 text-white border-2 border-gray-900 dark:border-gray-100 px-6 py-3 rounded-sm font-semibold hover:bg-green-700 transition inline-flex items-center justify-center space-x-2"
               >
                 <span>{{ t('landing.models_section.compare_button') }}</span>
                 <ArrowRightIcon class="h-5 w-5" />
@@ -778,7 +727,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
               <button
                 @click="demoLogin('models_section')"
                 :disabled="demoLoading"
-                class="border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-6 py-3 rounded-sm font-semibold hover:border-green-500 hover:text-green-700 transition disabled:opacity-50 inline-flex items-center justify-center space-x-2"
+                class="btn-3d cta-shadow bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 text-gray-800 dark:text-gray-100 px-6 py-3 rounded-sm font-semibold hover:text-green-700 dark:hover:text-green-400 transition disabled:opacity-50 inline-flex items-center justify-center space-x-2"
               >
                 <span>{{ demoLoading ? t('landing.models_section.loading_button') : t('landing.models_section.demo_button') }}</span>
               </button>
@@ -792,30 +741,13 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
       </div>
     </section>
 
-    <!-- Gamification Teaser -->
-    <section class="py-8 sm:py-16 px-4 sm:px-6 lg:px-8 bg-gray-50 dark:bg-gray-900">
-      <div class="max-w-3xl mx-auto text-center relative overflow-hidden">
-        <BoltIcon class="absolute inset-0 m-auto h-64 w-64 text-green-600 opacity-[0.15] pointer-events-none" />
-        <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
-          {{ t('landing.gamification.title') }}
-        </h2>
-        <ul class="text-left inline-block text-gray-600 dark:text-gray-400 space-y-2 mb-4 text-lg">
-          <li>• {{ t('landing.gamification.log_entry') }}</li>
-          <li>• {{ t('landing.gamification.add_vehicle') }}</li>
-          <li>• {{ t('landing.gamification.invite_friend') }}</li>
-          <li>• {{ t('landing.gamification.import_data') }}</li>
-        </ul>
-        <p class="text-4xl text-gray-400 dark:text-gray-600">. . .</p>
-      </div>
-    </section>
-
     <!-- Import Hub -->
-    <section id="import-hub" class="py-8 sm:py-14 px-4 sm:px-6 lg:px-8 border-t border-gray-100 dark:border-gray-800">
+    <section id="import-hub" class="py-8 sm:py-14 px-4 sm:px-6 lg:px-8 bg-gray-50 dark:bg-gray-900 border-t border-b border-gray-200 dark:border-gray-700">
       <div class="max-w-5xl mx-auto">
         <div class="text-center mb-8">
           <div class="inline-flex items-center gap-2 mb-3">
             <ArrowDownTrayIcon class="h-6 w-6 text-green-600" />
-            <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">{{ t('landing.import.title') }}</h2>
+            <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">{{ t('landing.import.title') }}</h2>
           </div>
           <p class="text-gray-600 dark:text-gray-400">{{ t('landing.import.subtitle') }}</p>
         </div>
@@ -823,7 +755,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
 
           <!-- Group 1: Telemetrie & App -->
-          <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm p-4">
+          <div class="bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 rounded-lg p-4 cta-shadow">
             <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">{{ t('landing.import.group_cars') }}</p>
             <div class="space-y-3">
               <div class="flex items-start gap-2.5">
@@ -860,7 +792,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
           </div>
 
           <!-- Group 2: Wallboxen -->
-          <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm p-4">
+          <div class="bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 rounded-lg p-4 cta-shadow">
             <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">{{ t('landing.import.group_wallbox') }}</p>
             <div class="space-y-3">
               <div class="flex items-start gap-2.5">
@@ -890,7 +822,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
           </div>
 
           <!-- Group 3: Import & API -->
-          <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm p-4">
+          <div class="bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 rounded-lg p-4 cta-shadow">
             <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">{{ t('landing.import.group_manual') }}</p>
             <div class="space-y-3">
               <div class="flex items-start gap-2.5">
@@ -962,15 +894,15 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
         <div class="text-center mb-8">
           <div class="inline-flex items-center gap-2 mb-3">
             <ShieldCheckIcon class="h-5 w-5 text-green-600" />
-            <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">{{ t('landing.privacy.title') }}</h2>
+            <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">{{ t('landing.privacy.title') }}</h2>
           </div>
-          <p class="text-sm text-gray-500 dark:text-gray-400 max-w-xl mx-auto">{{ t('landing.privacy.subtitle') }}</p>
+          <p class="text-base text-gray-600 dark:text-gray-300 max-w-xl mx-auto">{{ t('landing.privacy.subtitle') }}</p>
         </div>
 
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
 
           <!-- Encryption -->
-          <div class="flex flex-col items-center text-center gap-2 p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm">
+          <div class="flex flex-col items-center text-center gap-2 p-4 bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 rounded-lg cta-shadow">
             <div class="h-10 w-10 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center">
               <LockClosedIcon class="h-5 w-5 text-green-600 dark:text-green-400" />
             </div>
@@ -979,7 +911,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
           </div>
 
           <!-- DSGVO -->
-          <div class="flex flex-col items-center text-center gap-2 p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm">
+          <div class="flex flex-col items-center text-center gap-2 p-4 bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 rounded-lg cta-shadow">
             <div class="h-10 w-10 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center">
               <DocumentCheckIcon class="h-5 w-5 text-green-600 dark:text-green-400" />
             </div>
@@ -988,7 +920,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
           </div>
 
           <!-- Geohashing -->
-          <div class="flex flex-col items-center text-center gap-2 p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm">
+          <div class="flex flex-col items-center text-center gap-2 p-4 bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 rounded-lg cta-shadow">
             <div class="h-10 w-10 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center">
               <MapPinIcon class="h-5 w-5 text-green-600 dark:text-green-400" />
             </div>
@@ -997,7 +929,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
           </div>
 
           <!-- German Servers -->
-          <div class="flex flex-col items-center text-center gap-2 p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm">
+          <div class="flex flex-col items-center text-center gap-2 p-4 bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 rounded-lg cta-shadow">
             <div class="h-10 w-10 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center">
               <ServerStackIcon class="h-5 w-5 text-green-600 dark:text-green-400" />
             </div>
@@ -1010,7 +942,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
     </section>
 
     <!-- Final CTA -->
-    <section class="py-10 sm:py-20 px-4 sm:px-6 lg:px-8 border-t border-gray-100 dark:border-gray-800">
+    <section class="py-10 sm:py-20 px-4 sm:px-6 lg:px-8 bg-gray-50 dark:bg-gray-900 border-t border-b border-gray-200 dark:border-gray-700">
       <div class="max-w-3xl mx-auto text-center">
         <h2 class="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">
           {{ t('landing.cta.title') }}
@@ -1021,7 +953,7 @@ function formatRealConsumption(avg: number | null, min: number | null, max: numb
         </p>
         <button
           @click="goToRegister('footer_cta')"
-          class="bg-green-600 text-white px-8 py-4 rounded-sm text-lg font-semibold hover:bg-green-700 transition"
+          class="btn-3d [--btn-shadow-color:#111827] dark:[--btn-shadow-color:#000000] bg-green-600 text-white border-2 border-gray-900 dark:border-gray-100 px-8 py-4 rounded-sm text-lg font-semibold hover:bg-green-700 transition"
         >
           {{ t('landing.cta.button') }}
         </button>
@@ -1082,21 +1014,5 @@ section a[class*="rounded"]:not(.no-press):active, section button[class*="rounde
   box-shadow: 0 1px 0 0 rgba(0,0,0,0.30);
   transform: translateY(3px);
   transition: transform 0.05s ease, box-shadow 0.05s ease;
-}
-
-.demo-shimmer {
-  background: linear-gradient(120deg, #16a34a 0%, #15803d 40%, #22c55e 50%, #15803d 60%, #16a34a 100%);
-  background-size: 200% 100%;
-  animation: shimmer 3s ease-in-out infinite;
-  color: white;
-}
-
-.demo-shimmer:hover {
-  background-position: 100% 0;
-}
-
-@keyframes shimmer {
-  0%   { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
 }
 </style>

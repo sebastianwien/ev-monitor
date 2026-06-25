@@ -88,6 +88,23 @@ html, body {
   box-shadow: 1px 1px 0 0 var(--btn-shadow-color, rgba(0,0,0,0.2));
   transform: translate(3px, 3px);
 }
+/* Landing CTA: force the crisp bottom-right 3D shadow (overrides btn-3d default,
+   keeps the :active press via higher pseudo-class specificity) */
+.cta-shadow { box-shadow: 4px 4px 0 0 #111827 !important; }
+.dark .cta-shadow { box-shadow: 4px 4px 0 0 #000000 !important; }
+.cta-shadow:active { box-shadow: 1px 1px 0 0 #111827 !important; }
+.dark .cta-shadow:active { box-shadow: 1px 1px 0 0 #000000 !important; }
+/* Clickable 3D card (model tiles): cta shadow + hover-lift + press.
+   Use together with .no-press so the legacy section-button rule doesn't fight it. */
+.cta-card {
+  box-shadow: 4px 4px 0 0 #111827;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.cta-card:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 0 #111827; }
+.cta-card:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 0 #111827; }
+.dark .cta-card { box-shadow: 4px 4px 0 0 #000000; }
+.dark .cta-card:hover { box-shadow: 6px 6px 0 0 #000000; }
+.dark .cta-card:active { box-shadow: 1px 1px 0 0 #000000; }
 
 body {
     background-color: var(--color-gray-50, #f9fafb);
@@ -125,4 +142,69 @@ body {
 .back-btn-leave-to {
   opacity: 0;
   transform: translateY(8px);
+}
+
+/* ── Landing superlative board ─────────────────────────────────────────────
+ * Scoped to the public landing hero. Brand language: system font, hard offset
+ * shadows (btn-3d family), gold champion (reuses gold-shimmer). */
+.sl-num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+/* board breaks out of the centered max-w-4xl hero column for more card width */
+.sl-board {
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(72rem, 94vw);
+}
+/* faint engineering grid for depth */
+.sl-grid {
+  background-image:
+    linear-gradient(rgba(17, 24, 39, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(17, 24, 39, 0.035) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+.dark .sl-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+}
+/* hard offset shadow card (same vocabulary as btn-3d) */
+.sl-panel {
+  box-shadow: 4px 4px 0 0 #15803d;
+}
+.dark .sl-panel { box-shadow: 4px 4px 0 0 #22c55e; }
+/* ranked entries: flat bordered list items at rest, pop into a 3D mini-card on
+ * hover - keeps a single 3D layer (the panel) until one row is actively hovered */
+.sl-row {
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background-color 0.12s ease;
+}
+.sl-row:hover {
+  box-shadow: 5px 5px 0 0 #15803d;
+}
+.dark .sl-row:hover { box-shadow: 5px 5px 0 0 #22c55e; }
+/* gold champion: shimmering value text (reuses @keyframes gold-shimmer) */
+.sl-gold {
+  background: linear-gradient(90deg, #d97706, #fbbf24, #fde68a, #fbbf24, #d97706);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: gold-shimmer 6s linear infinite;
+}
+.sl-gold-chip {
+  background: linear-gradient(135deg, #fcd34d, #fbbf24);
+  color: #5b3c06;
+  box-shadow: 3px 3px 0 0 #b45309;
+}
+/* staggered reveal on load */
+@keyframes sl-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.sl-rise { opacity: 0; animation: sl-rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) forwards; }
+@media (prefers-reduced-motion: reduce) {
+  .sl-rise { animation: none; opacity: 1; }
+  .sl-gold { animation: none; }
 }

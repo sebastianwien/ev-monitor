@@ -1,6 +1,7 @@
 <template>
-  <div v-if="!authStore.isAuthenticated()" class="h-1 bg-gradient-to-r from-green-400 via-emerald-500 to-green-600"></div>
-  <nav v-if="!authStore.isAuthenticated()" class="sticky top-0 z-50 pt-[env(safe-area-inset-top)] bg-white/85 dark:bg-gray-950/85 backdrop-blur-md border-b border-gray-200/60 dark:border-gray-700/60 shadow-sm">
+  <div v-if="!authStore.isAuthenticated()" class="sticky top-0 z-50">
+    <div class="h-1 bg-gradient-to-r from-green-400 via-emerald-500 to-green-600"></div>
+    <nav class="pt-[env(safe-area-inset-top)] bg-white/95 dark:bg-gray-950/95 backdrop-blur-md border-b-2 border-gray-900 dark:border-gray-800 shadow-sm">
     <div class="max-w-7xl mx-auto px-4 sm:px-8">
       <div class="flex justify-between items-center h-16">
         <a href="/" class="flex items-center gap-2 shrink-0 whitespace-nowrap">
@@ -22,13 +23,14 @@
             </svg>
           </a>
           <a :href="loginPath" class="hidden sm:inline text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white px-2 py-2">{{ t('nav.login') }}</a>
-          <a :href="registerPath" class="text-sm font-medium bg-green-600 text-white px-3 sm:px-4 py-2 rounded-sm hover:bg-green-700 transition whitespace-nowrap">
+          <a :href="registerPath" class="btn-3d [--btn-shadow-color:#111827] dark:[--btn-shadow-color:#000000] text-sm font-medium bg-green-600 text-white border-2 border-gray-900 dark:border-gray-100 px-3 sm:px-4 py-2 rounded-sm hover:bg-green-700 transition whitespace-nowrap">
             {{ t('nav.register') }}
           </a>
         </div>
       </div>
     </div>
-  </nav>
+    </nav>
+  </div>
 </template>
 
 <script setup lang="ts">

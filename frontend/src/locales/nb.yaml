@@ -29,6 +29,17 @@ nav:
   dashboard: Dashbord
   models_compare: Modeller
 landing:
+  superlatives:
+    eyebrow: "Fellesskapets toppliste"
+    from_trips: "fra {n} turer"
+    efficiency_label: "Mest effektive"
+    efficiency_sub: "etter reelt forbruk"
+    range_label: "Rekkevidde"
+    range_sub: "reelt kjørt"
+    popular_label: "Mest populære"
+    popular_sub: "flest ladinger"
+    meta_datapoints: "{n} datapunkter"
+    unit_charges: "ladinger"
   hero:
     title: Hvor langt kommer du egentlig – og hva koster det deg?
     subtitle: Faktiske forbruks- og ladekostnader fra brukerne – WLTP møter hverdagen. Med wallbox-integrasjon og API-synkronisering.
@@ -39,16 +50,21 @@ landing:
     avg_prefix: gj.snitt
     cost_tooltip: Basert på gjennomsnittlig strømpris fra innspill fra brukerne. Billigere hjemmelading sammenlignet med dyre hurtigladere forklarer prisforskjellene mellom modellene.
     view_details: Vis detaljer
+    cost_headline: Ladekostnad
+    cost_basis: "ved snitt {price} ladepris"
+    real_consumption: Reelt forbruk
+    consumption_label: Forbruk
+    real_short: Reelt
+    factory_short: Fabrikk
     demo_button: Prøv appen nå →
     loading_button: Laster...
     models_button: Vis alle modeller
     or: eller
     register_link: registrer deg gratis
     track_data: og følge med på dine egne data
-    trips_label: Reiser
-    total_km_label: kjørte km
-    models_label: Modeller
-    drivers_label: Sjåfører
+    total_km_label: km kjørt av fellesskapet
+    models_label: modeller å velge mellom
+    drivers_label: aktive sjåfører i fellesskapet
   features:
     open_source_title: 100 % åpen kildekode
     open_source_desc: Fullstendig åpen på GitHub. Ingen leverandørbinding.
@@ -90,12 +106,6 @@ landing:
     demo_button: Prøv demoen
     loading_button: Laster...
     no_data: Det foreligger ikke data for dette samfunnet ennå.
-  gamification:
-    title: Belønninger for bidrag til fellesskapet
-    log_entry: Registrer en ladesesjon
-    add_vehicle: Legg til et kjøretøy
-    invite_friend: Inviter en venn
-    import_data: Importer data
   import:
     title: Du trenger aldri å skrive manuelt igjen
     subtitle: "10 datakilder - ladesesjoner synkroniseres automatisk eller via import."

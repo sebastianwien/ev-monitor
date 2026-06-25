@@ -14,9 +14,7 @@ interface TickerItem {
 const { t } = useI18n()
 
 const items = ref<TickerItem[]>([])
-const pageIndex = ref(0)
 const tabVisible = ref(typeof document !== 'undefined' ? !document.hidden : true)
-let timer: ReturnType<typeof setInterval> | null = null
 
 const displayItems = computed(() =>
   items.value.filter(i => i.type === 'STAT' || i.type === 'LEADER')
@@ -26,31 +24,19 @@ const marqueeSpeed = computed(() =>
   Math.max(50, displayItems.value.length * 9) + 's'
 )
 
-const pages = computed<TickerItem[][]>(() => {
-  const all = displayItems.value
-  if (!all.length) return []
-  const result: TickerItem[][] = []
-  for (let i = 0; i < all.length; i += 4) {
-    result.push(all.slice(i, i + 4))
-  }
-  return result
-})
-
-const currentPage = computed(() => pages.value[pageIndex.value] ?? [])
-
 const marqueeActive = computed(() => tabVisible.value)
 
-type CardStyle = { borderClass: string; iconClass: string; iconComponent: Component }
+type CardStyle = { shadowClass: string; iconClass: string; iconComponent: Component }
 
 function cardStyle(item: TickerItem): CardStyle {
   if (item.type === 'LEADER')
-    return { borderClass: 'border-l-yellow-400', iconClass: 'text-yellow-500', iconComponent: TrophyIcon }
+    return { shadowClass: 'shadow-[5px_5px_0_0_#facc15]', iconClass: 'text-yellow-500', iconComponent: TrophyIcon }
   const text = item.text.toLowerCase()
   if (text.includes('co2') || text.includes('solarmodul') || text.includes('windrad') || text.includes('haushalt'))
-    return { borderClass: 'border-l-emerald-400', iconClass: 'text-emerald-500', iconComponent: SparklesIcon }
+    return { shadowClass: 'shadow-[5px_5px_0_0_#34d399]', iconClass: 'text-emerald-500', iconComponent: SparklesIcon }
   if (text.includes('€') || text.includes('benzin'))
-    return { borderClass: 'border-l-blue-400', iconClass: 'text-blue-500', iconComponent: BanknotesIcon }
-  return { borderClass: 'border-l-green-400', iconClass: 'text-green-500', iconComponent: BoltIcon }
+    return { shadowClass: 'shadow-[5px_5px_0_0_#60a5fa]', iconClass: 'text-blue-500', iconComponent: BanknotesIcon }
+  return { shadowClass: 'shadow-[5px_5px_0_0_#4ade80]', iconClass: 'text-green-500', iconComponent: BoltIcon }
 }
 
 function onVisibilityChange() {
@@ -62,11 +48,6 @@ onMounted(async () => {
   try {
     const res = await apiClient.get('/public/leaderboard/ticker')
     items.value = res.data
-    if (pages.value.length > 1) {
-      timer = setInterval(() => {
-        pageIndex.value = (pageIndex.value + 1) % pages.value.length
-      }, 12000)
-    }
   } catch {
     // silent fail - section simply stays hidden
   }
@@ -74,12 +55,11 @@ onMounted(async () => {
 
 onUnmounted(() => {
   document.removeEventListener('visibilitychange', onVisibilityChange)
-  if (timer) clearInterval(timer)
 })
 </script>
 
 <template>
-  <section v-if="displayItems.length > 0" class="py-8 sm:py-12 border-t border-gray-100 dark:border-gray-800">
+  <section v-if="displayItems.length > 0" class="py-10 sm:py-14 bg-gray-50 dark:bg-gray-900 border-t border-b border-gray-200 dark:border-gray-700">
     <div class="max-w-7xl mx-auto">
 
       <div class="flex items-center justify-center gap-2 mb-3">
@@ -87,17 +67,18 @@ onUnmounted(() => {
           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
           <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
         </span>
-        <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+        <span class="text-xs sm:text-sm font-extrabold text-green-700 dark:text-green-400 uppercase tracking-[0.18em]">
           {{ t('landing.community_pulse.live_label') }}
         </span>
       </div>
 
-      <h2 class="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-gray-100 text-center mb-6 px-6">
+      <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 text-center mb-8 px-6">
         {{ t('landing.community_pulse.title') }}
       </h2>
 
-      <!-- Mobile: animated marquee -->
-      <div class="lg:hidden overflow-hidden">
+      <!-- Animated marquee (all breakpoints). py gives the cards' bottom shadow
+           room inside the overflow-hidden clip box (else it gets cut off) -->
+      <div class="overflow-hidden py-3">
         <div
           class="marquee-track"
           :class="{ 'marquee-paused': !marqueeActive }"
@@ -107,38 +88,19 @@ onUnmounted(() => {
             <div
               v-for="(item, i) in displayItems"
               :key="`${pass}-${i}`"
-              :class="['shrink-0 w-[202px] overflow-hidden bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 border-l-4 rounded-sm p-4 mx-2', cardStyle(item).borderClass]"
+              :class="['shrink-0 w-[210px] overflow-hidden bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 rounded-lg p-4 mx-2.5', cardStyle(item).shadowClass]"
             >
               <component
                 :is="cardStyle(item).iconComponent"
-                :class="['float-left h-6 w-6 mr-3 mt-0.5 flex-shrink-0', cardStyle(item).iconClass]"
+                :class="['float-left h-7 w-7 mr-3 mt-0.5 flex-shrink-0', cardStyle(item).iconClass]"
               />
-              <p class="text-sm text-gray-700 dark:text-gray-300 leading-snug">
+              <p class="text-sm font-medium text-gray-800 dark:text-gray-200 leading-snug">
                 {{ item.text }}
               </p>
             </div>
           </template>
         </div>
       </div>
-
-      <!-- Desktop: 4-col grid with auto-rotation -->
-      <Transition name="pulse-fade" mode="out-in">
-        <div :key="pageIndex" class="hidden lg:grid grid-cols-4 gap-4 px-8 lg:px-12">
-          <div
-            v-for="(item, i) in currentPage"
-            :key="i"
-            :class="['bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 border-l-4 rounded-sm p-4', cardStyle(item).borderClass]"
-          >
-            <component
-              :is="cardStyle(item).iconComponent"
-              :class="['h-5 w-5 mb-2 flex-shrink-0', cardStyle(item).iconClass]"
-            />
-            <p class="text-sm text-gray-700 dark:text-gray-300 leading-snug">
-              {{ item.text }}
-            </p>
-          </div>
-        </div>
-      </Transition>
 
     </div>
   </section>
@@ -161,15 +123,6 @@ onUnmounted(() => {
 @keyframes marquee-scroll {
   0%   { transform: translateX(0); }
   100% { transform: translateX(-50%); }
-}
-
-.pulse-fade-enter-active,
-.pulse-fade-leave-active {
-  transition: opacity 0.4s ease;
-}
-.pulse-fade-enter-from,
-.pulse-fade-leave-to {
-  opacity: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -29,6 +29,17 @@ nav:
   dashboard: Dashboard
   models_compare: Modeller
 landing:
+  superlatives:
+    eyebrow: "Communityns topplista"
+    from_trips: "från {n} resor"
+    efficiency_label: "Snålast"
+    efficiency_sub: "efter verklig förbrukning"
+    range_label: "Räckvidd"
+    range_sub: "verkligt körd"
+    popular_label: "Populärast"
+    popular_sub: "flest laddningar"
+    meta_datapoints: "{n} datapunkter"
+    unit_charges: "laddningar"
   hero:
     title: Hur långt kommer du egentligen – och vad kostar det dig?
     subtitle: Verkliga drifts- och laddningskostnader från användargemenskapen – WLTP möter vardagens verklighet. Med wallbox-integration och API-synkronisering.
@@ -39,16 +50,21 @@ landing:
     avg_prefix: i genomsnitt
     cost_tooltip: Baserat på det genomsnittliga elpriset enligt uppgifter från användarna. Prisskillnaderna mellan modellerna beror på att det är billigare att ladda hemma än att använda dyra snabbladdare.
     view_details: Visa detaljer
+    cost_headline: Laddkostnad
+    cost_basis: "vid snitt {price} laddpris"
+    real_consumption: Verklig förbrukning
+    consumption_label: Förbrukning
+    real_short: Verkligt
+    factory_short: Fabrik
     demo_button: Prova appen direkt →
     loading_button: Laddar...
     models_button: Visa alla modeller
     or: eller
     register_link: registrera dig gratis
     track_data: och följa upp dina egna uppgifter
-    trips_label: Resor
-    total_km_label: körda km
-    models_label: Modeller
-    drivers_label: Förare
+    total_km_label: km körda av gemenskapen
+    models_label: modeller att välja mellan
+    drivers_label: aktiva förare i gemenskapen
   features:
     open_source_title: 100 % öppen källkod
     open_source_desc: Fullständig insyn på GitHub. Inga leverantörsberoenden.
@@ -90,12 +106,6 @@ landing:
     demo_button: Prova demoversionen
     loading_button: Laddar...
     no_data: Inga gemenskapsdata tillgängliga ännu.
-  gamification:
-    title: Belöningar för bidrag till gemenskapen
-    log_entry: Registrera en laddning
-    add_vehicle: Lägg till ett fordon
-    invite_friend: Bjud in en vän
-    import_data: Importera data
   import:
     title: Du behöver aldrig mer skriva manuellt
     subtitle: "10 datakällor - laddningssessioner synkroniseras automatiskt eller via import."
