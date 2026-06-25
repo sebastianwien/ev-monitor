@@ -59,9 +59,7 @@ landing:
     demo_button: Prøv appen nå →
     loading_button: Laster...
     models_button: Vis alle modeller
-    or: eller
-    register_link: registrer deg gratis
-    track_data: og følge med på dine egne data
+    register_button: "Registrer deg gratis →"
     total_km_label: km kjørt av fellesskapet
     models_label: modeller å velge mellom
     drivers_label: aktive sjåfører i fellesskapet

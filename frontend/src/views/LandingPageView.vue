@@ -290,7 +290,7 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
         </p>
 
         <!-- Community-Bestenliste: labelled superlatives replace the unexplained cards -->
-        <div v-if="hasSuperlatives" class="sl-board text-left px-5 py-7 mb-8">
+        <div v-if="hasSuperlatives" class="sl-board text-left px-5 py-7 mb-6">
           <div class="mb-6 flex flex-wrap items-baseline justify-center gap-x-2 gap-y-1">
             <span class="text-sm sm:text-base font-extrabold tracking-[0.18em] uppercase text-green-700 dark:text-green-400">{{ t('landing.superlatives.eyebrow') }}</span>
             <i18n-t keypath="landing.superlatives.from_trips" tag="span" class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-semibold">
@@ -345,15 +345,8 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
           </div>
         </div>
 
-        <!-- Primary CTA: kein Account nötig -->
-        <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-8">
-          <button
-            @click="demoLogin('hero')"
-            :disabled="demoLoading"
-            class="btn-3d cta-shadow w-full sm:w-auto cursor-pointer bg-green-600 text-white border-2 border-gray-900 dark:border-gray-100 px-6 py-3 sm:px-8 sm:py-4 rounded-sm text-base sm:text-lg font-semibold hover:bg-green-700 disabled:opacity-50 inline-flex items-center justify-center gap-2 transition"
-          >
-            {{ demoLoading ? t('landing.hero.loading_button') : t('landing.hero.demo_button') }}
-          </button>
+        <!-- Standalone CTA directly under the superlative cards -->
+        <div v-if="hasSuperlatives" class="mb-10 sm:mb-12 flex justify-center">
           <router-link
             :to="modelsUrl"
             @click="analytics.trackCtaModelsClicked('hero')"
@@ -364,50 +357,64 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
           </router-link>
         </div>
 
-        <p class="mt-6 text-base sm:text-lg text-gray-600 dark:text-gray-300">
-          {{ t('landing.hero.or') }}
-          <button @click="goToRegister('hero_secondary')" class="text-green-600 hover:text-green-700 font-bold underline underline-offset-2">{{ t('landing.hero.register_link') }}</button>
-          {{ t('landing.hero.track_data') }}
-        </p>
+        <!-- Primary CTA: kein Account nötig - full-bleed band so the bg spans the viewport -->
+        <div class="relative left-1/2 right-1/2 -mx-[50vw] w-screen bg-gray-50 dark:bg-gray-800/40 border-y border-gray-200 dark:border-gray-700 py-10 sm:py-14">
+          <!-- Trust + Action: one self-contained card (proof -> trust -> action) -->
+          <div class="max-w-3xl mx-auto px-6">
+            <div class="bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 rounded-xl p-6 sm:p-8 shadow-[5px_5px_0_0_#15803d] dark:shadow-[5px_5px_0_0_#22c55e]">
+              <div class="grid grid-cols-3 divide-x divide-gray-900/10 dark:divide-white/10">
+                <div v-for="s in trustStats" :key="s.label" class="px-2 sm:px-4 text-center">
+                  <p class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 tabular-nums">{{ s.value }}</p>
+                  <p class="text-sm sm:text-base text-gray-600 dark:text-gray-300 mt-1.5 leading-snug">{{ s.label }}</p>
+                </div>
+              </div>
+              <!-- Action: CTAs close the card -->
+              <div class="h-px bg-gray-900/10 dark:bg-white/10 my-6"></div>
+              <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+                <button
+                  @click="demoLogin('hero')"
+                  :disabled="demoLoading"
+                  class="btn-3d cta-shadow w-full sm:w-auto cursor-pointer bg-green-600 text-white border-2 border-gray-900 dark:border-gray-100 px-6 py-3 sm:px-8 sm:py-4 rounded-sm text-base sm:text-lg font-semibold hover:bg-green-700 disabled:opacity-50 inline-flex items-center justify-center gap-2 transition"
+                >
+                  {{ demoLoading ? t('landing.hero.loading_button') : t('landing.hero.demo_button') }}
+                </button>
+                <button
+                  @click="goToRegister('hero_secondary')"
+                  class="btn-3d cta-shadow w-full sm:w-auto cursor-pointer bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 text-gray-800 dark:text-gray-100 px-6 py-3 sm:px-8 sm:py-4 rounded-sm text-base sm:text-lg font-semibold hover:text-green-700 dark:hover:text-green-400 transition inline-flex items-center justify-center"
+                >
+                  {{ t('landing.hero.register_button') }}
+                </button>
+              </div>
+            </div>
 
-      </div>
-    </section>
-
-    <!-- Trust / Credibility panel -->
-    <section class="py-10 sm:py-14">
-      <div class="max-w-3xl mx-auto px-6">
-        <div class="bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 rounded-xl p-6 shadow-[5px_5px_0_0_#15803d] dark:shadow-[5px_5px_0_0_#22c55e]">
-          <div class="grid grid-cols-3 divide-x divide-gray-900/10 dark:divide-white/10">
-            <div v-for="s in trustStats" :key="s.label" class="px-2 sm:px-4 text-center">
-              <p class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 tabular-nums">{{ s.value }}</p>
-              <p class="text-sm sm:text-base text-gray-600 dark:text-gray-300 mt-1.5 leading-snug">{{ s.label }}</p>
+            <!-- Trust signals: prominent strip below the card -->
+            <div class="mt-7 sm:mt-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-4">
+              <component
+                :is="sig.href ? 'a' : sig.action ? 'button' : 'span'"
+                v-for="sig in trustSignals" :key="sig.key"
+                :href="sig.href || undefined"
+                :target="sig.external ? '_blank' : undefined"
+                :rel="sig.external ? 'noopener noreferrer' : undefined"
+                @click="sig.action === 'import' ? scrollToImportHub() : sig.action === 'privacy' ? scrollToPrivacy() : undefined"
+                class="inline-flex items-center gap-2.5 text-base sm:text-lg font-bold text-gray-800 dark:text-gray-100 hover:text-green-700 dark:hover:text-green-400 transition-colors"
+              >
+                <component :is="sig.icon" class="h-6 w-6 text-green-600 dark:text-green-400 shrink-0" />
+                {{ t(sig.key) }}
+                <ArrowTopRightOnSquareIcon v-if="sig.external" class="h-4 w-4 opacity-50" />
+              </component>
             </div>
           </div>
-          <div class="h-px bg-gray-900/10 dark:bg-white/10 my-5"></div>
-          <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
-            <component
-              :is="sig.href ? 'a' : sig.action ? 'button' : 'span'"
-              v-for="sig in trustSignals" :key="sig.key"
-              :href="sig.href || undefined"
-              :target="sig.external ? '_blank' : undefined"
-              :rel="sig.external ? 'noopener noreferrer' : undefined"
-              @click="sig.action === 'import' ? scrollToImportHub() : sig.action === 'privacy' ? scrollToPrivacy() : undefined"
-              class="inline-flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-green-700 dark:hover:text-green-400 transition-colors"
-            >
-              <component :is="sig.icon" class="h-5 w-5 text-green-600 dark:text-green-400 shrink-0" />
-              {{ t(sig.key) }}
-              <ArrowTopRightOnSquareIcon v-if="sig.external" class="h-3.5 w-3.5 opacity-50" />
-            </component>
-          </div>
         </div>
+
       </div>
     </section>
 
     <!-- Community Pulse -->
     <CommunityPulseSection />
 
-    <!-- Model Preview Section -->
-    <section class="py-8 sm:py-16 px-4 sm:px-6 lg:px-8">
+    <!-- Model Preview Section: own accent band so the cost section stands out and
+         breaks the seam between the two surrounding grid sections -->
+    <section class="py-8 sm:py-16 px-4 sm:px-6 lg:px-8 bg-green-50/70 dark:bg-green-950/20 border-y border-gray-200 dark:border-gray-800">
       <div class="max-w-7xl mx-auto">
         <div class="text-center mb-12">
           <h2 class="text-3xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
@@ -681,7 +688,7 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
             <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mt-2 mb-3">
               {{ t('landing.leaderboard.title') }}
             </h2>
-            <p class="text-lg font-medium text-gray-700 dark:text-gray-200 max-w-md mx-auto lg:mx-0">
+            <p class="text-lg sm:text-xl font-medium text-gray-700 dark:text-gray-200 max-w-md mx-auto lg:mx-0">
               {{ t('landing.leaderboard.desc') }}
             </p>
           </div>
@@ -709,10 +716,10 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
           <div class="order-3 lg:col-start-2 lg:row-start-2 lg:self-start">
             <div class="grid grid-cols-2 gap-2 max-w-md mx-auto lg:mx-0">
               <div v-for="cat in leaderboardCategories" :key="cat.key"
-                class="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-800 border-2 border-gray-900/10 dark:border-white/10 rounded-lg text-sm text-gray-700 dark:text-gray-300"
+                class="flex items-center gap-2.5 px-3.5 py-2.5 bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 rounded-lg shadow-[2px_2px_0_0_#111827] dark:shadow-[2px_2px_0_0_#e5e7eb] text-sm sm:text-base text-gray-900 dark:text-gray-100"
               >
-                <component :is="cat.icon" :class="['h-4 w-4 shrink-0', cat.color]" />
-                <span class="font-medium truncate">{{ cat.label }}</span>
+                <component :is="cat.icon" :class="['h-5 w-5 shrink-0', cat.color]" />
+                <span class="font-semibold truncate">{{ cat.label }}</span>
               </div>
             </div>
           </div>
@@ -751,73 +758,75 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
             <ArrowDownTrayIcon class="h-6 w-6 text-green-600" />
             <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">{{ t('landing.import.title') }}</h2>
           </div>
-          <p class="text-gray-600 dark:text-gray-400">{{ t('landing.import.subtitle') }}</p>
+          <p class="text-lg sm:text-xl text-gray-600 dark:text-gray-300">{{ t('landing.import.subtitle') }}</p>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
-          <!-- Group 1: Telemetrie & App -->
-          <div class="bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 rounded-lg p-4 cta-shadow">
-            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">{{ t('landing.import.group_cars') }}</p>
-            <div class="space-y-3">
-              <div class="flex items-start gap-2.5">
-                <span class="mt-1.5 h-2 w-2 rounded-full bg-gray-900 dark:bg-gray-100 shrink-0"></span>
-                <div class="min-w-0 flex-1">
-                  <div class="flex items-center justify-between gap-1 flex-wrap">
-                    <span class="text-sm font-medium text-gray-800 dark:text-gray-200">Tesla Fleet API</span>
-                    <span class="text-xs bg-green-100 text-green-700 font-medium px-1.5 py-0.5 rounded-full shrink-0">{{ t('landing.import.available') }}</span>
+          <div class="flex flex-col gap-4">
+            <!-- Group 1: Telemetrie & App -->
+            <div class="bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 rounded-lg p-4 cta-shadow">
+              <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">{{ t('landing.import.group_cars') }}</p>
+              <div class="space-y-3">
+                <div class="flex items-start gap-2.5">
+                  <span class="mt-1.5 h-2 w-2 rounded-full bg-gray-900 dark:bg-gray-100 shrink-0"></span>
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center justify-between gap-1 flex-wrap">
+                      <span class="text-base font-semibold text-gray-900 dark:text-gray-100">Tesla Fleet API</span>
+                      <span class="text-xs bg-green-100 text-green-700 font-medium px-1.5 py-0.5 rounded-full shrink-0">{{ t('landing.import.available') }}</span>
+                    </div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 leading-snug">{{ t('landing.import.tesla_desc') }}</p>
                   </div>
-                  <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 leading-snug">{{ t('landing.import.tesla_desc') }}</p>
                 </div>
-              </div>
-              <div class="flex items-start gap-2.5">
-                <span class="mt-1.5 h-2 w-2 rounded-full bg-blue-500 shrink-0"></span>
-                <div class="min-w-0 flex-1">
-                  <div class="flex items-center justify-between gap-1 flex-wrap">
-                    <span class="text-sm font-medium text-gray-800 dark:text-gray-200">Tessie</span>
-                    <span class="text-xs bg-green-100 text-green-700 font-medium px-1.5 py-0.5 rounded-full shrink-0">{{ t('landing.import.available') }}</span>
+                <div class="flex items-start gap-2.5">
+                  <span class="mt-1.5 h-2 w-2 rounded-full bg-blue-500 shrink-0"></span>
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center justify-between gap-1 flex-wrap">
+                      <span class="text-base font-semibold text-gray-900 dark:text-gray-100">Tessie</span>
+                      <span class="text-xs bg-green-100 text-green-700 font-medium px-1.5 py-0.5 rounded-full shrink-0">{{ t('landing.import.available') }}</span>
+                    </div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 leading-snug">{{ t('landing.import.tessie_desc') }}</p>
                   </div>
-                  <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 leading-snug">{{ t('landing.import.tessie_desc') }}</p>
                 </div>
-              </div>
-              <div class="flex items-start gap-2.5">
-                <span class="mt-1.5 h-2 w-2 rounded-full bg-purple-500 shrink-0"></span>
-                <div class="min-w-0 flex-1">
-                  <div class="flex items-center justify-between gap-1 flex-wrap">
-                    <span class="text-sm font-medium text-gray-800 dark:text-gray-200">Tronity</span>
-                    <span class="text-xs bg-green-100 text-green-700 font-medium px-1.5 py-0.5 rounded-full shrink-0">{{ t('landing.import.available') }}</span>
+                <div class="flex items-start gap-2.5">
+                  <span class="mt-1.5 h-2 w-2 rounded-full bg-purple-500 shrink-0"></span>
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center justify-between gap-1 flex-wrap">
+                      <span class="text-base font-semibold text-gray-900 dark:text-gray-100">Tronity</span>
+                      <span class="text-xs bg-green-100 text-green-700 font-medium px-1.5 py-0.5 rounded-full shrink-0">{{ t('landing.import.available') }}</span>
+                    </div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 leading-snug">{{ t('landing.import.tronity_desc') }}</p>
                   </div>
-                  <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 leading-snug">{{ t('landing.import.tronity_desc') }}</p>
                 </div>
               </div>
             </div>
-          </div>
 
-          <!-- Group 2: Wallboxen -->
-          <div class="bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 rounded-lg p-4 cta-shadow">
-            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">{{ t('landing.import.group_wallbox') }}</p>
-            <div class="space-y-3">
-              <div class="flex items-start gap-2.5">
-                <span class="mt-1.5 h-2 w-2 rounded-full bg-green-500 shrink-0"></span>
-                <div class="min-w-0 flex-1">
-                  <div class="flex items-center justify-between gap-1 flex-wrap">
-                    <span class="text-sm font-medium text-gray-800 dark:text-gray-200">go-eCharger Cloud</span>
-                    <span class="text-xs bg-green-100 text-green-700 font-medium px-1.5 py-0.5 rounded-full shrink-0">{{ t('landing.import.available') }}</span>
-                  </div>
-                  <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 leading-snug">{{ t('landing.import.gocharger_desc') }}</p>
-                </div>
-              </div>
-              <div class="flex items-start gap-2.5">
-                <span class="mt-1.5 h-2 w-2 rounded-full bg-gray-500 shrink-0"></span>
-                <div class="min-w-0 flex-1">
-                  <div class="flex items-center justify-between gap-1 flex-wrap">
-                    <span class="text-sm font-medium text-gray-800 dark:text-gray-200">OCPP Wallbox</span>
-                    <div class="flex gap-1 shrink-0">
-                      <span class="text-xs bg-green-100 text-green-700 font-medium px-1.5 py-0.5 rounded-full">{{ t('landing.import.available') }}</span>
-                      <span class="text-xs bg-blue-100 text-blue-800 font-medium px-1.5 py-0.5 rounded-full">{{ t('landing.import.beta') }}</span>
+            <!-- Group 2: Wallboxen -->
+            <div class="bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 rounded-lg p-4 cta-shadow">
+              <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">{{ t('landing.import.group_wallbox') }}</p>
+              <div class="space-y-3">
+                <div class="flex items-start gap-2.5">
+                  <span class="mt-1.5 h-2 w-2 rounded-full bg-green-500 shrink-0"></span>
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center justify-between gap-1 flex-wrap">
+                      <span class="text-base font-semibold text-gray-900 dark:text-gray-100">go-eCharger Cloud</span>
+                      <span class="text-xs bg-green-100 text-green-700 font-medium px-1.5 py-0.5 rounded-full shrink-0">{{ t('landing.import.available') }}</span>
                     </div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 leading-snug">{{ t('landing.import.gocharger_desc') }}</p>
                   </div>
-                  <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 leading-snug">{{ t('landing.import.ocpp_desc') }}</p>
+                </div>
+                <div class="flex items-start gap-2.5">
+                  <span class="mt-1.5 h-2 w-2 rounded-full bg-gray-500 shrink-0"></span>
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center justify-between gap-1 flex-wrap">
+                      <span class="text-base font-semibold text-gray-900 dark:text-gray-100">OCPP Wallbox</span>
+                      <div class="flex gap-1 shrink-0">
+                        <span class="text-xs bg-green-100 text-green-700 font-medium px-1.5 py-0.5 rounded-full">{{ t('landing.import.available') }}</span>
+                        <span class="text-xs bg-blue-100 text-blue-800 font-medium px-1.5 py-0.5 rounded-full">{{ t('landing.import.beta') }}</span>
+                      </div>
+                    </div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 leading-snug">{{ t('landing.import.ocpp_desc') }}</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -831,56 +840,56 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
                 <span class="mt-1.5 h-2 w-2 rounded-full bg-indigo-500 shrink-0"></span>
                 <div class="min-w-0 flex-1">
                   <div class="flex items-center justify-between gap-1 flex-wrap">
-                    <span class="text-sm font-medium text-gray-800 dark:text-gray-200">Sprit-Monitor</span>
+                    <span class="text-base font-semibold text-gray-900 dark:text-gray-100">Sprit-Monitor</span>
                     <span class="text-xs bg-green-100 text-green-700 font-medium px-1.5 py-0.5 rounded-full shrink-0">{{ t('landing.import.available') }}</span>
                   </div>
-                  <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 leading-snug">{{ t('landing.import.spritmonitor_desc') }}</p>
+                  <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 leading-snug">{{ t('landing.import.spritmonitor_desc') }}</p>
                 </div>
               </div>
               <div class="flex items-start gap-2.5">
                 <span class="mt-1.5 h-2 w-2 rounded-full bg-gray-400 shrink-0"></span>
                 <div class="min-w-0 flex-1">
                   <div class="flex items-center justify-between gap-1 flex-wrap">
-                    <span class="text-sm font-medium text-gray-800 dark:text-gray-200">CSV / JSON</span>
+                    <span class="text-base font-semibold text-gray-900 dark:text-gray-100">CSV / JSON</span>
                     <span class="text-xs bg-green-100 text-green-700 font-medium px-1.5 py-0.5 rounded-full shrink-0">{{ t('landing.import.available') }}</span>
                   </div>
-                  <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 leading-snug">{{ t('landing.import.csv_desc') }}</p>
+                  <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 leading-snug">{{ t('landing.import.csv_desc') }}</p>
                 </div>
               </div>
               <div class="flex items-start gap-2.5">
                 <span class="mt-1.5 h-2 w-2 rounded-full bg-orange-400 shrink-0"></span>
                 <div class="min-w-0 flex-1">
                   <div class="flex items-center justify-between gap-1 flex-wrap">
-                    <span class="text-sm font-medium text-gray-800 dark:text-gray-200">REST API</span>
+                    <span class="text-base font-semibold text-gray-900 dark:text-gray-100">REST API</span>
                     <span class="text-xs bg-green-100 text-green-700 font-medium px-1.5 py-0.5 rounded-full shrink-0">{{ t('landing.import.available') }}</span>
                   </div>
-                  <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 leading-snug">{{ t('landing.import.api_desc') }}</p>
+                  <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 leading-snug">{{ t('landing.import.api_desc') }}</p>
                 </div>
               </div>
               <div class="flex items-start gap-2.5">
                 <span class="mt-1.5 h-2 w-2 rounded-full bg-red-400 shrink-0"></span>
                 <div class="min-w-0 flex-1">
                   <div class="flex items-center justify-between gap-1 flex-wrap">
-                    <span class="text-sm font-medium text-gray-800 dark:text-gray-200">XPeng</span>
+                    <span class="text-base font-semibold text-gray-900 dark:text-gray-100">XPeng</span>
                     <div class="flex gap-1 shrink-0">
                       <span class="text-xs bg-green-100 text-green-700 font-medium px-1.5 py-0.5 rounded-full">{{ t('landing.import.available') }}</span>
                       <span class="text-xs bg-blue-100 text-blue-800 font-medium px-1.5 py-0.5 rounded-full">{{ t('landing.import.beta') }}</span>
                     </div>
                   </div>
-                  <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 leading-snug">{{ t('landing.import.xpeng_desc') }}</p>
+                  <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 leading-snug">{{ t('landing.import.xpeng_desc') }}</p>
                 </div>
               </div>
               <div class="flex items-start gap-2.5">
                 <span class="mt-1.5 h-2 w-2 rounded-full bg-blue-600 shrink-0"></span>
                 <div class="min-w-0 flex-1">
                   <div class="flex items-center justify-between gap-1 flex-wrap">
-                    <span class="text-sm font-medium text-gray-800 dark:text-gray-200">VW Group</span>
+                    <span class="text-base font-semibold text-gray-900 dark:text-gray-100">VW Group</span>
                     <div class="flex gap-1 shrink-0">
                       <span class="text-xs bg-green-100 text-green-700 font-medium px-1.5 py-0.5 rounded-full">{{ t('landing.import.available') }}</span>
                       <span class="text-xs bg-blue-100 text-blue-800 font-medium px-1.5 py-0.5 rounded-full">{{ t('landing.import.beta') }}</span>
                     </div>
                   </div>
-                  <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 leading-snug">{{ t('landing.import.vweuda_desc') }}</p>
+                  <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 leading-snug">{{ t('landing.import.vweuda_desc') }}</p>
                 </div>
               </div>
             </div>
@@ -895,48 +904,48 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
       <div class="max-w-4xl mx-auto">
         <div class="text-center mb-8">
           <div class="inline-flex items-center gap-2 mb-3">
-            <ShieldCheckIcon class="h-5 w-5 text-green-600" />
-            <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">{{ t('landing.privacy.title') }}</h2>
+            <ShieldCheckIcon class="h-7 w-7 text-green-600" />
+            <h2 class="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-100">{{ t('landing.privacy.title') }}</h2>
           </div>
-          <p class="text-base text-gray-600 dark:text-gray-300 max-w-xl mx-auto">{{ t('landing.privacy.subtitle') }}</p>
+          <p class="text-lg sm:text-xl text-gray-600 dark:text-gray-300 max-w-xl mx-auto">{{ t('landing.privacy.subtitle') }}</p>
         </div>
 
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
 
           <!-- Encryption -->
-          <div class="flex flex-col items-center text-center gap-2 p-4 bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 rounded-lg cta-shadow">
+          <div class="flex flex-col items-center text-center gap-2.5 p-5 bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 rounded-lg cta-shadow">
             <div class="h-10 w-10 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center">
-              <LockClosedIcon class="h-5 w-5 text-green-600 dark:text-green-400" />
+              <LockClosedIcon class="h-6 w-6 text-green-600 dark:text-green-400" />
             </div>
-            <p class="text-xs font-semibold text-gray-800 dark:text-gray-200 leading-snug">{{ t('landing.privacy.encryption_title') }}</p>
-            <p class="text-xs text-gray-500 dark:text-gray-400 leading-snug">{{ t('landing.privacy.encryption_desc') }}</p>
+            <p class="text-base font-semibold text-gray-900 dark:text-gray-100 leading-snug">{{ t('landing.privacy.encryption_title') }}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400 leading-snug">{{ t('landing.privacy.encryption_desc') }}</p>
           </div>
 
           <!-- DSGVO -->
-          <div class="flex flex-col items-center text-center gap-2 p-4 bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 rounded-lg cta-shadow">
+          <div class="flex flex-col items-center text-center gap-2.5 p-5 bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 rounded-lg cta-shadow">
             <div class="h-10 w-10 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center">
-              <DocumentCheckIcon class="h-5 w-5 text-green-600 dark:text-green-400" />
+              <DocumentCheckIcon class="h-6 w-6 text-green-600 dark:text-green-400" />
             </div>
-            <p class="text-xs font-semibold text-gray-800 dark:text-gray-200 leading-snug">{{ t('landing.privacy.gdpr_title') }}</p>
-            <p class="text-xs text-gray-500 dark:text-gray-400 leading-snug">{{ t('landing.privacy.gdpr_desc') }}</p>
+            <p class="text-base font-semibold text-gray-900 dark:text-gray-100 leading-snug">{{ t('landing.privacy.gdpr_title') }}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400 leading-snug">{{ t('landing.privacy.gdpr_desc') }}</p>
           </div>
 
           <!-- Geohashing -->
-          <div class="flex flex-col items-center text-center gap-2 p-4 bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 rounded-lg cta-shadow">
+          <div class="flex flex-col items-center text-center gap-2.5 p-5 bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 rounded-lg cta-shadow">
             <div class="h-10 w-10 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center">
-              <MapPinIcon class="h-5 w-5 text-green-600 dark:text-green-400" />
+              <MapPinIcon class="h-6 w-6 text-green-600 dark:text-green-400" />
             </div>
-            <p class="text-xs font-semibold text-gray-800 dark:text-gray-200 leading-snug">{{ t('landing.privacy.geohash_title') }}</p>
-            <p class="text-xs text-gray-500 dark:text-gray-400 leading-snug">{{ t('landing.privacy.geohash_desc') }}</p>
+            <p class="text-base font-semibold text-gray-900 dark:text-gray-100 leading-snug">{{ t('landing.privacy.geohash_title') }}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400 leading-snug">{{ t('landing.privacy.geohash_desc') }}</p>
           </div>
 
           <!-- German Servers -->
-          <div class="flex flex-col items-center text-center gap-2 p-4 bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 rounded-lg cta-shadow">
+          <div class="flex flex-col items-center text-center gap-2.5 p-5 bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 rounded-lg cta-shadow">
             <div class="h-10 w-10 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center">
-              <ServerStackIcon class="h-5 w-5 text-green-600 dark:text-green-400" />
+              <ServerStackIcon class="h-6 w-6 text-green-600 dark:text-green-400" />
             </div>
-            <p class="text-xs font-semibold text-gray-800 dark:text-gray-200 leading-snug">{{ t('landing.privacy.servers_title') }}</p>
-            <p class="text-xs text-gray-500 dark:text-gray-400 leading-snug">{{ t('landing.privacy.servers_desc') }}</p>
+            <p class="text-base font-semibold text-gray-900 dark:text-gray-100 leading-snug">{{ t('landing.privacy.servers_title') }}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400 leading-snug">{{ t('landing.privacy.servers_desc') }}</p>
           </div>
 
         </div>

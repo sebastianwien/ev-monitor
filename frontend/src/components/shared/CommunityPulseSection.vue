@@ -59,7 +59,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <section v-if="displayItems.length > 0" class="py-10 sm:py-14 bg-gray-50 dark:bg-gray-900 border-t border-b border-gray-200 dark:border-gray-700">
+  <section v-if="displayItems.length > 0" class="py-10 sm:py-14 border-t border-b border-gray-200 dark:border-gray-700">
     <div class="max-w-7xl mx-auto">
 
       <div class="flex items-center justify-center gap-2 mb-3">
