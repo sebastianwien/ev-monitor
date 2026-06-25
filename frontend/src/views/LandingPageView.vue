@@ -972,14 +972,14 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
     </section>
 
     <!-- Footer -->
-    <footer class="border-t border-gray-200 dark:border-gray-700 py-12 px-4 sm:px-6 lg:px-8 bg-gray-50 dark:bg-gray-900">
+    <footer class="border-t-2 border-gray-900 dark:border-gray-800 py-12 px-4 sm:px-6 lg:px-8 bg-gray-100 dark:bg-gray-950">
       <div class="max-w-7xl mx-auto">
         <div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
           <div class="flex items-center space-x-2">
             <BoltIcon class="h-6 w-6 text-green-600" />
-            <span class="font-semibold text-gray-900 dark:text-gray-100">EV Monitor</span>
+            <span class="text-xl font-semibold text-gray-900 dark:text-gray-100">EV Monitor</span>
           </div>
-          <div class="flex flex-wrap justify-center gap-6 text-sm text-gray-600 dark:text-gray-400">
+          <div class="flex flex-wrap justify-center gap-x-6 gap-y-3 text-lg font-medium text-gray-700 dark:text-gray-200">
             <router-link :to="modelsUrl" class="hover:text-gray-900 dark:hover:text-gray-100 font-medium">{{ t('landing.footer.models') }}</router-link>
             <router-link to="/blog" class="hover:text-gray-900 dark:hover:text-gray-100">{{ t('landing.footer.blog') }}</router-link>
             <router-link to="/datenschutz" class="hover:text-gray-900 dark:hover:text-gray-100">{{ t('landing.footer.privacy') }}</router-link>
@@ -989,14 +989,16 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
             <a href="https://tally.so/r/vGB8XA" target="_blank" rel="noopener noreferrer" class="hover:text-gray-900 dark:hover:text-gray-100">{{ t('landing.footer.feedback') }}</a>
           </div>
         </div>
-        <div class="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
+        <div class="mt-8 text-center text-lg text-gray-600 dark:text-gray-300">
           {{ t('landing.footer.made_with') }}
         </div>
-        <div class="mt-3 text-center text-xs text-gray-400 dark:text-gray-500">
+        <div class="mt-3 text-center text-base text-gray-500 dark:text-gray-400">
           <SupportPopover variant="footer" />
         </div>
       </div>
     </footer>
+    <!-- Green accent line, mirroring the navbar's top accent (here at the bottom) -->
+    <div class="h-1 bg-gradient-to-r from-green-400 via-emerald-500 to-green-600"></div>
 
     <Transition name="back-btn">
       <button
