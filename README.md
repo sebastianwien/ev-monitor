@@ -12,11 +12,13 @@ Live at **[ev-monitor.net](https://ev-monitor.net)**
 
 ## Screenshots
 
-| Dashboard | Public Model Pages |
-|---|---|
-| ![Dashboard](doc/screenshots/dashboard.png) | ![Models](doc/screenshots/models.png) |
+### Dashboard
+![Dashboard](doc/screenshots/dashboard.png)
 
-**Import Hub** - connect SmartCar, Tesla, go-eCharger, OCPP wallboxes, Tronity, Spritmonitor, or upload manually:
+### Carmodels page
+![Models](doc/screenshots/models.png)
+
+**Import Hub** - connect via AutoSync, API, Tesla, go-eCharger, OCPP wallboxes, Tronity, Spritmonitor, or upload manually:
 
 ![Import](doc/screenshots/import.png)
 
