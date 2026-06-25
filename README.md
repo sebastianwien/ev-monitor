@@ -14,11 +14,11 @@ Live at **[ev-monitor.net](https://ev-monitor.net)**
 
 | Dashboard | Public Model Pages |
 |---|---|
-| ![Dashboard](docs/screenshots/dashboard.png) | ![Models](docs/screenshots/models.png) |
+| ![Dashboard](doc/screenshots/dashboard.png) | ![Models](doc/screenshots/models.png) |
 
 **Import Hub** - connect SmartCar, Tesla, go-eCharger, OCPP wallboxes, Tronity, Spritmonitor, or upload manually:
 
-![Import](docs/screenshots/import.png)
+![Import](doc/screenshots/import.png)
 
 ---
 
@@ -296,7 +296,6 @@ For bugs, please include steps to reproduce and the relevant log output.
 
 - [Backend README](./backend/README.md) - Architecture, running locally, building
 - [Frontend README](./frontend/README.md) - Tech stack, dev server, building
-- [Feature Docs](./docs/) - Detailed documentation per feature
 
 ---
 
