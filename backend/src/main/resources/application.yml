@@ -25,6 +25,7 @@ spring:
       - modelStats
       - topModels
       - efficientModels
+      - longestRangeModels
       - leaderboard
       - brandModels
       - appUpdateCheck

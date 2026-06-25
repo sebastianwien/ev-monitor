@@ -69,6 +69,38 @@ class PublicRankingsControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void rangeEndpointShouldBeAccessibleWithoutAuthAndReturnArray() {
+        ResponseEntity<String> response = restTemplate.getForEntity(
+                "/api/public/rankings/range", String.class);
+
+        assertNotEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        assertNotEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().startsWith("["), "Range response should be a JSON array");
+    }
+
+    @Test
+    void rangeEndpointShouldCapLimitAt10() {
+        ResponseEntity<String> response = restTemplate.getForEntity(
+                "/api/public/rankings/range?limit=999", String.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+    }
+
+    @Test
+    void rangeEndpointShouldNotExposeInternalUserData() {
+        ResponseEntity<String> response = restTemplate.getForEntity(
+                "/api/public/rankings/range", String.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertFalse(response.getBody().contains("\"userId\""), "Range ranking must not expose userId");
+        assertFalse(response.getBody().contains("\"email\""), "Range ranking must not expose email");
+        assertFalse(response.getBody().contains("\"password\""), "Range ranking must not expose password");
+    }
+
+    @Test
     void categoriesEndpointShouldReturnAllNineCategories() {
         ResponseEntity<String> response = restTemplate.getForEntity(
                 "/api/public/rankings/categories", String.class);

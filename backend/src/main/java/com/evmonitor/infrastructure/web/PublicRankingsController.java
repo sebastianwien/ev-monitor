@@ -44,4 +44,18 @@ public class PublicRankingsController {
         boolean isSeedUser = principal != null && principal.getUser().isSeedData();
         return ResponseEntity.ok(publicModelService.getMostEfficientModels(Math.min(limit, 10), isSeedUser));
     }
+
+    /**
+     * GET /api/public/rankings/range?limit=5
+     * Returns the N EV models with the longest real community range (km, longest first).
+     * Only models with a variant that has >= 100 trips are included. Limit is capped at 10.
+     */
+    @GetMapping("/range")
+    public ResponseEntity<List<TopModelResponse>> getLongestRangeModels(
+            @RequestParam(defaultValue = "5") int limit,
+            @AuthenticationPrincipal UserPrincipal principal) {
+
+        boolean isSeedUser = principal != null && principal.getUser().isSeedData();
+        return ResponseEntity.ok(publicModelService.getLongestRangeModels(Math.min(limit, 10), isSeedUser));
+    }
 }

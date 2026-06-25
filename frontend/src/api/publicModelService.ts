@@ -123,6 +123,7 @@ export interface TopModelPreview {
     avgCostPerKwh: number | null
     category: string
     categoryDisplayName: string
+    realRangeKm: number | null
 }
 
 export interface VehicleCategoryItem {
@@ -184,6 +185,13 @@ export async function getBrandModels(brand: string): Promise<PublicBrandResponse
 export async function getMostEfficientModels(limit: number = 5): Promise<TopModelPreview[]> {
     const response = await apiClient.get<TopModelPreview[]>(
         `/public/rankings/efficiency?limit=${limit}`
+    )
+    return response.data
+}
+
+export async function getLongestRangeModels(limit: number = 5): Promise<TopModelPreview[]> {
+    const response = await apiClient.get<TopModelPreview[]>(
+        `/public/rankings/range?limit=${limit}`
     )
     return response.data
 }

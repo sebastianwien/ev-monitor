@@ -409,7 +409,11 @@ public class PublicModelService {
         record ModelData(CarBrand.CarModel carModel, long logCount,
                          BigDecimal avgConsumption, BigDecimal minRealConsumption,
                          BigDecimal maxRealConsumption, BigDecimal minWltpConsumption,
-                         BigDecimal maxWltpConsumption, BigDecimal avgCostPerKwh) {}
+                         BigDecimal maxWltpConsumption, BigDecimal avgCostPerKwh,
+                         BigDecimal realRangeKm) {}
+        // Per-variant consumption + derived real range (km). Range only for variants
+        // that clear the same >= 100 trip gate used for variant consumption.
+        record VariantPoint(BigDecimal consumption, BigDecimal rangeKm) {}
 
         List<String> modelsWithWltp = vehicleSpecificationRepository.findAll().stream()
                 .map(VehicleSpecificationEntity::getCarModel)
@@ -451,26 +455,39 @@ public class PublicModelService {
                     BigDecimal minWltp = wltpValues.stream().min(BigDecimal::compareTo).orElse(null);
                     BigDecimal maxWltp = wltpValues.stream().max(BigDecimal::compareTo).orElse(null);
 
-                    // Per-variant real consumption: only variants with >= 100 trips qualify
-                    List<BigDecimal> variantConsumptions = wltpSpecs.stream()
-                            .map(spec -> {
-                                List<Car> carsForVariant = cars.stream()
-                                        .filter(c -> c.getCustomNetCapacityKwh() != null
-                                                && c.getCustomNetCapacityKwh().compareTo(spec.getBatteryCapacityKwh()) == 0)
-                                        .toList();
-                                if (carsForVariant.isEmpty()) return null;
-                                CommunityConsumptionResult r = evLogStatisticsService.calculateCommunityAvgConsumption(carsForVariant, isSeedUser);
-                                return (r.tripCount() >= 100 && r.value() != null)
-                                        ? r.value().setScale(1, RoundingMode.HALF_UP) : null;
+                    // Per-variant real consumption + real range, grouped by the car's actual net
+                    // capacity (spec-linked via vehicleSpecificationId, custom override as fallback -
+                    // same resolution as Car.getNominalNetCapacityKwh). Grouping by net capacity, not
+                    // by individual spec row, keeps cars of the same battery size together so the
+                    // >= 100 trip noise guard sees the full sample. Best (longest-range) variant wins.
+                    List<VariantPoint> variantPoints = cars.stream()
+                            .filter(c -> c.getNominalNetCapacityKwh() != null)
+                            .collect(Collectors.groupingBy(Car::getNominalNetCapacityKwh))
+                            .entrySet().stream()
+                            .map(entry -> {
+                                CommunityConsumptionResult r = evLogStatisticsService
+                                        .calculateCommunityAvgConsumption(entry.getValue(), isSeedUser);
+                                if (r.tripCount() < 100 || r.value() == null) return null;
+                                BigDecimal cons = r.value().setScale(1, RoundingMode.HALF_UP);
+                                BigDecimal netCap = entry.getKey();
+                                BigDecimal rangeKm = cons.signum() > 0
+                                        ? netCap.multiply(BigDecimal.valueOf(100)).divide(cons, 0, RoundingMode.HALF_UP)
+                                        : null;
+                                return new VariantPoint(cons, rangeKm);
                             })
                             .filter(Objects::nonNull)
                             .toList();
+                    List<BigDecimal> variantConsumptions = variantPoints.stream()
+                            .map(VariantPoint::consumption).toList();
                     BigDecimal minReal = variantConsumptions.size() >= 2
                             ? variantConsumptions.stream().min(BigDecimal::compareTo).orElse(null) : null;
                     BigDecimal maxReal = variantConsumptions.size() >= 2
                             ? variantConsumptions.stream().max(BigDecimal::compareTo).orElse(null) : null;
+                    BigDecimal realRangeKm = variantPoints.stream()
+                            .map(VariantPoint::rangeKm).filter(Objects::nonNull)
+                            .max(BigDecimal::compareTo).orElse(null);
 
-                    return new ModelData(carModel, logCount, avgConsumption, minReal, maxReal, minWltp, maxWltp, avgCostPerKwh);
+                    return new ModelData(carModel, logCount, avgConsumption, minReal, maxReal, minWltp, maxWltp, avgCostPerKwh, realRangeKm);
                 })
                 .filter(m -> m != null)
                 .sorted((a, b) -> Long.compare(b.logCount(), a.logCount()))
@@ -492,7 +509,8 @@ public class PublicModelService {
                             m.maxWltpConsumption(),
                             m.avgCostPerKwh(),
                             m.carModel().getCategory().name(),
-                            m.carModel().getCategory().getDisplayName()
+                            m.carModel().getCategory().getDisplayName(),
+                            m.realRangeKm()
                     );
                 })
                 .toList();
@@ -511,6 +529,22 @@ public class PublicModelService {
                 .filter(m -> m.avgConsumptionKwhPer100km() != null)
                 .filter(m -> m.logCount() >= MIN_LOG_COUNT)
                 .sorted(Comparator.comparing(TopModelResponse::avgConsumptionKwhPer100km))
+                .limit(limit)
+                .toList();
+    }
+
+    /**
+     * Returns the top N models sorted by longest real range (km), descending.
+     * Real range = best per-variant (net capacity / real consumption × 100); only
+     * variants with >= 100 trips contribute, so noisy low-data models are excluded.
+     */
+    @Cacheable("longestRangeModels")
+    public List<TopModelResponse> getLongestRangeModels(int limit, boolean isSeedUser) {
+        // Self-call: bypasses Spring AOP, so topModels cache is not hit here.
+        // CacheWarmupService pre-warms topModels separately to compensate.
+        return getTopModels(50, isSeedUser).stream()
+                .filter(m -> m.realRangeKm() != null)
+                .sorted(Comparator.comparing(TopModelResponse::realRangeKm).reversed())
                 .limit(limit)
                 .toList();
     }

@@ -5,6 +5,8 @@ import java.math.BigDecimal;
 /**
  * Lightweight model summary for top-N lists (landing page, model index).
  * Contains just enough data to render a model card with real vs. WLTP comparison.
+ * realRangeKm: best per-variant real range (net capacity / real consumption × 100),
+ * null unless a variant has enough trips — used by the range ranking.
  */
 public record TopModelResponse(
         String brand,
@@ -20,5 +22,6 @@ public record TopModelResponse(
         BigDecimal maxWltpConsumptionKwhPer100km,
         BigDecimal avgCostPerKwh,
         String category,
-        String categoryDisplayName
+        String categoryDisplayName,
+        BigDecimal realRangeKm
 ) {}

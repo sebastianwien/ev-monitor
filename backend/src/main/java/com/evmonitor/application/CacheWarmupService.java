@@ -36,6 +36,7 @@ public class CacheWarmupService {
             publicModelService.getModelsWithWltpData(false);
             publicModelService.getTopModels(12, false);
             publicModelService.getMostEfficientModels(12, false);
+            publicModelService.getLongestRangeModels(12, false);
             publicModelService.getBrandModels("Tesla", false);
             publicModelService.getModelStats("Tesla", "Model 3", false);
             publicModelService.getModelStats("Tesla", "Model Y", false);
