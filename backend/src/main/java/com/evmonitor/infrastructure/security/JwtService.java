@@ -66,7 +66,9 @@ public class JwtService {
         Map<String, Object> claims = new HashMap<>();
         if (userDetails instanceof UserPrincipal principal) {
             claims.put("userId", principal.getUser().getId().toString());
-            claims.put("username", principal.getUser().getUsername());
+            // Identity stays hidden: the frontend reads the username from the token (not the
+            // masked AuthResponse), and it would otherwise surface the real owner in the navbar.
+            claims.put("username", "Demo");
             claims.put("demoAccount", true);
             claims.put("authProvider", principal.getUser().getAuthProvider().name());
             claims.put("subscriptionTier", principal.getUser().getSubscriptionTier().name());

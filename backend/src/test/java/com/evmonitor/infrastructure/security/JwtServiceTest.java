@@ -192,6 +192,11 @@ class JwtServiceTest {
         assertTrue(jwtService.isDemoTokenValid(demoToken));
         assertNotEquals(email, jwtService.extractUsername(demoToken), "email must not be the token subject");
         assertEquals("demo", jwtService.extractUsername(demoToken));
+        // Identity must stay hidden: the real owner's username must not leak via the token claim
+        // (the frontend reads it from there and shows it in the navbar).
+        String usernameClaim = jwtService.extractClaim(demoToken, c -> c.get("username", String.class));
+        assertNotEquals(owner.getUsername(), usernameClaim, "real username must not leak in the demo token");
+        assertEquals("Demo", usernameClaim);
     }
 
     @Test

@@ -50,6 +50,8 @@ const mainPaddingTop = computed(() => {
   // + env(safe-area-inset-top): der fixed Header waechst nativ um die Notch-Hoehe,
   // der Content-Offset muss mitwachsen (auf Web/PWA ohne Notch ist env() = 0).
   const safe = 'env(safe-area-inset-top)'
+  // Demo banner sits below the nav (64px nav + 56px banner) — see DemoBanner.vue.
+  if (authStore.isDemoAccount) return `calc(120px + ${safe})`
   if (tickerHasItems.value && !tickerCollapsed.value) return `calc(90px + ${safe})` // 58 + 32
   return `calc(64px + ${safe})`
 })
@@ -313,7 +315,7 @@ const closeMobileMenu = () => {
               <span>{{ coinStore.balance }}</span>
             </router-link>
             <router-link
-              v-if="authStore.user"
+              v-if="authStore.user && !authStore.isDemoAccount"
               to="/settings"
               class="nav-3d flex items-center justify-center h-9 w-9 border border-indigo-500 rounded-sm hover:bg-indigo-500 transition"
               :class="{ 'bg-indigo-500': $route.path === '/settings' }"
@@ -376,7 +378,7 @@ const closeMobileMenu = () => {
               </div>
             </div>
             <router-link
-              v-if="authStore.user"
+              v-if="authStore.user && !authStore.isDemoAccount"
               to="/settings"
               class="nav-3d flex items-center justify-center h-9 w-9 border border-indigo-500 rounded-sm hover:bg-indigo-500 transition"
               :class="{ 'bg-indigo-500': $route.path === '/settings' }"
@@ -493,7 +495,7 @@ const closeMobileMenu = () => {
               <span>{{ t('nav.models_compare') }}</span>
             </router-link>
             <router-link
-              v-if="authStore.user"
+              v-if="authStore.user && !authStore.isDemoAccount"
               to="/settings"
               @click="closeMobileMenu"
               class="flex items-center gap-2 px-3 py-2 rounded-sm text-sm font-medium text-indigo-100 hover:bg-indigo-600 transition"
@@ -530,7 +532,7 @@ const closeMobileMenu = () => {
     <main
       :class="[
         authStore.isAuthenticated() ? 'md:px-4' : '',
-        authStore.isDemoAccount ? 'pb-14' : authStore.isAuthenticated() ? 'md:pb-10' : ''
+        authStore.isAuthenticated() ? 'md:pb-10' : ''
       ]"
       style="overflow-x: clip;"
       :style="{ paddingTop: mainPaddingTop, transition: 'padding-top 0.3s ease' }">

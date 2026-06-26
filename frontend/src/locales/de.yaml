@@ -2085,9 +2085,11 @@ tessie:
 
 demo:
   title: "Demo-Account"
-  read_only: "Nur Lesezugriff"
   register_btn: "Kostenlos registrieren →"
+  register_btn_short: "Registrieren →"
   exit_btn: "Verlassen"
+  cta_headline: "Gefällt dir, was du siehst?"
+  cta_subline: "Leg in 2 Minuten los und tracke deinen eigenen Verbrauch - kostenlos."
   welcome_badge: "Demo-Modus"
   welcome_title: "Willkommen bei EV Monitor!"
   welcome_desc: "Du siehst gerade das Dashboard von Max - einem fiktiven E-Auto-Fahrer. Echte Verbrauchsdaten, echte Statistiken - nur nicht deine."

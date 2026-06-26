@@ -2019,9 +2019,11 @@ tessie:
 
 demo:
   title: Demokonto
-  read_only: Skrivebeskyttet
   register_btn: Registrer deg gratis →
+  register_btn_short: Registrer deg →
   exit_btn: Avslutt demo
+  cta_headline: Liker du det du ser?
+  cta_subline: Kom i gang på 2 minutter og spor ditt eget forbruk - gratis.
   welcome_badge: Demomodus
   welcome_title: Velkommen til EV Monitor!
   welcome_desc: Du ser på dashbordet til Max – en fiktiv elbilist. Ekte forbruksdata, ekte statistikk – bare ikke dine egne.

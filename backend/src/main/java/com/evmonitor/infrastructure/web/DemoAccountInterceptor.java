@@ -44,6 +44,11 @@ public class DemoAccountInterceptor implements HandlerInterceptor {
      * GET paths a demo session may read. Showcase data only — no identity, billing, API keys or
      * connector-account endpoints. Mixed-prefix paths (e.g. {@code /api/users/me/*}) are listed
      * explicitly so sensitive siblings like {@code /me/export} stay closed.
+     *
+     * <p>NOTE: default-deny only protects new <em>top-level</em> prefixes. A new GET added UNDER a
+     * wildcard prefix here ({@code /api/cars/**}, {@code /api/logs/**}, {@code /api/trips/**},
+     * {@code /api/coins/**}) is automatically exposed to the demo — vet such endpoints for PII
+     * before adding them.
      */
     private static final List<String> DEMO_READ_WHITELIST = List.of(
             "/api/public/**",
