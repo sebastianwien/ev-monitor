@@ -175,4 +175,32 @@ class JwtServiceTest {
         assertNotNull(registeredAt, "registeredAt claim must be present in JWT");
         assertEquals(LocalDate.now().toString(), registeredAt);
     }
+
+    @Test
+    void demoTokenIsFlaggedAndCarriesUserIdButNotEmail() {
+        // Given
+        UUID userId = UUID.randomUUID();
+        String email = "owner.real@example.com";
+        com.evmonitor.domain.User owner = com.evmonitor.testutil.TestDataBuilder.createTestUserWithId(userId, email, "dummy-hash");
+
+        // When
+        String demoToken = jwtService.generateDemoToken(UserPrincipal.create(owner));
+
+        // Then
+        assertTrue(jwtService.isDemoToken(demoToken), "demo token must carry the demo flag");
+        assertEquals(userId, jwtService.extractUserId(demoToken), "demo token resolves the account by id");
+        assertTrue(jwtService.isDemoTokenValid(demoToken));
+        assertNotEquals(email, jwtService.extractUsername(demoToken), "email must not be the token subject");
+        assertEquals("demo", jwtService.extractUsername(demoToken));
+    }
+
+    @Test
+    void regularTokenIsNotDemo() {
+        UUID userId = UUID.randomUUID();
+        com.evmonitor.domain.User user = com.evmonitor.testutil.TestDataBuilder.createTestUserWithId(userId, "test@example.com", "dummy-hash");
+
+        String token = jwtService.generateToken(UserPrincipal.create(user));
+
+        assertFalse(jwtService.isDemoToken(token), "a regular login token must not be treated as demo");
+    }
 }

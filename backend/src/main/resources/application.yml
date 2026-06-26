@@ -62,6 +62,11 @@ jwt:
   expiration:
     ms: ${JWT_EXPIRATION_MS:2592000000}
 
+# Live account the public demo ("App live testen") points at, read-only.
+demo:
+  account:
+    username: ${DEMO_ACCOUNT_USERNAME:Ihle}
+
 server:
   port: 8080
   forward-headers-strategy: NATIVE

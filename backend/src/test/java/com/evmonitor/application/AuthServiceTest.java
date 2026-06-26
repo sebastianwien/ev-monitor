@@ -21,6 +21,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -150,6 +151,37 @@ class AuthServiceTest {
         assertEquals(email, response.email());
         assertEquals(jwtToken, response.token());
         assertEquals("USER", response.role());
+    }
+
+    @Test
+    void demoLoginResolvesConfiguredAccountAndMasksIdentity() {
+        // Given the demo points at a real account
+        UUID ownerId = UUID.randomUUID();
+        User owner = verifiedUser(ownerId, "owner.real@example.com", "Ihle", "$2a$10$hash", "OWNER1");
+        ReflectionTestUtils.setField(authService, "demoAccountUsername", "Ihle");
+        when(userRepository.findByUsername("Ihle")).thenReturn(Optional.of(owner));
+        when(jwtService.generateDemoToken(any(UserPrincipal.class))).thenReturn("demo.jwt.token");
+
+        // When
+        AuthResponse response = authService.demoLogin();
+
+        // Then: a demo token is issued for the real account, but identity is hidden
+        assertEquals("demo.jwt.token", response.token());
+        assertTrue(response.isDemoAccount());
+        assertEquals(ownerId, response.userId());
+        assertNotEquals("owner.real@example.com", response.email(), "real email must never leak");
+        assertEquals("demo@ev-monitor.net", response.email());
+        assertEquals("USER", response.role(), "demo must not advertise a privileged role");
+        verify(jwtService).generateDemoToken(any(UserPrincipal.class));
+        verify(jwtService, never()).generateToken(any(UserPrincipal.class));
+    }
+
+    @Test
+    void demoLoginThrowsWhenConfiguredAccountMissing() {
+        ReflectionTestUtils.setField(authService, "demoAccountUsername", "Ihle");
+        when(userRepository.findByUsername("Ihle")).thenReturn(Optional.empty());
+
+        assertThrows(IllegalStateException.class, () -> authService.demoLogin());
     }
 
     @Test

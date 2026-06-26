@@ -13,6 +13,7 @@ import com.evmonitor.infrastructure.email.EmailService;
 import com.evmonitor.infrastructure.security.JwtService;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -163,14 +164,21 @@ public class AuthService {
         passwordResetTokenRepository.deleteById(resetToken.getId());
     }
 
-    private static final String DEMO_ACCOUNT_EMAIL = "test1@ev-monitor.net";
+    /**
+     * The live account the demo session points at. A demo token grants read-only access to this
+     * account's real data (see DemoAccountInterceptor); identity is masked in the response and the
+     * token carries no email, so the owner stays anonymous.
+     */
+    @Value("${demo.account.username:Ihle}")
+    private String demoAccountUsername;
 
     public AuthResponse demoLogin() {
-        User user = userRepository.findByEmail(DEMO_ACCOUNT_EMAIL)
-                .filter(User::isSeedData)
+        User user = userRepository.findByUsername(demoAccountUsername)
                 .orElseThrow(() -> new IllegalStateException("Demo account not available"));
         String jwtToken = jwtService.generateDemoToken(UserPrincipal.create(user));
-        return toAuthResponse(jwtToken, user, true);
+        // Mask identity: never expose the real owner's email; never advertise a privileged role.
+        return new AuthResponse(jwtToken, user.getId(), "demo@ev-monitor.net", "USER",
+                true, user.isPremium(), user.canActivateTelemetry());
     }
 
     public AuthResponse login(LoginRequest request) {

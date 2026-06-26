@@ -13,6 +13,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Function;
 
 @Service
@@ -73,11 +74,29 @@ public class JwtService {
         long oneHourMs = 3_600_000L;
         return Jwts.builder()
                 .claims(claims)
-                .subject(userDetails.getUsername())
+                // Neutral subject: the demo account's email must never leak via the token.
+                // The principal is resolved from the userId claim instead (see JwtAuthenticationFilter).
+                .subject("demo")
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + oneHourMs))
                 .signWith(getSigningKey())
                 .compact();
+    }
+
+    /** True if the token carries the demo flag. Read-only enforcement keys on this, not on isSeedData. */
+    public boolean isDemoToken(String token) {
+        return Boolean.TRUE.equals(extractClaim(token, c -> c.get("demoAccount", Boolean.class)));
+    }
+
+    /** Resolves the account a demo token points to. Demo tokens carry no email; resolve by id. */
+    public UUID extractUserId(String token) {
+        String id = extractClaim(token, c -> c.get("userId", String.class));
+        return id == null ? null : UUID.fromString(id);
+    }
+
+    /** Demo tokens have a neutral subject, so validity is just signature (verified on parse) + expiry. */
+    public boolean isDemoTokenValid(String token) {
+        return !isTokenExpired(token);
     }
 
     public String generateImpersonationToken(UserDetails userDetails) {

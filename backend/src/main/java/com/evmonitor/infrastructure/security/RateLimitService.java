@@ -60,6 +60,12 @@ public class RateLimitService {
             .refillIntervally(60, Duration.ofHours(1))
             .build();
 
+    // 120 demo read requests per minute per IP — generous for human browsing, blocks scraping.
+    private static final Bandwidth DEMO_REQUEST_LIMIT = Bandwidth.builder()
+            .capacity(120)
+            .refillIntervally(120, Duration.ofMinutes(1))
+            .build();
+
     // Caffeine caches mit TTL + Größen-Limit — verhindert unbegrenztes Wachstum der Buckets.
     // expireAfterAccess: Bucket wird nach Inaktivität entfernt. maximumSize: Hard Cap gegen DoS.
     private final Cache<String, Bucket> loginBuckets = Caffeine.newBuilder()
@@ -72,6 +78,8 @@ public class RateLimitService {
             .expireAfterAccess(10, TimeUnit.MINUTES).maximumSize(5_000).build();
     private final Cache<String, Bucket> apiUploadBuckets = Caffeine.newBuilder()
             .expireAfterAccess(2, TimeUnit.HOURS).maximumSize(10_000).build();
+    private final Cache<String, Bucket> demoRequestBuckets = Caffeine.newBuilder()
+            .expireAfterAccess(2, TimeUnit.MINUTES).maximumSize(10_000).build();
 
     /**
      * @return true if the request may proceed, false if rate limit exceeded
@@ -135,6 +143,23 @@ public class RateLimitService {
                 .tryConsume(1);
         if (!allowed) {
             log.warn("Rate limit exceeded for demo-login from IP: {}", clientIp);
+        }
+        return allowed;
+    }
+
+    /**
+     * Throttles read traffic of an active demo session per IP. Demo tokens are public, so this
+     * caps scraping/DoS of the (real) account's data behind them.
+     *
+     * @return true if the request may proceed, false if rate limit exceeded
+     */
+    public boolean tryConsumeDemoRequest(String clientIp) {
+        if (!enabled) return true;
+        boolean allowed = demoRequestBuckets
+                .get(clientIp, ip -> Bucket.builder().addLimit(DEMO_REQUEST_LIMIT).build())
+                .tryConsume(1);
+        if (!allowed) {
+            log.warn("Rate limit exceeded for demo request from IP: {}", clientIp);
         }
         return allowed;
     }
