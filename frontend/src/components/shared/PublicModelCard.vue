@@ -35,7 +35,7 @@ function formatRealConsumptionBare(avg: number | null, min: number | null, max: 
 <template>
   <a
     :href="to"
-    class="btn-3d cta-card no-press flex flex-col bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 rounded-lg p-4"
+    class="btn-3d cta-card no-press relative z-0 hover:z-10 flex flex-col bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 rounded-lg p-4"
   >
     <!-- Title -->
     <h3 class="mb-3 text-center text-xl font-extrabold leading-tight text-gray-900 dark:text-gray-100">{{ model.modelDisplayName }}</h3>
@@ -43,13 +43,13 @@ function formatRealConsumptionBare(avg: number | null, min: number | null, max: 
     <!-- Cost hero -->
     <div
       v-if="model.avgCostPerKwh && model.avgConsumptionKwhPer100km"
-      class="mb-3 rounded-lg border-2 border-gray-900 dark:border-gray-100 bg-blue-50 dark:bg-blue-950/40 px-3 py-2 shadow-[3px_3px_0_0_#2563eb]"
+      class="mb-3 rounded-lg border-2 border-gray-900 dark:border-gray-100 bg-blue-50 dark:bg-blue-950/40 px-3 py-2 shadow-[2px_2px_0_0_#bfdbfe]"
     >
       <div class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">
         <BanknotesIcon class="h-3.5 w-3.5 flex-none" />
         {{ t('landing.hero.cost_headline') }}
       </div>
-      <div class="mt-0.5 text-2xl font-black leading-none text-blue-600 dark:text-blue-400 sl-num">
+      <div class="mt-0.5 text-2xl font-bold leading-none text-blue-600 dark:text-blue-400 sl-num">
         ~{{ formatCostPerDistance(model.avgCostPerKwh * model.avgConsumptionKwhPer100km) }}
       </div>
       <div class="mt-1 flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
