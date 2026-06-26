@@ -18,11 +18,13 @@ import org.mockito.quality.Strictness;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
@@ -128,6 +130,20 @@ class LeaderboardServiceIntegrationTest {
 
         assertThat(result.entries().get(0).rankDelta()).isNull();
         assertThat(result.entries().get(0).isNew()).isFalse();
+    }
+
+    @Test
+    void getLeaderboard_referenceDate_shiftsPeriodAndWindowToThatMonth() {
+        when(queryRepository.getKwhRanking(any(), any())).thenReturn(List.of(row(userA, "anna", "80.0")));
+
+        // Referenzdatum = letzter Tag Mai -> voller Mai als Fenster, period = 2026-05
+        var result = leaderboardService.getLeaderboard(
+                LeaderboardCategory.MONTHLY_KWH, null, LocalDate.of(2026, 5, 31));
+
+        assertThat(result.period()).isEqualTo("2026-05");
+        verify(queryRepository).getKwhRanking(
+                eq(LocalDateTime.of(2026, 5, 1, 0, 0)),
+                eq(LocalDateTime.of(2026, 6, 1, 0, 0)));
     }
 
     // ---- Own entry ----

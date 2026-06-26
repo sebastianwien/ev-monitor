@@ -92,8 +92,7 @@ landing:
     label: Gemenskapens tävling
     title: Vem är den mest aktiva laddaren den här månaden?
     desc: Månadsvis topplista för EV Monitor-gemenskapen - 8 kategorier, rättvisa regler, riktiga watt.
-    chip_monthly: Återställs månadsvis
-    cta: Se topplistan
+    cta: "Registrera dig gratis och var med"
   darkmode_teaser: Mörkt läge finns självklart med.
   models_section:
     title: Vad kostar laddningen egentligen?
@@ -822,19 +821,18 @@ dashboard:
 leaderboard:
   title: Resultatlista
   subtitle: Månadsrankning av de mest aktiva medlemmarna i EV Monitor-communityn
+  final_standings: "Slutställning {month}"
   loading: Laddar resultatlistan...
   lower_is_better: Ju lägre, desto bättre
   no_data: Det finns inga uppgifter för den här månaden ännu.
   no_data_subtitle: Ladda upp och säkra din plats!
   rank: Rankning {n}
   you: (Du)
-  login_hint: Logga in
-  login_hint_suffix: för att se din egen placering.
   coins_history: Visa din Watt-historik
   top3_reward: "De tre bästa får bonuspoäng i slutet av månaden:"
   not_ranked: Du finns inte med i rankningen än – sätt igång!
   new_entry: NYTT
-  cat_kwh: Flest kWh
+  cat_kwh: Mest laddad energi
   cat_charges: Laddningssessioner
   cat_distance: Längsta sträckan
   cat_cheapest: Den billigaste laddaren

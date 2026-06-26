@@ -22,17 +22,13 @@ import {
   MapPinIcon,
   DocumentCheckIcon,
   ArrowTopRightOnSquareIcon,
-  TrophyIcon,
-  SparklesIcon,
-  ArrowPathIcon,
   FireIcon,
-  StarIcon,
   MoonIcon,
-  SunIcon,
   ArrowLongRightIcon,
   CodeBracketIcon,
 } from '@heroicons/vue/24/outline'
 import CommunityPulseSection from '../components/shared/CommunityPulseSection.vue'
+import CommunityLeaderboard from '../components/shared/CommunityLeaderboard.vue'
 import PublicModelCard from '../components/shared/PublicModelCard.vue'
 
 const { t } = useI18n()
@@ -144,16 +140,18 @@ const superlativeCategories = computed<SuperlativeCategory[]>(() => {
 
 const hasSuperlatives = computed(() => superlativeCategories.value.length > 0)
 
-const leaderboardCategories = computed(() => [
-  { key: 'kwh', label: t('leaderboard.cat_kwh'), icon: BoltIcon, color: 'text-yellow-500' },
-  { key: 'charges', label: t('leaderboard.cat_charges'), icon: ArrowPathIcon, color: 'text-blue-500' },
-  { key: 'distance', label: t('leaderboard.cat_distance'), icon: FireIcon, color: 'text-orange-500' },
-  { key: 'cheapest', label: t('leaderboard.cat_cheapest'), icon: StarIcon, color: 'text-green-500' },
-  { key: 'night_owl', label: t('leaderboard.cat_night_owl'), icon: MoonIcon, color: 'text-indigo-400' },
-  { key: 'ice', label: t('leaderboard.cat_ice_charger'), icon: SparklesIcon, color: 'text-cyan-400' },
-  { key: 'heat', label: t('leaderboard.cat_heat_charger'), icon: SunIcon, color: 'text-orange-400' },
-  { key: 'power', label: t('leaderboard.cat_power_charger'), icon: BoltIcon, color: 'text-red-500' },
-])
+// Leaderboard-Sektion erst zeigen, wenn das Live-Widget echte Daten geliefert hat.
+// Bei API-Fehler oder leerem Monat bleibt sie aus - kein Fehler-/Leer-State auf der Landing.
+const leaderboardReady = ref(false)
+// In den ersten 7 Tagen ist der laufende Monat noch zu duenn - dann den Vormonats-Endstand zeigen.
+const leaderboardMonth = new Date().getDate() <= 7 ? 'previous' : 'current'
+
+// desc nach dem ersten " - " umbrechen (Trenner ist in allen Locales identisch); single source of truth bleibt der eine i18n-Key.
+const leaderboardDescParts = computed(() => {
+  const text = t('landing.leaderboard.desc')
+  const idx = text.indexOf(' - ')
+  return idx === -1 ? [text] : [text.slice(0, idx + 2), text.slice(idx + 3)]
+})
 
 function animateCount(target: number | undefined | null, setter: (v: number) => void, duration = 1400) {
   if (target == null || isNaN(target)) return
@@ -678,53 +676,37 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
     </section>
 
     <!-- Leaderboard Preview Section -->
-    <section class="py-12 sm:py-20 border-t border-gray-100 dark:border-gray-800">
-      <div class="max-w-7xl mx-auto px-4 sm:px-8 lg:px-12">
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-y-5 lg:gap-x-16 lg:items-center">
+    <section v-show="leaderboardReady" class="py-12 sm:py-20 border-t border-gray-100 dark:border-gray-800">
+      <div class="max-w-2xl mx-auto px-4 sm:px-6">
 
-          <!-- Heading (mobile pos 1+2) -->
-          <div class="order-1 lg:col-start-2 lg:row-start-1 lg:self-end text-center lg:text-left">
-            <span class="text-xs sm:text-sm font-extrabold text-green-700 dark:text-green-400 uppercase tracking-[0.18em]">{{ t('landing.leaderboard.label') }}</span>
-            <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mt-2 mb-3">
-              {{ t('landing.leaderboard.title') }}
-            </h2>
-            <p class="text-lg sm:text-xl font-medium text-gray-700 dark:text-gray-200 max-w-md mx-auto lg:mx-0">
-              {{ t('landing.leaderboard.desc') }}
-            </p>
-          </div>
-
-          <!-- Screenshot (mobile pos 3) -->
-          <div class="order-2 lg:order-none lg:col-start-1 lg:row-start-1 lg:row-span-2 lg:self-center w-full max-w-xs sm:max-w-sm lg:max-w-none mx-auto relative">
-            <div class="rounded-xl border-2 border-gray-900 dark:border-gray-100 shadow-[8px_8px_0_0_#15803d] dark:shadow-[8px_8px_0_0_#22c55e] overflow-hidden relative">
-              <img
-                src="/screenshots/leaderboard-light.jpg"
-                alt="EV Monitor Bestenliste"
-                class="w-full block h-auto"
-                loading="lazy"
-                width="420"
-                height="900"
-              />
-              <div class="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-b from-transparent to-white dark:to-gray-900 pointer-events-none"></div>
-            </div>
-            <div class="absolute -top-3 -left-3 bg-yellow-400 text-yellow-900 text-sm font-bold px-4 py-2 rounded-full shadow-[4px_4px_0_0_#111827] border-2 border-gray-900 hidden sm:flex items-center gap-1.5">
-              <TrophyIcon class="h-3.5 w-3.5" />
-              {{ t('landing.leaderboard.chip_monthly') }}
-            </div>
-          </div>
-
-          <!-- Category grid (mobile pos 4) -->
-          <div class="order-3 lg:col-start-2 lg:row-start-2 lg:self-start">
-            <div class="grid grid-cols-2 gap-2 max-w-md mx-auto lg:mx-0">
-              <div v-for="cat in leaderboardCategories" :key="cat.key"
-                class="flex items-center gap-2.5 px-3.5 py-2.5 bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 rounded-lg shadow-[2px_2px_0_0_#111827] dark:shadow-[2px_2px_0_0_#e5e7eb] text-sm sm:text-base text-gray-900 dark:text-gray-100"
-              >
-                <component :is="cat.icon" :class="['h-5 w-5 shrink-0', cat.color]" />
-                <span class="font-semibold truncate">{{ cat.label }}</span>
-              </div>
-            </div>
-          </div>
-
+        <!-- Marketing-Ueberschrift: fuehrt das Live-Widget ein -->
+        <div class="text-center mb-8">
+          <span class="text-xs sm:text-sm font-extrabold text-green-700 dark:text-green-400 uppercase tracking-[0.18em]">{{ t('landing.leaderboard.label') }}</span>
+          <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mt-2 mb-3">
+            {{ t('landing.leaderboard.title') }}
+          </h2>
+          <p class="text-lg sm:text-xl font-medium text-gray-700 dark:text-gray-200 max-w-xl mx-auto">
+            <template v-for="(part, i) in leaderboardDescParts" :key="i">{{ part }}<br v-if="i < leaderboardDescParts.length - 1" /></template>
+          </p>
         </div>
+
+        <!-- Echtes, interaktives Leaderboard-Widget im Brand-Rahmen (live aus /api/public/leaderboard) -->
+        <!-- Mobile clippt der Rahmen sauber; ab sm overflow-visible, damit die Galerie-Pfeile ausserhalb sichtbar sind -->
+        <div class="rounded-xl border-2 border-gray-900 dark:border-gray-100 shadow-[8px_8px_0_0_#15803d] dark:shadow-[8px_8px_0_0_#22c55e] overflow-hidden sm:overflow-visible">
+          <CommunityLeaderboard :show-header="false" :month="leaderboardMonth" :max-entries="5" @available="leaderboardReady = leaderboardReady || $event">
+            <!-- Footer (Login-Hinweise) auf der Landing unterdruecken; CTA liegt unter dem Widget -->
+            <template #footer />
+          </CommunityLeaderboard>
+        </div>
+
+        <!-- CTA unter dem Widget -->
+        <button
+          type="button"
+          @click="goToRegister('leaderboard_cta')"
+          class="w-full mt-6 inline-flex items-center justify-center gap-2 px-6 py-4 bg-green-600 hover:bg-green-700 text-white text-lg sm:text-xl font-bold rounded-lg border-2 border-gray-900 dark:border-gray-100 shadow-[4px_4px_0_0_#111827] dark:shadow-[4px_4px_0_0_#e5e7eb] transition active:translate-x-0.5 active:translate-y-0.5 active:shadow-none">
+          {{ t('landing.leaderboard.cta') }}
+          <ArrowRightIcon class="h-6 w-6 shrink-0" />
+        </button>
       </div>
     </section>
 

@@ -92,8 +92,7 @@ landing:
     label: Fellesskapets konkurranse
     title: Hvem er den mest aktive laderen denne måneden?
     desc: Månedlig rangliste for EV Monitor-fellesskapet - 8 kategorier, rettferdige regler, ekte watt.
-    chip_monthly: Nullstilles månedlig
-    cta: Se ranglisten
+    cta: "Registrer deg gratis og bli med"
   darkmode_teaser: Mørk modus er selvsagt inkludert.
   models_section:
     title: Hva koster det egentlig å lade?
@@ -822,19 +821,18 @@ dashboard:
 leaderboard:
   title: Poengliste
   subtitle: Månedlig rangering av det mest aktive EV Monitor-fellesskapet
+  final_standings: "Sluttstilling {month}"
   loading: Laster resultatlisten...
   lower_is_better: Lavere = Bedre
   no_data: Det foreligger ingen data for denne måneden ennå.
   no_data_subtitle: Lad opp og sikre deg plassen din!
   rank: Rangering {n}
   you: (Du)
-  login_hint: Logg inn
-  login_hint_suffix: for å se din egen rangering.
   coins_history: Vis din Watt-historikk
   top3_reward: "De tre beste får bonus-watt ved månedsslutt:"
   not_ranked: Du er ikke med på rangeringen ennå – kom i gang!
   new_entry: NYTT
-  cat_kwh: Flest kWh
+  cat_kwh: Mest energi ladet
   cat_charges: Ladingsøkter
   cat_distance: Lengste avstand
   cat_cheapest: Den billigste laderen

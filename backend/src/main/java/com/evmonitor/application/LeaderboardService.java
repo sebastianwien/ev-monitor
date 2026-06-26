@@ -31,7 +31,16 @@ public class LeaderboardService {
 
     @Cacheable(value = "leaderboard", key = "'board:' + #category.name() + ':' + #requestingUserId")
     public LeaderboardResponseDTO getLeaderboard(LeaderboardCategory category, UUID requestingUserId) {
-        LocalDate today = LocalDate.now();
+        return getLeaderboard(category, requestingUserId, LocalDate.now());
+    }
+
+    /**
+     * Wie {@link #getLeaderboard(LeaderboardCategory, UUID)}, aber mit frei waehlbarem Referenzdatum.
+     * Die gesamte Fenster-/Delta-/Period-Logik ist datums-relativ - ein verschobenes Referenzdatum
+     * (z.B. letzter Tag des Vormonats) liefert damit ohne Sonderfall den Endstand jenes Monats.
+     */
+    public LeaderboardResponseDTO getLeaderboard(LeaderboardCategory category, UUID requestingUserId, LocalDate referenceDate) {
+        LocalDate today = referenceDate;
         LocalDateTime startOfMonth = today.withDayOfMonth(1).atStartOfDay();
         LocalDateTime endOfToday = today.plusDays(1).atStartOfDay();
         LocalDateTime endOfYesterday = today.atStartOfDay();
