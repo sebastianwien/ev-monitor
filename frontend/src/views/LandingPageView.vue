@@ -507,14 +507,14 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
 
           <!-- Dashboard screenshot (mobile pos 3) -->
           <div class="order-2 lg:order-none lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:self-center w-full max-w-xl lg:max-w-none mx-auto relative">
-            <div class="rounded-xl border-2 border-gray-900 dark:border-gray-100 shadow-[8px_8px_0_0_#15803d] dark:shadow-[8px_8px_0_0_#22c55e] overflow-hidden relative">
+            <div class="rounded-xl border-2 border-gray-900 dark:border-gray-100 shadow-[8px_8px_0_0_#15803d] dark:shadow-[8px_8px_0_0_#22c55e] overflow-hidden relative transition duration-300 ease-out hover:scale-[1.06]">
               <img
                 src="/screenshots/dashboard-light.jpg"
                 alt="EV Monitor Dashboard"
                 class="w-full block h-auto"
                 loading="lazy"
                 width="885"
-                height="900"
+                height="950"
               />
               <div class="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-b from-transparent to-white dark:to-gray-900 pointer-events-none"></div>
             </div>
@@ -563,7 +563,7 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
 
           <!-- Logfeed screenshot (mobile pos 3) -->
           <div class="order-2 lg:order-none lg:col-start-1 lg:row-start-1 lg:row-span-2 lg:self-center w-full max-w-xl lg:max-w-none mx-auto relative">
-            <div class="rounded-xl border-2 border-gray-900 dark:border-gray-100 shadow-[8px_8px_0_0_#15803d] dark:shadow-[8px_8px_0_0_#22c55e] overflow-hidden relative">
+            <div class="rounded-xl border-2 border-gray-900 dark:border-gray-100 shadow-[8px_8px_0_0_#15803d] dark:shadow-[8px_8px_0_0_#22c55e] overflow-hidden relative transition duration-300 ease-out hover:scale-[1.06]">
               <img
                 src="/screenshots/logfeed-light.jpg"
                 alt="EV Monitor Ladehistorie"
@@ -619,7 +619,7 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
               <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1 mb-2">{{ t('landing.app_preview.map_title') }}</h3>
             </div>
             <!-- Screenshot (mobile pos 2) -->
-            <div class="order-2 lg:order-1 mt-3 lg:mt-0 rounded-xl border-2 border-gray-900 dark:border-gray-100 shadow-[6px_6px_0_0_#15803d] dark:shadow-[6px_6px_0_0_#22c55e] overflow-hidden">
+            <div class="order-2 lg:order-1 mt-3 lg:mt-0 rounded-xl border-2 border-gray-900 dark:border-gray-100 shadow-[6px_6px_0_0_#15803d] dark:shadow-[6px_6px_0_0_#22c55e] overflow-hidden transition duration-300 ease-out hover:scale-[1.06]">
               <img
                 src="/screenshots/map-light.jpg"
                 alt="EV Monitor Lade-Standorte Karte"
@@ -649,7 +649,7 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
               <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1 mb-2">{{ t('landing.app_preview.charts_title') }}</h3>
             </div>
             <!-- Screenshot (mobile pos 2) -->
-            <div class="order-2 lg:order-1 mt-3 lg:mt-0 rounded-xl border-2 border-gray-900 dark:border-gray-100 shadow-[6px_6px_0_0_#15803d] dark:shadow-[6px_6px_0_0_#22c55e] overflow-hidden">
+            <div class="order-2 lg:order-1 mt-3 lg:mt-0 rounded-xl border-2 border-gray-900 dark:border-gray-100 shadow-[6px_6px_0_0_#15803d] dark:shadow-[6px_6px_0_0_#22c55e] overflow-hidden transition duration-300 ease-out hover:scale-[1.06]">
               <img
                 src="/screenshots/charts-light.jpg"
                 alt="EV Monitor Analysen Kosten und Verbrauch"
