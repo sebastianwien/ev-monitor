@@ -60,9 +60,11 @@ landing:
     loading_button: Laddar...
     models_button: Visa alla modeller
     register_button: "Registrera dig gratis →"
-    total_km_label: km körda av gemenskapen
-    models_label: modeller att välja mellan
-    drivers_label: aktiva förare i gemenskapen
+    total_km_label: körda av gemenskapen
+    models_unit: modeller
+    models_label: att välja mellan
+    drivers_unit: aktiva förare
+    drivers_label: i gemenskapen
   features:
     open_source_title: 100 % öppen källkod
     open_source_desc: Fullständig insyn på GitHub. Inga leverantörsberoenden.

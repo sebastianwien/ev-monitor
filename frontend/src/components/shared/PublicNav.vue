@@ -1,12 +1,12 @@
 <template>
   <div v-if="!authStore.isAuthenticated()" class="sticky top-0 z-50">
     <div class="h-1 bg-gradient-to-r from-green-400 via-emerald-500 to-green-600"></div>
-    <nav class="pt-[env(safe-area-inset-top)] bg-white/95 dark:bg-gray-950/95 backdrop-blur-md border-b-2 border-gray-900 dark:border-gray-800 shadow-sm">
+    <nav class="pt-[env(safe-area-inset-top)] bg-green-50/95 dark:bg-green-950/80 backdrop-blur-md border-b-2 border-gray-900 dark:border-gray-800 shadow-sm">
     <div class="max-w-7xl mx-auto px-4 sm:px-8">
       <div class="flex justify-between items-center h-16">
         <a href="/" class="flex items-center gap-2 shrink-0 whitespace-nowrap">
           <BoltLogo class="h-7 w-7" />
-          <span class="text-xl font-bold text-gray-900 dark:text-gray-100">EV Monitor</span>
+          <span class="text-2xl font-bold text-gray-900 dark:text-gray-100">EV Monitor</span>
         </a>
         <div class="flex items-center gap-2 sm:gap-3 min-w-0">
           <LocaleSwitcher class="hidden sm:flex" />

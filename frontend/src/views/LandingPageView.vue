@@ -55,9 +55,9 @@ const displayTotalKmRounded = computed(() => formatKm(displayTotalKm.value))
 
 // Trust panel: community stats (with explanatory labels) + trust signals
 const trustStats = computed(() => [
-  { value: displayTotalKmRounded.value, label: t('landing.hero.total_km_label') },
-  { value: displayModels.value, label: t('landing.hero.models_label') },
-  { value: displayUsers.value, label: t('landing.hero.drivers_label') },
+  { value: `${displayTotalKmRounded.value} km`, label: t('landing.hero.total_km_label') },
+  { value: `${displayModels.value} ${t('landing.hero.models_unit')}`, label: t('landing.hero.models_label') },
+  { value: `${displayUsers.value} ${t('landing.hero.drivers_unit')}`, label: t('landing.hero.drivers_label') },
 ])
 const trustSignals = [
   { icon: CodeBracketIcon, key: 'landing.features.open_source_title', href: 'https://github.com/sebastianwien/ev-monitor', external: true, action: '' },
@@ -412,7 +412,7 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
 
     <!-- Model Preview Section: own accent band so the cost section stands out and
          breaks the seam between the two surrounding grid sections -->
-    <section class="py-8 sm:py-16 px-4 sm:px-6 lg:px-8 bg-green-50/70 dark:bg-green-950/20 border-y border-gray-200 dark:border-gray-800">
+    <section class="py-8 sm:py-16 px-4 sm:px-6 lg:px-8 bg-gray-50 dark:bg-gray-800/40 border-y border-gray-200 dark:border-gray-800">
       <div class="max-w-7xl mx-auto">
         <div class="text-center mb-12">
           <h2 class="text-3xl font-semibold text-gray-900 dark:text-gray-100 mb-4">

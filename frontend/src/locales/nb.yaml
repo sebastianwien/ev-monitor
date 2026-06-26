@@ -60,9 +60,11 @@ landing:
     loading_button: Laster...
     models_button: Vis alle modeller
     register_button: "Registrer deg gratis →"
-    total_km_label: km kjørt av fellesskapet
-    models_label: modeller å velge mellom
-    drivers_label: aktive sjåfører i fellesskapet
+    total_km_label: kjørt av fellesskapet
+    models_unit: modeller
+    models_label: å velge mellom
+    drivers_unit: aktive sjåfører
+    drivers_label: i fellesskapet
   features:
     open_source_title: 100 % åpen kildekode
     open_source_desc: Fullstendig åpen på GitHub. Ingen leverandørbinding.
