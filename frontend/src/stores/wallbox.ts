@@ -23,6 +23,9 @@ export const useWallboxStore = defineStore('wallbox', () => {
   const connections = ref<GoeConnection[]>([])
   let pollTimer: ReturnType<typeof setTimeout> | null = null
   let isDemoMode = false
+  // Guards against an in-flight fetch re-arming the poll loop after reset() (e.g. logout):
+  // fetchConnections() reschedules AFTER its await, so a late callback must check this.
+  let active = false
 
   const isCharging = computed(() => connections.value.some(c => c.carState === 2))
   const hasConnections = computed(() => connections.value.length > 0)
@@ -38,7 +41,7 @@ export const useWallboxStore = defineStore('wallbox', () => {
   })
 
   async function fetchConnections() {
-    if (isDemoMode) return
+    if (isDemoMode || !active) return
     try {
       connections.value = await goeService.getConnections()
     } catch { /* ignore — chip simply stays hidden */ }
@@ -47,7 +50,7 @@ export const useWallboxStore = defineStore('wallbox', () => {
 
   function schedulePoll() {
     if (pollTimer) clearTimeout(pollTimer)
-    if (document.hidden || isDemoMode) return
+    if (document.hidden || isDemoMode || !active) return
     pollTimer = setTimeout(fetchConnections, isCharging.value ? POLL_CHARGING_MS : POLL_IDLE_MS)
   }
 
@@ -65,11 +68,13 @@ export const useWallboxStore = defineStore('wallbox', () => {
       connections.value = [DEMO_CONNECTION]
       return
     }
+    active = true
     fetchConnections()
     document.addEventListener('visibilitychange', onVisibilityChange)
   }
 
   function reset() {
+    active = false
     if (pollTimer) clearTimeout(pollTimer)
     document.removeEventListener('visibilitychange', onVisibilityChange)
     connections.value = []

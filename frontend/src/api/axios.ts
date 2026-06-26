@@ -33,7 +33,11 @@ api.interceptors.response.use(
     (response) => response,
     (error) => {
         const isAuthEndpoint = error.config?.url?.startsWith('/auth/');
-        if (error.response?.status === 401 && !isAuthEndpoint && !sessionExpiredRedirectPending) {
+        // Only a genuine expired session warrants the redirect: a token must currently be present.
+        // A 401 with no token means a late background poll fired after a deliberate logout/demo-exit —
+        // bouncing the user to /login?reason=session-expired in that case is wrong.
+        const hasToken = !!useAuthStore().token;
+        if (error.response?.status === 401 && !isAuthEndpoint && !sessionExpiredRedirectPending && hasToken) {
             sessionExpiredRedirectPending = true;
             const authStore = useAuthStore();
             authStore.logout(false);
