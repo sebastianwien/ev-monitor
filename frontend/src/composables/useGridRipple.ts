@@ -6,16 +6,16 @@ import { onMounted, onUnmounted, type Ref } from 'vue'
 
 /** Rasterweite - identisch zum statischen CSS-Gitter `.sl-grid` (background-size: 28px). */
 export const GRID_SIZE = 28
-/** Wirkradius der subtilen Cursor-Welle. */
-const CURSOR_RADIUS = 110
+/** Wirkradius der Cursor-Welle. */
+const CURSOR_RADIUS = 160
 /** Maximale Auslenkung eines Punktes durch den Cursor. */
-const CURSOR_MAX_SHIFT = 3.5
+const CURSOR_MAX_SHIFT = 6
 /** Maximale Auslenkung eines Punktes durch einen Klick-Ripple. */
-const RIPPLE_MAX_SHIFT = 6
+const RIPPLE_MAX_SHIFT = 11
 /** Ausbreitungsgeschwindigkeit des Ripple-Rings in px/s. */
-const RIPPLE_SPEED = 320
+const RIPPLE_SPEED = 340
 /** Bandbreite des Ripple-Rings (Gauss-Sigma in px). */
-const RIPPLE_WIDTH = 46
+const RIPPLE_WIDTH = 62
 /** Lebensdauer eines Ripples in ms. */
 const RIPPLE_LIFE_MS = 1100
 /** Wie lange nach der letzten Mausbewegung noch animiert wird. */
@@ -213,7 +213,7 @@ export function useGridRipple(canvasRef: Ref<HTMLCanvasElement | null>) {
             const shift = infl * CURSOR_MAX_SHIFT
             dx += (vx / dist) * shift
             dy += (vy / dist) * shift
-            const g = infl * 0.55
+            const g = infl * 0.85
             if (g > glow) glow = g
           }
         }
@@ -223,8 +223,8 @@ export function useGridRipple(canvasRef: Ref<HTMLCanvasElement | null>) {
         const moved = dx * dx + dy * dy > 0.02
 
         if (glow > 0.02) {
-          const a = Math.min(0.5, glow * 0.55)
-          const radiusPt = 1 + glow * 1.4
+          const a = Math.min(0.9, glow * 0.95)
+          const radiusPt = 1.2 + glow * 2.4
           ctx.beginPath()
           ctx.fillStyle = `rgba(${brand.r},${brand.g},${brand.b},${a})`
           ctx.arc(x, y, radiusPt, 0, Math.PI * 2)
