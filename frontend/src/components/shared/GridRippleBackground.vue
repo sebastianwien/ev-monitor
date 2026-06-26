@@ -11,7 +11,10 @@ import { useGridRipple } from '@/composables/useGridRipple'
  * statische CSS-Gitter `.sl-grid` der Seite sichtbar (gleiche Optik).
  *
  * Verwendung: einmal als erstes Kind im `.sl-grid`-Root der Landing-Page
- * platzieren; der Content braucht eine eigene Stapelebene (z. B. `relative z-10`).
+ * platzieren. Der Root muss einen eigenen Stacking-Context aufspannen (z. B.
+ * `isolate`), damit der `-z-10`-Canvas ueber dem Root-Hintergrund (statisches
+ * Gitter), aber hinter dem normalen Content liegt - ohne dass der Content eine
+ * eigene Stapelebene braucht.
  */
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 useGridRipple(canvasRef)
@@ -20,7 +23,7 @@ useGridRipple(canvasRef)
 <template>
   <canvas
     ref="canvasRef"
-    class="pointer-events-none fixed inset-0 z-0 h-screen w-screen"
+    class="pointer-events-none fixed inset-0 -z-10 h-screen w-screen"
     aria-hidden="true"
   />
 </template>

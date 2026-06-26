@@ -7,6 +7,7 @@ import { useAuthStore } from '../stores/auth'
 import { analytics } from '../services/analytics'
 import SupportPopover from '../components/settings/SupportPopover.vue'
 import PublicNav from '../components/shared/PublicNav.vue'
+import GridRippleBackground from '../components/shared/GridRippleBackground.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { getTopModels, getMostEfficientModels, getLongestRangeModels, getPlatformStats, type TopModelPreview } from '../api/publicModelService'
 import { selectSuperlatives } from '../composables/superlatives'
@@ -273,7 +274,10 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
 </script>
 
 <template>
-  <div class="sl-grid min-h-screen bg-white dark:bg-gray-950 overflow-x-clip">
+  <div class="sl-grid isolate min-h-screen bg-white dark:bg-gray-950 overflow-x-clip">
+    <!-- Maus-reaktives Gitter: zeichnet nur bewegte Punkte ueber das statische .sl-grid -->
+    <GridRippleBackground />
+
     <!-- Navbar -->
     <PublicNav />
 
