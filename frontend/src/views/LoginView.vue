@@ -60,15 +60,15 @@ const handleResendFromLogin = async () => {
     <div class="w-full max-w-md">
 
       <!-- Card -->
-      <div class="bg-white dark:bg-gray-800 rounded-sm shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:shadow-[5px_5px_0_rgba(255,255,255,0.35)] overflow-hidden">
+      <div class="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-900 dark:border-gray-100 shadow-[6px_6px_0_0_#15803d] dark:shadow-[6px_6px_0_0_#22c55e] overflow-hidden">
 
         <!-- Card header: branded strip -->
-        <div class="bg-gradient-to-r from-indigo-600 to-violet-600 px-8 py-6 text-white text-center">
+        <div class="bg-gradient-to-r from-green-500 via-emerald-500 to-green-600 px-8 py-6 text-white text-center">
           <router-link :to="locale === 'en' ? '/en' : '/'" class="inline-flex items-center justify-center gap-2 mb-2 hover:opacity-80 transition-opacity">
             <BoltIcon class="h-7 w-7" />
             <span class="text-2xl font-bold tracking-tight">EV Monitor</span>
           </router-link>
-          <p class="text-indigo-200 text-sm">{{ t('auth.login.tagline') }}</p>
+          <p class="text-green-50 text-sm">{{ t('auth.login.tagline') }}</p>
         </div>
 
         <!-- Form -->
@@ -86,13 +86,13 @@ const handleResendFromLogin = async () => {
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('auth.login.email_or_username') }}</label>
               <input v-model="email" type="text" required
-                class="block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                class="block w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-sm shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-600"
                 :placeholder="t('auth.login.email_placeholder')" />
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('auth.login.password') }}</label>
               <input v-model="password" type="password" required
-                class="block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+                class="block w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-sm shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-600" />
             </div>
 
             <div v-if="error" class="text-sm font-medium bg-red-50 p-3 rounded-sm border border-red-100"
@@ -110,7 +110,7 @@ const handleResendFromLogin = async () => {
 
             <button type="submit"
               v-haptic
-              class="btn-3d w-full px-4 py-3 font-semibold text-white bg-indigo-600 rounded-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition">
+              class="btn-3d [--btn-shadow-color:#111827] dark:[--btn-shadow-color:#000000] w-full px-4 py-3 font-semibold text-white bg-green-600 border-2 border-gray-900 dark:border-gray-100 rounded-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition">
               {{ t('auth.login.submit') }}
             </button>
           </form>
@@ -139,14 +139,14 @@ const handleResendFromLogin = async () => {
           </template>
 
           <div class="mt-4 text-center">
-            <router-link :to="forgotPath" class="text-sm text-gray-400 hover:text-indigo-600 transition">
+            <router-link :to="forgotPath" class="text-sm text-gray-400 hover:text-green-600 transition">
               {{ t('auth.login.forgot_password') }}
             </router-link>
           </div>
 
           <div class="mt-3 text-center text-sm text-gray-500 dark:text-gray-400">
             {{ t('auth.login.no_account') }}
-            <router-link :to="registerPath" class="font-semibold text-indigo-600 hover:text-indigo-500">
+            <router-link :to="registerPath" class="font-semibold text-green-600 hover:text-green-700">
               {{ t('auth.login.register_link') }}
             </router-link>
           </div>
