@@ -5,9 +5,12 @@ import { useAuthStore } from '../stores/auth';
 import { useRouter, useRoute } from 'vue-router';
 import { analytics } from '../services/analytics';
 import { BoltIcon, ShieldCheckIcon, CurrencyEuroIcon } from '@heroicons/vue/24/outline';
+import { Capacitor } from '@capacitor/core';
 
 const { t, locale } = useI18n();
-const googleOauthEnabled = import.meta.env.VITE_GOOGLE_OAUTH_ENABLED === 'true'
+// Drittanbieter-Login (Google) nur im Web: in der nativen App wuerde Apple sonst
+// zusaetzlich Sign in with Apple verlangen (Guideline 4.8). E-Mail/Passwort bleibt.
+const googleOauthEnabled = import.meta.env.VITE_GOOGLE_OAUTH_ENABLED === 'true' && !Capacitor.isNativePlatform()
 
 const email = ref('');
 const password = ref('');

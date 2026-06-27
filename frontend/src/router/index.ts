@@ -4,12 +4,15 @@ import { useCountryStore } from '../stores/country';
 import { setLocale, isValidLocale } from '../i18n';
 import type { CountryCode } from '../config/unitSystems';
 import { isValidCountryCode } from '../config/unitSystems';
+import { purchasesAvailable } from '../utils/iapPolicy';
 
 declare module 'vue-router' {
     interface RouteMeta {
         requiresAuth?: boolean
         requiresAdmin?: boolean
         guestOnly?: boolean
+        /** In der nativen App gesperrt (Kauf-/Upgrade-Seiten, Apple Guideline 3.1.1). */
+        hideOnNative?: boolean
         locale?: string
         country?: CountryCode
     }
@@ -141,13 +144,13 @@ const router = createRouter({
             path: '/upgrade',
             name: 'upgrade',
             component: UpgradeView,
-            meta: { requiresAuth: true }
+            meta: { requiresAuth: true, hideOnNative: true }
         },
         {
             path: '/supporter',
             name: 'supporter',
             component: SupporterView,
-            meta: { requiresAuth: true }
+            meta: { requiresAuth: true, hideOnNative: true }
         },
         {
             path: '/upgrade/success',
@@ -479,6 +482,13 @@ const SLIDE_PAIRS: Record<string, string[]> = {
     '/dashboard': ['/logs'],
     '/logs': ['/dashboard'],
 };
+// Kauf-/Upgrade-Seiten in der nativen App sperren (Apple Guideline 3.1.1).
+// Backstop fuer den Fall, dass irgendwo ein Kauf-Link uebersehen wurde.
+router.beforeEach((to) => {
+    if (to.meta.hideOnNative && !purchasesAvailable()) {
+        return '/dashboard';
+    }
+});
 router.beforeEach((to, from) => {
     const dest = SLIDE_PAIRS[to.path];
     if (dest && dest.includes(from.path)) {

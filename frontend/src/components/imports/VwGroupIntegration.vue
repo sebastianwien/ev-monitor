@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { BoltIcon, CheckCircleIcon, XCircleIcon, ArrowTopRightOnSquareIcon, ArrowPathIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 import { useCarStore } from '../../stores/car'
+import { purchasesAvailable } from '../../utils/iapPolicy'
 import vwGroupService, { type VwGroupConnectionStatus, isCredentialBrand } from '../../api/vwGroupService'
 import type { Car } from '../../api/carService'
 import { analytics } from '../../services/analytics'
@@ -301,6 +302,7 @@ const stateColor = (state: string | null) => {
       <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ t('imports.vwgroup_teaser_desc') }}</p>
     </div>
     <router-link
+      v-if="purchasesAvailable()"
       to="/upgrade"
       class="btn-3d w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-xl font-semibold text-sm transition-colors"
     >

@@ -11,13 +11,16 @@ import { isDetectionAmbiguous } from '../composables/useCountryDetection';
 import { useCountryStore } from '../stores/country';
 import type { CountryCode } from '../config/unitSystems';
 import { COUNTRY_OPTIONS } from '../config/countries';
+import { Capacitor } from '@capacitor/core';
 
 const { t, locale } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const countryStore = useCountryStore();
 
-const googleOauthEnabled = import.meta.env.VITE_GOOGLE_OAUTH_ENABLED === 'true'
+// Drittanbieter-Login (Google) nur im Web: native App wuerde sonst Sign in with
+// Apple erzwingen (Guideline 4.8). E-Mail/Passwort-Registrierung bleibt.
+const googleOauthEnabled = import.meta.env.VITE_GOOGLE_OAUTH_ENABLED === 'true' && !Capacitor.isNativePlatform()
 const fromDemo = window.history.state?.fromDemo === true
 const loginPath = computed(() => locale.value === 'en' ? '/en/login' : '/login')
 

@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useCountryStore } from '../stores/country'
 import { useCarStore } from '../stores/car'
+import { purchasesAvailable } from '../utils/iapPolicy'
 import { COUNTRY_OPTIONS } from '../config/countries'
 import { UserIcon, KeyIcon, TrashIcon, ArrowDownTrayIcon, AcademicCapIcon, ShareIcon, ClipboardDocumentIcon, CheckIcon, HeartIcon, ArrowRightOnRectangleIcon, BoltIcon, CreditCardIcon, PlusIcon, PencilIcon, EyeIcon } from '@heroicons/vue/24/outline'
 import SupportPopover from '../components/settings/SupportPopover.vue'
@@ -285,6 +286,7 @@ onMounted(async () => {
               </div>
             </div>
             <button
+              v-if="purchasesAvailable()"
               @click="openPortal"
               :disabled="portalLoading"
               class="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-200 disabled:opacity-50 transition-colors"
@@ -313,7 +315,7 @@ onMounted(async () => {
 
           <!-- AUTOSYNC tier with Tesla in garage -> upgrade CTA -->
           <router-link
-            v-if="subscriptionTier === 'AUTOSYNC' && hasTesla"
+            v-if="subscriptionTier === 'AUTOSYNC' && hasTesla && purchasesAvailable()"
             to="/upgrade"
             class="block text-center bg-gradient-to-br from-indigo-600 to-purple-700 text-white text-sm font-semibold py-3 rounded-sm shadow-[3px_3px_0_rgba(0,0,0,0.25)] dark:shadow-[3px_3px_0_rgba(255,255,255,0.25)] hover:opacity-90 transition-opacity"
           >
@@ -339,7 +341,7 @@ onMounted(async () => {
           </div>
           <p v-if="tierActionError" class="text-xs text-red-600 dark:text-red-400 text-center">{{ tierActionError }}</p>
         </div>
-        <div v-else class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-sm">
+        <div v-else-if="purchasesAvailable()" class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-sm">
           <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('upgrade.pro_upgrade_hint', { priceMonthly: t('upgrade.price_monthly') }) }}</p>
           <router-link to="/upgrade" class="shrink-0 ml-4 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-200 transition-colors whitespace-nowrap">
             {{ t('upgrade.pro_upgrade_btn') }}

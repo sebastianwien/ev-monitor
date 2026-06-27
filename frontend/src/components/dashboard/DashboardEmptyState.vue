@@ -12,6 +12,7 @@ import {
 } from '@heroicons/vue/24/outline'
 import { getModelStatsByEnum, type PublicModelStats } from '../../api/publicModelService'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
+import { purchasesAvailable } from '../../utils/iapPolicy'
 
 const props = defineProps<{
   car: { brand: string; model: string; [key: string]: unknown }
@@ -192,8 +193,9 @@ onMounted(async () => {
         <ChevronRightIcon class="h-4 w-4 text-gray-400 shrink-0" />
       </button>
 
-      <!-- AutoSync Premium -->
+      <!-- AutoSync Premium (in der nativen App ausgeblendet, Guideline 3.1.1) -->
       <button
+        v-if="purchasesAvailable()"
         @click="router.push('/upgrade')"
         class="w-full flex items-center gap-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm p-4 hover:border-amber-400 dark:hover:border-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-colors text-left"
       >

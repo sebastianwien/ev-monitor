@@ -21,6 +21,7 @@ import {
 import { useI18n } from 'vue-i18n'
 import { analytics } from '../../services/analytics'
 import api from '../../api/axios'
+import { purchasesAvailable } from '../../utils/iapPolicy'
 import { useAuthStore } from '../../stores/auth'
 import { useOnboardingState } from '../../composables/useOnboardingState'
 import { useCarStore } from '../../stores/car'
@@ -515,12 +516,12 @@ const complete = () => {
                     <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200">{{ t('onboarding.step5_title') }}</h2>
                     <p class="text-gray-600 dark:text-gray-400 max-w-md mx-auto" v-html="t('onboarding.step5_desc')" />
                     <p class="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto" v-html="t('onboarding.step5_brands')" />
-                    <p class="text-sm font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-4 py-2 rounded-full">{{ t('onboarding.step5_trial', { priceMonthly: t('upgrade.price_monthly') }) }}</p>
+                    <p v-if="purchasesAvailable()" class="text-sm font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-4 py-2 rounded-full">{{ t('onboarding.step5_trial', { priceMonthly: t('upgrade.price_monthly') }) }}</p>
                   </div>
                   <div class="flex flex-col items-center gap-3 pt-2">
                     <div class="flex gap-3 justify-center w-full">
                       <button @click="back" class="px-5 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition text-sm">{{ t('onboarding.back_btn') }}</button>
-                      <button @click="completeAndNavigate('/upgrade')" class="px-5 py-3 bg-indigo-600 text-white rounded-sm hover:bg-indigo-700 font-medium transition shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)] hover:shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:hover:shadow-[5px_5px_0_rgba(255,255,255,0.35)] text-sm">{{ t('onboarding.step5_cta') }}</button>
+                      <button v-if="purchasesAvailable()" @click="completeAndNavigate('/upgrade')" class="px-5 py-3 bg-indigo-600 text-white rounded-sm hover:bg-indigo-700 font-medium transition shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)] hover:shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:hover:shadow-[5px_5px_0_rgba(255,255,255,0.35)] text-sm">{{ t('onboarding.step5_cta') }}</button>
                     </div>
                     <button @click="next" class="px-5 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition text-sm w-full max-w-xs">{{ t('onboarding.step5_skip') }}</button>
                   </div>

@@ -3,6 +3,10 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { SparklesIcon, LockClosedIcon } from '@heroicons/vue/24/outline'
 import { sumPhantomKwh, phantomEur } from '../../utils/phantomDrain'
+import { purchasesAvailable } from '../../utils/iapPolicy'
+
+// Upsell-Teaser komplett ausblenden, wo kein Kauf moeglich ist (native App, Guideline 3.1.1).
+const showUpgrade = purchasesAvailable()
 
 // Locked-state teaser for the energy-split donut (DashboardInsights), shown to users
 // without the analytics entitlement. Deliberately crisp (not a blurred fake chart): a
@@ -24,7 +28,7 @@ const loss = C * 0.21
 </script>
 
 <template>
-  <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 md:p-5">
+  <div v-if="showUpgrade" class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 md:p-5">
     <div class="flex items-center gap-4 md:gap-6">
       <!-- Crisp representative donut with a lock badge -->
       <div class="relative flex-shrink-0">

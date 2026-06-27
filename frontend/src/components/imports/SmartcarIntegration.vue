@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { BoltIcon, XCircleIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
 import { useCarStore } from '../../stores/car'
+import { purchasesAvailable } from '../../utils/iapPolicy'
 import CarSelectDropdown from '../car/CarSelectDropdown.vue'
 import smartcarService, { type SmartcarConnectionStatus } from '../../api/smartcarService'
 import type { Car } from '../../api/carService'
@@ -167,8 +168,8 @@ const stateLabel = (state: string | null) => {
       </div>
     </details>
 
-    <!-- Upgrade CTA -->
-    <div>
+    <!-- Upgrade CTA (in der nativen App ausgeblendet, Guideline 3.1.1) -->
+    <div v-if="purchasesAvailable()">
       <router-link
         to="/upgrade"
         class="w-full block text-center bg-amber-500 hover:bg-amber-400 text-gray-950 font-bold uppercase tracking-wider text-xs md:text-sm px-5 py-3.5 rounded-sm border-2 border-amber-500 shadow-[2px_2px_0_0_#030712] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-[transform,box-shadow] duration-75"

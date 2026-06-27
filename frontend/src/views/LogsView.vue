@@ -30,6 +30,7 @@ import {
 } from '@heroicons/vue/24/outline'
 import { tempBadgeClass } from '../utils/temperatureColor'
 import { consumptionTextClass } from '../utils/consumptionColor'
+import { purchasesAvailable } from '../utils/iapPolicy'
 import { isShortTrip } from '../utils/shortTrip'
 import { phantomEurFor } from '../utils/phantomDrain'
 import {
@@ -665,6 +666,7 @@ const LS_LIVE_BANNER_DISMISSED = 'autosync_live_banner_dismissed'
 const liveBannerDismissed = ref(localStorage.getItem(LS_LIVE_BANNER_DISMISSED) === 'true')
 const showLiveBanner = computed(() =>
   LIVE_BANNER_ENABLED
+  && purchasesAvailable()
   && subscriptionTier.value != null
   && subscriptionTier.value !== 'AUTOSYNC_LIVE'
   && selectedCar.value?.brand !== 'TESLA'
@@ -682,7 +684,8 @@ const autoSyncPrice = computed(() => getPricing(countryStore.country).monthly)
 const LS_AUTOSYNC_BANNER_DISMISSED = 'autosync_banner_dismissed'
 const autoSyncBannerDismissed = ref(localStorage.getItem(LS_AUTOSYNC_BANNER_DISMISSED) === 'true')
 const showAutoSyncBanner = computed(() =>
-  subscriptionTier.value === 'NONE'
+  purchasesAvailable()
+  && subscriptionTier.value === 'NONE'
   && selectedCar.value?.brand !== 'TESLA'
   && !autoSyncBannerDismissed.value
 )
@@ -1271,7 +1274,7 @@ function toggleAllCharges() {
                           {{ t('dashboard.phantom_drain_word') }}
                           <span v-if="phantomDrainEur(trip._phantomDrain) != null" class="opacity-80">· ≈ {{ formatCurrency(phantomDrainEur(trip._phantomDrain)!) }}</span>
                         </span>
-                        <router-link v-if="!authStore.canViewLiveAnalytics" to="/upgrade" class="text-[11px] font-semibold text-amber-600 dark:text-amber-400 underline decoration-dotted hover:decoration-solid">{{ t('dashboard.phantom_teaser_unlock') }}</router-link>
+                        <router-link v-if="!authStore.canViewLiveAnalytics && purchasesAvailable()" to="/upgrade" class="text-[11px] font-semibold text-amber-600 dark:text-amber-400 underline decoration-dotted hover:decoration-solid">{{ t('dashboard.phantom_teaser_unlock') }}</router-link>
                       </div>
 
                       <!-- Add-trip form triggered from this trip -->
@@ -1523,7 +1526,7 @@ function toggleAllCharges() {
                           {{ t('dashboard.phantom_drain_word') }}
                           <span v-if="phantomDrainEur(trip._phantomDrain) != null" class="opacity-80">· ≈ {{ formatCurrency(phantomDrainEur(trip._phantomDrain)!) }}</span>
                         </span>
-                        <router-link v-if="!authStore.canViewLiveAnalytics" to="/upgrade" class="text-[11px] font-semibold text-amber-700 dark:text-amber-400 underline decoration-dotted hover:decoration-solid">{{ t('dashboard.phantom_teaser_unlock') }}</router-link>
+                        <router-link v-if="!authStore.canViewLiveAnalytics && purchasesAvailable()" to="/upgrade" class="text-[11px] font-semibold text-amber-700 dark:text-amber-400 underline decoration-dotted hover:decoration-solid">{{ t('dashboard.phantom_teaser_unlock') }}</router-link>
                       </div>
                       <!-- Add-trip form (full width inside container) -->
                       <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
@@ -1641,7 +1644,7 @@ function toggleAllCharges() {
                   {{ t('dashboard.phantom_drain_word') }}
                   <span v-if="phantomDrainEur(item.entry._phantomDrain) != null" class="opacity-80">· ≈ {{ formatCurrency(phantomDrainEur(item.entry._phantomDrain)!) }}</span>
                 </span>
-                <router-link v-if="!authStore.canViewLiveAnalytics" to="/upgrade" class="text-xs font-semibold text-amber-600 dark:text-amber-400 underline decoration-dotted hover:decoration-solid whitespace-nowrap">{{ t('dashboard.phantom_teaser_unlock') }}</router-link>
+                <router-link v-if="!authStore.canViewLiveAnalytics && purchasesAvailable()" to="/upgrade" class="text-xs font-semibold text-amber-600 dark:text-amber-400 underline decoration-dotted hover:decoration-solid whitespace-nowrap">{{ t('dashboard.phantom_teaser_unlock') }}</router-link>
                 <div class="flex-1 h-px bg-gray-200 dark:bg-gray-600" />
               </div>
               <!-- Add-trip form triggered from a charge entry -->
@@ -1728,7 +1731,7 @@ function toggleAllCharges() {
                       <ChartBarSquareIcon class="w-4 h-4" />
                     </button>
                     <router-link
-                      v-else-if="item.entry.hasPowerCurve"
+                      v-else-if="item.entry.hasPowerCurve && purchasesAvailable()"
                       to="/upgrade"
                       :aria-label="t('dashboard.power_curve_locked')"
                       :title="t('dashboard.power_curve_locked')"
@@ -2590,7 +2593,7 @@ function toggleAllCharges() {
                     </Transition>
                     </template>
                     <router-link
-                      v-else
+                      v-else-if="purchasesAvailable()"
                       to="/upgrade"
                       class="inline-flex items-center gap-1 text-xs text-amber-700 dark:text-amber-300 hover:text-amber-800 dark:hover:text-amber-200 transition"
                     >

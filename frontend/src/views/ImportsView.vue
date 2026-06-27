@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, defineAsyncComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/auth'
+import { purchasesAvailable } from '../utils/iapPolicy'
 import { ArrowDownTrayIcon, ArrowPathIcon, BoltIcon, CodeBracketIcon, TrashIcon, ClipboardDocumentIcon, CheckIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
 import SpritMonitorImport from '../components/imports/SpritMonitorImport.vue'
 import GoeIntegration from '../components/imports/GoeIntegration.vue'
@@ -43,7 +44,7 @@ const liveUpgradeError = ref('')
 // least one Tesla in their garage. Once on Live, no further upsell needed.
 const hasTesla = computed(() => cars.value.some(c => c.brand === 'TESLA'))
 const hasXpeng = computed(() => cars.value.some(c => c.brand === 'XPENG'))
-const showLivePromo = computed(() => subscriptionTier.value === 'AUTOSYNC' && hasTesla.value)
+const showLivePromo = computed(() => subscriptionTier.value === 'AUTOSYNC' && hasTesla.value && purchasesAvailable())
 
 async function handleLiveUpgrade() {
   liveUpgradeLoading.value = true
@@ -206,7 +207,7 @@ const teslaConnectedLabel = ref<string | null>(null)
               <p class="text-amber-600 dark:text-amber-500 text-[10px] font-bold uppercase tracking-[0.14em] mb-0.5">EV Monitor AutoSync</p>
               <p class="font-bold text-gray-900 dark:text-white text-sm md:text-base mb-1 tracking-tight">{{ t('imports.autosync_teaser_title') }}</p>
               <p class="text-xs text-gray-600 dark:text-gray-400 mb-2 leading-relaxed">{{ t('imports.autosync_teaser_desc') }}</p>
-              <div class="flex flex-col items-center sm:flex-row sm:items-center gap-2">
+              <div v-if="purchasesAvailable()" class="flex flex-col items-center sm:flex-row sm:items-center gap-2">
                 <router-link
                   to="/upgrade"
                   class="flex w-full sm:w-auto sm:inline-flex items-center justify-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-gray-950 font-bold uppercase tracking-wider text-[10px] px-3 py-1.5 rounded-sm border border-amber-500 active:translate-y-[1px] transition-transform duration-75"
