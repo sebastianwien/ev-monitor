@@ -1,5 +1,8 @@
 <template>
-  <div :class="['model-page', isAuthenticated ? '' : 'min-h-screen bg-gray-50 dark:bg-gray-950']">
+  <div :class="isAuthenticated ? '' : 'sl-grid isolate min-h-screen bg-gray-50 dark:bg-gray-950 overflow-x-clip'">
+    <!-- Maus-reaktives Gitter wie auf der Startseite (nur für öffentliche Besucher) -->
+    <GridRippleBackground v-if="!isAuthenticated" />
+    <div class="model-page">
     <PublicNav />
     <main class="max-w-4xl mx-auto md:px-4 py-2 md:py-8">
 
@@ -22,19 +25,21 @@
 
       <div v-else-if="stats">
 
-        <!-- Breadcrumb -->
-        <nav class="px-4 md:px-0 text-sm text-gray-500 dark:text-gray-400 mb-2">
-          <a href="/" class="hover:text-gray-700 dark:hover:text-gray-200">{{ t('model.breadcrumb_home') }}</a>
-          <span class="mx-2">›</span>
-          <a :href="modelsBaseUrl" class="hover:text-gray-700 dark:hover:text-gray-200">{{ t('model.breadcrumb_models') }}</a>
-          <span class="mx-2">›</span>
-          <a :href="`${modelsBaseUrl}/${canonicalBrand}`" class="hover:text-gray-700 dark:hover:text-gray-200">{{ stats.brandDisplayName }}</a>
-          <span class="mx-2">›</span>
-          <span class="text-gray-900 dark:text-gray-100">{{ stats.modelDisplayName.replace(stats.brandDisplayName + ' ', '') }}</span>
+        <!-- Breadcrumb: als Chip geerdet, damit er nicht im Gitter-Hintergrund untergeht -->
+        <nav aria-label="Breadcrumb" class="px-4 md:px-0 mb-3">
+          <ol class="inline-flex flex-wrap items-center gap-1.5 text-sm bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-full px-3.5 py-1.5 shadow-sm">
+            <li><a href="/" class="font-medium text-gray-600 dark:text-gray-300 hover:text-green-700 dark:hover:text-green-400 transition-colors">{{ t('model.breadcrumb_home') }}</a></li>
+            <ChevronRightIcon class="h-3.5 w-3.5 text-gray-300 dark:text-gray-600 shrink-0" aria-hidden="true" />
+            <li><a :href="modelsBaseUrl" class="font-medium text-gray-600 dark:text-gray-300 hover:text-green-700 dark:hover:text-green-400 transition-colors">{{ t('model.breadcrumb_models') }}</a></li>
+            <ChevronRightIcon class="h-3.5 w-3.5 text-gray-300 dark:text-gray-600 shrink-0" aria-hidden="true" />
+            <li><a :href="`${modelsBaseUrl}/${canonicalBrand}`" class="font-medium text-gray-600 dark:text-gray-300 hover:text-green-700 dark:hover:text-green-400 transition-colors">{{ stats.brandDisplayName }}</a></li>
+            <ChevronRightIcon class="h-3.5 w-3.5 text-gray-300 dark:text-gray-600 shrink-0" aria-hidden="true" />
+            <li aria-current="page" class="font-bold text-gray-900 dark:text-gray-100">{{ stats.modelDisplayName.replace(stats.brandDisplayName + ' ', '') }}</li>
+          </ol>
         </nav>
 
         <!-- Hero Card -->
-        <div class="bg-white dark:bg-gray-800 md:rounded-sm md:border-x border-t md:border-b border-gray-200 dark:border-gray-700 md:shadow-sm px-4 pt-3 pb-6 md:p-6 md:mb-6">
+        <div class="bg-white dark:bg-gray-800 md:rounded-xl md:border-x-2 md:shadow-[5px_5px_0_0_#15803d] dark:md:shadow-[5px_5px_0_0_#22c55e] border-t-2 md:border-b-2 border-gray-800 dark:border-gray-200 px-4 pt-3 pb-6 md:p-6 md:mb-6">
           <a :href="`${modelsBaseUrl}/${canonicalBrand}`" class="inline-flex items-center gap-1 text-sm text-green-600 hover:underline mb-2">
             {{ t('model.back_link', { brand: stats.brandDisplayName }) }}
           </a>
@@ -50,10 +55,10 @@
             <div class="flex gap-2 flex-wrap justify-center">
               <button v-for="(v, i) in activeVariants" :key="v.displayLabel ?? v.batteryCapacityKwh"
                       @click="selectedVariantIndex = i"
-                      class="btn-3d px-3 py-1.5 rounded-sm text-sm font-medium transition whitespace-nowrap"
+                      class="btn-3d px-3 py-1.5 rounded-sm text-sm font-semibold border-2 border-gray-800 dark:border-gray-200 transition whitespace-nowrap"
                       :class="i === selectedVariantIndex
-                        ? 'bg-blue-600 text-white active'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'">
+                        ? 'bg-green-600 text-white active'
+                        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'">
                 {{ v.displayLabel || v.variantName || (v.batteryCapacityKwh + ' kWh') }}
               </button>
             </div>
@@ -65,52 +70,59 @@
           </div>
 
           <!-- Primary metric: Realer Verbrauch -->
-          <div v-if="displayConsumption" class="flex flex-col items-center py-6 rounded-sm bg-gradient-to-b from-green-50 to-white dark:from-green-900/20 dark:to-gray-800/0 border border-green-100 dark:border-green-900/30 mb-3">
+          <div v-if="displayConsumption" class="flex flex-col items-center py-5 rounded-xl bg-green-50 dark:bg-green-900/20 border-2 border-gray-800 dark:border-gray-200 mb-3">
             <div class="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-2">
               {{ t('model.hero_consumption_label') }}
             </div>
             <!-- Range: min – max -->
             <template v-if="communityConsumptionRange">
               <div class="flex items-baseline gap-1.5">
-                <span class="text-4xl font-bold tabular-nums text-gray-900 dark:text-gray-100">
+                <span class="text-4xl sm:text-5xl font-extrabold tabular-nums text-gray-900 dark:text-gray-100">
                   {{ formatConsumption(communityConsumptionRange.min, { showUnit: false }) }}
                 </span>
-                <span class="text-2xl text-gray-400 dark:text-gray-500">–</span>
-                <span class="text-4xl font-bold tabular-nums text-gray-900 dark:text-gray-100">
+                <span class="text-2xl sm:text-3xl text-gray-400 dark:text-gray-500">–</span>
+                <span class="text-4xl sm:text-5xl font-extrabold tabular-nums text-gray-900 dark:text-gray-100">
                   {{ formatConsumption(communityConsumptionRange.max, { showUnit: false }) }}
                 </span>
-                <span class="text-xl text-gray-400 dark:text-gray-500">{{ consumptionUnitLabel() }}</span>
+                <span class="text-base sm:text-xl text-gray-400 dark:text-gray-500">{{ consumptionUnitLabel() }}</span>
               </div>
-              <div v-if="heroOfficialConsumption" class="mt-3 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+              <div v-if="heroOfficialConsumption" class="mt-3 flex items-center gap-2 text-base text-gray-600 dark:text-gray-300">
                 <span>{{ ratingLabel === 'EPA'
                   ? t('model.epa_badge', { consumption: formatConsumption(heroOfficialConsumption, { showUnit: false }) })
                   : t('model.wltp_badge', { consumption: formatConsumption(heroOfficialConsumption, { showUnit: false }) }) }}</span>
-                <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 dark:bg-gray-700">
+                <span class="px-2 py-0.5 rounded-full text-sm font-semibold bg-gray-100 dark:bg-gray-700">
                   <span :class="simpleDeltaClass(communityConsumptionRange.min, heroOfficialConsumption)">{{ consumptionDeltaLabel(communityConsumptionRange.min, heroOfficialConsumption) }}</span>
                   <span class="text-gray-400 dark:text-gray-500"> – </span>
                   <span :class="simpleDeltaClass(communityConsumptionRange.max, heroOfficialConsumption)">{{ consumptionDeltaLabel(communityConsumptionRange.max, heroOfficialConsumption) }}</span>
                 </span>
               </div>
-              <div class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ rangeSourceLabel }}</div>
             </template>
             <!-- Fallback: single average -->
             <template v-else>
               <div class="flex items-baseline gap-2">
-                <span class="text-5xl font-bold tabular-nums text-gray-900 dark:text-gray-100">
+                <span class="text-5xl sm:text-6xl font-extrabold tabular-nums text-gray-900 dark:text-gray-100">
                   {{ formatConsumption(displayConsumption, { showUnit: false }) }}
                 </span>
-                <span class="text-xl text-gray-400 dark:text-gray-500">{{ consumptionUnitLabel() }}</span>
+                <span class="text-base sm:text-xl text-gray-400 dark:text-gray-500">{{ consumptionUnitLabel() }}</span>
               </div>
-              <div v-if="heroOfficialConsumption" class="mt-3 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+              <div v-if="heroOfficialConsumption" class="mt-3 flex items-center gap-2 text-base text-gray-600 dark:text-gray-300">
                 <span>{{ ratingLabel === 'EPA'
                   ? t('model.epa_badge', { consumption: formatConsumption(heroOfficialConsumption, { showUnit: false }) })
                   : t('model.wltp_badge', { consumption: formatConsumption(heroOfficialConsumption, { showUnit: false }) }) }}</span>
                 <span :class="deltaLabelClass(displayConsumption, heroOfficialConsumption)"
-                      class="px-2 py-0.5 rounded-full text-xs font-semibold">
+                      class="px-2 py-0.5 rounded-full text-sm font-semibold">
                   {{ consumptionDeltaLabel(displayConsumption, heroOfficialConsumption) }}
                 </span>
               </div>
             </template>
+          </div>
+
+          <!-- Trust-Strip: Beweis prominent statt geflüstert -->
+          <div v-if="displayConsumption" class="flex items-center justify-center gap-2 text-sm text-gray-700 dark:text-gray-300 mb-4 text-center">
+            <span class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-600 text-white border-2 border-gray-800 dark:border-gray-200">
+              <CheckBadgeIcon class="h-4 w-4" />
+            </span>
+            <span>{{ t('model.hero_trust', { sessions: ((selectedVariant?.realConsumptionTripCount ?? stats.logCount) || 0).toLocaleString() }) }}</span>
           </div>
 
           <!-- No data for selected variant -->
@@ -136,20 +148,26 @@
           </div>
 
           <!-- Secondary stats row: 2-col on mobile, 3-col on desktop -->
-          <div class="mt-3 bg-gradient-to-br from-indigo-50 via-gray-50 to-white dark:from-indigo-900/20 dark:via-gray-700/30 dark:to-gray-800/0 border border-indigo-100 dark:border-indigo-900/30 rounded-sm py-4">
+          <div class="mt-3 bg-gray-50 dark:bg-gray-800/40 border-2 border-gray-800 dark:border-gray-200 rounded-xl py-4">
             <div class="grid grid-cols-2 md:grid-cols-3">
             <!-- Links: AC/DC auf Mobile, Ladevorgänge auf Desktop -->
-            <div class="px-4 text-center border-r border-gray-200 dark:border-gray-700">
+            <div class="px-4 text-center">
               <!-- Mobile: AC/DC -->
               <template v-if="true" class="md:hidden">
                 <div class="md:hidden flex flex-col gap-1.5 items-center">
                   <template v-if="stats.acAvgCostPerKwh || stats.dcAvgCostPerKwh">
-                    <div v-if="stats.acAvgCostPerKwh" class="flex items-center gap-1.5 whitespace-nowrap">
-                      <span class="text-sm font-semibold text-green-600 dark:text-green-400 flex items-center gap-0.5"><BoltIcon class="h-4 w-4" />AC</span>
+                    <div v-if="stats.acAvgCostPerKwh" class="flex items-center gap-2 whitespace-nowrap">
+                      <span class="flex flex-col leading-tight items-start">
+                        <span class="text-sm font-semibold text-green-600 dark:text-green-400 flex items-center gap-0.5"><BoltIcon class="h-4 w-4" />AC</span>
+                        <span class="text-[10px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">{{ t('model.charging_ac_label') }}</span>
+                      </span>
                       <span class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ formatCostPerKwh(stats.acAvgCostPerKwh) }}<sup class="text-xs text-gray-400">*</sup></span>
                     </div>
-                    <div v-if="stats.dcAvgCostPerKwh" class="flex items-center gap-1.5 whitespace-nowrap">
-                      <span class="text-sm font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-0.5"><BoltIcon class="h-4 w-4" />DC</span>
+                    <div v-if="stats.dcAvgCostPerKwh" class="flex items-center gap-2 whitespace-nowrap">
+                      <span class="flex flex-col leading-tight items-start">
+                        <span class="text-sm font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-0.5"><BoltIcon class="h-4 w-4" />DC</span>
+                        <span class="text-[10px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">{{ t('model.charging_dc_label') }}</span>
+                      </span>
                       <span class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ formatCostPerKwh(stats.dcAvgCostPerKwh) }}<sup class="text-xs text-gray-400">*</sup></span>
                     </div>
                   </template>
@@ -167,42 +185,42 @@
                 <div class="text-xl font-bold text-gray-900 dark:text-gray-100">
                   {{ variantHasNoData ? '-' : ((selectedVariant?.realConsumptionTripCount ?? stats.logCount) > 0 ? (selectedVariant?.realConsumptionTripCount ?? stats.logCount).toLocaleString() : '-') }}
                 </div>
-                <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('model.metrics_sessions') }}</div>
-                <div v-if="(selectedVariant?.estimatedConsumptionCount ?? stats.estimatedConsumptionCount) > 0" class="text-xs text-gray-400 dark:text-gray-500 mt-1 italic">
-                  {{ selectedVariant?.estimatedConsumptionCount ?? stats.estimatedConsumptionCount }} {{ t('model.metrics_estimated') }}
-                </div>
+                <div class="text-sm font-semibold text-gray-600 dark:text-gray-300 mt-0.5">{{ t('model.metrics_sessions') }}</div>
               </div>
             </div>
             <!-- Reichweite -->
             <div class="px-4 text-center">
               <template v-if="displayRange">
                 <div class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ formatDistance(displayRange) }}</div>
-                <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('model.metrics_range') }}</div>
-                <div class="flex items-center justify-center gap-1 mt-1">
-                  <Battery0Icon class="h-3 w-3 text-gray-400" />
-                  <span class="text-xs text-gray-400">90%→10%</span>
+                <div class="text-sm font-semibold text-gray-600 dark:text-gray-300 mt-0.5">{{ t('model.metrics_range') }}</div>
+                <div class="mt-1.5">
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-medium">
+                    <Battery0Icon class="h-3.5 w-3.5" /> 90% → 10%
+                  </span>
                 </div>
               </template>
               <template v-else>
                 <div class="text-xl font-bold text-gray-400">-</div>
-                <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('model.metrics_range_label') }}</div>
+                <div class="text-sm font-semibold text-gray-600 dark:text-gray-300 mt-0.5">{{ t('model.metrics_range_label') }}</div>
               </template>
             </div>
             <!-- Kosten: nur auf Desktop als 3. Spalte -->
-            <div class="hidden md:block px-4 text-center border-l border-gray-200 dark:border-gray-700">
+            <div class="hidden md:block px-4 text-center">
               <template v-if="stats.acAvgCostPerKwh || stats.dcAvgCostPerKwh">
                 <div class="flex flex-col gap-2 items-start w-fit mx-auto">
-                  <div v-if="stats.acAvgCostPerKwh" class="flex items-baseline gap-2">
-                    <span class="text-sm font-semibold text-green-600 dark:text-green-400 flex items-center gap-0.5 w-10">
-                      <BoltIcon class="h-4 w-4" />AC
+                  <div v-if="stats.acAvgCostPerKwh" class="flex items-center gap-2.5">
+                    <span class="flex flex-col leading-tight w-12">
+                      <span class="text-sm font-semibold text-green-600 dark:text-green-400 flex items-center gap-0.5"><BoltIcon class="h-4 w-4" />AC</span>
+                      <span class="text-[10px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">{{ t('model.charging_ac_label') }}</span>
                     </span>
                     <span class="text-xl font-bold text-gray-900 dark:text-gray-100">
                       {{ formatCostPerKwh(stats.acAvgCostPerKwh) }}<sup class="text-xs text-gray-400">*</sup>
                     </span>
                   </div>
-                  <div v-if="stats.dcAvgCostPerKwh" class="flex items-baseline gap-2">
-                    <span class="text-sm font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-0.5 w-10">
-                      <BoltIcon class="h-4 w-4" />DC
+                  <div v-if="stats.dcAvgCostPerKwh" class="flex items-center gap-2.5">
+                    <span class="flex flex-col leading-tight w-12">
+                      <span class="text-sm font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-0.5"><BoltIcon class="h-4 w-4" />DC</span>
+                      <span class="text-[10px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">{{ t('model.charging_dc_label') }}</span>
                     </span>
                     <span class="text-xl font-bold text-gray-900 dark:text-gray-100">
                       {{ formatCostPerKwh(stats.dcAvgCostPerKwh) }}<sup class="text-xs text-gray-400">*</sup>
@@ -223,41 +241,57 @@
             </div><!-- end grid -->
 
             <!-- Ladevorgänge: Mobile als eigene Zeile -->
-            <div class="md:hidden mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-center">
+            <div class="md:hidden mt-3 pt-3 border-t border-gray-300 dark:border-gray-600 text-center">
               <div class="text-xl font-bold text-gray-900 dark:text-gray-100">
                 {{ variantHasNoData ? '-' : ((selectedVariant?.realConsumptionTripCount ?? stats.logCount) > 0 ? (selectedVariant?.realConsumptionTripCount ?? stats.logCount).toLocaleString() : '-') }}
               </div>
-              <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('model.metrics_sessions') }}</div>
-              <div v-if="(selectedVariant?.estimatedConsumptionCount ?? stats.estimatedConsumptionCount) > 0" class="text-xs text-gray-400 dark:text-gray-500 mt-1 italic">
-                {{ selectedVariant?.estimatedConsumptionCount ?? stats.estimatedConsumptionCount }} {{ t('model.metrics_estimated') }}
-              </div>
+              <div class="text-sm font-semibold text-gray-600 dark:text-gray-300 mt-0.5">{{ t('model.metrics_sessions') }}</div>
             </div>
           </div><!-- end stats wrapper -->
 
-          <!-- Kostenrechner -->
+          <!-- Kostenrechner: persönliche Ladekosten mit eigenem Stromtarif -->
           <div v-if="displayConsumption" class="mt-6 pt-5 border-t border-gray-100 dark:border-gray-700">
-            <div class="flex items-center justify-center gap-2 mb-3 flex-wrap">
-              <BoltIcon class="h-4 w-4 text-yellow-500 shrink-0" />
-              <span class="text-sm text-gray-500 dark:text-gray-400">
-                {{ t('model.calculator_label') }} {{ formatCostPerKwh(pricePerKwh) }}
-              </span>
-              <span class="text-sm text-gray-300 dark:text-gray-600">~</span>
-              <span class="text-lg font-bold text-yellow-600 dark:text-yellow-400">
-                {{ formatCostPerDistance(pricePerKwh * displayConsumption) }}
-              </span>
+            <!-- Intro: macht klar, dass man hier seinen eigenen Tarif einstellt -->
+            <div class="text-center mb-4">
+              <p class="text-lg font-bold text-gray-800 dark:text-gray-200 flex items-center justify-center gap-1.5">
+                <BoltIcon class="h-5 w-5 text-green-600 dark:text-green-400" /> {{ t('model.calculator_title') }}
+              </p>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ t('model.calculator_hint') }}</p>
             </div>
+            <!-- Live-Ergebnis -->
+            <div class="flex items-baseline justify-center gap-2 mb-2 flex-wrap">
+              <span class="text-base font-semibold text-gray-700 dark:text-gray-200">{{ formatCostPerKwh(pricePerKwh) }}</span>
+              <span class="text-gray-300 dark:text-gray-600">→</span>
+              <span class="text-2xl font-extrabold text-green-700 dark:text-green-400">{{ formatCostPerDistance(pricePerKwh * displayConsumption) }}</span>
+            </div>
+            <!-- Slider -->
             <div class="flex items-center gap-3">
-              <span class="text-xs text-gray-400 shrink-0">{{ formatCostPerKwh(0.10) }}</span>
+              <span class="text-xs font-medium text-gray-500 dark:text-gray-400 shrink-0">{{ formatCostPerKwh(0.10) }}</span>
               <input type="range" min="0.10" max="1.00" step="0.01" v-model.number="pricePerKwh"
-                     class="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full appearance-none cursor-pointer accent-yellow-500" />
-              <span class="text-xs text-gray-400 shrink-0">{{ formatCostPerKwh(1.00) }}</span>
+                     :aria-label="t('model.calculator_title')"
+                     :style="{ '--pct': sliderFillPct + '%' }"
+                     class="tariff-slider flex-1 cursor-pointer" />
+              <span class="text-xs font-medium text-gray-500 dark:text-gray-400 shrink-0">{{ formatCostPerKwh(1.00) }}</span>
             </div>
           </div>
+          <!-- Inline-CTA: Registrierung nach allen Argumenten, direkt unter dem Tarif-Slider -->
+          <a v-if="displayConsumption && !authStore.isAuthenticated()" :href="registerPath"
+             class="block rounded-xl border-2 border-gray-800 dark:border-gray-200 bg-[#14342a] text-white px-5 py-4 mt-6 hover:bg-[#16392d] transition-colors">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div class="text-center sm:text-left">
+                <p class="font-bold">{{ t('model.hero_cta_title', { model: stats.modelDisplayName }) }}</p>
+                <p class="text-sm text-green-100/80">{{ t('model.hero_cta_desc') }}</p>
+              </div>
+              <span class="btn-3d shrink-0 bg-green-500 text-gray-900 font-bold px-5 py-2.5 rounded-sm border-2 border-white whitespace-nowrap" style="--btn-shadow-color:#0a1f17">
+                {{ t('model.cta_free_start') }} →
+              </span>
+            </div>
+          </a>
         </div><!-- end Hero -->
 
         <!-- Community methodology note -->
         <div class="px-4 md:px-0 py-3 border-t border-gray-100 dark:border-gray-700 md:border-0 text-center">
-          <p class="text-sm text-gray-400 dark:text-gray-400">{{ t('model.community_methodology_note') }}</p>
+          <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('model.community_methodology_note') }}</p>
         </div>
         <!-- Cost disclaimer for non-EUR countries -->
         <div v-if="!isEurZone && (stats.avgCostPerKwh || stats.acAvgCostPerKwh)" class="px-4 md:px-0 mt-1 mb-3 text-center">
@@ -267,41 +301,35 @@
         </div>
 
         <!-- Affiliate Banner -->
-        <AffiliateBanner v-if="!authStore.isAuthenticated()" />
+        <div v-if="!authStore.isAuthenticated()" class="my-6 md:my-8">
+          <AffiliateBanner />
+        </div>
 
         <!-- Baujahr-Verteilung -->
         <div v-if="stats.yearDistribution && stats.yearDistribution.length > 0"
-             class="bg-white dark:bg-gray-800 md:rounded-sm md:border-x border-t md:border-b border-gray-200 dark:border-gray-700 md:shadow-sm px-6 py-5 md:mb-6">
+             class="bg-white dark:bg-gray-800 md:rounded-xl md:border-x-2 md:shadow-[5px_5px_0_0_#15803d] dark:md:shadow-[5px_5px_0_0_#22c55e] border-t-2 md:border-b-2 border-gray-800 dark:border-gray-200 px-6 py-5 md:mb-6">
           <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-1.5">
             <ChartBarIcon class="h-4 w-4 text-gray-400" />
             {{ t('model.year_distribution_title', { count: stats.uniqueCars }) }}
           </p>
-          <div class="flex flex-col gap-2.5">
-            <div class="flex h-4 rounded-full overflow-hidden">
-              <div
-                v-for="(entry, i) in stats.yearDistribution"
-                :key="entry.year"
-                :style="{
-                  width: (entry.carCount / yearTotal * 100) + '%',
-                  backgroundColor: YEAR_CHART_COLORS[i % YEAR_CHART_COLORS.length],
-                }"
-              />
-            </div>
-            <div class="flex flex-wrap gap-x-4 gap-y-1.5">
-              <div v-for="(entry, i) in stats.yearDistribution" :key="entry.year"
-                   class="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300">
-                <span class="inline-block w-2.5 h-2.5 rounded-full shrink-0"
-                      :style="{ backgroundColor: YEAR_CHART_COLORS[i % YEAR_CHART_COLORS.length] }"></span>
-                <span class="font-medium">{{ entry.year }}</span>
-                <span class="text-gray-400 dark:text-gray-500">{{ entry.carCount }}</span>
-              </div>
+          <!-- Säulen-Histogramm: eine Farbe, chronologisch - sofort als Verteilung lesbar -->
+          <div class="flex items-end gap-1.5 sm:gap-2">
+            <div v-for="entry in stats.yearDistribution" :key="entry.year" class="flex-1 flex flex-col items-center">
+              <span class="text-xs font-bold text-gray-700 dark:text-gray-300 mb-1 tabular-nums">{{ entry.carCount }}</span>
+              <div class="w-full bg-green-500 rounded-t border border-b-0 border-gray-800/10 dark:border-gray-200/10" :style="{ height: yearBarHeightPx(entry.carCount) }"></div>
             </div>
           </div>
+          <div class="flex gap-1.5 sm:gap-2 mt-1.5">
+            <div v-for="entry in stats.yearDistribution" :key="entry.year" class="flex-1 text-center text-xs text-gray-500 dark:text-gray-400 tabular-nums">{{ entry.year }}</div>
+          </div>
+          <p v-if="medianModelYear" class="mt-4 text-sm text-gray-600 dark:text-gray-300 text-center">
+            {{ t('model.year_distribution_summary', { year: medianModelYear }) }}
+          </p>
         </div>
 
         <!-- Streckentyp-Verteilung -->
         <div v-if="showRouteTypeBar"
-             class="bg-white dark:bg-gray-800 md:rounded-sm md:border-x border-t md:border-b border-gray-200 dark:border-gray-700 md:shadow-sm px-6 py-5 md:mb-6">
+             class="bg-white dark:bg-gray-800 md:rounded-xl md:border-x-2 md:shadow-[5px_5px_0_0_#15803d] dark:md:shadow-[5px_5px_0_0_#22c55e] border-t-2 md:border-b-2 border-gray-800 dark:border-gray-200 px-6 py-5 md:mb-6">
           <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-1.5">
             <ChartBarIcon class="h-4 w-4 text-gray-400" />
             {{ t('model.route_type_title') }}
@@ -333,99 +361,60 @@
 
         <!-- Variant Switcher + Seasonal + WLTP -->
         <div v-if="activeVariants.length > 0 || showSeasonalBreakdown"
-             class="bg-white dark:bg-gray-800 md:rounded-sm md:border-x border-t md:border-b border-gray-200 dark:border-gray-700 md:shadow-sm md:mb-6 overflow-hidden">
+             class="bg-white dark:bg-gray-800 md:rounded-xl md:border-x-2 md:shadow-[5px_5px_0_0_#15803d] dark:md:shadow-[5px_5px_0_0_#22c55e] border-t-2 md:border-b-2 border-gray-800 dark:border-gray-200 md:mb-6 overflow-hidden">
 
-          <!-- Seasonal Breakdown -->
-          <div v-if="showSeasonalBreakdown" class="px-6 py-5 border-b border-gray-100 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-700/20">
-            <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-1.5">
-              <ChartBarIcon class="h-4 w-4 text-gray-400" />
-              {{ t('model.seasonal_title') }}
-            </p>
-
-            <!-- Summer -->
-            <div class="mb-3">
-              <div class="flex items-center justify-between text-sm mb-1.5">
-                <div class="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-medium">
-                  <SunIcon class="h-4 w-4" />
-                  <span>{{ t('model.seasonal_summer') }} <span class="hidden md:inline text-gray-400 dark:text-gray-500 font-normal">{{ t('model.seasonal_summer_months') }}</span></span>
-                </div>
-                <div class="flex items-center gap-3">
-                  <span v-if="selectedVariant!.seasonalDistribution!.summerConsumptionKwhPer100km"
-                        class="font-bold text-amber-600 dark:text-amber-400">
-                    {{ formatConsumption(selectedVariant!.seasonalDistribution!.summerConsumptionKwhPer100km) }}
-                  </span>
-                  <span v-if="selectedVariant && selectedVariant!.seasonalDistribution!.summerConsumptionKwhPer100km"
-                        class="text-sm font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                    ~ {{ formatDistance(Math.round(selectedVariant.batteryCapacityKwh * 0.9 / selectedVariant!.seasonalDistribution!.summerConsumptionKwhPer100km * 10) * 10) }}
-                  </span>
-                  <span class="hidden md:inline text-xs"
-                        :class="selectedVariant!.seasonalDistribution!.summerLogCount < 30 ? 'text-yellow-600 font-medium' : 'text-gray-400'">
-                    ({{ selectedVariant!.seasonalDistribution!.summerLogCount }} {{ t('model.seasonal_trips') }})
-                  </span>
-                </div>
-              </div>
-              <!-- Bar -->
-              <div class="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                <div v-if="selectedVariant!.seasonalDistribution!.summerConsumptionKwhPer100km && selectedVariant!.seasonalDistribution!.winterConsumptionKwhPer100km"
-                     class="h-full bg-amber-400 rounded-full"
-                     :style="{ width: `${Math.min(100, (selectedVariant!.seasonalDistribution!.summerConsumptionKwhPer100km / selectedVariant!.seasonalDistribution!.winterConsumptionKwhPer100km) * 100).toFixed(0)}%` }">
-                </div>
-              </div>
+          <!-- Saison-Karte: einziger Ort mit Sommer-vs-Winter (Hero zeigt das nicht) -->
+          <div v-if="showSeasonalBreakdown" class="px-4 md:px-6 py-5">
+            <div class="flex items-center justify-center gap-2 mb-4 flex-wrap">
+              <ChartBarIcon class="h-5 w-5 text-green-600 dark:text-green-400" />
+              <h2 class="text-base font-bold text-gray-800 dark:text-gray-200">{{ t('model.seasonal_title_range') }}</h2>
+              <span class="text-sm text-gray-500 dark:text-gray-400 font-medium">· {{ selectedVariant!.displayLabel || selectedVariant!.variantName || (selectedVariant!.batteryCapacityKwh + ' kWh') }}</span>
             </div>
 
-            <!-- Winter -->
-            <div class="mb-4">
-              <div class="flex items-center justify-between text-sm mb-1.5">
-                <div class="flex items-center gap-1.5 text-blue-500 dark:text-blue-400 font-medium">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <!-- Sommer: Reichweite primär, Verbrauch sekundär -->
+              <div class="border-2 border-gray-800 dark:border-gray-200 rounded-xl bg-amber-50 dark:bg-amber-900/10 p-4 text-center">
+                <div class="flex items-center justify-center gap-1.5 text-xs font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 mb-1">
+                  <SunIcon class="h-4 w-4" /> {{ t('model.seasonal_summer') }}
+                </div>
+                <div v-if="seasonalSummerRangeKm" class="text-2xl font-extrabold text-gray-900 dark:text-gray-100 tabular-nums leading-none">~ {{ formatDistance(seasonalSummerRangeKm) }}</div>
+                <div v-else class="text-2xl font-extrabold text-gray-400 leading-none">-</div>
+                <div class="text-sm font-semibold text-gray-600 dark:text-gray-300 mt-2">{{ formatConsumption(selectedVariant!.seasonalDistribution!.summerConsumptionKwhPer100km) }}</div>
+                <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ selectedVariant!.seasonalDistribution!.summerLogCount }} {{ t('model.seasonal_trips') }}</div>
+              </div>
+
+              <!-- Winter: Reichweite primär, Verbrauch sekundär -->
+              <div class="border-2 border-gray-800 dark:border-gray-200 rounded-xl bg-blue-50 dark:bg-blue-900/10 p-4 text-center">
+                <div class="flex items-center justify-center gap-1.5 text-xs font-bold uppercase tracking-wide text-blue-600 dark:text-blue-400 mb-1">
                   <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                     <line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/>
                     <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/><line x1="19.07" y1="4.93" x2="4.93" y2="19.07"/>
                     <circle cx="12" cy="12" r="2" fill="currentColor"/>
-                  </svg>
-                  <span>{{ t('model.seasonal_winter') }} <span class="hidden md:inline text-gray-400 dark:text-gray-500 font-normal">{{ t('model.seasonal_winter_months') }}</span></span>
+                  </svg> {{ t('model.seasonal_winter') }}
                 </div>
-                <div class="flex items-center gap-3">
-                  <span v-if="selectedVariant!.seasonalDistribution!.winterConsumptionKwhPer100km"
-                        class="font-bold text-blue-500 dark:text-blue-400">
-                    {{ formatConsumption(selectedVariant!.seasonalDistribution!.winterConsumptionKwhPer100km) }}
-                  </span>
-                  <span v-if="selectedVariant && selectedVariant!.seasonalDistribution!.winterConsumptionKwhPer100km"
-                        class="text-sm font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                    ~ {{ formatDistance(Math.round(selectedVariant.batteryCapacityKwh * 0.9 / selectedVariant!.seasonalDistribution!.winterConsumptionKwhPer100km * 10) * 10) }}
-                  </span>
-                  <span class="hidden md:inline text-xs"
-                        :class="selectedVariant!.seasonalDistribution!.winterLogCount < 30 ? 'text-yellow-600 font-medium' : 'text-gray-400'">
-                    ({{ selectedVariant!.seasonalDistribution!.winterLogCount }} {{ t('model.seasonal_trips') }})
-                  </span>
-                </div>
+                <div v-if="seasonalWinterRangeKm" class="text-2xl font-extrabold text-gray-900 dark:text-gray-100 tabular-nums leading-none">~ {{ formatDistance(seasonalWinterRangeKm) }}</div>
+                <div v-else class="text-2xl font-extrabold text-gray-400 leading-none">-</div>
+                <div class="text-sm font-semibold text-gray-600 dark:text-gray-300 mt-2">{{ formatConsumption(selectedVariant!.seasonalDistribution!.winterConsumptionKwhPer100km) }}</div>
+                <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ selectedVariant!.seasonalDistribution!.winterLogCount }} {{ t('model.seasonal_trips') }}</div>
               </div>
-              <div class="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                <div class="h-full bg-blue-400 rounded-full w-full"></div>
+
+              <!-- Winter-Aufschlag: Reichweitenverlust primär (die Pointe) -->
+              <div class="border-2 border-gray-800 dark:border-gray-200 rounded-xl bg-gray-50 dark:bg-gray-800/40 p-4 text-center flex flex-col justify-center">
+                <div class="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">{{ t('model.seasonal_winter_penalty') }}</div>
+                <div v-if="seasonalRangeLossKm" class="text-3xl font-extrabold text-red-600 dark:text-red-400 tabular-nums leading-none">- {{ formatDistance(seasonalRangeLossKm) }}</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('model.seasonal_less_range') }}</div>
+                <div v-if="winterExtraPercent != null" class="text-base font-bold text-gray-700 dark:text-gray-300 mt-2">+{{ winterExtraPercent }} % {{ t('model.seasonal_more_consumption') }}</div>
               </div>
             </div>
+          </div>
 
-            <!-- Weighted Average -->
-            <div class="pt-3 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between text-sm">
-              <div>
-                <span class="font-medium text-gray-700 dark:text-gray-300">{{ t('model.seasonal_weighted_avg') }}</span>
-                <p class="text-xs text-gray-400 mt-0.5">
-                  {{ t('model.seasonal_split', { summer: selectedVariant!.seasonalDistribution!.summerPercentage, winter: selectedVariant!.seasonalDistribution!.winterPercentage }) }}
-                </p>
-              </div>
-              <span class="font-bold text-gray-900 dark:text-gray-100">
-                {{ selectedVariant!.seasonalDistribution!.totalConsumptionKwhPer100km != null
-                  ? formatConsumption(selectedVariant!.seasonalDistribution!.totalConsumptionKwhPer100km)
-                  : '-' }}
-              </span>
-            </div>
-          </div><!-- end seasonal -->
-
-          <!-- Rating Section (WLTP for EU, EPA for US) -->
-          <div v-if="activeVariants.length > 0">
-            <h2 class="text-base font-semibold text-gray-700 dark:text-gray-300 px-6 pt-5 pb-3 flex items-center gap-2">
-              <ClipboardDocumentListIcon class="h-5 w-5 text-gray-400" />
-              {{ ratingLabel === 'EPA' ? t('model.epa_section_title') : t('model.wltp_section_title') }}
-            </h2>
+          <!-- Details & Methodik (eingeklappt) -->
+          <details v-if="activeVariants.length > 0" :open="!showSeasonalBreakdown" class="group" :class="showSeasonalBreakdown ? 'border-t-2 border-gray-800/15 dark:border-gray-200/15' : ''">
+            <summary class="flex items-center justify-center gap-2 px-6 py-4 text-sm font-semibold text-green-700 dark:text-green-400 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden">
+              <ClipboardDocumentListIcon class="h-5 w-5" />
+              {{ showSeasonalBreakdown ? t('model.details_methodology') : (ratingLabel === 'EPA' ? t('model.epa_section_title') : t('model.wltp_section_title')) }}
+              <ChevronRightIcon class="h-4 w-4 transition-transform group-open:rotate-90" />
+            </summary>
 
             <!-- US fallback: no EPA data yet for this model -->
             <p v-if="isUS && ratingLabel !== 'EPA'"
@@ -433,152 +422,70 @@
               {{ t('model.epa_not_available') }}
             </p>
 
-            <!-- Mobile Card -->
-            <div class="md:hidden">
-              <div v-if="selectedVariant" class="px-6 pb-4">
-                <div class="relative flex items-center justify-center mb-3">
-                  <div class="font-semibold text-gray-900 dark:text-gray-100">
-                    {{ selectedVariant.displayLabel || selectedVariant.variantName || (selectedVariant.batteryCapacityKwh + ' kWh') }}
-                  </div>
-                  <span v-if="!selectedVariant.realConsumptionKwhPer100km"
-                        class="absolute right-0 text-xs px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-500">
-                    {{ t('model.wltp_no_trips') }}
-                  </span>
-                  <span v-else-if="selectedVariant.realConsumptionTripCount != null && selectedVariant.realConsumptionTripCount < 10"
-                        class="absolute right-0 text-xs px-1.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-600 dark:bg-red-900/40 dark:border-red-700 dark:text-red-400">
-                    ⚠ {{ selectedVariant.realConsumptionTripCount }} {{ t('model.seasonal_trips') }}
-                  </span>
-                  <span v-else-if="selectedVariant.realConsumptionTripCount != null && selectedVariant.realConsumptionTripCount < 50"
-                        class="absolute right-0 text-xs px-1.5 py-0.5 rounded-full bg-yellow-50 border border-yellow-200 text-yellow-700 dark:bg-yellow-900/40 dark:border-yellow-700 dark:text-yellow-400">
-                    {{ selectedVariant.realConsumptionTripCount }} {{ t('model.seasonal_trips') }}
-                  </span>
-                  <span v-else-if="selectedVariant.realConsumptionTripCount != null"
-                        class="absolute right-0 text-xs px-1.5 py-0.5 rounded-full bg-green-50 border border-green-200 text-green-700 dark:bg-green-900/40 dark:border-green-700 dark:text-green-400">
-                    {{ selectedVariant.realConsumptionTripCount }} {{ t('model.seasonal_trips') }}
-                  </span>
-                </div>
-                <div class="grid grid-cols-2 gap-2 text-sm">
-                  <div class="bg-gray-50 dark:bg-gray-700 rounded-sm p-2">
-                    <div class="text-xs text-gray-500 mb-0.5">{{ ratingLabel === 'EPA' ? t('model.epa_range_label') : t('model.wltp_wltp_range') }}</div>
-                    <div class="font-medium text-gray-800 dark:text-gray-200">
-                      <template v-if="selectedVariant.officialRangeMinKm">
-                        {{ formatDistance(selectedVariant.officialRangeMinKm, { showUnit: false }) }}&thinsp;-&thinsp;{{ formatDistance(selectedVariant.officialRangeKm) }}
-                      </template>
-                      <template v-else>{{ formatDistance(selectedVariant.officialRangeKm) }}</template>
-                    </div>
-                  </div>
-                  <div class="bg-gray-50 dark:bg-gray-700 rounded-sm p-2">
-                    <div class="text-xs text-gray-500 mb-0.5">{{ ratingLabel === 'EPA' ? t('model.epa_consumption_label') : t('model.wltp_wltp_consumption') }}</div>
-                    <div class="font-medium text-gray-800 dark:text-gray-200">
-                      <template v-if="selectedVariant.officialConsumptionMinKwhPer100km && selectedVariant.officialConsumptionMaxKwhPer100km">
-                        {{ formatConsumption(selectedVariant.officialConsumptionMinKwhPer100km, { showUnit: false }) }}&thinsp;-&thinsp;{{ formatConsumption(selectedVariant.officialConsumptionMaxKwhPer100km) }}
-                      </template>
-                      <template v-else>{{ formatConsumption(selectedVariant.officialConsumptionKwhPer100km) }}</template>
-                    </div>
-                  </div>
-                  <div class="bg-gray-50 dark:bg-gray-700 rounded-sm p-2">
-                    <div class="text-xs text-gray-500 mb-0.5">{{ t('model.wltp_real_range') }}</div>
-                    <div class="font-medium text-gray-800 dark:text-gray-200">
-                      {{ selectedVariant.realConsumptionKwhPer100km
-                        ? formatDistance(Math.round(selectedVariant.batteryCapacityKwh / selectedVariant.realConsumptionKwhPer100km * 10) * 10)
-                        : '-' }}
-                    </div>
-                    <div class="text-xs text-gray-400">{{ t('model.wltp_full_range') }}</div>
-                  </div>
-                  <div class="bg-gray-50 dark:bg-gray-700 rounded-sm p-2">
-                    <div class="text-xs text-gray-500 mb-0.5">{{ t('model.wltp_real_consumption') }}</div>
-                    <template v-if="selectedVariant.realConsumptionKwhPer100km">
-                      <div :class="consumptionDeltaClass(selectedVariant.realConsumptionKwhPer100km, selectedVariant.officialConsumptionKwhPer100km)" class="font-medium">
-                        {{ formatConsumption(selectedVariant.realConsumptionKwhPer100km) }}
+            <!-- WLTP vs. Community als 2 Profil-Cards, je Reichweite zuerst -->
+            <div v-if="selectedVariant" class="px-4 md:px-6 pb-2">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <!-- WLTP-Card -->
+                <div class="border-2 border-gray-800 dark:border-gray-200 rounded-xl bg-gray-50 dark:bg-gray-800/40 p-4 text-center">
+                  <div class="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3">{{ t('model.compare_manufacturer') }}</div>
+                  <div class="space-y-3">
+                    <div>
+                      <div class="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-0.5">{{ ratingLabel === 'EPA' ? t('model.epa_range_label') : t('model.wltp_table_range') }}</div>
+                      <div class="text-lg font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap">
+                        <template v-if="selectedVariant.officialRangeMinKm">{{ formatDistance(selectedVariant.officialRangeMinKm, { showUnit: false }) }}&thinsp;-&thinsp;{{ formatDistance(selectedVariant.officialRangeKm) }}</template>
+                        <template v-else>{{ formatDistance(selectedVariant.officialRangeKm) }}</template>
                       </div>
-                      <span :class="deltaLabelClass(selectedVariant.realConsumptionKwhPer100km, selectedVariant.officialConsumptionKwhPer100km)"
-                            class="text-xs px-1.5 py-0.5 rounded-full mt-1 inline-block">
-                        {{ consumptionDeltaLabel(selectedVariant.realConsumptionKwhPer100km, selectedVariant.officialConsumptionKwhPer100km) }}
-                      </span>
-                    </template>
-                    <div v-else class="text-gray-400 text-sm">-</div>
+                    </div>
+                    <div>
+                      <div class="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-0.5">{{ ratingLabel === 'EPA' ? t('model.epa_consumption_label') : t('model.wltp_table_consumption') }}</div>
+                      <div class="font-semibold text-gray-800 dark:text-gray-200">
+                        <template v-if="selectedVariant.officialConsumptionMinKwhPer100km && selectedVariant.officialConsumptionMaxKwhPer100km">
+                          {{ formatConsumption(selectedVariant.officialConsumptionMinKwhPer100km, { showUnit: false }) }}&thinsp;-&thinsp;{{ formatConsumption(selectedVariant.officialConsumptionMaxKwhPer100km) }}
+                          <span class="block text-xs font-normal text-gray-500 dark:text-gray-400 mt-0.5">{{ t('model.wltp_varies_by_year') }}</span>
+                        </template>
+                        <template v-else>{{ formatConsumption(selectedVariant.officialConsumptionKwhPer100km) }}</template>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Community-Card (grün, der USP) -->
+                <div class="border-2 border-gray-800 dark:border-gray-200 rounded-xl bg-green-50 dark:bg-green-900/20 p-4 text-center">
+                  <div class="text-xs font-bold uppercase tracking-wide text-green-700 dark:text-green-400 mb-3">Community · {{ t('model.compare_real') }}</div>
+                  <div class="space-y-3">
+                    <div>
+                      <div class="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-0.5">{{ ratingLabel === 'EPA' ? t('model.epa_range_label') : t('model.wltp_table_range') }}</div>
+                      <div class="text-lg font-bold text-gray-900 dark:text-gray-100">
+                        <div v-if="selectedVariant?.seasonalDistribution?.summerConsumptionKwhPer100km || selectedVariant?.seasonalDistribution?.winterConsumptionKwhPer100km" class="flex items-center justify-center gap-1.5 flex-wrap">
+                          <span class="flex items-center gap-1 text-amber-600 dark:text-amber-400"><SunIcon class="h-4 w-4" /><span>{{ selectedVariant?.seasonalDistribution?.summerConsumptionKwhPer100km ? formatDistance(Math.round(selectedVariant.batteryCapacityKwh / selectedVariant.seasonalDistribution.summerConsumptionKwhPer100km * 10) * 10) : '-' }}</span></span>
+                          <span class="text-gray-300 dark:text-gray-600">/</span>
+                          <span class="flex items-center gap-1 text-blue-600 dark:text-blue-400">
+                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                              <line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/>
+                              <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/><line x1="19.07" y1="4.93" x2="4.93" y2="19.07"/>
+                              <circle cx="12" cy="12" r="2" fill="currentColor"/>
+                            </svg><span>{{ selectedVariant?.seasonalDistribution?.winterConsumptionKwhPer100km ? formatDistance(Math.round(selectedVariant.batteryCapacityKwh / selectedVariant.seasonalDistribution.winterConsumptionKwhPer100km * 10) * 10) : '-' }}</span>
+                          </span>
+                        </div>
+                        <template v-else>{{ selectedVariant.realConsumptionKwhPer100km ? formatDistance(Math.round(selectedVariant.batteryCapacityKwh / selectedVariant.realConsumptionKwhPer100km * 10) * 10) : '-' }}</template>
+                      </div>
+                      <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('model.wltp_full_range') }}</div>
+                    </div>
+                    <div>
+                      <div class="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-0.5">{{ ratingLabel === 'EPA' ? t('model.epa_consumption_label') : t('model.wltp_table_consumption') }}</div>
+                      <template v-if="selectedVariant.realConsumptionKwhPer100km">
+                        <div class="flex flex-wrap items-center justify-center gap-2">
+                          <span class="font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap">{{ formatConsumption(selectedVariant.realConsumptionKwhPer100km) }}</span>
+                          <span :class="deltaLabelClass(selectedVariant.realConsumptionKwhPer100km, selectedVariant.officialConsumptionKwhPer100km)" class="text-xs px-1.5 py-0.5 rounded-full">{{ consumptionDeltaLabel(selectedVariant.realConsumptionKwhPer100km, selectedVariant.officialConsumptionKwhPer100km) }}</span>
+                          <span v-if="selectedVariant.realConsumptionTripCount != null && selectedVariant.realConsumptionTripCount < 10" class="text-xs px-1.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-600 dark:bg-red-900/40 dark:border-red-700 dark:text-red-400">⚠ {{ selectedVariant.realConsumptionTripCount }} {{ t('model.seasonal_trips') }}</span>
+                          <span v-else-if="selectedVariant.realConsumptionTripCount != null && selectedVariant.realConsumptionTripCount < 50" class="text-xs px-1.5 py-0.5 rounded-full bg-yellow-50 border border-yellow-200 text-yellow-700 dark:bg-yellow-900/40 dark:border-yellow-700 dark:text-yellow-400">{{ selectedVariant.realConsumptionTripCount }} {{ t('model.seasonal_trips') }}</span>
+                        </div>
+                      </template>
+                      <span v-else class="text-gray-400">{{ t('model.wltp_no_data') }}</span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-
-            <!-- Desktop Table -->
-            <div class="hidden md:block overflow-x-auto px-6 pb-2">
-              <table class="w-full text-sm">
-                <thead>
-                  <tr class="text-left text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700">
-                    <th class="pb-3 pr-4 font-medium whitespace-nowrap">{{ t('model.wltp_table_battery') }}</th>
-                    <th class="pb-3 pr-4 font-medium whitespace-nowrap">{{ ratingLabel === 'EPA' ? t('model.epa_range_label') : t('model.wltp_table_range') }}</th>
-                    <th class="pb-3 pr-4 font-medium whitespace-nowrap">
-                      {{ t('model.wltp_table_real_range') }} <span class="text-xs">{{ t('model.wltp_table_full_to_empty') }}</span>
-                    </th>
-                    <th class="pb-3 pr-4 font-medium whitespace-nowrap">{{ ratingLabel === 'EPA' ? t('model.epa_consumption_label') : t('model.wltp_table_consumption') }}</th>
-                    <th class="pb-3 font-medium whitespace-nowrap">{{ t('model.wltp_table_real_consumption') }}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-if="selectedVariant" class="border-b border-gray-50 dark:border-gray-700">
-                    <td class="py-3 pr-4 font-medium text-gray-900 dark:text-gray-100">
-                      {{ selectedVariant.displayLabel || selectedVariant.variantName || (selectedVariant.batteryCapacityKwh + ' kWh') }}
-                    </td>
-                    <td class="py-3 pr-4 text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                      <template v-if="selectedVariant.officialRangeMinKm">
-                        {{ formatDistance(selectedVariant.officialRangeMinKm, { showUnit: false }) }}&thinsp;-&thinsp;{{ formatDistance(selectedVariant.officialRangeKm) }}
-                      </template>
-                      <template v-else>{{ formatDistance(selectedVariant.officialRangeKm) }}</template>
-                    </td>
-                    <td class="py-3 pr-4 whitespace-nowrap">
-                      <div v-if="selectedVariant?.seasonalDistribution?.summerConsumptionKwhPer100km || selectedVariant?.seasonalDistribution?.winterConsumptionKwhPer100km"
-                           class="flex items-center gap-1.5">
-                        <span class="flex items-center gap-1 text-amber-600">
-                          <SunIcon class="h-3.5 w-3.5" />
-                          <span>{{ selectedVariant?.seasonalDistribution?.summerConsumptionKwhPer100km ? formatDistance(Math.round(selectedVariant.batteryCapacityKwh / selectedVariant.seasonalDistribution.summerConsumptionKwhPer100km * 10) * 10) : '-' }}</span>
-                        </span>
-                        <span class="text-gray-300">/</span>
-                        <span class="flex items-center gap-1 text-blue-500">
-                          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                            <line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/>
-                            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/><line x1="19.07" y1="4.93" x2="4.93" y2="19.07"/>
-                            <circle cx="12" cy="12" r="2" fill="currentColor"/>
-                          </svg>
-                          <span>{{ selectedVariant?.seasonalDistribution?.winterConsumptionKwhPer100km ? formatDistance(Math.round(selectedVariant.batteryCapacityKwh / selectedVariant.seasonalDistribution.winterConsumptionKwhPer100km * 10) * 10) : '-' }}</span>
-                        </span>
-                      </div>
-                      <span v-else class="text-gray-400">-</span>
-                    </td>
-                    <td class="py-3 pr-4 text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                      <template v-if="selectedVariant.officialConsumptionMinKwhPer100km && selectedVariant.officialConsumptionMaxKwhPer100km">
-                        {{ formatConsumption(selectedVariant.officialConsumptionMinKwhPer100km, { showUnit: false }) }}&thinsp;-&thinsp;{{ formatConsumption(selectedVariant.officialConsumptionMaxKwhPer100km) }}
-                        <span class="block text-xs text-gray-400">{{ t('model.wltp_varies_by_year') }}</span>
-                      </template>
-                      <template v-else>{{ formatConsumption(selectedVariant.officialConsumptionKwhPer100km) }}</template>
-                    </td>
-                    <td class="py-3 align-top">
-                      <div v-if="selectedVariant.realConsumptionKwhPer100km" class="flex flex-col items-start gap-1">
-                        <span :class="consumptionDeltaClass(selectedVariant.realConsumptionKwhPer100km, selectedVariant.officialConsumptionKwhPer100km)"
-                              class="font-medium whitespace-nowrap">
-                          {{ formatConsumption(selectedVariant.realConsumptionKwhPer100km) }}
-                        </span>
-                        <div class="flex items-center gap-1.5">
-                          <span :class="deltaLabelClass(selectedVariant.realConsumptionKwhPer100km, selectedVariant.officialConsumptionKwhPer100km)"
-                                class="text-xs px-1.5 py-0.5 rounded-full">
-                            {{ consumptionDeltaLabel(selectedVariant.realConsumptionKwhPer100km, selectedVariant.officialConsumptionKwhPer100km) }}
-                          </span>
-                          <span v-if="selectedVariant.realConsumptionTripCount != null && selectedVariant.realConsumptionTripCount < 10"
-                                class="text-xs px-1.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-600 dark:bg-red-900/40 dark:border-red-700 dark:text-red-400">
-                            ⚠ {{ selectedVariant.realConsumptionTripCount }} {{ t('model.seasonal_trips') }}
-                          </span>
-                          <span v-else-if="selectedVariant.realConsumptionTripCount != null && selectedVariant.realConsumptionTripCount < 50"
-                                class="text-xs px-1.5 py-0.5 rounded-full bg-yellow-50 border border-yellow-200 text-yellow-700 dark:bg-yellow-900/40 dark:border-yellow-700 dark:text-yellow-400">
-                            {{ selectedVariant.realConsumptionTripCount }} {{ t('model.seasonal_trips') }}
-                          </span>
-                        </div>
-                      </div>
-                      <span v-else class="text-gray-400">{{ t('model.wltp_no_data') }}</span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
             </div>
 
             <!-- Rating Notes -->
@@ -586,7 +493,7 @@
               <p class="text-sm text-gray-400 dark:text-gray-400">{{ ratingLabel === 'EPA' ? t('model.epa_note') : t('model.wltp_note') }}</p>
               <p class="text-sm text-gray-400 dark:text-gray-400">{{ ratingLabel === 'EPA' ? t('model.epa_measurement_note') : t('model.wltp_measurement_note') }}</p>
             </div>
-          </div><!-- end wltp -->
+          </details><!-- end wltp -->
 
         </div><!-- end combined card -->
 
@@ -596,24 +503,24 @@
         </div>
 
         <!-- CTA -->
-        <div class="bg-gradient-to-br from-green-600 to-green-700 md:rounded-sm p-6 text-white">
+        <div class="bg-gradient-to-br from-green-600 to-green-700 border-y-2 md:border-2 border-gray-800 dark:border-gray-200 md:rounded-xl md:shadow-[5px_5px_0_0_#1f2937] dark:md:shadow-[5px_5px_0_0_#1f2937] p-6 text-white">
           <div class="flex items-center gap-2 mb-2">
             <ArrowTrendingUpIcon class="h-6 w-6" />
             <h2 class="text-xl font-bold">{{ t('model.cta_title') }}</h2>
           </div>
           <p class="text-green-100 mb-4">{{ t('model.cta_desc') }}</p>
           <div class="flex flex-wrap gap-3">
-            <a :href="registerPath" class="bg-white text-green-700 font-semibold px-4 py-2 rounded-sm hover:bg-green-50 transition-colors">
+            <a :href="registerPath" class="btn-3d bg-white text-green-700 font-bold px-5 py-2.5 rounded-sm border-2 border-gray-800 hover:bg-green-50 transition-colors" style="--btn-shadow-color:#1f2937">
               {{ t('model.cta_free_start') }}
             </a>
-            <a :href="loginPath" class="border border-white text-white px-4 py-2 rounded-sm hover:bg-green-600 transition-colors">
+            <a :href="loginPath" class="border-2 border-white text-white font-semibold px-5 py-2.5 rounded-sm hover:bg-green-600 transition-colors">
               {{ t('model.cta_login') }}
             </a>
           </div>
         </div>
 
         <!-- SEO Text -->
-        <div class="bg-white dark:bg-gray-800 md:rounded-sm md:border-x border-y border-gray-200 dark:border-gray-700 md:shadow-sm p-6 md:mt-6">
+        <div class="bg-white dark:bg-gray-800 md:rounded-xl md:border-x-2 md:shadow-[5px_5px_0_0_#15803d] dark:md:shadow-[5px_5px_0_0_#22c55e] border-y-2 border-gray-800 dark:border-gray-200 p-6 md:mt-6">
           <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
             {{ t('model.seo_section_title', { model: stats.modelDisplayName }) }}
           </h2>
@@ -672,7 +579,7 @@
         </div>
 
         <!-- FAQ -->
-        <div v-if="faqItems.length > 0" class="bg-white dark:bg-gray-800 md:rounded-sm md:border-x border-y border-gray-200 dark:border-gray-700 md:shadow-sm p-6 mt-6">
+        <div v-if="faqItems.length > 0" class="bg-white dark:bg-gray-800 md:rounded-xl md:border-x-2 md:shadow-[5px_5px_0_0_#15803d] dark:md:shadow-[5px_5px_0_0_#22c55e] border-y-2 border-gray-800 dark:border-gray-200 p-6 mt-6">
           <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
             {{ t('model.faq_title', { model: stats.modelDisplayName }) }}
           </h2>
@@ -697,7 +604,7 @@
 
     <!-- Related models -->
     <div class="max-w-4xl mx-auto md:px-4 mt-8">
-      <div class="bg-white dark:bg-gray-800 md:rounded-sm md:border-x border-y border-gray-200 dark:border-gray-700 p-6">
+      <div class="bg-white dark:bg-gray-800 md:rounded-xl md:border-x-2 md:shadow-[5px_5px_0_0_#15803d] dark:md:shadow-[5px_5px_0_0_#22c55e] border-y-2 border-gray-800 dark:border-gray-200 p-6">
         <h2 class="text-base font-bold text-gray-900 dark:text-gray-100 mb-3">{{ t('model.related_title') }}</h2>
         <div class="flex flex-wrap gap-2 text-sm">
           <a :href="`${modelsBaseUrl}/Tesla/Model_3`" class="text-green-600 hover:underline">Tesla Model 3</a>
@@ -748,6 +655,7 @@
         </button>
       </div>
     </Teleport>
+    </div>
   </div>
 </template>
 
@@ -762,9 +670,10 @@ import { useCountryStore } from '../stores/country'
 import { getModelStats, type PublicModelStats, type SeasonalDistribution } from '../api/publicModelService'
 import {
   ArrowTrendingUpIcon, ClipboardDocumentListIcon, Battery0Icon,
-  SunIcon, ChartBarIcon, ExclamationTriangleIcon, BoltIcon
+  SunIcon, ChartBarIcon, ExclamationTriangleIcon, BoltIcon, CheckBadgeIcon, ChevronRightIcon
 } from '@heroicons/vue/24/outline'
 import PublicNav from '../components/shared/PublicNav.vue'
+import GridRippleBackground from '../components/shared/GridRippleBackground.vue'
 import AffiliateBanner from '../components/shared/AffiliateBanner.vue'
 import RegionChip from '../components/shared/RegionChip.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
@@ -793,7 +702,7 @@ interface ActiveVariant {
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
-const { formatConsumption, formatNumber, consumptionUnitLabel, convertConsumption, formatDistance, formatCurrency, formatCostPerKwh, formatCostPerDistance, consumptionDeltaLabel, consumptionDeltaClass, isEurZone, currency, currencySymbol, unitSystem } = useLocaleFormat()
+const { formatConsumption, formatNumber, consumptionUnitLabel, convertConsumption, formatDistance, distanceUnitLabel, formatCurrency, formatCostPerKwh, formatCostPerDistance, consumptionDeltaLabel, isEurZone, currency, currencySymbol, unitSystem } = useLocaleFormat()
 const { currentMarket, isDE, isEN, isGB, marketUrl, hreflangLinks } = useMarketRoute()
 const modelsBaseUrl = computed(() => getMarketBasePath(currentMarket.value))
 const authStore = useAuthStore()
@@ -805,6 +714,8 @@ const showBackPill = ref(false)
 const stats = ref<PublicModelStats | null>(null)
 const selectedVariantIndex = ref(0)
 const pricePerKwh = ref(countryStore.country === 'US' ? 0.13 : 0.35)
+// Füllstand des Tarif-Sliders (0.10-1.00 €/kWh) für den grünen Fortschrittsbalken
+const sliderFillPct = computed(() => Math.round((pricePerKwh.value - 0.10) / 0.90 * 100))
 
 const isAuthenticated = computed(() => authStore.isAuthenticated())
 const { tickerHasItems, tickerCollapsed } = useTickerState()
@@ -814,15 +725,25 @@ const stickyTop = computed(() => {
   return '64px'
 })
 
-const YEAR_CHART_COLORS = [
-  '#22c55e', '#16a34a', '#15803d', '#166534',
-  '#3b82f6', '#2563eb', '#1d4ed8', '#1e40af',
-  '#f59e0b', '#d97706', '#b45309',
-]
-
-const yearTotal = computed(() =>
-  (stats.value?.yearDistribution ?? []).reduce((s, e) => s + e.carCount, 0)
+// Höchste Fahrzeugzahl eines Baujahrs - Basis für die Säulenhöhe im Histogramm
+const maxYearCount = computed(() =>
+  Math.max(1, ...(stats.value?.yearDistribution ?? []).map(e => e.carCount))
 )
+const yearBarHeightPx = (count: number) =>
+  `${Math.max(4, Math.round(count / maxYearCount.value * 88))}px`
+// Gewichteter Median des Baujahrs - das "typische" Baujahr der Community-Flotte
+const medianModelYear = computed(() => {
+  const dist = stats.value?.yearDistribution
+  if (!dist || dist.length === 0) return null
+  const sorted = [...dist].sort((a, b) => a.year - b.year)
+  const total = sorted.reduce((s, e) => s + e.carCount, 0)
+  let cum = 0
+  for (const e of sorted) {
+    cum += e.carCount
+    if (cum >= total / 2) return e.year
+  }
+  return sorted[sorted.length - 1].year
+})
 
 const ROUTE_TYPE_META: Record<string, { color: string; labelKey: string }> = {
   HIGHWAY:  { color: '#3b82f6', labelKey: 'model.route_type_highway' },
@@ -959,6 +880,30 @@ const consumptionDataCount = computed(() => {
   return socCount + (stats.value.estimatedConsumptionCount ?? 0)
 })
 
+// ── SEO-Title-Werte: modell-level & deterministisch (unabhaengig vom Varianten-Switcher) ──
+// Verbrauch = Modell-Schnitt (immer befuellt, sobald Community-Daten existieren). Bewusst
+// NICHT displayConsumption: das ist variantenabhaengig und bei Multi-Varianten oft null.
+const metaConsumption = computed(() => stats.value?.avgConsumptionKwhPer100km ?? null)
+
+// Real-world-Reichweite je Variante (Akku x 0,9 / Real-Verbrauch, sonst Modell-Schnitt),
+// als Min/Max-Span ueber alle Varianten - rundet auf 10 km wie die Hero-Anzeige.
+const metaRealRangeLabel = computed(() => {
+  const avg = metaConsumption.value
+  if (!avg || !activeVariants.value.length) return null
+  const ranges = activeVariants.value.map(v =>
+    Math.round(v.batteryCapacityKwh * 0.9 / (v.realConsumptionKwhPer100km ?? avg) * 10) * 10
+  )
+  const unit = distanceUnitLabel()
+  const minStr = formatDistance(Math.min(...ranges), { showUnit: false })
+  const maxStr = formatDistance(Math.max(...ranges), { showUnit: false })
+  return minStr === maxStr ? `${maxStr} ${unit}` : `${minStr}-${maxStr} ${unit}`
+})
+
+// WLTP-Range-Fallback fuer Modelle ohne Community-Verbrauch (immer aus Specs vorhanden).
+const metaWltpRangeLabel = computed(() =>
+  bestOfficialRange.value ? formatDistance(bestOfficialRange.value) : null
+)
+
 const consumptionDataQuality = computed((): 'good' | 'low' | 'scarce' => {
   const n = consumptionDataCount.value
   if (n >= 100) return 'good'
@@ -970,6 +915,30 @@ const showSeasonalBreakdown = computed(() => {
   const s = selectedVariant.value?.seasonalDistribution
   if (!s) return false
   return s.winterLogCount >= 10 && s.summerLogCount >= 10 && s.winterLogCount + s.summerLogCount > 10
+})
+
+// Saison-Reichweiten (90→10%, wie im Hero) und der Winter-Aufschlag - die einzigen
+// Werte, die die Hero-Karte NICHT zeigt, daher der Kern dieser Karte.
+const seasonalSummerRangeKm = computed(() => {
+  const s = selectedVariant.value?.seasonalDistribution
+  const b = selectedVariant.value?.batteryCapacityKwh
+  if (!s?.summerConsumptionKwhPer100km || !b) return null
+  return Math.round(b * 0.9 / s.summerConsumptionKwhPer100km * 10) * 10
+})
+const seasonalWinterRangeKm = computed(() => {
+  const s = selectedVariant.value?.seasonalDistribution
+  const b = selectedVariant.value?.batteryCapacityKwh
+  if (!s?.winterConsumptionKwhPer100km || !b) return null
+  return Math.round(b * 0.9 / s.winterConsumptionKwhPer100km * 10) * 10
+})
+const winterExtraPercent = computed(() => {
+  const s = selectedVariant.value?.seasonalDistribution
+  if (!s?.summerConsumptionKwhPer100km || !s?.winterConsumptionKwhPer100km) return null
+  return Math.round((s.winterConsumptionKwhPer100km / s.summerConsumptionKwhPer100km - 1) * 100)
+})
+const seasonalRangeLossKm = computed(() => {
+  if (seasonalSummerRangeKm.value == null || seasonalWinterRangeKm.value == null) return null
+  return seasonalSummerRangeKm.value - seasonalWinterRangeKm.value
 })
 
 const faqItems = computed(() => {
@@ -1072,7 +1041,9 @@ useHead(computed(() => {
   if (!stats.value) return { title: 'EV Monitor', meta: [{ name: 'robots', content: 'noindex, follow' }] }
 
   const name = stats.value.modelDisplayName
-  const consumption = displayConsumption.value
+  // Meta-Tags sind modell-level (nicht variantenabhaengig): sonst widerspricht die Description
+  // dem Title bei Multi-Varianten, deren erste Variante keinen Realverbrauch hat (z.B. ID.4).
+  const consumption = metaConsumption.value
   const wltp = worstOfficialConsumption.value
 
   const suffix = `/${canonicalBrand.value}/${model}`
@@ -1082,7 +1053,14 @@ useHead(computed(() => {
     ? t('model.meta_description_with_data', { model: name, consumption: formatConsumption(consumption), wltp: formatConsumption(wltp), ratingLabel: ratingLabel.value, logCount: formatNumber(stats.value.logCount) })
     : t('model.meta_description_no_data', { model: name, ratingLabel: ratingLabel.value })
 
-  const title = t('model.meta_title', { model: name, year: currentYear })
+  // SEO-Title: echte Zahlen (Verbrauch + Reichweite-Span) sind der CTR-Hebel im SERP -
+  // kein WLTP-Konkurrent liefert gemessene Community-Werte. Modell-level, damit der Title
+  // unabhaengig vom Varianten-Switcher immer befuellt ist. Fallback: WLTP-Range aus Specs.
+  const title = metaConsumption.value && metaRealRangeLabel.value
+    ? t('model.meta_title_with_data', { model: name, consumption: formatConsumption(metaConsumption.value), range: metaRealRangeLabel.value, year: currentYear })
+    : metaWltpRangeLabel.value
+      ? t('model.meta_title_wltp', { model: name, range: metaWltpRangeLabel.value, ratingLabel: ratingLabel.value, year: currentYear })
+      : t('model.meta_title', { model: name, year: currentYear })
 
   const breadcrumbJsonLd = {
     '@context': 'https://schema.org',
@@ -1202,13 +1180,6 @@ const communityConsumptionRange = computed(() => {
   return { min, max, rangeSource: selectedVariant.value?.realConsumptionRangeSource ?? null }
 })
 
-const rangeSourceLabel = computed(() => {
-  const src = communityConsumptionRange.value?.rangeSource
-  if (!src) return ''
-  return src === 'PER_DRIVER' ? t('model.range_source_per_driver') : t('model.range_source_per_trip')
-})
-
-
 function reload() { window.location.reload() }
 
 function goBackToLpV2() {
@@ -1221,6 +1192,46 @@ function goBackToLpV2() {
 <style scoped>
 .model-page {
   animation: page-slide-in 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+/* Tarif-Slider: grüner Fortschrittsbalken + kräftiger Thumb, statt durchgehend grau */
+.tariff-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 10px;
+  border-radius: 9999px;
+  background: linear-gradient(to right, #16a34a var(--pct, 0%), #e5e7eb var(--pct, 0%));
+}
+.dark .tariff-slider {
+  background: linear-gradient(to right, #22c55e var(--pct, 0%), #4b5563 var(--pct, 0%));
+}
+.tariff-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  background: #16a34a;
+  border: 3px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+}
+.dark .tariff-slider::-webkit-slider-thumb {
+  background: #22c55e;
+  border-color: #1f2937;
+}
+.tariff-slider::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  background: #16a34a;
+  border: 3px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+}
+.dark .tariff-slider::-moz-range-thumb {
+  background: #22c55e;
+  border-color: #1f2937;
 }
 
 @keyframes page-slide-in {
