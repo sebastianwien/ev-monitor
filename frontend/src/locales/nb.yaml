@@ -364,6 +364,7 @@ model:
   hero_cta_title: "Kjører du en {model} selv?"
   hero_cta_desc: "Spor ditt faktiske forbruk - gratis, på 2 minutter."
   hero_trust: "Basert på {sessions} faktiske ladinger fra fellesskapet"
+  hero_block_cost: "Kostnad"
   details_methodology: "Detaljer og metode"
   seasonal_winter_penalty: "Vintertillegg"
   seasonal_more_consumption: "mer forbruk"

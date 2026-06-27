@@ -12,13 +12,13 @@
 
       <div v-else-if="notFound" class="text-center py-20">
         <div class="text-5xl mb-4">🔍</div>
-        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">{{ t('model.not_found_title') }}</h1>
+        <h1 class="t-value-lg text-gray-800 dark:text-gray-200 mb-2">{{ t('model.not_found_title') }}</h1>
         <p class="text-gray-500 dark:text-gray-400 mb-6">{{ t('model.not_found_desc') }}</p>
         <a href="/" class="bg-green-600 text-white px-4 py-2 rounded-sm hover:bg-green-700">{{ t('model.goto_home') }}</a>
       </div>
 
       <div v-else-if="apiError" class="text-center py-20">
-        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">{{ t('model.error_title') }}</h1>
+        <h1 class="t-value-lg text-gray-800 dark:text-gray-200 mb-2">{{ t('model.error_title') }}</h1>
         <p class="text-gray-500 dark:text-gray-400 mb-6">{{ t('model.error_desc') }}</p>
         <button @click="reload" class="bg-green-600 text-white px-4 py-2 rounded-sm hover:bg-green-700">{{ t('model.reload') }}</button>
       </div>
@@ -43,7 +43,7 @@
           <a :href="`${modelsBaseUrl}/${canonicalBrand}`" class="inline-flex items-center gap-1 text-sm text-green-600 hover:underline mb-2">
             {{ t('model.back_link', { brand: stats.brandDisplayName }) }}
           </a>
-          <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-3 text-center">
+          <h1 class="t-value-xl text-gray-900 dark:text-gray-100 mb-3 text-center">
             <span class="md:hidden">{{ stats.modelDisplayName }}</span>
             <span class="hidden md:inline">{{ t('model.hero_title_v2', { model: stats.modelDisplayName }) }}</span>
           </h1>
@@ -51,7 +51,7 @@
 
           <!-- Variant Switcher -->
           <div v-if="activeVariants.length > 1" :style="{ top: stickyTop }" class="sticky z-20 flex flex-col items-center gap-2 mb-5 py-3 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm border-b border-gray-200/80 dark:border-gray-700/80">
-            <span class="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">{{ t('model.variant_title') }}</span>
+            <span class="t-block text-gray-800 dark:text-gray-200">{{ t('model.variant_title') }}</span>
             <div class="flex gap-2 flex-wrap justify-center">
               <button v-for="(v, i) in activeVariants" :key="v.displayLabel ?? v.batteryCapacityKwh"
                       @click="selectedVariantIndex = i"
@@ -70,18 +70,94 @@
           </div>
 
           <!-- Primary metric: Realer Verbrauch -->
-          <div v-if="displayConsumption" class="flex flex-col items-center py-5 rounded-xl bg-green-50 dark:bg-green-900/20 border-2 border-gray-800 dark:border-gray-200 mb-3">
-            <div class="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-2">
+          <!-- 1 · Reichweite -->
+          <div v-if="displayRange" class="text-center mb-7">
+            <div class="t-block text-green-700 dark:text-green-400 mb-2">{{ t('model.metrics_range') }}</div>
+            <div class="flex items-baseline justify-center gap-1.5">
+              <span class="t-metric tabular-nums text-gray-900 dark:text-gray-100">{{ formatDistance(displayRange, { showUnit: false }) }}</span>
+              <span class="text-base sm:text-xl font-bold text-gray-800 dark:text-gray-200">{{ distanceUnitLabel() }}</span>
+            </div>
+            <div class="mt-2 flex items-center justify-center gap-2 flex-wrap">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-medium">
+                <Battery0Icon class="h-3.5 w-3.5" /> 90% → 10%
+              </span>
+              <span v-if="selectedVariant?.officialRangeKm" class="text-sm text-gray-600 dark:text-gray-300">{{ t('model.compare_manufacturer') }}: <strong class="text-gray-800 dark:text-gray-100"><template v-if="selectedVariant.officialRangeMinKm">{{ formatDistance(selectedVariant.officialRangeMinKm, { showUnit: false }) }}-{{ formatDistance(selectedVariant.officialRangeKm) }}</template><template v-else>{{ formatDistance(selectedVariant.officialRangeKm) }}</template></strong></span>
+            </div>
+          </div>
+
+          <!-- No data for selected variant -->
+          <div v-if="variantHasNoData" class="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-sm border border-gray-200 dark:border-gray-600 text-center">
+            <p class="text-gray-500 dark:text-gray-400 text-sm">{{ t('model.variant_no_data') }}</p>
+          </div>
+
+          <!-- No data notice -->
+          <div v-if="stats.logCount === 0" class="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-sm border border-gray-200 dark:border-gray-600">
+            <p class="text-gray-600 dark:text-gray-300 text-sm">
+              {{ t('common.be_first') }}
+              <a :href="registerPath" class="text-green-600 font-medium hover:underline">{{ t('common.register') }}</a>
+            </p>
+          </div>
+
+          <!-- 2 · Kosten: Ladepreise + Ø-Schnitt (der Rechner darunter personalisiert) -->
+          <div v-if="displayConsumption && (stats.acAvgCostPerKwh || stats.dcAvgCostPerKwh || stats.avgCostPerKwh)">
+            <div class="t-block text-green-700 dark:text-green-400 mb-3 text-center">{{ t('model.hero_block_cost') }}</div>
+            <div class="bg-gray-50 dark:bg-gray-800/40 border-2 border-gray-800 dark:border-gray-200 rounded-xl py-4 flex items-start justify-around text-center">
+              <div v-if="stats.acAvgCostPerKwh" class="flex-1 px-2">
+                <div class="t-value text-gray-900 dark:text-gray-100">{{ formatCostPerKwh(stats.acAvgCostPerKwh) }}<sup class="text-xs text-gray-400">*</sup></div>
+                <div class="text-sm font-semibold text-green-600 dark:text-green-400 flex items-center justify-center gap-0.5 mt-0.5"><BoltIcon class="h-4 w-4" />AC</div>
+                <div class="t-eyebrow text-gray-400 dark:text-gray-500">{{ t('model.charging_ac_label') }}</div>
+              </div>
+              <div v-if="stats.dcAvgCostPerKwh" class="flex-1 px-2">
+                <div class="t-value text-gray-900 dark:text-gray-100">{{ formatCostPerKwh(stats.dcAvgCostPerKwh) }}<sup class="text-xs text-gray-400">*</sup></div>
+                <div class="text-sm font-semibold text-amber-600 dark:text-amber-400 flex items-center justify-center gap-0.5 mt-0.5"><BoltIcon class="h-4 w-4" />DC</div>
+                <div class="t-eyebrow text-gray-400 dark:text-gray-500">{{ t('model.charging_dc_label') }}</div>
+              </div>
+              <div v-if="stats.avgCostPerKwh && displayConsumption" class="flex-1 px-2">
+                <div class="t-value text-gray-900 dark:text-gray-100">{{ formatCostPerDistance(stats.avgCostPerKwh * displayConsumption) }}</div>
+                <div class="text-sm font-semibold text-gray-600 dark:text-gray-300 mt-0.5">Ø</div>
+                <div class="t-eyebrow text-gray-400 dark:text-gray-500">Community</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Kostenrechner: persönliche Ladekosten mit eigenem Stromtarif -->
+          <div v-if="displayConsumption" class="mt-6 pt-5 border-t border-gray-100 dark:border-gray-700">
+            <!-- Intro: macht klar, dass man hier seinen eigenen Tarif einstellt -->
+            <div class="text-center mb-4">
+              <p class="text-xl font-bold text-gray-800 dark:text-gray-200 flex items-center justify-center gap-1.5">
+                <BoltIcon class="h-6 w-6 text-green-600 dark:text-green-400" /> {{ t('model.calculator_title') }}
+              </p>
+              <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ t('model.calculator_hint') }}</p>
+            </div>
+            <!-- Live-Ergebnis -->
+            <div class="flex items-baseline justify-center gap-2 mb-2 flex-wrap">
+              <span class="text-base font-semibold text-gray-700 dark:text-gray-200">{{ formatCostPerKwh(pricePerKwh) }}</span>
+              <span class="text-gray-300 dark:text-gray-600">→</span>
+              <span class="t-value-lg text-green-700 dark:text-green-400">{{ formatCostPerDistance(pricePerKwh * displayConsumption) }}</span>
+            </div>
+            <!-- Slider -->
+            <div class="flex items-center gap-3">
+              <span class="hidden sm:inline text-xs font-medium text-gray-500 dark:text-gray-400 shrink-0">{{ formatCostPerKwh(0.10) }}</span>
+              <input type="range" min="0.10" max="1.00" step="0.01" v-model.number="pricePerKwh"
+                     :aria-label="t('model.calculator_title')"
+                     :style="{ '--pct': sliderFillPct + '%' }"
+                     class="tariff-slider flex-1 cursor-pointer" />
+              <span class="hidden sm:inline text-xs font-medium text-gray-500 dark:text-gray-400 shrink-0">{{ formatCostPerKwh(1.00) }}</span>
+            </div>
+          </div>
+          <!-- 3 · Verbrauch -->
+          <div v-if="displayConsumption" class="flex flex-col items-center py-5 mt-7 rounded-xl bg-green-50 dark:bg-green-900/20 border-2 border-gray-800 dark:border-gray-200">
+            <div class="t-eyebrow text-gray-400 dark:text-gray-500 mb-2">
               {{ t('model.hero_consumption_label') }}
             </div>
             <!-- Range: min – max -->
             <template v-if="communityConsumptionRange">
               <div class="flex items-baseline gap-1.5">
-                <span class="text-4xl sm:text-5xl font-extrabold tabular-nums text-gray-900 dark:text-gray-100">
+                <span class="t-metric tabular-nums text-gray-900 dark:text-gray-100">
                   {{ formatConsumption(communityConsumptionRange.min, { showUnit: false }) }}
                 </span>
                 <span class="text-2xl sm:text-3xl text-gray-400 dark:text-gray-500">–</span>
-                <span class="text-4xl sm:text-5xl font-extrabold tabular-nums text-gray-900 dark:text-gray-100">
+                <span class="t-metric tabular-nums text-gray-900 dark:text-gray-100">
                   {{ formatConsumption(communityConsumptionRange.max, { showUnit: false }) }}
                 </span>
                 <span class="text-base sm:text-xl text-gray-400 dark:text-gray-500">{{ consumptionUnitLabel() }}</span>
@@ -100,7 +176,7 @@
             <!-- Fallback: single average -->
             <template v-else>
               <div class="flex items-baseline gap-2">
-                <span class="text-5xl sm:text-6xl font-extrabold tabular-nums text-gray-900 dark:text-gray-100">
+                <span class="t-metric tabular-nums text-gray-900 dark:text-gray-100">
                   {{ formatConsumption(displayConsumption, { showUnit: false }) }}
                 </span>
                 <span class="text-base sm:text-xl text-gray-400 dark:text-gray-500">{{ consumptionUnitLabel() }}</span>
@@ -118,161 +194,12 @@
           </div>
 
           <!-- Trust-Strip: Icon inline im Text, damit es auf Mobile sauber umbricht -->
-          <p v-if="displayConsumption" class="text-sm text-gray-700 dark:text-gray-300 mb-4 text-center max-w-md mx-auto">
+          <p v-if="displayConsumption" class="text-sm text-gray-700 dark:text-gray-300 mt-4 text-center max-w-md mx-auto">
             <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-green-600 text-white border-2 border-gray-800 dark:border-gray-200 align-middle mr-1.5">
               <CheckBadgeIcon class="h-3 w-3" />
             </span>{{ t('model.hero_trust', { sessions: ((selectedVariant?.realConsumptionTripCount ?? stats.logCount) || 0).toLocaleString() }) }}
           </p>
 
-          <!-- No data for selected variant -->
-          <div v-if="variantHasNoData" class="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-sm border border-gray-200 dark:border-gray-600 text-center">
-            <p class="text-gray-500 dark:text-gray-400 text-sm">{{ t('model.variant_no_data') }}</p>
-          </div>
-
-          <!-- No data notice -->
-          <div v-if="stats.logCount === 0" class="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-sm border border-gray-200 dark:border-gray-600">
-            <p class="text-gray-600 dark:text-gray-300 text-sm">
-              {{ t('common.be_first') }}
-              <a :href="registerPath" class="text-green-600 font-medium hover:underline">{{ t('common.register') }}</a>
-            </p>
-          </div>
-
-          <!-- Kosten-Schnitt als Textzeile -->
-          <div v-if="stats.avgCostPerKwh && displayConsumption"
-               class="text-center text-sm text-gray-500 dark:text-gray-400 pt-3 pb-1">
-            {{ t('model.avg_cost_prefix') }}
-            <span class="text-base font-bold text-gray-900 dark:text-gray-100">
-              {{ formatCostPerDistance(stats.avgCostPerKwh * displayConsumption) }}
-            </span>
-          </div>
-
-          <!-- Secondary stats row: 2-col on mobile, 3-col on desktop -->
-          <div class="mt-3 bg-gray-50 dark:bg-gray-800/40 border-2 border-gray-800 dark:border-gray-200 rounded-xl py-4">
-            <div class="grid grid-cols-2 md:grid-cols-3">
-            <!-- Links: AC/DC auf Mobile, Ladevorgänge auf Desktop -->
-            <div class="px-4 text-center">
-              <!-- Mobile: AC/DC -->
-              <template v-if="true" class="md:hidden">
-                <div class="md:hidden flex flex-col gap-1.5 items-center">
-                  <template v-if="stats.acAvgCostPerKwh || stats.dcAvgCostPerKwh">
-                    <div v-if="stats.acAvgCostPerKwh" class="flex items-center gap-2 whitespace-nowrap">
-                      <span class="flex flex-col leading-tight items-start">
-                        <span class="text-sm font-semibold text-green-600 dark:text-green-400 flex items-center gap-0.5"><BoltIcon class="h-4 w-4" />AC</span>
-                        <span class="text-[10px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">{{ t('model.charging_ac_label') }}</span>
-                      </span>
-                      <span class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ formatCostPerKwh(stats.acAvgCostPerKwh) }}<sup class="text-xs text-gray-400">*</sup></span>
-                    </div>
-                    <div v-if="stats.dcAvgCostPerKwh" class="flex items-center gap-2 whitespace-nowrap">
-                      <span class="flex flex-col leading-tight items-start">
-                        <span class="text-sm font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-0.5"><BoltIcon class="h-4 w-4" />DC</span>
-                        <span class="text-[10px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">{{ t('model.charging_dc_label') }}</span>
-                      </span>
-                      <span class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ formatCostPerKwh(stats.dcAvgCostPerKwh) }}<sup class="text-xs text-gray-400">*</sup></span>
-                    </div>
-                  </template>
-                  <template v-else-if="stats.avgCostPerKwh">
-                    <div class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ formatCostPerKwh(stats.avgCostPerKwh) }}</div>
-                  </template>
-                  <template v-else>
-                    <div class="text-xl font-bold text-gray-400">-</div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('model.metrics_costs') }}</div>
-                  </template>
-                </div>
-              </template>
-              <!-- Desktop: Ladevorgänge -->
-              <div class="hidden md:block">
-                <div class="text-xl font-bold text-gray-900 dark:text-gray-100">
-                  {{ variantHasNoData ? '-' : ((selectedVariant?.realConsumptionTripCount ?? stats.logCount) > 0 ? (selectedVariant?.realConsumptionTripCount ?? stats.logCount).toLocaleString() : '-') }}
-                </div>
-                <div class="text-sm font-semibold text-gray-600 dark:text-gray-300 mt-0.5">{{ t('model.metrics_sessions') }}</div>
-              </div>
-            </div>
-            <!-- Reichweite -->
-            <div class="px-4 text-center">
-              <template v-if="displayRange">
-                <div class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ formatDistance(displayRange) }}</div>
-                <div class="text-sm font-semibold text-gray-600 dark:text-gray-300 mt-0.5">{{ t('model.metrics_range') }}</div>
-                <div class="mt-1.5">
-                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-medium">
-                    <Battery0Icon class="h-3.5 w-3.5" /> 90% → 10%
-                  </span>
-                </div>
-              </template>
-              <template v-else>
-                <div class="text-xl font-bold text-gray-400">-</div>
-                <div class="text-sm font-semibold text-gray-600 dark:text-gray-300 mt-0.5">{{ t('model.metrics_range_label') }}</div>
-              </template>
-            </div>
-            <!-- Kosten: nur auf Desktop als 3. Spalte -->
-            <div class="hidden md:block px-4 text-center">
-              <template v-if="stats.acAvgCostPerKwh || stats.dcAvgCostPerKwh">
-                <div class="flex flex-col gap-2 items-start w-fit mx-auto">
-                  <div v-if="stats.acAvgCostPerKwh" class="flex items-center gap-2.5">
-                    <span class="flex flex-col leading-tight w-12">
-                      <span class="text-sm font-semibold text-green-600 dark:text-green-400 flex items-center gap-0.5"><BoltIcon class="h-4 w-4" />AC</span>
-                      <span class="text-[10px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">{{ t('model.charging_ac_label') }}</span>
-                    </span>
-                    <span class="text-xl font-bold text-gray-900 dark:text-gray-100">
-                      {{ formatCostPerKwh(stats.acAvgCostPerKwh) }}<sup class="text-xs text-gray-400">*</sup>
-                    </span>
-                  </div>
-                  <div v-if="stats.dcAvgCostPerKwh" class="flex items-center gap-2.5">
-                    <span class="flex flex-col leading-tight w-12">
-                      <span class="text-sm font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-0.5"><BoltIcon class="h-4 w-4" />DC</span>
-                      <span class="text-[10px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">{{ t('model.charging_dc_label') }}</span>
-                    </span>
-                    <span class="text-xl font-bold text-gray-900 dark:text-gray-100">
-                      {{ formatCostPerKwh(stats.dcAvgCostPerKwh) }}<sup class="text-xs text-gray-400">*</sup>
-                    </span>
-                  </div>
-                </div>
-              </template>
-              <template v-else-if="stats.avgCostPerKwh">
-                <div class="text-xl font-bold text-gray-900 dark:text-gray-100">
-                  {{ formatCostPerKwh(stats.avgCostPerKwh) }}
-                </div>
-              </template>
-              <template v-else>
-                <div class="text-xl font-bold text-gray-400">-</div>
-                <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('model.metrics_costs') }}</div>
-              </template>
-            </div>
-            </div><!-- end grid -->
-
-            <!-- Ladevorgänge: Mobile als eigene Zeile -->
-            <div class="md:hidden mt-3 pt-3 border-t border-gray-300 dark:border-gray-600 text-center">
-              <div class="text-xl font-bold text-gray-900 dark:text-gray-100">
-                {{ variantHasNoData ? '-' : ((selectedVariant?.realConsumptionTripCount ?? stats.logCount) > 0 ? (selectedVariant?.realConsumptionTripCount ?? stats.logCount).toLocaleString() : '-') }}
-              </div>
-              <div class="text-sm font-semibold text-gray-600 dark:text-gray-300 mt-0.5">{{ t('model.metrics_sessions') }}</div>
-            </div>
-          </div><!-- end stats wrapper -->
-
-          <!-- Kostenrechner: persönliche Ladekosten mit eigenem Stromtarif -->
-          <div v-if="displayConsumption" class="mt-6 pt-5 border-t border-gray-100 dark:border-gray-700">
-            <!-- Intro: macht klar, dass man hier seinen eigenen Tarif einstellt -->
-            <div class="text-center mb-4">
-              <p class="text-lg font-bold text-gray-800 dark:text-gray-200 flex items-center justify-center gap-1.5">
-                <BoltIcon class="h-5 w-5 text-green-600 dark:text-green-400" /> {{ t('model.calculator_title') }}
-              </p>
-              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ t('model.calculator_hint') }}</p>
-            </div>
-            <!-- Live-Ergebnis -->
-            <div class="flex items-baseline justify-center gap-2 mb-2 flex-wrap">
-              <span class="text-base font-semibold text-gray-700 dark:text-gray-200">{{ formatCostPerKwh(pricePerKwh) }}</span>
-              <span class="text-gray-300 dark:text-gray-600">→</span>
-              <span class="text-2xl font-extrabold text-green-700 dark:text-green-400">{{ formatCostPerDistance(pricePerKwh * displayConsumption) }}</span>
-            </div>
-            <!-- Slider -->
-            <div class="flex items-center gap-3">
-              <span class="hidden sm:inline text-xs font-medium text-gray-500 dark:text-gray-400 shrink-0">{{ formatCostPerKwh(0.10) }}</span>
-              <input type="range" min="0.10" max="1.00" step="0.01" v-model.number="pricePerKwh"
-                     :aria-label="t('model.calculator_title')"
-                     :style="{ '--pct': sliderFillPct + '%' }"
-                     class="tariff-slider flex-1 cursor-pointer" />
-              <span class="hidden sm:inline text-xs font-medium text-gray-500 dark:text-gray-400 shrink-0">{{ formatCostPerKwh(1.00) }}</span>
-            </div>
-          </div>
           <!-- Inline-CTA: Registrierung nach allen Argumenten, direkt unter dem Tarif-Slider -->
           <a v-if="displayConsumption && !authStore.isAuthenticated()" :href="registerPath"
              class="block rounded-xl border-2 border-gray-800 dark:border-gray-200 bg-[#14342a] text-white px-5 py-4 mt-6 hover:bg-[#16392d] transition-colors">
@@ -366,41 +293,41 @@
           <div v-if="showSeasonalBreakdown" class="px-4 md:px-6 py-5">
             <div class="flex items-center justify-center gap-2 mb-4 flex-wrap">
               <ChartBarIcon class="h-5 w-5 text-green-600 dark:text-green-400" />
-              <h2 class="text-base font-bold text-gray-800 dark:text-gray-200">{{ t('model.seasonal_title_range') }}</h2>
+              <h2 class="t-title text-gray-800 dark:text-gray-200">{{ t('model.seasonal_title_range') }}</h2>
               <span class="text-sm text-gray-500 dark:text-gray-400 font-medium">· {{ selectedVariant!.displayLabel || selectedVariant!.variantName || (selectedVariant!.batteryCapacityKwh + ' kWh') }}</span>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <!-- Sommer: Reichweite primär, Verbrauch sekundär -->
               <div class="border-2 border-gray-800 dark:border-gray-200 rounded-xl bg-amber-50 dark:bg-amber-900/10 p-4 text-center">
-                <div class="flex items-center justify-center gap-1.5 text-xs font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 mb-1">
+                <div class="flex items-center justify-center gap-1.5 t-eyebrow text-amber-600 dark:text-amber-400 mb-1">
                   <SunIcon class="h-4 w-4" /> {{ t('model.seasonal_summer') }}
                 </div>
-                <div v-if="seasonalSummerRangeKm" class="text-2xl font-extrabold text-gray-900 dark:text-gray-100 tabular-nums leading-none">~ {{ formatDistance(seasonalSummerRangeKm) }}</div>
-                <div v-else class="text-2xl font-extrabold text-gray-400 leading-none">-</div>
+                <div v-if="seasonalSummerRangeKm" class="t-value-lg text-gray-900 dark:text-gray-100 tabular-nums leading-none">~ {{ formatDistance(seasonalSummerRangeKm) }}</div>
+                <div v-else class="t-value-lg text-gray-400 leading-none">-</div>
                 <div class="text-sm font-semibold text-gray-600 dark:text-gray-300 mt-2">{{ formatConsumption(selectedVariant!.seasonalDistribution!.summerConsumptionKwhPer100km) }}</div>
                 <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ selectedVariant!.seasonalDistribution!.summerLogCount }} {{ t('model.seasonal_trips') }}</div>
               </div>
 
               <!-- Winter: Reichweite primär, Verbrauch sekundär -->
               <div class="border-2 border-gray-800 dark:border-gray-200 rounded-xl bg-blue-50 dark:bg-blue-900/10 p-4 text-center">
-                <div class="flex items-center justify-center gap-1.5 text-xs font-bold uppercase tracking-wide text-blue-600 dark:text-blue-400 mb-1">
+                <div class="flex items-center justify-center gap-1.5 t-eyebrow text-blue-600 dark:text-blue-400 mb-1">
                   <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                     <line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/>
                     <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/><line x1="19.07" y1="4.93" x2="4.93" y2="19.07"/>
                     <circle cx="12" cy="12" r="2" fill="currentColor"/>
                   </svg> {{ t('model.seasonal_winter') }}
                 </div>
-                <div v-if="seasonalWinterRangeKm" class="text-2xl font-extrabold text-gray-900 dark:text-gray-100 tabular-nums leading-none">~ {{ formatDistance(seasonalWinterRangeKm) }}</div>
-                <div v-else class="text-2xl font-extrabold text-gray-400 leading-none">-</div>
+                <div v-if="seasonalWinterRangeKm" class="t-value-lg text-gray-900 dark:text-gray-100 tabular-nums leading-none">~ {{ formatDistance(seasonalWinterRangeKm) }}</div>
+                <div v-else class="t-value-lg text-gray-400 leading-none">-</div>
                 <div class="text-sm font-semibold text-gray-600 dark:text-gray-300 mt-2">{{ formatConsumption(selectedVariant!.seasonalDistribution!.winterConsumptionKwhPer100km) }}</div>
                 <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ selectedVariant!.seasonalDistribution!.winterLogCount }} {{ t('model.seasonal_trips') }}</div>
               </div>
 
               <!-- Winter-Aufschlag: Reichweitenverlust primär (die Pointe) -->
               <div class="border-2 border-gray-800 dark:border-gray-200 rounded-xl bg-gray-50 dark:bg-gray-800/40 p-4 text-center flex flex-col justify-center">
-                <div class="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">{{ t('model.seasonal_winter_penalty') }}</div>
-                <div v-if="seasonalRangeLossKm" class="text-3xl font-extrabold text-red-600 dark:text-red-400 tabular-nums leading-none">- {{ formatDistance(seasonalRangeLossKm) }}</div>
+                <div class="t-eyebrow text-gray-500 dark:text-gray-400 mb-1">{{ t('model.seasonal_winter_penalty') }}</div>
+                <div v-if="seasonalRangeLossKm" class="t-value-xl text-red-600 dark:text-red-400 tabular-nums leading-none">- {{ formatDistance(seasonalRangeLossKm) }}</div>
                 <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('model.seasonal_less_range') }}</div>
                 <div v-if="winterExtraPercent != null" class="text-base font-bold text-gray-700 dark:text-gray-300 mt-2">+{{ winterExtraPercent }} % {{ t('model.seasonal_more_consumption') }}</div>
               </div>
@@ -426,11 +353,11 @@
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <!-- WLTP-Card -->
                 <div class="border-2 border-gray-800 dark:border-gray-200 rounded-xl bg-gray-50 dark:bg-gray-800/40 p-4 text-center">
-                  <div class="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3">{{ t('model.compare_manufacturer') }}</div>
+                  <div class="t-eyebrow text-gray-500 dark:text-gray-400 mb-3">{{ t('model.compare_manufacturer') }}</div>
                   <div class="space-y-3">
                     <div>
                       <div class="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-0.5">{{ ratingLabel === 'EPA' ? t('model.epa_range_label') : t('model.wltp_table_range') }}</div>
-                      <div class="text-lg font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap">
+                      <div class="t-value text-gray-900 dark:text-gray-100 whitespace-nowrap">
                         <template v-if="selectedVariant.officialRangeMinKm">{{ formatDistance(selectedVariant.officialRangeMinKm, { showUnit: false }) }}&thinsp;-&thinsp;{{ formatDistance(selectedVariant.officialRangeKm) }}</template>
                         <template v-else>{{ formatDistance(selectedVariant.officialRangeKm) }}</template>
                       </div>
@@ -450,11 +377,11 @@
 
                 <!-- Community-Card (grün, der USP) -->
                 <div class="border-2 border-gray-800 dark:border-gray-200 rounded-xl bg-green-50 dark:bg-green-900/20 p-4 text-center">
-                  <div class="text-xs font-bold uppercase tracking-wide text-green-700 dark:text-green-400 mb-3">Community · {{ t('model.compare_real') }}</div>
+                  <div class="t-eyebrow text-green-700 dark:text-green-400 mb-3">Community · {{ t('model.compare_real') }}</div>
                   <div class="space-y-3">
                     <div>
                       <div class="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-0.5">{{ ratingLabel === 'EPA' ? t('model.epa_range_label') : t('model.wltp_table_range') }}</div>
-                      <div class="text-lg font-bold text-gray-900 dark:text-gray-100">
+                      <div class="t-value text-gray-900 dark:text-gray-100">
                         <div v-if="selectedVariant?.seasonalDistribution?.summerConsumptionKwhPer100km || selectedVariant?.seasonalDistribution?.winterConsumptionKwhPer100km" class="flex items-center justify-center gap-1.5 flex-wrap">
                           <span class="flex items-center gap-1 text-amber-600 dark:text-amber-400"><SunIcon class="h-4 w-4" /><span>{{ selectedVariant?.seasonalDistribution?.summerConsumptionKwhPer100km ? formatDistance(Math.round(selectedVariant.batteryCapacityKwh / selectedVariant.seasonalDistribution.summerConsumptionKwhPer100km * 10) * 10) : '-' }}</span></span>
                           <span class="text-gray-300 dark:text-gray-600">/</span>
@@ -507,7 +434,7 @@
         <div class="bg-gradient-to-br from-green-600 to-green-700 border-y-2 md:border-2 border-gray-800 dark:border-gray-200 md:rounded-xl md:shadow-[5px_5px_0_0_#1f2937] dark:md:shadow-[5px_5px_0_0_#1f2937] p-6 text-white">
           <div class="flex items-center gap-2 mb-2">
             <ArrowTrendingUpIcon class="h-6 w-6" />
-            <h2 class="text-xl font-bold">{{ t('model.cta_title') }}</h2>
+            <h2 class="t-title">{{ t('model.cta_title') }}</h2>
           </div>
           <p class="text-green-100 mb-4">{{ t('model.cta_desc') }}</p>
           <div class="flex flex-wrap gap-3">
@@ -522,7 +449,7 @@
 
         <!-- SEO Text -->
         <div class="bg-white dark:bg-gray-800 md:rounded-xl md:border-x-2 md:shadow-[5px_5px_0_0_#15803d] dark:md:shadow-[5px_5px_0_0_#22c55e] border-y-2 border-gray-800 dark:border-gray-200 p-6 md:mt-6">
-          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+          <h2 class="t-title text-gray-900 dark:text-gray-100 mb-4">
             {{ t('model.seo_section_title', { model: stats.modelDisplayName }) }}
           </h2>
           <div class="space-y-4 text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
@@ -581,7 +508,7 @@
 
         <!-- FAQ -->
         <div v-if="faqItems.length > 0" class="bg-white dark:bg-gray-800 md:rounded-xl md:border-x-2 md:shadow-[5px_5px_0_0_#15803d] dark:md:shadow-[5px_5px_0_0_#22c55e] border-y-2 border-gray-800 dark:border-gray-200 p-6 mt-6">
-          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+          <h2 class="t-title text-gray-900 dark:text-gray-100 mb-4">
             {{ t('model.faq_title', { model: stats.modelDisplayName }) }}
           </h2>
           <div class="space-y-3">
@@ -606,7 +533,7 @@
     <!-- Related models -->
     <div class="max-w-4xl mx-auto md:px-4 mt-8">
       <div class="bg-white dark:bg-gray-800 md:rounded-xl md:border-x-2 md:shadow-[5px_5px_0_0_#15803d] dark:md:shadow-[5px_5px_0_0_#22c55e] border-y-2 border-gray-800 dark:border-gray-200 p-6">
-        <h2 class="text-base font-bold text-gray-900 dark:text-gray-100 mb-3">{{ t('model.related_title') }}</h2>
+        <h2 class="t-title text-gray-900 dark:text-gray-100 mb-3">{{ t('model.related_title') }}</h2>
         <div class="flex flex-wrap gap-2 text-sm">
           <a :href="`${modelsBaseUrl}/Tesla/Model_3`" class="text-green-600 hover:underline">Tesla Model 3</a>
           <span class="text-gray-300">·</span>
@@ -1191,6 +1118,18 @@ function goBackToLpV2() {
 </script>
 
 <style scoped>
+/* ── Typo-Skala der Modellseite ──────────────────────────────────────────
+   Nur Größe/Gewicht/Tracking/Leading - Farbe bleibt per Tailwind-Utility.
+   Ersetzt die zuvor 11 ad-hoc Größen durch ein konsistentes Set.        */
+.t-eyebrow  { font-size: .6875rem; line-height: 1rem;    font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.t-block    { font-size: .875rem;  line-height: 1.25rem;  font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.t-title    { font-size: 1.125rem; line-height: 1.55rem; font-weight: 700; }
+.t-value    { font-size: 1.25rem;  line-height: 1.6rem;  font-weight: 700; }
+.t-value-lg { font-size: 1.5rem;   line-height: 1.6rem;  font-weight: 800; }
+.t-value-xl { font-size: 1.875rem; line-height: 1;       font-weight: 800; }
+.t-metric   { font-size: 2.5rem;   line-height: 1;       font-weight: 800; }
+@media (min-width: 640px) { .t-metric { font-size: 3rem; } }
+
 .model-page {
   animation: page-slide-in 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
 }

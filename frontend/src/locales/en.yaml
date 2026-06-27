@@ -402,6 +402,7 @@ model:
   hero_cta_title: "Do you drive a {model} yourself?"
   hero_cta_desc: "Track your real consumption - free, in 2 minutes."
   hero_trust: "Based on {sessions} real charging sessions from the community"
+  hero_block_cost: "Cost"
   details_methodology: "Details & methodology"
   seasonal_winter_penalty: "Winter penalty"
   seasonal_more_consumption: "more energy"
