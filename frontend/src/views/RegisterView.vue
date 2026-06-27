@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import api from '../api/axios';
 import { BoltIcon } from '@heroicons/vue/24/outline';
+import GridRippleBackground from '../components/shared/GridRippleBackground.vue';
 import { analytics } from '../services/analytics';
 import { getStoredUtmParams, clearStoredUtmParams, trackRedditSignup, getStoredReferrer, clearStoredReferrer } from '../utils/reddit-pixel';
 import { isDetectionAmbiguous } from '../composables/useCountryDetection';
@@ -132,9 +133,12 @@ const handleResend = async () => {
 </script>
 
 <template>
-<div>
+<div class="sl-grid isolate min-h-screen bg-white dark:bg-gray-950 overflow-x-clip">
+  <!-- Maus-reaktives Gitter wie auf der Startseite -->
+  <GridRippleBackground />
+
   <div class="flex items-center justify-center min-h-screen px-4 py-12">
-    <div class="w-full max-w-md p-8 bg-white dark:bg-gray-800 rounded-sm shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)]">
+    <div class="w-full max-w-md p-8 bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 rounded-xl shadow-[5px_5px_0_0_#15803d] dark:shadow-[5px_5px_0_0_#22c55e]">
 
       <!-- Pending Verification Screen -->
       <div v-if="pendingEmail" class="text-center">
@@ -216,7 +220,7 @@ const handleResend = async () => {
             </div>
           </div>
           <div v-if="error" class="text-sm font-medium text-red-600 bg-red-50 p-3 rounded-sm">{{ error }}</div>
-          <button type="submit" v-haptic class="btn-3d w-full px-4 py-3 font-semibold text-white bg-green-600 rounded-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition">{{ t('auth.register.submit') }}</button>
+          <button type="submit" v-haptic class="btn-3d cta-shadow w-full px-4 py-3 font-semibold text-white bg-green-600 border-2 border-gray-900 dark:border-gray-100 rounded-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition">{{ t('auth.register.submit') }}</button>
         </form>
 
         <!-- Google SSO -->
