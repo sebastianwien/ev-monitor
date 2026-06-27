@@ -117,13 +117,12 @@
             </template>
           </div>
 
-          <!-- Trust-Strip: Beweis prominent statt geflüstert -->
-          <div v-if="displayConsumption" class="flex items-center justify-center gap-2 text-sm text-gray-700 dark:text-gray-300 mb-4 text-center">
-            <span class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-600 text-white border-2 border-gray-800 dark:border-gray-200">
-              <CheckBadgeIcon class="h-4 w-4" />
-            </span>
-            <span>{{ t('model.hero_trust', { sessions: ((selectedVariant?.realConsumptionTripCount ?? stats.logCount) || 0).toLocaleString() }) }}</span>
-          </div>
+          <!-- Trust-Strip: Icon inline im Text, damit es auf Mobile sauber umbricht -->
+          <p v-if="displayConsumption" class="text-sm text-gray-700 dark:text-gray-300 mb-4 text-center max-w-md mx-auto">
+            <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-green-600 text-white border-2 border-gray-800 dark:border-gray-200 align-middle mr-1.5">
+              <CheckBadgeIcon class="h-3 w-3" />
+            </span>{{ t('model.hero_trust', { sessions: ((selectedVariant?.realConsumptionTripCount ?? stats.logCount) || 0).toLocaleString() }) }}
+          </p>
 
           <!-- No data for selected variant -->
           <div v-if="variantHasNoData" class="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-sm border border-gray-200 dark:border-gray-600 text-center">
@@ -266,12 +265,12 @@
             </div>
             <!-- Slider -->
             <div class="flex items-center gap-3">
-              <span class="text-xs font-medium text-gray-500 dark:text-gray-400 shrink-0">{{ formatCostPerKwh(0.10) }}</span>
+              <span class="hidden sm:inline text-xs font-medium text-gray-500 dark:text-gray-400 shrink-0">{{ formatCostPerKwh(0.10) }}</span>
               <input type="range" min="0.10" max="1.00" step="0.01" v-model.number="pricePerKwh"
                      :aria-label="t('model.calculator_title')"
                      :style="{ '--pct': sliderFillPct + '%' }"
                      class="tariff-slider flex-1 cursor-pointer" />
-              <span class="text-xs font-medium text-gray-500 dark:text-gray-400 shrink-0">{{ formatCostPerKwh(1.00) }}</span>
+              <span class="hidden sm:inline text-xs font-medium text-gray-500 dark:text-gray-400 shrink-0">{{ formatCostPerKwh(1.00) }}</span>
             </div>
           </div>
           <!-- Inline-CTA: Registrierung nach allen Argumenten, direkt unter dem Tarif-Slider -->
@@ -289,8 +288,8 @@
           </a>
         </div><!-- end Hero -->
 
-        <!-- Community methodology note -->
-        <div class="px-4 md:px-0 py-3 border-t border-gray-100 dark:border-gray-700 md:border-0 text-center">
+        <!-- Community methodology note (Desktop; auf Mobile steckt sie im Details-Akkordeon) -->
+        <div class="hidden md:block px-4 md:px-0 py-3 border-t border-gray-100 dark:border-gray-700 md:border-0 text-center">
           <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('model.community_methodology_note') }}</p>
         </div>
         <!-- Cost disclaimer for non-EUR countries -->
@@ -492,6 +491,8 @@
             <div class="px-6 py-4 space-y-2 text-center">
               <p class="text-sm text-gray-400 dark:text-gray-400">{{ ratingLabel === 'EPA' ? t('model.epa_note') : t('model.wltp_note') }}</p>
               <p class="text-sm text-gray-400 dark:text-gray-400">{{ ratingLabel === 'EPA' ? t('model.epa_measurement_note') : t('model.wltp_measurement_note') }}</p>
+              <!-- Methodik-Absatz nur auf Mobile hier (Desktop steht er unter der Hero-Karte) -->
+              <p class="md:hidden text-sm text-gray-400 dark:text-gray-400">{{ t('model.community_methodology_note') }}</p>
             </div>
           </details><!-- end wltp -->
 
