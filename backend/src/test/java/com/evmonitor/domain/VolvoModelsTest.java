@@ -28,7 +28,9 @@ class VolvoModelsTest {
                 CarBrand.CarModel.EX_40,
                 CarBrand.CarModel.EC_40,
                 CarBrand.CarModel.EX_90,
-                CarBrand.CarModel.ES_90)),
+                CarBrand.CarModel.ES_90,
+                CarBrand.CarModel.XC_40_RECHARGE,
+                CarBrand.CarModel.C_40_RECHARGE)),
                 "Volvo line-up is incomplete: " + volvos);
     }
 
@@ -38,6 +40,8 @@ class VolvoModelsTest {
         assertEquals(List.of(69.0), caps(CarBrand.CarModel.EX_30_CROSS_COUNTRY));
         assertEquals(List.of(70.0, 82.0), caps(CarBrand.CarModel.EX_40));
         assertEquals(List.of(70.0, 82.0), caps(CarBrand.CarModel.EC_40));
+        assertEquals(List.of(69.0, 78.0, 82.0), caps(CarBrand.CarModel.XC_40_RECHARGE));
+        assertEquals(List.of(69.0, 78.0, 82.0), caps(CarBrand.CarModel.C_40_RECHARGE));
         assertEquals(List.of(104.0, 111.0), caps(CarBrand.CarModel.EX_90));
         assertEquals(List.of(92.0, 106.0), caps(CarBrand.CarModel.ES_90));
     }
