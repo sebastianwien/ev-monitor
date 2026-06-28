@@ -208,12 +208,7 @@
       <!-- Models Grid -->
       <div v-if="filteredModels.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <!-- Real community models -->
-        <template v-for="(model, index) in filteredModels" :key="`${model.brandDisplayName}/${model.modelUrlSlug}`">
-        <!-- Affiliate Banner: nach 4. Card (Mobile/2-Spalten), nach 6. Card (3-Spalten) -->
-        <div v-if="(index === 4 || index === 6) && !isAuthenticated"
-             :class="index === 4 ? 'col-span-full lg:hidden' : 'col-span-full hidden lg:block'">
-          <AffiliateBanner />
-        </div>
+        <template v-for="model in filteredModels" :key="`${model.brandDisplayName}/${model.modelUrlSlug}`">
         <div
           class="model-card flex flex-col bg-white dark:bg-gray-800 rounded-sm border p-4 transition-all shadow-[0_10px_0_0_rgb(0_0_0/0.13)] dark:shadow-none hover:-translate-y-1 hover:shadow-[0_12px_0_0_rgb(0_0_0/0.17)] dark:hover:shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:hover:shadow-[4px_4px_0_rgba(255,255,255,0.30)] hover:z-10 active:translate-y-0 active:shadow-[0_10px_0_0_rgb(0_0_0/0.13)] relative"
           :class="isSelectedForCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`)
@@ -415,7 +410,6 @@ import { useAuthStore } from '../stores/auth'
 import { getTopModels, getPlatformStats, getCategories, type TopModelPreview, type PlatformStats, type VehicleCategoryItem } from '../api/publicModelService'
 import { TruckIcon, ChartBarIcon, ArrowTrendingUpIcon, ArrowsRightLeftIcon, XMarkIcon, CheckIcon, ArrowRightIcon, InformationCircleIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/outline'
 import PublicNav from '../components/shared/PublicNav.vue'
-import AffiliateBanner from '../components/shared/AffiliateBanner.vue'
 import ThgBanner from '../components/shared/ThgBanner.vue'
 import DemoModelsModal from '../components/demo/DemoModelsModal.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'

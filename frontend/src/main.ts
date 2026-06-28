@@ -8,6 +8,13 @@ import { i18n, getSavedLocale, loadLocaleMessages } from './i18n'
 import { Capacitor } from '@capacitor/core'
 import { CapacitorUpdater } from '@capgo/capacitor-updater'
 
+// Markiert die native App (iOS/Android) am <html>, damit CSS nativ-spezifisch
+// straffen kann (z.B. kompaktere Navbar), ohne den mobilen Browser/PWA zu aendern.
+// Frueh gesetzt - vor dem Mount - um Layout-Flackern zu vermeiden.
+if (Capacitor.isNativePlatform()) {
+  document.documentElement.classList.add('is-native')
+}
+
 const app = createApp(App)
 
 // Global haptic feedback for all buttons (vibration on Android, soft click sound on iOS)

@@ -27,14 +27,14 @@
 
         <!-- Breadcrumb: als Chip geerdet, damit er nicht im Gitter-Hintergrund untergeht -->
         <nav aria-label="Breadcrumb" class="px-4 md:px-0 mb-3">
-          <ol class="inline-flex flex-wrap items-center gap-1.5 text-sm bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-full px-3.5 py-1.5 shadow-sm">
-            <li><a href="/" class="font-medium text-gray-600 dark:text-gray-300 hover:text-green-700 dark:hover:text-green-400 transition-colors">{{ t('model.breadcrumb_home') }}</a></li>
+          <ol class="flex flex-nowrap items-center gap-1.5 text-sm whitespace-nowrap overflow-x-auto max-w-full [scrollbar-width:none] [&::-webkit-scrollbar]:hidden bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-full px-3.5 py-1.5 shadow-sm">
+            <li class="shrink-0"><a href="/" class="flex items-center gap-1 font-medium text-gray-600 dark:text-gray-300 hover:text-green-700 dark:hover:text-green-400 transition-colors"><HomeIcon class="h-4 w-4 shrink-0" aria-hidden="true" />{{ t('model.breadcrumb_home') }}</a></li>
             <ChevronRightIcon class="h-3.5 w-3.5 text-gray-300 dark:text-gray-600 shrink-0" aria-hidden="true" />
-            <li><a :href="modelsBaseUrl" class="font-medium text-gray-600 dark:text-gray-300 hover:text-green-700 dark:hover:text-green-400 transition-colors">{{ t('model.breadcrumb_models') }}</a></li>
+            <li class="shrink-0"><a :href="modelsBaseUrl" class="font-medium text-gray-600 dark:text-gray-300 hover:text-green-700 dark:hover:text-green-400 transition-colors">{{ t('model.breadcrumb_models') }}</a></li>
             <ChevronRightIcon class="h-3.5 w-3.5 text-gray-300 dark:text-gray-600 shrink-0" aria-hidden="true" />
-            <li><a :href="`${modelsBaseUrl}/${canonicalBrand}`" class="font-medium text-gray-600 dark:text-gray-300 hover:text-green-700 dark:hover:text-green-400 transition-colors">{{ stats.brandDisplayName }}</a></li>
+            <li class="shrink-0"><a :href="`${modelsBaseUrl}/${canonicalBrand}`" class="font-medium text-gray-600 dark:text-gray-300 hover:text-green-700 dark:hover:text-green-400 transition-colors">{{ stats.brandDisplayName }}</a></li>
             <ChevronRightIcon class="h-3.5 w-3.5 text-gray-300 dark:text-gray-600 shrink-0" aria-hidden="true" />
-            <li aria-current="page" class="font-bold text-gray-900 dark:text-gray-100">{{ stats.modelDisplayName.replace(stats.brandDisplayName + ' ', '') }}</li>
+            <li aria-current="page" class="shrink-0 font-bold text-gray-900 dark:text-gray-100">{{ stats.modelDisplayName.replace(stats.brandDisplayName + ' ', '') }}</li>
           </ol>
         </nav>
 
@@ -139,6 +139,7 @@
             <div class="flex items-center gap-3">
               <span class="hidden sm:inline text-xs font-medium text-gray-500 dark:text-gray-400 shrink-0">{{ formatCostPerKwh(0.10) }}</span>
               <input type="range" min="0.10" max="1.00" step="0.01" v-model.number="pricePerKwh"
+                     @input="onTariffInput"
                      :aria-label="t('model.calculator_title')"
                      :style="{ '--pct': sliderFillPct + '%' }"
                      class="tariff-slider flex-1 cursor-pointer" />
@@ -224,11 +225,6 @@
           <p class="text-xs text-gray-400 dark:text-gray-500 italic">
             {{ t('model.cost_disclaimer', { rate: EUR_EXCHANGE_RATES[currency], currency: currencySymbol, date: RATES_LAST_UPDATED }) }}
           </p>
-        </div>
-
-        <!-- Affiliate Banner -->
-        <div v-if="!authStore.isAuthenticated()" class="my-6 md:my-8">
-          <AffiliateBanner />
         </div>
 
         <!-- Baujahr-Verteilung -->
@@ -595,14 +591,14 @@ import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/auth'
 import { useTickerState } from '../composables/useTickerState'
 import { useCountryStore } from '../stores/country'
+import { useHaptic } from '../composables/useHaptic'
 import { getModelStats, type PublicModelStats, type SeasonalDistribution } from '../api/publicModelService'
 import {
   ArrowTrendingUpIcon, ClipboardDocumentListIcon, Battery0Icon,
-  SunIcon, ChartBarIcon, ExclamationTriangleIcon, BoltIcon, CheckBadgeIcon, ChevronRightIcon
+  SunIcon, ChartBarIcon, ExclamationTriangleIcon, BoltIcon, CheckBadgeIcon, ChevronRightIcon, HomeIcon
 } from '@heroicons/vue/24/outline'
 import PublicNav from '../components/shared/PublicNav.vue'
 import GridRippleBackground from '../components/shared/GridRippleBackground.vue'
-import AffiliateBanner from '../components/shared/AffiliateBanner.vue'
 import RegionChip from '../components/shared/RegionChip.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useMarketRoute, getMarketBasePath, OG_LOCALE, MARKET_HTML_LANG } from '../composables/useMarketRoute'
@@ -644,6 +640,18 @@ const selectedVariantIndex = ref(0)
 const pricePerKwh = ref(countryStore.country === 'US' ? 0.13 : 0.35)
 // Füllstand des Tarif-Sliders (0.10-1.00 €/kWh) für den grünen Fortschrittsbalken
 const sliderFillPct = computed(() => Math.round((pricePerKwh.value - 0.10) / 0.90 * 100))
+
+// Haptische "Ticks" beim Ziehen des Tarif-Sliders (nur nativ spürbar). Zeit-gedrosselt,
+// damit der Vibrationsmotor bei schnellem Ziehen nicht überlastet wird.
+const { haptic } = useHaptic()
+let lastSliderTick = 0
+function onTariffInput() {
+  const now = Date.now()
+  if (now - lastSliderTick >= 30) {
+    haptic(5)
+    lastSliderTick = now
+  }
+}
 
 const isAuthenticated = computed(() => authStore.isAuthenticated())
 const { tickerHasItems, tickerCollapsed } = useTickerState()
@@ -1138,18 +1146,30 @@ function goBackToLpV2() {
 .tariff-slider {
   -webkit-appearance: none;
   appearance: none;
+  /* Großer vertikaler Touch-Bereich: erleichtert das Greifen auf Mobile spürbar.
+     Die sichtbar dünne Spur wird über die Track-Pseudoelemente gezeichnet. */
+  height: 44px;
+  background: transparent;
+  /* Ziehen darf nicht die Seite scrollen - Hauptgrund, warum der Slider vorher
+     "schwer bedienbar" war (vertikale Geste hat den Drag abgefangen). */
+  touch-action: none;
+  cursor: pointer;
+}
+/* WebKit/Blink (Android WebView, Chrome, Safari) */
+.tariff-slider::-webkit-slider-runnable-track {
   height: 10px;
   border-radius: 9999px;
   background: linear-gradient(to right, #16a34a var(--pct, 0%), #e5e7eb var(--pct, 0%));
 }
-.dark .tariff-slider {
+.dark .tariff-slider::-webkit-slider-runnable-track {
   background: linear-gradient(to right, #22c55e var(--pct, 0%), #4b5563 var(--pct, 0%));
 }
 .tariff-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 22px;
-  height: 22px;
+  margin-top: -8px; /* 26px Thumb auf 10px Spur zentrieren */
+  width: 26px;
+  height: 26px;
   border-radius: 9999px;
   background: #16a34a;
   border: 3px solid #fff;
@@ -1160,9 +1180,26 @@ function goBackToLpV2() {
   background: #22c55e;
   border-color: #1f2937;
 }
+/* Firefox */
+.tariff-slider::-moz-range-track {
+  height: 10px;
+  border-radius: 9999px;
+  background: #e5e7eb;
+}
+.dark .tariff-slider::-moz-range-track {
+  background: #4b5563;
+}
+.tariff-slider::-moz-range-progress {
+  height: 10px;
+  border-radius: 9999px;
+  background: #16a34a;
+}
+.dark .tariff-slider::-moz-range-progress {
+  background: #22c55e;
+}
 .tariff-slider::-moz-range-thumb {
-  width: 22px;
-  height: 22px;
+  width: 26px;
+  height: 26px;
   border-radius: 9999px;
   background: #16a34a;
   border: 3px solid #fff;

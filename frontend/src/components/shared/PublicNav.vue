@@ -1,9 +1,9 @@
 <template>
   <div v-if="!authStore.isAuthenticated()" class="sticky top-0 z-50">
-    <div class="h-1 bg-gradient-to-r from-green-400 via-emerald-500 to-green-600"></div>
+    <div class="public-nav-accent h-1 bg-gradient-to-r from-green-400 via-emerald-500 to-green-600"></div>
     <nav class="pt-[env(safe-area-inset-top)] bg-green-50/95 dark:bg-green-950/80 backdrop-blur-md border-b-2 border-gray-900 dark:border-gray-800 shadow-sm">
     <div class="max-w-7xl mx-auto px-4 sm:px-8">
-      <div class="flex justify-between items-center h-16">
+      <div class="public-nav-row flex justify-between items-center h-16">
         <a href="/" class="flex items-center gap-2 shrink-0 whitespace-nowrap">
           <BoltLogo class="h-7 w-7" />
           <span class="text-2xl font-bold text-gray-900 dark:text-gray-100">EV Monitor</span>
@@ -47,3 +47,17 @@ const isEn = computed(() => locale.value === 'en')
 const registerPath = computed(() => isEn.value ? '/en/register' : '/register')
 const loginPath = computed(() => isEn.value ? '/en/login' : '/login')
 </script>
+
+<style scoped>
+/* Nur in der nativen App (iOS/Android) die Navbar straffen.
+   Auf Mobile-Browser/PWA bleibt alles wie gehabt. Der Statusbar-Inset
+   (env(safe-area-inset-top)) ist davon unberuehrt - der muss nativ reserviert bleiben. */
+:global(html.is-native) .public-nav-row {
+  height: 3rem; /* 48px statt 64px */
+}
+/* Die Akzent-Gradientlinie liegt nativ unter der (ueberlagernden) Statusbar und ist
+   damit ohnehin unsichtbar - weglassen spart Hoehe und vermeidet toten Raum. */
+:global(html.is-native) .public-nav-accent {
+  display: none;
+}
+</style>
