@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">EV Monitor</string>
+    <string name="title_activity_main">EV Monitor</string>
+    <string name="package_name">net.ev_monitor.app</string>
+    <string name="custom_url_scheme">net.ev_monitor.app</string>
+</resources>
