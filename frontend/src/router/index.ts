@@ -5,6 +5,7 @@ import { setLocale, isValidLocale } from '../i18n';
 import type { CountryCode } from '../config/unitSystems';
 import { isValidCountryCode } from '../config/unitSystems';
 import { purchasesAvailable } from '../utils/iapPolicy';
+import { isCrawler } from '../utils/isCrawler';
 
 declare module 'vue-router' {
     interface RouteMeta {
@@ -49,6 +50,18 @@ import SupporterView from '../views/SupporterView.vue';
 import UpgradeSuccessView from '../views/UpgradeSuccessView.vue';
 import UpgradeCancelView from '../views/UpgradeCancelView.vue';
 
+// First-time visitors without a saved locale preference whose browser is not
+// German are sent to the English variant for UX. Crawlers/prerender are NEVER
+// redirected - they must receive the German URL's German content so canonical
+// and hreflang stay correct (see isCrawler). Returns the English path to
+// redirect to, or undefined to stay on the German route.
+function redirectNonGermanVisitor(enPath: string): string | undefined {
+    if (isCrawler()) return undefined;
+    if (localStorage.getItem('ev-locale')) return undefined;
+    const browserLang = (navigator.language ?? '').toLowerCase();
+    return browserLang.startsWith('de') ? undefined : enPath;
+}
+
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
     scrollBehavior: () => ({ top: 0 }),
@@ -72,14 +85,7 @@ const router = createRouter({
                 if (authStore.isAuthenticated()) {
                     return '/dashboard';
                 }
-                // First visit without saved locale preference → detect browser language
-                // Default to English for all non-German browsers (NO, SE, DK, NL, BE, GB, etc.)
-                if (!localStorage.getItem('ev-locale')) {
-                    const browserLang = navigator.language ?? '';
-                    if (!browserLang.toLowerCase().startsWith('de')) {
-                        return '/en';
-                    }
-                }
+                return redirectNonGermanVisitor('/en');
             }
             // public landing page, but redirects to /dashboard if authenticated
         },
@@ -215,14 +221,7 @@ const router = createRouter({
             path: '/modelle',
             name: 'public-models-list',
             component: PublicModelsListView,
-            beforeEnter: () => {
-                if (!localStorage.getItem('ev-locale')) {
-                    const browserLang = navigator.language ?? '';
-                    if (!browserLang.toLowerCase().startsWith('de')) {
-                        return '/en/models';
-                    }
-                }
-            }
+            beforeEnter: () => redirectNonGermanVisitor('/en/models')
             // no auth guard - public page for SEO
         },
         {
@@ -235,27 +234,13 @@ const router = createRouter({
             path: '/modelle/:brand',
             name: 'public-brand',
             component: PublicBrandView,
-            beforeEnter: (to) => {
-                if (!localStorage.getItem('ev-locale')) {
-                    const browserLang = navigator.language ?? '';
-                    if (!browserLang.toLowerCase().startsWith('de')) {
-                        return `/en/models/${to.params.brand}`;
-                    }
-                }
-            }
+            beforeEnter: (to) => redirectNonGermanVisitor(`/en/models/${to.params.brand}`)
         },
         {
             path: '/modelle/:brand/:model',
             name: 'public-model',
             component: PublicModelView,
-            beforeEnter: (to) => {
-                if (!localStorage.getItem('ev-locale')) {
-                    const browserLang = navigator.language ?? '';
-                    if (!browserLang.toLowerCase().startsWith('de')) {
-                        return `/en/models/${to.params.brand}/${to.params.model}`;
-                    }
-                }
-            }
+            beforeEnter: (to) => redirectNonGermanVisitor(`/en/models/${to.params.brand}/${to.params.model}`)
             // no auth guard - public page for SEO
         },
         // EN auth routes
