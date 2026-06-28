@@ -27,6 +27,18 @@ test.describe('Öffentliche Modellseiten (SEO-kritisch)', () => {
     await expect(page.locator('text=404')).not.toBeVisible();
   });
 
+  test('/modelle/Tesla/Model_3 hat Realverbrauch + Reichweite im <title> (CTR-Hebel)', async ({ page }) => {
+    await page.goto('/modelle/Tesla/Model_3');
+    // Title wird via useHead nach dem API-Load gesetzt -> auf den Daten-Zweig warten
+    await expect(page.locator('h1').first()).toBeVisible({ timeout: 10_000 });
+
+    // Realverbrauch (kWh/100km) UND Reichweite-Span (xxx-xxx km) sind der Wettbewerbsvorteil
+    // gegen WLTP-Konkurrenten und muessen beide im SERP-Snippet stehen.
+    await expect
+      .poll(() => page.title(), { timeout: 10_000 })
+      .toMatch(/Tesla Model 3.*kWh\/100km.*\d+(-\d+)? km.*Reichweite/);
+  });
+
   test('Breadcrumb-Navigation von Modell-Detail zurück zu /modelle', async ({ page }) => {
     await page.goto('/modelle/Tesla/Model_3');
 
