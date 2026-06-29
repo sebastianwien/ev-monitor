@@ -309,6 +309,12 @@
                     </router-link>
                 </div>
 
+                <!-- AutoSync / Smartcar erklaert - raeumt Vertrauens-Bedenken (Passwort,
+                     Datenzugriff) vor dem Kauf aus, direkt vor den Trust-Signalen. -->
+                <div v-if="showSmartcarFaq" class="max-w-2xl mx-auto mt-6">
+                    <SmartcarFaq variant="soft" />
+                </div>
+
                 <!-- Trust + Payments -->
                 <div v-if="tier === 'NONE'" class="mt-8 text-center">
                     <p class="text-xs text-gray-400 dark:text-gray-500 mb-3">{{ t('upgrade.tier_trust_hint') }}</p>
@@ -342,6 +348,7 @@ import { useCountryStore } from '../stores/country';
 import { useCarStore } from '../stores/car';
 import { getPricing } from '../config/pricingConfig';
 import { AUTOSYNC_BRANDS } from '../config/smartcarBrands';
+import SmartcarFaq from '../components/SmartcarFaq.vue';
 import { useUpgradeTierState, type SubscriptionTier } from '../composables/useUpgradeTierState';
 
 const { t } = useI18n();
@@ -358,6 +365,13 @@ const hasOnlyNonTeslaCars = computed(() =>
     userCarBrands.value.length > 0
     && !userCarBrands.value.some(b => b?.toUpperCase() === 'TESLA'));
 const showTeslaOnlyFeatures = computed(() => !hasOnlyNonTeslaCars.value);
+
+// Smartcar-FAQ nur fuer User mit Nicht-Tesla-Auto oder noch ganz ohne Auto
+// (Akquise-Modus). Reine Tesla-Fahrer nutzen kein Smartcar - fuer sie waere
+// die Erklaerung irrelevant.
+const showSmartcarFaq = computed(() =>
+    userCarBrands.value.length === 0
+    || userCarBrands.value.some(b => b?.toUpperCase() !== 'TESLA'));
 
 // Feature-Preview-Expand State: nur eines gleichzeitig sichtbar.
 // AVAILABLE_PREVIEWS listet vorhandene PNGs in /public/upgrade-previews/.

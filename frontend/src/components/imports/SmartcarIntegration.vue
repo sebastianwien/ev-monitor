@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { BoltIcon, XCircleIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
+import { BoltIcon, XCircleIcon } from '@heroicons/vue/24/outline'
 import { useCarStore } from '../../stores/car'
 import { purchasesAvailable } from '../../utils/iapPolicy'
 import CarSelectDropdown from '../car/CarSelectDropdown.vue'
+import SmartcarFaq from '../SmartcarFaq.vue'
 import smartcarService, { type SmartcarConnectionStatus } from '../../api/smartcarService'
 import type { Car } from '../../api/carService'
 import { AUTOSYNC_BRANDS } from '../../config/smartcarBrands'
@@ -155,18 +156,7 @@ const stateLabel = (state: string | null) => {
     </div>
 
     <!-- FAQ Accordion -->
-    <details class="group border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] overflow-hidden">
-      <summary class="flex items-center justify-between px-4 py-3 cursor-pointer text-[11px] font-bold uppercase tracking-[0.14em] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 list-none select-none">
-        {{ t('imports.smartcar_how_title') }}
-        <ChevronDownIcon class="h-4 w-4 text-gray-500 transition-transform group-open:rotate-180 shrink-0" />
-      </summary>
-      <div class="px-4 pb-4 pt-3 space-y-4 border-t-2 border-gray-300 dark:border-gray-700">
-        <div v-for="i in 5" :key="i">
-          <p v-if="i > 1" class="text-[11px] font-bold uppercase tracking-wider text-gray-900 dark:text-white">{{ t(`imports.smartcar_how_q${i}`) }}</p>
-          <p class="text-sm text-gray-600 dark:text-gray-400 mt-1 leading-relaxed">{{ t(`imports.smartcar_how_a${i}`) }}</p>
-        </div>
-      </div>
-    </details>
+    <SmartcarFaq />
 
     <!-- Upgrade CTA (in der nativen App ausgeblendet, Guideline 3.1.1) -->
     <div v-if="purchasesAvailable()">
@@ -192,18 +182,7 @@ const stateLabel = (state: string | null) => {
     <template v-else>
       <!-- How it works FAQ. Hidden in embedded (tile) mode - picker shows it at
            the parent level so each tile stays focused on the per-car action. -->
-      <details v-if="!props.embedded" class="group border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] overflow-hidden">
-        <summary class="flex items-center justify-between px-4 py-3 cursor-pointer text-[11px] font-bold uppercase tracking-[0.14em] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 list-none select-none">
-          {{ t('imports.smartcar_how_title') }}
-          <ChevronDownIcon class="h-4 w-4 text-gray-500 transition-transform group-open:rotate-180 shrink-0" />
-        </summary>
-        <div class="px-4 pb-4 pt-3 space-y-4 border-t-2 border-gray-300 dark:border-gray-700">
-          <div v-for="i in 5" :key="i">
-            <p class="text-[11px] font-bold uppercase tracking-wider text-gray-900 dark:text-white">{{ t(`imports.smartcar_how_q${i}`) }}</p>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1 leading-relaxed">{{ t(`imports.smartcar_how_a${i}`) }}</p>
-          </div>
-        </div>
-      </details>
+      <SmartcarFaq v-if="!props.embedded" />
 
       <!-- Error - neo style border-l accent -->
       <div v-if="error" class="border-l-2 border-red-500 bg-red-50 dark:bg-red-950/40 px-4 py-3 rounded-r-sm space-y-1">
