@@ -33,6 +33,7 @@ import LocaleSwitcher from './components/shared/LocaleSwitcher.vue'
 import { useTickerState } from './composables/useTickerState'
 import { usePullToRefresh } from './composables/usePullToRefresh'
 import { useSwipeBack } from './composables/useSwipeBack'
+import { useStatusBarTheme } from './composables/useStatusBarTheme'
 import { useCountryStore } from './stores/country'
 import { subscriptionService } from './api/subscriptionService'
 
@@ -40,6 +41,9 @@ const { haptic } = useHaptic()
 const { t } = useI18n()
 const countryStore = useCountryStore()
 const themeStore = useThemeStore()
+const { isDark } = storeToRefs(themeStore)
+// Native Statusbar-Icons ans Theme koppeln (sonst weisse Icons auf hellem Grund unsichtbar)
+useStatusBarTheme(isDark)
 const { tickerHasItems, tickerCollapsed } = useTickerState()
 
 // Pull-to-Refresh (nur nativ): am Seitenanfang nach unten ziehen => Reload.

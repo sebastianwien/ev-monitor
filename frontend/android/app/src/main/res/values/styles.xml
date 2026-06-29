@@ -13,14 +13,10 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
-        <!-- Dunkle Statusbar-Icons fuer den hellen Navbar-Hintergrund (Light-Mode).
-             Android-Edge-to-Edge zeigt sonst weisse Icons, die auf Hellgruen unsichtbar sind. -->
-        <item name="android:windowLightStatusBar">true</item>
     </style>
 
 
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
         <item name="android:background">@drawable/splash</item>
-        <item name="android:windowLightStatusBar">true</item>
     </style>
 </resources>

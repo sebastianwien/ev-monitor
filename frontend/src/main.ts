@@ -15,6 +15,32 @@ if (Capacitor.isNativePlatform()) {
   document.documentElement.classList.add('is-native')
 }
 
+// Cleanup fuer bestehende native Installs: frueher ausgelieferte Bundles haben
+// einen PWA-Service-Worker registriert, der in der Android-WebView nach einer
+// SPA-Navigation das Layout auf 0x0 kollabieren laesst (Black-Screen). Neuere
+// Bundles registrieren nativ keinen SW mehr (siehe vite.config) - ein bereits
+// registrierter SW verschwindet dadurch aber nicht von allein. Deshalb hier aktiv
+// deregistrieren, Caches leeren und - falls der SW den aktuellen Load noch
+// kontrolliert - einmalig neu laden (danach gibt es keine Registrierung mehr, also
+// keine Reload-Schleife). Im Web bleibt die PWA unangetastet.
+if (Capacitor.isNativePlatform() && 'serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(async (regs) => {
+    if (regs.length === 0) return
+    await Promise.all(regs.map((r) => r.unregister()))
+    if (window.caches) {
+      const keys = await caches.keys()
+      await Promise.all(keys.map((k) => caches.delete(k)))
+    }
+    // Falls der alte SW den aktuellen Load noch kontrolliert: einmalig neu laden,
+    // damit er die Kontrolle abgibt. Session-Guard, weil manche WebViews das
+    // unregister nicht sofort persistieren - sonst Reload-Schleife pro Cold-Start.
+    if (navigator.serviceWorker.controller && !sessionStorage.getItem('sw-cleanup-reloaded')) {
+      sessionStorage.setItem('sw-cleanup-reloaded', '1')
+      location.reload()
+    }
+  }).catch(() => { /* nicht kritisch */ })
+}
+
 const app = createApp(App)
 
 // Global haptic feedback for all buttons (vibration on Android, soft click sound on iOS)

@@ -4,7 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 import VueI18nPlugin from '@intlify/unplugin-vue-i18n/vite'
 import path from 'path'
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
     define: {
         __INTLIFY_JIT_COMPILATION__: true
     },
@@ -74,6 +74,13 @@ export default defineConfig({
             strictMessage: false
         }),
         VitePWA({
+            // Nativer Build (Capacitor, `--mode app`): KEIN Service Worker.
+            // In der Android-WebView (Origin https://localhost) bricht der Workbox-
+            // navigateFallback das Layout (das gesamte <html> kollabiert nach einer
+            // SPA-Navigation auf 0x0 -> Black-Screen, persistent ueber Neustarts).
+            // In der nativen App ist der SW ohnehin nutzlos: Assets sind gebundelt,
+            // Updates liefert Capgo. Im Web-Build bleibt die PWA voll aktiv.
+            disable: mode === 'app',
             registerType: 'autoUpdate',
             includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png', 'pwa-maskable-512.png'],
             workbox: {
@@ -120,4 +127,4 @@ export default defineConfig({
             }
         })
     ]
-})
+}))
