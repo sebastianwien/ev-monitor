@@ -3,6 +3,8 @@ import {
   computeChargingEfficiency,
   computeRealCostHint,
   isNettoOnlyCostLog,
+  costBasisKwh,
+  aggregateGroupCost,
 } from '../useChargingEfficiency'
 
 // Minimal log-shape we operate on - just the fields the function actually reads.
@@ -190,5 +192,77 @@ describe('computeRealCostHint', () => {
     // all 6 sorted: 0.85, 0.90, 0.92, 0.94, 0.95, 0.97 → median (0.92+0.94)/2 = 0.93
     expect(hint!.efficiencyPercent).toBeCloseTo(93.0, 1)
     expect(hint!.sampleSize).toBe(6)
+  })
+})
+
+describe('costBasisKwh', () => {
+  it('prefers brutto (kwhCharged) when measured - matches backend costBasisKwh()', () => {
+    expect(costBasisKwh({ kwhCharged: 40, kwhAtVehicle: 37.5 })).toBe(40)
+  })
+
+  it('falls back to netto (kwhAtVehicle) when no brutto', () => {
+    expect(costBasisKwh({ kwhCharged: null, kwhAtVehicle: 37.5 })).toBe(37.5)
+  })
+
+  it('returns null when neither field is positive', () => {
+    expect(costBasisKwh({ kwhCharged: null, kwhAtVehicle: null })).toBeNull()
+    expect(costBasisKwh({ kwhCharged: 0, kwhAtVehicle: 0 })).toBeNull()
+  })
+})
+
+describe('aggregateGroupCost', () => {
+  it('regression: AT_CHARGER group divides by brutto, not netto (62ct, never 66ct)', () => {
+    // Backend stored cost = brutto x tariff = 40 x 0.62 = 24.80. The header per-kWh must
+    // divide by brutto (40), yielding 0.62 - dividing by netto (37.5) wrongly gave 0.66.
+    const subs = [
+      costLog({ costEur: 24.8, kwhCharged: 40, kwhAtVehicle: 37.5, chargingType: 'AC' }),
+    ]
+    const { totalCostEur, costKwh, costIsNettoOnly } = aggregateGroupCost(subs)
+    expect(totalCostEur).toBeCloseTo(24.8, 4)
+    expect(costKwh).toBeCloseTo(40, 4)
+    expect(totalCostEur! / costKwh).toBeCloseTo(0.62, 4)
+    expect(costIsNettoOnly).toBe(false)
+  })
+
+  it('netto-only group keeps the truthful tariff and flags netto-only', () => {
+    // cost stored as netto x tariff; dividing by the same netto reproduces the tariff.
+    const subs = [
+      costLog({ costEur: 13.83 * 0.62, kwhAtVehicle: 13.83, chargingType: 'AC' }),
+      costLog({ costEur: 10.0 * 0.62, kwhAtVehicle: 10.0, chargingType: 'AC' }),
+    ]
+    const { totalCostEur, costKwh, costIsNettoOnly } = aggregateGroupCost(subs)
+    expect(costKwh).toBeCloseTo(23.83, 4)
+    expect(totalCostEur! / costKwh).toBeCloseTo(0.62, 4)
+    expect(costIsNettoOnly).toBe(true)
+  })
+
+  it('mixed group uses per-log basis and flags netto-only when any sub lacks brutto', () => {
+    const subs = [
+      costLog({ costEur: 20 * 0.62, kwhCharged: 20, kwhAtVehicle: 18.5, chargingType: 'AC' }),
+      costLog({ costEur: 10 * 0.62, kwhAtVehicle: 10, chargingType: 'AC' }), // netto-only
+    ]
+    const { costKwh, costIsNettoOnly } = aggregateGroupCost(subs)
+    expect(costKwh).toBeCloseTo(30, 4) // 20 brutto + 10 netto
+    expect(costIsNettoOnly).toBe(true)
+  })
+
+  it('excludes sub-logs without cost or without any energy basis', () => {
+    const subs = [
+      costLog({ costEur: 24.8, kwhCharged: 40, kwhAtVehicle: 37.5 }),
+      costLog({ costEur: null, kwhCharged: 10 }),          // no cost
+      costLog({ costEur: 5, kwhCharged: null, kwhAtVehicle: null }), // cost but no energy
+    ]
+    const { totalCostEur, costKwh } = aggregateGroupCost(subs)
+    expect(totalCostEur).toBeCloseTo(24.8, 4)
+    expect(costKwh).toBeCloseTo(40, 4)
+  })
+
+  it('returns null cost and zero kWh when no sub carries cost', () => {
+    const { totalCostEur, costKwh, costIsNettoOnly } = aggregateGroupCost([
+      costLog({ kwhCharged: 10 }),
+    ])
+    expect(totalCostEur).toBeNull()
+    expect(costKwh).toBe(0)
+    expect(costIsNettoOnly).toBe(false)
   })
 })

@@ -2029,12 +2029,13 @@ function toggleAllCharges() {
                   </div>
                   <div class="text-gray-400 dark:text-gray-600 text-xs text-center">-</div>
                   <div class="flex justify-end">
-                    <button v-if="item.entry._totalCostEur != null && item.entry._totalKwh"
+                    <button v-if="item.entry._totalCostEur != null && item.entry._costKwh"
                       type="button"
-                      :class="['inline-flex items-center px-2 py-0.5 border text-xs rounded-full font-medium whitespace-nowrap cursor-pointer transition-all duration-75 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400',
+                      :class="['inline-flex items-center px-2 py-0.5 text-xs rounded-full font-medium whitespace-nowrap cursor-pointer transition-all duration-75 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400',
+                               item.entry._costIsNettoOnly ? 'border border-dashed' : 'border',
                                showCostAbsolute
                                  ? 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827]'
-                                 : [(costBadgeClass(item.entry._totalCostEur, item.entry._totalKwh) ?? 'bg-green-50 border-green-200 text-green-700'), 'shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827]'].join(' ')]"
+                                 : [(costBadgeClass(item.entry._totalCostEur, item.entry._costKwh) ?? 'bg-green-50 border-green-200 text-green-700'), 'shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827]'].join(' ')]"
                       @click.stop="showCostAbsolute = !showCostAbsolute">
                       <template v-if="showCostAbsolute">{{ formatCurrency(item.entry._totalCostEur) }}</template>
                       <template v-else>{{ formatCostPerKwh(item.entry._totalCostEur / item.entry._costKwh) }}</template>
@@ -2221,11 +2222,12 @@ function toggleAllCharges() {
                       <span class="text-xs text-gray-500 whitespace-nowrap truncate">{{ item.entry._dateRangeLabel }}</span>
                     </div>
                     <div class="flex items-center gap-1.5 flex-shrink-0">
-                      <span v-if="item.entry._totalCostEur != null && item.entry._totalKwh"
-                        :class="['inline-flex items-center px-2 py-0.5 border text-xs rounded-full font-medium whitespace-nowrap cursor-pointer transition-all duration-75',
+                      <span v-if="item.entry._totalCostEur != null && item.entry._costKwh"
+                        :class="['inline-flex items-center px-2 py-0.5 text-xs rounded-full font-medium whitespace-nowrap cursor-pointer transition-all duration-75',
+                                 item.entry._costIsNettoOnly ? 'border border-dashed' : 'border',
                                  showCostAbsolute
                                    ? 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'
-                                   : [(costBadgeClass(item.entry._totalCostEur, item.entry._totalKwh) ?? 'bg-green-50 border-green-200 text-green-700'), 'shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'].join(' ')]"
+                                   : [(costBadgeClass(item.entry._totalCostEur, item.entry._costKwh) ?? 'bg-green-50 border-green-200 text-green-700'), 'shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'].join(' ')]"
                         @click.stop="showCostAbsolute = !showCostAbsolute"
                         @mousedown.stop>
                         <template v-if="showCostAbsolute">{{ formatCurrency(item.entry._totalCostEur) }}</template>

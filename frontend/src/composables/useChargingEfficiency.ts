@@ -101,6 +101,48 @@ export function isNettoOnlyCostLog(log: CostHintLog | null | undefined): boolean
   return log.chargingType === 'AC' || log.chargingType === 'DC'
 }
 
+/**
+ * Energy basis the stored cost_eur was computed on - mirrors backend EvLog.costBasisKwh():
+ * brutto (kwhCharged) when measured, else netto (kwhAtVehicle). This is the ONLY correct
+ * divisor for a per-kWh price, because cost = thisBasis x tariff. Dividing cost by a
+ * different basis (e.g. netto when cost was billed on brutto) inflates the per-kWh price.
+ * Returns null when neither field is positive.
+ */
+export function costBasisKwh(log: { kwhCharged: number | null; kwhAtVehicle: number | null }): number | null {
+  if (log.kwhCharged != null && log.kwhCharged > 0) return log.kwhCharged
+  if (log.kwhAtVehicle != null && log.kwhAtVehicle > 0) return log.kwhAtVehicle
+  return null
+}
+
+export interface GroupCostResult {
+  /** Sum of cost_eur over sub-logs that have both a cost and an energy basis (null if none). */
+  totalCostEur: number | null
+  /** Sum of costBasisKwh over those same sub-logs - the correct divisor for the per-kWh price. */
+  costKwh: number
+  /**
+   * True when at least one cost-carrying sub-log is netto-only: the header total then
+   * understates the real grid cost, so the cost chip is rendered dashed (same signal as
+   * a single netto-only log). The displayed price stays the truthful tariff - no pauschale
+   * is applied here; the grossed-up "real cost" estimate lives only in the per-log hint.
+   */
+  costIsNettoOnly: boolean
+}
+
+/**
+ * Aggregate the per-kWh cost basis for a Ladegruppe so the header price stays consistent
+ * with the single-log chip and the tariff the user actually set. Cost and energy are summed
+ * on the SAME basis each sub-log's cost was computed on (costBasisKwh), and sub-logs without
+ * a cost or without any energy reading are excluded so they cannot distort the rate.
+ */
+export function aggregateGroupCost<T extends CostHintLog>(subs: T[]): GroupCostResult {
+  const withCost = subs.filter((l) => l.costEur != null && costBasisKwh(l) != null)
+  if (withCost.length === 0) return { totalCostEur: null, costKwh: 0, costIsNettoOnly: false }
+  const totalCostEur = withCost.reduce((s, l) => s + (l.costEur as number), 0)
+  const costKwh = withCost.reduce((s, l) => s + (costBasisKwh(l) as number), 0)
+  const costIsNettoOnly = withCost.some((l) => isNettoOnlyCostLog(l))
+  return { totalCostEur, costKwh, costIsNettoOnly }
+}
+
 export interface RealCostHint {
   /** Total real cost estimate in EUR (= netto cost grossed up by AC-loss factor). */
   bruttoCostEur: number

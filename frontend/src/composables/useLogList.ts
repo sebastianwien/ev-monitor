@@ -9,6 +9,7 @@ import {
 } from '@heroicons/vue/24/outline'
 import { carDisplayName } from '../utils/enumLabel'
 import { precedingChargePricePerKwh } from '../utils/phantomDrain'
+import { aggregateGroupCost } from './useChargingEfficiency'
 
 export const PAGE_SIZE_OPTIONS = [10, 25, 50] as const
 export type PageSize = typeof PAGE_SIZE_OPTIONS[number]
@@ -434,12 +435,11 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
 
     const makeLadegruppe = (subs: any[], commonDataSource?: string): any => {
       const allSubs = [...subs].sort((a, b) => new Date(a.loggedAt).getTime() - new Date(b.loggedAt).getTime())
+      // _totalKwh = energy that reached the car (netto-first) - this is the "+X kWh" display.
       const totalKwh = allSubs.reduce((s: number, l: any) => s + (l.kwhAtVehicle ?? l.kwhCharged ?? 0), 0)
-      const subsWithCost = allSubs.filter((l: any) => l.costEur != null)
-      const totalCostEur = subsWithCost.length > 0
-        ? subsWithCost.reduce((s: number, l: any) => s + l.costEur, 0)
-        : null
-      const costKwh = subsWithCost.reduce((s: number, l: any) => s + (l.kwhAtVehicle ?? l.kwhCharged ?? 0), 0)
+      // Cost aggregation divides by the SAME basis the cost was billed on (brutto-first),
+      // so the header per-kWh price equals the tariff - not tariff/efficiency. See aggregateGroupCost.
+      const { totalCostEur, costKwh, costIsNettoOnly } = aggregateGroupCost(allSubs)
       const maxSoc = allSubs.reduce((m: number | null, l: any) =>
         l.socAfterChargePercent != null ? Math.max(m ?? 0, l.socAfterChargePercent) : m, null)
       const maxPower = allSubs.reduce((m: number | null, l: any) =>
@@ -477,6 +477,7 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
         _totalKwh: Math.round(totalKwh * 100) / 100,
         _totalCostEur: totalCostEur !== null ? Math.round(totalCostEur * 100) / 100 : null,
         _costKwh: Math.round(costKwh * 100) / 100,
+        _costIsNettoOnly: costIsNettoOnly,
         _maxSoc: maxSoc,
         _maxPower: maxPower,
         _spansMultipleDays: spansMultipleDays,
