@@ -166,6 +166,18 @@ public class PostgresUserRepositoryImpl implements UserRepository {
     }
 
     @Override
+    @Transactional
+    public void setAutoSyncStartedAtIfNull(UUID userId, Instant startedAt) {
+        jpaUserRepository.setAutoSyncStartedAtIfNull(userId, startedAt);
+    }
+
+    @Override
+    public List<User> findAutoSyncSurveyCandidates(LocalDate startedOnDay) {
+        return jpaUserRepository.findAutoSyncSurveyCandidates(startedOnDay)
+                .stream().map(this::toDomain).toList();
+    }
+
+    @Override
     public List<User> findAllByIds(List<UUID> ids) {
         return jpaUserRepository.findAllById(ids).stream().map(this::toDomain).toList();
     }
@@ -194,6 +206,7 @@ public class PostgresUserRepositoryImpl implements UserRepository {
         entity.setRegistrationLocale(domain.getRegistrationLocale());
         entity.setCountry(domain.getCountry());
         entity.setSubscriptionPeriodEnd(domain.getSubscriptionPeriodEnd());
+        entity.setAutosyncStartedAt(domain.getAutosyncStartedAt());
         entity.setCreatedAt(domain.getCreatedAt());
         entity.setUpdatedAt(domain.getUpdatedAt());
         return entity;
@@ -229,6 +242,7 @@ public class PostgresUserRepositoryImpl implements UserRepository {
                 .registrationLocale(entity.getRegistrationLocale())
                 .country(entity.getCountry())
                 .subscriptionPeriodEnd(entity.getSubscriptionPeriodEnd())
+                .autosyncStartedAt(entity.getAutosyncStartedAt())
                 .trialUsed(entity.isTrialUsed())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())

@@ -90,6 +90,9 @@ public class UserEntity {
     @Column(name = "subscription_period_end")
     private Instant subscriptionPeriodEnd;
 
+    @Column(name = "autosync_started_at")
+    private Instant autosyncStartedAt;
+
     @Column(name = "trial_used", nullable = false)
     private boolean trialUsed;
 

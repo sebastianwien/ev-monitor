@@ -93,6 +93,19 @@ public class EmailService {
         sendHtmlEmail(toEmail, subject, html);
     }
 
+    public void sendAutoSyncSatisfactionEmail(String toEmail, String username, String locale) {
+        String lang = resolveLocale(locale);
+        String html = loadTemplate("autosync-satisfaction.html", lang, Map.of(
+                "username", username,
+                "surveyUrl", baseUrl + "/umfrage/autosync-satisfaction",
+                "unsubscribeUrl", buildUnsubscribeUrl(toEmail)
+        ));
+        String subject = "en".equals(lang)
+                ? "How is AutoSync working for you?"
+                : "Wie läuft AutoSync für dich?";
+        sendHtmlEmail(toEmail, subject, html);
+    }
+
     public void sendOnboardingReminderEmail(String toEmail, String username, String locale) {
         String lang = resolveLocale(locale);
         String html = loadTemplate("onboarding-reminder.html", lang, Map.of(

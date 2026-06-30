@@ -267,6 +267,14 @@ public class StripeService {
                     if (isTrialing) {
                         userRepository.markTrialUsed(u.getId());
                     }
+                    // First transition INTO an AutoSync tier (from NONE or from the orthogonal
+                    // SUPPORTER tier): stamp the purchase moment once (IF NULL) so the satisfaction
+                    // survey can be scheduled N days later. SUPPORTER itself grants no AutoSync, so
+                    // a NONE→SUPPORTER purchase is correctly NOT stamped. Re-subscribers keep their
+                    // original timestamp (IF NULL) and are not re-asked.
+                    if (!oldTier.grantsTelemetry() && newTier.grantsTelemetry()) {
+                        userRepository.setAutoSyncStartedAtIfNull(u.getId(), Instant.now());
+                    }
                     // Status transitioned away from active/trialing (e.g. canceled, past_due,
                     // incomplete_expired, unpaid) → Smartcar billing must stop, Tesla telemetry off.
                     if (newTier == SubscriptionTier.NONE) {

@@ -91,6 +91,14 @@ public interface JpaUserRepository extends JpaRepository<UserEntity, UUID> {
     @Query("UPDATE UserEntity u SET u.trialUsed = true WHERE u.id = :userId")
     void markTrialUsed(@Param("userId") UUID userId);
 
+    @Modifying
+    @Query("UPDATE UserEntity u SET u.autosyncStartedAt = :startedAt WHERE u.id = :userId AND u.autosyncStartedAt IS NULL")
+    void setAutoSyncStartedAtIfNull(@Param("userId") UUID userId, @Param("startedAt") Instant startedAt);
+
+    @Query("SELECT u FROM UserEntity u WHERE u.emailNotificationsEnabled = true AND u.seedData = false "
+            + "AND u.subscriptionTier IN ('AUTOSYNC', 'AUTOSYNC_LIVE') AND cast(u.autosyncStartedAt as LocalDate) = :day")
+    List<UserEntity> findAutoSyncSurveyCandidates(@Param("day") LocalDate day);
+
     /**
      * Atomically claims the referral reward for a user.
      * Only updates if referral_reward_given is currently false.

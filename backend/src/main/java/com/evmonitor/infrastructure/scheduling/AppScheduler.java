@@ -2,6 +2,7 @@ package com.evmonitor.infrastructure.scheduling;
 
 import com.evmonitor.application.LeaderboardService;
 import com.evmonitor.application.SpecChargingEfficiencyJob;
+import com.evmonitor.application.SurveyService;
 import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.EvLogRepository;
 import com.evmonitor.domain.User;
@@ -23,6 +24,9 @@ public class AppScheduler {
 
     private static final int REMINDER_DAYS_AFTER_REGISTRATION = 14;
     private static final int RE_ENGAGEMENT_DAYS_INACTIVE = 21;
+    // 7-day Stripe trial + 28 days of paid usage = "4 weeks after the trial ended".
+    private static final int AUTOSYNC_SATISFACTION_DAYS_AFTER_PURCHASE = 35;
+    private static final String AUTOSYNC_SATISFACTION_SLUG = "autosync-satisfaction";
 
     private final UserRepository userRepository;
     private final CarRepository carRepository;
@@ -32,13 +36,15 @@ public class AppScheduler {
     private final TemperatureBackfillJob temperatureBackfillJob;
     private final LeaderboardService leaderboardService;
     private final SpecChargingEfficiencyJob specChargingEfficiencyJob;
+    private final SurveyService surveyService;
 
     public AppScheduler(UserRepository userRepository, CarRepository carRepository,
                         EvLogRepository evLogRepository, EmailService emailService,
                         GitHubIssueService gitHubIssueService,
                         TemperatureBackfillJob temperatureBackfillJob,
                         LeaderboardService leaderboardService,
-                        SpecChargingEfficiencyJob specChargingEfficiencyJob) {
+                        SpecChargingEfficiencyJob specChargingEfficiencyJob,
+                        SurveyService surveyService) {
         this.userRepository = userRepository;
         this.carRepository = carRepository;
         this.evLogRepository = evLogRepository;
@@ -47,6 +53,7 @@ public class AppScheduler {
         this.temperatureBackfillJob = temperatureBackfillJob;
         this.leaderboardService = leaderboardService;
         this.specChargingEfficiencyJob = specChargingEfficiencyJob;
+        this.surveyService = surveyService;
     }
 
     @Scheduled(cron = "0 0 6 * * *")
@@ -116,6 +123,51 @@ public class AppScheduler {
 
         if (!reminded.isEmpty()) {
             log.info("Re-engagement report: {} sent — {}", reminded.size(), reminded);
+        }
+    }
+
+    /**
+     * Asks AutoSync subscribers how satisfied they are, 4 weeks after their 7-day trial
+     * ended (= 35 days after the purchase moment stamped in autosync_started_at). The
+     * exact-day match means each user is mailed on a single calendar day, not repeatedly;
+     * users who already answered are skipped so a reconnect cannot re-mail a responder.
+     */
+    @Scheduled(cron = "0 0 8 * * *")
+    public void sendAutoSyncSatisfactionSurveys() {
+        LocalDate targetDay = LocalDate.now().minusDays(AUTOSYNC_SATISFACTION_DAYS_AFTER_PURCHASE);
+
+        List<User> candidates = userRepository.findAutoSyncSurveyCandidates(targetDay);
+        log.info("AutoSync satisfaction: {} candidate(s) purchased on {}", candidates.size(), targetDay);
+
+        List<String> mailed = new ArrayList<>();
+        int failed = 0;
+
+        // Isolate failures per user: the exact-day match means there is no retry, so a single
+        // bad send (SMTP hiccup, template issue) must not skip the rest of the day's cohort.
+        for (User user : candidates) {
+            try {
+                if (surveyService.hasResponded(AUTOSYNC_SATISFACTION_SLUG, user.getId())) {
+                    continue;
+                }
+                emailService.sendAutoSyncSatisfactionEmail(user.getEmail(), user.getUsername(), user.getRegistrationLocale());
+                mailed.add(user.getUsername());
+                log.info("Sent AutoSync satisfaction survey to user {}", user.getId());
+            } catch (Exception e) {
+                failed++;
+                log.error("AutoSync satisfaction send failed for user {}", user.getId(), e);
+            }
+        }
+
+        if (!mailed.isEmpty() || failed > 0) {
+            log.info("AutoSync satisfaction report: {} sent, {} failed - {}", mailed.size(), failed, mailed);
+        }
+        if (failed > 0) {
+            gitHubIssueService.createIssue(
+                    "autosync-satisfaction-error-" + targetDay,
+                    "🚨 [EV Monitor] AutoSync Satisfaction: " + failed + " Versand(e) fehlgeschlagen",
+                    "## Versand-Fehler\n\nDatum: `%s`\n\n%d von %d Mails fehlgeschlagen (Details im Log)."
+                            .formatted(targetDay, failed, candidates.size())
+            );
         }
     }
 

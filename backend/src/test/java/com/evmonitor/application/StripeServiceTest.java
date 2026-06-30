@@ -183,6 +183,44 @@ class StripeServiceTest {
         }
 
         @Test
+        void inactiveToActive_stampsAutosyncStartedAt() {
+            User user = buildUser(USER_ID, null); // premium=false → tier NONE
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));
+
+            stripeService.dispatch("customer.subscription.created",
+                    subscriptionPayload(CUSTOMER_ID, "active", 1_800_000_000L));
+
+            verify(userRepository).setAutoSyncStartedAtIfNull(eq(USER_ID), any(Instant.class));
+        }
+
+        @Test
+        void supporterPurchase_doesNotStampAutosyncStartedAt() {
+            // SUPPORTER is the orthogonal analytics-only tier - no AutoSync, so no survey anchor.
+            ReflectionTestUtils.setField(stripeService, "priceIdSupporterMonthly", "price_SUPPORTER_M");
+            User user = buildUser(USER_ID, null); // tier NONE
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));
+
+            stripeService.dispatch("customer.subscription.created",
+                    subscriptionPayload(CUSTOMER_ID, "active", 1_800_000_000L, "price_SUPPORTER_M"));
+
+            verify(userRepository).setSubscriptionTier(USER_ID, SubscriptionTier.SUPPORTER);
+            verify(userRepository, never()).setAutoSyncStartedAtIfNull(any(), any());
+        }
+
+        @Test
+        void alreadyPremium_doesNotStampAutosyncStartedAt() {
+            // No inactive→active transition (oldTier already AUTOSYNC) → purchase moment
+            // must not be re-stamped. The IF-NULL guard is a backstop, but we also don't call.
+            User user = userWithRole(USER_ID, "USER", true); // premium=true → tier AUTOSYNC
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));
+
+            stripeService.dispatch("customer.subscription.updated",
+                    subscriptionPayload(CUSTOMER_ID, "active", 1_800_000_000L));
+
+            verify(userRepository, never()).setAutoSyncStartedAtIfNull(any(), any());
+        }
+
+        @Test
         void statusTrialing_setsPremiumTrue() {
             User user = buildUser(USER_ID, null);
             when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));

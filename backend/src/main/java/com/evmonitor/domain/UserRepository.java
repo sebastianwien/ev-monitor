@@ -51,6 +51,19 @@ public interface UserRepository {
     void markTrialUsed(UUID userId);
 
     /**
+     * Records the AutoSync purchase moment, but only the first time (atomic IF NULL).
+     * Stable across renewals/upgrades so it can anchor the satisfaction survey mail.
+     */
+    void setAutoSyncStartedAtIfNull(UUID userId, Instant startedAt);
+
+    /**
+     * Active AutoSync subscribers whose purchase day equals {@code startedOnDay},
+     * excluding seed data and users who opted out of email notifications. Drives the
+     * "how is AutoSync working for you" survey scheduler.
+     */
+    List<User> findAutoSyncSurveyCandidates(LocalDate startedOnDay);
+
+    /**
      * Atomically claims the referral reward. Returns true if this call won the race
      * (i.e. the reward was not yet given), false if already claimed.
      */
