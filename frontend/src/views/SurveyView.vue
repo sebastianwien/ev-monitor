@@ -1,12 +1,21 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { surveys } from '../config/surveys'
+import { useI18n } from 'vue-i18n'
+import { surveys, resolveLocalized, type Localized } from '../config/surveys'
 import { getSurveyStatus, submitSurvey } from '../api/surveyService'
 
 const route = useRoute()
+const { locale } = useI18n()
 const slug = route.params.slug as string
 const survey = computed(() => surveys[slug] ?? null)
+
+const loc = (value: Localized) => resolveLocalized(value, locale.value)
+
+function isOptionSelected(questionKey: string, optionValue: string): boolean {
+    const val = answers.value[questionKey]
+    return Array.isArray(val) ? val.includes(optionValue) : val === optionValue
+}
 
 const loading = ref(true)
 const alreadyResponded = ref(false)
@@ -88,23 +97,23 @@ async function submit() {
             <!-- Survey form -->
             <div v-else class="space-y-6">
                 <div>
-                    <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ survey.title }}</h1>
-                    <p class="text-gray-500 dark:text-gray-400 text-sm mt-1">{{ survey.description }}</p>
+                    <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ loc(survey.title) }}</h1>
+                    <p class="text-gray-500 dark:text-gray-400 text-sm mt-1">{{ loc(survey.description) }}</p>
                 </div>
 
 
                 <div v-if="survey.info" class="bg-white dark:bg-gray-800 rounded-sm border border-gray-200 dark:border-gray-700 p-5 space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                    <p v-for="(paragraph, i) in survey.info" :key="i">{{ paragraph }}</p>
+                    <p v-for="(paragraph, i) in survey.info" :key="i">{{ loc(paragraph) }}</p>
                 </div>
 
                 <div v-for="question in survey.questions" :key="question.key"
                      class="bg-white dark:bg-gray-800 rounded-sm shadow-sm border border-gray-200 dark:border-gray-700 p-5 space-y-3">
-                    <p class="font-medium text-gray-900 dark:text-gray-100 text-sm">{{ question.label }}</p>
+                    <p class="font-medium text-gray-900 dark:text-gray-100 text-sm">{{ loc(question.label) }}</p>
                     <div class="space-y-2">
                         <div v-for="option in question.options" :key="option.value" class="space-y-2">
                             <label
                                 class="flex items-center gap-3 p-3 rounded-sm border cursor-pointer transition-colors"
-                                :class="(question.multiple ? (answers[question.key] as string[] ?? []).includes(option.value) : answers[question.key] === option.value)
+                                :class="isOptionSelected(question.key, option.value)
                                     ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
                                     : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'">
                                 <input
@@ -123,13 +132,13 @@ async function submit() {
                                     v-model="answers[question.key]"
                                     class="accent-green-600"
                                 />
-                                <span class="text-sm text-gray-700 dark:text-gray-300">{{ option.label }}</span>
+                                <span class="text-sm text-gray-700 dark:text-gray-300">{{ loc(option.label) }}</span>
                             </label>
                             <input
-                                v-if="option.freeText && answers[question.key] === option.value"
+                                v-if="option.freeText && isOptionSelected(question.key, option.value)"
                                 v-model="freeTextValues[`${question.key}_detail`]"
                                 type="text"
-                                placeholder="Welches Tool?"
+                                :placeholder="loc(option.freeTextPlaceholder ?? '')"
                                 class="w-full px-3 py-2 text-sm rounded-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-green-500"
                             />
                         </div>
