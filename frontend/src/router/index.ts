@@ -399,6 +399,15 @@ const router = createRouter({
             component: () => import('../views/ConsumptionMethodologyView.vue')
         },
         {
+            // Oeffentliche Preis-/Plan-Seite (Marketing). CTAs fuehren zur Registrierung,
+            // kein externer Kaufpfad -> Apple 3.1.1-konform, daher kein hideOnNative.
+            // Die transaktionale Seite bleibt /upgrade (requiresAuth).
+            path: '/preise',
+            alias: '/pricing',
+            name: 'pricing',
+            component: () => import('../views/PricingView.vue')
+        },
+        {
             path: '/stories',
             name: 'stories-list',
             component: () => import('../views/StoriesListView.vue')
