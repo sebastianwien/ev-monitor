@@ -15,6 +15,7 @@ const props = defineProps<{
   feedbackMailto: string
   isDemo: boolean
   wattBalance: number
+  isNative: boolean
 }>()
 
 const emit = defineEmits<{ close: []; logout: [] }>()
@@ -123,6 +124,16 @@ function onLogout() {
             <ArrowRightOnRectangleIcon class="h-5 w-5" />
             {{ t('nav.bottom.logout') }}
           </button>
+        </div>
+
+        <!-- Rechtliches: nur in der nativen App (im Web liegen die Links im Footer). -->
+        <div
+          v-if="props.isNative"
+          class="border-t border-gray-200 dark:border-gray-800 px-4 py-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400"
+        >
+          <router-link to="/impressum" class="hover:text-gray-700 dark:hover:text-gray-200 underline" @click="go">{{ t('footer.imprint') }}</router-link>
+          <router-link to="/datenschutz" class="hover:text-gray-700 dark:hover:text-gray-200 underline" @click="go">{{ t('footer.privacy') }}</router-link>
+          <router-link to="/agb" class="hover:text-gray-700 dark:hover:text-gray-200 underline" @click="go">{{ t('footer.terms') }}</router-link>
         </div>
       </div>
     </div>

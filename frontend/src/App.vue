@@ -38,6 +38,10 @@ import { useCountryStore } from './stores/country'
 import { subscriptionService } from './api/subscriptionService'
 import BottomNav from './components/shared/BottomNav.vue'
 import MoreSheet from './components/shared/MoreSheet.vue'
+import { Capacitor } from '@capacitor/core'
+
+// Native App (iOS/Android). Platform-Konstante (aendert sich zur Laufzeit nicht).
+const isNative = Capacitor.isNativePlatform()
 
 const { haptic } = useHaptic()
 const { t } = useI18n()
@@ -429,6 +433,7 @@ const handleBottomLogout = () => {
       :feedback-mailto="feedbackMailto"
       :is-demo="authStore.isDemoAccount"
       :watt-balance="coinStore.balance"
+      :is-native="isNative"
       @close="moreOpen = false"
       @logout="handleBottomLogout"
     />
@@ -463,8 +468,9 @@ const handleBottomLogout = () => {
       </router-view>
     </main>
 
-    <!-- Footer (only for authenticated users) -->
-    <footer v-if="authStore.isAuthenticated()" class="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 py-6 mt-auto">
+    <!-- Footer (only for authenticated users; nicht in der nativen App - dort liegen
+         die rechtlichen Links kompakt im Mehr-Sheet). Web bleibt unveraendert. -->
+    <footer v-if="authStore.isAuthenticated() && !isNative" class="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 py-6 mt-auto">
       <div class="container mx-auto px-4">
         <div class="text-center text-sm text-gray-600 dark:text-gray-400 space-y-3">
           <p>
