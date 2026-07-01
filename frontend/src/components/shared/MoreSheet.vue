@@ -2,7 +2,7 @@
 import { useI18n } from 'vue-i18n'
 import {
   XMarkIcon, TruckIcon, ArrowsRightLeftIcon, ArrowDownTrayIcon,
-  Battery100Icon, DocumentTextIcon, BoltIcon, Cog6ToothIcon,
+  BoltIcon, Cog6ToothIcon,
   ArrowRightOnRectangleIcon, ChatBubbleLeftEllipsisIcon,
 } from '@heroicons/vue/24/outline'
 import ThemeToggle from './ThemeToggle.vue'
@@ -28,8 +28,6 @@ const items: NavItem[] = [
   { to: '/cars', label: 'dashboard.vehicles_btn', icon: TruckIcon },
   { to: '/modelle', label: 'nav.models_compare', icon: ArrowsRightLeftIcon },
   { to: '/imports', label: 'nav.bottom.import', icon: ArrowDownTrayIcon, demoHidden: true },
-  { to: '/wallbox', label: 'nav.bottom.wallbox', icon: Battery100Icon, demoHidden: true },
-  { to: '/tax-export', label: 'nav.bottom.tax_export', icon: DocumentTextIcon, demoHidden: true },
   { to: '/settings', label: 'nav.bottom.settings', icon: Cog6ToothIcon, demoHidden: true },
 ]
 
@@ -129,7 +127,7 @@ function onLogout() {
         <!-- Rechtliches: nur in der nativen App (im Web liegen die Links im Footer). -->
         <div
           v-if="props.isNative"
-          class="border-t border-gray-200 dark:border-gray-800 px-4 py-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400"
+          class="border-t border-gray-200 dark:border-gray-800 px-4 py-3 flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400"
         >
           <router-link to="/impressum" class="hover:text-gray-700 dark:hover:text-gray-200 underline" @click="go">{{ t('footer.imprint') }}</router-link>
           <router-link to="/datenschutz" class="hover:text-gray-700 dark:hover:text-gray-200 underline" @click="go">{{ t('footer.privacy') }}</router-link>

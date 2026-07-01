@@ -35,8 +35,6 @@ nav:
     record: Lägg till
     more: Mer
     import: Import
-    wallbox: Wallbox
-    tax_export: Skatteexport
     watt: Watt-saldo
     settings: Inställningar
     feedback: Feedback
@@ -55,7 +53,7 @@ landing:
     unit_charges: "laddningar"
   hero:
     title: Hur långt kommer du egentligen – och vad kostar det dig?
-    subtitle: Verkliga drifts- och laddningskostnader från användargemenskapen – WLTP möter vardagens verklighet. Med wallbox-integration och API-synkronisering.
+    subtitle: "Håll koll på laddkostnader, verklig räckvidd och förbrukning för din elbil - gratis. Klar på 2 minuter, registrera laddningssessioner själv eller synkronisera allt helautomatiskt med AutoSync."
     charging_sessions: Laddningssessioner
     real_label: Verklig
     wltp_label: WLTP
@@ -69,7 +67,7 @@ landing:
     consumption_label: Förbrukning
     real_short: Verkligt
     factory_short: Fabrik
-    demo_button: Prova appen direkt →
+    demo_button: Prova appen →
     loading_button: Laddar...
     models_button: Visa alla modeller
     register_button: "Registrera dig gratis →"
