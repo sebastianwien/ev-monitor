@@ -418,6 +418,16 @@ const handleBottomLogout = () => {
 
     </nav>
 
+    <!-- Mobile: blickdichter Statusbar-Streifen. Da es auf Mobile keine Top-Nav gibt,
+         fuellt dieser die Safe-Area (Notch/Statusbar) mit ruhigem Hintergrund - sonst
+         scheint das Wallpaper durch und Ticker/Content stossen hart an die Statusbar.
+         Nur Mobile (md:hidden); im mobilen Web ist env() = 0 -> unsichtbar, kein Impact. -->
+    <div
+      v-if="authStore.isAuthenticated()"
+      class="md:hidden fixed top-0 left-0 right-0 z-40 h-[env(safe-area-inset-top)] bg-white dark:bg-gray-950 border-b border-gray-200/60 dark:border-gray-800/60"
+      aria-hidden="true"
+    />
+
     <!-- Leaderboard Ticker (below nav, only when authenticated) -->
     <LeaderboardTicker v-if="authStore.isAuthenticated() && !authStore.isDemoAccount && ['DE', 'AT', 'CH'].includes(countryStore.country)" />
 
