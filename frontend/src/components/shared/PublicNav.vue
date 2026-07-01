@@ -52,12 +52,17 @@ const loginPath = computed(() => isEn.value ? '/en/login' : '/login')
 /* Nur in der nativen App (iOS/Android) die Navbar straffen.
    Auf Mobile-Browser/PWA bleibt alles wie gehabt. Der Statusbar-Inset
    (env(safe-area-inset-top)) ist davon unberuehrt - der muss nativ reserviert bleiben. */
-:global(html.is-native) .public-nav-row {
+/* Gesamten Selektor in :global() - sonst kompiliert der scoped-CSS-Transform
+   ":global(html.is-native) .x" fehlerhaft zu "html.is-native { ... }" (der
+   Descendant geht verloren). Bei display:none wuerde das die GESAMTE App auf
+   Native verstecken (0x0-Blackscreen). Die Klassen sind komponentenspezifisch,
+   global ist hier also unkritisch. */
+:global(html.is-native .public-nav-row) {
   height: 3rem; /* 48px statt 64px */
 }
 /* Die Akzent-Gradientlinie liegt nativ unter der (ueberlagernden) Statusbar und ist
    damit ohnehin unsichtbar - weglassen spart Hoehe und vermeidet toten Raum. */
-:global(html.is-native) .public-nav-accent {
+:global(html.is-native .public-nav-accent) {
   display: none;
 }
 </style>
