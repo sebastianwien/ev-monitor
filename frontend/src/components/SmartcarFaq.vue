@@ -42,7 +42,10 @@ const styles = computed(() => props.variant === 'soft'
     </summary>
     <div class="space-y-4" :class="styles.body">
       <div v-for="i in 5" :key="i">
-        <p :class="styles.question">{{ t(`imports.smartcar_how_q${i}`) }}</p>
+        <!-- Erste Frage ("Was ist Smartcar?") weglassen: an dieser Stelle ist sie noch
+             nicht aufgeworfen. Der Antworttext dient als Einleitung, die Frage-Ueberschrift
+             erst ab dem zweiten Eintrag. -->
+        <p v-if="i !== 1" :class="styles.question">{{ t(`imports.smartcar_how_q${i}`) }}</p>
         <p class="text-sm text-gray-600 dark:text-gray-400 mt-1 leading-relaxed">{{ t(`imports.smartcar_how_a${i}`) }}</p>
       </div>
     </div>
