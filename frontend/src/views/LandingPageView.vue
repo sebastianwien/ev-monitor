@@ -27,8 +27,11 @@ import {
   MoonIcon,
   ArrowLongRightIcon,
   CodeBracketIcon,
+  ArrowPathIcon,
 } from '@heroicons/vue/24/outline'
 import CommunityPulseSection from '../components/shared/CommunityPulseSection.vue'
+import ImageLightbox from '../components/shared/ImageLightbox.vue'
+import { useLightbox } from '../composables/useLightbox'
 import CommunityLeaderboard from '../components/shared/CommunityLeaderboard.vue'
 import PublicModelCard from '../components/shared/PublicModelCard.vue'
 
@@ -39,6 +42,23 @@ const authStore = useAuthStore()
 const { formatConsumption, formatNumber, consumptionUnitLabel, formatDistance, distanceUnitLabel } = useLocaleFormat()
 const isEn = computed(() => route.path.startsWith('/en'))
 const modelsUrl = computed(() => isEn.value ? '/en/models' : '/modelle')
+const pricingUrl = computed(() => isEn.value ? '/pricing' : '/preise')
+
+// Klickbare Screenshots: pro Sektion ein Bild-Set, das in der Lightbox durchblaettert wird.
+const { open: openLightbox } = useLightbox()
+const productShots = () => [
+  { src: '/screenshots/dashboard-light.jpg', alt: t('landing.app_preview.dashboard_title') },
+  { src: '/screenshots/logfeed-light.jpg', alt: t('landing.app_preview.logfeed_title') },
+]
+const galleryShots = () => [
+  { src: '/screenshots/map-light.jpg', alt: t('landing.app_preview.map_title') },
+  { src: '/screenshots/charts-light.jpg', alt: t('landing.app_preview.charts_title') },
+]
+const darkShots = () => [
+  { src: '/screenshots/dashboard-dark.jpg', alt: t('landing.app_preview.dashboard_title') },
+  { src: '/screenshots/charts-dark.jpg', alt: t('landing.app_preview.charts_title') },
+  { src: '/screenshots/map-dark.jpg', alt: t('landing.app_preview.map_title') },
+]
 
 const topModels = ref<TopModelPreview[]>([])
 const nextModels = ref<TopModelPreview[]>([])
@@ -49,6 +69,9 @@ const displayModels = ref(0)
 const displayUsers = ref(0)
 const displayTrips = ref(0)
 const displayTotalKm = ref(0)
+// Stabile (nicht animierte) Fahrer-Zahl fuer den Fliesstext im Community-Intro -
+// eine hochzaehlende Zahl mitten im Satz waere unruhig.
+const communityDrivers = ref(0)
 
 // Round trips to nearest 10 for cleaner display with "+"
 const displayTripsRounded = computed(() => Math.floor(displayTrips.value / 10) * 10)
@@ -208,6 +231,7 @@ onMounted(async () => {
   // Load platform stats and animate counters
   try {
     const stats = await getPlatformStats()
+    communityDrivers.value = stats.userCount
     animateCount(stats.modelCount, v => displayModels.value = v)
     animateCount(stats.userCount, v => displayUsers.value = v)
     animateCount(stats.tripCount, v => displayTrips.value = v)
@@ -281,6 +305,9 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
     <!-- Navbar -->
     <PublicNav />
 
+    <!-- Bild-Lightbox (Teleport nach body); reagiert auf openLightbox() aus den Sektionen -->
+    <ImageLightbox />
+
     <!-- Hero Section -->
     <section class="pt-8 pb-6 sm:pt-12 sm:pb-8">
       <div class="max-w-4xl mx-auto text-center px-6 sm:px-8 lg:px-12">
@@ -291,7 +318,92 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
           {{ t('landing.hero.subtitle') }}
         </p>
 
-        <!-- Community-Bestenliste: labelled superlatives replace the unexplained cards -->
+        <!-- Primary CTA row: register-first, directly under the value prop so the main action is above the fold -->
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+          <button
+            @click="goToRegister('hero_primary')"
+            class="btn-3d cta-shadow w-full sm:w-auto cursor-pointer bg-green-600 text-white border-2 border-gray-900 dark:border-gray-100 px-6 py-3 sm:px-8 sm:py-4 rounded-sm text-base sm:text-lg font-semibold hover:bg-green-700 inline-flex items-center justify-center gap-2 transition"
+          >
+            {{ t('landing.hero.register_button') }}
+          </button>
+          <button
+            @click="demoLogin('hero')"
+            :disabled="demoLoading"
+            class="btn-3d cta-shadow w-full sm:w-auto cursor-pointer bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 text-gray-800 dark:text-gray-100 px-6 py-3 sm:px-8 sm:py-4 rounded-sm text-base sm:text-lg font-semibold hover:text-green-700 dark:hover:text-green-400 disabled:opacity-50 inline-flex items-center justify-center transition"
+          >
+            {{ demoLoading ? t('landing.hero.loading_button') : t('landing.hero.demo_button') }}
+          </button>
+        </div>
+
+        <!-- Hero product visuals: Dashboard + Ladeliste als Paar, damit ein Erstbesucher
+             sofort erfasst, dass dies ein persoenliches Tracking-Tool ist. Beide als
+             Light-Shot (kein logfeed-dark vorhanden) - gleiche Behandlung wie die
+             App-Preview-Sektion, damit das Paar im Dark Mode zusammenpasst. -->
+        <!-- Bricht aus dem max-w-4xl-Text-Container aus (gleiches Muster wie das CTA-Band
+             unten), damit die Screenshots breiter als die Textspalte werden koennen. -->
+        <div class="relative left-1/2 right-1/2 -mx-[50vw] w-screen mt-10 sm:mt-12 mb-14 sm:mb-16">
+          <div class="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
+          <!-- Dashboard -->
+          <div class="relative">
+            <div class="rounded-xl border-2 border-gray-900 dark:border-gray-100 shadow-[8px_8px_0_0_#15803d] dark:shadow-[8px_8px_0_0_#22c55e] overflow-hidden relative transition duration-300 ease-out hover:scale-[1.06]">
+              <img
+                src="/screenshots/dashboard-light.jpg"
+                :alt="t('landing.app_preview.dashboard_title')"
+                class="w-full block h-auto cursor-zoom-in"
+                width="885"
+                height="950"
+                fetchpriority="high"
+                role="button"
+                tabindex="0"
+                @click="openLightbox(productShots(), 0)"
+                @keydown.enter.space.prevent="openLightbox(productShots(), 0)"
+              />
+              <div class="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-b from-transparent to-white dark:to-gray-900 pointer-events-none"></div>
+            </div>
+            <div class="absolute -bottom-3 -left-3 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-sm font-bold px-4 py-2 rounded-full shadow-[4px_4px_0_0_#111827] border-2 border-gray-900 hidden sm:block">
+              {{ t('landing.app_preview.chip_costs') }}
+            </div>
+          </div>
+          <!-- Ladeliste / Logfeed -->
+          <div class="relative">
+            <div class="rounded-xl border-2 border-gray-900 dark:border-gray-100 shadow-[8px_8px_0_0_#15803d] dark:shadow-[8px_8px_0_0_#22c55e] overflow-hidden relative transition duration-300 ease-out hover:scale-[1.06]">
+              <img
+                src="/screenshots/logfeed-light.jpg"
+                :alt="t('landing.app_preview.logfeed_title')"
+                class="w-full block h-auto cursor-zoom-in"
+                width="885"
+                height="799"
+                role="button"
+                tabindex="0"
+                @click="openLightbox(productShots(), 1)"
+                @keydown.enter.space.prevent="openLightbox(productShots(), 1)"
+              />
+              <div class="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-b from-transparent to-white dark:to-gray-900 pointer-events-none"></div>
+            </div>
+            <div class="absolute -bottom-3 -right-3 bg-green-500 text-white text-sm font-bold px-4 py-2 rounded-full shadow-[4px_4px_0_0_#111827] border-2 border-gray-900 hidden sm:block">
+              {{ t('landing.app_preview.chip_efficiency') }}
+            </div>
+          </div>
+          </div>
+        </div>
+
+        <!-- Community-USP: erklaert vor der Bestenliste, dass echte Fahrer belastbare
+             Vergleiche liefern. Fahrer-Zahl nur zeigen, wenn die Stats geladen sind. -->
+        <div v-if="communityDrivers > 0" class="mb-10 sm:mb-12">
+          <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-3">{{ t('landing.community_intro.heading') }}</h2>
+          <p class="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed">{{ t('landing.community_intro.text', { drivers: formatNumber(communityDrivers) }) }}</p>
+          <!-- Community-Kennzahlen: gehoeren zum Intro, zeigen die Groesse der Datenbasis -->
+          <div class="mt-8 max-w-3xl mx-auto bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 rounded-xl p-6 sm:p-8 shadow-[5px_5px_0_0_#15803d] dark:shadow-[5px_5px_0_0_#22c55e]">
+            <div class="grid grid-cols-3 divide-x divide-gray-900/10 dark:divide-white/10">
+              <div v-for="s in trustStats" :key="s.label" class="px-2 sm:px-4 text-center">
+                <p class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 tabular-nums">{{ s.value }}</p>
+                <p class="text-sm sm:text-base text-gray-600 dark:text-gray-300 mt-1.5 leading-snug">{{ s.label }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Community-Bestenliste: now social proof below the product, no longer the first thing a visitor sees -->
         <div v-if="hasSuperlatives" class="sl-board text-left px-5 py-7 mb-6">
           <div class="mb-6 flex flex-wrap items-baseline justify-center gap-x-2 gap-y-1">
             <span class="text-sm sm:text-base font-extrabold tracking-[0.18em] uppercase text-green-700 dark:text-green-400">{{ t('landing.superlatives.eyebrow') }}</span>
@@ -361,17 +473,9 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
 
         <!-- Primary CTA: kein Account nötig - full-bleed band so the bg spans the viewport -->
         <div class="relative left-1/2 right-1/2 -mx-[50vw] w-screen bg-gray-50 dark:bg-gray-800/40 border-y border-gray-200 dark:border-gray-700 py-10 sm:py-14">
-          <!-- Trust + Action: one self-contained card (proof -> trust -> action) -->
+          <!-- Action: repeat der Haupt-CTAs nach dem Social Proof (Kennzahlen liegen jetzt oben beim Community-Intro) -->
           <div class="max-w-3xl mx-auto px-6">
             <div class="bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 rounded-xl p-6 sm:p-8 shadow-[5px_5px_0_0_#15803d] dark:shadow-[5px_5px_0_0_#22c55e]">
-              <div class="grid grid-cols-3 divide-x divide-gray-900/10 dark:divide-white/10">
-                <div v-for="s in trustStats" :key="s.label" class="px-2 sm:px-4 text-center">
-                  <p class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 tabular-nums">{{ s.value }}</p>
-                  <p class="text-sm sm:text-base text-gray-600 dark:text-gray-300 mt-1.5 leading-snug">{{ s.label }}</p>
-                </div>
-              </div>
-              <!-- Action: CTAs close the card -->
-              <div class="h-px bg-gray-900/10 dark:bg-white/10 my-6"></div>
               <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
                 <button
                   @click="demoLogin('hero')"
@@ -515,10 +619,14 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
               <img
                 src="/screenshots/dashboard-light.jpg"
                 alt="EV Monitor Dashboard"
-                class="w-full block h-auto"
+                class="w-full block h-auto cursor-zoom-in"
                 loading="lazy"
                 width="885"
                 height="950"
+                role="button"
+                tabindex="0"
+                @click="openLightbox(productShots(), 0)"
+                @keydown.enter.space.prevent="openLightbox(productShots(), 0)"
               />
               <div class="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-b from-transparent to-white dark:to-gray-900 pointer-events-none"></div>
             </div>
@@ -571,10 +679,14 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
               <img
                 src="/screenshots/logfeed-light.jpg"
                 alt="EV Monitor Ladehistorie"
-                class="w-full block h-auto"
+                class="w-full block h-auto cursor-zoom-in"
                 loading="lazy"
                 width="885"
                 height="799"
+                role="button"
+                tabindex="0"
+                @click="openLightbox(productShots(), 1)"
+                @keydown.enter.space.prevent="openLightbox(productShots(), 1)"
               />
               <div class="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-b from-transparent to-white dark:to-gray-900 pointer-events-none"></div>
             </div>
@@ -627,10 +739,14 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
               <img
                 src="/screenshots/map-light.jpg"
                 alt="EV Monitor Lade-Standorte Karte"
-                class="w-full block"
+                class="w-full block cursor-zoom-in"
                 loading="lazy"
                 width="640"
                 height="390"
+                role="button"
+                tabindex="0"
+                @click="openLightbox(galleryShots(), 0)"
+                @keydown.enter.space.prevent="openLightbox(galleryShots(), 0)"
               />
             </div>
             <!-- Features + CTA (mobile pos 3) -->
@@ -657,10 +773,14 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
               <img
                 src="/screenshots/charts-light.jpg"
                 alt="EV Monitor Analysen Kosten und Verbrauch"
-                class="w-full block h-auto"
+                class="w-full block h-auto cursor-zoom-in"
                 loading="lazy"
                 width="640"
                 height="519"
+                role="button"
+                tabindex="0"
+                @click="openLightbox(galleryShots(), 1)"
+                @keydown.enter.space.prevent="openLightbox(galleryShots(), 1)"
               />
             </div>
             <!-- Features + CTA (mobile pos 3) -->
@@ -724,13 +844,13 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
       <div class="max-w-7xl mx-auto px-4 sm:px-8 lg:px-12">
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
           <div class="rounded-xl overflow-hidden border-2 border-gray-900 dark:border-gray-100 shadow-[6px_6px_0_0_#15803d] dark:shadow-[6px_6px_0_0_#22c55e] aspect-[900/1087]">
-            <img src="/screenshots/dashboard-dark.jpg" alt="EV Monitor Dashboard Dark Mode" class="w-full h-full object-cover object-top" loading="lazy" width="900" height="1087" />
+            <img src="/screenshots/dashboard-dark.jpg" alt="EV Monitor Dashboard Dark Mode" class="w-full h-full object-cover object-top cursor-zoom-in" loading="lazy" width="900" height="1087" role="button" tabindex="0" @click="openLightbox(darkShots(), 0)" @keydown.enter.space.prevent="openLightbox(darkShots(), 0)" />
           </div>
           <div class="rounded-xl overflow-hidden border-2 border-gray-900 dark:border-gray-100 shadow-[6px_6px_0_0_#15803d] dark:shadow-[6px_6px_0_0_#22c55e] aspect-[900/1087]">
-            <img src="/screenshots/charts-dark.jpg" alt="EV Monitor Charts Dark Mode" class="w-full h-full object-cover object-top" loading="lazy" width="900" height="1165" />
+            <img src="/screenshots/charts-dark.jpg" alt="EV Monitor Charts Dark Mode" class="w-full h-full object-cover object-top cursor-zoom-in" loading="lazy" width="900" height="1165" role="button" tabindex="0" @click="openLightbox(darkShots(), 1)" @keydown.enter.space.prevent="openLightbox(darkShots(), 1)" />
           </div>
           <div class="rounded-xl overflow-hidden border-2 border-gray-900 dark:border-gray-100 shadow-[6px_6px_0_0_#15803d] dark:shadow-[6px_6px_0_0_#22c55e] aspect-[900/1087]">
-            <img src="/screenshots/map-dark.jpg" alt="EV Monitor Karte Dark Mode" class="w-full h-full object-cover object-top" loading="lazy" width="900" height="1156" />
+            <img src="/screenshots/map-dark.jpg" alt="EV Monitor Karte Dark Mode" class="w-full h-full object-cover object-top cursor-zoom-in" loading="lazy" width="900" height="1156" role="button" tabindex="0" @click="openLightbox(darkShots(), 2)" @keydown.enter.space.prevent="openLightbox(darkShots(), 2)" />
           </div>
         </div>
       </div>
@@ -882,6 +1002,25 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
           </div>
 
         </div>
+
+        <!-- AutoSync unter den Quellen erklaert, direkt beim Preise-Link: das
+             vollautomatische (Premium-)Verfahren + Verweis auf die Pakete. -->
+        <div class="mt-8 bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 rounded-lg p-5 sm:p-6 cta-shadow">
+          <div class="flex flex-col items-center text-center">
+            <ArrowPathIcon class="h-7 w-7 text-green-600 dark:text-green-400 shrink-0 mb-2" />
+            <p class="text-lg font-bold text-gray-900 dark:text-gray-100">AutoSync</p>
+            <p class="text-base text-gray-600 dark:text-gray-300 mt-1 leading-relaxed max-w-2xl">{{ t('landing.import.autosync_explainer') }}</p>
+          </div>
+          <div class="mt-4 text-center">
+            <router-link
+              :to="pricingUrl"
+              class="inline-flex items-center gap-2 text-base font-semibold text-green-700 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 transition"
+            >
+              {{ t('landing.import.pricing_link') }}
+              <ArrowRightIcon class="h-5 w-5 shrink-0" />
+            </router-link>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -967,6 +1106,7 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
           </div>
           <div class="flex flex-wrap justify-center gap-x-6 gap-y-3 text-lg font-medium text-gray-700 dark:text-gray-200">
             <router-link :to="modelsUrl" class="hover:text-gray-900 dark:hover:text-gray-100 font-medium">{{ t('landing.footer.models') }}</router-link>
+            <router-link to="/preise" class="hover:text-gray-900 dark:hover:text-gray-100">{{ t('landing.footer.pricing') }}</router-link>
             <router-link to="/blog" class="hover:text-gray-900 dark:hover:text-gray-100">{{ t('landing.footer.blog') }}</router-link>
             <router-link to="/datenschutz" class="hover:text-gray-900 dark:hover:text-gray-100">{{ t('landing.footer.privacy') }}</router-link>
             <router-link to="/impressum" class="hover:text-gray-900 dark:hover:text-gray-100">{{ t('landing.footer.imprint') }}</router-link>

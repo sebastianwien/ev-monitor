@@ -24,9 +24,13 @@ common:
   home: "EV Monitor"
   models_nav: "Models"
 
+lightbox:
+  prev: "Previous image"
+  next: "Next image"
 nav:
   login: "Sign in"
   register: "Sign up"
+  pricing: "Pricing"
   dashboard: "Dashboard"
   models_compare: "Models"
   bottom:
@@ -53,6 +57,9 @@ landing:
     popular_sub: "most charging sessions"
     meta_datapoints: "{n} data points"
     unit_charges: "charges"
+  community_intro:
+    heading: "Real data from real drivers"
+    text: "{drivers} EV drivers share their real consumption and charging costs. The more data comes together, the more reliable the comparisons - you see which model is truly efficient in everyday use and where your own car stands. No lab WLTP, just kilometres driven."
   hero:
     title: "How far do you really get - and what does it cost you?"
     subtitle: "Keep tabs on your EV's charging costs, real range and consumption - for free. Ready in 2 minutes, log charging sessions yourself or sync everything fully automatically with AutoSync."
@@ -155,8 +162,10 @@ landing:
     live_label: "Live"
     title: "What's happening in the community"
   import:
-    title: "Never type manually again"
-    subtitle: "10 data sources - charging sessions sync automatically or via import."
+    title: "Import your data automatically"
+    subtitle: "Whether Tesla, VW, wallbox or charging app: EV Monitor pulls your charging data from 10 sources - fully automatic, via app or as a file import. So everyone gets their sessions in."
+    autosync_explainer: "With AutoSync your car reports every charging session to EV Monitor fully automatically - connect once, then everything runs on its own. No typing, no reminders needed."
+    pricing_link: "AutoSync and Live come with our packages - see all prices"
     group_cars: "Telemetry & App"
     group_wallbox: "Wallboxes"
     group_manual: "Import & API"
@@ -180,6 +189,7 @@ landing:
   footer:
     made_with: "Made with ⚡ for the EV community"
     models: "Models"
+    pricing: "Pricing"
     privacy: "Privacy Policy"
     imprint: "Imprint"
     terms: "Terms"
@@ -2328,6 +2338,12 @@ upgrade:
   live_success_desc: "Your Tesla telemetry is being upgraded to the extended profile. As soon as your Tesla is online again, trips and phantom-drain reports will flow in automatically."
   tier_headline: "Choose your plan"
   tier_subtitle: "Manual, automatic or fully live - you decide how much work your car should do."
+  public_cta: "Sign up for free"
+  public_cta_free: "Start for free"
+  public_headline: "Start for free - get more with AutoSync"
+  public_subheadline: "EV Monitor is and stays free. AutoSync and Live optionally unlock fully automatic sync and live insights. Here's how the packages compare."
+  public_meta_title: "Pricing - EV Monitor: free, AutoSync & Live"
+  public_meta_description: "EV Monitor is free: track consumption, charging costs and real range. Optional AutoSync and Live for fully automatic sync. See all plans at a glance."
   tier_toggle_monthly: "Monthly"
   tier_toggle_yearly: "Yearly"
   tier_toggle_yearly_savings: "save 17%"

@@ -23,9 +23,13 @@ common:
   reload: Uppdatera
   home: EV Monitor
   models_nav: Modeller
+lightbox:
+  prev: Föregående bild
+  next: Nästa bild
 nav:
   login: Logga in
   register: Registrera dig
+  pricing: Priser
   dashboard: Dashboard
   models_compare: Modeller
   bottom:
@@ -51,6 +55,9 @@ landing:
     popular_sub: "flest laddningar"
     meta_datapoints: "{n} datapunkter"
     unit_charges: "laddningar"
+  community_intro:
+    heading: "Riktiga data från riktiga förare"
+    text: "{drivers} elbilsförare delar sin verkliga förbrukning och laddkostnader. Ju mer data som samlas, desto mer tillförlitliga blir jämförelserna - du ser vilken modell som verkligen är snål i vardagen och var din egen bil ligger. Ingen labb-WLTP, bara körda kilometer."
   hero:
     title: Hur långt kommer du egentligen – och vad kostar det dig?
     subtitle: "Håll koll på laddkostnader, verklig räckvidd och förbrukning för din elbil - gratis. Klar på 2 minuter, registrera laddningssessioner själv eller synkronisera allt helautomatiskt med AutoSync."
@@ -118,8 +125,10 @@ landing:
     loading_button: Laddar...
     no_data: Inga gemenskapsdata tillgängliga ännu.
   import:
-    title: Du behöver aldrig mer skriva manuellt
-    subtitle: "10 datakällor - laddningssessioner synkroniseras automatiskt eller via import."
+    title: Importera dina data automatiskt
+    subtitle: "Oavsett Tesla, VW, wallbox eller laddapp: EV Monitor hämtar dina laddningsdata från 10 källor - helautomatiskt, via app eller som filimport. Så får alla in sina laddningssessioner."
+    autosync_explainer: "Med AutoSync rapporterar din bil varje laddningssession till EV Monitor helautomatiskt - anslut en gång, sedan sköter sig allt själv. Ingen inmatning, inga påminnelser."
+    pricing_link: "AutoSync och Live ingår i våra paket - se alla priser"
     tesla_title: Tesla Fleet API
     tesla_status: Finns tillgängligt
     tesla_desc: Importera faktureringshistoriken automatiskt – utan att behöva skriva eller kopiera.
@@ -144,6 +153,7 @@ landing:
   footer:
     made_with: Skapad med ⚡ för elbilssamhället
     models: Modeller
+    pricing: Priser
     privacy: Integritetspolicy
     imprint: Impressum
     terms: Villkor
@@ -2256,6 +2266,12 @@ upgrade:
   live_success_desc: "Din Tesla-telemetri uppgraderas till den utökade profilen. Så snart din Tesla är online igen kommer körningar och Phantom-Drain-rapporter in automatiskt."
   tier_headline: "Välj din plan"
   tier_subtitle: "Manuellt, automatiskt eller helt live - du bestämmer hur mycket din bil ska jobba."
+  public_cta: "Registrera dig gratis"
+  public_cta_free: "Kom igång gratis"
+  public_headline: "Börja gratis - få mer med AutoSync"
+  public_subheadline: "EV Monitor är och förblir gratis. AutoSync och Live låser valfritt upp helautomatisk synkronisering och live-analyser. Så skiljer sig paketen."
+  public_meta_title: "Priser - EV Monitor: gratis, AutoSync och Live"
+  public_meta_description: "EV Monitor är gratis: spåra förbrukning, laddkostnader och verklig räckvidd. Valfri AutoSync och Live för helautomatisk synkronisering. Se alla planer på en gång."
   tier_toggle_monthly: "Månadsvis"
   tier_toggle_yearly: "Årligen"
   tier_toggle_yearly_savings: "spara 17%"

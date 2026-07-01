@@ -24,9 +24,13 @@ common:
   home: "EV Monitor"
   models_nav: "Modelle"
 
+lightbox:
+  prev: "Vorheriges Bild"
+  next: "Nächstes Bild"
 nav:
   login: "Anmelden"
   register: "Registrieren"
+  pricing: "Preise"
   dashboard: "Dashboard"
   models_compare: "Modelle"
   bottom:
@@ -53,6 +57,9 @@ landing:
     popular_sub: "meiste Ladevorgänge"
     meta_datapoints: "{n} Datensätze"
     unit_charges: "Ladungen"
+  community_intro:
+    heading: "Echte Daten von echten Fahrern"
+    text: "{drivers} EV-Fahrer teilen ihre realen Verbräuche und Ladekosten. Je mehr Daten zusammenkommen, desto belastbarer die Vergleiche - du siehst, welches Modell im Alltag wirklich sparsam ist und wo dein eigenes Auto steht. Kein Labor-WLTP, sondern gefahrene Kilometer."
   hero:
     title: "Wie weit kommst du wirklich - und was kostet es dich?"
     subtitle: "Behalte Ladekosten, echte Reichweite und Verbrauch deines E-Autos im Blick - kostenlos. In 2 Minuten startklar, Ladevorgänge selbst erfassen oder per AutoSync vollautomatisch synchronisieren."
@@ -155,8 +162,10 @@ landing:
     live_label: "Live"
     title: "Was gerade in der Community passiert"
   import:
-    title: "Nie wieder manuell eintippen"
-    subtitle: "10 Datenquellen - Ladevorgänge kommen automatisch oder per Import rein."
+    title: "Importiere deine Daten automatisch"
+    subtitle: "Egal ob Tesla, VW, Wallbox oder Ladesäulen-App: EV Monitor bezieht deine Ladedaten aus 10 Quellen - vollautomatisch, per App oder als Datei-Import. So bekommt jeder seine Ladevorgänge rein."
+    autosync_explainer: "Mit AutoSync meldet dein Auto vollautomatisch jeden Ladevorgang an EV Monitor - einmal verbinden, danach läuft alles von selbst. Kein Eintippen, keine Erinnerung nötig."
+    pricing_link: "AutoSync und Live gibt es in unseren Paketen - alle Preise ansehen"
     group_cars: "Telemetrie & App"
     group_wallbox: "Wallboxen"
     group_manual: "Import & API"
@@ -180,6 +189,7 @@ landing:
   footer:
     made_with: "Made with ⚡ for the EV community"
     models: "Modelle"
+    pricing: "Preise"
     privacy: "Datenschutz"
     imprint: "Impressum"
     terms: "AGB"
@@ -2328,6 +2338,12 @@ upgrade:
   live_success_desc: "Deine Tesla-Telemetry wird auf das erweiterte Profil umgestellt. Sobald dein Tesla wieder online ist, kommen Fahrten und Phantom-Drain-Berichte automatisch."
   tier_headline: "Wähle deinen Plan"
   tier_subtitle: "Manuell, automatisch oder voll live - du entscheidest, wie viel Arbeit dein Auto übernimmt."
+  public_cta: "Kostenlos registrieren"
+  public_cta_free: "Kostenlos starten"
+  public_headline: "Kostenlos starten - mit AutoSync mehr herausholen"
+  public_subheadline: "EV Monitor ist und bleibt kostenlos. AutoSync und Live schalten optional vollautomatische Synchronisation und Live-Auswertungen frei. So unterscheiden sich die Pakete."
+  public_meta_title: "Preise - EV Monitor: kostenlos, AutoSync & Live"
+  public_meta_description: "EV Monitor ist kostenlos: Verbrauch, Ladekosten und reale Reichweite tracken. Optional AutoSync und Live für vollautomatische Synchronisation. Alle Pläne im Überblick."
   tier_toggle_monthly: "Monatlich"
   tier_toggle_yearly: "Jährlich"
   tier_toggle_yearly_savings: "spare 17%"

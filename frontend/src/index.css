@@ -171,6 +171,8 @@ body {
     linear-gradient(rgba(17, 24, 39, 0.035) 1px, transparent 1px),
     linear-gradient(90deg, rgba(17, 24, 39, 0.035) 1px, transparent 1px);
   background-size: 28px 28px;
+  /* Raster viewport-fest: bleibt beim Scrollen stehen (Content laeuft darueber). */
+  background-attachment: fixed;
 }
 .dark .sl-grid {
   background-image:
