@@ -435,6 +435,8 @@ const handleBottomLogout = () => {
     <BottomNav
       v-if="authStore.isAuthenticated()"
       :more-open="moreOpen"
+      :watt-balance="coinStore.balance"
+      :is-demo="authStore.isDemoAccount"
       @record="handleBottomRecord"
       @toggle-more="moreOpen = !moreOpen"
     />
@@ -442,7 +444,6 @@ const handleBottomLogout = () => {
       :open="moreOpen"
       :feedback-mailto="feedbackMailto"
       :is-demo="authStore.isDemoAccount"
-      :watt-balance="coinStore.balance"
       :is-native="isNative"
       @close="moreOpen = false"
       @logout="handleBottomLogout"

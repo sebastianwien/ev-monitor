@@ -9,6 +9,10 @@ import { useKeyboardOpen } from '../../composables/useKeyboardOpen'
 const props = defineProps<{
   /** Ob das Mehr-Sheet gerade offen ist (steuert den Aktiv-Zustand des Mehr-Tabs). */
   moreOpen: boolean
+  /** Watt-Guthaben (wird als eigener Tab angezeigt). */
+  wattBalance: number
+  /** Demo-Account: kein Watt-Tab (Guthaben fuer Demo nicht relevant). */
+  isDemo: boolean
 }>()
 
 const emit = defineEmits<{
@@ -25,6 +29,7 @@ const keyboardOpen = useKeyboardOpen()
 
 const isStart = computed(() => route.path === '/dashboard')
 const isLogs = computed(() => route.path === '/logs')
+const isWatt = computed(() => route.path === '/coins/history')
 
 const TAB_BASE = 'flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] transition-colors'
 const LABEL = 'text-[11px] font-medium leading-none'
@@ -90,8 +95,19 @@ function onMore() {
         <span class="absolute bottom-1.5 text-[11px] font-medium leading-none text-green-700 dark:text-green-400">{{ t('nav.bottom.record') }}</span>
       </div>
 
-      <!-- Rechte Gruppe: Mehr -->
+      <!-- Rechte Gruppe: Watt + Mehr -->
       <div class="flex-1 flex">
+        <router-link
+          v-if="!props.isDemo"
+          to="/coins/history"
+          :class="tabClass(isWatt)"
+          :aria-current="isWatt ? 'page' : undefined"
+          :title="t('nav.bottom.watt')"
+          @click="onTabClick(isWatt)"
+        >
+          <BoltIcon class="h-6 w-6" />
+          <span :class="LABEL">{{ props.wattBalance }}</span>
+        </router-link>
         <button
           type="button"
           :class="tabClass(props.moreOpen)"

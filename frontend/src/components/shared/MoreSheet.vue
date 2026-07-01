@@ -2,7 +2,7 @@
 import { useI18n } from 'vue-i18n'
 import {
   XMarkIcon, TruckIcon, ArrowsRightLeftIcon, ArrowDownTrayIcon,
-  BoltIcon, Cog6ToothIcon,
+  Cog6ToothIcon,
   ArrowRightOnRectangleIcon, ChatBubbleLeftEllipsisIcon,
 } from '@heroicons/vue/24/outline'
 import ThemeToggle from './ThemeToggle.vue'
@@ -14,7 +14,6 @@ const props = defineProps<{
   open: boolean
   feedbackMailto: string
   isDemo: boolean
-  wattBalance: number
   isNative: boolean
 }>()
 
@@ -60,27 +59,14 @@ function onLogout() {
           <div class="mx-auto mb-3 h-1 w-10 rounded-full bg-gray-300 dark:bg-gray-700" />
           <div class="flex items-center justify-between">
             <h2 class="text-base font-bold text-gray-900 dark:text-gray-100">{{ t('nav.bottom.more') }}</h2>
-            <div class="flex items-center gap-2">
-              <!-- Watt-Guthaben (frueher im Top-Header) - tippbar zur Watt-Historie -->
-              <router-link
-                v-if="!props.isDemo"
-                to="/coins/history"
-                class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 text-sm font-semibold"
-                :title="t('nav.bottom.watt')"
-                @click="go"
-              >
-                <BoltIcon class="h-4 w-4" />
-                <span>{{ props.wattBalance }}</span>
-              </router-link>
-              <button
-                type="button"
-                class="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"
-                :aria-label="t('common.close')"
-                @click="emit('close')"
-              >
-                <XMarkIcon class="h-5 w-5 text-gray-500 dark:text-gray-400" />
-              </button>
-            </div>
+            <button
+              type="button"
+              class="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+              :aria-label="t('common.close')"
+              @click="emit('close')"
+            >
+              <XMarkIcon class="h-5 w-5 text-gray-500 dark:text-gray-400" />
+            </button>
           </div>
         </div>
 
@@ -112,7 +98,6 @@ function onLogout() {
         <div class="border-t border-gray-200 dark:border-gray-800 mt-1 px-4 py-3 flex items-center gap-4">
           <LocaleSwitcher variant="public" />
           <ThemeToggle v-if="!props.isDemo" />
-          <SupportPopover variant="footer" />
           <button
             v-if="!props.isDemo"
             type="button"
@@ -124,14 +109,15 @@ function onLogout() {
           </button>
         </div>
 
-        <!-- Rechtliches: nur in der nativen App (im Web liegen die Links im Footer). -->
-        <div
-          v-if="props.isNative"
-          class="border-t border-gray-200 dark:border-gray-800 px-4 py-3 flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400"
-        >
-          <router-link to="/impressum" class="hover:text-gray-700 dark:hover:text-gray-200 underline" @click="go">{{ t('footer.imprint') }}</router-link>
-          <router-link to="/datenschutz" class="hover:text-gray-700 dark:hover:text-gray-200 underline" @click="go">{{ t('footer.privacy') }}</router-link>
-          <router-link to="/agb" class="hover:text-gray-700 dark:hover:text-gray-200 underline" @click="go">{{ t('footer.terms') }}</router-link>
+        <!-- Footer: Unterstuetzen (immer) + Rechtliches (nur native App - im Web liegen
+             die Legal-Links im Seiten-Footer). -->
+        <div class="border-t border-gray-200 dark:border-gray-800 px-4 py-3 flex flex-wrap justify-center items-center gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+          <SupportPopover variant="compact" />
+          <template v-if="props.isNative">
+            <router-link to="/impressum" class="hover:text-gray-700 dark:hover:text-gray-200 underline" @click="go">{{ t('footer.imprint') }}</router-link>
+            <router-link to="/datenschutz" class="hover:text-gray-700 dark:hover:text-gray-200 underline" @click="go">{{ t('footer.privacy') }}</router-link>
+            <router-link to="/agb" class="hover:text-gray-700 dark:hover:text-gray-200 underline" @click="go">{{ t('footer.terms') }}</router-link>
+          </template>
         </div>
       </div>
     </div>

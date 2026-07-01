@@ -5,7 +5,7 @@ import { analytics } from '../../services/analytics'
 import { useI18n } from 'vue-i18n'
 
 const props = withDefaults(defineProps<{
-  variant?: 'nav' | 'footer' | 'block'
+  variant?: 'nav' | 'footer' | 'block' | 'compact'
 }>(), {
   variant: 'nav'
 })
@@ -70,9 +70,10 @@ onUnmounted(() => document.removeEventListener('click', handleOutsideClick))
     <button
       v-else
       @click.stop="open = !open"
-      class="inline-flex items-center gap-1.5 text-red-500 hover:text-red-600 transition font-medium cursor-pointer">
+      class="inline-flex items-center gap-1.5 text-red-500 hover:text-red-600 transition font-medium cursor-pointer"
+      :class="variant === 'compact' ? 'text-xs' : ''">
       <HeartIcon class="h-4 w-4" />
-      {{ t('support.footer_btn') }}
+      {{ variant === 'compact' ? t('support.nav_btn') : t('support.footer_btn') }}
     </button>
 
     <!-- Popover -->
@@ -86,7 +87,7 @@ onUnmounted(() => document.removeEventListener('click', handleOutsideClick))
       <div
         v-if="open"
         class="absolute z-50 mt-2 w-52 rounded-sm shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)] bg-white dark:bg-gray-800 ring-1 ring-black/10 overflow-hidden"
-        :class="variant === 'footer' ? 'bottom-full mb-2 left-1/2 -translate-x-1/2' : 'right-0'">
+        :class="variant === 'footer' || variant === 'compact' ? 'bottom-full mb-2 left-1/2 -translate-x-1/2' : 'right-0'">
         <div class="p-1">
           <button
             @click="openPaypal"
