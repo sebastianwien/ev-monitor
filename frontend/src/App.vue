@@ -22,7 +22,7 @@ import DemoWelcomeModal from './components/demo/DemoWelcomeModal.vue'
 import RedditConsentBanner from './components/shared/RedditConsentBanner.vue'
 import FeedbackToast from './components/shared/FeedbackToast.vue'
 import BoltLogo from './components/shared/BoltLogo.vue'
-import { Bars3Icon, XMarkIcon, HomeIcon, ArrowDownTrayIcon, UserIcon, BoltIcon, ChatBubbleLeftEllipsisIcon, ArrowsRightLeftIcon, TruckIcon, ArrowPathIcon } from '@heroicons/vue/24/outline'
+import { HomeIcon, ArrowDownTrayIcon, UserIcon, BoltIcon, ChatBubbleLeftEllipsisIcon, ArrowsRightLeftIcon, ArrowPathIcon } from '@heroicons/vue/24/outline'
 // Note: showImportOverlay kept for backward compat but SpritMonitor moved to /imports
 import { captureUtmParams, captureReferrer } from './utils/reddit-pixel'
 import { detectCountry } from './composables/useCountryDetection'
@@ -36,6 +36,8 @@ import { useSwipeBack } from './composables/useSwipeBack'
 import { useStatusBarTheme } from './composables/useStatusBarTheme'
 import { useCountryStore } from './stores/country'
 import { subscriptionService } from './api/subscriptionService'
+import BottomNav from './components/shared/BottomNav.vue'
+import MoreSheet from './components/shared/MoreSheet.vue'
 
 const { haptic } = useHaptic()
 const { t } = useI18n()
@@ -51,13 +53,15 @@ const { pull: ptrPull, refreshing: ptrRefreshing, armed: ptrArmed } = usePullToR
 
 const mainPaddingTop = computed(() => {
   if (!authStore.isAuthenticated()) return '0px'
-  // + env(safe-area-inset-top): der fixed Header waechst nativ um die Notch-Hoehe,
+  // --top-nav-h ist 0 auf Mobile (keine Top-Nav) und 64px auf Desktop.
+  // + env(safe-area-inset-top): nativ waechst der obere Bereich um die Notch-Hoehe,
   // der Content-Offset muss mitwachsen (auf Web/PWA ohne Notch ist env() = 0).
   const safe = 'env(safe-area-inset-top)'
-  // Demo banner sits below the nav (64px nav + 56px banner) — see DemoBanner.vue.
-  if (authStore.isDemoAccount) return `calc(120px + ${safe})`
-  if (tickerHasItems.value && !tickerCollapsed.value) return `calc(90px + ${safe})` // 58 + 32
-  return `calc(64px + ${safe})`
+  const nav = 'var(--top-nav-h)'
+  // Demo-Banner liegt unter der Nav (Banner-Hoehe 56px) - siehe DemoBanner.vue.
+  if (authStore.isDemoAccount) return `calc(${nav} + 56px + ${safe})`
+  if (tickerHasItems.value && !tickerCollapsed.value) return `calc(${nav} + 32px + ${safe})` // Ticker 32px
+  return `calc(${nav} + ${safe})`
 })
 
 const router = useRouter()
@@ -81,7 +85,8 @@ const { cars: carList } = storeToRefs(carStore)
 const showWallboxChip = computed(() => wallboxHasConnections.value && carList.value.length !== 1)
 const showImportOverlay = ref(false)
 const showLogFormModal = ref(false)
-const mobileMenuOpen = ref(false)
+// Bottom-Nav "Mehr"-Sheet (nur Mobile)
+const moreOpen = ref(false)
 const balanceBumping = ref(false)
 const balanceInitialized = ref(false)
 
@@ -187,11 +192,16 @@ const handleNewLog = () => {
   } else {
     router.push('/erfassen')
   }
-  mobileMenuOpen.value = false
 }
 
-const closeMobileMenu = () => {
-  mobileMenuOpen.value = false
+// Bottom-Nav: Erfassen-FAB nutzt dieselbe Logik wie der Header-Button.
+const handleBottomRecord = () => {
+  handleNewLog()
+}
+
+const handleBottomLogout = () => {
+  moreOpen.value = false
+  authStore.logout()
 }
 
 </script>
@@ -212,7 +222,7 @@ const closeMobileMenu = () => {
     </div>
 
     <!-- Navigation -->
-    <nav class="bg-indigo-600 text-white fixed top-0 left-0 right-0 z-40 pt-[env(safe-area-inset-top)]" v-if="authStore.isAuthenticated()">
+    <nav class="hidden md:block bg-indigo-600 text-white fixed top-0 left-0 right-0 z-40 pt-[env(safe-area-inset-top)]" v-if="authStore.isAuthenticated()">
       <div class="px-4 py-3">
         <div class="flex justify-between items-center">
           <!-- Left: Logo + Nav Buttons (Desktop) -->
@@ -399,38 +409,6 @@ const closeMobileMenu = () => {
             <SupportPopover variant="nav" />
           </div>
 
-          <!-- Mobile: Icons + Hamburger Button -->
-          <div class="md:hidden flex items-center gap-3">
-            <LocaleSwitcher variant="nav" />
-            <ThemeToggle v-if="!authStore.isDemoAccount" class="text-white" />
-            <!-- Wallbox dot -->
-            <button
-              v-if="showWallboxChip"
-              @click="goToGoeTab"
-              :title="`${wallboxConn?.displayName || 'Wallbox'} · ${wallboxConn?.carStateLabel}`"
-              class="flex items-center justify-center"
-            >
-              <span
-                :class="['w-2.5 h-2.5 rounded-full', wallboxChipColor,
-                         wallboxConn?.carState === 2 ? 'animate-pulse' : '']"
-              />
-            </button>
-            <router-link
-              to="/coins/history"
-              class="flex items-center gap-1 px-2 py-1 text-sm bg-indigo-500 bg-opacity-30 border border-indigo-500 rounded-sm hover:bg-opacity-50 transition font-medium"
-              :class="{ 'watt-bump': balanceBumping }"
-              title="Watt-Guthaben">
-              <BoltIcon class="h-4 w-4" />
-              <span>{{ coinStore.balance }}</span>
-            </router-link>
-            <button
-              @click="mobileMenuOpen = !mobileMenuOpen"
-              class="p-2 rounded-sm hover:bg-indigo-700 transition"
-              aria-label="Menu">
-              <Bars3Icon v-if="!mobileMenuOpen" class="h-6 w-6" />
-              <XMarkIcon v-else class="h-6 w-6" />
-            </button>
-          </div>
         </div>
       </div>
 
@@ -439,86 +417,21 @@ const closeMobileMenu = () => {
     <!-- Leaderboard Ticker (below nav, only when authenticated) -->
     <LeaderboardTicker v-if="authStore.isAuthenticated() && !authStore.isDemoAccount && ['DE', 'AT', 'CH'].includes(countryStore.country)" />
 
-    <!-- Mobile Menu Overlay -->
-    <Transition name="mobile-menu">
-      <div
-        v-if="mobileMenuOpen"
-        class="fixed inset-0 z-50 md:hidden"
-        @click.self="closeMobileMenu">
-        <!-- Backdrop -->
-        <div class="absolute inset-0 bg-black bg-opacity-50" @click="closeMobileMenu"></div>
-
-        <!-- Menu Panel (slides in from top) -->
-        <div class="absolute top-0 left-0 right-0 pt-[env(safe-area-inset-top)] bg-indigo-700 shadow-[6px_6px_0_rgba(0,0,0,0.40)] dark:shadow-[6px_6px_0_rgba(255,255,255,0.40)] overflow-y-auto max-h-[70vh]">
-          <div class="px-4 py-4 space-y-2">
-            <!-- Header -->
-            <div class="flex items-center justify-between px-3 py-2">
-              <div class="flex items-center gap-2">
-                <BoltIcon class="h-5 w-5 text-yellow-400" />
-                <span class="text-base font-bold tracking-wide text-white">EV-Monitor</span>
-              </div>
-              <button
-                @click="closeMobileMenu"
-                class="p-1.5 rounded-sm bg-indigo-500 hover:bg-indigo-400 transition"
-                aria-label="Menü schließen">
-                <XMarkIcon class="h-5 w-5 text-white" />
-              </button>
-            </div>
-            <div class="border-t border-indigo-500 mb-2"></div>
-
-            <router-link
-              to="/dashboard"
-              @click="closeMobileMenu"
-              class="flex items-center gap-2 px-3 py-2 rounded-sm text-sm font-medium text-indigo-100 hover:bg-indigo-600 transition"
-              :class="{ 'bg-indigo-800': $route.path === '/dashboard' }">
-              <HomeIcon class="h-5 w-5" />
-              <span>Dashboard</span>
-            </router-link>
-            <router-link
-              to="/cars"
-              @click="closeMobileMenu"
-              class="flex items-center gap-2 px-3 py-2 rounded-sm text-sm font-medium text-indigo-100 hover:bg-indigo-600 transition"
-              :class="{ 'bg-indigo-800': $route.path === '/cars' }">
-              <TruckIcon class="h-5 w-5" />
-              <span>{{ t('dashboard.vehicles_btn') }}</span>
-            </router-link>
-            <router-link
-              to="/imports"
-              @click="closeMobileMenu"
-              class="flex items-center gap-2 px-3 py-2 rounded-sm text-sm font-medium text-indigo-100 hover:bg-indigo-600 transition"
-              :class="{ 'bg-indigo-800': $route.path === '/imports' }">
-              <ArrowDownTrayIcon class="h-5 w-5" />
-              <span>Import</span>
-            </router-link>
-            <router-link
-              to="/modelle"
-              @click="closeMobileMenu"
-              class="flex items-center gap-2 px-3 py-2 rounded-sm text-sm font-medium text-indigo-100 hover:bg-indigo-600 transition"
-              :class="{ 'bg-indigo-800': $route.path.startsWith('/modelle') }">
-              <ArrowsRightLeftIcon class="h-5 w-5" />
-              <span>{{ t('nav.models_compare') }}</span>
-            </router-link>
-            <router-link
-              v-if="authStore.user && !authStore.isDemoAccount"
-              to="/settings"
-              @click="closeMobileMenu"
-              class="flex items-center gap-2 px-3 py-2 rounded-sm text-sm font-medium text-indigo-100 hover:bg-indigo-600 transition"
-              :class="{ 'bg-indigo-800': $route.path === '/settings' }">
-              <UserIcon class="h-5 w-5" />
-              <span>{{ authStore.user.username || authStore.user.sub }}</span>
-            </router-link>
-            <a
-              :href="feedbackMailto"
-              @click="closeMobileMenu"
-              class="flex items-center gap-2 px-3 py-2 rounded-sm text-sm font-medium text-indigo-100 hover:bg-indigo-600 transition">
-              <ChatBubbleLeftEllipsisIcon class="h-5 w-5" />
-              <span>Feedback</span>
-            </a>
-            <SupportPopover variant="nav" />
-          </div>
-        </div>
-      </div>
-    </Transition>
+    <!-- Mobile: Bottom-Navigation + "Mehr"-Sheet (ersetzt das alte Hamburger-Menue) -->
+    <BottomNav
+      v-if="authStore.isAuthenticated()"
+      :more-open="moreOpen"
+      @record="handleBottomRecord"
+      @toggle-more="moreOpen = !moreOpen"
+    />
+    <MoreSheet
+      :open="moreOpen"
+      :feedback-mailto="feedbackMailto"
+      :is-demo="authStore.isDemoAccount"
+      :watt-balance="coinStore.balance"
+      @close="moreOpen = false"
+      @logout="handleBottomLogout"
+    />
     <!-- Impersonation Banner -->
     <div
       v-if="impersonatingAs"
@@ -536,7 +449,8 @@ const closeMobileMenu = () => {
     <main
       :class="[
         authStore.isAuthenticated() ? 'md:px-4' : '',
-        authStore.isAuthenticated() ? 'md:pb-10' : ''
+        // Mobile: Platz fuer die Bottom-Nav (h-14 + Safe-Area); Desktop unveraendert.
+        authStore.isAuthenticated() ? 'pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-10' : ''
       ]"
       style="overflow-x: clip;"
       :style="{ paddingTop: mainPaddingTop, transition: 'padding-top 0.3s ease' }">
@@ -573,7 +487,10 @@ const closeMobileMenu = () => {
     <SpritMonitorImport v-if="showImportOverlay" @close="showImportOverlay = false" />
 
     <!-- Floating Action Button (only when authenticated) -->
-    <FloatingActionButton v-if="authStore.isAuthenticated() && !authStore.isDemoAccount && !isOnboardingVisible && !showLogFormModal && $route.path !== '/erfassen'" @click="handleNewLog" />
+    <!-- Floating-Action-Button nur Desktop (>=768px); auf Mobile uebernimmt der Bottom-Nav-FAB. -->
+    <div class="hidden md:block">
+      <FloatingActionButton v-if="authStore.isAuthenticated() && !authStore.isDemoAccount && !isOnboardingVisible && !showLogFormModal && $route.path !== '/erfassen'" @click="handleNewLog" />
+    </div>
 
     <!-- Log Form Modal (Desktop only) -->
     <LogFormModal v-if="showLogFormModal && authStore.isAuthenticated()" @close="showLogFormModal = false" />

@@ -70,9 +70,9 @@ onUnmounted(() => {
 
 <template>
   <!-- Outer wrapper: relative + overflow-visible so the lasche can hang below -->
-  <!-- top = Nav-Hoehe (58px) + Notch: nativ waechst die fixe Nav um env(safe-area-inset-top),
-       der Ticker muss exakt darunter andocken (auf Web/PWA ist env() = 0). -->
-  <div v-if="items.length > 0" class="fixed left-0 right-0 z-39" style="top: calc(58px + env(safe-area-inset-top))">
+  <!-- top = Nav-Hoehe (--top-nav-h: 0 auf Mobile, 64px auf Desktop) + Notch: der Ticker
+       dockt direkt unter der Top-Nav an; auf Mobile (keine Nav) sitzt er unter der Statusbar. -->
+  <div v-if="items.length > 0" class="fixed left-0 right-0 z-39" style="top: calc(var(--top-nav-h) + env(safe-area-inset-top))">
 
     <!-- Green band: collapses to a thin stripe -->
     <div

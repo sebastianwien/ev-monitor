@@ -280,15 +280,7 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
           <div class="flex flex-wrap items-center gap-3 mb-6">
             <ChartBarIcon class="h-8 w-8 text-gray-700 dark:text-gray-300" />
             <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-200">Dashboard</h1>
-            <!-- Mobile: Logs & Trips -->
-            <div v-if="stats && stats.totalCharges > 0" class="sm:hidden ml-auto">
-              <router-link
-                to="/logs"
-                class="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-indigo-600 text-white text-sm font-medium shadow-[0_4px_0_0_#3730a3] hover:shadow-[0_2px_0_0_#3730a3] hover:translate-y-0.5 active:shadow-none active:translate-y-1 transition-all duration-75">
-                Logs & Trips
-                <ChevronRightIcon class="w-3 h-3 opacity-75" />
-              </router-link>
-            </div>
+            <!-- Mobile: Logs/Trips laufen ueber die Bottom-Nav (kein redundanter Button hier) -->
             <!-- Desktop: Filter + Fahrzeuge + Logs -->
             <div class="hidden sm:flex items-center gap-2 ml-auto">
               <router-link

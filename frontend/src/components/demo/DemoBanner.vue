@@ -38,12 +38,12 @@ onUnmounted(() => window.removeEventListener('demo-account-blocked', onBlocked))
 </script>
 
 <template>
-  <!-- Sits directly under the fixed navbar (top offset = nav height). Compact single row so it
-       reads as a primary banner, not an ignorable cookie-style footer. Height is fixed (56px:
-       4px accent + 52px bar) and mirrored in App.vue's mainPaddingTop. -->
+  <!-- Sits directly under the fixed navbar (--top-nav-h: 0 on mobile, 64px on desktop).
+       Compact single row so it reads as a primary banner, not an ignorable cookie-style footer.
+       Height is fixed (56px: 4px accent + 52px bar) and mirrored in App.vue's mainPaddingTop. -->
   <div
     class="fixed left-0 right-0 z-30"
-    style="top: calc(64px + env(safe-area-inset-top))"
+    style="top: calc(var(--top-nav-h) + env(safe-area-inset-top))"
     :class="{ 'animate-shake': shaking }">
     <div class="h-1 bg-gradient-to-r from-green-400 via-emerald-500 to-green-600"></div>
 

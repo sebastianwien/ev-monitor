@@ -1,0 +1,149 @@
+<script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+import {
+  XMarkIcon, TruckIcon, ArrowsRightLeftIcon, ArrowDownTrayIcon,
+  Battery100Icon, DocumentTextIcon, BoltIcon, Cog6ToothIcon,
+  ArrowRightOnRectangleIcon, ChatBubbleLeftEllipsisIcon,
+} from '@heroicons/vue/24/outline'
+import ThemeToggle from './ThemeToggle.vue'
+import LocaleSwitcher from './LocaleSwitcher.vue'
+import SupportPopover from '../settings/SupportPopover.vue'
+import { useHaptic } from '../../composables/useHaptic'
+
+const props = defineProps<{
+  open: boolean
+  feedbackMailto: string
+  isDemo: boolean
+  wattBalance: number
+}>()
+
+const emit = defineEmits<{ close: []; logout: [] }>()
+
+const { t } = useI18n()
+const { haptic } = useHaptic()
+
+interface NavItem { to: string; label: string; icon: typeof TruckIcon; demoHidden?: boolean }
+const items: NavItem[] = [
+  { to: '/cars', label: 'dashboard.vehicles_btn', icon: TruckIcon },
+  { to: '/modelle', label: 'nav.models_compare', icon: ArrowsRightLeftIcon },
+  { to: '/imports', label: 'nav.bottom.import', icon: ArrowDownTrayIcon, demoHidden: true },
+  { to: '/wallbox', label: 'nav.bottom.wallbox', icon: Battery100Icon, demoHidden: true },
+  { to: '/tax-export', label: 'nav.bottom.tax_export', icon: DocumentTextIcon, demoHidden: true },
+  { to: '/settings', label: 'nav.bottom.settings', icon: Cog6ToothIcon, demoHidden: true },
+]
+
+function go() {
+  haptic()
+  emit('close')
+}
+
+function onLogout() {
+  haptic()
+  emit('logout')
+}
+</script>
+
+<template>
+  <Transition name="more-sheet">
+    <div v-if="props.open" class="fixed inset-0 z-50 md:hidden" @click.self="emit('close')">
+      <!-- Backdrop -->
+      <div class="absolute inset-0 bg-black/50" @click="emit('close')" />
+
+      <!-- Sheet -->
+      <div
+        class="more-sheet absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-900 rounded-t-2xl shadow-[0_-4px_20px_rgba(0,0,0,0.25)] max-h-[80vh] overflow-y-auto pb-[env(safe-area-inset-bottom)]"
+        role="dialog"
+        aria-modal="true"
+        :aria-label="t('nav.bottom.more')"
+      >
+        <!-- Grabber + Header -->
+        <div class="sticky top-0 bg-white dark:bg-gray-900 pt-3 px-4 pb-2">
+          <div class="mx-auto mb-3 h-1 w-10 rounded-full bg-gray-300 dark:bg-gray-700" />
+          <div class="flex items-center justify-between">
+            <h2 class="text-base font-bold text-gray-900 dark:text-gray-100">{{ t('nav.bottom.more') }}</h2>
+            <div class="flex items-center gap-2">
+              <!-- Watt-Guthaben (frueher im Top-Header) - tippbar zur Watt-Historie -->
+              <router-link
+                v-if="!props.isDemo"
+                to="/coins/history"
+                class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 text-sm font-semibold"
+                :title="t('nav.bottom.watt')"
+                @click="go"
+              >
+                <BoltIcon class="h-4 w-4" />
+                <span>{{ props.wattBalance }}</span>
+              </router-link>
+              <button
+                type="button"
+                class="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+                :aria-label="t('common.close')"
+                @click="emit('close')"
+              >
+                <XMarkIcon class="h-5 w-5 text-gray-500 dark:text-gray-400" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Nav-Items -->
+        <nav class="px-2 py-1">
+          <template v-for="item in items" :key="item.to">
+            <router-link
+              v-if="!(item.demoHidden && props.isDemo)"
+              :to="item.to"
+              class="flex items-center gap-3 px-3 py-3 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+              @click="go"
+            >
+              <component :is="item.icon" class="h-5 w-5 text-gray-500 dark:text-gray-400 shrink-0" />
+              <span class="text-sm font-medium">{{ t(item.label) }}</span>
+            </router-link>
+          </template>
+
+          <a
+            :href="props.feedbackMailto"
+            class="flex items-center gap-3 px-3 py-3 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+            @click="go"
+          >
+            <ChatBubbleLeftEllipsisIcon class="h-5 w-5 text-gray-500 dark:text-gray-400 shrink-0" />
+            <span class="text-sm font-medium">{{ t('nav.bottom.feedback') }}</span>
+          </a>
+        </nav>
+
+        <!-- Utilities -->
+        <div class="border-t border-gray-200 dark:border-gray-800 mt-1 px-4 py-3 flex items-center gap-4">
+          <LocaleSwitcher variant="public" />
+          <ThemeToggle v-if="!props.isDemo" />
+          <SupportPopover variant="footer" />
+          <button
+            v-if="!props.isDemo"
+            type="button"
+            class="ml-auto flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
+            @click="onLogout"
+          >
+            <ArrowRightOnRectangleIcon class="h-5 w-5" />
+            {{ t('nav.bottom.logout') }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </Transition>
+</template>
+
+<style scoped>
+.more-sheet-enter-active,
+.more-sheet-leave-active {
+  transition: opacity 0.2s ease;
+}
+.more-sheet-enter-active .more-sheet,
+.more-sheet-leave-active .more-sheet {
+  transition: transform 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.more-sheet-enter-from,
+.more-sheet-leave-to {
+  opacity: 0;
+}
+.more-sheet-enter-from .more-sheet,
+.more-sheet-leave-to .more-sheet {
+  transform: translateY(100%);
+}
+</style>

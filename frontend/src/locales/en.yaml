@@ -29,6 +29,19 @@ nav:
   register: "Sign up"
   dashboard: "Dashboard"
   models_compare: "Models"
+  bottom:
+    aria: "Main navigation"
+    start: "Home"
+    logs: "Logs"
+    record: "Add"
+    more: "More"
+    import: "Import"
+    wallbox: "Wallbox"
+    tax_export: "Tax export"
+    watt: "Watt balance"
+    settings: "Settings"
+    feedback: "Feedback"
+    logout: "Log out"
 
 landing:
   superlatives:

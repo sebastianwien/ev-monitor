@@ -28,6 +28,19 @@ nav:
   register: Registrer deg
   dashboard: Dashbord
   models_compare: Modeller
+  bottom:
+    aria: Hovednavigasjon
+    start: Hjem
+    logs: Logg
+    record: Legg til
+    more: Mer
+    import: Import
+    wallbox: Wallbox
+    tax_export: Skatteeksport
+    watt: Watt-saldo
+    settings: Innstillinger
+    feedback: Tilbakemelding
+    logout: Logg ut
 landing:
   superlatives:
     eyebrow: "Fellesskapets toppliste"

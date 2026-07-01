@@ -12,6 +12,13 @@ html, body {
   overflow-x: clip;
 }
 
+/* Hoehe der fixen Top-Navigation. Nur Desktop (>=768px) hat eine Top-Nav; auf
+   Mobile laeuft die Navigation komplett ueber die Bottom-Nav -> kein Top-Offset.
+   LeaderboardTicker, DemoBanner und der Main-Content-Offset referenzieren diese
+   Variable, damit die nav-abhaengigen Offsets an einer Stelle definiert sind. */
+:root { --top-nav-h: 0px; }
+@media (min-width: 768px) { :root { --top-nav-h: 64px; } }
+
 /* Leaflet: Tailwind Preflight sets max-width: 100% on all images,
    which breaks tile rendering and map panning on desktop */
 .leaflet-container img {
