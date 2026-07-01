@@ -553,6 +553,64 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
 
           <div v-if="error" class="mb-4 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300 rounded-sm">{{ error }}</div>
 
+        <!-- Desktop: Datumsfilter zentriert mit Trennstrich - immer sichtbar (auch bei leerem Zeitraum) -->
+        <div v-if="filterBarVisible" class="hidden md:flex items-center gap-4 mb-4">
+          <div class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
+          <div class="relative" ref="filterDropdownDesktop">
+            <button
+              data-testid="dashboard-filter-toggle"
+              @click.stop="showFilterDropdown = !showFilterDropdown"
+              class="flex items-center gap-2 px-4 py-1.5 rounded-sm border-2 border-gray-300 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium">
+              <CalendarIcon class="w-4 h-4 opacity-60" />
+              <span>{{ timeRangeOptions.find(o => o.value === selectedTimeRange)?.shortLabel ?? selectedTimeRange }}</span>
+              <span class="text-gray-300 dark:text-gray-500">·</span>
+              <span>{{ groupByOptions.find(o => o.value === selectedGroupBy)?.label }}</span>
+              <ChevronDownIcon class="w-3.5 h-3.5 opacity-50 transition-transform" :class="{ 'rotate-180': showFilterDropdown }" />
+            </button>
+            <Transition name="dropdown">
+              <div v-if="showFilterDropdown"
+                data-testid="dashboard-filter-dropdown"
+                class="absolute left-1/2 -translate-x-1/2 top-full mt-1.5 z-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] p-3 w-72"
+                @click.stop>
+                <p class="text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">{{ t('dashboard.time_range_label') }}</p>
+                <div class="flex flex-wrap gap-1.5 mb-3">
+                  <button v-for="option in timeRangeOptions" :key="option.value" @click="setTimeRange(option.value)"
+                    :class="['inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-sm transition', selectedTimeRange === option.value ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600']">
+                    <CalendarIcon v-if="option.value === 'CUSTOM'" class="w-3 h-3" />
+                    {{ option.shortLabel }}
+                  </button>
+                </div>
+                <div v-if="selectedTimeRange === 'CUSTOM'" class="flex items-center gap-2 mb-3">
+                  <div class="flex-1 relative">
+                    <input type="date" v-model="customStartDate" :max="customEndDate || undefined" :aria-label="t('dashboard.time_custom_from')"
+                      class="block w-full px-2 pr-7 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-8 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer" />
+                    <CalendarIcon class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                  </div>
+                  <span class="text-gray-400 text-xs shrink-0">→</span>
+                  <div class="flex-1 relative">
+                    <input type="date" v-model="customEndDate" :min="customStartDate || undefined" :aria-label="t('dashboard.time_custom_to')"
+                      class="block w-full px-2 pr-7 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-8 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer" />
+                    <CalendarIcon class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                  </div>
+                </div>
+                <div class="pt-2 border-t border-gray-100 dark:border-gray-700">
+                  <div class="flex items-center gap-1.5 mb-1.5">
+                    <ListBulletIcon class="h-3.5 w-3.5 text-gray-400 shrink-0" />
+                    <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('dashboard.group_by_label') }}</span>
+                  </div>
+                  <div class="flex flex-wrap gap-1.5">
+                    <button v-for="opt in groupByOptions" :key="opt.value" @click="selectedGroupBy = opt.value; showFilterDropdown = false"
+                      :class="['px-2.5 py-1 text-xs font-medium rounded-sm transition', selectedGroupBy === opt.value ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600']">
+                      {{ opt.label }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </Transition>
+          </div>
+          <div class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
+        </div>
+
           <!-- Empty State: No Cars -->
           <div v-if="cars.length === 0" class="min-h-[60vh] flex items-center justify-center">
             <div class="text-center max-w-md px-4">
@@ -706,64 +764,6 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
             </button>
             <span class="absolute bottom-1 right-3 text-[10px] text-gray-300 dark:text-gray-600">Affiliate-Link</span>
           </div>
-        </div>
-
-        <!-- Desktop: Datumsfilter zentriert mit Trennstrich -->
-        <div v-if="filterBarVisible" class="hidden md:flex items-center gap-4 mb-4">
-          <div class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
-          <div class="relative" ref="filterDropdownDesktop">
-            <button
-              data-testid="dashboard-filter-toggle"
-              @click.stop="showFilterDropdown = !showFilterDropdown"
-              class="flex items-center gap-2 px-4 py-1.5 rounded-sm border-2 border-gray-300 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium">
-              <CalendarIcon class="w-4 h-4 opacity-60" />
-              <span>{{ timeRangeOptions.find(o => o.value === selectedTimeRange)?.shortLabel ?? selectedTimeRange }}</span>
-              <span class="text-gray-300 dark:text-gray-500">·</span>
-              <span>{{ groupByOptions.find(o => o.value === selectedGroupBy)?.label }}</span>
-              <ChevronDownIcon class="w-3.5 h-3.5 opacity-50 transition-transform" :class="{ 'rotate-180': showFilterDropdown }" />
-            </button>
-            <Transition name="dropdown">
-              <div v-if="showFilterDropdown"
-                data-testid="dashboard-filter-dropdown"
-                class="absolute left-1/2 -translate-x-1/2 top-full mt-1.5 z-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] p-3 w-72"
-                @click.stop>
-                <p class="text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">{{ t('dashboard.time_range_label') }}</p>
-                <div class="flex flex-wrap gap-1.5 mb-3">
-                  <button v-for="option in timeRangeOptions" :key="option.value" @click="setTimeRange(option.value)"
-                    :class="['inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-sm transition', selectedTimeRange === option.value ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600']">
-                    <CalendarIcon v-if="option.value === 'CUSTOM'" class="w-3 h-3" />
-                    {{ option.shortLabel }}
-                  </button>
-                </div>
-                <div v-if="selectedTimeRange === 'CUSTOM'" class="flex items-center gap-2 mb-3">
-                  <div class="flex-1 relative">
-                    <input type="date" v-model="customStartDate" :max="customEndDate || undefined" :aria-label="t('dashboard.time_custom_from')"
-                      class="block w-full px-2 pr-7 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-8 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer" />
-                    <CalendarIcon class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
-                  </div>
-                  <span class="text-gray-400 text-xs shrink-0">→</span>
-                  <div class="flex-1 relative">
-                    <input type="date" v-model="customEndDate" :min="customStartDate || undefined" :aria-label="t('dashboard.time_custom_to')"
-                      class="block w-full px-2 pr-7 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-8 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer" />
-                    <CalendarIcon class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
-                  </div>
-                </div>
-                <div class="pt-2 border-t border-gray-100 dark:border-gray-700">
-                  <div class="flex items-center gap-1.5 mb-1.5">
-                    <ListBulletIcon class="h-3.5 w-3.5 text-gray-400 shrink-0" />
-                    <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('dashboard.group_by_label') }}</span>
-                  </div>
-                  <div class="flex flex-wrap gap-1.5">
-                    <button v-for="opt in groupByOptions" :key="opt.value" @click="selectedGroupBy = opt.value; showFilterDropdown = false"
-                      :class="['px-2.5 py-1 text-xs font-medium rounded-sm transition', selectedGroupBy === opt.value ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600']">
-                      {{ opt.label }}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </Transition>
-          </div>
-          <div class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
         </div>
 
         <!-- Key Metrics: Desktop Grid (mobile uses Data Strip below) -->
