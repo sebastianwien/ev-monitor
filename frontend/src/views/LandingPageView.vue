@@ -46,6 +46,9 @@ const pricingUrl = computed(() => isEn.value ? '/pricing' : '/preise')
 
 // Klickbare Screenshots: pro Sektion ein Bild-Set, das in der Lightbox durchblaettert wird.
 const { open: openLightbox } = useLightbox()
+const dashboardShot = () => [
+  { src: '/screenshots/dashboard-light.jpg', alt: t('landing.app_preview.dashboard_title') },
+]
 const productShots = () => [
   { src: '/screenshots/dashboard-light.jpg', alt: t('landing.app_preview.dashboard_title') },
   { src: '/screenshots/logfeed-light.jpg', alt: t('landing.app_preview.logfeed_title') },
@@ -335,55 +338,29 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
           </button>
         </div>
 
-        <!-- Hero product visuals: Dashboard + Ladeliste als Paar, damit ein Erstbesucher
-             sofort erfasst, dass dies ein persoenliches Tracking-Tool ist. Beide als
-             Light-Shot (kein logfeed-dark vorhanden) - gleiche Behandlung wie die
-             App-Preview-Sektion, damit das Paar im Dark Mode zusammenpasst. -->
-        <!-- Bricht aus dem max-w-4xl-Text-Container aus (gleiches Muster wie das CTA-Band
-             unten), damit die Screenshots breiter als die Textspalte werden koennen. -->
-        <div class="relative left-1/2 right-1/2 -mx-[50vw] w-screen mt-10 sm:mt-12 mb-14 sm:mb-16">
-          <div class="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
-          <!-- Dashboard -->
-          <div class="relative">
-            <div class="rounded-xl border-2 border-gray-900 dark:border-gray-100 shadow-[8px_8px_0_0_#15803d] dark:shadow-[8px_8px_0_0_#22c55e] overflow-hidden relative transition duration-300 ease-out hover:scale-[1.06]">
-              <img
-                src="/screenshots/dashboard-light.jpg"
-                :alt="t('landing.app_preview.dashboard_title')"
-                class="w-full block h-auto cursor-zoom-in"
-                width="885"
-                height="950"
-                fetchpriority="high"
-                role="button"
-                tabindex="0"
-                @click="openLightbox(productShots(), 0)"
-                @keydown.enter.space.prevent="openLightbox(productShots(), 0)"
-              />
-              <div class="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-b from-transparent to-white dark:to-gray-900 pointer-events-none"></div>
-            </div>
-            <div class="absolute -bottom-3 -left-3 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-sm font-bold px-4 py-2 rounded-full shadow-[4px_4px_0_0_#111827] border-2 border-gray-900 hidden sm:block">
-              {{ t('landing.app_preview.chip_costs') }}
-            </div>
+        <!-- Hero product visual: ein einzelnes, grosses Dashboard-Bild, das den Hero
+             ankert (fuellt die Textspalte, damit es nicht allein rumfloatet). -->
+        <div class="mt-10 sm:mt-12 mb-14 sm:mb-16 w-full max-w-4xl mx-auto relative">
+          <div class="rounded-xl border-2 border-gray-900 dark:border-gray-100 shadow-[8px_8px_0_0_#111827] dark:shadow-[8px_8px_0_0_#e5e7eb] overflow-hidden relative transition duration-300 ease-out hover:scale-[1.06]">
+            <img
+              src="/screenshots/dashboard-light.jpg"
+              :alt="t('landing.app_preview.dashboard_title')"
+              class="w-full block h-auto cursor-zoom-in"
+              width="885"
+              height="950"
+              fetchpriority="high"
+              role="button"
+              tabindex="0"
+              @click="openLightbox(dashboardShot(), 0)"
+              @keydown.enter.space.prevent="openLightbox(dashboardShot(), 0)"
+            />
+            <div class="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-b from-transparent to-white dark:to-gray-900 pointer-events-none"></div>
           </div>
-          <!-- Ladeliste / Logfeed -->
-          <div class="relative">
-            <div class="rounded-xl border-2 border-gray-900 dark:border-gray-100 shadow-[8px_8px_0_0_#15803d] dark:shadow-[8px_8px_0_0_#22c55e] overflow-hidden relative transition duration-300 ease-out hover:scale-[1.06]">
-              <img
-                src="/screenshots/logfeed-light.jpg"
-                :alt="t('landing.app_preview.logfeed_title')"
-                class="w-full block h-auto cursor-zoom-in"
-                width="885"
-                height="799"
-                role="button"
-                tabindex="0"
-                @click="openLightbox(productShots(), 1)"
-                @keydown.enter.space.prevent="openLightbox(productShots(), 1)"
-              />
-              <div class="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-b from-transparent to-white dark:to-gray-900 pointer-events-none"></div>
-            </div>
-            <div class="absolute -bottom-3 -right-3 bg-green-500 text-white text-sm font-bold px-4 py-2 rounded-full shadow-[4px_4px_0_0_#111827] border-2 border-gray-900 hidden sm:block">
-              {{ t('landing.app_preview.chip_efficiency') }}
-            </div>
+          <div class="absolute -top-3 -right-3 bg-green-500 text-white text-sm font-bold px-4 py-2 rounded-full shadow-[4px_4px_0_0_#111827] border-2 border-gray-900 hidden sm:block">
+            {{ t('landing.app_preview.chip_co2') }}
           </div>
+          <div class="absolute -bottom-3 -left-3 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-sm font-bold px-4 py-2 rounded-full shadow-[4px_4px_0_0_#111827] border-2 border-gray-900 hidden sm:block">
+            {{ t('landing.app_preview.chip_costs') }}
           </div>
         </div>
 
@@ -615,7 +592,7 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
 
           <!-- Dashboard screenshot (mobile pos 3) -->
           <div class="order-2 lg:order-none lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:self-center w-full max-w-xl lg:max-w-none mx-auto relative">
-            <div class="rounded-xl border-2 border-gray-900 dark:border-gray-100 shadow-[8px_8px_0_0_#15803d] dark:shadow-[8px_8px_0_0_#22c55e] overflow-hidden relative transition duration-300 ease-out hover:scale-[1.06]">
+            <div class="rounded-xl border-2 border-gray-900 dark:border-gray-100 shadow-[8px_8px_0_0_#111827] dark:shadow-[8px_8px_0_0_#e5e7eb] overflow-hidden relative transition duration-300 ease-out hover:scale-[1.06]">
               <img
                 src="/screenshots/dashboard-light.jpg"
                 alt="EV Monitor Dashboard"
@@ -675,7 +652,7 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
 
           <!-- Logfeed screenshot (mobile pos 3) -->
           <div class="order-2 lg:order-none lg:col-start-1 lg:row-start-1 lg:row-span-2 lg:self-center w-full max-w-xl lg:max-w-none mx-auto relative">
-            <div class="rounded-xl border-2 border-gray-900 dark:border-gray-100 shadow-[8px_8px_0_0_#15803d] dark:shadow-[8px_8px_0_0_#22c55e] overflow-hidden relative transition duration-300 ease-out hover:scale-[1.06]">
+            <div class="rounded-xl border-2 border-gray-900 dark:border-gray-100 shadow-[8px_8px_0_0_#111827] dark:shadow-[8px_8px_0_0_#e5e7eb] overflow-hidden relative transition duration-300 ease-out hover:scale-[1.06]">
               <img
                 src="/screenshots/logfeed-light.jpg"
                 alt="EV Monitor Ladehistorie"
@@ -735,7 +712,7 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
               <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1 mb-2">{{ t('landing.app_preview.map_title') }}</h3>
             </div>
             <!-- Screenshot (mobile pos 2) -->
-            <div class="order-2 lg:order-1 mt-3 lg:mt-0 rounded-xl border-2 border-gray-900 dark:border-gray-100 shadow-[6px_6px_0_0_#15803d] dark:shadow-[6px_6px_0_0_#22c55e] overflow-hidden transition duration-300 ease-out hover:scale-[1.06]">
+            <div class="order-2 lg:order-1 mt-3 lg:mt-0 rounded-xl border-2 border-gray-900 dark:border-gray-100 shadow-[6px_6px_0_0_#111827] dark:shadow-[6px_6px_0_0_#e5e7eb] overflow-hidden transition duration-300 ease-out hover:scale-[1.06]">
               <img
                 src="/screenshots/map-light.jpg"
                 alt="EV Monitor Lade-Standorte Karte"
@@ -769,7 +746,7 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
               <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1 mb-2">{{ t('landing.app_preview.charts_title') }}</h3>
             </div>
             <!-- Screenshot (mobile pos 2) -->
-            <div class="order-2 lg:order-1 mt-3 lg:mt-0 rounded-xl border-2 border-gray-900 dark:border-gray-100 shadow-[6px_6px_0_0_#15803d] dark:shadow-[6px_6px_0_0_#22c55e] overflow-hidden transition duration-300 ease-out hover:scale-[1.06]">
+            <div class="order-2 lg:order-1 mt-3 lg:mt-0 rounded-xl border-2 border-gray-900 dark:border-gray-100 shadow-[6px_6px_0_0_#111827] dark:shadow-[6px_6px_0_0_#e5e7eb] overflow-hidden transition duration-300 ease-out hover:scale-[1.06]">
               <img
                 src="/screenshots/charts-light.jpg"
                 alt="EV Monitor Analysen Kosten und Verbrauch"
@@ -843,13 +820,13 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
       <!-- Dark mode gallery -->
       <div class="max-w-7xl mx-auto px-4 sm:px-8 lg:px-12">
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-          <div class="rounded-xl overflow-hidden border-2 border-gray-900 dark:border-gray-100 shadow-[6px_6px_0_0_#15803d] dark:shadow-[6px_6px_0_0_#22c55e] aspect-[900/1087]">
+          <div class="rounded-xl overflow-hidden border-2 border-gray-900 dark:border-gray-100 shadow-[6px_6px_0_0_#111827] dark:shadow-[6px_6px_0_0_#e5e7eb] aspect-[900/1087]">
             <img src="/screenshots/dashboard-dark.jpg" alt="EV Monitor Dashboard Dark Mode" class="w-full h-full object-cover object-top cursor-zoom-in" loading="lazy" width="900" height="1087" role="button" tabindex="0" @click="openLightbox(darkShots(), 0)" @keydown.enter.space.prevent="openLightbox(darkShots(), 0)" />
           </div>
-          <div class="rounded-xl overflow-hidden border-2 border-gray-900 dark:border-gray-100 shadow-[6px_6px_0_0_#15803d] dark:shadow-[6px_6px_0_0_#22c55e] aspect-[900/1087]">
+          <div class="rounded-xl overflow-hidden border-2 border-gray-900 dark:border-gray-100 shadow-[6px_6px_0_0_#111827] dark:shadow-[6px_6px_0_0_#e5e7eb] aspect-[900/1087]">
             <img src="/screenshots/charts-dark.jpg" alt="EV Monitor Charts Dark Mode" class="w-full h-full object-cover object-top cursor-zoom-in" loading="lazy" width="900" height="1165" role="button" tabindex="0" @click="openLightbox(darkShots(), 1)" @keydown.enter.space.prevent="openLightbox(darkShots(), 1)" />
           </div>
-          <div class="rounded-xl overflow-hidden border-2 border-gray-900 dark:border-gray-100 shadow-[6px_6px_0_0_#15803d] dark:shadow-[6px_6px_0_0_#22c55e] aspect-[900/1087]">
+          <div class="rounded-xl overflow-hidden border-2 border-gray-900 dark:border-gray-100 shadow-[6px_6px_0_0_#111827] dark:shadow-[6px_6px_0_0_#e5e7eb] aspect-[900/1087]">
             <img src="/screenshots/map-dark.jpg" alt="EV Monitor Karte Dark Mode" class="w-full h-full object-cover object-top cursor-zoom-in" loading="lazy" width="900" height="1156" role="button" tabindex="0" @click="openLightbox(darkShots(), 2)" @keydown.enter.space.prevent="openLightbox(darkShots(), 2)" />
           </div>
         </div>
