@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { Capacitor } from '@capacitor/core'
 import { useGridRipple } from '@/composables/useGridRipple'
+
+// Auf der nativen App (iOS/Android) gar nicht rendern: Die Animation laeuft dort
+// ohnehin nie (nur bei `pointer: fine` aktiv, Touch hat das nicht), das statische
+// CSS-Gitter `.sl-grid` bleibt sichtbar. Der fixed/100vh-Canvas kostet auf Native
+// also nur Layout, ohne jeden optischen Nutzen - daher weglassen.
+const isNative = Capacitor.isNativePlatform()
 
 /**
  * Maus-reaktives Hintergrund-Gitter fuer die Landing-Page.
@@ -22,6 +29,7 @@ useGridRipple(canvasRef)
 
 <template>
   <canvas
+    v-if="!isNative"
     ref="canvasRef"
     class="pointer-events-none fixed inset-0 -z-10 h-screen w-screen"
     aria-hidden="true"
