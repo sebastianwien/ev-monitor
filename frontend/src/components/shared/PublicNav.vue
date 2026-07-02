@@ -1,7 +1,7 @@
 <template>
   <div v-if="!authStore.isAuthenticated()" class="sticky top-0 z-50">
     <div class="public-nav-accent h-1 bg-gradient-to-r from-green-400 via-emerald-500 to-green-600"></div>
-    <nav class="pt-[env(safe-area-inset-top)] bg-green-50/95 dark:bg-green-950/80 backdrop-blur-md border-b-2 border-gray-900 dark:border-gray-800 shadow-sm">
+    <nav class="pt-[env(safe-area-inset-top)] bg-green-50 dark:bg-green-950 border-b-2 border-gray-900 dark:border-gray-800 shadow-sm">
     <div class="max-w-7xl mx-auto px-4 sm:px-8">
       <div class="public-nav-row flex justify-between items-center h-16">
         <a href="/" class="flex items-center gap-2 shrink-0 whitespace-nowrap">
