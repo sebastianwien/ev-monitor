@@ -595,7 +595,7 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
             <div class="rounded-xl border-2 border-gray-900 dark:border-gray-100 shadow-[8px_8px_0_0_#111827] dark:shadow-[8px_8px_0_0_#e5e7eb] overflow-hidden relative transition duration-300 ease-out hover:scale-[1.06]">
               <img
                 src="/screenshots/dashboard-light.jpg"
-                alt="EV Monitor Dashboard"
+                :alt="t('landing.app_preview.dashboard_title')"
                 class="w-full block h-auto cursor-zoom-in"
                 loading="lazy"
                 width="885"
@@ -655,7 +655,7 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
             <div class="rounded-xl border-2 border-gray-900 dark:border-gray-100 shadow-[8px_8px_0_0_#111827] dark:shadow-[8px_8px_0_0_#e5e7eb] overflow-hidden relative transition duration-300 ease-out hover:scale-[1.06]">
               <img
                 src="/screenshots/logfeed-light.jpg"
-                alt="EV Monitor Ladehistorie"
+                :alt="t('landing.app_preview.logfeed_title')"
                 class="w-full block h-auto cursor-zoom-in"
                 loading="lazy"
                 width="885"
@@ -715,7 +715,7 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
             <div class="order-2 lg:order-1 mt-3 lg:mt-0 rounded-xl border-2 border-gray-900 dark:border-gray-100 shadow-[6px_6px_0_0_#111827] dark:shadow-[6px_6px_0_0_#e5e7eb] overflow-hidden transition duration-300 ease-out hover:scale-[1.06]">
               <img
                 src="/screenshots/map-light.jpg"
-                alt="EV Monitor Lade-Standorte Karte"
+                :alt="t('landing.app_preview.map_title')"
                 class="w-full block cursor-zoom-in"
                 loading="lazy"
                 width="640"
@@ -749,7 +749,7 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
             <div class="order-2 lg:order-1 mt-3 lg:mt-0 rounded-xl border-2 border-gray-900 dark:border-gray-100 shadow-[6px_6px_0_0_#111827] dark:shadow-[6px_6px_0_0_#e5e7eb] overflow-hidden transition duration-300 ease-out hover:scale-[1.06]">
               <img
                 src="/screenshots/charts-light.jpg"
-                alt="EV Monitor Analysen Kosten und Verbrauch"
+                :alt="t('landing.app_preview.charts_title')"
                 class="w-full block h-auto cursor-zoom-in"
                 loading="lazy"
                 width="640"
@@ -821,13 +821,13 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
       <div class="max-w-7xl mx-auto px-4 sm:px-8 lg:px-12">
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
           <div class="rounded-xl overflow-hidden border-2 border-gray-900 dark:border-gray-100 shadow-[6px_6px_0_0_#111827] dark:shadow-[6px_6px_0_0_#e5e7eb] aspect-[900/1087]">
-            <img src="/screenshots/dashboard-dark.jpg" alt="EV Monitor Dashboard Dark Mode" class="w-full h-full object-cover object-top cursor-zoom-in" loading="lazy" width="900" height="1087" role="button" tabindex="0" @click="openLightbox(darkShots(), 0)" @keydown.enter.space.prevent="openLightbox(darkShots(), 0)" />
+            <img src="/screenshots/dashboard-dark.jpg" :alt="t('landing.app_preview.dashboard_title')" class="w-full h-full object-cover object-top cursor-zoom-in" loading="lazy" width="900" height="1087" role="button" tabindex="0" @click="openLightbox(darkShots(), 0)" @keydown.enter.space.prevent="openLightbox(darkShots(), 0)" />
           </div>
           <div class="rounded-xl overflow-hidden border-2 border-gray-900 dark:border-gray-100 shadow-[6px_6px_0_0_#111827] dark:shadow-[6px_6px_0_0_#e5e7eb] aspect-[900/1087]">
-            <img src="/screenshots/charts-dark.jpg" alt="EV Monitor Charts Dark Mode" class="w-full h-full object-cover object-top cursor-zoom-in" loading="lazy" width="900" height="1165" role="button" tabindex="0" @click="openLightbox(darkShots(), 1)" @keydown.enter.space.prevent="openLightbox(darkShots(), 1)" />
+            <img src="/screenshots/charts-dark.jpg" :alt="t('landing.app_preview.charts_title')" class="w-full h-full object-cover object-top cursor-zoom-in" loading="lazy" width="900" height="1165" role="button" tabindex="0" @click="openLightbox(darkShots(), 1)" @keydown.enter.space.prevent="openLightbox(darkShots(), 1)" />
           </div>
           <div class="rounded-xl overflow-hidden border-2 border-gray-900 dark:border-gray-100 shadow-[6px_6px_0_0_#111827] dark:shadow-[6px_6px_0_0_#e5e7eb] aspect-[900/1087]">
-            <img src="/screenshots/map-dark.jpg" alt="EV Monitor Karte Dark Mode" class="w-full h-full object-cover object-top cursor-zoom-in" loading="lazy" width="900" height="1156" role="button" tabindex="0" @click="openLightbox(darkShots(), 2)" @keydown.enter.space.prevent="openLightbox(darkShots(), 2)" />
+            <img src="/screenshots/map-dark.jpg" :alt="t('landing.app_preview.map_title')" class="w-full h-full object-cover object-top cursor-zoom-in" loading="lazy" width="900" height="1156" role="button" tabindex="0" @click="openLightbox(darkShots(), 2)" @keydown.enter.space.prevent="openLightbox(darkShots(), 2)" />
           </div>
         </div>
       </div>
@@ -1110,7 +1110,7 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
         class="fixed bottom-6 right-6 z-50 flex items-center gap-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-xs font-medium px-3 py-2 rounded-full shadow-lg hover:border-green-500 hover:text-green-700 transition"
       >
         <ArrowRightIcon class="h-3.5 w-3.5 rotate-[-90deg]" />
-        Zurück
+        {{ t('common.back') }}
       </button>
     </Transition>
   </div>
