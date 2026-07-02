@@ -49,6 +49,7 @@ landing:
   superlatives:
     eyebrow: "Community-Bestenliste"
     from_trips: "aus {n} Fahrten"
+    subline: "Die Top-Elektroautos der Community - nach echtem Verbrauch, real gefahrener Reichweite und Beliebtheit."
     efficiency_label: "Sparsamste"
     efficiency_sub: "nach Real-Verbrauch"
     range_label: "Reichweite"
@@ -63,6 +64,7 @@ landing:
   hero:
     title: "Wie weit kommst du wirklich - und was kostet es dich?"
     subtitle: "Behalte Ladekosten, echte Reichweite und Verbrauch deines E-Autos im Blick - kostenlos. In 2 Minuten startklar, Ladevorgänge selbst erfassen oder per AutoSync vollautomatisch synchronisieren."
+    social_proof: "Schließe dich {drivers} E-Fahrern an, die ihre Daten schon tracken."
     charging_sessions: "Ladevorgänge"
     real_label: "Real"
     wltp_label: "WLTP"

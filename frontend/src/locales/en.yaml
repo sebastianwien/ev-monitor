@@ -49,6 +49,7 @@ landing:
   superlatives:
     eyebrow: "Community leaderboard"
     from_trips: "from {n} trips"
+    subline: "The community's top EVs - ranked by real consumption, actual range driven and popularity."
     efficiency_label: "Most efficient"
     efficiency_sub: "by real consumption"
     range_label: "Range"
@@ -63,6 +64,7 @@ landing:
   hero:
     title: "How far do you really get - and what does it cost you?"
     subtitle: "Keep tabs on your EV's charging costs, real range and consumption - for free. Ready in 2 minutes, log charging sessions yourself or sync everything fully automatically with AutoSync."
+    social_proof: "Join {drivers} EV drivers who already track their data."
     charging_sessions: "Charging sessions"
     real_label: "Real"
     wltp_label: "WLTP"

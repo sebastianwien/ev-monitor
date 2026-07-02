@@ -321,26 +321,9 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
           {{ t('landing.hero.subtitle') }}
         </p>
 
-        <!-- Primary CTA row: register-first, directly under the value prop so the main action is above the fold -->
-        <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
-          <button
-            @click="goToRegister('hero_primary')"
-            class="btn-3d cta-shadow w-full sm:w-auto cursor-pointer bg-green-600 text-white border-2 border-gray-900 dark:border-gray-100 px-6 py-3 sm:px-8 sm:py-4 rounded-sm text-base sm:text-lg font-semibold hover:bg-green-700 inline-flex items-center justify-center gap-2 transition"
-          >
-            {{ t('landing.hero.register_button') }}
-          </button>
-          <button
-            @click="demoLogin('hero')"
-            :disabled="demoLoading"
-            class="btn-3d cta-shadow w-full sm:w-auto cursor-pointer bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 text-gray-800 dark:text-gray-100 px-6 py-3 sm:px-8 sm:py-4 rounded-sm text-base sm:text-lg font-semibold hover:text-green-700 dark:hover:text-green-400 disabled:opacity-50 inline-flex items-center justify-center transition"
-          >
-            {{ demoLoading ? t('landing.hero.loading_button') : t('landing.hero.demo_button') }}
-          </button>
-        </div>
-
         <!-- Hero product visual: ein einzelnes, grosses Dashboard-Bild, das den Hero
              ankert (fuellt die Textspalte, damit es nicht allein rumfloatet). -->
-        <div class="mt-10 sm:mt-12 mb-14 sm:mb-16 w-full max-w-4xl mx-auto relative">
+        <div class="mt-8 sm:mt-10 mb-8 sm:mb-10 w-full max-w-3xl mx-auto relative">
           <div class="rounded-xl border-2 border-gray-900 dark:border-gray-100 shadow-[8px_8px_0_0_#111827] dark:shadow-[8px_8px_0_0_#e5e7eb] overflow-hidden relative transition duration-300 ease-out hover:scale-[1.06]">
             <img
               src="/screenshots/dashboard-light.jpg"
@@ -364,17 +347,42 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
           </div>
         </div>
 
-        <!-- Community-USP: erklaert vor der Bestenliste, dass echte Fahrer belastbare
-             Vergleiche liefern. Fahrer-Zahl nur zeigen, wenn die Stats geladen sind. -->
-        <div v-if="communityDrivers > 0" class="mb-10 sm:mb-12">
-          <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-3">{{ t('landing.community_intro.heading') }}</h2>
-          <p class="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed">{{ t('landing.community_intro.text', { drivers: formatNumber(communityDrivers) }) }}</p>
-          <!-- Community-Kennzahlen: gehoeren zum Intro, zeigen die Groesse der Datenbasis -->
-          <div class="mt-8 max-w-3xl mx-auto bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 rounded-xl p-6 sm:p-8 shadow-[5px_5px_0_0_#15803d] dark:shadow-[5px_5px_0_0_#22c55e]">
-            <div class="grid grid-cols-3 divide-x divide-gray-900/10 dark:divide-white/10">
-              <div v-for="s in trustStats" :key="s.label" class="px-2 sm:px-4 text-center">
-                <p class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 tabular-nums">{{ s.value }}</p>
-                <p class="text-sm sm:text-base text-gray-600 dark:text-gray-300 mt-1.5 leading-snug">{{ s.label }}</p>
+        <!-- Social-Proof-Nudge direkt ueber den CTAs; nur wenn die Community-Zahl geladen ist -->
+        <p v-if="communityDrivers > 0" class="mb-4 text-lg sm:text-xl font-medium text-gray-700 dark:text-gray-300">
+          {{ t('landing.hero.social_proof', { drivers: formatNumber(communityDrivers) }) }}
+        </p>
+
+        <!-- Primary CTA row: register-first, unter dem Produktbild als Haupt-Handlungsaufruf -->
+        <div class="mb-14 sm:mb-16 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+          <button
+            @click="goToRegister('hero_primary')"
+            class="btn-3d cta-shadow w-full sm:w-auto cursor-pointer bg-green-600 text-white border-2 border-gray-900 dark:border-gray-100 px-6 py-3 sm:px-8 sm:py-4 rounded-sm text-base sm:text-lg font-semibold hover:bg-green-700 inline-flex items-center justify-center gap-2 transition"
+          >
+            {{ t('landing.hero.register_button') }}
+          </button>
+          <button
+            @click="demoLogin('hero')"
+            :disabled="demoLoading"
+            class="btn-3d cta-shadow w-full sm:w-auto cursor-pointer bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 text-gray-800 dark:text-gray-100 px-6 py-3 sm:px-8 sm:py-4 rounded-sm text-base sm:text-lg font-semibold hover:text-green-700 dark:hover:text-green-400 disabled:opacity-50 inline-flex items-center justify-center transition"
+          >
+            {{ demoLoading ? t('landing.hero.loading_button') : t('landing.hero.demo_button') }}
+          </button>
+        </div>
+
+        <!-- Community-USP: eigener Hintergrund-Band wie die anderen Sektionen; bricht per
+             Full-Bleed aus dem zentrierten Hero-Container aus (Root hat overflow-x-clip).
+             Fahrer-Zahl nur zeigen, wenn die Stats geladen sind. -->
+        <div v-if="communityDrivers > 0" class="relative left-1/2 -translate-x-1/2 w-screen bg-gray-50 dark:bg-gray-900 border-y border-gray-200 dark:border-gray-800 py-10 sm:py-14 mb-10 sm:mb-12">
+          <div class="max-w-3xl mx-auto px-6 sm:px-8">
+            <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-3">{{ t('landing.community_intro.heading') }}</h2>
+            <p class="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed">{{ t('landing.community_intro.text', { drivers: formatNumber(communityDrivers) }) }}</p>
+            <!-- Community-Kennzahlen: gehoeren zum Intro, zeigen die Groesse der Datenbasis -->
+            <div class="mt-8 bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 rounded-xl p-6 sm:p-8 shadow-[5px_5px_0_0_#15803d] dark:shadow-[5px_5px_0_0_#22c55e]">
+              <div class="grid grid-cols-3 divide-x divide-gray-900/10 dark:divide-white/10">
+                <div v-for="s in trustStats" :key="s.label" class="px-2 sm:px-4 text-center">
+                  <p class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 tabular-nums">{{ s.value }}</p>
+                  <p class="text-sm sm:text-base text-gray-600 dark:text-gray-300 mt-1.5 leading-snug">{{ s.label }}</p>
+                </div>
               </div>
             </div>
           </div>
@@ -382,7 +390,7 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
 
         <!-- Community-Bestenliste: now social proof below the product, no longer the first thing a visitor sees -->
         <div v-if="hasSuperlatives" class="sl-board text-left px-5 py-7 mb-6">
-          <div class="mb-6 flex flex-wrap items-baseline justify-center gap-x-2 gap-y-1">
+          <div class="mb-2 flex flex-wrap items-baseline justify-center gap-x-2 gap-y-1">
             <span class="text-sm sm:text-base font-extrabold tracking-[0.18em] uppercase text-green-700 dark:text-green-400">{{ t('landing.superlatives.eyebrow') }}</span>
             <i18n-t keypath="landing.superlatives.from_trips" tag="span" class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-semibold">
               <template #n>
@@ -390,6 +398,7 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
               </template>
             </i18n-t>
           </div>
+          <p class="mb-6 text-center text-sm sm:text-base text-gray-600 dark:text-gray-300 max-w-xl mx-auto leading-relaxed">{{ t('landing.superlatives.subline') }}</p>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
             <div
               v-for="cat in superlativeCategories"

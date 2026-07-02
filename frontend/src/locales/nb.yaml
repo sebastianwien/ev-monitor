@@ -47,6 +47,7 @@ landing:
   superlatives:
     eyebrow: "Fellesskapets toppliste"
     from_trips: "fra {n} turer"
+    subline: "Fellesskapets beste elbiler - rangert etter reelt forbruk, faktisk kjørt rekkevidde og popularitet."
     efficiency_label: "Mest effektive"
     efficiency_sub: "etter reelt forbruk"
     range_label: "Rekkevidde"
@@ -61,6 +62,7 @@ landing:
   hero:
     title: Hvor langt kommer du egentlig – og hva koster det deg?
     subtitle: "Hold oversikt over ladekostnader, reell rekkevidde og forbruk for elbilen din - gratis. Klar på 2 minutter, registrer ladesesjoner selv eller synkroniser alt helautomatisk med AutoSync."
+    social_proof: "Bli med {drivers} elbilførere som allerede sporer dataene sine."
     charging_sessions: Ladingsøkter
     real_label: Ekte
     wltp_label: WLTP
