@@ -4,16 +4,25 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <!--
+      canonical/hreflang below are default placeholders so unhead's client-side
+      dedupe (key "canonical" / "alternate:<hreflang>") patches these tags in
+      place instead of appending new ones at the end of <head>. Values are
+      overridden per-page via useHead in each view component.
+    -->
+    <link rel="canonical" href="https://ev-monitor.net/" />
+    <link rel="alternate" hreflang="de" href="https://ev-monitor.net/" />
+    <link rel="alternate" hreflang="en" href="https://ev-monitor.net/en" />
+    <link rel="alternate" hreflang="x-default" href="https://ev-monitor.net/" />
+    <link rel="preconnect" href="https://plausible.io" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#16a34a" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="preconnect" href="https://plausible.io" />
     <title>EV Monitor – Wie weit kommst du wirklich - und was kostet es dich?</title>
     <meta name="description" content="Kein Marketing, keine WLTP-Traumwerte. EV Monitor zeigt deinen echten Verbrauch, deine echten Ladekosten – und was andere Fahrer mit dem gleichen Auto erleben. Kostenlos, für alle Elektroautos." />
     <meta name="keywords" content="Elektroauto Reichweite Winter, WLTP realer Verbrauch, Elektroauto Verbrauch tracken, EV Ladekosten berechnen, Elektroauto kWh pro 100km, Ladetagebuch Elektroauto, Tesla Verbrauch real, VW ID.3 Verbrauch, Hyundai Ioniq 5 Verbrauch, EV Ladelog, Wallbox Kosten tracken, Öffentlich laden Kosten, Elektroauto App kostenlos" />
     <meta name="author" content="EV Monitor" />
     <meta name="robots" content="index, follow" />
-    <!-- canonical is set per-page via useHead in each view component -->
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://ev-monitor.net/" />
