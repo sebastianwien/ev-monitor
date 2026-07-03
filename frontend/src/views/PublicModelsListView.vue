@@ -672,6 +672,9 @@ useHead(computed(() => {
       { property: 'og:type', content: 'website' },
       { property: 'og:url', content: canonical },
       { property: 'og:locale', content: OG_LOCALE[currentMarket.value] ?? 'en_GB' },
+      { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:title', content: t('models_list.og_title') },
+      { name: 'twitter:description', content: t('models_list.og_description') },
     ],
     link: [
       { rel: 'canonical', href: canonical },

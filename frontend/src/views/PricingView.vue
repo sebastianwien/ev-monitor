@@ -42,6 +42,9 @@ useHead(computed(() => ({
         { property: 'og:description', content: t('upgrade.public_meta_description') },
         { property: 'og:type', content: 'website' },
         { property: 'og:url', content: 'https://ev-monitor.net/preise' },
+        { name: 'twitter:card', content: 'summary_large_image' },
+        { name: 'twitter:title', content: t('upgrade.public_meta_title') },
+        { name: 'twitter:description', content: t('upgrade.public_meta_description') },
     ],
     link: [
         { rel: 'canonical', href: 'https://ev-monitor.net/preise' },

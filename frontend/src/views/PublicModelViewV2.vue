@@ -1049,6 +1049,9 @@ useHead(computed(() => {
       { property: 'og:type', content: 'article' },
       { property: 'og:url', content: canonicalUrl },
       { property: 'og:locale', content: OG_LOCALE[currentMarket.value] ?? 'en_GB' },
+      { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:title', content: title },
+      { name: 'twitter:description', content: description },
     ],
     link: [
       { rel: 'canonical', href: canonicalUrl },

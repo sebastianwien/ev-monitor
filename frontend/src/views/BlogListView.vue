@@ -106,6 +106,9 @@ useHead(computed(() => {
       { property: 'og:description', content: t('blog.meta_description') },
       { property: 'og:type', content: 'website' },
       { property: 'og:url', content: canonical },
+      { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:title', content: t('blog.meta_title') },
+      { name: 'twitter:description', content: t('blog.meta_description') },
     ],
     link: [{ rel: 'canonical', href: canonical }],
     script: [
