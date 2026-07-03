@@ -1124,8 +1124,8 @@ function toggleAllCharges() {
             :page-size="pageSize"
             class="mb-4"
             :date-range="pageDateRange"
-            @prev="fetchLogsAndScroll(logsPage - 1)"
-            @next="fetchLogsAndScroll(logsPage + 1)"
+            @prev="fetchLogs(logsPage - 1)"
+            @next="fetchLogs(logsPage + 1)"
             @page-size-change="setPageSize"
           />
 
