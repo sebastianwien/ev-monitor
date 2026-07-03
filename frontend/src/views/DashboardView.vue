@@ -21,7 +21,6 @@ import {
   ArrowDownTrayIcon,
   ChevronRightIcon,
   ChevronDownIcon,
-  ChevronUpIcon,
   ListBulletIcon,
   InformationCircleIcon,
   XMarkIcon,
@@ -198,28 +197,6 @@ function togglePeerPlaceholder() {
   localStorage.setItem(LS_PEER_PLACEHOLDER, String(peerPlaceholderCollapsed.value))
 }
 
-// -- Car card expanded details on mobile (single-car mode) --
-const LS_CAR_CARD_EXPANDED = 'ev_dashboard_car_card_expanded'
-const carCardExpanded = ref(localStorage.getItem(LS_CAR_CARD_EXPANDED) === 'true')
-function toggleCarCardExpanded() {
-  carCardExpanded.value = !carCardExpanded.value
-  localStorage.setItem(LS_CAR_CARD_EXPANDED, String(carCardExpanded.value))
-}
-// True if there is at least one extra detail worth showing
-const hasCarCardDetails = computed(() => {
-  const c = selectedCar.value
-  if (!c) return false
-  return !!(
-    (c.effectiveBatteryCapacityKwh ?? c.customNetCapacityKwh) ||
-    wltp.value?.officialRangeKm ||
-    c.powerKw ||
-    c.year ||
-    c.hasHeatPump ||
-    c.isBusinessCar ||
-    currentOdometerKm.value != null
-  )
-})
-
 const viewActive = ref(true)
 const showFilterDropdown = ref(false)
 const filterDropdownDesktop = ref<HTMLElement | null>(null)
@@ -302,8 +279,8 @@ onDeactivated(() => {
           </div>
 
           <!-- Auto-Selektor: Mobile als geteilte Komponente (kein Collapse, Top-Abstand
-               fuer Ticker+Lasche), Desktop-Layout bleibt hier pro View. Details liegen
-               auf Mobile im "Mehr Details"-Toggle darunter (show-inline-details=false). -->
+               fuer Ticker+Lasche), Desktop-Layout bleibt hier pro View. Single-Car-Details
+               inline wie im Log-Feed (show-inline-details). -->
           <MobileCarSelector
             v-if="cars.length > 0"
             class="md:hidden"
@@ -316,6 +293,7 @@ onDeactivated(() => {
             :tesla-status="teslaStatus"
             :smartcar-status="smartcarStatus"
             :vw-group-status="vwGroupStatus"
+            :show-inline-details="true"
           />
           <!-- Desktop-Auto-Selektor (>=768px) -->
           <div
@@ -412,25 +390,12 @@ onDeactivated(() => {
               </button>
             </div>
           </div>
-          <!-- Mobile/tablet: Mehr Details + Filter (<lg): Sibling, damit es auf Mobile
-               sichtbar bleibt (der Desktop-Selektor darueber ist hidden md:block). -->
-            <div v-if="(cars.length === 1 && selectedCar && hasCarCardDetails) || filterBarVisible"
-              class="lg:hidden mt-1.5 relative flex items-center justify-between" ref="filterDropdownMobile">
-              <!-- Mehr Details toggle (links) -->
-              <button
-                v-if="cars.length === 1 && selectedCar && hasCarCardDetails"
-                type="button"
-                @click="toggleCarCardExpanded"
-                :aria-expanded="carCardExpanded"
-                aria-controls="car-card-details-panel"
-                class="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 px-2 py-1 rounded-sm transition"
-              >
-                <component :is="carCardExpanded ? ChevronUpIcon : ChevronDownIcon" class="w-4 h-4" />
-                <span>{{ carCardExpanded ? t('dashboard.car_card_show_less') : t('dashboard.car_card_show_more') }}</span>
-              </button>
-              <div v-else class="flex-1" />
-              <!-- Filter trigger (rechts, nur Mobile) -->
-              <div v-if="filterBarVisible" class="sm:hidden relative">
+          <!-- Mobile: Zeitraum-Filter (<lg): Sibling, damit es auf Mobile sichtbar
+               bleibt (der Desktop-Selektor darueber ist hidden md:block). -->
+            <div v-if="filterBarVisible"
+              class="lg:hidden mt-1.5 relative flex items-center justify-end" ref="filterDropdownMobile">
+              <!-- Filter trigger (nur Mobile) -->
+              <div class="sm:hidden relative">
                 <button
                   @click.stop="showFilterDropdown = !showFilterDropdown"
                   class="flex items-center gap-1.5 px-2.5 py-1 rounded-sm border-2 border-gray-300 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition">
@@ -479,16 +444,6 @@ onDeactivated(() => {
                     </div>
                   </div>
                 </Transition>
-              </div>
-            </div>
-            <!-- Mehr Details expanded panel -->
-            <div v-if="cars.length === 1 && selectedCar && hasCarCardDetails" class="lg:hidden">
-              <div
-                v-show="carCardExpanded"
-                id="car-card-details-panel"
-                class="mt-2 px-3 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-sm"
-              >
-                <CarCardDetails :car="selectedCar" :wltp="wltp" :current-odometer-km="currentOdometerKm" orientation="stacked" />
               </div>
             </div>
 
