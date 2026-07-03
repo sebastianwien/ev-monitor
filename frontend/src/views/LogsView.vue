@@ -56,10 +56,8 @@ import MergeLogModal from '../components/dashboard/MergeLogModal.vue'
 import CarCardDetails from '../components/dashboard/CarCardDetails.vue'
 import LogsPaginationBar from '../components/dashboard/LogsPaginationBar.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
-import { useDashboardStats } from '../composables/useDashboardStats'
-import { useLogList } from '../composables/useLogList'
+import { useCarContext } from '../composables/useCarContext'
 import { useVehicleCharging } from '../composables/useVehicleCharging'
-import MobileCarSelector from '../components/shared/MobileCarSelector.vue'
 import { useBulkBarOffset } from '../composables/useBulkBarOffset'
 import { useHaptic } from '../composables/useHaptic'
 import { useCountryStore } from '../stores/country'
@@ -78,18 +76,13 @@ const { t } = useI18n()
 const { formatConsumption, formatDistance, distanceUnitLabel, formatCurrency, formatCostPerKwh } = useLocaleFormat()
 const { haptic } = useHaptic()
 
-// -- Dashboard Stats --
+// -- Geteilter Auto-Context (State + Polling liegen im CarContextLayout) --
 const {
   selectedCarId, stats, loading, isInitialLoad,
   cars, carImageUrls, wltp,
   implausibleBannerDismissed, teslaStatus, smartcarStatus, vwGroupStatus, implausibleCount,
-  dismissImplausibleBanner, fetchImplausibleCount,
-  fetchCarAndWltp, fetchStatistics, initCars,
-} = useDashboardStats()
-
-// -- Log List --
-const logsSection = ref<HTMLElement | null>(null)
-const {
+  dismissImplausibleBanner, fetchImplausibleCount, fetchStatistics,
+  setLogsSection, currentOdometerKm,
   logs, logsPage, logsLoading, hasMoreLogs, editingLog, pageSize, setPageSize,
   expandedGroups, toggleLadegruppe, hasAnyLogs, showOdometer, showCostAbsolute,
   openTooltipLogId, reassignModalEntry, reassignSelectedCarId, reassignSaving,
@@ -101,7 +94,7 @@ const {
   startEditTrip, cancelTripEdit, saveTripEdit, startAddTrip, saveNewTrip, deleteTripEntry,
   mergeTripEntry,
   submitTripFeedback,
-} = useLogList(selectedCarId, cars, logsSection)
+} = useCarContext()
 
 const deletingTripId = ref<string | null>(null)
 let _deleteTimer: ReturnType<typeof setTimeout> | null = null
@@ -534,15 +527,6 @@ const selectedCar = computed(() =>
   cars.value.find(c => c.id === selectedCarId.value) ?? cars.value[0] ?? null
 )
 
-const currentOdometerKm = computed<number | null>(() => {
-  let max: number | null = null
-  for (const l of logs.value) {
-    const o = l.odometerKm
-    if (typeof o === 'number' && (max == null || o > max)) max = o
-  }
-  return max
-})
-
 const pageDateRange = computed<string | undefined>(() => {
   const feed = mergedLogFeed.value
   if (!feed.length) return undefined
@@ -563,17 +547,7 @@ const pageDateRange = computed<string | undefined>(() => {
 const { isVehicleCharging, isSmartcarCharging, isWallboxCharging } =
   useVehicleCharging(cars, smartcarStatus, vwGroupStatus)
 
-// -- Lifecycle --
-watch(selectedCarId, async (newId) => {
-  if (newId) {
-    await fetchCarAndWltp(newId)
-    await Promise.all([fetchStatistics(), fetchLogs(0), fetchImplausibleCount()])
-  } else {
-    stats.value = null
-    implausibleCount.value = 0
-  }
-})
-
+// Daten-Reload bei Auto-Wechsel liegt zentral im CarContextLayout.
 const authStore = useAuthStore()
 const isAdmin   = computed(() => authStore.isAdmin)
 
@@ -639,7 +613,6 @@ function tripGroupSocBoundaries(group: any): { start: number; end: number } | nu
   return tripGroupSocBoundariesPure(group.trips)
 }
 
-onMounted(() => initCars())
 
 const subscriptionTier = ref<SubscriptionTier | null>(null)
 
@@ -865,9 +838,7 @@ function toggleAllCharges() {
       </div>
       <div v-else key="content-view">
         <div class="bg-gray-100 dark:bg-gray-800 md:rounded-sm md:shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:md:shadow-[4px_4px_0_rgba(255,255,255,0.30)] p-2 md:p-6 pb-6">
-          <!-- Mobile-Headline (Desktop hat eine eigene h1 in der Header-Zeile; per
-               Breakpoint ist immer nur eine sichtbar). -->
-          <h1 class="md:hidden text-center text-xl font-bold text-gray-800 dark:text-gray-200 mt-3 mb-3">{{ t('logs.title') }}</h1>
+          <!-- Mobile Auto-Card + Tab-Switch liegen im CarContextLayout (geteilter Header). -->
           <!-- Desktop header row -->
           <div class="hidden md:grid grid-cols-3 items-center mb-6">
             <div>
@@ -892,22 +863,6 @@ function toggleAllCharges() {
               </router-link>
             </div>
           </div>
-          <!-- Auto-Selektor: Mobile als geteilte Komponente (kein Collapse, Top-Abstand
-               fuer Ticker+Lasche), Desktop-Layout bleibt hier pro View. -->
-          <MobileCarSelector
-            v-if="cars.length > 0"
-            class="md:hidden"
-            :model-value="selectedCarId"
-            @update:model-value="selectedCarId = $event"
-            :cars="cars"
-            :car-image-urls="carImageUrls"
-            :wltp="wltp"
-            :current-odometer-km="currentOdometerKm"
-            :tesla-status="teslaStatus"
-            :smartcar-status="smartcarStatus"
-            :vw-group-status="vwGroupStatus"
-            :show-inline-details="true"
-          />
           <!-- Desktop-Auto-Selektor (>=768px) -->
           <div
             v-if="cars.length > 0"
@@ -1018,7 +973,7 @@ function toggleAllCharges() {
           </div>
 
         <!-- Log List -->
-        <div ref="logsSection" class="pt-3 scroll-mt-4"
+        <div :ref="setLogsSection" class="pt-3 scroll-mt-4"
           :style="{ paddingBottom: `calc(var(--bulk-bar-offset, 0px) + 1.5rem)` }">
           <!-- AutoSync Live discoverability hint (Tesla-users without Live, dismissible) -->
           <div v-if="showLiveBanner"

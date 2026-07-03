@@ -27,6 +27,7 @@ lightbox:
   prev: Forrige bilde
   next: Neste bilde
 nav:
+  tab_overview: Oversikt
   login: Logg inn
   register: Registrer deg
   pricing: Priser

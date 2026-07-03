@@ -28,6 +28,7 @@ lightbox:
   prev: "Previous image"
   next: "Next image"
 nav:
+  tab_overview: "Overview"
   login: "Sign in"
   register: "Sign up"
   pricing: "Pricing"

@@ -27,6 +27,7 @@ lightbox:
   prev: Föregående bild
   next: Nästa bild
 nav:
+  tab_overview: Översikt
   login: Logga in
   register: Registrera dig
   pricing: Priser

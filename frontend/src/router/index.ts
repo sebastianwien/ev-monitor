@@ -26,7 +26,7 @@ import RegisterView from '../views/RegisterView.vue';
 import VerifyEmailView from '../views/VerifyEmailView.vue';
 import OAuth2RedirectHandler from '../views/OAuth2RedirectHandler.vue';
 import CarManagementView from '../views/CarManagementView.vue';
-import DashboardView from '../views/DashboardView.vue';
+import CarContextLayout from '../layouts/CarContextLayout.vue';
 import SettingsView from '../views/SettingsView.vue';
 import PublicModelsListView from '../views/PublicModelsListView.vue';
 import PublicBrandView from '../views/PublicBrandView.vue';
@@ -98,13 +98,13 @@ const router = createRouter({
         {
             path: '/dashboard',
             name: 'statistics',
-            component: DashboardView,
+            component: CarContextLayout,
             meta: { requiresAuth: true }
         },
         {
             path: '/logs',
             name: 'logs',
-            component: () => import('../views/LogsView.vue'),
+            component: CarContextLayout,
             meta: { requiresAuth: true }
         },
         {

@@ -50,11 +50,9 @@ import SmartInsightsCard from '../components/dashboard/SmartInsightsCard.vue'
 import CarCardDetails from '../components/dashboard/CarCardDetails.vue'
 import CostHistoryCard from '../components/dashboard/CostHistoryCard.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
-import { useDashboardStats } from '../composables/useDashboardStats'
+import { useCarContext } from '../composables/useCarContext'
 import { useDashboardCharts } from '../composables/useDashboardCharts'
-import { useLogList } from '../composables/useLogList'
 import { useVehicleCharging } from '../composables/useVehicleCharging'
-import MobileCarSelector from '../components/shared/MobileCarSelector.vue'
 import { carDisplayName, enumToLabel } from '../utils/enumLabel'
 import { isVwGroupBrand } from '../api/vwGroupService'
 
@@ -64,14 +62,14 @@ const { t } = useI18n()
 const router = useRouter()
 const { formatConsumption, consumptionUnitLabel, formatDistance, distanceUnitLabel, formatCurrency, formatCostPerKwh, formatCostPerDistance, currencySymbol } = useLocaleFormat()
 
-// -- Dashboard Stats --
+// -- Geteilter Auto-Context (State + Polling liegen im CarContextLayout) --
 const {
   selectedCarId, stats, lastMonthStats, insightStats, carInfo, wltp, loading, chartsReady, isInitialLoad, error,
   cars, carImageUrls, selectedTimeRange, selectedGroupBy, customStartDate, customEndDate,
-  importBannerDismissed, teslaStatus, smartcarStatus, vwGroupStatus, implausibleCount, hasDistanceData, avgCostPer100km,
-  timeRangeOptions, groupByOptions, dismissImportBanner, fetchImplausibleCount,
-  fetchCarAndWltp, fetchStatistics, initCars,
-} = useDashboardStats()
+  importBannerDismissed, teslaStatus, smartcarStatus, vwGroupStatus, hasDistanceData, avgCostPer100km,
+  timeRangeOptions, groupByOptions, dismissImportBanner, fetchImplausibleCount, fetchStatistics,
+  hasAnyLogs, mergedLogFeed, currentOdometerKm,
+} = useCarContext()
 
 // CUSTOM-Toggle: merkt sich den vorherigen Zeitraum, damit Klick auf das aktive
 // CUSTOM-Button zur letzten Auswahl zurückspringt statt nur aufzuklappen.
@@ -100,27 +98,11 @@ const {
   wltpChartData, wltpChartOptions, wltpChartHeight, wltpChartScrollable,
 } = useDashboardCharts(stats, wltp, hasDistanceData, selectedGroupBy)
 
-// -- Log List (used by DashboardInsights via mergedLogFeed) --
-const logsSection = ref<HTMLElement | null>(null)
-const {
-  hasAnyLogs, mergedLogFeed, fetchLogs, logs,
-} = useLogList(selectedCarId, cars, logsSection)
-
 // The analytics teaser only makes sense if the user has a data foundation, i.e. trips.
 // Backend already hides trips from non-entitled non-Tesla users (canViewLiveTrips), so this
 // naturally targets Tesla/imported/API-pushed feeds and spares confused free users who would
 // buy in but get no insights for lack of trip data.
 const feedHasTrips = computed(() => mergedLogFeed.value.some((e: any) => e._isTrip))
-
-const currentOdometerKm = computed<number | null>(() => {
-  let max: number | null = null
-  for (const l of logs.value) {
-    const o = l.odometerKm
-    if (typeof o === 'number' && (max == null || o > max)) max = o
-  }
-  return max
-})
-
 
 // -- Implausible logs modal --
 const showImplausibleModal = ref(false)
@@ -138,29 +120,18 @@ const { isVehicleCharging, isSmartcarCharging, isWallboxCharging } =
 // -- Lifecycle --
 const LS_ACTIVATION_KEY = 'ev_activation_reached'
 
-watch(selectedCarId, async (newId) => {
-  if (newId) {
-    await fetchCarAndWltp(newId)
-    await Promise.all([fetchStatistics(), fetchLogs(0), fetchImplausibleCount()])
-
-    if (!stats.value || stats.value.totalCharges === 0) {
-      if (!hasAnyLogs.value) {
-        analytics.trackEmptyDashboardViewed('no_logs_ever')
-      } else {
-        analytics.trackEmptyDashboardViewed('no_logs_in_period')
-      }
-    } else if (!localStorage.getItem(LS_ACTIVATION_KEY)) {
-      localStorage.setItem(LS_ACTIVATION_KEY, '1')
-      analytics.trackActivationReached()
-    }
-  } else {
-    stats.value = null
-    carInfo.value = null
-    wltp.value = null
-    implausibleCount.value = 0
-    if (cars.value.length === 0) {
-      analytics.trackEmptyDashboardViewed('no_car')
-    }
+// Daten-Reload bei Auto-Wechsel liegt zentral im CarContextLayout. Hier nur noch
+// die Dashboard-Analytics, ausgeloest wenn die geladenen Statistiken sich aendern.
+watch(stats, () => {
+  if (!selectedCarId.value) {
+    if (cars.value.length === 0) analytics.trackEmptyDashboardViewed('no_car')
+    return
+  }
+  if (!stats.value || stats.value.totalCharges === 0) {
+    analytics.trackEmptyDashboardViewed(hasAnyLogs.value ? 'no_logs_in_period' : 'no_logs_ever')
+  } else if (!localStorage.getItem(LS_ACTIVATION_KEY)) {
+    localStorage.setItem(LS_ACTIVATION_KEY, '1')
+    analytics.trackActivationReached()
   }
 })
 
@@ -211,7 +182,6 @@ function onClickOutsideFilter(e: MouseEvent) {
 }
 
 onMounted(() => {
-  initCars()
   document.addEventListener('click', onClickOutsideFilter)
 })
 onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) })
@@ -234,9 +204,9 @@ onDeactivated(() => {
     <Transition name="fade" mode="out-in">
       <div v-if="!loading || !isInitialLoad">
         <div class="bg-gray-100 dark:bg-gray-800 md:rounded-sm md:shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:md:shadow-[4px_4px_0_rgba(255,255,255,0.30)] p-4 md:p-6 pb-6">
-          <div class="flex flex-wrap items-center gap-3 mb-3 sm:mb-6">
-            <ChartBarIcon class="hidden sm:block h-8 w-8 text-gray-700 dark:text-gray-300" />
-            <h1 class="w-full text-center text-xl sm:w-auto sm:text-left sm:text-3xl font-bold text-gray-800 dark:text-gray-200">Dashboard</h1>
+          <div class="hidden md:flex flex-wrap items-center gap-3 mb-6">
+            <ChartBarIcon class="h-8 w-8 text-gray-700 dark:text-gray-300" />
+            <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-200">Dashboard</h1>
             <!-- Mobile: Logs/Trips laufen ueber die Bottom-Nav (kein redundanter Button hier) -->
             <!-- Desktop: Filter + Fahrzeuge + Logs -->
             <div class="hidden sm:flex items-center gap-2 ml-auto">
@@ -278,23 +248,7 @@ onDeactivated(() => {
             </button>
           </div>
 
-          <!-- Auto-Selektor: Mobile als geteilte Komponente (kein Collapse, Top-Abstand
-               fuer Ticker+Lasche), Desktop-Layout bleibt hier pro View. Single-Car-Details
-               inline wie im Log-Feed (show-inline-details). -->
-          <MobileCarSelector
-            v-if="cars.length > 0"
-            class="md:hidden"
-            :model-value="selectedCarId"
-            @update:model-value="selectedCarId = $event"
-            :cars="cars"
-            :car-image-urls="carImageUrls"
-            :wltp="wltp"
-            :current-odometer-km="currentOdometerKm"
-            :tesla-status="teslaStatus"
-            :smartcar-status="smartcarStatus"
-            :vw-group-status="vwGroupStatus"
-            :show-inline-details="true"
-          />
+          <!-- Mobile Auto-Card + Tab-Switch liegen im CarContextLayout (geteilter Header). -->
           <!-- Desktop-Auto-Selektor (>=768px) -->
           <div
             v-if="cars.length > 0"
