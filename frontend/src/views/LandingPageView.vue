@@ -219,6 +219,19 @@ useHead(computed(() => ({
         : 'Echte Ladekosten und Verbrauch tracken. WLTP vs. Realität für Tesla, VW ID, Hyundai Ioniq und mehr.'
     },
     { property: 'og:locale', content: isEn.value ? 'en_GB' : 'de_DE' },
+    { name: 'twitter:card', content: 'summary_large_image' },
+    {
+      name: 'twitter:title',
+      content: isEn.value
+        ? 'EV Monitor – Real Electric Car Consumption & Charging Costs'
+        : 'EV Monitor – Echter Stromverbrauch & Ladekosten von Elektroautos'
+    },
+    {
+      name: 'twitter:description',
+      content: isEn.value
+        ? 'Track real EV charging costs and consumption. Compare WLTP vs. real-world data for Tesla, VW ID, Hyundai Ioniq and more.'
+        : 'Echte Ladekosten und Verbrauch tracken. WLTP vs. Realität für Tesla, VW ID, Hyundai Ioniq und mehr.'
+    },
   ],
   link: [
     { rel: 'canonical', href: isEn.value ? 'https://ev-monitor.net/en' : 'https://ev-monitor.net/' },
