@@ -6,12 +6,17 @@ import { PAGE_SIZE_OPTIONS } from '../../composables/useLogList'
 
 const { t } = useI18n()
 
-defineProps<{
+withDefaults(defineProps<{
   page: number
   hasMore: boolean
   pageSize: PageSize
   dateRange?: string
-}>()
+  /**
+   * 'header' (ueber dem Feed): Datum als schlichtes Label zwischen Trennstrichen,
+   * ohne Seitengroesse. 'footer' (default, unter dem Feed): mit Seitengroesse.
+   */
+  variant?: 'header' | 'footer'
+}>(), { variant: 'footer' })
 
 const emit = defineEmits<{
   prev: []
@@ -29,12 +34,15 @@ const emit = defineEmits<{
       class="flex items-center justify-center gap-1 px-3 sm:px-4 h-9 text-sm font-medium rounded-sm border-2 border-gray-300 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition">
       <ChevronLeftIcon class="w-4 h-4" /><span class="hidden sm:inline">{{ t('dashboard.prev') }}</span>
     </button>
-    <span v-if="dateRange" class="flex-1 flex justify-center">
-      <span class="px-4 py-1.5 text-sm font-medium rounded-sm border-2 border-gray-300 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 tabular-nums select-none cursor-default">{{ dateRange }}</span>
+    <!-- Zeitraum: schlichtes Label (kein Button-Look). Im Header von Trennstrichen flankiert. -->
+    <span v-if="dateRange" class="flex-1 flex items-center justify-center gap-3 min-w-0 px-1">
+      <span v-if="variant === 'header'" class="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+      <span class="text-sm font-medium text-gray-500 dark:text-gray-400 tabular-nums whitespace-nowrap select-none">{{ dateRange }}</span>
+      <span v-if="variant === 'header'" class="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
     </span>
     <span v-else class="flex-1" />
     <div class="flex items-center gap-2">
-      <label class="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400">
+      <label v-if="variant === 'footer'" class="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400">
         <span class="hidden sm:inline">{{ t('dashboard.page_size_label') }}</span>
         <div class="relative">
           <select

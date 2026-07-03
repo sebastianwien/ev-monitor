@@ -9,9 +9,9 @@ import {
   ClockIcon,
   Battery0Icon,
   SunIcon,
-  ChevronLeftIcon,
   ChevronDownIcon,
   ChevronUpIcon,
+  ChevronLeftIcon,
   TrashIcon,
   ExclamationTriangleIcon,
   InformationCircleIcon,
@@ -58,10 +58,10 @@ import LogsPaginationBar from '../components/dashboard/LogsPaginationBar.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useDashboardStats } from '../composables/useDashboardStats'
 import { useLogList } from '../composables/useLogList'
-import { useStickyCarHeader } from '../composables/useStickyCarHeader'
+import { useVehicleCharging } from '../composables/useVehicleCharging'
+import MobileCarSelector from '../components/shared/MobileCarSelector.vue'
 import { useBulkBarOffset } from '../composables/useBulkBarOffset'
 import { useHaptic } from '../composables/useHaptic'
-import { useWallboxStore } from '../stores/wallbox'
 import { useCountryStore } from '../stores/country'
 import { getPricing } from '../config/pricingConfig'
 import { carDisplayName } from '../utils/enumLabel'
@@ -560,24 +560,8 @@ const pageDateRange = computed<string | undefined>(() => {
   return a === b ? a : `${a} - ${b}`
 })
 
-const wallboxStore = useWallboxStore()
-
-const isSmartcarCharging = (car: any) =>
-  smartcarStatus.value?.connected === true &&
-  smartcarStatus.value?.vehicleState === 'CHARGING' &&
-  (smartcarStatus.value?.carId === car.id ||
-    (smartcarStatus.value?.carId === null && cars.value.length === 1))
-
-// Wallbox kennt keine carId → Glow nur bei Single-Car sicher zuordenbar
-const isWallboxCharging = () =>
-  wallboxStore.isCharging && cars.value.length === 1
-
-const isVwGroupCharging = (car: any) =>
-  isVwGroupBrand(car.brand) &&
-  vwGroupStatus.value?.connected === true &&
-  vwGroupStatus.value?.vehicleState === 'charging'
-
-const isVehicleCharging = (car: any) => isSmartcarCharging(car) || isVwGroupCharging(car) || isWallboxCharging()
+const { isVehicleCharging, isSmartcarCharging, isWallboxCharging } =
+  useVehicleCharging(cars, smartcarStatus, vwGroupStatus)
 
 // -- Lifecycle --
 watch(selectedCarId, async (newId) => {
@@ -758,10 +742,6 @@ function onTripFormLeave(el: Element, done: () => void) {
   })
 }
 
-// -- Sticky car header detection --
-const stickyCarBar = ref<HTMLElement | null>(null)
-const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
-
 // -- Bulk expand/collapse for trips + charges (mobile sticky bar) --
 const expandedLogsStorageKey  = (carId: string | number | null) => `logfeed_expanded_logs_${carId}`
 const expandedGroupsStorageKey = (carId: string | number | null) => `logfeed_expanded_groups_${carId}`
@@ -885,6 +865,9 @@ function toggleAllCharges() {
       </div>
       <div v-else key="content-view">
         <div class="bg-gray-100 dark:bg-gray-800 md:rounded-sm md:shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:md:shadow-[4px_4px_0_rgba(255,255,255,0.30)] p-2 md:p-6 pb-6">
+          <!-- Mobile-Headline (Desktop hat eine eigene h1 in der Header-Zeile; per
+               Breakpoint ist immer nur eine sichtbar). -->
+          <h1 class="md:hidden text-center text-xl font-bold text-gray-800 dark:text-gray-200 mt-3 mb-3">{{ t('logs.title') }}</h1>
           <!-- Desktop header row -->
           <div class="hidden md:grid grid-cols-3 items-center mb-6">
             <div>
@@ -909,32 +892,30 @@ function toggleAllCharges() {
               </router-link>
             </div>
           </div>
-          <!-- Car card selector (all breakpoints) -->
+          <!-- Auto-Selektor: Mobile als geteilte Komponente (kein Collapse, Top-Abstand
+               fuer Ticker+Lasche), Desktop-Layout bleibt hier pro View. -->
+          <MobileCarSelector
+            v-if="cars.length > 0"
+            class="md:hidden"
+            :model-value="selectedCarId"
+            @update:model-value="selectedCarId = $event"
+            :cars="cars"
+            :car-image-urls="carImageUrls"
+            :wltp="wltp"
+            :current-odometer-km="currentOdometerKm"
+            :tesla-status="teslaStatus"
+            :smartcar-status="smartcarStatus"
+            :vw-group-status="vwGroupStatus"
+            :show-inline-details="true"
+          />
+          <!-- Desktop-Auto-Selektor (>=768px) -->
           <div
             v-if="cars.length > 0"
-            ref="stickyCarBar"
-            :class="[
-              cars.length > 1
-                ? 'sticky top-16 z-10 bg-white dark:bg-gray-800 -mx-4 px-4 md:-mx-6 md:px-6 py-1.5 md:py-3 mb-3 border-b border-gray-100 dark:border-gray-700 shadow-sm'
-                : 'mb-6 md:w-fit md:mx-auto',
-              isCarHeaderSticky ? 'car-header-compact' : ''
-            ]"
+            class="hidden md:block"
+            :class="cars.length > 1
+              ? 'sticky top-16 z-10 bg-white dark:bg-gray-800 md:-mx-6 md:px-6 md:py-3 mb-3 border-b border-gray-100 dark:border-gray-700 shadow-sm'
+              : 'mb-6 md:w-fit md:mx-auto'"
           >
-            <!-- Back navigation row (mobile only) -->
-            <div class="flex items-center gap-2 mb-2 md:hidden">
-              <router-link
-                to="/dashboard"
-                :aria-label="t('dashboard.title')"
-                @click="haptic()"
-                class="inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors min-h-[44px] md:min-h-0 py-1 px-1 -ml-1 rounded-sm">
-                <ChevronLeftIcon class="w-5 h-5 flex-shrink-0" />
-                <span>{{ t('dashboard.title') }}</span>
-              </router-link>
-              <template v-if="selectedCar">
-                <span class="hidden md:block text-gray-400 dark:text-gray-500 compact-hide">/</span>
-                <span class="hidden md:block text-sm text-gray-500 dark:text-gray-400 compact-hide truncate">{{ carDisplayName(selectedCar.brand, selectedCar.model) }}</span>
-              </template>
-            </div>
             <!-- Car cards -->
             <div class="flex gap-3 overflow-x-auto car-scroll-hide flex-1 pb-1 lg:flex-wrap lg:overflow-x-visible">
               <button
@@ -956,10 +937,10 @@ function toggleAllCharges() {
                 ]" style="transition: transform 0.075s ease, box-shadow 0.075s ease;">
                 <div
                   :class="[
-                    'flex-shrink-0 bg-gray-100 dark:bg-gray-600 flex items-center justify-center overflow-hidden compact-shrink-thumb',
+                    'flex-shrink-0 bg-gray-100 dark:bg-gray-600 flex items-center justify-center overflow-hidden',
                     cars.length === 1
-                      ? 'w-16 self-stretch md:w-24'
-                      : 'h-12 aspect-[4/3] md:w-24 md:h-auto md:aspect-auto md:self-stretch'
+                      ? 'w-24 self-stretch'
+                      : 'md:w-24 md:h-auto md:self-stretch'
                   ]">
                   <img
                     v-if="carImageUrls[car.id]"
@@ -968,54 +949,11 @@ function toggleAllCharges() {
                     class="w-full h-full object-cover" />
                   <TruckIcon v-else class="w-6 h-6 md:w-8 md:h-8 text-gray-400" />
                 </div>
-                <div class="min-w-0 flex-1 px-3 py-1.5 md:px-4 md:py-3 compact-shrink-pad flex flex-col justify-center">
-                  <!-- Mobile compact (alle Autos): eine Zeile -->
-                  <div class="flex items-center gap-1.5 flex-wrap md:hidden compact-nowrap">
-                    <span class="font-semibold text-sm text-gray-800 dark:text-gray-200 whitespace-nowrap">{{ carDisplayName(car.brand, car.model) }}</span>
-                    <span v-if="car.trim" class="text-xs text-gray-500 dark:text-gray-400 compact-hide">{{ car.trim }}</span>
-                    <LicensePlate v-if="cars.length === 1 && car.licensePlate" :plate="car.licensePlate" size="sm" class="compact-hide flex-shrink-0" />
-                    <template v-if="!isCarHeaderSticky">
-                      <template v-if="car.brand?.toLowerCase() === 'tesla' && teslaStatus?.connected && (teslaStatus.carId === car.id || teslaStatus.carId === null)">
-                        <span v-if="teslaStatus.vehicleState === 'charging'"
-                          class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium border border-green-200">
-                          <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>{{ t('dashboard.tesla_charging') }}
-                        </span>
-                        <span v-else-if="teslaStatus.vehicleState === 'online'"
-                          class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs rounded-full font-medium border border-blue-200 dark:border-blue-700">
-                          <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>{{ t('dashboard.tesla_online') }}
-                        </span>
-                        <span v-else-if="teslaStatus.vehicleState === 'asleep'"
-                          class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 text-gray-500 text-xs rounded-full font-medium border border-gray-300">
-                          <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>{{ t('dashboard.tesla_sleeping') }}
-                        </span>
-                      </template>
-                      <span v-if="isSmartcarCharging(car)"
-                        class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs rounded-full font-medium border border-green-200 dark:border-green-700">
-                        <span class="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 animate-pulse"></span>{{ t('dashboard.smartcar_charging') }}
-                      </span>
-                      <template v-if="isVwGroupBrand(car.brand) && vwGroupStatus?.connected">
-                        <span v-if="vwGroupStatus.vehicleState === 'charging'"
-                          class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs rounded-full font-medium border border-green-200 dark:border-green-700">
-                          <span class="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 animate-pulse"></span>
-                          {{ t('dashboard.vwgroup_charging') }}
-                          <span v-if="vwGroupStatus.lastSoc != null" class="opacity-75">· {{ vwGroupStatus.lastSoc }}%</span>
-                        </span>
-                        <span v-else
-                          class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs rounded-full font-medium border border-blue-200 dark:border-blue-700">
-                          <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
-                          {{ vwGroupStatus.lastSoc != null ? vwGroupStatus.lastSoc + '%' : t('dashboard.vwgroup_connected') }}
-                        </span>
-                      </template>
-                      <span v-if="isWallboxCharging()"
-                        class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs rounded-full font-medium border border-green-200 dark:border-green-700">
-                        <span class="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 animate-pulse"></span>{{ t('dashboard.wallbox_charging') }}
-                      </span>
-                    </template>
-                  </div>
-                  <!-- Mobile/Tablet: zusätzliche Auto-Daten + Kennzeichen (single-car, spiegelt Desktop) -->
+                <div class="min-w-0 flex-1 px-3 py-1.5 md:px-4 md:py-3 flex flex-col justify-center">
+                  <!-- Tablet (768-1023px): zusätzliche Auto-Daten + Kennzeichen (single-car, spiegelt Desktop) -->
                   <div
                     v-if="cars.length === 1 && car.id === selectedCarId"
-                    class="lg:hidden mt-2 pt-2 border-t border-gray-200 dark:border-gray-600 compact-hide">
+                    class="lg:hidden mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
                     <CarCardDetails :car="car" :wltp="wltp" :current-odometer-km="currentOdometerKm" orientation="compact" />
                   </div>
                   <!-- Desktop: zweizeiliges Layout -->
@@ -1177,9 +1115,10 @@ function toggleAllCharges() {
             </button>
           </div>
 
-          <!-- Pagination top -->
+          <!-- Pagination top (Header-Variante: Zeitraum-Label, keine Seitengroesse) -->
           <LogsPaginationBar
             v-if="hasAnyLogs"
+            variant="header"
             :page="logsPage"
             :has-more="hasMoreLogs"
             :page-size="pageSize"
@@ -2882,29 +2821,4 @@ function toggleAllCharges() {
    scroll communicate scrollability; the native bar just clutters the chip). */
 .car-scroll-hide { scrollbar-width: none; }
 .car-scroll-hide::-webkit-scrollbar { display: none; }
-
-/* Sticky car-header compact mode.
-   When the header sticks below the app bar, swap to a slim one-line layout.
-   Scoped to <md so the desktop layout (which uses its own two-line block)
-   stays untouched even when the multi-car bar is sticky on desktop. */
-@media (max-width: 767px) {
-  .car-header-compact .compact-hide { display: none !important; }
-  .car-header-compact .compact-nowrap {
-    flex-wrap: nowrap !important;
-    overflow: hidden;
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-  }
-  .car-header-compact .compact-nowrap > * { flex-shrink: 0; }
-  .car-header-compact .compact-shrink-thumb {
-    height: 1.75rem !important;
-    width: auto !important;
-    aspect-ratio: 4 / 3;
-    align-self: center !important;
-  }
-  .car-header-compact .compact-shrink-pad {
-    padding-top: 0.125rem !important;
-    padding-bottom: 0.125rem !important;
-  }
-}
 </style>

@@ -530,7 +530,7 @@ auth:
     error_invalid: Ogiltig återställningslänk. Begär en ny.
     error_generic: Ett fel har uppstått. Försök igen.
 logs:
-  title: Laddtillfällen / Resor
+  title: Laddningar & resor
 
 dashboard:
   title: Dashboard

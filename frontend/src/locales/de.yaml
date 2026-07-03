@@ -570,7 +570,7 @@ auth:
     error_generic: "Ein Fehler ist aufgetreten. Bitte versuche es erneut."
 
 logs:
-  title: "Ladesessions / Fahrten"
+  title: "Ladevorgänge & Trips"
 
 dashboard:
   title: "Dashboard"

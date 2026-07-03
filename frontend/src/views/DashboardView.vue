@@ -54,8 +54,8 @@ import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useDashboardStats } from '../composables/useDashboardStats'
 import { useDashboardCharts } from '../composables/useDashboardCharts'
 import { useLogList } from '../composables/useLogList'
-import { useStickyCarHeader } from '../composables/useStickyCarHeader'
-import { useWallboxStore } from '../stores/wallbox'
+import { useVehicleCharging } from '../composables/useVehicleCharging'
+import MobileCarSelector from '../components/shared/MobileCarSelector.vue'
 import { carDisplayName, enumToLabel } from '../utils/enumLabel'
 import { isVwGroupBrand } from '../api/vwGroupService'
 
@@ -133,24 +133,8 @@ const selectedCar = computed(() =>
   cars.value.find(c => c.id === selectedCarId.value) ?? cars.value[0] ?? null
 )
 
-const wallboxStore = useWallboxStore()
-
-const isSmartcarCharging = (car: any) =>
-  smartcarStatus.value?.connected === true &&
-  smartcarStatus.value?.vehicleState === 'CHARGING' &&
-  (smartcarStatus.value?.carId === car.id ||
-    (smartcarStatus.value?.carId === null && cars.value.length === 1))
-
-// Wallbox kennt keine carId → Glow nur bei Single-Car sicher zuordenbar
-const isWallboxCharging = () =>
-  wallboxStore.isCharging && cars.value.length === 1
-
-const isVwGroupCharging = (car: any) =>
-  isVwGroupBrand(car.brand) &&
-  vwGroupStatus.value?.connected === true &&
-  vwGroupStatus.value?.vehicleState === 'charging'
-
-const isVehicleCharging = (car: any) => isSmartcarCharging(car) || isVwGroupCharging(car) || isWallboxCharging()
+const { isVehicleCharging, isSmartcarCharging, isWallboxCharging } =
+  useVehicleCharging(cars, smartcarStatus, vwGroupStatus)
 
 // -- Lifecycle --
 const LS_ACTIVATION_KEY = 'ev_activation_reached'
@@ -263,10 +247,6 @@ onDeactivated(() => {
   document.removeEventListener('click', onClickOutsideFilter)
 })
 
-// -- Sticky car header compact mode --
-const stickyCarBar = ref<HTMLElement | null>(null)
-const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
-
 
 </script>
 
@@ -321,16 +301,29 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
             </button>
           </div>
 
-          <!-- Car card selector (all breakpoints) -->
+          <!-- Auto-Selektor: Mobile als geteilte Komponente (kein Collapse, Top-Abstand
+               fuer Ticker+Lasche), Desktop-Layout bleibt hier pro View. Details liegen
+               auf Mobile im "Mehr Details"-Toggle darunter (show-inline-details=false). -->
+          <MobileCarSelector
+            v-if="cars.length > 0"
+            class="md:hidden"
+            :model-value="selectedCarId"
+            @update:model-value="selectedCarId = $event"
+            :cars="cars"
+            :car-image-urls="carImageUrls"
+            :wltp="wltp"
+            :current-odometer-km="currentOdometerKm"
+            :tesla-status="teslaStatus"
+            :smartcar-status="smartcarStatus"
+            :vw-group-status="vwGroupStatus"
+          />
+          <!-- Desktop-Auto-Selektor (>=768px) -->
           <div
             v-if="cars.length > 0"
-            ref="stickyCarBar"
-            :class="[
-              cars.length > 1
-                ? 'sticky top-16 z-10 bg-white dark:bg-gray-800 -mx-4 px-4 md:-mx-6 md:px-6 py-1.5 md:py-3 mb-3 border-b border-gray-100 dark:border-gray-700 shadow-sm'
-                : 'mb-6 md:w-fit md:mx-auto',
-              isCarHeaderSticky ? 'car-header-compact' : ''
-            ]"
+            class="hidden md:block"
+            :class="cars.length > 1
+              ? 'sticky top-16 z-10 bg-white dark:bg-gray-800 md:-mx-6 md:px-6 md:py-3 mb-3 border-b border-gray-100 dark:border-gray-700 shadow-sm'
+              : 'mb-6 md:w-fit md:mx-auto'"
           >
             <div class="flex gap-3 overflow-x-auto car-scroll-hide pb-1 lg:flex-wrap lg:overflow-x-visible">
               <button
@@ -350,7 +343,7 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
                       : 'border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] hover:border-indigo-300',
                   cars.length > 1 && isVehicleCharging(car) ? 'ring-2 ring-green-400 dark:ring-green-500' : '',
                 ]" style="transition: transform 0.075s ease, box-shadow 0.075s ease;">
-                <div class="flex-shrink-0 h-12 aspect-[4/3] md:w-20 md:h-auto md:aspect-auto md:self-stretch bg-gray-100 dark:bg-gray-600 flex items-center justify-center overflow-hidden compact-shrink-thumb">
+                <div class="flex-shrink-0 md:w-20 md:h-auto md:self-stretch bg-gray-100 dark:bg-gray-600 flex items-center justify-center overflow-hidden">
                   <img
                     v-if="carImageUrls[car.id]"
                     :src="carImageUrls[car.id]"
@@ -358,49 +351,7 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
                     class="w-full h-full object-cover" />
                   <TruckIcon v-else class="w-6 h-6 md:w-8 md:h-8 text-gray-400" />
                 </div>
-                <div class="min-w-0 flex-1 px-3 py-1.5 md:px-3 md:py-2 compact-shrink-pad">
-                  <!-- Mobile compact (alle Autos): eine Zeile -->
-                  <div class="flex items-center gap-1.5 flex-wrap md:hidden compact-nowrap">
-                    <span class="font-semibold text-sm text-gray-800 dark:text-gray-200 whitespace-nowrap">{{ carDisplayName(car.brand, car.model) }}</span>
-                    <span v-if="car.trim" class="text-xs text-gray-500 dark:text-gray-400 compact-hide">{{ car.trim }}</span>
-                    <template v-if="!isCarHeaderSticky">
-                      <template v-if="car.brand?.toLowerCase() === 'tesla' && teslaStatus?.connected && (teslaStatus.carId === car.id || teslaStatus.carId === null)">
-                        <span v-if="teslaStatus.vehicleState === 'charging'"
-                          class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium border border-green-200">
-                          <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>{{ t('dashboard.tesla_charging') }}
-                        </span>
-                        <span v-else-if="teslaStatus.vehicleState === 'online'"
-                          class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs rounded-full font-medium border border-blue-200 dark:border-blue-700">
-                          <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>{{ t('dashboard.tesla_online') }}
-                        </span>
-                        <span v-else-if="teslaStatus.vehicleState === 'asleep'"
-                          class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 text-gray-500 text-xs rounded-full font-medium border border-gray-300">
-                          <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>{{ t('dashboard.tesla_sleeping') }}
-                        </span>
-                      </template>
-                      <span v-if="isSmartcarCharging(car)"
-                        class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs rounded-full font-medium border border-green-200 dark:border-green-700">
-                        <span class="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 animate-pulse"></span>{{ t('dashboard.smartcar_charging') }}
-                      </span>
-                      <template v-if="isVwGroupBrand(car.brand) && vwGroupStatus?.connected">
-                        <span v-if="vwGroupStatus.vehicleState === 'charging'"
-                          class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs rounded-full font-medium border border-green-200 dark:border-green-700">
-                          <span class="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 animate-pulse"></span>
-                          {{ t('dashboard.vwgroup_charging') }}
-                          <span v-if="vwGroupStatus.lastSoc != null" class="opacity-75">· {{ vwGroupStatus.lastSoc }}%</span>
-                        </span>
-                        <span v-else
-                          class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs rounded-full font-medium border border-blue-200 dark:border-blue-700">
-                          <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
-                          {{ vwGroupStatus.lastSoc != null ? vwGroupStatus.lastSoc + '%' : t('dashboard.vwgroup_connected') }}
-                        </span>
-                      </template>
-                      <span v-if="isWallboxCharging()"
-                        class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs rounded-full font-medium border border-green-200 dark:border-green-700">
-                        <span class="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 animate-pulse"></span>{{ t('dashboard.wallbox_charging') }}
-                      </span>
-                    </template>
-                  </div>
+                <div class="min-w-0 flex-1 px-3 py-1.5 md:px-3 md:py-2">
                   <!-- Desktop: zweizeiliges Layout -->
                   <div :class="cars.length === 1 ? 'hidden lg:block' : 'hidden md:block'">
                     <div class="flex items-center gap-2 flex-wrap">
@@ -460,7 +411,9 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
                 </div>
               </button>
             </div>
-            <!-- Mobile/tablet: Mehr Details + Filter in einer Zeile (<lg) -->
+          </div>
+          <!-- Mobile/tablet: Mehr Details + Filter (<lg): Sibling, damit es auf Mobile
+               sichtbar bleibt (der Desktop-Selektor darueber ist hidden md:block). -->
             <div v-if="(cars.length === 1 && selectedCar && hasCarCardDetails) || filterBarVisible"
               class="lg:hidden mt-1.5 relative flex items-center justify-between" ref="filterDropdownMobile">
               <!-- Mehr Details toggle (links) -->
@@ -538,7 +491,6 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
                 <CarCardDetails :car="selectedCar" :wltp="wltp" :current-odometer-km="currentOdometerKm" orientation="stacked" />
               </div>
             </div>
-          </div>
 
           <!-- Live-Ladevorgang: blendet sich automatisch ein wenn aktive Session und User AS Live -->
           <LiveChargingCard
@@ -1244,26 +1196,4 @@ const { isCarHeaderSticky } = useStickyCarHeader(stickyCarBar)
    scroll communicate scrollability; the native bar just clutters the chip). */
 .car-scroll-hide { scrollbar-width: none; }
 .car-scroll-hide::-webkit-scrollbar { display: none; }
-
-/* Sticky car-header compact mode (mobile only). Mirrors LogsView rules. */
-@media (max-width: 767px) {
-  .car-header-compact .compact-hide { display: none !important; }
-  .car-header-compact .compact-nowrap {
-    flex-wrap: nowrap !important;
-    overflow: hidden;
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-  }
-  .car-header-compact .compact-nowrap > * { flex-shrink: 0; }
-  .car-header-compact .compact-shrink-thumb {
-    height: 1.75rem !important;
-    width: auto !important;
-    aspect-ratio: 4 / 3;
-    align-self: center !important;
-  }
-  .car-header-compact .compact-shrink-pad {
-    padding-top: 0.125rem !important;
-    padding-bottom: 0.125rem !important;
-  }
-}
 </style>

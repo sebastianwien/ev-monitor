@@ -570,7 +570,7 @@ auth:
     error_generic: "An error occurred. Please try again."
 
 logs:
-  title: "Charging Sessions / Trips"
+  title: "Charges & Trips"
 
 dashboard:
   title: "Dashboard"

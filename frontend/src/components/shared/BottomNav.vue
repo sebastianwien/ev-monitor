@@ -106,7 +106,7 @@ function onMore() {
           @click="onTabClick(isWatt)"
         >
           <BoltIcon class="h-6 w-6" />
-          <span :class="LABEL">{{ props.wattBalance }}</span>
+          <span :class="LABEL">{{ props.wattBalance }} W</span>
         </router-link>
         <button
           type="button"
