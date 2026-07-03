@@ -647,14 +647,28 @@ function cellClass(i: number, vals: (number | null)[], lowerIsBetter = true): st
 }
 
 
+const BASE_URL = 'https://ev-monitor.net'
+
 useHead(computed(() => {
   const names = validModels.value.map(m => m.modelDisplayName).join(' vs. ')
+  const title = names ? `${names} – ${t('compare.breadcrumb_current')} | EV Monitor` : t('compare.head_title_fallback')
+  const description = t('compare.head_desc', { names })
+  const canonical = `${BASE_URL}${route.fullPath}`
   return {
-    title: names ? `${names} – ${t('compare.breadcrumb_current')} | EV Monitor` : t('compare.head_title_fallback'),
+    title,
     meta: [
-      { name: 'description', content: t('compare.head_desc', { names }) },
-      { name: 'robots', content: 'index, follow' }
-    ]
+      { name: 'description', content: description },
+      { name: 'robots', content: 'index, follow' },
+      { property: 'og:title', content: title },
+      { property: 'og:description', content: description },
+      { property: 'og:type', content: 'website' },
+      { property: 'og:url', content: canonical },
+      { property: 'og:image', content: `${BASE_URL}/og-image.png` },
+      { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:title', content: title },
+      { name: 'twitter:description', content: description },
+    ],
+    link: [{ rel: 'canonical', href: canonical }],
   }
 }))
 </script>
