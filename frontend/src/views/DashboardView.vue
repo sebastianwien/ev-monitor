@@ -234,9 +234,9 @@ onDeactivated(() => {
     <Transition name="fade" mode="out-in">
       <div v-if="!loading || !isInitialLoad">
         <div class="bg-gray-100 dark:bg-gray-800 md:rounded-sm md:shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:md:shadow-[4px_4px_0_rgba(255,255,255,0.30)] p-4 md:p-6 pb-6">
-          <div class="flex flex-wrap items-center gap-3 mb-6">
-            <ChartBarIcon class="h-8 w-8 text-gray-700 dark:text-gray-300" />
-            <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-200">Dashboard</h1>
+          <div class="flex flex-wrap items-center gap-3 mb-3 sm:mb-6">
+            <ChartBarIcon class="hidden sm:block h-8 w-8 text-gray-700 dark:text-gray-300" />
+            <h1 class="w-full text-center text-xl sm:w-auto sm:text-left sm:text-3xl font-bold text-gray-800 dark:text-gray-200">Dashboard</h1>
             <!-- Mobile: Logs/Trips laufen ueber die Bottom-Nav (kein redundanter Button hier) -->
             <!-- Desktop: Filter + Fahrzeuge + Logs -->
             <div class="hidden sm:flex items-center gap-2 ml-auto">
@@ -393,9 +393,10 @@ onDeactivated(() => {
           <!-- Mobile: Zeitraum-Filter (<lg): Sibling, damit es auf Mobile sichtbar
                bleibt (der Desktop-Selektor darueber ist hidden md:block). -->
             <div v-if="filterBarVisible"
-              class="lg:hidden mt-1.5 relative flex items-center justify-end" ref="filterDropdownMobile">
-              <!-- Filter trigger (nur Mobile) -->
-              <div class="sm:hidden relative">
+              class="sm:hidden mt-1.5 mb-4 flex items-center gap-4" ref="filterDropdownMobile">
+              <div class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
+              <!-- Filter trigger (zentriert zwischen Trennstrichen, wie Desktop) -->
+              <div class="relative">
                 <button
                   @click.stop="showFilterDropdown = !showFilterDropdown"
                   class="flex items-center gap-1.5 px-2.5 py-1 rounded-sm border-2 border-gray-300 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition">
@@ -445,6 +446,7 @@ onDeactivated(() => {
                   </div>
                 </Transition>
               </div>
+              <div class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
             </div>
 
           <!-- Live-Ladevorgang: blendet sich automatisch ein wenn aktive Session und User AS Live -->
