@@ -76,9 +76,9 @@ onUnmounted(() => {
 
     <!-- Green band: collapses to a thin stripe -->
     <div
-      class="bg-indigo-800 border-t border-indigo-700 overflow-hidden transition-all duration-300"
-      :class="collapsed ? 'h-1' : 'h-8'">
-      <div class="ticker-track-wrapper flex items-center h-full">
+      class="bg-indigo-800 overflow-hidden transition-all duration-300"
+      :class="collapsed ? 'h-1' : 'h-8 border-t border-indigo-700'">
+      <div v-show="!collapsed" class="ticker-track-wrapper flex items-center h-full">
         <div class="ticker-track flex items-center" :class="{ 'animation-paused': !animationActive }" :style="{ animationDuration: animDuration }">
           <template v-for="pass in [0, 1]" :key="pass">
             <template v-for="(item, i) in items" :key="`${pass}-${i}`">
@@ -112,7 +112,7 @@ onUnmounted(() => {
     <!-- Lasche: hangs below the green band, centered -->
     <button
       @click="toggle"
-      class="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full bg-indigo-800 border border-t-0 border-indigo-700 rounded-b-lg px-4 py-0.5 flex items-center gap-1 text-indigo-300 hover:text-white transition-colors"
+      class="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full bg-indigo-800 border border-t-0 border-indigo-700 rounded-b-lg px-7 py-0.5 flex items-center gap-1 text-indigo-300 hover:text-white transition-colors"
       :title="collapsed ? 'Ticker einblenden' : 'Ticker ausblenden'">
       <ChevronUpIcon v-if="!collapsed" class="h-3 w-3" />
       <ChevronDownIcon v-else class="h-3 w-3" />

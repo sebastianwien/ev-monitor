@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, computed } from 'vue'
+import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useImportsTab } from './composables/useImportsTab'
@@ -169,6 +169,25 @@ onMounted(() => {
   }, { capture: true })
 })
 
+// Top-Nav-Hoehe live messen und als CSS-Var spiegeln, damit Ticker + DemoBanner
+// fugenlos andocken und mainPaddingTop exakt stimmt (statt hartkodierter 64px).
+// Nav ist auf Mobile 'hidden md:block' -> offsetHeight 0 -> Var 0, korrekt.
+const navRef = ref<HTMLElement | null>(null)
+let navResizeObserver: ResizeObserver | null = null
+function applyNavHeight() {
+  const h = navRef.value?.offsetHeight ?? 0
+  document.documentElement.style.setProperty('--top-nav-h', h + 'px')
+}
+watch(navRef, (el) => {
+  navResizeObserver?.disconnect()
+  if (el) {
+    navResizeObserver = new ResizeObserver(applyNavHeight)
+    navResizeObserver.observe(el)
+  }
+  applyNavHeight()
+}, { immediate: true })
+onUnmounted(() => navResizeObserver?.disconnect())
+
 // Impersonation
 const impersonatingAs = computed(() => sessionStorage.getItem('impersonating'))
 
@@ -226,7 +245,7 @@ const handleBottomLogout = () => {
     </div>
 
     <!-- Navigation -->
-    <nav class="hidden md:block bg-indigo-600 text-white fixed top-0 left-0 right-0 z-40 pt-[env(safe-area-inset-top)]" v-if="authStore.isAuthenticated()">
+    <nav ref="navRef" class="hidden md:block bg-indigo-600 text-white fixed top-0 left-0 right-0 z-40 pt-[env(safe-area-inset-top)]" v-if="authStore.isAuthenticated()">
       <div class="px-4 py-3">
         <div class="flex justify-between items-center">
           <!-- Left: Logo + Nav Buttons (Desktop) -->
