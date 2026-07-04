@@ -52,6 +52,16 @@ const { isDark } = storeToRefs(themeStore)
 useStatusBarTheme(isDark)
 const { tickerHasItems, tickerCollapsed } = useTickerState()
 
+// Ticker sichtbar = volles Band (nicht eingeklappt). Steuert lila Safe-Area + Content-Offset.
+const tickerVisible = computed(() => tickerHasItems.value && !tickerCollapsed.value)
+// Statusbar-Filler faerbt sich lila, wenn der Ticker sichtbar ist (nahtloser Header bis
+// in die Notch); sonst neutraler blickdichter Streifen mit dezenter Trennkante.
+const statusbarFillerClass = computed(() =>
+  tickerVisible.value
+    ? 'bg-indigo-800'
+    : 'bg-white dark:bg-gray-950 border-b border-gray-200/60 dark:border-gray-800/60'
+)
+
 // Pull-to-Refresh (nur nativ): am Seitenanfang nach unten ziehen => Reload.
 const { pull: ptrPull, refreshing: ptrRefreshing, armed: ptrArmed } = usePullToRefresh()
 
@@ -62,9 +72,13 @@ const mainPaddingTop = computed(() => {
   // der Content-Offset muss mitwachsen (auf Web/PWA ohne Notch ist env() = 0).
   const safe = 'env(safe-area-inset-top)'
   const nav = 'var(--top-nav-h)'
+  // Die Ticker-Aufklapp-Lasche haengt unter das Band; der Content muss sie freihalten,
+  // sonst ragt sie in die erste Card (siehe LeaderboardTicker.vue).
+  const lasche = '20px'
   // Demo-Banner liegt unter der Nav (Banner-Hoehe 56px) - siehe DemoBanner.vue.
   if (authStore.isDemoAccount) return `calc(${nav} + 56px + ${safe})`
-  if (tickerHasItems.value && !tickerCollapsed.value) return `calc(${nav} + 32px + ${safe})` // Ticker 32px
+  if (tickerHasItems.value && !tickerCollapsed.value) return `calc(${nav} + 32px + ${lasche} + ${safe})` // Ticker 32px + Lasche
+  if (tickerHasItems.value) return `calc(${nav} + ${lasche} + ${safe})` // eingeklappt: nur Lasche
   return `calc(${nav} + ${safe})`
 })
 
@@ -437,13 +451,14 @@ const handleBottomLogout = () => {
 
     </nav>
 
-    <!-- Mobile: blickdichter Statusbar-Streifen. Da es auf Mobile keine Top-Nav gibt,
-         fuellt dieser die Safe-Area (Notch/Statusbar) mit ruhigem Hintergrund - sonst
-         scheint das Wallpaper durch und Ticker/Content stossen hart an die Statusbar.
-         Nur Mobile (md:hidden); im mobilen Web ist env() = 0 -> unsichtbar, kein Impact. -->
+    <!-- Mobile: blickdichter Statusbar-Streifen fuellt die Safe-Area (Notch/Statusbar),
+         da es auf Mobile keine Top-Nav gibt - sonst scheint das Wallpaper durch. Faerbt
+         sich lila, wenn der Ticker sichtbar ist, sodass der farbige Header nahtlos bis in
+         die Notch laeuft (statusbarFillerClass). Nur Mobile; im Web ist env() = 0. -->
     <div
       v-if="authStore.isAuthenticated()"
-      class="md:hidden fixed top-0 left-0 right-0 z-40 h-[env(safe-area-inset-top)] bg-white dark:bg-gray-950 border-b border-gray-200/60 dark:border-gray-800/60"
+      class="md:hidden fixed top-0 left-0 right-0 z-40 h-[env(safe-area-inset-top)] transition-colors"
+      :class="statusbarFillerClass"
       aria-hidden="true"
     />
 
