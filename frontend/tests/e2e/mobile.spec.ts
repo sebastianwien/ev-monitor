@@ -1,4 +1,6 @@
 import { test, expect, devices } from '@playwright/test';
+import { TEST_USER } from './global-setup';
+import { featureAnnouncements } from '../../src/config/featureAnnouncements';
 
 // iPhone 12 viewport direkt pro Test setzen (test.use in describe geht nicht mit defaultBrowserType)
 const iphone12 = devices['iPhone 12'];
@@ -47,5 +49,41 @@ test('Mobile: Login-Formular bedienbar', async ({ browser }) => {
   await page.locator('input[type="text"]').tap();
   await page.locator('input[type="text"]').fill('test@test.de');
   await expect(page.locator('input[type="text"]')).toHaveValue('test@test.de');
+  await context.close();
+});
+
+test('Mobile: Segmented Control wechselt Dashboard <-> Log-Feed im geteilten Layout', async ({ browser }) => {
+  const context = await browser.newContext({ ...iphone12 });
+  const page = await context.newPage();
+
+  // Feature-Announcement-Modals wegklicken, sonst blockt der Overlay die Tab-Klicks
+  await page.addInitScript((seenKeys: string[]) => {
+    localStorage.setItem('seen-announcements', JSON.stringify(seenKeys));
+  }, featureAnnouncements.map(a => a.key));
+
+  await page.goto('/login');
+  await page.locator('input[type="text"]').fill(TEST_USER.email);
+  await page.locator('input[type="password"]').fill(TEST_USER.password);
+  await page.locator('button[type="submit"]').click();
+  await expect(page).toHaveURL(/\/dashboard/, { timeout: 10_000 });
+  // Auto-Card + Dashboard-Daten settlen lassen, sonst schiebt der ladende Header die Tabs
+  await page.waitForLoadState('networkidle');
+
+  // Uebersicht ist initial aktiv (Pill links)
+  const overviewTab = page.locator('a[role="tab"][href="/dashboard"]');
+  const logsTab = page.locator('a[role="tab"][href="/logs"]');
+  await expect(overviewTab).toHaveAttribute('aria-selected', 'true');
+
+  // Auf Log-Feed umschalten: URL + aktiver Body wechseln, Header (Segmented Control) bleibt
+  await logsTab.click();
+  await expect(page).toHaveURL(/\/logs/, { timeout: 5_000 });
+  await expect(logsTab).toHaveAttribute('aria-selected', 'true');
+  await expect(overviewTab).toHaveAttribute('aria-selected', 'false');
+
+  // Zurueck auf Uebersicht
+  await overviewTab.click();
+  await expect(page).toHaveURL(/\/dashboard/, { timeout: 5_000 });
+  await expect(overviewTab).toHaveAttribute('aria-selected', 'true');
+
   await context.close();
 });

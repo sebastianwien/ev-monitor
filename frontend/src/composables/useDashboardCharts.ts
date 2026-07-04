@@ -1,8 +1,9 @@
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { storeToRefs } from 'pinia'
 import { useThemeStore } from '../stores/theme'
 import { useLocaleFormat } from './useLocaleFormat'
+import { useIsMobile } from './useIsMobile'
 import { convertFromEur } from '../config/exchangeRates'
 import type { StatisticsData } from './useDashboardStats'
 import type { VehicleSpecification } from '../api/vehicleSpecificationService'
@@ -29,11 +30,7 @@ export function useDashboardCharts(
   const showConsumption = ref(true)
 
   // Mobile-Breakpoint reaktiv - bestimmt ob Y-Achsen-Labels inside (mirror) gerendert werden
-  const isMobile = ref(typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches)
-  const mql = typeof window !== 'undefined' ? window.matchMedia('(max-width: 767px)') : null
-  const onMqlChange = (e: MediaQueryListEvent) => { isMobile.value = e.matches }
-  mql?.addEventListener('change', onMqlChange)
-  onUnmounted(() => mql?.removeEventListener('change', onMqlChange))
+  const isMobile = useIsMobile()
 
   // Custom comparison value
   const customCompareValue = ref<number | null>(

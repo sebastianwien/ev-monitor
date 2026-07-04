@@ -3,6 +3,7 @@ import { computed, ref, watch, onUnmounted, defineAsyncComponent } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { provideCarContext } from '../composables/useCarContext'
 import { useTabPager } from '../composables/useTabPager'
+import { useIsMobile } from '../composables/useIsMobile'
 import MobileCarSelector from '../components/shared/MobileCarSelector.vue'
 import ViewSegmentedControl from '../components/shared/ViewSegmentedControl.vue'
 import DashboardView from '../views/DashboardView.vue'
@@ -28,6 +29,11 @@ const {
 
 const isLogs = computed(() => route.name === 'logs')
 const activeIndex = computed(() => (isLogs.value ? 1 : 0))
+
+// Der Swipe-Pager ist ein reines Mobile-Feature. Auf Desktop wird nur der aktive
+// Body gemountet - sonst rendern beide Views (doppeltes Polling, duplizierte
+// Header/Log-Aktionen im DOM) parallel.
+const isMobile = useIsMobile()
 
 const pagerEl = ref<HTMLElement | null>(null)
 const { dragX, dragging } = useTabPager(pagerEl, isLogs, (to) => router.push(to))
@@ -73,8 +79,14 @@ const paneCollapsed = (i: number) => !bothExpanded.value && i !== activeIndex.va
       <ViewSegmentedControl class="mb-2" />
     </div>
 
-    <!-- Pager-Viewport (klippt horizontal) + Track mit beiden Bodies nebeneinander. -->
-    <div ref="pagerEl" class="overflow-x-clip">
+    <!-- Desktop: nur der aktive Body (kein Pager, keine Doppel-Mounts). -->
+    <template v-if="!isMobile">
+      <DashboardView v-if="!isLogs" />
+      <LogsView v-else />
+    </template>
+
+    <!-- Mobile: Pager-Viewport (klippt horizontal) + Track mit beiden Bodies. -->
+    <div v-else ref="pagerEl" class="overflow-x-clip">
       <div class="flex w-[200%] items-start" :style="trackStyle">
         <div class="w-1/2 shrink-0" :class="{ 'max-h-0 overflow-hidden': paneCollapsed(0) }"><DashboardView /></div>
         <div class="w-1/2 shrink-0" :class="{ 'max-h-0 overflow-hidden': paneCollapsed(1) }"><LogsView /></div>
