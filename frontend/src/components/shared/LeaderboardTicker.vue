@@ -77,7 +77,7 @@ onUnmounted(() => {
     <!-- Green band: collapses to a thin stripe -->
     <div
       class="bg-indigo-800 overflow-hidden transition-all duration-300"
-      :class="collapsed ? 'h-1' : 'h-8 border-t border-indigo-700'">
+      :class="collapsed ? 'h-1' : 'h-8'">
       <div v-show="!collapsed" class="ticker-track-wrapper flex items-center h-full">
         <div class="ticker-track flex items-center" :class="{ 'animation-paused': !animationActive }" :style="{ animationDuration: animDuration }">
           <template v-for="pass in [0, 1]" :key="pass">

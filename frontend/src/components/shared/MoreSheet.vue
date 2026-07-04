@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   XMarkIcon, TruckIcon, ArrowsRightLeftIcon, ArrowDownTrayIcon,
@@ -30,6 +31,59 @@ const items: NavItem[] = [
   { to: '/settings', label: 'nav.bottom.settings', icon: Cog6ToothIcon, demoHidden: true },
 ]
 
+// Pull-down-to-dismiss: das Sheet laesst sich nach unten wegziehen. Die Geste
+// startet nur, wenn der Scroll-Container ganz oben steht (sonst will der User
+// scrollen). Ueber der Schwelle schliesst es, sonst federt es zurueck.
+const DISMISS_THRESHOLD_PX = 120
+const sheetRef = ref<HTMLElement | null>(null)
+const dragY = ref(0)
+const dragging = ref(false)
+let startY = 0
+let active = false
+
+// Beim Oeffnen den evtl. vom Schliessen stehengebliebenen Offset zuruecksetzen.
+watch(() => props.open, (open) => { if (open) dragY.value = 0 })
+
+const sheetStyle = computed(() => {
+  if (!dragging.value && dragY.value === 0) return undefined
+  return {
+    transform: `translateY(${dragY.value}px)`,
+    transition: dragging.value ? 'none' : 'transform 0.25s cubic-bezier(0.32, 0.72, 0, 1)',
+  }
+})
+
+function onTouchStart(e: TouchEvent) {
+  if (e.touches.length !== 1 || (sheetRef.value?.scrollTop ?? 0) > 0) return
+  startY = e.touches[0].clientY
+  active = true
+  dragging.value = true
+}
+function onTouchMove(e: TouchEvent) {
+  if (!active) return
+  const dy = e.touches[0].clientY - startY
+  if (dy > 0) {
+    dragY.value = dy
+    if (e.cancelable) e.preventDefault() // native Overscroll waehrend des Zugs unterdruecken
+  } else {
+    // nach oben -> Geste abbrechen, nativen Scroll wieder zulassen
+    active = false
+    dragging.value = false
+    dragY.value = 0
+  }
+}
+function onTouchEnd() {
+  if (!active) return
+  active = false
+  dragging.value = false
+  if (dragY.value > DISMISS_THRESHOLD_PX) {
+    haptic()
+    dragY.value = sheetRef.value?.offsetHeight ?? window.innerHeight // aus dem Bild ziehen
+    setTimeout(() => emit('close'), 250)
+  } else {
+    dragY.value = 0 // zurueckfedern (transition greift, da !dragging)
+  }
+}
+
 function go() {
   haptic()
   emit('close')
@@ -49,10 +103,16 @@ function onLogout() {
 
       <!-- Sheet -->
       <div
+        ref="sheetRef"
         class="more-sheet absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-900 rounded-t-2xl shadow-[0_-4px_20px_rgba(0,0,0,0.25)] max-h-[80vh] overflow-y-auto pb-[env(safe-area-inset-bottom)]"
+        :style="sheetStyle"
         role="dialog"
         aria-modal="true"
         :aria-label="t('nav.bottom.more')"
+        @touchstart.passive="onTouchStart"
+        @touchmove="onTouchMove"
+        @touchend="onTouchEnd"
+        @touchcancel="onTouchEnd"
       >
         <!-- Grabber + Header -->
         <div class="sticky top-0 bg-white dark:bg-gray-900 pt-3 px-4 pb-2">
