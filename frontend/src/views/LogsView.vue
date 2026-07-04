@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, reactive, onMounted, onUnmounted, onActivated, onDeactivated, watch } from 'vue'
+import { ref, computed, reactive, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   TruckIcon,
@@ -55,6 +55,7 @@ import ImplausibleLogsModal from '../components/dashboard/ImplausibleLogsModal.v
 import MergeLogModal from '../components/dashboard/MergeLogModal.vue'
 import CarCardDetails from '../components/dashboard/CarCardDetails.vue'
 import LogsPaginationBar from '../components/dashboard/LogsPaginationBar.vue'
+import { useRoute } from 'vue-router'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useCarContext } from '../composables/useCarContext'
 import { useVehicleCharging } from '../composables/useVehicleCharging'
@@ -75,6 +76,7 @@ import {
 const { t } = useI18n()
 const { formatConsumption, formatDistance, distanceUnitLabel, formatCurrency, formatCostPerKwh } = useLocaleFormat()
 const { haptic } = useHaptic()
+const route = useRoute()
 
 // -- Geteilter Auto-Context (State + Polling liegen im CarContextLayout) --
 const {
@@ -361,8 +363,8 @@ function onMenuKeyEsc(event: KeyboardEvent) {
     openMenuGroupId.value = null
   }
 }
-onActivated(() => window.addEventListener('keydown', onMenuKeyEsc))
-onDeactivated(() => window.removeEventListener('keydown', onMenuKeyEsc))
+onMounted(() => window.addEventListener('keydown', onMenuKeyEsc))
+onUnmounted(() => window.removeEventListener('keydown', onMenuKeyEsc))
 
 function toggleLogExpanded(id: string) {
   haptic()
@@ -781,10 +783,9 @@ function toggleAllTrips() {
 }
 
 // -- Coordinate FAB position with the sticky bulk-bar (mobile only) --
-// viewActive: KeepAlive-Cached Views verstecken ihren Teleport-Footer waehrend sie inaktiv sind
-const viewActive = ref(true)
-onActivated(() => { viewActive.value = true })
-onDeactivated(() => { viewActive.value = false })
+// Beide Bodies sind im Pager dauerhaft gerendert -> aktiv = die Route zeigt sie.
+// Verhindert, dass der Teleport-Footer (Bulk-Bar) im inaktiven Tab sichtbar bleibt.
+const viewActive = computed(() => route.name === 'logs')
 const bulkBar = ref<HTMLElement | null>(null)
 const bulkBarVisible = computed(() =>
   viewActive.value && hasAnyLogs.value && (totalTripCount.value > 0 || chargeCount.value > 0),

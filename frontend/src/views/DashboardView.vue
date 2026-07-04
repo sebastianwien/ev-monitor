@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, onActivated, onDeactivated, watch, defineAsyncComponent } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, defineAsyncComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Line, Bar } from 'vue-chartjs'
 import {
@@ -27,7 +27,7 @@ import {
   CalendarIcon,
   UsersIcon,
 } from '@heroicons/vue/24/outline'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import LicensePlate from '../components/car/LicensePlate.vue'
 const ChargingHeatMap = defineAsyncComponent(() => import('../components/dashboard/ChargingHeatMap.vue'))
 import RewardSystemUpdateBanner from '../components/shared/RewardSystemUpdateBanner.vue'
@@ -60,6 +60,7 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineEleme
 
 const { t } = useI18n()
 const router = useRouter()
+const route = useRoute()
 const { formatConsumption, consumptionUnitLabel, formatDistance, distanceUnitLabel, formatCurrency, formatCostPerKwh, formatCostPerDistance, currencySymbol } = useLocaleFormat()
 
 // -- Geteilter Auto-Context (State + Polling liegen im CarContextLayout) --
@@ -168,7 +169,8 @@ function togglePeerPlaceholder() {
   localStorage.setItem(LS_PEER_PLACEHOLDER, String(peerPlaceholderCollapsed.value))
 }
 
-const viewActive = ref(true)
+// Beide Bodies sind im Pager dauerhaft gerendert -> aktiv = die Route zeigt sie.
+const viewActive = computed(() => route.name === 'statistics')
 const showFilterDropdown = ref(false)
 const filterDropdownDesktop = ref<HTMLElement | null>(null)
 const filterDropdownMobile = ref<HTMLElement | null>(null)
@@ -185,14 +187,6 @@ onMounted(() => {
   document.addEventListener('click', onClickOutsideFilter)
 })
 onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) })
-onActivated(() => {
-  viewActive.value = true
-  document.addEventListener('click', onClickOutsideFilter)
-})
-onDeactivated(() => {
-  viewActive.value = false
-  document.removeEventListener('click', onClickOutsideFilter)
-})
 
 
 </script>
