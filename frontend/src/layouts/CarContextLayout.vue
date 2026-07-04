@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent } from 'vue'
 import { useRoute } from 'vue-router'
-import { useI18n } from 'vue-i18n'
 import { provideCarContext } from '../composables/useCarContext'
 import MobileCarSelector from '../components/shared/MobileCarSelector.vue'
+import ViewSegmentedControl from '../components/shared/ViewSegmentedControl.vue'
 import DashboardView from '../views/DashboardView.vue'
 
 // Log-Feed ist gross -> lazy. Dashboard ist der Default-Tab -> eager.
@@ -15,7 +15,6 @@ const LogsView = defineAsyncComponent(() => import('../views/LogsView.vue'))
  * + Tab-Switch) bleibt stehen und nur der Body-Teil wechselt. Der gemeinsame
  * State (Auto-Auswahl, Polling, Statistiken, Logs) lebt hier einmal.
  */
-const { t } = useI18n()
 const route = useRoute()
 
 const {
@@ -25,12 +24,6 @@ const {
 
 const isLogs = computed(() => route.name === 'logs')
 const activeBody = computed(() => (isLogs.value ? LogsView : DashboardView))
-
-const tabClass = (active: boolean) =>
-  `flex-1 text-center text-sm font-semibold py-1.5 rounded-sm transition ${
-    active ? 'bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-sm'
-           : 'text-gray-500 dark:text-gray-400'
-  }`
 </script>
 
 <template>
@@ -49,14 +42,15 @@ const tabClass = (active: boolean) =>
         :vw-group-status="vwGroupStatus"
         :show-inline-details="true"
       />
-      <div class="flex gap-1 p-1 mb-2 rounded-md bg-gray-100 dark:bg-gray-800">
-        <router-link to="/dashboard" :class="tabClass(!isLogs)">{{ t('nav.tab_overview') }}</router-link>
-        <router-link to="/logs" :class="tabClass(isLogs)">{{ t('logs.title') }}</router-link>
-      </div>
+      <ViewSegmentedControl class="mb-2" />
     </div>
 
-    <KeepAlive :include="['DashboardView', 'LogsView']">
-      <component :is="activeBody" />
-    </KeepAlive>
+    <!-- Nur der Body slidet (Header liegt darueber, bleibt stehen). Richtung aus
+         router.beforeEach (meta.transition = slide-left/right fuer das Paar). -->
+    <Transition :name="(route.meta.transition as string) || ''" mode="out-in">
+      <KeepAlive :include="['DashboardView', 'LogsView']">
+        <component :is="activeBody" />
+      </KeepAlive>
+    </Transition>
   </div>
 </template>
