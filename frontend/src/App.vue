@@ -52,12 +52,11 @@ const { isDark } = storeToRefs(themeStore)
 useStatusBarTheme(isDark)
 const { tickerHasItems, tickerCollapsed } = useTickerState()
 
-// Ticker sichtbar = volles Band (nicht eingeklappt). Steuert lila Safe-Area + Content-Offset.
-const tickerVisible = computed(() => tickerHasItems.value && !tickerCollapsed.value)
-// Statusbar-Filler faerbt sich lila, wenn der Ticker sichtbar ist (nahtloser Header bis
-// in die Notch); sonst neutraler blickdichter Streifen mit dezenter Trennkante.
+// Statusbar-Filler faerbt sich lila, sobald der Ticker vorhanden ist - auch eingeklappt,
+// damit der Header nicht zwischen weiss/lila flippt (nahtloser Header bis in die Notch).
+// Ohne Ticker: neutraler blickdichter Streifen mit dezenter Trennkante.
 const statusbarFillerClass = computed(() =>
-  tickerVisible.value
+  tickerHasItems.value
     ? 'bg-indigo-800'
     : 'bg-white dark:bg-gray-950 border-b border-gray-200/60 dark:border-gray-800/60'
 )

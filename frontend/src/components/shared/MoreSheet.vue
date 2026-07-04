@@ -109,10 +109,10 @@ function onLogout() {
         role="dialog"
         aria-modal="true"
         :aria-label="t('nav.bottom.more')"
-        @touchstart.passive="onTouchStart"
-        @touchmove="onTouchMove"
-        @touchend="onTouchEnd"
-        @touchcancel="onTouchEnd"
+        @touchstart.passive.stop="onTouchStart"
+        @touchmove.stop="onTouchMove"
+        @touchend.stop="onTouchEnd"
+        @touchcancel.stop="onTouchEnd"
       >
         <!-- Grabber + Header -->
         <div class="sticky top-0 bg-white dark:bg-gray-900 pt-3 px-4 pb-2">
