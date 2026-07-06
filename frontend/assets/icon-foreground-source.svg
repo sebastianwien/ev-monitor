@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Android-Adaptive-Foreground: Lockup auf 0.9 skaliert, damit die Blockecken
+       auch bei streng runden OEM-Masken in der Safe Zone (66dp-Kreis) bleiben -->
+  <g transform="translate(51.2 51.2) scale(0.9)">
+    <text x="493" y="630" text-anchor="middle" font-family="Arial Black, Arial" font-weight="900" font-size="560" fill="#ffffff">EV</text>
+    <text x="500" y="793" text-anchor="middle" font-family="Arial Black, Arial" font-weight="900" font-size="150" fill="#ffffff">MONITOR</text>
+  </g>
+</svg>

@@ -1,16 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2732 2732">
-  <rect width="2732" height="2732" fill="#4f46e5"/>
-  <g transform="translate(802.8 802.8) scale(2.2)">
-    <circle cx="256" cy="256" r="186" fill="none" stroke="rgba(255,255,255,0.20)" stroke-width="32"/>
-    <circle cx="256" cy="256" r="186" fill="none" stroke="#22c55e" stroke-width="32"
-            stroke-linecap="round" stroke-dasharray="877 1169" transform="rotate(-90 256 256)"/>
-    <g transform="translate(115.25 92.25) scale(0.55)">
-      <path d="M70 332 L70 300 Q70 280 90 276 L130 268 L158 222 Q166 210 182 210 L300 210 Q316 210 326 222 L356 266 L416 274 Q442 278 442 300 L442 332 Q442 344 430 344 L82 344 Q70 344 70 332 Z" fill="white"/>
-      <circle cx="150" cy="344" r="42" fill="#4f46e5"/>
-      <circle cx="150" cy="344" r="20" fill="white"/>
-      <circle cx="366" cy="344" r="42" fill="#4f46e5"/>
-      <circle cx="366" cy="344" r="20" fill="white"/>
-      <path transform="translate(199.9 223.6) scale(3.4)" d="M19.5 3 L9 18 L15.5 18 L13 29 L24 14 L17.5 14 Z" fill="#4f46e5"/>
-    </g>
+  <!-- Splash: EV/MONITOR-Lockup mittig auf Gruen -->
+  <rect width="2732" height="2732" fill="#16a34a"/>
+  <g transform="translate(512.65 512.65) scale(1.6667)">
+    <text x="493" y="630" text-anchor="middle" font-family="Arial Black, Arial" font-weight="900" font-size="560" fill="#ffffff">EV</text>
+    <text x="500" y="793" text-anchor="middle" font-family="Arial Black, Arial" font-weight="900" font-size="150" fill="#ffffff">MONITOR</text>
   </g>
 </svg>
