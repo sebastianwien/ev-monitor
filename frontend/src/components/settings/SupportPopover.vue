@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { HeartIcon } from '@heroicons/vue/24/solid'
 import { analytics } from '../../services/analytics'
 import { useI18n } from 'vue-i18n'
+import { donationsAvailable } from '../../utils/iapPolicy'
 
 const props = withDefaults(defineProps<{
   variant?: 'nav' | 'footer' | 'block' | 'compact'
@@ -40,8 +41,9 @@ onUnmounted(() => document.removeEventListener('click', handleOutsideClick))
 </script>
 
 <template>
+  <!-- Spenden-Links sind in der nativen App verboten (Apple-Reject, siehe iapPolicy) -->
   <!-- Block variant (Settings page) -->
-  <div v-if="variant === 'block'" class="flex gap-3">
+  <div v-if="donationsAvailable() && variant === 'block'" class="flex gap-3">
     <button
       @click="openPaypal"
       class="btn-3d flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded-sm hover:bg-indigo-200 dark:hover:bg-indigo-900/60 transition font-medium shadow-[0_4px_0_0_#a5b4fc] dark:shadow-[0_4px_0_0_#312e81] active:shadow-none active:translate-y-1" style="transition: transform 0.075s ease, box-shadow 0.075s ease;">
@@ -57,7 +59,7 @@ onUnmounted(() => document.removeEventListener('click', handleOutsideClick))
   </div>
 
   <!-- Nav/Footer popover variant -->
-  <div v-else ref="containerRef" class="relative">
+  <div v-else-if="donationsAvailable()" ref="containerRef" class="relative">
     <!-- Trigger button -->
     <button
       v-if="variant === 'nav'"

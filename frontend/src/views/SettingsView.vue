@@ -3,7 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useCountryStore } from '../stores/country'
 import { useCarStore } from '../stores/car'
-import { purchasesAvailable } from '../utils/iapPolicy'
+import { purchasesAvailable, donationsAvailable } from '../utils/iapPolicy'
 import { COUNTRY_OPTIONS } from '../config/countries'
 import { UserIcon, KeyIcon, TrashIcon, ArrowDownTrayIcon, AcademicCapIcon, ShareIcon, ClipboardDocumentIcon, CheckIcon, HeartIcon, ArrowRightOnRectangleIcon, BoltIcon, CreditCardIcon, PlusIcon, PencilIcon, EyeIcon } from '@heroicons/vue/24/outline'
 import SupportPopover from '../components/settings/SupportPopover.vue'
@@ -662,8 +662,8 @@ onMounted(async () => {
         </div>
       </div>
 
-      <!-- Support Section -->
-      <div class="mb-8">
+      <!-- Support Section: Spenden-Aufruf inkl. Links nativ verboten (Apple-Reject, siehe iapPolicy) -->
+      <div v-if="donationsAvailable()" class="mb-8">
         <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
           <HeartIcon class="h-6 w-6 text-red-500" />
           {{ t('settings.support_title') }}

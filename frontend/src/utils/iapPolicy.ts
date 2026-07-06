@@ -14,3 +14,15 @@ import { Capacitor } from '@capacitor/core'
 export function purchasesAvailable(): boolean {
   return !Capacitor.isNativePlatform()
 }
+
+/**
+ * Ob Spenden-Links (Ko-fi, PayPal) angezeigt werden duerfen.
+ *
+ * Apple wertet Entwickler-Spenden als digitale Inhalte (Guideline 3.1.1) und hat
+ * die "Unterstuetzen"-Links im Review bereits beanstandet. Google Play verlangt
+ * fuer solche Tips ebenfalls Play Billing - daher auf allen nativen Plattformen
+ * ausblenden, im Web/PWA unveraendert anzeigen.
+ */
+export function donationsAvailable(): boolean {
+  return !Capacitor.isNativePlatform()
+}

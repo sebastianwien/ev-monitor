@@ -169,8 +169,8 @@ function onLogout() {
           </button>
         </div>
 
-        <!-- Footer: Unterstuetzen (immer) + Rechtliches (nur native App - im Web liegen
-             die Legal-Links im Seiten-Footer). -->
+        <!-- Footer: Unterstuetzen (nur Web, nativ verboten - siehe iapPolicy) + Rechtliches
+             (nur native App - im Web liegen die Legal-Links im Seiten-Footer). -->
         <div class="border-t border-gray-200 dark:border-gray-800 px-4 py-3 flex flex-wrap justify-center items-center gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
           <SupportPopover variant="compact" />
           <template v-if="props.isNative">
