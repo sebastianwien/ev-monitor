@@ -234,6 +234,22 @@ public class ConsumptionCalculationService {
     }
 
     public Map<UUID, ConsumptionResult> calculateConsumptionPerLog(List<EvLog> allLogs, Function<LocalDate, BigDecimal> capacityForDate, BigDecimal wltpKwh, VehicleSpecification spec) {
+        return calculateConsumptionPerLogDetailed(allLogs, capacityForDate, wltpKwh, spec).byLogId();
+    }
+
+    /**
+     * Per-log consumption plus chain metadata.
+     *
+     * @param byLogId        logId (logY) → ConsumptionResult, see calculateConsumptionPerLog()
+     * @param absorbedLogIds logs skipped as transparent intermediates whose kWh went into a
+     *                       successfully computed window value (e.g. Spritmonitor partial
+     *                       charges without odometer) — the UI can explain why they have no
+     *                       own consumption value
+     */
+    public record PerLogConsumptionResult(Map<UUID, ConsumptionResult> byLogId, Set<UUID> absorbedLogIds) {}
+
+    public PerLogConsumptionResult calculateConsumptionPerLogDetailed(List<EvLog> allLogs,
+            Function<LocalDate, BigDecimal> capacityForDate, BigDecimal wltpKwh, VehicleSpecification spec) {
         // Always sort — correctness must not depend on caller discipline
         List<EvLog> sorted = allLogs.stream()
                 .sorted(Comparator.comparing(EvLog::getLoggedAt))
@@ -243,11 +259,12 @@ public class ConsumptionCalculationService {
         List<UUID> ids = new ArrayList<>();
         List<BigDecimal> values = new ArrayList<>();
         List<Integer> distances = new ArrayList<>();
+        Set<UUID> absorbed = new HashSet<>();
 
         sorted.stream()
                 .filter(EvLog::isComplete)
                 .forEach(logY -> {
-                    PreviousLogResult prev = findPreviousLog(sorted, logY);
+                    PreviousLogResult prev = findPreviousLog(sorted, logY, spec);
                     if (prev == null) return;
                     int dist = logY.getOdometerKm() - prev.logX().getOdometerKm();
                     if (dist < plausibility.getMinTripDistanceKm()) return;
@@ -257,6 +274,7 @@ public class ConsumptionCalculationService {
                         ids.add(logY.getId());
                         values.add(c);
                         distances.add(dist);
+                        absorbed.addAll(prev.absorbedLogIds());
                     });
                 });
 
@@ -266,7 +284,7 @@ public class ConsumptionCalculationService {
             boolean plausible = isConsumptionPlausible(values.get(i), values, wltpKwh);
             result.put(ids.get(i), new ConsumptionResult(values.get(i), plausible, distances.get(i)));
         }
-        return result;
+        return new PerLogConsumptionResult(result, absorbed);
     }
 
     // -------------------------------------------------------------------------
@@ -424,40 +442,48 @@ public class ConsumptionCalculationService {
     // Private Helpers
     // -------------------------------------------------------------------------
 
-    /** logX candidate + kWh accumulated from transparent intermediate logs. */
-    private record PreviousLogResult(EvLog logX, BigDecimal intermediateKwh) {}
+    /** logX candidate + kWh accumulated from transparent intermediate logs (+ their ids). */
+    private record PreviousLogResult(EvLog logX, BigDecimal intermediateKwh, List<UUID> absorbedLogIds) {}
 
     /**
      * Searches backwards for the nearest valid logX predecessor of logY.
      *
-     * Transparent logs (e.g. WALLBOX_GOE sub-sessions without SoC) are skipped:
-     * their kWh is accumulated in intermediateKwh so it can be added to the
-     * SoC-delta energy in calculateConsumption().
+     * Transparent logs are skipped, their kWh accumulated in intermediateKwh so it can be
+     * added to the SoC-delta energy in calculateConsumption(). Two transparency rules:
+     *   - WALLBOX_GOE sub-sessions: always transparent, raw kWh (unchanged legacy behavior)
+     *   - SPRITMONITOR_IMPORT without odometer: user-entered partial charges, vehicle-side
+     *     kWh (charging efficiency applied — consistent with effectiveKwh(logY) in the formula).
+     *     Without kWh the energy is unknown and the chain breaks.
      *
      * Non-transparent logs that fail canBeUsedAsLogX() (e.g. a manual log without SoC)
      * still break the chain — they represent a real data gap.
      *
      * Callers must pass a list sorted ascending by loggedAt.
-     * calculateConsumptionPerLog() guarantees this internally.
+     * calculateConsumptionPerLogDetailed() guarantees this internally.
      */
-    private PreviousLogResult findPreviousLog(List<EvLog> sortedLogs, EvLog logY) {
+    private PreviousLogResult findPreviousLog(List<EvLog> sortedLogs, EvLog logY, VehicleSpecification spec) {
         for (int i = 0; i < sortedLogs.size(); i++) {
             if (!sortedLogs.get(i).getId().equals(logY.getId())) continue;
             if (i == 0) return null;
 
             BigDecimal intermediateKwh = BigDecimal.ZERO;
+            List<UUID> absorbedLogIds = new ArrayList<>();
             for (int j = i - 1; j >= 0; j--) {
                 EvLog candidate = sortedLogs.get(j);
                 if (candidate.canBeUsedAsLogX()) {
-                    return new PreviousLogResult(candidate, intermediateKwh);
+                    return new PreviousLogResult(candidate, intermediateKwh, absorbedLogIds);
                 }
                 if (candidate.getDataSource().isTransparentForConsumptionChain()) {
                     if (candidate.hasKwhCharged()) {
                         intermediateKwh = intermediateKwh.add(candidate.getKwhCharged());
                     }
                     // transparent → weiter zurückgehen
+                } else if (candidate.getDataSource().isTransparentWhenOdometerMissing()
+                        && candidate.getOdometerKm() == null && candidate.hasKwhCharged()) {
+                    intermediateKwh = intermediateKwh.add(effectiveKwhForConsumption(candidate, spec));
+                    absorbedLogIds.add(candidate.getId());
                 } else {
-                    return null; // echter Kettenbruch (manueller Log ohne SoC)
+                    return null; // echter Kettenbruch (z.B. manueller Log ohne SoC, Teilladung ohne kWh)
                 }
             }
             return null;
