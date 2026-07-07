@@ -41,6 +41,19 @@ public enum DataSource {
         return this == WALLBOX_GOE;
     }
 
+    /**
+     * True if a log from this source without odometer is a user-entered partial charge whose
+     * energy is fully known — it is then skipped in the logX search with its vehicle-side kWh
+     * accumulated (rolling consumption window between two odometer+SoC anchors).
+     *
+     * Deliberately narrow: only SPRITMONITOR_IMPORT qualifies. For automatic sources a missing
+     * odometer can mean missed sessions (e.g. TESLA_FLEET_IMPORT snapshot miss), so they must
+     * keep breaking the chain. Logs without kWh break the chain too — their energy is unknown.
+     */
+    public boolean isTransparentWhenOdometerMissing() {
+        return this == SPRITMONITOR_IMPORT;
+    }
+
     /** Returns the measurement point for energy reported by this data source. */
     public EnergyMeasurementType measurementType() {
         return switch (this) {

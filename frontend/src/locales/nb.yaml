@@ -731,6 +731,9 @@ dashboard:
   short_trip_hint: Avstanden er for kort
   short_trip_tooltip_title: Forbruket kan ikke beregnes
   short_trip_tooltip_desc: "På turer under 10 km forvrenger små måleunøyaktigheter det beregnede forbruket kraftig. Allerede et hopp på 1 % i det viste batterinivået tilsvarer omtrent 0,7 kWh - over 1 km gir det raskt urealistiske verdier på 70 kWh/100km eller mer. I stedet for å vise en fantomverdi lar jeg den være."
+  kwh_in_next_hint: "regnes med i neste verdi"
+  kwh_in_next_tooltip_title: "Ingen kilometerstand registrert"
+  kwh_in_next_tooltip_desc: "Det kan ikke beregnes eget forbruk for denne ladingen fordi kilometerstanden mangler. Energien er i stedet inkludert i forbruksverdien til neste lading med kilometerstand."
   live_banner_new_chip: Nytt
   live_banner_text_prefix: "Auto-import av turer, ladekurver og standtap-deteksjon med"
   live_banner_text_suffix: ""

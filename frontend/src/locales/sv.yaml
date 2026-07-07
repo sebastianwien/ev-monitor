@@ -731,6 +731,9 @@ dashboard:
   short_trip_hint: Avståndet är för kort
   short_trip_tooltip_title: Förbrukningen kan inte beräknas
   short_trip_tooltip_desc: "På sträckor under 10 km förvränger små mätosäkerheter den beräknade förbrukningen avsevärt. Redan ett hopp på 1 % i den visade batterinivån motsvarar ungefär 0,7 kWh - på 1 km ger det snabbt orealistiska värden på 70 kWh/100km eller mer. I stället för att visa ett fantomvärde låter jag det vara."
+  kwh_in_next_hint: "räknas med i nästa värde"
+  kwh_in_next_tooltip_title: "Ingen mätarställning registrerad"
+  kwh_in_next_tooltip_desc: "Ingen egen förbrukning kan beräknas för denna laddning eftersom mätarställningen saknas. Energin ingår i stället i förbrukningsvärdet för nästa laddning med mätarställning."
   live_banner_new_chip: Nytt
   live_banner_text_prefix: "Auto-import av resor, laddkurvor och standby-detektering med"
   live_banner_text_suffix: ""

@@ -1636,10 +1636,19 @@ function toggleAllCharges() {
                       <LockClosedIcon class="w-4 h-4" />
                     </router-link>
                   </div>
-                  <!-- 4. Consumption (or short-trip hint) -->
+                  <!-- 4. Consumption (or short-trip / kwh-in-next hint) -->
                   <div class="text-sm whitespace-nowrap">
                     <button
-                      v-if="item.entry.consumptionKwhPer100km == null && isShortTrip(item.entry)"
+                      v-if="item.entry.consumptionKwhPer100km == null && item.entry.kwhCountedInNextConsumption"
+                      type="button"
+                      class="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-gray-700 rounded"
+                      :aria-expanded="openTooltipLogId === item.entry.id"
+                      @click.stop="openTooltipLogId = openTooltipLogId === item.entry.id ? null : item.entry.id">
+                      <InformationCircleIcon class="w-3 h-3 flex-shrink-0" aria-hidden="true" />
+                      {{ t('dashboard.kwh_in_next_hint') }}
+                    </button>
+                    <button
+                      v-else-if="item.entry.consumptionKwhPer100km == null && isShortTrip(item.entry)"
                       type="button"
                       class="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-gray-700 rounded"
                       :aria-expanded="openTooltipLogId === item.entry.id"
@@ -1805,6 +1814,14 @@ function toggleAllCharges() {
                   <div class="p-2.5 rounded-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-xs text-gray-600 dark:text-gray-300 space-y-1">
                     <p class="font-medium">{{ t('dashboard.short_trip_tooltip_title') }}</p>
                     <p>{{ t('dashboard.short_trip_tooltip_desc') }}</p>
+                  </div>
+                </div>
+                <div
+                  v-if="item.entry.consumptionKwhPer100km == null && item.entry.kwhCountedInNextConsumption && openTooltipLogId === item.entry.id"
+                  class="px-3 pb-2.5">
+                  <div class="p-2.5 rounded-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-xs text-gray-600 dark:text-gray-300 space-y-1">
+                    <p class="font-medium">{{ t('dashboard.kwh_in_next_tooltip_title') }}</p>
+                    <p>{{ t('dashboard.kwh_in_next_tooltip_desc') }}</p>
                   </div>
                 </div>
                 <!-- Brutto/Netto sub-line (quick-edit shortcut) -->
@@ -2339,10 +2356,18 @@ function toggleAllCharges() {
                 <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
                 <div v-if="!item.entry._isLadegruppe && expandedLogs.has(item.entry.id)" class="space-y-2">
                   <!-- Plain text stats - Zeile 2 (Real-Cost-Hint rechtsbündig via ml-auto) -->
-                  <div v-if="item.entry.consumptionKwhPer100km != null || isShortTrip(item.entry) || item.entry.chargeDurationMinutes || item.entry.socAfterChargePercent != null || (item.entry.costEur != null && !item.entry.kwhCharged && !item.entry.kwhAtVehicle) || realCostHintFor(item.entry.id)"
+                  <div v-if="item.entry.consumptionKwhPer100km != null || isShortTrip(item.entry) || item.entry.kwhCountedInNextConsumption || item.entry.chargeDurationMinutes || item.entry.socAfterChargePercent != null || (item.entry.costEur != null && !item.entry.kwhCharged && !item.entry.kwhAtVehicle) || realCostHintFor(item.entry.id)"
                     class="flex flex-wrap gap-x-3 gap-y-0.5 items-center">
                     <button
-                      v-if="item.entry.consumptionKwhPer100km == null && isShortTrip(item.entry)"
+                      v-if="item.entry.consumptionKwhPer100km == null && item.entry.kwhCountedInNextConsumption"
+                      type="button"
+                      class="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap cursor-pointer focus:outline-none"
+                      @click.stop="openTooltipLogId = openTooltipLogId === item.entry.id ? null : item.entry.id">
+                      <InformationCircleIcon class="w-3 h-3 flex-shrink-0" />
+                      {{ t('dashboard.kwh_in_next_hint') }}
+                    </button>
+                    <button
+                      v-else-if="item.entry.consumptionKwhPer100km == null && isShortTrip(item.entry)"
                       type="button"
                       class="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap cursor-pointer focus:outline-none"
                       @click.stop="openTooltipLogId = openTooltipLogId === item.entry.id ? null : item.entry.id">
@@ -2517,6 +2542,13 @@ function toggleAllCharges() {
                   class="mt-1 p-2.5 rounded-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-xs text-gray-600 dark:text-gray-300 space-y-1">
                   <p class="font-medium">{{ t('dashboard.short_trip_tooltip_title') }}</p>
                   <p>{{ t('dashboard.short_trip_tooltip_desc') }}</p>
+                </div>
+                <!-- kWh-in-next-window tooltip panel (Teilladung ohne km-Stand) -->
+                <div
+                  v-if="!item.entry._isLadegruppe && item.entry.consumptionKwhPer100km == null && item.entry.kwhCountedInNextConsumption && openTooltipLogId === item.entry.id"
+                  class="mt-1 p-2.5 rounded-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-xs text-gray-600 dark:text-gray-300 space-y-1">
+                  <p class="font-medium">{{ t('dashboard.kwh_in_next_tooltip_title') }}</p>
+                  <p>{{ t('dashboard.kwh_in_next_tooltip_desc') }}</p>
                 </div>
                 <!-- Real-cost tooltip panel: source-aware (measured-median vs pauschale) -->
                 <div

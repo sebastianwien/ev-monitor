@@ -540,10 +540,13 @@ public class EvLogService {
                 ? vehicleSpecificationRepository.findById(car.getVehicleSpecificationId()).orElse(null)
                 : null;
 
-        // Compute per-log consumption + plausibility on the full dataset (SoC-based)
-        Map<UUID, ConsumptionResult> consumptionByLog = new LinkedHashMap<>(car.getNominalNetCapacityKwh() != null
-                ? calculationService.calculateConsumptionPerLog(allLogsSorted, calculationService.buildCapacityLookup(car), calculationService.lookupWltp(car), spec)
-                : Map.of());
+        // Compute per-log consumption + plausibility on the full dataset (SoC-based).
+        // absorbedLogIds: Teilladungen ohne Odometer (z.B. Spritmonitor), deren kWh in einem
+        // Fensterwert aufgegangen sind — das Frontend erklärt damit den fehlenden Einzelwert.
+        ConsumptionCalculationService.PerLogConsumptionResult perLog = car.getNominalNetCapacityKwh() != null
+                ? calculationService.calculateConsumptionPerLogDetailed(allLogsSorted, calculationService.buildCapacityLookup(car), calculationService.lookupWltp(car), spec)
+                : new ConsumptionCalculationService.PerLogConsumptionResult(Map.of(), Set.of());
+        Map<UUID, ConsumptionResult> consumptionByLog = new LinkedHashMap<>(perLog.byLogId());
 
         // Distance since last charge — covers logs with odometer regardless of SoC availability
         Map<UUID, Integer> distanceByLogId = calculationService.computeDistanceByLogId(allLogsSorted);
@@ -568,7 +571,8 @@ public class EvLogService {
                 : allLogsSorted.reversed();
 
         return page_logs.stream()
-                .map(log -> EvLogResponse.fromDomain(log, consumptionByLog.get(log.getId()), distanceByLogId.get(log.getId())))
+                .map(log -> EvLogResponse.fromDomain(log, consumptionByLog.get(log.getId()), distanceByLogId.get(log.getId()),
+                        perLog.absorbedLogIds().contains(log.getId()) ? Boolean.TRUE : null))
                 .toList();
     }
 
