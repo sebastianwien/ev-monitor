@@ -85,3 +85,8 @@ stripe:
 # Internal Service Token (dev default — override via INTERNAL_SERVICE_TOKEN env var in prod)
 internal:
   token: ${INTERNAL_SERVICE_TOKEN:dev-internal-token-change-in-prod}
+
+# Lokal laeuft der Connectors-Service auf localhost:8081 (dev-full.sh),
+# nicht unter dem Docker-Compose-Hostnamen 'connectors-service'.
+connectors:
+  base-url: ${CONNECTORS_BASE_URL:http://localhost:8081}
