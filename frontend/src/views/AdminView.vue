@@ -458,6 +458,12 @@ const onResizeUp = () => {
         >
           {{ tab.label }}
         </button>
+        <router-link
+          to="/admin/webhooks"
+          class="px-4 py-2 rounded-sm text-sm font-medium transition text-gray-400 hover:text-gray-200 hover:bg-gray-800"
+        >
+          Webhooks
+        </router-link>
       </div>
 
       <!-- Tab: User Table -->
