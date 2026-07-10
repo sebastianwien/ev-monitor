@@ -9,6 +9,18 @@ export interface WebhookSignal {
   status: string | null
 }
 
+/**
+ * Was der Detektor (ChargingRunDetector, connectors) an dieser Zeile tut. Serverseitig
+ * berechnet - die Regeln leben ausschliesslich im Backend, hier wird nur gezeichnet.
+ */
+export interface WebhookDetection {
+  inRun: boolean
+  runStart: boolean
+  runEnd: boolean
+  endedBeforeEvent: boolean
+  endReasons: string[]
+}
+
 export interface WebhookRow {
   id: string
   receivedAt: string
@@ -16,6 +28,25 @@ export interface WebhookRow {
   energyAdded: WebhookSignal
   soc: WebhookSignal
   isCharging: WebhookSignal
+  detection: WebhookDetection | null
+}
+
+/** Welches Stueck der Lauf-Linie in dieser Zelle gezeichnet wird. */
+export type RunSegment = 'none' | 'full' | 'top' | 'bottom'
+
+/**
+ * Die Tabelle ist newest-first: ein Ladevorgang startet in der untersten Zeile und waechst
+ * nach oben. Die Startzeile zeichnet daher nach oben, die Endzeile nach unten. Endet ein Lauf
+ * schon vor dem Event (Timeout, Odometer, Zaehler-Drop), gehoert die Zeile nicht mehr zu ihm.
+ */
+export function runSegment(detection?: WebhookDetection | null): RunSegment {
+  if (!detection) return 'none'
+  if (detection.runStart && detection.runEnd) {
+    return detection.endedBeforeEvent ? 'top' : 'full'
+  }
+  if (detection.runStart) return 'top'
+  if (detection.runEnd) return detection.inRun ? 'bottom' : 'none'
+  return detection.inRun ? 'full' : 'none'
 }
 
 export const SIGNAL_KEYS = ['odometer', 'energyAdded', 'soc', 'isCharging'] as const

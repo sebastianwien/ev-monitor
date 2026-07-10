@@ -4,7 +4,7 @@ import { ArrowLeftIcon, ArrowPathIcon } from '@heroicons/vue/24/outline'
 import api from '../api/axios'
 import LogsPaginationBar from '../components/dashboard/LogsPaginationBar.vue'
 import type { PageSize } from '../composables/useLogList'
-import { changedCells, type WebhookRow, type SignalKey } from '../utils/webhookDiff'
+import { changedCells, runSegment, type RunSegment, type WebhookRow, type SignalKey } from '../utils/webhookDiff'
 
 interface AdminConnection {
   username: string | null
@@ -102,14 +102,34 @@ const SIGNALS: Array<{ key: SignalKey; label: string }> = [
 ]
 
 const valueCellClass = (row: WebhookRow, key: SignalKey, i: number) => [
-  'px-2 py-1 whitespace-nowrap tabular-nums',
+  'px-3 py-1 whitespace-nowrap tabular-nums',
   row[key].status === 'ERROR' ? 'bg-red-900/40 text-red-300' : '',
   marks.value[i]?.[key]?.value ? 'bg-amber-900/50 text-amber-200 font-semibold' : '',
 ]
 const oemCellClass = (key: SignalKey, i: number) => [
-  'px-2 py-1 whitespace-nowrap tabular-nums text-gray-500',
+  'px-3 py-1 whitespace-nowrap tabular-nums text-gray-500',
   marks.value[i]?.[key]?.oem ? 'bg-amber-900/30 text-amber-300' : '',
 ]
+
+// ── Ladevorgangs-Spalte: zeigt, wo der ChargingRunDetector einen Lauf sieht ────
+const END_REASON_LABELS: Record<string, string> = {
+  EXPLICIT_STOP: 'isCharging=false',
+  COUNTER_FROZEN: 'Zähler eingefroren',
+  COUNTER_DROP: 'Zähler-Reset',
+  ODOMETER_MOVED: 'Auto gefahren',
+  TIMEOUT: '12h ohne Signal',
+}
+
+const SEGMENT_CLASSES: Record<RunSegment, string> = {
+  none: '',
+  full: 'top-0 bottom-0',
+  top: 'top-0 h-1/2',
+  bottom: 'top-1/2 bottom-0',
+}
+
+const segmentOf = (row: WebhookRow) => runSegment(row.detection)
+const endLabel = (row: WebhookRow) =>
+  (row.detection?.endReasons ?? []).map((r) => END_REASON_LABELS[r] ?? r).join(' + ')
 </script>
 
 <template>
@@ -144,16 +164,23 @@ const oemCellClass = (key: SignalKey, i: number) => [
 
       <p v-if="error" class="text-sm text-red-400 mb-3">{{ error }}</p>
 
+      <p class="text-xs text-gray-500 mb-3">
+        Der grüne Strich zeigt, wo der aktuelle <span class="text-gray-400">ChargingRunDetector</span> einen
+        Ladevorgang erkennt - berechnet serverseitig auf genau diesen Rohdaten. Ein Lauf beginnt in der
+        unteren Zeile und wächst nach oben.
+      </p>
+
       <!-- Rohdaten-Tabelle: newest first, geaenderte Zellen amber, ERROR-Status rot -->
       <div class="overflow-x-auto border border-gray-800 rounded-sm">
-        <table class="w-full text-xs text-left">
+        <table class="text-xs text-left">
           <thead class="bg-gray-900 text-gray-400 sticky top-0">
             <tr>
-              <th class="px-2 py-2 whitespace-nowrap">received</th>
+              <th class="px-3 py-2 whitespace-nowrap">received</th>
               <template v-for="s in SIGNALS" :key="s.key">
-                <th class="px-2 py-2 whitespace-nowrap border-l border-gray-800">{{ s.label }}</th>
-                <th class="px-2 py-2 whitespace-nowrap text-gray-600">oem updated</th>
+                <th class="px-3 py-2 whitespace-nowrap border-l border-gray-800">{{ s.label }}</th>
+                <th class="px-3 py-2 whitespace-nowrap text-gray-600">oem updated</th>
               </template>
+              <th class="px-3 py-2 whitespace-nowrap border-l border-gray-800">Ladevorgang</th>
             </tr>
           </thead>
           <tbody>
@@ -162,7 +189,7 @@ const oemCellClass = (key: SignalKey, i: number) => [
               :key="row.id"
               class="border-t border-gray-800/60 hover:bg-gray-900/50"
             >
-              <td class="px-2 py-1 whitespace-nowrap tabular-nums text-gray-300">{{ fmtReceived(row.receivedAt) }}</td>
+              <td class="px-3 py-1 whitespace-nowrap tabular-nums text-gray-300">{{ fmtReceived(row.receivedAt) }}</td>
               <template v-for="s in SIGNALS" :key="s.key">
                 <td :class="[valueCellClass(row, s.key, i), 'border-l border-gray-800']">
                   <span>{{ row[s.key].value ?? '-' }}</span>
@@ -174,9 +201,27 @@ const oemCellClass = (key: SignalKey, i: number) => [
                 </td>
                 <td :class="oemCellClass(s.key, i)">{{ fmtOem(row[s.key].oemUpdatedAt) }}</td>
               </template>
+              <!-- Lauf-Linie: newest-first, ein Lauf beginnt unten und waechst nach oben -->
+              <td class="relative px-3 py-1 border-l border-gray-800 min-w-[12rem] whitespace-nowrap">
+                <span
+                  v-if="segmentOf(row) !== 'none'"
+                  aria-hidden="true"
+                  class="absolute left-3 w-0.5 bg-green-500"
+                  :class="SEGMENT_CLASSES[segmentOf(row)]"
+                ></span>
+                <span
+                  v-if="row.detection?.runStart || row.detection?.runEnd"
+                  aria-hidden="true"
+                  class="absolute left-3 top-1/2 w-2 h-2 -translate-x-[3px] -translate-y-1/2 rounded-full bg-green-500"
+                ></span>
+                <span class="ml-4 inline-flex gap-2">
+                  <span v-if="row.detection?.runStart" class="text-green-400">Start</span>
+                  <span v-if="row.detection?.runEnd" class="text-green-300/70">Ende: {{ endLabel(row) }}</span>
+                </span>
+              </td>
             </tr>
             <tr v-if="!loading && rows.length === 0">
-              <td colspan="9" class="px-3 py-6 text-center text-gray-500">Keine Webhooks für dieses Fahrzeug im Log.</td>
+              <td colspan="10" class="px-3 py-6 text-center text-gray-500">Keine Webhooks für dieses Fahrzeug im Log.</td>
             </tr>
           </tbody>
         </table>
