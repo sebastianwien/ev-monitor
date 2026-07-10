@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { changedCells, type WebhookRow } from '../webhookDiff'
+import { changedCells, runSegment, type WebhookDetection, type WebhookRow } from '../webhookDiff'
 
 const signal = (value: string | null, oem: number | null, status: string | null) => ({
   value,
@@ -14,6 +14,7 @@ const row = (id: string, overrides: Partial<WebhookRow> = {}): WebhookRow => ({
   energyAdded: signal('0.5', 2000, 'SUCCESS'),
   soc: signal('14', 3000, 'SUCCESS'),
   isCharging: signal('true', 4000, 'SUCCESS'),
+  detection: null,
   ...overrides,
 })
 
@@ -49,5 +50,49 @@ describe('changedCells', () => {
     const marks = changedCells([newer, older])
 
     expect(marks[0].soc).toEqual({ value: true, oem: true, status: true })
+  })
+})
+
+describe('runSegment', () => {
+  // Die Tabelle ist newest-first: ein Ladevorgang beginnt in der untersten Zeile und
+  // waechst nach oben. 'top' = Linie von der Zellenmitte nach oben, 'bottom' umgekehrt.
+  const detection = (overrides: Partial<WebhookDetection> = {}): WebhookDetection => ({
+    inRun: false,
+    runStart: false,
+    runEnd: false,
+    endedBeforeEvent: false,
+    endReasons: [],
+    ...overrides,
+  })
+
+  it('draws nothing without detection data', () => {
+    expect(runSegment(null)).toBe('none')
+    expect(runSegment(undefined)).toBe('none')
+  })
+
+  it('draws nothing for a row outside any run', () => {
+    expect(runSegment(detection())).toBe('none')
+  })
+
+  it('draws a full line through a row inside a run', () => {
+    expect(runSegment(detection({ inRun: true }))).toBe('full')
+  })
+
+  it('draws upward from the start row, since the run continues above', () => {
+    expect(runSegment(detection({ inRun: true, runStart: true }))).toBe('top')
+  })
+
+  it('draws downward into an explicit stop row, which still belongs to the run', () => {
+    expect(runSegment(detection({ inRun: true, runEnd: true, endReasons: ['EXPLICIT_STOP'] }))).toBe('bottom')
+  })
+
+  it('draws nothing when the run ended before this event', () => {
+    const odometerEnd = detection({ runEnd: true, endedBeforeEvent: true, endReasons: ['ODOMETER_MOVED'] })
+    expect(runSegment(odometerEnd)).toBe('none')
+  })
+
+  it('draws upward on a counter drop, where the new run starts in this row', () => {
+    const drop = detection({ inRun: true, runStart: true, runEnd: true, endedBeforeEvent: true, endReasons: ['COUNTER_DROP'] })
+    expect(runSegment(drop)).toBe('top')
   })
 })
