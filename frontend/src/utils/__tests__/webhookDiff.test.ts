@@ -61,7 +61,7 @@ describe('runSegment', () => {
     runStart: false,
     runEnd: false,
     endedBeforeEvent: false,
-    endReasons: [],
+    completedRuns: [],
     ...overrides,
   })
 
@@ -83,16 +83,16 @@ describe('runSegment', () => {
   })
 
   it('draws downward into an explicit stop row, which still belongs to the run', () => {
-    expect(runSegment(detection({ inRun: true, runEnd: true, endReasons: ['EXPLICIT_STOP'] }))).toBe('bottom')
+    expect(runSegment(detection({ inRun: true, runEnd: true }))).toBe('bottom')
   })
 
   it('draws nothing when the run ended before this event', () => {
-    const odometerEnd = detection({ runEnd: true, endedBeforeEvent: true, endReasons: ['ODOMETER_MOVED'] })
+    const odometerEnd = detection({ runEnd: true, endedBeforeEvent: true })
     expect(runSegment(odometerEnd)).toBe('none')
   })
 
   it('draws upward on a counter drop, where the new run starts in this row', () => {
-    const drop = detection({ inRun: true, runStart: true, runEnd: true, endedBeforeEvent: true, endReasons: ['COUNTER_DROP'] })
+    const drop = detection({ inRun: true, runStart: true, runEnd: true, endedBeforeEvent: true })
     expect(runSegment(drop)).toBe('top')
   })
 })

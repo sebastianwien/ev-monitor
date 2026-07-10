@@ -4,7 +4,16 @@ import { ArrowLeftIcon, ArrowPathIcon } from '@heroicons/vue/24/outline'
 import api from '../api/axios'
 import LogsPaginationBar from '../components/dashboard/LogsPaginationBar.vue'
 import type { PageSize } from '../composables/useLogList'
-import { changedCells, runSegment, type RunSegment, type WebhookRow, type SignalKey } from '../utils/webhookDiff'
+import {
+  changedCells,
+  runSegment,
+  runDurationMinutes,
+  socDelta,
+  type RunSegment,
+  type RunSummary,
+  type WebhookRow,
+  type SignalKey,
+} from '../utils/webhookDiff'
 
 interface AdminConnection {
   username: string | null
@@ -120,16 +129,38 @@ const END_REASON_LABELS: Record<string, string> = {
   TIMEOUT: '12h ohne Signal',
 }
 
+// Der Knick sitzt auf der ersten Textzeile, nicht auf der Zellenmitte: die Ende-Zelle ist
+// durch die Kennzahlen deutlich hoeher als die uebrigen.
 const SEGMENT_CLASSES: Record<RunSegment, string> = {
   none: '',
   full: 'top-0 bottom-0',
-  top: 'top-0 h-1/2',
-  bottom: 'top-1/2 bottom-0',
+  top: 'top-0 h-[0.7rem]',
+  bottom: 'top-[0.7rem] bottom-0',
 }
 
 const segmentOf = (row: WebhookRow) => runSegment(row.detection)
-const endLabel = (row: WebhookRow) =>
-  (row.detection?.endReasons ?? []).map((r) => END_REASON_LABELS[r] ?? r).join(' + ')
+const completedRuns = (row: WebhookRow): RunSummary[] => row.detection?.completedRuns ?? []
+const reasonLabel = (reason: string) => END_REASON_LABELS[reason] ?? reason
+
+/** Kennzahlen des Laufs, untereinander - keine Berechnung, nur Formatierung der Detektor-Werte. */
+const fmtTime = (iso: string | null) => (iso ? fmtReceived(iso) : '?')
+const fmtDuration = (run: RunSummary) => {
+  const minutes = runDurationMinutes(run)
+  if (minutes === null) return '?'
+  const hours = Math.floor(minutes / 60)
+  return hours > 0 ? `${hours}h ${minutes % 60}min` : `${minutes}min`
+}
+const fmtSoc = (run: RunSummary) => {
+  const delta = socDelta(run)
+  if (delta === null) return 'SoC unbekannt'
+  const backfill = run.socStartBackfilled ? ' (Start backfilled)' : ''
+  return `SoC ${run.socStart} → ${run.socEnd} % (+${delta})${backfill}`
+}
+const fmtEnergy = (run: RunSummary) => {
+  if (run.energyKwh === null) return 'keine Energie ermittelt'
+  const source = run.energySource === 'SOC_INFERRED' ? 'aus SoC' : 'OEM-Zähler'
+  return `${run.energyKwh} kWh (${source})`
+}
 </script>
 
 <template>
@@ -202,7 +233,7 @@ const endLabel = (row: WebhookRow) =>
                 <td :class="oemCellClass(s.key, i)">{{ fmtOem(row[s.key].oemUpdatedAt) }}</td>
               </template>
               <!-- Lauf-Linie: newest-first, ein Lauf beginnt unten und waechst nach oben -->
-              <td class="relative px-3 py-1 border-l border-gray-800 min-w-[12rem] whitespace-nowrap">
+              <td class="relative px-3 py-1 align-top border-l border-gray-800 min-w-[14rem] whitespace-nowrap">
                 <span
                   v-if="segmentOf(row) !== 'none'"
                   aria-hidden="true"
@@ -212,12 +243,18 @@ const endLabel = (row: WebhookRow) =>
                 <span
                   v-if="row.detection?.runStart || row.detection?.runEnd"
                   aria-hidden="true"
-                  class="absolute left-3 top-1/2 w-2 h-2 -translate-x-[3px] -translate-y-1/2 rounded-full bg-green-500"
+                  class="absolute left-3 top-[0.7rem] w-2 h-2 -translate-x-[3px] -translate-y-1/2 rounded-full bg-green-500"
                 ></span>
-                <span class="ml-4 inline-flex gap-2">
+                <div class="ml-4 flex flex-col gap-0.5">
                   <span v-if="row.detection?.runStart" class="text-green-400">Start</span>
-                  <span v-if="row.detection?.runEnd" class="text-green-300/70">Ende: {{ endLabel(row) }}</span>
-                </span>
+                  <div v-for="(run, r) in completedRuns(row)" :key="r" class="flex flex-col">
+                    <span class="text-green-300">Ende: {{ reasonLabel(run.endReason) }}</span>
+                    <span class="text-gray-400">{{ fmtSoc(run) }}</span>
+                    <span class="text-gray-400">{{ fmtEnergy(run) }}</span>
+                    <span class="text-gray-500">{{ fmtTime(run.startedAt) }} → {{ fmtTime(run.endedAt) }}</span>
+                    <span class="text-gray-500">Dauer: {{ fmtDuration(run) }}</span>
+                  </div>
+                </div>
               </td>
             </tr>
             <tr v-if="!loading && rows.length === 0">
