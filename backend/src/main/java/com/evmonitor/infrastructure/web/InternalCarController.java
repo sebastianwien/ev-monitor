@@ -27,8 +27,9 @@ public class InternalCarController {
     private final BatterySohService batterySohService;
 
     /**
-     * Returns the SoH-adjusted effective battery capacity.
-     * Falls back to nominal spec capacity when no SoH data is available.
+     * Returns the SoH-adjusted effective battery capacity plus the nominal spec capacity.
+     * The nominal value backs the Smartcar SoC-Anker plausibility check (R10/R11), which
+     * must not be skewed by a broken degradation estimate.
      */
     @GetMapping("/{carId}/battery-capacity")
     public ResponseEntity<Map<String, BigDecimal>> getBatteryCapacity(@PathVariable UUID carId) {
@@ -38,7 +39,9 @@ public class InternalCarController {
         }
         BigDecimal effective = car.getEffectiveBatteryCapacityKwhAt(
                 LocalDate.now(), sohRepository.findByCarId(carId));
-        return ResponseEntity.ok(Map.of("batteryCapacityKwh", effective));
+        return ResponseEntity.ok(Map.of(
+                "batteryCapacityKwh", effective,
+                "nominalNetCapacityKwh", car.getNominalNetCapacityKwh()));
     }
 
     @PostMapping("/{carId}/soh/bms-derived")
