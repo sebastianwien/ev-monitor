@@ -13,12 +13,25 @@ export interface WebhookSignal {
  * Was der Detektor (ChargingRunDetector, connectors) an dieser Zeile tut. Serverseitig
  * berechnet - die Regeln leben ausschliesslich im Backend, hier wird nur gezeichnet.
  */
+/** Kennzahlen eines abgeschlossenen Laufs, unveraendert aus CompletedRun. */
+export interface RunSummary {
+  endReason: string
+  startedAt: string | null
+  endedAt: string | null
+  energyKwh: number | null
+  energySource: string | null
+  counterKwh: number | null
+  socStart: number | null
+  socEnd: number | null
+  socStartBackfilled: boolean
+}
+
 export interface WebhookDetection {
   inRun: boolean
   runStart: boolean
   runEnd: boolean
   endedBeforeEvent: boolean
-  endReasons: string[]
+  completedRuns: RunSummary[]
 }
 
 export interface WebhookRow {
@@ -29,6 +42,19 @@ export interface WebhookRow {
   soc: WebhookSignal
   isCharging: WebhookSignal
   detection: WebhookDetection | null
+}
+
+/** Dauer eines Laufs in Minuten; null, wenn ein Zeitstempel fehlt. */
+export function runDurationMinutes(run: RunSummary): number | null {
+  if (!run.startedAt || !run.endedAt) return null
+  const millis = new Date(run.endedAt).getTime() - new Date(run.startedAt).getTime()
+  return millis < 0 ? null : Math.round(millis / 60000)
+}
+
+/** SoC-Hub in Prozentpunkten; null, wenn Start oder Ende fehlt. */
+export function socDelta(run: RunSummary): number | null {
+  if (run.socStart === null || run.socEnd === null) return null
+  return run.socEnd - run.socStart
 }
 
 /** Welches Stueck der Lauf-Linie in dieser Zelle gezeichnet wird. */
