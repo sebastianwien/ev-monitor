@@ -493,30 +493,6 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
           </router-link>
         </div>
 
-        <!-- Primary CTA: kein Account nötig - full-bleed band so the bg spans the viewport -->
-        <div class="relative left-1/2 right-1/2 -mx-[50vw] w-screen bg-gray-50 dark:bg-gray-800/40 border-y border-gray-200 dark:border-gray-700 py-10 sm:py-14">
-          <!-- Action: repeat der Haupt-CTAs nach dem Social Proof (Kennzahlen liegen jetzt oben beim Community-Intro) -->
-          <div class="max-w-3xl mx-auto px-6">
-            <div class="bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 rounded-xl p-6 sm:p-8 shadow-[5px_5px_0_0_#15803d] dark:shadow-[5px_5px_0_0_#22c55e]">
-              <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
-                <button
-                  @click="demoLogin('hero')"
-                  :disabled="demoLoading"
-                  class="btn-3d cta-shadow w-full sm:w-auto cursor-pointer bg-green-600 text-white border-2 border-gray-900 dark:border-gray-100 px-6 py-3 sm:px-8 sm:py-4 rounded-sm text-base sm:text-lg font-semibold hover:bg-green-700 disabled:opacity-50 inline-flex items-center justify-center gap-2 transition"
-                >
-                  {{ demoLoading ? t('landing.hero.loading_button') : t('landing.hero.demo_button') }}
-                </button>
-                <button
-                  @click="goToRegister('hero_secondary')"
-                  class="btn-3d cta-shadow w-full sm:w-auto cursor-pointer bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 text-gray-800 dark:text-gray-100 px-6 py-3 sm:px-8 sm:py-4 rounded-sm text-base sm:text-lg font-semibold hover:text-green-700 dark:hover:text-green-400 transition inline-flex items-center justify-center"
-                >
-                  {{ t('landing.hero.register_button') }}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
       </div>
     </section>
 
