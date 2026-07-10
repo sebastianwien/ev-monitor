@@ -385,18 +385,41 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
         <!-- Community-USP: eigener Hintergrund-Band wie die anderen Sektionen; bricht per
              Full-Bleed aus dem zentrierten Hero-Container aus (Root hat overflow-x-clip).
              Fahrer-Zahl nur zeigen, wenn die Stats geladen sind. -->
-        <div v-if="communityDrivers > 0" class="relative left-1/2 -translate-x-1/2 w-screen bg-gray-50 dark:bg-gray-900 border-y border-gray-200 dark:border-gray-800 py-10 sm:py-14 mb-10 sm:mb-12">
+        <div class="relative left-1/2 -translate-x-1/2 w-screen bg-gray-50 dark:bg-gray-900 border-y border-gray-200 dark:border-gray-800 py-10 sm:py-14 mb-10 sm:mb-12">
           <div class="max-w-3xl mx-auto px-6 sm:px-8">
-            <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-3">{{ t('landing.community_intro.heading') }}</h2>
-            <p class="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed">{{ t('landing.community_intro.text', { drivers: formatNumber(communityDrivers) }) }}</p>
-            <!-- Community-Kennzahlen: gehoeren zum Intro, zeigen die Groesse der Datenbasis -->
-            <div class="mt-8 bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 rounded-xl p-6 sm:p-8 shadow-[5px_5px_0_0_#15803d] dark:shadow-[5px_5px_0_0_#22c55e]">
-              <div class="grid grid-cols-3 divide-x divide-gray-900/10 dark:divide-white/10">
-                <div v-for="s in trustStats" :key="s.label" class="px-2 sm:px-4 text-center">
-                  <p class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 tabular-nums">{{ s.value }}</p>
-                  <p class="text-sm sm:text-base text-gray-600 dark:text-gray-300 mt-1.5 leading-snug">{{ s.label }}</p>
+            <template v-if="communityDrivers > 0">
+              <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-3">{{ t('landing.community_intro.heading') }}</h2>
+              <p class="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed">{{ t('landing.community_intro.text', { drivers: formatNumber(communityDrivers) }) }}</p>
+              <!-- Community-Kennzahlen: gehoeren zum Intro, zeigen die Groesse der Datenbasis -->
+              <div class="mt-8 bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 rounded-xl p-6 sm:p-8 shadow-[5px_5px_0_0_#15803d] dark:shadow-[5px_5px_0_0_#22c55e]">
+                <div class="grid grid-cols-3 divide-x divide-gray-900/10 dark:divide-white/10">
+                  <div v-for="s in trustStats" :key="s.label" class="px-2 sm:px-4 text-center">
+                    <p class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 tabular-nums">{{ s.value }}</p>
+                    <p class="text-sm sm:text-base text-gray-600 dark:text-gray-300 mt-1.5 leading-snug">{{ s.label }}</p>
+                  </div>
                 </div>
               </div>
+            </template>
+
+            <!-- Trust signals: als eigene Karten direkt unter den Kennzahlen - gleiche
+                 Datenbasis-Story, aber jedes Versprechen einzeln greifbar und klickbar. -->
+            <div class="mt-4 sm:mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <component
+                :is="sig.href ? 'a' : sig.action ? 'button' : 'div'"
+                v-for="sig in trustSignals" :key="sig.key"
+                :href="sig.href || undefined"
+                :target="sig.external ? '_blank' : undefined"
+                :rel="sig.external ? 'noopener noreferrer' : undefined"
+                @click="sig.action === 'import' ? scrollToImportHub() : sig.action === 'privacy' ? scrollToPrivacy() : undefined"
+                class="trust-card flex w-full items-center gap-3 text-left rounded-xl border-2 border-gray-900 dark:border-gray-100 bg-white dark:bg-gray-800 px-4 py-3.5 transition-colors"
+                :class="(sig.href || sig.action) ? 'cursor-pointer hover:bg-green-50 dark:hover:bg-green-900/20' : ''"
+              >
+                <span class="shrink-0 flex items-center justify-center h-10 w-10 rounded-lg bg-green-100 dark:bg-green-900/40">
+                  <component :is="sig.icon" class="h-6 w-6 text-green-700 dark:text-green-400" />
+                </span>
+                <span class="flex-1 text-base font-bold leading-snug text-gray-900 dark:text-gray-100">{{ t(sig.key) }}</span>
+                <ArrowTopRightOnSquareIcon v-if="sig.external" class="h-4 w-4 shrink-0 text-gray-400 dark:text-gray-500" />
+              </component>
             </div>
           </div>
         </div>
@@ -490,23 +513,6 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
                   {{ t('landing.hero.register_button') }}
                 </button>
               </div>
-            </div>
-
-            <!-- Trust signals: prominent strip below the card -->
-            <div class="mt-7 sm:mt-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-4">
-              <component
-                :is="sig.href ? 'a' : sig.action ? 'button' : 'span'"
-                v-for="sig in trustSignals" :key="sig.key"
-                :href="sig.href || undefined"
-                :target="sig.external ? '_blank' : undefined"
-                :rel="sig.external ? 'noopener noreferrer' : undefined"
-                @click="sig.action === 'import' ? scrollToImportHub() : sig.action === 'privacy' ? scrollToPrivacy() : undefined"
-                class="inline-flex items-center gap-2.5 text-base sm:text-lg font-bold text-gray-800 dark:text-gray-100 hover:text-green-700 dark:hover:text-green-400 transition-colors"
-              >
-                <component :is="sig.icon" class="h-6 w-6 text-green-600 dark:text-green-400 shrink-0" />
-                {{ t(sig.key) }}
-                <ArrowTopRightOnSquareIcon v-if="sig.external" class="h-4 w-4 opacity-50" />
-              </component>
             </div>
           </div>
         </div>
@@ -1152,5 +1158,11 @@ section a[class*="rounded"]:not(.no-press):active, section button[class*="rounde
   box-shadow: 0 1px 0 0 rgba(0,0,0,0.30);
   transform: translateY(3px);
   transition: transform 0.05s ease, box-shadow 0.05s ease;
+}
+
+/* Das nicht-klickbare Trust-Signal ist ein <div> und faellt sonst aus dem
+   3D-Look der drei Geschwister-Karten heraus. */
+.trust-card {
+  box-shadow: 0 4px 0 0 rgba(0,0,0,0.30);
 }
 </style>
