@@ -23,6 +23,7 @@ import { apiKeyService, type ApiKeyResponse, type ApiKeyCreatedResponse } from '
 import { analytics } from '../services/analytics'
 import DemoImportsModal from '../components/demo/DemoImportsModal.vue'
 import { subscriptionService, type SubscriptionTier } from '../api/subscriptionService'
+import xpengService from '../api/xpengService'
 
 const { t } = useI18n()
 const { activeTab, toggle } = useImportsTab()
@@ -43,6 +44,7 @@ const liveUpgradeError = ref('')
 // Sichtbarkeit aller Import-Sektionen haengt am aktiven Auto - siehe useImportGating.
 const {
   activeCarIsTesla,
+  activeCarIsXpeng,
   showTeslaSection,
   showAutoSyncSection,
   showSmartcarPitch,
@@ -52,6 +54,18 @@ const {
 } = useImportGating(cars)
 
 const hasXpeng = computed(() => cars.value.some(c => c.brand === 'XPENG'))
+
+// XPeng-AutoSync-Teaser: nur wenn der XPeng das aktive Auto ist und noch keine
+// Verbindung auf AutoSync steht. null = noch nicht geladen -> kein Flackern.
+const xpengAutoSyncActive = ref<boolean | null>(null)
+const autoSyncSection = ref<HTMLElement | null>(null)
+const showXpengTeaser = computed(() => activeCarIsXpeng.value && xpengAutoSyncActive.value === false)
+
+function openXpengAutoSync() {
+  if (activeTab.value !== 'smartcar') toggle('smartcar')
+  analytics.trackImportTabClicked('smartcar')
+  requestAnimationFrame(() => autoSyncSection.value?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+}
 
 // Live-Promo: AutoSync-Abonnent mit Tesla in der Garage. allowLivePromo sperrt
 // sie fuer aktive Tesla (kein Upsell) und aktive XPeng (Live ist Tesla-only).
@@ -102,6 +116,13 @@ onMounted(async () => {
     activeTab.value = 'tesla'
   } else if (authStore.isPremium) {
     activeTab.value = 'smartcar'
+  }
+
+  // Nur XPeng-Besitzer: klaert, ob der AutoSync-Teaser noetig ist.
+  if (hasXpeng.value) {
+    xpengService.listConnections()
+      .then(cs => { xpengAutoSyncActive.value = cs.some(c => c.autoSyncEnabled) })
+      .catch(() => { xpengAutoSyncActive.value = null })
   }
 
   await new Promise(resolve => setTimeout(resolve, 100))
@@ -237,6 +258,31 @@ const teslaConnectedLabel = ref<string | null>(null)
           </div>
         </div>
 
+        <!-- XPeng-AutoSync-Teaser - gruen statt amber: das Feature ist kostenlos,
+             die Amber-Optik ist im Design-System der Kauf-CTA. -->
+        <div v-if="showXpengTeaser"
+             class="mb-3 border border-green-600/60 bg-green-50 dark:bg-green-950/20 rounded-sm shadow-[2px_2px_0_0_#030712] dark:shadow-none p-3 text-center md:text-left">
+          <div class="flex flex-col items-center md:flex-row md:items-start gap-2.5">
+            <div class="shrink-0 rounded-sm bg-green-600/15 dark:bg-green-500/10 p-1.5 w-8 h-8 flex items-center justify-center">
+              <BoltIcon class="h-4 w-4 text-green-700 dark:text-green-400" />
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-green-700 dark:text-green-500 text-[10px] font-bold uppercase tracking-[0.14em] mb-0.5">{{ t('imports.xpeng_teaser_eyebrow') }}</p>
+              <p class="font-bold text-gray-900 dark:text-white text-sm md:text-base mb-1 tracking-tight">{{ t('imports.xpeng_teaser_title') }}</p>
+              <p class="text-xs text-gray-600 dark:text-gray-400 mb-2 leading-relaxed">{{ t('imports.xpeng_teaser_desc') }}</p>
+              <div class="flex flex-col items-center sm:flex-row sm:items-center gap-2">
+                <button
+                  @click="openXpengAutoSync"
+                  class="flex w-full sm:w-auto sm:inline-flex items-center justify-center gap-1.5 bg-green-700 hover:bg-green-600 text-white font-bold uppercase tracking-wider text-[10px] px-3 py-1.5 rounded-sm border border-green-700 active:translate-y-[1px] transition-transform duration-75"
+                >
+                  {{ t('imports.xpeng_teaser_cta') }}
+                </button>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-500">{{ t('imports.xpeng_teaser_hint') }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Accordion -->
         <div class="-mx-4 md:mx-0 border-y-2 md:border-2 border-gray-300 dark:border-gray-700 md:rounded-sm divide-y-2 divide-gray-300 dark:divide-gray-700 overflow-hidden md:shadow-[2px_2px_0_0_#d1d5db] dark:md:shadow-[2px_2px_0_0_#374151]">
 
@@ -268,7 +314,7 @@ const teslaConnectedLabel = ref<string | null>(null)
 
         <!-- 2. AUTOSYNC - fuer Tesla-Fahrer komplett ausgeblendet. Enthaelt den
              Smartcar-Weg (kostenpflichtig) und den XPeng-Weg (EU Data Act, gratis). -->
-        <div v-if="showAutoSyncSection">
+        <div v-if="showAutoSyncSection" ref="autoSyncSection">
           <button
             @click="toggle('smartcar'); analytics.trackImportTabClicked('smartcar')"
             class="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"

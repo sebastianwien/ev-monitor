@@ -1508,6 +1508,11 @@ imports:
   autosync_teaser_desc: Vill du att alla din bils laddningar ska importeras automatiskt - utan att du behöver ange dem manuellt? Med AutoSync är detta nu möjligt för över 28 märken!
   autosync_teaser_cta: Aktivera AutoSync
   autosync_teaser_price: "{priceMonthly} /månad – kan sägas upp när som helst"
+  xpeng_teaser_eyebrow: "XPeng AutoSync"
+  xpeng_teaser_title: "Varje resa och varje laddning automatiskt i loggboken"
+  xpeng_teaser_desc: "Det finns ännu inget officiellt gränssnitt för XPeng. I stället begär vi ut dina fordonsdata åt dig med jämna mellanrum enligt EU:s dataakt - dina resor och laddningar hamnar av sig själva i loggboken, utan inknappning och utan filuppladdning."
+  xpeng_teaser_cta: "Sätt upp AutoSync"
+  xpeng_teaser_hint: "Kan återkallas när som helst"
   smartcar_upgrade_cta: Lås upp nu – {priceMonthly}/månad
   smartcar_upgrade_price: Du kan säga upp prenumerationen när som helst. Säker betalning via Stripe.
   live_promo_title: "Få ut mer av din Tesla"
