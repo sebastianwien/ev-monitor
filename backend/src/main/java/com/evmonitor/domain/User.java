@@ -120,15 +120,6 @@ public class User {
     }
 
     /**
-     * Gate for XPeng AutoSync Phase 2 (automatic EU-Data-Act mail requests + IMAP import).
-     * AUTOSYNC tier suffices; AUTOSYNC_LIVE is not required (but also permitted as a superset).
-     * Privileged roles (ADMIN, BETA_TESTER, TESLA_FOUNDER) are included via canActivateTelemetry().
-     */
-    public boolean canUseXpengAutoSync() {
-        return premium || TELEMETRY_PRIVILEGED_ROLES.contains(role);
-    }
-
-    /**
      * Marken-aware gate for viewing live-detected trips (SMARTCAR_LIVE, TESLA_LIVE,
      * TESLA_INFERRED) in the dashboard. Trip detection is part of the free Tesla tier,
      * so Tesla cars see their live trips regardless of subscription; other brands stay

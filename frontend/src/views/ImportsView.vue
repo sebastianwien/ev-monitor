@@ -18,7 +18,7 @@ import CarSelectDropdown from '../components/car/CarSelectDropdown.vue'
 import type { Car } from '../api/carService'
 import { useCarStore } from '../stores/car'
 import { useImportsTab } from '../composables/useImportsTab'
-import { useTeslaImportGating } from '../composables/useTeslaImportGating'
+import { useImportGating } from '../composables/useImportGating'
 import { apiKeyService, type ApiKeyResponse, type ApiKeyCreatedResponse } from '../api/apiKeyService'
 import { analytics } from '../services/analytics'
 import DemoImportsModal from '../components/demo/DemoImportsModal.vue'
@@ -40,11 +40,23 @@ const subscriptionTier = ref<SubscriptionTier>('NONE')
 const liveUpgradeLoading = ref(false)
 const liveUpgradeError = ref('')
 
-// Live-Promo: shown only when the user is on the AutoSync tier AND has at
-// least one Tesla in their garage. Once on Live, no further upsell needed.
-const hasTesla = computed(() => cars.value.some(c => c.brand === 'TESLA'))
+// Sichtbarkeit aller Import-Sektionen haengt am aktiven Auto - siehe useImportGating.
+const {
+  activeCarIsTesla,
+  showTeslaSection,
+  showAutoSyncSection,
+  showSmartcarPitch,
+  showXpengAutoSync,
+  allowLivePromo,
+  smartcarCars,
+} = useImportGating(cars)
+
 const hasXpeng = computed(() => cars.value.some(c => c.brand === 'XPENG'))
-const showLivePromo = computed(() => subscriptionTier.value === 'AUTOSYNC' && hasTesla.value && purchasesAvailable())
+
+// Live-Promo: AutoSync-Abonnent mit Tesla in der Garage. allowLivePromo sperrt
+// sie fuer aktive Tesla (kein Upsell) und aktive XPeng (Live ist Tesla-only).
+const showLivePromo = computed(() =>
+  subscriptionTier.value === 'AUTOSYNC' && allowLivePromo.value && purchasesAvailable())
 
 async function handleLiveUpgrade() {
   liveUpgradeLoading.value = true
@@ -77,19 +89,24 @@ async function handleLiveUpgrade() {
 }
 
 onMounted(async () => {
-  if (authStore.isPremium) {
-    activeTab.value = 'smartcar'
-  }
+  try {
+    cars.value = await carStore.getCars() ?? []
+  } catch { /* ignore */ }
+
+  // Default-Tab erst nach dem Laden der Autos: Tesla-Fahrer landen im Tesla-Tab,
+  // fuer sie existiert der Smartcar-Tab gar nicht.
   const params = new URLSearchParams(window.location.search)
   if (params.get('smartcar-connected') || params.get('smartcar-error')) {
     activeTab.value = 'smartcar'
+  } else if (activeCarIsTesla.value) {
+    activeTab.value = 'tesla'
+  } else if (authStore.isPremium) {
+    activeTab.value = 'smartcar'
   }
-  try {
-    cars.value = await carStore.getCars() ?? []
-    await new Promise(resolve => setTimeout(resolve, 100))
-  } catch { /* ignore */ } finally {
-    loading.value = false
-  }
+
+  await new Promise(resolve => setTimeout(resolve, 100))
+  loading.value = false
+
   fetchApiKeys()
   subscriptionService.getStatus().then(s => {
     premiumEnabled.value = s.premiumEnabled
@@ -170,8 +187,6 @@ const formatDate = (dateStr: string | null) => {
   return new Date(dateStr).toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
-const { showTeslaTab } = useTeslaImportGating(cars)
-
 const activeCars = computed(() =>
   Array.isArray(cars.value) ? cars.value.filter(c => c.status === 'ACTIVE') : []
 )
@@ -196,8 +211,10 @@ const teslaConnectedLabel = ref<string | null>(null)
           </p>
         </div>
 
-        <!-- AutoSync Pro Teaser — nur wenn Premium-Kauf möglich und User noch kein Abonnent -->
-        <div v-if="premiumEnabled && !authStore.isPremium"
+        <!-- AutoSync Pro Teaser - der Kauf-CTA. Nur wenn der User ueberhaupt ein
+             Smartcar-Fahrzeug hat: Tesla-Telemetry und XPeng-AutoSync sind gratis,
+             das Abo wuerde diesen Fahrzeugen nichts bringen. -->
+        <div v-if="showSmartcarPitch && premiumEnabled && !authStore.isPremium"
              class="mb-3 border border-amber-500/60 bg-amber-50 dark:bg-amber-950/20 rounded-sm shadow-[2px_2px_0_0_#030712] dark:shadow-none p-3 text-center md:text-left">
           <div class="flex flex-col items-center md:flex-row md:items-start gap-2.5">
             <div class="shrink-0 rounded-sm bg-amber-500/15 dark:bg-amber-500/10 p-1.5 w-8 h-8 flex items-center justify-center">
@@ -223,8 +240,35 @@ const teslaConnectedLabel = ref<string | null>(null)
         <!-- Accordion -->
         <div class="-mx-4 md:mx-0 border-y-2 md:border-2 border-gray-300 dark:border-gray-700 md:rounded-sm divide-y-2 divide-gray-300 dark:divide-gray-700 overflow-hidden md:shadow-[2px_2px_0_0_#d1d5db] dark:md:shadow-[2px_2px_0_0_#374151]">
 
-        <!-- 1. SMARTCAR -->
-        <div>
+        <!-- 1. TESLA TELEMETRY - shown to every Tesla owner, first in the list.
+             Tesla Fleet-Telemetry is free (no AutoSync subscription needed), so
+             pairing lives here, decoupled from the paid AutoSync section below
+             (which is Smartcar brands only). -->
+        <div v-if="showTeslaSection">
+          <button
+            @click="toggle('tesla'); analytics.trackImportTabClicked('tesla')"
+            class="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+          >
+            <div class="shrink-0 rounded-sm border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 p-2 w-10 h-10 flex items-center justify-center">
+              <span class="text-gray-900 dark:text-gray-100 font-extrabold text-sm leading-none tracking-tight">T</span>
+            </div>
+            <div class="flex-1 min-w-0">
+              <span class="font-medium text-gray-900 dark:text-gray-100 text-sm">
+                {{ activeTab === 'tesla' && teslaConnectedLabel ? t('tesla.connected_prefix') + ' ' + teslaConnectedLabel : t('imports.tab_tesla_telemetry') }}
+              </span>
+            </div>
+            <ChevronDownIcon :class="['h-5 w-5 text-gray-400 shrink-0 transition-transform duration-200', activeTab === 'tesla' ? 'rotate-180' : '']" />
+          </button>
+          <Transition name="accordion">
+            <div v-if="activeTab === 'tesla'" class="p-4 md:p-5">
+              <TeslaFleetIntegration @connected-label="teslaConnectedLabel = $event" />
+            </div>
+          </Transition>
+        </div>
+
+        <!-- 2. AUTOSYNC - fuer Tesla-Fahrer komplett ausgeblendet. Enthaelt den
+             Smartcar-Weg (kostenpflichtig) und den XPeng-Weg (EU Data Act, gratis). -->
+        <div v-if="showAutoSyncSection">
           <button
             @click="toggle('smartcar'); analytics.trackImportTabClicked('smartcar')"
             class="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
@@ -244,8 +288,8 @@ const teslaConnectedLabel = ref<string | null>(null)
           </button>
           <Transition name="accordion">
             <div v-if="activeTab === 'smartcar'" class="px-1 py-3 md:p-6 space-y-3">
-              <!-- Live-Promo: AutoSync subscriber with at least one Tesla in garage.
-                   Neo-Brutalist Style passend zum Rest des AutoSync-Tabs. -->
+              <!-- Live-Promo: AutoSync-Abonnent mit Tesla in der Garage. Sichtbar nur,
+                   wenn das aktive Auto KEIN Tesla ist - sonst ist diese Sektion weg. -->
               <div v-if="showLivePromo" class="border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] px-3 py-2.5 flex items-center gap-3 flex-wrap sm:flex-nowrap">
                   <div class="flex items-center gap-2 shrink-0">
                     <span class="inline-flex w-5 h-5 bg-indigo-600 text-white rounded-sm items-center justify-center text-[11px] font-extrabold shrink-0">+</span>
@@ -272,21 +316,45 @@ const teslaConnectedLabel = ref<string | null>(null)
                   <p v-if="liveUpgradeError" class="w-full text-xs text-red-600 dark:text-red-400 font-medium">{{ liveUpgradeError }}</p>
               </div>
 
-              <!-- Tile-based picker per car. Smartcar brands only - Tesla is free and
-                   pairs in its own "Tesla Telemetry" tab, XPeng has its own section.
+              <!-- Tile-based picker per car. Smartcar brands only - Tesla pairs in
+                   seiner eigenen Sektion, XPeng laeuft ueber den EU-Data-Act-Weg darunter.
                    Premium=1-active-connection limit is surfaced in tile-locking.
                    Non-premium users see the Smartcar upgrade pitch inside the picker. -->
               <AutoSyncCarPicker
-                :cars="activeCars.filter(c => c.brand !== 'XPENG' && c.brand?.toLowerCase() !== 'tesla')"
+                v-if="showSmartcarPitch"
+                :cars="smartcarCars"
                 :premium-enabled="premiumEnabled"
                 :is-premium="subscriptionIsPremium"
                 :has-auto-sync-access="authStore.isPremium"
                 @active-car-label="autoSyncActiveCarLabel = $event"
               />
-              <XpengAutoSyncImport
-                v-if="hasXpeng"
-                :cars="activeCars"
-              />
+
+              <!-- XPeng-AutoSync (Stufe 2): gratis, laeuft nicht ueber Smartcar. Die
+                   Erklaerung steht bewusst hier und nicht in der Komponente - der User
+                   soll verstehen, was passiert, bevor er die Kachel aufklappt. -->
+              <template v-if="showXpengAutoSync">
+                <div class="border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] p-4 md:p-5">
+                  <p class="text-gray-500 dark:text-gray-400 text-[10px] font-bold uppercase tracking-[0.14em] mb-1">{{ t('xpeng.autosync_intro_eyebrow') }}</p>
+                  <h3 class="font-bold text-gray-900 dark:text-white text-lg mb-2 tracking-tight">{{ t('xpeng.autosync_intro_title') }}</h3>
+
+                  <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed mb-2">{{ t('xpeng.autosync_intro_no_api') }}</p>
+                  <p class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed border-l-2 border-green-600 pl-3 mb-4">{{ t('xpeng.autosync_intro_data_act') }}</p>
+
+                  <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-gray-500 dark:text-gray-400 mb-2">{{ t('xpeng.autosync_intro_steps_title') }}</p>
+                  <ol class="space-y-2.5 mb-4">
+                    <li v-for="i in 5" :key="i" class="flex items-start gap-2.5 text-sm text-gray-700 dark:text-gray-300">
+                      <span class="shrink-0 w-5 h-5 bg-gray-950 dark:bg-gray-700 text-white rounded-sm flex items-center justify-center text-[10px] font-extrabold mt-0.5">{{ i }}</span>
+                      <span class="leading-relaxed">{{ t(`xpeng.autosync_intro_step${i}`) }}</span>
+                    </li>
+                  </ol>
+
+                  <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                    {{ t('xpeng.autosync_intro_manual_hint') }}
+                    <button @click="toggle('xpeng')" class="underline font-bold cursor-pointer hover:no-underline">{{ t('xpeng.autosync_intro_manual_link') }}</button>
+                  </p>
+                </div>
+                <XpengAutoSyncImport :cars="activeCars" />
+              </template>
             </div>
           </Transition>
         </div>
@@ -500,6 +568,10 @@ const teslaConnectedLabel = ref<string | null>(null)
           </button>
           <Transition name="accordion">
             <div v-if="activeTab === 'xpeng'" class="border-t border-gray-100 dark:border-gray-700 p-4">
+              <!-- Bewusst NUR die manuelle Stufe: User fordert selbst bei XPeng an und
+                   laedt die Excel hoch. Der automatische Weg (wir fragen an, wir
+                   verarbeiten) lebt in der AutoSync-Sektion - beides hier waere fuer
+                   den User nicht unterscheidbar. -->
               <XpengImport :cars="activeCars" />
             </div>
           </Transition>
@@ -634,31 +706,6 @@ const teslaConnectedLabel = ref<string | null>(null)
                 <BoltIcon class="h-4 w-4" />
                 {{ t('imports.wallbox_btn') }}
               </router-link>
-            </div>
-          </Transition>
-        </div>
-
-        <!-- 8. TESLA TELEMETRY - shown to every Tesla owner. Tesla Fleet-Telemetry is
-             free (no AutoSync subscription needed), so pairing lives here, decoupled
-             from the paid AutoSync section above (which is Smartcar brands only). -->
-        <div v-if="showTeslaTab">
-          <button
-            @click="toggle('tesla'); analytics.trackImportTabClicked('tesla')"
-            class="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-          >
-            <div class="shrink-0 rounded-sm border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 p-2 w-10 h-10 flex items-center justify-center">
-              <span class="text-gray-900 dark:text-gray-100 font-extrabold text-sm leading-none tracking-tight">T</span>
-            </div>
-            <div class="flex-1 min-w-0">
-              <span class="font-medium text-gray-900 dark:text-gray-100 text-sm">
-                {{ activeTab === 'tesla' && teslaConnectedLabel ? t('tesla.connected_prefix') + ' ' + teslaConnectedLabel : t('imports.tab_tesla_telemetry') }}
-              </span>
-            </div>
-            <ChevronDownIcon :class="['h-5 w-5 text-gray-400 shrink-0 transition-transform duration-200', activeTab === 'tesla' ? 'rotate-180' : '']" />
-          </button>
-          <Transition name="accordion">
-            <div v-if="activeTab === 'tesla'" class="p-4 md:p-5">
-              <TeslaFleetIntegration @connected-label="teslaConnectedLabel = $event" />
             </div>
           </Transition>
         </div>
